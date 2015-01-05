@@ -106,7 +106,7 @@ void FJavaWrapper::CallVoidMethod(JNIEnv* Env, jobject Object, jmethodID Method,
 
 	va_list Args;
 	va_start(Args, Method);
-	Env->CallVoidMethod(Object, Method, Args);
+	Env->CallVoidMethodV(Object, Method, Args);
 	va_end(Args);
 }
 
@@ -119,7 +119,7 @@ jobject FJavaWrapper::CallObjectMethod(JNIEnv* Env, jobject Object, jmethodID Me
 
 	va_list Args;
 	va_start(Args, Method);
-	jobject Return = Env->CallObjectMethod(Object, Method, Args);
+	jobject Return = Env->CallObjectMethodV(Object, Method, Args);
 	va_end(Args);
 
 	return Return;
@@ -134,7 +134,7 @@ bool FJavaWrapper::CallBooleanMethod(JNIEnv* Env, jobject Object, jmethodID Meth
 
 	va_list Args;
 	va_start(Args, Method);
-	jboolean Return = Env->CallBooleanMethod(Object, Method, Args);
+	jboolean Return = Env->CallBooleanMethodV(Object, Method, Args);
 	va_end(Args);
 
 	return (bool)Return;
