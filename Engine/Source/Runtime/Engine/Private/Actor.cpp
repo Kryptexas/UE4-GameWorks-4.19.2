@@ -2048,6 +2048,19 @@ void AActor::UpdateReplicatedComponent(UActorComponent* Component)
 	}
 }
 
+void AActor::UpdateAllReplicatedComponents()
+{
+	ReplicatedComponents.Empty();
+
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (Component != NULL)
+		{
+			UpdateReplicatedComponent(Component);
+		}
+	}
+}
+
 UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
 {
 	UActorComponent* FoundComponent = NULL;
@@ -3426,6 +3439,8 @@ void AActor::PostInitializeComponents()
 		bActorInitialized = true;
 
 		UNavigationSystem::OnActorRegistered(this);
+		
+		UpdateAllReplicatedComponents();
 	}
 }
 

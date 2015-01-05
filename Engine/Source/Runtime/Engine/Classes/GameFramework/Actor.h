@@ -2191,6 +2191,10 @@ public:
 	 */
 	void UpdateReplicatedComponent(UActorComponent* Component);
 
+	/** Completely synchronizes the replicated components array so that it contains exactly the number of replicated components currently owned
+	 */
+	void UpdateAllReplicatedComponents();
+
 	/** Returns a constant reference to the replicated components array
 	 */
 	const TArray<UActorComponent*>& GetReplicatedComponents() const;
