@@ -5,9 +5,9 @@
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "EdGraph/EdGraph.h"
 #include "EdGraphSchema_K2.h"
+#include "K2Node_EditablePinBase.h"
 
 class USCS_Node;
-struct FKismetUserDeclaredFunctionMetadata;
 
 /** 
   * Flags describing how to handle graph removal
