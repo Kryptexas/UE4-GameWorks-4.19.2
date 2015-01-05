@@ -98,6 +98,13 @@ void UParticleModuleCollision::PostInitProperties()
 	}
 }
 
+void UParticleModuleCollision::PostLoad()
+{
+	Super::PostLoad();
+
+	ObjectParams = FCollisionObjectQueryParams(CollisionTypes);
+}
+
 #if WITH_EDITOR
 void UParticleModuleCollision::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
