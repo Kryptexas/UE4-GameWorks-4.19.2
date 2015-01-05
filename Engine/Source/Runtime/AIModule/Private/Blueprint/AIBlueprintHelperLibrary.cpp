@@ -151,6 +151,16 @@ APawn* UAIBlueprintHelperLibrary::SpawnAIFromClass(UObject* WorldContextObject, 
 	return NewPawn;
 }
 
+AAIController* UAIBlueprintHelperLibrary::GetAIController(AActor* ControlledActor)
+{
+	APawn* AsPawn = Cast<APawn>(ControlledActor);
+	if (AsPawn != nullptr)
+	{
+		return Cast<AAIController>(AsPawn->GetController());
+	}
+	return Cast<AAIController>(ControlledActor);
+}
+
 UBlackboardComponent* UAIBlueprintHelperLibrary::GetBlackboard(AActor* Target)
 {
 	UBlackboardComponent* BlackboardComp = nullptr;
