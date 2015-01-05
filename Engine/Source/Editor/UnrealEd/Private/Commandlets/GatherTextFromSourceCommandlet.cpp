@@ -61,7 +61,7 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	//Include paths
 	TArray<FString> IncludePaths;
-	GetConfigArray(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
 
 	if (IncludePaths.Num() == 0)
 	{
@@ -71,11 +71,11 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	//Exclude paths
 	TArray<FString> ExcludePaths;
-	GetConfigArray(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
 
 	// Check the config section for source filters. e.g. *.cpp
 	TArray<FString> SourceFileSearchFilters;
-	GetConfigArray(*SectionName, TEXT("SourceFileSearchFilters"), SourceFileSearchFilters, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("SourceFileSearchFilters"), SourceFileSearchFilters, GatherTextConfigPath);
 
 	if (SourceFileSearchFilters.Num() == 0)
 	{
@@ -155,22 +155,8 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	// Add any manifest dependencies if they were provided
 	TArray<FString> ManifestDependenciesList;
-	GetConfigArray(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
+	GetPathArrayFromConfig(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
 	
-	for (FString& ManifestDependency : ManifestDependenciesList)
-	{
-		if (FPaths::IsRelative(ManifestDependency))
-		{
-			if (!FPaths::GameDir().IsEmpty())
-			{
-				ManifestDependency = FPaths::Combine( *( FPaths::GameDir() ), *ManifestDependency );
-			}
-			else
-			{
-				ManifestDependency = FPaths::Combine( *( FPaths::EngineDir() ), *ManifestDependency );
-			}
-		}
-	}
 
 	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
 	{

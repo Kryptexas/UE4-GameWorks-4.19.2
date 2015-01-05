@@ -707,7 +707,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 
 	//Modules to Preload
 	TArray<FString> ModulesToPreload;
-	GetConfigArray(*SectionName, TEXT("ModulesToPreload"), ModulesToPreload, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("ModulesToPreload"), ModulesToPreload, GatherTextConfigPath);
 
 	for (const FString& ModuleName : ModulesToPreload)
 	{
@@ -716,7 +716,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 
 	//Include paths
 	TArray<FString> IncludePaths;
-	GetConfigArray(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
+	GetPathArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
 
 	if (IncludePaths.Num() == 0)
 	{
@@ -727,17 +727,6 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	for (FString& IncludePath : IncludePaths)
 	{
 		FPaths::NormalizeDirectoryName(IncludePath);
-		if (FPaths::IsRelative(IncludePath))
-		{
-			if (!FPaths::GameDir().IsEmpty())
-			{
-				IncludePath = FPaths::Combine( *( FPaths::GameDir() ), *IncludePath );
-			}
-			else
-			{
-				IncludePath = FPaths::Combine( *( FPaths::EngineDir() ), *IncludePath );
-			}
-		}
 
 		IncludePath = FPaths::ConvertRelativePathToFull(IncludePath);
 
@@ -759,11 +748,11 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 
 	//Exclude paths
 	TArray<FString> ExcludePaths;
-	GetConfigArray(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
 
 	//package extensions
 	TArray<FString> PackageExts;
-	GetConfigArray(*SectionName, TEXT("PackageExtensions"), PackageExts, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("PackageExtensions"), PackageExts, GatherTextConfigPath);
 
 	if (PackageExts.Num() == 0)
 	{
@@ -775,7 +764,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 
 	//asset class exclude
 	TArray<FString> ExcludeClasses;
-	GetConfigArray(*SectionName, TEXT("ExcludeClasses"), ExcludeClasses, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("ExcludeClasses"), ExcludeClasses, GatherTextConfigPath);
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	AssetRegistryModule.Get().SearchAllAssets( true );
@@ -805,26 +794,11 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	}
 
 	//Get whether we should fix broken properties that we find.
-	GetConfigBool(*SectionName, TEXT("bFixBroken"), bFixBroken, GatherTextConfigPath);
+	GetBoolFromConfig(*SectionName, TEXT("bFixBroken"), bFixBroken, GatherTextConfigPath);
 
 	// Add any manifest dependencies if they were provided
 	TArray<FString> ManifestDependenciesList;
-	GetConfigArray(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
-	
-	for (FString& ManifestDependency : ManifestDependenciesList)
-	{
-		if (FPaths::IsRelative(ManifestDependency))
-		{
-			if (!FPaths::GameDir().IsEmpty())
-			{
-				ManifestDependency = FPaths::Combine( *( FPaths::GameDir() ), *ManifestDependency );
-			}
-			else
-			{
-				ManifestDependency = FPaths::Combine( *( FPaths::EngineDir() ), *ManifestDependency );
-			}
-		}
-	}
+	GetPathArrayFromConfig(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
 
 	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
 	{

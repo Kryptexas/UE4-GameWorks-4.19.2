@@ -156,7 +156,7 @@ FString UGatherTextCommandletBase::MungeLogOutput( const FString& InString )
 }
 
 
-bool UGatherTextCommandletBase::GetConfigBool( const TCHAR* Section, const TCHAR* Key, bool& OutValue, const FString& Filename )
+bool UGatherTextCommandletBase::GetBoolFromConfig( const TCHAR* Section, const TCHAR* Key, bool& OutValue, const FString& Filename )
 {
 	bool bSuccess = GConfig->GetBool( Section, Key, OutValue, Filename );
 	
@@ -167,7 +167,7 @@ bool UGatherTextCommandletBase::GetConfigBool( const TCHAR* Section, const TCHAR
 	return bSuccess;
 }
 
-bool UGatherTextCommandletBase::GetConfigString( const TCHAR* Section, const TCHAR* Key, FString& OutValue, const FString& Filename )
+bool UGatherTextCommandletBase::GetStringFromConfig( const TCHAR* Section, const TCHAR* Key, FString& OutValue, const FString& Filename )
 {
 	bool bSuccess = GConfig->GetString( Section, Key, OutValue, Filename );
 
@@ -178,7 +178,28 @@ bool UGatherTextCommandletBase::GetConfigString( const TCHAR* Section, const TCH
 	return bSuccess;
 }
 
-int32 UGatherTextCommandletBase::GetConfigArray( const TCHAR* Section, const TCHAR* Key, TArray<FString>& OutArr, const FString& Filename )
+bool UGatherTextCommandletBase::GetPathFromConfig( const TCHAR* Section, const TCHAR* Key, FString& OutValue, const FString& Filename )
+{
+	bool bSuccess = GetStringFromConfig( Section, Key, OutValue, Filename );
+
+	if( bSuccess )
+	{
+		if (FPaths::IsRelative(OutValue))
+		{
+			if (!FPaths::GameDir().IsEmpty())
+			{
+				OutValue = FPaths::Combine( *( FPaths::GameDir() ), *OutValue );
+			}
+			else
+			{
+				OutValue = FPaths::Combine( *( FPaths::EngineDir() ), *OutValue );
+			}
+		}
+	}
+	return bSuccess;
+}
+
+int32 UGatherTextCommandletBase::GetStringArrayFromConfig( const TCHAR* Section, const TCHAR* Key, TArray<FString>& OutArr, const FString& Filename )
 {
 	int32 count = GConfig->GetArray( Section, Key, OutArr, Filename );
 
@@ -189,6 +210,26 @@ int32 UGatherTextCommandletBase::GetConfigArray( const TCHAR* Section, const TCH
 	return count;
 }
 
+int32 UGatherTextCommandletBase::GetPathArrayFromConfig( const TCHAR* Section, const TCHAR* Key, TArray<FString>& OutArr, const FString& Filename )
+{
+	int32 count = GetStringArrayFromConfig( Section, Key, OutArr, Filename );
+
+	for (int32 i = 0; i < count; ++i)
+	{
+		if (FPaths::IsRelative(OutArr[i]))
+		{
+			if (!FPaths::GameDir().IsEmpty())
+			{
+				OutArr[i] = FPaths::Combine( *( FPaths::GameDir() ), *OutArr[i] );
+			}
+			else
+			{
+				OutArr[i] = FPaths::Combine( *( FPaths::EngineDir() ), *OutArr[i] );
+			}
+		}
+	}
+	return count;
+}
 
 bool FManifestInfo::AddManifestDependency( const FString& InManifestFilePath )
 {

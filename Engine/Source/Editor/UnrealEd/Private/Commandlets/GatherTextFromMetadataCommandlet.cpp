@@ -51,7 +51,7 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 
 	//Modules to Preload
 	TArray<FString> ModulesToPreload;
-	GetConfigArray(*SectionName, TEXT("ModulesToPreload"), ModulesToPreload, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("ModulesToPreload"), ModulesToPreload, GatherTextConfigPath);
 
 	for (const FString& ModuleName : ModulesToPreload)
 	{
@@ -60,7 +60,7 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 
 	//Include paths
 	TArray<FString> IncludePaths;
-	GetConfigArray(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
+	GetPathArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
 
 	if (IncludePaths.Num() == 0)
 	{
@@ -71,17 +71,6 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 	for (FString& IncludePath : IncludePaths)
 	{
 		FPaths::NormalizeDirectoryName(IncludePath);
-		if (FPaths::IsRelative(IncludePath))
-		{
-			if (!FPaths::GameDir().IsEmpty())
-			{
-				IncludePath = FPaths::Combine( *( FPaths::GameDir() ), *IncludePath );
-			}
-			else
-			{
-				IncludePath = FPaths::Combine( *( FPaths::EngineDir() ), *IncludePath );
-			}
-		}
 
 		IncludePath = FPaths::ConvertRelativePathToFull(IncludePath);
 
@@ -103,11 +92,11 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 
 	//Exclude paths
 	TArray<FString> ExcludePaths;
-	GetConfigArray(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
 
 	//Required module names
 	TArray<FString> RequiredModuleNames;
-	GetConfigArray(*SectionName, TEXT("RequiredModuleNames"), RequiredModuleNames, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("RequiredModuleNames"), RequiredModuleNames, GatherTextConfigPath);
 
 	// Pre-load all required modules so that UFields from those modules can be guaranteed a chance to have their metadata gathered.
 	for(const FString& RequiredModuleName : RequiredModuleNames)
@@ -116,10 +105,10 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 	}
 
 	FGatherParameters Arguments;
-	GetConfigArray(*SectionName, TEXT("InputKeys"), Arguments.InputKeys, GatherTextConfigPath);
-	GetConfigArray(*SectionName, TEXT("OutputNamespaces"), Arguments.OutputNamespaces, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("InputKeys"), Arguments.InputKeys, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("OutputNamespaces"), Arguments.OutputNamespaces, GatherTextConfigPath);
 	TArray<FString> OutputKeys;
-	GetConfigArray(*SectionName, TEXT("OutputKeys"), OutputKeys, GatherTextConfigPath);
+	GetStringArrayFromConfig(*SectionName, TEXT("OutputKeys"), OutputKeys, GatherTextConfigPath);
 	for(const auto& OutputKey : OutputKeys)
 	{
 		Arguments.OutputKeys.Add(FText::FromString(OutputKey));
@@ -130,22 +119,8 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 
 	// Add any manifest dependencies if they were provided
 	TArray<FString> ManifestDependenciesList;
-	GetConfigArray(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
-	
-	for (FString& ManifestDependency : ManifestDependenciesList)
-	{
-		if (FPaths::IsRelative(ManifestDependency))
-		{
-			if (!FPaths::GameDir().IsEmpty())
-			{
-				ManifestDependency = FPaths::Combine( *( FPaths::GameDir() ), *ManifestDependency );
-			}
-			else
-			{
-				ManifestDependency = FPaths::Combine( *( FPaths::EngineDir() ), *ManifestDependency );
-			}
-		}
-	}
+	GetPathArrayFromConfig(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
+
 
 	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
 	{

@@ -1039,7 +1039,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 {
 	// Get manifest name.
 	FString ManifestName;
-	if( !GetConfigString( *SectionName, TEXT("ManifestName"), ManifestName, ConfigPath ) )
+	if( !GetStringFromConfig( *SectionName, TEXT("ManifestName"), ManifestName, ConfigPath ) )
 	{
 		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No manifest name specified.") );
 		return false;
@@ -1047,7 +1047,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 
 	// Get archive name.
 	FString ArchiveName;
-	if( !( GetConfigString(* SectionName, TEXT("ArchiveName"), ArchiveName, ConfigPath ) ) )
+	if( !( GetStringFromConfig(* SectionName, TEXT("ArchiveName"), ArchiveName, ConfigPath ) ) )
 	{
 		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No archive name specified."));
 		return false;
@@ -1055,7 +1055,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 
 	// Get culture directory setting, default to true if not specified (used to allow picking of export directory with windows file dialog from Translation Editor)
 	bool bUseCultureDirectory = true;
-	if (!(GetConfigBool(*SectionName, TEXT("bUseCultureDirectory"), bUseCultureDirectory, ConfigPath)))
+	if (!(GetBoolFromConfig(*SectionName, TEXT("bUseCultureDirectory"), bUseCultureDirectory, ConfigPath)))
 	{
 		bUseCultureDirectory = true;
 	}
@@ -1187,7 +1187,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 {
 	// Get manifest name.
 	FString ManifestName;
-	if( !GetConfigString( *SectionName, TEXT("ManifestName"), ManifestName, ConfigPath ) )
+	if( !GetStringFromConfig( *SectionName, TEXT("ManifestName"), ManifestName, ConfigPath ) )
 	{
 		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No manifest name specified.") );
 		return false;
@@ -1195,7 +1195,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 
 	// Get archive name.
 	FString ArchiveName;
-	if( !( GetConfigString(* SectionName, TEXT("ArchiveName"), ArchiveName, ConfigPath ) ) )
+	if( !( GetStringFromConfig(* SectionName, TEXT("ArchiveName"), ArchiveName, ConfigPath ) ) )
 	{
 		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No archive name specified."));
 		return false;
@@ -1203,7 +1203,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 
 	// Get culture directory setting, default to true if not specified (used to allow picking of import directory with file open dialog from Translation Editor)
 	bool bUseCultureDirectory = true;
-	if (!(GetConfigBool(*SectionName, TEXT("bUseCultureDirectory"), bUseCultureDirectory, ConfigPath)))
+	if (!(GetBoolFromConfig(*SectionName, TEXT("bUseCultureDirectory"), bUseCultureDirectory, ConfigPath)))
 	{
 		bUseCultureDirectory = true;
 	}
@@ -1355,52 +1355,28 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 
 
 	FString SourcePath; // Source path to the root folder that manifest/archive files live in.
-	if( !GetConfigString( *SectionName, TEXT("SourcePath"), SourcePath, ConfigPath ) )
+	if( !GetPathFromConfig( *SectionName, TEXT("SourcePath"), SourcePath, ConfigPath ) )
 	{
 		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No source path specified.") );
 		return -1;
 	}
 
-	if (FPaths::IsRelative(SourcePath))
-	{
-		if (!FPaths::GameDir().IsEmpty())
-		{
-			SourcePath = FPaths::Combine( *( FPaths::GameDir() ), *SourcePath );
-		}
-		else
-		{
-			SourcePath = FPaths::Combine( *( FPaths::EngineDir() ), *SourcePath );
-		}
-	}
-
 	FString DestinationPath; // Destination path that we will write files to.
-	if( !GetConfigString( *SectionName, TEXT("DestinationPath"), DestinationPath, ConfigPath ) )
+	if( !GetPathFromConfig( *SectionName, TEXT("DestinationPath"), DestinationPath, ConfigPath ) )
 	{
 		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No destination path specified.") );
 		return -1;
 	}
 
-	if (FPaths::IsRelative(DestinationPath))
-	{
-		if (!FPaths::GameDir().IsEmpty())
-		{
-			DestinationPath = FPaths::Combine( *( FPaths::GameDir() ), *DestinationPath );
-		}
-		else
-		{
-			DestinationPath = FPaths::Combine( *( FPaths::EngineDir() ), *DestinationPath );
-		}
-	}
-
 	FString Filename; // Name of the file to read or write from
-	if (!GetConfigString(*SectionName, TEXT("PortableObjectName"), Filename, ConfigPath))
+	if (!GetStringFromConfig(*SectionName, TEXT("PortableObjectName"), Filename, ConfigPath))
 	{
 		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No portable object name specified."));
 		return -1;
 	}
 
 	// Get cultures to generate.
-	if( GetConfigArray(*SectionName, TEXT("CulturesToGenerate"), CulturesToGenerate, ConfigPath) == 0 )
+	if( GetStringArrayFromConfig(*SectionName, TEXT("CulturesToGenerate"), CulturesToGenerate, ConfigPath) == 0 )
 	{
 		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No cultures specified for generation."));
 		return -1;
@@ -1410,8 +1386,8 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 	bool bDoExport = false;
 	bool bDoImport = false;
 
-	GetConfigBool( *SectionName, TEXT("bExportLoc"), bDoExport, ConfigPath );
-	GetConfigBool( *SectionName, TEXT("bImportLoc"), bDoImport, ConfigPath );
+	GetBoolFromConfig( *SectionName, TEXT("bExportLoc"), bDoExport, ConfigPath );
+	GetBoolFromConfig( *SectionName, TEXT("bImportLoc"), bDoImport, ConfigPath );
 	
 	if( !bDoImport && !bDoExport )
 	{
