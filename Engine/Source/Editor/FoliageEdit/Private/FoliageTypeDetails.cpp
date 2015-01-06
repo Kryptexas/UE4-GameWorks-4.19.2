@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "FoliageEditModule.h"
+#include "PropertyEditing.h"
 #include "FoliageTypeDetails.h"
 
 TSharedRef<IDetailCustomization> FFoliageTypeDetails::MakeInstance()
