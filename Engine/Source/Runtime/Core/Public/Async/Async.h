@@ -182,14 +182,14 @@ TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Fun
 			TAsyncRunnable<ResultType>* Runnable = new TAsyncRunnable<ResultType>(MoveTemp(Function), MoveTemp(Promise), ThreadPromise.GetFuture());
 			FRunnableThread* RunnableThread = FRunnableThread::Create(Runnable, TEXT("TAsync"));
 
-			check(RunnableThread != nullptr)
+			check(RunnableThread != nullptr);
 
 			ThreadPromise.SetValue(RunnableThread);
 		}
 		break;
 
 	default:
-		check(false) // not implemented yet!
+		check(false); // not implemented yet!
 	}
 
 	return MoveTemp(Future);
