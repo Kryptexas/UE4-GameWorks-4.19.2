@@ -56,8 +56,7 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Transient, DuplicateTransient)
-	TArray<FClusterNode> ClusterTree;
+	TSharedPtr<TArray<FClusterNode>, ESPMode::ThreadSafe> ClusterTreePtr;
 	
 	// Table for remaping instances from cluster tree to PerInstanceSMData order
 	UPROPERTY()
@@ -74,6 +73,9 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	bool bIsAsyncBuilding;
 	bool bConcurrentRemoval;
 
+	UPROPERTY()
+	bool bDisableCollision;
+
 	// Apply the results of the async build
 	void ApplyBuildTreeAsync(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, TSharedRef<FClusterBuilder, ESPMode::ThreadSafe> Builder, double StartTime);
 
@@ -88,8 +90,24 @@ public:
 	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace) override;
 	virtual void ClearInstances() override;
 
+	virtual bool ShouldCreatePhysicsState() const override;
+
 	void BuildTree();
 	void BuildTreeAsync();
+	static void BuildTreeAnyThread(
+		const TArray<FInstancedStaticMeshInstanceData>& PerInstanceSMData, 
+		const FBox& MeshBox,
+		TArray<FClusterNode>& OutClusterTree,
+		TArray<int32>& OutSortedInstances,
+		TArray<int32>& OutInstanceReorderTable,
+		int32 MaxInstancesPerLeaf
+		);
+	void AcceptPrebuiltTree(
+		TArray<FClusterNode>& InClusterTree,
+		TArray<int32>& InSortedInstances,
+		TArray<int32>& InInstanceReorderTable
+		);
+	void BuildFlatTree(const TArray<int32>& LeafInstanceCounts);
 	bool IsAsyncBuilding() const { return bIsAsyncBuilding; }
 	bool IsTreeFullyBuilt() const { return NumBuiltInstances == PerInstanceSMData.Num() && RemovedInstances.Num() == 0; }
 

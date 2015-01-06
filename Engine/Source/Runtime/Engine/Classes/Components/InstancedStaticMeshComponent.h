@@ -120,7 +120,7 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
 	void SetCullDistances(int32 StartCullDistance, int32 EndCullDistance);
 
-	virtual bool ShouldCreatePhysicsState() const;
+	virtual bool ShouldCreatePhysicsState() const override;
 
 public:
 #if WITH_EDITOR
