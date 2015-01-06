@@ -2290,13 +2290,10 @@ void APlayerController::BuildInputStack(TArray<UInputComponent*>& InputStack)
 			}
 
 			// See if there is another InputComponent that was added to the Pawn's components array (possibly by script).
-			TInlineComponentArray<UInputComponent*> Components;
-			ControlledPawn->GetComponents(Components);
-
-			for (int32 i=0; i < Components.Num(); i++)
+			for (UActorComponent* ActorComponent : ControlledPawn->GetComponents())
 			{
-				UInputComponent* PawnInputComponent = Components[i];
-				if (PawnInputComponent != ControlledPawn->InputComponent)
+				UInputComponent* PawnInputComponent = Cast<UInputComponent>(ActorComponent);
+				if (PawnInputComponent && PawnInputComponent != ControlledPawn->InputComponent)
 				{
 					InputStack.Push(PawnInputComponent);
 				}

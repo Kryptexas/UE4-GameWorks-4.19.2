@@ -2683,26 +2683,19 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 
 	TSet<UHierarchicalInstancedStaticMeshComponent *> ToDestroy;
 
-	TInlineComponentArray<UHierarchicalInstancedStaticMeshComponent*> FoliageComps;
-	GetComponents(FoliageComps);
-	for (UHierarchicalInstancedStaticMeshComponent* Component : FoliageComps)
+	for (UActorComponent* ActorComponent : GetComponents())
 	{
-		if (!StillUsed.Contains(Component))
+		UHierarchicalInstancedStaticMeshComponent* HComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(ActorComponent);
+		if (HComponent && !StillUsed.Contains(HComponent))
 		{
-			ToDestroy.Add(Component);
+			ToDestroy.Add(HComponent);
 		}
 	}
 
-	TArray<USceneComponent*> AttachedFoliageComponents = RootComponent->AttachChildren.FilterByPredicate(
-		[](USceneComponent* Component)
-	{
-		return Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
-	});
-
 	// Destroy any attached but un-owned foliage components
-	for (USceneComponent* Component : AttachedFoliageComponents)
+	for (USceneComponent* SceneComponent : RootComponent->AttachChildren)
 	{
-		UHierarchicalInstancedStaticMeshComponent* HComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
+		UHierarchicalInstancedStaticMeshComponent* HComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(SceneComponent);
 		if (HComponent && !StillUsed.Contains(HComponent))
 		{
 			ToDestroy.Add(HComponent);
