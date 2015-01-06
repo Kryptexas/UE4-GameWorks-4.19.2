@@ -457,7 +457,7 @@ void FLevelEditorActionCallbacks::SetMaterialQualityLevel( EMaterialQualityLevel
 
 	//Ensure the material quality cvar is also set.
 	static IConsoleVariable* MaterialQualityLevelVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MaterialQualityLevel"));
-	MaterialQualityLevelVar->Set(NewQualityLevel, ECVF_SetByConsole);
+	MaterialQualityLevelVar->Set(NewQualityLevel, ECVF_SetByScalability);
 
 	GUnrealEd->RedrawAllViewports();
 }
