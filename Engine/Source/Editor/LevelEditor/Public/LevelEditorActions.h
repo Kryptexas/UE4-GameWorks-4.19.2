@@ -122,6 +122,9 @@ public:
 	/** Goes to the documentation for the selected actor's class. */
 	TSharedPtr< FUICommandInfo > GoToDocsForActor;
 
+	/** Customize the script behavior of an instance. */
+	TSharedPtr< FUICommandInfo > AddScriptBehavior;
+
 	/** Paste actor at click location*/
 	TSharedPtr< FUICommandInfo > PasteHere;
 
@@ -791,6 +794,9 @@ public:
 
 	/** Called when 'Go to Documentation for Actor' is clicked */
 	static void GoToDocsForActor_Clicked();
+
+	/** Called when 'Add Script Behavior' is clicked */
+	static void AddScriptBehavior_Clicked();
 
 	/**
 	 * Called when the LockActorMovement command is executed

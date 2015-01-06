@@ -536,6 +536,24 @@ UObject* ULevelFactory::FactoryCreateText
 					}
 				}
 
+				// If we're pasting from a class that belongs to a map we need to duplicate the class and use that instead
+				if (FBlueprintEditorUtils::IsAnonymousBlueprintClass(TempClass))
+				{
+					UBlueprint* NewBP = DuplicateObject(CastChecked<UBlueprint>(TempClass->ClassGeneratedBy), World->GetCurrentLevel(), *FString::Printf(TEXT("%s_BPClass"), *ActorUniqueName.ToString()));
+					if (NewBP)
+					{
+						NewBP->ClearFlags(RF_Standalone);
+
+						FKismetEditorUtilities::CompileBlueprint(NewBP, false, true);
+
+						TempClass = NewBP->GeneratedClass;
+
+						// Since we changed the class we can't use an Archetype,
+						// however that is fine since we will have been editing the CDO anyways
+						Archetype = nullptr;
+					}
+				}
+
 				if (TempClass->IsChildOf(AWorldSettings::StaticClass()))
 				{
 					// if we see a WorldSettings, then we are importing an entire level, so if we
