@@ -6,6 +6,7 @@
 #include "PreviewScene.h"
 #include "ImageUtils.h"
 #include "CascadePreviewViewportClient.h"
+#include "SCascadePreviewViewport.h"
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/VectorField/ParticleModuleVectorFieldLocal.h"
