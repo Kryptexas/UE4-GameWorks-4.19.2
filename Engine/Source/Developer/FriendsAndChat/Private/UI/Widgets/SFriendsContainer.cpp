@@ -9,6 +9,7 @@
 #include "SFriendRequest.h"
 #include "SFriendsStatus.h"
 #include "SFriendsUserSettings.h"
+#include "SFriendsToolTip.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsContainer"
 
@@ -82,6 +83,7 @@ public:
 						.Padding(4, 0, 0, 0)
 						[
 							SNew(SButton)
+							.ToolTip(CreateAddFriendToolTip())
 							.ButtonStyle(&FriendStyle.AddFriendButtonStyle)
 							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
 							.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
@@ -173,6 +175,13 @@ public:
 
 private:
 
+	TSharedPtr<SToolTip> CreateAddFriendToolTip()
+	{
+		const FText AddFriendToolTipText = LOCTEXT( "FriendContain_AddFriendToolTip", "Add friend by account name or email" );
+		return SNew(SFriendsToolTip)
+		.DisplayText(AddFriendToolTipText)
+		.FriendStyle(&FriendStyle);
+	}
 
 	FReply HandleAddFriendButtonClicked()
 	{
