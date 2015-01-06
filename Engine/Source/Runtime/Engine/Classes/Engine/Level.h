@@ -667,6 +667,11 @@ public:
 	ENGINE_API class ULevelScriptBlueprint* GetLevelScriptBlueprint(bool bDontCreate=false);
 
 	/**
+	 *  Returns a list of all blueprints contained within the level
+	 */
+	ENGINE_API TArray<class UBlueprint*> GetLevelBlueprints() const;
+
+	/**
 	 *  Called when the level script blueprint has been successfully changed and compiled.  Handles creating an instance of the blueprint class in LevelScriptActor
 	 */
 	ENGINE_API void OnLevelScriptBlueprintChanged(class ULevelScriptBlueprint* InBlueprint);

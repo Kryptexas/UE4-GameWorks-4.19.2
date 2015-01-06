@@ -1629,6 +1629,24 @@ bool ULevel::HasAnyActorsOfType(UClass *SearchType)
 
 #if WITH_EDITOR
 
+TArray<UBlueprint*> ULevel::GetLevelBlueprints() const
+{
+	TArray<UBlueprint*> LevelBlueprints;
+	TArray<UObject*> LevelChildren;
+	GetObjectsWithOuter(this, LevelChildren, false, RF_PendingKill);
+
+	for (UObject* LevelChild : LevelChildren)
+	{
+		UBlueprint* LevelChildBP = Cast<UBlueprint>(LevelChild);
+		if (LevelChildBP)
+		{
+			LevelBlueprints.Add(LevelChildBP);
+		}
+	}
+
+	return LevelBlueprints;
+}
+
 ULevelScriptBlueprint* ULevel::GetLevelScriptBlueprint(bool bDontCreate)
 {
 	const FString LevelScriptName = ULevelScriptBlueprint::CreateLevelScriptNameFromLevel(this);
