@@ -150,7 +150,7 @@ private:
 #endif
 
 template<typename DataType>
-inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint, float>& BrushInfo, TArray<DataType>& Data, const float DetailScale, const float ApplyRatio = 1.f)
+inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, FLandscapeBrushData& BrushInfo, TArray<DataType>& Data, const float DetailScale, const float ApplyRatio = 1.0f)
 {
 #if WITH_KISSFFT
 	// Low-pass filter
@@ -165,12 +165,15 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 	kiss_fft_cpx *buf = (kiss_fft_cpx *)KISS_FFT_MALLOC(sizeof(kiss_fft_cpx) * Dims[0] * Dims[1]);
 	kiss_fft_cpx *out = (kiss_fft_cpx *)KISS_FFT_MALLOC(sizeof(kiss_fft_cpx) * Dims[0] * Dims[1]);
 
-	for (int X = X1 + 1; X <= X2 - 1 - FFTWidth % 2; X++)
+	for (int Y = Y1 + 1; Y <= Y2 - 1 - FFTHeight % 2; Y++)
 	{
-		for (int Y = Y1 + 1; Y <= Y2 - 1 - FFTHeight % 2; Y++)
+		auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+		auto* bufScanline = buf + (Y - (Y1 + 1)) * Dims[1] + (0 - (X1 + 1));
+
+		for (int X = X1 + 1; X <= X2 - 1 - FFTWidth % 2; X++)
 		{
-			buf[(X - X1 - 1) + (Y - Y1 - 1)*(Dims[1])].r = Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)];
-			buf[(X - X1 - 1) + (Y - Y1 - 1)*(Dims[1])].i = 0;
+			bufScanline[X].r = DataScanline[X];
+			bufScanline[X].i = 0;
 		}
 	}
 
@@ -180,7 +183,7 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 	int32 CenterPos[2] = { Dims[0] >> 1, Dims[1] >> 1 };
 	for (int Y = 0; Y < Dims[0]; Y++)
 	{
-		float DistFromCenter = 0.f;
+		float DistFromCenter = 0.0f;
 		for (int X = 0; X < Dims[1]; X++)
 		{
 			if (Y < CenterPos[0])
@@ -210,7 +213,7 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 				}
 			}
 			// High frequency removal
-			float Ratio = 1.f - DetailScale;
+			float Ratio = 1.0f - DetailScale;
 			float Dist = FMath::Min<float>((Dims[0] * Ratio)*(Dims[0] * Ratio), (Dims[1] * Ratio)*(Dims[1] * Ratio));
 			float Filter = 1.0 / (1.0 + DistFromCenter / Dist);
 			out[X + Y*Dims[1]].r *= Filter;
@@ -222,15 +225,24 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 	kiss_fftnd(sti, out, buf);
 
 	float Scale = Dims[0] * Dims[1];
-	for (auto It = BrushInfo.CreateConstIterator(); It; ++It)
+	const int32 BrushX1 = FMath::Max<int32>(BrushInfo.GetBounds().Min.X, X1 + 1);
+	const int32 BrushY1 = FMath::Max<int32>(BrushInfo.GetBounds().Min.Y, Y1 + 1);
+	const int32 BrushX2 = FMath::Min<int32>(BrushInfo.GetBounds().Max.X, X2 - FFTWidth % 2);
+	const int32 BrushY2 = FMath::Min<int32>(BrushInfo.GetBounds().Max.Y, Y2 - FFTHeight % 2);
+	for (int32 Y = BrushY1; Y < BrushY2; Y++)
 	{
-		int32 X, Y;
-		ALandscape::UnpackKey(It.Key(), X, Y);
+		const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+		auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+		auto* bufScanline = buf + (Y - (Y1 + 1)) * Dims[1] + (0 - (X1 + 1));
 
-		if (It.Value() > 0.f)
+		for (int32 X = BrushX1; X < BrushX2; X++)
 		{
-			Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = FMath::Lerp((float)Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)], buf[(X - X1 - 1) + (Y - Y1 - 1)*(Dims[1])].r / Scale, It.Value() * ApplyRatio);
-			//buf[(X-X1-1) + (Y-Y1-1)*(Dims[1])].r / Scale;
+			const float BrushValue = BrushScanline[X];
+
+			if (BrushValue > 0.0f)
+			{
+				DataScanline[X] = FMath::Lerp((float)DataScanline[X], bufScanline[X].r / Scale, BrushValue * ApplyRatio);
+			}
 		}
 	}
 
@@ -256,6 +268,7 @@ struct TLandscapeEditCache
 	{
 	}
 
+	// X2/Y2 Coordinates are "inclusive" max values
 	void CacheData(int32 X1, int32 Y1, int32 X2, int32 Y2)
 	{
 		if (!Valid)
@@ -390,10 +403,10 @@ struct TLandscapeEditCache
 		AccessorType* P11 = CachedData.Find(ALandscape::MakeKey(X + 1, Y + 1));
 
 		// Search for nearest value if missing data
-		float V00 = P00 ? *P00 : (P10 ? *P10 : (P01 ? *P01 : (P11 ? *P11 : 0.f)));
-		float V10 = P10 ? *P10 : (P00 ? *P00 : (P11 ? *P11 : (P01 ? *P01 : 0.f)));
-		float V01 = P01 ? *P01 : (P00 ? *P00 : (P11 ? *P11 : (P10 ? *P10 : 0.f)));
-		float V11 = P11 ? *P11 : (P10 ? *P10 : (P01 ? *P01 : (P00 ? *P00 : 0.f)));
+		float V00 = P00 ? *P00 : (P10 ? *P10 : (P01 ? *P01 : (P11 ? *P11 : 0.0f)));
+		float V10 = P10 ? *P10 : (P00 ? *P00 : (P11 ? *P11 : (P01 ? *P01 : 0.0f)));
+		float V01 = P01 ? *P01 : (P00 ? *P00 : (P11 ? *P11 : (P10 ? *P10 : 0.0f)));
+		float V11 = P11 ? *P11 : (P10 ? *P10 : (P01 ? *P01 : (P00 ? *P00 : 0.0f)));
 
 		return FMath::Lerp(
 			FMath::Lerp(V00, V10, LandscapeX - X),
@@ -409,15 +422,15 @@ struct TLandscapeEditCache
 		AccessorType* P11 = CachedData.Find(ALandscape::MakeKey(X + 1, Y + 1));
 
 		// Search for nearest value if missing data
-		float V00 = P00 ? *P00 : (P10 ? *P10 : (P01 ? *P01 : (P11 ? *P11 : 0.f)));
-		float V10 = P10 ? *P10 : (P00 ? *P00 : (P11 ? *P11 : (P01 ? *P01 : 0.f)));
-		float V01 = P01 ? *P01 : (P00 ? *P00 : (P11 ? *P11 : (P10 ? *P10 : 0.f)));
-		float V11 = P11 ? *P11 : (P10 ? *P10 : (P01 ? *P01 : (P00 ? *P00 : 0.f)));
+		float V00 = P00 ? *P00 : (P10 ? *P10 : (P01 ? *P01 : (P11 ? *P11 : 0.0f)));
+		float V10 = P10 ? *P10 : (P00 ? *P00 : (P11 ? *P11 : (P01 ? *P01 : 0.0f)));
+		float V01 = P01 ? *P01 : (P00 ? *P00 : (P11 ? *P11 : (P10 ? *P10 : 0.0f)));
+		float V11 = P11 ? *P11 : (P10 ? *P10 : (P01 ? *P01 : (P00 ? *P00 : 0.0f)));
 
-		FVector Vert00 = FVector(0.f, 0.f, V00);
-		FVector Vert01 = FVector(0.f, 1.f, V01);
-		FVector Vert10 = FVector(1.f, 0.f, V10);
-		FVector Vert11 = FVector(1.f, 1.f, V11);
+		FVector Vert00 = FVector(0.0f, 0.0f, V00);
+		FVector Vert01 = FVector(0.0f, 1.0f, V01);
+		FVector Vert10 = FVector(1.0f, 0.0f, V10);
+		FVector Vert11 = FVector(1.0f, 1.0f, V11);
 
 		FVector FaceNormal1 = ((Vert00 - Vert10) ^ (Vert10 - Vert11)).GetSafeNormal();
 		FVector FaceNormal2 = ((Vert11 - Vert01) ^ (Vert01 - Vert00)).GetSafeNormal();
@@ -449,6 +462,7 @@ struct TLandscapeEditCache
 		return Value == 0;
 	}
 
+	// X2/Y2 Coordinates are "inclusive" max values
 	bool GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& OutData)
 	{
 		int32 NumSamples = (1 + X2 - X1)*(1 + Y2 - Y1);
@@ -475,6 +489,7 @@ struct TLandscapeEditCache
 		return bHasNonZero;
 	}
 
+	// X2/Y2 Coordinates are "inclusive" max values
 	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
 	{
 		// Update cache
@@ -491,6 +506,7 @@ struct TLandscapeEditCache
 	}
 
 	// Get the original data before we made any changes with the SetCachedData interface.
+	// X2/Y2 Coordinates are "inclusive" max values
 	void GetOriginalData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& OutOriginalData)
 	{
 		int32 NumSamples = (1 + X2 - X1)*(1 + Y2 - Y1);
@@ -518,6 +534,7 @@ struct TLandscapeEditCache
 protected:
 	Accessor& DataAccess;
 private:
+	// X2/Y2 Coordinates are "inclusive" max values
 	void CacheOriginalData(int32 X1, int32 Y1, int32 X2, int32 Y2)
 	{
 		for (int32 Y = Y1; Y <= Y2; Y++)
@@ -626,7 +643,7 @@ struct FHeightmapAccessor
 					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(CollisionComponent->GetComponentLevel());
 					if (IFA)
 					{
-						CollisionComponent->SnapFoliageInstances(*IFA, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
+						CollisionComponent->SnapFoliageInstances(*IFA, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.0f));
 					}
 				}
 			}
@@ -722,7 +739,7 @@ struct FXYOffsetmapAccessor
 				FVector* Value = Data.Find(ALandscape::MakeKey(X, Y));
 				if (Value)
 				{
-					Value->Z = ((float)NewHeights.FindRef(ALandscape::MakeKey(X, Y)) - 32768.f) * LANDSCAPE_ZSCALE;
+					Value->Z = ((float)NewHeights.FindRef(ALandscape::MakeKey(X, Y)) - 32768.0f) * LANDSCAPE_ZSCALE;
 				}
 			}
 		}
@@ -741,7 +758,7 @@ struct FXYOffsetmapAccessor
 				FVector* Value = Data.Find(ALandscape::MakeKey(X, Y));
 				if (Value)
 				{
-					Value->Z = ((float)NewHeights.FindRef(ALandscape::MakeKey(X, Y)) - 32768.f) * LANDSCAPE_ZSCALE;
+					Value->Z = ((float)NewHeights.FindRef(ALandscape::MakeKey(X, Y)) - 32768.0f) * LANDSCAPE_ZSCALE;
 				}
 			}
 		}
@@ -762,7 +779,7 @@ struct FXYOffsetmapAccessor
 			{
 				for (int32 X = X1; X <= X2; ++X)
 				{
-					NewHeights[X - X1 + (Y - Y1) * (X2 - X1 + 1)] = FMath::Clamp<uint16>(Data[(X - X1 + (Y - Y1) * (X2 - X1 + 1))].Z * LANDSCAPE_INV_ZSCALE + 32768.f, 0, 65535);
+					NewHeights[X - X1 + (Y - Y1) * (X2 - X1 + 1)] = FMath::Clamp<uint16>(Data[(X - X1 + (Y - Y1) * (X2 - X1 + 1))].Z * LANDSCAPE_INV_ZSCALE + 32768.0f, 0, 65535);
 				}
 			}
 
@@ -801,7 +818,7 @@ struct FXYOffsetmapAccessor
 				{
 					ULandscapeHeightfieldCollisionComponent* CollisionComponent = CollisionComponents[Index];
 					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(CollisionComponent->GetComponentLevel());
-					CollisionComponent->SnapFoliageInstances(*IFA, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
+					CollisionComponent->SnapFoliageInstances(*IFA, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.0f));
 				}
 			}
 			else
@@ -1185,20 +1202,20 @@ struct FHeightmapToolTarget
 			// Adjust strength based on brush size and drawscale, so strength 1 = one hemisphere
 			return BrushRadius * LANDSCAPE_INV_ZSCALE / (LandscapeInfo->DrawScale.Z);
 		}
-		return 5.f * LANDSCAPE_INV_ZSCALE;
+		return 5.0f * LANDSCAPE_INV_ZSCALE;
 	}
 
 	static FMatrix ToWorldMatrix(ULandscapeInfo* LandscapeInfo)
 	{
-		FMatrix Result = FTranslationMatrix(FVector(0, 0, -32768.f));
-		Result *= FScaleMatrix(FVector(1.f, 1.f, LANDSCAPE_ZSCALE) * LandscapeInfo->DrawScale);
+		FMatrix Result = FTranslationMatrix(FVector(0, 0, -32768.0f));
+		Result *= FScaleMatrix(FVector(1.0f, 1.0f, LANDSCAPE_ZSCALE) * LandscapeInfo->DrawScale);
 		return Result;
 	}
 
 	static FMatrix FromWorldMatrix(ULandscapeInfo* LandscapeInfo)
 	{
-		FMatrix Result = FScaleMatrix(FVector(1.f, 1.f, LANDSCAPE_INV_ZSCALE) / (LandscapeInfo->DrawScale));
-		Result *= FTranslationMatrix(FVector(0, 0, 32768.f));
+		FMatrix Result = FScaleMatrix(FVector(1.0f, 1.0f, LANDSCAPE_INV_ZSCALE) / (LandscapeInfo->DrawScale));
+		Result *= FTranslationMatrix(FVector(0, 0, 32768.0f));
 		return Result;
 	}
 };
@@ -1211,7 +1228,7 @@ struct FWeightmapToolTarget
 
 	static float StrengthMultiplier(ULandscapeInfo* LandscapeInfo, float BrushRadius)
 	{
-		return 255.f;
+		return 255.0f;
 	}
 
 	static FMatrix ToWorldMatrix(ULandscapeInfo* LandscapeInfo) { return FMatrix::Identity; }
@@ -1262,7 +1279,7 @@ public:
 
 		// Save the mouse position
 		LastMousePosition = FVector2D(InHitLocation);
-		MousePositions.Emplace(InHitLocation.X, InHitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+		MousePositions.Emplace(LastMousePosition, ViewportClient ? IsShiftDown(ViewportClient->Viewport) : false); // Copy tool sometimes activates without a specific viewport via ctrl+c hotkey
 		TimeSinceLastMouseMove = 0.0f;
 
 		ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
@@ -1275,14 +1292,14 @@ public:
 	{
 		if (bToolActive)
 		{
-			if (MousePositions.Num())
+			if (MousePositions.Num() > 0)
 			{
 				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
 				MousePositions.Empty(1);
 			}
 			else if (TStrokeClass::UseContinuousApply && TimeSinceLastMouseMove >= 0.25f)
 			{
-				MousePositions.Emplace(LastMousePosition.X, LastMousePosition.Y, IsShiftDown(ViewportClient->Viewport));
+				MousePositions.Emplace(LastMousePosition, IsShiftDown(ViewportClient->Viewport));
 				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
 				MousePositions.Empty(1);
 			}
@@ -1317,8 +1334,11 @@ public:
 			if (bToolActive)
 			{
 				// Save the mouse position
-				LastMousePosition = FVector2D(HitLocation);
-				MousePositions.Emplace(HitLocation.X, HitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+				if (MousePositions.Num() == 0 || LastMousePosition != FVector2D(HitLocation))
+				{
+					LastMousePosition = FVector2D(HitLocation);
+					MousePositions.Emplace(LastMousePosition, IsShiftDown(ViewportClient->Viewport));
+				}
 				TimeSinceLastMouseMove = 0.0f;
 			}
 		}

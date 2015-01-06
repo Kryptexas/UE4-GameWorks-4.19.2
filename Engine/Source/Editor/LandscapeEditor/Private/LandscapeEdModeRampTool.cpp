@@ -270,12 +270,12 @@ public:
 			if (InKey == EKeys::LeftBracket)
 			{
 				NewValue = OldValue - OldValue * Diff;
-				NewValue = FMath::Min(NewValue, OldValue - 1.f);
+				NewValue = FMath::Min(NewValue, OldValue - 1.0f);
 			}
 			else
 			{
 				NewValue = OldValue + OldValue * Diff;
-				NewValue = FMath::Max(NewValue, OldValue + 1.f);
+				NewValue = FMath::Max(NewValue, OldValue + 1.0f);
 			}
 
 			NewValue = FMath::RoundToFloat(FMath::Clamp(NewValue, SliderMin, SliderMax));

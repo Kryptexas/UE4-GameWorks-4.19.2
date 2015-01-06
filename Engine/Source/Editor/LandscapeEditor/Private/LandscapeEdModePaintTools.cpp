@@ -74,9 +74,6 @@ protected:
 // 
 // FLandscapeToolPaint
 //
-#define DATA_AT(Array, X, Y) ((Array)[(X-X1) + (Y-Y1)*(1+X2-X1)])
-
-
 template<class ToolTarget>
 class FLandscapeToolStrokePaint : public FLandscapeToolStrokePaintBase<ToolTarget>
 {
@@ -92,21 +89,26 @@ public:
 	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		// Get list of verts to update
-		TMap<FIntPoint, float> BrushInfo;
-		int32 X1, Y1, X2, Y2;
-		if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2) || MousePositions.Num() == 0)
+		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+		if (!BrushInfo)
 		{
 			return;
 		}
 
+		int32 X1, Y1, X2, Y2;
+		BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
 		// Tablet pressure
-		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
+		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
-		X1 -= 1;
-		Y1 -= 1;
-		X2 += 1;
-		Y2 += 1;
+		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
+		{
+			X1 -= 1;
+			Y1 -= 1;
+			X2 += 1;
+			Y2 += 1;
+		}
 
 		this->Cache.CacheData(X1, Y1, X2, Y2);
 
@@ -133,14 +135,16 @@ public:
 
 			for (int32 Y = Y1; Y < Y2; Y++)
 			{
+				auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+				auto* OriginalDataScanline = OriginalData.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 				for (int32 X = X1; X < X2; X++)
 				{
 					float VertexInfluence = TotalInfluenceMap.FindRef(ALandscape::MakeKey(X, Y));
 
-					typename ToolTarget::CacheClass::DataType& CurrentValue = DATA_AT(Data, X, Y);
-					typename ToolTarget::CacheClass::DataType& SourceValue = DATA_AT(OriginalData, X, Y);
+					auto& CurrentValue = DataScanline[X];
+					auto& SourceValue = OriginalDataScanline[X];
 
-					SourceValue = FMath::Lerp<typename ToolTarget::CacheClass::DataType>(SourceValue, CurrentValue, FMath::Min<float>(VertexInfluence * 0.05f, 1.f));
+					SourceValue = FMath::Lerp(SourceValue, CurrentValue, FMath::Min<float>(VertexInfluence * 0.05f, 1.0f));
 				}
 			}
 		}
@@ -150,7 +154,7 @@ public:
 
 		// Adjust strength based on brush size and drawscale, so strength 1 = one hemisphere
 		float AdjustedStrength = ToolTarget::StrengthMultiplier(this->LandscapeInfo, UISettings->BrushRadius);
-		typename ToolTarget::CacheClass::DataType DestValue = ToolTarget::CacheClass::ClampValue(255.f * UISettings->WeightTargetValue);
+		typename ToolTarget::CacheClass::DataType DestValue = ToolTarget::CacheClass::ClampValue(255.0f * UISettings->WeightTargetValue);
 
 		float DeltaTime = FMath::Min<float>(FApp::GetDeltaTime(), 0.1f); // Under 10 fps slow down paint speed
 		// * 3.0f to partially compensate for impact of DeltaTime on slowing the tools down compared to the old framerate-dependent version
@@ -162,55 +166,68 @@ public:
 		if (bUseClayBrush)
 		{
 			// Calculate normals for brush verts in data space
-			Normals.Empty((*SourceDataArrayPtr).Num());
-			Normals.AddZeroed((*SourceDataArrayPtr).Num());
+			Normals.Empty(SourceDataArrayPtr->Num());
+			Normals.AddZeroed(SourceDataArrayPtr->Num());
 
 			for (int32 Y = Y1; Y < Y2; Y++)
 			{
+				auto* SourceDataScanline_0 = SourceDataArrayPtr->GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+				auto* SourceDataScanline_1 = SourceDataArrayPtr->GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+				auto* NormalsScanline_0 = Normals.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+				auto* NormalsScanline_1 = Normals.GetData() + (Y + 1 - Y1) * (X2 - X1 + 1) + (0 - X1);
 				for (int32 X = X1; X < X2; X++)
 				{
-					FVector Vert00 = ToWorld.TransformPosition(FVector((float)X + 0.f, (float)Y + 0.f, DATA_AT(*SourceDataArrayPtr, X + 0, Y + 0)));
-					FVector Vert01 = ToWorld.TransformPosition(FVector((float)X + 0.f, (float)Y + 1.f, DATA_AT(*SourceDataArrayPtr, X + 0, Y + 1)));
-					FVector Vert10 = ToWorld.TransformPosition(FVector((float)X + 1.f, (float)Y + 0.f, DATA_AT(*SourceDataArrayPtr, X + 1, Y + 0)));
-					FVector Vert11 = ToWorld.TransformPosition(FVector((float)X + 1.f, (float)Y + 1.f, DATA_AT(*SourceDataArrayPtr, X + 1, Y + 1)));
+					FVector Vert00 = ToWorld.TransformPosition(FVector((float)X + 0.0f, (float)Y + 0.0f, SourceDataScanline_0[X + 0]));
+					FVector Vert01 = ToWorld.TransformPosition(FVector((float)X + 0.0f, (float)Y + 1.0f, SourceDataScanline_1[X + 0]));
+					FVector Vert10 = ToWorld.TransformPosition(FVector((float)X + 1.0f, (float)Y + 0.0f, SourceDataScanline_0[X + 1]));
+					FVector Vert11 = ToWorld.TransformPosition(FVector((float)X + 1.0f, (float)Y + 1.0f, SourceDataScanline_1[X + 1]));
 
 					FVector FaceNormal1 = ((Vert00 - Vert10) ^ (Vert10 - Vert11)).GetSafeNormal();
 					FVector FaceNormal2 = ((Vert11 - Vert01) ^ (Vert01 - Vert00)).GetSafeNormal();
 
 					// contribute to the vertex normals.
-					DATA_AT(Normals, X + 1, Y + 0) += FaceNormal1;
-					DATA_AT(Normals, X + 0, Y + 1) += FaceNormal2;
-					DATA_AT(Normals, X + 0, Y + 0) += FaceNormal1 + FaceNormal2;
-					DATA_AT(Normals, X + 1, Y + 1) += FaceNormal1 + FaceNormal2;
+					NormalsScanline_0[X + 1] += FaceNormal1;
+					NormalsScanline_1[X + 0] += FaceNormal2;
+					NormalsScanline_0[X + 0] += FaceNormal1 + FaceNormal2;
+					NormalsScanline_1[X + 1] += FaceNormal1 + FaceNormal2;
 				}
 			}
 			for (int32 Y = Y1; Y <= Y2; Y++)
 			{
+				auto* NormalsScanline = Normals.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 				for (int32 X = X1; X <= X2; X++)
 				{
-					DATA_AT(Normals, X, Y) = DATA_AT(Normals, X, Y).GetSafeNormal();
+					NormalsScanline[X] = NormalsScanline[X].GetSafeNormal();
 				}
 			}
 
 			// Find brush centroid location
-			FVector AveragePoint(0.f, 0.f, 0.f);
-			FVector AverageNormal(0.f, 0.f, 0.f);
-			float TotalWeight = 0.f;
-			for (auto It = BrushInfo.CreateIterator(); It; ++It)
+			FVector AveragePoint(0.0f, 0.0f, 0.0f);
+			FVector AverageNormal(0.0f, 0.0f, 0.0f);
+			float TotalWeight = 0.0f;
+			for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 			{
-				int32 X, Y;
-				ALandscape::UnpackKey(It.Key(), X, Y);
-				float Weight = It.Value();
+				const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+				auto* SourceDataScanline = SourceDataArrayPtr->GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+				auto* NormalsScanline = Normals.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 
-				AveragePoint += FVector((float)X * Weight, (float)Y * Weight, (float)DATA_AT(*SourceDataArrayPtr, FMath::FloorToInt(X), FMath::FloorToInt(Y)) * Weight);
+				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
+				{
+					const float BrushValue = BrushScanline[X];
 
-				FVector SampleNormal = DATA_AT(Normals, X, Y);
-				AverageNormal += SampleNormal * Weight;
+					if (BrushValue > 0.0f)
+					{
+						AveragePoint += FVector((float)X * BrushValue, (float)Y * BrushValue, (float)SourceDataScanline[X] * BrushValue);
 
-				TotalWeight += Weight;
+						FVector SampleNormal = NormalsScanline[X];
+						AverageNormal += SampleNormal * BrushValue;
+
+						TotalWeight += BrushValue;
+					}
+				}
 			}
 
-			if (TotalWeight > 0.f)
+			if (TotalWeight > 0.0f)
 			{
 				AveragePoint /= TotalWeight;
 				AverageNormal = AverageNormal.GetSafeNormal();
@@ -232,59 +249,66 @@ public:
 		}
 
 		// Apply the brush
-		for (auto BrushPair : BrushInfo)
+		for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 		{
-			int32 X, Y;
-			ALandscape::UnpackKey(BrushPair.Key, X, Y);
+			const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+			auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+			auto* SourceDataScanline = SourceDataArrayPtr->GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 
-			// Update influence map
-			float VertexInfluence = TotalInfluenceMap.FindRef(BrushPair.Key);
-			TotalInfluenceMap.Add(BrushPair.Key, VertexInfluence + BrushPair.Value);
-
-			float PaintAmount = BrushPair.Value * PaintStrength;
-			typename ToolTarget::CacheClass::DataType& CurrentValue = DATA_AT(Data, X, Y);
-			const typename ToolTarget::CacheClass::DataType& SourceValue = DATA_AT(*SourceDataArrayPtr, X, Y);
-
-			if (bUseWeightTargetValue)
+			for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 			{
-				if (bInvert)
+				const FIntPoint Key = ALandscape::MakeKey(X, Y);
+				const float BrushValue = BrushScanline[X];
+
+				// Update influence map
+				float VertexInfluence = TotalInfluenceMap.FindRef(Key);
+				TotalInfluenceMap.Add(Key, VertexInfluence + BrushValue);
+
+				float PaintAmount = BrushValue * PaintStrength;
+				auto& CurrentValue = DataScanline[X];
+				const auto& SourceValue = SourceDataScanline[X];
+
+				if (bUseWeightTargetValue)
 				{
-					CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
+					if (bInvert)
+					{
+						CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
+					}
+					else
+					{
+						CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
+					}
+				}
+				else if (bUseClayBrush)
+				{
+					// Brush application starts from original world location at start of stroke
+					FVector WorldLoc = ToWorld.TransformPosition(FVector(X, Y, SourceValue));
+
+					// Calculate new location on the brush plane
+					WorldLoc.Z = (BrushPlane.W - BrushPlane.X*WorldLoc.X - BrushPlane.Y*WorldLoc.Y) / BrushPlane.Z;
+
+					// Painted amount lerps based on brush falloff.
+					float PaintValue = FMath::Lerp<float>((float)SourceValue, FromWorld.TransformPosition(WorldLoc).Z, BrushValue);
+
+					if (bInvert)
+					{
+						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(FMath::RoundToInt(PaintValue), CurrentValue));
+					}
+					else
+					{
+						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(FMath::RoundToInt(PaintValue), CurrentValue));
+					}
 				}
 				else
 				{
-					CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
-				}
-			}
-			else if (bUseClayBrush)
-			{
-				// Brush application starts from original world location at start of stroke
-				FVector WorldLoc = ToWorld.TransformPosition(FVector(X, Y, SourceValue));
-
-				// Calculate new location on the brush plane
-				WorldLoc.Z = (BrushPlane.W - BrushPlane.X*WorldLoc.X - BrushPlane.Y*WorldLoc.Y) / BrushPlane.Z;
-
-				// Painted amount lerps based on brush falloff.
-				float PaintValue = FMath::Lerp<float>((float)SourceValue, FromWorld.TransformPosition(WorldLoc).Z, BrushPair.Value);
-
-				if (bInvert)
-				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(FMath::RoundToInt(PaintValue), CurrentValue));
-				}
-				else
-				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(FMath::RoundToInt(PaintValue), CurrentValue));
-				}
-			}
-			else
-			{
-				if (bInvert)
-				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(SourceValue - FMath::RoundToInt(PaintAmount), CurrentValue));
-				}
-				else
-				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(SourceValue + FMath::RoundToInt(PaintAmount), CurrentValue));
+					if (bInvert)
+					{
+						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(SourceValue - FMath::RoundToInt(PaintAmount), CurrentValue));
+					}
+					else
+					{
+						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(SourceValue + FMath::RoundToInt(PaintAmount), CurrentValue));
+					}
 				}
 			}
 		}
@@ -292,7 +316,6 @@ public:
 		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
 		this->Cache.Flush();
 	}
-#undef DATA_AT
 };
 
 class FLandscapeToolPaint : public FLandscapeToolPaintBase<FWeightmapToolTarget, FLandscapeToolStrokePaint<FWeightmapToolTarget>>
@@ -337,21 +360,26 @@ public:
 		if (!this->LandscapeInfo) return;
 
 		// Get list of verts to update
-		TMap<FIntPoint, float> BrushInfo;
-		int32 X1, Y1, X2, Y2;
-		if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+		if (!BrushInfo)
 		{
 			return;
 		}
 
+		int32 X1, Y1, X2, Y2;
+		BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
 		// Tablet pressure
-		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
+		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
-		X1 -= 1;
-		Y1 -= 1;
-		X2 += 1;
-		Y2 += 1;
+		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
+		{
+			X1 -= 1;
+			Y1 -= 1;
+			X2 += 1;
+			Y2 += 1;
+		}
 
 		this->Cache.CacheData(X1, Y1, X2, Y2);
 
@@ -365,37 +393,50 @@ public:
 		}
 		else
 		{
-			// Filter size is SmoothFilterKernelScale * BrushSize, But avoids overflow value or under 1
-			int32 HalfFilterSize = FMath::Clamp<int32>(UISettings->SmoothFilterKernelScale * FMath::Max(Y2 - Y1 + 1, X2 - X1 + 1) * 0.25f, 1, 127);
+			int32 FilterRadius = UISettings->SmoothFilterKernelSize;
 
-			for (auto It = BrushInfo.CreateIterator(); It; ++It)
+			for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 			{
-				int32 X, Y;
-				ALandscape::UnpackKey(It.Key(), X, Y);
+				const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+				auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 
-				if (It.Value() > 0.f)
+				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 				{
-					int32 FilterValue = 0;
-					int32 FilterSamplingNumber = 0;
+					const float BrushValue = BrushScanline[X];
 
-					for (int32 y = Y - HalfFilterSize; y <= Y + HalfFilterSize; y++)
+					if (BrushValue > 0.0f)
 					{
-						int32 YY = FMath::Clamp<int32>(y, Y1, Y2);
-						for (int32 x = X - HalfFilterSize; x <= X + HalfFilterSize; x++)
+						int64 FilterValue = 0;
+						int32 FilterSamplingNumber = 0;
+
+						// The previous version of this clamped to X1/Y1/X2/Y2 *inside* the loop, which were always expanded by one from the BrushInfo
+						// So the Find on the BrushInfo always gave null for anything that would have been clamped and caused it to do nothing
+						// So now just skip iterating those by clamping first
+
+						const int32 SampleX1 = FMath::Max<int32>(X - FilterRadius, BrushInfo.GetBounds().Min.X);
+						const int32 SampleY1 = FMath::Max<int32>(Y - FilterRadius, BrushInfo.GetBounds().Min.Y);
+						const int32 SampleX2 = FMath::Min<int32>(X + FilterRadius + 1, BrushInfo.GetBounds().Max.X);
+						const int32 SampleY2 = FMath::Min<int32>(Y + FilterRadius + 1, BrushInfo.GetBounds().Max.Y);
+						for (int32 SampleY = SampleY1; SampleY < SampleY2; SampleY++)
 						{
-							int32 XX = FMath::Clamp<int32>(x, X1, X2);
-							if (BrushInfo.Find(FIntPoint(XX, YY)))
+							const float* SampleBrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, SampleY));
+							auto* SampleDataScanline = Data.GetData() + (SampleY - Y1) * (X2 - X1 + 1) + (0 - X1);
+
+							for (int32 SampleX = SampleX1; SampleX < SampleX2; SampleX++)
 							{
-								FilterValue += Data[(XX - X1) + (YY - Y1)*(1 + X2 - X1)];
-								FilterSamplingNumber++;
+								const float SampleBrushValue = SampleBrushScanline[SampleX];
+								if (SampleBrushValue > 0.0f)
+								{
+									FilterValue += SampleDataScanline[SampleX];
+									FilterSamplingNumber++;
+								}
 							}
 						}
+
+						FilterValue /= FilterSamplingNumber;
+
+						DataScanline[X] = FMath::Lerp(DataScanline[X], (typename ToolTarget::CacheClass::DataType)FilterValue, BrushValue * UISettings->ToolStrength * Pressure);
 					}
-
-					FilterValue /= FilterSamplingNumber;
-
-					int32 HeightDataIndex = (X - X1) + (Y - Y1)*(1 + X2 - X1);
-					Data[HeightDataIndex] = FMath::Lerp(Data[HeightDataIndex], (typename ToolTarget::CacheClass::DataType)FilterValue, It.Value() * UISettings->ToolStrength * Pressure);
 				}
 			}
 		}
@@ -403,7 +444,6 @@ public:
 		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
 		this->Cache.Flush();
 	}
-
 };
 
 template<class ToolTarget>
@@ -424,7 +464,7 @@ public:
 // FLandscapeToolFlatten
 //
 template<class ToolTarget>
-class FLandscapeToolStrokeFlatten : public FLandscapeToolStrokePaintBase < ToolTarget >
+class FLandscapeToolStrokeFlatten : public FLandscapeToolStrokePaintBase<ToolTarget>
 {
 	typename ToolTarget::CacheClass::DataType FlattenHeight;
 
@@ -455,8 +495,8 @@ public:
 		if (!bInitializedFlattenHeight || (UISettings->bPickValuePerApply && bTargetIsHeightmap))
 		{
 			bInitializedFlattenHeight = false;
-			float FlattenX = MousePositions[0].PositionX;
-			float FlattenY = MousePositions[0].PositionY;
+			float FlattenX = MousePositions[0].Position.X;
+			float FlattenY = MousePositions[0].Position.Y;
 			int32 FlattenHeightX = FMath::FloorToInt(FlattenX);
 			int32 FlattenHeightY = FMath::FloorToInt(FlattenY);
 
@@ -475,98 +515,106 @@ public:
 
 
 		// Get list of verts to update
-		TMap<FIntPoint, float> BrushInfo;
-		int32 X1, Y1, X2, Y2;
-		if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+		if (!BrushInfo)
 		{
 			return;
 		}
 
+		int32 X1, Y1, X2, Y2;
+		BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
 		// Tablet pressure
-		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
+		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
-		X1 -= 1;
-		Y1 -= 1;
-		X2 += 1;
-		Y2 += 1;
+		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
+		{
+			X1 -= 1;
+			Y1 -= 1;
+			X2 += 1;
+			Y2 += 1;
+		}
 
 		this->Cache.CacheData(X1, Y1, X2, Y2);
 
-		TArray<typename ToolTarget::CacheClass::DataType> HeightData;
-		this->Cache.GetCachedData(X1, Y1, X2, Y2, HeightData);
+		TArray<typename ToolTarget::CacheClass::DataType> Data;
+		this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
 
 		// Apply the brush
-		for (auto It = BrushInfo.CreateIterator(); It; ++It)
+		for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 		{
-			int32 X, Y;
-			ALandscape::UnpackKey(It.Key(), X, Y);
+			const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+			auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 
-			if (It.Value() > 0.f)
+			for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 			{
-				int32 HeightDataIndex = (X - X1) + (Y - Y1)*(1 + X2 - X1);
-			
-				float Strength = FMath::Clamp<float>(It.Value() * UISettings->ToolStrength * Pressure, 0.f, 1.f);
+				const float BrushValue = BrushScanline[X];
 
-				if (!(UISettings->bUseSlopeFlatten && bTargetIsHeightmap))
+				if (BrushValue > 0.0f)
 				{
-					int32 Delta = HeightData[HeightDataIndex] - FlattenHeight;
-					switch (UISettings->FlattenMode)
+					float Strength = FMath::Clamp<float>(BrushValue * UISettings->ToolStrength * Pressure, 0.0f, 1.0f);
+
+					if (!(UISettings->bUseSlopeFlatten && bTargetIsHeightmap))
 					{
-					case ELandscapeToolNoiseMode::Add:
-						if (Delta < 0)
+						int32 Delta = DataScanline[X] - FlattenHeight;
+						switch (UISettings->FlattenMode)
 						{
-							HeightData[HeightDataIndex] = FMath::Lerp(HeightData[HeightDataIndex], FlattenHeight, Strength);
+						case ELandscapeToolNoiseMode::Add:
+							if (Delta < 0)
+							{
+								DataScanline[X] = FMath::Lerp(DataScanline[X], FlattenHeight, Strength);
+							}
+							break;
+						case ELandscapeToolNoiseMode::Sub:
+							if (Delta > 0)
+							{
+								DataScanline[X] = FMath::Lerp(DataScanline[X], FlattenHeight, Strength);
+							}
+							break;
+						default:
+						case ELandscapeToolNoiseMode::Both:
+							DataScanline[X] = FMath::Lerp(DataScanline[X], FlattenHeight, Strength);
+							break;
 						}
-						break;
-					case ELandscapeToolNoiseMode::Sub:
-						if (Delta > 0)
-						{
-							HeightData[HeightDataIndex] = FMath::Lerp(HeightData[HeightDataIndex], FlattenHeight, Strength);
-						}
-						break;
-					default:
-					case ELandscapeToolNoiseMode::Both:
-						HeightData[HeightDataIndex] = FMath::Lerp(HeightData[HeightDataIndex], FlattenHeight, Strength);
-						break;
 					}
-				}
-				else
-				{
-					typename ToolTarget::CacheClass::DataType DestValue = -(FlattenNormal.X * X + FlattenNormal.Y * Y + FlattenPlaneDist) / FlattenNormal.Z;
-					//float PlaneDist = FlattenNormal | FVector(X, Y, HeightData(HeightDataIndex)) + FlattenPlaneDist;
-					float PlaneDist = HeightData[HeightDataIndex] - DestValue;
-					DestValue = HeightData[HeightDataIndex] - PlaneDist * Strength;
-					switch (UISettings->FlattenMode)
+					else
 					{
-					case ELandscapeToolNoiseMode::Add:
-						if (PlaneDist < 0)
+						typename ToolTarget::CacheClass::DataType DestValue = -(FlattenNormal.X * X + FlattenNormal.Y * Y + FlattenPlaneDist) / FlattenNormal.Z;
+						//float PlaneDist = FlattenNormal | FVector(X, Y, HeightData(HeightDataIndex)) + FlattenPlaneDist;
+						float PlaneDist = DataScanline[X] - DestValue;
+						DestValue = DataScanline[X] - PlaneDist * Strength;
+						switch (UISettings->FlattenMode)
 						{
-							HeightData[HeightDataIndex] = FMath::Lerp(HeightData[HeightDataIndex], DestValue, Strength);
+						case ELandscapeToolNoiseMode::Add:
+							if (PlaneDist < 0)
+							{
+								DataScanline[X] = FMath::Lerp(DataScanline[X], DestValue, Strength);
+							}
+							break;
+						case ELandscapeToolNoiseMode::Sub:
+							if (PlaneDist > 0)
+							{
+								DataScanline[X] = FMath::Lerp(DataScanline[X], DestValue, Strength);
+							}
+							break;
+						default:
+						case ELandscapeToolNoiseMode::Both:
+							DataScanline[X] = FMath::Lerp(DataScanline[X], DestValue, Strength);
+							break;
 						}
-						break;
-					case ELandscapeToolNoiseMode::Sub:
-						if (PlaneDist > 0)
-						{
-							HeightData[HeightDataIndex] = FMath::Lerp(HeightData[HeightDataIndex], DestValue, Strength);
-						}
-						break;
-					default:
-					case ELandscapeToolNoiseMode::Both:
-						HeightData[HeightDataIndex] = FMath::Lerp(HeightData[HeightDataIndex], DestValue, Strength);
-						break;
 					}
 				}
 			}
 		}
 
-		this->Cache.SetCachedData(X1, Y1, X2, Y2, HeightData, UISettings->PaintingRestriction);
+		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
 		this->Cache.Flush();
 	}
 };
 
 template<class ToolTarget>
-class FLandscapeToolFlatten : public FLandscapeToolPaintBase < ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget> >
+class FLandscapeToolFlatten : public FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>
 {
 protected:
 	UStaticMesh* PlaneMesh;
@@ -574,7 +622,7 @@ protected:
 
 public:
 	FLandscapeToolFlatten(FEdModeLandscape* InEdMode)
-		: FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget> >(InEdMode)
+		: FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>(InEdMode)
 		, PlaneMesh(LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorLandscapeResources/FlattenPlaneMesh.FlattenPlaneMesh")))
 		, MeshComponent(NULL)
 	{
@@ -658,21 +706,26 @@ public:
 		if (!this->LandscapeInfo) return;
 
 		// Get list of verts to update
-		TMap<FIntPoint, float> BrushInfo;
-		int32 X1, Y1, X2, Y2;
-		if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+		if (!BrushInfo)
 		{
 			return;
 		}
 
+		int32 X1, Y1, X2, Y2;
+		BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
 		// Tablet pressure
-		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
+		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
-		X1 -= 1;
-		Y1 -= 1;
-		X2 += 1;
-		Y2 += 1;
+		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
+		{
+			X1 -= 1;
+			Y1 -= 1;
+			X2 += 1;
+			Y2 += 1;
+		}
 
 		this->Cache.CacheData(X1, Y1, X2, Y2);
 		TArray<typename ToolTarget::CacheClass::DataType> Data;
@@ -687,42 +740,47 @@ public:
 		bool bUseWeightTargetValue = UISettings->bUseWeightTargetValue && ToolTarget::TargetType == ELandscapeToolTargetType::Weightmap;
 
 		// Apply the brush
-		for (auto It = BrushInfo.CreateIterator(); It; ++It)
+		for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 		{
-			int32 X, Y;
-			ALandscape::UnpackKey(It.Key(), X, Y);
+			const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+			auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 
-			if (It.Value() > 0.f)
+			for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 			{
-				float OriginalValue = Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)];
-				if (bUseWeightTargetValue)
+				const float BrushValue = BrushScanline[X];
+
+				if (BrushValue > 0.0f)
 				{
-					FNoiseParameter NoiseParam(0, UISettings->NoiseScale, 255.f / 2.f);
-					float DestValue = ELandscapeToolNoiseMode::Conversion(ELandscapeToolNoiseMode::Add, NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y)) * UISettings->WeightTargetValue;
-					switch (UISettings->NoiseMode)
+					float OriginalValue = DataScanline[X];
+					if (bUseWeightTargetValue)
 					{
-					case ELandscapeToolNoiseMode::Add:
-						if (OriginalValue >= DestValue)
+						FNoiseParameter NoiseParam(0, UISettings->NoiseScale, 255.0f / 2.0f);
+						float DestValue = ELandscapeToolNoiseMode::Conversion(ELandscapeToolNoiseMode::Add, NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y)) * UISettings->WeightTargetValue;
+						switch (UISettings->NoiseMode)
 						{
-							continue;
+						case ELandscapeToolNoiseMode::Add:
+							if (OriginalValue >= DestValue)
+							{
+								continue;
+							}
+							break;
+						case ELandscapeToolNoiseMode::Sub:
+							DestValue += (1.0f - UISettings->WeightTargetValue) * NoiseParam.NoiseAmount;
+							if (OriginalValue <= DestValue)
+							{
+								continue;
+							}
+							break;
 						}
-						break;
-					case ELandscapeToolNoiseMode::Sub:
-						DestValue += (1.f - UISettings->WeightTargetValue) * NoiseParam.NoiseAmount;
-						if (OriginalValue <= DestValue)
-						{
-							continue;
-						}
-						break;
+						DataScanline[X] = ToolTarget::CacheClass::ClampValue(FMath::RoundToInt(FMath::Lerp(OriginalValue, DestValue, BrushValue * UISettings->ToolStrength * Pressure)));
 					}
-					Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = ToolTarget::CacheClass::ClampValue(FMath::RoundToInt(FMath::Lerp(OriginalValue, DestValue, It.Value() * UISettings->ToolStrength * Pressure)));
-				}
-				else
-				{
-					float TotalStrength = It.Value() * UISettings->ToolStrength * Pressure * ToolTarget::StrengthMultiplier(this->LandscapeInfo, UISettings->BrushRadius);
-					FNoiseParameter NoiseParam(0, UISettings->NoiseScale, TotalStrength * BrushSizeAdjust);
-					float PaintAmount = ELandscapeToolNoiseMode::Conversion(UISettings->NoiseMode, NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y));
-					Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = ToolTarget::CacheClass::ClampValue(OriginalValue + PaintAmount);
+					else
+					{
+						float TotalStrength = BrushValue * UISettings->ToolStrength * Pressure * ToolTarget::StrengthMultiplier(this->LandscapeInfo, UISettings->BrushRadius);
+						FNoiseParameter NoiseParam(0, UISettings->NoiseScale, TotalStrength * BrushSizeAdjust);
+						float PaintAmount = ELandscapeToolNoiseMode::Conversion(UISettings->NoiseMode, NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y));
+						DataScanline[X] = ToolTarget::CacheClass::ClampValue(OriginalValue + PaintAmount);
+					}
 				}
 			}
 		}
