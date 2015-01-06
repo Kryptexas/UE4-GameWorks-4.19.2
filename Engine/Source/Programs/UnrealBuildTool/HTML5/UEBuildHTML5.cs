@@ -91,7 +91,7 @@ namespace UnrealBuildTool
                 int InstalledVersion = Convert.ToInt32(HTML5SDKInfo.EmscriptenVersion().Replace(".","")); 
                 int RequiredVersion = Convert.ToInt32(GetRequiredSDKString().Replace(".","")); 
 
-                if (InstalledVersion > RequiredVersion)
+                if (InstalledVersion >= RequiredVersion)
                 {
                     return SDKStatus.Valid;
                 }
