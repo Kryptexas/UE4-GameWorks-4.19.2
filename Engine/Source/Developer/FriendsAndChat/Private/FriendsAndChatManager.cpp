@@ -1201,7 +1201,7 @@ void FFriendsAndChatManager::OnQueryUserIdMappingComplete(bool bWasSuccessful, c
 			{
 				FOnSendInviteComplete Delegate = FOnSendInviteComplete::CreateSP(this, &FFriendsAndChatManager::OnSendInviteComplete);
 				FriendsInterface->SendInvite(0, PendingOutgoingFriendRequests[Index].Get(), EFriendsLists::ToString( EFriendsLists::Default ), Delegate);
-				AddFriendsToast(FText::FromString("Request Sent"));
+				AddFriendsToast(LOCTEXT("FFriendsAndChatManager_FriendRequestSent", "Request Sent"));
 			}
 		}
 		else
@@ -1397,7 +1397,7 @@ void FFriendsAndChatManager::SendGameInvite(const FUniqueNetId& ToUser)
 		if (UserId.IsValid())
 		{
 			OnlineSubMcp->GetSessionInterface()->SendSessionInviteToFriend(*UserId, GameSessionName, ToUser);
-
+			AddFriendsToast(LOCTEXT("FFriendsAndChatManager_InviteToGameSent", "Invite Sent"));
 			Analytics.RecordGameInvite(ToUser, TEXT("Social.GameInvite.Send"));
 		}
 	}
