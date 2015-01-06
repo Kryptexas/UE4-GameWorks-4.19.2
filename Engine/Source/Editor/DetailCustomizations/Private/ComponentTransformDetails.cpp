@@ -10,6 +10,9 @@
 #include "ScopedTransaction.h"
 #include "IPropertyUtilities.h"
 
+#include "UnitConversion.h"
+#include "NumericUnitTypeInterface.inl"
+
 #define LOCTEXT_NAMESPACE "FComponentTransformDetails"
 
 class FScopedSwitchWorldForObject
@@ -64,7 +67,8 @@ static void PropagateTransformPropertyChange(UObject* InObject, UProperty* InPro
 
 
 FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjectPtr<UObject> >& InSelectedObjects, const FSelectedActorInfo& InSelectedActorInfo, IDetailLayoutBuilder& DetailBuilder )
-	: SelectedActorInfo( InSelectedActorInfo )
+	: TNumericUnitTypeInterface(EUnit::Centimeters)
+	, SelectedActorInfo( InSelectedActorInfo )
 	, SelectedObjects( InSelectedObjects )
 	, NotifyHook( DetailBuilder.GetPropertyUtilities()->GetNotifyHook() )
 	, bPreserveScaleRatio( false )
@@ -359,9 +363,17 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	const bool bHideRotationField = ( HiddenFieldMask & ( 1 << ETransformField::Rotation ) ) != 0;
 	const bool bHideScaleField = ( HiddenFieldMask & ( 1 << ETransformField::Scale ) ) != 0;
 
+	VectorUnits = EUnit::Centimeters;
+
 	// Location
 	if(!bHideLocationField)
 	{
+		TSharedPtr<INumericTypeInterface<float>> TypeInterface;
+		if( FUnitConversion::bIsUnitDisplayEnabled )
+		{
+			TypeInterface = SharedThis(this);
+		}
+
 		ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location") )
 		.CopyAction( CreateCopyAction( ETransformField::Location ) )
 		.PasteAction( CreatePasteAction( ETransformField::Location ) )
@@ -390,6 +402,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.OnYCommitted( this, &FComponentTransformDetails::OnSetLocation, 1 )
 				.OnZCommitted( this, &FComponentTransformDetails::OnSetLocation, 2 )
 				.Font( FontInfo )
+				.TypeInterface( TypeInterface )
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -420,6 +433,12 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	// Rotation
 	if(!bHideRotationField)
 	{
+		TSharedPtr<INumericTypeInterface<float>> TypeInterface;
+		if( FUnitConversion::bIsUnitDisplayEnabled )
+		{
+			TypeInterface = MakeShareable( new TNumericUnitTypeInterface<float>(EUnit::Degrees) );
+		}
+
 		ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation") )
 		.CopyAction( CreateCopyAction(ETransformField::Rotation) )
 		.PasteAction( CreatePasteAction(ETransformField::Rotation) )
@@ -453,6 +472,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.OnRollCommitted( this, &FComponentTransformDetails::OnRotationCommitted, 0 )
 				.OnPitchCommitted( this, &FComponentTransformDetails::OnRotationCommitted, 1 )
 				.OnYawCommitted( this, &FComponentTransformDetails::OnRotationCommitted, 2 )
+				.TypeInterface(TypeInterface)
 				.Font( FontInfo )
 			]
 			+SHorizontalBox::Slot()
@@ -557,6 +577,47 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FComponentTransformDetails::Tick( float DeltaTime ) 
 {
 	CacheTransform();
+	CacheCommonLocationUnits();
+}
+
+void FComponentTransformDetails::CacheCommonLocationUnits()
+{
+	// Calculate the largest units
+	TOptional<EUnit> LargestUnit;
+	auto SetLargestUnit = [&](EUnit NewUnit)
+	{
+		if (!LargestUnit.IsSet() || (uint8)NewUnit > (uint8)LargestUnit.GetValue())
+		{
+			LargestUnit = NewUnit;
+		}
+	};
+
+	if (CachedLocation.X.IsSet())
+	{
+		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.X.GetValue(), EUnit::Centimeters).Units);
+	}
+	if (CachedLocation.Y.IsSet())
+	{
+		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.Y.GetValue(), EUnit::Centimeters).Units);
+	}
+	if (CachedLocation.Z.IsSet())
+	{
+		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.Z.GetValue(), EUnit::Centimeters).Units);
+	}
+
+	if (LargestUnit.IsSet())
+	{
+		VectorUnits = LargestUnit.GetValue();
+	}
+	else
+	{
+		VectorUnits	= EUnit::Centimeters;
+	}
+}
+
+FNumericUnit<float> FComponentTransformDetails::QuantizeUnitsToBestFit(const float& InValue, EUnit InUnits) const
+{
+	return FNumericUnit<float>(FUnitConversion::Convert(InValue, InUnits, VectorUnits), VectorUnits);
 }
 
 bool FComponentTransformDetails::GetIsEnabled() const
@@ -1041,6 +1102,7 @@ void FComponentTransformDetails::OnSetLocation( float NewValue, ETextCommit::Typ
 	}
 
 	CacheTransform();
+	CacheCommonLocationUnits();
 
 	GUnrealEd->RedrawLevelEditingViewports();
 }
