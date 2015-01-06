@@ -73,6 +73,7 @@ public:
 	virtual FName GetAssetName() const override;
 	virtual FName GetLongPackageName() const override;
 	virtual void Update() override;
+	virtual void UpdateAsset(const FAssetData& AssetData) override;
 	virtual void LoadLevel() override;
 	virtual void SetVisible(bool bVisible) override;
 	virtual FVector2D GetLevelPosition2D() const override;
@@ -183,7 +184,10 @@ private:
 	
 	/** Handler for ZOrder chnages event from Tile details object  */
 	void OnZOrderPropertyChanged();
-	
+
+	/** Set the asset name based on the passed in package name */
+	void SetAssetName(const FName& PackageName);
+
 public:
 	/** This tile index in world composition tile list */
 	int32									TileIdx;

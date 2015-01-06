@@ -65,6 +65,14 @@ FName FStreamingLevelModel::GetLongPackageName() const
 	}
 }
 
+void FStreamingLevelModel::UpdateAsset(const FAssetData& AssetData)
+{
+	if (LevelStreaming.IsValid())
+	{
+		LevelStreaming->SetWorldAssetByPackageName(AssetData.PackageName);
+	}
+}
+
 bool FStreamingLevelModel::SupportsLevelColor() const
 {
 	return LevelStreaming.IsValid();

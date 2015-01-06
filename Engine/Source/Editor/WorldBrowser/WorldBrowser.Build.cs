@@ -10,6 +10,7 @@ public class WorldBrowser : ModuleRules
 
         PrivateIncludePathModuleNames.AddRange(
         new string[] {
+                "AssetRegistry",
 				"AssetTools",
                 "MeshUtilities",
                 "ContentBrowser",
@@ -47,6 +48,7 @@ public class WorldBrowser : ModuleRules
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
+                "AssetRegistry",
 				"AssetTools",
 				"SceneOutliner",
                 "MeshUtilities",

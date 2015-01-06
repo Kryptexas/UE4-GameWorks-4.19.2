@@ -29,7 +29,7 @@ public:
 	FLevelModel(FLevelCollectionModel& InLevelCollectionModel,
 				const TWeakObjectPtr< UEditorEngine >& InEditor);
 
-	virtual ~FLevelModel() {};
+	virtual ~FLevelModel();
 	
 	/** Traverses level model hierarchy */
 	void Accept(FLevelModelVisitor& Vistor);
@@ -72,6 +72,9 @@ public:
 
 	/**	@return	Level package file name */
 	virtual FName GetLongPackageName() const = 0;
+
+	/** Update asset associated with level model */
+	virtual void UpdateAsset(const FAssetData& AssetData) = 0;
 	
 	/** Refreshes cached data */
 	virtual void Update();
@@ -253,7 +256,11 @@ public:
 	
 	/** @return Class used for streaming this level */
 	virtual UClass* GetStreamingClass() const;
-	
+
+protected:
+	/** Called when the map asset is renamed */
+	void OnAssetRenamed(const FAssetData& AssetData, const FString& OldObjectPath);
+
 protected:
 	/** Level model display name */
 	FString								DisplayName;

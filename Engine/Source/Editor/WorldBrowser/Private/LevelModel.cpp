@@ -8,6 +8,7 @@
 #include "LevelBrowserSettings.h"
 #include "Engine/Selection.h"
 #include "Engine/LevelStreaming.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -23,6 +24,26 @@ FLevelModel::FLevelModel(FLevelCollectionModel& InLevelCollectionModel,
 	, LevelActorsCount(0)
 {
 	SimulationStatus = FSimulationLevelStatus();
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnAssetRenamed().AddRaw(this, &FLevelModel::OnAssetRenamed);
+}
+
+FLevelModel::~FLevelModel()
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnAssetRenamed().RemoveAll(this);
+}
+
+void FLevelModel::OnAssetRenamed(const FAssetData& AssetData, const FString& OldObjectPath)
+{
+	const FString CurrentPackage = GetLongPackageName().ToString();
+
+	if (FPackageName::ObjectPathToPackageName(OldObjectPath) == CurrentPackage)
+	{
+		UpdateAsset(AssetData);
+		UpdateDisplayName();
+	}
 }
 
 void FLevelModel::SetLevelSelectionFlag(bool bSelectedFlag)

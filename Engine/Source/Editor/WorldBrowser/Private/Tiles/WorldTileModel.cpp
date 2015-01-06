@@ -50,6 +50,7 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 		TileDetails->bPersistentLevel = false;
 				
 		// Asset name for storing tile thumbnail inside package
+		SetAssetName(Tile.PackageName);
 		//FString AssetNameString = FString::Printf(TEXT("%s %s.TheWorld:PersistentLevel"), *ULevel::StaticClass()->GetName(), *Tile.PackageName.ToString());
 		FString AssetNameString = FString::Printf(TEXT("%s %s"), *UPackage::StaticClass()->GetName(), *Tile.PackageName.ToString());
 		AssetName =	FName(*AssetNameString);
@@ -115,6 +116,12 @@ bool FWorldTileModel::IsRootTile() const
 	return TileDetails->bPersistentLevel;
 }
 
+void FWorldTileModel::SetAssetName(const FName& PackageName)
+{
+	FString AssetNameString = FString::Printf(TEXT("%s %s"), *UPackage::StaticClass()->GetName(), *PackageName.ToString());
+	AssetName = FName(*AssetNameString);
+}
+
 FName FWorldTileModel::GetAssetName() const
 {
 	return AssetName;
@@ -123,6 +130,28 @@ FName FWorldTileModel::GetAssetName() const
 FName FWorldTileModel::GetLongPackageName() const
 {
 	return TileDetails->PackageName;
+}
+
+void FWorldTileModel::UpdateAsset(const FAssetData& AssetData)
+{
+	check(TileDetails != nullptr);
+	const FName OldPackageName = TileDetails->PackageName;
+
+	// Patch up any parent references which have been renamed
+	for (const TSharedPtr<FLevelModel>& LevelModel : LevelCollectionModel.GetAllLevels())
+	{
+		TSharedPtr<FWorldTileModel> WorldTileModel = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
+
+		check(WorldTileModel->TileDetails != nullptr);
+		if (WorldTileModel->TileDetails->ParentPackageName == OldPackageName)
+		{
+			WorldTileModel->TileDetails->ParentPackageName = AssetData.PackageName;
+		}
+	}
+
+	const FName PackageName = AssetData.PackageName;
+	SetAssetName(PackageName);
+	TileDetails->PackageName = PackageName;
 }
 
 FVector2D FWorldTileModel::GetLevelPosition2D() const
