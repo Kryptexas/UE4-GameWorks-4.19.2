@@ -1017,8 +1017,8 @@ public class GUBP : BuildCommand
             {
                 bool bInternalOnly;
                 bool SeparateNode;
-
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && !bInternalOnly && !SeparateNode)
+				bool CrossCompile;
+                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && !bInternalOnly && !SeparateNode)
                 {
                     foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
                     {
@@ -1033,6 +1033,56 @@ public class GUBP : BuildCommand
             return Agenda;
         }
     }
+	public class ToolsCrossCompileNode : CompileNode
+	{
+		public ToolsCrossCompileNode(UnrealTargetPlatform InHostPlatform)
+			: base(InHostPlatform)
+		{
+			if (!GUBP.bBuildRocket) // more errors and more performance by just starting before the root editor is done
+			{
+				AddPseudodependency(RootEditorCrossCompileLinuxNode.StaticGetFullName(HostPlatform));
+			}
+			AgentSharingGroup = "ToolsCrossCompileGroup" + StaticGetHostPlatformSuffix(HostPlatform);
+		}
+		public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
+		{
+			return "LinuxTools" + StaticGetHostPlatformSuffix(InHostPlatform);
+		}
+		public override string GetFullName()
+		{
+			return StaticGetFullName(HostPlatform);
+		}
+		public override float Priority()
+		{
+			return base.Priority() - 1;
+		}
+		public override bool DeleteBuildProducts()
+		{
+			return true;
+		}
+		public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
+		{
+			var Agenda = new UE4Build.BuildAgenda();
+
+			string AddArgs = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs(); ;
+
+			foreach (var ProgramTarget in bp.Branch.BaseEngineProject.Properties.Programs)
+			{
+				bool bInternalOnly;
+				bool SeparateNode;
+				bool CrossCompile;
+				if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && !bInternalOnly && !SeparateNode && CrossCompile)
+				{
+					foreach (var Config in ProgramTarget.Rules.GUBP_ToolConfigs(HostPlatform))
+					{
+						Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, UnrealTargetPlatform.Linux, Config, InAddArgs: AddArgs);
+					}					
+				}
+			}
+
+			return Agenda;
+		}
+	}
     public class SingleToolsNode : CompileNode
     {
         SingleTargetProperties ProgramTarget;
@@ -1149,8 +1199,8 @@ public class GUBP : BuildCommand
             {
                 bool bInternalOnly;
                 bool SeparateNode;
-
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && bInternalOnly && !SeparateNode)
+				bool CrossCompile;
+                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && bInternalOnly && !SeparateNode)
                 {
                     foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
                     {
@@ -5111,21 +5161,26 @@ public class GUBP : BuildCommand
             }
             AddNode(new ToolsNode(HostPlatform));            
 			AddNode(new InternalToolsNode(HostPlatform));
+			if (HostPlatform == UnrealTargetPlatform.Win64)
+			{
+				AddNode(new ToolsCrossCompileNode(HostPlatform));
+			}
             foreach (var ProgramTarget in Branch.BaseEngineProject.Properties.Programs)
             {
                 bool bInternalOnly;
                 bool SeparateNode;
+				bool CrossCompile;
 
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
+                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
                 {
                     if (bInternalOnly)
                     {
-                        AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));
+                        AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));						
                     }
                     else
                     {
                         AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
-                    }
+                    }				
                 }
 				if (ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
 				{
@@ -5138,8 +5193,9 @@ public class GUBP : BuildCommand
 				{
 					bool bInternalNodeOnly;
 					bool SeparateNode;
+					bool CrossCompile;
 
-					if(ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalNodeOnly, out SeparateNode) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
+					if(ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalNodeOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
 					{
 						if(bInternalNodeOnly)
 						{
