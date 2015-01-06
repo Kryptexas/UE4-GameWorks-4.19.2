@@ -1567,6 +1567,7 @@ void FAssetContextMenu::ExecuteSCCSync()
 		{
 			PackageTools::LoadPackage(*PackageIter);
 		}
+		ExecuteSCCRefresh();
 	}
 }
 
