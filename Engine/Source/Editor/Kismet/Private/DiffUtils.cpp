@@ -30,8 +30,28 @@ static FPropertySoftPathSet GetPropertyNameSet(const UObject* ForObj)
 FResolvedProperty FPropertySoftPath::Resolve(const UObject* Object) const
 {
 	// dig into the object, finding nested objects, etc:
-	const UProperty* Property = ::Resolve(Object->GetClass(), PropertyChain[0]);
-	// @todo: recurse for objects and structs:
+	const UProperty* Property = nullptr;
+	for( int32 i = 0; i < PropertyChain.Num(); ++i )
+	{
+		const UProperty* NextProperty = ::Resolve(Object->GetClass(), PropertyChain[i]);
+		if( NextProperty )
+		{
+			Property = NextProperty;
+			if (const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
+			{
+				Object = ObjectProperty->GetObjectPropertyValue(Property->ContainerPtrToValuePtr<UObject*>(Object));
+			}
+			else
+			{
+				break;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+
 	return FResolvedProperty(Object, Property);
 }
 
