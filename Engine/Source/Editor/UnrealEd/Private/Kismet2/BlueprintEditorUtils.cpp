@@ -5653,9 +5653,8 @@ bool FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* Level
 				{
 					// Grab the MC delegate we need to add to
 					FMulticastScriptDelegate* TargetDelegate = EventNode->GetTargetDelegate();
-					if( TargetDelegate == nullptr )
+					if( TargetDelegate != nullptr )
 					{
-
 						// Create the delegate, and add it if it doesn't already exist
 						FScriptDelegate Delegate;
 						Delegate.BindUFunction(LevelScriptActor, TargetFunction);
