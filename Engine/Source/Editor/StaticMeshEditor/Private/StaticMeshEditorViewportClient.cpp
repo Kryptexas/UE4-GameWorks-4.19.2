@@ -81,6 +81,7 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	bDrawBinormals = false;
 	bShowPivot = false;
 	bDrawAdditionalData = true;
+	bDrawVertices = false;
 
 	bManipulating = false;
 
@@ -131,6 +132,22 @@ struct HSMESocketProxy : public HHitProxy
 		SocketIndex( InSocketIndex ) {}
 };
 IMPLEMENT_HIT_PROXY(HSMESocketProxy, HHitProxy);
+
+/**
+ * A hit proxy class for vertices.
+ */
+struct HSMEVertexProxy : public HHitProxy
+{
+	DECLARE_HIT_PROXY();
+
+	uint32		Index;
+
+	HSMEVertexProxy(uint32 InIndex)
+		: HHitProxy( HPP_UI )
+		, Index( InIndex )
+	{}
+};
+IMPLEMENT_HIT_PROXY(HSMEVertexProxy, HHitProxy);
 
 bool FStaticMeshEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
 {
@@ -510,7 +527,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 	}
 
 
-	if( bDrawNormals || bDrawTangents || bDrawBinormals )
+	if( bDrawNormals || bDrawTangents || bDrawBinormals || bDrawVertices )
 	{
 		FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[StaticMeshEditorPtr.Pin()->GetCurrentLODIndex()];
 		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
@@ -527,6 +544,8 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			const FVector& Tangent = LODModel.VertexBuffer.VertexTangentX( Indices[i] ); 
 
 			const float Len = 5.0f;
+			const float BoxLen = 2.0f;
+			const FVector Box(BoxLen);
 
 			if( bDrawNormals )
 			{
@@ -541,6 +560,13 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			if( bDrawBinormals )
 			{
 				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).GetSafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
+			}
+
+			if( bDrawVertices )
+			{								
+				PDI->SetHitProxy(new HSMEVertexProxy(i));
+				DrawWireBox( PDI, FBox(VertexPos - Box, VertexPos + Box), FLinearColor(0.0f, 1.0f, 0.0f), SDPG_World );
+				PDI->SetHitProxy(NULL);								
 			}
 		}	
 	}
@@ -853,6 +879,27 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 			}
 
 			ClearSelectedPrims = false;
+		}
+		else if (IsSetShowSocketsChecked() && HitProxy->IsA(HSMEVertexProxy::StaticGetType()))
+		{
+			UStaticMeshSocket* Socket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+
+			if (Socket)
+			{
+				HSMEVertexProxy* VertexProxy = (HSMEVertexProxy*)HitProxy;
+				TSharedPtr<IStaticMeshEditor> StaticMeshEditor = StaticMeshEditorPtr.Pin();
+				if (StaticMeshEditor.IsValid())
+				{
+					FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[StaticMeshEditor->GetCurrentLODIndex()];
+					FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
+					const uint32 Index = Indices[VertexProxy->Index];
+
+					Socket->RelativeLocation = LODModel.PositionVertexBuffer.VertexPosition(Index);
+					Socket->RelativeRotation = FRotationMatrix::MakeFromYZ(LODModel.VertexBuffer.VertexTangentZ(Index), LODModel.VertexBuffer.VertexTangentX(Index)).Rotator();
+
+					ClearSelectedSockets = false;
+				}
+			}
 		}
 	}
 	else
@@ -1216,6 +1263,21 @@ void FStaticMeshEditorViewportClient::SetShowBinormals()
 bool FStaticMeshEditorViewportClient::IsSetShowBinormalsChecked() const
 {
 	return bDrawBinormals;
+}
+
+void FStaticMeshEditorViewportClient::SetDrawVertices()
+{
+	bDrawVertices = !bDrawVertices;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bDrawVertices"), bDrawVertices ? TEXT("True") : TEXT("False"));
+	}
+	Invalidate();
+}
+
+bool FStaticMeshEditorViewportClient::IsSetDrawVerticesChecked() const
+{
+	return bDrawVertices;
 }
 
 void FStaticMeshEditorViewportClient::SetShowWireframeCollision()

@@ -411,6 +411,12 @@ void SStaticMeshEditorViewport::BindCommands()
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetDrawAdditionalData ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetDrawAdditionalData ) );
+
+	CommandList->MapAction(
+		Commands.SetShowVertices,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetDrawVertices ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetDrawVerticesChecked ) );
 }
 
 void SStaticMeshEditorViewport::OnFocusViewportToSelection()

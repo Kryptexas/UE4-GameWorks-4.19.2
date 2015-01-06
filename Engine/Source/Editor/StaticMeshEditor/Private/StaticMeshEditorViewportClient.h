@@ -111,6 +111,12 @@ public:
 	/** Callback for checking the additional data drawing flag. */
 	bool IsSetDrawAdditionalData() const;
 
+	/** Callback for toggling the vertices drawing flag. */
+	void SetDrawVertices();
+
+	/** Callback for checking the vertices drawing flag. */
+	bool IsSetDrawVerticesChecked() const;
+
 protected:
 	// FEditorViewportClient interface
 	virtual void PerspectiveCameraMoved() override;
@@ -137,6 +143,7 @@ private:
 	bool bDrawBinormals;
 	bool bShowPivot;
 	bool bDrawAdditionalData;
+	bool bDrawVertices;
 
 	/** true when the user is manipulating a socket widget. */
 	bool bManipulating;
