@@ -643,6 +643,12 @@ bool FFriendsAndChatManager::JoinGameAllowed()
 	return false;
 }
 
+const bool FFriendsAndChatManager::IsInLauncher() const
+{
+	// ToDo NDavies - Find a better way to identify if we are in game
+	return !AllowFriendsJoinGameDelegate.IsBound();
+}
+
 EOnlinePresenceState::Type FFriendsAndChatManager::GetUserIsOnline()
 {
 	if (OnlineSubMcp != nullptr)

@@ -3,6 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "SFriendItem.h"
 #include "FriendViewModel.h"
+#include "SFriendsToolTip.h"
 #include "SFriendsList.h"
 
 #define LOCTEXT_NAMESPACE "SFriendItem"
@@ -237,6 +238,7 @@ private:
 			ActionListBox->AddSlot()
 			[
 				SNew(SButton)
+				.ToolTip(FriendAction == EFriendActionType::JoinGame ? CreateJoingGameToolTip() : NULL)
 				.IsEnabled(this, &SFriendItemImpl::IsActionEnabled, FriendAction)
 				.OnClicked(this, &SFriendItemImpl::HandleActionClicked, FriendAction)
 				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
@@ -300,6 +302,17 @@ private:
 	EVisibility ActionMenuButtonVisibility() const
 	{
 		return (bIsHovered && PendingAction == EFriendActionType::MAX_None) || Anchor->IsOpen() ? EVisibility::Visible : EVisibility::Hidden;
+	}
+
+	TSharedPtr<SToolTip> CreateJoingGameToolTip()
+	{
+		if(!ViewModel->CanPerformAction(EFriendActionType::JoinGame))
+		{
+			return SNew(SFriendsToolTip)
+			.DisplayText(ViewModel->GetJoinGameDisallowReason())
+			.FriendStyle(&FriendStyle);
+		}
+		return nullptr;
 	}
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override

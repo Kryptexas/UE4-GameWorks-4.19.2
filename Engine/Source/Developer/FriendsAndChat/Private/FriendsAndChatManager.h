@@ -171,6 +171,11 @@ public:
 	bool JoinGameAllowed();
 
 	/**
+	 * @return true if in the launcher
+	 */
+	const bool IsInLauncher() const;
+
+	/**
 	 * Set the chat friend.
 	 *
 	 * @param FriendItem The friend to start a chat with.

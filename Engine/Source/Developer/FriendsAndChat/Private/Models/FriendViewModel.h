@@ -77,6 +77,7 @@ public:
 	virtual void PerformAction(const EFriendActionType::Type ActionType) = 0;
 	virtual bool CanPerformAction(const EFriendActionType::Type ActionType) = 0;
 	virtual FText GetFriendName() const = 0;
+	virtual FText GetJoinGameDisallowReason() const = 0;
 	virtual FText GetFriendLocation() const = 0;
 	virtual FString GetClientId() const = 0;
 	virtual bool IsOnline() const = 0;

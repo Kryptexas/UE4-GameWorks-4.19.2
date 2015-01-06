@@ -2,6 +2,7 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SInviteItem.h"
+#include "SFriendsToolTip.h"
 #include "SFriendsList.h"
 #include "FriendViewModel.h"
 
@@ -77,6 +78,7 @@ private:
 				.Padding(5)
 				[
 					SNew(SButton)
+					.ToolTip(FriendAction == EFriendActionType::JoinGame ? CreateJoingGameToolTip() : NULL)
 					.IsEnabled(this, &SInviteItemImpl::IsActionEnabled, FriendAction)
 					.OnClicked(this, &SInviteItemImpl::PerformAction, FriendAction)
 					.ButtonStyle(SFriendsList::GetActionButtonStyle(FriendStyle, EFriendActionType::ToActionLevel(FriendAction)))
@@ -101,8 +103,20 @@ private:
 
 	bool IsActionEnabled(EFriendActionType::Type FriendAction) const
 	{
-		return bIsHovered && ViewModel->CanPerformAction(FriendAction);
+		return ViewModel->CanPerformAction(FriendAction);
 	}
+
+	TSharedPtr<SToolTip> CreateJoingGameToolTip()
+	{
+		if(!ViewModel->CanPerformAction(EFriendActionType::JoinGame))
+		{
+			return SNew(SFriendsToolTip)
+			.DisplayText(ViewModel->GetJoinGameDisallowReason())
+			.FriendStyle(&FriendStyle);
+		}
+		return nullptr;
+	}
+
 
 private:
 	/** Holds the style to use when making the widget. */
