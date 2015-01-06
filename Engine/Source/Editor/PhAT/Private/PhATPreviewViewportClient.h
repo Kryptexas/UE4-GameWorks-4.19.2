@@ -17,7 +17,7 @@ class FPhATEdPreviewViewportClient : public FEditorViewportClient
 {
 public:
 	/** Constructor */
-	FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data);
+	FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data, const TSharedRef<SPhATPreviewViewport>& InPhATPreviewViewport);
 	~FPhATEdPreviewViewportClient();
 
 	/** FEditorViewportClient interface */

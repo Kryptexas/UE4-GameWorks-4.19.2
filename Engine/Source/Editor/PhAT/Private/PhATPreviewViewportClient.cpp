@@ -19,8 +19,8 @@
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "DrawDebugHelpers.h"
 
-FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data)
-	: FEditorViewportClient(nullptr, &Data->PreviewScene)
+FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data, const TSharedRef<SPhATPreviewViewport>& InPhATPreviewViewport)
+	: FEditorViewportClient(nullptr, &Data->PreviewScene, StaticCastSharedRef<SEditorViewport>(InPhATPreviewViewport))
 	, PhATPtr(InPhAT)
 	, SharedData(Data)
 	, MinPrimSize(0.5f)

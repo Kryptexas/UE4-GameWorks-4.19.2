@@ -16,7 +16,7 @@ public:
 	 * @param InBlueprintEditorPtr A weak reference to the Blueprint Editor context.
 	 * @param InPreviewScene The preview scene to use.
 	 */
-	FSCSEditorViewportClient(TWeakPtr<class FBlueprintEditor>& InBlueprintEditorPtr, FPreviewScene& InPreviewScene);
+	FSCSEditorViewportClient(TWeakPtr<class FBlueprintEditor>& InBlueprintEditorPtr, FPreviewScene& InPreviewScene, const TSharedRef<SSCSEditorViewport>& InSCSEditorViewport);
 
 	/**
 	 * Destructor.

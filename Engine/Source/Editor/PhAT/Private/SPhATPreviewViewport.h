@@ -2,14 +2,15 @@
 
 #pragma once
 
-class FPhAT;
+#include "SEditorViewport.h"
 
+class FPhAT;
 
 /*-----------------------------------------------------------------------------
    SPhATViewport
 -----------------------------------------------------------------------------*/
 
-class SPhATPreviewViewport : public SCompoundWidget
+class SPhATPreviewViewport : public SEditorViewport
 {
 public:
 	SLATE_BEGIN_ARGS(SPhATPreviewViewport)
@@ -42,16 +43,15 @@ public:
 
 	void SetViewportType(ELevelViewportType ViewType);
 
+protected:
+	/** SEditorViewport interface */
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+
 private:
 	/** Pointer back to the PhysicsAsset editor tool that owns us */
 	TWeakPtr<FPhAT> PhATPtr;
 	
 	/** Level viewport client */
-	TSharedPtr<FPhATEdPreviewViewportClient> ViewportClient;
-
-	/** Slate viewport for rendering and I/O */
-	TSharedPtr<FSceneViewport> Viewport;
-
-	/** Viewport widget*/
-	TSharedPtr<SViewport> ViewportWidget;
+	TSharedPtr<FPhATEdPreviewViewportClient> EditorViewportClient;
 };

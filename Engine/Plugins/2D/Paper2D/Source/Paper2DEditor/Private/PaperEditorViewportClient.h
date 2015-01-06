@@ -37,7 +37,7 @@ class FPaperEditorViewportClient : public FEditorViewportClient
 {
 public:
 	/** Constructor */
-	FPaperEditorViewportClient();
+	explicit FPaperEditorViewportClient(const TWeakPtr<class SEditorViewport>& InEditorViewportWidget = nullptr);
 	~FPaperEditorViewportClient();
 
 	// FViewportClient interface

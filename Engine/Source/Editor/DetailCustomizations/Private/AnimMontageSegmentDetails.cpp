@@ -8,8 +8,8 @@
 #define LOCTEXT_NAMESPACE "AnimMontageSegmentDetails"
 
 /////////////////////////////////////////////////////////////////////////
-FAnimationSegmentViewportClient::FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene)
-	: FEditorViewportClient(nullptr, &InPreviewScene)
+FAnimationSegmentViewportClient::FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene, const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
+	: FEditorViewportClient(nullptr, &InPreviewScene, InEditorViewportWidget)
 {
 	SetViewMode(VMI_Lit);
 

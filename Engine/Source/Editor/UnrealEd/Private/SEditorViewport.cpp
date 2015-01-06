@@ -14,6 +14,7 @@
 
 SEditorViewport::SEditorViewport()
 	: LastTickTime(0)
+	, bInvalidated(false)
 {
 }
 
@@ -63,7 +64,7 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 
 	if ( Client->IsRealtime() )
 	{
-		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTick ) );
 	}
 
 	CommandList = MakeShareable( new FUICommandList );
@@ -340,7 +341,7 @@ void SEditorViewport::OnToggleRealtime()
 	else
 	{
 		Client->SetRealtime( true );
-		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTick ) );
 	}
 }
 
@@ -355,7 +356,7 @@ void SEditorViewport::OnToggleStats()
 		if ( !Client->IsRealtime() )
 		{
 			Client->SetRealtime( true );
-			ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+			ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTick ) );
 		}
 
 		 // let the user know how they can enable stats via the console
@@ -415,6 +416,14 @@ bool SEditorViewport::IsExposureSettingSelected( int32 ID ) const
 	}
 }
 
+void SEditorViewport::Invalidate()
+{
+	bInvalidated = true;
+	if (!ActiveTimerHandle.IsValid())
+	{
+		ActiveTimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SEditorViewport::EnsureTick));
+	}
+}
 
 bool SEditorViewport::IsRealtime() const
 {
@@ -518,9 +527,12 @@ bool SEditorViewport::OnIsSurfaceSnapEnabled()
 	return GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bEnabled;
 }
 
-EActiveTimerReturnType SEditorViewport::EnsureTickWhileRealtime( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SEditorViewport::EnsureTick( double InCurrentTime, float InDeltaTime )
 {
-	return EActiveTimerReturnType::Continue;
+	// Keep the timer going if we're realtime or were invalidated this frame
+	const bool bShouldContinue = Client->IsRealtime() || bInvalidated;
+	bInvalidated = false;
+	return bShouldContinue ? EActiveTimerReturnType::Continue : EActiveTimerReturnType::Stop;
 }
 
 #undef LOCTEXT_NAMESPACE

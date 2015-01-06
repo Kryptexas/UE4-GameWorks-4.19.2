@@ -613,16 +613,48 @@ void SAnimationRemapSkeleton::Construct( const FArguments& InArgs )
 
 					+SHorizontalBox::Slot()
 					[
-						SAssignNew(SourceViewport, SBasePoseViewport)
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("SourceSkeleteonTitle", "[Source]"))
+							.Font(FEditorStyle::GetFontStyle("Persona.RetargetManager.FilterFont"))
+							.AutoWrapText(true)
+						]
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SAssignNew(SourceViewport, SBasePoseViewport)
+							.Skeleton(OldSkeleton)
+						]
+						/*SAssignNew(SourceViewport, SBasePoseViewport)
 						.Title(TEXT("[Source]"))
-						.Skeleton(OldSkeleton)
+						.Skeleton(OldSkeleton)*/
 					]
 
 					+SHorizontalBox::Slot()
 					[
-						SAssignNew(TargetViewport, SBasePoseViewport)
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("TargetSkeleteonTitle", "[Target]"))
+							.Font(FEditorStyle::GetFontStyle("Persona.RetargetManager.FilterFont"))
+							.AutoWrapText(true)
+						]
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SAssignNew(TargetViewport, SBasePoseViewport)
+							.Skeleton(nullptr)
+						]
+						/*SAssignNew(TargetViewport, SBasePoseViewport)
 						.Title(TEXT("[Target]"))
-						.Skeleton(NULL)
+						.Skeleton(NULL)*/
 					]
 				]
 			]
@@ -1068,8 +1100,8 @@ bool SSkeletonBoneRemoval::ShowModal(const TArray<FName> BonesToRemove, const FT
 class FBasePoseViewportClient: public FEditorViewportClient
 {
 public:
-	FBasePoseViewportClient(FPreviewScene& InPreviewScene)
-			: FEditorViewportClient(nullptr, &InPreviewScene)
+	FBasePoseViewportClient(FPreviewScene& InPreviewScene, const TSharedRef<SBasePoseViewport>& InBasePoseViewport)
+		: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InBasePoseViewport))
 	{
 		SetViewMode(VMI_Lit);
 
@@ -1129,46 +1161,7 @@ public:
 // SBasePoseViewport
 void SBasePoseViewport::Construct(const FArguments& InArgs)
 {
-	//RegisterActiveTimer( 0.f, FTickWidgetDelegate::CreateSP( this, &SBasePoseViewport::TickViewport ) );
-
-	this->ChildSlot
-	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(InArgs._Title))
-			.Font(FEditorStyle::GetFontStyle("Persona.RetargetManager.FilterFont"))
-			.AutoWrapText(true)
-		]
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SBorder)
-			.HAlign(HAlign_Center)
-			[
-				SAssignNew(ViewportWidget, SViewport)
-				.EnableGammaCorrection(false)
-			]
-		]
-	];
-
-	// Create a viewport client
-	LevelViewportClient	= MakeShareable(new FBasePoseViewportClient(PreviewScene));
-
-	LevelViewportClient->ViewportType = LVT_Perspective;
-	LevelViewportClient->bSetListenerPosition = false;
-	LevelViewportClient->SetViewLocation(EditorViewportDefs::DefaultPerspectiveViewLocation);
-	LevelViewportClient->SetViewRotation(EditorViewportDefs::DefaultPerspectiveViewRotation);
-
-	SceneViewport = MakeShareable(new FSceneViewport(LevelViewportClient.Get(), ViewportWidget));
-	LevelViewportClient->Viewport = SceneViewport.Get();
-	LevelViewportClient->SetRealtime(true);
-	LevelViewportClient->VisibilityDelegate.BindSP(this, &SBasePoseViewport::IsVisible);
-	LevelViewportClient->SetViewMode(VMI_Lit);
-
-	ViewportWidget->SetViewportInterface(SceneViewport.ToSharedRef());
+	SEditorViewport::Construct(SEditorViewport::FArguments());
 
 	PreviewComponent = ConstructObject<UDebugSkelMeshComponent>(UDebugSkelMeshComponent::StaticClass());
 	PreviewComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
@@ -1195,13 +1188,13 @@ void SBasePoseViewport::SetSkeleton(USkeleton* Skeleton)
 				PreviewComponent->RefreshBoneTransforms(NULL);
 
 				//Place the camera at a good viewer position
-				FVector NewPosition = LevelViewportClient->GetViewLocation();
+				FVector NewPosition = Client->GetViewLocation();
 				NewPosition.Normalize();
 				if(PreviewSkeletalMesh)
 				{
 					NewPosition *= (PreviewSkeletalMesh->Bounds.SphereRadius*1.5f);
 				}
-				LevelViewportClient->SetViewLocation(NewPosition);
+				Client->SetViewLocation(NewPosition);
 			}
 			else
 			{
@@ -1213,16 +1206,7 @@ void SBasePoseViewport::SetSkeleton(USkeleton* Skeleton)
 			PreviewComponent->SetSkeletalMesh(NULL);
 		}
 
-		LevelViewportClient->Invalidate();
-	}
-}
-
-SBasePoseViewport::~SBasePoseViewport()
-{
-	// Close viewport
-	if(LevelViewportClient.IsValid())
-	{
-		LevelViewportClient->Viewport = NULL;
+		Client->Invalidate();
 	}
 }
 
@@ -1234,6 +1218,27 @@ SBasePoseViewport::SBasePoseViewport()
 bool SBasePoseViewport::IsVisible() const
 {
 	return true;
+}
+
+TSharedRef<FEditorViewportClient> SBasePoseViewport::MakeEditorViewportClient()
+{
+	TSharedPtr<FEditorViewportClient> EditorViewportClient = MakeShareable(new FBasePoseViewportClient(PreviewScene, SharedThis(this)));
+
+	EditorViewportClient->ViewportType = LVT_Perspective;
+	EditorViewportClient->bSetListenerPosition = false;
+	EditorViewportClient->SetViewLocation(EditorViewportDefs::DefaultPerspectiveViewLocation);
+	EditorViewportClient->SetViewRotation(EditorViewportDefs::DefaultPerspectiveViewRotation);
+
+	EditorViewportClient->SetRealtime(false);
+	EditorViewportClient->VisibilityDelegate.BindSP(this, &SBasePoseViewport::IsVisible);
+	EditorViewportClient->SetViewMode(VMI_Lit);
+
+	return EditorViewportClient.ToSharedRef();
+}
+
+TSharedPtr<SWidget> SBasePoseViewport::MakeViewportToolbar()
+{
+	return nullptr;
 }
 #undef LOCTEXT_NAMESPACE 
 

@@ -50,7 +50,7 @@ protected:
 	void DisplayInfo( FCanvas* Canvas, FSceneView* View, bool bDisplayAllInfo );
 
 public:
-	FAnimationViewportClient( FPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr );
+	FAnimationViewportClient(FPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport);
 	virtual ~FAnimationViewportClient();
 
 	// FEditorViewportClient interface

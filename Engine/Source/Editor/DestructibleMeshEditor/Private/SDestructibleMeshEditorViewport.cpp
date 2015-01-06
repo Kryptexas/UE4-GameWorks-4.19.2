@@ -29,7 +29,7 @@ protected:
 	TWeakObjectPtr<UDestructibleComponent> PreviewDestructibleComp;
 
 public:
-	FDestructibleMeshEditorViewportClient(TWeakPtr<IDestructibleMeshEditor> InDestructibleMeshEditor, FPreviewScene& InPreviewScene);
+	FDestructibleMeshEditorViewportClient(TWeakPtr<IDestructibleMeshEditor> InDestructibleMeshEditor, FPreviewScene& InPreviewScene, const TSharedRef<SDestructibleMeshEditorViewport>& InDestructibleMeshEditorViewport);
 
 	// FGCObject interface
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -81,8 +81,8 @@ private:
 	TArray<class UDestructibleChunkParamsProxy*> UnusedProxies;
 };
 
-FDestructibleMeshEditorViewportClient::FDestructibleMeshEditorViewportClient(TWeakPtr<IDestructibleMeshEditor> InDestructibleMeshEditor, FPreviewScene& InPreviewScene)
-	: FEditorViewportClient(nullptr, &InPreviewScene)
+FDestructibleMeshEditorViewportClient::FDestructibleMeshEditorViewportClient(TWeakPtr<IDestructibleMeshEditor> InDestructibleMeshEditor, FPreviewScene& InPreviewScene, const TSharedRef<SDestructibleMeshEditorViewport>& InDestructibleMeshEditorViewport)
+	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InDestructibleMeshEditorViewport))
 	, DestructibleMeshEditorPtr(InDestructibleMeshEditor)
 {
 	SetViewMode(VMI_Lit);
@@ -479,41 +479,15 @@ void FDestructibleMeshEditorViewportClient::ImportFBXChunks()
 void SDestructibleMeshEditorViewport::Construct(const FArguments& InArgs)
 {
 	DestructibleMeshEditorPtr = InArgs._DestructibleMeshEditor;
-
 	CurrentViewMode = VMI_Lit;
 
-	this->ChildSlot
-		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.FillHeight(1)
-			[
-				SAssignNew( ViewportWidget, SViewport )
-				.EnableGammaCorrection(false)
-				.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-				.ShowEffectWhenDisabled( false )
-			]
-		];
-
-	EditorViewportClient = MakeShareable( new FDestructibleMeshEditorViewportClient(DestructibleMeshEditorPtr, PreviewScene) );
-
-	EditorViewportClient->bSetListenerPosition = false;
-
-	EditorViewportClient->SetRealtime( false );
-	EditorViewportClient->VisibilityDelegate.BindSP( this, &SDestructibleMeshEditorViewport::IsVisible );
-
-	Viewport = MakeShareable( new FSceneViewport( EditorViewportClient.Get(), ViewportWidget ) );
-	EditorViewportClient->Viewport = Viewport.Get();
-
-	// The viewport widget needs an interface so it knows what should render
-	ViewportWidget->SetViewportInterface( Viewport.ToSharedRef() );
+	SEditorViewport::Construct(SEditorViewport::FArguments());
 
 	PreviewComponent = ConstructObject<UDestructibleComponent>(
 		UDestructibleComponent::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient );
 
 	SetPreviewMesh(InArgs._ObjectToEdit);
 
-	BindCommands();
 	EditorViewportClient->BindCommands();
 
 	PreviewDepth = 0;
@@ -605,7 +579,7 @@ void SDestructibleMeshEditorViewport::RefreshViewport()
 #endif // WITH_APEX
 
 	// Invalidate the viewport's display.
-	Viewport->InvalidateDisplay();
+	SceneViewport->InvalidateDisplay();
 }
 
 void SDestructibleMeshEditorViewport::SetPreviewMesh(UDestructibleMesh* InDestructibleMesh)
@@ -690,10 +664,6 @@ UDestructibleComponent* SDestructibleMeshEditorViewport::GetDestructibleComponen
 	return PreviewComponent;
 }
 
-void SDestructibleMeshEditorViewport::BindCommands()
-{
-}
-
 void SDestructibleMeshEditorViewport::SetViewModeWireframe()
 {
 	if(CurrentViewMode != VMI_Wireframe)
@@ -706,11 +676,33 @@ void SDestructibleMeshEditorViewport::SetViewModeWireframe()
 	}
 
 	EditorViewportClient->SetViewMode(CurrentViewMode);
-	Viewport->Invalidate();
+	SceneViewport->Invalidate();
 
 }
 
 bool SDestructibleMeshEditorViewport::IsInViewModeWireframeChecked() const
 {
 	return CurrentViewMode == VMI_Wireframe;
+}
+
+TSharedRef<FEditorViewportClient> SDestructibleMeshEditorViewport::MakeEditorViewportClient()
+{
+	EditorViewportClient = MakeShareable( new FDestructibleMeshEditorViewportClient(DestructibleMeshEditorPtr, PreviewScene, SharedThis(this)) );
+
+	EditorViewportClient->bSetListenerPosition = false;
+
+	EditorViewportClient->SetRealtime( false );
+	EditorViewportClient->VisibilityDelegate.BindSP( this, &SDestructibleMeshEditorViewport::IsVisible );
+
+	return EditorViewportClient.ToSharedRef();
+}
+
+TSharedPtr<SWidget> SDestructibleMeshEditorViewport::MakeViewportToolbar()
+{
+	return nullptr;
+}
+
+void SDestructibleMeshEditorViewport::BindCommands()
+{
+	// No commands. Overridden to prevent the base SEditorViewport commands from being bound.
 }

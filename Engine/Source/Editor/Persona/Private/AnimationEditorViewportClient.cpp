@@ -28,6 +28,7 @@
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "Engine/StaticMesh.h"
+#include "SAnimationEditorViewport.h"
 
 namespace {
 	// Value from UE3
@@ -78,8 +79,8 @@ IMPLEMENT_HIT_PROXY( HPersonaBoneProxy, HHitProxy );
 /////////////////////////////////////////////////////////////////////////
 // FAnimationViewportClient
 
-FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr )
-	: FEditorViewportClient(nullptr, &InPreviewScene)
+FAnimationViewportClient::FAnimationViewportClient(FPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport)
+	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InAnimationEditorViewport))
 	, PersonaPtr( InPersonaPtr )
 	, bManipulating(false)
 	, bInTransaction(false)

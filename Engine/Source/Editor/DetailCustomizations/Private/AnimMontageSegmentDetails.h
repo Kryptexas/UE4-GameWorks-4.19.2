@@ -154,7 +154,7 @@ protected:
 class FAnimationSegmentViewportClient : public FEditorViewportClient
 {
 public:
-	FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene);
+	FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene, const TWeakPtr<SEditorViewport>& InEditorViewportWidget = nullptr);
 
 	// FlEditorViewportClient interface
 	virtual FSceneInterface* GetScene() const override;

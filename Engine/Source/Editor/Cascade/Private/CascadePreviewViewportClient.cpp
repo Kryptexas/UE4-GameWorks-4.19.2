@@ -21,10 +21,9 @@
 
 #define LOCTEXT_NAMESPACE "CascadeViewportClient"
 
-FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadePreviewViewport> InCascadeViewport)
-	: FEditorViewportClient(nullptr)
+FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCascade> InCascade, const TSharedRef<SCascadePreviewViewport>& InCascadeViewport)
+	: FEditorViewportClient(nullptr, nullptr, StaticCastSharedRef<SEditorViewport>(InCascadeViewport))
 	, CascadePtr(InCascade)
-	, CascadeViewportPtr(InCascadeViewport)
 	, CascadePreviewScene(FPreviewScene::ConstructionValues()
 						.SetLightRotation(FRotator(-45.f, 180.f, 0.f))
 						.SetSkyBrightness(0.25f)
@@ -33,7 +32,7 @@ FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCasca
 	, LightRotSpeed(0.22f)
 {
 
-	check(CascadePtr.IsValid() && CascadeViewportPtr.IsValid());
+	check(CascadePtr.IsValid() && EditorViewportWidget.IsValid());
 
 	UParticleSystem* ParticleSystem = CascadePtr.Pin()->GetParticleSystem();
 	UCascadeParticleSystemComponent* ParticleSystemComponent = CascadePtr.Pin()->GetParticleSystemComponent();

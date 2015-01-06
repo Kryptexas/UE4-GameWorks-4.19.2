@@ -27,6 +27,12 @@ public:
 	/** @return True if the viewport is currently visible */
 	virtual bool IsVisible() const;
 
+	/** 
+	 * Invalidates the viewport to ensure it is redrawn during the next tick. 
+	 * This is implied every frame while the viewport IsRealtime().
+	 */
+	void Invalidate();
+
 	/**
 	 * @return true if the specified coordinate system the active one active
 	 */
@@ -102,7 +108,6 @@ protected:
 	 */
 	bool IsExposureSettingSelected( int32 ID ) const;
 	
-
 	virtual void OnScreenCapture();
 	virtual void OnScreenCaptureForProjectThumbnail();
 	virtual bool DoesAllowScreenCapture() { return true; }
@@ -172,9 +177,12 @@ protected:
 	double LastTickTime;
 
 private:
-	/** Ensures the viewport is ticked actively when realtime is enabled */
-	EActiveTimerReturnType EnsureTickWhileRealtime( double InCurrentTime, float InDeltaTime );
+	/** Ensures a Slate tick/paint pass when the viewport is realtime or was invalidated this frame */
+	EActiveTimerReturnType EnsureTick( double InCurrentTime, float InDeltaTime );
 
 	/** The handle to the active timer */
 	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
+
+	/** Whether the viewport needs to update, even without input or realtime (e.g. inertial camera movement) */
+	bool bInvalidated;
 };

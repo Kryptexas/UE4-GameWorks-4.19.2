@@ -88,7 +88,7 @@ FReply STimelineBar::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const
 				float Radius = BoundingBox.GetExtent().Size();
 
 				FViewportCameraTransform ViewTransform;
-				ViewTransform.TransitionToLocation(Position, true);
+				ViewTransform.TransitionToLocation(Position, SharedThis(this), true);
 
 				float NewOrthoZoom;
 				const float AspectRatio = 1.777777f;

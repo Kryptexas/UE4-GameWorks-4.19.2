@@ -17,7 +17,7 @@
 class FNiagaraEffectEditorViewportClient : public FEditorViewportClient
 {
 public:
-	FNiagaraEffectEditorViewportClient(TWeakPtr<INiagaraEffectEditor> InEffectEditor, FPreviewScene& InPreviewScene);
+	FNiagaraEffectEditorViewportClient(TWeakPtr<INiagaraEffectEditor> InEffectEditor, FPreviewScene& InPreviewScene, const TSharedRef<SNiagaraEffectEditorViewport>& InNiagaraEditorViewport);
 	
 	// FEditorViewportClient interface
 	virtual FLinearColor GetBackgroundColor() const override;
@@ -34,9 +34,9 @@ private:
 	TWeakPtr<INiagaraEffectEditor> EffectEditorPtr;
 };
 
-FNiagaraEffectEditorViewportClient::FNiagaraEffectEditorViewportClient(TWeakPtr<INiagaraEffectEditor> InEffectEditor, FPreviewScene& InPreviewScene)
-: FEditorViewportClient( nullptr, &InPreviewScene )
-, EffectEditorPtr(InEffectEditor)
+FNiagaraEffectEditorViewportClient::FNiagaraEffectEditorViewportClient(TWeakPtr<INiagaraEffectEditor> InEffectEditor, FPreviewScene& InPreviewScene, const TSharedRef<SNiagaraEffectEditorViewport>& InNiagaraEditorViewport)
+	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InNiagaraEditorViewport))
+	, EffectEditorPtr(InEffectEditor)
 {
 	// Setup defaults for the common draw helper.
 	DrawHelper.bDrawPivot = false;
@@ -239,7 +239,7 @@ bool SNiagaraEffectEditorViewport::IsTogglePreviewBackgroundChecked() const
 
 TSharedRef<FEditorViewportClient> SNiagaraEffectEditorViewport::MakeEditorViewportClient() 
 {
-	EditorViewportClient = MakeShareable( new FNiagaraEffectEditorViewportClient(nullptr, PreviewScene) );
+	EditorViewportClient = MakeShareable( new FNiagaraEffectEditorViewportClient(nullptr, PreviewScene, SharedThis(this)) );
 	
 	EditorViewportClient->SetViewLocation( FVector::ZeroVector );
 	EditorViewportClient->SetViewRotation( FRotator::ZeroRotator );

@@ -157,6 +157,9 @@ struct FDropQuery
 	FText HintText;
 };
 
+// Forward declare
+class SEditorViewport;
+
 /** 
  * Stores the transformation data for the viewport camera
  */
@@ -205,7 +208,7 @@ public:
 	 * @param InDesiredLocation	The location to transition to
 	 * @param bInstant			If the desired location should be set instantly rather than transitioned to over time
 	 */
-	void TransitionToLocation( const FVector& InDesiredLocation, bool bInstant );
+	void TransitionToLocation( const FVector& InDesiredLocation, TWeakPtr<SWidget> EditorViewportWidget, bool bInstant );
 
 	/**
 	 * Updates any current location transitions
@@ -220,7 +223,10 @@ public:
 	FMatrix ComputeOrbitMatrix() const;
 private:
 	/** The time when a transition to the desired location began */
-	double TransitionStartTime;
+	//double TransitionStartTime;
+	
+	/** Curve for animating between locations */
+	TSharedPtr<struct FCurveSequence> TransitionCurve;
 	/** Current viewport Position. */
 	FVector	ViewLocation;
 	/** Current Viewport orientation; valid only for perspective projections. */
@@ -235,12 +241,14 @@ private:
 	float OrthoZoom;
 };
 
+/** Viewport client for editor viewports. Contains common functionality for camera movement, rendering debug information, etc. */
 class UNREALED_API FEditorViewportClient : public FCommonViewportClient, public FViewElementDrawer, public FGCObject
 {
 public:
 	friend class FMouseDeltaTracker;
 
-	FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene = nullptr);
+	FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene = nullptr, const TWeakPtr<SEditorViewport>& InEditorViewportWidget = nullptr);
+
 	virtual ~FEditorViewportClient();
 
 	/**
@@ -1399,6 +1407,9 @@ protected:
 
 	/** Draw helper for rendering common editor functionality like the grid */
 	FEditorCommonDrawHelper DrawHelper;
+
+	/** The editor viewport widget this client is attached to */
+	TWeakPtr<SEditorViewport> EditorViewportWidget;
 
 	/** The scene used for the viewport. Owned externally */
 	FPreviewScene* PreviewScene;

@@ -47,6 +47,7 @@
 #include "Editor/ActorPositioning.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "SLevelViewport.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -1422,8 +1423,8 @@ void FTrackingTransaction::PromotePendingToActive()
 	}
 }
 
-FLevelEditorViewportClient::FLevelEditorViewportClient()
-	: FEditorViewportClient(&GLevelEditorModeTools(), NULL)
+FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelViewport>& InLevelViewport)
+	: FEditorViewportClient(&GLevelEditorModeTools(), nullptr, StaticCastSharedPtr<SEditorViewport>(InLevelViewport))
 	, ViewHiddenLayers()
 	, VolumeActorVisibility()
 	, LastEditorViewLocation( FVector::ZeroVector )
@@ -1440,13 +1441,13 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 	, bIsTrackingBrushModification( false )
 	, bLockedCameraView(true)
 	, SpriteCategoryVisibility()
-	, World(NULL)
+	, World(nullptr)
 	, TrackingTransaction()
 	, DropPreviewMouseX(0)
 	, DropPreviewMouseY(0)
 	, bWasControlledByOtherViewport(false)
-	, ActorLockedByMatinee(NULL)
-	, ActorLockedToCamera(NULL)
+	, ActorLockedByMatinee(nullptr)
+	, ActorLockedToCamera(nullptr)
 {
 	// By default a level editor viewport is pointed to the editor world
 	SetReferenceToWorldContext(GEditor->GetEditorWorldContext());

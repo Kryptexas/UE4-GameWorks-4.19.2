@@ -56,7 +56,7 @@ void SAnimationEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<cl
 TSharedRef<FEditorViewportClient> SAnimationEditorViewport::MakeEditorViewportClient()
 {
 	// Create an animation viewport client
-	LevelViewportClient = MakeShareable(new FAnimationViewportClient(PersonaPtr.Pin()->GetPreviewScene(), PersonaPtr));
+	LevelViewportClient = MakeShareable(new FAnimationViewportClient(PersonaPtr.Pin()->GetPreviewScene(), PersonaPtr, SharedThis(this)));
 
 	LevelViewportClient->ViewportType = LVT_Perspective;
 	LevelViewportClient->bSetListenerPosition = false;

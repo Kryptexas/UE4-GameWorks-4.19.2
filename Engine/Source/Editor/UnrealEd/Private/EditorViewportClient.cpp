@@ -24,6 +24,7 @@
 #include "Debug/DebugDrawService.h"
 #include "Components/BillboardComponent.h"
 #include "EngineUtils.h"
+#include "SEditorViewport.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -90,7 +91,7 @@ public:
 
 
 FViewportCameraTransform::FViewportCameraTransform()
-	: TransitionStartTime(0)
+	: TransitionCurve( new FCurveSequence( 0.0f, FocusConstants::TransitionTime, ECurveEaseFunction::CubicOut ) )
 	, ViewLocation( FVector::ZeroVector )
 	, ViewRotation( FRotator::ZeroRotator )
 	, DesiredLocation( FVector::ZeroVector )
@@ -105,19 +106,19 @@ void FViewportCameraTransform::SetLocation( const FVector& Position )
 	DesiredLocation = ViewLocation;
 }
 
-void FViewportCameraTransform::TransitionToLocation( const FVector& InDesiredLocation, bool bInstant )
+void FViewportCameraTransform::TransitionToLocation(const FVector& InDesiredLocation, TWeakPtr<SWidget> EditorViewportWidget, bool bInstant)
 {
-	if( bInstant )
+	if( bInstant || !EditorViewportWidget.IsValid() )
 	{
 		SetLocation( InDesiredLocation );
-		TransitionStartTime = FSlateApplication::Get().GetCurrentTime() - FocusConstants::TransitionTime;
+		TransitionCurve->JumpToEnd();
 	}
 	else
 	{
 		DesiredLocation = InDesiredLocation;
 		StartLocation = ViewLocation;
 
-		TransitionStartTime = FSlateApplication::Get().GetCurrentTime();
+		TransitionCurve->Play(EditorViewportWidget.Pin().ToSharedRef());
 	}
 }
 
@@ -125,11 +126,9 @@ void FViewportCameraTransform::TransitionToLocation( const FVector& InDesiredLoc
 bool FViewportCameraTransform::UpdateTransition()
 {
 	bool bIsAnimating = false;
-	double TransitionProgress = FMath::Clamp( (FSlateApplication::Get().GetCurrentTime() - TransitionStartTime) / FocusConstants::TransitionTime, 0.0, 1.0);
-	if( TransitionProgress < 1.0 || ViewLocation != DesiredLocation )
+	if (TransitionCurve->IsPlaying() || ViewLocation != DesiredLocation)
 	{
-		const float Offset = (float)TransitionProgress - 1.0f;
-		float LerpWeight = Offset * Offset * Offset + 1.0f;
+		float LerpWeight = TransitionCurve->GetLerp();
 
 		if( LerpWeight == 1.0f )
 		{
@@ -194,7 +193,7 @@ int32 FEditorViewportClient::GetCameraSpeedSetting() const
 
 float const FEditorViewportClient::SafePadding = 0.075f;
 
-FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene)
+FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene, const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
 	: bAllowMatineePreview(false)
 	, CameraSpeedSetting(4)
 	, ImmersiveDelegate()
@@ -217,7 +216,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, bNeedsLinkedRedraw(false)
 	, bNeedsInvalidateHitProxy(false)
 	, bUsingOrbitCamera(false)
-	, bDisableInput( false )
+	, bDisableInput(false)
 	, bDrawAxes(true)
 	, bSetListenerPosition(false)
 	, LandscapeLODOverride(-1)
@@ -228,10 +227,10 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, MouseDeltaTracker(new FMouseDeltaTracker)
 	, RecordingInterpEd(NULL)
 	, bHasMouseMovedSinceClick(false)
-	, CameraController( new FEditorCameraController() )
-	, CameraUserImpulseData( new FCameraControllerUserImpulseData() )
-	, TimeForForceRedraw( 0.0 )
-	, FlightCameraSpeedScale( 1.0f )
+	, CameraController(new FEditorCameraController())
+	, CameraUserImpulseData(new FCameraControllerUserImpulseData())
+	, TimeForForceRedraw(0.0)
+	, FlightCameraSpeedScale(1.0f)
 	, bUseControllingActorViewInfo(false)
 	, LastMouseX(0)
 	, LastMouseY(0)
@@ -253,6 +252,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, bUsesDrawHelper(true)
 	, bIsSimulateInEditorViewport(false)
 	, bCameraLock(false)
+	, EditorViewportWidget(InEditorViewportWidget)
 	, PreviewScene(InPreviewScene)
 	, PerspViewModeIndex(DefaultPerspectiveViewMode)
 	, OrthoViewModeIndex(DefaultOrthoViewMode)
@@ -286,11 +286,11 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	DrawHelper.bDrawWorldBox = false;
 	DrawHelper.bDrawKillZ = false;
 	DrawHelper.bDrawGrid = true;
-	DrawHelper.GridColorAxis = FColor(160,160,160);
-	DrawHelper.GridColorMajor = FColor(144,144,144);
-	DrawHelper.GridColorMinor = FColor(128,128,128);
+	DrawHelper.GridColorAxis = FColor(160, 160, 160);
+	DrawHelper.GridColorMajor = FColor(144, 144, 144);
+	DrawHelper.GridColorMinor = FColor(128, 128, 128);
 	DrawHelper.PerspectiveGridSize = GridSize;
-	DrawHelper.NumCells = DrawHelper.PerspectiveGridSize / (CellSize * 2);
+	DrawHelper.NumCells = DrawHelper.PerspectiveGridSize / ( CellSize * 2 );
 
 	// Most editor viewports do not want motion blur.
 	EngineShowFlags.MotionBlur = 0;
@@ -489,14 +489,14 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 			FVector CameraOffsetVector = ViewTransform.GetRotation().Vector() * -DistanceFromSphere;
 
 			ViewTransform.SetLookAt(Position);
-			ViewTransform.TransitionToLocation(Position + CameraOffsetVector, bInstant);
+			ViewTransform.TransitionToLocation(Position + CameraOffsetVector, EditorViewportWidget, bInstant);
 
 		}
 		else
 		{
 			// For ortho viewports just set the camera position to the center of the bounding volume.
 			//SetViewLocation( Position );
-			ViewTransform.TransitionToLocation(Position, bInstant);
+			ViewTransform.TransitionToLocation(Position, EditorViewportWidget, bInstant);
 
 			if( !(Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl)) )
 			{
@@ -1320,6 +1320,12 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 			MoveViewportPerspectiveCamera(
 				NewViewLocation - GetViewLocation(),
 				NewViewRotation - GetViewRotation() );
+
+			// Invalidate the viewport widget
+			if (EditorViewportWidget.IsValid())
+			{
+				EditorViewportWidget.Pin()->Invalidate();
+			}
 		}
 	}
 }

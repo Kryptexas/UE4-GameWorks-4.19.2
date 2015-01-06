@@ -112,7 +112,7 @@ void SMatineeRecorder::Construct(const FArguments& InArgs)
 	CameraModeComboBox->ComputeDesiredSize();
 
 	// Create an animation viewport client
-	LevelViewportClient = MakeShareable( new FLevelEditorViewportClient );
+	LevelViewportClient = MakeShareable( new FLevelEditorViewportClient(nullptr) );
 
 	Viewport = MakeShareable( new FSceneViewport( LevelViewportClient.Get(), ViewportWidget ) );
 	LevelViewportClient->Viewport = Viewport.Get();

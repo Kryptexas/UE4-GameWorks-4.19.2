@@ -24,6 +24,7 @@
 #include "Engine/TextureCube.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "SSCSEditorViewport.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSCSEditorViewport, Log, All);
 
@@ -105,8 +106,8 @@ namespace
 /////////////////////////////////////////////////////////////////////////
 // FSCSEditorViewportClient
 
-FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& InBlueprintEditorPtr, FPreviewScene& InPreviewScene)
-	: FEditorViewportClient(nullptr, &InPreviewScene)
+FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& InBlueprintEditorPtr, FPreviewScene& InPreviewScene, const TSharedRef<SSCSEditorViewport>& InSCSEditorViewport)
+	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InSCSEditorViewport))
 	,BlueprintEditorPtr(InBlueprintEditorPtr)
 	,PreviewBlueprint(NULL)
 	,PreviewActorBounds(ForceInitToZero)

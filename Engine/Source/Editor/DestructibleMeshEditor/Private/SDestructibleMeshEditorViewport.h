@@ -3,11 +3,12 @@
 #pragma once
 
 #include "PreviewScene.h"
+#include "SEditorViewport.h"
 
 /**
  * DestructibleMesh Editor Preview viewport widget
  */
-class SDestructibleMeshEditorViewport : public SCompoundWidget, public FGCObject, public FNotifyHook
+class SDestructibleMeshEditorViewport : public SEditorViewport, public FGCObject, public FNotifyHook
 {
 public:
 	SLATE_BEGIN_ARGS( SDestructibleMeshEditorViewport ){}
@@ -34,9 +35,6 @@ public:
 	/** The parent tab where this viewport resides */
 	TWeakPtr<SDockableTab> ParentTab;
 
-	/** Binds commands associated with the viewport client. */
-	void BindCommands();
-
 	/** 
 	 *	Causes chunks at the given PreviewDepth to be displayed in the viewport.  Clamped to the range [0, depth count), where (depth count) = the number of chunk hierarchy depths in the destructible.
 	 *
@@ -62,11 +60,17 @@ public:
 	void SetPreviewMesh(UDestructibleMesh* InDestructibleMesh);
 
 	/**
-	 *	Updates the preview mesh and other viewport specfic settings that go with it.
+	 *	Updates the preview mesh and other viewport specific settings that go with it.
 	 *
 	 *	@param	InDestructibleMesh		The Destructible mesh being viewed in the editor.
 	 */
 	void UpdatePreviewMesh(UDestructibleMesh* InDestructibleMesh);
+
+protected:
+	/** SEditorViewport interface */
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual void BindCommands() override;
 
 private:
 
@@ -88,12 +92,6 @@ private:
 
 	/** Level viewport client */
 	TSharedPtr<class FDestructibleMeshEditorViewportClient> EditorViewportClient;
-
-	/** Slate viewport for rendering and I/O */
-	TSharedPtr<class FSceneViewport> Viewport;
-
-	/** Viewport widget */
-	TSharedPtr<class SViewport> ViewportWidget;
 
 	/** The currently selected view mode. */
 	EViewModeIndex CurrentViewMode;

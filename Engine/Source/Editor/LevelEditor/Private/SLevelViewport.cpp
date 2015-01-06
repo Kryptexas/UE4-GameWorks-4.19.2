@@ -286,7 +286,7 @@ void SLevelViewport::ConstructViewportOverlayContent()
 
 void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArgs )
 {
-	LevelViewportClient = MakeShareable( new FLevelEditorViewportClient() );
+	LevelViewportClient = MakeShareable( new FLevelEditorViewportClient(SharedThis(this)) );
 
 	// Default level viewport client values for settings that could appear in layout config ini
 	FLevelEditorViewportInstanceSettings ViewportInstanceSettings;
@@ -2953,7 +2953,7 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 		{
 			auto CurActor = *ActorIt;
 
-			TSharedPtr< FLevelEditorViewportClient > ActorPreviewLevelViewportClient = MakeShareable( new FLevelEditorViewportClient() );
+			TSharedPtr< FLevelEditorViewportClient > ActorPreviewLevelViewportClient = MakeShareable( new FLevelEditorViewportClient(SharedThis(this)) );
 			{
 				// NOTE: We don't bother setting ViewLocation, ViewRotation, etc, here.  This is because we'll call
 				//       PushControllingActorDataToViewportClient() below which will do this!

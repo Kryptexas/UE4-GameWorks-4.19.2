@@ -4,6 +4,7 @@
 #include "TileSetEditor.h"
 #include "PaperEditorViewportClient.h"
 #include "CanvasTypes.h"
+#include "SEditorViewport.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAssetEditorModeTools
@@ -40,8 +41,8 @@ USelection* FAssetEditorModeTools::GetSelectedObjects() const
 //////////////////////////////////////////////////////////////////////////
 // FPaperEditorViewportClient
 
-FPaperEditorViewportClient::FPaperEditorViewportClient()
-	: FEditorViewportClient(new FAssetEditorModeTools())
+FPaperEditorViewportClient::FPaperEditorViewportClient(const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
+	: FEditorViewportClient(new FAssetEditorModeTools(), nullptr, InEditorViewportWidget)
 	, CheckerboardTexture(nullptr)
 {
 	bOwnsModeTools = true;

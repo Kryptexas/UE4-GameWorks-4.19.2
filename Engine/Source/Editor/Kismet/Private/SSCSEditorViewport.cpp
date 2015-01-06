@@ -223,7 +223,7 @@ EVisibility SSCSEditorViewport::GetWidgetVisibility() const
 TSharedRef<FEditorViewportClient> SSCSEditorViewport::MakeEditorViewportClient()
 {
 	// Construct a new viewport client instance.
-	ViewportClient = MakeShareable(new FSCSEditorViewportClient(BlueprintEditorPtr, PreviewScene));
+	ViewportClient = MakeShareable(new FSCSEditorViewportClient(BlueprintEditorPtr, PreviewScene, SharedThis(this)));
 	ViewportClient->SetRealtime(true);
 	ViewportClient->bSetListenerPosition = false;
 	ViewportClient->VisibilityDelegate.BindSP(this, &SSCSEditorViewport::IsVisible);
