@@ -93,6 +93,7 @@ void SPropertyComboBox::OnSelectionChangedInternal( TSharedPtr<FString> InSelect
 	if( bEnabled )
 	{
 		OnSelectionChanged.ExecuteIfBound( InSelectedItem, SelectInfo );
+		SetSelectedItem(*InSelectedItem);
 	}
 }
 
