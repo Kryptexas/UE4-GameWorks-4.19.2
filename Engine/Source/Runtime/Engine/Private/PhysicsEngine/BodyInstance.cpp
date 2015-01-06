@@ -2211,7 +2211,7 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 			if (TheirBI == BI)
 			{
 				PShape->userData = NULL;
-				RigidActorSync->detachShape(*PShape);
+				RigidActorAsync->detachShape(*PShape);
 				bShapesChanged = true;
 			}
 		}
