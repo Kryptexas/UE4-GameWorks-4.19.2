@@ -837,15 +837,22 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			return nullptr;
 		}
 
-		if (Linker->LinkerRoot && Linker->LinkerRoot->HasAnyFlags(RF_WasLoaded))
+		Result = Linker->LinkerRoot;
+
+		auto EndLoadAndCopyLocalizationGatherFlag = [&]
+		{
+			EndLoad();
+			// Set package-requires-localization flags from archive after loading. This reinforces flagging of packages that haven't yet been resaved.
+			Result->ThisRequiresLocalizationGather(Linker->RequiresLocalizationGather());
+		};
+
+		if (Result && Result->HasAnyFlags(RF_WasLoaded))
 		{
 			// The linker is associated with a package that has already been loaded.
 			// Loading packages that have already been loaded is unsupported.
-			EndLoad();
-			return Linker->LinkerRoot;
+			EndLoadAndCopyLocalizationGatherFlag();
+			return Result;
 		}
-
-		Result = Linker->LinkerRoot;
 
 		// If we are loading a package for diff'ing, set the package flag
 		if(LoadFlags & LOAD_ForDiff)
@@ -886,14 +893,11 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 		SlowTask.EnterProgressFrame(30);
 
-		EndLoad();
+		EndLoadAndCopyLocalizationGatherFlag();
 
 #if WITH_EDITOR
 		GIsEditorLoadingPackage = *IsEditorLoadingPackage;
 #endif
-
-		// Set package-requires-localization flags from archive after loading. This reinforces flagging of packages that haven't yet been resaved.
-		Result->ThisRequiresLocalizationGather(Linker->RequiresLocalizationGather());
 
 #if WITH_ENGINE
 		// Cancel all texture allocations that haven't been claimed yet.
