@@ -4140,6 +4140,9 @@ void FHeaderParser::ParseClassNameDeclaration(FClasses& AllClasses, FString& Dec
 		bSpecifiesParentClass = true;
 	}
 
+	// Add class cast flag
+	Class->ClassCastFlags |= ClassCastFlagMap::Get().GetCastFlag(DeclaredClassName);
+
 	if (bSpecifiesParentClass)
 	{
 		// Set the base class.
