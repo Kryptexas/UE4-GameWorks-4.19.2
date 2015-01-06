@@ -1184,6 +1184,9 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs)
 	BlendSpace = InArgs._BlendSpace;
 	PersonaPtr = InArgs._Persona;
 	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SBlendSpaceEditorBase::PostUndo ) );
+
+	bIsActiveTimerRegistered = true;
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SBlendSpaceEditorBase::UpdatePreview));
 }
 
 EActiveTimerReturnType SBlendSpaceEditorBase::UpdatePreview( double InCurrentTime, float InDeltaTime )
