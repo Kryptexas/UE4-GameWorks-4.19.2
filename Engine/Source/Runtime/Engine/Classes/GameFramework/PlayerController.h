@@ -1041,11 +1041,6 @@ public:
 	/** Setup an input mode. */
 	virtual void SetInputMode(const FInputModeDataBase& InData);
 
-protected:
-
-	/** Utility function for Input Mode functions. */
-	void SetFocusAndLocking(TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedPtr<class SViewport> InViewportWidget);
-
 public:
 	/**
 	 * Change Camera mode
