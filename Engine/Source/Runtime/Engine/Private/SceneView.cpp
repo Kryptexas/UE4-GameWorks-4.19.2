@@ -1145,7 +1145,7 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionRadiusScale"));
 
-		float Scale = FMath::Clamp(CVar->GetValueOnGameThread(), 0.1f, 5.0f);
+		float Scale = FMath::Clamp(CVar->GetValueOnGameThread(), 0.1f, 15.0f);
 		
 		FinalPostProcessSettings.AmbientOcclusionRadius *= Scale;
 	}
