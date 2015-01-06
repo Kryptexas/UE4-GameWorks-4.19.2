@@ -188,6 +188,9 @@ private:
 	/** Clears the collision data for the static mesh */
 	void OnRemoveCollision(void);
 
+	/** Whether there is collision to remove from the static mesh */
+	bool CanRemoveCollision();
+
 	/** Change the mesh the editor is viewing. */
 	void OnChangeMesh();
 
