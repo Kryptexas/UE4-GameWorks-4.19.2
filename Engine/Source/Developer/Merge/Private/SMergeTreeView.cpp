@@ -146,11 +146,16 @@ void SMergeTreeView::Construct(const FArguments InArgs
 				{
 					bAnyConflict = true;
 
+					FSCSMergeEntry Entry = 
+					{ 
+						FText::Format(NSLOCTEXT("SMergeTreeView", "ConflictIdentifier", "CONFLICT: {0} conflicts with {1}"), DiffViewUtils::SCSDiffMessage(Remote, RemoteLabel), DiffViewUtils::SCSDiffMessage(Local, LocalLabel)),
+						Remote.TreeIdentifier,
+						Remote.DiffType == ETreeDiffType::NODE_PROPERTY_CHANGED ? Remote.PropertyDiff.Identifier : Local.PropertyDiff.Identifier,
+						true 
+					};
+
 					// create a tree entry that describes both the local and remote change..
-					Entries.Push( {FText::Format( NSLOCTEXT("SMergeTreeView", "ConflictIdentifier", "CONFLICT: {0} conflicts with {1}"), DiffViewUtils::SCSDiffMessage( Remote, RemoteLabel ), DiffViewUtils::SCSDiffMessage( Local, LocalLabel ) ),
-									Remote.TreeIdentifier,
-									Remote.DiffType == ETreeDiffType::NODE_PROPERTY_CHANGED ? Remote.PropertyDiff.Identifier : Local.PropertyDiff.Identifier,
-									true });
+					Entries.Push( Entry );
 
 					++RemoteIter;
 					++LocalIter;
@@ -166,19 +171,27 @@ void SMergeTreeView::Construct(const FArguments InArgs
 
 		if( Local && ( !Remote || SortTreePredicate( *Local, *Remote ) ) )
 		{
-			Entries.Push( {	DiffViewUtils::SCSDiffMessage(*Local, LocalLabel),
-							Local->TreeIdentifier,
-							Local->PropertyDiff.Identifier,
-							false } );
+			FSCSMergeEntry Entry =
+			{ 
+				DiffViewUtils::SCSDiffMessage(*Local, LocalLabel),
+				Local->TreeIdentifier,
+				Local->PropertyDiff.Identifier,
+				false 
+			};
+			Entries.Push( Entry );
 
 			++LocalIter;
 		}
 		else
 		{
-			Entries.Push( { DiffViewUtils::SCSDiffMessage(*Remote, RemoteLabel),
-							Remote->TreeIdentifier,
-							Remote->PropertyDiff.Identifier,
-							false });
+			FSCSMergeEntry Entry =
+			{ 
+				DiffViewUtils::SCSDiffMessage(*Remote, RemoteLabel),
+				Remote->TreeIdentifier,
+				Remote->PropertyDiff.Identifier,
+				false 
+			};
+			Entries.Push( Entry );
 
 			++RemoteIter;
 		}
