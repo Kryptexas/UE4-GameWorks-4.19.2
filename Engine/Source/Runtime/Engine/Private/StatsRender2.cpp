@@ -56,19 +56,15 @@ static FStatFont GStatFonts[(int32)EStatFontTypes::NumFonts] =
 	FStatFont( 48, 12, 2 ),
 };
 
-template<>
-struct TTypeFromString<EStatFontTypes>
+void FromString( EStatFontTypes& OutValue, const TCHAR* Buffer )
 {
-	static void FromString( EStatFontTypes& OutValue, const TCHAR* Buffer )
-	{
-		OutValue = EStatFontTypes::Small;
+	OutValue = EStatFontTypes::Small;
 
-		if( FCString::Stricmp( Buffer, TEXT( "Tiny" ) ) == 0 )
-		{
-			OutValue = EStatFontTypes::Tiny;
-		}
+	if( FCString::Stricmp( Buffer, TEXT( "Tiny" ) ) == 0 )
+	{
+		OutValue = EStatFontTypes::Tiny;
 	}
-};
+}
 
 /** Holds various parameters used for rendering stats. */
 struct FStatRenderGlobals

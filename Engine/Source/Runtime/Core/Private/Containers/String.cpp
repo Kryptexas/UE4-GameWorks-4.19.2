@@ -489,39 +489,7 @@ bool FString::IsNumeric() const
 		return 0;
 	}
 
-	TCHAR C = (*this)[0];
-	
-	if( C == '-' || C == '+' || C =='.' || FChar::IsDigit( C ) )
-	{
-		bool HasDot = (C == '.');
-
-		for( int32 i=1; i<Len(); i++ )
-		{
-			C = (*this)[i];
-
-			if( C == '.' )
-			{
-				if( HasDot )
-				{
-					return 0;
-				}
-				else
-				{
-					HasDot = 1;
-				}
-			}
-			else if( !FChar::IsDigit(C) )
-			{
-				return 0;
-			}
-		}
-
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+	return FCString::IsNumeric(Data.GetData());
 }
 
 /**

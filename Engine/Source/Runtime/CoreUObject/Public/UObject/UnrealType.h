@@ -865,18 +865,6 @@ public:
 		return TNameOf<TCppType>::GetName();
 	}
 
-	/** Get the value of the property at an address to a string, so far only numeric types are supported */
-	static FString ToString(void const* A)
-	{
-		return TTypeToString<TCppType>::ToString(GetPropertyValue(A));
-	}
-
-	/** Set the value of the property at an address from a string, so far only numeric types are supported */
-	static void FromString(void* A, const TCHAR* Buffer)
-	{
-		return TTypeFromString<TCppType>::FromString(*GetPropertyValuePtr(A), Buffer);
-	}
-
 	/** Convert the address of a value of the property to the proper type */
 	static FORCEINLINE TCppType const* GetPropertyValuePtr(void const* A)
 	{
@@ -1239,11 +1227,11 @@ public:
 	}
 	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const override
 	{
-		TTypeFundamentals::FromString(Data, Value);
+		LexicalConversion::FromString(*TTypeFundamentals::GetPropertyValuePtr(Data), Value);
 	}
 	virtual FString GetNumericPropertyValueToString(void const* Data) const override
 	{
-		return TTypeFundamentals::ToString(Data);
+		return LexicalConversion::ToString(TTypeFundamentals::GetPropertyValue(Data));
 	}
 	virtual int64 GetSignedIntPropertyValue(void const* Data) const override
 	{

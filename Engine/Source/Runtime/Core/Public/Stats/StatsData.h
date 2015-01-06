@@ -37,22 +37,25 @@ struct CORE_API FStatConstants
 	static const FString ThreadNameMarker;
 };
 
-template<>
-struct TTypeFromString<FName>
+namespace LexicalConversion
 {
-	static void FromString( FName& OutValue, const TCHAR* Buffer )
+	inline void FromString(FName& OutValue, const TCHAR* Buffer )
 	{
 		OutValue = FName( Buffer );
 	}
-};
+}
 
+/** Parse a typed value into the specified out parameter.
+ * 	Expects to find a FromString function that takes a reference to T. Defaults are provided in the LexicalConversion namespace.
+ */
 template <typename T>
 void ParseTypedValue( const TCHAR* Stream, const TCHAR* Match, T& Out )
 {
 	TCHAR Temp[64] = TEXT( "" );
 	if( FParse::Value( Stream, Match, Temp, ARRAY_COUNT( Temp ) ) )
 	{
-		TTypeFromString<T>::FromString( Out, Temp );
+		using namespace LexicalConversion;
+		FromString( Out, Temp );
 	}
 }
 

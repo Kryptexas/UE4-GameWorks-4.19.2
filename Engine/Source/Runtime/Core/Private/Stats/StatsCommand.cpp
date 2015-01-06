@@ -16,23 +16,19 @@ DECLARE_CYCLE_STAT(TEXT("HUD Group"),STAT_HUDGroup,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("Accumulate"),STAT_Accumulate,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("GetFlatAggregates"),STAT_GetFlatAggregates,STATGROUP_StatSystem);
 
-template<>
-struct TTypeFromString<EStatCompareBy::Type>
+void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
 {
-	static void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
-	{
-		OutValue = EStatCompareBy::Sum;
+	OutValue = EStatCompareBy::Sum;
 
-		if (FCString::Stricmp(Buffer, TEXT("CallCount")) == 0)
-		{
-			OutValue = EStatCompareBy::CallCount;
-		}
-		else if (FCString::Stricmp(Buffer, TEXT("Name")) == 0)
-		{
-			OutValue = EStatCompareBy::Name;
-		}
+	if (FCString::Stricmp(Buffer, TEXT("CallCount")) == 0)
+	{
+		OutValue = EStatCompareBy::CallCount;
 	}
-};
+	else if (FCString::Stricmp(Buffer, TEXT("Name")) == 0)
+	{
+		OutValue = EStatCompareBy::Name;
+	}
+}
 
 struct FGroupFilter : public IItemFiler
 {

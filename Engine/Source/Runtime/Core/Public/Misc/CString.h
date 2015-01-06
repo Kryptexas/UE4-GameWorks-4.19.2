@@ -30,6 +30,39 @@ struct TCString
 	 * @param Str - string that will be checked
 	 **/
 	static FORCEINLINE bool IsPureAnsi(const CharType* Str);
+
+	/**
+	 * Returns whether this string contains only numeric characters 
+	 * @param Str - string that will be checked
+	 **/
+	static bool IsNumeric(const CharType* Str)
+	{
+		if (*Str == '-' || *Str == '+')
+		{
+			Str++;
+		}
+
+		bool bHasDot = false;
+		while (*Str != '\0')
+		{
+			if (*Str == '.')
+			{
+				if (bHasDot)
+				{
+					return false;
+				}
+				bHasDot = true;
+			}
+			else if (!FChar::IsDigit(*Str))
+			{
+				return false;
+			}
+			
+			++Str;
+		}
+
+		return true;
+	}
 	
 	/**
 	 * strcpy wrapper

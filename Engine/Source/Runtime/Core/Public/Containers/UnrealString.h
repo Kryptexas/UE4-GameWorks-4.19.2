@@ -1566,167 +1566,88 @@ inline int32 HexToBytes( const FString& HexString, uint8* OutBytes )
 	return NumBytes - 1;
 }
 
-/** A little helper to avoid trying to compile a printf with types that are not accepted by printf **/
-
-template<typename T, bool TIsNumeric>
-struct TTypeToString_Internal
+/** Namespace that houses lexical conversion for various types. User defined conversions can be implemented externally */
+namespace LexicalConversion
 {
-	static FString ToString(T Value)
-	{
-		check(0); // you are asking us to convert a non-numeric type to a string
-		return FString();
-	}
+	/**
+	 *	Expected functions in this namespace are as follows:
+	 *		static bool		TryParseString(T& OutValue, const TCHAR* Buffer);
+	 *		static void 	FromString(T& OutValue, const TCHAR* Buffer);
+	 *		static FString	ToString(const T& OutValue);
+	 *
+	 *	Implement custom functionality externally.
+	 */
 
-	static FString ToSanitizedString(T Value)
-	{
-		check(0); // you are asking us to convert a non-numeric type to a string
-		return FString();
-	}
-};
+	/** Covert a string buffer to intrinsic types */
+	inline void FromString(int8& OutValue, 		const TCHAR* Buffer)	{	OutValue = FCString::Atoi(Buffer);		}
+	inline void FromString(int16& OutValue,		const TCHAR* Buffer)	{	OutValue = FCString::Atoi(Buffer);		}
+	inline void FromString(int32& OutValue,		const TCHAR* Buffer)	{	OutValue = FCString::Atoi(Buffer);		}
+	inline void FromString(int64& OutValue,		const TCHAR* Buffer)	{	OutValue = FCString::Atoi64(Buffer);	}
+	inline void FromString(uint8& OutValue,		const TCHAR* Buffer)	{	OutValue = FCString::Atoi(Buffer);		}
+	inline void FromString(uint16& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Atoi(Buffer);		}
+	inline void FromString(uint32& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Atoi64(Buffer);	}	//64 because this unsigned and so Atoi might overflow
+	inline void FromString(uint64& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Strtoui64(Buffer, NULL, 0); }
+	inline void FromString(float& OutValue,		const TCHAR* Buffer)	{	OutValue = FCString::Atof(Buffer);		}
+	inline void FromString(double& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Atod(Buffer);		}
+	inline void FromString(bool& OutValue, 		const TCHAR* Buffer)	{	OutValue = FCString::ToBool(Buffer);	}
 
-template<typename T>
-struct TTypeToString_Internal<T, true>
-{
-	static FString ToString(T Value)
+	/** Convert numeric types to a string */
+	template<typename T>
+	typename TEnableIf<TIsArithmeticType<T>::Value, FString>::Type
+		ToString(const T& Value)
 	{
 		return FString::Printf( TFormatSpecifier<T>::GetFormatSpecifier(), Value );
 	}
-	
-	static FString ToSanitizedString(T Value)
+
+	/** Helper template to convert to sanitized strings */
+	template<typename T>
+	FString ToSanitizedString(const T& Value)
 	{
 		return ToString(Value);
 	}
-};
 
-template<>
-struct TTypeToString_Internal<float, true>
-{
-	static FString ToString(float Value)
-	{
-		return FString::Printf( TFormatSpecifier<float>::GetFormatSpecifier(), Value );
-	}
-
-	static FString ToSanitizedString(float Value)
+	/** Specialized for floats */
+	template<>
+	inline FString ToSanitizedString<float>(const float& Value)
 	{
 		return FString::SanitizeFloat( Value );
 	}
-};
 
+
+	/** Parse a string into this type, returning whether it was successful */
+	/** Specialization for arithmetic types */
+	template<typename T>
+	static typename TEnableIf<TIsArithmeticType<T>::Value, bool>::Type
+		TryParseString(T& OutValue, const TCHAR* Buffer)
+	{
+		if (FCString::IsNumeric(Buffer))
+		{
+			FromString(OutValue, Buffer);
+			return true;
+		}
+		return false;
+	}
+	
+	/** Try and parse a bool - always returns true */
+	static bool TryParseString(bool& OutValue, const TCHAR* Buffer)
+	{
+		FromString(OutValue, Buffer);
+		return true;
+	}
+}
+
+/** Shorthand legacy use for LexicalConversion functions */
 template<typename T>
-struct TTypeToString : public TTypeToString_Internal<T, TIsArithmeticType<T>::Value>
+struct TTypeToString
 {
+	static FString ToString(const T& Value)				{ return LexicalConversion::ToString(Value); }
+	static FString ToSanitizedString(const T& Value)	{ return LexicalConversion::ToSanitizedString(Value); }
 };
-
-/** A little helper to convert from a string to known numeric types **/
-
 template<typename T>
 struct TTypeFromString
 {
-	static void FromString(T& OutValue, const TCHAR* String)
-	{
-		check(0); // you are asking us to convert a string to unknown type
-	}
+	static void FromString(T& Value, const TCHAR* Buffer) { return LexicalConversion::FromString(Value, Buffer); }
 };
-
-template<>
-struct TTypeFromString<int8>
-{
-	static void FromString(int8& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atoi(Buffer);
-	}
-};
-
-template<>
-struct TTypeFromString<int16>
-{
-	static void FromString(int16& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atoi(Buffer);
-	}
-};
-
-template<>
-struct TTypeFromString<int32>
-{
-	static void FromString(int32& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atoi(Buffer);
-	}
-};
-
-template<>
-struct TTypeFromString<int64>
-{
-	static void FromString(int64& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atoi64(Buffer);
-	}
-};
-
-template<>
-struct TTypeFromString<uint8>
-{
-	static void FromString(uint8& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atoi(Buffer);
-	}
-};
-
-template<>
-struct TTypeFromString<uint16>
-{
-	static void FromString(uint16& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atoi(Buffer);
-	}
-};
-
-template<>
-struct TTypeFromString<uint32>
-{
-	static void FromString(uint32& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atoi64(Buffer); //64 because this unsigned and so Atoi might overflow
-	}
-};
-
-template<>
-struct TTypeFromString<uint64>
-{
-	static void FromString(uint64& OutValue, const TCHAR* Buffer)
-	{
-		OutValue =  FCString::Strtoui64(Buffer, NULL, 0);
-	}
-};
-
-template<>
-struct TTypeFromString<float>
-{
-	static void FromString(float& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atof(Buffer);
-	}
-};
-
-template<>
-struct TTypeFromString<double>
-{
-	static void FromString(double& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::Atod(Buffer);
-	}
-};
-
-template<>
-struct TTypeFromString<bool>
-{
-	static void FromString(bool& OutValue, const TCHAR* Buffer)
-	{
-		OutValue = FCString::ToBool(Buffer);
-	}
-};
-
 
 /*----------------------------------------------------------------------------
 	Special archivers.
