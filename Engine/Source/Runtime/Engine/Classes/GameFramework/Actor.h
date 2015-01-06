@@ -2174,8 +2174,11 @@ public:
 		}
 	}
 
-	// Get a direct reference to the Components array rather than a copy
-	// with the null pointers removed
+	/**
+	 * Get a direct reference to the Components array rather than a copy with the null pointers removed.
+	 * WARNING: anything that could cause the component to change ownership or be destroyed will invalidate
+	 * this array, so use caution when iterating this list!
+	 */
 	const TArray<UActorComponent*>& GetComponents() const
 	{
 		return OwnedComponents;
