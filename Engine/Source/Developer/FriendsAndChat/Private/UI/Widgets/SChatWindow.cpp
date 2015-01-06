@@ -74,7 +74,7 @@ public:
 					.VAlign(VAlign_Fill)
 					[
 						SAssignNew(ActionMenu, SMenuAnchor)
-						.Placement(EMenuPlacement::MenuPlacement_BelowAnchor)  	// MenuPlacement_BelowAnchor is a workaround until a workarea bug is fixed in SlateApplication menu placement code
+						.Placement(MenuMethod != EPopupMethod::UseCurrentWindow ? EMenuPlacement::MenuPlacement_AboveAnchor : EMenuPlacement::MenuPlacement_BelowAnchor)  	// MenuPlacement_BelowAnchor is a workaround until a workarea bug is fixed in SlateApplication menu placement code
 						.Method(EPopupMethod::UseCurrentWindow)
 						.OnGetMenuContent(this, &SChatWindowImpl::GetMenuContent)
 						[
@@ -314,13 +314,13 @@ private:
 
 	FReply HandleActionDropDownClicked() const
 	{
-		ActionMenu->SetIsOpen(true);
+		ActionMenu->IsOpen() ? ActionMenu->SetIsOpen(false) : ActionMenu->SetIsOpen(true);
 		return FReply::Handled();
 	}
 
 	FReply HandleFriendActionDropDownClicked() const
 	{
-		ChatItemActionMenu->SetIsOpen(true);
+		ChatItemActionMenu->IsOpen() ? ChatItemActionMenu->SetIsOpen(false) : ChatItemActionMenu->SetIsOpen(true);
 		return FReply::Handled();
 	}
 
