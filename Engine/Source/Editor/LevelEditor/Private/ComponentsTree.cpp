@@ -1,9 +1,12 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
+#include "LevelEditor.h"
 #include "ComponentsTree.h"
+#include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/SComponentClassCombo.h"
 #include "Editor/UnrealEd/Public/ClassIconFinder.h"
+#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -81,7 +84,6 @@ void SComponentRowWidget::Construct( const FArguments& InArgs, FComponentTreeNod
 // Don't show any 'disable on instance' properties, these are instances of components we are seeing
 static bool IsPropertyVisible( const FPropertyAndParent& PropertyAndParent )
 {
-
 	if ( PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance) )
 	{
 		return false;
@@ -90,16 +92,13 @@ static bool IsPropertyVisible( const FPropertyAndParent& PropertyAndParent )
 	return true;
 }
 
-void SComponentsTree::Construct( const FArguments& InArgs, AActor* InActor )
+void SComponentsTree::Construct(const FArguments& InArgs, TSharedPtr<class IDetailsView> InPropertyView )
 {
-	Actor = InActor;
-
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true );
 	DetailsViewArgs.bHideActorNameArea = true;
-	PropertyView = EditModule.CreateDetailView( DetailsViewArgs );
-	// Setup delegate to hide 'edit default only' properties
-	PropertyView->SetIsPropertyVisibleDelegate( FIsPropertyVisible::CreateStatic(&IsPropertyVisible) );
+
+	PropertyView = InPropertyView;
 
 	this->ChildSlot
 	[
@@ -109,7 +108,14 @@ void SComponentsTree::Construct( const FArguments& InArgs, AActor* InActor )
 		.Content()
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.f, 2.f, 0.f, 0.f)
+			[
+				SNew(SComponentClassCombo)
+				.OnComponentClassSelected(this, &SComponentsTree::OnSelectedCompClass)
+			]
+			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
 				SAssignNew(TreeWidget, SComponentTreeType)
@@ -119,22 +125,23 @@ void SComponentsTree::Construct( const FArguments& InArgs, AActor* InActor )
 				.OnSelectionChanged( this, &SComponentsTree::OnTreeSelectionChanged )
 				.ItemHeight( 24 )
 			]
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0.f, 2.f, 0.f, 0.f)
-			[
-				SNew(SComponentClassCombo)
-				.OnComponentClassSelected(this, &SComponentsTree::OnSelectedCompClass)
-			]
-			+SVerticalBox::Slot()
-			.Padding(0.f, 2.f, 0.f, 0.f)
-			.AutoHeight()
-			[
-				PropertyView.ToSharedRef()
-			]
 		]
 	];
 
+	UpdateTree();
+}
+
+void SComponentsTree::SetObjects(const TArray<UObject*>& InObjects)
+{
+	if (InObjects.Num() == 1)
+	{
+		Actor = Cast<AActor>(InObjects[0]);
+	}
+	else
+	{
+		Actor = NULL;
+	}
+	Visibility = (Actor.IsValid() ? EVisibility::Visible : EVisibility::Hidden);
 	UpdateTree();
 }
 
@@ -157,21 +164,38 @@ void SComponentsTree::OnGetChildrenForTree( FComponentTreeNodePtrType InNodePtr,
 
 void SComponentsTree::OnTreeSelectionChanged(FComponentTreeNodePtrType InSelectedNodePtr, ESelectInfo::Type SelectInfo)
 {
-	if(InSelectedNodePtr.IsValid() && InSelectedNodePtr->Component.IsValid())
-	{
-		TArray<UObject*> Objects;
-		Objects.Add(InSelectedNodePtr->Component.Get());
+	TArray<UObject*> Objects;
 
-		PropertyView->SetObjects(Objects, false);
+	USelection* SelectedComponents = GEditor->GetSelectedComponents();
+	SelectedComponents->BeginBatchSelectOperation();
+	SelectedComponents->DeselectAll();
+
+	for (FComponentTreeNodePtrType SelectedNode : TreeWidget->GetSelectedItems())
+	{
+		if (SelectedNode.IsValid() && SelectedNode->Component.IsValid())
+		{
+			UActorComponent* Component = SelectedNode->Component.Get();
+			Objects.Add(Component);
+			SelectedComponents->Select(Component);
+		}
 	}
+	
+	SelectedComponents->EndBatchSelectOperation();
+	PropertyView->SetObjects(Objects, false);
+
+	GEditor->RedrawLevelEditingViewports();
 }
 
 void SComponentsTree::OnSelectedCompClass(TSubclassOf<UActorComponent> CompClass)
 {
 	if(Actor.IsValid())
 	{
+		const FScopedTransaction Transaction(NSLOCTEXT("Editor", "UndoAction_AddComponent", "Add Component"));
+
+		Actor->Modify();
+
 		// Create new component
-		UActorComponent* NewComp = NewObject<UActorComponent>(Actor.Get(), CompClass);
+		UActorComponent* NewComp = ConstructObject<UActorComponent>(CompClass, Actor.Get(), NAME_None, RF_Transactional);
 		check(NewComp);
 
 		// Add to SerializedComponents array so it gets saved
@@ -186,7 +210,7 @@ void SComponentsTree::OnSelectedCompClass(TSubclassOf<UActorComponent> CompClass
 		}
 
 		// Register component
-		NewSceneComp->RegisterComponent();
+		NewComp->RegisterComponent();
 
 		// Update tree to see result
 		UpdateTree();
@@ -226,5 +250,9 @@ void SComponentsTree::UpdateTree()
 	}
 
 	// refresh widget
+	for (const FComponentTreeNodePtrType& RootNode : RootNodes)
+	{
+		TreeWidget->SetItemExpansion(RootNode, true);
+	}
 	TreeWidget->RequestTreeRefresh();
 }

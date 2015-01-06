@@ -4861,21 +4861,6 @@ bool ALandscapeProxy::IsValidLandscapeActor(ALandscape* Landscape)
 	return false;
 }
 
-bool ALandscapeProxy::GetSelectedComponents(TArray<UObject*>& SelectedObjects)
-{
-	ULandscapeInfo* Info = GetLandscapeInfo(false);
-	if (Info && Info->bCurrentlyEditing)
-	{
-		auto SelectedComponents = Info->GetSelectedComponents();
-		for (auto It = SelectedComponents.CreateIterator(); It; ++It)
-		{
-			SelectedObjects.Add(*It);
-		}
-		return true;
-	}
-	return false;
-}
-
 struct FMobileLayerAllocation
 {
 	FWeightmapLayerAllocationInfo Allocation;

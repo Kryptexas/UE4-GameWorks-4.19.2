@@ -162,18 +162,56 @@ static inline USelection*& PrivateGetSelectedActors()
 	return SSelectedActors;
 };
 
+static inline USelection*& PrivateGetSelectedComponents()
+{
+	static USelection* SSelectedComponents = NULL;
+	return SSelectedComponents;
+}
+
 static inline USelection*& PrivateGetSelectedObjects()
 {
 	static USelection* SSelectedObjects = NULL;
 	return SSelectedObjects;
 };
 
+static void OnObjectSelected(UObject* Object)
+{
+	// Whenever an actor is unselected we must remove its components from the components selection
+	if (!Object->IsSelected())
+	{
+		TArray<UActorComponent*> ComponentsToDeselect;
+		for (FSelectionIterator It(*PrivateGetSelectedComponents()); It; ++It)
+		{
+			UActorComponent* Component = CastChecked<UActorComponent>(*It);
+			if (Component->GetOwner() == Object)
+			{
+				ComponentsToDeselect.Add(Component);
+			}
+		}
+		if (ComponentsToDeselect.Num() > 0)
+		{
+			PrivateGetSelectedComponents()->Modify();
+			PrivateGetSelectedComponents()->BeginBatchSelectOperation();
+			for (UActorComponent* Component : ComponentsToDeselect)
+			{
+				PrivateGetSelectedComponents()->Deselect(Component);
+			}
+			PrivateGetSelectedComponents()->EndBatchSelectOperation();
+		}
+	}
+}
+
 static void PrivateInitSelectedSets()
 {
 	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FObjectInitializer());
 	PrivateGetSelectedActors()->AddToRoot();
 
-	PrivateGetSelectedObjects() = new( GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional ) USelection(FObjectInitializer());
+	PrivateGetSelectedActors()->SelectObjectEvent.AddStatic(&OnObjectSelected);
+
+	PrivateGetSelectedComponents() = new(GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional) USelection(FObjectInitializer());
+	PrivateGetSelectedComponents()->AddToRoot();
+
+	PrivateGetSelectedObjects() = new(GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional) USelection(FObjectInitializer());
 	PrivateGetSelectedObjects()->AddToRoot();
 }
 
@@ -182,6 +220,8 @@ static void PrivateDestroySelectedSets()
 #if 0
 	PrivateGetSelectedActors()->RemoveFromRoot();
 	PrivateGetSelectedActors() = NULL;
+	PrivateGetSelectedComponents()->RemoveFromRoot();
+	PrivateGetSelectedComponents() = NULL;
 	PrivateGetSelectedObjects()->RemoveFromRoot();
 	PrivateGetSelectedObjects() = NULL;
 #endif
@@ -277,6 +317,27 @@ FSelectionIterator UEditorEngine::GetSelectedActorIterator() const
 {
 	return FSelectionIterator( *GetSelectedActors() );
 };
+
+int32 UEditorEngine::GetSelectedComponentCount() const
+{
+	int32 NumSelectedComponents = 0;
+	for (FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
+	{
+		++NumSelectedComponents;
+	}
+
+	return NumSelectedComponents;
+}
+
+FSelectionIterator UEditorEngine::GetSelectedComponentIterator() const
+{
+	return FSelectionIterator(*GetSelectedComponents());
+};
+
+USelection* UEditorEngine::GetSelectedComponents() const
+{
+	return PrivateGetSelectedComponents();
+}
 
 USelection* UEditorEngine::GetSelectedObjects() const
 {

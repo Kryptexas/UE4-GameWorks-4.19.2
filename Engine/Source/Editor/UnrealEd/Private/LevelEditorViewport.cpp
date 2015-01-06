@@ -1385,6 +1385,10 @@ void FTrackingTransaction::Begin(const FText& Description)
 	{
 		GroupActor->Modify();
 	}
+	for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+	{
+		CastChecked<UActorComponent>(*It)->Modify();
+	}
 }
 
 void FTrackingTransaction::End()
@@ -2910,12 +2914,12 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 			if(bIsSimulateInEditorViewport)
 			{
 				// If the Actor's outer (level) outer (world) is not the PlayWorld then it cannot be moved in this viewport.
-				if( !(GEditor->PlayWorld == Actor->GetOuter()->GetOuter()) )
+				if( !(GEditor->PlayWorld == Actor->GetWorld()) )
 				{
 					continue;
 				}
 			}
-			else if( !(GEditor->EditorWorld == Actor->GetOuter()->GetOuter()) )
+			else if( !(GEditor->EditorWorld == Actor->GetWorld()) )
 			{
 				continue;
 			}
@@ -2923,7 +2927,19 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 
 		if ( !Actor->bLockLocation )
 		{
-			// find topmost selected group
+			if (GEditor->GetSelectedComponentCount() > 0)
+			{
+				for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+				{
+					USceneComponent* SceneComponent = CastChecked<USceneComponent>(*It);
+					if (SceneComponent)
+					{
+						ApplyDeltaToComponent(SceneComponent, InDrag, InRot, ModifiedScale);
+					}
+				}
+			}
+			else
+			{
 			AGroupActor* ParentGroup = AGroupActor::GetRootForActor(Actor, true, true);
 			if(ParentGroup && GEditor->bGroupingActive )
 			{
@@ -2949,6 +2965,7 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 			}
 		}
 	}
+	}
 	AGroupActor::RemoveSubGroupsFromArray(ActorGroups);
 	for(int32 ActorGroupsIndex=0; ActorGroupsIndex<ActorGroups.Num(); ++ActorGroupsIndex)
 	{
@@ -2956,6 +2973,32 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 	}
 }
 
+void FLevelEditorViewportClient::ApplyDeltaToComponent(USceneComponent* InComponent, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale)
+{
+	// If we are scaling, we need to change the scaling factor a bit to properly align to grid.
+	FVector ModifiedDeltaScale = InDeltaScale;
+
+	// we don't scale components when we only have a very small scale change
+	if (!InDeltaScale.IsNearlyZero())
+	{
+		if (!GEditor->UsePercentageBasedScaling())
+		{
+			ModifyScale(InComponent, ModifiedDeltaScale);
+		}
+	}
+	else
+	{
+		ModifiedDeltaScale = FVector::ZeroVector;
+	}
+
+	GEditor->ApplyDeltaToComponent(
+		InComponent,
+		true,
+		&InDeltaDrag,
+		&InDeltaRot,
+		&ModifiedDeltaScale,
+		GEditor->GetPivotLocation());
+}
 
 /** Helper function for ModifyScale - Convert the active Dragging Axis to per-axis flags */
 static void CheckActiveAxes( EAxisList::Type DraggingAxis, bool bActiveAxes[3] )

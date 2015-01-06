@@ -38,7 +38,7 @@
 #include "NewsFeed.h"
 #include "TutorialMetaData.h"
 #include "SDockTab.h"
-
+#include "ComponentsTree.h"
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
 static const FName LevelEditorStatsViewerTab("LevelEditorStatsViewer");
@@ -142,6 +142,10 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 {
 	// Bind the level editor tab's label to the currently loaded level name string in the main frame
 	OwnerTab->SetLabel( TAttribute<FText>( this, &SLevelEditor::GetTabTitle) );
+
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked< FLevelEditorModule >(LevelEditorModuleName);
+
+	LevelEditorModule.OnActorSelectionChanged().AddSP(this, &SLevelEditor::OnActorSelectionChanged);
 
 	TSharedRef<SWidget> Widget2 = RestoreContentArea( OwnerTab, OwnerWindow );
 	TSharedRef<SWidget> Widget1 = FLevelEditorMenu::MakeLevelEditorMenu( LevelEditorCommands, SharedThis(this) );
@@ -486,35 +490,105 @@ TSharedRef<FTabManager> SLevelEditor::GetTabManager() const
 	return LevelEditorTabManager.ToSharedRef();
 }
 
-// @todo Slate TEMP to support both detail views
-static TSharedRef<SDockTab> SummonDetailsPanel( FName TabIdentifier )
+class SActorDetails : public SCompoundWidget
 {
-	struct Local
+public:
+	SLATE_BEGIN_ARGS( SActorDetails )
+	{}
+	SLATE_END_ARGS()
+
+	void Construct( const FArguments& InArgs, const FName TabIdentifier )
 	{
-		static bool IsPropertyVisible( const FPropertyAndParent& PropertyAndParent )
+		struct Local
 		{
-			// For details views in the level editor all properties are the instanced versions
-			if (PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance))
+			static bool IsPropertyVisible( const FPropertyAndParent& PropertyAndParent )
 			{
-				return false;
+				// For details views in the level editor all properties are the instanced versions
+				if (PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance))
+				{
+					return false;
+				}
+
+				return true;
 			}
+		};
 
-			return true;
+		FPropertyEditorModule& PropPlugin = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		const FDetailsViewArgs DetailsViewArgs( true, true, true, false, false, GUnrealEd, false, TabIdentifier );
+		DetailsView = PropPlugin.CreateDetailView(DetailsViewArgs);
+
+		DetailsView->SetIsPropertyVisibleDelegate( FIsPropertyVisible::CreateStatic( &Local::IsPropertyVisible ) );
+
+		// Set up a delegate to call to add generic details to the view
+		DetailsView->SetGenericLayoutDetailsDelegate( FOnGetDetailCustomizationInstance::CreateStatic( &FLevelEditorGenericDetails::MakeInstance ) );
+
+		SAssignNew(ComponentsBox, SScrollBox)
+		+SScrollBox::Slot()
+		[
+			SAssignNew(ComponentsTree, SComponentsTree, DetailsView)
+			.Visibility(EVisibility::Collapsed)
+		];
+
+		ChildSlot
+		[
+			SAssignNew(DetailsSplitter, SSplitter)
+			.Orientation(Orient_Vertical)
+			+ SSplitter::Slot()
+			[
+				DetailsView.ToSharedRef()
+			]
+		];
+
+	}
+
+	void SetObjects( const TArray<UObject*>& InObjects )
+	{
+		if(!DetailsView->IsLocked() )
+		{
+			DetailsView->SetObjects( InObjects );
+				
+			if( GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
+			{
+				bool bTreeVisible = ComponentsTree->GetVisibility().IsVisible();
+				ComponentsTree->SetObjects(InObjects);
+				if( bTreeVisible != ComponentsTree->GetVisibility().IsVisible())
+				{
+					if( bTreeVisible )
+					{
+						DetailsSplitter->RemoveAt(0);
+					}
+					else
+					{
+						DetailsSplitter->AddSlot(0)
+						.Value(.2f)
+						[
+							ComponentsBox.ToSharedRef()
+						];
+					}
+				}
+			}
+			else
+			{
+				ComponentsTree->SetVisibility( EVisibility::Collapsed );
+			}
 		}
-	};
+	}
 
-	FPropertyEditorModule& PropPlugin = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	const FDetailsViewArgs DetailsViewArgs( true, true, true, false, false, GUnrealEd, false, TabIdentifier );
-	TSharedRef<IDetailsView> DetailsView = PropPlugin.CreateDetailView( DetailsViewArgs );
+private:
+	TSharedPtr<SSplitter> DetailsSplitter;
+	TSharedPtr<IDetailsView> DetailsView;
+	TSharedPtr<SScrollBox> ComponentsBox;
+	TSharedPtr<SComponentsTree> ComponentsTree;
+};
 
-	DetailsView->SetIsPropertyVisibleDelegate( FIsPropertyVisible::CreateStatic( &Local::IsPropertyVisible ) );
 
-	// Set up a delegate to call to add generic details to the view
-	DetailsView->SetGenericLayoutDetailsDelegate( FOnGetDetailCustomizationInstance::CreateStatic( &FLevelEditorGenericDetails::MakeInstance ) );
+TSharedRef<SDockTab> SLevelEditor::SummonDetailsPanel( FName TabIdentifier )
+{
+	TSharedPtr<SActorDetails> ActorDetails;
 
 	FText Label = NSLOCTEXT( "LevelEditor", "DetailsTabTitle", "Details" );
 
-	return SNew( SDockTab )
+	TSharedRef<SDockTab> DocTab = SNew(SDockTab)
 		.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.Details" ) )
 		.Label( Label )
 		.ToolTip( IDocumentation::Get()->CreateToolTip( Label, nullptr, "Shared/LevelEditor", "DetailsTab" ) )
@@ -522,11 +596,14 @@ static TSharedRef<SDockTab> SummonDetailsPanel( FName TabIdentifier )
 			SNew( SBox )
 			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("ActorDetails"), TEXT("LevelEditorSelectionDetails")))
 			[
-				DetailsView
+				SAssignNew( ActorDetails, SActorDetails, TabIdentifier )
 			]
 		];
-}
 
+	AllActorDetailPanels.Add( ActorDetails );
+
+	return DocTab;
+}
 /** Method to call when a tab needs to be spawned by the FLayoutService */
 TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Args, FName TabIdentifier, FString InitializationPayload )
 {
@@ -555,7 +632,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			[
 				SNew(SHorizontalBox)
 				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("LevelToolbar")))
-				+ SHorizontalBox::Slot()
+				+SHorizontalBox::Slot()
 				.FillWidth(1)
 				.VAlign(VAlign_Bottom)
 				.HAlign(HAlign_Left)
@@ -1417,5 +1494,21 @@ void SLevelEditor::HandleEditorMapChange( uint32 MapChangeFlags )
 	if (WorldSettingsView.IsValid())
 	{
 		WorldSettingsView->SetObject(GetWorld()->GetWorldSettings(), true);
+	}
+}
+
+void SLevelEditor::OnActorSelectionChanged( const TArray<UObject*>& NewSelection )
+{
+	for( auto It = AllActorDetailPanels.CreateIterator(); It; ++It )
+	{
+		TSharedPtr<SActorDetails> ActorDetails = It->Pin();
+		if( ActorDetails.IsValid() )
+		{
+			ActorDetails->SetObjects( NewSelection );
+		}
+		else
+		{
+			// remove stray entries here
+		}
 	}
 }

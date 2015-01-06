@@ -22,7 +22,6 @@
 #include "ActorEditorUtils.h"
 #include "BlueprintEditorUtils.h"
 #include "ComponentTransformDetails.h"
-#include "ComponentsTree.h"
 #include "IPropertyUtilities.h"
 #include "IDocumentation.h"
 #include "Runtime/Engine/Classes/Engine/BrushShape.h"
@@ -128,13 +127,6 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		}
 
 		OnExtendActorDetails.Broadcast(DetailLayout, FGetSelectedActors::CreateSP(this, &FActorDetails::GetSelectedActors));
-
-		/*if (!HideCategories.Contains(TEXT("Layers")))
-		{
-			AddLayersCategory(DetailLayout);
-		}*/
-
-		//AddComponentsCategory( DetailLayout );
 	}
 
 	TSharedPtr<IPropertyHandle> PrimaryTickProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(AActor, PrimaryActorTick));
@@ -684,23 +676,6 @@ void FActorDetails::AddBlutilityCategory( IDetailLayoutBuilder& DetailBuilder, c
 			}
 		}
 	}
-}
-
-void FActorDetails::AddComponentsCategory( IDetailLayoutBuilder& DetailBuilder )
-{
-	AActor* SelectedActor = NULL;
-	const TArray< TWeakObjectPtr<AActor> >& Actors = GetSelectedActors();
-	if(Actors.Num() == 1 && Actors[0].IsValid())
-	{
-		SelectedActor = Actors[0].Get();
-	}
-
-	DetailBuilder.EditCategory( "Components", NSLOCTEXT("ActorDetails", "ComponentsSection", "Components"), ECategoryPriority::Uncommon )
-		.InitiallyCollapsed( true )
-		.AddCustomRow( NSLOCTEXT("ActorDetails", "ComponentsSection", "Components") )
-		[
-			SNew( SComponentsTree, SelectedActor )
-		];
 }
 
 const TArray< TWeakObjectPtr<AActor> >& FActorDetails::GetSelectedActors() const

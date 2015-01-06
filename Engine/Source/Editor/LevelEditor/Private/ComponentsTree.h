@@ -44,9 +44,11 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, AActor* InActor );
+	void Construct( const FArguments& InArgs, TSharedPtr<class IDetailsView> InPropertyView );
 
 	void UpdateTree();
+
+	void SetObjects(const TArray<UObject*>& InObjects);
 
 	// Tree delegates
 	TSharedRef<ITableRow> MakeTableRowWidget( FComponentTreeNodePtrType InNodePtr, const TSharedRef<STableViewBase>& OwnerTable );

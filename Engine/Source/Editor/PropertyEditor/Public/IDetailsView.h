@@ -122,6 +122,9 @@ public:
 	 */
 	virtual void SetObject( UObject* InObject, bool bForceRefresh = false ) = 0;
 
+	/** Removes all invalid objects being observed by this details panel */
+	virtual void RemoveInvalidObjects() = 0;
+
 	/**
 	 * Returns true if the details view is locked and cant have its observed objects changed 
 	 */

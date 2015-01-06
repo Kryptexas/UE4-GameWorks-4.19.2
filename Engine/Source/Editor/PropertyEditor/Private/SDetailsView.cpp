@@ -313,6 +313,31 @@ void SDetailsView::SetObject( UObject* InObject, bool bForceRefresh )
 	SetObjects( ObjectWeakPtrs, bForceRefresh );
 }
 
+void SDetailsView::RemoveInvalidObjects()
+{
+	TArray< TWeakObjectPtr< UObject > > ResetArray;
+
+	bool bAllFound = true;
+	for (TPropObjectIterator Itor(RootPropertyNode->ObjectIterator()); Itor; ++Itor)
+	{
+		TWeakObjectPtr<UObject> Object = *Itor;
+
+		if( Object.IsValid() && !Object->IsPendingKill() )
+		{
+			ResetArray.Add(Object);
+		}
+		else
+		{
+			bAllFound = false;
+		}
+	}
+
+	if (!bAllFound)
+	{
+		SetObjectArrayPrivate(ResetArray);
+	}
+}
+
 bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects ) const
 {
 	bool bShouldSetObjects = false;
@@ -509,39 +534,6 @@ void SDetailsView::RemoveDeletedObjects( const TArray<UObject*>& DeletedObjects 
 	if( bObjectsRemoved )
 	{
 		SetObjectArrayPrivate( NewObjectList );
-	}
-}
-
-/**
- * Removes actors from the property nodes object array which are no longer available
- * 
- * @param ValidActors	The list of actors which are still valid
- */
-void SDetailsView::RemoveInvalidActors( const TSet<AActor*>& ValidActors )
-{
-	TArray< TWeakObjectPtr< UObject > > ResetArray;
-
-	bool bAllFound = true;
-	for ( TPropObjectIterator Itor( RootPropertyNode->ObjectIterator() ); Itor; ++Itor )
-	{
-		AActor* Actor = Cast<AActor>( Itor->Get() );
-
-		bool bFound = ValidActors.Contains( Actor );
-
-		// If the selected actor no longer exists, remove it from the property window.
-		if( bFound )
-		{
-			ResetArray.Add(Actor);
-		}
-		else
-		{
-			bAllFound = false;
-		}
-	}
-
-	if ( !bAllFound ) 
-	{
-		SetObjectArrayPrivate( ResetArray );
 	}
 }
 

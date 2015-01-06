@@ -1663,6 +1663,20 @@ public:
 	 */
 	class FSelectionIterator GetSelectedActorIterator() const;
 
+	/**
+	* Returns an FSelectionIterator that iterates over the set of selected components.
+	*/
+	class FSelectionIterator GetSelectedComponentIterator() const;
+
+	/**
+	* Returns the number of currently selected components.
+	*/
+	int32 GetSelectedComponentCount() const;
+
+	/**
+	* @return the set of selected components.
+	*/
+	class USelection* GetSelectedComponents() const;
 
 	/**
 	 * @return the set of selected non-actor objects.

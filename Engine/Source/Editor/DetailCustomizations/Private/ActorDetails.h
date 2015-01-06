@@ -67,8 +67,6 @@ private:
 
 	void AddBlueprintCategory( IDetailLayoutBuilder& DetailBuilder, const TMap<UBlueprint*, UObject*>& UniqueBlueprints );
 
-	void AddComponentsCategory( IDetailLayoutBuilder& DetailBuilder );
-
 	void AddLayersCategory( IDetailLayoutBuilder& DetailBuilder );
 
 	void AddTransformCategory( IDetailLayoutBuilder& DetailBuilder );
