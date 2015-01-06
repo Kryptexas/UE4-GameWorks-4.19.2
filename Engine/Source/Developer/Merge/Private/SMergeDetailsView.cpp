@@ -191,6 +191,10 @@ void SMergeDetailsView::Construct(const FArguments InArgs
 			AddPropertiesOrdered(LocalVisibleProperties[IterLocal], LocalDifferingPropertiesSet, DifferingProperties);
 			++IterLocal;
 		}
+		else if( bDoneLocal && bDoneRemote && !bDoneBase )
+		{
+			++IterBase;
+		}
 
 		bDoneRemote = IterRemote == RemoteVisibleProperties.Num();
 		bDoneBase = IterBase == BaseVisibleProperties.Num();
