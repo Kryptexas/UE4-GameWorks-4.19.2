@@ -1540,7 +1540,11 @@ public:
 	/** Update and smooth simulated physic state, replaces PostNetReceiveLocation() and PostNetReceiveVelocity() */
 	virtual void PostNetReceivePhysicState();
 
-	/** Set the owner of this Actor, used primarily for network replication. */
+	/** 
+	 * Set the owner of this Actor, used primarily for network replication. 
+	 * @param NewOwner	The Actor whom takes over ownership of this Actor
+	 */
+	UFUNCTION(BlueprintCallable, Category=Actor)
 	void SetOwner( AActor* NewOwner );
 
 	/**
