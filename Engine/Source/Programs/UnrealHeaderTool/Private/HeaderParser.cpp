@@ -11,6 +11,7 @@
 #include "DefaultValueHelper.h"
 #include "IScriptGeneratorPluginInterface.h"
 #include "Manifest.h"
+#include "UnitConversion.h"
 
 /*-----------------------------------------------------------------------------
 	Constants & declarations.
@@ -5768,6 +5769,18 @@ void FHeaderParser::ValidateMetaDataFormat(UField* Field, const FString& InKey, 
 		if ((InValue != EarlyAccessValue) && (InValue != ExperimentalValue))
 		{
 			FError::Throwf(TEXT("'%s' metadata was '%s' but it must be %s or %s"), *InKey, *InValue, *ExperimentalValue, *EarlyAccessValue);
+		}
+	}
+	else if (InKey == TEXT("Units"))
+	{
+		// Check for numeric property
+		if (!Cast<UNumericProperty>(Field))
+		{
+			FError::Throwf(TEXT("'Units' meta data can only be applied to numeric properties"));
+		}
+		else if (!FUnitConversion::UnitFromString(*InValue))
+		{
+			FError::Throwf(TEXT("Unrecognized units (%s) specified for numeric property '%s'"), *InValue, *Field->GetDisplayNameText().ToString());
 		}
 	}
 }

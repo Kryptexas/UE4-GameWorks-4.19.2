@@ -70,6 +70,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, meta=(DisplayName="Show Friendly Variable Names"))
 	uint32 bShowFriendlyNames:1;
 
+	/** When set, numerical units will be displayed on applicable properties */
+	UPROPERTY(EditAnywhere, config, Category=UserInterface, meta=(DisplayName="Display Units on Numerical Properties"))
+	uint32 bDisplayPropertyUnits:1;
+
 	/** When enabled, the Editor Preferences and Project Settings menu items in the main menu will be expanded with sub-menus for each settings section. */
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, AdvancedDisplay)
 	uint32 bExpandConfigurationMenus:1;
@@ -94,6 +98,7 @@ protected:
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
+	virtual void PostInitProperties() override;
 #endif
 
 private:

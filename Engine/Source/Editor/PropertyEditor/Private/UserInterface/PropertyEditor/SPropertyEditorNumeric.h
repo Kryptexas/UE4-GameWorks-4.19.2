@@ -4,6 +4,9 @@
 #include "PropertyEditorConstants.h"
 #include "SNumericEntryBox.h"
 
+#include "UnitConversion.h"
+#include "NumericUnitTypeInterface.inl"
+
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
 template <typename NumericType>
@@ -89,6 +92,25 @@ public:
 		const bool bAllowSpin = (!ObjectPropertyNode || (1 == ObjectPropertyNode->GetNumObjects()))
 			&& !PropertyNode->GetProperty()->GetBoolMetaData("NoSpinbox");
 
+		// Set up the correct type interface if we want to display units on the property editor
+		TSharedPtr<INumericTypeInterface<NumericType>> TypeInterface;
+		if (FUnitConversion::bIsUnitDisplayEnabled)
+		{
+			const FString& Units = InPropertyEditor->GetProperty()->GetMetaData(TEXT("Units"));
+			auto PropertyUnits = FUnitConversion::UnitFromString(*Units);
+
+			if (PropertyUnits.IsSet())
+			{
+				bool bAllowUnitRangeAdaption = true;
+				const auto& AllowRageAdaptionString = Property->GetMetaData(TEXT("AllowUnitRangeAdaption"));
+				if (!AllowRageAdaptionString.IsEmpty())
+				{
+					LexicalConversion::FromString(bAllowUnitRangeAdaption, *AllowRageAdaptionString);
+				}
+				TypeInterface = MakeShareable( new TNumericUnitTypeInterface<NumericType>(PropertyUnits.GetValue(), bAllowUnitRangeAdaption) );
+			}
+		}
+
 		ChildSlot
 			[
 				SAssignNew(PrimaryWidget, SNumericEntryBox<NumericType>)
@@ -107,6 +129,7 @@ public:
 				.OnValueCommitted(this, &SPropertyEditorNumeric<NumericType>::OnValueCommitted)
 				.OnBeginSliderMovement(this, &SPropertyEditorNumeric<NumericType>::OnBeginSliderMovement)
 				.OnEndSliderMovement(this, &SPropertyEditorNumeric<NumericType>::OnEndSliderMovement)
+				.TypeInterface(TypeInterface)
 			];
 
 		SetEnabled(TAttribute<bool>(this, &SPropertyEditorNumeric<NumericType>::CanEdit));
