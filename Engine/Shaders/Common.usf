@@ -9,7 +9,12 @@
 #if PS4_PROFILE  
 	// always #include PS4Common.usf so it can #define override anything in any other included file.
 	#include "PS4/PS4Common.usf"
-#endif 
+#endif
+
+#if METAL_PROFILE || METAL_MRT_PROFILE
+	// Helps with iteration when changing Metal shader code generation backend.
+	#include "MetalCommon.usf"
+#endif
 
 #ifndef FORCE_FLOATS
 #define FORCE_FLOATS 0
