@@ -121,7 +121,7 @@ private:
 	/** The scene for this viewport. */
 	FPreviewScene PreviewScene;
 
-	/** Level viewport client */
+	/** Editor viewport client */
 	TSharedPtr<class FStaticMeshEditorViewportClient> EditorViewportClient;
 
 	/** Static mesh being edited */

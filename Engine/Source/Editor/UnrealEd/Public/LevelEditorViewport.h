@@ -119,7 +119,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	FLevelEditorViewportClient();
+	FLevelEditorViewportClient(const TSharedPtr<class SLevelViewport>& InLevelViewport);
 
 	/**
 	 * Destructor
