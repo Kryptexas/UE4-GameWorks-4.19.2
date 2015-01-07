@@ -1799,7 +1799,6 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 	const bool bMeshIsValid = 
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
-		ClusterTreePtr->Num() &&
 		// make sure we have an actual staticmesh
 		StaticMesh &&
 		StaticMesh->HasValidRenderData() &&
