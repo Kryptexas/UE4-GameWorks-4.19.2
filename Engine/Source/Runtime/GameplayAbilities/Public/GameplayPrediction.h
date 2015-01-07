@@ -303,11 +303,11 @@ struct GAMEPLAYABILITIES_API FPredictionKey
 	UPROPERTY(NotReplicated)
 	bool bIsStale;
 
-	/** Construct a new prediction key with no dependancies */
+	/** Construct a new prediction key with no dependencies */
 	static FPredictionKey CreateNewPredictionKey(class UAbilitySystemComponent*);
 
-	/** Create a new dependant prediction key: keep our existing base or use the current key as the base. */
-	void GenerateDependantPredictionKey();
+	/** Create a new dependent prediction key: keep our existing base or use the current key as the base. */
+	void GenerateDependentPredictionKey();
 
 	/** Creates new delegate called only when this key is rejected. */
 	FPredictionKeyEvent& NewRejectedDelegate();
@@ -427,7 +427,7 @@ public:
 	static void Reject(FPredictionKey::KeyType Key);
 	static void CatchUpTo(FPredictionKey::KeyType Key);
 
-	static void AddDependancy(FPredictionKey::KeyType ThisKey, FPredictionKey::KeyType DependsOn);
+	static void AddDependency(FPredictionKey::KeyType ThisKey, FPredictionKey::KeyType DependsOn);
 
 private:
 

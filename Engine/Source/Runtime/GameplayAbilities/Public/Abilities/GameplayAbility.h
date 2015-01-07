@@ -227,6 +227,8 @@ public:
 	/** Is this ability triggered from TriggerData (or is it triggered explicitly through input/game code) */
 	bool IsTriggered() const;
 
+	bool HasAuthority(const FGameplayAbilityActivationInfo* ActivationInfo) const;
+
 	bool HasAuthorityOrPredictionKey(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo* ActivationInfo) const;
 
 	/** Called when the ability is given to an AbilitySystemComponent */
@@ -385,6 +387,10 @@ protected:
 	//	
 	// -------------------------------------
 
+	// ---------
+	// Apply Self
+	// ---------
+
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName="ApplyGameplayEffectToOwner")
 	FActiveGameplayEffectHandle BP_ApplyGameplayEffectToOwner(TSubclassOf<UGameplayEffect> GameplayEffectClass, int32 GameplayEffectLevel = 1);
 
@@ -400,6 +406,8 @@ protected:
 	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToOwner(const FGameplayAbilitySpecHandle AbilityHandle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEffectSpecHandle SpecHandle);
 
 	// ---------
+	// Apply Target
+	// ---------
 
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "ApplyGameplayEffectToTarget")
 	TArray<FActiveGameplayEffectHandle> BP_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<UGameplayEffect> GameplayEffectClass, int32 GameplayEffectLevel = 1);
@@ -414,6 +422,17 @@ protected:
 	TArray<FActiveGameplayEffectHandle> K2_ApplyGameplayEffectSpecToTarget(const FGameplayEffectSpecHandle EffectSpecHandle, FGameplayAbilityTargetDataHandle TargetData);
 
 	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectSpecToTarget(const FGameplayAbilitySpecHandle AbilityHandle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEffectSpecHandle SpecHandle, FGameplayAbilityTargetDataHandle TargetData);
+
+	// ---------
+	// Remove Self
+	// ---------
+	
+	/** Removes GAmeplayEffects from owner which match the given asset level tags. */
+	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName="RemoveGameplayEffectFromOwnerWithAssetTags")
+	void BP_RemoveGameplayEffectFromOwnerWithAssetTags(FGameplayTagContainer WithAssetTags, int32 StacksToRemove = -1);
+
+	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName="RemoveGameplayEffectFromOwnerWithGrantedTags")
+	void BP_RemoveGameplayEffectFromOwnerWithGrantedTags(FGameplayTagContainer WithGrantedTags, int32 StacksToRemove = -1);
 
 	// -------------------------------------
 	//	GameplayCue

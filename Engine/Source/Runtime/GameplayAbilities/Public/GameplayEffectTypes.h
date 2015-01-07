@@ -50,8 +50,22 @@ namespace EGameplayModOp
 UENUM()
 enum class EGameplayEffectAttributeCaptureSource : uint8
 {
-	Source,	// Source (caster) of the gameplay effect
-	Target	// Target (recipient) of the gameplay effect
+	// Source (caster) of the gameplay effect
+	Source,	
+	// Target (recipient) of the gameplay effect
+	Target	
+};
+
+/** Enumeration for ways a single GameplayEffect asset can stack */
+UENUM()
+enum class EGameplayEffectStackingType : uint8
+{
+	// No stacking. Multiple applications of this GameplayEffect are treated as separate instances.
+	None,
+	// Each caster has its own stack
+	AggregateBySource,
+	// Each target has its own stack
+	AggregateByTarget,
 };
 
 /**

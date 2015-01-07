@@ -157,7 +157,10 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor*
 	{
 		for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 		{
-			Spec.Ability->OnAvatarSet(AbilityActorInfo.Get(), Spec);
+			if (Spec.Ability)
+			{
+				Spec.Ability->OnAvatarSet(AbilityActorInfo.Get(), Spec);
+			}
 		}
 	}
 }

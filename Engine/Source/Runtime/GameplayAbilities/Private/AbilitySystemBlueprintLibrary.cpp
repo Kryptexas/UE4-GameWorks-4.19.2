@@ -424,7 +424,7 @@ FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::SetDuration(FGameplayE
 	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
 	if (Spec)
 	{
-		Spec->SetDuration(Duration);
+		Spec->SetDuration(Duration, true);
 	}
 	else
 	{

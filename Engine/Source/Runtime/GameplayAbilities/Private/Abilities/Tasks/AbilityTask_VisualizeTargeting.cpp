@@ -14,12 +14,10 @@ UAbilityTask_VisualizeTargeting::UAbilityTask_VisualizeTargeting(const FObjectIn
 UAbilityTask_VisualizeTargeting* UAbilityTask_VisualizeTargeting::VisualizeTargeting(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass, FName TaskInstanceName, float Duration)
 {
 	UAbilityTask_VisualizeTargeting* MyObj = NewTask<UAbilityTask_VisualizeTargeting>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
-	MyObj->TargetClass = InTargetClass;
 	MyObj->SetDuration(Duration);
 	return MyObj;
 }
 
-// ---------------------------------------------------------------------------------------
 
 void UAbilityTask_VisualizeTargeting::SetDuration(const float Duration)
 {
@@ -37,22 +35,13 @@ bool UAbilityTask_VisualizeTargeting::BeginSpawningActor(UObject* WorldContextOb
 	if (MyAbility)
 	{
 		const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
-		MyTargetActor = CDO;
 
-		bool Replicates = CDO->GetReplicates();
-		bool StaticFunc = CDO->StaticTargetFunction;
-		bool IsLocallyControlled = MyAbility->GetCurrentActorInfo()->IsLocallyControlled();
-
-		if (Replicates && StaticFunc)
-		{
-			// We can't replicate a staticFunc target actor, since we are just calling a static function and not spawning an actor at all!
-			ABILITY_LOG(Fatal, TEXT("AbilityTargetActor class %s can't be Replicating and Static"), *TargetClass->GetName());
-			Replicates = false;
-		}
+		const bool bReplicates = CDO->GetReplicates();
+		const bool bIsLocallyControlled = MyAbility->GetCurrentActorInfo()->IsLocallyControlled();
 
 		// Spawn the actor if this is a locally controlled ability (always) or if this is a replicating targeting mode.
 		// (E.g., server will spawn this target actor to replicate to all non owning clients)
-		if (Replicates || IsLocallyControlled)
+		if (bReplicates || bIsLocallyControlled)
 		{
 			UClass* Class = *TargetClass;
 			if (Class != NULL)
@@ -87,21 +76,17 @@ void UAbilityTask_VisualizeTargeting::FinishSpawningActor(UObject* WorldContextO
 	}
 }
 
-// ---------------------------------------------------------------------------------------
-
 void UAbilityTask_VisualizeTargeting::OnDestroy(bool AbilityEnded)
 {
-	if (MyTargetActor.IsValid() && !MyTargetActor->HasAnyFlags(RF_ClassDefaultObject))
+	if (MyTargetActor.IsValid())
 	{
 		MyTargetActor->Destroy();
 	}
+
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_OnTimeElapsed);
 
 	Super::OnDestroy(AbilityEnded);
 }
-
-
-// --------------------------------------------------------------------------------------
 
 void UAbilityTask_VisualizeTargeting::OnTimeElapsed()
 {

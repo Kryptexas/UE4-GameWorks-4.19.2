@@ -351,4 +351,6 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 			}
 		}		
 	}
+	
+	AbilitySystemComponent->ForceReplication();
 }

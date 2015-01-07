@@ -70,6 +70,10 @@ void UGameplayCueNotify_Static::HandleGameplayCue(AActor* MyTarget, EGameplayCue
 			OnActive(MyTarget, Parameters);
 			break;
 
+		case EGameplayCueEvent::WhileActive:
+			WhileActive(MyTarget, Parameters);
+			break;
+
 		case EGameplayCueEvent::Executed:
 			OnExecute(MyTarget, Parameters);
 			break;
@@ -95,6 +99,11 @@ bool UGameplayCueNotify_Static::OnExecute_Implementation(AActor* MyTarget, FGame
 }
 
 bool UGameplayCueNotify_Static::OnActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const
+{
+	return false;
+}
+
+bool UGameplayCueNotify_Static::WhileActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const
 {
 	return false;
 }

@@ -15,7 +15,6 @@
 AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	StaticTargetFunction = false;
 	ShouldProduceTargetDataOnServer = false;
 	bDebug = false;
 	bDestroyOnConfirmation = true;
@@ -112,11 +111,6 @@ bool AGameplayAbilityTargetActor::IsNetRelevantFor(const APlayerController* Real
 bool AGameplayAbilityTargetActor::GetReplicates() const
 {
 	return bReplicates;
-}
-
-FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
-{
-	return FGameplayAbilityTargetDataHandle();
 }
 
 bool AGameplayAbilityTargetActor::OnReplicatedTargetDataReceived(FGameplayAbilityTargetDataHandle& Data) const

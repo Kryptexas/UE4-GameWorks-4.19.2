@@ -71,6 +71,10 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 			OnActive(MyTarget, Parameters);
 			break;
 
+		case EGameplayCueEvent::WhileActive:
+			WhileActive(MyTarget, Parameters);
+			break;
+
 		case EGameplayCueEvent::Executed:
 			OnExecute(MyTarget, Parameters);
 			break;
@@ -99,6 +103,11 @@ bool AGameplayCueNotify_Actor::OnExecute_Implementation(AActor* MyTarget, FGamep
 }
 
 bool AGameplayCueNotify_Actor::OnActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters)
+{
+	return false;
+}
+
+bool AGameplayCueNotify_Actor::WhileActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters)
 {
 	return false;
 }

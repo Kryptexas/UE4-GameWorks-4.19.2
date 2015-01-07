@@ -57,7 +57,7 @@ protected:
 
 	TSubclassOf<AGameplayAbilityTargetActor> TargetClass;
 
-	/** The TargetActor that we spawned, or the class CDO if this is a static targeting task */
+	/** The TargetActor that we spawned */
 	TWeakObjectPtr<AGameplayAbilityTargetActor>	MyTargetActor;
 
 	TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType;

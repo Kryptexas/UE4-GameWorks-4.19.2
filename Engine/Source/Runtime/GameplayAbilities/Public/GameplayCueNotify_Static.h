@@ -50,6 +50,9 @@ class GAMEPLAYABILITIES_API UGameplayCueNotify_Static : public UObject
 	bool OnActive(AActor* MyTarget, FGameplayCueParameters Parameters) const;
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintPure, Category = "GameplayCueNotify")
+	bool WhileActive(AActor* MyTarget, FGameplayCueParameters Parameters) const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintPure, Category = "GameplayCueNotify")
 	bool OnRemove(AActor* MyTarget, FGameplayCueParameters Parameters) const;
 
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)

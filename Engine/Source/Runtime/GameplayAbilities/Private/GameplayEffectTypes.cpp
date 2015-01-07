@@ -144,7 +144,6 @@ bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap*
 			// For now, just always reset/reallocate the data when loading.
 			// Longer term if we want to generalize this and use it for property replication, we should support
 			// only reallocating when necessary
-			check(!Data.IsValid());
 
 			FGameplayEffectContext * NewData = (FGameplayEffectContext*)FMemory::Malloc(ScriptStruct->GetCppStructOps()->GetSize());
 			ScriptStruct->InitializeStruct(NewData);
@@ -194,15 +193,13 @@ bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap*
 FString EGameplayModOpToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModOp"));
-	FString Right;
-	e->GetEnum(Type).ToString().Split(TEXT("::"), nullptr, &Right);
-	return Right;
+	return e->GetEnumName(Type);
 }
 
 FString EGameplayModEffectToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModEffect"));
-	return e->GetEnum(Type).ToString();
+	return e->GetEnumName(Type);
 }
 
 bool FGameplayTagCountContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck) const

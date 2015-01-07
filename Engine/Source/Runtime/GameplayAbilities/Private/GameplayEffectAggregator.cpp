@@ -166,7 +166,7 @@ float FAggregator::SumMods(const TArray<FAggregatorMod> &Mods, float Bias, const
 	return Sum;
 }
 
-void FAggregator::AddMod(float EvaluatedMagnitude, TEnumAsByte<EGameplayModOp::Type> ModifierOp, const FGameplayTagRequirements* SourceTagReqs, const FGameplayTagRequirements* TargetTagReqs, bool IsPredicted, FActiveGameplayEffectHandle ActiveHandle)
+void FAggregator::AddAggregatorMod(float EvaluatedMagnitude, TEnumAsByte<EGameplayModOp::Type> ModifierOp, const FGameplayTagRequirements* SourceTagReqs, const FGameplayTagRequirements* TargetTagReqs, bool IsPredicted, FActiveGameplayEffectHandle ActiveHandle)
 {
 	TArray<FAggregatorMod> &ModList = Mods[ModifierOp];
 
@@ -180,12 +180,14 @@ void FAggregator::AddMod(float EvaluatedMagnitude, TEnumAsByte<EGameplayModOp::T
 	NewMod.IsPredicted = IsPredicted;
 
 	if (IsPredicted)
+	{
 		NumPredictiveMods++;
+	}
 
 	BroadcastOnDirty();
 }
 
-void FAggregator::RemoveMod(FActiveGameplayEffectHandle ActiveHandle)
+void FAggregator::RemoveAggregatorMod(FActiveGameplayEffectHandle ActiveHandle)
 {
 	if (ActiveHandle.IsValid())
 	{
@@ -206,9 +208,14 @@ void FAggregator::AddModsFrom(const FAggregator& SourceAggregator)
 	}
 }
 
-void FAggregator::AddDependant(FActiveGameplayEffectHandle Handle)
+void FAggregator::AddDependent(FActiveGameplayEffectHandle Handle)
 {
-	Dependants.Add(Handle);
+	Dependents.Add(Handle);
+}
+
+void FAggregator::RemoveDependent(FActiveGameplayEffectHandle Handle)
+{
+	Dependents.Remove(Handle);
 }
 
 bool FAggregator::HasPredictedMods() const
@@ -225,7 +232,9 @@ void FAggregator::RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActi
 		if (Mods[idx].ActiveHandle == ActiveHandle)
 		{
 			if (Mods[idx].IsPredicted)
+			{
 				NumPredictiveMods--;
+			}
 
 			Mods.RemoveAtSwap(idx, 1, false);
 		}
@@ -243,8 +252,8 @@ void FAggregator::TakeSnapshotOf(const FAggregator& AggToSnapshot)
 
 void FAggregator::BroadcastOnDirty()
 {
-	// If we are batching on Dirty calls (and we actually have dependants registered with us) then early out.
-	if (FScopedAggregatorOnDirtyBatch::GlobalBatchCount > 0 && (Dependants.Num() > 0 || OnDirty.IsBound()))
+	// If we are batching on Dirty calls (and we actually have dependents registered with us) then early out.
+	if (FScopedAggregatorOnDirtyBatch::GlobalBatchCount > 0 && (Dependents.Num() > 0 || OnDirty.IsBound()))
 	{
 		FScopedAggregatorOnDirtyBatch::DirtyAggregators.Add(this);
 		return;
@@ -253,7 +262,7 @@ void FAggregator::BroadcastOnDirty()
 	if (IsBroadcastingDirty)
 	{
 		// Apologies for the vague warning but its very hard from this spot to call out what data has caused this. If this frequently happens we should improve this.
-		ABILITY_LOG(Warning, TEXT("FAggregator detected cyclic attribute dependancies. We are skipping a recursive dirty call. Its possible the resulting attribute values are not what you expect!"));
+		ABILITY_LOG(Warning, TEXT("FAggregator detected cyclic attribute dependencies. We are skipping a recursive dirty call. Its possible the resulting attribute values are not what you expect!"));
 		return;
 	}
 
@@ -262,17 +271,17 @@ void FAggregator::BroadcastOnDirty()
 	OnDirty.Broadcast(this);
 
 
-	TArray<FActiveGameplayEffectHandle>	ValidDependants;
-	for (FActiveGameplayEffectHandle Handle : Dependants)
+	TArray<FActiveGameplayEffectHandle>	ValidDependents;
+	for (FActiveGameplayEffectHandle Handle : Dependents)
 	{
 		UAbilitySystemComponent* ASC = Handle.GetOwningAbilitySystemComponent();
 		if (ASC)
 		{
-			ASC->OnMagnitudeDependancyChange(Handle, this);
-			ValidDependants.Add(Handle);
+			ASC->OnMagnitudeDependencyChange(Handle, this);
+			ValidDependents.Add(Handle);
 		}
 	}
-	Dependants = ValidDependants;
+	Dependents = ValidDependents;
 
 }
 

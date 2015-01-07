@@ -18,7 +18,6 @@ AGameplayAbilityTargetActor_Radius::AGameplayAbilityTargetActor_Radius(const FOb
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
-	StaticTargetFunction = false;
 	ShouldProduceTargetDataOnServer = true;
 }
 

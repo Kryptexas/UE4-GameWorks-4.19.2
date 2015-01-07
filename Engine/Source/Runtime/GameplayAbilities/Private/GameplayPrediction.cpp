@@ -49,7 +49,7 @@ void FPredictionKey::GenerateNewPredictionKey()
 	bIsStale = false;
 }
 
-void FPredictionKey::GenerateDependantPredictionKey()
+void FPredictionKey::GenerateDependentPredictionKey()
 {
 	KeyType Previous = 0;
 	if (Base == 0)
@@ -65,7 +65,7 @@ void FPredictionKey::GenerateDependantPredictionKey()
 
 	if (Previous > 0)
 	{
-		FPredictionKeyDelegates::AddDependancy(Current, Previous);
+		FPredictionKeyDelegates::AddDependency(Current, Previous);
 	}
 }
 
@@ -186,7 +186,7 @@ void FPredictionKeyDelegates::CaughtUp(FPredictionKey::KeyType Key)
 	}
 }
 
-void FPredictionKeyDelegates::AddDependancy(FPredictionKey::KeyType ThisKey, FPredictionKey::KeyType DependsOn)
+void FPredictionKeyDelegates::AddDependency(FPredictionKey::KeyType ThisKey, FPredictionKey::KeyType DependsOn)
 {
 	NewRejectedDelegate(DependsOn).BindStatic(&FPredictionKeyDelegates::Reject, ThisKey);
 	NewCaughtUpDelegate(DependsOn).BindStatic(&FPredictionKeyDelegates::CaughtUp, ThisKey);
@@ -227,7 +227,7 @@ FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* InAbil
 	{
 		ClearScopedPredictionKey = true;
 		RestoreKey = InAbilitySystemComponent->ScopedPredictionKey;
-		InAbilitySystemComponent->ScopedPredictionKey.GenerateDependantPredictionKey();
+		InAbilitySystemComponent->ScopedPredictionKey.GenerateDependentPredictionKey();
 		
 	}
 }
