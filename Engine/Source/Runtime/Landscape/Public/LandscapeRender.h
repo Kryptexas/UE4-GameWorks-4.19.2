@@ -412,6 +412,7 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 
 protected:
 	FLandscapeKey				LandscapeKey;
+	bool						bAddedToSceneProxyMap;
 	int8						MaxLOD;
 	int8						NumSubsections;
 	int16						SubsectionSizeQuads;
