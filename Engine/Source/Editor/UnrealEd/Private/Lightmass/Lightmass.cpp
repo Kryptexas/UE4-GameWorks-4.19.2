@@ -2586,22 +2586,6 @@ bool FLightmassProcessor::BeginRun()
 	{
 		CommandLineParameters += TEXT(" -stats");
 	}
-	
-	int32 NumUnusedLightmassThreads;
-	verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("NumUnusedLightmassThreads"), NumUnusedLightmassThreads, GLightmassIni));
-
-	const int32 NumVirtualCores = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
-	int32 NumThreads = NumVirtualCores - NumUnusedLightmassThreads;
-
-	// On machines with few cores, each core will have a massive impact on build time, so we prioritize build latency over editor performance during the build
-	if (NumVirtualCores <= 4)
-	{
-		NumThreads = NumVirtualCores - 1;
-	}
-
-	NumThreads = FMath::Max(1, NumThreads);
-
-	CommandLineParameters += FString::Printf(TEXT(" -numthreads %i"), NumThreads);
 
 	NSwarm::FJobSpecification JobSpecification32, JobSpecification64;
 	if ( !bUse64bitProcess )
