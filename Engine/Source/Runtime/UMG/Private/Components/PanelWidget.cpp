@@ -85,10 +85,15 @@ bool UPanelWidget::RemoveChildAt(int32 Index)
 		Slot->Content->Slot = nullptr;
 	}
 
-	Slot->Parent = nullptr;
 	Slots.RemoveAt(Index);
 
 	OnSlotRemoved(Slot);
+
+	Slot->Parent = nullptr;
+	Slot->Content = nullptr;
+
+	const bool bReleaseChildren = true;
+	Slot->ReleaseSlateResources(bReleaseChildren);
 
 	return true;
 }
