@@ -1137,7 +1137,7 @@ namespace UnrealBuildTool
 				{
 					// Figure out what to call our action graph based on everything we're building
 					var TargetDescs = new List<TargetDescriptor>();
-					
+
 					// @todo ubtmake: Only supports cleaning one target at a time :(
 					TargetDescs.Add( new TargetDescriptor
 						{
@@ -1146,13 +1146,13 @@ namespace UnrealBuildTool
 							Configuration = this.Configuration
 						} );
 
-					var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
-					if (File.Exists(UBTMakefilePath))
-					{
-						Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
-						CleanFile(UBTMakefilePath);
+						var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
+						if (File.Exists(UBTMakefilePath))
+						{
+							Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
+							CleanFile(UBTMakefilePath);
+						}
 					}
-				}
 
 				// Delete the action history
 				{
@@ -1841,7 +1841,7 @@ namespace UnrealBuildTool
 					FilteredBinaries.Add(DLLBinary);
 					AnyBinariesAdded = true;
 				}
-				}
+			}
 
 			if (!AnyBinariesAdded)
 			{
@@ -1922,7 +1922,7 @@ namespace UnrealBuildTool
 
 				// Create the cpp file
 				string LinkerFixupCPPFilename = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, LinkerFixupsName + ".cpp");
-
+				
 				// Determine if the file changed. Write it if it either doesn't exist or the contents are different.
 				bool bShouldWriteFile = true;
 				if (File.Exists(LinkerFixupCPPFilename))
@@ -2443,7 +2443,7 @@ namespace UnrealBuildTool
 			// Set the list of plugins that should be built
 			if (UnrealBuildTool.BuildingRocket() && TargetType != TargetRules.TargetType.Program)
 			{
-				BuildPlugins.AddRange(ValidPlugins.Where(x => x.Name != "Morpheus"));
+				BuildPlugins.AddRange(ValidPlugins.Where(x => x.Directory.IndexOf("\\PS4\\", StringComparison.InvariantCultureIgnoreCase) == -1 && x.Directory.IndexOf("\\XboxOne\\", StringComparison.InvariantCultureIgnoreCase) == -1));
 			}
 			else if (ShouldCompileMonolithic() || TargetType == TargetRules.TargetType.Program)
 			{
