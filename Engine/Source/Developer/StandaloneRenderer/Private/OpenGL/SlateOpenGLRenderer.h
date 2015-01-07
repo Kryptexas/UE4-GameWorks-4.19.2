@@ -38,6 +38,7 @@ struct FSlateOpenGLContext
 	GLint TextureDirectionUniform;
 	GLuint CompositeTexture;
 	GLuint CompositeVAO;
+	bool bNeedsUpdate;
 #elif PLATFORM_IOS
 	UIWindow* WindowHandle;
 	EAGLContext* Context;
