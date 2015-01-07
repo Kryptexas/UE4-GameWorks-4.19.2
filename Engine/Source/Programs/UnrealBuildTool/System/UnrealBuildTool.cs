@@ -108,7 +108,7 @@ namespace UnrealBuildTool
         }
         static private bool bIsAssemblingBuild_Unsafe = true;
 
-        /** Used when BuildConfiguration.bUseExperimentalFastDependencyScan is enabled.  If true, it means that our cached includes may not longer be
+        /** Used when BuildConfiguration.bUseUBTMakefiles is enabled.  If true, it means that our cached includes may not longer be
             valid (or never were), and we need to recover by forcibly scanning included headers for all build prerequisites to make sure that our
             cached set of includes is actually correct, before determining which files are outdated. */
         static public bool bNeedsFullCPPIncludeRescan = false;
@@ -789,7 +789,7 @@ namespace UnrealBuildTool
 
                     // If we were asked to enable fast build iteration, we want the 'gather' phase to default to off (unless it is overridden below
                     // using a command-line option.)
-                    if( BuildConfiguration.bUseExperimentalFastBuildIteration )
+                    if( BuildConfiguration.bUseUBTMakefiles )
                     {
                         bIsGatheringBuild_Unsafe = false;
                     }
@@ -1138,16 +1138,8 @@ namespace UnrealBuildTool
                         {
                             if (UEBuildConfiguration.bPrepForDeployment == false)
                             {
-                                int PassCount = 1;	// @todo ubtmake: It's useful to set this to a high number when running UBT under a sampling profiler
-                                for( int PassIndex = 0; PassIndex < PassCount; ++PassIndex )
-                                { 
-                                    // If we are only prepping for deployment, assume the build already occurred.
-                                    Result = RunUBT(Arguments);
-                                    if( Result != ECompilationResult.Succeeded )
-                                    {
-                                        break;
-                                    }
-                                }
+								// If we are only prepping for deployment, assume the build already occurred.
+								Result = RunUBT(Arguments);
                             }
                             else
                             {
@@ -1426,10 +1418,9 @@ namespace UnrealBuildTool
 				bool bIsHotReload = UEBuildConfiguration.bHotReloadFromIDE || ( TargetDescs.Count == 1 && TargetDescs[0].OnlyModules.Count > 0 );
 				TargetDescriptor HotReloadTargetDesc = bIsHotReload ? TargetDescs[0] : null;
 
-                // If UBT is being used to build something different than it did last time
                 if( !ProjectFileGenerator.bGenerateProjectFiles )
                 {
-					if( BuildConfiguration.bUseExperimentalFastDependencyScan )
+					if( BuildConfiguration.bUseUBTMakefiles )
                     {
                         // If we're building UHT without a Mutex, we'll need to assume that we're building the same targets and that no caches
                         // should be invalidated for this run.  This is important when UBT is invoked from within UBT in order to compile
@@ -1459,7 +1450,7 @@ namespace UnrealBuildTool
                             if( File.Exists( LastBuiltTargetsFilePath ) && Utils.ReadAllText( LastBuiltTargetsFilePath ) == TargetCollectionName )
                             {
 								// @todo ubtmake: Because we're using separate files for hot reload vs. full compiles, it's actually possible that includes will
-								// become out of date without us knowing if the developer ping pongs between hot reloading target A and bulding target B normally.
+								// become out of date without us knowing if the developer ping-pongs between hot reloading target A and building target B normally.
 								// To fix this we can not use a different file name for last built targets, but the downside is slower performance when
 								// performing the first hot reload after compiling normally (forces full include dependency scan)
                                 bIsBuildingSameTargetsAsLastTime = true;
@@ -1503,7 +1494,7 @@ namespace UnrealBuildTool
                     }
 
                     // Make sure the gather phase is executed if we're not actually building anything
-                    if( ProjectFileGenerator.bGenerateProjectFiles || UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject )
+                    if( ProjectFileGenerator.bGenerateProjectFiles || UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject || BuildConfiguration.bXGEExport || UEBuildConfiguration.bGenerateExternalFileList || GeneratingActionGraph)
                     {
                         UnrealBuildTool.bIsGatheringBuild_Unsafe = true;						
                     }
@@ -1589,11 +1580,11 @@ namespace UnrealBuildTool
                     }
 
                     // We don't need this dependency cache in 'gather only' mode
-                    if( BuildConfiguration.bUseExperimentalFastDependencyScan &&
+                    if( BuildConfiguration.bUseUBTMakefiles &&
                         !( UnrealBuildTool.IsGatheringBuild && !UnrealBuildTool.IsAssemblingBuild ) )
                     { 
                         // Load the cache that contains the list of flattened resolved includes for resolved source files
-                        // @todo fastubt: Ideally load this asynchronously at startup and only block when it is first needed and not finished loading
+                        // @todo ubtmake: Ideally load this asynchronously at startup and only block when it is first needed and not finished loading
                         CPPEnvironment.FlatCPPIncludeDependencyCache.Add( Target, FlatCPPIncludeDependencyCache.Create( Target ) );
                     }
 
@@ -1679,7 +1670,7 @@ namespace UnrealBuildTool
                         UBTMakefile.TargetNameToUObjectModules = TargetNameToUObjectModules;
 						UBTMakefile.Targets = Targets;
 
-						if( BuildConfiguration.bUseExperimentalFastBuildIteration )
+						if( BuildConfiguration.bUseUBTMakefiles )
 						{ 
 							// We've been told to prepare to build, so let's go ahead and save out our action graph so that we can use in a later invocation 
 							// to assemble the build.  Even if we are configured to assemble the build in this same invocation, we want to save out the
@@ -1754,7 +1745,7 @@ namespace UnrealBuildTool
                             // Cache indirect includes for all outdated C++ files.  We kick this off as a background thread so that it can
                             // perform the scan while we're compiling.  It usually only takes up to a few seconds, but we don't want to hurt
                             // our best case UBT iteration times for this task which can easily be performed asynchronously
-                            if( BuildConfiguration.bUseExperimentalFastDependencyScan && TargetToOutdatedPrerequisitesMap.Count > 0 )
+                            if( BuildConfiguration.bUseUBTMakefiles && TargetToOutdatedPrerequisitesMap.Count > 0 )
                             {
                                 CPPIncludesThread = CreateThreadForCachingCPPIncludes( TargetToOutdatedPrerequisitesMap );
                                 CPPIncludesThread.Start();
@@ -1889,7 +1880,7 @@ namespace UnrealBuildTool
 			bool bIsRunning = false;
 			
 			// @todo ubtmake: Kind of cheating here to figure out if an editor target.  At this point we don't have access to the actual target description, and
-			// this code must be able to execute before we create or load module rules DLLs so that hot reload can work with bUseExperimentalFastBuildIteration
+			// this code must be able to execute before we create or load module rules DLLs so that hot reload can work with bUseUBTMakefiles
 			bool bIsEditorTarget = TargetDesc.TargetName.EndsWith( "Editor", StringComparison.InvariantCultureIgnoreCase ) || TargetDesc.bIsEditorRecompile;	
 
 			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && bIsEditorTarget )
@@ -2088,7 +2079,7 @@ namespace UnrealBuildTool
         {
             return new Thread( new ThreadStart( () =>
                 {
-                    // @todo fastubt: This thread will access data structures that are also used on the main UBT thread, but during this time UBT
+                    // @todo ubtmake: This thread will access data structures that are also used on the main UBT thread, but during this time UBT
                     // is only invoking the build executor, so should not be touching this stuff.  However, we need to at some guards to make sure.
 
 
@@ -2134,7 +2125,7 @@ namespace UnrealBuildTool
             public Action[] PrerequisiteActions;			
 
             /** Environment variables that we'll need in order to invoke the platform's compiler and linker */
-			// @todo ubtmake: Really we want to allow a different set of environment variables for every Action.  This would allow for targets on multiple platforms to be built in a single assembling phase.  Really, we'd only have unique variables for each platform that has actions, so we'd want to make sure we only store the minimum set.
+			// @todo ubtmake: Really we want to allow a different set of environment variables for every Action.  This would allow for targets on multiple platforms to be built in a single assembling phase.  We'd only have unique variables for each platform that has actions, so we'd want to make sure we only store the minimum set.
             public readonly List<Tuple<string,string>> EnvironmentVariables = new List<Tuple<string,string>>();
 
             /** Maps each target to a list of UObject module info structures */

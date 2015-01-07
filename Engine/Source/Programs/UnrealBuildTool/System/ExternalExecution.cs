@@ -389,7 +389,7 @@ namespace UnrealBuildTool
 								// of the source headers.  We don't care if source files were added or removed in this mode, because we're only
 								// able to process the known UObject headers that are in the Makefile.  If UObject header files are added/removed,
 								// we expect the user to re-run GenerateProjectFiles which will force UBTMakefile outdatedness.
-								// @todo fastubt: Possibly, we should never be doing this check these days.
+								// @todo ubtmake: Possibly, we should never be doing this check these days.
 								if( UnrealBuildTool.IsGatheringBuild || !UnrealBuildTool.IsAssemblingBuild )
 								{
 									// Also check the timestamp on the directory the source file is in.  If the directory timestamp has
@@ -570,7 +570,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				// @todo fastubt: @todo ubtmake: Optimization: Ideally we could avoid having to generate this data in the case where UHT doesn't even need to run!  Can't we use the existing copy?  (see below use of Manifest)
+				// @todo ubtmake: Optimization: Ideally we could avoid having to generate this data in the case where UHT doesn't even need to run!  Can't we use the existing copy?  (see below use of Manifest)
 				UHTManifest Manifest = new UHTManifest(Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
 
 				if( !bIsBuildingUHT && bUHTNeedsToRun )

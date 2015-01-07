@@ -83,8 +83,8 @@ namespace UnrealBuildTool
 			{
 				using (FileStream Stream = new FileStream(Cache.AbsolutePath, FileMode.Open, FileAccess.Read))
 				{	
-					// @todo fastubt: We can store the cache in a cheaper/smaller way using hash file names and indices into included headers, but it might actually slow down load times
-					// @todo fastubt: If we can index PCHs here, we can avoid storing all of the PCH's included headers (PCH's action should have been invalidated, so we shouldn't even have to report the PCH's includes as our indirect includes)
+					// @todo ubtmake: We can store the cache in a cheaper/smaller way using hash file names and indices into included headers, but it might actually slow down load times
+					// @todo ubtmake: If we can index PCHs here, we can avoid storing all of the PCH's included headers (PCH's action should have been invalidated, so we shouldn't even have to report the PCH's includes as our indirect includes)
 					BinaryFormatter Formatter = new BinaryFormatter();
 					Result = Formatter.Deserialize(Stream) as FlatCPPIncludeDependencyCache;
 					Result.CacheFileItem = Cache;
@@ -164,11 +164,11 @@ namespace UnrealBuildTool
 		public void SetDependenciesForFile( string AbsoluteFilePath, string PCHName, List<string> Dependencies )
 		{
 			var DependencyInfo = new FlatCPPIncludeDependencyInfo();
-			DependencyInfo.PCHName = PCHName;	// @todo fastubt: Not actually used yet.  The idea is to use this to reduce the number of indirect includes we need to store in the cache.
+			DependencyInfo.PCHName = PCHName;	// @todo ubtmake: Not actually used yet.  The idea is to use this to reduce the number of indirect includes we need to store in the cache.
 			DependencyInfo.Includes = Dependencies;
 			DependencyInfo.IncludeFileItems = null;
 
-			// @todo fastubt: We could shrink this file by not storing absolute paths (project and engine relative paths only, except for system headers.)  May affect load times.
+			// @todo ubtmake: We could shrink this file by not storing absolute paths (project and engine relative paths only, except for system headers.)  May affect load times.
 			DependencyMap[ AbsoluteFilePath.ToLowerInvariant() ] = DependencyInfo;
 			bIsDirty = true;
 		}
@@ -190,7 +190,7 @@ namespace UnrealBuildTool
 					DependencyInfo.IncludeFileItems = new List<FileItem>( DependencyInfo.Includes.Count );
 					foreach( string Dependency in DependencyInfo.Includes )
 					{
-						DependencyInfo.IncludeFileItems.Add( FileItem.GetItemByFullPath( Dependency ) );	// @todo fastubt: Make sure this is as fast as possible (convert to FileItem)
+						DependencyInfo.IncludeFileItems.Add( FileItem.GetItemByFullPath( Dependency ) );
 					}
 				}
 				return DependencyInfo.IncludeFileItems;

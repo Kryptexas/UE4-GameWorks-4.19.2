@@ -202,8 +202,6 @@ namespace UnrealBuildTool
 
 		public static void FinalizeActionGraph()
 		{
-			// @todo fastubt: Can we use directory changed notifications or directory timestamps to accelerate C++ file outdatedness checking?
-			
 			// Link producing actions to the items they produce.
 			LinkActionsAndItems();
 
@@ -791,7 +789,7 @@ namespace UnrealBuildTool
 					// includes before getting this far.  However, if we find them to be outdated after processing includes, we'll do a deep scan later
 					// on and cache all of the includes so that we have them for a quick outdatedness check the next run.
 					if( !bIsOutdated && 
-						BuildConfiguration.bUseExperimentalFastBuildIteration && 
+						BuildConfiguration.bUseUBTMakefiles && 
 						UnrealBuildTool.IsAssemblingBuild && 
 						RootAction.ActionType == ActionType.Compile )
 					{
@@ -800,7 +798,7 @@ namespace UnrealBuildTool
 
 					// Were we asked to force an update of our cached includes BEFORE we try to build?  This may be needed if our cache can no longer
 					// be trusted and we need to fill it with perfectly valid data (even if we're in assembler only mode)
-					if( BuildConfiguration.bUseExperimentalFastDependencyScan && 
+					if( BuildConfiguration.bUseUBTMakefiles && 
 						UnrealBuildTool.bNeedsFullCPPIncludeRescan )
 					{
 						bFindCPPIncludePrerequisites = true;
@@ -819,8 +817,8 @@ namespace UnrealBuildTool
 						// @todo ubtmake: Make sure we are catching RC files here too.  Anything that the toolchain would have tried it on.  Logic should match the CACHING stuff below
 						if( PrerequisiteItem.CachedCPPIncludeInfo != null )
 						{
-							var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, PrerequisiteItem, BuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
-							foreach( var IncludedFile in IncludedFileList )	// @todo fastubt: @todo ubtmake: Optimization: This is "retesting" a lot of the same files over and over in a single run (common indirect includes)
+							var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, PrerequisiteItem, BuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies:BuildConfiguration.bUseUBTMakefiles );
+							foreach( var IncludedFile in IncludedFileList )
 							{
 								if( IncludedFile.bExists )
 								{
@@ -915,12 +913,12 @@ namespace UnrealBuildTool
 				// know about the set of header files that are included for files that are already determined to be out of date (such as if the file
 				// is missing or was modified.)  In the case that the file is out of date, we'll perform a deep scan to update our cached set of
 				// includes for this file, so that we'll be able to determine whether it is out of date next time very quickly.
-				if( BuildConfiguration.bUseExperimentalFastDependencyScan )
+				if( BuildConfiguration.bUseUBTMakefiles )
 				{ 
 					var DeepIncludeScanStartTime = DateTime.UtcNow;
 
-					// @todo fastubt: we may be scanning more files than we need to here -- indirectly outdated files are bIsOutdated=true by this point (for example basemost includes when deeper includes are dirty)
-					if( bIsOutdated && RootAction.ActionType == ActionType.Compile )	// @todo fastubt: Does this work with RC files?  See above too.
+					// @todo ubtmake: we may be scanning more files than we need to here -- indirectly outdated files are bIsOutdated=true by this point (for example basemost includes when deeper includes are dirty)
+					if( bIsOutdated && RootAction.ActionType == ActionType.Compile )	// @todo ubtmake: Does this work with RC files?  See above too.
 					{
 						Log.TraceVerbose( "Outdated action: {0}", RootAction.StatusDescription );
 						foreach (FileItem PrerequisiteItem in RootAction.PrerequisiteItems)

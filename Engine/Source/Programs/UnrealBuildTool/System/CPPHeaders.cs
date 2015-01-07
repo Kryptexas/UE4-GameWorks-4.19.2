@@ -152,7 +152,7 @@ namespace UnrealBuildTool
 				IncludeFileSearchDictionary.Add( InvariantPath, Result );
 			}
 
-			// @todo fastubt: The old UBT tried to skip 'external' (STABLE) headers here.  But it didn't work.  We might want to do this though!  Skip system headers and source/thirdparty headers!
+			// @todo ubtmake: The old UBT tried to skip 'external' (STABLE) headers here.  But it didn't work.  We might want to do this though!  Skip system headers and source/thirdparty headers!
 
 			if( Result != null )
 			{
@@ -182,9 +182,9 @@ namespace UnrealBuildTool
 				CPPIncludeInfo.IncludeFileSearchDictionary = new Dictionary<string,FileItem>();
 			}
 
-			bool bUseFlatCPPIncludeDependencyCache =
-				( BuildConfiguration.bUseExperimentalFastDependencyScan &&
-				  ( !BuildConfiguration.bUseExperimentalFastBuildIteration || UnrealBuildTool.IsAssemblingBuild ) );
+			bool bUseFlatCPPIncludeDependencyCache = 
+				( BuildConfiguration.bUseUBTMakefiles &&
+				  ( !BuildConfiguration.bUseUBTMakefiles || UnrealBuildTool.IsAssemblingBuild ) );
 
 			if( bUseFlatCPPIncludeDependencyCache && bOnlyCachedDependencies )
 			{ 
@@ -196,7 +196,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				// @todo fastubt: HeaderParser.h is missing from the include set for Module.UnrealHeaderTool.cpp (failed to find include using:  FileItem DirectIncludeResolvedFile = CPPEnvironment.FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, IncludePathsToSearch, IncludeFileSearchDictionary );)
+				// @todo ubtmake: HeaderParser.h is missing from the include set for Module.UnrealHeaderTool.cpp (failed to find include using:  FileItem DirectIncludeResolvedFile = CPPEnvironment.FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, IncludePathsToSearch, IncludeFileSearchDictionary );)
 
 				Result = new List<FileItem>();
 

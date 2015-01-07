@@ -955,9 +955,6 @@ namespace UnrealBuildTool
 		/** A list of the absolute paths of source files to be built in this module. */
 		public readonly SourceFilesClass SourceFilesToBuild = new SourceFilesClass();
 
-		/** A list of the source files that were found for the module. */
-		public readonly SourceFilesClass SourceFilesFound = new SourceFilesClass();
-
 		/** The preprocessor definitions used to compile this module's private implementation. */
 		HashSet<string> Definitions;
 
@@ -1113,7 +1110,6 @@ namespace UnrealBuildTool
 		{
 			IntelliSenseGatherer = InIntelliSenseGatherer;
 
-			CategorizeSourceFiles(InSourceFiles, SourceFilesFound);
 			if (bInBuildSourceFiles)
 			{
 				CategorizeSourceFiles(InSourceFiles, SourceFilesToBuild);
@@ -1514,7 +1510,7 @@ namespace UnrealBuildTool
 
 					CachePCHUsageForModuleSourceFile(this.Target, CPPCompileEnvironment, GeneratedCppFileItem);
 
-					// @todo fastubt: Check for ALL other places where we might be injecting .cpp or .rc files for compiling without caching CachedCPPIncludeInfo first (anything platform specfic?)
+					// @todo ubtmake: Check for ALL other places where we might be injecting .cpp or .rc files for compiling without caching CachedCPPIncludeInfo first (anything platform specific?)
 					LinkInputFiles.AddRange(CPPCompileEnvironment.CompileFiles(Target, new List<FileItem> { GeneratedCppFileItem }, Name).ObjectFiles);
 				}
 			}
@@ -1642,10 +1638,10 @@ namespace UnrealBuildTool
 				bool bFoundAProblemWithPCHs = false;
 
 				FileItem UniquePCH = null;
-				foreach( var CPPFile in SourceFilesFound.CPPFiles )	// @todo fastubt: We're not caching CPPEnvironments for .c/.mm files, etc.  Even though they don't use PCHs, they still have #includes!  This can break dependency checking!
+				foreach( var CPPFile in SourceFilesToBuild.CPPFiles )	// @todo ubtmake: We're not caching CPPEnvironments for .c/.mm files, etc.  Even though they don't use PCHs, they still have #includes!  This can break dependency checking!
 				{
 					// Build a single list of include paths to search.
-					var IncludePathsToSearch = ModuleCompileEnvironment.Config.CPPIncludeInfo.GetIncludesPathsToSearch( CPPFile );   // @todo fastubt: This call could be made faster (list caching)
+					var IncludePathsToSearch = ModuleCompileEnvironment.Config.CPPIncludeInfo.GetIncludesPathsToSearch( CPPFile );
 
 					// Store the module compile environment along with the .cpp file.  This is so that we can use it later on when looking
 					// for header dependencies
@@ -1662,7 +1658,7 @@ namespace UnrealBuildTool
 					{
 						UniquePCH = PCH;
 					}
-					else if( !UniquePCH.Info.Name.Equals( PCH.Info.Name, StringComparison.InvariantCultureIgnoreCase ) )		// @todo fastubt: We do a string compare on the file name (not path) here, because sometimes the include resolver will pick an Intermediate copy of a PCH header file and throw off our comparisons
+					else if( !UniquePCH.Info.Name.Equals( PCH.Info.Name, StringComparison.InvariantCultureIgnoreCase ) )		// @todo ubtmake: We do a string compare on the file name (not path) here, because sometimes the include resolver will pick an Intermediate copy of a PCH header file and throw off our comparisons
 					{
 						// OK, looks like we have multiple source files including a different header file first.  We'll keep track of this and print out
 						// helpful information afterwards.
@@ -1677,7 +1673,7 @@ namespace UnrealBuildTool
 				{
 					// Map from pch header string to the source files that use that PCH
 					var UsageMapPCH = new Dictionary<string, List<FileItem>>( StringComparer.InvariantCultureIgnoreCase );
-					foreach( var CPPFile in SourceFilesToBuild.CPPFiles )	// @todo fastubt: Using SourceFilesToBuild here, but SourceFilesFound up above.  Why are there two arrays again?
+					foreach( var CPPFile in SourceFilesToBuild.CPPFiles )
 					{
 						// Create a new entry if not in the pch usage map
 						UsageMapPCH.GetOrAddNew( CPPFile.PrecompiledHeaderIncludeFilename ).Add( CPPFile );
@@ -1740,8 +1736,8 @@ namespace UnrealBuildTool
 
 		private static FileItem CachePCHUsageForCPPFile(UEBuildTarget Target, FileItem CPPFile, IUEBuildPlatform BuildPlatform, List<string> IncludePathsToSearch, Dictionary<string, FileItem> IncludeFileSearchDictionary)
 		{
-			// @todo fastubt: We don't really need to scan every file looking for PCH headers, just need one.  The rest is just for error checking.
-			// @todo fastubt: We don't need all of the direct includes either.  We just need the first, unless we want to check for errors.
+			// @todo ubtmake: We don't really need to scan every file looking for PCH headers, just need one.  The rest is just for error checking.
+			// @todo ubtmake: We don't need all of the direct includes either.  We just need the first, unless we want to check for errors.
 			bool HasUObjects;
 			List<DependencyInclude> DirectIncludeFilenames = CPPEnvironment.GetDirectIncludeDependencies(Target, CPPFile, BuildPlatform, bOnlyCachedDependencies:false, HasUObjects:out HasUObjects);
 			if (BuildConfiguration.bPrintDebugInfo)
@@ -2125,7 +2121,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				var AllProjectFolders = UEBuildTarget.DiscoverAllGameFolders();		// @todo fastubt: This will be called again and again for every UObject module (80+)
+				var AllProjectFolders = UEBuildTarget.DiscoverAllGameFolders();		// @todo ubtmake: This will be called again and again for every UObject module (80+)
 				BaseDirectory = AllProjectFolders.Find(ProjectFolder => Utils.IsFileUnderDirectory( ModuleDirectory, ProjectFolder ));
 				if (BaseDirectory == null)
 				{
