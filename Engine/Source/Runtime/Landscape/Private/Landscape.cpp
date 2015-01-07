@@ -1721,12 +1721,6 @@ void ULandscapeInfo::Reset()
 
 void ULandscapeInfo::FixupProxiesTransform()
 {
-	UWorld* OwningWorld = CastChecked<UWorld>(GetOuter());
-	if (OwningWorld->WorldComposition != NULL)
-	{
-		return;
-	}
-
 	ALandscape* Landscape = LandscapeActor.Get();
 
 	if (Landscape == NULL ||
