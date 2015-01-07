@@ -43,7 +43,6 @@ public class UnrealFrontendTarget : TargetRules
 		UEBuildConfiguration.bBuildEditor = false;
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 		UEBuildConfiguration.bForceBuildTargetPlatforms = true;
 		UEBuildConfiguration.bCompileWithStatsWithoutEngine = true;
 		UEBuildConfiguration.bCompileWithPluginSupport = true;
