@@ -135,7 +135,7 @@ static void AddPostProcessingAmbientCubemap(FPostprocessContext& Context, FRende
 }
 
 // @param Levels 0..4, how many different resolution levels we want to render
-static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostprocessContext& Context, uint32 Levels)
+static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FRHICommandListImmediate& RHICmdList, FPostprocessContext& Context, uint32 Levels)
 {
 	check(Levels >= 0 && Levels <= 4);
 
@@ -163,6 +163,19 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 		AmbientOcclusionInMip3->SetInput(ePId_Input1, FRenderingCompositeOutputRef(AmbientOcclusionInMip2, ePId_Output0));
 	}
 
+	FRenderingCompositePass* HZBInput = 0;
+
+	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+
+	if(ViewState)
+	{
+		void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
+		BuildHZB(RHICmdList, Context.View);
+
+		HZBInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( ViewState->HZB.Texture ) );
+	}
+
 	// upsample from lower resolution
 
 	if(Levels >= 4)
@@ -170,6 +183,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 		AmbientOcclusionPassMip3 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion());
 		AmbientOcclusionPassMip3->SetInput(ePId_Input0, AmbientOcclusionInMip3);
 		AmbientOcclusionPassMip3->SetInput(ePId_Input1, AmbientOcclusionInMip3);
+		AmbientOcclusionPassMip3->SetInput(ePId_Input3, HZBInput);
 	}
 
 	if(Levels >= 3)
@@ -178,6 +192,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 		AmbientOcclusionPassMip2->SetInput(ePId_Input0, AmbientOcclusionInMip2);
 		AmbientOcclusionPassMip2->SetInput(ePId_Input1, AmbientOcclusionInMip2);
 		AmbientOcclusionPassMip2->SetInput(ePId_Input2, AmbientOcclusionPassMip3);
+		AmbientOcclusionPassMip2->SetInput(ePId_Input3, HZBInput);
 	}
 
 	if(Levels >= 2)
@@ -186,6 +201,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 		AmbientOcclusionPassMip1->SetInput(ePId_Input0, AmbientOcclusionInMip1);
 		AmbientOcclusionPassMip1->SetInput(ePId_Input1, AmbientOcclusionInMip1);
 		AmbientOcclusionPassMip1->SetInput(ePId_Input2, AmbientOcclusionPassMip2);
+		AmbientOcclusionPassMip1->SetInput(ePId_Input3, HZBInput);
 	}
 
 	FRenderingCompositePass* GBufferA = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GBufferA));
@@ -196,6 +212,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FPostproce
 	AmbientOcclusionPassMip0->SetInput(ePId_Input0, GBufferA);
 	AmbientOcclusionPassMip0->SetInput(ePId_Input1, AmbientOcclusionInMip1);
 	AmbientOcclusionPassMip0->SetInput(ePId_Input2, AmbientOcclusionPassMip1);
+	AmbientOcclusionPassMip0->SetInput(ePId_Input3, HZBInput);
 
 	// to make sure this pass is processed as well (before), needed to make process decals before computing AO
 	AmbientOcclusionInMip1->AddDependency(Context.FinalOutput);
@@ -297,7 +314,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 
 		if(uint32 Levels = ComputeAmbientOcclusionPassCount(Context))
 		{
-			AmbientOcclusion = AddPostProcessingAmbientOcclusion(Context, Levels);
+			AmbientOcclusion = AddPostProcessingAmbientOcclusion(RHICmdList, Context, Levels);
 		}
 
 		if(IsAmbientCubemapPassRequired(Context))

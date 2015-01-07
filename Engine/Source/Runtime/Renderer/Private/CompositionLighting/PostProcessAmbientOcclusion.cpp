@@ -16,9 +16,9 @@ static TAutoConsoleVariable<int32> CVarAmbientOcclusionSampleSetQuality(
 	-1,
 	TEXT("Defines how many samples we use for ScreenSpace Ambient Occlusion\n")
 	TEXT("-1: sample count depends on post process settings (default)\n")
-	TEXT("0: low sample count (defined in shader, 3 * 2)\n")
-	TEXT("1: high sample count (defined in shader, 6 * 2)"),
-	ECVF_RenderThreadSafe);
+	TEXT("0: low sample count (defined in shader, 3 * 2 per pixel)\n")
+	TEXT("1: high sample count (defined in shader, 6 * 2 per pixel)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 
 /** Encapsulates the post processing ambient occlusion pixel shader. */
@@ -343,9 +343,8 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBasePassAOPS,TEXT("PostProcessAmbientOcclusio
 
 // --------------------------------------------------------
 
-
 template <uint32 bInitialSetup>
-void FRCPassPostProcessAmbientOcclusionSetup::SetShaderSetupTempl(const FRenderingCompositePassContext& Context)
+FShader* FRCPassPostProcessAmbientOcclusionSetup::SetShaderSetupTempl(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 	TShaderMapRef<FPostProcessAmbientOcclusionSetupPS<bInitialSetup> > PixelShader(Context.GetShaderMap());
@@ -357,6 +356,8 @@ void FRCPassPostProcessAmbientOcclusionSetup::SetShaderSetupTempl(const FRenderi
 
 	VertexShader->SetParameters(Context);
 	PixelShader->SetParameters(Context);
+
+	return *VertexShader;
 }
 
 void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassContext& Context)
@@ -385,27 +386,27 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
+	FShader* VertexShader = 0;
+
 	if(IsInitialPass())
 	{
-		SetShaderSetupTempl<1>(Context);
+		VertexShader = SetShaderSetupTempl<1>(Context);
 	}
 	else
 	{
-		SetShaderSetupTempl<0>(Context);
+		VertexShader = SetShaderSetupTempl<0>(Context);
 	}
-
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
 		Context.RHICmdList,
 		0, 0,
 		DestRect.Width(), DestRect.Height(),
-		SrcRect.Min.X, SrcRect.Min.Y, 
+			SrcRect.Min.X, SrcRect.Min.Y, 
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		GSceneRenderTargets.GetBufferSizeXY(),
-		*VertexShader,
+		VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -555,7 +556,7 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 		Context.RHICmdList,
 		0, 0,
 		ViewRect.Width(), ViewRect.Height(),
-		ViewRect.Min.X, ViewRect.Min.Y, 
+		ViewRect.Min.X, ViewRect.Min.Y,
 		ViewRect.Width(), ViewRect.Height(),
 		ViewRect.Size(),
 		TexSize,
@@ -570,8 +571,12 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusion::ComputeOutputDesc(EP
 {
 	if(!bAOSetupAsInput)
 	{
+		FPooledRenderTargetDesc Ret;
+
+		Ret.DebugName = TEXT("AmbientOcclusionDirect");
+
 		// we render directly to the buffer, no need for an intermediate target, we output in a single channel
-		return FPooledRenderTargetDesc();
+		return Ret;
 	}
 
 	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
@@ -581,7 +586,6 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusion::ComputeOutputDesc(EP
 	Ret.Format = PF_B8G8R8A8;
 	Ret.TargetableFlags &= ~TexCreate_DepthStencilTargetable;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
-
 	Ret.DebugName = TEXT("AmbientOcclusion");
 
 	return Ret;

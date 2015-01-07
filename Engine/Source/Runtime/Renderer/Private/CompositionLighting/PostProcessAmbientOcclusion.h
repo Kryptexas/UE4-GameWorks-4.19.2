@@ -25,15 +25,17 @@ private:
 	// otherwise this is a down sampling pass which takes two MRT inputs from the setup pass before
 	bool IsInitialPass() const;
 
+	// @return VertexShader
 	template <uint32 bInitialSetup>
-	void SetShaderSetupTempl(const FRenderingCompositePassContext& Context);
+	FShader* SetShaderSetupTempl(const FRenderingCompositePassContext& Context);
 };
 
 // ePId_Input0: defines the resolution we compute AO and provides the normal
 // ePId_Input1: setup in same resolution as ePId_Input1 for depth expect when running in full resolution, then it's half
 // ePId_Input2: optional AO result one lower resolution
+// ePId_Input3: optional HZB
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
-class FRCPassPostProcessAmbientOcclusion : public TRenderingCompositePassBase<3, 1>
+class FRCPassPostProcessAmbientOcclusion : public TRenderingCompositePassBase<4, 1>
 {
 public:
 	// @param bInAOSetupAsInput true:use AO setup as input, false: use GBuffer normal and native z depth
@@ -132,7 +134,7 @@ public:
 		float InvFadeRadius = 1.0f / FadeRadius;
 
 		// /1000 to be able to define the value in that distance
-		Value[0] = FVector4(Settings.AmbientOcclusionPower, Settings.AmbientOcclusionBias / 1000.0f, 1.0f / Settings.AmbientOcclusionDistance, Settings.AmbientOcclusionIntensity);
+		Value[0] = FVector4(Settings.AmbientOcclusionPower, Settings.AmbientOcclusionBias / 1000.0f, 1.0f / Settings.AmbientOcclusionDistance_DEPRECATED, Settings.AmbientOcclusionIntensity);
 		Value[1] = FVector4(ViewportUVToRandomUV.X, ViewportUVToRandomUV.Y, AORadiusInShader, Ratio);
 		Value[2] = FVector4(ScaleToFullRes, Settings.AmbientOcclusionMipThreshold / ScaleToFullRes, ScaleRadiusInWorldSpace, Settings.AmbientOcclusionMipBlend);
 		Value[3] = FVector4(0, 0, StaticFraction, InvTanHalfFov);

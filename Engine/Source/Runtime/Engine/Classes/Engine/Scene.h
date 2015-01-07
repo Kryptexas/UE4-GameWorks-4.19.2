@@ -206,7 +206,7 @@ struct FPostProcessSettings
 	uint32 bOverride_AmbientOcclusionFadeRadius:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_AmbientOcclusionDistance:1;
+	uint32 bOverride_AmbientOcclusionDistance_DEPRECATED:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_AmbientOcclusionRadiusInWS:1;
@@ -618,7 +618,7 @@ struct FPostProcessSettings
 	float AmbientOcclusionStaticFraction;
 
 	/** >0, in unreal units, bigger values means even distant surfaces affect the ambient occlusion */
-	UPROPERTY(interp, BlueprintReadWrite, Category=AmbientOcclusion, meta=(ClampMin = "0.1", UIMax = "200.0", editcondition = "bOverride_AmbientOcclusionRadius", DisplayName = "Radius"))
+	UPROPERTY(interp, BlueprintReadWrite, Category=AmbientOcclusion, meta=(ClampMin = "0.1", UIMax = "500.0", editcondition = "bOverride_AmbientOcclusionRadius", DisplayName = "Radius"))
 	float AmbientOcclusionRadius;
 
 	/** true: AO radius is in world space units, false: AO radius is locked the view space in 400 units */
@@ -633,9 +633,9 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=AmbientOcclusion, AdvancedDisplay, meta=(ClampMin = "0.0", UIMax = "20000.0", editcondition = "bOverride_AmbientOcclusionFadeRadius", DisplayName = "Fade Out Radius"))
 	float AmbientOcclusionFadeRadius;
 
-	/** >0, in unreal units, how wide the ambient occlusion effect should affect the geometry (in depth) */
-	UPROPERTY(interp, BlueprintReadWrite, Category=AmbientOcclusion, AdvancedDisplay, meta=(ClampMin = "0.0", UIMax = "2000.0", editcondition = "bOverride_AmbientOcclusionDistance", DisplayName = "Occlusion Distance"))
-	float AmbientOcclusionDistance;
+	/** >0, in unreal units, how wide the ambient occlusion effect should affect the geometry (in depth), will be removed - only used for non normal method which is not exposed */
+	UPROPERTY(interp, BlueprintReadWrite, Category=AmbientOcclusion, AdvancedDisplay, meta=(ClampMin = "0.0", UIMax = "2000.0", editcondition = "bOverride_AmbientOcclusionDistance_DEPRECATED", DisplayName = "Occlusion Distance"))
+	float AmbientOcclusionDistance_DEPRECATED;
 
 	/** >0, in unreal units, bigger values means even distant surfaces affect the ambient occlusion */
 	UPROPERTY(interp, BlueprintReadWrite, Category=AmbientOcclusion, AdvancedDisplay, meta=(ClampMin = "0.1", UIMax = "8.0", editcondition = "bOverride_AmbientOcclusionPower", DisplayName = "Power"))
@@ -853,8 +853,8 @@ struct FPostProcessSettings
 		AmbientOcclusionIntensity = .5f;
 		// next value might get overwritten by r.DefaultFeature.AmbientOcclusionStaticFraction
 		AmbientOcclusionStaticFraction = 1.0f;
-		AmbientOcclusionRadius = 40.0f;
-		AmbientOcclusionDistance = 80.0f;
+		AmbientOcclusionRadius = 200.0f;
+		AmbientOcclusionDistance_DEPRECATED = 80.0f;
 		AmbientOcclusionFadeDistance = 8000.0f;
 		AmbientOcclusionFadeRadius = 5000.0f;
 		AmbientOcclusionPower = 2.0f;
