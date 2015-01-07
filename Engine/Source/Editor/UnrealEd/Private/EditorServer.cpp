@@ -1876,6 +1876,7 @@ UWorld* UEditorEngine::NewMap()
 	UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
 	Factory->WorldType = EWorldType::Editor;
 	Factory->bInformEngineOfWorld = true;
+	Factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
 	UPackage* Pkg = CreatePackage( NULL, NULL );
 	EObjectFlags Flags = RF_Public | RF_Standalone;
 	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("NewWorld"), Flags, NULL, GWarn));
@@ -2187,24 +2188,37 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 				World->WorldType = EWorldType::Editor;
 
+				// Parse requested feature level if supplied
+				int32 FeatureLevelIndex = (int32)GMaxRHIFeatureLevel;
+				FParse::Value(Str, TEXT("FEATURELEVEL="), FeatureLevelIndex);
+				FeatureLevelIndex = FMath::Clamp(FeatureLevelIndex, 0, (int32)ERHIFeatureLevel::Num);
+
 				if (World->bIsWorldInitialized)
 				{
 					// If we are using a previously initialized world, make sure it has a physics scene and FXSystem.
 					// Inactive worlds are already initialized but lack these two objects for memory reasons.
 					World->ClearWorldComponents();
 
-					if ( World->GetPhysicsScene() == nullptr )
+					if (World->FeatureLevel == FeatureLevelIndex)
 					{
-						World->CreatePhysicsScene();
-					}
+						if (World->GetPhysicsScene() == nullptr)
+						{
+							World->CreatePhysicsScene();
+						}
 
-					if ( World->FXSystem == nullptr )
+						if (World->FXSystem == nullptr)
+						{
+							World->CreateFXSystem();
+						}
+					}
+					else
 					{
-						World->CreateFXSystem();
+						World->ChangeFeatureLevel((ERHIFeatureLevel::Type)FeatureLevelIndex);
 					}
 				}
 				else
 				{
+					World->FeatureLevel = (ERHIFeatureLevel::Type)FeatureLevelIndex;
 					World->InitWorld( GetEditorWorldInitializationValues() );
 				}
 
