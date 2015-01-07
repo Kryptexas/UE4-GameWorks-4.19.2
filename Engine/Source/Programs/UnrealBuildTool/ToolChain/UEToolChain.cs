@@ -277,14 +277,17 @@ namespace UnrealBuildTool
 				//				1) NOT WORKING: Non-unity file went away (SourceFile in this context).  That seems like an existing old use case.  Compile params or Response file should have changed?
 				//				2) WORKING: Indirect file went away (unity'd original source file or include).  This would return a file that no longer exists and adds to the prerequiteitems list
 				var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.Config.CPPIncludeInfo, bOnlyCachedDependencies:BuildConfiguration.bUseUBTMakefiles );
-				foreach (FileItem IncludedFile in IncludedFileList)
+				if( IncludedFileList != null )
 				{
-					PrerequisiteItems.Add( IncludedFile );
-
-					if( bAllowUploading &&
-						!BuildConfiguration.bUseUBTMakefiles )	// With fast dependency scanning, we will not have an exhaustive list of dependencies here.  We rely on PostCodeGeneration() to upload these files.
+					foreach (FileItem IncludedFile in IncludedFileList)
 					{
-						RemoteThis.QueueFileForBatchUpload(IncludedFile);
+						PrerequisiteItems.Add( IncludedFile );
+
+						if( bAllowUploading &&
+							!BuildConfiguration.bUseUBTMakefiles )	// With fast dependency scanning, we will not have an exhaustive list of dependencies here.  We rely on PostCodeGeneration() to upload these files.
+						{
+							RemoteThis.QueueFileForBatchUpload(IncludedFile);
+						}
 					}
 				}
 			}

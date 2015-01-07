@@ -818,26 +818,29 @@ namespace UnrealBuildTool
 						if( PrerequisiteItem.CachedCPPIncludeInfo != null )
 						{
 							var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, PrerequisiteItem, BuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies:BuildConfiguration.bUseUBTMakefiles );
-							foreach( var IncludedFile in IncludedFileList )
-							{
-								if( IncludedFile.bExists )
+							if( IncludedFileList != null )
+							{ 
+								foreach( var IncludedFile in IncludedFileList )
 								{
-									// allow a 1 second slop for network copies
-									TimeSpan TimeDifference = IncludedFile.LastWriteTime - LastExecutionTime;
-									bool bPrerequisiteItemIsNewerThanLastExecution = TimeDifference.TotalSeconds > 1;
-									if (bPrerequisiteItemIsNewerThanLastExecution)
+									if( IncludedFile.bExists )
 									{
-										Log.TraceVerbose(
-											"{0}: Included file {1} is newer than the last execution of the action: {2} vs {3}",
-											RootAction.StatusDescription,
-											Path.GetFileName(IncludedFile.AbsolutePath),
-											IncludedFile.LastWriteTime.LocalDateTime,
-											LastExecutionTime.LocalDateTime
-											);
-										bIsOutdated = true;
+										// allow a 1 second slop for network copies
+										TimeSpan TimeDifference = IncludedFile.LastWriteTime - LastExecutionTime;
+										bool bPrerequisiteItemIsNewerThanLastExecution = TimeDifference.TotalSeconds > 1;
+										if (bPrerequisiteItemIsNewerThanLastExecution)
+										{
+											Log.TraceVerbose(
+												"{0}: Included file {1} is newer than the last execution of the action: {2} vs {3}",
+												RootAction.StatusDescription,
+												Path.GetFileName(IncludedFile.AbsolutePath),
+												IncludedFile.LastWriteTime.LocalDateTime,
+												LastExecutionTime.LocalDateTime
+												);
+											bIsOutdated = true;
 
-										// Don't bother checking every single include if we've found one that is out of date
-										break;
+											// Don't bother checking every single include if we've found one that is out of date
+											break;
+										}
 									}
 								}
 							}
