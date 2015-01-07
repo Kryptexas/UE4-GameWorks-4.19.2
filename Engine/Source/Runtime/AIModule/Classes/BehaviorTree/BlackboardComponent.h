@@ -33,7 +33,7 @@ namespace EBlackboardDescription
 	};
 }
 
-UCLASS()
+UCLASS(ClassGroup = AI, meta = (BlueprintSpawnableComponent))
 class AIMODULE_API UBlackboardComponent : public UActorComponent
 {
 	GENERATED_BODY()
