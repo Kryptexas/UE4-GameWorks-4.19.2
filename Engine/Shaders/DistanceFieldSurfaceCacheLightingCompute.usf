@@ -1002,6 +1002,7 @@ void CalculateHeightfieldOcclusionCS(
 				float HeightfieldHeight = ((SampleValue.r * 255.0 * 256.0 + SampleValue.g * 255.0) - 32768.0) * TERRAIN_ZSCALE;
 
 				float2 SampleNormal = float2(SampleValue.b, SampleValue.a) * float2(2.0,2.0) - float2(1.0,1.0);
+				// @todo - use the normal to compute occlusion from an arbitrary plane, instead of assuming upward facing plane
 				float3 HeightfieldNormal = float3(SampleNormal, sqrt(max(1.0 - dot(SampleNormal, SampleNormal), 0.0)));
 
 				float3 HeightfieldShadingPosition = float3(LocalPosition.xy, HeightfieldHeight);

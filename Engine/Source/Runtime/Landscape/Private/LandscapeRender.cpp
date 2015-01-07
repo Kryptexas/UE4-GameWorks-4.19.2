@@ -2578,3 +2578,16 @@ void FLandscapeComponentSceneProxy::ChangeLODDistanceFactor_RenderThread(float I
 {
 	LODDistance = InLODDistanceFactor;
 }
+
+void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FVector4& OutHeightfieldScaleBias, FVector4& OutMinMaxUV)
+{
+	OutHeightmapTexture = HeightmapTexture;
+	OutHeightfieldScaleBias = HeightmapScaleBias;
+
+	OutMinMaxUV = FVector4(
+		HeightmapScaleBias.Z, 
+		HeightmapScaleBias.W, 
+		//@todo - subsections duplicate a line of border heights in the heightmap, take this into account in the UV mapping
+		HeightmapScaleBias.Z + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.X, 
+		HeightmapScaleBias.W + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.Y);
+}

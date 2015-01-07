@@ -211,6 +211,14 @@ FAutoConsoleVariableRef CVarAOOverwriteSceneColor(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
+int32 GAOHeightfieldOcclusion = 1;
+FAutoConsoleVariableRef CVarAOHeightfieldOcclusion(
+	TEXT("r.AOHeightfieldOcclusion"),
+	GAOHeightfieldOcclusion,
+	TEXT("Whether to compute AO from heightfields (landscape)"),
+	ECVF_Cheat | ECVF_RenderThreadSafe
+	);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FAOSampleData2,TEXT("AOSamples2"));
 
 FIntPoint GetBufferSizeForAO()
@@ -4592,25 +4600,32 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(
 					ComputeShader->UnsetParameters(RHICmdList);
 				}
 
-				if (Scene->DistanceFieldSceneData.HeightfieldPrimitives.Num() > 0)
+				if (GAOHeightfieldOcclusion && Scene->DistanceFieldSceneData.HeightfieldPrimitives.Num() > 0)
 				{
-					int32 NumPrimitives = Scene->DistanceFieldSceneData.HeightfieldPrimitives.Num();
+					const int32 NumPrimitives = Scene->DistanceFieldSceneData.HeightfieldPrimitives.Num();
+					const float MaxDistanceSquared = FMath::Square(GAOMaxViewDistance + Parameters.OcclusionMaxDistance);
 
 					TMap<UTexture2D*, TArray<FHeightfieldDescription, SceneRenderingAllocator>, SceneRenderingSetAllocator> HeightfieldTextures; 
 
-					for (int32 HeightfieldIndex = 0; HeightfieldIndex < NumPrimitives; HeightfieldIndex++)
+					for (int32 HeightfieldPrimitiveIndex = 0; HeightfieldPrimitiveIndex < NumPrimitives; HeightfieldPrimitiveIndex++)
 					{
-						const FPrimitiveSceneInfo* HeightfieldPrimitive = Scene->DistanceFieldSceneData.HeightfieldPrimitives[HeightfieldIndex];
-
-						UTexture2D* HeightfieldTexture = NULL;
-						FVector4 HeightfieldScaleBias(0, 0, 0, 0);
-						FVector4 MinMaxUV(0, 0, 0, 0);
-						HeightfieldPrimitive->Proxy->GetHeightfieldRepresentation(HeightfieldTexture, HeightfieldScaleBias, MinMaxUV);
-
-						if (HeightfieldTexture && HeightfieldTexture->Resource->TextureRHI)
+						const FPrimitiveSceneInfo* HeightfieldPrimitive = Scene->DistanceFieldSceneData.HeightfieldPrimitives[HeightfieldPrimitiveIndex];
+						const FBoxSphereBounds& PrimitiveBounds = HeightfieldPrimitive->Proxy->GetBounds();
+						const float DistanceToPrimitiveSq = (PrimitiveBounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+						
+						if (View.ViewFrustum.IntersectSphere(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius + Parameters.OcclusionMaxDistance)
+							&& DistanceToPrimitiveSq < MaxDistanceSquared)
 						{
-							TArray<FHeightfieldDescription, SceneRenderingAllocator>& HeightfieldDescriptions = HeightfieldTextures.FindOrAdd(HeightfieldTexture);
-							HeightfieldDescriptions.Add(FHeightfieldDescription(HeightfieldScaleBias, MinMaxUV, HeightfieldPrimitive->Proxy->GetLocalToWorld()));
+							UTexture2D* HeightfieldTexture = NULL;
+							FVector4 HeightfieldScaleBias(0, 0, 0, 0);
+							FVector4 MinMaxUV(0, 0, 0, 0);
+							HeightfieldPrimitive->Proxy->GetHeightfieldRepresentation(HeightfieldTexture, HeightfieldScaleBias, MinMaxUV);
+
+							if (HeightfieldTexture && HeightfieldTexture->Resource->TextureRHI)
+							{
+								TArray<FHeightfieldDescription, SceneRenderingAllocator>& HeightfieldDescriptions = HeightfieldTextures.FindOrAdd(HeightfieldTexture);
+								HeightfieldDescriptions.Add(FHeightfieldDescription(HeightfieldScaleBias, MinMaxUV, HeightfieldPrimitive->Proxy->GetLocalToWorld()));
+							}
 						}
 					}
 
@@ -4621,51 +4636,55 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(
 						for (TMap<UTexture2D*, TArray<FHeightfieldDescription, SceneRenderingAllocator>, SceneRenderingSetAllocator>::TIterator It(HeightfieldTextures); It; ++It)
 						{
 							const TArray<FHeightfieldDescription, SceneRenderingAllocator>& HeightfieldDescriptions = It.Value();
-							TArray<FVector4, SceneRenderingAllocator> HeightfieldDescriptionData;
-							HeightfieldDescriptionData.Empty(HeightfieldDescriptions.Num() * GHeightfieldDescriptions.Data.Stride);
 
-							for (int32 DescriptionIndex = 0; DescriptionIndex < HeightfieldDescriptions.Num(); DescriptionIndex++)
+							if (HeightfieldDescriptions.Num() > 0)
 							{
-								const FHeightfieldDescription& Description = HeightfieldDescriptions[DescriptionIndex];
+								TArray<FVector4, SceneRenderingAllocator> HeightfieldDescriptionData;
+								HeightfieldDescriptionData.Empty(HeightfieldDescriptions.Num() * GHeightfieldDescriptions.Data.Stride);
 
-								HeightfieldDescriptionData.Add(Description.HeightfieldScaleBias);
-								HeightfieldDescriptionData.Add(Description.MinMaxUV);
+								for (int32 DescriptionIndex = 0; DescriptionIndex < HeightfieldDescriptions.Num(); DescriptionIndex++)
+								{
+									const FHeightfieldDescription& Description = HeightfieldDescriptions[DescriptionIndex];
+
+									HeightfieldDescriptionData.Add(Description.HeightfieldScaleBias);
+									HeightfieldDescriptionData.Add(Description.MinMaxUV);
 								
-								const FMatrix WorldToLocal = Description.LocalToWorld.Inverse();
+									const FMatrix WorldToLocal = Description.LocalToWorld.Inverse();
 
-								HeightfieldDescriptionData.Add(*(FVector4*)&WorldToLocal.M[0]);
-								HeightfieldDescriptionData.Add(*(FVector4*)&WorldToLocal.M[1]);
-								HeightfieldDescriptionData.Add(*(FVector4*)&WorldToLocal.M[2]);
-								HeightfieldDescriptionData.Add(*(FVector4*)&WorldToLocal.M[3]);
+									HeightfieldDescriptionData.Add(*(FVector4*)&WorldToLocal.M[0]);
+									HeightfieldDescriptionData.Add(*(FVector4*)&WorldToLocal.M[1]);
+									HeightfieldDescriptionData.Add(*(FVector4*)&WorldToLocal.M[2]);
+									HeightfieldDescriptionData.Add(*(FVector4*)&WorldToLocal.M[3]);
 
-								HeightfieldDescriptionData.Add(*(FVector4*)&Description.LocalToWorld.M[0]);
-								HeightfieldDescriptionData.Add(*(FVector4*)&Description.LocalToWorld.M[1]);
-								HeightfieldDescriptionData.Add(*(FVector4*)&Description.LocalToWorld.M[2]);
-								HeightfieldDescriptionData.Add(*(FVector4*)&Description.LocalToWorld.M[3]);
-							}
+									HeightfieldDescriptionData.Add(*(FVector4*)&Description.LocalToWorld.M[0]);
+									HeightfieldDescriptionData.Add(*(FVector4*)&Description.LocalToWorld.M[1]);
+									HeightfieldDescriptionData.Add(*(FVector4*)&Description.LocalToWorld.M[2]);
+									HeightfieldDescriptionData.Add(*(FVector4*)&Description.LocalToWorld.M[3]);
+								}
 
-							if (HeightfieldDescriptionData.Num() > GHeightfieldDescriptions.Data.MaxElements)
-							{
-								GHeightfieldDescriptions.Data.MaxElements = HeightfieldDescriptionData.Num() * 5 / 4;
-								GHeightfieldDescriptions.Data.Release();
-								GHeightfieldDescriptions.Data.Initialize();
-							}
+								if (HeightfieldDescriptionData.Num() > GHeightfieldDescriptions.Data.MaxElements)
+								{
+									GHeightfieldDescriptions.Data.MaxElements = HeightfieldDescriptionData.Num() * 5 / 4;
+									GHeightfieldDescriptions.Data.Release();
+									GHeightfieldDescriptions.Data.Initialize();
+								}
 
-							void* LockedBuffer = RHILockVertexBuffer(GHeightfieldDescriptions.Data.Buffer, 0, GHeightfieldDescriptions.Data.Buffer->GetSize(), RLM_WriteOnly);
-							const uint32 MemcpySize = HeightfieldDescriptionData.GetTypeSize() * HeightfieldDescriptionData.Num();
-							check(GHeightfieldDescriptions.Data.Buffer->GetSize() >= MemcpySize);
-							FPlatformMemory::Memcpy(LockedBuffer, HeightfieldDescriptionData.GetData(), MemcpySize);
-							RHIUnlockVertexBuffer(GHeightfieldDescriptions.Data.Buffer);
+								void* LockedBuffer = RHILockVertexBuffer(GHeightfieldDescriptions.Data.Buffer, 0, GHeightfieldDescriptions.Data.Buffer->GetSize(), RLM_WriteOnly);
+								const uint32 MemcpySize = HeightfieldDescriptionData.GetTypeSize() * HeightfieldDescriptionData.Num();
+								check(GHeightfieldDescriptions.Data.Buffer->GetSize() >= MemcpySize);
+								FPlatformMemory::Memcpy(LockedBuffer, HeightfieldDescriptionData.GetData(), MemcpySize);
+								RHIUnlockVertexBuffer(GHeightfieldDescriptions.Data.Buffer);
 
-							UTexture2D* HeightfieldTexture = It.Key();
+								UTexture2D* HeightfieldTexture = It.Key();
 
-							{
-								TShaderMapRef<FCalculateHeightfieldOcclusionCS> ComputeShader(View.ShaderMap);
-								RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-								ComputeShader->SetParameters(RHICmdList, View, DepthLevel, HeightfieldTexture, HeightfieldDescriptions.Num(), Parameters);
-								DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
+								{
+									TShaderMapRef<FCalculateHeightfieldOcclusionCS> ComputeShader(View.ShaderMap);
+									RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+									ComputeShader->SetParameters(RHICmdList, View, DepthLevel, HeightfieldTexture, HeightfieldDescriptions.Num(), Parameters);
+									DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-								ComputeShader->UnsetParameters(RHICmdList);
+									ComputeShader->UnsetParameters(RHICmdList);
+								}
 							}
 						}
 					}
