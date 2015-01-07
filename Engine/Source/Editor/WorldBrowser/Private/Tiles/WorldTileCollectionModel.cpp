@@ -1924,7 +1924,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				{
 					LandscapeActors.Add(LandscapeProxy);
 				}
-				else
+				else 
 				{
 					Actors.Add(Actor);
 				}
@@ -1984,13 +1984,20 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				UObject* PrimitiveOuter = PrimitiveComp->GetOuter();
 				
 				const bool bTargetPrim = 
-					PrimitiveComp->GetOuter() == Landscape || 
+					(PrimitiveComp->GetOuter() == Landscape && !(!SimplificationDetails.bBakeGrassToLandscape && PrimitiveComp->IsA(UHierarchicalInstancedStaticMeshComponent::StaticClass()))) || 
 					(SimplificationDetails.bBakeFoliageToLandscape && PrimitiveOuter->IsA(AInstancedFoliageActor::StaticClass()));
 
 				if (!bTargetPrim && PrimitiveComp->IsRegistered() && PrimitiveComp->SceneProxy)
 				{
 					PrimitivesToHide.Add(PrimitiveComp->SceneProxy->GetPrimitiveComponentId());
 				}
+			}
+
+			if (SimplificationDetails.bBakeGrassToLandscape)
+			{
+				Landscape->FlushFoliageComponents();
+				TArray<FVector> Cameras;
+				Landscape->UpdateFoliage(Cameras, nullptr, true);
 			}
 								
 			// This is texture resolution for a landscape mesh, probably needs to be calculated using landscape size
@@ -2003,6 +2010,10 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			
 			ExportMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
 		
+			if (SimplificationDetails.bBakeGrassToLandscape)
+			{
+				Landscape->FlushFoliageComponents(); // wipe this and let it fix itself later
+			}
 			FString LandscapeBaseAssetName = Landscape->GetName();
 			// Construct landscape material
 			UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(

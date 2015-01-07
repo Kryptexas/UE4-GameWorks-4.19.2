@@ -266,6 +266,10 @@ struct ENGINE_API FLevelSimplificationDetails
 	UPROPERTY(Category=Landscape, EditAnywhere)
 	bool bBakeFoliageToLandscape;
 
+	// Whether to bake grass into landscape static mesh texture
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bBakeGrassToLandscape;
+
 	FLevelSimplificationDetails();
 
 	bool operator == (const FLevelSimplificationDetails& Other) const;

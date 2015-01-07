@@ -170,6 +170,7 @@ FLevelSimplificationDetails::FLevelSimplificationDetails()
  , bGenerateLandscapeRoughnessMap(false)
  , bGenerateLandscapeSpecularMap(false)
  , bBakeFoliageToLandscape(false)
+ , bBakeGrassToLandscape(false)
 {
 }
 
@@ -183,7 +184,8 @@ bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails
 		bGenerateLandscapeMetallicMap == Other.bGenerateLandscapeMetallicMap &&
 		bGenerateLandscapeRoughnessMap == Other.bGenerateLandscapeRoughnessMap &&
 		bGenerateLandscapeSpecularMap == Other.bGenerateLandscapeSpecularMap &&
-		bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape;
+		bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape &&
+		bBakeGrassToLandscape == Other.bBakeGrassToLandscape;
 }
 
 TMap<FName, TWeakObjectPtr<UWorld> > ULevel::StreamedLevelsOwningWorld;

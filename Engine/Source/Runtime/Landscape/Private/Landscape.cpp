@@ -487,7 +487,6 @@ ALandscape* ALandscape::GetLandscapeActor()
 ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = false;
 	NetUpdateFrequency = 10.0f;
 	bHidden = false;
@@ -2457,11 +2456,11 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 
 };
 
-
 void ALandscapeProxy::Tick(float DeltaSeconds)
 {
-	Super::Tick(DeltaSeconds);
-
+	// this is NOT an actor tick, it is a FTickableGameObject tick
+	// the super tick is for an actor tick...
+	//Super::Tick(DeltaSeconds);
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -2484,7 +2483,11 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 		check(IsInGameThread());
 		OldCameras = Cameras;
 	}
+	UpdateFoliage(Cameras);
+}
 
+void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeComponent* OnlyComponent, bool bForceSync)
+{
 	FCachedLandscapeFoliage DesiredFoliage;
 	TSet<UHierarchicalInstancedStaticMeshComponent *> StillUsed;
 
@@ -2501,8 +2504,12 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 
 		for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
 		{
-			ComponentTime -= FPlatformTime::Seconds();
 			ULandscapeComponent* Component = LandscapeComponents[ComponentIndex];
+			if (OnlyComponent && OnlyComponent != Component)
+			{
+				continue;
+			}
+			ComponentTime -= FPlatformTime::Seconds();
 
 			const FCachedLandscapeFoliage::FPerComponent* ExistingCache = nullptr;
 			for (const FCachedLandscapeFoliage::FPerComponent& CacheItem : FoliageCache.PerComponent)
@@ -2516,7 +2523,7 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 			FCachedLandscapeFoliage::FPerComponent NewPerComponent(Component);
 
 			FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->ComponentToWorld);
-			float MinDistanceToComp = MAX_flt;
+			float MinDistanceToComp = Cameras.Num() ? MAX_flt : 0.0f;
 
 			for (auto& Pos : Cameras)
 			{
@@ -2610,8 +2617,18 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 							HierarchicalInstancedStaticMeshComponent->bDisableCollision = true;
 							HierarchicalInstancedStaticMeshComponent->SetCanEverAffectNavigation(false);
 							HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed = FolSeed;
-							HierarchicalInstancedStaticMeshComponent->InstanceStartCullDistance = LayerInfo->StartCullDistance;
-							HierarchicalInstancedStaticMeshComponent->InstanceEndCullDistance = LayerInfo->EndCullDistance;
+
+							if (!Cameras.Num())
+							{
+								// if we don't have any cameras, then we are rendering landscape LOD materials or somesuch and we want to disable culling
+								HierarchicalInstancedStaticMeshComponent->InstanceStartCullDistance = 0;
+								HierarchicalInstancedStaticMeshComponent->InstanceEndCullDistance = 0;
+							}
+							else
+							{
+								HierarchicalInstancedStaticMeshComponent->InstanceStartCullDistance = LayerInfo->StartCullDistance;
+								HierarchicalInstancedStaticMeshComponent->InstanceEndCullDistance = LayerInfo->EndCullDistance;
+							}
 
 							//@todo - take the settings from a UFoliageType object.  For now, disable distance field lighting on grass so we don't hitch.
 							HierarchicalInstancedStaticMeshComponent->bAffectDistanceFieldLighting = false;
@@ -2717,6 +2734,10 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 	for (int32 Index = 0; Index < AsyncFoliageTasks.Num(); Index++)
 	{
 		FAsyncTask<FAsyncGrassTask>* Task = AsyncFoliageTasks[Index];
+		if (bForceSync)
+		{
+			Task->EnsureCompletion();
+		}
 		if (Task->IsDone())
 		{
 			FAsyncGrassTask& Inner = Task->GetTask();
@@ -2732,15 +2753,22 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 				//@todo - this is sketchy, what you really want to do is flush the grass cache instead of doing a render thread update
 				HierarchicalInstancedStaticMeshComponent->bNeverNeedsRenderUpdate = true;
 
-				FBoxSphereBounds WorldBounds = HierarchicalInstancedStaticMeshComponent->CalcBounds(HierarchicalInstancedStaticMeshComponent->ComponentToWorld);
-				UE_LOG(LogTemp, Display, TEXT("Comp %d instances at %.0f %.0f %.0f"), HierarchicalInstancedStaticMeshComponent->PerInstanceSMData.Num(), WorldBounds.Origin.X, WorldBounds.Origin.Y, WorldBounds.Origin.Z);
+				//FBoxSphereBounds WorldBounds = HierarchicalInstancedStaticMeshComponent->CalcBounds(HierarchicalInstancedStaticMeshComponent->ComponentToWorld);
+				//UE_LOG(LogTemp, Display, TEXT("Comp %d instances at %.0f %.0f %.0f"), HierarchicalInstancedStaticMeshComponent->PerInstanceSMData.Num(), WorldBounds.Origin.X, WorldBounds.Origin.Y, WorldBounds.Origin.Z);
 				TreeSize += HierarchicalInstancedStaticMeshComponent->ClusterTreePtr->GetAllocatedSize();
 				InstSize += HierarchicalInstancedStaticMeshComponent->PerInstanceSMData.GetAllocatedSize();
 				InstBufSize += HierarchicalInstancedStaticMeshComponent->PerInstanceSMData.Num() * 7 * 16; // there is no place where this constant exists.
+				if (bForceSync)
+				{
+					HierarchicalInstancedStaticMeshComponent->RecreateRenderState_Concurrent();
+				}
 			}
 			delete Inner.Builder;
 			delete Task;
-			break; // one per frame is fine
+			if (!bForceSync)
+			{
+				break; // one per frame is fine
+			}
 		}
 	}
 	if (TotalComponents)

@@ -15,6 +15,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "LandscapeComponent.h"
 #include "LandscapeLayerInfoObject.h"
+#include "Tickable.h"
 
 #include "LandscapeProxy.generated.h"
 
@@ -247,7 +248,7 @@ public:
 };
 
 UCLASS(NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
-class ALandscapeProxy : public AActor
+class ALandscapeProxy : public AActor, public FTickableGameObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -411,12 +412,6 @@ public:
 	virtual void RegisterAllComponents() override;
 	virtual void RerunConstructionScripts() override {}
 	virtual bool IsLevelBoundsRelevant() const override { return true; }
-	virtual void Tick(float DeltaSeconds) override;
-	virtual bool ShouldTickIfViewportsOnly() const override
-	{
-		return true;
-	}
-
 
 #if WITH_EDITOR
 	virtual void Destroyed() override;
@@ -434,6 +429,33 @@ public:
 
 	/** Flush the foliage cache */
 	LANDSCAPE_API void FlushFoliageComponents();
+
+	/** 
+		Update Foliage 
+		* @param Cameras to use for culling, if empty, then NO culling
+		* @param OnlyComponent if non-null only do this component
+		* @param bForceSync if true, block and finish all work
+	*/
+	LANDSCAPE_API void UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeComponent* OnlyComponent = nullptr, bool bForceSync = false);
+
+	// Begin FTickableGameObject interface.
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override 
+	{ 
+		return !HasAnyFlags(RF_ClassDefaultObject); 
+	}
+	virtual bool IsTickableWhenPaused() const override
+	{
+		return !HasAnyFlags(RF_ClassDefaultObject); 
+	}
+	virtual bool IsTickableInEditor() const override
+	{
+		return !HasAnyFlags(RF_ClassDefaultObject); 
+	}
+	virtual TStatId GetStatId() const override
+	{
+		return GetStatID();
+	}
 
 	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;

@@ -1290,6 +1290,7 @@ void UInstancedStaticMeshComponent::ClearInstances()
 	ClearAllInstanceBodies();
 
 	// Indicate we need to update render state to reflect changes
+	bNeverNeedsRenderUpdate = false;
 	MarkRenderStateDirty();
 
 	UNavigationSystem::UpdateNavOctree(this);
