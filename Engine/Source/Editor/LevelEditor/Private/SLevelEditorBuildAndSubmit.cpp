@@ -55,8 +55,8 @@ public:
 					[
 						SNew(STextBlock)
 						.Font(FEditorStyle::GetFontStyle("BuildAndSubmit.NormalFont"))
-						.Text(Item->Name)
-						.ToolTipText(Item->Name)
+						.Text(FText::FromString(Item->Name))
+						.ToolTipText(FText::FromString(Item->Name))
 					]
 				];
 		}

@@ -519,7 +519,7 @@ namespace BlueprintSearchMetaDataHelpers
 						{
 							InWriter->WriteObjectStart();
 							{
-								InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_Name, FText::FromString(Pin->GetSchema()->GetPinDisplayName(Pin)));
+								InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_Name, Pin->GetSchema()->GetPinDisplayName(Pin));
 								InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_DefaultValue, FText::FromString(Pin->GetDefaultAsString()));
 							}
 							SavePinTypeToJson(InWriter, Pin->PinType);

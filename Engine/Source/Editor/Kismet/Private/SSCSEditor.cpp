@@ -979,30 +979,30 @@ FText SSCS_RowWidget::GetMobilityToolTipText(TWeakObjectPtr<USCS_Node> SCSNode) 
 	return MobilityToolTip;
 }
 
-FString SSCS_RowWidget::GetAssetName() const
+FText SSCS_RowWidget::GetAssetName() const
 {
-	FString AssetName(TEXT("None"));
+	FText AssetName = LOCTEXT("None", "None");
 	if(NodePtr.IsValid() && NodePtr->GetComponentTemplate())
 	{
 		UObject* Asset = FComponentAssetBrokerage::GetAssetFromComponent(NodePtr->GetComponentTemplate());
 		if(Asset != NULL)
 		{
-			AssetName = Asset->GetName();
+			AssetName = FText::FromString(Asset->GetName());
 		}
 	}
 
 	return AssetName;
 }
 
-FString SSCS_RowWidget::GetAssetNameTooltip() const
+FText SSCS_RowWidget::GetAssetNameTooltip() const
 {
-	FString AssetName(TEXT("None"));
+	FText AssetName = LOCTEXT("None", "None");
 	if(NodePtr.IsValid() && NodePtr->GetComponentTemplate())
 	{
 		UObject* Asset = FComponentAssetBrokerage::GetAssetFromComponent(NodePtr->GetComponentTemplate());
 		if(Asset != NULL)
 		{
-			AssetName = Asset->GetPathName();
+			AssetName = FText::FromString(Asset->GetPathName());
 		}
 	}
 
@@ -3072,7 +3072,7 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 void SSCSEditor::UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType> &SelectedNodes )
 {
 	// Convert the selection set to an array of UObject* pointers
-	FString InspectorTitle;
+	FText InspectorTitle = FText::GetEmpty();
 	TArray<UObject*> InspectorObjects;
 	InspectorObjects.Empty(SelectedNodes.Num());
 	for (auto NodeIt = SelectedNodes.CreateConstIterator(); NodeIt; ++NodeIt)
@@ -3080,7 +3080,7 @@ void SSCSEditor::UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType
 		auto NodePtr = *NodeIt;
 		if(NodePtr.IsValid() && NodePtr->CanEditDefaults())
 		{
-			InspectorTitle = NodePtr->GetDisplayString();
+			InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
 			InspectorObjects.Add(NodePtr->GetComponentTemplate());
 		}
 	}

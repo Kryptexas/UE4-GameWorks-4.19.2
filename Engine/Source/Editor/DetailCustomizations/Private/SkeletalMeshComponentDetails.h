@@ -43,7 +43,7 @@ private:
 	TSharedRef<SWidget> GetClassPickerMenuContent();
 
 	/** Gets the currently selected blueprint name to display on the class picker combo button */
-	FString GetSelectedAnimBlueprintName() const;
+	FText GetSelectedAnimBlueprintName() const;
 
 	/** Callback from the class picker when the user selects a class */
 	void OnClassPicked(UClass* PickedClass);

@@ -1104,15 +1104,14 @@ void FMaterialEditor::SaveEditorSettings()
 	GConfig->SetInt(TEXT("MaterialEditor"), TEXT("PrimType"), Viewport->PreviewPrimType, GEditorUserSettingsIni);
 }
 
-FString FMaterialEditor::GetCodeViewText() const
+FText FMaterialEditor::GetCodeViewText() const
 {
-	return HLSLCode;
+	return FText::FromString(HLSLCode);
 }
 
 FReply FMaterialEditor::CopyCodeViewTextToClipboard()
 {
-	FString CodeViewText = GetCodeViewText();
-	FPlatformMisc::ClipboardCopy( *CodeViewText );
+	FPlatformMisc::ClipboardCopy(*HLSLCode);
 	return FReply::Handled();
 }
 
@@ -3765,11 +3764,11 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 	
 	if (MaterialFunction)
 	{
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL FUNCTION").ToString();
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL FUNCTION");
 	}
 	else
 	{
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Material", "MATERIAL").ToString();
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Material", "MATERIAL");
 	}
 
 	SGraphEditor::FGraphEditorEvents InEvents;

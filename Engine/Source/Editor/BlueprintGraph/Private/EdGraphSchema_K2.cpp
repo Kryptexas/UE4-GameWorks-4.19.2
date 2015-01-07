@@ -2716,9 +2716,9 @@ FLinearColor UEdGraphSchema_K2::GetPinTypeColor(const FEdGraphPinType& PinType) 
 	return Settings->DefaultPinTypeColor;
 }
 
-FString UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const 
+FText UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const 
 {
-	FString DisplayName;
+	FText DisplayName = FText::GetEmpty();
 
 	if (Pin != NULL)
 	{
@@ -2733,15 +2733,15 @@ FString UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const
 	
 			// bit of a hack to hide 'execute' and 'then' pin names
 			if ((Pin->PinType.PinCategory == PC_Exec) && 
-				((DisplayName == PN_Execute) || (DisplayName == PN_Then)))
+				((DisplayName.ToString() == PN_Execute) || (DisplayName.ToString() == PN_Then)))
 			{
-				DisplayName = FString(TEXT(""));
+				DisplayName = FText::GetEmpty();
 			}
 		}
 
 		if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 		{
-			DisplayName = FName::NameToDisplayString(DisplayName, Pin->PinType.PinCategory == PC_Boolean);
+			DisplayName = FText::FromString(FName::NameToDisplayString(DisplayName.ToString(), Pin->PinType.PinCategory == PC_Boolean));
 		}
 	}
 	return DisplayName;
@@ -2763,7 +2763,7 @@ void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const F
 			UEdGraphSchema_K2 const* const K2Schema = Cast<const UEdGraphSchema_K2>(PinNode->GetSchema());
 			if (ensure(K2Schema != NULL)) // ensure that this node belongs to this schema
 			{
-				Args.Add(TEXT("DisplayName"), FText::FromString(GetPinDisplayName(&Pin)));
+				Args.Add(TEXT("DisplayName"), GetPinDisplayName(&Pin));
 				Args.Add(TEXT("LineFeed1"), FText::FromString(TEXT("\n")));
 			}
 		}

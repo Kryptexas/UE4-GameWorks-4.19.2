@@ -64,6 +64,6 @@ protected:
 	FSlateColor GetBackgroundColor() const;
 	FText GetDescription() const;
 
-	virtual FString GetPreviewCornerText() const;
+	virtual FText GetPreviewCornerText() const;
 	virtual const FSlateBrush* GetNameIcon() const;
 };

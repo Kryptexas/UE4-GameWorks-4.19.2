@@ -236,7 +236,7 @@ TSharedRef<SWidget> SAddContentWidget::CreateContentSourceDetail(TSharedPtr<FCon
 			.Padding(FMargin(0, 0, 0, 5))
 			[
 				SNew(STextBlock)
-				.Text(ContentSource->GetClassTypes())
+				.Text(FText::FromString(ContentSource->GetClassTypes()))
 				.Visibility(ContentSource->GetClassTypes().IsEmpty() == false ? EVisibility::Visible : EVisibility::Collapsed)
 				.AutoWrapText(true)
 			]

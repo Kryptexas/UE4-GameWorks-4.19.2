@@ -111,7 +111,7 @@ public:
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
 						.HighlightText(HighlightText)
-						.Text(MessageInfo->Context->GetMessageType().ToString())
+						.Text(FText::FromName(MessageInfo->Context->GetMessageType()))
 				];
 		}
 		else if (ColumnName == "Recipients")

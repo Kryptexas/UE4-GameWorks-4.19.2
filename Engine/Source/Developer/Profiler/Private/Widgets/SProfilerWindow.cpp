@@ -339,7 +339,7 @@ void SProfilerWindow::ManageEventGraphTab( const FGuid ProfilerInstanceID, const
 			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text( TabName )
+				.Text( FText::FromString(TabName) )
 			]
 		];
 

@@ -438,7 +438,7 @@ void SGraphNodeK2Base::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGrap
 
 					FString PinName = UEdGraphSchema_K2::TypeToText(WatchPin->PinType).ToString();
 					PinName += TEXT(" ");
-					PinName += Schema->GetPinDisplayName(WatchPin);
+					PinName += Schema->GetPinDisplayName(WatchPin).ToString();
 
 					FString WatchText;
 					const FKismetDebugUtilities::EWatchTextResult WatchStatus = FKismetDebugUtilities::GetWatchText(/*inout*/ WatchText, Blueprint, ActiveObject, WatchPin);

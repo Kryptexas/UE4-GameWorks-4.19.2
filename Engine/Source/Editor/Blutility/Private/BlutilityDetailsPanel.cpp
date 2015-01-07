@@ -71,7 +71,7 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 			ActionsCategory.AddCustomRow( FText::FromString(PlacedActorCDO->HelpText) )
 			[
 				SNew(STextBlock)
-				.Text(PlacedActorCDO->HelpText)
+				.Text(FText::FromString(PlacedActorCDO->HelpText))
 			];
 		}
 		
@@ -81,7 +81,7 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 			ActionsCategory.AddCustomRow( FText::FromString(GlobalBlutilityCDO->HelpText) )
 			[
 				SNew(STextBlock)
-				.Text(GlobalBlutilityCDO->HelpText)
+				.Text(FText::FromString(GlobalBlutilityCDO->HelpText))
 			];
 		}
 

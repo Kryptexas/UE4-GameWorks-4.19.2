@@ -1027,14 +1027,14 @@ void FPersona::SetPreviewVertexAnim(UVertexAnimation* VertexAnim)
 	}
 }
 
-void FPersona::UpdateSelectionDetails(UObject* Object, const FString& ForcedTitle)
+void FPersona::UpdateSelectionDetails(UObject* Object, const FText& ForcedTitle)
 {
 	Inspector->ShowDetailsForSingleObject(Object, SKismetInspector::FShowDetailsOptions(ForcedTitle));
 }
 
 void FPersona::SetDetailObject(UObject* Obj)
 {
-	FString ForcedTitle = (Obj != NULL) ? *Obj->GetName() : FString();
+	FText ForcedTitle = (Obj != NULL) ? FText::FromString(Obj->GetName()) : FText::GetEmpty();
 	UpdateSelectionDetails(Obj, ForcedTitle);
 }
 
@@ -1249,7 +1249,7 @@ void FPersona::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 	{
 		if (PreviewComponent->AnimScriptInstance != NULL)
 		{
-			PreviewEditor->ShowDetailsForSingleObject(PreviewComponent->AnimScriptInstance, SKismetInspector::FShowDetailsOptions(TEXT("Preview settings")));
+			PreviewEditor->ShowDetailsForSingleObject(PreviewComponent->AnimScriptInstance, SKismetInspector::FShowDetailsOptions(LOCTEXT("PreviewSettingsTitle", "Preview settings")));
 		}
 	}
 	if (bAutoFocus)
@@ -1649,9 +1649,9 @@ void FPersona::Compile()
 	}
 }
 
-FString FPersona::GetDefaultEditorTitle()
+FText FPersona::GetDefaultEditorTitle()
 {
-	return NSLOCTEXT("Kismet", "PreviewParamatersTabTitle", "Preview Parameters").ToString();
+	return NSLOCTEXT("Kismet", "PreviewParamatersTabTitle", "Preview Parameters");
 }
 
 FName FPersona::GetToolkitContextFName() const
@@ -1935,7 +1935,7 @@ FGraphAppearanceInfo FPersona::GetGraphAppearance() const
 
 	if ( GetBlueprintObj()->IsA(UAnimBlueprint::StaticClass()) )
 	{
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Animation", "ANIMATION").ToString();
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Animation", "ANIMATION");
 	}
 
 	return AppearanceInfo;
@@ -2414,7 +2414,7 @@ FReply FPersona::OnClickEditMesh()
 	USkeletalMesh* PreviewMesh = TargetSkeleton->GetPreviewMesh();
 	if(PreviewMesh)
 	{
-		UpdateSelectionDetails(PreviewMesh, *PreviewMesh->GetName());
+		UpdateSelectionDetails(PreviewMesh, FText::FromString(PreviewMesh->GetName()));
 	}
 	return FReply::Handled();
 }
@@ -2958,13 +2958,13 @@ bool FPersona::IsEditable(UEdGraph* InGraph) const
 	return bEditable;
 }
 
-FString FPersona::GetGraphDecorationString(UEdGraph* InGraph) const
+FText FPersona::GetGraphDecorationString(UEdGraph* InGraph) const
 {
 	if (!IsGraphInCurrentBlueprint(InGraph))
 	{
-		return LOCTEXT("PersonaExternalGraphDecoration", " Parent Graph Preview").ToString();
+		return LOCTEXT("PersonaExternalGraphDecoration", " Parent Graph Preview");
 	}
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 void FPersona::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)

@@ -66,7 +66,7 @@ private:
 						.HAlign(HAlign_Center)
 						[
 							SNew(STextBlock)
-							.Text(FText::AsNumber(FrameIdx).ToString())
+							.Text(FText::AsNumber(FrameIdx))
 						]
 					];
 			}

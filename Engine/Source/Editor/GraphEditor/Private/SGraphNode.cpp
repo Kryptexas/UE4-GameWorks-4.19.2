@@ -105,7 +105,7 @@ void SNodeTitle::RebuildWidget()
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), ExtraLineStyle )
-			.Text(Lines[Index])
+			.Text(FText::FromString(Lines[Index]))
 		];
 	}
 }

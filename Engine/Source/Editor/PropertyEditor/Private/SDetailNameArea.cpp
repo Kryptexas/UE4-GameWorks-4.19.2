@@ -190,7 +190,7 @@ void SDetailNameArea::BuildObjectNameAreaSelectionLabel( TSharedRef< SHorizontal
 	}
 	else
 	{
-		const FString SelectionText = FString::Printf( *LOCTEXT("MultipleObjectsSelected", "%d objects").ToString(), NumSelectedObjects );
+		const FText SelectionText = FText::Format( LOCTEXT("MultipleObjectsSelectedFmt", "{0} objects"), FText::AsNumber(NumSelectedObjects) );
 		SelectionLabelBox->AddSlot()
 		.VAlign(VAlign_Center)
 		.HAlign( HAlign_Left )

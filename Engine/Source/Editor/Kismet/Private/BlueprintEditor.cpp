@@ -1023,16 +1023,16 @@ FGraphAppearanceInfo FBlueprintEditor::GetGraphAppearance(UEdGraph* InGraph) con
 	switch (Blueprint->BlueprintType)
 	{
 	case BPTYPE_LevelScript:
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_LevelScript", "LEVEL BLUEPRINT").ToString();
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_LevelScript", "LEVEL BLUEPRINT");
 		break;
 	case BPTYPE_MacroLibrary:
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Macro", "MACRO").ToString();
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Macro", "MACRO");
 		break;
 	case BPTYPE_Interface:
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Interface", "INTERFACE").ToString();
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Interface", "INTERFACE");
 		break;
 	default:
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Blueprint", "BLUEPRINT").ToString();
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Blueprint", "BLUEPRINT");
 		break;
 	}
 
@@ -6371,14 +6371,14 @@ void FBlueprintEditor::VariableListWasUpdated()
 	StartEditingDefaults(/*bAutoFocus=*/ false);
 }
 
-FString FBlueprintEditor::DefaultEditString() 
+FText FBlueprintEditor::DefaultEditString() 
 {
-	return LOCTEXT("BlueprintEditingDefaults", "Editing defaults").ToString();
+	return LOCTEXT("BlueprintEditingDefaults", "Editing defaults");
 }
 
-FString FBlueprintEditor::GetDefaultEditorTitle()
+FText FBlueprintEditor::GetDefaultEditorTitle()
 {
-	return LOCTEXT("BlueprintDefaultsTabTitle", "Blueprint Defaults").ToString();
+	return LOCTEXT("BlueprintDefaultsTabTitle", "Blueprint Defaults");
 }
 
 bool FBlueprintEditor::GetBoundsForSelectedNodes(class FSlateRect& Rect, float Padding)
@@ -6917,7 +6917,7 @@ TSharedPtr<ISCSEditorCustomization> FBlueprintEditor::CustomizeSCSEditor(USceneC
 	return TSharedPtr<ISCSEditorCustomization>();
 }
 
-FString FBlueprintEditor::GetPIEStatus() const
+FText FBlueprintEditor::GetPIEStatus() const
 {
 	UBlueprint* CurrentBlueprint = GetBlueprintObj();
 	UWorld *DebugWorld = NULL;
@@ -6947,14 +6947,14 @@ FString FBlueprintEditor::GetPIEStatus() const
 
 	if (NetMode == NM_ListenServer || NetMode == NM_DedicatedServer)
 	{
-		return TEXT("SERVER - SIMULATING");
+		return LOCTEXT("PIEStatusServerSimulating", "SERVER - SIMULATING");
 	}
 	else if (NetMode == NM_Client)
 	{
-		return TEXT("CLIENT - SIMULATING");
+		return LOCTEXT("PIEStatusClientSimulating", "CLIENT - SIMULATING");
 	}
 
-	return TEXT("SIMULATING");
+	return LOCTEXT("PIEStatusSimulating", "SIMULATING");
 }
 
 bool FBlueprintEditor::IsEditingAnimGraph() const
@@ -7014,9 +7014,9 @@ float FBlueprintEditor::GetInstructionTextOpacity(UEdGraph* InGraph) const
 	return 1.0f;
 }
 
-FString FBlueprintEditor::GetGraphDecorationString(UEdGraph* InGraph) const
+FText FBlueprintEditor::GetGraphDecorationString(UEdGraph* InGraph) const
 {
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 bool FBlueprintEditor::IsGraphInCurrentBlueprint(UEdGraph* InGraph) const

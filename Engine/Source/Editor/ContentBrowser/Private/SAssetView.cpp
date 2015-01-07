@@ -3424,12 +3424,12 @@ FReply SAssetView::EndThumbnailEditModeClicked()
 	return FReply::Handled();
 }
 
-FString SAssetView::GetAssetCountText() const
+FText SAssetView::GetAssetCountText() const
 {
 	const int32 NumAssets = FilteredAssetItems.Num();
 	const int32 NumSelectedAssets = GetSelectedItems().Num();
 
-	FText AssetCount;
+	FText AssetCount = FText::GetEmpty();
 	if ( NumSelectedAssets == 0 )
 	{
 		if ( NumAssets == 1 )
@@ -3453,7 +3453,7 @@ FString SAssetView::GetAssetCountText() const
 		}
 	}
 
-	return AssetCount.ToString();
+	return AssetCount;
 }
 
 EVisibility SAssetView::GetEditModeLabelVisibility() const

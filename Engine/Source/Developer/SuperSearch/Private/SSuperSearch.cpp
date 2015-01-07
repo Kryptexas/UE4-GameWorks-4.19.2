@@ -228,7 +228,7 @@ TSharedRef<ITableRow> SSuperSearchBox::MakeSuggestionListItemWidget(TSharedPtr<F
 			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text(Combined)
+				.Text(FText::FromString(Combined))
 #if WITH_EDITOR
 				.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(bCategory ? "SuperSearchCategoryText" : "NormalText"))
 #endif

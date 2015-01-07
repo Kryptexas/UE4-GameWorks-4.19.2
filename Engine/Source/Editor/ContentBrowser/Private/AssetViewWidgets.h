@@ -159,7 +159,7 @@ protected:
 	EVisibility GetCheckedOutByOtherTextVisibility() const;
 
 	/** Gets the text for the checked out by other text block in the tooltip */
-	FString GetCheckedOutByOtherText() const;
+	FText GetCheckedOutByOtherText() const;
 
 	/** Helper function for CreateToolTipWidget. Gets the user description for the asset, if it exists. */
 	FText GetAssetUserDescription() const;

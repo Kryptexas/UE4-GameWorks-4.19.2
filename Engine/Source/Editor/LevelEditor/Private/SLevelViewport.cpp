@@ -2487,7 +2487,7 @@ private:
 	FSlateColor GetBorderColorAndOpacity() const;
 
 	/** @return Gets the name of the preview actor.*/
-	FString OnReadText() const;
+	FText OnReadText() const;
 
 	/** @return Gets the Width of the preview viewport.*/
 	FOptionalSize OnReadWidth() const;
@@ -2802,15 +2802,15 @@ FSlateColor SActorPreview::GetBorderColorAndOpacity() const
 	return Color;
 }
 
-FString SActorPreview::OnReadText() const
+FText SActorPreview::OnReadText() const
 {
 	if( PreviewActorPtr.IsValid() )
 	{
-		return PreviewActorPtr.Get()->GetActorLabel();
+		return FText::FromString(PreviewActorPtr.Get()->GetActorLabel());
 	}
 	else
 	{
-		return TEXT("");
+		return FText::GetEmpty();
 	}
 }
 

@@ -544,7 +544,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 									[
 										SNew(STextBlock)
 										.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-										.Text( LOCTEXT( "PathLabel", "Path" ).ToString() )
+										.Text( LOCTEXT( "PathLabel", "Path" ) )
 									]
 
 									// Path edit box
@@ -585,7 +585,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 									[
 										SNew(STextBlock)
 										.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-										.Text( LOCTEXT( "HeaderFileLabel", "Header File" ).ToString() )
+										.Text( LOCTEXT( "HeaderFileLabel", "Header File" ) )
 									]
 
 									// Header output text
@@ -609,7 +609,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 									[
 										SNew(STextBlock)
 										.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-										.Text( LOCTEXT( "SourceFileLabel", "Source File" ).ToString() )
+										.Text( LOCTEXT( "SourceFileLabel", "Source File" ) )
 									]
 
 									// Source output text
@@ -742,7 +742,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 					[
 						SNew(STextBlock)
 						.TextStyle( FEditorStyle::Get(), "NewClassDialog.ParentClassItemTitle" )
-						.Text(ClassName)
+						.Text(FText::FromString(ClassName))
 					]
 				]
 
@@ -752,7 +752,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 				[
 					SNew(STextBlock)
 					//.AutoWrapText(true)
-					.Text(ClassDescription)
+					.Text(FText::FromString(ClassDescription))
 				]
 			]
 		];
@@ -886,14 +886,14 @@ EVisibility SNewClassDialog::GetGlobalErrorLabelIDELinkVisibility() const
 	return FSourceCodeNavigation::IsCompilerAvailable() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
-FString SNewClassDialog::GetGlobalErrorLabelText() const
+FText SNewClassDialog::GetGlobalErrorLabelText() const
 {
 	if ( !FSourceCodeNavigation::IsCompilerAvailable() )
 	{
-		return FText::Format( LOCTEXT("NoCompilerFound", "No compiler was found. In order to use C++ code, you must first install {0}."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ).ToString();
+		return FText::Format( LOCTEXT("NoCompilerFound", "No compiler was found. In order to use C++ code, you must first install {0}."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() );
 	}
 
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 void SNewClassDialog::OnNamePageEntered()

@@ -303,14 +303,14 @@ EVisibility SAssetDialog::GetNameErrorLabelVisibility() const
 	return GetNameErrorLabelText().IsEmpty() ? EVisibility::Hidden : EVisibility::Visible;
 }
 
-FString SAssetDialog::GetNameErrorLabelText() const
+FText SAssetDialog::GetNameErrorLabelText() const
 {
 	if (!bLastInputValidityCheckSuccessful)
 	{
-		return LastInputValidityErrorText.ToString();
+		return LastInputValidityErrorText;
 	}
 
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 void SAssetDialog::HandlePathSelected(const FString& NewPath)

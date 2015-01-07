@@ -450,14 +450,14 @@ namespace CodeView
 	}
 
 
-	FString SCodeView::GetCustomColumnTextForTreeItem( FTreeItemPtr TreeItem ) const
+	FText SCodeView::GetCustomColumnTextForTreeItem( FTreeItemPtr TreeItem ) const
 	{
-		FString CustomColumnText;
+		FText CustomColumnText = FText::GetEmpty();
 
 		switch( CurrentCustomColumnMode )
 		{
 			case ECustomColumnMode::ModuleName:
-				CustomColumnText = TreeItem->ModuleName;
+				CustomColumnText = FText::FromString(TreeItem->ModuleName);
 				break;
 		};
 
@@ -513,7 +513,7 @@ namespace CodeView
 						[
 							SNew( STextBlock )
 
- 								.Text( Item->GetAsString() ) 
+ 								.Text( FText::FromString(Item->GetAsString()) ) 
 
 								// Bind our filter text as the highlight string for the text block, so that when the user
 								// starts typing search criteria, this text highlights

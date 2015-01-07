@@ -389,7 +389,7 @@ TSharedRef<SWidget> SCurveEditor::CreateCurveSelectionWidget() const
 					SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
 					.ColorAndOpacity(CurveViewModel->Color)
-					.Text(CurveViewModel->CurveInfo.CurveName.ToString())
+					.Text(FText::FromName(CurveViewModel->CurveInfo.CurveName))
 				]
 
 				+ SHorizontalBox::Slot()

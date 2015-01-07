@@ -232,8 +232,8 @@ public:
 	FString GetDocumentationLink() const;
 	FString GetDocumentationExcerptName() const;
 	
-	FString GetAssetName() const;
-	FString GetAssetNameTooltip() const;
+	FText GetAssetName() const;
+	FText GetAssetNameTooltip() const;
 	EVisibility GetAssetVisibility() const;
 
 	EVisibility GetRootLabelVisibility() const;

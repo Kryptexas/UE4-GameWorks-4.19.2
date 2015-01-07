@@ -63,7 +63,7 @@ public:
 				[
 					SNew(STextBlock)
 						.ColorAndOpacity(HandleGetTextColor())
-						.Text(Message->Message)
+						.Text(FText::FromString(Message->Message))
 				];
 		}
 

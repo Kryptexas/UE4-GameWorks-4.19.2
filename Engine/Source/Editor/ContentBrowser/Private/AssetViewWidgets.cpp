@@ -716,7 +716,7 @@ EVisibility SAssetViewItem::GetCheckedOutByOtherTextVisibility() const
 	return GetCheckedOutByOtherText().IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
-FString SAssetViewItem::GetCheckedOutByOtherText() const
+FText SAssetViewItem::GetCheckedOutByOtherText() const
 {
 	if ( AssetItem.IsValid() && AssetItem->GetType() != EAssetItemType::Folder && !GIsSavingPackage && !GIsGarbageCollecting )
 	{
@@ -728,12 +728,12 @@ FString SAssetViewItem::GetCheckedOutByOtherText() const
 		{
 			if ( !UserWhichHasPackageCheckedOut.IsEmpty() )
 			{
-				return SourceControlState->GetDisplayTooltip().ToString();
+				return SourceControlState->GetDisplayTooltip();
 			}
 		}
 	}
 
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 

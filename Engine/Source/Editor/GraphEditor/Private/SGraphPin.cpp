@@ -764,7 +764,7 @@ FVector2D SGraphPin::GetNodeOffset() const
 	return CachedNodeOffset;
 }
 
-FString SGraphPin::GetPinLabel() const
+FText SGraphPin::GetPinLabel() const
 {
 	return GetPinObj()->GetOwningNode()->GetPinDisplayName(GetPinObj());
 }

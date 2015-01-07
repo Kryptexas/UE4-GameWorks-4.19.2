@@ -794,16 +794,17 @@ FText SSettingsEditor::HandleSettingsBoxDescriptionText() const
 }
 
 
-FString SSettingsEditor::HandleSettingsBoxTitleText() const
+FText SSettingsEditor::HandleSettingsBoxTitleText() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
 	if (SelectedSection.IsValid())
 	{
-		return SelectedSection->GetCategory().Pin()->GetDisplayName().ToString() + TEXT(" - ") + SelectedSection->GetDisplayName().ToString();
+		static const FText TitleFmt = FText::FromString(TEXT("{0} - {1}"));
+		return FText::Format(TitleFmt, SelectedSection->GetCategory().Pin()->GetDisplayName(), SelectedSection->GetDisplayName());
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 

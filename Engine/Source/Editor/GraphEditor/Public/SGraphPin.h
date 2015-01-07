@@ -111,7 +111,7 @@ public:
 	FVector2D GetNodeOffset() const;
 
 protected:
-	FString GetPinLabel() const;
+	FText GetPinLabel() const;
 
 	/** If we should show the label on this pin */
 	EVisibility GetPinLabelVisibility() const

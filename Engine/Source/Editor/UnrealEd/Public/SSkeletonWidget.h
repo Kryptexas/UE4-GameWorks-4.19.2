@@ -56,7 +56,7 @@ public:
 				.Content()
 				[
 					SNew(STextBlock)
-					.Text(BonePair->Bone1.ToString())
+					.Text(FText::FromName(BonePair->Bone1))
 				];
 		}
 		else 
@@ -77,7 +77,7 @@ public:
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(BonePair->Bone2.ToString())
+						.Text(FText::FromName(BonePair->Bone2))
 					];
 			}
 		}
@@ -118,7 +118,7 @@ public:
 			. Content()
 			[
 				SNew(STextBlock)
-				.Text(InSkeleton->GetFullName())	
+				.Text(FText::FromString(InSkeleton->GetFullName()))
 			];
 	}
 
@@ -130,7 +130,7 @@ public:
 			. Content()
 			[
 				SNew(STextBlock)
-				.Text(InBoneName->ToString())	
+				.Text(FText::FromName(*InBoneName))
 			];
 	}
 
@@ -500,7 +500,7 @@ public:
 		. Content()
 		[
 			SNew(STextBlock)
-			.Text(InBoneName->ToString())	
+			.Text(FText::FromName(*InBoneName))
 		];
 	}
 

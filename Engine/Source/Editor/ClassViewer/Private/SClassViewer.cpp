@@ -1388,7 +1388,7 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew( STextBlock )
-						.Text( *ClassName.Get() )
+						.Text( FText::FromString(*ClassName.Get()) )
 						.HighlightText(*InArgs._HighlightText)
 						.ColorAndOpacity( this, &SClassItem::GetTextColor)
 						.ToolTip(Local::GetToolTip(AssociatedNode))

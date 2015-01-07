@@ -198,9 +198,9 @@ TSharedRef< SWidget > SWorldHierarchyItem::GenerateWidgetForColumn( const FName&
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FString SWorldHierarchyItem::GetLevelDisplayNameText() const
+FText SWorldHierarchyItem::GetLevelDisplayNameText() const
 {
-	return LevelModel->GetDisplayName();
+	return FText::FromString(LevelModel->GetDisplayName());
 }
 
 bool SWorldHierarchyItem::IsSaveEnabled() const

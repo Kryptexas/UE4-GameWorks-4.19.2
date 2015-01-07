@@ -466,7 +466,7 @@ private:
 	FReply EndThumbnailEditModeClicked();
 
 	/** Gets the text for the asset count label */
-	FString GetAssetCountText() const;
+	FText GetAssetCountText() const;
 
 	/** Gets the visibility of the Thumbnail Edit Mode label */
 	EVisibility GetEditModeLabelVisibility() const;

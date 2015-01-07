@@ -212,7 +212,7 @@ TSharedRef<SWidget> SWorldDetails::HandleInspectedLevelComboBoxGenerateWidget(TS
 	return SNew(SBox)
 	.Padding(4)
 	[
-		SNew(STextBlock).Text(InLevelModel->GetDisplayName())
+		SNew(STextBlock).Text(FText::FromString(InLevelModel->GetDisplayName()))
 	];
 }
 

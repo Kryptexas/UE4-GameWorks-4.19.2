@@ -221,7 +221,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 				.Padding(1.f)
 				[
 					SNew(STextBlock)
-					.Text(Entry->GetHeadingText())
+					.Text(FText::FromString(Entry->GetHeadingText()))
 					.TextStyle(FEditorStyle::Get(), TEXT("Menu.Heading"))
 				]
 			];
@@ -320,7 +320,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 				[
 					SNew(STextBlock)
 					.HighlightText(this, &SComponentClassCombo::GetCurrentSearchString)
-					.Text( FriendlyComponentName )
+					.Text( FText::FromString(FriendlyComponentName) )
 				]
 			];
 	}

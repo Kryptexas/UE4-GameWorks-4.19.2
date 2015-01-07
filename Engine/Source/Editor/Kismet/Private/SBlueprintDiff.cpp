@@ -344,13 +344,13 @@ private:
 
 TSharedRef<SWidget>	FDiffResultItem::GenerateWidget() const
 {
-	FString ToolTip = Result.ToolTip;
+	FText ToolTip = Result.ToolTip;
 	FLinearColor Color = Result.DisplayColor;
-	FString Text = Result.DisplayString;
-	if (Text.Len() == 0)
+	FText Text = Result.DisplayString;
+	if (Text.IsEmpty())
 	{
-		Text = LOCTEXT("DIF_UnknownDiff", "Unknown Diff").ToString();
-		ToolTip = LOCTEXT("DIF_Confused", "There is an unspecified difference").ToString();
+		Text = LOCTEXT("DIF_UnknownDiff", "Unknown Diff");
+		ToolTip = LOCTEXT("DIF_Confused", "There is an unspecified difference");
 	}
 	return SNew(STextBlock)
 		.ToolTipText(ToolTip)
@@ -398,7 +398,7 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget()
 	[
 		SNew(STextBlock)
 		.ColorAndOpacity(Color)
-		.Text(Graph->GetName())
+		.Text(FText::FromString(Graph->GetName()))
 	]
 	+ DiffViewUtils::Box( GraphOld != nullptr, Color )
 	+ DiffViewUtils::Box( GraphNew != nullptr, Color );

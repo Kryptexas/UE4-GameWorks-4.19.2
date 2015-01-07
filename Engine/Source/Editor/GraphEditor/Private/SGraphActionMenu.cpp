@@ -46,7 +46,7 @@ void SDefaultGraphActionWidget::Construct(const FArguments& InArgs, const FCreat
 	this->ChildSlot
 	[
 		SNew(SHorizontalBox)
-		.ToolTipText( InCreateData->Action->TooltipDescription )
+		.ToolTipText( FText::FromString(InCreateData->Action->TooltipDescription) )
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.VAlign(VAlign_Center)

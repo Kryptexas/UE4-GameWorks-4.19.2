@@ -51,13 +51,13 @@ public:
 				.Padding( 3, 0, 0, 0 )
 				[
 					SNew( STextBlock )
-					.Text(Item->GetObject()->GetName())
+					.Text(FText::FromString(Item->GetObject()->GetName()))
 				];
 		}
 		else if ( ColumnName == DeleteAssetsView::ColumnID_AssetClass )
 		{
 			return SNew( STextBlock )
-				.Text(Item->GetObject()->GetClass()->GetName());
+				.Text(FText::FromString(Item->GetObject()->GetClass()->GetName()));
 		}
 		else if ( ColumnName == DeleteAssetsView::ColumnID_DiskReferences )
 		{

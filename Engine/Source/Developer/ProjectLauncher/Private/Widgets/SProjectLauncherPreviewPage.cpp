@@ -1013,7 +1013,7 @@ TSharedRef<ITableRow> SProjectLauncherPreviewPage::HandleDeviceProxyListViewGene
 }
 
 
-FString SProjectLauncherPreviewPage::HandleInitialCultureTextBlockText( ) const
+FText SProjectLauncherPreviewPage::HandleInitialCultureTextBlockText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -1023,17 +1023,17 @@ FString SProjectLauncherPreviewPage::HandleInitialCultureTextBlockText( ) const
 
 		if (InitialCulture.IsEmpty())
 		{
-			return LOCTEXT("DefaultText", "<default>").ToString();
+			return LOCTEXT("DefaultText", "<default>");
 		}
 
-		return InitialCulture;
+		return FText::FromString(InitialCulture);
 	}
 
-	return LOCTEXT("NotAvailableText", "n/a").ToString();
+	return LOCTEXT("NotAvailableText", "n/a");
 }
 
 
-FString SProjectLauncherPreviewPage::HandleInitialMapTextBlockText( ) const
+FText SProjectLauncherPreviewPage::HandleInitialMapTextBlockText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -1043,13 +1043,13 @@ FString SProjectLauncherPreviewPage::HandleInitialMapTextBlockText( ) const
 
 		if (InitialMap.IsEmpty())
 		{
-			return LOCTEXT("DefaultText", "<default>").ToString();
+			return LOCTEXT("DefaultText", "<default>");
 		}
 
-		return InitialMap;
+		return FText::FromString(InitialMap);
 	}
 
-	return LOCTEXT("NotAvailableText", "n/a").ToString();
+	return LOCTEXT("NotAvailableText", "n/a");
 }
 
 
@@ -1069,7 +1069,7 @@ EVisibility SProjectLauncherPreviewPage::HandleLaunchSummaryBoxVisibility( ELaun
 }
 
 
-FString SProjectLauncherPreviewPage::HandleLaunchVsyncTextBlockText( ) const
+FText SProjectLauncherPreviewPage::HandleLaunchVsyncTextBlockText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -1077,13 +1077,13 @@ FString SProjectLauncherPreviewPage::HandleLaunchVsyncTextBlockText( ) const
 	{
 		if (SelectedProfile->GetDefaultLaunchRole()->IsVsyncEnabled())
 		{
-			return LOCTEXT("YesText", "Yes").ToString();
+			return LOCTEXT("YesText", "Yes");
 		}
 
-		return LOCTEXT("NoText", "No").ToString();
+		return LOCTEXT("NoText", "No");
 	}
 
-	return LOCTEXT("NotAvailableText", "n/a").ToString();
+	return LOCTEXT("NotAvailableText", "n/a");
 }
 
 
@@ -1103,7 +1103,7 @@ EVisibility SProjectLauncherPreviewPage::HandlePackageSummaryBoxVisibility( ELau
 }
 
 
-FString SProjectLauncherPreviewPage::HandleProjectTextBlockText( ) const
+FText SProjectLauncherPreviewPage::HandleProjectTextBlockText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -1113,17 +1113,17 @@ FString SProjectLauncherPreviewPage::HandleProjectTextBlockText( ) const
 
 		if (GameName.IsEmpty())
 		{
-			GameName = LOCTEXT("NotSetText", "<not set>").ToString();
+			return LOCTEXT("NotSetText", "<not set>");
 		}
 
-		return GameName;
+		return FText::FromString(GameName);
 	}
 
-	return LOCTEXT("NotAvailableText", "n/a").ToString();
+	return LOCTEXT("NotAvailableText", "n/a");
 }
 
 
-FString SProjectLauncherPreviewPage::HandleSelectedDeviceGroupTextBlockText( ) const
+FText SProjectLauncherPreviewPage::HandleSelectedDeviceGroupTextBlockText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -1133,24 +1133,24 @@ FString SProjectLauncherPreviewPage::HandleSelectedDeviceGroupTextBlockText( ) c
 
 		if (SelectedGroup.IsValid())
 		{
-			return SelectedGroup->GetName();
+			return FText::FromString(SelectedGroup->GetName());
 		}
 	}
 		
-	return LOCTEXT("NoneText", "<none>").ToString();
+	return LOCTEXT("NoneText", "<none>");
 }
 
 
-FString SProjectLauncherPreviewPage::HandleSelectedProfileTextBlockText( ) const
+FText SProjectLauncherPreviewPage::HandleSelectedProfileTextBlockText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		return SelectedProfile->GetName();
+		return FText::FromString(SelectedProfile->GetName());
 	}
 
-	return LOCTEXT("NoneText", "<none>").ToString();
+	return LOCTEXT("NoneText", "<none>");
 }
 
 

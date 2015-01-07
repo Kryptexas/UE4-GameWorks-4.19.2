@@ -28,22 +28,22 @@ void FParticleSystemComponentDetails::CustomizeDetails(IDetailLayoutBuilder& InD
 			[
 				SNew(SButton)
 				.OnClicked(this, &FParticleSystemComponentDetails::OnAutoPopulateClicked)
-				.ToolTipText(NSLOCTEXT("ParticleSystemComponentDetails", "AutoPopulateButtonTooltip", "Copies properties from the source particle system into the instanced parameters of this system").ToString())
+				.ToolTipText(NSLOCTEXT("ParticleSystemComponentDetails", "AutoPopulateButtonTooltip", "Copies properties from the source particle system into the instanced parameters of this system"))
 				.HAlign(HAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("ParticleSystemComponentDetails", "AutoPopulateButton", "Expose Parameter").ToString())
+					.Text(NSLOCTEXT("ParticleSystemComponentDetails", "AutoPopulateButton", "Expose Parameter"))
 				]
 			]
 			+ SUniformGridPanel::Slot(1, 0)
 				[
 					SNew(SButton)
 					.OnClicked(this, &FParticleSystemComponentDetails::OnResetEmitter)
-					.ToolTipText(NSLOCTEXT("ParticleSystemComponentDetails", "ResetEmitterButtonTooltip", "Resets the selected particle system.").ToString())
+					.ToolTipText(NSLOCTEXT("ParticleSystemComponentDetails", "ResetEmitterButtonTooltip", "Resets the selected particle system."))
 					.HAlign(HAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text(NSLOCTEXT("ParticleSystemComponentDetails", "ResetEmitterButton", "Reset Emitter").ToString())
+						.Text(NSLOCTEXT("ParticleSystemComponentDetails", "ResetEmitterButton", "Reset Emitter"))
 					]
 				]
 		];

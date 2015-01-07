@@ -38,11 +38,11 @@ public:
 	/** Options for ShowDetails */
 	struct FShowDetailsOptions
 	{
-		FString ForcedTitle;
+		FText ForcedTitle;
 		bool bForceRefresh;
 		bool bHideFilterArea;
 
-		FShowDetailsOptions(const FString& InForcedTitle = FString(), bool bInForceRefresh = false)
+		FShowDetailsOptions(const FText& InForcedTitle = FText::GetEmpty(), bool bInForceRefresh = false)
 			:ForcedTitle(InForcedTitle)
 			,bForceRefresh(bInForceRefresh)
 			,bHideFilterArea(false)
@@ -74,7 +74,7 @@ protected:
 	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
 
 	/** String used as the title above the property window */
-	FString PropertyViewTitle;
+	FText PropertyViewTitle;
 
 	/** Should we currently show the property view */
 	bool bShowInspectorPropertyView;
@@ -122,7 +122,7 @@ protected:
 	/**
 	 * Generates the text for the title in the contextual editing widget
 	 */
-	FString GetContextualEditingWidgetTitle() const;
+	FText GetContextualEditingWidgetTitle() const;
 
 	ECheckBoxState GetPublicViewCheckboxState() const;
 	void SetPublicViewCheckboxState(ECheckBoxState InIsChecked);

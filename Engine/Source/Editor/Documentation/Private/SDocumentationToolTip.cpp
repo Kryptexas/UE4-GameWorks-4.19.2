@@ -102,7 +102,7 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 			[
 				SNew( STextBlock )
 				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
-				.Text( DocumentationLink + OptionalExcerptName )
+				.Text( FText::FromString(DocumentationLink + OptionalExcerptName) )
 				.TextStyle( &StyleInfo )
 			];
 		}
