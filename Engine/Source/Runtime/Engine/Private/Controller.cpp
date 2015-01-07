@@ -571,6 +571,7 @@ void AController::InitNavigationControl(UPathFollowingComponent*& PathFollowingC
 	{
 		PathFollowingComp = NewObject<UPathFollowingComponent>(this);
 		PathFollowingComp->RegisterComponentWithWorld(GetWorld());
+		PathFollowingComp->Initialize();
 	}
 }
 
