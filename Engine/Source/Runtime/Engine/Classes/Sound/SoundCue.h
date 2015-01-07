@@ -62,7 +62,7 @@ class USoundCue : public USoundBase
 	TArray<USoundNode*> AllNodes;
 
 	UPROPERTY()
-	UEdGraph* SoundCueGraph;
+	class UEdGraph* SoundCueGraph;
 
 #endif
 
