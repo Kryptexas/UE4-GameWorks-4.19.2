@@ -861,13 +861,20 @@ public class GameActivity extends NativeActivity
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
-		if(!IapStoreHelper.onActivityResult(requestCode, resultCode, data))
+		if( IapStoreHelper != null )
 		{
-			super.onActivityResult(requestCode, resultCode, data);
+			if(!IapStoreHelper.onActivityResult(requestCode, resultCode, data))
+			{
+				super.onActivityResult(requestCode, resultCode, data);
+			}
+			else
+			{
+				Log.debug("[JAVA] - Store Helper handled onActivityResult");
+			}
 		}
 		else
 		{
-			Log.debug("[JAVA] - Store Helper handled onActivityResult");
+			super.onActivityResult(requestCode, resultCode, data);
 		}
 	}
 	
