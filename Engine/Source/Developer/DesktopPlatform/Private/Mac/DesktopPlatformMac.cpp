@@ -717,6 +717,14 @@ bool FDesktopPlatformMac::GetLauncherPath(FString& OutLauncherPath) const
 		return true;
 	}
 
+	// Otherwise search for the old Launcher...
+	Path = [Workspace fullPathForApplication:@"Unreal Engine"];
+	if( Path )
+	{
+		OutLauncherPath = FString(Path);
+		return true;
+	}
+
 	return false;
 }
 
@@ -724,6 +732,12 @@ bool FDesktopPlatformMac::GetLauncherInstallerPath(FString& OutInstallerPath) co
 {
 	// Check if the installer exists
 	FString InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/EpicGamesLauncher.dmg")));
+	if (FPaths::FileExists(InstallerPath))
+	{
+		OutInstallerPath = InstallerPath;
+		return true;
+	}
+	InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngine.dmg")));
 	if (FPaths::FileExists(InstallerPath))
 	{
 		OutInstallerPath = InstallerPath;
