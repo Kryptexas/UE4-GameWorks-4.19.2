@@ -524,6 +524,9 @@ class UNREALED_API UEditorEngine : public UEngine
 	/** Cached state of whether or not we have a worldsettings actor in the selection */
 	bool bIsWorldSettingsSelected;
 
+	/** The feature level we should use when loading or creating a new world */
+	ERHIFeatureLevel::Type DefaultWorldFeatureLevel;
+
 public:
 
 	/** The "manager" of all the layers for the UWorld currently being edited */

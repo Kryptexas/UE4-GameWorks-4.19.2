@@ -15,6 +15,7 @@ class UWorldFactory : public UFactory
 
 	TEnumAsByte<EWorldType::Type> WorldType;
 	bool bInformEngineOfWorld;
+	ERHIFeatureLevel::Type FeatureLevel;
 
 	// Begin UFactory Interface
 	virtual bool ConfigureProperties() override;

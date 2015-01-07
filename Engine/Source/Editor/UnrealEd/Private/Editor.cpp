@@ -234,6 +234,7 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	bPlayOnLocalPcSession = false;
 	bAllowMultiplePIEWorlds = true;
 	NumOnlinePIEInstances = 0;
+	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
 }
 
 

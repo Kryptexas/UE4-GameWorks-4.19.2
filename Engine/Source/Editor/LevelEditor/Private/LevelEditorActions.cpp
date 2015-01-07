@@ -471,6 +471,9 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
+	// Record this feature level as we want to use it for all subsequent level creation and loading
+	GEditor->DefaultWorldFeatureLevel = InPreviewFeatureLevel;
+
 	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel);
 
 	// Update any currently running PIE sessions.

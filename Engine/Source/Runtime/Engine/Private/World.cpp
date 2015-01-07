@@ -1024,8 +1024,13 @@ void UWorld::DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld )
 	}
 }
 
-UWorld* UWorld::CreateWorld( const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName, UPackage* InWorldPackage, bool bAddToRoot )
+UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName, UPackage* InWorldPackage, bool bAddToRoot, ERHIFeatureLevel::Type InFeatureLevel)
 {
+	if (InFeatureLevel >= ERHIFeatureLevel::Num)
+	{
+		InFeatureLevel = GMaxRHIFeatureLevel;
+	}
+
 	// Create a new package unless we're a commandlet in which case we keep the dummy world in the transient package.
 	UPackage* WorldPackage = InWorldPackage;
 	if ( !WorldPackage )
@@ -1047,8 +1052,9 @@ UWorld* UWorld::CreateWorld( const EWorldType::Type InWorldType, bool bInformEng
 
 	// Create new UWorld, ULevel and UModel.
 	const FString WorldNameString = (WorldName != NAME_None) ? WorldName.ToString() : TEXT("NewWorld");
-	UWorld* NewWorld = new( WorldPackage				, *WorldNameString			) UWorld(FObjectInitializer(),FURL(NULL));
+	UWorld* NewWorld = new(WorldPackage, *WorldNameString) UWorld(FObjectInitializer(),FURL(NULL));
 	NewWorld->WorldType = InWorldType;
+	NewWorld->FeatureLevel = InFeatureLevel;
 	NewWorld->InitializeNewWorld(UWorld::InitializationValues().ShouldSimulatePhysics(false).EnableTraceCollision(true).CreateNavigation(InWorldType == EWorldType::Editor).CreateAISystem(InWorldType == EWorldType::Editor));
 
 	// Clear the dirty flag set during SpawnActor and UpdateLevelComponents

@@ -11,6 +11,7 @@ UWorldFactory::UWorldFactory(const FObjectInitializer& ObjectInitializer)
 	SupportedClass = UWorld::StaticClass();
 	WorldType = EWorldType::Inactive;
 	bInformEngineOfWorld = false;
+	FeatureLevel = ERHIFeatureLevel::Num;
 }
 
 bool UWorldFactory::ConfigureProperties()
@@ -22,7 +23,7 @@ UObject* UWorldFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName
 {
 	// Create a new world.
 	const bool bAddToRoot = false;
-	UWorld* NewWorld = UWorld::CreateWorld(WorldType, bInformEngineOfWorld, Name, Cast<UPackage>(InParent), bAddToRoot);
+	UWorld* NewWorld = UWorld::CreateWorld(WorldType, bInformEngineOfWorld, Name, Cast<UPackage>(InParent), bAddToRoot, FeatureLevel);
 	NewWorld->SetFlags(Flags);
 	NewWorld->ThumbnailInfo = ConstructObject<UWorldThumbnailInfo>(UWorldThumbnailInfo::StaticClass(), NewWorld);
 

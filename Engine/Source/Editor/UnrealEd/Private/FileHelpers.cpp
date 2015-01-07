@@ -1903,7 +1903,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	// Deactivate any editor modes when loading a new map
 	GLevelEditorModeTools().DeactivateAllModes();
 
-	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d"), *Filename, LoadAsTemplate, bShowProgress );
+	FString LoadCommand = FString::Printf(TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d FEATURELEVEL=%d"), *Filename, LoadAsTemplate, bShowProgress, (int32)GEditor->DefaultWorldFeatureLevel);
 	bool bResult = GUnrealEd->Exec( NULL, *LoadCommand );
 
 	UWorld* World = GWorld;
