@@ -224,33 +224,7 @@ protected:
 	 * The real thread entry point. It calls the Init/Run/Exit methods on
 	 * the runnable object
 	 */
-	uint32 Run()
-	{
-		ThreadIsRunning = true;
-		// Assume we'll fail init
-		uint32 ExitCode = 1;
-		check(Runnable);
-
-		// Initialize the runnable object
-		if (Runnable->Init() == true)
-		{
-			// Initialization has completed, release the sync event
-			ThreadInitSyncEvent->Trigger();
-			// Now run the task that needs to be done
-			ExitCode = Runnable->Run();
-			// Allow any allocated resources to be cleaned up
-			Runnable->Exit();
-		}
-		else
-		{
-			// Initialization has failed, release the sync event
-			ThreadInitSyncEvent->Trigger();
-		}
-
-		// Clean ourselves up without waiting
-		ThreadIsRunning = false;
-		return ExitCode;
-	}
+	uint32 Run();
 
 public:
 	FRunnableThreadPThread()
