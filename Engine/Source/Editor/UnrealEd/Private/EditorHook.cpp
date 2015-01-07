@@ -7,6 +7,8 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Engine/Selection.h"
 
+#include "LandscapeProxy.h"
+
 uint32			EngineThreadId;
 const TCHAR*	GItem;
 const TCHAR*	GValue;

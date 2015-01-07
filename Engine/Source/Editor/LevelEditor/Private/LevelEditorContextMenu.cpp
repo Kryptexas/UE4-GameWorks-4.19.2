@@ -30,6 +30,7 @@
 #include "EditorClassUtils.h"
 #include "GenericCommands.h"
 #include "Engine/Selection.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 
