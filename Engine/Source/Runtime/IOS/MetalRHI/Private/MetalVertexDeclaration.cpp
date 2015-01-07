@@ -42,7 +42,7 @@ static uint32 TranslateElementTypeToSize(EVertexElementType Type)
 		case VET_Color:			return 4;
 		case VET_Short2:		return 4;
 		case VET_Short4:		return 8;
-		case VET_Short2N:		return 8;
+		case VET_Short2N:		return 4;
 		case VET_Half2:			return 4;
 		case VET_Half4:			return 8;
 		default:				UE_LOG(LogMetal, Fatal, TEXT("Unknown vertex element type!")); return 0;
