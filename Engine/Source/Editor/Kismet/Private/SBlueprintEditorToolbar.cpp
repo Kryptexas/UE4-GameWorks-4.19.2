@@ -400,7 +400,7 @@ static void BlueprintEditorToolbarImpl::MakeCompileDeveloperSubMenu(FMenuBuilder
 
 void FBlueprintEditorToolbar::AddBlueprintEditorModesToolbar(TSharedPtr<FExtender> Extender)
 {
-	if ( !GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
+	if ( !GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = BlueprintEditor.Pin();
 

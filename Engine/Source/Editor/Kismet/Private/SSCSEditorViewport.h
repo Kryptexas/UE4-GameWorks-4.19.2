@@ -84,6 +84,9 @@ protected:
 	bool IsVisible() const;
 	EVisibility GetWidgetVisibility() const;
 
+	/** Called when the simulation toggle command is fired */
+	void ToggleIsSimulateEnabled();
+
 	/** SEditorViewport interface */
 	virtual TSharedRef<class FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<class SWidget> MakeViewportToolbar() override;

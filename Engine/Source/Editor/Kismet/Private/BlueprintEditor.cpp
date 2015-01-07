@@ -1429,7 +1429,7 @@ void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlu
 		}
 		else
 		{
-			if ( GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
+			if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
 			{
 				AddApplicationMode(
 					FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
@@ -1898,7 +1898,7 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 	{
 		SCSEditor = SNew(SSCSEditor, SharedThis(this), InBlueprint->SimpleConstructionScript, InBlueprint);
 		
-		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport) .BlueprintEditor(SharedThis(this));
+		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport).BlueprintEditor(SharedThis(this));
 	}
 }
 
