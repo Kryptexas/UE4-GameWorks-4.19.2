@@ -462,7 +462,9 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 					FCString::Spc(TextIndent), *Actor->GetClass()->GetName(), *Actor->GetName(),
 					*Actor->GetArchetype()->GetClass()->GetName(), *Actor->GetArchetype()->GetPathName(), *ParentActorString, *SocketNameString, *GroupActor );
 
+				ExportRootScope = Actor;
 				ExportObjectInner( Context, Actor, Ar, PortFlags | PPF_ExportsNotFullyQualified );
+				ExportRootScope = nullptr;
 
 				Ar.Logf( TEXT("%sEnd Actor\r\n"), FCString::Spc(TextIndent) );
 				Actor->AttachRootComponentToActor(ParentActor, SocketName, EAttachLocation::KeepWorldPosition);
