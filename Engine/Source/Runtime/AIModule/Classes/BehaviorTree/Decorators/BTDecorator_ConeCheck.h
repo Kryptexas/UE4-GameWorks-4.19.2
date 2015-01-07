@@ -23,7 +23,7 @@ class AIMODULE_API UBTDecorator_ConeCheck : public UBTDecorator
 
 	typedef FBTConeCheckDecoratorMemory TNodeInstanceMemory;
 
-	/** max allowed time for execution of underlying node */
+	/** Angle between cone direction and code cone edge, or a half of the total cone angle */
 	UPROPERTY(Category=Decorator, EditAnywhere)
 	float ConeHalfAngle;
 	
