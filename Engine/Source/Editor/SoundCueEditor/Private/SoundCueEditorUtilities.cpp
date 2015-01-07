@@ -43,7 +43,7 @@ void FSoundCueEditorUtilities::CreateWaveContainers(TArray<USoundWave*>& Selecte
 
 			WavePlayer->SoundWave = NewWave;
 
-			WavePlayer->GraphNode->NodePosX = Location.X - WavePlayer->GraphNode->EstimateNodeWidth();
+			WavePlayer->GraphNode->NodePosX = Location.X - WavePlayer->GetGraphNode()->EstimateNodeWidth();
 			WavePlayer->GraphNode->NodePosY = Location.Y + (NodeSpacing * WaveIndex);
 
 			OutPlayers.Add(WavePlayer);

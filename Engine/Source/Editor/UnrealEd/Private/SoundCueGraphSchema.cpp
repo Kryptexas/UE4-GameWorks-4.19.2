@@ -123,7 +123,7 @@ UEdGraphNode* FSoundCueGraphSchemaAction_NewFromSelected::PerformAction(class UE
 	if (SoundNodeClass)
 	{
 		USoundNode* NewNode = SoundCue->ConstructSoundNode<USoundNode>(SoundNodeClass, bSelectNewNode);
-		USoundCueGraphNode* NewGraphNode = NewNode->GraphNode;
+		UEdGraphNode* NewGraphNode = NewNode->GraphNode;
 		const USoundCueGraphSchema* NewSchema = CastChecked<USoundCueGraphSchema>(NewGraphNode->GetSchema());
 
 		// If this node allows >0 children but by default has zero - create a connector for starters
@@ -230,11 +230,11 @@ void USoundCueGraphSchema::TryConnectNodes(const TArray<USoundNode*>& OutputNode
 	{
 		if ( Index < InputNode->GetMaxChildNodes() )
 		{
-			if (Index >= InputNode->GraphNode->GetInputCount())
+			if (Index >= InputNode->GetGraphNode()->GetInputCount())
 			{
-				InputNode->GraphNode->CreateInputPin();
+				InputNode->GetGraphNode()->CreateInputPin();
 			}
-			TryCreateConnection( InputNode->GraphNode->GetInputPin(Index), OutputNodes[Index]->GraphNode->GetOutputPin() );
+			TryCreateConnection( InputNode->GetGraphNode()->GetInputPin(Index), OutputNodes[Index]->GetGraphNode()->GetOutputPin() );
 		}
 	}
 }

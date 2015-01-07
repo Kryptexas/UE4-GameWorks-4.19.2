@@ -61,8 +61,9 @@ class USoundCue : public USoundBase
 	UPROPERTY()
 	TArray<USoundNode*> AllNodes;
 
-	/** EdGraph based representation of the SoundCue */
-	class USoundCueGraph* SoundCueGraph;
+	UPROPERTY()
+	UEdGraph* SoundCueGraph;
+
 #endif
 
 private:
@@ -152,10 +153,7 @@ public:
 	ENGINE_API void CompileSoundNodesFromGraphNodes();
 
 	/** Get the EdGraph of SoundNodes */
-	USoundCueGraph* GetGraph()
-	{
-		return SoundCueGraph;
-	}
+	ENGINE_API class USoundCueGraph* GetGraph();
 #endif
 };
 
