@@ -21,6 +21,7 @@ using System.Linq;
 
 using AgentInterface;
 using SwarmCoordinatorInterface;
+using CommonUtils;
 
 namespace Agent
 {
@@ -2107,32 +2108,8 @@ namespace Agent
 						AgentInfoUpdate.Configuration["WorkingFor"] = WorkingFor;
 
 #if !__MonoCS__ // @todo Mac
-						// Send our IP address for others to use
-						ManagementObjectSearcher ObjectSearcher = new ManagementObjectSearcher( "SELECT * FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled = 'TRUE'" );
-						ManagementObjectCollection ObjectCollection = ObjectSearcher.Get();
-                        bool bFoundAddress = false;
-                        bool bFoundAddressWithDNS = false;
-
-						foreach( ManagementObject NextObject in ObjectCollection )
-						{
-							// Get the first IP addresses of the first IPEnabled network adapter
-							string[] AddressList = ( string[] )NextObject["IPAddress"];
-                            string DNSDomain = (string)NextObject["DNSDomain"];
-
-                            // Use the first address in the enumerator, or the first address with a DNS gateway if one exists
-                            // Checking the DNS gateway allows adapters connected to networks to win over adapters earlier in the enumeration that are on a private network, eg connected to console
-                            if (!bFoundAddress || !bFoundAddressWithDNS)
-							{
-                                AgentInfoUpdate.Configuration["IPAddress"] = IPAddress.Parse(AddressList[0]);
-
-                                bFoundAddress = true;
-
-                                if (DNSDomain != null && DNSDomain.Length > 0)
-                                {
-                                    bFoundAddressWithDNS = true;
-                                }
-							}
-						}
+						var NetworkInterface = NetworkUtils.GetBestInterface(IPAddress.Parse(AgentApplication.Options.CoordinatorRemotingHost));
+						AgentInfoUpdate.Configuration["IPAddress"] = NetworkUtils.GetInterfaceIPv4Address(NetworkInterface);
 #else
 						AgentInfoUpdate.Configuration["IPAddress"] = "192.168.0.203";//.2.9";
 #endif
