@@ -716,7 +716,7 @@ void FViewInfo::CreateLightGrid()
 			FIntRect LocalPixelRect = ViewRect;
 			if(FMath::ComputeProjectedSphereScissorRect(LocalPixelRect, FVector(PosAndRadius), 1.0f / PosAndRadius.W, ViewMatrices.ViewOrigin, ViewMatrices.ViewMatrix, ViewMatrices.ProjMatrix) > 0)
 			{
-				FIntRect LocalTileRect = FIntRect::DivideAndRoundUp(LocalPixelRect, TileSize);
+				FIntRect LocalTileRect = FIntRect::DivideAndRoundUp(LocalPixelRect - ViewRect.Min, TileSize);
 
 				for(int32 y = LocalTileRect.Min.Y; y < LocalTileRect.Max.Y; ++y)
 				{
