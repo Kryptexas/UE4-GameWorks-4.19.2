@@ -175,7 +175,7 @@ namespace UnrealBuildTool
 
 		public static List<FileItem> FindAndCacheAllIncludedFiles( UEBuildTarget Target, FileItem SourceFile, IUEBuildPlatform BuildPlatform, CPPIncludeInfo CPPIncludeInfo, bool bOnlyCachedDependencies )
 		{
-			var Result = new List<FileItem>();
+			List<FileItem> Result = null;
 			
 			if( CPPIncludeInfo.IncludeFileSearchDictionary == null )
 			{
@@ -188,15 +188,8 @@ namespace UnrealBuildTool
 
 			if( bUseFlatCPPIncludeDependencyCache && bOnlyCachedDependencies )
 			{ 
-				var Dependencies = FlatCPPIncludeDependencyCache[Target].GetDependenciesForFile( SourceFile.AbsolutePath );
-				if( Dependencies != null )
-				{ 
-					foreach( string Dependency in Dependencies )
-					{
-						Result.Add( FileItem.GetItemByFullPath( Dependency ) );	// @todo fastubt: Make sure this is as fast as possible (convert to FileItem)
-					}
-				}
-				else
+				Result = FlatCPPIncludeDependencyCache[Target].GetDependenciesForFile( SourceFile.AbsolutePath );
+				if( Result == null )
 				{
 					// Nothing cached for this file!  It is new to us.  This is the expected flow when our CPPIncludeDepencencyCache is missing.
 				}
@@ -204,6 +197,8 @@ namespace UnrealBuildTool
 			else
 			{
 				// @todo fastubt: HeaderParser.h is missing from the include set for Module.UnrealHeaderTool.cpp (failed to find include using:  FileItem DirectIncludeResolvedFile = CPPEnvironment.FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, IncludePathsToSearch, IncludeFileSearchDictionary );)
+
+				Result = new List<FileItem>();
 
 				var IncludedFileList = new IncludedFilesSet();
 				CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CPPIncludeInfo, ref IncludedFileList, bOnlyCachedDependencies:bOnlyCachedDependencies );

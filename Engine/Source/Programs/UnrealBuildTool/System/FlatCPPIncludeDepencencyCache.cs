@@ -13,13 +13,18 @@ namespace UnrealBuildTool
 	/// Stores an ordered list of header files
 	/// </summary>
 	[Serializable]
-	struct FlatCPPIncludeDependencyInfo
+	class FlatCPPIncludeDependencyInfo
 	{
 		/// The PCH header this file is dependent on.
 		public string PCHName;
 
 		/// List of files this file includes, excluding headers that were included from a PCH.
 		public List<string> Includes;
+
+		/// Transient cached list of FileItems for all of the includes for a specific files.  This just saves a bunch of string
+		/// hash lookups as we locate FileItems for files that we've already requested dependencies for
+		[NonSerialized]
+		public List<FileItem> IncludeFileItems;
 	}
 
 
@@ -105,7 +110,7 @@ namespace UnrealBuildTool
 		protected FlatCPPIncludeDependencyCache(FileItem Cache)
 		{
 			CacheFileItem = Cache;
-			DependencyMap = new Dictionary<string, FlatCPPIncludeDependencyInfo>(StringComparer.InvariantCultureIgnoreCase);	// @todo fastubt: Apparently StringComparer is not very fast on Mono, better to use ToLowerInvariant(), even though it is an extra string copy
+			DependencyMap = new Dictionary<string, FlatCPPIncludeDependencyInfo>();
 		}
 
 
@@ -158,12 +163,13 @@ namespace UnrealBuildTool
 		/// <param name="Dependencies">List of source dependencies</param>
 		public void SetDependenciesForFile( string AbsoluteFilePath, string PCHName, List<string> Dependencies )
 		{
-			FlatCPPIncludeDependencyInfo DependencyInfo;
+			var DependencyInfo = new FlatCPPIncludeDependencyInfo();
 			DependencyInfo.PCHName = PCHName;	// @todo fastubt: Not actually used yet.  The idea is to use this to reduce the number of indirect includes we need to store in the cache.
 			DependencyInfo.Includes = Dependencies;
+			DependencyInfo.IncludeFileItems = null;
 
 			// @todo fastubt: We could shrink this file by not storing absolute paths (project and engine relative paths only, except for system headers.)  May affect load times.
-			DependencyMap[ AbsoluteFilePath ] = DependencyInfo;
+			DependencyMap[ AbsoluteFilePath.ToLowerInvariant() ] = DependencyInfo;
 			bIsDirty = true;
 		}
 
@@ -173,12 +179,21 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="AbsoluteFilePath">Path to the file</param>
 		/// <returns>The list of includes</returns>
-		public List<string> GetDependenciesForFile( string AbsoluteFilePath )
+		public List<FileItem> GetDependenciesForFile( string AbsoluteFilePath )
 		{
 			FlatCPPIncludeDependencyInfo DependencyInfo;
-			if( DependencyMap.TryGetValue( AbsoluteFilePath, out DependencyInfo ) )
+			if( DependencyMap.TryGetValue( AbsoluteFilePath.ToLowerInvariant(), out DependencyInfo ) )
 			{
-				return DependencyInfo.Includes;
+				// Update our transient cache of FileItems for each of the included files
+				if( DependencyInfo.IncludeFileItems == null )
+				{
+					DependencyInfo.IncludeFileItems = new List<FileItem>( DependencyInfo.Includes.Count );
+					foreach( string Dependency in DependencyInfo.Includes )
+					{
+						DependencyInfo.IncludeFileItems.Add( FileItem.GetItemByFullPath( Dependency ) );	// @todo fastubt: Make sure this is as fast as possible (convert to FileItem)
+					}
+				}
+				return DependencyInfo.IncludeFileItems;
 			}
 
 			return null;
