@@ -131,8 +131,6 @@ struct UNREALED_API FEditorDelegates
 	static FOnEditorModeTransitioned EditorModeEnter;
 	/** Called when an editor mode is being exited */
 	static FOnEditorModeTransitioned EditorModeExit;
-	/** Sent after an undo/redo operation takes place */
-	static FSimpleMulticastDelegate Undo;
 	/** Sent when a PIE session is beginning */
 	static FOnPIEEvent BeginPIE;
 	/** Sent when a PIE session is ending */

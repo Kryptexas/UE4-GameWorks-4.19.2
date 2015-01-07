@@ -52,6 +52,9 @@ FEditorModeTools::FEditorModeTools()
 	USelection::SelectNoneEvent.AddRaw(this, &FEditorModeTools::OnEditorSelectNone);
 	USelection::SelectionChangedEvent.AddRaw(this, &FEditorModeTools::OnEditorSelectionChanged);
 	USelection::SelectObjectEvent.AddRaw(this, &FEditorModeTools::OnEditorSelectionChanged);
+
+	// Register our callback for undo/redo
+	GEditor->RegisterForUndo(this);
 }
 
 FEditorModeTools::~FEditorModeTools()
@@ -60,6 +63,8 @@ FEditorModeTools::~FEditorModeTools()
 	USelection::SelectionChangedEvent.RemoveAll(this);
 	USelection::SelectNoneEvent.RemoveAll(this);
 	USelection::SelectObjectEvent.RemoveAll(this);
+
+	GEditor->UnregisterForUndo(this);
 }
 
 /**
@@ -738,13 +743,20 @@ void FEditorModeTools::DrawHUD( FEditorViewportClient* InViewportClient,FViewpor
 	}
 }
 
-/** Calls PostUndo on all active components */
-void FEditorModeTools::PostUndo()
+/** Calls PostUndo on all active modes */
+void FEditorModeTools::PostUndo(bool bSuccess)
 {
-	for( const auto& Mode : Modes)
+	if (bSuccess)
 	{
-		Mode->PostUndo();
+		for (const auto& Mode : Modes)
+		{
+			Mode->PostUndo();
+		}
 	}
+}
+void FEditorModeTools::PostRedo(bool bSuccess)
+{
+	PostUndo(bSuccess);
 }
 
 /** true if we should allow widget move */

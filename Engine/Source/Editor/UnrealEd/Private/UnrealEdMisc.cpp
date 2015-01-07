@@ -176,7 +176,6 @@ void FUnrealEdMisc::OnInit()
 	// Register all callback notifications
 	FEditorDelegates::SelectedProps.AddRaw(this, &FUnrealEdMisc::CB_SelectedProps);
 	FEditorDelegates::DisplayLoadErrors.AddRaw(this, &FUnrealEdMisc::CB_DisplayLoadErrors);
-	FEditorDelegates::Undo.AddRaw(this, &FUnrealEdMisc::CB_Undo);
 	FEditorDelegates::MapChange.AddRaw(this, &FUnrealEdMisc::CB_MapChange);
 	FEditorDelegates::RefreshEditor.AddRaw(this, &FUnrealEdMisc::CB_RefreshEditor);
 	FEditorDelegates::PreSaveWorld.AddRaw(this, &FUnrealEdMisc::PreSaveWorld);
@@ -698,7 +697,6 @@ void FUnrealEdMisc::OnExit()
 	// Unregister all events
 	FEditorDelegates::SelectedProps.RemoveAll(this);
 	FEditorDelegates::DisplayLoadErrors.RemoveAll(this);
-	FEditorDelegates::Undo.RemoveAll(this);
 	FEditorDelegates::MapChange.RemoveAll(this);
 	FEditorDelegates::RefreshEditor.RemoveAll(this);
 	FEditorDelegates::PreSaveWorld.RemoveAll(this);
@@ -888,11 +886,6 @@ void FUnrealEdMisc::CB_LevelActorsAdded(AActor* InActor)
 		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
 		FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Usage.PawnPlacement"), FString( "ProjectId" ), ProjectSettings.ProjectID.ToString());
 	}
-}
-
-void FUnrealEdMisc::CB_Undo()
-{
-	GLevelEditorModeTools().PostUndo();
 }
 
 void FUnrealEdMisc::CB_PreAutomationTesting()
