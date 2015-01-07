@@ -388,6 +388,16 @@ void SVisualLoggerFilters::AddFilter(const FString& InFilterName)
 	GraphsFilterCombo->SetVisibility(GraphFilters.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
 }
 
+void SVisualLoggerFilters::ResetData()
+{
+	for (auto& CurrentFilter : Filters)
+	{
+		FilterBox->RemoveSlot(CurrentFilter);
+	}
+	Filters.Reset();
+}
+
+
 void SVisualLoggerFilters::OnFiltersChanged()
 {
 	TArray<FString> EnabledFilters;

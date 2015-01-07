@@ -39,6 +39,7 @@ public:
 	void GetTimelines(TArray<TSharedPtr<class STimeline> >&, bool bOnlySelectedOnes = false);
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	TSharedRef<SWidget> MakeClassesFilterMenu();
+	void ResetData();
 
 protected:
 	TWeakPtr<struct IVisualLoggerInterface> VisualLoggerInterface;

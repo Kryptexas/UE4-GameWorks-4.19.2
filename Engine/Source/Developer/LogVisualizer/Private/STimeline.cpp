@@ -191,9 +191,6 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView
 	Owner = InContainer;
 	Name = Entry.OwnerName;
 	OwnerClassName = Entry.OwnerClassName;
-
-	Entries.Add(Entry);
-	OnFiltersChanged();
 	
 	ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->OnSettingChanged().AddRaw(this, &STimeline::HandleLogVisualizerSettingChanged);
 
@@ -258,6 +255,8 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView
 				]
 			]
 		];
+
+	AddEntry(Entry);
 }
 
 const FSlateBrush* STimeline::GetBorder() const

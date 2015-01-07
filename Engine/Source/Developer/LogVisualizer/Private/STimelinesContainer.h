@@ -32,6 +32,8 @@ public:
 	void OnSearchChanged(const FText& Filter);
 	void OnFiltersSearchChanged(const FText& Filter);
 
+	void ResetData();
+
 	void GenerateReport();
 
 	/**
@@ -65,4 +67,5 @@ protected:
 	TArray< TSharedPtr<class STimeline> > SelectedNodes;
 	TSharedPtr<SVerticalBox> ContainingBorder;
 	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
+	float CachedMinTime, CachedMaxTime;
 };

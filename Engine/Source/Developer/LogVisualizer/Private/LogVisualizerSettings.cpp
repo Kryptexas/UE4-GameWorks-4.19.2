@@ -16,6 +16,7 @@ ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectI
 	DefaultCameraDistance = 150;
 	bSearchInsideLogs = true;
 	GraphsBackgroundColor = FColor(0, 0, 0, 70);
+	bResetDataWithNewSession = false;
 }
 
 #if WITH_EDITOR

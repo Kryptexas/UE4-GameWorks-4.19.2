@@ -37,13 +37,17 @@ public:
 public:
 	class FVisualLoggerDevice : public FVisualLogDevice
 	{
+		friend class SVisualLogger;
 	public:
 		FVisualLoggerDevice(SVisualLogger* Owner);
 		virtual ~FVisualLoggerDevice();
 		virtual void Serialize(const class UObject* LogOwner, FName OwnerName, FName OwnerClassName, const FVisualLogEntry& LogEntry) override;
 
 	protected:
+		void SerLastWorld(class UWorld* InWorld) { LastWorld = InWorld; }
+
 		SVisualLogger* Owner;
+		TWeakObjectPtr<class UWorld>	LastWorld;
 	};
 	friend class FVisualLogDevice;
 
@@ -93,6 +97,8 @@ public:
 	void HandleTabManagerPersistLayout(const TSharedRef<FTabManager::FLayout>& LayoutToSave);
 
 	void SetFiltersPreset(const struct FFiltersPreset& Preset);
+	void OnNewWorld(UWorld* NewWorld);
+	void ResetData();
 
 protected:
 	// Holds the list of UI commands.

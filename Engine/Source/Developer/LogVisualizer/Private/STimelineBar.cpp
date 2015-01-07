@@ -179,14 +179,6 @@ FReply STimelineBar::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InK
 		{
 			float NewTimeStamp = Entries[NewItemIndex].Entry.TimeStamp;
 			SnapScrubPosition(NewItemIndex);
-			if (NewTimeStamp < LocalViewRange.GetLowerBoundValue())
-			{
-				TimeSliderController->SetTimeRange(NewTimeStamp, NewTimeStamp + RangeSize);
-			}
-			else if (NewTimeStamp > LocalViewRange.GetUpperBoundValue())
-			{
-				TimeSliderController->SetTimeRange(NewTimeStamp - RangeSize, NewTimeStamp);
-			}
 		}
 	}
 

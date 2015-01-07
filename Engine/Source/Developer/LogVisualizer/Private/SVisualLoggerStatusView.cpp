@@ -63,15 +63,8 @@ void GenerateChildren(TSharedPtr<FLogStatusItem> StatusItem, const FVisualLogSta
 }
 void SVisualLoggerStatusView::OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem& LogEntry)
 {
-	TArray<FString> ExpandedCategories;
-	for (int32 ItemIndex = 0; ItemIndex < StatusItems.Num(); ItemIndex++)
-	{
-		const bool bIsExpanded = StatusItemsView->IsItemExpanded(StatusItems[ItemIndex]);
-		if (bIsExpanded)
-		{
-			ExpandedCategories.Add(StatusItems[ItemIndex]->ItemText);
-		}
-	}
+	//TSet<TSharedPtr<FLogStatusItem> > ExpandedItems;
+	//StatusItemsView->GetExpandedItems(ExpandedItems);
 
 	StatusItems.Empty();
 
@@ -108,17 +101,10 @@ void SVisualLoggerStatusView::OnItemSelectionChanged(const FVisualLogDevice::FVi
 
 	StatusItemsView->RequestTreeRefresh();
 
-	for (int32 ItemIndex = 0; ItemIndex < StatusItems.Num(); ItemIndex++)
-	{
-		for (const FString& Category : ExpandedCategories)
-		{
-			if (StatusItems[ItemIndex]->ItemText == Category)
-			{
-				StatusItemsView->SetItemExpansion(StatusItems[ItemIndex], true);
-				break;
-			}
-		}
-	}
+	//for (auto& CurrentItem : ExpandedItems)
+	//{
+	//	StatusItemsView->SetItemExpansion(CurrentItem, true);
+	//}
 }
 
 void SVisualLoggerStatusView::OnLogStatusGetChildren(TSharedPtr<FLogStatusItem> InItem, TArray< TSharedPtr<FLogStatusItem> >& OutItems)

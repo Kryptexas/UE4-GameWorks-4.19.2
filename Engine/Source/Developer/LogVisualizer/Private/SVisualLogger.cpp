@@ -138,6 +138,13 @@ void SVisualLogger::FVisualLoggerDevice::Serialize(const class UObject* LogOwner
 		return;
 	}
 
+	UWorld* World = LogOwner != nullptr ? GEngine->GetWorldFromContextObject(LogOwner) : NULL;
+	if (LastWorld.Get() != World)
+	{
+		Owner->OnNewWorld(LastWorld.Get());
+		LastWorld = World;
+	}
+
 	Owner->OnNewLogEntry(FVisualLogDevice::FVisualLogEntryItem(OwnerName, OwnerClassName, LogEntry));
 }
 
@@ -247,6 +254,11 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 		FCanExecuteAction(),
 		FIsActionChecked::CreateLambda([]()->bool{return ULogVisualizerSessionSettings::StaticClass()->GetDefaultObject<ULogVisualizerSessionSettings>()->bEnableGraphsVisualization; }),
 		FIsActionButtonVisible());
+	ActionList.MapAction(Commands.ResetData, 
+		FExecuteAction::CreateRaw(this, &SVisualLogger::ResetData),
+		FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleSaveCommandCanExecute),
+		FIsActionChecked(), 
+		FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleSaveCommandCanExecute));
 
 
 	// Tab Spawners
@@ -643,6 +655,7 @@ void SVisualLogger::HandleLoadCommandExecute()
 
 	if (bOpened && OpenFilenames.Num() > 0)
 	{
+		OnNewWorld(nullptr);
 		for (int FilenameIndex = 0; FilenameIndex < OpenFilenames.Num(); ++FilenameIndex)
 		{
 			FString CurrentFileName = OpenFilenames[FilenameIndex];
@@ -730,6 +743,30 @@ void SVisualLogger::HandleSaveCommandExecute()
 			}
 		}
 	}
+}
+
+void SVisualLogger::ResetData()
+{
+	if (ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bResetDataWithNewSession)
+	{
+		return;
+	}
+
+	if (MainView.IsValid())
+	{
+		MainView->ResetData();
+	}
+
+	if (VisualLoggerFilters.IsValid())
+	{
+		VisualLoggerFilters->ResetData();
+	}
+}
+
+void SVisualLogger::OnNewWorld(UWorld* NewWorld)
+{
+	InternalDevice->SerLastWorld(NewWorld);
+	ResetData();
 }
 
 void SVisualLogger::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)

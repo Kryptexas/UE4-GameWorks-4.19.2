@@ -336,6 +336,11 @@ TSharedRef<SWidget> SVisualLoggerView::MakeSectionOverlay(TSharedRef<FSequencerT
 		];
 }
 
+void SVisualLoggerView::ResetData()
+{
+	TimelinesContainer->ResetData();
+}
+
 void SVisualLoggerView::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)
 {
 	TimelinesContainer->OnNewLogEntry(Entry);

@@ -49,6 +49,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bStickToRecentData;
 
+	/**Whether to reset current data or not for each new session.*/
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	bool bResetDataWithNewSession;
+
 	/**Whether to show histogram labels inside graph or outside. Property disabled for now.*/
 	UPROPERTY(VisibleAnywhere, config, Category = "VisualLogger")
 	bool bShowHistogramLabelsOutside;
