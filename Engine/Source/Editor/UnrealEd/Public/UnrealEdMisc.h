@@ -216,7 +216,6 @@ private:
 	/** Tells the editor that something has been done to change the map.  Can be anything from loading a whole new map to changing the BSP. */
 	void CB_MapChange( uint32 InFlags );
 	void CB_RedrawAllViewports();
-	void CB_Undo();
 	void CB_EditorModeWindowClosed(const TSharedRef<SWindow>&);
 	void CB_LevelActorsAdded(class AActor* InActor);
 

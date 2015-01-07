@@ -5,7 +5,7 @@
 /**
  * A helper class to store the state of the various editor modes.
  */
-class UNREALED_API FEditorModeTools : public FGCObject
+class UNREALED_API FEditorModeTools : public FGCObject, public FEditorUndoClient
 {
 public:
 	FEditorModeTools();
@@ -198,8 +198,11 @@ public:
 	/** Draws the HUD for all active modes */
 	void DrawHUD( FEditorViewportClient* InViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas );
 
-	/** Calls PostUndo on all active components */
-	void PostUndo();
+	/** Calls PostUndo on all active modes */
+	// Begin FEditorUndoClient
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
+	// End of FEditorUndoClient
 
 	/** True if we should allow widget move */
 	bool AllowWidgetMove() const;
