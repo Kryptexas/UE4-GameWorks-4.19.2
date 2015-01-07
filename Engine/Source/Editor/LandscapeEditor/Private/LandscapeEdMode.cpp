@@ -1651,7 +1651,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 		for (auto It = GetLandscapeInfoMap(GetWorld()).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* LandscapeInfo = It.Value();
-			if (LandscapeInfo)
+			if (LandscapeInfo && !LandscapeInfo->IsPendingKill())
 			{
 				if (CurrentToolTarget.LandscapeInfo == LandscapeInfo)
 				{
@@ -2266,12 +2266,17 @@ void FEdModeLandscape::ActorSelectionChangeNotify()
 		break;
 		}
 		}
-		*/
+	*/
 }
 
 void FEdModeLandscape::ActorMoveNotify()
 {
 	//GUnrealEd->UpdateFloatingPropertyWindows();
+}
+
+void FEdModeLandscape::PostUndo()
+{
+	OnWorldChange();
 }
 
 /** Forces all level editor viewports to realtime mode */
