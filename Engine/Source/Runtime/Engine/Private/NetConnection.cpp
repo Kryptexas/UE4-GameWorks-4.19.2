@@ -57,8 +57,6 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	InPacketId			( -1 )
 ,	OutPacketId			( 0 ) // must be initialized as OutAckPacketId + 1 so loss of first packet can be detected
 ,	OutAckPacketId		( -1 )
-,	PartialPacketId		( 0 )
-,	LastPartialPacketId	( -1 )
 ,	LastPingAck			( 0.f )
 ,	LastPingAckPacketId	( -1 )
 ,	ClientWorldPackageName( NAME_None )
@@ -815,19 +813,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			} 
 			else if ( Bunch.bPartial )
 			{
-				// If this is a partial bunch, use the last processed partial sequence to read the new partial sequence
-				Bunch.ChSequence = MakeRelative( Reader.ReadInt( MAX_CHSEQUENCE ), LastPartialPacketId, MAX_CHSEQUENCE );
-				if ( Bunch.ChSequence > LastPartialPacketId )
-				{
-					LastPartialPacketId = Bunch.ChSequence;
-				}
-				else
-				{
-					// Well behaved clients should never hit this, since we've already thrown out packets that were older
-					// Since PartialPacketId should evolve in sync with PacketId, this should be impossible unless the 
-					// client is misbehaving...
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Invalid partial packet id." ) );
-				}
+				// If this is an unreliable partial bunch, we simply use packet sequence since we already have it
+				Bunch.ChSequence = PacketId;
 			}
 			else
 			{
@@ -1156,15 +1143,18 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 	Header.WriteBit( Bunch.bHasGUIDs );
 	Header.WriteBit( Bunch.bHasMustBeMappedGUIDs );
 	Header.WriteBit( Bunch.bPartial );
-	if (Bunch.bReliable || Bunch.bPartial)
+
+	if ( Bunch.bReliable )
 	{
 		Header.WriteIntWrapped(Bunch.ChSequence, MAX_CHSEQUENCE);
-		if (Bunch.bPartial)
-		{
-			Header.WriteBit( Bunch.bPartialInitial );
-			Header.WriteBit( Bunch.bPartialFinal );
-		}
 	}
+
+	if (Bunch.bPartial)
+	{
+		Header.WriteBit( Bunch.bPartialInitial );
+		Header.WriteBit( Bunch.bPartialFinal );
+	}
+
 	if (Bunch.bReliable || Bunch.bOpen)
 	{
 		Header.WriteIntWrapped(Bunch.ChType, CHTYPE_MAX);

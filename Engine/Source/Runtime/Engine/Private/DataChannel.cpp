@@ -454,7 +454,15 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			//  -ChSequence is next in partial sequence
 			//	-Reliability flag matches
 
-			if (InPartialBunch && !InPartialBunch->bPartialFinal && InPartialBunch->ChSequence+1 == Bunch.ChSequence && InPartialBunch->bReliable == Bunch.bReliable)
+			const bool bReliableSequencesMatches = Bunch.ChSequence == InPartialBunch->ChSequence + 1;
+			const bool bUnreliableSequenceMatches = bReliableSequencesMatches || ( Bunch.ChSequence == InPartialBunch->ChSequence );
+
+			// Unreliable partial bunches use the packet sequence, and since we can merge multiple bunches into a single packet,
+			// it's perfectly legal for the ChSequence to match in this case.
+			// Reliable partial bunches must be in consecutive order though
+			const bool bSequenceMatches = InPartialBunch->bReliable ? bReliableSequencesMatches : bUnreliableSequenceMatches;
+
+			if ( InPartialBunch && !InPartialBunch->bPartialFinal && bSequenceMatches && InPartialBunch->bReliable == Bunch.bReliable )
 			{
 				// Merge.
 				UE_LOG(LogNetPartialBunch, Verbose, TEXT("Merging Partial Bunch: %d Bytes"), Bunch.GetBytesLeft() );
@@ -469,7 +477,7 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 				check( Bunch.bHasGUIDs || Bunch.bPartialFinal || Bunch.GetBitsLeft() % 8 == 0 );
 
 				// Advance the sequence of the current partial bunch so we know what to expect next
-				InPartialBunch->ChSequence++;
+				InPartialBunch->ChSequence = Bunch.ChSequence;
 
 				if (Bunch.bPartialFinal)
 				{
@@ -755,13 +763,6 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		}
 
 		FOutBunch *ThisOutBunch = PrepBunch(NextBunch, OutBunch, Merge); // This handles queuing reliable bunches into the ack list
-
-		if (ThisOutBunch->bPartial && !ThisOutBunch->bReliable)
-		{
-			// If we are reliable, then partial bunches just use the reliable sequences
-			// if not reliable, we hijack ChSequence and use Connection->PartialPacketId to sequence these packets
-			ThisOutBunch->ChSequence = Connection->PartialPacketId++;
-		}
 
 		if (UE_LOG_ACTIVE(LogNetPartialBunch,Verbose) && (OutgoingBunches.Num() > 1)) // Don't want to call appMemcrc unless we need to
 		{
