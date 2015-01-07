@@ -319,15 +319,7 @@ bool FOnlineSessionIOS::IsPlayerInSession(FName SessionName, const FUniqueNetId&
 	return IsPlayerInSessionImpl(this, SessionName, UniqueId);
 }
 
-bool FOnlineSessionIOS::StartMatchmaking(int32 SearchingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
-{
-	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
-	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
-	return false;
-}
-
-
-bool FOnlineSessionIOS::StartMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
+bool FOnlineSessionIOS::StartMatchmaking(const TArray< TSharedRef<FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
 	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
 	TriggerOnMatchmakingCompleteDelegates(SessionName, false);

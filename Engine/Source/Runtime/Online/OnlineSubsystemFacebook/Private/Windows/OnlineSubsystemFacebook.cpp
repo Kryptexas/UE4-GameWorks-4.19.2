@@ -109,11 +109,6 @@ IOnlinePresencePtr FOnlineSubsystemFacebook::GetPresenceInterface() const
 	return NULL;
 }
 
-IOnlinePartyPtr FOnlineSubsystemFacebook::GetPartyInterface() const
-{
-	return NULL;
-}
-
 IOnlineChatPtr FOnlineSubsystemFacebook::GetChatInterface() const
 {
 	return NULL;

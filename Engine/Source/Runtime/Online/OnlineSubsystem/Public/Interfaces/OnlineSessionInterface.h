@@ -214,6 +214,25 @@ DECLARE_DELEGATE_TwoParams(FOnRegisterLocalPlayerCompleteDelegate, const FUnique
  */
 DECLARE_DELEGATE_TwoParams(FOnUnregisterLocalPlayerCompleteDelegate, const FUniqueNetId&, const bool);	
 
+/** Possible reasons for the service to cause a session failure */
+namespace ESessionFailure
+{
+	enum Type
+	{
+		/** General loss of connection */
+		ServiceConnectionLost
+	};
+}
+
+/**
+ * Delegate fired when an unexpected error occurs that impacts session connectivity or use
+ *
+ * @param PlayerId The player impacted by the failure (may be empty if unknown, or if all players are affected)
+ * @param FailureType What kind of failure occurred 
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionFailure, const FUniqueNetId&, ESessionFailure::Type);
+typedef FOnSessionFailure::FDelegate FOnSessionFailureDelegate;
+
 /**
  * Interface definition for the online services session services 
  * Session services are defined as anything related managing a session 
@@ -396,28 +415,15 @@ public:
 	/**
 	 * Begins cloud based matchmaking for a session
 	 *
-	 * @param SearchingPlayerNum the index of the player searching for a match
+	 * @param LocalPlayers the ids of all local players that will participate in the match
 	 * @param SessionName the name of the session to use, usually will be GAME_SESSION_NAME
 	 * @param NewSessionSettings the desired settings to match against or create with when forming new sessions
 	 * @param SearchSettings the desired settings that the matched session will have
 	 *
 	 * @return true if successful searching for sessions, false otherwise
 	 */
-	virtual bool StartMatchmaking(int32 SearchingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) = 0;
-
-	/**
-	 * Begins cloud based matchmaking for a session
-	 *
-	 * @param SearchingPlayerId the id of the player searching for a match
-	 * @param SessionName the name of the session to use, usually will be GAME_SESSION_NAME
-	 * @param NewSessionSettings the desired settings to match against or create with when forming new sessions
-	 * @param SearchSettings the desired settings that the matched session will have
-	 *
-	 * @return true if successful searching for sessions, false otherwise
-	 */
-	virtual bool StartMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) = 0;
-
-
+	virtual bool StartMatchmaking(const TArray< TSharedRef<FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) = 0;
+	
 	/**
 	 * Delegate fired when the cloud matchmaking has completed
 	 *
@@ -766,6 +772,14 @@ public:
 	 * @param Delegate the delegate executed when the asynchronous operation completes
 	 */
 	virtual void UnregisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnUnregisterLocalPlayerCompleteDelegate& Delegate) = 0;
+
+	/**
+	 * Delegate fired when an unexpected error occurs that impacts session connectivity or use
+	 *
+	 * @param PlayerId The player impacted by the failure (may be empty if unknown, or if all players are affected)
+	 * @param FailureType What kind of failure occured 
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionFailure, const FUniqueNetId&, ESessionFailure::Type);
 
 	/**
 	 * Gets the number of known sessions registered with the interface

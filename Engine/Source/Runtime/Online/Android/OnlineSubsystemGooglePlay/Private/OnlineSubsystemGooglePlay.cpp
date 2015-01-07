@@ -84,11 +84,6 @@ IOnlineTimePtr FOnlineSubsystemGooglePlay::GetTimeInterface() const
 	return nullptr;
 }
 
-IOnlinePartyPtr FOnlineSubsystemGooglePlay::GetPartyInterface() const
-{
-	return nullptr;
-}
-
 IOnlineTitleFilePtr FOnlineSubsystemGooglePlay::GetTitleFileInterface() const
 {
 	return nullptr;

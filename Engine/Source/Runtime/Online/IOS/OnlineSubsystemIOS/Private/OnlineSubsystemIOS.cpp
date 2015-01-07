@@ -62,12 +62,6 @@ IOnlineIdentityPtr FOnlineSubsystemIOS::GetIdentityInterface() const
 }
 
 
-IOnlinePartyPtr FOnlineSubsystemIOS::GetPartyInterface() const
-{
-	return NULL;
-}
-
-
 IOnlineTitleFilePtr FOnlineSubsystemIOS::GetTitleFileInterface() const
 {
 	return NULL;

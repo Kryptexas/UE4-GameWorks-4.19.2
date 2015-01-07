@@ -36,7 +36,6 @@ public:
 	virtual IOnlineExternalUIPtr GetExternalUIInterface() const override;
 	virtual IOnlineTimePtr GetTimeInterface() const override;
 	virtual IOnlineIdentityPtr GetIdentityInterface() const override;
-	virtual IOnlinePartyPtr GetPartyInterface() const override;
 	virtual IOnlineTitleFilePtr GetTitleFileInterface() const override;
 	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override;
 	virtual IOnlineStorePtr GetStoreInterface() const override;
