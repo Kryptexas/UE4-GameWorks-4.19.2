@@ -555,6 +555,8 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 
 void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
 {
+	GInitRunaway();
+
 	// Update active movie scenes
 	for( UUMGSequencePlayer* Player : ActiveSequencePlayers )
 	{
