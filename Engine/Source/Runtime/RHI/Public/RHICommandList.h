@@ -805,7 +805,7 @@ struct FRHICommandClearMRT : public FRHICommand<FRHICommandClearMRT>
 		, bClearDepth(InbClearDepth)
 		, bClearStencil(InbClearStencil)
 	{
-		check(InNumClearColors < MaxSimultaneousRenderTargets);
+		check(InNumClearColors <= MaxSimultaneousRenderTargets);
 		for (int32 Index = 0; Index < InNumClearColors; Index++)
 		{
 			ColorArray[Index] = InColorArray[Index];
