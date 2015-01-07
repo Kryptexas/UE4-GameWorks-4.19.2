@@ -645,37 +645,43 @@ public:
 	SAFE_BOOL_OPERATORS(TFunction)
 
 private:
-	/**
-	 * Nullptr equality operator.
-	 */
-	friend bool operator==(TYPE_OF_NULLPTR, const TFunction& Func)
-	{
-		return !Func;
-	}
 
-	/**
-	 * Nullptr equality operator.
-	 */
-	friend bool operator==(const TFunction& Func, TYPE_OF_NULLPTR)
-	{
-		return !Func;
-	}
-
-	/**
-	 * Nullptr inequality operator.
-	 */
-	friend bool operator!=(TYPE_OF_NULLPTR, const TFunction& Func)
-	{
-		return (bool)Func;
-	}
-
-	/**
-	 * Nullptr inequality operator.
-	 */
-	friend bool operator!=(const TFunction& Func, TYPE_OF_NULLPTR)
-	{
-		return (bool)Func;
-	}
 
 	UE4Function_Private::IFunction_OwnedObject* Func;
 };
+
+	/**
+	 * Nullptr equality operator.
+	 */
+	template <typename FuncType>
+	bool operator==(TYPE_OF_NULLPTR, const TFunction<FuncType>& Func)
+	{
+		return !Func;
+	}
+
+	/**
+	 * Nullptr equality operator.
+	 */
+	template <typename FuncType>
+	bool operator==(const TFunction<FuncType>& Func, TYPE_OF_NULLPTR)
+	{
+		return !Func;
+	}
+
+	/**
+	 * Nullptr inequality operator.
+	 */
+	template <typename FuncType>
+	bool operator!=(TYPE_OF_NULLPTR, const TFunction<FuncType>& Func)
+	{
+		return (bool)Func;
+	}
+
+	/**
+	 * Nullptr inequality operator.
+	 */
+	template <typename FuncType>
+	bool operator!=(const TFunction<FuncType>& Func, TYPE_OF_NULLPTR)
+	{
+		return (bool)Func;
+	}
