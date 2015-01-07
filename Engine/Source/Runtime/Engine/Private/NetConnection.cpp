@@ -640,6 +640,12 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	if( PacketId > InPacketId )
 	{
 		const int32 PacketsLost = PacketId - InPacketId - 1;
+		
+		if ( PacketsLost > 10 )
+		{
+			UE_LOG( LogNetTraffic, Warning, TEXT( "High single frame packet loss: %i" ), PacketsLost );
+		}
+
 		InPacketsLost += PacketsLost;
 		Driver->InPacketsLost += PacketsLost;
 		InPacketId = PacketId;
@@ -980,12 +986,6 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 					}
 					continue;
 				}
-			}
-
-			if( Bunch.bOpen && !Bunch.bPartial )
-			{
-				Channel->OpenAcked = 1;
-				Channel->OpenPacketId = FPacketIdRange(PacketId);
 			}
 
 			// Dispatch the raw, unsequenced bunch to the channel.
