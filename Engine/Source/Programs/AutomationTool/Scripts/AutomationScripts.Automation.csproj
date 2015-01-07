@@ -75,6 +75,9 @@
     <Compile Include="GUBP.Automation.cs" />
     <Compile Include="IPhonePackager.Automation.cs" />
     <Compile Include="LauncherLocalization.Automation.cs" />
+    <Compile Include="ListMobileDevices.Automation.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Localisation.Automation.cs" />
     <Compile Include="MegaXGE.Automation.cs" />
     <Compile Include="PackageCommand.Automation.cs" />
