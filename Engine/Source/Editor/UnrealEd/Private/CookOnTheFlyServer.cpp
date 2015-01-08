@@ -2564,6 +2564,8 @@ void UCookOnTheFlyServer::CancelCookByTheBook()
 		// save the cook requests 
 		CookRequests.DequeueAllRequests(CookByTheBookOptions->PreviousCookRequests);
 		CookByTheBookOptions->bRunning = false;
+
+		SandboxFile = NULL;
 	}	
 }
 
