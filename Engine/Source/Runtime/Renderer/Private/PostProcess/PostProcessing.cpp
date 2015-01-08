@@ -1304,6 +1304,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			Node->SetInput(ePId_Input1, Histogram);
 			Node->SetInput(ePId_Input2, HDRColor);
 			Node->SetInput(ePId_Input3, HistogramOverScreen);
+			Node->AddDependency(EyeAdaptation);
+
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
