@@ -262,6 +262,20 @@ void UNavigationSystem::DoInitialSetup()
 		return;
 	}
 	
+	UpdateAbstractNavData();
+
+	CreateCrowdManager();
+
+	bInitialSetupHasBeenPerformed = true;
+}
+
+void UNavigationSystem::UpdateAbstractNavData()
+{
+	if (AbstractNavData != nullptr)
+	{
+		return;
+	}
+
 	// spawn abstract nav data separately
 	// it's responsible for direct paths and shouldn't be picked for any agent type as default one
 	UWorld* NavWorld = GetWorld();
@@ -282,11 +296,14 @@ void UNavigationSystem::DoInitialSetup()
 		AbstractNavData = CreateNavigationDataInstance(DummyConfig);
 	}
 
-	CreateCrowdManager();
-
-	bInitialSetupHasBeenPerformed = true;
+	if (AbstractNavData->IsRegistered() == false)
+	{
+		// fake registration since it's a special navigation data type 
+		// and it would get discarded for not implementing any particular
+		// navigation agent
+		AbstractNavData->OnRegistered();
+	}
 }
-
 void UNavigationSystem::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -524,6 +541,7 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 	else // just register data already present
 	{
 		RegisterNavigationDataInstances();
+		UpdateAbstractNavData();
 	}
 }
 

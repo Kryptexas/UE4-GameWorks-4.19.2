@@ -118,7 +118,7 @@ void AAIController::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 
 	if (FocusActor == nullptr)
 	{
-		MyCategory.Add(TEXT("Focus Location"), GetFocalPoint().ToString());
+		MyCategory.Add(TEXT("Focus Location"), TEXT_AI_LOCATION(GetFocalPoint()));
 	}
 	Snapshot->Status.Add(MyCategory);
 
@@ -528,14 +528,14 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
 	bool bCanRequestMove = true;
 
-	UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d) Filter(%s)"),
-		*Dest.ToString(), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe, *GetNameSafe(FilterClass));
+	UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d) Filter(%s)")
+		, TEXT_AI_LOCATION(Dest), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe, *GetNameSafe(FilterClass));
 
 	// Check input is valid
 	if (Dest.ContainsNaN())
 	{
-		UE_VLOG(this, LogAINavigation, Error, TEXT("AAIController::MoveToLocation: Destination is not valid! Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d)"),
-			*Dest.ToString(), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe);
+		UE_VLOG(this, LogAINavigation, Error, TEXT("AAIController::MoveToLocation: Destination is not valid! Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d)")
+			, TEXT_AI_LOCATION(Dest), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe);
 
 		ensure(!Dest.ContainsNaN());
 		bCanRequestMove = false;
@@ -576,7 +576,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	if (bCanRequestMove)
 	{
 		FPathFindingQuery Query;
-		const bool bValidQuery = PreparePathfinding(Query, GoalLocation, NULL, true, FilterClass);
+		const bool bValidQuery = PreparePathfinding(Query, GoalLocation, NULL, bUsePathfinding, FilterClass);
 		const FAIRequestID RequestID = bValidQuery ? RequestPathAndMove(Query, NULL, AcceptanceRadius, bStopOnOverlap, NULL) : FAIRequestID::InvalidRequest;
 
 		if (RequestID.IsValid())
