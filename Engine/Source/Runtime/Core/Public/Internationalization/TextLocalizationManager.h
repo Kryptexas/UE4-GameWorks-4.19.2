@@ -79,8 +79,8 @@ private:
 public:
 	static CORE_API FTextLocalizationManager& Get();
 
-	TSharedPtr<FString, ESPMode::ThreadSafe> FindString( const FString& Namespace, const FString& Key, const FString* const SourceString = nullptr );
-	TSharedRef<FString, ESPMode::ThreadSafe> GetString(const FString& Namespace, const FString& Key, const FString* const SourceString);
+	TSharedPtr<FString, ESPMode::ThreadSafe> CORE_API FindString(const FString& Namespace, const FString& Key, const FString* const SourceString = nullptr);
+	TSharedRef<FString, ESPMode::ThreadSafe> CORE_API GetString(const FString& Namespace, const FString& Key, const FString* const SourceString);
 
 	/**
 	 * Using an FText SourceString's, returns the associated Namespace and Key

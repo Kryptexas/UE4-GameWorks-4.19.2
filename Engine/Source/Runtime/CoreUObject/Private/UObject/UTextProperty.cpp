@@ -4,21 +4,21 @@
 #include "UObject/UTextProperty.h"
 #include "PropertyHelper.h"
 
-bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) const
+bool UTextProperty::Identical(const void* A, const void* B, uint32 PortFlags) const
 {
 	const TCppType ValueA = GetPropertyValue(A);
-	if ( B )
+	if (B)
 	{
 		const TCppType ValueB = GetPropertyValue(B);
 
-		if ( ValueA.IsCultureInvariant() != ValueB.IsCultureInvariant() || ValueA.IsTransient() != ValueB.IsTransient() )
+		if (ValueA.IsCultureInvariant() != ValueB.IsCultureInvariant() || ValueA.IsTransient() != ValueB.IsTransient())
 		{
 			//A culture variant text is never equal to a culture invariant text
 			//A transient text is never equal to a non-transient text
 			return false;
 		}
-		
-		if ( ValueA.IsCultureInvariant() == ValueB.IsCultureInvariant() || ValueA.IsTransient() == ValueB.IsTransient() )
+
+		if (ValueA.IsCultureInvariant() == ValueB.IsCultureInvariant() || ValueA.IsTransient() == ValueB.IsTransient())
 		{
 			//Culture invariant text don't have a namespace/key so we compare the source string
 			//Transient text don't have a namespace/key or source so we compare the display string
@@ -31,48 +31,48 @@ bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) 
 		}
 		else
 		{
-			return	FTextInspector::GetNamespace(ValueA)	==	FTextInspector::GetNamespace(ValueB) &&
-					FTextInspector::GetKey(ValueA)			==	FTextInspector::GetKey(ValueB);
+			return	FTextInspector::GetNamespace(ValueA) == FTextInspector::GetNamespace(ValueB) &&
+				FTextInspector::GetKey(ValueA) == FTextInspector::GetKey(ValueB);
 		}
 	}
 
 	return FTextInspector::GetDisplayString(ValueA).IsEmpty();
 }
 
-void UTextProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UTextProperty::SerializeItem(FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults) const
 {
 	const TCppType PropertyValue = GetPropertyValue(Value);
-	if ( Ar.IsSaving() && Ar.IsPersistent() && PropertyValue.IsTransient() )
+	if (Ar.IsSaving() && Ar.IsPersistent() && PropertyValue.IsTransient())
 	{
 		// Convert to a string and back, to get it set as an invariant message instead of transient. If it stayed transient, error messages recursively expand
-		FString ErrorMessage = FText::Format( FText::SerializationFailureError, FText::FromString( FTextInspector::GetDisplayString(PropertyValue) ) ).ToString();
-		UE_LOG( LogProperty, Warning, TEXT("%s"), *ErrorMessage);
+		FString ErrorMessage = FText::Format(FText::SerializationFailureError, FText::FromString(FTextInspector::GetDisplayString(PropertyValue))).ToString();
+		UE_LOG(LogProperty, Warning, TEXT("%s"), *ErrorMessage);
 		SetPropertyValue(Value, FText::FromString(ErrorMessage));
 	}
 
 	Ar << *GetPropertyValuePtr(Value);
 }
 
-void UTextProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
+void UTextProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
 	const FText& TextValue = GetPropertyValue(PropertyValue);
 	const FString& StringValue = FTextInspector::GetDisplayString(TextValue);
-	if( !(PortFlags & PPF_Delimited) )
+	if (!(PortFlags & PPF_Delimited))
 	{
 		ValueStr += StringValue;
 	}
-	else if ( StringValue.Len() > 0 )
+	else if (StringValue.Len() > 0)
 	{
-		ValueStr += FString::Printf( TEXT("\"%s\""), *(StringValue.ReplaceCharWithEscapedChar()) );
+		ValueStr += FString::Printf(TEXT("\"%s\""), *(StringValue.ReplaceCharWithEscapedChar()));
 	}
 }
 
-const TCHAR* UTextProperty::ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
+const TCHAR* UTextProperty::ImportText_Internal(const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText) const
 {
 	FText* Text = GetPropertyValuePtr(Data);
 
 	FString BufferAsString;
-	if( !(PortFlags & PPF_Delimited) )
+	if (!(PortFlags & PPF_Delimited))
 	{
 		BufferAsString = FString(Buffer);
 
@@ -106,7 +106,8 @@ const TCHAR* UTextProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 		BufferAsString = FString(Temp);
 	}
 
-	*Text = FText::FromString( FString(BufferAsString) );
+	FScopedTextIdentityPreserver Preserver(*Text);
+	*Text = FText::FromString(FString(BufferAsString));
 
 	return Buffer;
 }

@@ -7,6 +7,7 @@
 #include "ISlateMetaData.h"
 #include "TutorialMetaData.h"
 #include "SDockTab.h"
+#include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "TutorialStructCustomization"
 
@@ -164,6 +165,14 @@ void FTutorialContentCustomization::CustomizeHeader( TSharedRef<class IPropertyH
 				.Text_Static(&Local::GetValueAsText, TextProperty)
 				.OnTextCommitted(FOnTextCommitted::CreateStatic(&Local::OnTextCommitted, TextProperty))
 				.OnTextChanged(FOnTextChanged::CreateStatic(&Local::OnTextChanged, TextProperty))
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			[
+				PropertyCustomizationHelpers::MakeTextLocalizationButton(TextProperty.ToSharedRef())
 			]
 		]
 	];

@@ -13,36 +13,65 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 	PropertyEditor = InPropertyEditor;
 
 	const UProperty* Property = InPropertyEditor->GetProperty();
+
+	TSharedPtr<SHorizontalBox> HorizontalBox;
+
 	bIsMultiLine = Property->GetBoolMetaData("MultiLine");
 	if(bIsMultiLine)
 	{
 		ChildSlot
 		[
-			SAssignNew( PrimaryWidget, SMultiLineEditableTextBox)
-			.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
-			.Font( InArgs._Font )
-			.SelectAllTextWhenFocused( false )
-			.ClearKeyboardFocusOnCommit(false)
-			.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
-			.SelectAllTextOnCommit( false )
-			.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
-			.AutoWrapText(true)
-			.ModiferKeyForNewLine(EModifierKey::Shift)
+			SAssignNew(HorizontalBox, SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SAssignNew(PrimaryWidget, SMultiLineEditableTextBox)
+				.Text(InPropertyEditor, &FPropertyEditor::GetValueAsText)
+				.Font(InArgs._Font)
+				.SelectAllTextWhenFocused(false)
+				.ClearKeyboardFocusOnCommit(false)
+				.OnTextCommitted(this, &SPropertyEditorText::OnTextCommitted)
+				.SelectAllTextOnCommit(false)
+				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
+				.AutoWrapText(true)
+				.ModiferKeyForNewLine(EModifierKey::Shift)
+			]
 		];
 	}
 	else
 	{
 		ChildSlot
 		[
-			SAssignNew( PrimaryWidget, SEditableTextBox )
-			.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
-			.Font( InArgs._Font )
-			.SelectAllTextWhenFocused( true )
-			.ClearKeyboardFocusOnCommit(false)
-			.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
-			.SelectAllTextOnCommit( true )
-			.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
+			SAssignNew(HorizontalBox, SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SAssignNew( PrimaryWidget, SEditableTextBox )
+				.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
+				.Font( InArgs._Font )
+				.SelectAllTextWhenFocused( true )
+				.ClearKeyboardFocusOnCommit(false)
+				.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
+				.SelectAllTextOnCommit( true )
+				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
+			]
 		];
+	}
+
+	if (InPropertyEditor->PropertyIsA(UTextProperty::StaticClass()))
+	{
+		const TSharedRef< FPropertyNode > PropertyNode = InPropertyEditor->GetPropertyNode();
+		const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
+
+		// text properties require some extra controls to allow for localization functionality
+		HorizontalBox->AddSlot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			[
+				PropertyCustomizationHelpers::MakeTextLocalizationButton(PropertyHandle)
+			];
 	}
 
 	if( InPropertyEditor->PropertyIsA( UObjectPropertyBase::StaticClass() ) )
