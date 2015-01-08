@@ -81,13 +81,9 @@ struct FSearchData
 	/** Cached to determine if the Blueprint is seen as no longer valid, allows it to be cleared out next save to disk */
 	bool bMarkedForDeletion;
 
-	/** Retrieval ID from the DDC, set to INDEX_None when retrieval is not necessary */
-	int32 DDCRetrievalID;
-
 	FSearchData()
 		: Blueprint(nullptr)
 		, bMarkedForDeletion(false)
-		, DDCRetrievalID(INDEX_NONE)
 	{
 
 	}
@@ -205,9 +201,6 @@ private:
 
 	/** Builds the cache from all available Blueprint assets that the asset registry has discovered at the time of this function. Occurs on startup */
 	void BuildCache();
-
-	/** Retrieves Find-in-Blueprint data from the DDC */
-	void RetrieveDDCData(FSearchData& InOutSearchData, FName InBlueprintPath);
 
 protected:
 	/** Maps the Blueprint paths to their index in the SearchArray */
