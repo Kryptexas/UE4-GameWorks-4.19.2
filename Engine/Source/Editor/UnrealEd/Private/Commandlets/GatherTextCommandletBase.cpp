@@ -777,7 +777,7 @@ bool FGatherTextSCC::CheckOutFile(const FString& InFile, FText& OutError)
 				OutError = FText::Format(NSLOCTEXT("GatherTextCmdlet", "FailedToCheckOutFile", "Failed to check out file '{Filepath}'."), Args);
 			}
 		}
-		else if(!SourceControlState->IsSourceControlled())
+		else if(!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())
 		{
 			bSuccessfullyCheckedOut = (SourceControlProvider.Execute( ISourceControlOperation::Create<FMarkForAdd>(), FilesToBeCheckedOut ) == ECommandResult::Succeeded);
 			if (!bSuccessfullyCheckedOut)
