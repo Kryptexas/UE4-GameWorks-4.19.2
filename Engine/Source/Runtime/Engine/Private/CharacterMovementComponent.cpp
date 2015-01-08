@@ -666,6 +666,7 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 	if (MovementMode == MOVE_NavWalking)
 	{
 		SetNavWalkingPhysics(true);
+		GroundMovementMode = MovementMode;
 	}
 	else if (PreviousMovementMode == MOVE_NavWalking)
 	{
