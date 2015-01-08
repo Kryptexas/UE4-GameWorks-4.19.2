@@ -162,7 +162,7 @@ bool USoundCue::RecursiveFindPathToNode(USoundNode* CurrentNode, const UPTRINT C
 
 bool USoundCue::FindPathToNode(const UPTRINT NodeHashToFind, TArray<USoundNode*>& OutPath) const
 {
-	return RecursiveFindPathToNode(FirstNode, 0, NodeHashToFind, OutPath);
+	return RecursiveFindPathToNode(FirstNode, (UPTRINT)FirstNode, NodeHashToFind, OutPath);
 }
 
 
