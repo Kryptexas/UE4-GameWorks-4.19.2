@@ -156,6 +156,9 @@ protected:
 
 	/** Attribute to look up if the widget is read-only */
 	TAttribute< bool > bIsReadOnly;
+	
+	/** Widget to focus when we finish editing */
+	TWeakPtr<SWidget> WidgetToFocus;
 
 private:
 	/** Active timer to trigger entry into edit mode after a delay */
