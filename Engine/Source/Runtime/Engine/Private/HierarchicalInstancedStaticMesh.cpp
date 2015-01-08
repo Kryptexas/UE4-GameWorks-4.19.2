@@ -1462,6 +1462,7 @@ void UHierarchicalInstancedStaticMeshComponent::ClearInstances()
 
 	ClusterTreePtr = MakeShareable(new TArray<FClusterNode>);
 	NumBuiltInstances = 0;
+	SortedInstances.Empty();
 	UnbuiltInstanceBounds.Init();
 
 	Super::ClearInstances();

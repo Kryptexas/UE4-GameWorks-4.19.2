@@ -193,11 +193,30 @@ namespace ELandscapeLODFalloff
 
 struct FCachedLandscapeFoliage
 {
+	struct FPerGrassComp
+	{
+		TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
+		uint32 LastUsedFrameNumber;
+		double LastUsedTime;
+		bool Pending;
+
+		FPerGrassComp(UHierarchicalInstancedStaticMeshComponent* InFoliage)
+			: Foliage(InFoliage)
+			, Pending(true)
+		{
+			Touch();
+		}
+		void Touch()
+		{
+			LastUsedFrameNumber = GFrameNumber;
+			LastUsedTime = FPlatformTime::Seconds();
+		}
+	};
 	struct FPerLayer
 	{
 		int32 SqrtSubsections;
 		int32 CachedMaxInstancesPerComponent;
-		TArray<TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> > Foliage;
+		TArray<FPerGrassComp> Foliage;
 		TWeakObjectPtr<ULandscapeLayerInfoObject> Layer;
 
 		FPerLayer(int32 InSqrtSubsections, int32 InCachedMaxInstancesPerComponent, ULandscapeLayerInfoObject* InLayer)
@@ -428,7 +447,7 @@ public:
 	virtual ALandscape* GetLandscapeActor();
 
 	/** Flush the foliage cache */
-	LANDSCAPE_API void FlushFoliageComponents();
+	LANDSCAPE_API void FlushFoliageComponents(TSet<ULandscapeComponent*>* OnlyForComponents = nullptr);
 
 	/** 
 		Update Foliage 
