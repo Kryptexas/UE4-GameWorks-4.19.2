@@ -4320,8 +4320,7 @@ bool SupportsDistanceFieldAO(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatfor
 bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldAO() const
 {
 	return SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform())
-		&& ViewFamily.EngineShowFlags.DistanceFieldAO
-		&& ((ShouldRenderDynamicSkyLight() && Scene->SkyLight->bCastShadows)
+		&& ((ShouldRenderDynamicSkyLight() && Scene->SkyLight->bCastShadows && ViewFamily.EngineShowFlags.DistanceFieldAO)
 			|| ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields
 			|| ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO
 			|| ViewFamily.EngineShowFlags.VisualizeDistanceFieldGI);
