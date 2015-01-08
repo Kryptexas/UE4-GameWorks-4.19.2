@@ -520,7 +520,7 @@ namespace CodeView
 								.HighlightText( this, &SCodeView::GetFilterText )
 
 								// Use the module name as the tool-tip
-								.ToolTipText( Item->ModuleName )
+								.ToolTipText( FText::FromString(Item->ModuleName) )
 						]
 				;
 

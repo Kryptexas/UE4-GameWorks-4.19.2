@@ -45,10 +45,10 @@ private:
 	void GraphNavigateHistoryForward();
 
 	/** Gets the tool tip text for the history back button */
-	FString GetHistoryBackTooltip() const;
+	FText GetHistoryBackTooltip() const;
 
 	/** Gets the tool tip text for the history forward button */
-	FString GetHistoryForwardTooltip() const;
+	FText GetHistoryForwardTooltip() const;
 
 	/** Gets the text to be displayed in the address bar */
 	FText GetAddressBarText() const;

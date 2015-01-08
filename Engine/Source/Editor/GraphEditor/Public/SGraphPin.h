@@ -140,7 +140,7 @@ protected:
 	virtual FSlateColor GetPinColor() const;
 
 	/** @return The tooltip to display for this pin */
-	FString GetTooltip() const;
+	FText GetTooltip() const;
 
 	TOptional<EMouseCursor::Type> GetPinCursor() const;
 

@@ -153,7 +153,7 @@ private:
 	TSharedRef<SWidget> MakeCreateAssetContextMenu();
 
 	/** Gets the tool tip for the new asset button */
-	FString GetNewAssetToolTipText() const;
+	FText GetNewAssetToolTipText() const;
 
 	/** Makes the filters menu */
 	TSharedRef<SWidget> MakeAddFilterMenu();
@@ -237,10 +237,10 @@ private:
 	bool CanExecuteDirectoryUp() const;
 
 	/** Gets the tool tip text for the history back button */
-	FString GetHistoryBackTooltip() const;
+	FText GetHistoryBackTooltip() const;
 
 	/** Gets the tool tip text for the history forward button */
-	FString GetHistoryForwardTooltip() const;
+	FText GetHistoryForwardTooltip() const;
 
 	/** Gets the tool tip text for the directory up button */
 	FText GetDirectoryUpTooltip() const;

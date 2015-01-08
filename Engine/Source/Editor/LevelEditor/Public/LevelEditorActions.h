@@ -1080,7 +1080,7 @@ public:
 	static void OnToggleLevelStreamingVolumePrevis();
 	static bool OnIsLevelStreamingVolumePrevisEnabled(); 
 	
-	static FString GetAudioVolumeToolTip();
+	static FText GetAudioVolumeToolTip();
 	static float GetAudioVolume();
 	static void OnAudioVolumeChanged(float Volume);
 	static bool GetAudioMuted();
@@ -1088,7 +1088,7 @@ public:
 
 	static void OnEnableActorSnap();
 	static bool OnIsActorSnapEnabled();
-	static FString GetActorSnapTooltip();
+	static FText GetActorSnapTooltip();
 	static float GetActorSnapSetting();
 	static void SetActorSnapSetting(float Distance);
 	static void OnEnableVertexSnap();

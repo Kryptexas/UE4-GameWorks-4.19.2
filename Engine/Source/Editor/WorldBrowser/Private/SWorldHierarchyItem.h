@@ -159,10 +159,10 @@ private:
 
 	
 	/** */
-	FString GetLevelLockToolTip() const;
+	FText GetLevelLockToolTip() const;
 	
 	/** */
-	FString GetSCCStateTooltip() const;
+	FText GetSCCStateTooltip() const;
 	
 	/** */
 	const FSlateBrush* GetSCCStateImage() const;

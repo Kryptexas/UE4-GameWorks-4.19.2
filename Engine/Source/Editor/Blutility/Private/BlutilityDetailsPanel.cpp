@@ -102,10 +102,10 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 				const FText ButtonCaption = FText::FromString(FName::NameToDisplayString(*Function->GetName(), false));
 
 				//@TODO: Expose the code in UK2Node_CallFunction::GetUserFacingFunctionName / etc...
-				FString Tooltip = Function->GetToolTipText().ToString();
+				FText Tooltip = Function->GetToolTipText();
 				if (Tooltip.IsEmpty())
 				{
-					Tooltip = Function->GetName();
+					Tooltip = FText::FromString(Function->GetName());
 				}
 
 				TWeakObjectPtr<UFunction> WeakFunctionPtr(Function);

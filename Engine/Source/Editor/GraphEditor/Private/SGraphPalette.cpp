@@ -160,9 +160,9 @@ FText SGraphPaletteItem::GetDisplayText() const
 	return ActionPtr.Pin()->MenuDescription;
 }
 
-FString SGraphPaletteItem::GetItemTooltip() const
+FText SGraphPaletteItem::GetItemTooltip() const
 {
-	return ActionPtr.Pin()->MenuDescription.ToString();
+	return ActionPtr.Pin()->MenuDescription;
 }
 
 

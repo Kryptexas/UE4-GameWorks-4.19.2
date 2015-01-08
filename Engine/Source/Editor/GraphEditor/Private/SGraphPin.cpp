@@ -249,10 +249,10 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 			];
 	}
 
-	TAttribute<FString> ToolTipAttribute;
+	TAttribute<FText> ToolTipAttribute;
 	if (InArgs._HasToolTip)
 	{
-		ToolTipAttribute = TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateSP(this, &SGraphPin::GetTooltip));
+		ToolTipAttribute = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SGraphPin::GetTooltip));
 	}
 
 	TSharedPtr<SWidget> PinContent;
@@ -948,15 +948,20 @@ void SGraphPin::SetShowLabel(bool bNewShowLabel)
 	bShowLabel = bNewShowLabel;
 }
 
-FString SGraphPin::GetTooltip() const
+FText SGraphPin::GetTooltip() const
 {
-	FString HoverText;
+	FText HoverText = FText::GetEmpty();
 
 	check(GraphPinObj != nullptr);
 	UEdGraphNode* GraphNode = GraphPinObj->GetOwningNodeUnchecked();
 	if (GraphNode != nullptr)
 	{
-		GraphNode->GetPinHoverText(*GraphPinObj, /*out*/ HoverText);
+		FString HoverStr;
+		GraphNode->GetPinHoverText(*GraphPinObj, /*out*/HoverStr);
+		if (!HoverStr.IsEmpty())
+		{
+			HoverText = FText::FromString(HoverStr);
+		}
 	}
 
 	return HoverText;

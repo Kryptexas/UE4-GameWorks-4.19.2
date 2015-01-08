@@ -350,7 +350,7 @@ public:
 		return NULL;
 	}
 
-	FString GetStatusTooltip() const
+	FText GetStatusTooltip() const
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if (StructureDetailsSP.IsValid())
@@ -360,11 +360,11 @@ public:
 				switch (Struct->Status.GetValue())
 				{
 				case EUserDefinedStructureStatus::UDSS_Error:
-					return Struct->ErrorMessage;
+					return FText::FromString(Struct->ErrorMessage);
 				}
 			}
 		}
-		return FString();
+		return FText::GetEmpty();
 	}
 
 	FText OnGetTooltipText() const

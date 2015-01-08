@@ -884,15 +884,20 @@ FText SGraphNode_BehaviorTree::GetDescription() const
 	return FText::FromString(StateNode->GetDescription());
 }
 
-FString SGraphNode_BehaviorTree::GetPinTooltip(UEdGraphPin* GraphPinObj) const
+FText SGraphNode_BehaviorTree::GetPinTooltip(UEdGraphPin* GraphPinObj) const
 {
-	FString HoverText;
+	FText HoverText = FText::GetEmpty();
 
 	check(GraphPinObj != nullptr);
 	UEdGraphNode* GraphNode = GraphPinObj->GetOwningNode();
 	if (GraphNode != nullptr)
 	{
-		GraphNode->GetPinHoverText(*GraphPinObj, /*out*/ HoverText);
+		FString HoverStr;
+		GraphNode->GetPinHoverText(*GraphPinObj, /*out*/HoverStr);
+		if (!HoverStr.IsEmpty())
+		{
+			HoverText = FText::FromString(HoverStr);
+		}
 	}
 
 	return HoverText;
