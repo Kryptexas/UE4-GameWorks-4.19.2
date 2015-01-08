@@ -188,6 +188,12 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 	// Only render translucent materials.
 	if (IsTranslucentBlendMode(BlendMode))
 	{
+		const bool bDisableDepthTest = Material->ShouldDisableDepthTest();
+		if (bDisableDepthTest)
+		{
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		}
+
 		ProcessBasePassMeshForForwardShading(
 			RHICmdList,
 			FProcessBasePassMeshParameters(
@@ -205,6 +211,13 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 				HitProxyId
 				)
 			);
+
+		if (bDisableDepthTest)
+		{
+			// Restore default depth state
+			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.	
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
+		}
 
 		bDirty = true;
 	}
