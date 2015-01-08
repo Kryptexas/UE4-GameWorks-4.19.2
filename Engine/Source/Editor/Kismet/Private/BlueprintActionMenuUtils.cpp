@@ -440,7 +440,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 		UClass* BlueprintClass = Blueprint->SkeletonGeneratedClass;
 		if (BlueprintClass != nullptr)
 		{
-			bCanOperateOnLevelActors &= BlueprintClass->IsChildOf<ALevelScriptActor>();
+			bCanOperateOnLevelActors &= (BlueprintClass->IsChildOf<ALevelScriptActor>() || FBlueprintEditorUtils::IsAnonymousBlueprintClass(BlueprintClass));
 			if (bAddTargetContext)
 			{
 				MainMenuFilter.TargetClasses.Add(BlueprintClass);
@@ -471,8 +471,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 				// Make sure every blueprint is in the same level as this actor
 				for (UBlueprint* Blueprint : Context.Blueprints)
 				{
-					ULevelScriptBlueprint* LevelScriptBlueprint = Cast<ULevelScriptBlueprint>(Blueprint);
-					if (LevelScriptBlueprint && !K2Schema->IsActorValidForLevelScriptRefs(LevelActor, LevelScriptBlueprint))
+					if (!K2Schema->IsActorValidForLevelScriptRefs(LevelActor, Blueprint))
 					{
 						LevelActorsFilter.Context.SelectedObjects.Remove(Selection);
 						break;
@@ -499,8 +498,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 			// Make sure every blueprint is in the same level as this actor
 			for (UBlueprint* Blueprint : Context.Blueprints)
 			{
-				ULevelScriptBlueprint* LevelScriptBlueprint = Cast<ULevelScriptBlueprint>(Blueprint);
-				if (LevelScriptBlueprint && !K2Schema->IsActorValidForLevelScriptRefs(LevelActor, LevelScriptBlueprint))
+				if (!K2Schema->IsActorValidForLevelScriptRefs(LevelActor, Blueprint))
 				{
 					bAddActor = false;
 					break;

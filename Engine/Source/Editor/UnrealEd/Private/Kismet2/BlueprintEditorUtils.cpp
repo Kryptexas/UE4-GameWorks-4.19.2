@@ -2440,6 +2440,11 @@ bool FBlueprintEditorUtils::IsAnonymousBlueprintClass(const UClass* Class)
 	return (Class->GetOutermost()->ContainsMap());
 }
 
+ULevel* FBlueprintEditorUtils::GetLevelFromBlueprint(const UBlueprint* Blueprint)
+{
+	return Cast<ULevel>(Blueprint->GetOuter());
+}
+
 bool FBlueprintEditorUtils::SupportsConstructionScript(const UBlueprint* Blueprint)
 {
 	return(	!FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint) && 

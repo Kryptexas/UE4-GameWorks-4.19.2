@@ -2141,16 +2141,13 @@ void FK2ActionMenuBuilder::GetEventsForBlueprint(FBlueprintPaletteListBuilder& A
 //------------------------------------------------------------------------------
 void FK2ActionMenuBuilder::GetLiteralsFromActorSelection(FBlueprintGraphActionListBuilder& ContextMenuBuilder) const
 {
-	const ULevelScriptBlueprint* LevelBlueprint = CastChecked<ULevelScriptBlueprint>(ContextMenuBuilder.Blueprint);
-	check(LevelBlueprint);
-
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 
 	TArray<AActor*> ValidActors;
 	for(FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 	{
 		AActor* Actor = Cast<AActor>(*Iter);
-		if( K2Schema->IsActorValidForLevelScriptRefs(Actor, LevelBlueprint) )
+		if( K2Schema->IsActorValidForLevelScriptRefs(Actor, ContextMenuBuilder.Blueprint) )
 		{
 			ValidActors.Add( Actor );
 		}
@@ -2186,9 +2183,6 @@ void FK2ActionMenuBuilder::GetLiteralsFromActorSelection(FBlueprintGraphActionLi
 //------------------------------------------------------------------------------
 void FK2ActionMenuBuilder::GetBoundEventsFromActorSelection(FBlueprintGraphActionListBuilder& ContextMenuBuilder) const
 {
-	const ULevelScriptBlueprint* LevelBlueprint = CastChecked<ULevelScriptBlueprint>(ContextMenuBuilder.Blueprint);
-	check(LevelBlueprint != NULL);
-
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 
 	TArray<AActor*> ValidActors;
@@ -2196,7 +2190,7 @@ void FK2ActionMenuBuilder::GetBoundEventsFromActorSelection(FBlueprintGraphActio
 	{
 		// We only care about actors that are referenced in the world for bound events
 		AActor* Actor = Cast<AActor>(*Iter);
-		if( K2Schema->IsActorValidForLevelScriptRefs(Actor, LevelBlueprint) )
+		if( K2Schema->IsActorValidForLevelScriptRefs(Actor, ContextMenuBuilder.Blueprint) )
 		{
 			ValidActors.Add( Actor );
 		}
@@ -2363,16 +2357,12 @@ void FK2ActionMenuBuilder::GetMatineeControllers(FBlueprintGraphActionListBuilde
 //------------------------------------------------------------------------------
 void FK2ActionMenuBuilder::GetFunctionCallsOnSelectedActors(FBlueprintGraphActionListBuilder& ContextMenuBuilder) const
 {
-	const ULevelScriptBlueprint* LevelBlueprint = CastChecked<ULevelScriptBlueprint>(ContextMenuBuilder.Blueprint);
-	ULevel* BlueprintLevel = LevelBlueprint->GetLevel();
-	check(BlueprintLevel != NULL);
-
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 	TArray<AActor*> ValidActors;
 	for(FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 	{
 		AActor* Actor = Cast<AActor>(*Iter);
-		if ( Actor != NULL && Actor->GetLevel() == BlueprintLevel && K2Schema->IsActorValidForLevelScriptRefs(Actor, LevelBlueprint) )
+		if ( K2Schema->IsActorValidForLevelScriptRefs(Actor, ContextMenuBuilder.Blueprint) )
 		{
 			ValidActors.Add( Actor );
 		}
