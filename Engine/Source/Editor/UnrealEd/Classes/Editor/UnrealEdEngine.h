@@ -735,6 +735,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	
 protected:
 	EWriteDisallowedWarningState GetWarningStateForWritePermission(const FString& PackageName) const;
+	bool IsComponentSelected(const UPrimitiveComponent* PrimComponent);
 
 	/** The package auto-saver instance used by the editor */
 	TUniquePtr<IPackageAutoSaver> PackageAutoSaver;

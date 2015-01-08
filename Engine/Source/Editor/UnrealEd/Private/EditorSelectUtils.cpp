@@ -281,7 +281,10 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 			UActorComponent* Component = CastChecked<UActorComponent>(*It);
 			AActor* ComponentOwner = Component->GetOwner();
 			check(ComponentOwner);
-			check(GetSelectedActors()->IsSelected(ComponentOwner));
+
+			auto SelectedActors = GetSelectedActors();
+			const bool bIsOwnerSelected = SelectedActors->IsSelected(ComponentOwner);
+			check(bIsOwnerSelected);
 
 			if (ComponentOwner->GetWorld() == GWorld)
 			{
@@ -380,7 +383,6 @@ void UUnrealEdEngine::NoteSelectionChange(bool bComponentSelectionChanged)
 
 	RedrawLevelEditingViewports();
 }
-
 
 void UUnrealEdEngine::SelectGroup(AGroupActor* InGroupActor, bool bForceSelection/*=false*/, bool bInSelected/*=true*/, bool bNotify/*=true*/)
 {
@@ -557,9 +559,28 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 				for (UActorComponent* Component : Actor->GetComponents())
 				{
 					GetSelectedComponents()->Deselect( Component );
+
+					// Remove the selection override delegates from the deselected components
+					auto PrimComponent = Cast<UPrimitiveComponent>(Component);
+					if (PrimComponent && PrimComponent->SelectionOverrideDelegate.IsBound())
+					{
+						PrimComponent->SelectionOverrideDelegate.Unbind();
+					}
 				}
 			}
-			
+			else
+			{
+				for (UActorComponent* Component : Actor->GetComponents())
+				{
+					// Establish the selection override delegate for each of the actor's components
+					auto PrimComponent = Cast<UPrimitiveComponent>(Component);
+					if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
+					{
+						PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(this, &UUnrealEdEngine::IsComponentSelected);
+					}
+				}
+			}
+
 			//A fast path to mark selection rather than reconnecting ALL components for ALL actors that have changed state
 			SetActorSelectionFlags (Actor);
 
@@ -602,6 +623,12 @@ void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelect
 
 		GetSelectedComponents()->Select(Component, bInSelected);
 
+		auto PrimComponent = Cast<UPrimitiveComponent>(Component);
+		if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
+		{
+			PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(this, &UUnrealEdEngine::IsComponentSelected);
+		}
+
 		// Update the selection visualization
 		AActor* ComponentOwner = Component->GetOwner();
 		if (ComponentOwner != nullptr)
@@ -629,6 +656,16 @@ void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelect
 			UpdateFloatingPropertyWindows();
 		}
 	}
+}
+
+bool UUnrealEdEngine::IsComponentSelected(const UPrimitiveComponent* PrimComponent)
+{
+	if (GetSelectedComponentCount() > 0)
+	{
+		return GetSelectedComponents()->IsSelected(PrimComponent);
+	}
+
+	return GetSelectedActors()->IsSelected(PrimComponent->GetOwner());
 }
 
 void UUnrealEdEngine::SelectBSPSurf(UModel* InModel, int32 iSurf, bool bSelected, bool bNoteSelectionChange)
