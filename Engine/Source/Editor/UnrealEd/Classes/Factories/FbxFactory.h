@@ -4,7 +4,7 @@
 #include "FbxFactory.generated.h"
 
 UCLASS(hidecategories=Object)
-class UFbxFactory : public UFactory
+class UNREALED_API UFbxFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
