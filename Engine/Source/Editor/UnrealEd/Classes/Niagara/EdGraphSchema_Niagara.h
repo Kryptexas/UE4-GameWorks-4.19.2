@@ -54,6 +54,8 @@ class UEdGraphSchema_Niagara : public UEdGraphSchema
 	FString PC_Vector;
 	UPROPERTY()
 	FString PC_Matrix;
+	UPROPERTY()
+	FString PC_Curve;
 
 	// Begin EdGraphSchema interface
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;

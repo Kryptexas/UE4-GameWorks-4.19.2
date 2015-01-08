@@ -125,7 +125,8 @@ void FNiagaraSimulation::UpdateParticles(
 
 	//Fill constant table with required emitter constants and internal script constants.
 	TArray<FVector4> ConstantTable;
-	Props->UpdateScript->ConstantData.FillConstantTable(Constants, ConstantTable);
+	TArray<FNiagaraDataObject *>DataObjTable;
+	Props->UpdateScript->ConstantData.FillConstantTable(Constants, ConstantTable, DataObjTable);
 
 	VectorVM::Exec(
 		Props->UpdateScript->ByteCode.GetData(),
@@ -134,6 +135,7 @@ void FNiagaraSimulation::UpdateParticles(
 		OutputRegisters,
 		NumAttr,
 		ConstantTable.GetData(),
+		DataObjTable.GetData(),
 		NumParticles
 		);
 }
@@ -171,7 +173,8 @@ int32 FNiagaraSimulation::SpawnAndKillParticles(int32 NumToSpawn)
 
 		//Fill constant table with required emitter constants and internal script constants.
 		TArray<FVector4> ConstantTable;
-		Props->SpawnScript->ConstantData.FillConstantTable(Constants, ConstantTable);
+		TArray<FNiagaraDataObject *>DataObjTable;
+		Props->SpawnScript->ConstantData.FillConstantTable(Constants, ConstantTable, DataObjTable);
 
 		VectorVM::Exec(
 			Props->SpawnScript->ByteCode.GetData(),
@@ -180,6 +183,7 @@ int32 FNiagaraSimulation::SpawnAndKillParticles(int32 NumToSpawn)
 			OutputRegisters,
 			NumAttr,
 			ConstantTable.GetData(),
+			DataObjTable.GetData(),
 			NumVectors
 			);
 	}

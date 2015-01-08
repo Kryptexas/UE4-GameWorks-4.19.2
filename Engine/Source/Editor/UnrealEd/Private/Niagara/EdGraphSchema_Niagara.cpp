@@ -102,6 +102,7 @@ UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const FObjectInitializer& ObjectI
 	PC_Float = TEXT("float");
 	PC_Vector = TEXT("vector");
 	PC_Matrix = TEXT("matrix");
+	PC_Curve = TEXT("curve");
 }
 
 TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
@@ -250,6 +251,10 @@ FLinearColor UEdGraphSchema_Niagara::GetPinTypeColor(const FEdGraphPinType& PinT
 	{
 		return Settings->TransformPinTypeColor;
 	}
+	else if (TypeString == PC_Curve)
+	{
+		return Settings->StructPinTypeColor;
+	}
 
 	return Settings->DefaultPinTypeColor;
 }
@@ -279,6 +284,10 @@ ENiagaraDataType UEdGraphSchema_Niagara::GetPinDataType(UEdGraphPin* Pin) const
 	else if (Pin->PinType.PinCategory == PC_Matrix)
 	{
 		return ENiagaraDataType::Matrix;
+	}
+	else if (Pin->PinType.PinCategory == PC_Curve)
+	{
+		return ENiagaraDataType::Curve;
 	}
 	return ENiagaraDataType::Invalid;
 }

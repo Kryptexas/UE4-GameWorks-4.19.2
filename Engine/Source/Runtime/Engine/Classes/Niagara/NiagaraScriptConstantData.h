@@ -20,14 +20,16 @@ struct FNiagaraScriptConstantData
 	FNiagaraConstants InternalConstants;
 
 	/** Fill a constants table ready for use in an update or spawn. */
-	void FillConstantTable(const FNiagaraConstantMap& ExternalConstantsMap, TArray<FVector4>& OutConstantTable)const
+	void FillConstantTable(const FNiagaraConstantMap& ExternalConstantsMap, TArray<FVector4>& OutConstantTable, TArray<FNiagaraDataObject *> &DataObjTable) const
 	{
 		//First up in the table comes the External constants in scalar->vector->matrix order.
 		//Only fills the constants actually used by the script.
 		OutConstantTable.Empty();
 		ExternalConstants.AppendToConstantsTable(OutConstantTable, ExternalConstantsMap);
+		ExternalConstants.AppendExternalBufferConstants(DataObjTable, ExternalConstantsMap);
 		//Next up add all the internal constants from the script.
 		InternalConstants.AppendToConstantsTable(OutConstantTable);
+		InternalConstants.AppendBufferConstants(DataObjTable);
 	}
 
 	void SetOrAddInternal(FName Name, float Sc)
@@ -45,6 +47,11 @@ struct FNiagaraScriptConstantData
 		InternalConstants.SetOrAdd(Name, Mc);
 	}
 
+	void SetOrAddInternal(FName Name, FNiagaraDataObject* Curve)
+	{
+		InternalConstants.SetOrAdd(Name, Curve);
+	}
+
 	void SetOrAddExternal(FName Name, float Sc)
 	{
 		ExternalConstants.SetOrAdd(Name, Sc);
@@ -59,6 +66,12 @@ struct FNiagaraScriptConstantData
 	{
 		ExternalConstants.SetOrAdd(Name, Mc);
 	}
+
+	void SetOrAddExternal(FName Name, FNiagaraDataObject* Curve)
+	{
+		ExternalConstants.SetOrAdd(Name, Curve);
+	}
+
 
 	/**
 	Calculates the index into a a constant table created from this constant data for the given constant name.
@@ -82,6 +95,13 @@ struct FNiagaraScriptConstantData
 			{
 				ConstIdx = Consts.GetTableIndex_Matrix(Name);
 				Type = ENiagaraDataType::Matrix;
+
+				if (ConstIdx == INDEX_NONE)	// curves/buffers are in a separate table, so set base to 0
+				{
+					ConstIdx = Consts.GetTableIndex_DataObj(Name);
+					Type = ENiagaraDataType::Curve;
+					Base = 0;
+				}
 			}
 		}
 		else

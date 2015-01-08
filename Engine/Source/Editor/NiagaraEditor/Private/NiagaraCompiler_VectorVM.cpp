@@ -70,13 +70,14 @@ public:
 		//Add the bitfield defining whether each source operand comes from a constant or a register.
 		int32 NumOperands = SourceExpressions.Num();
 		check(NumOperands <= 4);
-		VMCompiler->WriteCode(
-			VectorVM::CreateSrcOperandMask(
-			NumOperands > 0 ? VMCompiler->ExpressionIsConstant(GetSourceExpression(0).Get()) : false,
-			NumOperands > 1 ? VMCompiler->ExpressionIsConstant(GetSourceExpression(1).Get()) : false,
-			NumOperands > 2 ? VMCompiler->ExpressionIsConstant(GetSourceExpression(2).Get()) : false,
-			NumOperands > 3 ? VMCompiler->ExpressionIsConstant(GetSourceExpression(3).Get()) : false)
-			);
+
+
+		uint8 OpTypeMask = VectorVM::CreateSrcOperandMask(NumOperands > 0 ? VMCompiler->GetVMOperandType(GetSourceExpression(0).Get()) : VectorVM::RegisterOperandType,
+			NumOperands > 1 ? VMCompiler->GetVMOperandType(GetSourceExpression(1).Get()) : VectorVM::RegisterOperandType,
+			NumOperands > 2 ? VMCompiler->GetVMOperandType(GetSourceExpression(2).Get()) : VectorVM::RegisterOperandType,
+			NumOperands > 3 ? VMCompiler->GetVMOperandType(GetSourceExpression(3).Get()) : VectorVM::RegisterOperandType);
+		VMCompiler->WriteCode(OpTypeMask);
+
 
 		//Add the locations for each of the source operands.
 		for (int32 SrcIdx = 0; SrcIdx < SourceExpressions.Num(); ++SrcIdx)
@@ -116,7 +117,7 @@ public:
 
 		VMCompiler->WriteCode((uint8)VectorVM::EOp::output);
 		VMCompiler->WriteCode(DestIndex);
-		VMCompiler->WriteCode(VectorVM::CreateSrcOperandMask(VMCompiler->ExpressionIsConstant(SrcExpr)));
+		VMCompiler->WriteCode(VectorVM::CreateSrcOperandMask( VMCompiler->GetVMOperandType(SrcExpr) ) );
 		VMCompiler->WriteCode(SrcIndex);
 	}
 };
@@ -124,6 +125,18 @@ public:
 bool FNiagaraCompiler_VectorVM::ExpressionIsConstant(FNiagaraExpression*  Expression)
 {
 	return Expression->ResultLocation == ENiagaraExpressionResultLocation::Constants;
+}
+
+bool FNiagaraCompiler_VectorVM::ExpressionIsBufferConstant(FNiagaraExpression*  Expression)
+{
+	return Expression->ResultLocation == ENiagaraExpressionResultLocation::BufferConstants;
+}
+
+VectorVM::EOperandType FNiagaraCompiler_VectorVM::GetVMOperandType(FNiagaraExpression *Expression)
+{
+	return Expression->ResultLocation == ENiagaraExpressionResultLocation::Constants ? VectorVM::ConstantOperandType :
+		Expression->ResultLocation == ENiagaraExpressionResultLocation::BufferConstants ? VectorVM::DataObjConstantOperandType :
+		VectorVM::RegisterOperandType;
 }
 
 uint8 FNiagaraCompiler_VectorVM::GetResultVMIndex(FNiagaraExpression* Expression)
@@ -138,14 +151,20 @@ uint8 FNiagaraCompiler_VectorVM::GetResultVMIndex(FNiagaraExpression* Expression
 	}
 	else
 	{
+		if (Expression->ResultLocation == ENiagaraExpressionResultLocation::BufferConstants)
+		{
+			return Expression->ResultIndex; //TempRegister or Constant.
+		}
+
 		return Expression->ResultIndex;//TempRegister or Constant.
 	}
 }
 
-void FNiagaraCompiler_VectorVM::GetConstantResultIndex(FName Name, bool bInternal, int32& OutResultIndex, int32& OutComponentIndex)
+ENiagaraDataType FNiagaraCompiler_VectorVM::GetConstantResultIndex(FName Name, bool bInternal, int32& OutResultIndex, int32& OutComponentIndex)
 {
 	ENiagaraDataType Type;
 	ConstantData.GetTableIndex(Name, bInternal, OutResultIndex, OutComponentIndex, Type);
+	return Type;
 }
 
 int32 FNiagaraCompiler_VectorVM::AquireTemporary()
@@ -592,6 +611,12 @@ void FNiagaraCompiler_VectorVM::Inverse_Internal(TArray<TNiagaraExprPtr>& InputE
 void FNiagaraCompiler_VectorVM::LessThan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::lessthan, InputExpressions));
+}
+
+
+void FNiagaraCompiler_VectorVM::Sample_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+{
+	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::sample, InputExpressions));
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -123,6 +123,12 @@ public:
 		Constants.SetOrAdd(ConstantName, Value);
 	}
 
+	void SetConstant(FName ConstantName, FNiagaraDataObject *Value)
+	{
+		Constants.SetOrAdd(ConstantName, Value);
+	}
+
+
 
 	void Tick(float DeltaSeconds)
 	{

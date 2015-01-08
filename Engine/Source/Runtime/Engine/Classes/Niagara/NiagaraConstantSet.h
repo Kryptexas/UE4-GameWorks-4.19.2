@@ -15,6 +15,7 @@ private:
 	TMap<FName, float> ScalarConstants;
 	TMap<FName, FVector4> VectorConstants;
 	TMap<FName, FMatrix> MatrixConstants;
+	TMap<FName, class FNiagaraDataObject*> DataConstants;
 
 public:
 
@@ -33,12 +34,28 @@ public:
 		MatrixConstants.FindOrAdd(Name) = Mc;
 	}
 
+	void SetOrAdd(FName Name, class FNiagaraDataObject* Cc)
+	{
+		DataConstants.FindOrAdd(Name) = Cc;
+	}
+
+
 	float* FindScalar(FName InName){ return ScalarConstants.Find(InName); }
 	FVector4* FindVector(FName InName){ return VectorConstants.Find(InName); }
 	FMatrix* FindMatrix(FName InName){ return MatrixConstants.Find(InName); }
 	const float* FindScalar(FName InName)const { return ScalarConstants.Find(InName); }
 	const FVector4* FindVector(FName InName)const { return VectorConstants.Find(InName); }
 	const FMatrix* FindMatrix(FName InName)const { return MatrixConstants.Find(InName); }
+	FNiagaraDataObject* FindDataObj(FName InName) const 
+	{
+		FNiagaraDataObject * const *Ptr = DataConstants.Find(InName);
+		if (Ptr)
+		{
+			return *Ptr;
+		}
+
+		return nullptr; 
+	}
 
 	void Merge(FNiagaraConstantMap &InMap)
 	{
@@ -53,6 +70,11 @@ public:
 		}
 
 		for (auto MapIt = InMap.MatrixConstants.CreateIterator(); MapIt; ++MapIt)
+		{
+			SetOrAdd(MapIt.Key(), MapIt.Value());
+		}
+
+		for (auto MapIt = InMap.DataConstants.CreateIterator(); MapIt; ++MapIt)
 		{
 			SetOrAdd(MapIt.Key(), MapIt.Value());
 		}
@@ -91,6 +113,11 @@ private:
 	UPROPERTY()
 	TArray<FName> MatrixNames;
 
+	//UPROPERTY()
+	TArray<FNiagaraDataObject*> DataObjectConstants;
+	//UPROPERTY()
+	TArray<FName> DataObjectNames;
+
 public:
 
 	/** Fills the entire constants set into the constant table. */
@@ -119,6 +146,11 @@ public:
 			ConstantsTable[Idx + 3] = FVector4(Mc.M[3][0], Mc.M[3][1], Mc.M[3][2], Mc.M[3][3]);
 			Idx += 4;
 		}
+	}
+
+	void AppendBufferConstants(TArray<class FNiagaraDataObject*> &Objs) const
+	{
+		Objs.Append(DataObjectConstants);
 	}
 
 	/** 
@@ -159,6 +191,18 @@ public:
 			ConstantsTable[Idx + 3] = FVector4(Mc.M[3][0], Mc.M[3][1], Mc.M[3][2], Mc.M[3][3]);
 		}
 	}
+
+	void AppendExternalBufferConstants(TArray<class FNiagaraDataObject*> &DataObjs, const FNiagaraConstantMap& Externals) const
+	{
+		for (int32 i = 0; i < DataObjectNames.Num(); ++i)
+		{
+			FName CcName = DataObjectNames[i];
+			FNiagaraDataObject* Data = Externals.FindDataObj(CcName);
+			DataObjs.Add(Data);
+		}
+	}
+
+
 
 	void SetOrAdd(FName Name, float Sc)
 	{
@@ -203,6 +247,22 @@ public:
 		}
 	}
 
+
+
+	void SetOrAdd(FName Name, FNiagaraDataObject* Cc)
+	{
+		int32 Idx = DataObjectNames.Find(Name);
+		if (Idx == INDEX_NONE)
+		{
+			DataObjectNames.Add(Name);
+			DataObjectConstants.Add(Cc);
+		}
+		else
+		{
+			DataObjectConstants[Idx] = Cc;
+		}
+	}
+
 	FORCEINLINE int32 NumScalars()const { return ScalarNames.Num(); }
 	FORCEINLINE int32 NumVectors()const { return VectorNames.Num(); }
 	FORCEINLINE int32 NumMatrices()const { return MatrixNames.Num(); }
@@ -214,9 +274,40 @@ public:
 	FORCEINLINE int32 GetTableSize()const { return ScalarTableSize() + VectorTableSize() + MatrixTableSize(); }
 
 	/** Return the first constant used for this constant in a table. */
-	FORCEINLINE int32 GetTableIndex_Scalar(FName InName)const{ return ScalarNames.Find(InName) / 4; }
-	FORCEINLINE int32 GetTableIndex_Vector(FName InName)const{ return ScalarTableSize() + VectorNames.Find(InName); }
-	FORCEINLINE int32 GetTableIndex_Matrix(FName InName)const{ return ScalarTableSize() + VectorTableSize() + MatrixNames.Find(InName) * 4; }
+	FORCEINLINE int32 GetTableIndex_Scalar(FName InName)const
+	{ 
+		int Idx = ScalarNames.Find(InName);
+		if (Idx != INDEX_NONE)
+		{
+			return Idx / 4;
+		}
+		return INDEX_NONE;
+	}
+
+	FORCEINLINE int32 GetTableIndex_Vector(FName InName)const
+	{ 
+		int Idx = VectorNames.Find(InName);
+		if (Idx != INDEX_NONE)
+		{
+			return ScalarTableSize() + Idx;
+		}
+		return INDEX_NONE;
+	}
+
+	FORCEINLINE int32 GetTableIndex_Matrix(FName InName)const
+	{ 
+		int Idx = MatrixNames.Find(InName);
+		if (Idx != INDEX_NONE)
+		{
+			return ScalarTableSize() + VectorTableSize() + Idx * 4;
+		}
+		return INDEX_NONE;
+	}
+
+	FORCEINLINE int32 GetTableIndex_DataObj(FName InName)const
+	{ 
+		return DataObjectNames.Find(InName); 
+	}
 
 	/** Return the absolute index of the passed scalar. Can be used to get the component index also. */
 	FORCEINLINE int32 GetAbsoluteIndex_Scalar(FName InName)const{ return ScalarNames.Find(InName); }

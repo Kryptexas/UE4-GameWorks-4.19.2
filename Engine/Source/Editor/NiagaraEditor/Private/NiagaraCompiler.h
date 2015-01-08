@@ -59,13 +59,14 @@ public:
 	virtual TNiagaraExprPtr GetExternalConstant(FName ConstantName, float Default)override;
 	virtual TNiagaraExprPtr GetExternalConstant(FName ConstantName, FVector4 Default)override;
 	virtual TNiagaraExprPtr GetExternalConstant(FName ConstantName, const FMatrix& Default)override;
+	virtual TNiagaraExprPtr GetExternalCurveConstant(FName ConstantName)override;
 
 	virtual void CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs)override;
 	virtual void CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outputs)override;
 	//End INiagaraCompiler Interface
 	
 	/** Gets the index into a constants table of the constant specified by Name and bInternal. */
-	virtual void GetConstantResultIndex(FName Name, bool bInternal, int32& OutResultIndex, int32& OutComponentIndex) = 0;
+	virtual ENiagaraDataType GetConstantResultIndex(FName Name, bool bInternal, int32& OutResultIndex, int32& OutComponentIndex) = 0;
 	/**	Gets the index of a named attribute into either the input or output data. */
 	int32 GetAttributeIndex(FName Name);
 

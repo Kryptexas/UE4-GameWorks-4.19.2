@@ -170,16 +170,21 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 	RenderModuleList.Add(MakeShareable(new FString("Meshes")));
 
 	static TArray<TSharedPtr<EditorExposedVectorConstant>> DummyArray;
+	static TArray<TSharedPtr<EditorExposedVectorCurveConstant>> DummyCurveArray;
 	TArray<TSharedPtr<EditorExposedVectorConstant>> *EditorExposedConstants = &DummyArray;
+	TArray<TSharedPtr<EditorExposedVectorCurveConstant>> *EditorExposedCurveConstants = &DummyCurveArray;
 	if (Emitter->GetProperties()->UpdateScript && Emitter->GetProperties()->UpdateScript->Source)
 	{
 		EditorExposedConstants = &Emitter->GetProperties()->UpdateScript->Source->ExposedVectorConstants;
+		EditorExposedCurveConstants = &Emitter->GetProperties()->UpdateScript->Source->ExposedVectorCurveConstants;
 	}
 
 	TArray<TSharedPtr<EditorExposedVectorConstant>> *EditorExposedSpawnConstants = &DummyArray;
+	TArray<TSharedPtr<EditorExposedVectorCurveConstant>> *EditorExposedSpawnCurveConstants = &DummyCurveArray;
 	if (Emitter->GetProperties()->SpawnScript && Emitter->GetProperties()->SpawnScript->Source)
 	{
 		EditorExposedSpawnConstants = &Emitter->GetProperties()->SpawnScript->Source->ExposedVectorConstants;
+		EditorExposedSpawnCurveConstants = &Emitter->GetProperties()->SpawnScript->Source->ExposedVectorCurveConstants;
 	}
 
 
@@ -303,6 +308,20 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 											.SelectionMode(ESelectionMode::None)
 										]
 									]
+
+									+ SVerticalBox::Slot()
+										.Padding(2)
+										.AutoHeight()
+										.Expose(UpdateScriptCurveConstantListSlot)
+										[
+											SNew(SExpandableArea).InitiallyCollapsed(true).AreaTitle(FString("Curves"))
+											.BodyContent()
+											[
+												SNew(SListView<TSharedPtr<EditorExposedVectorCurveConstant>>)
+												.ItemHeight(20).ListItemsSource(EditorExposedCurveConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateCurveConstantListRow)
+												.SelectionMode(ESelectionMode::None)
+											]
+										]
 								]
 
 								+ SHorizontalBox::Slot()

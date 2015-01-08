@@ -61,7 +61,8 @@
 	NiagaraOp(TransformVector)\
 	NiagaraOp(Transpose)\
 	NiagaraOp(Inverse)\
-	NiagaraOp(LessThan)
+	NiagaraOp(LessThan)\
+	NiagaraOp(Sample)\
 
 enum class ENiagaraExpressionResultLocation
 {
@@ -69,6 +70,7 @@ enum class ENiagaraExpressionResultLocation
 	OutputData,
 	Constants,
 	Temporaries,
+	BufferConstants,
 	Unknown,
 };
 

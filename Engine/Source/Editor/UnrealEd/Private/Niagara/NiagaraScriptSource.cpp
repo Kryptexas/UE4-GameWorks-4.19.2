@@ -59,9 +59,18 @@ void UNiagaraScriptSource::Compile()
 	{
 		if (Node->bExposeToEffectEditor)
 		{
-			EditorExposedVectorConstant *Const = new EditorExposedVectorConstant();
-			Const->ConstName = Node->ConstName;
-			ExposedVectorConstants.Add( MakeShareable(Const) );
+			if(Node->DataType == ENiagaraDataType::Vector)
+			{
+				EditorExposedVectorConstant *Const = new EditorExposedVectorConstant();
+				Const->ConstName = Node->ConstName;
+				ExposedVectorConstants.Add( MakeShareable(Const) );
+			}
+			else if(Node->DataType == ENiagaraDataType::Curve)
+			{
+				EditorExposedVectorCurveConstant *Const = new EditorExposedVectorCurveConstant();
+				Const->ConstName = Node->ConstName;
+				ExposedVectorCurveConstants.Add(MakeShareable(Const));
+			}
 		}
 	}
 }

@@ -74,6 +74,10 @@ public:
 			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
 			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
 		}
+		else if (ResultType == ENiagaraDataType::Curve)
+		{
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Curve)));
+		}
 	}
 
 	virtual void Process()override
@@ -97,6 +101,10 @@ public:
 			Src2->ResultIndex = ResultIndex + 2;
 			Src3->ResultLocation = ENiagaraExpressionResultLocation::Constants;
 			Src3->ResultIndex = ResultIndex + 3;
+		}
+		else if (ResultType == ENiagaraDataType::Curve)
+		{
+			ResultLocation = ENiagaraExpressionResultLocation::BufferConstants;
 		}
 	}
 
@@ -222,6 +230,11 @@ TNiagaraExprPtr FNiagaraCompiler::CompilePin(UEdGraphPin* Pin)
 				Schema->GetPinDefaultValue(Pin, Default);
 				ConstantData.SetOrAddInternal(ConstName, Default);
 			}
+			else if (DataType == ENiagaraDataType::Curve)
+			{
+				FNiagaraDataObject *Default = nullptr;
+				ConstantData.SetOrAddInternal(ConstName, Default);
+			}
 			Ret = Expression_GetInternalConstant(ConstName, DataType);
 		}
 	}
@@ -284,6 +297,12 @@ TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(FName ConstantName, const 
 {
 	SetOrAddConstant(false, ConstantName, Default);
 	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Matrix);
+}
+
+TNiagaraExprPtr FNiagaraCompiler::GetExternalCurveConstant(FName ConstantName)
+{
+	SetOrAddConstant<FNiagaraDataObject*>(false, ConstantName, nullptr);
+	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Curve);
 }
 
 #undef LOCTEXT_NAMESPACE

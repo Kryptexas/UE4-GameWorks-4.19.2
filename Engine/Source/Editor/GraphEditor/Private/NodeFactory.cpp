@@ -391,6 +391,11 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPin, InPin);
 		}
+		if (InPin->PinType.PinCategory == NSchema->PC_Curve)
+		{
+			return SNew(SGraphPin, InPin);
+		}
+
 	}
 
 

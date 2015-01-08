@@ -10,6 +10,12 @@ struct EditorExposedVectorConstant
 	FVector4 Value;
 };
 
+struct EditorExposedVectorCurveConstant
+{
+	FName ConstName;
+	class UCurveVector *Value;
+};
+
 /** Runtime data for a Niagara system */
 UCLASS(MinimalAPI)
 class UNiagaraScriptSourceBase : public UObject
@@ -17,5 +23,6 @@ class UNiagaraScriptSourceBase : public UObject
 	GENERATED_UCLASS_BODY()
 
 	TArray<TSharedPtr<EditorExposedVectorConstant> > ExposedVectorConstants;
+	TArray<TSharedPtr<EditorExposedVectorCurveConstant> > ExposedVectorCurveConstants;
 	virtual void Compile() {};
 };

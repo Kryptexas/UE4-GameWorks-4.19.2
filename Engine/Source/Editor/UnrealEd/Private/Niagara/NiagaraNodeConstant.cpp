@@ -45,6 +45,11 @@ void UNiagaraNodeConstant::AllocateDefaultPins()
 		}
 		CreatePin(EGPD_Output, Schema->PC_Matrix, TEXT(""), NULL, false, false, ConstName.ToString());
 	}
+	else if (DataType == ENiagaraDataType::Curve)
+	{
+		//CreatePin(EGPD_Input, Schema->PC_Vector, TEXT(""), NULL, false, false, LOCTEXT("FloatPinName", "Time").ToString(), true);
+		CreatePin(EGPD_Output, Schema->PC_Curve, TEXT(""), NULL, false, false, ConstName.ToString());
+	}
 }
 
 FText UNiagaraNodeConstant::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -128,6 +133,11 @@ void UNiagaraNodeConstant::Compile(class INiagaraCompiler* Compiler, TArray<FNia
 		Default.M[2][0] = Default2[0]; Default.M[2][1] = Default2[1]; Default.M[2][2] = Default2[2]; Default.M[2][3] = Default2[3];
 		Default.M[3][0] = Default3[0]; Default.M[3][1] = Default3[1]; Default.M[3][2] = Default3[2]; Default.M[3][3] = Default3[3];
 		Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(ConstName, Default), OutPin));
+	}
+	else if (DataType == ENiagaraDataType::Curve)
+	{
+		UEdGraphPin* OutPin = Pins[0];
+		Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalCurveConstant(ConstName), OutPin));
 	}
 }
 

@@ -17,6 +17,7 @@
 #include "ComponentReregisterContext.h"
 #include "SNumericEntryBox.h"
 
+
 #define NGED_SECTION_BORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
 #define NGED_SECTION_LIGHTBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.LightGroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
 #define NGED_SECTION_DARKBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
@@ -93,52 +94,24 @@ public:
 	{
 		FVector4 Constant(InVal, GetConstY().GetValue(), GetConstZ().GetValue(), GetConstW().GetValue());
 		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Constant);
-		/*
-		FVector4 *VecPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
-		if (VecPtr)
-		{
-			VecPtr->X = InVal;
-		}
-		*/
 	}
 
 	void OnConstantChangedY(float InVal, ETextCommit::Type Type)
 	{
 		FVector4 Constant(GetConstX().GetValue(), InVal, GetConstZ().GetValue(), GetConstW().GetValue());
 		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Constant);
-		/*
-		FVector4 *VecPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
-		if (VecPtr)
-		{
-			VecPtr->Y = InVal;
-		}
-		*/
 	}
 
 	void OnConstantChangedZ(float InVal, ETextCommit::Type Type)
 	{
 		FVector4 Constant(GetConstX().GetValue(), GetConstY().GetValue(), InVal, GetConstW().GetValue());
 		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Constant);
-		/*
-		FVector4 *VecPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
-		if (VecPtr)
-		{
-			VecPtr->Z = InVal;
-		}
-		*/
 	}
 
 	void OnConstantChangedW(float InVal, ETextCommit::Type Type)
 	{
 		FVector4 Constant(GetConstX().GetValue(), GetConstY().GetValue(), GetConstZ().GetValue(), InVal);
 		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Constant);
-		/*
-		FVector4 *VecPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
-		if (VecPtr)
-		{
-			VecPtr->W = InVal;
-		}
-		*/
 	}
 
 	void Construct(const FArguments& InArgs)
@@ -148,17 +121,18 @@ public:
 
 		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
 		FVector4 ConstVal;
+
 		if (ConstPtr)
 		{
 			ConstVal = *ConstPtr;
 		}
-		
+
 		this->ChildSlot
 		[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(STextBlock).Text(FText::FromName(ConstantName))]
 		+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(SNumericEntryBox<float>).Value(this, &SVectorConstantWidget::GetConstX)
-		.OnValueCommitted(this, &SVectorConstantWidget::OnConstantChangedX).OnValueChanged(this, &SVectorConstantWidget::OnConstantChangedX)
+			.OnValueCommitted(this, &SVectorConstantWidget::OnConstantChangedX).OnValueChanged(this, &SVectorConstantWidget::OnConstantChangedX)
 			.Label()
 			[
 				SNumericEntryBox<float>::BuildLabel(FText::FromString("X"), FLinearColor::White, RedCol)
@@ -194,6 +168,74 @@ public:
 };
 
 
+
+
+class SCurveConstantWidget : public SCompoundWidget, public FNotifyHook
+{
+private:
+	FName ConstantName;
+	TSharedPtr<FNiagaraSimulation> Emitter;
+
+	UCurveVector *CurCurve;
+
+public:
+	SLATE_BEGIN_ARGS(SCurveConstantWidget) :
+		_Emitter(nullptr),
+		_ConstantName("Undefined")
+	{
+	}
+	SLATE_ARGUMENT(TSharedPtr<FNiagaraSimulation>, Emitter)
+		SLATE_ARGUMENT(FName, ConstantName)
+		SLATE_END_ARGS()
+
+	void OnCurveSelected(UObject *Asset)
+	{
+		CurCurve = Cast<UCurveVector>(Asset);
+		FNiagaraDataObject *DataObj = Emitter->GetProperties()->ExternalConstants.FindDataObj(ConstantName);
+		if (!DataObj)
+		{
+			DataObj = new FNiagaraCurveDataObject(nullptr);
+			Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, DataObj);
+		}
+
+		FNiagaraCurveDataObject *CurveData = static_cast<FNiagaraCurveDataObject*>(DataObj);
+		CurveData->SetCurveObject(CurCurve);
+	}
+
+	UObject * GetCurve() const
+	{
+		FNiagaraDataObject *DataObj = Emitter->GetProperties()->ExternalConstants.FindDataObj(ConstantName);
+		FNiagaraCurveDataObject *CurveData = static_cast<FNiagaraCurveDataObject*>(DataObj);
+		if (CurveData)
+		{
+			return CurveData->GetCurveObject();
+		}
+		return nullptr;
+	}
+
+	void Construct(const FArguments& InArgs)
+	{
+		Emitter = InArgs._Emitter;
+		ConstantName = InArgs._ConstantName;
+
+		this->ChildSlot
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(STextBlock).Text(FText::FromName(ConstantName))]
+			+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)
+			[
+				SNew(SContentReference)
+				.AllowedClass(UCurveVector::StaticClass())
+				.AssetReference(this, &SCurveConstantWidget::GetCurve)
+				.AllowSelectingNewAsset(true)
+				.AllowClearingReference(true)
+				.OnSetReference(this, &SCurveConstantWidget::OnCurveSelected)
+				.WidthOverride(130)
+			]
+		];
+	}
+};
+
 class SEmitterWidget : public SCompoundWidget, public FNotifyHook
 {
 private:
@@ -213,7 +255,7 @@ private:
 	TArray<TSharedPtr<FString> > RenderModuleList;
 
 	TSharedPtr< SListView<TSharedPtr<EditorExposedVectorConstant>>> UpdateScriptConstantList;
-	SVerticalBox::FSlot *UpdateScriptConstantListSlot;
+	SVerticalBox::FSlot *UpdateScriptConstantListSlot, *UpdateScriptCurveConstantListSlot;
 	TSharedPtr< SListView<TSharedPtr<EditorExposedVectorConstant>>> SpawnScriptConstantList;
 	SVerticalBox::FSlot *SpawnScriptConstantListSlot;
 
@@ -233,6 +275,16 @@ public:
 		[
 			SNew(SVectorConstantWidget).ConstantName(InItem->ConstName).Emitter(Emitter)
 		];
+	}
+
+
+	TSharedRef<ITableRow> OnGenerateCurveConstantListRow(TSharedPtr<EditorExposedVectorCurveConstant> InItem, const TSharedRef< STableViewBase >& OwnerTable)
+	{
+		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+			.Content()
+			[
+				SNew(SCurveConstantWidget).ConstantName(InItem->ConstName).Emitter(Emitter)
+			];
 	}
 
 

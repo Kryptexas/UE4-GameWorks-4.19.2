@@ -26,6 +26,9 @@ public:
 	virtual TNiagaraExprPtr GetExternalConstant(FName ConstantName, FVector4 Default) = 0;
 	/** Creates an expression which fetches the named constant. */
 	virtual TNiagaraExprPtr GetExternalConstant(FName ConstantName, const FMatrix& Default) = 0;
+	/** Creates an expression which fetches the named CURVE. */
+	virtual TNiagaraExprPtr GetExternalCurveConstant(FName ConstantName) = 0;
+
 	/** Creates an expression which writes the result of SourceExpression to the named attribute. */
 	virtual TNiagaraExprPtr Output(FName OutputName, TNiagaraExprPtr& SourceExpression) = 0;
 
