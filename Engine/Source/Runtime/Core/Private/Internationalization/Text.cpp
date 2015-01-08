@@ -54,6 +54,11 @@ const FString& FTextInspector::GetDisplayString(const FText& Text)
 	return Text.DisplayString.Get();
 }
 
+const TSharedRef<FString, ESPMode::ThreadSafe> FTextInspector::GetSharedDisplayString(const FText& Text)
+{
+	return Text.DisplayString;
+}
+
 int32 FTextInspector::GetFlags(const FText& Text)
 {
 	return Text.Flags;
@@ -833,6 +838,39 @@ bool FTextSnapshot::IsDisplayStringEqualTo(const FText& InText) const
 	// (due to a culture change), as we no longer have the old display string to compare against
 	const int32 InHistoryRevision = InText.History.IsValid() ? InText.History->Revision : INDEX_NONE;
 	return HistoryRevision == InHistoryRevision && DisplayStringPtr.IsValid() && DisplayStringPtr->Equals(InText.ToString(), ESearchCase::CaseSensitive);
+}
+
+FScopedTextIdentityPreserver::FScopedTextIdentityPreserver(FText& InTextToPersist)
+	: TextToPersist(InTextToPersist)
+{
+	// Empty display strings can't have a namespace or key.
+	if (!InTextToPersist.DisplayString->IsEmpty())
+	{
+		// Save off namespace and key to be restored later.
+		FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(InTextToPersist.DisplayString, Namespace, Key);
+	}
+}
+
+FScopedTextIdentityPreserver::~FScopedTextIdentityPreserver()
+{
+	// If we don't have a key, then the old identity wasn't valid and shouldn't be preserved.
+	if (Key.IsValid())
+	{
+		// Get the text's new source string.
+		const FString* SourceString = FTextInspector::GetSourceString(TextToPersist);
+
+		// Without a source string, we can't possibly preserve the identity. If the text we're preserving identity for can't possibly have an identity anymore, this class shouldn't be used on this text.
+		check(SourceString);
+
+		// Make the history so that it can attempt find and serialize the identity for this source string when the history itself is serialized.
+		TextToPersist.History = MakeShareable(new FTextHistory_Base(*SourceString));
+
+		// Create/update the display string instance for this identity in the text localization manager...
+		const TSharedRef<FString, ESPMode::ThreadSafe> DisplayString = FTextLocalizationManager::Get().GetString(Namespace.IsValid() ? *Namespace : TEXT(""), *Key, SourceString);
+
+		// ... and set it so that the text's history's serialization will properly map this display string instance back to the identity we intended to preserve and restore.
+		TextToPersist.DisplayString = DisplayString;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
