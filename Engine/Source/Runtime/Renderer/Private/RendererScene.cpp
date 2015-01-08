@@ -2174,6 +2174,10 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 		if (Proxy->LevelName == InLevelName)
 		{
 			Proxy->bIsComponentLevelVisible = true;
+			if (Proxy->NeedsLevelAddedToWorldNotification())
+			{
+				Proxy->OnLevelAddedToWorld();
+			}
 		}
 	}
 }

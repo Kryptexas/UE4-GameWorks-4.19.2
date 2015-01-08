@@ -24,6 +24,8 @@
 #include "GameFramework/WorldSettings.h"
 #include "Engine/Light.h"
 #include "Foliage/InstancedFoliageActor.h"
+#include "LandscapeMeshProxyActor.h"
+#include "LandscapeMeshProxyComponent.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -1903,8 +1905,20 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			ActorsOffset = FVector::ZeroVector;
 		}
 	
-		TArray<UStaticMesh*>		AssetsToSpawn;
-		TArray<FTransform>			AssetsToSpawnTransform;
+		struct FAssetToSpawnInfo
+		{
+			FAssetToSpawnInfo(UStaticMesh* InStaticMesh, const FTransform& InTransform, ALandscapeProxy* InSourceLandscape = nullptr)
+			: StaticMesh(InStaticMesh)
+			, Transform(InTransform)
+			, SourceLandscape(InSourceLandscape)
+			{}
+
+			UStaticMesh* StaticMesh;
+			FTransform Transform;
+			ALandscapeProxy* SourceLandscape;
+		};
+
+		TArray<FAssetToSpawnInfo>	AssetsToSpawn;
 		TArray<AActor*>				Actors;
 		TArray<ALandscapeProxy*>	LandscapeActors;
 		TArray<UObject*>			GeneratedAssets;
@@ -1949,8 +1963,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				UStaticMesh* ProxyMesh = nullptr;
 				if (OutAssets.FindItemByClass(&ProxyMesh))
 				{
-					AssetsToSpawn.Add(ProxyMesh);
-					AssetsToSpawnTransform.Add(FTransform(OutProxyLocation - ActorsOffset));
+					new(AssetsToSpawn) FAssetToSpawnInfo(ProxyMesh, FTransform(OutProxyLocation - ActorsOffset));
 				}
 
 				GeneratedAssets.Append(OutAssets);
@@ -2060,8 +2073,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			}
 
 			GeneratedAssets.Add(StaticMesh);
-			AssetsToSpawn.Add(StaticMesh);
-			AssetsToSpawnTransform.Add(FTransform(LandscapeWorldLocation - ActorsOffset));
+			new(AssetsToSpawn) FAssetToSpawnInfo(StaticMesh, FTransform(LandscapeWorldLocation - ActorsOffset), Landscape);
 
 			LandscapeActorIndex++;
 		}
@@ -2108,13 +2120,24 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			LODWorld = UWorld::CreateWorld(EWorldType::None, false, FPackageName::GetShortFName(LODPackage->GetFName()), LODPackage);
 			LODWorld->SetFlags(RF_Standalone);
 
-			for (int32 AssetIdx = 0; AssetIdx < AssetsToSpawn.Num(); ++AssetIdx)
+			for (FAssetToSpawnInfo& AssetInfo : AssetsToSpawn)
 			{
-				FVector Location = AssetsToSpawnTransform[AssetIdx].GetLocation();
+				FVector Location = AssetInfo.Transform.GetLocation();
 				FRotator Rotation(ForceInit);
-				AStaticMeshActor* MeshActor = LODWorld->SpawnActor<AStaticMeshActor>(Location, Rotation);
-				MeshActor->GetStaticMeshComponent()->StaticMesh = AssetsToSpawn[AssetIdx];
-				MeshActor->SetActorLabel(AssetsToSpawn[AssetIdx]->GetName());
+
+				if (AssetInfo.SourceLandscape != nullptr)
+				{
+					ALandscapeMeshProxyActor* MeshActor = LODWorld->SpawnActor<ALandscapeMeshProxyActor>(Location, Rotation);
+					MeshActor->GetLandscapeMeshProxyComponent()->StaticMesh = AssetInfo.StaticMesh;
+					MeshActor->GetLandscapeMeshProxyComponent()->InitializeForLandscape(AssetInfo.SourceLandscape, SimplificationDetails.LandscapeExportLOD);
+					MeshActor->SetActorLabel(AssetInfo.SourceLandscape->GetName());
+				}
+				else
+				{
+					AStaticMeshActor* MeshActor = LODWorld->SpawnActor<AStaticMeshActor>(Location, Rotation);
+					MeshActor->GetStaticMeshComponent()->StaticMesh = AssetInfo.StaticMesh;
+					MeshActor->SetActorLabel(AssetInfo.StaticMesh->GetName());
+				}
 			}
 		
 			// Save generated level

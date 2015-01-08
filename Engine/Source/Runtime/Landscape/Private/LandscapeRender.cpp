@@ -529,12 +529,11 @@ void FLandscapeEditToolRenderData::UpdateSelectionMaterial(int32 InSelectedType)
 //
 TMap<uint32, FLandscapeSharedBuffers*>FLandscapeComponentSceneProxy::SharedBuffersMap;
 TMap<uint32, FLandscapeSharedAdjacencyIndexBuffer*>FLandscapeComponentSceneProxy::SharedAdjacencyIndexBufferMap;
-TMap<FLandscapeComponentSceneProxy::FLandscapeKey, TMap<FIntPoint, const FLandscapeComponentSceneProxy*> > FLandscapeComponentSceneProxy::SharedSceneProxyMap;
+TMap<FLandscapeNeighborInfo::FLandscapeKey, TMap<FIntPoint, const FLandscapeNeighborInfo*> > FLandscapeNeighborInfo::SharedSceneProxyMap;
 
 FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData)
 	: FPrimitiveSceneProxy(InComponent)
-	, LandscapeKey(InComponent->GetWorld(), InComponent->GetLandscapeProxy()->GetLandscapeGuid())
-	, bAddedToSceneProxyMap(false)
+	, FLandscapeNeighborInfo(InComponent->GetWorld(), InComponent->GetLandscapeProxy()->GetLandscapeGuid(), InComponent->GetSectionBase() / InComponent->ComponentSizeQuads, InComponent->HeightmapTexture, InComponent->ForcedLOD, InComponent->LODBias)
 	, MaxLOD(FMath::CeilLogTwo(InComponent->SubsectionSizeQuads + 1) - 1)
 	, NumSubsections(InComponent->NumSubsections)
 	, SubsectionSizeQuads(InComponent->SubsectionSizeQuads)
@@ -543,13 +542,11 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, ComponentSizeVerts(InComponent->ComponentSizeQuads + 1)
 	, StaticLightingLOD(InComponent->GetLandscapeProxy()->StaticLightingLOD)
 	, SectionBase(InComponent->GetSectionBase())
-	, ComponentBase(InComponent->GetSectionBase() / InComponent->ComponentSizeQuads)
 	, WeightmapScaleBias(InComponent->WeightmapScaleBias)
 	, WeightmapSubsectionOffset(InComponent->WeightmapSubsectionOffset)
 	, WeightmapTextures(InComponent->WeightmapTextures)
 	, NumWeightmapLayerAllocations(InComponent->WeightmapLayerAllocations.Num())
 	, NormalmapTexture(InComponent->HeightmapTexture)
-	, HeightmapTexture(InComponent->HeightmapTexture)
 	, HeightmapScaleBias(InComponent->HeightmapScaleBias)
 	, XYOffsetmapTexture(InComponent->XYOffsetmapTexture)
 	, SharedBuffersKey(0)
@@ -559,10 +556,13 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, EditToolRenderData(InEditToolRenderData)
 	, ComponentLightInfo(nullptr)
 	, LandscapeComponent(InComponent)
-	, ForcedLOD(InComponent->ForcedLOD)
-	, LODBias(InComponent->LODBias)
 	, LODFalloff(InComponent->GetLandscapeProxy()->LODFalloff)
 {
+	if (!IsComponentLevelVisible())
+	{
+		bNeedsLevelAddedToWorldNotification = true;
+	}
+
 	LevelColor = FLinearColor(1.f, 1.f, 1.f);
 
 	const auto FeatureLevel = GetScene().GetFeatureLevel();
@@ -577,19 +577,6 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 		HeightmapSubsectionOffsetU = ((float)(InComponent->SubsectionSizeQuads + 1) / (float)HeightmapTexture->GetSizeX());
 		HeightmapSubsectionOffsetV = ((float)(InComponent->SubsectionSizeQuads + 1) / (float)HeightmapTexture->GetSizeY());
 	}
-
-	//       -Y       
-	//    - - 0 - -   
-	//    |       |   
-	// -X 1   P   2 +X
-	//    |       |   
-	//    - - 3 - -   
-	//       +Y       
-
-	Neighbors[0] = nullptr;
-	Neighbors[1] = nullptr;
-	Neighbors[2] = nullptr;
-	Neighbors[3] = nullptr;
 
 	LODBias = FMath::Clamp<int8>(LODBias, -MaxLOD, MaxLOD);
 
@@ -664,42 +651,9 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 {
 	check(HeightmapTexture != nullptr);
 
-	// Register ourselves in the map.
-	TMap<FIntPoint, const FLandscapeComponentSceneProxy*>& SceneProxyMap = SharedSceneProxyMap.FindOrAdd(LandscapeKey);
-	
-	const FLandscapeComponentSceneProxy* Existing = SceneProxyMap.FindRef(ComponentBase);
-	if (Existing == nullptr)//(ensure(Existing == nullptr))
-	{
-		SceneProxyMap.Add(ComponentBase, this);
-		bAddedToSceneProxyMap = true;
-
-		// Find Neighbors
-		Neighbors[0] = SceneProxyMap.FindRef(ComponentBase + FIntPoint(0, -1));
-		Neighbors[1] = SceneProxyMap.FindRef(ComponentBase + FIntPoint(-1, 0));
-		Neighbors[2] = SceneProxyMap.FindRef(ComponentBase + FIntPoint(1, 0));
-		Neighbors[3] = SceneProxyMap.FindRef(ComponentBase + FIntPoint(0, 1));
-
-		// Add ourselves to our neighbors
-		if (Neighbors[0])
+	if (IsComponentLevelVisible())
 		{
-			Neighbors[0]->Neighbors[3] = this;
-		}
-		if (Neighbors[1])
-		{
-			Neighbors[1]->Neighbors[2] = this;
-		}
-		if (Neighbors[2])
-		{
-			Neighbors[2]->Neighbors[1] = this;
-		}
-		if (Neighbors[3])
-		{
-			Neighbors[3]->Neighbors[0] = this;
-		}
-	}
-	else
-	{
-		// UE_LOG(LogLandscape, Warning, TEXT("Duplicate ComponentBase %d, %d"), ComponentBase.X, ComponentBase.Y);
+		RegisterNeighbors();
 	}
 
 	auto FeatureLevel = GetScene().GetFeatureLevel();
@@ -765,46 +719,15 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 	LandscapeUniformShaderParameters.InitResource();
 }
 
-FLandscapeComponentSceneProxy::~FLandscapeComponentSceneProxy()
+void FLandscapeComponentSceneProxy::OnLevelAddedToWorld()
 {
-	// Remove ourselves from the map
-	if (bAddedToSceneProxyMap)
-	{
-		TMap<FIntPoint, const FLandscapeComponentSceneProxy*>* SceneProxyMap = SharedSceneProxyMap.Find(LandscapeKey);
-		check(SceneProxyMap);
+	RegisterNeighbors();
+}
 
-		const FLandscapeComponentSceneProxy* MapEntry = SceneProxyMap->FindRef(ComponentBase);
-		if (MapEntry == this) //(/*ensure*/(MapEntry == this))
-		{
-			SceneProxyMap->Remove(ComponentBase);
 
-			if (SceneProxyMap->Num() == 0)
+FLandscapeComponentSceneProxy::~FLandscapeComponentSceneProxy()
 			{
-				// remove the entire LandscapeKey entry as this is the last scene proxy
-				SharedSceneProxyMap.Remove(LandscapeKey);
-			}
-			else
-			{
-				// remove reference to us from our neighbors
-				if (Neighbors[0])
-				{
-					Neighbors[0]->Neighbors[3] = nullptr;
-				}
-				if (Neighbors[1])
-				{
-					Neighbors[1]->Neighbors[2] = nullptr;
-				}
-				if (Neighbors[2])
-				{
-					Neighbors[2]->Neighbors[1] = nullptr;
-				}
-				if (Neighbors[3])
-				{
-					Neighbors[3]->Neighbors[0] = nullptr;
-				}
-			}
-		}
-	}
+	UnregisterNeighbors();
 
 	// Free the subsection uniform buffer
 	LandscapeUniformShaderParameters.ReleaseResource();
@@ -2590,4 +2513,153 @@ void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& Ou
 		//@todo - subsections duplicate a line of border heights in the heightmap, take this into account in the UV mapping
 		HeightmapScaleBias.Z + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.X, 
 		HeightmapScaleBias.W + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.Y);
+}
+
+//
+// FLandscapeNeighborInfo
+//
+void FLandscapeNeighborInfo::RegisterNeighbors()
+{
+	if (!bRegistered)
+	{
+		// Register ourselves in the map.
+		TMap<FIntPoint, const FLandscapeNeighborInfo*>& SceneProxyMap = SharedSceneProxyMap.FindOrAdd(LandscapeKey);
+
+		const FLandscapeNeighborInfo* Existing = SceneProxyMap.FindRef(ComponentBase);
+		if (Existing == nullptr)//(ensure(Existing == nullptr))
+		{
+			SceneProxyMap.Add(ComponentBase, this);
+			bRegistered = true;
+
+			// Find Neighbors
+			Neighbors[0] = SceneProxyMap.FindRef(ComponentBase + FIntPoint(0, -1));
+			Neighbors[1] = SceneProxyMap.FindRef(ComponentBase + FIntPoint(-1, 0));
+			Neighbors[2] = SceneProxyMap.FindRef(ComponentBase + FIntPoint(1, 0));
+			Neighbors[3] = SceneProxyMap.FindRef(ComponentBase + FIntPoint(0, 1));
+
+			// Add ourselves to our neighbors
+			if (Neighbors[0])
+			{
+				Neighbors[0]->Neighbors[3] = this;
+			}
+			if (Neighbors[1])
+			{
+				Neighbors[1]->Neighbors[2] = this;
+			}
+			if (Neighbors[2])
+			{
+				Neighbors[2]->Neighbors[1] = this;
+			}
+			if (Neighbors[3])
+			{
+				Neighbors[3]->Neighbors[0] = this;
+			}
+		}
+		else
+		{
+			UE_LOG(LogLandscape, Warning, TEXT("Duplicate ComponentBase %d, %d"), ComponentBase.X, ComponentBase.Y);
+		}
+	}
+}
+
+void FLandscapeNeighborInfo::UnregisterNeighbors()
+{
+	if (bRegistered)
+	{
+		// Remove ourselves from the map
+		TMap<FIntPoint, const FLandscapeNeighborInfo*>* SceneProxyMap = SharedSceneProxyMap.Find(LandscapeKey);
+		check(SceneProxyMap);
+
+		const FLandscapeNeighborInfo* MapEntry = SceneProxyMap->FindRef(ComponentBase);
+		if (MapEntry == this) //(/*ensure*/(MapEntry == this))
+		{
+			SceneProxyMap->Remove(ComponentBase);
+
+			if (SceneProxyMap->Num() == 0)
+			{
+				// remove the entire LandscapeKey entry as this is the last scene proxy
+				SharedSceneProxyMap.Remove(LandscapeKey);
+			}
+			else
+			{
+				// remove reference to us from our neighbors
+				if (Neighbors[0])
+				{
+					Neighbors[0]->Neighbors[3] = nullptr;
+				}
+				if (Neighbors[1])
+				{
+					Neighbors[1]->Neighbors[2] = nullptr;
+				}
+				if (Neighbors[2])
+				{
+					Neighbors[2]->Neighbors[1] = nullptr;
+				}
+				if (Neighbors[3])
+				{
+					Neighbors[3]->Neighbors[0] = nullptr;
+				}
+			}
+		}
+	}
+}
+
+//
+// FLandscapeMeshProxySceneProxy
+//
+FLandscapeMeshProxySceneProxy::FLandscapeMeshProxySceneProxy(UStaticMeshComponent* InComponent, const FGuid& InGuid, const TArray<FIntPoint>& InProxyComponentBases, int8 InProxyLOD)
+: FStaticMeshSceneProxy(InComponent)
+{
+	if (!IsComponentLevelVisible())
+	{
+		bNeedsLevelAddedToWorldNotification = true;
+	}
+
+	ProxyNeighborInfos.Empty(InProxyComponentBases.Num());
+	for (FIntPoint ComponentBase : InProxyComponentBases)
+	{
+		new(ProxyNeighborInfos) FLandscapeNeighborInfo(InComponent->GetWorld(), InGuid, ComponentBase, nullptr, InProxyLOD, 0);
+	}
+}
+
+void FLandscapeMeshProxySceneProxy::CreateRenderThreadResources()
+{
+	FStaticMeshSceneProxy::CreateRenderThreadResources();
+
+	if (IsComponentLevelVisible())
+	{
+		for (FLandscapeNeighborInfo& Info : ProxyNeighborInfos)
+		{
+			Info.RegisterNeighbors();
+		}
+	}
+}
+
+void FLandscapeMeshProxySceneProxy::OnLevelAddedToWorld()
+{
+	for (FLandscapeNeighborInfo& Info : ProxyNeighborInfos)
+	{
+		Info.RegisterNeighbors();
+	}
+}
+
+FLandscapeMeshProxySceneProxy::~FLandscapeMeshProxySceneProxy()
+{
+	for (FLandscapeNeighborInfo& Info : ProxyNeighborInfos)
+	{
+		Info.UnregisterNeighbors();
+	}
+}
+
+FPrimitiveSceneProxy* ULandscapeMeshProxyComponent::CreateSceneProxy()
+{
+	if (StaticMesh == NULL
+		|| StaticMesh->RenderData == NULL
+		|| StaticMesh->RenderData->LODResources.Num() == 0
+		|| StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
+	{
+		return NULL;
+	}
+
+	return new FLandscapeMeshProxySceneProxy(this, LandscapeGuid, ProxyComponentBases, ProxyLOD);
 }

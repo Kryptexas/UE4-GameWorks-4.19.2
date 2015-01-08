@@ -1538,11 +1538,6 @@ void ULevel::InitializeRenderingResources()
 		if( !PrecomputedLightVolume->IsAddedToScene() )
 		{
 			PrecomputedLightVolume->AddToScene(OwningWorld->Scene);
-
-			if (OwningWorld->Scene)
-			{
-				OwningWorld->Scene->OnLevelAddedToWorld(GetOutermost()->GetFName());
-			}
 		}
 	}
 }

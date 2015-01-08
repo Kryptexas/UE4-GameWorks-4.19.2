@@ -732,7 +732,7 @@ private:
 /**
  * A static mesh component scene proxy.
  */
-class FStaticMeshSceneProxy : public FPrimitiveSceneProxy
+class ENGINE_API FStaticMeshSceneProxy : public FPrimitiveSceneProxy
 {
 public:
 

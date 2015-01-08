@@ -2261,10 +2261,16 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 			}
 
 			// In case we have finished making level visible
-			// immediately discard previous level
 			if (Level->bIsVisible)
 			{
+				// immediately discard previous level
 				StreamingLevel->DiscardPendingUnloadLevel(this);
+
+				if (Scene)
+				{
+					// Notify the new level has been added after the old has been discarded
+					Scene->OnLevelAddedToWorld(Level->GetOutermost()->GetFName());
+				}
 			}
 		}
 		else

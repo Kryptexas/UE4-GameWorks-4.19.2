@@ -29,6 +29,8 @@ Landscape.cpp: Terrain rendering
 #include "AI/Navigation/NavigationSystem.h"
 #include "EngineUtils.h"
 #include "Engine/StaticMesh.h"
+#include "LandscapeMeshProxyComponent.h"
+#include "LandscapeMeshProxyActor.h"
 
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
@@ -2853,7 +2855,28 @@ static FAutoConsoleCommand FlushFoliageCmd(
 	FConsoleCommandWithArgsDelegate::CreateStatic(&FlushFoliage)
 	);
 
+//
+// ALandscapeMeshProxyActor
+//
+ALandscapeMeshProxyActor::ALandscapeMeshProxyActor(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	bCanBeDamaged = false;
 
+	LandscapeMeshProxyComponent = CreateDefaultSubobject<ULandscapeMeshProxyComponent>(TEXT("LandscapeMeshProxyComponent0"));
+	LandscapeMeshProxyComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	LandscapeMeshProxyComponent->Mobility = EComponentMobility::Static;
+	LandscapeMeshProxyComponent->bGenerateOverlapEvents = false;
 
+	RootComponent = LandscapeMeshProxyComponent;
+}
+
+//
+// ULandscapeMeshProxyComponent
+//
+ULandscapeMeshProxyComponent::ULandscapeMeshProxyComponent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+}
 
 #undef LOCTEXT_NAMESPACE

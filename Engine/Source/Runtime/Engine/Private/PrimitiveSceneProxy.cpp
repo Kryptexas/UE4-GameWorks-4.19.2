@@ -51,6 +51,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bUseEditorDepthTest(true)
 ,	bSupportsDistanceFieldRepresentation(false)
 ,	bSupportsHeightfieldRepresentation(false)
+,	bNeedsLevelAddedToWorldNotification(false)
 ,	bUseAsOccluder(InComponent->bUseAsOccluder)
 ,	bAllowApproximateOcclusion(InComponent->Mobility != EComponentMobility::Movable)
 ,	bSelectable(InComponent->bSelectable)
@@ -130,15 +131,8 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 	// Flag components to render only after level will be fully added to the world
 	//
 	ULevel* ComponentLevel = InComponent->GetComponentLevel();
-	if (ComponentLevel && ComponentLevel->bRequireFullVisibilityToRender)
-	{
-		bRequiresVisibleLevelToRender = true;
-		bIsComponentLevelVisible = ComponentLevel->bIsVisible;
-	}
-	else
-	{
-		bRequiresVisibleLevelToRender = false;
-	}
+	bRequiresVisibleLevelToRender = (ComponentLevel && ComponentLevel->bRequireFullVisibilityToRender);
+	bIsComponentLevelVisible = (!ComponentLevel || ComponentLevel->bIsVisible);
 }
 
 FPrimitiveSceneProxy::~FPrimitiveSceneProxy()

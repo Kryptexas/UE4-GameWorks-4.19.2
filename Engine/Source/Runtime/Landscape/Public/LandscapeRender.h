@@ -10,8 +10,10 @@ LandscapeRender.h: New terrain rendering
 
 #include "LandscapeComponent.h"
 #include "LandscapeProxy.h"
+#include "LandscapeMeshProxyComponent.h"
 
 #include "PrimitiveSceneProxy.h"
+#include "StaticMeshResources.h"
 
 #include "LightMap.h"
 #include "MeshBatch.h"
@@ -19,8 +21,6 @@ LandscapeRender.h: New terrain rendering
 
 // This defines the number of border blocks to surround terrain by when generating lightmaps
 #define TERRAIN_PATCH_EXPAND_SCALAR	1
-
-#define LANDSCAPE_NEIGHBOR_NUM	4
 
 #define LANDSCAPE_LOD_LEVELS 8
 #define LANDSCAPE_MAX_SUBSECTION_NUM 2
@@ -348,12 +348,12 @@ struct FLandscapeEditToolRenderData
 };
 
 //
-// FLandscapeComponentSceneProxy
+// FLandscapeNeighborInfo
 //
-class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
+class FLandscapeNeighborInfo
 {
-	friend class FLandscapeSharedBuffers;
-
+	bool bRegistered;
+protected:
 	// Key to uniquely identify the landscape to find the correct render proxy map
 	class FLandscapeKey
 	{
@@ -361,8 +361,8 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 		const FGuid Guid;
 	public:
 		FLandscapeKey(const UWorld* InWorld, const FGuid& InGuid)
-		: World(InWorld)
-		, Guid(InGuid)
+			: World(InWorld)
+			, Guid(InGuid)
 		{}
 
 		friend inline uint32 GetTypeHash(const FLandscapeKey& LandscapeKey)
@@ -375,6 +375,73 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 			return A.World == B.World && A.Guid == B.Guid;
 		}
 	};
+
+	// Map of currently registered landscape proxies, used to register with our neighbors
+	static TMap<FLandscapeKey, TMap<FIntPoint, const FLandscapeNeighborInfo*> > SharedSceneProxyMap;
+
+	// For neighbor lookup
+	FLandscapeKey			LandscapeKey;
+	FIntPoint				ComponentBase;
+
+	// Pointer to our neighbor's scene proxies in NWES order (nullptr if there is currently no neighbor)
+	mutable const FLandscapeNeighborInfo* Neighbors[4];
+
+	
+	// Data we need to be able to access about our neighbor
+	UTexture2D*				HeightmapTexture; // PC : Heightmap, Mobile : Weightmap
+	int8					ForcedLOD;
+	int8					LODBias;
+
+	friend class FLandscapeComponentSceneProxy;
+
+public:
+	FLandscapeNeighborInfo(const UWorld* InWorld, const FGuid& InGuid, const FIntPoint& InComponentBase, UTexture2D* InHeightmapTexture, int8 InForcedLOD, int8 InLODBias)
+	: bRegistered(false)
+	, LandscapeKey(InWorld, InGuid)
+	, ComponentBase(InComponentBase)
+	, HeightmapTexture(InHeightmapTexture)
+	, ForcedLOD(InForcedLOD)
+	, LODBias(InLODBias)
+	{
+		//       -Y       
+		//    - - 0 - -   
+		//    |       |   
+		// -X 1   P   2 +X
+		//    |       |   
+		//    - - 3 - -   
+		//       +Y       
+
+		Neighbors[0] = nullptr;
+		Neighbors[1] = nullptr;
+		Neighbors[2] = nullptr;
+		Neighbors[3] = nullptr;
+	}
+
+	void RegisterNeighbors();
+	void UnregisterNeighbors();
+};
+
+//
+// FLandscapeMeshProxySceneProxy
+//
+class FLandscapeMeshProxySceneProxy : public FStaticMeshSceneProxy
+{
+	TArray<FLandscapeNeighborInfo> ProxyNeighborInfos;
+public:
+	FLandscapeMeshProxySceneProxy(UStaticMeshComponent* InComponent, const FGuid& InGuid, const TArray<FIntPoint>& InProxyComponentBases, int8 InProxyLOD);
+	virtual ~FLandscapeMeshProxySceneProxy();
+	virtual void CreateRenderThreadResources() override;
+	virtual void OnLevelAddedToWorld() override;
+};
+
+
+//
+// FLandscapeComponentSceneProxy
+//
+class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLandscapeNeighborInfo
+{
+	friend class FLandscapeSharedBuffers;
+
 
 	class FLandscapeLCI final : public FLightCacheInterface
 	{
@@ -411,8 +478,6 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 	};
 
 protected:
-	FLandscapeKey				LandscapeKey;
-	bool						bAddedToSceneProxyMap;
 	int8						MaxLOD;
 	int8						NumSubsections;
 	int16						SubsectionSizeQuads;
@@ -422,7 +487,6 @@ protected:
 	uint8						StaticLightingLOD;
 	float						StaticLightingResolution;
 	FIntPoint					SectionBase;
-	FIntPoint					ComponentBase;
 	FMatrix						LocalToWorldNoScaling;
 
 	// Storage for static draw list batch params
@@ -436,10 +500,7 @@ protected:
 	float WeightmapSubsectionOffset;
 	TArray<UTexture2D*> WeightmapTextures;
 	int8 NumWeightmapLayerAllocations;
-
 	UTexture2D* NormalmapTexture; // PC : Heightmap, Mobile : Weightmap
-
-	UTexture2D* HeightmapTexture; // PC : Heightmap, Mobile : Weightmap
 	FVector4 HeightmapScaleBias;
 	float HeightmapSubsectionOffsetU;
 	float HeightmapSubsectionOffsetV;
@@ -459,21 +520,12 @@ protected:
 	static TMap<uint32, FLandscapeSharedBuffers*> SharedBuffersMap;
 	static TMap<uint32, FLandscapeSharedAdjacencyIndexBuffer*> SharedAdjacencyIndexBufferMap;
 
-	// Map of currently registered landscape proxies, used to register with our neighbors
-	static TMap<FLandscapeKey, TMap<FIntPoint, const FLandscapeComponentSceneProxy*> > SharedSceneProxyMap;
-
 	FLandscapeEditToolRenderData* EditToolRenderData;
 
 	// FLightCacheInterface
 	TUniquePtr<FLandscapeLCI> ComponentLightInfo;
 
 	const ULandscapeComponent* LandscapeComponent;
-
-	int8					ForcedLOD;
-	int8					LODBias;
-
-	// Pointer to our neighbor's scene proxies in NWES order (nullptr if there is currently no neighbor)
-	mutable const FLandscapeComponentSceneProxy* Neighbors[4];
 
 	ELandscapeLODFalloff::Type LODFalloff;
 
@@ -497,7 +549,8 @@ public:
 	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
 	virtual void OnTransformChanged() override;
 	virtual void CreateRenderThreadResources() override;
-
+	virtual void OnLevelAddedToWorld() override;
+	
 	friend class ULandscapeComponent;
 	friend class FLandscapeVertexFactoryVertexShaderParameters;
 	friend class FLandscapeXYOffsetVertexFactoryVertexShaderParameters;

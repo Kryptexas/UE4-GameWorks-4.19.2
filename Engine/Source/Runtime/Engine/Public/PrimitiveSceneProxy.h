@@ -242,6 +242,13 @@ public:
 	virtual void OnActorPositionChanged() {}
 
 	/**
+	 * Called to notify the proxy that the level has been fully added to
+	 * the world and the primitive will now be rendered.
+	 * Only called if bNeedsLevelAddedToWorldNotification is set to true.
+	 */
+	virtual void OnLevelAddedToWorld() {}
+
+	/**
 	* @return true if the proxy can be culled when occluded by other primitives
 	*/
 	virtual bool CanBeOccluded() const
@@ -355,6 +362,9 @@ public:
 	inline bool SupportsDistanceFieldRepresentation() const { return bSupportsDistanceFieldRepresentation; }
 	inline bool SupportsHeightfieldRepresentation() const { return bSupportsHeightfieldRepresentation; }
 	inline bool TreatAsBackgroundForOcclusion() const { return bTreatAsBackgroundForOcclusion; }
+	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
+	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
+
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
 #endif
@@ -542,6 +552,9 @@ protected:
 
 	/** Whether the primitive implements GetHeightfieldRepresentation() */
 	uint32 bSupportsHeightfieldRepresentation : 1;
+
+	/** Whether this primitive requires notification when its level is added to the world and made visible for the first time. */
+	uint32 bNeedsLevelAddedToWorldNotification : 1;
 
 private:
 
