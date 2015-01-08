@@ -694,6 +694,9 @@ private:
 
 	bool bToolActive;
 	UMaterial* GizmoMaterial;
+
+	FDelegateHandle OnWorldChangeDelegateHandle;
+	FDelegateHandle OnMaterialCompilationFinishedDelegateHandle;
 };
 
 namespace LandscapeEditorUtils

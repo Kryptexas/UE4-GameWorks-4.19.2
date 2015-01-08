@@ -77,4 +77,7 @@ private:
 
 	/** The combo button for the class picker, Cached so we can close it when the user picks something */
 	TSharedPtr<SComboButton> ClassPickerComboButton;
+
+	/** Per-mesh handles to registered OnSkeletalMeshPropertyChanged delegates */
+	TMap<USkeletalMeshComponent*, FDelegateHandle> OnSkeletalMeshPropertyChangedDelegateHandles;
 };

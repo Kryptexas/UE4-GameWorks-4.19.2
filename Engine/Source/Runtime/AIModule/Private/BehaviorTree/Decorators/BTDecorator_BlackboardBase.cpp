@@ -31,7 +31,8 @@ void UBTDecorator_BlackboardBase::OnBecomeRelevant(UBehaviorTreeComponent& Owner
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->RegisterObserver(BlackboardKey.GetSelectedKeyID(), BBKeyObserver);
+		auto KeyID = BlackboardKey.GetSelectedKeyID();
+		BBKeyObserverDelegateHandles.Add(KeyID, BlackboardComp->RegisterObserver(KeyID, BBKeyObserver));
 	}
 }
 
@@ -40,7 +41,9 @@ void UBTDecorator_BlackboardBase::OnCeaseRelevant(UBehaviorTreeComponent& OwnerC
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->UnregisterObserver(BlackboardKey.GetSelectedKeyID(), BBKeyObserver);
+		auto KeyID = BlackboardKey.GetSelectedKeyID();
+		BlackboardComp->UnregisterObserver(KeyID, BBKeyObserverDelegateHandles.FindRef(KeyID));
+		BBKeyObserverDelegateHandles.Remove(KeyID);
 	}
 }
 

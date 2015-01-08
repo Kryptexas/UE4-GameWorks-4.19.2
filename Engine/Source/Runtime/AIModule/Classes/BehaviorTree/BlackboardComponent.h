@@ -65,10 +65,14 @@ public:
 	bool HasValidAsset() const;
 
 	/** register observer for blackboard key */
-	void RegisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate);
+	FDelegateHandle RegisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate);
 
 	/** unregister observer from blackboard key */
+	DELEGATE_DEPRECATED("This overload of UnregisterObserver is deprecated, instead pass the result of RegisterObserver.")
 	void UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate);
+
+	/** unregister observer from blackboard key */
+	void UnregisterObserver(FBlackboard::FKey KeyID, FDelegateHandle ObserverHandle);
 
 	/** pause change notifies and add them to queue */
 	void PauseUpdates();

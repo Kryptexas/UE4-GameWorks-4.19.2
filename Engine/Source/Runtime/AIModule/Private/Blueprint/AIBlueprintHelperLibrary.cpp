@@ -106,7 +106,7 @@ UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(U
 			}
 			else
 			{
-				World->GetTimerManager().SetTimer(MyObj, &UAIAsyncTaskBlueprintProxy::OnNoPath, 0.1f, false);
+				World->GetTimerManager().SetTimer(MyObj->TimerHandle_OnNoPath, MyObj, &UAIAsyncTaskBlueprintProxy::OnNoPath, 0.1f, false);
 			}
 		}
 	}

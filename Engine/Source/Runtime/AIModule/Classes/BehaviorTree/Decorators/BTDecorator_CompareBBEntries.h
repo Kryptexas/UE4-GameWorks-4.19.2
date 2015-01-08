@@ -42,6 +42,8 @@ protected:
 
 	FOnBlackboardChange BBKeyObserver;
 
+	TMap<FBlackboard::FKey, FDelegateHandle> BBKeyObserverDelegateHandles;
+
 public:
 
 	virtual void PostInitProperties() override;

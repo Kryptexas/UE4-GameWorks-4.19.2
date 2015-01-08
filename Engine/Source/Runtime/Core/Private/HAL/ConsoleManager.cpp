@@ -543,7 +543,18 @@ void FConsoleManager::RegisterConsoleVariableSink(const FConsoleCommandDelegate&
 
 void FConsoleManager::UnregisterConsoleVariableSink(const FConsoleCommandDelegate& Command)
 {
-	ConsoleVariableChangeSinks.Remove(Command);
+	ConsoleVariableChangeSinks.RemoveAll([&](const FConsoleCommandDelegate& Element){ return Command.DEPRECATED_Compare(Element); });
+}
+
+FConsoleVariableSinkHandle FConsoleManager::RegisterConsoleVariableSink_Handle(const FConsoleCommandDelegate& Command)
+{
+	ConsoleVariableChangeSinks.Add(Command);
+	return FConsoleVariableSinkHandle(Command.GetHandle());
+}
+
+void FConsoleManager::UnregisterConsoleVariableSink_Handle(FConsoleVariableSinkHandle Handle)
+{
+	ConsoleVariableChangeSinks.RemoveAll([=](const FConsoleCommandDelegate& Delegate){ return Handle.HasSameHandle(Delegate); });
 }
 
 class FConsoleCommand : public FConsoleCommandBase
@@ -1305,7 +1316,7 @@ void FConsoleManager::Test()
 
 	// setup ---------
 
-	RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&TestSinkCallback));
+	auto TestSinkCallbackHandle = RegisterConsoleVariableSink_Handle(FConsoleCommandDelegate::CreateStatic(&TestSinkCallback));
 
 	// start tests ---------
 
@@ -1461,7 +1472,7 @@ void FConsoleManager::Test()
 	TestSinkCallback();
 	check(GConsoleManagerSinkTestCounter == 2);
 
-	UnregisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&TestSinkCallback));
+	UnregisterConsoleVariableSink_Handle(TestSinkCallbackHandle);
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }

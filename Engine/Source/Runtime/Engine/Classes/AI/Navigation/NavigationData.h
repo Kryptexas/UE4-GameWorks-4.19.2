@@ -97,13 +97,18 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	{
 		return ObserverDelegate;
 	}
-	FORCEINLINE void AddObserver(FPathObserverDelegate::FDelegate& NewObserver)
+	FORCEINLINE FDelegateHandle AddObserver(FPathObserverDelegate::FDelegate& NewObserver)
 	{
-		ObserverDelegate.Add(NewObserver);
+		return ObserverDelegate.Add(NewObserver);
 	}
+	DELEGATE_DEPRECATED("This RemoveObserver overload has been deprecated - please pass the handle returned from AddObserver instead.")
 	FORCEINLINE void RemoveObserver(FPathObserverDelegate::FDelegate& ObserverToRemove)
 	{
-		ObserverDelegate.Remove(ObserverToRemove);
+		ObserverDelegate.DEPRECATED_Remove(ObserverToRemove);
+	}
+	FORCEINLINE void RemoveObserver(FDelegateHandle HandleOfObserverToRemove)
+	{
+		ObserverDelegate.Remove(HandleOfObserverToRemove);
 	}
 
 	FORCEINLINE void MarkReady()

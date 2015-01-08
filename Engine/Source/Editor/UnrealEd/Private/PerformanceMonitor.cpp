@@ -125,12 +125,12 @@ FPerformanceMonitor::FPerformanceMonitor()
 		}
 	});
 
-	IConsoleManager::Get().RegisterConsoleVariableSink(CVarDelegate);
+	CVarDelegateHandle = IConsoleManager::Get().RegisterConsoleVariableSink_Handle(CVarDelegate);
 }
 
 FPerformanceMonitor::~FPerformanceMonitor()
 {
-	IConsoleManager::Get().UnregisterConsoleVariableSink(CVarDelegate);	
+	IConsoleManager::Get().UnregisterConsoleVariableSink_Handle(CVarDelegateHandle);
 }
 
 bool FPerformanceMonitor::WillAutoScalabilityHelp() const

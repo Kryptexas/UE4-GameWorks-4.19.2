@@ -198,7 +198,7 @@ const FSlateBrush* SDetailsViewBase::OnGetFilterButtonImageResource() const
 
 void SDetailsViewBase::EnqueueDeferredAction(FSimpleDelegate& DeferredAction)
 {
-	DeferredActions.AddUnique(DeferredAction);
+	DeferredActions.Add(DeferredAction);
 }
 
 /**

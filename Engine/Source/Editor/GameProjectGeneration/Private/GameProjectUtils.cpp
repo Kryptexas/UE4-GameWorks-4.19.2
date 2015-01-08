@@ -24,6 +24,7 @@
 #include "GameFramework/GameMode.h"
 #include "HotReloadInterface.h"
 #include "SVerbChoiceDialog.h"
+#include "SourceCodeNavigation.h"
 
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"

@@ -422,7 +422,7 @@ void FUnrealEdMisc::OnInit()
 	FAssetNameToken::OnGotoAsset().BindRaw(this, &FUnrealEdMisc::OnGotoAsset);
 
 	// Register to receive notification of new key bindings
-	FInputBindingManager::Get().RegisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
+	OnUserDefinedGestureChangedDelegateHandle = FInputBindingManager::Get().RegisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
 
 	SlowTask.EnterProgressFrame(10);
 
@@ -433,7 +433,8 @@ void FUnrealEdMisc::OnInit()
 	float Seconds = 60.0f;
 	FTimerDelegate Delegate;
 	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
-	GEditor->GetTimerManager()->SetTimer( Delegate, Seconds, true );
+
+	GEditor->GetTimerManager()->SetTimer( EditorAnalyticsHeartbeatTimerHandle, Delegate, Seconds, true );
 
 	// add handler to notify about navmesh building process
 	NavigationBuildingNotificationHandler = MakeShareable(new FNavigationBuildingNotificationImpl());
@@ -677,7 +678,7 @@ void FUnrealEdMisc::OnExit()
 		FEditorViewportStats::SendUsageData();
 	}
 
-	FInputBindingManager::Get().UnregisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
+	FInputBindingManager::Get().UnregisterUserDefinedGestureChanged(OnUserDefinedGestureChangedDelegateHandle);
 	FMessageLog::OnMessageSelectionChanged().Unbind();
 	FUObjectToken::DefaultOnMessageTokenActivated().Unbind();
 	FUObjectToken::DefaultOnGetObjectDisplayName().Unbind();
@@ -1389,7 +1390,7 @@ void FUnrealEdMisc::BeginPerformanceSurvey()
 
 	// Tell the level editor we want to be notified when selection changes
 	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( LevelEditorName );
-	LevelEditor.OnMapChanged().AddRaw( this, &FUnrealEdMisc::OnMapChanged );
+	OnMapChangedDelegateHandle = LevelEditor.OnMapChanged().AddRaw( this, &FUnrealEdMisc::OnMapChanged );
 
 	// Initialize survey variables
 	bIsSurveyingPerformance = true;
@@ -1472,7 +1473,7 @@ void FUnrealEdMisc::CancelPerformanceSurvey()
 	FrameRateSamples.Empty();
 
 	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( LevelEditorName );
-	LevelEditor.OnMapChanged().RemoveRaw( this, &FUnrealEdMisc::OnMapChanged );
+	LevelEditor.OnMapChanged().Remove( OnMapChangedDelegateHandle );
 }
 
 void FUnrealEdMisc::OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType )

@@ -3195,14 +3195,19 @@ void UWorld::RemoveNetworkActor( AActor* Actor )
 	NetworkActors.RemoveSingleSwap( Actor );
 }
 
-void UWorld::AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler )
+FDelegateHandle UWorld::AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler )
 {
-	OnActorSpawned.Add(InHandler);
+	return OnActorSpawned.Add(InHandler);
 }
 
 void UWorld::RemoveOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler )
 {
-	OnActorSpawned.Remove(InHandler);
+	OnActorSpawned.DEPRECATED_Remove(InHandler);
+}
+
+void UWorld::RemoveOnActorSpawnedHandler( FDelegateHandle InHandle )
+{
+	OnActorSpawned.Remove(InHandle);
 }
 
 ABrush* UWorld::GetBrush() const

@@ -53,7 +53,7 @@ void FFeaturePackContentSourceProvider::StartUpDirectoryWatcher()
 		// If the path doesn't exist on disk, make it so the watcher will work.
 		IFileManager::Get().MakeDirectory(*FeaturePackPath);
 		DirectoryChangedDelegate = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FFeaturePackContentSourceProvider::OnFeaturePackDirectoryChanged);
-		DirectoryWatcher->RegisterDirectoryChangedCallback(FeaturePackPath, DirectoryChangedDelegate);
+		DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FeaturePackPath, DirectoryChangedDelegate, DirectoryChangedDelegateHandle);
 	}
 }
 
@@ -63,7 +63,7 @@ void FFeaturePackContentSourceProvider::ShutDownDirectoryWatcher()
 	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 	if ( DirectoryWatcher )
 	{
-		DirectoryWatcher->UnregisterDirectoryChangedCallback(FeaturePackPath, DirectoryChangedDelegate);
+		DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FeaturePackPath, DirectoryChangedDelegateHandle);
 	}
 }
 

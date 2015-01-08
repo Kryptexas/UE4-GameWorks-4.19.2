@@ -200,6 +200,8 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	bool IsDecoratorObserverActive() const;
 
+	TMap<FBlackboard::FKey, FDelegateHandle> BBKeyObserverDelegateHandles;
+
 	friend FBehaviorBlueprintDetails;
 
 	FORCEINLINE bool GetNeedsTickForConditionChecking() const { return ReceiveConditionCheckImplementations != 0 && (bIsObservingBB == false || bCheckConditionOnlyBlackBoardChanges == false); }

@@ -1535,6 +1535,9 @@ private:
 	TMap<UInterpTrack*, AddKeyInfo> AddKeyInfoMap;
 	TMap<UInterpTrack*, int32> TrackToNewKeyIndexMap;
 
+	/** Handle to the registered OnActorMoved delegate */
+	FDelegateHandle OnActorMovedDelegateHandle;
+
 	/** For keeping track of the previously used camera, so we can detect cuts when playing back in editor mode */
 	ACameraActor* PreviousCamera;
 

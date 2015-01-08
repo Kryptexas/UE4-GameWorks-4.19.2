@@ -291,7 +291,9 @@ void UKismetSystemLibrary::K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, f
 	if (Delegate.IsBound())
 	{
 		const UWorld* const World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
-		World->GetTimerManager().SetTimer(Delegate, Time, bLooping);
+		auto& TimerManager = World->GetTimerManager();
+		auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		TimerManager.SetTimer(Handle, Delegate, Time, bLooping);
 	}
 	else
 	{
@@ -316,7 +318,9 @@ void UKismetSystemLibrary::K2_ClearTimerDelegate(FTimerDynamicDelegate Delegate)
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if (World)
 		{
-			World->GetTimerManager().ClearTimer(Delegate);
+			auto& TimerManager = World->GetTimerManager();
+			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			World->GetTimerManager().ClearTimer(Handle);
 		}
 	}
 	else
@@ -340,7 +344,9 @@ void UKismetSystemLibrary::K2_PauseTimerDelegate(FTimerDynamicDelegate Delegate)
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
-		World->GetTimerManager().PauseTimer(Delegate);
+		auto& TimerManager = World->GetTimerManager();
+		auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		World->GetTimerManager().PauseTimer(Handle);
 	}
 	else
 	{
@@ -363,7 +369,9 @@ void UKismetSystemLibrary::K2_UnPauseTimerDelegate(FTimerDynamicDelegate Delegat
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
-		World->GetTimerManager().UnPauseTimer(Delegate);
+		auto& TimerManager = World->GetTimerManager();
+		auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		World->GetTimerManager().UnPauseTimer(Handle);
 	}
 	else
 	{
@@ -386,7 +394,9 @@ bool UKismetSystemLibrary::K2_IsTimerActiveDelegate(FTimerDynamicDelegate Delega
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
-		return World->GetTimerManager().IsTimerActive(Delegate);
+		auto& TimerManager = World->GetTimerManager();
+		auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		return World->GetTimerManager().IsTimerActive(Handle);
 	}
 	else
 	{
@@ -410,7 +420,9 @@ bool UKismetSystemLibrary::K2_IsTimerPausedDelegate(FTimerDynamicDelegate Delega
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
-		return World->GetTimerManager().IsTimerPaused(Delegate);
+		auto& TimerManager = World->GetTimerManager();
+		auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		return World->GetTimerManager().IsTimerPaused(Handle);
 	}
 	else
 	{
@@ -434,7 +446,9 @@ bool UKismetSystemLibrary::K2_TimerExistsDelegate(FTimerDynamicDelegate Delegate
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
-		return World->GetTimerManager().TimerExists(Delegate);
+		auto& TimerManager = World->GetTimerManager();
+		auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		return World->GetTimerManager().TimerExists(Handle);
 	}
 	else
 	{
@@ -458,7 +472,9 @@ float UKismetSystemLibrary::K2_GetTimerElapsedTimeDelegate(FTimerDynamicDelegate
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
-		return World->GetTimerManager().GetTimerElapsed(Delegate);
+		auto& TimerManager = World->GetTimerManager();
+		auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		return World->GetTimerManager().GetTimerElapsed(Handle);
 	}
 	else
 	{
@@ -482,7 +498,9 @@ float UKismetSystemLibrary::K2_GetTimerRemainingTimeDelegate(FTimerDynamicDelega
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
-		return World->GetTimerManager().GetTimerRemaining(Delegate);
+		auto& TimerManager = World->GetTimerManager();
+		auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		return World->GetTimerManager().GetTimerRemaining(Handle);
 	}
 	else
 	{

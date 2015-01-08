@@ -321,7 +321,7 @@ void UAbilitySystemComponent::OnGiveAbility(FGameplayAbilitySpec& Spec)
 
 			if (!CountChangedEvent.IsBoundToObject(this))
 			{
-				CountChangedEvent.AddUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
+				MonitoredTagChangedDelegatHandle = CountChangedEvent.AddUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
 			}
 		}
 	}
@@ -402,7 +402,7 @@ void UAbilitySystemComponent::CheckForClearedAbilities()
 		
 			if (CountChangedEvent.IsBoundToObject(this))
 			{
-				CountChangedEvent.RemoveUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
+				CountChangedEvent.Remove(MonitoredTagChangedDelegatHandle);
 			}
 		}
 
@@ -632,7 +632,7 @@ void UAbilitySystemComponent::OnRep_ActivateAbilities()
 		if (!SpecAbility)
 		{
 			// Queue up another call to make sure this gets run again, as our abilities haven't replicated yet
-			GetWorld()->GetTimerManager().SetTimer(this, &UAbilitySystemComponent::OnRep_ActivateAbilities, 0.5);
+			GetWorld()->GetTimerManager().SetTimer(OnRep_ActivateAbilitiesTimerHandle, this, &UAbilitySystemComponent::OnRep_ActivateAbilities, 0.5);
 			return;
 		}
 	}

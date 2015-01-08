@@ -151,4 +151,7 @@ private:
 
 	/** Holds a delegate to be invoked when the widget ticks. */
 	FTickerDelegate TickDelegate;
+
+	/** Holds a delegate to be invoked when the widget ticks. */
+	FDelegateHandle TickDelegateHandle;
 };

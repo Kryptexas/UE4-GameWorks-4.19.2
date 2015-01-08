@@ -52,8 +52,8 @@ FBehaviorTreeEditor::FBehaviorTreeEditor()
 	}
 
 	// listen for package change events to update injected nodes
-	UPackage::PackageSavedEvent.AddRaw(this, &FBehaviorTreeEditor::OnPackageSaved);
-	FClassBrowseHelper::OnPackageListUpdated.AddRaw(this, &FBehaviorTreeEditor::OnClassListUpdated);
+	OnPackageSavedDelegateHandle     = UPackage::PackageSavedEvent.AddRaw(this, &FBehaviorTreeEditor::OnPackageSaved);
+	OnClassListUpdatedDelegateHandle = FClassBrowseHelper::OnPackageListUpdated.AddRaw(this, &FBehaviorTreeEditor::OnClassListUpdated);
 
 	bShowDecoratorRangeLower = false;
 	bShowDecoratorRangeSelf = false;
@@ -74,8 +74,8 @@ FBehaviorTreeEditor::~FBehaviorTreeEditor()
 		Editor->UnregisterForUndo( this );
 	}
 
-	UPackage::PackageSavedEvent.RemoveRaw(this, &FBehaviorTreeEditor::OnPackageSaved);
-	FClassBrowseHelper::OnPackageListUpdated.RemoveRaw(this, &FBehaviorTreeEditor::OnClassListUpdated);
+	UPackage::PackageSavedEvent.Remove(OnPackageSavedDelegateHandle);
+	FClassBrowseHelper::OnPackageListUpdated.Remove(OnClassListUpdatedDelegateHandle);
 
 	Debugger.Reset();
 }

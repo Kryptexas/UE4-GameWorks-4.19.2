@@ -785,4 +785,20 @@ private:
 
 	FFriendsAndChatAnalytics Analytics;
 	static TSharedPtr< FFriendsAndChatManager > SingletonInstance;
+
+	/** Handle to various registered delegates */
+	FDelegateHandle OnQueryRecentPlayersCompleteDelegateHandle;
+	FDelegateHandle OnFriendsListChangedDelegateHandle;
+	FDelegateHandle OnFriendInviteReceivedDelegateHandle;
+	FDelegateHandle OnFriendRemovedDelegateHandle;
+	FDelegateHandle OnFriendInviteRejectedHandle;
+	FDelegateHandle OnFriendInviteAcceptedHandle;
+	FDelegateHandle OnReadFriendsCompleteDelegateHandle;
+	FDelegateHandle OnDeleteFriendCompleteDelegateHandle;
+	FDelegateHandle OnQueryUserInfoCompleteDelegateHandle;
+	FDelegateHandle OnPresenceReceivedCompleteDelegateHandle;
+	FDelegateHandle OnGameInviteReceivedDelegateHandle;
+	FDelegateHandle OnDestroySessionCompleteDelegateHandle;
+	FDelegateHandle OnQueryUserIdMappingCompleteDelegateHandle;
+	FDelegateHandle UpdateFriendsTickerDelegateHandle;
 };

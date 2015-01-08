@@ -24,4 +24,7 @@ protected:
 	virtual void BroadcastDelegate(AActor* Avatar, FGameplayEffectSpecHandle SpecHandle, FActiveGameplayEffectHandle ActiveHandle) override;
 	virtual void RegisterDelegate() override;
 	virtual void RemoveDelegate() override;
+
+private:
+	FDelegateHandle OnApplyGameplayEffectCallbackDelegateHandle;
 };

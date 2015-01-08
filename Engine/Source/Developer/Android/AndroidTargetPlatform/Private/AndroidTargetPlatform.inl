@@ -21,14 +21,14 @@ inline FAndroidTargetPlatform<TPlatformProperties>::FAndroidTargetPlatform( ) :
 	#endif
 
 	TickDelegate = FTickerDelegate::CreateRaw(this, &FAndroidTargetPlatform::HandleTicker);
-	FTicker::GetCoreTicker().AddTicker(TickDelegate, 4.0f);
+	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 4.0f);
 }
 
 
 template<class TPlatformProperties>
 inline FAndroidTargetPlatform<TPlatformProperties>::~FAndroidTargetPlatform()
 { 
-	 FTicker::GetCoreTicker().RemoveTicker(TickDelegate);
+	 FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 }
 
 

@@ -71,7 +71,7 @@ void FVisualStudioSourceCodeAccessor::Startup()
 
 #if WITH_EDITOR
 	// Setup compilation for saving all VS documents upon compilation start
-	IHotReloadModule::Get().OnModuleCompilerStarted().AddStatic( &SaveVisualStudioDocuments );
+	SaveVisualStudioDocumentsDelegateHandle = IHotReloadModule::Get().OnModuleCompilerStarted().AddStatic( &SaveVisualStudioDocuments );
 #endif
 
 	// Cache this so we don't have to do it on a background thread
@@ -91,7 +91,7 @@ void FVisualStudioSourceCodeAccessor::Shutdown()
 	// Unregister the hot-reload callback
 	if(IHotReloadModule::IsAvailable())
 	{
-		IHotReloadModule::Get().OnModuleCompilerStarted().RemoveStatic( &SaveVisualStudioDocuments );
+		IHotReloadModule::Get().OnModuleCompilerStarted().Remove( SaveVisualStudioDocumentsDelegateHandle );
 	}
 #endif
 }

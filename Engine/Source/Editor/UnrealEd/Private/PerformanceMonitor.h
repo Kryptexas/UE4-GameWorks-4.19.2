@@ -197,4 +197,6 @@ private:
 
 	/** Console variable delegate for checking when the console variables have changed */
 	FConsoleCommandDelegate CVarDelegate;
+
+	FConsoleVariableSinkHandle CVarDelegateHandle;
 };

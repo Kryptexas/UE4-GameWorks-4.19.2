@@ -213,7 +213,7 @@ void FAnimSequenceDetails::RegisterRetargetSourceChanged()
 	if (TargetSkeleton.IsValid() && !OnDelegateRetargetSourceChanged.IsBound())
 	{
 		OnDelegateRetargetSourceChanged = USkeleton::FOnRetargetSourceChanged::CreateSP( this, &FAnimSequenceDetails::DelegateRetargetSourceChanged );
-		TargetSkeleton->RegisterOnRetargetSourceChanged(OnDelegateRetargetSourceChanged);
+		OnDelegateRetargetSourceChangedDelegateHandle = TargetSkeleton->RegisterOnRetargetSourceChanged(OnDelegateRetargetSourceChanged);
 	}
 }
 
@@ -221,7 +221,7 @@ FAnimSequenceDetails::~FAnimSequenceDetails()
 {
 	if (TargetSkeleton.IsValid() && OnDelegateRetargetSourceChanged.IsBound())
 	{
-		TargetSkeleton->UnregisterOnRetargetSourceChanged(OnDelegateRetargetSourceChanged);
+		TargetSkeleton->UnregisterOnRetargetSourceChanged(OnDelegateRetargetSourceChangedDelegateHandle);
 	}
 }
 

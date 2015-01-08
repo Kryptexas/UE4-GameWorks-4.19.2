@@ -30,11 +30,10 @@ void UAbilityTask_WaitGameplayEffectApplied_Target::BroadcastDelegate(AActor* Av
 
 void UAbilityTask_WaitGameplayEffectApplied_Target::RegisterDelegate()
 {
-	AbilitySystemComponent->OnGameplayEffectAppliedDelegateToTarget.AddUObject(this, &UAbilityTask_WaitGameplayEffectApplied::OnApplyGameplayEffectCallback);
+	OnApplyGameplayEffectCallbackDelegateHandle = AbilitySystemComponent->OnGameplayEffectAppliedDelegateToTarget.AddUObject(this, &UAbilityTask_WaitGameplayEffectApplied::OnApplyGameplayEffectCallback);
 }
 
 void UAbilityTask_WaitGameplayEffectApplied_Target::RemoveDelegate()
 {
-	AbilitySystemComponent->OnGameplayEffectAppliedDelegateToTarget.RemoveUObject(this, &UAbilityTask_WaitGameplayEffectApplied::OnApplyGameplayEffectCallback);
-
+	AbilitySystemComponent->OnGameplayEffectAppliedDelegateToTarget.Remove(OnApplyGameplayEffectCallbackDelegateHandle);
 }

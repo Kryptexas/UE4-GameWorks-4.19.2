@@ -319,4 +319,12 @@ private:
 
 	/** Package names and the number of times they have been updated */
 	TMap<FName, uint32> NumUpdatesByAssetName;
+
+	/** Handle to the registered OnUserDefinedGestureChanged delegate. */
+	FDelegateHandle OnUserDefinedGestureChangedDelegateHandle;
+
+	/** Handle to the registered OnMapChanged delegate. */
+	FDelegateHandle OnMapChangedDelegateHandle;
+
+	FTimerHandle EditorAnalyticsHeartbeatTimerHandle;
 };

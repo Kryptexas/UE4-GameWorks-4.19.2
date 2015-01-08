@@ -537,7 +537,7 @@ void FSlateApplication::MouseCaptorHelper::InformCurrentCaptorOfCaptureLoss(uint
 }
 
 //////////////////////////////////////////////////////////////////////////
-void FPopupSupport::RegisterClickNotification( const TSharedRef<SWidget>& NotifyWhenClickedOutsideMe, const FOnClickedOutside& InNotification )
+FDelegateHandle FPopupSupport::RegisterClickNotification( const TSharedRef<SWidget>& NotifyWhenClickedOutsideMe, const FOnClickedOutside& InNotification )
 {
 	// If the subscriber or a zone object is destroyed, the subscription is
 	// no longer active. Clean it up here so that consumers of this API have an
@@ -560,13 +560,30 @@ void FPopupSupport::RegisterClickNotification( const TSharedRef<SWidget>& Notify
 
 	// Add a new notification.
 	ClickZoneNotifications.Add( FClickSubscriber( NotifyWhenClickedOutsideMe, InNotification ) );
+
+	return ClickZoneNotifications.Last().Notification.GetHandle();
 }
 
 void FPopupSupport::UnregisterClickNotification( const FOnClickedOutside& InNotification )
 {
 	for (int32 SubscriptionIndex=0; SubscriptionIndex < ClickZoneNotifications.Num();)
 	{
-		if (ClickZoneNotifications[SubscriptionIndex].Notification == InNotification)
+		if (ClickZoneNotifications[SubscriptionIndex].Notification.DEPRECATED_Compare(InNotification))
+		{
+			ClickZoneNotifications.RemoveAtSwap(SubscriptionIndex);
+		}
+		else
+		{
+			SubscriptionIndex++;
+		}
+	}	
+}
+
+void FPopupSupport::UnregisterClickNotification( FDelegateHandle Handle )
+{
+	for (int32 SubscriptionIndex=0; SubscriptionIndex < ClickZoneNotifications.Num();)
+	{
+		if (ClickZoneNotifications[SubscriptionIndex].Notification.GetHandle() == Handle)
 		{
 			ClickZoneNotifications.RemoveAtSwap(SubscriptionIndex);
 		}

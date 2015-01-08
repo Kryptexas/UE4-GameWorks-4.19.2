@@ -19,25 +19,32 @@ UAutoReimportManager::UAutoReimportManager(const FObjectInitializer& ObjectIniti
 	ReimportTime = 0.0f;
 }
 
-void UAutoReimportManager::AddReimportDelegate( const FString& FileType, const FAutoReimportDelegate& Delegate )
+FDelegateHandle UAutoReimportManager::AddReimportDelegate( const FString& FileType, const FAutoReimportDelegate& Delegate )
 {
 	if(ReimportDelegates* Del = ExtensionToReimporter.Find(FileType))
 	{
 		Del->Add(Delegate);
+		return Del->Last().GetHandle();
 	}
-	else
-	{
-		ReimportDelegates Delegates;
-		Delegates.Add(Delegate);
-		ExtensionToReimporter.Add(FileType, Delegates);
-	}
+
+	ReimportDelegates Delegates;
+	Delegates.Add(Delegate);
+	return ExtensionToReimporter.Add(FileType, Delegates).Last().GetHandle();
 }
 
-void UAutoReimportManager::RemoveReimportDelegate( const FString& FileType, const FAutoReimportDelegate& Delegate )
+void UAutoReimportManager::RemoveReimportDelegate( const FString& FileType, const FAutoReimportDelegate& InDelegate )
 {
 	if(ReimportDelegates* Del = ExtensionToReimporter.Find(FileType))
 	{
-		Del->Remove(Delegate);
+		Del->RemoveAll([&](const FAutoReimportDelegate& Delegate){ return Delegate.DEPRECATED_Compare(InDelegate); });
+	}
+}
+
+void UAutoReimportManager::RemoveReimportDelegate( const FString& FileType, FDelegateHandle Handle )
+{
+	if(ReimportDelegates* Del = ExtensionToReimporter.Find(FileType))
+	{
+		Del->RemoveAll([=](const FAutoReimportDelegate& Delegate){ return Delegate.GetHandle() == Handle; });
 	}
 }
 
@@ -284,7 +291,7 @@ void UAutoReimportManager::ActivateAutoReimport( const FString& Directory)
 	{
 		if(Directory.IsEmpty() == false)
 		{
-			DirectoryWatcher->RegisterDirectoryChangedCallback(Directory, IDirectoryWatcher::FDirectoryChanged::CreateUObject(this, &UAutoReimportManager::OnDirectoryChanged));
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(Directory, IDirectoryWatcher::FDirectoryChanged::CreateUObject(this, &UAutoReimportManager::OnDirectoryChanged), OnDirectoryChangedDelegateHandle);
 		}
 	}
 }
@@ -297,7 +304,7 @@ void UAutoReimportManager::DeactivateAutoReimport( const FString& Directory )
 	{
 		if(Directory.IsEmpty() == false)
 		{
-			DirectoryWatcher->UnregisterDirectoryChangedCallback(Directory, IDirectoryWatcher::FDirectoryChanged::CreateUObject(this, &UAutoReimportManager::OnDirectoryChanged));
+			DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(Directory, OnDirectoryChangedDelegateHandle);
 		}
 	}
 }

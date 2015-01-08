@@ -898,4 +898,8 @@ protected:
 	friend struct FActiveGameplayCueContainer;
 	friend struct FGameplayAbilitySpec;
 	friend struct FGameplayAbilitySpecContainer;
+
+private:
+	FDelegateHandle MonitoredTagChangedDelegatHandle;
+	FTimerHandle    OnRep_ActivateAbilitiesTimerHandle;
 };

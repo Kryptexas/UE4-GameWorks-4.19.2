@@ -153,4 +153,7 @@ private:
 	/** */
 	FOnDatabaseEntryUpdated EntryRefreshDelegate;
 	FOnDatabaseEntryUpdated EntryRemovedDelegate;
+
+	/** Handle to the registered OnBlueprintChanged delegate. */
+	FDelegateHandle OnBlueprintChangedDelegateHandle;
 };

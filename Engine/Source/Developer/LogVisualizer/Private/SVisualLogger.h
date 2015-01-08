@@ -118,4 +118,6 @@ protected:
 	mutable TSharedPtr<SVisualLoggerView> MainView;
 	mutable TSharedPtr<SVisualLoggerLogsList> LogsList;
 	mutable TSharedPtr<SVisualLoggerStatusView> StatusView;
+
+	FDelegateHandle DrawOnCanvasDelegateHandle;
 };

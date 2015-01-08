@@ -187,7 +187,7 @@ FPersona::FPersona()
 {
 	// Register to be notified when properties are edited
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPersona::OnPropertyChanged);
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 
 	GEditor->OnBlueprintPreCompile().AddRaw(this, &FPersona::OnBlueprintPreCompile);
 }
@@ -210,7 +210,7 @@ FPersona::~FPersona()
 		Viewport.Pin()->CleanupPersonaReferences();
 	}
 
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
 
 	if(PreviewComponent)
 	{

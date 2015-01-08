@@ -279,7 +279,7 @@ void FSkeletalMeshComponentDetails::RegisterSkeletalMeshPropertyChanged(TWeakObj
 {
 	if(Mesh.IsValid() && OnSkeletalMeshPropertyChanged.IsBound())
 	{
-		Mesh->RegisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChanged);
+		OnSkeletalMeshPropertyChangedDelegateHandles.Add(Mesh.Get(), Mesh->RegisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChanged));
 	}
 }
 
@@ -287,7 +287,8 @@ void FSkeletalMeshComponentDetails::UnregisterSkeletalMeshPropertyChanged(TWeakO
 {
 	if(Mesh.IsValid())
 	{
-		Mesh->UnregisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChanged);
+		Mesh->UnregisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChangedDelegateHandles.FindRef(Mesh.Get()));
+		OnSkeletalMeshPropertyChangedDelegateHandles.Remove(Mesh.Get());
 	}
 }
 
@@ -297,7 +298,8 @@ void FSkeletalMeshComponentDetails::UnregisterAllMeshPropertyChangedCallers()
 	{
 		if(USkeletalMeshComponent* Mesh = Cast<USkeletalMeshComponent>(MeshIter->Get()))
 		{
-			Mesh->UnregisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChanged);
+			Mesh->UnregisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChangedDelegateHandles.FindRef(Mesh));
+			OnSkeletalMeshPropertyChangedDelegateHandles.Remove(Mesh);
 		}
 	}
 }

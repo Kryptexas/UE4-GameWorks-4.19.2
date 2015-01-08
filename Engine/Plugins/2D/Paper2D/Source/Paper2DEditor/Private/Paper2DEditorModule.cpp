@@ -79,6 +79,7 @@ private:
 
 	TSharedPtr<IMeshPaintGeometryAdapterFactory> SpriteMeshPaintAdapterFactory;
 	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
 
 public:
 	virtual void StartupModule() override
@@ -127,7 +128,7 @@ public:
 
 		// Register to be notified when properties are edited
 		OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPaper2DEditor::OnPropertyChanged);
-		FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+		OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 
 		// Register the thumbnail renderers
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperSprite::StaticClass(), UPaperSpriteThumbnailRenderer::StaticClass());
@@ -187,7 +188,7 @@ public:
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperFlipbook::StaticClass());
 
 			// Unregister the property modification handler
-			FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
+			FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
 		}
 
 		// Unregister the details customization

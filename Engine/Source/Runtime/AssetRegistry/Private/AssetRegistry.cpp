@@ -84,7 +84,9 @@ FAssetRegistry::FAssetRegistry()
 			{
 				const FString& RootPath = *RootPathIt;
 				const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
-				DirectoryWatcher->RegisterDirectoryChangedCallback( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+				FDelegateHandle NewHandle;
+				DirectoryWatcher->RegisterDirectoryChangedCallback_Handle( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged), NewHandle);
+				OnDirectoryChangedDelegateHandles.Add(ContentFolder, NewHandle);
 			}
 		}
 	}
@@ -190,7 +192,8 @@ FAssetRegistry::~FAssetRegistry()
 				{
 					const FString& RootPath = *RootPathIt;
 					const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
-					DirectoryWatcher->UnregisterDirectoryChangedCallback( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+					DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle( ContentFolder, OnDirectoryChangedDelegateHandles.FindRef(ContentFolder));
+					OnDirectoryChangedDelegateHandles.Remove(ContentFolder);
 				}
 			}
 		}
@@ -1922,7 +1925,7 @@ void FAssetRegistry::OnContentPathMounted( const FString& InAssetPath, const FSt
 		{
 			// If the path doesn't exist on disk, make it so the watcher will work.
 			IFileManager::Get().MakeDirectory(*FileSystemPath);
-			DirectoryWatcher->RegisterDirectoryChangedCallback( FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle( FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged), OnContentPathMountedOnDirectoryChangedDelegateHandle);
 		}
 	}
 #endif // WITH_EDITOR
@@ -1976,7 +1979,7 @@ void FAssetRegistry::OnContentPathDismounted(const FString& InAssetPath, const F
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 		if (DirectoryWatcher)
 		{
-			DirectoryWatcher->UnregisterDirectoryChangedCallback(FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+			DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FileSystemPath, OnContentPathMountedOnDirectoryChangedDelegateHandle);
 		}
 	}
 #endif // WITH_EDITOR

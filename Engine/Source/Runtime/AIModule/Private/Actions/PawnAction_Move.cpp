@@ -228,7 +228,7 @@ void UPawnAction_Move::ClearPath()
 	ClearPendingRepath();
 	if (Path.IsValid())
 	{
-		Path->RemoveObserver(PathObserver);
+		Path->RemoveObserver(PathObserverDelegateHandle);
 		Path = NULL;
 	}
 }
@@ -239,7 +239,7 @@ void UPawnAction_Move::SetPath(FNavPathSharedRef InPath)
 	{
 		ClearPath();
 		Path = InPath;
-		Path->AddObserver(PathObserver);
+		PathObserverDelegateHandle = Path->AddObserver(PathObserver);
 
 		// skip auto updates, it will be handled manually to include controller's ShouldPostponePathUpdates()
 		Path->EnableRecalculationOnInvalidation(false);

@@ -330,6 +330,9 @@ private:
 	/** Holds a delegate to be invoked when the widget ticks. */
 	FTickerDelegate TickDelegate;
 
+	/** Handle to the registered TickDelegate. */
+	FDelegateHandle TickDelegateHandle;
+
 	/** Amount of time between connection retries */
 	float RetryTime;
 
@@ -338,6 +341,9 @@ private:
 
 	/** Holds a delegate to be invoked when the widget ticks. */
 	FTickerDelegate MessageDelegate;
+
+	/** Handle to the registered MessageDelegate. */
+	FDelegateHandle MessageDelegateHandle;
 
 #if PROFILER_THREADED_LOAD
 	/** Loads a file asynchronously */

@@ -73,7 +73,7 @@ void SAssetTreeItem::Construct( const FArguments& InArgs )
 
 	if( InlineRenameWidget.IsValid() )
 	{
-		TreeItem.Pin()->OnRenamedRequestEvent.AddSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
+		EnterEditingModeDelegateHandle = TreeItem.Pin()->OnRenamedRequestEvent.AddSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
 	}
 }
 
@@ -81,7 +81,7 @@ SAssetTreeItem::~SAssetTreeItem()
 {
 	if( InlineRenameWidget.IsValid() )
 	{
-		TreeItem.Pin()->OnRenamedRequestEvent.RemoveSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
+		TreeItem.Pin()->OnRenamedRequestEvent.Remove( EnterEditingModeDelegateHandle );
 	}
 }
 
@@ -448,7 +448,7 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 	if(InlineRenameWidget.IsValid())
 	{
 		// This is broadcast when the context menu / input binding requests a rename
-		CollectionItem.Pin()->OnRenamedRequestEvent.AddSP(InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
+		EnterEditingModeDelegateHandle = CollectionItem.Pin()->OnRenamedRequestEvent.AddSP(InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
 	}
 }
 
@@ -456,7 +456,7 @@ SCollectionListItem::~SCollectionListItem()
 {
 	if(InlineRenameWidget.IsValid())
 	{
-		CollectionItem.Pin()->OnRenamedRequestEvent.RemoveSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
+		CollectionItem.Pin()->OnRenamedRequestEvent.Remove( EnterEditingModeDelegateHandle );
 	}
 }
 

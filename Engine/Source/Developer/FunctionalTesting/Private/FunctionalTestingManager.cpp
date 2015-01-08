@@ -161,7 +161,7 @@ void UFunctionalTestingManager::TriggerFirstValidTest()
 	{
 		bInitialDelayApplied = true;
 		static const float WaitingTime = 0.25f;
-		World->GetTimerManager().SetTimer(this, &UFunctionalTestingManager::TriggerFirstValidTest, WaitingTime);
+		World->GetTimerManager().SetTimer(TriggerFirstValidTestTimerHandle, this, &UFunctionalTestingManager::TriggerFirstValidTest, WaitingTime);
 	}
 }
 

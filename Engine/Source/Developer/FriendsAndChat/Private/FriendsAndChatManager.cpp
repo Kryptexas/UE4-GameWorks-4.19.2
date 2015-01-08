@@ -62,34 +62,36 @@ void FFriendsAndChatManager::Login()
 			check( FriendsInterface.IsValid() )
 
 			// Create delegates for list refreshes
-			OnQueryRecentPlayersCompleteDelegate = FOnQueryRecentPlayersCompleteDelegate::CreateRaw(this, &FFriendsAndChatManager::OnQueryRecentPlayersComplete);
-			OnFriendsListChangedDelegate = FOnFriendsChangeDelegate::CreateSP(this, &FFriendsAndChatManager::OnFriendsListChanged);
-			OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnDeleteFriendComplete );
-			OnQueryUserIdMappingCompleteDelegate = FOnQueryUserIdMappingCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserIdMappingComplete );
-			OnQueryUserInfoCompleteDelegate = FOnQueryUserInfoCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserInfoComplete );
-			OnPresenceReceivedCompleteDelegate = FOnPresenceReceivedDelegate::CreateSP(this, &FFriendsAndChatManager::OnPresenceReceived);
-			OnPresenceUpdatedCompleteDelegate = IOnlinePresence::FOnPresenceTaskCompleteDelegate::CreateSP(this, &FFriendsAndChatManager::OnPresenceUpdated);
-			OnFriendInviteReceivedDelegate = FOnInviteReceivedDelegate::CreateSP(this, &FFriendsAndChatManager::OnFriendInviteReceived);
-			OnFriendRemovedDelegate = FOnFriendRemovedDelegate::CreateSP(this, &FFriendsAndChatManager::OnFriendRemoved);
-			OnFriendInviteRejected = FOnInviteRejectedDelegate::CreateSP(this, &FFriendsAndChatManager::OnInviteRejected);
-			OnFriendInviteAccepted = FOnInviteAcceptedDelegate::CreateSP(this, &FFriendsAndChatManager::OnInviteAccepted);
-			OnGameInviteReceivedDelegate = FOnSessionInviteReceivedDelegate::CreateSP(this, &FFriendsAndChatManager::OnGameInviteReceived);
-			OnDestroySessionCompleteDelegate = FOnDestroySessionCompleteDelegate::CreateSP(this, &FFriendsAndChatManager::OnGameDestroyed);
+			OnQueryRecentPlayersCompleteDelegate = FOnQueryRecentPlayersCompleteDelegate           ::CreateRaw(this, &FFriendsAndChatManager::OnQueryRecentPlayersComplete);
+			OnFriendsListChangedDelegate         = FOnFriendsChangeDelegate                        ::CreateSP (this, &FFriendsAndChatManager::OnFriendsListChanged);
+			OnDeleteFriendCompleteDelegate       = FOnDeleteFriendCompleteDelegate                 ::CreateSP (this, &FFriendsAndChatManager::OnDeleteFriendComplete);
+			OnQueryUserIdMappingCompleteDelegate = FOnQueryUserIdMappingCompleteDelegate           ::CreateSP (this, &FFriendsAndChatManager::OnQueryUserIdMappingComplete);
+			OnQueryUserInfoCompleteDelegate      = FOnQueryUserInfoCompleteDelegate                ::CreateSP (this, &FFriendsAndChatManager::OnQueryUserInfoComplete);
+			OnPresenceReceivedCompleteDelegate   = FOnPresenceReceivedDelegate                     ::CreateSP (this, &FFriendsAndChatManager::OnPresenceReceived);
+			OnPresenceUpdatedCompleteDelegate    = IOnlinePresence::FOnPresenceTaskCompleteDelegate::CreateSP (this, &FFriendsAndChatManager::OnPresenceUpdated);
+			OnFriendInviteReceivedDelegate       = FOnInviteReceivedDelegate                       ::CreateSP (this, &FFriendsAndChatManager::OnFriendInviteReceived);
+			OnFriendRemovedDelegate              = FOnFriendRemovedDelegate                        ::CreateSP (this, &FFriendsAndChatManager::OnFriendRemoved);
+			OnFriendInviteRejected               = FOnInviteRejectedDelegate                       ::CreateSP (this, &FFriendsAndChatManager::OnInviteRejected);
+			OnFriendInviteAccepted               = FOnInviteAcceptedDelegate                       ::CreateSP (this, &FFriendsAndChatManager::OnInviteAccepted);
+			OnGameInviteReceivedDelegate         = FOnSessionInviteReceivedDelegate                ::CreateSP (this, &FFriendsAndChatManager::OnGameInviteReceived);
+			OnDestroySessionCompleteDelegate     = FOnDestroySessionCompleteDelegate               ::CreateSP (this, &FFriendsAndChatManager::OnGameDestroyed);
 
-			FriendsInterface->AddOnQueryRecentPlayersCompleteDelegate(OnQueryRecentPlayersCompleteDelegate);
-			FriendsInterface->AddOnFriendsChangeDelegate(0, OnFriendsListChangedDelegate);
-			FriendsInterface->AddOnInviteReceivedDelegate(OnFriendInviteReceivedDelegate);
-			FriendsInterface->AddOnFriendRemovedDelegate(OnFriendRemovedDelegate);
-			FriendsInterface->AddOnInviteRejectedDelegate(OnFriendInviteRejected);
-			FriendsInterface->AddOnInviteAcceptedDelegate(OnFriendInviteAccepted);
-			FriendsInterface->AddOnDeleteFriendCompleteDelegate( 0, OnDeleteFriendCompleteDelegate );
-			UserInterface->AddOnQueryUserInfoCompleteDelegate(0, OnQueryUserInfoCompleteDelegate);
-			OnlineSubMcp->GetPresenceInterface()->AddOnPresenceReceivedDelegate(OnPresenceReceivedCompleteDelegate);
-			OnlineSubMcp->GetSessionInterface()->AddOnSessionInviteReceivedDelegate(OnGameInviteReceivedDelegate);
-			OnlineSubMcp->GetSessionInterface()->AddOnDestroySessionCompleteDelegate(OnDestroySessionCompleteDelegate);
-			
+			OnQueryRecentPlayersCompleteDelegateHandle = FriendsInterface->AddOnQueryRecentPlayersCompleteDelegate_Handle(   OnQueryRecentPlayersCompleteDelegate);
+			OnFriendsListChangedDelegateHandle         = FriendsInterface->AddOnFriendsChangeDelegate_Handle             (0, OnFriendsListChangedDelegate);
+			OnFriendInviteReceivedDelegateHandle       = FriendsInterface->AddOnInviteReceivedDelegate_Handle            (   OnFriendInviteReceivedDelegate);
+			OnFriendRemovedDelegateHandle              = FriendsInterface->AddOnFriendRemovedDelegate_Handle             (   OnFriendRemovedDelegate);
+			OnFriendInviteRejectedHandle               = FriendsInterface->AddOnInviteRejectedDelegate_Handle            (   OnFriendInviteRejected);
+			OnFriendInviteAcceptedHandle               = FriendsInterface->AddOnInviteAcceptedDelegate_Handle            (   OnFriendInviteAccepted);
+			OnDeleteFriendCompleteDelegateHandle       = FriendsInterface->AddOnDeleteFriendCompleteDelegate_Handle      (0, OnDeleteFriendCompleteDelegate);
+
+			OnQueryUserInfoCompleteDelegateHandle = UserInterface->AddOnQueryUserInfoCompleteDelegate_Handle(0, OnQueryUserInfoCompleteDelegate);
+
+			OnPresenceReceivedCompleteDelegateHandle = OnlineSubMcp->GetPresenceInterface()->AddOnPresenceReceivedDelegate_Handle      (OnPresenceReceivedCompleteDelegate);
+			OnGameInviteReceivedDelegateHandle       = OnlineSubMcp->GetSessionInterface ()->AddOnSessionInviteReceivedDelegate_Handle (OnGameInviteReceivedDelegate);
+			OnDestroySessionCompleteDelegateHandle   = OnlineSubMcp->GetSessionInterface ()->AddOnDestroySessionCompleteDelegate_Handle(OnDestroySessionCompleteDelegate);
+
 			FOnlinePersonaMcpPtr OnlinePersonaMcp = OnlineSubMcp->GetMcpPersonaService();
-			OnlinePersonaMcp->AddOnQueryUserIdMappingCompleteDelegate(OnQueryUserIdMappingCompleteDelegate);
+			OnQueryUserIdMappingCompleteDelegateHandle = OnlinePersonaMcp->AddOnQueryUserIdMappingCompleteDelegate_Handle(OnQueryUserIdMappingCompleteDelegate);
 
 			ManagerState = EFriendsAndManagerState::Idle;
 
@@ -101,7 +103,7 @@ void FFriendsAndChatManager::Login()
 				UpdateFriendsTickerDelegate = FTickerDelegate::CreateSP( this, &FFriendsAndChatManager::Tick );
 			}
 
-			FTicker::GetCoreTicker().AddTicker( UpdateFriendsTickerDelegate );
+			UpdateFriendsTickerDelegateHandle = FTicker::GetCoreTicker().AddTicker( UpdateFriendsTickerDelegate );
 
 			SetState(EFriendsAndManagerState::RequestFriendsListRefresh);
 			RequestRecentPlayersListRefresh();
@@ -125,30 +127,30 @@ void FFriendsAndChatManager::Logout()
 	{
 		if (OnlineSubMcp->GetFriendsInterface().IsValid())
 		{
-			OnlineSubMcp->GetFriendsInterface()->ClearOnQueryRecentPlayersCompleteDelegate(OnQueryRecentPlayersCompleteDelegate);
-			OnlineSubMcp->GetFriendsInterface()->ClearOnFriendsChangeDelegate(0, OnFriendsListChangedDelegate);
-			OnlineSubMcp->GetFriendsInterface()->ClearOnInviteReceivedDelegate(OnFriendInviteReceivedDelegate);
-			OnlineSubMcp->GetFriendsInterface()->ClearOnFriendRemovedDelegate(OnFriendRemovedDelegate);
-			OnlineSubMcp->GetFriendsInterface()->ClearOnInviteRejectedDelegate(OnFriendInviteRejected);
-			OnlineSubMcp->GetFriendsInterface()->ClearOnInviteAcceptedDelegate(OnFriendInviteAccepted);
-			OnlineSubMcp->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);
+			OnlineSubMcp->GetFriendsInterface()->ClearOnQueryRecentPlayersCompleteDelegate_Handle(   OnQueryRecentPlayersCompleteDelegateHandle);
+			OnlineSubMcp->GetFriendsInterface()->ClearOnFriendsChangeDelegate_Handle             (0, OnFriendsListChangedDelegateHandle);
+			OnlineSubMcp->GetFriendsInterface()->ClearOnInviteReceivedDelegate_Handle            (   OnFriendInviteReceivedDelegateHandle);
+			OnlineSubMcp->GetFriendsInterface()->ClearOnFriendRemovedDelegate_Handle             (   OnFriendRemovedDelegateHandle);
+			OnlineSubMcp->GetFriendsInterface()->ClearOnInviteRejectedDelegate_Handle            (   OnFriendInviteRejectedHandle);
+			OnlineSubMcp->GetFriendsInterface()->ClearOnInviteAcceptedDelegate_Handle            (   OnFriendInviteAcceptedHandle);
+			OnlineSubMcp->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate_Handle      (0, OnDeleteFriendCompleteDelegateHandle);
 		}
 		if (OnlineSubMcp->GetPresenceInterface().IsValid())
 		{
-			OnlineSubMcp->GetPresenceInterface()->ClearOnPresenceReceivedDelegate(OnPresenceReceivedCompleteDelegate);
+			OnlineSubMcp->GetPresenceInterface()->ClearOnPresenceReceivedDelegate_Handle(OnPresenceReceivedCompleteDelegateHandle);
 		}
 		if (OnlineSubMcp->GetSessionInterface().IsValid())
 		{
-			OnlineSubMcp->GetSessionInterface()->ClearOnSessionInviteReceivedDelegate(OnGameInviteReceivedDelegate);
-			OnlineSubMcp->GetSessionInterface()->ClearOnDestroySessionCompleteDelegate(OnDestroySessionCompleteDelegate);
+			OnlineSubMcp->GetSessionInterface()->ClearOnSessionInviteReceivedDelegate_Handle (OnGameInviteReceivedDelegateHandle);
+			OnlineSubMcp->GetSessionInterface()->ClearOnDestroySessionCompleteDelegate_Handle(OnDestroySessionCompleteDelegateHandle);
 		}
 		if (OnlineSubMcp->GetUserInterface().IsValid())
 		{
-			OnlineSubMcp->GetUserInterface()->ClearOnQueryUserInfoCompleteDelegate(0, OnQueryUserInfoCompleteDelegate);
+			OnlineSubMcp->GetUserInterface()->ClearOnQueryUserInfoCompleteDelegate_Handle(0, OnQueryUserInfoCompleteDelegateHandle);
 		}
 		if (OnlineSubMcp->GetMcpPersonaService().IsValid())
 		{
-			OnlineSubMcp->GetMcpPersonaService()->ClearOnQueryUserIdMappingCompleteDelegate(OnQueryUserIdMappingCompleteDelegate);
+			OnlineSubMcp->GetMcpPersonaService()->ClearOnQueryUserIdMappingCompleteDelegate_Handle(OnQueryUserIdMappingCompleteDelegateHandle);
 		}
 	}
 
@@ -181,7 +183,7 @@ void FFriendsAndChatManager::Logout()
 	OnlineSubMcp = nullptr;
 	if ( UpdateFriendsTickerDelegate.IsBound() )
 	{
-		FTicker::GetCoreTicker().RemoveTicker( UpdateFriendsTickerDelegate );
+		FTicker::GetCoreTicker().RemoveTicker( UpdateFriendsTickerDelegateHandle );
 	}
 
 	SetState(EFriendsAndManagerState::OffLine);
