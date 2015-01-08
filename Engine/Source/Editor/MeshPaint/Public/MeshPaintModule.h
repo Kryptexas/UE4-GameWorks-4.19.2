@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
 /**
  * Interface for a class to provide mesh painting support for a subclass of UMeshComponent
  */

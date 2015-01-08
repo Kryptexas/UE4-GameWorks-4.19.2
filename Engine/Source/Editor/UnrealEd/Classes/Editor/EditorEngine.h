@@ -937,7 +937,7 @@ public:
 	 */
 	virtual void TakeHighResScreenShots(){}
 
-	virtual void NoteSelectionChange() { check(0); }
+	virtual void NoteSelectionChange(bool bComponentSelectionChanged = false) { check(0); }
 
 	/**
 	 * Adds an actor to the world at the specified location.
@@ -1253,6 +1253,7 @@ public:
 	virtual void SelectActor(AActor* Actor, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden=false) {}
 	virtual bool CanSelectActor(AActor* Actor, bool bInSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const { return true; }
 	virtual void SelectGroup(class AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) {}
+	virtual void SelectComponent(class UActorComponent* Component, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden = false) {}
 
 	/**
 	 * Replaces the components in ActorsToReplace with an primitive component in Replacement

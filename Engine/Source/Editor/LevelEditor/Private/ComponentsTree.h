@@ -46,6 +46,8 @@ public:
 
 	void Construct( const FArguments& InArgs, TSharedPtr<class IDetailsView> InPropertyView );
 
+	~SComponentsTree();
+
 	void UpdateTree();
 
 	void SetObjects(const TArray<UObject*>& InObjects);
@@ -58,6 +60,9 @@ public:
 	void OnSelectedCompClass(TSubclassOf<UActorComponent> CompClass);
 
 private:
+	void OnEditorSelectionChanged(UObject* Object);
+	FComponentTreeNodePtrType GetNodeFromActorComponent(UActorComponent* ActorComponent, bool bIncludeAttachedComponents = true);
+	FComponentTreeNodePtrType FindTreeNodeRecursive(const UActorComponent* InComponent, const FComponentTreeNodePtrType& NodePtr) const;
 
 	TWeakObjectPtr<AActor>				Actor;
 
@@ -66,4 +71,6 @@ private:
 	TSharedPtr<SComponentTreeType>		TreeWidget;
 
 	TSharedPtr<class IDetailsView>		PropertyView;
+
+	bool bSelectionGuard;
 };

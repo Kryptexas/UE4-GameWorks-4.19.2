@@ -153,6 +153,8 @@ public:
 	virtual FLinearColor GetBackgroundColor() const override;
 	virtual int32 GetCameraSpeedSetting() const override;
 	virtual void SetCameraSpeedSetting(int32 SpeedSetting) override;
+	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
+	virtual UWorld* GetWorld() const override;
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
@@ -293,10 +295,6 @@ public:
 	 * @param	bVisible	true if all the categories should be made visible, false if they should be hidden
 	 */
 	void SetAllSpriteCategoryVisibility( bool bVisible );
-
-	/** FEditorViewportClient Interface*/
-	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
-	virtual UWorld* GetWorld() const override;
 
 	void SetReferenceToWorldContext(FWorldContext& WorldContext);
 

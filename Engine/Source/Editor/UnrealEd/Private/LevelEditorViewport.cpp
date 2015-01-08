@@ -1761,7 +1761,19 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		}
 		else if (HitProxy->IsA(HActor::StaticGetType()))
 		{
-			ClickHandlers::ClickActor(this,((HActor*)HitProxy)->Actor,Click,true);
+			auto ActorHitProxy = (HActor*)HitProxy;
+
+			auto SelectedActors = GEditor->GetSelectedActors();
+			const bool bSelectComponents = SelectedActors->IsSelected(ActorHitProxy->Actor) && GEditor->GetSelectedActorCount() == 1;
+			if (bSelectComponents && GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
+			{
+				// The hit actor is already selected and is the only selected actor, so select the hit component
+				ClickHandlers::ClickComponent(this, ActorHitProxy, Click);
+			}
+			else
+			{
+				ClickHandlers::ClickActor(this, ActorHitProxy->Actor, Click, true);
+			}
 		}
 		else if (HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
 		{
