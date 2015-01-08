@@ -156,4 +156,7 @@ protected:
 
 	/** Attribute to look up if the widget is read-only */
 	TAttribute< bool > bIsReadOnly;
+	
+	/** Widget to focus when we finish editing */
+	TWeakPtr<SWidget> WidgetToFocus;
 };
