@@ -3838,14 +3838,13 @@ bool FMeshUtilities::ConstructRawMesh(
 	{
 		// Add material and store the material ID
 		UMaterialInterface* MaterialToAdd = InMeshComponent->GetMaterial(Section.MaterialIndex);
-		if (MaterialToAdd != NULL)
+		if (MaterialToAdd == nullptr)
 		{
-			OutGlobalMaterialIndices.Add(OutUniqueMaterials.AddUnique(MaterialToAdd));
+			MaterialToAdd = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
-		else
-		{
-			OutGlobalMaterialIndices.Add(INDEX_NONE);
-		}
+		
+		int32 MaterialIdx = OutUniqueMaterials.AddUnique(MaterialToAdd);
+		OutGlobalMaterialIndices.Add(MaterialIdx);
 	}
 			
 	return true;
