@@ -362,7 +362,7 @@ void ANavigationTestingActor::SearchPathTo(ANavigationTestingActor* Goal)
 	if (bGatherDetailedInfo && !bUseHierarchicalPathfinding)
 	{
 		ARecastNavMesh* RecastNavMesh = Cast<ARecastNavMesh>(MyNavData);
-		if (RecastNavMesh)
+		if (RecastNavMesh && RecastNavMesh->HasValidNavmesh())
 		{
 			PathfindingSteps = RecastNavMesh->DebugPathfinding(Query, DebugSteps);
 		}
