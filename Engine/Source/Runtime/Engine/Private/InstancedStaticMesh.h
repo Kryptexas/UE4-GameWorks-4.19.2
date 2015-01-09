@@ -76,6 +76,10 @@ class FStaticMeshInstanceData :
 {
 public:
 
+	enum 
+	{
+		VectorsPerInstance = 7
+	};
 	typedef TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT> ArrayType;
 
 	/**
@@ -85,6 +89,16 @@ public:
 	FStaticMeshInstanceData(bool InNeedsCPUAccess=false)
 		:	TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>(InNeedsCPUAccess)
 	{
+	}
+
+	static uint32 StaticGetStride()
+	{
+		return sizeof(FVector4) * VectorsPerInstance;
+	}
+
+	static SIZE_T GetResourceSize(uint32 NumInstances)
+	{
+		return SIZE_T(NumInstances) * SIZE_T(StaticGetStride());
 	}
 
 	/**
@@ -98,8 +112,7 @@ public:
 
 	virtual uint32 GetStride() const
 	{
-		const uint32 VectorsPerInstance = 7;
-		return sizeof(FVector4) * VectorsPerInstance;
+		return StaticGetStride();
 	}
 	virtual uint8* GetDataPointer()
 	{

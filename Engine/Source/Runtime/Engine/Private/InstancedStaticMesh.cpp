@@ -1406,8 +1406,13 @@ void UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms(const FBo
 
 SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
 {
-	SIZE_T ResSize = 0;
+	SIZE_T ResSize = Super::GetResourceSize(Mode);
 
+	// proxy stuff
+	ResSize += FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num());
+
+	// component stuff
+	ResSize += InstanceBodies.GetAllocatedSize();
 	for (int32 i=0; i < InstanceBodies.Num(); ++i)
 	{
 		if (InstanceBodies[i] != NULL && InstanceBodies[i]->IsValidBodyInstance())
@@ -1415,6 +1420,16 @@ SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type M
 			ResSize += InstanceBodies[i]->GetBodyInstanceResourceSize(Mode);
 		}
 	}
+	ResSize += InstanceReorderTable.GetAllocatedSize();
+	ResSize += RemovedInstances.GetAllocatedSize();
+
+#if WITH_EDITOR
+	ResSize += SelectedInstances.GetAllocatedSize();
+#endif
+
+#if WITH_PHYSX
+	ResSize += Aggregates.GetAllocatedSize();
+#endif
 
 	return ResSize;
 }

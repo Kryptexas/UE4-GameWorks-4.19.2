@@ -1343,6 +1343,15 @@ void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 	ClusterTree.BulkSerialize(Ar);
 }
 
+SIZE_T UHierarchicalInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
+{
+	SIZE_T ResSize = Super::GetResourceSize(Mode);
+
+	ResSize += SortedInstances.GetAllocatedSize();
+
+	return ResSize;
+}
+
 bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
