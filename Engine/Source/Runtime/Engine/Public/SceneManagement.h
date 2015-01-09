@@ -1143,9 +1143,7 @@ class ENGINE_API FSimpleElementCollector : public FPrimitiveDrawInterface
 {
 public:
 
-	FSimpleElementCollector() : FPrimitiveDrawInterface(NULL)
-	{}
-
+	FSimpleElementCollector();
 	~FSimpleElementCollector();
 
 	virtual void SetHitProxy(HHitProxy* HitProxy);
@@ -1220,6 +1218,8 @@ public:
 private:
 
 	FHitProxyId HitProxyId;
+
+	bool bIsMobileHDR;
 
 	/** The dynamic resources which have been registered with this drawer. */
 	TArray<FDynamicPrimitiveResource*,SceneRenderingAllocator> DynamicResources;
