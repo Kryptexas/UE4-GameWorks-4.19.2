@@ -440,7 +440,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 		UClass* BlueprintClass = Blueprint->SkeletonGeneratedClass;
 		if (BlueprintClass != nullptr)
 		{
-			bCanOperateOnLevelActors &= (BlueprintClass->IsChildOf<ALevelScriptActor>() || FBlueprintEditorUtils::IsAnonymousBlueprintClass(BlueprintClass));
+			bCanOperateOnLevelActors &= BlueprintClass->IsChildOf<ALevelScriptActor>();
 			if (bAddTargetContext)
 			{
 				MainMenuFilter.TargetClasses.Add(BlueprintClass);

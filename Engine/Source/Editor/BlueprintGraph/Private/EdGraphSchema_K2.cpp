@@ -878,8 +878,9 @@ void UEdGraphSchema_K2::ListFunctionsMatchingSignatureAsDelegates(FGraphContextM
 bool UEdGraphSchema_K2::IsActorValidForLevelScriptRefs(const AActor* TestActor, const UBlueprint* Blueprint) const
 {
 	check(Blueprint);
-	
+
 	return TestActor
+		&& FBlueprintEditorUtils::IsLevelScriptBlueprint(Blueprint)
 		&& (TestActor->GetLevel() == FBlueprintEditorUtils::GetLevelFromBlueprint(Blueprint))
 		&& FKismetEditorUtilities::IsActorValidForLevelScript(TestActor);
 }
