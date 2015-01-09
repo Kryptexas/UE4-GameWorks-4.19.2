@@ -375,12 +375,8 @@ FVector UPawnSensingComponent::GetSensorLocation() const
 
 	if (SensorActor != NULL)
 	{
-		SensorLocation = SensorActor->GetActorLocation();
-		const APawn* SensorPawn = Cast<const APawn>(SensorActor);
-		if (SensorPawn != NULL)
-		{
-			SensorLocation.Z += SensorPawn->BaseEyeHeight;
-		}
+		FRotator ViewRotation;
+		SensorActor->GetActorEyesViewPoint(SensorLocation, ViewRotation);
 	}
 
 	return SensorLocation;

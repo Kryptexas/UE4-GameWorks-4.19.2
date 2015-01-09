@@ -164,12 +164,8 @@ bool AController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAl
 
 	if ( ViewPoint.IsZero() )
 	{
-		AActor*	ViewTarg = GetViewTarget();
-		ViewPoint = ViewTarg->GetActorLocation();
-		if( ViewTarg == Pawn )
-		{
-			ViewPoint.Z += Pawn->BaseEyeHeight; //look from eyes
-		}
+		FRotator ViewRotation;
+		GetActorEyesViewPoint(ViewPoint, ViewRotation);
 	}
 
 	static FName NAME_LineOfSight = FName(TEXT("LineOfSight"));

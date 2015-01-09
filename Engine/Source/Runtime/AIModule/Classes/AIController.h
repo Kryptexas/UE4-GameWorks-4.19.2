@@ -296,7 +296,6 @@ public:
 #endif
 
 	virtual void Reset() override;
-	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const override;
 
 	/**
 	 * Checks line to center and top of other actor

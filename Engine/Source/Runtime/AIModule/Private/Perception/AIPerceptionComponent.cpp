@@ -310,23 +310,12 @@ FVector UAIPerceptionComponent::GetActorLocation(const AActor& Actor) const
 
 void UAIPerceptionComponent::GetLocationAndDirection(FVector& Location, FVector& Direction) const
 {
-	AController* OwnerController = Cast<AController>(GetOuter());
-	if (OwnerController != NULL)
-	{
-		const APawn* OwnerPawn = OwnerController->GetPawn();
-		if (OwnerPawn != NULL)
-		{
-			Location = OwnerPawn->GetActorLocation() + FVector(0,0,OwnerPawn->BaseEyeHeight);
-			Direction = OwnerPawn->GetActorRotation().Vector();
-			return;
-		}
-	}
-	
 	const AActor* OwnerActor = Cast<AActor>(GetOuter());
-	if (OwnerActor != NULL)
+	if (OwnerActor != nullptr)
 	{
-		Location = OwnerActor->GetActorLocation();
-		Direction = OwnerActor->GetActorRotation().Vector();
+		FRotator ViewRotation;
+		OwnerActor->GetActorEyesViewPoint(Location, ViewRotation);
+		Direction = ViewRotation.Vector();
 	}
 }
 

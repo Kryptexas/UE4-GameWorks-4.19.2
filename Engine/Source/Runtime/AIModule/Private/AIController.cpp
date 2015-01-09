@@ -144,20 +144,6 @@ void AAIController::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 }
 #endif // ENABLE_VISUAL_LOG
 
-void AAIController::GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const
-{
-	// AI does things from the Pawn
-	if (GetPawn() != NULL)
-	{
-		out_Location = GetPawn()->GetActorLocation();
-		out_Rotation = GetPawn()->GetActorRotation();
-	}
-	else
-	{
-		Super::GetPlayerViewPoint(out_Location, out_Rotation);
-	}
-}
-
 void AAIController::SetFocalPoint(FVector NewFocus, EAIFocusPriority::Type InPriority)
 {
 	if (InPriority >= FocusInformation.Priorities.Num())
@@ -290,11 +276,13 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 
 	if (ViewPoint.IsZero())
 	{
-		AActor*	ViewTarg = GetViewTarget();
-		ViewPoint = ViewTarg->GetActorLocation();
-		if (ViewTarg == GetPawn())
+		FRotator ViewRotation;
+		GetActorEyesViewPoint(ViewPoint, ViewRotation);
+
+		// if we still don't have a view point we simply fail
+		if (ViewPoint.IsZero())
 		{
-			ViewPoint.Z += GetPawn()->BaseEyeHeight; //look from eyes
+			return false;
 		}
 	}
 
@@ -405,7 +393,7 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 
 	if (Pawn)
 	{
-		FVector Direction = FAISystem::IsValidLocation(FocalPoint) ? (FocalPoint - Pawn->GetActorLocation()) : Pawn->GetActorForwardVector();
+		FVector Direction = FAISystem::IsValidLocation(FocalPoint) ? (FocalPoint - Pawn->GetPawnViewLocation()) : Pawn->GetActorForwardVector();
 		FRotator NewControlRotation = Direction.Rotation();
 
 		// Don't pitch view unless looking at another pawn
