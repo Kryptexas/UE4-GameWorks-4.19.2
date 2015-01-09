@@ -361,7 +361,6 @@ void FSpriteEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& T
 
 void FSpriteEditor::InitSpriteEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class UPaperSprite* InitSprite)
 {
-	FAssetEditorManager::Get().CloseOtherEditors(InitSprite, this);
 	SpriteBeingEdited = InitSprite;
 
 	FSpriteEditorCommands::Register();
