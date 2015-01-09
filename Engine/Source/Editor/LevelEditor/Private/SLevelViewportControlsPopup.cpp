@@ -86,7 +86,7 @@ TSharedRef<SWidget> SLevelViewportControlsPopup::OnGetMenuContent()
 				SNew(SWebBrowser)
 				.InitialURL(PopupPath)
 				.ShowControls(false)
-				.SupportsTransparency(true)
+				.SupportsTransparency(EWindowTransparency::PerWindow)
 				.ViewportSize(PopupSize + 1)
 			];
 	}

@@ -60,7 +60,7 @@ namespace ESizingRule
 /** Proxy structure to handle deprecated construction from bool */
 struct FWindowTransparency
 {
-	DEPRECATED(4.7, "Please now use the static initializers defined below.")
+	DEPRECATED(4.8, "Please specify an EWindowTransparency value instead.")
 	FWindowTransparency(bool bSupportsTransparency) : Value(bSupportsTransparency ? EWindowTransparency::PerWindow : EWindowTransparency::None) {}
 
 	FWindowTransparency(EWindowTransparency In) : Value(In) {}
