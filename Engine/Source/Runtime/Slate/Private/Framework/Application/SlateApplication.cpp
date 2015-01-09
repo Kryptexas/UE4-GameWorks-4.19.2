@@ -1522,7 +1522,7 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 	Definition->YDesiredPositionOnScreen = Position.Y;
 
 	Definition->HasOSWindowBorder = InSlateWindow->HasOSWindowBorder();
-	Definition->SupportsTransparency = InSlateWindow->SupportsTransparency();
+	Definition->TransparencySupport = InSlateWindow->GetTransparencySupport();
 	Definition->AppearsInTaskbar = InSlateWindow->AppearsInTaskbar();
 	Definition->IsTopmostWindow = InSlateWindow->IsTopmostWindow();
 	Definition->AcceptsInput = InSlateWindow->AcceptsInput();

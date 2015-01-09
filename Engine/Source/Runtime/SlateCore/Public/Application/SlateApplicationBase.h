@@ -167,6 +167,13 @@ public:
 	void GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics) const { FDisplayMetrics::GetDisplayMetrics(OutDisplayMetrics); }
 
 	/**
+	 * Get the highest level of window transparency support currently enabled by this application
+	 *
+	 * @return Enumeration value specifying the level of transparency currently supported
+	 */
+	virtual EWindowTransparency GetWindowTransparencySupport() const = 0;
+
+	/**
 	 * Gets the widget that currently has keyboard focus, if any.
 	 *
 	 * @return The focused widget, or nullptr if no widget has focus.

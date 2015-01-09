@@ -358,7 +358,13 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 
 			ID3D11RenderTargetView* RTV = Viewport->RenderTargetView;
 			ID3D11DepthStencilView* DSV = Viewport->DepthStencilView;
-
+			
+#if ALPHA_BLENDED_WINDOWS
+			if ( WindowToDraw->GetTransparencySupport() == EWindowTransparency::PerPixel )
+			{
+				GD3DDeviceContext->ClearRenderTargetView(RTV, &FLinearColor::Transparent.R);
+			}
+#endif
 			GD3DDeviceContext->OMSetRenderTargets( 1, &RTV, NULL );
 
 			RenderingPolicy->DrawElements( ViewMatrix*Viewport->ProjectionMatrix, ElementList.GetRenderBatches() );

@@ -151,7 +151,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 	}
 
 	// Start pop-up windows out transparent, then fade them in over time
-	const bool bUseTransparency = bAllowAnimations ? true : false;
+	const EWindowTransparency Transparency(bAllowAnimations ? EWindowTransparency::PerWindow : EWindowTransparency::None);
 	const float InitialWindowOpacity = bAllowAnimations ? 0.0f : 1.0f;
 	const float TargetWindowOpacity = 1.0f;
 
@@ -169,7 +169,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 		.AutoCenter( EAutoCenter::None )
 		.ClientSize( ExpectedSize )
 		.InitialOpacity(InitialWindowOpacity)
-		.SupportsTransparency( bUseTransparency )
+		.SupportsTransparency( Transparency )
 		.FocusWhenFirstShown( bFocusImmediately )
 		.ActivateWhenFirstShown( bFocusImmediately )
 		[

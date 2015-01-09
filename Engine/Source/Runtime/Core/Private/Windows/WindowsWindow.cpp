@@ -59,14 +59,25 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	int32 ClientHeight = FMath::TruncToInt( HeightInitial );
 	int32 WindowWidth = ClientWidth;
 	int32 WindowHeight = ClientHeight;
+	const bool bApplicationSupportsPerPixelBlending = Application->GetWindowTransparencySupport() == EWindowTransparency::PerPixel;
 
 	if( !Definition->HasOSWindowBorder )
 	{
 		WindowExStyle = WS_EX_WINDOWEDGE;
-		if (Definition->SupportsTransparency)
+
+		if( Definition->TransparencySupport == EWindowTransparency::PerWindow )
 		{
 			WindowExStyle |= WS_EX_LAYERED;
 		}
+#if ALPHA_BLENDED_WINDOWS
+		else if( Definition->TransparencySupport == EWindowTransparency::PerPixel )
+		{
+			if( bApplicationSupportsPerPixelBlending )
+			{
+				WindowExStyle |= WS_EX_COMPOSITED;
+			}
+		}
+#endif
 
 		WindowStyle = WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 		if ( Definition->AppearsInTaskbar )
@@ -134,7 +145,7 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 		return;
 	}
 
-	if ( Definition->SupportsTransparency )
+	if ( Definition->TransparencySupport == EWindowTransparency::PerWindow )
 	{
 		SetOpacity( Definition->Opacity );
 	}
@@ -149,7 +160,16 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 
 		const BOOL bEnableNCPaint = false;
 		verify(SUCCEEDED(DwmSetWindowAttribute(HWnd, DWMWA_ALLOW_NCPAINT, &bEnableNCPaint, sizeof(bEnableNCPaint))));
+
+	#if ALPHA_BLENDED_WINDOWS
+		if ( bApplicationSupportsPerPixelBlending && Definition->TransparencySupport == EWindowTransparency::PerPixel )
+		{
+			MARGINS Margins = {-1};
+			verify(SUCCEEDED(::DwmExtendFrameIntoClientArea(HWnd, &Margins)));
+		}
+	#endif
 	}
+
 #endif	// WINVER
 
 	// No region for non regular windows or windows displaying the os window border
@@ -200,6 +220,31 @@ HWND FWindowsWindow::GetHWnd() const
 	return HWnd;
 }
 
+void FWindowsWindow::OnTransparencySupportChanged(EWindowTransparency NewTransparency)
+{
+#if ALPHA_BLENDED_WINDOWS
+	if ( Definition->TransparencySupport == EWindowTransparency::PerPixel )
+	{
+		const auto Style = GetWindowLong( HWnd, GWL_EXSTYLE );
+
+		if( NewTransparency == EWindowTransparency::PerPixel )
+		{
+			SetWindowLong( HWnd, GWL_EXSTYLE, Style | WS_EX_COMPOSITED );
+
+			MARGINS Margins = {-1};
+			verify(SUCCEEDED(::DwmExtendFrameIntoClientArea(HWnd, &Margins)));
+		}
+		else
+		{
+			SetWindowLong( HWnd, GWL_EXSTYLE, Style & ~WS_EX_COMPOSITED );
+		}
+
+		// Must call SWP_FRAMECHANGED when updating the style attribute of a window in order to update internal caches (according to MSDN)
+		SetWindowPos( HWnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOSENDCHANGING | SWP_NOZORDER );
+	}
+#endif
+}
+
 HRGN FWindowsWindow::MakeWindowRegionObject() const
 {
 	HRGN Region;
@@ -212,7 +257,14 @@ HRGN FWindowsWindow::MakeWindowRegionObject() const
 		}
 		else
 		{
-			if( Definition->CornerRadius > 0 )
+			const bool bUseCornerRadius  = 
+#if ALPHA_BLENDED_WINDOWS
+				// Corner radii cause DWM window composition blending to fail, so we always set regions to full size rectangles
+				Definition->TransparencySupport != EWindowTransparency::PerPixel &&
+#endif
+				Definition->CornerRadius > 0;
+
+			if( bUseCornerRadius )
 			{
 				// @todo mac: Corner radius not applied on Mac platform yet
 

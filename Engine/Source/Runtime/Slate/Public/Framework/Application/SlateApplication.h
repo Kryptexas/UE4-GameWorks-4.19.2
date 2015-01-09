@@ -978,6 +978,11 @@ public:
 	virtual EVisibility GetSoftwareCursorVis() const override;	
 	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget() const override;
 
+	virtual EWindowTransparency GetWindowTransparencySupport() const override
+	{
+		return PlatformApplication->GetWindowTransparencySupport();
+	}
+
 protected:
 
 	virtual TSharedPtr< SWidget > GetMouseCaptorImpl() const override;

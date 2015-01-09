@@ -5,6 +5,25 @@
 #include "HAL/Platform.h"
 #include "GenericApplicationMessageHandler.h"
 
+#ifndef ALPHA_BLENDED_WINDOWS
+	#define ALPHA_BLENDED_WINDOWS IS_PROGRAM || WITH_EDITOR
+#endif
+
+/** Enumeration to specify different transparency options for SWindows */
+enum class EWindowTransparency
+{
+	/** Value indicating that a window does not support transparency */
+	None,
+
+	/** Value indicating that a window supports transparency at the window level (one opacity applies to the entire window) */
+	PerWindow,
+
+#if ALPHA_BLENDED_WINDOWS
+	/** Value indicating that a window supports per-pixel alpha blended transparency */
+	PerPixel,
+#endif
+};
+
 struct CORE_API FGenericWindowDefinition
 {
 	float XDesiredPositionOnScreen;
@@ -13,8 +32,9 @@ struct CORE_API FGenericWindowDefinition
 	float WidthDesiredOnScreen;
 	float HeightDesiredOnScreen;
 
+	EWindowTransparency TransparencySupport;
+
 	bool HasOSWindowBorder;
-	bool SupportsTransparency;
 	bool AppearsInTaskbar;
 	bool IsTopmostWindow;
 	bool AcceptsInput;

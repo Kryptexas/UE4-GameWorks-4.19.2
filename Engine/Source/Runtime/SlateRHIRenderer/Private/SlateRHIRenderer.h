@@ -110,6 +110,8 @@ private:
 		bool bRequiresStencilTest;
 		/** Whether or not the viewport is in fullscreen */
 		bool bFullscreen;
+		/** The desired pixel format for this viewport */
+		EPixelFormat PixelFormat;
 	
 		/** FRenderResource interface */
 		virtual void InitRHI() override;
@@ -122,7 +124,8 @@ private:
 				DesiredWidth(0),
 				DesiredHeight(0),
 				bRequiresStencilTest(false),
-				bFullscreen(false)
+				bFullscreen(false),
+				PixelFormat(EPixelFormat::PF_Unknown)
 		{
 
 		}
@@ -171,7 +174,7 @@ public:
 	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
-	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync);
+	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
 
 
 	/**

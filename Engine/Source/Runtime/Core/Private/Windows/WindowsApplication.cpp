@@ -21,6 +21,7 @@
 	#include <objbase.h>
 	#include <SetupApi.h>
 	#include <devguid.h>
+	#include <dwmapi.h>
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
 #ifndef WM_MOUSEHWHEEL
@@ -606,6 +607,14 @@ EWindowTitleAlignment::Type FWindowsApplication::GetWindowTitleAlignment() const
 
 	return EWindowTitleAlignment::Left;
 }
+	
+EWindowTransparency FWindowsApplication::GetWindowTransparencySupport() const
+{
+	BOOL bIsCompositionEnabled = FALSE;
+	::DwmIsCompositionEnabled(&bIsCompositionEnabled);
+
+	return bIsCompositionEnabled ? EWindowTransparency::PerPixel : EWindowTransparency::PerWindow;
+}
 
 /** All WIN32 messages sent to our app go here; this method simply passes them on */
 LRESULT CALLBACK FWindowsApplication::AppWndProc(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam)
@@ -890,6 +899,14 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 				}
 			}
 			break;
+			
+#if WINVER > 0x502
+		case WM_DWMCOMPOSITIONCHANGED:
+			{
+				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
+			}
+			break;
+#endif
 
 			// Window focus and activation
 		case WM_ACTIVATE:
@@ -1588,6 +1605,14 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				}
 			}
 			break;
+
+#if WINVER > 0x502
+		case WM_DWMCOMPOSITIONCHANGED:
+			{
+				CurrentNativeEventWindowPtr->OnTransparencySupportChanged(GetWindowTransparencySupport());
+			}
+			break;
+#endif
 		}
 	}
 

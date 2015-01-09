@@ -438,6 +438,11 @@ public:
 		return EWindowTitleAlignment::Left;
 	}
 
+	virtual EWindowTransparency GetWindowTransparencySupport() const
+	{
+		return EWindowTransparency::None;
+	}
+
 	virtual void DestroyApplication() { }
 
 	/** Function to return the current implementation of the ForceFeedback system */

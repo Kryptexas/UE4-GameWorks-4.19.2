@@ -259,6 +259,8 @@ public:
 
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const override;
 	
+	virtual EWindowTransparency GetWindowTransparencySupport() const override;
+
 	/** Function to return the current implementation of the ForceFeedback system */
 	DEPRECATED(4.7, "Please use GetInputInterface()")
 	virtual IForceFeedbackSystem* GetForceFeedbackSystem() override

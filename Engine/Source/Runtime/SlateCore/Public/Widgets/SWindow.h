@@ -57,6 +57,16 @@ namespace ESizingRule
 	};
 }
 
+/** Proxy structure to handle deprecated construction from bool */
+struct FWindowTransparency
+{
+	DEPRECATED(4.7, "Please now use the static initializers defined below.")
+	FWindowTransparency(bool bSupportsTransparency) : Value(bSupportsTransparency ? EWindowTransparency::PerWindow : EWindowTransparency::None) {}
+
+	FWindowTransparency(EWindowTransparency In) : Value(In) {}
+	
+	EWindowTransparency Value;
+};
 
 /**
  * SWindow is a platform-agnostic representation of a top-level window.
@@ -73,7 +83,7 @@ public:
 		, _AutoCenter( EAutoCenter::PreferredWorkArea )
 		, _ScreenPosition( FVector2D::ZeroVector )
 		, _ClientSize( FVector2D::ZeroVector )
-		, _SupportsTransparency( false )
+		, _SupportsTransparency( EWindowTransparency::None )
 		, _InitialOpacity( 1.0f )
 		, _IsInitiallyMaximized( false )
 		, _SizingRule( ESizingRule::UserSized )
@@ -109,7 +119,7 @@ public:
 		SLATE_ARGUMENT( FVector2D, ClientSize )
 
 		/** Should this window support transparency */
-		SLATE_ARGUMENT( bool, SupportsTransparency )
+		SLATE_ARGUMENT( FWindowTransparency, SupportsTransparency )
 
 		/** The initial opacity of the window */
 		SLATE_ARGUMENT( float, InitialOpacity )
@@ -484,8 +494,8 @@ public:
 	/** @return the window's current opacity */
 	float GetOpacity() const;
 
-	/** @return true if the window supports transparency */
-	bool SupportsTransparency() const;
+	/** @return the level of transparency supported by this window */
+	EWindowTransparency GetTransparencySupport() const;
 
 	/** @return A String representation of the widget */
 	virtual FString ToString() const;
@@ -736,8 +746,8 @@ protected:
 	/** How to auto center the window */
 	EAutoCenter::Type AutoCenterRule;
 
-	/** true if the window supports transparency */
-	bool bIsTransparent : 1;
+	/** Transparency setting for this window */
+	EWindowTransparency TransparencySupport;
 
 	/** True if this is a pop up window */
 	bool bIsPopupWindow : 1;

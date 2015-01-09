@@ -258,12 +258,18 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 		NewInfo->DesiredWidth = Width;
 		NewInfo->DesiredHeight = Height;
 		NewInfo->ProjectionMatrix = CreateProjectionMatrix( Width, Height );
+#if ALPHA_BLENDED_WINDOWS		
+		if( Window->GetTransparencySupport() == EWindowTransparency::PerPixel )
+		{
+			NewInfo->PixelFormat = PF_B8G8R8A8;
+		}
+#endif
 
 		// Sanity check dimensions
 		checkf(Width <= MAX_VIEWPORT_SIZE && Height <= MAX_VIEWPORT_SIZE, TEXT("Invalid window with Width=%u and Height=%u"), Width, Height);
 
 		bool bFullscreen = IsViewportFullscreen( *Window );
-		NewInfo->ViewportRHI = RHICreateViewport( NewInfo->OSWindow, Width, Height, bFullscreen, EPixelFormat::PF_Unknown );
+		NewInfo->ViewportRHI = RHICreateViewport( NewInfo->OSWindow, Width, Height, bFullscreen, NewInfo->PixelFormat );
 		NewInfo->bFullscreen = bFullscreen;
 
 		WindowToViewportInfo.Add( &Window.Get(), NewInfo );
@@ -316,7 +322,7 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		}
 		else
 		{
-			ViewInfo->ViewportRHI = RHICreateViewport(ViewInfo->OSWindow, NewWidth, NewHeight, bFullscreen, EPixelFormat::PF_Unknown);
+			ViewInfo->ViewportRHI = RHICreateViewport(ViewInfo->OSWindow, NewWidth, NewHeight, bFullscreen, ViewInfo->PixelFormat);
 		}
 
 		// Safe to call here as the rendering thread has been suspended: game thread == render thread!
@@ -387,7 +393,7 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 }
 
 /** Draws windows from a FSlateDrawBuffer on the render thread */
-void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync)
+void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 
@@ -423,6 +429,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		else
 		{
 			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
+		}
+
+		if (bClear)
+		{
+			RHICmdList.Clear( true, FLinearColor(ForceInitToZero), false, 0.0f, true, 0x00, FIntRect());
 		}
 
 #if DEBUG_OVERDRAW
@@ -618,12 +629,18 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 						FSlateWindowElementList* WindowElementList;
 						SWindow* SlateWindow;
 						bool bLockToVsync;
+						bool bClear;
 					} Params;
 
 					Params.Renderer = this;
 					Params.ViewportInfo = ViewInfo;
 					Params.WindowElementList = &ElementList;
 					Params.bLockToVsync = bLockToVsync;
+#if ALPHA_BLENDED_WINDOWS
+					Params.bClear = Window->GetTransparencySupport() == EWindowTransparency::PerPixel;
+#else
+					Params.bClear = false;
+#endif
 
 					// NOTE: We pass a raw pointer to the SWindow so that we don't have to use a thread-safe weak pointer in
 					// the FSlateWindowElementList structure
@@ -635,7 +652,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 						ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(SlateDrawWindowsCommand,
 							FSlateDrawWindowCommandParams, Params, Params,
 							{
-								Params.Renderer->DrawWindow_RenderThread(RHICmdList, *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync);
+								Params.Renderer->DrawWindow_RenderThread(RHICmdList, *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync, Params.bClear);
 							});
 					}
 
@@ -1119,7 +1136,7 @@ void* FSlateRHIRenderer::GetViewportResource( const SWindow& Window )
 
 			const bool bFullscreen = IsViewportFullscreen( Window );
 
-			ViewportInfo->ViewportRHI = RHICreateViewport( ViewportInfo->OSWindow, ViewportInfo->Width, ViewportInfo->Height, bFullscreen, EPixelFormat::PF_Unknown );
+			ViewportInfo->ViewportRHI = RHICreateViewport( ViewportInfo->OSWindow, ViewportInfo->Width, ViewportInfo->Height, bFullscreen, ViewportInfo->PixelFormat );
 		}
 
 		return &ViewportInfo->ViewportRHI;

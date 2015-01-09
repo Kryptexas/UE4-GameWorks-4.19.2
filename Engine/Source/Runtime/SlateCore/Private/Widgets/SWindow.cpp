@@ -185,7 +185,7 @@ void SWindow::Construct(const FArguments& InArgs)
 
 	this->Title = InArgs._Title;
 	this->bDragAnywhere = InArgs._bDragAnywhere;
-	this->bIsTransparent = InArgs._SupportsTransparency;
+	this->TransparencySupport = InArgs._SupportsTransparency.Value;
 	this->Opacity = InArgs._InitialOpacity;
 	this->bInitiallyMaximized = InArgs._IsInitiallyMaximized;
 	this->SizingRule = InArgs._SizingRule;
@@ -310,7 +310,7 @@ TSharedRef<SWindow> SWindow::MakeNotificationWindow()
 		.IsPopupWindow( true )
 		.CreateTitleBar( false )
 		.SizingRule( ESizingRule::Autosized )
-		.SupportsTransparency( true )
+		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.InitialOpacity( 0.0f )
 		.FocusWhenFirstShown( false )
 		.ActivateWhenFirstShown( false );
@@ -329,11 +329,11 @@ TSharedRef<SWindow> SWindow::MakeToolTipWindow()
 	TSharedRef<SWindow> NewWindow = SNew( SWindow )
 		.IsPopupWindow( true )
 		.SizingRule( ESizingRule::Autosized )
+		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
 		.ActivateWhenFirstShown( false );
 	NewWindow->bIsToolTipWindow = true;
 	NewWindow->bIsTopmostWindow = true;
-	NewWindow->bIsTransparent = true;
 	NewWindow->Opacity = 0.0f;
 
 	// NOTE: These sizes are tweaked for SToolTip widgets (text wrap width of around 400 px)
@@ -350,12 +350,12 @@ TSharedRef<SWindow> SWindow::MakeCursorDecorator()
 	TSharedRef<SWindow> NewWindow = SNew( SWindow )
 		.IsPopupWindow( true )
 		.SizingRule( ESizingRule::Autosized )
+		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
 		.ActivateWhenFirstShown( false );
 	NewWindow->bIsToolTipWindow = true;
 	NewWindow->bIsTopmostWindow = true;
 	NewWindow->bIsCursorDecoratorWindow = true;
-	NewWindow->bIsTransparent = true;
 	NewWindow->Opacity = 1.0f;
 
 	return NewWindow;
@@ -1182,9 +1182,9 @@ float SWindow::GetOpacity() const
 	return Opacity;
 }
 
-bool SWindow::SupportsTransparency() const
+EWindowTransparency SWindow::GetTransparencySupport() const
 {
-	return bIsTransparent;
+	return TransparencySupport;
 }
 
 
@@ -1615,7 +1615,7 @@ SWindow::SWindow()
 	: bDragAnywhere( false )
 	, Opacity( 1.0f )
 	, SizingRule( ESizingRule::UserSized )
-	, bIsTransparent( false )
+	, TransparencySupport( EWindowTransparency::None )
 	, bIsPopupWindow( false )
 	, bIsToolTipWindow( false )
 	, bIsTopmostWindow( false )
