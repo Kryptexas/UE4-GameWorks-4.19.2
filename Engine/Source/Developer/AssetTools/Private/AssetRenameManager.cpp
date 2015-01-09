@@ -638,7 +638,11 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 
 		for (auto PackageNameIt = RenameData.ReferencingPackageNames.CreateConstIterator(); PackageNameIt; ++PackageNameIt)
 		{
-			PackagesToCheck.Add(LoadPackage(NULL, *PackageNameIt->ToString(), LOAD_None));
+			UPackage* PackageToCheck = FindPackage(NULL, *PackageNameIt->ToString());
+			if (PackageToCheck)
+			{
+				PackagesToCheck.Add(PackageToCheck);
+			}
 		}
 
 		RenameReferencingStringAssetReferences(PackagesToCheck, OldAssetPath, Asset->GetPathName());
