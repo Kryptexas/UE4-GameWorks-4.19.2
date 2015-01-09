@@ -11,7 +11,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CommonUtils
+namespace SwarmCommonUtils
 {
 	public static class NetworkUtils
 	{

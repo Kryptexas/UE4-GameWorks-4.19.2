@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentInterface", "AgentInte
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnrealControls", "..\UnrealControls\UnrealControls.csproj", "{8F079097-3724-4B31-AD3B-0A5B76C26376}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonUtils", "CommonUtils\CommonUtils.csproj", "{65521250-B022-442F-B961-3AF5ADA02083}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SwarmCommonUtils", "SwarmCommonUtils\SwarmCommonUtils.csproj", "{65521250-B022-442F-B961-3AF5ADA02083}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

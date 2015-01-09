@@ -7,8 +7,8 @@
     <ProjectGuid>{65521250-B022-442F-B961-3AF5ADA02083}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CommonUtils</RootNamespace>
-    <AssemblyName>CommonUtils</AssemblyName>
+    <RootNamespace>SwarmCommonUtils</RootNamespace>
+    <AssemblyName>SwarmCommonUtils</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>

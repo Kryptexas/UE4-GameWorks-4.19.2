@@ -121,9 +121,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CommonUtils\CommonUtils.csproj">
+    <ProjectReference Include="..\SwarmCommonUtils\SwarmCommonUtils.csproj">
       <Project>{65521250-b022-442f-b961-3af5ada02083}</Project>
-      <Name>CommonUtils</Name>
+      <Name>SwarmCommonUtils</Name>
     </ProjectReference>
     <ProjectReference Include="..\SwarmCoordinatorInterface\SwarmCoordinatorInterface.csproj">
       <Project>{4C299DD0-B968-49F2-894A-9F115C369E72}</Project>

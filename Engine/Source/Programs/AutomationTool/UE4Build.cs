@@ -377,6 +377,7 @@ namespace AutomationTool
                 "SwarmCoordinator",
                 "SwarmCoordinatorInterface",
                 "SwarmInterface",
+				"SwarmCommonUtils"
             };
 		}
 
