@@ -1970,54 +1970,58 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 
 			ContextState.MaxActiveAttrib = FMath::Max( ContextState.MaxActiveAttrib, AttributeIndex);
 
-			if ( VertexElement.StreamIndex < NumStreams)
+			//only setup/track attributes actually in use
+			if (AttributeMask & (0x1 << AttributeIndex))
 			{
-				FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
-
-				// Track the actively used streams, to limit the updates to those in use
-				StreamMask |= 0x1 << VertexElement.StreamIndex;
-
-				// Verify that the Divisor is consistent across the stream
-				check( !KnowsDivisor[StreamIndex] || Divisor[StreamIndex] == VertexElement.Divisor);
-				KnowsDivisor[StreamIndex] = true;
-				Divisor[StreamIndex] = VertexElement.Divisor;
-
-				if (
-					(Attr.StreamOffset != VertexElement.Offset) ||
-					(Attr.Size != VertexElement.Size) ||
-					(Attr.Type != VertexElement.Type) ||
-					(Attr.bNormalized != VertexElement.bNormalized))
+				if (VertexElement.StreamIndex < NumStreams)
 				{
-					if (!VertexElement.bShouldConvertToFloat)
+					FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
+
+					// Track the actively used streams, to limit the updates to those in use
+					StreamMask |= 0x1 << VertexElement.StreamIndex;
+
+					// Verify that the Divisor is consistent across the stream
+					check(!KnowsDivisor[StreamIndex] || Divisor[StreamIndex] == VertexElement.Divisor);
+					KnowsDivisor[StreamIndex] = true;
+					Divisor[StreamIndex] = VertexElement.Divisor;
+
+					if (
+						(Attr.StreamOffset != VertexElement.Offset) ||
+						(Attr.Size != VertexElement.Size) ||
+						(Attr.Type != VertexElement.Type) ||
+						(Attr.bNormalized != VertexElement.bNormalized))
 					{
-						FOpenGL::VertexAttribIFormat( AttributeIndex, VertexElement.Size, VertexElement.Type, VertexElement.Offset);
-					}
-					else
-					{
-						FOpenGL::VertexAttribFormat( AttributeIndex, VertexElement.Size, VertexElement.Type, VertexElement.bNormalized, VertexElement.Offset);
+						if (!VertexElement.bShouldConvertToFloat)
+						{
+							FOpenGL::VertexAttribIFormat(AttributeIndex, VertexElement.Size, VertexElement.Type, VertexElement.Offset);
+						}
+						else
+						{
+							FOpenGL::VertexAttribFormat(AttributeIndex, VertexElement.Size, VertexElement.Type, VertexElement.bNormalized, VertexElement.Offset);
+						}
+
+						Attr.StreamOffset = VertexElement.Offset;
+						Attr.Size = VertexElement.Size;
+						Attr.Type = VertexElement.Type;
+						Attr.bNormalized = VertexElement.bNormalized;
 					}
 
-					Attr.StreamOffset = VertexElement.Offset;
-					Attr.Size = VertexElement.Size;
-					Attr.Type = VertexElement.Type;
-					Attr.bNormalized = VertexElement.bNormalized;
+					if (Attr.StreamIndex != StreamIndex)
+					{
+						FOpenGL::VertexAttribBinding(AttributeIndex, VertexElement.StreamIndex);
+						Attr.StreamIndex = StreamIndex;
+					}
 				}
-
-				if (Attr.StreamIndex != StreamIndex)
+				else
 				{
-					FOpenGL::VertexAttribBinding( AttributeIndex, VertexElement.StreamIndex);
-					Attr.StreamIndex = StreamIndex;
+					// bogus stream, make sure current value is zero to match D3D
+					float data[4] = { 0.0f };
+
+					glVertexAttrib4fv(AttributeIndex, data);
+
+					//Kill this attribute to make sure it isn't enabled
+					AttributeMask &= ~(1 << AttributeIndex);
 				}
-			}
-			else
-			{
-				// bogus stream, make sure current value is zero to match D3D
-				float data[4] = { 0.0f};
-
-				glVertexAttrib4fv( AttributeIndex, data );
-
-				//Kill this attribute to make sure it isn't enabled
-				AttributeMask &= ~(1 << AttributeIndex);
 			}
 		}
 		ContextState.VertexDecl = VertexDeclaration;
@@ -2046,6 +2050,13 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 			{
 				FOpenGL::VertexBindingDivisor( StreamIndex, Divisor[StreamIndex]);
 				CachedStream.Divisor = Divisor[StreamIndex];
+			}
+		}
+		else
+		{
+			if (((StreamMask & 0x1) != 0) && (Stream.VertexBuffer == nullptr))
+			{
+				UE_LOG(LogRHI, Error, TEXT("Stream %d marked as in use, but vertex buffer provided is NULL (Mask = %x)"), StreamIndex, StreamMask);
 			}
 		}
 	}
