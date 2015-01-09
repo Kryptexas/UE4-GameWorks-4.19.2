@@ -4,6 +4,7 @@
 #include "SCSDiff.h"
 #include "SKismetInspector.h"
 #include "SSCSEditor.h"
+#include "IDetailsView.h"
 
 #include <vector>
 
@@ -15,7 +16,7 @@ FSCSDiff::FSCSDiff(const UBlueprint* InBlueprint)
 		return;
 	}
 
-	TSharedRef<SKismetInspector> Inspector = SNew(SKismetInspector)
+	Inspector = SNew(SKismetInspector)
 		.HideNameArea(true)
 		.ViewIdentifier(FName("BlueprintInspector"))
 		.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return false; }));
@@ -24,11 +25,15 @@ FSCSDiff::FSCSDiff(const UBlueprint* InBlueprint)
 		.Orientation(Orient_Vertical)
 		+ SSplitter::Slot()
 		[
-			SAssignNew(SCSEditor, SSCSEditor, TSharedPtr<FBlueprintEditor>(), InBlueprint->SimpleConstructionScript, const_cast<UBlueprint*>(InBlueprint), Inspector)
+			SAssignNew(SCSEditor, SSCSEditor, InBlueprint->SimpleConstructionScript)
+				.InEditingMode(false)
+				.HideComponentClassCombo(true)
+				.OnUpdateSelectionFromNodes(SSCSEditor::FOnUpdateSelectionFromNodes::CreateRaw(this, &FSCSDiff::OnSCSEditorUpdateSelectionFromNodes))
+				.OnHighlightPropertyInDetailsView(SSCSEditor::FOnHighlightPropertyInDetailsView::CreateRaw(this, &FSCSDiff::OnSCSEditorHighlightPropertyInDetailsView))
 		]
 		+ SSplitter::Slot()
 		[
-			Inspector
+			Inspector.ToSharedRef()
 		];
 }
 
@@ -77,3 +82,32 @@ TArray< FSCSResolvedIdentifier > FSCSDiff::GetDisplayedHierarchy() const
 	return Ret;
 }
 
+void FSCSDiff::OnSCSEditorUpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
+{
+	FText InspectorTitle = FText::GetEmpty();
+	TArray<UObject*> InspectorObjects;
+	InspectorObjects.Empty(SelectedNodes.Num());
+	for (auto NodeIt = SelectedNodes.CreateConstIterator(); NodeIt; ++NodeIt)
+	{
+		auto NodePtr = *NodeIt;
+		if(NodePtr.IsValid() && NodePtr->CanEditDefaults())
+		{
+			InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
+			InspectorObjects.Add(NodePtr->GetComponentTemplate());
+		}
+	}
+
+	if( Inspector.IsValid() )
+	{
+		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
+	}
+}
+
+void FSCSDiff::OnSCSEditorHighlightPropertyInDetailsView(const FPropertyPath& InPropertyPath)
+{
+	if( Inspector.IsValid() )
+	{
+		Inspector->GetPropertyView()->HighlightProperty(InPropertyPath);
+	}
+}

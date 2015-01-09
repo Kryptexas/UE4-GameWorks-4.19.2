@@ -659,6 +659,46 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 	}
 }
 
+void FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
+{
+	if (SCSViewport.IsValid())
+	{
+		SCSViewport->OnComponentSelectionChanged();
+	}
+}
+
+void FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
+{
+	// Convert the selection set to an array of UObject* pointers
+	FText InspectorTitle = FText::GetEmpty();
+	TArray<UObject*> InspectorObjects;
+	InspectorObjects.Empty(SelectedNodes.Num());
+	for (auto NodeIt = SelectedNodes.CreateConstIterator(); NodeIt; ++NodeIt)
+	{
+		auto NodePtr = *NodeIt;
+		if(NodePtr.IsValid() && NodePtr->CanEditDefaults())
+		{
+			InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
+			InspectorObjects.Add(NodePtr->GetComponentTemplate());
+		}
+	}
+
+	// Update the details panel
+	if (Inspector.IsValid())
+	{
+		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
+	}
+}
+
+void FBlueprintEditor::OnSCSEditorHighlightPropertyInDetailsView(const FPropertyPath& InPropertyPath)
+{
+	if(Inspector.IsValid())
+	{
+		Inspector->GetPropertyView()->HighlightProperty(InPropertyPath);
+	}
+}
+
 /** Create new tab for the supplied graph - don't call this directly.*/
 TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FTabInfo> InTabInfo, UEdGraph* InGraph)
 {
@@ -1118,8 +1158,14 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 			BlueprintObj->SimpleConstructionScript->SetFlags(RF_Transactional);
 
 			// Recreate (or create) any widgets that depend on the SCS
-			SCSEditor = SNew(SSCSEditor, SharedThis(this), BlueprintObj->SimpleConstructionScript, BlueprintObj);
-			SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport) .BlueprintEditor(SharedThis(this));
+			SCSEditor = SAssignNew(SCSEditor, SSCSEditor, BlueprintObj->SimpleConstructionScript)
+				.InEditingMode(this, &FBlueprintEditor::InEditingMode)
+				.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
+				.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
+				.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes)
+				.OnHighlightPropertyInDetailsView(this, &FBlueprintEditor::OnSCSEditorHighlightPropertyInDetailsView);
+			SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
+				.BlueprintEditor(SharedThis(this));
 		}
 
 		// If we should have a UCS but don't yet, make it
@@ -1896,9 +1942,14 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		InBlueprint->ParentClass->IsChildOf(AActor::StaticClass()) && 
 		InBlueprint->SimpleConstructionScript )
 	{
-		SCSEditor = SNew(SSCSEditor, SharedThis(this), InBlueprint->SimpleConstructionScript, InBlueprint);
-		
-		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport).BlueprintEditor(SharedThis(this));
+		SCSEditor = SAssignNew(SCSEditor, SSCSEditor, InBlueprint->SimpleConstructionScript)
+			.InEditingMode(this, &FBlueprintEditor::InEditingMode)
+			.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
+			.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
+			.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes)
+			.OnHighlightPropertyInDetailsView(this, &FBlueprintEditor::OnSCSEditorHighlightPropertyInDetailsView);
+		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
+			.BlueprintEditor(SharedThis(this));
 	}
 }
 
@@ -6859,22 +6910,6 @@ void FBlueprintEditor::ToolkitBroughtToFront()
 		CurrentBlueprint->SetObjectBeingDebugged( NULL );
 		CurrentBlueprint->SetObjectBeingDebugged( DebugInstance );
 	}
-}
-
-bool FBlueprintEditor::CanClassGenerateEvents( UClass* InClass )
-{
-	if( InClass )
-	{
-		for( TFieldIterator<UMulticastDelegateProperty> PropertyIt( InClass, EFieldIteratorFlags::IncludeSuper ); PropertyIt; ++PropertyIt )
-		{
-			UProperty* Property = *PropertyIt;
-			if( !Property->HasAnyPropertyFlags( CPF_Parm ) && Property->HasAllPropertyFlags( CPF_BlueprintAssignable ))
-			{
-				return true;
-			}
-		}
-	}
-	return false;
 }
 
 void FBlueprintEditor::OnNodeSpawnedByKeymap()
