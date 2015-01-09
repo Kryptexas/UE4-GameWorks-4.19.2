@@ -250,7 +250,7 @@ protected:
 	 * @param	SelectionIndex	The index selection.
 	 * @returns	Will return UNHANDLED if the current menu is invalid, HANDLED in all other cases including if the controls are locked.
 	 */
-	FString GetOptionText(TSharedPtr<class FGameMenuItem> MenuItem) const;
+	FText GetOptionText(TSharedPtr<class FGameMenuItem> MenuItem) const;
 
 	/** Gets current menu title string. */
 	FText GetMenuTitle() const; 

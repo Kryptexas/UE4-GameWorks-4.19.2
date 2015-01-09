@@ -63,7 +63,7 @@ void SGameMenuItemWidget::Construct(const FArguments& InArgs)
 					SNew(STextBlock)
 					.TextStyle(FGameMenuBuilderStyle::Get(), "GameMenuStyle.MenuTextStyle")
 					.ColorAndOpacity(this,&SGameMenuItemWidget::GetButtonTextColor)
-					.Text(FString("<"))
+					.Text(FText::FromString(TEXT("<")))
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -87,7 +87,7 @@ void SGameMenuItemWidget::Construct(const FArguments& InArgs)
 					SNew(STextBlock)
 					.TextStyle(FGameMenuBuilderStyle::Get(), "GameMenuStyle.MenuTextStyle")
 					.ColorAndOpacity(this,&SGameMenuItemWidget::GetButtonTextColor)
-					.Text(FString(">"))
+					.Text(FText::FromString(TEXT(">")))
 				]
 			]
 		]

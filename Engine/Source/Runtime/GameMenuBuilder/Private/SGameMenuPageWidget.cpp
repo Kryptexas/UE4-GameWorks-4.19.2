@@ -383,7 +383,7 @@ void SGameMenuPageWidget::BuildPanelButtons(TSharedPtr< class FGameMenuPage > In
 					.MenuStyle(MenuStyle)
 					.PCOwner(PCOwner)
 					.OnClicked(this, &SGameMenuPageWidget::MouseButtonClicked, i)
-					.Text(EachItem.Get()->Text.ToString())
+					.Text(EachItem.Get()->Text)
 					.bIsMultichoice(false);
 			}
 			else if (EachItem->MenuItemType == EGameMenuItemType::MultiChoice)
@@ -392,7 +392,7 @@ void SGameMenuPageWidget::BuildPanelButtons(TSharedPtr< class FGameMenuPage > In
 					.MenuStyle(MenuStyle)
 					.PCOwner(PCOwner)
 					.OnClicked(this, &SGameMenuPageWidget::MouseButtonClicked, i)
-					.Text(EachItem.Get()->Text.ToString())
+					.Text(EachItem.Get()->Text)
 					.bIsMultichoice(true)
 					.OnArrowPressed(this, &SGameMenuPageWidget::ChangeOption)
 					.OptionText(this, &SGameMenuPageWidget::GetOptionText, EachItem);
@@ -427,9 +427,9 @@ void SGameMenuPageWidget::BuildPanelButtons(TSharedPtr< class FGameMenuPage > In
 
 }
 
-FString SGameMenuPageWidget::GetOptionText(TSharedPtr<FGameMenuItem> InMenuItem) const
+FText SGameMenuPageWidget::GetOptionText(TSharedPtr<FGameMenuItem> InMenuItem) const
 {
-	return InMenuItem->MultiChoice[InMenuItem->SelectedMultiChoice].ToString();
+	return InMenuItem->MultiChoice[InMenuItem->SelectedMultiChoice];
 }
 
 void SGameMenuPageWidget::UpdateArrows(TSharedPtr<FGameMenuItem> InMenuItem)

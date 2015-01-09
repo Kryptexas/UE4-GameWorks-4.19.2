@@ -24,13 +24,13 @@ public:
 	SLATE_EVENT(FOnArrowPressed, OnArrowPressed)
 
 	/** menu item text attribute */
-	SLATE_ATTRIBUTE(FString, Text)
+	SLATE_ATTRIBUTE(FText, Text)
 
 	/** is it multi-choice item? */
 	SLATE_ARGUMENT(bool, bIsMultichoice)
 
 	/** menu item option text attribute */
-	SLATE_ATTRIBUTE(FString, OptionText)
+	SLATE_ATTRIBUTE(FText, OptionText)
 
 	/** menu item text transparency when item is not active, optional argument */
 	SLATE_ARGUMENT(TOptional<float>, InactiveTextAlpha)
@@ -69,10 +69,10 @@ protected:
 
 private:
 	/** Menu item text attribute. */
-	TAttribute< FString > Text;
+	TAttribute< FText > Text;
 
 	/** Menu item option text attribute. */
-	TAttribute< FString > OptionText;
+	TAttribute< FText > OptionText;
 
 	/** Getter for menu item background color. */
 	FSlateColor GetButtonBgColor() const;
