@@ -51,9 +51,8 @@ void FTemporalLODState::UpdateTemporalLODTransition(const FViewInfo& View, float
 FSimpleElementCollector::FSimpleElementCollector() :
 	FPrimitiveDrawInterface(nullptr)
 {
-	check(IsInRenderingThread());
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	bIsMobileHDR = (MobileHDRCvar->GetValueOnRenderThread() == 1);
+	bIsMobileHDR = (MobileHDRCvar->GetValueOnAnyThread() == 1);
 }
 
 FSimpleElementCollector::~FSimpleElementCollector()
