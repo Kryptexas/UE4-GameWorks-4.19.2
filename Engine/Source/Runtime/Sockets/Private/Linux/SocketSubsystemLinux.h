@@ -45,22 +45,9 @@ public:
 	{
 	}
 
-	/**
-	 * Does Linux platform initialization of the sockets library
-	 *
-	 * @param Error a string that is filled with error information
-	 *
-	 * @return TRUE if initialized ok, FALSE otherwise
-	 */
+	// ISocketSubsystem
 	virtual bool Init(FString& Error) override;
-
-	/**
-	 * Performs platform specific socket clean up
-	 */
 	virtual void Shutdown() override;
-
-	/**
-	 * @return Whether the device has a properly configured network device or not
-	 */
 	virtual bool HasNetworkDevice() override;
+	virtual TSharedRef<FInternetAddr> GetLocalHostAddr(FOutputDevice& Out, bool& bCanBindAll);
 };
