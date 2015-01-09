@@ -129,7 +129,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		return;
 	}
 
-	if ( Definition->SupportsTransparency )
+	if ( Definition->TransparencySupport == EWindowTransparency::PerWindow )
 	{
 		SetOpacity( Definition->Opacity );
 	}

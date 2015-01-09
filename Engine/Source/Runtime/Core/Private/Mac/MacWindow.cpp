@@ -184,7 +184,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 				[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorTransient|NSWindowCollectionBehaviorIgnoresCycle];
 			}
 
-			if( Definition->SupportsTransparency )
+			if( Definition->TransparencySupport == EWindowTransparency::PerWindow )
 			{
 				SetOpacity( Definition->Opacity );
 			}
