@@ -314,7 +314,7 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 										.AutoHeight()
 										.Expose(UpdateScriptCurveConstantListSlot)
 										[
-											SNew(SExpandableArea).InitiallyCollapsed(true).AreaTitle(FString("Curves"))
+											SNew(SExpandableArea).InitiallyCollapsed(true).AreaTitle(LOCTEXT("CurvesLabel", "Curves"))
 											.BodyContent()
 											[
 												SNew(SListView<TSharedPtr<EditorExposedVectorCurveConstant>>)
