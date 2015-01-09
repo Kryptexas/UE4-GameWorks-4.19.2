@@ -249,6 +249,11 @@ IOnlineChatPtr FOnlineSubsystemSteam::GetChatInterface() const
 	return NULL;
 }
 
+IOnlineTurnBasedPtr FOnlineSubsystemSteam::GetTurnBasedInterface() const
+{
+    return NULL;
+}
+
 void FOnlineSubsystemSteam::QueueAsyncTask(FOnlineAsyncTask* AsyncTask)
 {
 	check(OnlineAsyncTaskThreadRunnable);

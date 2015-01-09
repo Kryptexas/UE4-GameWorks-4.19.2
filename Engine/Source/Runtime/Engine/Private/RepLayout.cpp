@@ -1002,6 +1002,22 @@ void FRepLayout::SendProperties_DynamicArray_r(
 	WritePropertyHandle( WriterState.Writer, 0, WriterState.bDoChecksum );		// Signify end of dynamic array
 }
 
+void FRepLayout::SerializeObjectReplicatedProperties(UObject* Object, FArchive & Ar) const
+{
+	for (int32 i = 0; i < Parents.Num(); i++)
+	{
+        UStructProperty* StructProperty = Cast<UStructProperty>(Parents[i].Property);
+        UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Parents[i].Property);
+
+		// We're only able to easily serialize non-object/struct properties, so just do those.
+		if (ObjectProperty == nullptr && StructProperty == nullptr)
+		{
+			bool bHasUnmapped = false;
+			SerializeProperties_r(Ar, NULL, Parents[i].CmdStart, Parents[i].CmdEnd, (uint8*)Object, bHasUnmapped);
+		}
+	}
+}
+
 uint16 FRepLayout::SendProperties_r( 
 	FRepState *	RESTRICT		RepState, 
 	const FReplicationFlags &	RepFlags,

@@ -114,6 +114,11 @@ IOnlineChatPtr FOnlineSubsystemFacebook::GetChatInterface() const
 	return NULL;
 }
 
+IOnlineTurnBasedPtr FOnlineSubsystemFacebook::GetTurnBasedInterface() const
+{
+    return NULL;
+}
+
 bool FOnlineSubsystemFacebook::Tick(float DeltaTime)
 {
 	if (FacebookIdentity.IsValid())

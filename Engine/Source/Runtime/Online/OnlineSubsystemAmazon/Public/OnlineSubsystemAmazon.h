@@ -118,6 +118,11 @@ public:
 		return NULL;
 	}
 
+    virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const override
+    {
+        return NULL;
+    }
+	
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
 	virtual FString GetAppId() const override;

@@ -6,6 +6,11 @@
 =============================================================================*/
 #pragma once
 
+#include "CoreNet.h"
+#include "Engine/EngineTypes.h"
+
+class FOutBunch;
+
 class FRepChangedParent
 {
 public:
@@ -281,7 +286,7 @@ public:
 		int32 &						LastIndex, 
 		bool &						bContentBlockWritten ) const;
 
-	void InitFromObjectClass( UClass * InObjectClass );
+	ENGINE_API void InitFromObjectClass( UClass * InObjectClass );
 
 	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const;
 	void UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject* Object, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const;
@@ -309,6 +314,9 @@ public:
 	// Struct support
 	void SerializePropertiesForStruct( UStruct * Struct, FArchive & Ar, UPackageMap	* Map, void* Data, bool & bHasUnmapped ) const;	
 	void InitFromStruct( UStruct * InStruct );
+
+	// Serializes all replicated properties of a UObject in or out of an archive (depending on what type of archive it is)
+	ENGINE_API void SerializeObjectReplicatedProperties(UObject* Object, FArchive & Ar) const;
 
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
