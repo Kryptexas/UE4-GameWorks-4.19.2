@@ -955,8 +955,9 @@ bool UParticleLODLevel::IsModuleEditable(UParticleModule* InModule)
 	UParticleEmitter implementation.
 -----------------------------------------------------------------------------*/
 UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer),
-	QualityLevelSpawnRateScale(1.0f)
+	: Super(ObjectInitializer)
+	, QualityLevelSpawnRateScale(1.0f)
+	, bDisabledLODsKeepEmitterAlive(false)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -4899,9 +4900,11 @@ bool UParticleSystemComponent::HasCompleted()
 			}
 			else
 			{
-				//Don't assume emitter is complete if the current lod is disabled.
-				//Any emitters with all their lods disabled aren't created in the first place.
-				bHasCompleted = false;
+				UParticleEmitter* Em = CastChecked<UParticleEmitter>(Instance->CurrentLODLevel->GetOuter());
+				if (Em && Em->bDisabledLODsKeepEmitterAlive)
+				{
+					bHasCompleted = false;
+				}
 			}
 		}
 	}
