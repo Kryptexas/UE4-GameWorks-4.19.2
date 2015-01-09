@@ -2684,6 +2684,9 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 
 	Init();
 
+	int32 MaxTiles = 0;
+	int32 MaxPolysPerTile = 0;
+
 	// recreate navmesh if no data was loaded, or when loaded data doesn't match current grid layout
 	bool bRecreateNavmesh = true;
 	if (DestNavMesh->HasValidNavmesh())
@@ -2701,6 +2704,16 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 					bRecreateNavmesh = false;
 				}
 			}
+
+			// if new navmesh needs more tiles, force recreating
+			if (!bRecreateNavmesh)
+			{
+				CalcNavMeshProperties(MaxTiles, MaxPolysPerTile);
+				if (MaxTiles > SavedNavParams->maxTiles)
+				{
+					bRecreateNavmesh = true;
+				}
+			}
 		};
 	}
 
@@ -2713,8 +2726,7 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 	else
 	{
 		// otherwise just update generator params
-		int32 MaxTiles = 0;
-		CalcNavMeshProperties(MaxTiles, Config.MaxPolysPerTile);
+		Config.MaxPolysPerTile = MaxPolysPerTile;
 		NumActiveTiles = GetTilesCountHelper(DestNavMesh->GetRecastNavMeshImpl()->DetourNavMesh);
 	}
 }
