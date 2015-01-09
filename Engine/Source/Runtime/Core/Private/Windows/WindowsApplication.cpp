@@ -610,10 +610,14 @@ EWindowTitleAlignment::Type FWindowsApplication::GetWindowTitleAlignment() const
 	
 EWindowTransparency FWindowsApplication::GetWindowTransparencySupport() const
 {
+#if ALPHA_BLENDED_WINDOWS
 	BOOL bIsCompositionEnabled = FALSE;
 	::DwmIsCompositionEnabled(&bIsCompositionEnabled);
 
 	return bIsCompositionEnabled ? EWindowTransparency::PerPixel : EWindowTransparency::PerWindow;
+#else
+	return EWindowTransparency::PerWindow;
+#endif
 }
 
 /** All WIN32 messages sent to our app go here; this method simply passes them on */

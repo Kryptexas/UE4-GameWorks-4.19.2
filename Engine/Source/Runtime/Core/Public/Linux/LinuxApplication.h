@@ -53,7 +53,7 @@ public:
 
 	virtual EWindowTransparency GetWindowTransparencySupport() const override
 	{
-		return EWindowTransparency::PerPixel;
+		return EWindowTransparency::PerWindow;
 	}
 
 	void AddPendingEvent( SDL_Event event );

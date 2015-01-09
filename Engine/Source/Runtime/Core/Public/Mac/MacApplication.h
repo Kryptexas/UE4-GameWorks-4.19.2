@@ -55,7 +55,7 @@ public:
 	
 	virtual EWindowTransparency GetWindowTransparencySupport() const override
 	{
-		return EWindowTransparency::PerPixel;
+		return EWindowTransparency::PerWindow;
 	}
 
 	virtual ITextInputMethodSystem *GetTextInputMethodSystem() override

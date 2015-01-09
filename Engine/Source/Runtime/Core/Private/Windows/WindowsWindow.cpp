@@ -59,7 +59,12 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	int32 ClientHeight = FMath::TruncToInt( HeightInitial );
 	int32 WindowWidth = ClientWidth;
 	int32 WindowHeight = ClientHeight;
-	const bool bApplicationSupportsPerPixelBlending = Application->GetWindowTransparencySupport() == EWindowTransparency::PerPixel;
+	const bool bApplicationSupportsPerPixelBlending =
+#if ALPHA_BLENDED_WINDOWS
+		Application->GetWindowTransparencySupport() == EWindowTransparency::PerPixel;
+#else
+		false;
+#endif
 
 	if( !Definition->HasOSWindowBorder )
 	{
