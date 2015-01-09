@@ -1814,7 +1814,7 @@ namespace UnrealBuildTool
 			if (bSkipDefinitionsForCompileEnvironment)
 			{
 				Result.Config.Definitions.Clear();
-				Result.Config.CPPIncludeInfo.IncludePaths.Clear();
+				Result.Config.CPPIncludeInfo.IncludePaths = new HashSet<string>(BaseCompileEnvironment.Config.CPPIncludeInfo.IncludePaths);
 			}
 
 			return Result;
