@@ -73,31 +73,31 @@ TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismet
 	if (SelectionInfo.ObjectsForPropertyEditing.Num())
 	{
 		ContextualEditingWidget->AddSlot()
-			.FillHeight( 0.9f )
-			.VAlign( VAlign_Top )
+		.FillHeight( 0.9f )
+		.VAlign( VAlign_Top )
+		[
+			SNew( SBox )
+			.Visibility(this, &SKismetInspector::GetPropertyViewVisibility)
 			[
-				SNew( SBorder )
-				.Visibility(this, &SKismetInspector::GetPropertyViewVisibility)
-				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-				[
-					PropertyView.ToSharedRef()
-				]
-			];
+				PropertyView.ToSharedRef()
+			]
+		];
 
 		if (bShowPublicView)
 		{
 			ContextualEditingWidget->AddSlot()
-				.AutoHeight()
-				.VAlign( VAlign_Top )
+			.AutoHeight()
+			.VAlign( VAlign_Top )
+			[
+				SNew(SCheckBox)
+				.ToolTipText(LOCTEXT("TogglePublicView", "Toggle Public View"))
+				.IsChecked(this, &SKismetInspector::GetPublicViewCheckboxState)
+				.OnCheckStateChanged( this, &SKismetInspector::SetPublicViewCheckboxState)
 				[
-					SNew(SCheckBox)
-					.ToolTipText(LOCTEXT("TogglePublicView", "Toggle Public View"))
-					.IsChecked(this, &SKismetInspector::GetPublicViewCheckboxState)
-					.OnCheckStateChanged( this, &SKismetInspector::SetPublicViewCheckboxState)
-					[
-						SNew(STextBlock) .Text(LOCTEXT("PublicViewCheckboxLabel", "Public View"))
-					]
-				];
+					SNew(STextBlock)
+					.Text(LOCTEXT("PublicViewCheckboxLabel", "Public View"))
+				]
+			];
 		}
 	}
 
