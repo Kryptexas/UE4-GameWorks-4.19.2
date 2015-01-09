@@ -32,7 +32,7 @@ struct PROJECTS_API FProjectDescriptor
 	/** Descriptor version number. */
 	EProjectDescriptorVersion::Type FileVersion;
 
-	/** The associated engine label. Used by UnrealVersionSelector to open projects with the correct editor */
+	/** The associated engine. Used by UnrealVersionSelector to open projects with the correct editor. Set this value using IDesktopPlatform::SetEngineIdentifierForProject. */
 	FString EngineAssociation;
 
 	/** Category to show under the project browser */

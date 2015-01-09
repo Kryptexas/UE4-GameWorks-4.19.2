@@ -896,17 +896,22 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 
 	// Generate the project file
 	{
-		FText LocalFailReason;
-		if (IProjectManager::Get().GenerateNewProjectFile(InProjectInfo.ProjectFilename, StartupModuleNames, TEXT(""), LocalFailReason))
+		// Set up the descriptor
+		FProjectDescriptor Descriptor;
+		for(int32 Idx = 0; Idx < StartupModuleNames.Num(); Idx++)
 		{
-			CreatedFiles.Add(InProjectInfo.ProjectFilename);
+			Descriptor.Modules.Add(FModuleDescriptor(*StartupModuleNames[Idx]));
 		}
-		else
+
+		// Try to save it
+		FText LocalFailReason;
+		if(!Descriptor.Save(InProjectInfo.ProjectFilename, LocalFailReason))
 		{
 			OutFailReason = LocalFailReason;
 			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
+		CreatedFiles.Add(InProjectInfo.ProjectFilename);
 
 		// Set the engine identifier for it. Do this after saving, so it can be correctly detected as foreign or non-foreign.
 		if(!SetEngineAssociationForForeignProject(InProjectInfo.ProjectFilename, OutFailReason))
@@ -2757,9 +2762,6 @@ bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFile, const F
 	FProjectDescriptor Descriptor;
 	if(Descriptor.Load(ProjectFile, OutFailReason))
 	{
-		// Freshen version information
-		Descriptor.EngineAssociation = EngineIdentifier;
-
 		// Replace the modules names, if specified
 		if(StartupModuleNames != NULL)
 		{
@@ -2771,7 +2773,7 @@ bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFile, const F
 		}
 
 		// Update file on disk
-		return Descriptor.Save(ProjectFile, OutFailReason);
+		return Descriptor.Save(ProjectFile, OutFailReason) && FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFile, EngineIdentifier);
 	}
 	return false;
 }

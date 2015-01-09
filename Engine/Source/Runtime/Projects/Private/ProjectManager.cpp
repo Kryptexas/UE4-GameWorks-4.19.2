@@ -107,19 +107,6 @@ const FString& FProjectManager::GetAutoLoadProjectFileName()
 	return RecentProjectFileName;
 }
 
-bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
-{
-	FProjectDescriptor Descriptor;
-	Descriptor.EngineAssociation = EngineIdentifier;
-
-	for(int32 Idx = 0; Idx < StartupModuleNames.Num(); Idx++)
-	{
-		Descriptor.Modules.Add(FModuleDescriptor(*StartupModuleNames[Idx]));
-	}
-
-	return Descriptor.Save(NewProjectFilename, OutFailReason);
-}
-
 bool FProjectManager::SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason)
 {
 	FProjectDescriptor Descriptor;
