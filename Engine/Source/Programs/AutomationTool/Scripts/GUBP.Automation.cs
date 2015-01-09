@@ -6138,21 +6138,7 @@ public class GUBP : BuildCommand
 				}
 				FullNodeDependentPromotions.Add(NodeToDo, All);				
 			}
-		}
-		if(bBuildRocket)
-		{
-			foreach(var NodeToDo in NodesToDo)
-			{
-				if(GUBPNodes[NodeToDo].GetFullName().Contains("EditorGame"))
-				{
-					GUBPNodes[NodeToDo].AgentSharingGroup = "SampleEditors";
-					if(GUBPNodes[NodeToDo].GetFullName().Contains("OnMac"))
-					{
-						GUBPNodes[NodeToDo].AgentSharingGroup = "SampleEditors_OnMac";
-					}					
-				}
-			}
-		}
+		}		
 		if (TimeIndex != 0)
 		{
 			Log("Culling based on time index");
