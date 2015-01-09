@@ -327,6 +327,8 @@ public partial class Project : CommandUtils
 				}
 				while (ClientProcess.HasExited == false);
 
+				SC.StageTargetPlatform.PostRunClient(ClientProcess, Params);
+
 				if (ClientProcess.ExitCode != 0)
 				{
 					throw new AutomationException("Client exited with error code: " + ClientProcess.ExitCode);

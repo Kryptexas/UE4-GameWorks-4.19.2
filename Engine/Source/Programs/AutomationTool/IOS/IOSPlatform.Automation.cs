@@ -956,7 +956,7 @@ public class IOSPlatform : Platform
 	{
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
-			string AppDirectory = string.Format("{0}/Payload/{1}.app",
+			/*			string AppDirectory = string.Format("{0}/Payload/{1}.app",
 				Path.GetDirectoryName(Params.ProjectGameExeFilename), 
 				Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename));
 			string GameName = Path.GetFileNameWithoutExtension (ClientApp);
@@ -965,8 +965,8 @@ public class IOSPlatform : Platform
 				GameName = GameName.Substring (0, GameName.IndexOf ("-IOS-"));
 			}
 			string GameApp = AppDirectory + "/" + GameName;
-			bool bWasGenerated = false;
-			string XcodeProj = EnsureXcodeProjectExists (Params.RawProjectPath, CmdEnv.LocalRoot, Params.ShortProjectName, GetDirectoryName(Params.RawProjectPath), Params.IsCodeBasedProject, out bWasGenerated);
+			bWasGenerated = false;
+			XcodeProj = EnsureXcodeProjectExists (Params.RawProjectPath, CmdEnv.LocalRoot, Params.ShortProjectName, GetDirectoryName(Params.RawProjectPath), Params.IsCodeBasedProject, out bWasGenerated);
 			string Arguments = "UBT_NO_POST_DEPLOY=true /usr/bin/xcrun xcodebuild test -project \"" + XcodeProj + "\"";
 			Arguments += " -scheme '";
 			Arguments += GameName;
@@ -976,7 +976,21 @@ public class IOSPlatform : Platform
 			Arguments += " TEST_HOST=\"";
 			Arguments += GameApp;
 			Arguments += "\" BUNDLE_LOADER=\"";
-			Arguments += GameApp + "\"";
+			Arguments += GameApp + "\"";*/
+			string BundleIdentifier = "";
+			if (File.Exists(Params.BaseStageDirectory + "/IOS/Info.plist"))
+			{
+				string Contents = File.ReadAllText(Params.BaseStageDirectory + "/IOS/Info.plist");
+				int Pos = Contents.IndexOf("CFBundleIdentifier");
+				Pos = Contents.IndexOf("<string>", Pos) + 8;
+				int EndPos = Contents.IndexOf("</string>", Pos);
+				BundleIdentifier = Contents.Substring(Pos, EndPos - Pos);
+			}
+			string Arguments = "/usr/bin/instruments";
+			Arguments += " -w '" + Params.Device.Substring (4) + "'";
+			Arguments += " -t 'Activity Monitor'";
+			Arguments += " -D \"" + Params.BaseStageDirectory + "/IOS/launch.trace\"";
+			Arguments += " '" + BundleIdentifier + "'";
 			ProcessResult ClientProcess = Run ("/usr/bin/env", Arguments, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 			return ClientProcess;
 		}
@@ -985,6 +999,16 @@ public class IOSPlatform : Platform
 			ProcessResult Result = new ProcessResult("DummyApp", null, false, null);
 			Result.ExitCode = 0;
 			return Result;
+		}
+	}
+
+	public override void PostRunClient(ProcessResult Result, ProjectParams Params)
+	{
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+		{
+			Console.WriteLine (Directory.GetCurrentDirectory ());
+			Console.WriteLine ("Deleting " + Params.BaseStageDirectory + "/IOS/launch.trace");
+			Directory.Delete (Params.BaseStageDirectory + "/IOS/launch.trace", true);
 		}
 	}
 
