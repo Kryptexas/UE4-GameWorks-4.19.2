@@ -282,9 +282,15 @@ protected:
 	FGuid LandscapeGuid;
 
 public:
-	/** Offset in quads from landscape actor origin **/
+	/** Offset in quads from global components grid origin (in quads) **/
 	UPROPERTY()
 	FIntPoint LandscapeSectionOffset;
+
+#if WITH_EDITORONLY_DATA
+	/** To support legacy landscape section offset modification under world composition mode */
+	UPROPERTY()
+	bool bStaticSectionOffset;
+#endif
 
 	/** Max LOD level to use when rendering */
 	UPROPERTY(EditAnywhere, Category=LOD)

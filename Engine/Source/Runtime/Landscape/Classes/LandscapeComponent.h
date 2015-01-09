@@ -120,10 +120,12 @@ UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement,
 class ULandscapeComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
-
+	
+	/** X offset from global components grid origin (in quads) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 SectionBaseX;
 
+	/** Y offset from global components grid origin (in quads) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 SectionBaseY;
 
