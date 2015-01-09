@@ -3478,21 +3478,25 @@ UMaterialInstanceDynamic* AActor::MakeMIDForMaterial(class UMaterialInterface* P
 	return NULL;
 }
 
+// deprecated
 float AActor::GetDistanceTo(AActor* OtherActor)
 {
 	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size() : 0.f;
 }
 
+// deprecated
 float AActor::GetHorizontalDistanceTo(AActor* OtherActor)
 {
 	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size2D() : 0.f;
 }
 
+// deprecated
 float AActor::GetVerticalDistanceTo(AActor* OtherActor)
 {
 	return OtherActor ? FMath::Abs((GetActorLocation().Z - OtherActor->GetActorLocation().Z)) : 0.f;
 }
 
+// deprecated
 float AActor::GetDotProductTo(AActor* OtherActor)
 {
 	if (OtherActor)
@@ -3505,7 +3509,49 @@ float AActor::GetDotProductTo(AActor* OtherActor)
 	return -2.0;
 }
 
+// deprecated
 float AActor::GetHorizontalDotProductTo(AActor* OtherActor)
+{
+	if (OtherActor)
+	{
+		FVector Dir = GetActorForwardVector();
+		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
+		Offset = Offset.GetSafeNormal2D();
+		return FVector::DotProduct(Dir, Offset);
+	}
+	return -2.0;
+}
+
+
+
+float AActor::GetDistanceToActor(AActor* OtherActor) const
+{
+	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size() : 0.f;
+}
+
+float AActor::GetHorizontalDistanceToActor(AActor* OtherActor) const
+{
+	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size2D() : 0.f;
+}
+
+float AActor::GetVerticalDistanceToActor(AActor* OtherActor) const
+{
+	return OtherActor ? FMath::Abs((GetActorLocation().Z - OtherActor->GetActorLocation().Z)) : 0.f;
+}
+
+float AActor::GetDotProductToActor(AActor* OtherActor) const
+{
+	if (OtherActor)
+	{
+		FVector Dir = GetActorForwardVector();
+		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
+		Offset = Offset.GetSafeNormal();
+		return FVector::DotProduct(Dir, Offset);
+	}
+	return -2.0;
+}
+
+float AActor::GetHorizontalDotProductToActor(AActor* OtherActor) const
 {
 	if (OtherActor)
 	{
