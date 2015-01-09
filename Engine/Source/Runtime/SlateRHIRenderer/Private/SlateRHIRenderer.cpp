@@ -263,7 +263,7 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 		checkf(Width <= MAX_VIEWPORT_SIZE && Height <= MAX_VIEWPORT_SIZE, TEXT("Invalid window with Width=%u and Height=%u"), Width, Height);
 
 		bool bFullscreen = IsViewportFullscreen( *Window );
-		NewInfo->ViewportRHI = RHICreateViewport( NewInfo->OSWindow, Width, Height, bFullscreen );
+		NewInfo->ViewportRHI = RHICreateViewport( NewInfo->OSWindow, Width, Height, bFullscreen, EPixelFormat::PF_Unknown );
 		NewInfo->bFullscreen = bFullscreen;
 
 		WindowToViewportInfo.Add( &Window.Get(), NewInfo );
@@ -316,7 +316,7 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		}
 		else
 		{
-			ViewInfo->ViewportRHI = RHICreateViewport(ViewInfo->OSWindow, NewWidth, NewHeight, bFullscreen);
+			ViewInfo->ViewportRHI = RHICreateViewport(ViewInfo->OSWindow, NewWidth, NewHeight, bFullscreen, EPixelFormat::PF_Unknown);
 		}
 
 		// Safe to call here as the rendering thread has been suspended: game thread == render thread!
@@ -1119,7 +1119,7 @@ void* FSlateRHIRenderer::GetViewportResource( const SWindow& Window )
 
 			const bool bFullscreen = IsViewportFullscreen( Window );
 
-			ViewportInfo->ViewportRHI = RHICreateViewport( ViewportInfo->OSWindow, ViewportInfo->Width, ViewportInfo->Height, bFullscreen );
+			ViewportInfo->ViewportRHI = RHICreateViewport( ViewportInfo->OSWindow, ViewportInfo->Width, ViewportInfo->Height, bFullscreen, EPixelFormat::PF_Unknown );
 		}
 
 		return &ViewportInfo->ViewportRHI;

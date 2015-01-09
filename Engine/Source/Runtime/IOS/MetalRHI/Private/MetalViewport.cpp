@@ -20,7 +20,7 @@ FMetalViewport::~FMetalViewport()
 /*=============================================================================
  *	The following RHI functions must be called from the main thread.
  *=============================================================================*/
-FViewportRHIRef FMetalDynamicRHI::RHICreateViewport(void* WindowHandle,uint32 SizeX,uint32 SizeY,bool bIsFullscreen)
+FViewportRHIRef FMetalDynamicRHI::RHICreateViewport(void* WindowHandle,uint32 SizeX,uint32 SizeY,bool bIsFullscreen,EPixelFormat PreferredPixelFormat /* ignored */)
 {
 	check( IsInGameThread() );
 	return new FMetalViewport(WindowHandle, SizeX, SizeY, bIsFullscreen);

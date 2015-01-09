@@ -96,7 +96,7 @@ extern void D3D11TextureAllocated2D( FD3D11Texture2D& Texture );
 /**
  * Creates a FD3D11Surface to represent a swap chain's back buffer.
  */
-FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI,IDXGISwapChain* SwapChain)
+FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI, EPixelFormat PixelFormat, IDXGISwapChain* SwapChain)
 {
 	// Grab the back buffer
 	TRefCountPtr<ID3D11Texture2D> BackBufferResource;
@@ -138,7 +138,7 @@ FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI,IDXGISwapChain* Sw
 		1,
 		1,
 		1,
-		PF_A2B10G10R10,
+		PixelFormat,
 		false,
 		false,
 		false
@@ -172,7 +172,7 @@ DXGI_MODE_DESC FD3D11Viewport::SetupDXGI_MODE_DESC() const
 	Ret.Height = SizeY;
 	Ret.RefreshRate.Numerator = 0;	// illamas: use 0 to avoid a potential mismatch with hw
 	Ret.RefreshRate.Denominator = 0;	// illamas: ditto
-	Ret.Format = (DXGI_FORMAT)FD3D11Viewport::GetBackBufferFormat();
+	Ret.Format = GetRenderTargetFormat(PixelFormat);
 	Ret.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	Ret.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
@@ -209,7 +209,7 @@ void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 		check(SizeY > 0);
 
 		// Resize the swap chain.
-		VERIFYD3D11RESULT_EX(SwapChain->ResizeBuffers(1,SizeX,SizeY,(DXGI_FORMAT)FD3D11Viewport::GetBackBufferFormat(),DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH), D3DRHI->GetDevice());
+		VERIFYD3D11RESULT_EX(SwapChain->ResizeBuffers(1,SizeX,SizeY,GetRenderTargetFormat(PixelFormat),DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH), D3DRHI->GetDevice());
 
 		if(bInIsFullscreen)
 		{
@@ -233,7 +233,7 @@ void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 	}
 
 	// Create a RHI surface to represent the viewport's back buffer.
-	BackBuffer = GetSwapChainSurface(D3DRHI,SwapChain);
+	BackBuffer = GetSwapChainSurface(D3DRHI, PixelFormat, SwapChain);
 }
 
 /** Returns true if desktop composition is enabled. */
@@ -455,10 +455,17 @@ bool FD3D11Viewport::Present(bool bLockToVsync)
 /*=============================================================================
  *	The following RHI functions must be called from the main thread.
  *=============================================================================*/
-FViewportRHIRef FD3D11DynamicRHI::RHICreateViewport(void* WindowHandle,uint32 SizeX,uint32 SizeY,bool bIsFullscreen)
+FViewportRHIRef FD3D11DynamicRHI::RHICreateViewport(void* WindowHandle,uint32 SizeX,uint32 SizeY,bool bIsFullscreen,EPixelFormat PreferredPixelFormat)
 {
 	check( IsInGameThread() );
-	return new FD3D11Viewport(this,(HWND)WindowHandle,SizeX,SizeY,bIsFullscreen);
+
+	// Use a default pixel format if none was specified	
+	if (PreferredPixelFormat == EPixelFormat::PF_Unknown)
+	{
+		PreferredPixelFormat = EPixelFormat::PF_A2B10G10R10;
+	}
+
+	return new FD3D11Viewport(this,(HWND)WindowHandle,SizeX,SizeY,bIsFullscreen,PreferredPixelFormat);
 }
 
 void FD3D11DynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI,uint32 SizeX,uint32 SizeY,bool bIsFullscreen)

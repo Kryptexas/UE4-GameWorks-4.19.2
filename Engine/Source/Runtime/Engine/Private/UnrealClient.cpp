@@ -1275,8 +1275,8 @@ void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSize
 					GetWindow(),
 					SizeX,
 					SizeY,
-					IsFullscreen()
-					);
+					IsFullscreen(),
+					EPixelFormat::PF_Unknown /* ie, use default format */);
 			}
 		
 			// Initialize the viewport's resources.
@@ -1369,7 +1369,8 @@ void FViewport::InitRHI()
 			GetWindow(),
 			SizeX,
 			SizeY,
-			IsFullscreen()
+			IsFullscreen(),
+			EPixelFormat::PF_Unknown
 			);
 		UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
 	}

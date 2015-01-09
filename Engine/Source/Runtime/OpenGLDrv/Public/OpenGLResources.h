@@ -1305,7 +1305,7 @@ class FOpenGLViewport : public FRHIViewport
 {
 public:
 
-	FOpenGLViewport(class FOpenGLDynamicRHI* InOpenGLRHI,void* InWindowHandle,uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen);
+	FOpenGLViewport(class FOpenGLDynamicRHI* InOpenGLRHI,void* InWindowHandle,uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen,EPixelFormat PreferredPixelFormat);
 	~FOpenGLViewport();
 
 	void Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen);
@@ -1344,6 +1344,7 @@ private:
 	uint32 SizeX;
 	uint32 SizeY;
 	bool bIsFullscreen;
+	EPixelFormat PixelFormat;
 	bool bIsValid;
 	TRefCountPtr<FOpenGLTexture2D> BackBuffer;
 	FOpenGLEventQuery FrameSyncEvent;

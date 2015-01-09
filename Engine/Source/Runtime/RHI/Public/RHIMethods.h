@@ -1453,12 +1453,13 @@ DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
 /**
  * The following RHI functions must be called from the main thread.
  */
-DEFINE_RHIMETHOD_GLOBALTHREADSAFE_4(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_5(
 	FViewportRHIRef,CreateViewport,
 	void*,WindowHandle,
 	uint32,SizeX,
 	uint32,SizeY,
 	bool,bIsFullscreen,
+	EPixelFormat,PreferredPixelFormat,
 	return,return new FRHIViewport();
 	);
 DEFINE_RHIMETHOD_GLOBALTHREADSAFE_4(
