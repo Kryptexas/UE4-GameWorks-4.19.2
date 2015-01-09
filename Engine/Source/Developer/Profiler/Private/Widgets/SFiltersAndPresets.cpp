@@ -579,7 +579,6 @@ SFiltersAndPresets::SFiltersAndPresets()
 	: GroupingMode( EStatGroupingOrSortingMode::GroupName )
 	, SortingMode( EStatGroupingOrSortingMode::StatName )
 	, bExpansionSaved( false )
-	, bIsActiveTimerRegistered( false )
 {
 	FMemory::MemSet( bStatTypeIsVisible, 1 );
 }
@@ -762,24 +761,8 @@ void SFiltersAndPresets::Construct( const FArguments& InArgs )
 
 void SFiltersAndPresets::ProfilerManager_OnRequestFilterAndPresetsUpdate()
 {
-	RegisterForUpdate();
-}
-
-void SFiltersAndPresets::RegisterForUpdate()
-{
-	if (!bIsActiveTimerRegistered)
-	{
-		bIsActiveTimerRegistered = true;
-		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SFiltersAndPresets::UpdateData));
-	}
-}
-
-EActiveTimerReturnType SFiltersAndPresets::UpdateData(double InCurrentTime, float InDeltaTime)
-{
 	auto It = FProfilerManager::Get()->GetProfilerInstancesIterator();
 	UpdateGroupAndStatTree(It.Value());
-
-	return EActiveTimerReturnType::Stop;
 }
 
 void SFiltersAndPresets::UpdateGroupAndStatTree( const FProfilerSessionPtr InProfilerSession )

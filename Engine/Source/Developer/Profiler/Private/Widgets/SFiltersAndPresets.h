@@ -411,14 +411,4 @@ protected:
 
 	/** Holds the visibility of each stat type. */
 	bool bStatTypeIsVisible[EProfilerSampleTypes::InvalidOrMax];
-
-private:
-	/** Registers the active timer to trigger an update if not done already */
-	void RegisterForUpdate();
-
-	/** Simple one-off active timer to update the group and stat trees */
-	EActiveTimerReturnType UpdateData(double InCurrentTime, float InDeltaTime);
-
-	/** Whether the active timer has already been registered this frame */
-	bool bIsActiveTimerRegistered;
 };
