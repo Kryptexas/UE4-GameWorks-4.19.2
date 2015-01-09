@@ -169,6 +169,9 @@ class UParticleEmitter : public UObject
 	UPROPERTY()
 	uint32 bCookedOut:1;
 
+	/** When true, if the current LOD is disabled the emitter will be kept alive. Otherwise, the emitter will be considered complete if the current LOD is disabled. */
+	UPROPERTY(EditAnywhere, Category = Particle)
+	uint32 bDisabledLODsKeepEmitterAlive : 1;
 
 	// Begin UObject Interface
 #if WITH_EDITOR
