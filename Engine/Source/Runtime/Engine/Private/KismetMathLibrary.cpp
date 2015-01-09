@@ -773,6 +773,14 @@ FVector UKismetMathLibrary::VInterpTo_Constant(FVector Current, FVector Target, 
 	return FMath::VInterpConstantTo(Current, Target, DeltaTime, InterpSpeed);
 }
 
+FVector2D UKismetMathLibrary::Vector2DInterpTo(FVector2D Current, FVector2D Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::Vector2DInterpTo( Current, Target, DeltaTime, InterpSpeed );
+}
+FVector2D UKismetMathLibrary::Vector2DInterpTo_Constant(FVector2D Current, FVector2D Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::Vector2DInterpConstantTo( Current, Target, DeltaTime, InterpSpeed );
+}
 
 FVector UKismetMathLibrary::RandomUnitVector()
 {
