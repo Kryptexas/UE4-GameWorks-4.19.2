@@ -524,6 +524,9 @@ void AActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 	if (RootComponent != NULL && RootComponent->AttachParent == NULL)
 	{
 		RootComponent->ApplyWorldOffset(InOffset, bWorldShift);
+
+		UNavigationSystem::UpdateNavOctreeBounds(this);
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 

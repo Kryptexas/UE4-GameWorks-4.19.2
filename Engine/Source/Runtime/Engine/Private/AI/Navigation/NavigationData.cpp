@@ -153,10 +153,17 @@ void ANavigationData::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	
-	if (GetWorld() == NULL || GetWorld()->GetNavigationSystem() == NULL)
+	UWorld* WorldOuter = GetWorld();
+
+	if (WorldOuter == NULL || WorldOuter->GetNavigationSystem() == NULL)
 	{
 		CleanUpAndMarkPendingKill();
-		return;
+	}
+	else
+	{
+		// note: this is not a final fix for world composition's issues with navmesh generation
+		// but it's good for now, and navmesh creation is going to get a face-lift soon anyway
+		bWantsUpdate |= WorldOuter->GetWorldSettings()->bEnableWorldComposition;
 	}
 }
 
