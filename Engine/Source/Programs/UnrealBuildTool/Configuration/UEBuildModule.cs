@@ -1055,6 +1055,7 @@ namespace UnrealBuildTool
 			IEnumerable<FileItem> InSourceFiles,
 			IEnumerable<string> InPublicIncludePaths,
 			IEnumerable<string> InPublicSystemIncludePaths,
+            IEnumerable<string> InPublicLibraryPaths,
 			IEnumerable<string> InDefinitions,
 			IEnumerable<string> InPublicIncludePathModuleNames,
 			IEnumerable<string> InPublicDependencyModuleNames,
@@ -1090,7 +1091,7 @@ namespace UnrealBuildTool
 					InDefinitions, 
 					InPublicIncludePaths,
 					InPublicSystemIncludePaths, 
-					null, 
+					InPublicLibraryPaths, 
 					InPublicAdditionalLibraries,
 					InPublicFrameworks,
 					InPublicWeakFrameworks,
@@ -2184,7 +2185,7 @@ namespace UnrealBuildTool
 			bool bInBuildSourceFiles
 			)
 			: base(InTarget,InName,InType,InModuleDirectory,InOutputDirectory,InIsRedistributableOverride,InIntelliSenseGatherer,
-			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,InDefinitions,
+			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,null,InDefinitions,
 			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,InPublicAdditionalBundleResources,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
