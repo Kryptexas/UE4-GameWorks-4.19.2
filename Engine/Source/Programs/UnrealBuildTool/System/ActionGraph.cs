@@ -782,7 +782,8 @@ namespace UnrealBuildTool
 				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats && !String.IsNullOrEmpty( LatestUpdatedProducedItemName ),
 					TraceEventType.Verbose, "{0}: Oldest produced item is {1}", RootAction.StatusDescription, LatestUpdatedProducedItemName);
 
-				bool bFindCPPIncludePrerequisites = false;
+				bool bCheckIfIncludedFilesAreNewer = false;
+				bool bPerformExhaustiveIncludeSearchAndUpdateCache = false;
 				if( RootAction.ActionType == ActionType.Compile )
 				{
 					// Outdated targets don't need their headers scanned yet, because presumably they would already be out of dated based on already-cached
@@ -793,7 +794,7 @@ namespace UnrealBuildTool
 						UnrealBuildTool.IsAssemblingBuild && 
 						RootAction.ActionType == ActionType.Compile )
 					{
-						bFindCPPIncludePrerequisites = true;
+						bCheckIfIncludedFilesAreNewer = true;
 					}
 
 					// Were we asked to force an update of our cached includes BEFORE we try to build?  This may be needed if our cache can no longer
@@ -801,12 +802,13 @@ namespace UnrealBuildTool
 					if( BuildConfiguration.bUseUBTMakefiles && 
 						UnrealBuildTool.bNeedsFullCPPIncludeRescan )
 					{
-						bFindCPPIncludePrerequisites = true;
+						// This will be slow!
+						bPerformExhaustiveIncludeSearchAndUpdateCache = true;
 					}
 				}
 
 
-				if( bFindCPPIncludePrerequisites )
+				if( bCheckIfIncludedFilesAreNewer || bPerformExhaustiveIncludeSearchAndUpdateCache )
 				{
 					// Scan this file for included headers that may be out of date.  Note that it's OK if we break out early because we found
 					// the action to be outdated.  For outdated actions, we kick off a separate include scan in a background thread later on to
@@ -817,7 +819,7 @@ namespace UnrealBuildTool
 						// @todo ubtmake: Make sure we are catching RC files here too.  Anything that the toolchain would have tried it on.  Logic should match the CACHING stuff below
 						if( PrerequisiteItem.CachedCPPIncludeInfo != null )
 						{
-							var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, PrerequisiteItem, BuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies:BuildConfiguration.bUseUBTMakefiles );
+							var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, PrerequisiteItem, BuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies:!bPerformExhaustiveIncludeSearchAndUpdateCache );
 							if( IncludedFileList != null )
 							{ 
 								foreach( var IncludedFile in IncludedFileList )

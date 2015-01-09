@@ -182,11 +182,8 @@ namespace UnrealBuildTool
 				CPPIncludeInfo.IncludeFileSearchDictionary = new Dictionary<string,FileItem>();
 			}
 
-			bool bUseFlatCPPIncludeDependencyCache = 
-				( BuildConfiguration.bUseUBTMakefiles &&
-				  ( !BuildConfiguration.bUseUBTMakefiles || UnrealBuildTool.IsAssemblingBuild ) );
-
-			if( bUseFlatCPPIncludeDependencyCache && bOnlyCachedDependencies )
+			bool bUseFlatCPPIncludeDependencyCache = BuildConfiguration.bUseUBTMakefiles && UnrealBuildTool.IsAssemblingBuild;
+			if( bOnlyCachedDependencies && bUseFlatCPPIncludeDependencyCache )
 			{ 
 				Result = FlatCPPIncludeDependencyCache[Target].GetDependenciesForFile( SourceFile.AbsolutePath );
 				if( Result == null )
@@ -197,6 +194,15 @@ namespace UnrealBuildTool
 			else
 			{
 				// @todo ubtmake: HeaderParser.h is missing from the include set for Module.UnrealHeaderTool.cpp (failed to find include using:  FileItem DirectIncludeResolvedFile = CPPEnvironment.FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, IncludePathsToSearch, IncludeFileSearchDictionary );)
+
+				// If we're doing an exhaustive include scan, make sure that we have our include dependency cache loaded and ready
+				if( !bOnlyCachedDependencies )
+				{ 
+					if( !IncludeDependencyCache.ContainsKey( Target ) )
+					{
+						IncludeDependencyCache.Add( Target, DependencyCache.Create( DependencyCache.GetDependencyCachePathForTarget( Target ) ) );
+					}
+				}
 
 				Result = new List<FileItem>();
 

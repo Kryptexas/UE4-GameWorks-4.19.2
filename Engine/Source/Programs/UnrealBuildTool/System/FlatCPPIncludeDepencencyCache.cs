@@ -68,6 +68,8 @@ namespace UnrealBuildTool
 			}
 
 			// Fall back to a clean cache on error or non-existence.
+			UnrealBuildTool.bNeedsFullCPPIncludeRescan = true;
+			Log.TraceInformation( "Performing full C++ include scan (no include cache file)" );
 			return new FlatCPPIncludeDependencyCache( Cache );
 		}
 

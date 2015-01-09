@@ -2082,18 +2082,6 @@ namespace UnrealBuildTool
                     // @todo ubtmake: This thread will access data structures that are also used on the main UBT thread, but during this time UBT
                     // is only invoking the build executor, so should not be touching this stuff.  However, we need to at some guards to make sure.
 
-
-                    // When in 'assembler only' mode, we need to load the direct include graph from a cache now.  We skipped loading this earlier because
-                    // we didn't need it unless there was actually an outdated dependency.  And we can load this on our worker thread while we're compiling.
-                    foreach( var Target in TargetToOutdatedPrerequisitesMap.Keys )
-                    {
-                        if (!CPPEnvironment.IncludeDependencyCache.ContainsKey(Target))
-                        {
-                            CPPEnvironment.IncludeDependencyCache.Add( Target, DependencyCache.Create( DependencyCache.GetDependencyCachePathForTarget(Target) ) );
-                        }
-                    }
-
-
                     foreach( var TargetAndOutdatedPrerequisites in TargetToOutdatedPrerequisitesMap )
                     {
                         var Target = TargetAndOutdatedPrerequisites.Key;
