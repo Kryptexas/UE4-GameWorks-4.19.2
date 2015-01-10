@@ -6,7 +6,7 @@
 
 #include "PaperTileMapComponent.generated.h"
 
-UCLASS(hideCategories=Object, ClassGroup=Paper2D, Experimental, meta=(BlueprintSpawnableComponent))
+UCLASS(hideCategories=Object, ClassGroup=Paper2D, EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperTileMapComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -39,7 +39,7 @@ private:
 
 public:
 	// The tile map used by this component
-	UPROPERTY(Category=Setup, EditAnywhere, Instanced, BlueprintReadOnly)
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
 	class UPaperTileMap* TileMap;
 
 protected:
@@ -67,8 +67,15 @@ public:
 	virtual class UBodySetup* GetBodySetup() override;
 	// End of UPrimitiveComponent interface
 
+	// Creates a new tile map internally, replacing the TileMap reference (or dropping the previous owned one)
+	void CreateNewOwnedTileMap();
+
 	// Does this component own the tile map (is it instanced instead of being an asset reference)?
 	bool OwnsTileMap() const;
+
+	/** Change the PaperTileMap used by this instance. */
+	UFUNCTION(BlueprintCallable, Category="Sprite")
+	virtual bool SetTileMap(class UPaperTileMap* NewTileMap);
 };
 
 // Allow the old name to continue to work for one release

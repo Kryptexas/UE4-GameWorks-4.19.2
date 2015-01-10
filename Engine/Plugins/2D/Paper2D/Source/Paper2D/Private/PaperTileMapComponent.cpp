@@ -318,9 +318,46 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 	Proxy->SetBatchesHack(BatchedSprites);
 }
 
+void UPaperTileMapComponent::CreateNewOwnedTileMap()
+{
+	TGuardValue<TEnumAsByte<EComponentMobility::Type>> MobilitySaver(Mobility, EComponentMobility::Movable);
+
+	UPaperTileMap* NewTileMap = NewObject<UPaperTileMap>(this);
+	NewTileMap->SetFlags(RF_Transactional);
+	NewTileMap->AddNewLayer();
+
+	SetTileMap(NewTileMap);
+}
+
 bool UPaperTileMapComponent::OwnsTileMap() const
 {
 	return (TileMap != nullptr) && (TileMap->GetOuter() == this);
+}
+
+bool UPaperTileMapComponent::SetTileMap(class UPaperTileMap* NewTileMap)
+{
+	if (NewTileMap != TileMap)
+	{
+		// Don't allow changing the tile map if we are "static".
+		AActor* Owner = GetOwner();
+		if (!IsRegistered() || (Owner == nullptr) || (Mobility != EComponentMobility::Static))
+		{
+			TileMap = NewTileMap;
+
+			// Need to send this to render thread at some point
+			MarkRenderStateDirty();
+
+			// Update physics representation right away
+			RecreatePhysicsState();
+
+			// Since we have new mesh, we need to update bounds
+			UpdateBounds();
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

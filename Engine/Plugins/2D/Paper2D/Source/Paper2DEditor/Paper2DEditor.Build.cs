@@ -20,6 +20,7 @@ public class Paper2DEditor : ModuleRules
 				"AssetTools",
 				"UnrealEd", // for FAssetEditorManager
 				"KismetWidgets",
+				"EditorWidgets", // for SCreateNewAssetFromFactory
 				"GraphEditor",
 				"Kismet",  // for FWorkflowCentricApplication
 				"PropertyEditor",
