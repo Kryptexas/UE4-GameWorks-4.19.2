@@ -112,14 +112,14 @@ void FSoundCueGraphConnectionDrawingPolicy::BuildAudioFlowRoadmap()
 }
 
 // Give specific editor modes a chance to highlight this connection or darken non-interesting connections
-void FSoundCueGraphConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/bool& bDrawBubbles, /*inout*/bool& bBidirectional)
+void FSoundCueGraphConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
 	// Get the schema and grab the default color from it
 	check(OutputPin);
 	check(GraphObj);
 	const UEdGraphSchema* Schema = GraphObj->GetSchema();
 
-	WireColor = Schema->GetPinTypeColor(OutputPin->PinType);
+	Params.WireColor = Schema->GetPinTypeColor(OutputPin->PinType);
 
 	if (InputPin == NULL)
 	{
@@ -135,17 +135,17 @@ void FSoundCueGraphConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* Ou
 		{
 			bExecuted = true;
 
-			Thickness = ActiveWireThickness;
-			WireColor = ActiveColor;
+			Params.WireThickness = ActiveWireThickness;
+			Params.WireColor = ActiveColor;
 
-			bDrawBubbles = true;
+			Params.bDrawBubbles = true;
 		}
 	}
 
 	if (!bExecuted)
 	{
 		// It's not followed, fade it and keep it thin
-		WireColor = InactiveColor;
-		Thickness = InactiveWireThickness;
+		Params.WireColor = InactiveColor;
+		Params.WireThickness = InactiveWireThickness;
 	}
 }

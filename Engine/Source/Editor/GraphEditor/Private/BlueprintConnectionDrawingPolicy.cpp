@@ -340,14 +340,17 @@ FKismetConnectionDrawingPolicy::FTimePair const* FKismetConnectionDrawingPolicy:
 }
 
 // Give specific editor modes a chance to highlight this connection or darken non-interesting connections
-void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/bool& bDrawBubbles, /*inout*/bool& bBidirectional)
+void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
 	// Get the schema and grab the default color from it
 	check(OutputPin);
 	check(GraphObj);
 	const UEdGraphSchema* Schema = GraphObj->GetSchema();
 
-	WireColor = Schema->GetPinTypeColor(OutputPin->PinType);
+	Params.WireColor = Schema->GetPinTypeColor(OutputPin->PinType);
+
+	UEdGraphNode* OutputNode = OutputPin->GetOwningNode();
+	UEdGraphNode* InputNode = (InputPin != nullptr) ? InputPin->GetOwningNode() : nullptr;
 
 	const bool bDeemphasizeUnhoveredPins = HoveredPins.Num() > 0;
 
@@ -359,15 +362,14 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 		{
 			if (CanBuildRoadmap())
 			{
-				UEdGraphNode* InputNode = InputPin->GetOwningNode();
 				// knot nodes are removed from the graph at compile time, so we 
 				// have to follow them until we find something that would have 
 				// actually executed
-				while (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(InputNode))
+				while (UK2Node_Knot* InputKnotNode = Cast<UK2Node_Knot>(InputNode))
 				{
 					InputNode = nullptr;
 
-					UEdGraphPin* OutPin = KnotNode->GetOutputPin();
+					UEdGraphPin* OutPin = InputKnotNode->GetOutputPin();
 					if (OutPin->LinkedTo.Num() > 0)
 					{
 						check(OutPin->LinkedTo.Num() == 1);
@@ -385,36 +387,36 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 					if (FTimePair const* ExecTiming = BackTraceExecPath(OutputPin, ExecPaths))
 					{
 						bExecuted = true;
-						DetermineStyleOfExecWire(/*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, *ExecTiming);
+						DetermineStyleOfExecWire(/*inout*/ Params.WireThickness, /*inout*/ Params.WireColor, /*inout*/ Params.bDrawBubbles, *ExecTiming);
 					}
 				}
 				
 				if (!bExecuted)
 				{
 					// It's not followed, fade it and keep it thin
-					WireColor = ReleaseColor;
-					Thickness = ReleaseWireThickness;
+					Params.WireColor = ReleaseColor;
+					Params.WireThickness = ReleaseWireThickness;
 				}
 			}
 			else
 			{
 				// Make exec wires slightly thicker even outside of debug
-				Thickness = 3.0f;
+				Params.WireThickness = 3.0f;
 			}
 		}
 		else
 		{
 			// Array types should draw thicker
-			if( (InputPin && InputPin->PinType.bIsArray) || (OutputPin && OutputPin->PinType.bIsArray) )
+			if ((InputPin && InputPin->PinType.bIsArray) || (OutputPin && OutputPin->PinType.bIsArray))
 			{
-				Thickness = 3.0f;
+				Params.WireThickness = 3.0f;
 			}
 		}
 	}
 
 	if (bDeemphasizeUnhoveredPins)
 	{
-		ApplyHoverDeemphasis(OutputPin, InputPin, /*inout*/ Thickness, /*inout*/ WireColor);
+		ApplyHoverDeemphasis(OutputPin, InputPin, /*inout*/ Params.WireThickness, /*inout*/ Params.WireColor);
 	}
 }
 

@@ -12,17 +12,16 @@ FBehaviorTreeConnectionDrawingPolicy::FBehaviorTreeConnectionDrawingPolicy( int3
 {
 }
 
-void FBehaviorTreeConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/ bool& bDrawBubbles, /*inout*/ bool& bBidirectional)
+void FBehaviorTreeConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
-	Thickness = 1.5f;
+	Params.WireThickness = 1.5f;
 
-	WireColor = BehaviorTreeColors::Connection::Default;
-	bBidirectional = false;
+	Params.WireColor = BehaviorTreeColors::Connection::Default;
 
 	const bool bDeemphasizeUnhoveredPins = HoveredPins.Num() > 0;
 	if (bDeemphasizeUnhoveredPins)
 	{
-		ApplyHoverDeemphasis(OutputPin, InputPin, /*inout*/ Thickness, /*inout*/ WireColor);
+		ApplyHoverDeemphasis(OutputPin, InputPin, /*inout*/ Params.WireThickness, /*inout*/ Params.WireColor);
 	}
 
 	UBehaviorTreeGraphNode* FromNode = OutputPin ? Cast<UBehaviorTreeGraphNode>(OutputPin->GetOwningNode()) : NULL;
@@ -32,8 +31,8 @@ void FBehaviorTreeConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* Out
 		if ((ToNode->bDebuggerMarkCurrentlyActive && FromNode->bDebuggerMarkCurrentlyActive) ||
 			(ToNode->bDebuggerMarkPreviouslyActive && FromNode->bDebuggerMarkPreviouslyActive))
 		{
-			Thickness = 10.0f;
-			bDrawBubbles = true;
+			Params.WireThickness = 10.0f;
+			Params.bDrawBubbles = true;
 		}
 		else if (FBehaviorTreeDebugger::IsPlaySessionPaused())
 		{
@@ -55,12 +54,12 @@ void FBehaviorTreeConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* Out
 
 			if (FirstToNode->bDebuggerMarkSearchSucceeded || FirstToNode->bDebuggerMarkSearchFailed)
 			{
-				Thickness = 5.0f;
-				WireColor = FirstToNode->bDebuggerMarkSearchSucceeded ? BehaviorTreeColors::Debugger::SearchSucceeded :
-					BehaviorTreeColors::Debugger::SearchFailed;
+				Params.WireThickness = 5.0f;
+				Params.WireColor = FirstToNode->bDebuggerMarkSearchSucceeded ? BehaviorTreeColors::Debugger::SearchSucceeded :
+				BehaviorTreeColors::Debugger::SearchFailed;
 
-				// hacky: use bBidirectional flag to reverse direction of connection (used by debugger)
-				bBidirectional = true;
+				// Use the bUserFlag1 flag to indicate that we need to reverse the direction of connection (used by debugger)
+				Params.bUserFlag1 = true;
 			}
 		}
 	}
@@ -83,34 +82,29 @@ void FBehaviorTreeConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArran
 
 void FBehaviorTreeConnectionDrawingPolicy::DrawPreviewConnector(const FGeometry& PinGeometry, const FVector2D& StartPoint, const FVector2D& EndPoint, UEdGraphPin* Pin)
 {
-	float Thickness = 1.0f;
-	FLinearColor WireColor = FLinearColor::White;
-	bool bDrawBubbles = false;
-	bool bBiDirectional = false;
-	DetermineWiringStyle(Pin, NULL, /*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, /*inout*/ bBiDirectional);
+	FConnectionParams Params;
+	DetermineWiringStyle(Pin, NULL, /*inout*/ Params);
 
 	if (Pin->Direction == EEdGraphPinDirection::EGPD_Output)
 	{
-		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, EndPoint), EndPoint, WireColor, Thickness, bDrawBubbles, bBiDirectional);
+		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, EndPoint), EndPoint, Params);
 	}
 	else
 	{
-		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, StartPoint), StartPoint, WireColor, Thickness, bDrawBubbles, bBiDirectional);
+		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, StartPoint), StartPoint, Params);
 	}
-
 }
 
-
-void FBehaviorTreeConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional)
+void FBehaviorTreeConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FConnectionParams& Params)
 {
-	// hacky: use bBidirectional flag to reverse direction of connection (used by debugger)
-	const FVector2D& P0 = Bidirectional ? EndAnchorPoint : StartAnchorPoint;
-	const FVector2D& P1 = Bidirectional ? StartAnchorPoint : EndAnchorPoint;
+	// bUserFlag1 indicates that we need to reverse the direction of connection (used by debugger)
+	const FVector2D& P0 = Params.bUserFlag1 ? EndAnchorPoint : StartAnchorPoint;
+	const FVector2D& P1 = Params.bUserFlag1 ? StartAnchorPoint : EndAnchorPoint;
 
-	Internal_DrawLineWithArrow(P0, P1, WireColor, WireThickness, bDrawBubbles);
+	Internal_DrawLineWithArrow(P0, P1, Params);
 }
 
-void FBehaviorTreeConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles)
+void FBehaviorTreeConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FConnectionParams& Params)
 {
 	//@TODO: Should this be scaled by zoom factor?
 	const float LineSeparationAmount = 4.5f;
@@ -126,7 +120,7 @@ void FBehaviorTreeConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVec
 	const FVector2D EndPoint = EndAnchorPoint + DirectionBias - LengthBias;
 
 	// Draw a line/spline
-	DrawConnection(WireLayerID, StartPoint, EndPoint, WireColor, WireThickness, bDrawBubbles);
+	DrawConnection(WireLayerID, StartPoint, EndPoint, Params);
 
 	// Draw the arrow
 	const FVector2D ArrowDrawPos = EndPoint - ArrowRadius;
@@ -142,11 +136,11 @@ void FBehaviorTreeConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVec
 		AngleInRadians,
 		TOptional<FVector2D>(),
 		FSlateDrawElement::RelativeToElement,
-		WireColor
+		Params.WireColor
 		);
 }
 
-void FBehaviorTreeConnectionDrawingPolicy::DrawSplineWithArrow(FGeometry& StartGeom, FGeometry& EndGeom, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional)
+void FBehaviorTreeConnectionDrawingPolicy::DrawSplineWithArrow(const FGeometry& StartGeom, const FGeometry& EndGeom, const FConnectionParams& Params)
 {
 	// Get a reasonable seed point (halfway between the boxes)
 	const FVector2D StartCenter = FGeometryHelper::CenterOf(StartGeom);
@@ -157,65 +151,13 @@ void FBehaviorTreeConnectionDrawingPolicy::DrawSplineWithArrow(FGeometry& StartG
 	const FVector2D StartAnchorPoint = FGeometryHelper::FindClosestPointOnGeom(StartGeom, SeedPoint);
 	const FVector2D EndAnchorPoint = FGeometryHelper::FindClosestPointOnGeom(EndGeom, SeedPoint);
 
-	DrawSplineWithArrow(StartAnchorPoint, EndAnchorPoint, WireColor, WireThickness, bDrawBubbles, Bidirectional);
+	DrawSplineWithArrow(StartAnchorPoint, EndAnchorPoint, Params);
 }
 
-void FBehaviorTreeConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& Start, const FVector2D& End, const FLinearColor& InColor, float Thickness, bool bDrawBubbles)
+FVector2D FBehaviorTreeConnectionDrawingPolicy::ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const
 {
-	const FVector2D& P0 = Start;
-	const FVector2D& P1 = End;
-
-	const FVector2D Delta = End-Start;
+	const FVector2D Delta = End - Start;
 	const FVector2D NormDelta = Delta.GetSafeNormal();
 
-	const FVector2D P0Tangent = NormDelta;
-	const FVector2D P1Tangent = NormDelta;
-
-	// Draw the spline itself
-	FSlateDrawElement::MakeDrawSpaceSpline(
-		DrawElementsList,
-		LayerId,
-		P0, P0Tangent,
-		P1, P1Tangent,
-		ClippingRect,
-		Thickness,
-		ESlateDrawEffect::None,
-		InColor
-		);
-
-	if (bDrawBubbles)
-	{
-		// This table maps distance along curve to alpha
-		FInterpCurve<float> SplineReparamTable;
-		float SplineLength = MakeSplineReparamTable(P0, P0Tangent, P1, P1Tangent, SplineReparamTable);
-
-		// Draw bubbles on the spline
-		const float BubbleSpacing = 64.f * ZoomFactor;
-		const float BubbleSpeed = 192.f * ZoomFactor;
-		const FVector2D BubbleSize = BubbleImage->ImageSize * ZoomFactor * 0.1f * Thickness;
-
-		float Time = (FPlatformTime::Seconds() - GStartTime);
-		const float BubbleOffset = FMath::Fmod(Time * BubbleSpeed, BubbleSpacing);
-		const int32 NumBubbles = FMath::CeilToInt(SplineLength/BubbleSpacing);
-		for (int32 i = 0; i < NumBubbles; ++i)
-		{
-			const float Distance = ((float)i * BubbleSpacing) + BubbleOffset;
-			if (Distance < SplineLength)
-			{
-				const float Alpha = SplineReparamTable.Eval(Distance, 0.f);
-				FVector2D BubblePos = FMath::CubicInterp(P0, P0Tangent, P1, P1Tangent, Alpha);
-				BubblePos -= (BubbleSize * 0.5f);
-
-				FSlateDrawElement::MakeBox(
-					DrawElementsList,
-					LayerId,
-					FPaintGeometry( BubblePos, BubbleSize, ZoomFactor  ),
-					BubbleImage,
-					ClippingRect,
-					ESlateDrawEffect::None,
-					InColor
-					);
-			}
-		}
-	}
+	return NormDelta;
 }

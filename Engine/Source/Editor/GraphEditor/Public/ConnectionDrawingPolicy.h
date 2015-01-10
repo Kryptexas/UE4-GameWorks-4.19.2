@@ -24,6 +24,32 @@ public:
 };
 
 /////////////////////////////////////////////////////
+// FConnectionParameters
+
+struct GRAPHEDITOR_API FConnectionParams
+{
+	FLinearColor WireColor;
+	float WireThickness;
+	bool bDrawBubbles;
+	bool bUserFlag1;
+	bool bUserFlag2;
+
+	EEdGraphPinDirection StartDirection;
+	EEdGraphPinDirection EndDirection;
+
+	FConnectionParams()
+		: WireColor(FLinearColor::White)
+		, WireThickness(1.0f)
+		, bDrawBubbles(false)
+		, bUserFlag1(false)
+		, bUserFlag2(false)
+		, StartDirection(EGPD_Output)
+		, EndDirection(EGPD_Input)
+	{
+	}
+};
+
+/////////////////////////////////////////////////////
 // FConnectionDrawingPolicy
 
 // This class draws the connections for an UEdGraph composed of pins and nodes
@@ -63,16 +89,16 @@ public:
 
 	static float MakeSplineReparamTable(const FVector2D& P0, const FVector2D& P0Tangent, const FVector2D& P1, const FVector2D& P1Tangent, FInterpCurve<float>& OutReparamTable);
 
-	virtual void DrawSplineWithArrow(const FVector2D& StartPoint, const FVector2D& EndPoint, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional);
+	virtual void DrawSplineWithArrow(const FVector2D& StartPoint, const FVector2D& EndPoint, const FConnectionParams& Params);
 	
-	virtual void DrawSplineWithArrow(FGeometry& StartGeom, FGeometry& EndGeom, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional);
+	virtual void DrawSplineWithArrow(const FGeometry& StartGeom, const FGeometry& EndGeom, const FConnectionParams& Params);
 
 	virtual FVector2D ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const;
-	virtual void DrawConnection(int32 LayerId, const FVector2D& Start, const FVector2D& End, const FLinearColor& InColor, float Thickness, bool bDrawBubbles);
+	virtual void DrawConnection(int32 LayerId, const FVector2D& Start, const FVector2D& End, const FConnectionParams& Params);
 	virtual void DrawPreviewConnector(const FGeometry& PinGeometry, const FVector2D& StartPoint, const FVector2D& EndPoint, UEdGraphPin* Pin);
 
 	// Give specific editor modes a chance to highlight this connection or darken non-interesting connections
-	virtual void DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/bool& bDrawBubbles, /*inout*/ bool &bBidirectional);
+	virtual void DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params);
 
 	virtual void Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries, FArrangedChildren& ArrangedNodes);
 

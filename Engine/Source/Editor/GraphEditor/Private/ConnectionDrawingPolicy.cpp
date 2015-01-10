@@ -96,16 +96,14 @@ FConnectionDrawingPolicy::FConnectionDrawingPolicy(int32 InBackLayerID, int32 In
 	BubbleImage = FEditorStyle::GetBrush( TEXT("Graph.ExecutionBubble") );
 }
 
-void FConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartPoint, const FVector2D& EndPoint, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional)
+void FConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartPoint, const FVector2D& EndPoint, const FConnectionParams& Params)
 {
 	// Draw the spline
 	DrawConnection(
 		WireLayerID,
 		StartPoint,
 		EndPoint,
-		WireColor,
-		WireThickness,
-		bDrawBubbles);
+		Params);
 
 	// Draw the arrow
 	if (ArrowImage != nullptr)
@@ -119,12 +117,12 @@ void FConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartPoint, 
 			ArrowImage,
 			ClippingRect,
 			ESlateDrawEffect::None,
-			WireColor
+			Params.WireColor
 			);
 	}
 }
 
-void FConnectionDrawingPolicy::DrawSplineWithArrow(FGeometry& StartGeom, FGeometry& EndGeom, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional)
+void FConnectionDrawingPolicy::DrawSplineWithArrow(const FGeometry& StartGeom, const FGeometry& EndGeom, const FConnectionParams& Params)
 {
 	//@TODO: These values should be pushed into the Slate style, they are compensating for a bit of
 	// empty space inside of the pin brush images.
@@ -133,7 +131,7 @@ void FConnectionDrawingPolicy::DrawSplineWithArrow(FGeometry& StartGeom, FGeomet
 	const FVector2D StartPoint = FGeometryHelper::VerticalMiddleRightOf(StartGeom) - FVector2D(StartFudgeX, 0.0f);
 	const FVector2D EndPoint = FGeometryHelper::VerticalMiddleLeftOf(EndGeom) - FVector2D(ArrowRadius.X - EndFudgeX, 0);
 
-	DrawSplineWithArrow(StartPoint, EndPoint, WireColor, WireThickness, bDrawBubbles, Bidirectional);
+	DrawSplineWithArrow(StartPoint, EndPoint, Params);
 }
 
 // Update the drawing policy with the set of hovered pins (which can be empty)
@@ -224,13 +222,14 @@ FVector2D FConnectionDrawingPolicy::ComputeSplineTangent(const FVector2D& Start,
 	return Settings->ComputeSplineTangent(Start, End);
 }
 
-void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& Start, const FVector2D& End, const FLinearColor& InColor, float Thickness, bool bDrawBubbles )
+void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& Start, const FVector2D& End, const FConnectionParams& Params)
 {
 	const FVector2D& P0 = Start;
 	const FVector2D& P1 = End;
 
-	const FVector2D P0Tangent = ComputeSplineTangent(P0, P1);
-	const FVector2D P1Tangent = P0Tangent;
+	const FVector2D SplineTangent = ComputeSplineTangent(P0, P1);
+	const FVector2D P0Tangent = SplineTangent;
+	const FVector2D P1Tangent = SplineTangent;
 
 	// Draw the spline itself
 	FSlateDrawElement::MakeDrawSpaceSpline(
@@ -239,23 +238,23 @@ void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& S
 		P0, P0Tangent,
 		P1, P1Tangent,
 		ClippingRect,
-		Thickness,
+		Params.WireThickness,
 		ESlateDrawEffect::None,
-		InColor
+		Params.WireColor
 	);
 
-	if (bDrawBubbles || (MidpointImage != NULL))
+	if (Params.bDrawBubbles || (MidpointImage != NULL))
 	{
 		// This table maps distance along curve to alpha
 		FInterpCurve<float> SplineReparamTable;
 		float SplineLength = MakeSplineReparamTable(P0, P0Tangent, P1, P1Tangent, SplineReparamTable);
 
 		// Draw bubbles on the spline
-		if (bDrawBubbles)
+		if (Params.bDrawBubbles)
 		{
 			const float BubbleSpacing = 64.f * ZoomFactor;
 			const float BubbleSpeed = 192.f * ZoomFactor;
-			const FVector2D BubbleSize = BubbleImage->ImageSize * ZoomFactor * 0.1f * Thickness;
+			const FVector2D BubbleSize = BubbleImage->ImageSize * ZoomFactor * 0.1f * Params.WireThickness;
 
 			float Time = (FPlatformTime::Seconds() - GStartTime);
 			const float BubbleOffset = FMath::Fmod(Time * BubbleSpeed, BubbleSpacing);
@@ -276,7 +275,7 @@ void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& S
 						BubbleImage,
 						ClippingRect,
 						ESlateDrawEffect::None,
-						InColor
+						Params.WireColor
 						);
 				}
 			}
@@ -308,7 +307,7 @@ void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& S
 				AngleInRadians,
 				TOptional<FVector2D>(),
 				FSlateDrawElement::RelativeToElement,
-				InColor
+				Params.WireColor
 				);
 		}
 	}
@@ -317,15 +316,13 @@ void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& S
 
 void FConnectionDrawingPolicy::DrawPreviewConnector(const FGeometry& PinGeometry, const FVector2D& StartPoint, const FVector2D& EndPoint, UEdGraphPin* Pin)
 {
-	float Thickness = 1.0f;
-	FLinearColor WireColor = FLinearColor::White;
-	bool bDrawBubbles = false;
-	bool bBiDirectional = false;
-	DetermineWiringStyle(Pin, NULL, /*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, /*inout*/ bBiDirectional);
-	DrawSplineWithArrow(StartPoint, EndPoint, WireColor, Thickness, bDrawBubbles, bBiDirectional);
+	FConnectionParams Params;
+	DetermineWiringStyle(Pin, nullptr, /*inout*/ Params);
+
+	DrawSplineWithArrow(StartPoint, EndPoint, Params);
 }
 
-void FConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/bool& bDrawBubbles, /*inout*/ bool &bBidirectional)
+void FConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
 }
 
@@ -377,16 +374,11 @@ void FConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& 
 
 				DetermineLinkGeometry(PinGeometries, ArrangedNodes, SomePinWidget, ThePin, TargetPin, /*out*/ LinkStartWidgetGeometry, /*out*/ LinkEndWidgetGeometry);
 
-				if(( LinkEndWidgetGeometry && LinkStartWidgetGeometry ) && !IsConnectionCulled( *LinkStartWidgetGeometry, *LinkEndWidgetGeometry ))
+				if (( LinkEndWidgetGeometry && LinkStartWidgetGeometry ) && !IsConnectionCulled( *LinkStartWidgetGeometry, *LinkEndWidgetGeometry ))
 				{
-
-					float Thickness = 1.0f;
-					FLinearColor WireColor = FLinearColor::White;
-					bool bDrawBubbles = false;
-					bool bBidirectional = false;
-
-					DetermineWiringStyle(ThePin, TargetPin, /*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, /*inout*/ bBidirectional);
-					DrawSplineWithArrow(LinkStartWidgetGeometry->Geometry, LinkEndWidgetGeometry->Geometry, WireColor, Thickness, bDrawBubbles, bBidirectional);
+					FConnectionParams Params;
+					DetermineWiringStyle(ThePin, TargetPin, /*inout*/ Params);
+					DrawSplineWithArrow(LinkStartWidgetGeometry->Geometry, LinkEndWidgetGeometry->Geometry, Params);
 				}
 			}
 		}

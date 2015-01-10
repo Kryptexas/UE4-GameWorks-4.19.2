@@ -12,17 +12,14 @@ FEnvironmentQueryConnectionDrawingPolicy::FEnvironmentQueryConnectionDrawingPoli
 {
 }
 
-void FEnvironmentQueryConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/ bool& bDrawBubbles, /*inout*/ bool& bBidirectional)
+void FEnvironmentQueryConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
-	Thickness = 1.5f;
-
-	WireColor = FLinearColor::White;
-	bBidirectional = false;
+	Params.WireThickness = 1.5f;
 
 	const bool bDeemphasizeUnhoveredPins = HoveredPins.Num() > 0;
 	if (bDeemphasizeUnhoveredPins)
 	{
-		ApplyHoverDeemphasis(OutputPin, InputPin, /*inout*/ Thickness, /*inout*/ WireColor);
+		ApplyHoverDeemphasis(OutputPin, InputPin, /*inout*/ Params.WireThickness, /*inout*/ Params.WireColor);
 	}
 }
 
@@ -43,30 +40,25 @@ void FEnvironmentQueryConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FA
 
 void FEnvironmentQueryConnectionDrawingPolicy::DrawPreviewConnector(const FGeometry& PinGeometry, const FVector2D& StartPoint, const FVector2D& EndPoint, UEdGraphPin* Pin)
 {
-	float Thickness = 1.0f;
-	FLinearColor WireColor = FLinearColor::White;
-	bool bDrawBubbles = false;
-	bool bBiDirectional = false;
-	DetermineWiringStyle(Pin, NULL, /*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, /*inout*/ bBiDirectional);
+	FConnectionParams Params;
+	DetermineWiringStyle(Pin, NULL, /*inout*/ Params);
 
 	if (Pin->Direction == EEdGraphPinDirection::EGPD_Output)
 	{
-		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, EndPoint), EndPoint, WireColor, Thickness, bDrawBubbles, bBiDirectional);
+		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, EndPoint), EndPoint, Params);
 	}
 	else
 	{
-		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, StartPoint), StartPoint, WireColor, Thickness, bDrawBubbles, bBiDirectional);
+		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, StartPoint), StartPoint, Params);
 	}
-
 }
 
-
-void FEnvironmentQueryConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional)
+void FEnvironmentQueryConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FConnectionParams& Params)
 {
-	Internal_DrawLineWithArrow(StartAnchorPoint, EndAnchorPoint, WireColor, WireThickness, bDrawBubbles);
+	Internal_DrawLineWithArrow(StartAnchorPoint, EndAnchorPoint, Params);
 }
 
-void FEnvironmentQueryConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles)
+void FEnvironmentQueryConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FConnectionParams& Params)
 {
 	//@TODO: Should this be scaled by zoom factor?
 	const float LineSeparationAmount = 4.5f;
@@ -82,7 +74,7 @@ void FEnvironmentQueryConnectionDrawingPolicy::Internal_DrawLineWithArrow(const 
 	const FVector2D EndPoint = EndAnchorPoint + DirectionBias - LengthBias;
 
 	// Draw a line/spline
-	DrawConnection(WireLayerID, StartPoint, EndPoint, WireColor, WireThickness, bDrawBubbles);
+	DrawConnection(WireLayerID, StartPoint, EndPoint, Params);
 
 	// Draw the arrow
 	const FVector2D ArrowDrawPos = EndPoint - ArrowRadius;
@@ -98,11 +90,11 @@ void FEnvironmentQueryConnectionDrawingPolicy::Internal_DrawLineWithArrow(const 
 		AngleInRadians,
 		TOptional<FVector2D>(),
 		FSlateDrawElement::RelativeToElement,
-		WireColor
+		Params.WireColor
 		);
 }
 
-void FEnvironmentQueryConnectionDrawingPolicy::DrawSplineWithArrow(FGeometry& StartGeom, FGeometry& EndGeom, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional)
+void FEnvironmentQueryConnectionDrawingPolicy::DrawSplineWithArrow(const FGeometry& StartGeom, const FGeometry& EndGeom, const FConnectionParams& Params)
 {
 	// Get a reasonable seed point (halfway between the boxes)
 	const FVector2D StartCenter = FGeometryHelper::CenterOf(StartGeom);
@@ -113,31 +105,13 @@ void FEnvironmentQueryConnectionDrawingPolicy::DrawSplineWithArrow(FGeometry& St
 	const FVector2D StartAnchorPoint = FGeometryHelper::FindClosestPointOnGeom(StartGeom, SeedPoint);
 	const FVector2D EndAnchorPoint = FGeometryHelper::FindClosestPointOnGeom(EndGeom, SeedPoint);
 
-	DrawSplineWithArrow(StartAnchorPoint, EndAnchorPoint, WireColor, WireThickness, bDrawBubbles, Bidirectional);
+	DrawSplineWithArrow(StartAnchorPoint, EndAnchorPoint, Params);
 }
 
-void FEnvironmentQueryConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& Start, const FVector2D& End, const FLinearColor& InColor, float Thickness, bool bDrawBubbles)
+FVector2D FEnvironmentQueryConnectionDrawingPolicy::ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const
 {
-	const FVector2D& P0 = Start;
-	const FVector2D& P1 = End;
-
-	const FVector2D Delta = End-Start;
+	const FVector2D Delta = End - Start;
 	const FVector2D NormDelta = Delta.GetSafeNormal();
 
-	const FVector2D P0Tangent = NormDelta;
-	const FVector2D P1Tangent = NormDelta;
-
-	// Draw the spline itself
-	FSlateDrawElement::MakeDrawSpaceSpline(
-		DrawElementsList,
-		LayerId,
-		P0, P0Tangent,
-		P1, P1Tangent,
-		ClippingRect,
-		Thickness,
-		ESlateDrawEffect::None,
-		InColor
-		);
-
-	//@TODO: Handle bDrawBubbles
+	return NormDelta;
 }
