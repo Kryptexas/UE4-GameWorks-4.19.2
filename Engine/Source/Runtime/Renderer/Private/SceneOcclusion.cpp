@@ -552,15 +552,7 @@ void FHZBOcclusionTester::MapResults(FRHICommandListImmediate& RHICmdList)
 {
 	check( !ResultsBuffer );
 
-	// hacky (we point to some buffer that is not the right size but we prevent reads from it be having a invalid frame number)
-	// First frame
-	static uint8 FirstFrameBuffer[] = { 255 };
-
-	if( IsInvalidFrame() )
-	{
-		ResultsBuffer = FirstFrameBuffer;
-	}
-	else
+	if( !IsInvalidFrame() )
 	{
 		uint32 IdleStart = FPlatformTime::Cycles();
 
@@ -569,18 +561,19 @@ void FHZBOcclusionTester::MapResults(FRHICommandListImmediate& RHICmdList)
 
 		RHICmdList.MapStagingSurface(ResultsTextureCPU->GetRenderTargetItem().ShaderResourceTexture, (void*&)ResultsBuffer, Width, Height);
 
-		// Can happen because of device removed, we might crash later but this occlusion culling system can behave gracefully.
-		if(!ResultsBuffer)
-		{
-			ResultsBuffer = FirstFrameBuffer;
-			SetInvalidFrameNumber();
-		}
-
 		// RHIMapStagingSurface will block until the results are ready (from the previous frame) so we need to consider this RT idle time
 		GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUQuery] += FPlatformTime::Cycles() - IdleStart;
 		GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUQuery]++;
 	}
-	check( ResultsBuffer );
+	
+	// Can happen because of device removed, we might crash later but this occlusion culling system can behave gracefully.
+	if( ResultsBuffer == NULL )
+	{
+		// First frame
+		static uint8 FirstFrameBuffer[] = { 255 };
+		ResultsBuffer = FirstFrameBuffer;
+		SetInvalidFrameNumber();
+	}
 }
 
 void FHZBOcclusionTester::UnmapResults(FRHICommandListImmediate& RHICmdList)
@@ -599,10 +592,31 @@ bool FHZBOcclusionTester::IsVisible( uint32 Index ) const
 	checkSlow( Index < SizeX * SizeY );
 	
 	// TODO shader compress to bits
+
+#if 0
+	return ResultsBuffer[ 4 * Index ] != 0;
+#elif 0
 	uint32 x = FMath::ReverseMortonCode2( Index >> 0 );
 	uint32 y = FMath::ReverseMortonCode2( Index >> 1 );
 	uint32 m = x + y * SizeX;
 	return ResultsBuffer[ 4 * m ] != 0;
+#else
+	// TODO put block constants in class
+	// TODO optimize
+	const uint32 BlockSize = 8;
+	const uint32 SizeInBlocksX = SizeX / BlockSize;
+	const uint32 SizeInBlocksY = SizeY / BlockSize;
+
+	const int32 BlockIndex = Index / (BlockSize * BlockSize);
+	const int32 BlockX = BlockIndex % SizeInBlocksX;
+	const int32 BlockY = BlockIndex / SizeInBlocksY;
+
+	const int32 b = Index % (BlockSize * BlockSize);
+	const int32 x = BlockX * BlockSize + b % BlockSize;
+	const int32 y = BlockY * BlockSize + b / BlockSize;
+
+	return ResultsBuffer[ 4 * (x + y * SizeY) ] != 0;
+#endif
 }
 
 class FHZBTestPS : public FGlobalShader
@@ -642,16 +656,16 @@ public:
 		BoundsExtentSampler.Bind( Initializer.ParameterMap, TEXT("BoundsExtentSampler") );
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FHZB& HZB, FTextureRHIParamRef BoundsCenter, FTextureRHIParamRef BoundsExtent )
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, FTextureRHIParamRef BoundsCenter, FTextureRHIParamRef BoundsExtent )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
 
-		const FVector2D InvSize( 1.0f / HZB.Size.X, 1.0f / HZB.Size.Y );
+		const FVector2D InvSize( 1.0f / 512.0f, 1.0f / 256.0f );
 		SetShaderValue(RHICmdList, ShaderRHI, InvSizeParameter, InvSize );
 
-		SetTextureParameter(RHICmdList, ShaderRHI, HZBTexture, HZBSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), HZB.Texture->GetRenderTargetItem().ShaderResourceTexture );
+		SetTextureParameter(RHICmdList, ShaderRHI, HZBTexture, HZBSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), View.HZB->GetRenderTargetItem().ShaderResourceTexture );
 
 		SetTextureParameter(RHICmdList, ShaderRHI, BoundsCenterTexture, BoundsCenterSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), BoundsCenter );
 		SetTextureParameter(RHICmdList, ShaderRHI, BoundsExtentTexture, BoundsExtentSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), BoundsExtent );
@@ -697,7 +711,6 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 	{
 #if PLATFORM_MAC // Workaround radr://16096028 Texture Readback via glReadPixels + PBOs stalls on Nvidia GPUs
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, TexCreate_None, TexCreate_RenderTargetable, false ) );
-
 #else
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false ) );
 #endif
@@ -705,6 +718,33 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 	}
 
 	{
+#if 0
+		static float CenterBuffer[ SizeX * SizeY ][4];
+		static float ExtentBuffer[ SizeX * SizeY ][4];
+
+		FMemory::Memset( CenterBuffer, 0, sizeof( CenterBuffer ) );
+		FMemory::Memset( ExtentBuffer, 0, sizeof( ExtentBuffer ) );
+
+		const uint32 NumPrimitives = Primitives.Num();
+		for( uint32 i = 0; i < NumPrimitives; i++ )
+		{
+			const FOcclusionPrimitive& Primitive = Primitives[i];
+
+			CenterBuffer[i][0] = Primitive.Center.X;
+			CenterBuffer[i][1] = Primitive.Center.Y;
+			CenterBuffer[i][2] = Primitive.Center.Z;
+			CenterBuffer[i][3] = 0.0f;
+
+			ExtentBuffer[i][0] = Primitive.Extent.X;
+			ExtentBuffer[i][1] = Primitive.Extent.Y;
+			ExtentBuffer[i][2] = Primitive.Extent.Z;
+			ExtentBuffer[i][3] = 1.0f;
+		}
+
+		FUpdateTextureRegion2D Region( 0, 0, 0, 0, SizeX, SizeY );
+		RHIUpdateTexture2D( (FTexture2DRHIRef&)BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, 0, Region, SizeX * 4 * sizeof( float ), (uint8*)CenterBuffer );
+		RHIUpdateTexture2D( (FTexture2DRHIRef&)BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture, 0, Region, SizeX * 4 * sizeof( float ), (uint8*)ExtentBuffer );
+#elif 0
 		static float CenterBuffer[ SizeX * SizeY ][4];
 		static float ExtentBuffer[ SizeX * SizeY ][4];
 
@@ -739,6 +779,51 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 		FUpdateTextureRegion2D Region( 0, 0, 0, 0, SizeX, SizeY );
 		RHIUpdateTexture2D( (FTexture2DRHIRef&)BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, 0, Region, SizeX * 4 * sizeof( float ), (uint8*)CenterBuffer );
 		RHIUpdateTexture2D( (FTexture2DRHIRef&)BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture, 0, Region, SizeX * 4 * sizeof( float ), (uint8*)ExtentBuffer );
+#else
+		// Update in blocks to avoid large update
+		const uint32 BlockSize = 8;
+		const uint32 SizeInBlocksX = SizeX / BlockSize;
+		const uint32 SizeInBlocksY = SizeY / BlockSize;
+		const uint32 BlockStride = BlockSize * 4 * sizeof( float );
+
+		float CenterBuffer[ BlockSize * BlockSize ][4];
+		float ExtentBuffer[ BlockSize * BlockSize ][4];
+
+		const uint32 NumPrimitives = Primitives.Num();
+		for( uint32 i = 0; i < NumPrimitives; i += BlockSize * BlockSize )
+		{
+			const uint32 BlockEnd = FMath::Min( BlockSize * BlockSize, NumPrimitives - i );
+			for( uint32 b = 0; b < BlockEnd; b++ )
+			{
+				const FOcclusionPrimitive& Primitive = Primitives[ i + b ];
+
+				CenterBuffer[b][0] = Primitive.Center.X;
+				CenterBuffer[b][1] = Primitive.Center.Y;
+				CenterBuffer[b][2] = Primitive.Center.Z;
+				CenterBuffer[b][3] = 0.0f;
+
+				ExtentBuffer[b][0] = Primitive.Extent.X;
+				ExtentBuffer[b][1] = Primitive.Extent.Y;
+				ExtentBuffer[b][2] = Primitive.Extent.Z;
+				ExtentBuffer[b][3] = 1.0f;
+			}
+
+			// Clear rest of block
+			if( BlockEnd < BlockSize * BlockSize )
+			{
+				FMemory::Memset( (float*)CenterBuffer + BlockEnd * 4, 0, sizeof( CenterBuffer ) - BlockEnd * 4 * sizeof(float) );
+				FMemory::Memset( (float*)ExtentBuffer + BlockEnd * 4, 0, sizeof( ExtentBuffer ) - BlockEnd * 4 * sizeof(float) );
+			}
+
+			const int32 BlockIndex = i / (BlockSize * BlockSize);
+			const int32 BlockX = BlockIndex % SizeInBlocksX;
+			const int32 BlockY = BlockIndex / SizeInBlocksY;
+
+			FUpdateTextureRegion2D Region( BlockX * BlockSize, BlockY * BlockSize, 0, 0, BlockSize, BlockSize );
+			RHIUpdateTexture2D( (FTexture2DRHIRef&)BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, 0, Region, BlockStride, (uint8*)CenterBuffer );
+			RHIUpdateTexture2D( (FTexture2DRHIRef&)BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture, 0, Region, BlockStride, (uint8*)ExtentBuffer );
+		}
+#endif
 		Primitives.Empty();
 	}
 
@@ -748,13 +833,17 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 
 		SetRenderTarget(RHICmdList, ResultsTextureGPU->GetRenderTargetItem().TargetableTexture, NULL);
 
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
+
 		TShaderMapRef< FScreenVS >	VertexShader(View.ShaderMap);
 		TShaderMapRef< FHZBTestPS >	PixelShader(View.ShaderMap);
 
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-		PixelShader->SetParameters(RHICmdList, View,  ViewState->HZB, BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture );
+		PixelShader->SetParameters(RHICmdList, View, BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture );
 
 		RHICmdList.SetViewport(0, 0, 0.0f, SizeX, SizeY, 1.0f);
 
@@ -852,34 +941,20 @@ public:
 IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<0>,TEXT("HZBOcclusion"),TEXT("HZBBuildPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<1>,TEXT("HZBOcclusion"),TEXT("HZBBuildPS"),SF_Pixel);
 
-void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
+void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_BuildHZB);
 	SCOPED_DRAW_EVENT(RHICmdList, BuildHZB);
 
-	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-
-	if(!ViewState)
-	{
-		// not view state (e.g. thumbnail rendering?), no HZB (no screen space reflections or occlusion culling)
-		return;
-	}
-
-	ViewState->HZB.AllocHZB();
-
-	if(ViewState->HZB.bDataIsValid)
-	{
-		// data was already computed, no need to do it again
-		return;
-	}
-
-	ViewState->HZB.bDataIsValid = true;
-
 	// Must be power of 2
-	const FIntPoint HZBSize = ViewState->HZB.Size;
-	const uint32 NumMips = ViewState->HZB.NumMips;
+	const FIntPoint HZBSize( 512, 256 );
+	const uint32 NumMips = 8;
+
+	FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( HZBSize, PF_R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false, NumMips ) );
+	Desc.Flags |= TexCreate_FastVRAM;
+	GRenderTargetPool.FindFreeElement( Desc, View.HZB, TEXT("HZB") );
 	
-	FSceneRenderTargetItem& HZBRenderTarget = ViewState->HZB.Texture->GetRenderTargetItem();
+	FSceneRenderTargetItem& HZBRenderTarget = View.HZB->GetRenderTargetItem();
 	
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -934,7 +1009,7 @@ void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 		
 		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-		PixelShader->SetParameters( RHICmdList, View, DstSize, ViewState->HZB.MipSRVs[ MipIndex - 1 ] );
+		PixelShader->SetParameters(RHICmdList, View, SrcSize, HZBRenderTarget.MipSRVs[ MipIndex - 1 ] );
 
 		RHICmdList.SetViewport(0, 0, 0.0f, DstSize.X, DstSize.Y, 1.0f);
 
@@ -955,7 +1030,7 @@ void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 		DstSize /= 2;
 	}
 
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ViewState->HZB.Texture);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint( RHICmdList, View.HZB );
 }
 
 void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate& RHICmdList)
@@ -1122,8 +1197,6 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 			check( ViewState->HZBOcclusionTests.IsValidFrame(ViewState->OcclusionFrameCounter) );
 
 			SCOPED_DRAW_EVENT(RHICmdList, HZB);
-
-			BuildHZB(RHICmdList, View);
 			ViewState->HZBOcclusionTests.Submit(RHICmdList, View);
 		}
 	}

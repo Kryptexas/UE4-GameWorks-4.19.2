@@ -72,7 +72,7 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scen
 	}
 }
 
-void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* Shader, const FSceneView* View)
+void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* Shader, const FViewInfo* View)
 {
 	SetTextureParameter(
 		RHICmdList, 
@@ -107,6 +107,30 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 		GSceneRenderTargets.GetTranslucencyVolumeDirectional(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SkyLightReflectionParameters.SetParameters(RHICmdList, Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
+
+	SetTextureParameter(
+		RHICmdList, 
+		Shader->GetPixelShader(), 
+		HZBTexture, 
+		HZBSampler, 
+		TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+		View->HZB->GetRenderTargetItem().ShaderResourceTexture );
+
+	TRefCountPtr<IPooledRenderTarget> PrevSceneColorRT = GSceneRenderTargets.GetSceneColor();
+	
+	FSceneViewState* ViewState = (FSceneViewState*)View->State;
+	if( ViewState && ViewState->TemporalAAHistoryRT && !View->bCameraCut )
+	{
+		PrevSceneColorRT = ViewState->TemporalAAHistoryRT;
+	}
+
+	SetTextureParameter(
+		RHICmdList, 
+		Shader->GetPixelShader(), 
+		PrevSceneColor, 
+		PrevSceneColorSampler, 
+		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+		PrevSceneColorRT->GetRenderTargetItem().ShaderResourceTexture );
 }
 
 void FTranslucentLightingParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)

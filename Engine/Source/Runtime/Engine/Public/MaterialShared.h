@@ -895,6 +895,7 @@ public:
 	virtual bool ShouldGenerateSphericalParticleNormals() const { return false; }
 	virtual	bool ShouldDisableDepthTest() const { return false; }
 	virtual	bool ShouldEnableResponsiveAA() const { return false; }
+	virtual bool ShouldDoSSR() const { return false; }
 	virtual bool IsLightFunction() const = 0;
 	virtual bool IsUsedWithEditorCompositing() const { return false; }
 	virtual bool IsUsedWithDeferredDecal() const = 0;
@@ -1465,6 +1466,7 @@ public:
 	ENGINE_API virtual bool ShouldGenerateSphericalParticleNormals() const;
 	ENGINE_API virtual bool ShouldDisableDepthTest() const;
 	ENGINE_API virtual bool ShouldEnableResponsiveAA() const;
+	ENGINE_API virtual bool ShouldDoSSR() const;
 	ENGINE_API virtual bool IsLightFunction() const;
 	ENGINE_API virtual bool IsUsedWithEditorCompositing() const;
 	ENGINE_API virtual bool IsUsedWithDeferredDecal() const;

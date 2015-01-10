@@ -571,6 +571,8 @@ void FDeferredShadingSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICm
 	GSceneRenderTargets.SetLightAttenuation(0);
 }
 
+void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View );
+
 /** 
 * Renders the view family. 
 */
@@ -831,6 +833,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
 	// This needs to happen before occlusion tests, which makes use of the small depth buffer.
 	UpdateDownsampledDepthSurface(RHICmdList);
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		BuildHZB( RHICmdList, Views[ ViewIndex ] );
+	}
 
 	// Issue occlusion queries
 	// This is done after the downsampled depth buffer is created so that it can be used for issuing queries

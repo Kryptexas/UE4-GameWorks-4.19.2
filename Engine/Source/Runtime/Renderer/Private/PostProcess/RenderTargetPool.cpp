@@ -259,6 +259,15 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					(FTexture2DRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
 					Desc.NumSamples
 					);
+
+				if( Desc.NumMips > 1 )
+				{
+					Found->RenderTargetItem.MipSRVs.SetNum( Desc.NumMips );
+					for( uint16 i = 0; i < Desc.NumMips; i++ )
+					{
+						Found->RenderTargetItem.MipSRVs[i] = RHICreateShaderResourceView( (FTexture2DRHIRef&)Found->RenderTargetItem.ShaderResourceTexture, i );
+					}
+				}
 			}
 			else if(Desc.Is3DTexture())
 			{

@@ -394,6 +394,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Responsive AA"))
 	uint32 bEnableResponsiveAA:1;
 
+	/** SSR on translucency */
+	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Screen Space Reflections"))
+	uint32 bScreenSpaceReflections:1;
+
 	/** Indicates that the material should be rendered without backface culling and the normal should be flipped for backfaces. */
 	UPROPERTY(EditAnywhere, Category=Material)
 	uint32 TwoSided:1;

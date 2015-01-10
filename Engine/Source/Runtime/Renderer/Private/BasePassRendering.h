@@ -252,9 +252,13 @@ public:
 		ReflectionCubemapSampler.Bind(ParameterMap, TEXT("ReflectionCubemapSampler"));
 		CubemapArrayIndex.Bind(ParameterMap, TEXT("CubemapArrayIndex"));
 		SkyLightReflectionParameters.Bind(ParameterMap);
+		HZBTexture.Bind(ParameterMap, TEXT("HZBTexture"));
+		HZBSampler.Bind(ParameterMap, TEXT("HZBSampler"));
+		PrevSceneColor.Bind(ParameterMap, TEXT("PrevSceneColor"));
+		PrevSceneColorSampler.Bind(ParameterMap, TEXT("PrevSceneColorSampler"));
 	}
 
-	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FSceneView* View);
+	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FViewInfo* View);
 
 	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel);
 
@@ -273,6 +277,10 @@ public:
 		Ar << P.ReflectionCubemapSampler;
 		Ar << P.CubemapArrayIndex;
 		Ar << P.SkyLightReflectionParameters;
+		Ar << P.HZBTexture;
+		Ar << P.HZBSampler;
+		Ar << P.PrevSceneColor;
+		Ar << P.PrevSceneColorSampler;
 		return Ar;
 	}
 
@@ -290,6 +298,10 @@ private:
 	FShaderResourceParameter ReflectionCubemapSampler;
 	FShaderParameter CubemapArrayIndex;
 	FSkyLightReflectionParameters SkyLightReflectionParameters;
+	FShaderResourceParameter HZBTexture;
+	FShaderResourceParameter HZBSampler;
+	FShaderResourceParameter PrevSceneColor;
+	FShaderResourceParameter PrevSceneColorSampler;
 };
 
 /**
@@ -330,7 +342,7 @@ public:
 		FRHICommandList& RHICmdList, 
 		const FMaterialRenderProxy* MaterialRenderProxy, 
 		const FMaterial& MaterialResource, 
-		const FSceneView* View, 
+		const FViewInfo* View, 
 		EBlendMode BlendMode, 
 		bool bEnableEditorPrimitveDepthTest,
 		ESceneRenderTargetsMode::Type TextureMode)

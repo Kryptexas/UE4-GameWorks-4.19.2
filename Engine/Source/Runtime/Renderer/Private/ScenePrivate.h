@@ -358,54 +358,6 @@ private:
 /** Random table for occlusion **/
 extern FOcclusionRandomStream GOcclusionRandomStream;
 
-// Hierarchical Z Buffer for occlusion culling / TemporalAA
-// Must be power of 2
-struct FHZB
-{
-	enum		{ NumMips = 8 };
-	FIntPoint	Size;
-
-	TRefCountPtr<IPooledRenderTarget>	Texture;
-	FShaderResourceViewRHIRef			MipSRVs[ NumMips ];
-	// set to false on InitViews(), true when BuildHZB() did run
-	bool bDataIsValid;
-
-	FHZB() 
-		: Size(512, 256)
-		, bDataIsValid(false)
-	{
-	}
-
-	void SafeRelease()
-	{
-		Texture.SafeRelease();
-
-		for(uint32 i = 0; i < NumMips; ++i)
-		{
-			MipSRVs[i].SafeRelease();
-		}
-	}
-
-	void AllocHZB()
-	{
-		if(Texture)
-		{
-			// avoid reallocation, would be no problem with pooled RT but the SRV for the mips might be wasteful
-			return;
-		}
-
-		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( Size, PF_R32_FLOAT, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false, NumMips ) );
-		GRenderTargetPool.FindFreeElement( Desc, Texture, TEXT("HZB") );
-
-		FSceneRenderTargetItem& HZBRenderTarget = Texture->GetRenderTargetItem();
-		for(uint32 i = 0; i < NumMips; ++i)
-		{
-			// TODO implement for all RHI
-			MipSRVs[i] = RHICreateShaderResourceView( (FTexture2DRHIRef&)HZBRenderTarget.ShaderResourceTexture, i );
-		}
-	}
-};
-
 /**
  * The scene manager's private implementation of persistent view state.
  * This class is associated with a particular camera across multiple frames by the game thread.
@@ -517,9 +469,6 @@ private:
 	FLightPropagationVolume* LightPropagationVolume;
 
 public:
-	// Hierarchical Z Buffer for occlusion culling (per view to allow occlusion test to be done for each view and still allow screenspace reflections using the same data)
-	FHZB HZB;
-
 	// If Translucency should be rendered into a separate RT and composited without DepthOfField, can be disabled in the materials (affects sorting)
 	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
 	// Temporal AA result of last frame
@@ -714,7 +663,6 @@ public:
 		MobileAaBloomSunVignette1.SafeRelease();
 		MobileAaColor0.SafeRelease();
 		MobileAaColor1.SafeRelease();
-		HZB.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
 	}
@@ -738,8 +686,6 @@ public:
 	virtual void OnStartFrame(FSceneView& CurrentView) override
 	{
 		check(IsInRenderingThread());
-
-		HZB.bDataIsValid = false;
 
 		if(!(CurrentView.FinalPostProcessSettings.IndirectLightingColor * CurrentView.FinalPostProcessSettings.IndirectLightingIntensity).IsAlmostBlack())
 		{

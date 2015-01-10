@@ -14,8 +14,10 @@
 #include "BRDF.usf"
 #include "Random.usf"
 #include "LightAccumulator.usf"
-
 #include "DeferredShadingCommon.usf"
+
+#define PREV_FRAME_COLOR	1
+#include "ScreenSpaceRayCast.usf"
 
 #if TRANSLUCENT_SELF_SHADOWING
 
@@ -36,6 +38,11 @@ Texture3D TranslucencyLightingVolumeDirectionalInner;
 SamplerState TranslucencyLightingVolumeDirectionalInnerSampler;
 Texture3D TranslucencyLightingVolumeDirectionalOuter;
 SamplerState TranslucencyLightingVolumeDirectionalOuterSampler;
+
+Texture2D		HZBTexture;
+SamplerState	HZBSampler;
+Texture2D		PrevSceneColor;
+SamplerState	PrevSceneColorSampler;
 
 // 2nd order SH indirect lighting interpolated from the indirect lighting cache for the whole object
 // Used to apply precomputed lighting to translucency
@@ -61,6 +68,15 @@ float4 PointSkyBentNormal;
 	TextureCube ReflectionCubemap;
 	SamplerState ReflectionCubemapSampler;
 #endif
+
+uint MortonCode( uint x )
+{
+	//x = (x ^ (x <<  8)) & 0x00ff00ff;
+	//x = (x ^ (x <<  4)) & 0x0f0f0f0f;
+	x = (x ^ (x <<  2)) & 0x33333333;
+	x = (x ^ (x <<  1)) & 0x55555555;
+	return x;
+}
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness, half3 SpecularColor, half IndirectIrradiance)
 {
@@ -97,7 +113,32 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		SpecularIBL.rgb += (1 - SpecularIBL.a) * SkyLighting;
 	}
 #endif
-	
+
+#if MATERIAL_SSR
+	//uint FrameRandom = (uint)(View.TemporalAAParams.r * 1551);
+	uint FrameRandom = (View.FrameNumber & 15) * 1551;
+
+	uint Morton = MortonCode( (uint)MaterialParameters.SVPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
+	uint PixelIndex = reversebits( Morton ) >> 28;
+	//uint PixelIndex = ( (uint)MaterialParameters.SVPosition.x & 3 ) | ( ( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
+	//PixelIndex = ( PixelIndex * 1551 ) & 15;
+
+	uint Offset = ( PixelIndex + FrameRandom ) & 15;
+	float StepOffset = Offset / 15.0;
+	StepOffset -= 0.5;
+		
+	float4 HitUVzTime = RayCastCheap( HZBTexture, HZBSampler, MaterialParameters.ReflectionVector, MaterialParameters.ScreenPosition.w, MaterialParameters.WorldPosition_CamRelative, StepOffset );
+	//float4 HitUVzTime = RayCast( HZBTexture, HZBSampler, MaterialParameters.ReflectionVector, 0, MaterialParameters.ScreenPosition.w, MaterialParameters.WorldPosition_CamRelative, 12, StepOffset );
+
+	// if there was a hit
+	BRANCH if( HitUVzTime.w < 1 )
+	{
+		float4 SSR = SampleScreenColor( PrevSceneColor, PrevSceneColorSampler, HitUVzTime.xyz );
+		SSR *= saturate( 2 - 6.6 * Roughness );
+		SpecularIBL.rgb = SpecularIBL.rgb * (1 - SSR.a) + SSR.rgb;
+	}
+#endif
+
 	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
 	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);
 
@@ -716,7 +757,7 @@ void Main(
 		OutColor = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
 		OutColor = RETURN_COLOR(OutColor);
 	#elif MATERIALBLENDING_ADDITIVE
-		OutColor = half4(Color * VertexFog.aaa * Opacity.xxx, 0.0f);
+		OutColor = half4(Color * VertexFog.a * Opacity, 0.0f);
 		OutColor = RETURN_COLOR(OutColor);
 	#elif MATERIALBLENDING_MODULATE
 		// RETURN_COLOR not needed with modulative blending

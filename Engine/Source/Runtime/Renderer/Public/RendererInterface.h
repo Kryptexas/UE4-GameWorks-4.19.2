@@ -330,6 +330,10 @@ struct FSceneRenderTargetItem
 		TargetableTexture.SafeRelease();
 		ShaderResourceTexture.SafeRelease();
 		UAV.SafeRelease();
+		for( int32 i = 0; i < MipSRVs.Num(); i++ )
+		{
+			MipSRVs[i].SafeRelease();
+		}
 	}
 
 	bool IsValid() const
@@ -345,6 +349,8 @@ struct FSceneRenderTargetItem
 	FTextureRHIRef ShaderResourceTexture;
 	/** only created if requested through the flag  */
 	FUnorderedAccessViewRHIRef UAV;
+	/** only created if requested through the flag  */
+	TArray< FShaderResourceViewRHIRef > MipSRVs;
 };
 
 /**

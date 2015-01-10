@@ -686,6 +686,7 @@ bool FMaterialResource::ShouldInjectEmissiveIntoLPV() const { return Material->b
 bool FMaterialResource::ShouldGenerateSphericalParticleNormals() const { return Material->bGenerateSphericalParticleNormals; }
 bool FMaterialResource::ShouldDisableDepthTest() const { return Material->bDisableDepthTest; }
 bool FMaterialResource::ShouldEnableResponsiveAA() const { return Material->bEnableResponsiveAA; }
+bool FMaterialResource::ShouldDoSSR() const { return Material->bScreenSpaceReflections; }
 bool FMaterialResource::IsWireframe() const { return Material->Wireframe; }
 bool FMaterialResource::IsLightFunction() const { return Material->MaterialDomain == MD_LightFunction; }
 bool FMaterialResource::IsUsedWithEditorCompositing() const { return Material->bUsedWithEditorCompositing; }
@@ -1172,6 +1173,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_NONMETAL"), IsNonmetal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_SSR"), ShouldDoSSR() ? TEXT("1") : TEXT("0"));
 
 	{
 		auto DecalBlendMode = (EDecalBlendMode)GetDecalBlendMode();

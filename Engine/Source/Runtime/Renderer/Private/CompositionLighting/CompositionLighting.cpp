@@ -163,18 +163,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FRHIComman
 		AmbientOcclusionInMip3->SetInput(ePId_Input1, FRenderingCompositeOutputRef(AmbientOcclusionInMip2, ePId_Output0));
 	}
 
-	FRenderingCompositePass* HZBInput = 0;
-
-	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
-
-	if(ViewState)
-	{
-		void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
-
-		BuildHZB(RHICmdList, Context.View);
-
-		HZBInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( ViewState->HZB.Texture ) );
-	}
+	FRenderingCompositePass* HZBInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( const_cast< FViewInfo& >( Context.View ).HZB ) );
 
 	// upsample from lower resolution
 

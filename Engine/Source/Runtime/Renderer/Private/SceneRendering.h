@@ -458,6 +458,9 @@ public:
 	FOcclusionQueryBatcher IndividualOcclusionQueries;
 	FOcclusionQueryBatcher GroupedOcclusionQueries;
 
+	// Hierarchical Z Buffer
+	TRefCountPtr<IPooledRenderTarget> HZB;
+
 	/** Used by occlusion for percent unoccluded calculations. */
 	float OneOverNumPossiblePixels;
 
