@@ -325,6 +325,9 @@ public:
 	/** Selects all actors of the same class and archetype as the current selection */
 	TSharedPtr< FUICommandInfo > SelectAllActorsOfSameClassWithArchetype;
 
+	/** Selects the actor that owns the currently selected component(s) */
+	TSharedPtr< FUICommandInfo > SelectComponentOwnerActor;
+
 	/** Selects all lights relevant to the current selection */
 	TSharedPtr< FUICommandInfo > SelectRelevantLights;
 
@@ -869,6 +872,12 @@ public:
 	 * @param bArchetype	true to also check that the archetype is the same
 	 */
 	static void OnSelectAllActorsOfClass( bool bArchetype );
+
+	/** Called when selecting the actor that owns the currently selected component(s) */
+	static void OnSelectComponentOwnerActor();
+
+	/** Called to see if any components are selected */
+	static bool CanSelectComponentOwnerActor();
 
 	/**
 	 * Called to select all lights

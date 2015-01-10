@@ -266,39 +266,81 @@ namespace ClickHandlers
 
 	bool ClickComponent(FLevelEditorViewportClient* ViewportClient, HActor* ActorHitProxy, const FViewportClick& Click)
 	{
+		//@todo hotkeys for component placement?
+		
 		bool bComponentClicked = false;
-		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponents", "Clicking on Components"));
-
-		UActorComponent* SelectedComponent = const_cast<UPrimitiveComponent*>(ActorHitProxy->PrimComponent); 
-		GEditor->GetSelectedComponents()->Modify();
-
-		if (Click.IsControlDown())
+		UActorComponent* Component = const_cast<UPrimitiveComponent*>(ActorHitProxy->PrimComponent); 
+		
+		// Pivot snapping
+		if (Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown())
 		{
-			const bool bSelect = !SelectedComponent->IsSelected();
-			if (bSelect)
+			GEditor->SetPivot(GEditor->ClickLocation, true, false, true);
+
+			return true;
+		}
+		// Selection + context menu
+		else if (Click.GetKey() == EKeys::RightMouseButton && !Click.IsControlDown() && !ViewportClient->Viewport->KeyState(EKeys::LeftMouseButton))
+		{
+			const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponentContextMenu", "Clicking on Component (context menu)"));
+			UE_LOG(LogEditorViewport, Log, TEXT("Clicking on Component (context menu): %s (%s)"), *Component->GetClass()->GetName(), *Component->GetName());
+
+			auto const EditorComponentSelection = GEditor->GetSelectedComponents();
+			EditorComponentSelection->Modify();
+
+			// If the component the user clicked on was already selected, then we won't bother clearing the selection
+			bool bNeedViewportRefresh = false;
+			if (!EditorComponentSelection->IsSelected(Component))
 			{
-				UE_LOG(LogEditorViewport, Log, TEXT("Clicking on Component (CTRL LMB): %s (%s)"), *SelectedComponent->GetClass()->GetName(), *SelectedComponent->GetName());
+				EditorComponentSelection->DeselectAll();
+				bNeedViewportRefresh = true;
 			}
-			GEditor->SelectComponent(SelectedComponent, bSelect, true, true);
-			bComponentClicked = true;
-		}
-		else if (Click.IsShiftDown())
-		{
-			if (!SelectedComponent->IsSelected())
-			{
-				const bool bSelect = true;
-				GEditor->SelectComponent(SelectedComponent, bSelect, true, true);
-			}
-			bComponentClicked = true;
-		}
-		else
-		{
-			GEditor->GetSelectedComponents()->DeselectAll();
-			UE_LOG(LogEditorViewport, Log, TEXT("Clicking on Component (LMB): %s (%s)"), *SelectedComponent->GetClass()->GetName(), *SelectedComponent->GetName());
-			GEditor->SelectComponent(SelectedComponent, true, true, true);
-			bComponentClicked = true;
-		}
 
+			GEditor->SelectComponent(Component, true, true);
+			
+			if (bNeedViewportRefresh)
+			{
+				// Redraw the viewport so the user can see which object was right clicked on
+				ViewportClient->Viewport->Draw();
+				FlushRenderingCommands();
+			}
+
+			PrivateSummonContextMenu(ViewportClient);
+			bComponentClicked = true;
+		}
+		// Selection only
+		else if (Click.GetKey() == EKeys::LeftMouseButton)
+		{
+			const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponents", "Clicking on Components"));
+			GEditor->GetSelectedComponents()->Modify();
+
+			if (Click.IsControlDown())
+			{
+				const bool bSelect = !Component->IsSelected();
+				if (bSelect)
+				{
+					UE_LOG(LogEditorViewport, Log, TEXT("Clicking on Component (CTRL LMB): %s (%s)"), *Component->GetClass()->GetName(), *Component->GetName());
+				}
+				GEditor->SelectComponent(Component, bSelect, true, true);
+				bComponentClicked = true;
+			}
+			else if (Click.IsShiftDown())
+			{
+				if (!Component->IsSelected())
+				{
+					UE_LOG(LogEditorViewport, Log, TEXT("Clicking on Component (SHIFT LMB): %s (%s)"), *Component->GetClass()->GetName(), *Component->GetName());
+					GEditor->SelectComponent(Component, true, true, true);
+				}
+				bComponentClicked = true;
+			}
+			else
+			{
+				GEditor->GetSelectedComponents()->DeselectAll();
+				UE_LOG(LogEditorViewport, Log, TEXT("Clicking on Component (LMB): %s (%s)"), *Component->GetClass()->GetName(), *Component->GetName());
+				GEditor->SelectComponent(Component, true, true, true);
+				bComponentClicked = true;
+			}
+		}
+		
 		return bComponentClicked;
 	}
 

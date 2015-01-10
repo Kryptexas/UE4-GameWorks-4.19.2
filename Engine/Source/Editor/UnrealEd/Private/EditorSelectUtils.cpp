@@ -608,7 +608,7 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 
 void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden)
 {
-	// Don't do any work if the component is already selected
+	// Don't do any work if the component's selection state matches the target selection state
 	const bool bComponentSelected = Component->IsSelected();
 	if (( bComponentSelected && !bInSelected ) || ( !bComponentSelected && bInSelected ))
 	{
@@ -633,7 +633,6 @@ void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelect
 		AActor* ComponentOwner = Component->GetOwner();
 		if (ComponentOwner != nullptr)
 		{
-			//@todo dhertzka - need selection override delegates for the primitive components
 			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 			ComponentOwner->GetComponents(PrimitiveComponents);
 
@@ -646,14 +645,6 @@ void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelect
 		if (bNotify)
 		{
 			NoteSelectionChange(true);
-		}
-	}
-	else
-	{
-		if (bNotify)
-		{
-			//reset the property windows.  In case something has changed since previous selection
-			UpdateFloatingPropertyWindows();
 		}
 	}
 }

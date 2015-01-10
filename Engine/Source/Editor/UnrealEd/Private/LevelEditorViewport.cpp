@@ -18,6 +18,7 @@
 #include "Engine.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/LevelViewportActions.h"
+#include "Editor/LevelEditor/Public/SLevelViewport.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "AssetSelection.h"
 #include "BlueprintUtilities.h"
@@ -47,7 +48,6 @@
 #include "Editor/ActorPositioning.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
-#include "SLevelViewport.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -1133,12 +1133,12 @@ FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX,
 		if ( AssetObj->IsA( AActor::StaticClass() ) || bHasActorFactory )
 		{
 			Result.bCanDrop = true;
-			bPivotMovedIndependantly = false;
+			bPivotMovedIndependently = false;
 		}
 		else if( AssetObj->IsA( UBrushBuilder::StaticClass()) )
 		{
 			Result.bCanDrop = true;
-			bPivotMovedIndependantly = false;
+			bPivotMovedIndependently = false;
 		}
 		else
 		{
@@ -1149,7 +1149,7 @@ FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX,
 				{
 					// If our asset is a material and the target is a valid recipient
 					Result.bCanDrop = true;
-					bPivotMovedIndependantly = false;
+					bPivotMovedIndependently = false;
 
 					//if ( HitProxy->IsA(HActor::StaticGetType()) )
 					//{
@@ -1444,6 +1444,7 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, bDuplicateActorsInProgress( false )
 	, bIsTrackingBrushModification( false )
 	, bLockedCameraView(true)
+	, bReceivedFocusRecently(false)
 	, SpriteCategoryVisibility()
 	, World(nullptr)
 	, TrackingTransaction()
@@ -1696,15 +1697,32 @@ void FLevelEditorViewportClient::RestoreCameraFromPIE()
 	}
 }
 
+void FLevelEditorViewportClient::ReceivedFocus(FViewport* InViewport)
+{
+	if (!bReceivedFocusRecently)
+	{
+		bReceivedFocusRecently = true;
+
+		// A few frames can pass between receiving focus and processing a click, so we use a timer to track whether we have recently received focus.
+		FTimerHandle DummyHandle;
+		FTimerDelegate ResetFocusReceivedTimer;
+		ResetFocusReceivedTimer.BindLambda([&] ()
+		{
+			bReceivedFocusRecently = false;
+		});
+		GEditor->GetTimerManager()->SetTimer(DummyHandle, ResetFocusReceivedTimer, 0.1f, false);
+	}
+
+	FEditorViewportClient::ReceivedFocus(InViewport);
+}
 
 //
 //	FLevelEditorViewportClient::ProcessClick
 //
-
 void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
 {
 	// We clicked, allow the pivot to reposition itself.
-	bPivotMovedIndependantly = false;
+	bPivotMovedIndependently = false;
 
 	static FName ProcessClickTrace = FName(TEXT("ProcessClickTrace"));
 
@@ -1763,11 +1781,23 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		{
 			auto ActorHitProxy = (HActor*)HitProxy;
 
-			auto SelectedActors = GEditor->GetSelectedActors();
-			const bool bSelectComponents = SelectedActors->IsSelected(ActorHitProxy->Actor) && GEditor->GetSelectedActorCount() == 1;
-			if (bSelectComponents && GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
+			// We want to process the click on the component only if:
+			// 1. The actor clicked is already selected
+			// 2. The actor selected is the only actor selected
+			// 3. The LMB was pressed or we already have a component selected (so that right-clicking a selected actor won't select a component)
+			// 4. The click was not a double click (unless a component has already been selected)
+			// 5. The level viewport didn't just receive focus this frame (again unless a component has already been selected)
+			const bool bActorAlreadySelectedExclusively = GEditor->GetSelectedActors()->IsSelected(ActorHitProxy->Actor) && ( GEditor->GetSelectedActorCount() == 1 );
+			const bool bComponentAlreadySelected = GEditor->GetSelectedComponentCount() > 0;
+	
+			const bool bCanBeginSelectingComponents =  (Click.GetKey() == EKeys::LeftMouseButton) 
+													&& (Click.GetEvent() != IE_DoubleClick) 
+													&& !bReceivedFocusRecently;
+
+			const bool bSelectComponent = bActorAlreadySelectedExclusively && ( bComponentAlreadySelected || bCanBeginSelectingComponents );
+
+			if (bSelectComponent && GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
 			{
-				// The hit actor is already selected and is the only selected actor, so select the hit component
 				ClickHandlers::ClickComponent(this, ActorHitProxy, Click);
 			}
 			else
@@ -1850,7 +1880,7 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 {
 	FEditorViewportClient::Tick(DeltaTime);
 
-	if( !bPivotMovedIndependantly && GCurrentLevelEditingViewportClient == this &&
+	if( !bPivotMovedIndependently && GCurrentLevelEditingViewportClient == this &&
 		bIsRealtime &&
 		( Widget == NULL || !Widget->IsDragging() ) )
 	{
@@ -2157,7 +2187,7 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 				else
 				{
 					FSnappingUtils::SnapDragLocationToNearestVertex( ModeTools->PivotLocation, Drag, this );
-					bPivotMovedIndependantly = true;
+					bPivotMovedIndependently = true;
 				}
 
 				ModeTools->PivotLocation += Drag;
@@ -2528,7 +2558,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 			GEditor->BroadcastEndObjectMovement( *Actor );
 		}
 
-		if (!bPivotMovedIndependantly)
+		if (!bPivotMovedIndependently)
 		{
 			GUnrealEd->UpdatePivotLocationForSelection();
 		}
