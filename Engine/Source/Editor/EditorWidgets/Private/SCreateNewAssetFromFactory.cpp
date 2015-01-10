@@ -1,14 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "SPropertyEditorNewAsset.h"
+#include "EditorWidgetsPrivatePCH.h"
+#include "SCreateNewAssetFromFactory.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 
-#define LOCTEXT_NAMESPACE "SPropertyEditorNewAsset"
+#define LOCTEXT_NAMESPACE "SCreateNewAssetFromFactory"
 
-UObject* SPropertyEditorNewAsset::Create(TWeakObjectPtr<UFactory> FactoryPtr)
+UObject* SCreateNewAssetFromFactory::Create(TWeakObjectPtr<UFactory> FactoryPtr)
 {
 	if (!FactoryPtr.IsValid())
 	{
@@ -24,8 +24,8 @@ UObject* SPropertyEditorNewAsset::Create(TWeakObjectPtr<UFactory> FactoryPtr)
 		.ToolTipText(FText::Format(LOCTEXT("SelectPathTooltip", "Select the path where the {AssetType} will be created."), Args))
 		.ClientSize(FVector2D(400, 400));
 
-	TSharedPtr<SPropertyEditorNewAsset> PropertyEditorNewAssetWidget;
-	PropertyEditorNewAssetWindow->SetContent(SAssignNew(PropertyEditorNewAssetWidget, SPropertyEditorNewAsset, PropertyEditorNewAssetWindow, FactoryPtr));
+	TSharedPtr<SCreateNewAssetFromFactory> PropertyEditorNewAssetWidget;
+	PropertyEditorNewAssetWindow->SetContent(SAssignNew(PropertyEditorNewAssetWidget, SCreateNewAssetFromFactory, PropertyEditorNewAssetWindow, FactoryPtr));
 
 	GEditor->EditorAddModalWindow(PropertyEditorNewAssetWindow.ToSharedRef());
 
@@ -33,7 +33,7 @@ UObject* SPropertyEditorNewAsset::Create(TWeakObjectPtr<UFactory> FactoryPtr)
 	return PropertyEditorNewAssetWidget->NewAsset;
 }
 
-void SPropertyEditorNewAsset::Construct(const FArguments& InArgs, TSharedPtr<SWindow> InParentWindow, TWeakObjectPtr<UFactory> InFactoryPtr)
+void SCreateNewAssetFromFactory::Construct(const FArguments& InArgs, TSharedPtr<SWindow> InParentWindow, TWeakObjectPtr<UFactory> InFactoryPtr)
 {
 	bIsReportingError = false;
 	ParentWindowPtr = InParentWindow;
@@ -47,7 +47,7 @@ void SPropertyEditorNewAsset::Construct(const FArguments& InArgs, TSharedPtr<SWi
 
 	FPathPickerConfig PathPickerConfig;
 	PathPickerConfig.DefaultPath = AssetPath;
-	PathPickerConfig.OnPathSelected = FOnPathSelected::CreateRaw(this, &SPropertyEditorNewAsset::OnSelectAssetPath);
+	PathPickerConfig.OnPathSelected = FOnPathSelected::CreateRaw(this, &SCreateNewAssetFromFactory::OnSelectAssetPath);
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
@@ -91,7 +91,7 @@ void SPropertyEditorNewAsset::Construct(const FArguments& InArgs, TSharedPtr<SWi
 				[
 					SAssignNew(FilenameWidget, SEditableTextBox)
 					.Text(FText::FromString(AssetName))
-					.OnTextChanged(this, &SPropertyEditorNewAsset::OnFilenameChanged)
+					.OnTextChanged(this, &SCreateNewAssetFromFactory::OnFilenameChanged)
 				]
 			]
 			+ SHorizontalBox::Slot()
@@ -108,8 +108,8 @@ void SPropertyEditorNewAsset::Construct(const FArguments& InArgs, TSharedPtr<SWi
 					SNew(SButton)
 					.VAlign(VAlign_Center)
 					.ContentPadding(FMargin(8, 2, 8, 2))
-					.OnClicked(this, &SPropertyEditorNewAsset::OnCreateNewAssetClicked)
-					.IsEnabled(this, &SPropertyEditorNewAsset::IsCreateNewAssetEnabled)
+					.OnClicked(this, &SCreateNewAssetFromFactory::OnCreateNewAssetClicked)
+					.IsEnabled(this, &SCreateNewAssetFromFactory::IsCreateNewAssetEnabled)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("CreateButtonText", "Create"))
@@ -122,7 +122,7 @@ void SPropertyEditorNewAsset::Construct(const FArguments& InArgs, TSharedPtr<SWi
 					SNew(SButton)
 					.VAlign(VAlign_Center)
 					.ContentPadding(FMargin(8, 2, 8, 2))
-					.OnClicked(this, &SPropertyEditorNewAsset::OnCancelCreateNewAsset)
+					.OnClicked(this, &SCreateNewAssetFromFactory::OnCancelCreateNewAsset)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("CancelButtonText", "Cancel"))
@@ -142,7 +142,7 @@ void SPropertyEditorNewAsset::Construct(const FArguments& InArgs, TSharedPtr<SWi
 	OnFilenameChanged(FText::FromString(AssetName));
 }
 
-FReply SPropertyEditorNewAsset::OnCreateNewAssetClicked()
+FReply SCreateNewAssetFromFactory::OnCreateNewAssetClicked()
 {
 	TSharedPtr<SWindow> ParentWindow = ParentWindowPtr.Pin();
 	if (ParentWindow.IsValid())
@@ -168,7 +168,7 @@ FReply SPropertyEditorNewAsset::OnCreateNewAssetClicked()
 	return FReply::Handled();
 }
 
-FReply SPropertyEditorNewAsset::OnCancelCreateNewAsset()
+FReply SCreateNewAssetFromFactory::OnCancelCreateNewAsset()
 {
 	TSharedPtr<SWindow> ParentWindow = ParentWindowPtr.Pin();
 	if (ParentWindow.IsValid())
@@ -179,13 +179,13 @@ FReply SPropertyEditorNewAsset::OnCancelCreateNewAsset()
 	return FReply::Handled();
 }
 
-void SPropertyEditorNewAsset::OnSelectAssetPath(const FString& Path)
+void SCreateNewAssetFromFactory::OnSelectAssetPath(const FString& Path)
 {
 	AssetPath = Path;
 	OnFilenameChanged(FilenameWidget->GetText());
 }
 
-void SPropertyEditorNewAsset::OnFilenameChanged(const FText& InNewName)
+void SCreateNewAssetFromFactory::OnFilenameChanged(const FText& InNewName)
 {
 	TArray<FAssetData> AssetData;
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -216,7 +216,7 @@ void SPropertyEditorNewAsset::OnFilenameChanged(const FText& InNewName)
 	bIsReportingError = false;
 }
 
-bool SPropertyEditorNewAsset::IsCreateNewAssetEnabled() const
+bool SCreateNewAssetFromFactory::IsCreateNewAssetEnabled() const
 {
 	return !bIsReportingError;
 }
