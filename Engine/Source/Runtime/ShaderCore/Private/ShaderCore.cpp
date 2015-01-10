@@ -144,7 +144,8 @@ bool FShaderParameterMap::FindParameterAllocation(const TCHAR* ParameterName,uin
 
 		if (Allocation->bBound)
 		{
-			UE_LOG(LogShaders, Warning, TEXT("Parameter %s was bound multiple times. Code error?"), ParameterName);
+			// Can detect copy-paste errors in binding parameters.  Need to fix all the false positives before enabling.
+			//UE_LOG(LogShaders, Warning, TEXT("Parameter %s was bound multiple times. Code error?"), ParameterName);
 		}
 
 		Allocation->bBound = true;
