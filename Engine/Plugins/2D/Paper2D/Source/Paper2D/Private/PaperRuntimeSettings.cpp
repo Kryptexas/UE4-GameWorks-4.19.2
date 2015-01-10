@@ -10,7 +10,6 @@ UPaperRuntimeSettings::UPaperRuntimeSettings(const FObjectInitializer& ObjectIni
 	: Super(ObjectInitializer)
 	, DefaultPixelsPerUnrealUnit(2.56f)
 	, bEnableSpriteAtlasGroups(false)
-	, bEnableTileMapEditing(false)
 	, bEnableTerrainSplineEditing(false)
 {
 #if WITH_EDITORONLY_DATA
