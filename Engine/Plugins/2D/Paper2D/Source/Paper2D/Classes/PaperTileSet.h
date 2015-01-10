@@ -8,7 +8,7 @@
 #include "PaperTileSet.generated.h"
 
 UCLASS()
-class PAPER2D_API UPaperTileSet : public UDataAsset //@TODO: Just to make it easy to spawn for now
+class PAPER2D_API UPaperTileSet : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
