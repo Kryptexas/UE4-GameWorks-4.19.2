@@ -1,0 +1,11 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	ScreenSpaceRayCast.usf
+=============================================================================*/
+
+#ifndef __SCREENSPACERAYCAST__
+#define __SCREENSPACERAYCAST__
+
+
+#endif // __SCREENSPACERAYCAST__
