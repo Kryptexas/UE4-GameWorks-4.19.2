@@ -379,6 +379,12 @@ public:
 	static bool IsAnonymousBlueprintClass(const UClass* Class);
 
 	/**
+	 * Checks for events in the argument class
+	 * @param Class	The class to check for events.
+	 */
+	static bool CanClassGenerateEvents(const UClass* Class);
+
+	/**
 	 * If a blueprint is directly tied to a level (level script and anonymous blueprints), this will return a pointer to that level
 	 *
 	 * @return	The level, if any, tied to this blueprint

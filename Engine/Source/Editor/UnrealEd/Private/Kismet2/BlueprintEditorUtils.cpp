@@ -2455,6 +2455,22 @@ bool FBlueprintEditorUtils::SupportsConstructionScript(const UBlueprint* Bluepri
 			!(Blueprint->BlueprintType == BPTYPE_FunctionLibrary);
 }
 
+bool FBlueprintEditorUtils::CanClassGenerateEvents(const UClass* InClass)
+{
+	if( InClass )
+	{
+		for( TFieldIterator<UMulticastDelegateProperty> PropertyIt( InClass, EFieldIteratorFlags::IncludeSuper ); PropertyIt; ++PropertyIt )
+		{
+			UProperty* Property = *PropertyIt;
+			if( !Property->HasAnyPropertyFlags( CPF_Parm ) && Property->HasAllPropertyFlags( CPF_BlueprintAssignable ))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 UEdGraph* FBlueprintEditorUtils::FindUserConstructionScript(const UBlueprint* Blueprint)
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
