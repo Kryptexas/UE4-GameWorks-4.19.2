@@ -18,9 +18,9 @@ namespace ETextFlag
 {
 	enum Type
 	{
-		Transient = (1 << 0),
-		CultureInvariant = (1 << 1),
-		ConvertedProperty = (1 << 2)
+		Transient = (1<<0),
+		CultureInvariant = (1<<1),
+		ConvertedProperty = (1<<2)
 	};
 }
 
@@ -95,22 +95,22 @@ struct CORE_API FNumberFormattingOptions
 	FNumberFormattingOptions();
 
 	bool UseGrouping;
-	FNumberFormattingOptions& SetUseGrouping(bool InValue){ UseGrouping = InValue; return *this; }
+	FNumberFormattingOptions& SetUseGrouping( bool InValue ){ UseGrouping = InValue; return *this; }
 
 	ERoundingMode RoundingMode;
-	FNumberFormattingOptions& SetRoundingMode(ERoundingMode InValue){ RoundingMode = InValue; return *this; }
+	FNumberFormattingOptions& SetRoundingMode( ERoundingMode InValue ){ RoundingMode = InValue; return *this; }
 
 	int32 MinimumIntegralDigits;
-	FNumberFormattingOptions& SetMinimumIntegralDigits(int32 InValue){ MinimumIntegralDigits = InValue; return *this; }
+	FNumberFormattingOptions& SetMinimumIntegralDigits( int32 InValue ){ MinimumIntegralDigits = InValue; return *this; }
 
 	int32 MaximumIntegralDigits;
-	FNumberFormattingOptions& SetMaximumIntegralDigits(int32 InValue){ MaximumIntegralDigits = InValue; return *this; }
+	FNumberFormattingOptions& SetMaximumIntegralDigits( int32 InValue ){ MaximumIntegralDigits = InValue; return *this; }
 
 	int32 MinimumFractionalDigits;
-	FNumberFormattingOptions& SetMinimumFractionalDigits(int32 InValue){ MinimumFractionalDigits = InValue; return *this; }
+	FNumberFormattingOptions& SetMinimumFractionalDigits( int32 InValue ){ MinimumFractionalDigits = InValue; return *this; }
 
 	int32 MaximumFractionalDigits;
-	FNumberFormattingOptions& SetMaximumFractionalDigits(int32 InValue){ MaximumFractionalDigits = InValue; return *this; }
+	FNumberFormattingOptions& SetMaximumFractionalDigits( int32 InValue ){ MaximumFractionalDigits = InValue; return *this; }
 
 	friend FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value);
 };
@@ -129,86 +129,86 @@ public:
 public:
 
 	FText();
-	FText(const FText& Source);
+	FText( const FText& Source );
 	FText(FText&& Source);
 
 	FText& operator=(const FText& Source);
 	FText& operator=(FText&& Source);
 
 	/**
-	* Generate an FText that represents the passed number in the current culture
-	*/
-	static FText AsNumber(float Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(double Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(int8 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(int16 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(int32 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(int64 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(uint8 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(uint16 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(uint32 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(uint64 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsNumber(long Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	 * Generate an FText that represents the passed number in the current culture
+	 */
+	static FText AsNumber(float Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(double Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(int8 Val,		const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(int16 Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(int32 Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(int64 Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(uint8 Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(uint16 Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(uint32 Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(uint64 Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumber(long Val,		const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 
 	/**
-	* Generate an FText that represents the passed number as currency in the current culture
-	*/
-	static FText AsCurrency(float Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	 * Generate an FText that represents the passed number as currency in the current culture
+	 */
+	static FText AsCurrency(float Val,  const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 	static FText AsCurrency(double Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsCurrency(int8 Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsCurrency(int16 Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsCurrency(int32 Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsCurrency(int64 Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsCurrency(uint8 Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsCurrency(int8 Val,   const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsCurrency(int16 Val,  const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsCurrency(int32 Val,  const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsCurrency(int64 Val,  const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsCurrency(uint8 Val,  const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 	static FText AsCurrency(uint16 Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 	static FText AsCurrency(uint32 Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 	static FText AsCurrency(uint64 Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsCurrency(long Val, const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsCurrency(long Val,   const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 
 	/**
-	* Generate an FText that represents the passed number as a percentage in the current culture
-	*/
-	static FText AsPercent(float Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
-	static FText AsPercent(double Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	 * Generate an FText that represents the passed number as a percentage in the current culture
+	 */
+	static FText AsPercent(float Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsPercent(double Val,	const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 
 	/**
-	* Generate an FText that represents the passed number as a date and/or time in the current culture
-	*/
+	 * Generate an FText that represents the passed number as a date and/or time in the current culture
+	 */
 	static FText AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const FCulturePtr& TargetCulture = NULL);
 	static FText AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const EDateTimeStyle::Type TimeStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const FCulturePtr& TargetCulture = NULL);
 	static FText AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const FCulturePtr& TargetCulture = NULL);
 	static FText AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCulture = NULL);
 
 	/**
-	* Generate an FText that represents the passed number as a memory size in the current culture
-	*/
+	 * Generate an FText that represents the passed number as a memory size in the current culture
+	 */
 	static FText AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 
 	/**
-	* Attempts to find an existing FText using the representation found in the loc tables for the specified namespace and key
-	* @return true if OutText was properly set; otherwise false and OutText will be untouched
-	*/
-	static bool FindText(const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString = nullptr);
+	 * Attempts to find an existing FText using the representation found in the loc tables for the specified namespace and key
+	 * @return true if OutText was properly set; otherwise false and OutText will be untouched
+	 */
+	static bool FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString = nullptr );
 
 	/**
-	* Generate an FText representing the pass name
-	*/
-	static FText FromName(const FName& Val);
+	 * Generate an FText representing the pass name
+	 */
+	static FText FromName( const FName& Val);
+	
+	/**
+	 * Generate an FText representing the passed in string
+	 */
+	static FText FromString( FString String );
 
 	/**
-	* Generate an FText representing the passed in string
-	*/
-	static FText FromString(FString String);
+	 * Generate a culture invariant FText representing the passed in string
+	 */
+	static FText AsCultureInvariant( FString String );
 
 	/**
-	* Generate a culture invariant FText representing the passed in string
-	*/
-	static FText AsCultureInvariant(FString String);
-
-	/**
-	* Generate a culture invariant FText representing the passed in FText
-	*/
-	static FText AsCultureInvariant(FText Text);
+	 * Generate a culture invariant FText representing the passed in FText
+	 */
+	static FText AsCultureInvariant( FText Text );
 
 	const FString& ToString() const;
 
@@ -220,19 +220,19 @@ public:
 		return DisplayString.Get().IsNumeric();
 	}
 
-	int32 CompareTo(const FText& Other, const ETextComparisonLevel::Type ComparisonLevel = ETextComparisonLevel::Default) const;
-	int32 CompareToCaseIgnored(const FText& Other) const;
+	int32 CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel = ETextComparisonLevel::Default ) const;
+	int32 CompareToCaseIgnored( const FText& Other ) const;
 
-	bool EqualTo(const FText& Other, const ETextComparisonLevel::Type ComparisonLevel = ETextComparisonLevel::Default) const;
-	bool EqualToCaseIgnored(const FText& Other) const;
+	bool EqualTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel = ETextComparisonLevel::Default ) const;
+	bool EqualToCaseIgnored( const FText& Other ) const;
 
 	/**
-	* Check to see if this FText is identical to the other FText
-	*
-	* Note:	This doesn't compare the text, but only checks that the internal string pointers have the same target (which makes it very fast!)
-	*			If you actually want to perform a lexical comparison, then you need to use EqualTo instead
-	*/
-	bool IdenticalTo(const FText& Other) const;
+	 * Check to see if this FText is identical to the other FText
+	 * 
+	 * Note:	This doesn't compare the text, but only checks that the internal string pointers have the same target (which makes it very fast!)
+	 *			If you actually want to perform a lexical comparison, then you need to use EqualTo instead
+	 */
+	bool IdenticalTo( const FText& Other ) const;
 
 	class CORE_API FSortPredicate
 	{
@@ -256,24 +256,24 @@ public:
 	bool IsEmptyOrWhitespace() const;
 
 	/**
-	* Removes whitespace characters from the front of the string.
-	*/
-	static FText TrimPreceding(const FText&);
+	 * Removes whitespace characters from the front of the string.
+	 */
+	static FText TrimPreceding( const FText& );
 
 	/**
-	* Removes trailing whitespace characters
-	*/
-	static FText TrimTrailing(const FText&);
+	 * Removes trailing whitespace characters
+	 */
+	static FText TrimTrailing( const FText& );
 
 	/**
-	* Does both of the above without needing to create an additional FText in the interim.
-	*/
-	static FText TrimPrecedingAndTrailing(const FText&);
+	 * Does both of the above without needing to create an additional FText in the interim.
+	 */
+	static FText TrimPrecedingAndTrailing( const FText& );
 
 	/**
-	* Check to see if the given character is considered whitespace by the current culture
-	*/
-	static bool IsWhitespace(const TCHAR Char);
+	 * Check to see if the given character is considered whitespace by the current culture
+	 */
+	static bool IsWhitespace( const TCHAR Char );
 
 	static void GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames);
 
@@ -281,13 +281,13 @@ public:
 	static FText Format(const FText& Pattern, const FFormatOrderedArguments& Arguments);
 	static FText Format(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments);
 
-	static FText Format(const FText& Fmt, const FText& v1);
-	static FText Format(const FText& Fmt, const FText& v1, const FText& v2);
-	static FText Format(const FText& Fmt, const FText& v1, const FText& v2, const FText& v3);
-	static FText Format(const FText& Fmt, const FText& v1, const FText& v2, const FText& v3, const FText& v4);
+	static FText Format(const FText& Fmt,const FText& v1);
+	static FText Format(const FText& Fmt,const FText& v1,const FText& v2);
+	static FText Format(const FText& Fmt,const FText& v1,const FText& v2,const FText& v3);
+	static FText Format(const FText& Fmt,const FText& v1,const FText& v2,const FText& v3,const FText& v4);
 
-	static void SetEnableErrorCheckingResults(bool bEnable){ bEnableErrorCheckingResults = bEnable; }
-	static bool GetEnableErrorCheckingResults(){ return bEnableErrorCheckingResults; }
+	static void SetEnableErrorCheckingResults(bool bEnable){bEnableErrorCheckingResults=bEnable;}
+	static bool GetEnableErrorCheckingResults(){return bEnableErrorCheckingResults;}
 
 	static void SetSuppressWarnings(bool bSuppress){ bSuppressWarnings = bSuppress; }
 	static bool GetSuppressWarnings(){ return bSuppressWarnings; }
@@ -299,29 +299,29 @@ private:
 
 	/** Special constructor used to create StaticEmptyText without also allocating a history object */
 	enum class EInitToEmptyString : uint8 { Value };
-	explicit FText(EInitToEmptyString);
+	explicit FText( EInitToEmptyString );
 
-	explicit FText(FString InSourceString);
+	explicit FText( FString InSourceString );
 
-	explicit FText(FString InSourceString, FString InNamespace, FString InKey, int32 InFlags = 0);
+	explicit FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags=0 );
 
-	friend CORE_API FArchive& operator<<(FArchive& Ar, FText& Value);
+	friend CORE_API FArchive& operator<<( FArchive& Ar, FText& Value );
 
 #if WITH_EDITOR
 	/**
-	* Constructs a new FText with the SourceString of the specified text but with the specified namespace and key
-	*/
-	static FText ChangeKey(FString Namespace, FString Key, const FText& Text);
+	 * Constructs a new FText with the SourceString of the specified text but with the specified namespace and key
+	 */
+	static FText ChangeKey( FString Namespace, FString Key, const FText& Text );
 #endif
 
 	/**
-	* Generate an FText for a string formatted numerically.
-	*/
+	 * Generate an FText for a string formatted numerically.
+	 */
 	static FText CreateNumericalText(FString InSourceString);
 
 	/**
-	* Generate an FText for a string formatted from a date/time.
-	*/
+	 * Generate an FText for a string formatted from a date/time.
+	 */
 	static FText CreateChronologicalText(FString InSourceString);
 
 	/** Returns the source string of the FText */
@@ -381,7 +381,6 @@ public:
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
-	friend class FScopedTextIdentityPreserver;
 
 #if !UE_ENABLE_ICU
 	friend class FLegacyTextHelper;
@@ -425,7 +424,6 @@ public:
 	static const FString* GetKey(const FText& Text);
 	static const FString* GetSourceString(const FText& Text);
 	static const FString& GetDisplayString(const FText& Text);
-	static const TSharedRef<FString, ESPMode::ThreadSafe> GetSharedDisplayString(const FText& Text);
 	static int32 GetFlags(const FText& Text);
 };
 
@@ -453,7 +451,7 @@ struct CORE_API FFormatArgumentValue
 	FFormatArgumentValue(const FFormatArgumentValue& Source);
 	~FFormatArgumentValue();
 
-	friend FArchive& operator<<(FArchive& Ar, FFormatArgumentValue& Value);
+	friend FArchive& operator<<( FArchive& Ar, FFormatArgumentValue& Value );
 };
 
 struct FFormatArgumentData
@@ -461,7 +459,7 @@ struct FFormatArgumentData
 	FText ArgumentName;
 	FText ArgumentValue;
 
-	friend FArchive& operator<<(FArchive& Ar, FFormatArgumentData& Value);
+	friend FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value );
 };
 
 class CORE_API FTextBuilder
@@ -563,18 +561,6 @@ public:
 private:
 	FString Report;
 	int32 IndentCount;
-};
-
-class CORE_API FScopedTextIdentityPreserver
-{
-public:
-	FScopedTextIdentityPreserver(FText& InTextToPersist);
-	~FScopedTextIdentityPreserver();
-
-private:
-	TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
-	TSharedPtr< FString, ESPMode::ThreadSafe > Key;
-	FText& TextToPersist;
 };
 
 Expose_TNameOf(FText)
