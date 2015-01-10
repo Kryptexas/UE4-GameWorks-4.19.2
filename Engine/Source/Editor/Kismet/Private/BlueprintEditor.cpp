@@ -8,6 +8,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "GraphEditor.h"
 #include "BlueprintUtilities.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "Editor/UnrealEd/Public/FileHelpers.h"

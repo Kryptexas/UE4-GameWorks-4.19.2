@@ -5,6 +5,7 @@
 #include "SKismetInspector.h"
 #include "SSCSEditor.h"
 #include "IDetailsView.h"
+#include "BlueprintEditorUtils.h"
 
 #include <vector>
 
