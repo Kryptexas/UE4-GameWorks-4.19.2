@@ -67,6 +67,7 @@ public:
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
 	virtual bool CloseWindow() override;
 	virtual bool IsPrimaryEditor() const override { return true; };
+	virtual void InvokeTab(const struct FTabId& TabId) override;
 
 	/**
 	 * Fills in the supplied menu with commands for working with this asset file

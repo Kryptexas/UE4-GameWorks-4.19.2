@@ -20,6 +20,7 @@ public:
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) = 0;
 	virtual bool CloseWindow() = 0;
 	virtual bool IsPrimaryEditor() const = 0;
+	virtual void InvokeTab(const struct FTabId& TabId) = 0;
 };
 
 

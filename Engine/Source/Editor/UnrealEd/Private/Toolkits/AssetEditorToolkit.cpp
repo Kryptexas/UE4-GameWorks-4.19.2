@@ -319,6 +319,10 @@ bool FAssetEditorToolkit::CloseWindow()
 	return true;
 }
 
+void FAssetEditorToolkit::InvokeTab(const FTabId& TabId)
+{
+	GetTabManager()->InvokeTab(TabId);
+}
 
 TSharedPtr< IToolkitHost > FAssetEditorToolkit::GetPreviousWorldCentricToolkitHost()
 {
