@@ -17,7 +17,8 @@ namespace EHMDDeviceType
 	{
 		DT_OculusRift,
 		DT_Morpheus,
-		DT_ES2GenericStereoMesh
+		DT_ES2GenericStereoMesh,
+		DT_NoPost						// don't register any post passes
 	};
 }
 
