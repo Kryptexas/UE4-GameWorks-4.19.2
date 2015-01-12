@@ -298,6 +298,8 @@ public:
 
 private:
 
+	explicit FText( EInitToEmptyString );
+
 	explicit FText( FString InSourceString );
 
 	explicit FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags=0 );
@@ -376,7 +378,6 @@ public:
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
-	friend class FScopedTextIdentityPreserver;
 
 #if !UE_ENABLE_ICU
 	friend class FLegacyTextHelper;
@@ -420,7 +421,6 @@ public:
 	static const FString* GetKey(const FText& Text);
 	static const FString* GetSourceString(const FText& Text);
 	static const FString& GetDisplayString(const FText& Text);
-	static const TSharedRef<FString, ESPMode::ThreadSafe> GetSharedDisplayString(const FText& Text);
 	static int32 GetFlags(const FText& Text);
 };
 
@@ -558,18 +558,6 @@ public:
 private:
 	FString Report;
 	int32 IndentCount;
-};
-
-class CORE_API FScopedTextIdentityPreserver
-{
-public:
-	FScopedTextIdentityPreserver(FText& InTextToPersist);
-	~FScopedTextIdentityPreserver();
-
-private:
-	TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
-	TSharedPtr< FString, ESPMode::ThreadSafe > Key;
-	FText& TextToPersist;
 };
 
 Expose_TNameOf(FText)
