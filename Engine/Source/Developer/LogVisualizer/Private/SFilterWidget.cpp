@@ -16,6 +16,7 @@ void SFilterWidget::Construct(const FArguments& InArgs)
 	FilterName = InArgs._FilterName;
 	ColorCategory = InArgs._ColorCategory;
 	Verbosity = ELogVerbosity::All;
+	BorderBackgroundColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.2f);
 
 	// Get the tooltip and color of the type represented by this filter
 	FilterColor = ColorCategory;
@@ -23,8 +24,8 @@ void SFilterWidget::Construct(const FArguments& InArgs)
 	ChildSlot
 		[
 			SNew(SBorder)
-			.Padding(0)
-			.BorderBackgroundColor(FLinearColor(0.2f, 0.2f, 0.2f, 0.2f))
+			.Padding(2)
+			.BorderBackgroundColor(this, &SFilterWidget::GetBorderBackgroundColor)
 			.BorderImage(FLogVisualizerStyle::Get().GetBrush("ContentBrowser.FilterButtonBorder"))
 			[
 				SAssignNew(ToggleButtonPtr, SFilterCheckBox)

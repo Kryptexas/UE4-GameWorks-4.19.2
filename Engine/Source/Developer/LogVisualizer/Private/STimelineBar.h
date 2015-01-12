@@ -28,7 +28,7 @@ public:
 	FVector2D ComputeDesiredSize() const;
 	void SnapScrubPosition(float ScrubPosition);
 	void SnapScrubPosition(int32 NewItemIndex);
-	uint32 GetClosestItem(float Time) const;
+	int32 GetClosestItem(float Time) const;
 
 	void OnSelect();
 	void OnDeselect();

@@ -14,7 +14,7 @@ public:
 
 	SLATE_BEGIN_ARGS(SFilterWidget){}
 		/** If this is an front end filter, this is the filter object */
-		SLATE_ARGUMENT(FName, FilterName)
+	SLATE_ARGUMENT(FName, FilterName)
 		/** Color selected for filter*/
 		SLATE_ARGUMENT(FLinearColor, ColorCategory)
 		/** Invoked when the filter toggled */
@@ -67,6 +67,8 @@ public:
 
 		return UnknownFilter;
 	}
+
+	void SetBorderBackgroundColor(FLinearColor InColor) { BorderBackgroundColor = InColor; }
 
 private:
 	/** Handler for when the filter checkbox is clicked */
@@ -139,6 +141,11 @@ private:
 		return IsChecked() == ECheckBoxState::Checked ? ( IsHovered() ? ColorCategory * DimFactor : ColorCategory ) : ( IsHovered() ? FLinearColor::White : FLinearColor::White * DimFactor );
 	}
 
+	FSlateColor GetBorderBackgroundColor() const
+	{
+		return BorderBackgroundColor;
+	}
+
 private:
 	/** Invoked when the filter toggled */
 	FOnSimpleRequest OnFilterChanged;
@@ -169,4 +176,7 @@ private:
 
 	/** The color of the checkbox for this filter */
 	FLinearColor FilterColor;
+
+	/** Default color for border background */
+	FLinearColor BorderBackgroundColor;
 };

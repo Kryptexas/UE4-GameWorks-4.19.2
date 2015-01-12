@@ -185,7 +185,7 @@ FReply STimelineBar::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InK
 	return ReturnValue;
 }
 
-uint32 STimelineBar::GetClosestItem(float Time) const
+int32 STimelineBar::GetClosestItem(float Time) const
 {
 	int32 BestItemIndex = INDEX_NONE;
 	float BestDistance = MAX_FLT;
@@ -266,7 +266,6 @@ void STimelineBar::OnSelect()
 {
 	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EFocusCause::Navigation);
 	CurrentItemIndex = INDEX_NONE;
-	SnapScrubPosition(TimeSliderController->GetTimeSliderArgs().ScrubPosition.Get());
 }
 
 void STimelineBar::OnDeselect()
@@ -425,7 +424,7 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 			);
 	}
 
-	uint32 BestItemIndex = GetClosestItem(LocalScrubPosition);
+	int32 BestItemIndex = GetClosestItem(LocalScrubPosition);
 
 	if (BestItemIndex != INDEX_NONE && TimelineOwner.Pin()->IsSelected())
 	{

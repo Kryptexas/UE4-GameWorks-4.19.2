@@ -462,4 +462,22 @@ void SVisualLoggerFilters::OnFiltersSearchChanged(const FText& Filter)
 
 }
 
+void SVisualLoggerFilters::OnItemSelectionChanged(const struct FVisualLogEntry& EntryItem)
+{
+	TArray<FVisualLoggerCategoryVerbosityPair> Categories;
+	FVisualLoggerHelpers::GetCategories(EntryItem, Categories);
+	for (int32 Index = 0; Index < Filters.Num(); ++Index)
+	{
+		SFilterWidget& Filter = Filters[Index].Get();
+		Filter.SetBorderBackgroundColor(FLinearColor(0.2f, 0.2f, 0.2f, 0.2f));
+		for (const FVisualLoggerCategoryVerbosityPair& Category : Categories)
+		{
+			if (Filter.GetFilterName() == Category.CategoryName)
+			{
+				Filter.SetBorderBackgroundColor(FLinearColor(0.3f, 0.3f, 0.3f, 0.8f));
+			}
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

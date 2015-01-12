@@ -747,11 +747,6 @@ void SVisualLogger::HandleSaveCommandExecute()
 
 void SVisualLogger::ResetData()
 {
-	if (ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bResetDataWithNewSession)
-	{
-		return;
-	}
-
 	if (MainView.IsValid())
 	{
 		MainView->ResetData();
@@ -766,7 +761,10 @@ void SVisualLogger::ResetData()
 void SVisualLogger::OnNewWorld(UWorld* NewWorld)
 {
 	InternalDevice->SerLastWorld(NewWorld);
-	ResetData();
+	if (ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bResetDataWithNewSession)
+	{
+		ResetData();
+	}
 }
 
 void SVisualLogger::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)
@@ -800,6 +798,7 @@ void SVisualLogger::OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEnt
 	LogsList->OnItemSelectionChanged(EntryItem);
 	StatusView->OnItemSelectionChanged(EntryItem);
 	VisualLoggerCanvasRenderer->OnItemSelectionChanged(EntryItem.Entry);
+	VisualLoggerFilters->OnItemSelectionChanged(EntryItem.Entry);
 	AVisualLoggerRenderingActor* HelperActor = Cast<AVisualLoggerRenderingActor>(VisualLoggerInterface->GetVisualLoggerHelperActor());
 	if (HelperActor)
 	{
