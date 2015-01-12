@@ -5,8 +5,10 @@
 #include "LockFreeList.h"
 #include "StatsData.h"
 
+
 /** The global thread pool */
-FQueuedThreadPool*		GThreadPool						= NULL;
+FQueuedThreadPool* GThreadPool = nullptr;
+
 
 CORE_API bool IsInGameThread()
 {
@@ -23,7 +25,7 @@ CORE_API bool IsInSlateThread()
 
 CORE_API int32 GIsRenderingThreadSuspended = 0;
 
-CORE_API FRunnableThread* GRenderingThread = NULL;
+CORE_API FRunnableThread* GRenderingThread = nullptr;
 
 CORE_API bool IsInActualRenderingThread()
 {
@@ -44,11 +46,12 @@ CORE_API bool IsInRHIThread()
 {
 	return GRHIThread && FPlatformTLS::GetCurrentThreadId() == GRHIThread->GetThreadID();
 }
-CORE_API FRunnableThread* GRHIThread = NULL;
+CORE_API FRunnableThread* GRHIThread = nullptr;
 // Fake threads
 
+
 /**
- * Fake thread created when multithreading is disabled.
+ * Fake thread created when multi-threading is disabled.
  */
 class FFakeThread : public FRunnableThread
 {
@@ -57,39 +60,36 @@ class FFakeThread : public FRunnableThread
 
 	/** Thread is suspended. */
 	bool bIsSuspended;
+
 	/** Name of this thread. */
 	FString Name;
+
 	/** Runnable object associated with this thread. */
 	FSingleThreadRunnable* Runnable;
+
 	/** Thread Id. */
 	uint32 ThreadId;
 
 public:
 
-	/**
-	 * Constructor.
-	 */
+	/** Constructor. */
 	FFakeThread()
 		: bIsSuspended(false)
-		, Runnable(NULL)
+		, Runnable(nullptr)
 		, ThreadId(ThreadIdCounter++)
 	{
 		// Auto register with single thread manager.
 		FSingleThreadManager::Get().AddThread(this);
 	}
 
-	/**
-	 * Destructor
-	 */
+	/** Virtual destructor. */
 	virtual ~FFakeThread()
 	{
 		// Remove from the manager.
 		FSingleThreadManager::Get().RemoveThread(this);
 	}
 
-	/**
-	 * Tick one time per frame
-	 */
+	/** Tick one time per frame. */
 	void Tick()
 	{
 		if (Runnable && !bIsSuspended)
@@ -98,7 +98,10 @@ public:
 		}
 	}
 
+public:
+
 	// FRunnableThread interface
+
 	virtual void SetThreadPriority(EThreadPriority NewPriority) override
 	{
 		// Not relevant.
@@ -140,10 +143,11 @@ public:
 		{
 			InRunnable->Init();
 		}		
-		return Runnable != NULL;
+		return Runnable != nullptr;
 	}
 };
 uint32 FFakeThread::ThreadIdCounter = 0xffff;
+
 
 void FSingleThreadManager::AddThread(FFakeThread* Thread)
 {
@@ -230,7 +234,7 @@ FRunnableThread* FRunnableThread::Create(
 	EThreadPriority InThreadPri, 
 	uint64 InThreadAffinityMask)
 {
-	FRunnableThread* NewThread = NULL;
+	FRunnableThread* NewThread = nullptr;
 	if (FPlatformProcess::SupportsMultithreading())
 	{
 		check(InRunnable);
@@ -243,7 +247,7 @@ FRunnableThread* FRunnableThread::Create(
 			{
 				// We failed to start the thread correctly so clean up
 				delete NewThread;
-				NewThread = NULL;
+				NewThread = nullptr;
 			}
 		}
 	}
@@ -255,7 +259,7 @@ FRunnableThread* FRunnableThread::Create(
 		{
 			// We failed to start the thread correctly so clean up
 			delete NewThread;
-			NewThread = NULL;
+			NewThread = nullptr;
 		}
 	}
 
@@ -268,8 +272,8 @@ FRunnableThread* FRunnableThread::Create(
 	}
 
 	return NewThread;
-
 }
+
 
 /**
  * This is the interface used for all poolable threads. The usage pattern for
@@ -278,27 +282,21 @@ FRunnableThread* FRunnableThread::Create(
  * for work to do. When signaled they perform a job and then return themselves
  * to their owning pool via a callback and go back to an idle state.
  */
-class FQueuedThread : public FRunnable
+class FQueuedThread
+	: public FRunnable
 {
 protected:
-	/**
-	 * The event that tells the thread there is work to do
-	 */
+
+	/** The event that tells the thread there is work to do. */
 	FEvent* DoWorkEvent;
 
-	/**
-	 * If true, the thread should exit
-	 */
+	/** If true, the thread should exit. */
 	volatile int32 TimeToDie;
 
-	/**
-	 * The work this thread is doing
-	 */
+	/** The work this thread is doing. */
 	FQueuedWork* volatile QueuedWork;
 
-	/**
-	 * The pool this thread belongs to
-	 */
+	/** The pool this thread belongs to. */
 	class FQueuedThreadPool* OwningThreadPool;
 
 	/** My Thread  */
@@ -315,7 +313,7 @@ protected:
 			// Wait for some work to do
 			DoWorkEvent->Wait();
 			FQueuedWork* LocalQueuedWork = QueuedWork;
-			QueuedWork = NULL;
+			QueuedWork = nullptr;
 			FPlatformMisc::MemoryBarrier();
 			check(LocalQueuedWork || TimeToDie); // well you woke me up, where is the job or termination request?
 			while (LocalQueuedWork)
@@ -331,26 +329,22 @@ protected:
 
 public:
 
-	/** Constructor **/
+	/** Default constructor **/
 	FQueuedThread()
-		: DoWorkEvent(NULL)
+		: DoWorkEvent(nullptr)
 		, TimeToDie(0)
-		, QueuedWork(NULL)
-		, OwningThreadPool(NULL)
-		, Thread(NULL)
-	{
-	}
+		, QueuedWork(nullptr)
+		, OwningThreadPool(nullptr)
+		, Thread(nullptr)
+	{ }
 
 	/**
 	 * Creates the thread with the specified stack size and creates the various
 	 * events to be able to communicate with it.
 	 *
-	 * @param InPool The thread pool interface used to place this thread
-	 * back into the pool of available threads when its work is done
-	 * @param InStackSize The size of the stack to create. 0 means use the
-	 * current thread's stack size
+	 * @param InPool The thread pool interface used to place this thread back into the pool of available threads when its work is done
+	 * @param InStackSize The size of the stack to create. 0 means use the current thread's stack size
 	 * @param ThreadPriority priority of new thread
-	 *
 	 * @return True if the thread and all of its initialization was successful, false otherwise
 	 */
 	virtual bool Create(class FQueuedThreadPool* InPool,uint32 InStackSize = 0,EThreadPriority ThreadPriority=TPri_Normal)
@@ -387,7 +381,7 @@ public:
 		Thread->WaitForCompletion();
 		// Clean up the event
 		delete DoWorkEvent;
-		DoWorkEvent = NULL;
+		DoWorkEvent = nullptr;
 		delete DoWorkEvent;
 		delete Thread;
 		return bDidExitOK;
@@ -401,7 +395,7 @@ public:
 	 */
 	void DoWork(FQueuedWork* InQueuedWork)
 	{
-		check(QueuedWork == NULL && "Can't do more than one task at a time");
+		check(QueuedWork == nullptr && "Can't do more than one task at a time");
 		// Tell the thread the work to be done
 		QueuedWork = InQueuedWork;
 		FPlatformMisc::MemoryBarrier();
@@ -411,48 +405,38 @@ public:
 
 };
 
+
 /**
  * Implementation of a queued thread pool.
  */
 class FQueuedThreadPoolBase : public FQueuedThreadPool
 {
 protected:
-	/**
-	 * The work queue to pull from
-	 */
+
+	/** The work queue to pull from. */
 	TArray<FQueuedWork*> QueuedWork;
 	
-	/**
-	 * The thread pool to dole work out to
-	 */
+	/** The thread pool to dole work out to. */
 	TArray<FQueuedThread*> QueuedThreads;
 
-	/**
-	 * All threads in the pool
-	 */
+	/** All threads in the pool. */
 	TArray<FQueuedThread*> AllThreads;
 
-	/**
-	 * The synchronization object used to protect access to the queued work
-	 */
+	/** The synchronization object used to protect access to the queued work. */
 	FCriticalSection* SynchQueue;
 
-	/**
-	 * If true, indicates the destruction process has taken place
-	 */
+	/** If true, indicates the destruction process has taken place. */
 	bool TimeToDie;
 
 public:
 
+	/** Default constructor. */
 	FQueuedThreadPoolBase()
-		: SynchQueue(NULL)
+		: SynchQueue(nullptr)
 		, TimeToDie(0)
-	{
-	}
+	{ }
 
-	/**
-	 * Clean up the synch objects
-	 */
+	/** Virtual destructor (cleans up the synchronization objects). */
 	virtual ~FQueuedThreadPoolBase()
 	{
 		Destroy();
@@ -462,7 +446,7 @@ public:
 	{
 		// Make sure we have synch objects
 		bool bWasSuccessful = true;
-		check(SynchQueue == NULL);
+		check(SynchQueue == nullptr);
 		SynchQueue = new FCriticalSection();
 		FScopeLock Lock(SynchQueue);
 		// Presize the array so there is no extra memory allocated
@@ -534,7 +518,7 @@ public:
 				AllThreads.Empty();
 			}
 			delete SynchQueue;
-			SynchQueue = NULL;
+			SynchQueue = nullptr;
 		}
 	}
 
@@ -545,8 +529,8 @@ public:
 			InQueuedWork->Abandon();
 			return;
 		}
-		check(InQueuedWork != NULL);
-		FQueuedThread* Thread = NULL;
+		check(InQueuedWork != nullptr);
+		FQueuedThread* Thread = nullptr;
 		// Check to see if a thread is available. Make sure no other threads
 		// can manipulate the thread pool while we do this.
 		check(SynchQueue);
@@ -561,7 +545,7 @@ public:
 			QueuedThreads.RemoveAt(Index);
 		}
 		// Was there a thread ready?
-		if (Thread != NULL)
+		if (Thread != nullptr)
 		{
 			// We have a thread, so tell it to do the work
 			Thread->DoWork(InQueuedWork);
@@ -580,7 +564,7 @@ public:
 		{
 			return false; // no special consideration for this, refuse the retraction and let shutdown proceed
 		}
-		check(InQueuedWork != NULL);
+		check(InQueuedWork != nullptr);
 		check(SynchQueue);
 		FScopeLock sl(SynchQueue);
 		return !!QueuedWork.RemoveSingle(InQueuedWork);
@@ -588,8 +572,8 @@ public:
 
 	virtual FQueuedWork* ReturnToPoolOrGetNextJob(FQueuedThread* InQueuedThread) override
 	{
-		check(InQueuedThread != NULL);
-		FQueuedWork* Work = NULL;
+		check(InQueuedThread != nullptr);
+		FQueuedWork* Work = nullptr;
 		// Check to see if there is any work to be done
 		FScopeLock sl(SynchQueue);
 		if (TimeToDie)
@@ -614,10 +598,12 @@ public:
 	}
 };
 
+
 FQueuedThreadPool* FQueuedThreadPool::Allocate()
 {
 	return new FQueuedThreadPoolBase;
 }
+
 
 /*-----------------------------------------------------------------------------
 	FThreadSingletonInitializer

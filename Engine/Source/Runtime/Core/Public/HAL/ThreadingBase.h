@@ -44,14 +44,10 @@ public:
 	 */
 	virtual bool Create( bool bIsManualReset = false ) = 0;
 
-	/**
-	 * Triggers the event so any waiting threads are activated
-	 */
+	/** Triggers the event so any waiting threads are activated */
 	virtual void Trigger() = 0;
 
-	/**
-	 * Resets the event to an untriggered (waitable) state
-	 */
+	/** Resets the event to an untriggered (waitable) state */
 	virtual void Reset() = 0;
 
 	/**
@@ -89,9 +85,7 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~FEvent() { }
 };
 
@@ -110,17 +104,12 @@ class CORE_API FScopedEvent
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FScopedEvent()
 		: Event(GetEventFromPool())
-	{
-	}
+	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FScopedEvent()
 	{
 		Event->Wait();
@@ -128,16 +117,16 @@ public:
 		Event = nullptr;
 	}
 
-	/**
-	 * Triggers the event.
-	 */
+	/** Triggers the event. */
 	void Trigger()
 	{
 		Event->Trigger();
 	}
 
 	/**
-	 * Retrieve the event, usually for passing around
+	 * Retrieve the event, usually for passing around.
+	 *
+	 * @return The event.
 	 */
 	FEvent* Get()
 	{
@@ -150,6 +139,7 @@ protected:
 	 * Returns an event object from the pool.
 	 *
 	 * @return An event object.
+	 * @see ReturnToPool
 	 */
 	static FEvent* GetEventFromPool();
 
@@ -157,6 +147,7 @@ protected:
 	 * Returns an event object to the pool.
 	 *
 	 * @param Event The event object to return.
+	 * @see GetEventFromPool
 	 */
 	static void ReturnToPool( FEvent* Event );
 
@@ -190,6 +181,7 @@ public:
 	 * thread that passes this runnable to a new thread.
 	 *
 	 * @return True if initialization was successful, false otherwise
+	 * @see Run, Stop, Exit
 	 */
 	virtual bool Init()
 	{
@@ -202,6 +194,7 @@ public:
 	 * This is where all per object thread work is done. This is only called if the initialization was successful.
 	 *
 	 * @return The exit code of the runnable object
+	 * @see Init, Stop, Exit
 	 */
 	virtual uint32 Run() = 0;
 
@@ -209,6 +202,7 @@ public:
 	 * Stops the runnable object.
 	 *
 	 * This is called if a thread is requested to terminate early.
+	 * @see Init, Run, Exit
 	 */
 	virtual void Stop() { }
 
@@ -216,11 +210,12 @@ public:
 	 * Exits the runnable object.
 	 *
 	 * Called in the context of the aggregating thread to perform any cleanup.
+	 * @see Init, Run, Stop
 	 */
 	virtual void Exit() { }
 
 	/**
-	 * Gets single thread interface pointer used for ticking this runnable when multithreading is disabled.
+	 * Gets single thread interface pointer used for ticking this runnable when multi-threading is disabled.
 	 * If the interface is not implemented, this runnable will not be ticked when FPlatformProcess::SupportsMultithreading() is false.
 	 *
 	 * @return Pointer to the single thread interface or nullptr if not implemented.
@@ -232,9 +227,7 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor
-	 */
+	/** Virtual destructor */
 	virtual ~FRunnable() { }
 };
 
@@ -312,15 +305,14 @@ public:
 	 */
 	virtual bool Kill( bool bShouldWait = false ) = 0;
 
-	/**
-	 * Halts the caller until this thread is has completed its work.
-	 */
+	/** Halts the caller until this thread is has completed its work. */
 	virtual void WaitForCompletion() = 0;
 
 	/**
 	 * Thread ID for this thread 
 	 *
 	 * @return ID that was set by CreateThread
+	 * @see GetThreadName
 	 */
 	virtual uint32 GetThreadID() = 0;
 
@@ -328,6 +320,7 @@ public:
 	 * Retrieves the given name of the thread
 	 *
 	 * @return Name that was set by CreateThread
+	 * @see GetThreadID
 	 */
 	virtual FString GetThreadName() = 0;
 
@@ -406,10 +399,9 @@ public:
 		return ThreadDestroyedDelegate;
 	}
 
-	/**
-	 * Virtual destructor
-	 */
+	/** Virtual destructor */
 	virtual ~FRunnableThread();
+
 protected:
 
 	/**
@@ -444,9 +436,7 @@ class FSingleThreadEvent
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FSingleThreadEvent()
 		: bTriggered(false)
 		, bManualReset(false)
@@ -512,6 +502,7 @@ public:
 	 * Used internally to add a new thread object when multithreading is disabled.
 	 *
 	 * @param Thread Fake thread object.
+	 * @see RemoveThread
 	 */
 	void AddThread( class FFakeThread* Thread );
 
@@ -519,16 +510,17 @@ public:
 	 * Used internally to remove fake thread object.
 	 *
 	 * @param Thread Fake thread object to be removed.
+	 * @see AddThread
 	 */
 	void RemoveThread( class FFakeThread* Thread );
 
-	/**
-	 * Ticks all fake threads and their runnable objects.
-	 */
+	/** Ticks all fake threads and their runnable objects. */
 	void Tick();
 
 	/**
 	 * Access to the singleton object.
+	 *
+	 * @return Thread manager object.
 	 */
 	static FSingleThreadManager& Get();
 };
@@ -591,9 +583,7 @@ public:
 	 */
 	virtual bool Create( uint32 InNumQueuedThreads, uint32 StackSize = (32 * 1024), EThreadPriority ThreadPriority=TPri_Normal ) = 0;
 
-	/**
-	 * Tells the pool to clean up all background threads
-	 */
+	/** Tells the pool to clean up all background threads */
 	virtual void Destroy() = 0;
 
 	/**
@@ -601,6 +591,7 @@ public:
 	 * it queues the work for later. Otherwise it is immediately dispatched.
 	 *
 	 * @param InQueuedWork The work that needs to be done asynchronously
+	 * @see RetractQueuedWork
 	 */
 	virtual void AddQueuedWork( FQueuedWork* InQueuedWork ) = 0;
 
@@ -609,6 +600,7 @@ public:
 	 *
 	 * @param InQueuedWork The work to try to retract
 	 * @return true if the work was retracted
+	 * @see AddQueuedWork
 	 */
 	virtual bool RetractQueuedWork( FQueuedWork* InQueuedWork ) = 0;
 
@@ -622,15 +614,15 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~FQueuedThreadPool() { }
 
 public:
 
 	/**
 	 * Allocates a thread pool
+	 *
+	 * @return A new thread pool.
 	 */
 	static FQueuedThreadPool* Allocate();
 };
@@ -685,6 +677,7 @@ public:
 	 * Increment and return new value.	
 	 *
 	 * @return the new, incremented value
+	 * @see Add, Decrement, Reset, Set, Subtract
 	 */
 	int32 Increment()
 	{
@@ -696,6 +689,7 @@ public:
 	 *
 	 * @param Amount Amount to increase the counter by
 	 * @return the old value
+	 * @see Decrement, Increment, Reset, Set, Subtract
 	 */
 	int32 Add( int32 Amount )
 	{
@@ -706,6 +700,7 @@ public:
 	 * Decrement and return new value.
 	 *
 	 * @return the new, decremented value
+	 * @see Add, Increment, Reset, Set, Subtract
 	 */
 	int32 Decrement()
 	{
@@ -717,6 +712,7 @@ public:
 	 *
 	 * @param Amount Amount to decrease the counter by
 	 * @return the old value
+	 * @see Add, Decrement, Increment, Reset, Set
 	 */
 	int32 Subtract( int32 Amount )
 	{
@@ -728,6 +724,7 @@ public:
 	 *
 	 * @param Value	Value to set the counter to
 	 * @return The old value
+	 * @see Add, Decrement, Increment, Reset, Subtract
 	 */
 	int32 Set( int32 Value )
 	{
@@ -738,6 +735,7 @@ public:
 	 * Resets the counter's value to zero.
 	 *
 	 * @return the old value.
+	 * @see Add, Decrement, Increment, Set, Subtract
 	 */
 	int32 Reset()
 	{
@@ -888,9 +886,7 @@ public:
 		SynchObject->Lock();
 	}
 
-	/**
-	 * Destructor that performs a release on the synchronization object
-	 */
+	/** Destructor that performs a release on the synchronization object. */
 	~FScopeLock()
 	{
 		check(SynchObject);
@@ -898,13 +894,13 @@ public:
 	}
 private:
 
-	// Default constructor (hidden on purpose).
+	/** Default constructor (hidden on purpose). */
 	FScopeLock();
 
-	// Copy constructor( hidden on purpose).
+	/** Copy constructor( hidden on purpose). */
 	FScopeLock( FScopeLock* InScopeLock);
 
-	// Assignment operator (hidden on purpose).
+	/** Assignment operator (hidden on purpose). */
 	FScopeLock& operator=( FScopeLock& InScopeLock )
 	{
 		return *this;
@@ -941,11 +937,14 @@ extern CORE_API int32 GIsRenderingThreadSuspended;
 
 /** @return True if called from the RHI thread, or if called from ANY thread during single threaded rendering */
 extern CORE_API bool IsInRHIThread();
+
 /** Thread used for RHI */
 extern CORE_API FRunnableThread* GRHIThread;
 
 
-/** Minimal base class for the thread singleton. */
+/**
+ * Minimal base class for the thread singleton.
+ */
 struct FThreadSingleton
 {
 	typedef FThreadSingleton* (*TCreateSingletonFuncPtr)();
@@ -957,14 +956,16 @@ struct FThreadSingleton
 };
 
 
-/** Thread singleton initializer. */
+/**
+ * Thread singleton initializer.
+ */
 class FThreadSingletonInitializer
 {
 public:
 
 	/**
-	* @return an instance of a singleton for the current thread.
-	*/
+	 * @return an instance of a singleton for the current thread.
+	 */
 	static CORE_API FThreadSingleton* Get( const FThreadSingleton::TCreateSingletonFuncPtr CreateFunc, const FThreadSingleton::TDestroySingletonFuncPtr DestroyFunc, uint32& TlsSlot );
 };
 
@@ -1001,9 +1002,7 @@ protected:
 		return new T();
 	}
 
-	/**
-	 *	Deletes this instance of the thread singleton. 
-	 */
+	/**	Deletes this instance of the thread singleton.  */
 	virtual void DeleteThis()
 	{
 		T* This = (T*)this;
