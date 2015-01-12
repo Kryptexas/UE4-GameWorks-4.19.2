@@ -6,7 +6,7 @@
 #include "DetailCategoryBuilder.h"
 #include "EdModeTileMap.h"
 #include "PropertyEditing.h"
-#include "SCreateNewAssetFromFactory.h"
+#include "AssetToolsModule.h"
 
 #include "STileLayerList.h"
 #include "ScopedTransaction.h"
@@ -225,7 +225,9 @@ FReply FPaperTileMapDetailsCustomization::OnPromoteButtonClicked()
 				// Try promoting the tile map to be an asset (prompts for a name&path, creates a package and then calls the factory, which renames the existing asset and sets RF_Public)
 				UPaperTileMapPromotionFactory* PromotionFactory = NewObject<UPaperTileMapPromotionFactory>();
 				PromotionFactory->AssetToRename = TileMapComponent->TileMap;
-				SCreateNewAssetFromFactory::Create(PromotionFactory);
+
+				FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(PromotionFactory->GetSupportedClass(), PromotionFactory);
 			}
 		}
 	}
