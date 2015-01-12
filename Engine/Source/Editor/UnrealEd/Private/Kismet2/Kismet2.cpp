@@ -870,44 +870,54 @@ bool FKismetEditorUtilities::CanCreateBlueprintOfClass(const UClass* Class)
 	return bCanCreateBlueprint && bIsValidClass;
 }
 
-UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path, UObject* Object, bool bReplaceActor )
+UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path, AActor* Actor, const bool bReplaceActor )
 {
-	UBlueprint* NewBlueprint = NULL;
+	UBlueprint* NewBlueprint = nullptr;
 
-	if (AActor* Actor = Cast<AActor>(Object))
+	// Create a blueprint
+	FString PackageName = Path;
+	FString AssetName = FPackageName::GetLongPackageAssetName(Path);
+
+	// If no AssetName was found, generate a unique asset name.
+	if(AssetName.Len() == 0)
 	{
-		// Create a blueprint
-		FString PackageName = Path;
-		FString AssetName = FPackageName::GetLongPackageAssetName(Path);
+		PackageName = FPackageName::GetLongPackagePath(Path);
+		FString BasePath = PackageName + TEXT("/") + LOCTEXT("BlueprintName_Default", "NewBlueprint").ToString();
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		AssetToolsModule.Get().CreateUniqueAssetName(BasePath, TEXT(""), PackageName, AssetName);
+	}
 
+	UPackage* Package = CreatePackage(NULL, *PackageName);
 
-		// If no AssetName was found, generate a unique asset name.
-		if(AssetName.Len() == 0)
-		{
-			PackageName = FPackageName::GetLongPackagePath(Path);
-			FString BasePath = PackageName + TEXT("/") + LOCTEXT("BlueprintName_Default", "NewBlueprint").ToString();
-			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-			AssetToolsModule.Get().CreateUniqueAssetName(BasePath, TEXT(""), PackageName, AssetName);
-		}
+	if(Package)
+	{
+		NewBlueprint = CreateBlueprintFromActor(FName(*AssetName), Package, Actor, bReplaceActor);
+	}
 
-		UPackage* Package = CreatePackage(NULL, *PackageName);
+	return NewBlueprint;
+}
 
-		if(Package)
+UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName BlueprintName, UObject* Outer, AActor* Actor, const bool bReplaceActor )
+{
+	UBlueprint* NewBlueprint = nullptr;
+
+	if (Actor)
+	{
+		if (Outer)
 		{
 			UActorFactory* FactoryToUse = GEditor->FindActorFactoryForActorClass( Actor->GetClass() );
-			const FName BlueprintName = FName(*AssetName);
 
 			if( FactoryToUse != NULL )
 			{
 				// Create the blueprint
 				UObject* Asset = FactoryToUse->GetAssetFromActorInstance(Actor);
 				// For Actors that don't have an asset associated with them, Asset will be null
-				NewBlueprint = FactoryToUse->CreateBlueprint( Asset, Package, BlueprintName, FName("CreateFromActor") );
+				NewBlueprint = FactoryToUse->CreateBlueprint( Asset, Outer, BlueprintName, FName("CreateFromActor") );
 			}
 			else 
 			{
 				// We don't have a factory, but we can still try to create a blueprint for this actor class
-				NewBlueprint = FKismetEditorUtilities::CreateBlueprint( Object->GetClass(), Package, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("CreateFromActor") );
+				NewBlueprint = FKismetEditorUtilities::CreateBlueprint( Actor->GetClass(), Outer, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("CreateFromActor") );
 			}
 		}
 
@@ -917,12 +927,12 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path
 			FAssetRegistryModule::AssetCreated(NewBlueprint);
 
 			// Mark the package dirty
-			Package->MarkPackageDirty();
+			Outer->MarkPackageDirty();
 
 			if(NewBlueprint->GeneratedClass)
 			{
 				UObject* CDO = NewBlueprint->GeneratedClass->GetDefaultObject();
-				UEditorEngine::CopyPropertiesForUnrelatedObjects(Object, CDO);
+				UEditorEngine::CopyPropertiesForUnrelatedObjects(Actor, CDO);
 				if(AActor* CDOAsActor = Cast<AActor>(CDO))
 				{
 					if(USceneComponent* Scene = CDOAsActor->GetRootComponent())
