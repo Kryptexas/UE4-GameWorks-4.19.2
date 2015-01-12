@@ -442,9 +442,18 @@ void FFriendsAndChatManager::SetChatWindowContents()
 			.Padding(20.0f, 0.0f)
 			.VAlign(VAlign_Top)
 			[
-				SNew(SFriendsStatus, StatusViewModel)
-				.FriendStyle(&Style)
-				.Method(EPopupMethod::UseCurrentWindow)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SFriendsStatus, StatusViewModel)
+					.FriendStyle(&Style)
+					.Method(EPopupMethod::UseCurrentWindow)
+				]
+				+ SHorizontalBox::Slot()
+				[
+					SNew(SSpacer)
+				]
 			]
 			+ SVerticalBox::Slot()
 			[

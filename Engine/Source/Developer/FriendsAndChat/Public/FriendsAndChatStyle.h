@@ -72,8 +72,8 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 
 	/** Friends List Combo Button style */
 	UPROPERTY()
-	FButtonStyle FriendListComboButtonStyle;
-	FFriendsAndChatStyle& SetFriendsListComboButtonStyle(const FButtonStyle& ButtonStyle);
+	FComboButtonStyle FriendListComboButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListComboButtonStyle(const FComboButtonStyle& ButtonStyle);
 
 	UPROPERTY()
 	FButtonStyle FriendListItemButtonStyle;
@@ -102,6 +102,16 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY()
 	FButtonStyle FriendActionDropdownButtonStyle;
 	FFriendsAndChatStyle& SetFriendActionDropdownButtonStyle(const FButtonStyle& ButtonStyle);
+
+	/** Friends List Combo Button menu background image (left) */
+	UPROPERTY()
+	FSlateBrush FriendComboBackgroundLeftBrush;
+	FFriendsAndChatStyle& SetFriendComboBackgroundLeftBrush(const FSlateBrush& BrushStyle);
+
+	/** Friends List Combo Button menu background image (right) */
+	UPROPERTY()
+	FSlateBrush FriendComboBackgroundRightBrush;
+	FFriendsAndChatStyle& SetFriendComboBackgroundRightBrush(const FSlateBrush& BrushStyle);
 
 	/** Optional content for the Add Friend button */
 	UPROPERTY()

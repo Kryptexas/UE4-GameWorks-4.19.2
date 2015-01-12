@@ -2,9 +2,16 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SFriendsStatus.h"
+#include "SFriendsAndChatCombo.h"
 #include "FriendsStatusViewModel.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsStatus"
+
+namespace FriendsStatusImplDefs
+{
+	const static FName OnlineTag("Online");
+	const static FName AwayTag("Away");
+}
 
 /**
  * Declares the Friends Status display widget
@@ -22,107 +29,37 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SAssignNew(ActionMenu, SMenuAnchor)
-				.Placement(EMenuPlacement::MenuPlacement_ComboBox)
-				.Method(InArgs._Method)
-				.MenuContent(GetMenuContent())
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Center)
-					.OnClicked(this, &SFriendsStatusImpl::HandleVersionDropDownClicked)
-					.ButtonStyle(&FriendStyle.FriendListStatusButtonStyle)
-					.Cursor(EMouseCursor::Hand)
-					[
-						SNew(SBox)
-						.WidthOverride(FriendStyle.StatusButtonSize.X)
-						.HeightOverride(FriendStyle.StatusButtonSize.Y)
-						.VAlign(VAlign_Center)
-						[
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-							.HAlign(HAlign_Left)
-							.VAlign(VAlign_Center)
-							.Padding(FMargin(10, 0, 4, 0))
-							.AutoWidth()
-							[
-								SNew(SImage)
-								.Image(this, &SFriendsStatusImpl::GetStatusBrush)
-							]
-							+ SHorizontalBox::Slot()
-							.VAlign(VAlign_Center)
-							.AutoWidth()
-							.Padding(FMargin(0, 2, 0, 0))
-							[
-								SNew(STextBlock)
-								.Text(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
-								.Font(FriendStyle.FriendsFontStyleBold)
-								.ColorAndOpacity(FLinearColor::White)
-							]
-						]
-					]
-				]
-			]
+			SNew(SFriendsAndChatCombo)
+			.FriendStyle(&FriendStyle)
+			.ButtonText(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
+			.DropdownItems
+			(
+				SFriendsAndChatCombo::FItemsArray()
+				+ SFriendsAndChatCombo::FItemData(FText::FromString(FriendsStatusImplDefs::OnlineTag.ToString()), FriendsStatusImplDefs::OnlineTag, true)
+				+ SFriendsAndChatCombo::FItemData(FText::FromString(FriendsStatusImplDefs::AwayTag.ToString()), FriendsStatusImplDefs::AwayTag, true)
+			)
+			.bSetButtonTextToSelectedItem(true)
+			.bAutoCloseWhenClicked(true)
+			.ContentWidth(FriendStyle.StatusButtonSize.X)
+			.OnDropdownItemClicked(this, &SFriendsStatusImpl::HandleStatusChanged)
 		]);
 	}
 
 private:
-	FReply HandleVersionDropDownClicked() const
+	void HandleStatusChanged(FName ItemTag)
 	{
-		ActionMenu->SetIsOpen(true);
-		return FReply::Handled();
-	}
+		EOnlinePresenceState::Type OnlineState = EOnlinePresenceState::Offline;
 
-	/**
-	* Generate the action menu.
-	* @return the action menu widget
-	*/
-	TSharedRef<SWidget> GetMenuContent()
-	{
-		return SNew(SBorder)
-			.BorderImage(&FriendStyle.Background)
-			.Padding(FMargin(1, 5))
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				[
-					SNew(SButton)
-					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, EOnlinePresenceState::Online)
-					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(FText::FromString("Online"))
-					]
-				]
-				+ SVerticalBox::Slot()
-				[
-					SNew(SButton)
-					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, EOnlinePresenceState::Away)
-					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(FText::FromString("Away"))
-					]
-				]
-			];
-	}
+		if (ItemTag == FriendsStatusImplDefs::OnlineTag)
+		{
+			OnlineState = EOnlinePresenceState::Online;
+		}
+		else if (ItemTag == FriendsStatusImplDefs::AwayTag)
+		{
+			OnlineState = EOnlinePresenceState::Away;
+		}
 
-	FReply HandleStatusChanged(EOnlinePresenceState::Type OnlineState)
-	{
-		ActionMenu->SetIsOpen(false);
 		ViewModel->SetOnlineStatus(OnlineState);
-		return FReply::Handled();
 	}
 
 

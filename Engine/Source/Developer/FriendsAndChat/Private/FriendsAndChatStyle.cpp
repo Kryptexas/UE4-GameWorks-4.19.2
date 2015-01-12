@@ -36,6 +36,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendActionDropdownButtonStyle(c
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendComboBackgroundLeftBrush(const FSlateBrush& BrushStyle)
+{
+	FriendComboBackgroundLeftBrush = BrushStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendComboBackgroundRightBrush(const FSlateBrush& BrushStyle)
+{
+	FriendComboBackgroundRightBrush = BrushStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonContentBrush(const FSlateBrush& BrushStyle)
 {
 	AddFriendButtonContentBrush = BrushStyle;
@@ -72,7 +84,7 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListEmphasisButtonStyle(co
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListComboButtonStyle(const FButtonStyle& ButtonStyle)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListComboButtonStyle(const FComboButtonStyle& ButtonStyle)
 {
 	FriendListComboButtonStyle = ButtonStyle;
 	return *this;
