@@ -166,6 +166,15 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Allow platform specific clean-up or detection after client has run
+		/// </summary>
+		/// <param name="ClientRunFlags"></param>
+		public virtual void PostRunClient(ProcessResult Result, ProjectParams Params)
+		{
+			// do nothing in the default case
+		}
+
+		/// <summary>
 		/// Get the platform-specific name for the executable (with out the file extension)
 		/// </summary>
 		/// <param name="InExecutableName"></param>
