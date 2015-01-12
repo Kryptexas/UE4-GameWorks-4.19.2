@@ -73,6 +73,12 @@ public:
 	virtual void SetMessage(const FText& InMessage);
 
 	/**
+	 * Sets the warning message displayed in the package dialog
+	 * @param InMessage		The warning to display
+	 */
+	virtual void SetWarning(const FText& InMessage);
+
+	/**
 	 * Populates the passed in array with the desired packages
 	 *
 	 * @param	OutPackages		The array that should be populated with the desired packages
@@ -129,6 +135,9 @@ protected:
 private:
 	/** A default window size for the package dialog */
 	static const FVector2D DEFAULT_WINDOW_SIZE;
+
+	/** Extra window width if source control connection is allowed */
+	static const FVector2D EXTRA_WINDOW_WIDTH;
 
 	/** Editor package dialog window */
 	TWeakPtr<SWindow> EditorPackagesDialogWindow;

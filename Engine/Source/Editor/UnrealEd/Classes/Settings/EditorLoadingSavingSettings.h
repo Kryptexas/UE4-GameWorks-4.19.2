@@ -69,6 +69,10 @@ public:
 
 public:
 
+	/** Whether to automatically checkout on asset modification */
+	UPROPERTY(EditAnywhere, config, Category=SourceControl)
+	uint32 bAutomaticallyCheckoutOnAssetModification:1;
+
 	/** Whether to automatically prompt for SCC checkout on asset modification */
 	UPROPERTY(EditAnywhere, config, Category=SourceControl)
 	uint32 bPromptForCheckoutOnAssetModification:1;

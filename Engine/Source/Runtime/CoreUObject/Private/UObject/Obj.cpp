@@ -741,7 +741,7 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 
 			// If we failed to save to the transaction buffer, but the user requested the package
 			// marked dirty anyway, do so
-			if (!bSavedToTransactionBuffer || bAlwaysMarkDirty)
+			if (!bSavedToTransactionBuffer && bAlwaysMarkDirty)
 			{
 				MarkPackageDirty();
 			}

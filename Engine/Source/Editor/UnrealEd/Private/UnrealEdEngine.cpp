@@ -20,7 +20,6 @@
 #include "GameMapsSettingsCustomization.h"
 #include "LevelEditorPlaySettingsCustomization.h"
 #include "ProjectPackagingSettingsCustomization.h"
-#include "ISourceControlModule.h"
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "SnappingUtils.h"
 #include "PackageAutoSaver.h"
@@ -29,6 +28,8 @@
 #include "ComponentVisualizer.h"
 #include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
 #include "SourceCodeNavigation.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
 
@@ -417,35 +418,112 @@ void UUnrealEdEngine::OnPackageDirtyStateUpdated( UPackage* Pkg)
 		const uint8* PromptState = PackageToNotifyState.Find( Package );
 		const bool bAlreadyAsked = PromptState != NULL;
 
-		// Get the source control state of the package
-		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package, EStateCacheUsage::Use);
-
 		// During an autosave, packages are saved in the autosave directory which switches off their dirty flags.
 		// To preserve the pre-autosave state, any saved package is then remarked as dirty because it wasn't saved in the normal location where it would be picked up by source control.
-		// Any callback that happens during an autosave is bogus since a package wasnt  marked dirty due to a user modification.
+		// Any callback that happens during an autosave is bogus since a package wasn't marked dirty due to a user modification.
 		const bool bIsAutoSaving = PackageAutoSaver.Get() && PackageAutoSaver->IsAutoSaving();
+
+		const UEditorLoadingSavingSettings* Settings = GetDefault<UEditorLoadingSavingSettings>();
+
 		if( !bIsAutoSaving && 
 			!GIsEditorLoadingPackage && // Don't ask if the package was modified as a result of a load
 			!bAlreadyAsked && // Don't ask if we already asked once!
-			GetDefault<UEditorLoadingSavingSettings>()->bPromptForCheckoutOnAssetModification && // Only prompt if the user has specified to be prompted on modification
-			SourceControlState.IsValid() && 
-			(SourceControlState->CanCheckout() || !SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther()) )
+			(Settings->bPromptForCheckoutOnAssetModification || Settings->bAutomaticallyCheckoutOnAssetModification) )
 		{
-			// Allow packages that are not checked out to pass through.
-			// Allow packages that are not current or checked out by others pass through.  
-			// The user wont be able to checkout these packages but the checkout dialog will show up with a special icon 
-			// to let the user know they wont be able to checkout the package they are modifying.
+			// Force source control state to be updated
+			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
-			PackageToNotifyState.Add( Package, NS_PendingPrompt );
-			// We need to prompt since a new package was added
-			bNeedToPromptForCheckout = true;
+			TArray<FString> Files;
+			Files.Add(SourceControlHelpers::PackageFilename(Package));
+			SourceControlProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), SourceControlHelpers::AbsoluteFilenames(Files), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateUObject(this, &UUnrealEdEngine::OnSourceControlStateUpdated, TWeakObjectPtr<UPackage>(Package)));
 		}
 	}
 	else
 	{
 		// This package was saved, the user should be prompted again if they checked in the package
 		PackageToNotifyState.Remove( Package );
+	}
+}
+
+
+void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TWeakObjectPtr<UPackage> Package)
+{
+	if (ResultType == ECommandResult::Succeeded && Package.IsValid())
+	{
+		// Get the source control state of the package
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package.Get(), EStateCacheUsage::Use);
+
+		if (SourceControlState.IsValid())
+		{
+			const UEditorLoadingSavingSettings* Settings = GetDefault<UEditorLoadingSavingSettings>();
+			check(Settings->bPromptForCheckoutOnAssetModification || Settings->bAutomaticallyCheckoutOnAssetModification);
+
+			if (Settings->bAutomaticallyCheckoutOnAssetModification && SourceControlState->CanCheckout())
+			{
+				// Automatically check out asset
+				TArray<FString> Files;
+				Files.Add(SourceControlHelpers::PackageFilename(Package.Get()));
+				SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), SourceControlHelpers::AbsoluteFilenames(Files), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateUObject(this, &UUnrealEdEngine::OnPackageCheckedOut, TWeakObjectPtr<UPackage>(Package)));
+			}
+			else
+			{
+				if (SourceControlState->CanCheckout() || !SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther())
+				{
+					// To get here, either "prompt for checkout on asset modification" is set, or "automatically checkout on asset modification"
+					// is set, but it failed.
+
+					// Allow packages that are not checked out to pass through.
+					// Allow packages that are not current or checked out by others pass through.  
+					// The user wont be able to checkout these packages but the checkout dialog will show up with a special icon 
+					// to let the user know they wont be able to checkout the package they are modifying.
+
+					PackageToNotifyState.Add(Package, SourceControlState->CanCheckout() ? NS_PendingPrompt : NS_PendingWarning);
+					// We need to prompt since a new package was added
+					bNeedToPromptForCheckout = true;
+				}
+			}
+		}
+	}
+}
+
+
+void UUnrealEdEngine::OnPackageCheckedOut(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TWeakObjectPtr<UPackage> Package)
+{
+	if (Package.IsValid())
+	{
+		// Get the source control state of the package
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package.Get(), EStateCacheUsage::Use);
+
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("Package"), FText::FromString(Package->GetName()));
+
+		if (ResultType == ECommandResult::Succeeded)
+		{
+			if (SourceControlState.IsValid() && SourceControlState->IsCheckedOut())
+			{
+				FNotificationInfo Notification(FText::Format(NSLOCTEXT("SourceControl", "AutoCheckOutNotification", "Package '{Package}' automatically checked out."), Arguments));
+				Notification.bFireAndForget = true;
+				Notification.ExpireDuration = 4.0f;
+				Notification.bUseThrobber = true;
+
+				FSlateNotificationManager::Get().AddNotification(Notification);
+
+				return;
+			}
+		}
+
+		FNotificationInfo ErrorNotification(FText::Format(NSLOCTEXT("SourceControl", "AutoCheckOutFailedNotification", "Unable to automatically check out Package '{Package}'."), Arguments));
+		ErrorNotification.bFireAndForget = true;
+		ErrorNotification.ExpireDuration = 4.0f;
+		ErrorNotification.bUseThrobber = true;
+
+		FSlateNotificationManager::Get().AddNotification(ErrorNotification);
+
+		// Automatic checkout failed - pop up the notification for manual checkout
+		PackageToNotifyState.Add(Package, SourceControlState->CanCheckout() ? NS_PendingPrompt : NS_PendingWarning);
+		bNeedToPromptForCheckout = true;
 	}
 }
 

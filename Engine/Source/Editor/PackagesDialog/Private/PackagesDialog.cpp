@@ -7,6 +7,7 @@
 IMPLEMENT_MODULE( FPackagesDialogModule, PackagesDialog );
 
 const FVector2D FPackagesDialogModule::DEFAULT_WINDOW_SIZE = FVector2D(600, 400);	// TODO: MIN SIZE SHOULD BE 270, 330 FOR AESTHETICS
+const FVector2D FPackagesDialogModule::EXTRA_WINDOW_WIDTH = FVector2D(150, 0);
 
 /**
  * Called right after the module's DLL has been loaded and the module object has been created
@@ -60,7 +61,8 @@ EDialogReturnType FPackagesDialogModule::ShowPackagesDialog()
 EDialogReturnType FPackagesDialogModule::ShowPackagesDialog(OUT TSet<FString>& InOutIgnoredPackages)
 {
 	/** Ensure the package dialog window was not created already */
-	check( !EditorPackagesDialogWindow.IsValid() );
+	check(!EditorPackagesDialogWindow.IsValid());
+	check(PackagesDialogWidget.IsValid());
 
 	/** Reset the widget, as it may have been re-used */
 	PackagesDialogWidget->Reset();
@@ -69,9 +71,16 @@ EDialogReturnType FPackagesDialogModule::ShowPackagesDialog(OUT TSet<FString>& I
 	PackagesDialogWidget->PopulateIgnoreForSaveItems(InOutIgnoredPackages);
 
 	/** Create the window to host our package dialog widget */
+	FVector2D WindowSize = DEFAULT_WINDOW_SIZE;
+	if (PackagesDialogWidget->IsSourceControlConnectionAllowed())
+	{
+		// Make the window a little wider if there's an additional column for source control status
+		WindowSize += EXTRA_WINDOW_WIDTH;
+	}
+
 	TSharedRef< SWindow > EditorPackagesDialogWindowRef = SNew(SWindow)
 		.Title(PackageDialogTitle)
-		.ClientSize(FPackagesDialogModule::DEFAULT_WINDOW_SIZE);
+		.ClientSize(WindowSize);
 	
 	/** Store weak pointers to the package dialog Slate window and widget */
 	EditorPackagesDialogWindow = EditorPackagesDialogWindowRef;
@@ -119,6 +128,12 @@ void FPackagesDialogModule::SetMessage(const FText& InMessage)
 {
 	check(PackagesDialogWidget.IsValid());
 	PackagesDialogWidget->SetMessage(InMessage);
+}
+
+void FPackagesDialogModule::SetWarning(const FText& InMessage)
+{
+	check(PackagesDialogWidget.IsValid());
+	PackagesDialogWidget->SetWarning(InMessage);
 }
 
 /**

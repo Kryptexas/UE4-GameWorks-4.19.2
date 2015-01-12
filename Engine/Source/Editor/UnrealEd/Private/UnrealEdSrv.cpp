@@ -1451,24 +1451,45 @@ void UUnrealEdEngine::AttemptModifiedPackageNotification()
 
 		if( bCanPrompt )
 		{
+			check(GUnrealEd != nullptr);
+			const TMap<TWeakObjectPtr<UPackage>, uint8>& PackageToNotifyState = GUnrealEd->PackageToNotifyState;
+
+			bool bNeedWarningDialog = false;
+			for (const auto& Entry : PackageToNotifyState)
+			{
+				if (Entry.Value == NS_PendingWarning)
+				{
+					bNeedWarningDialog = true;
+					break;
+				}
+			}
+
 			// The user is not interacting with anything, prompt to checkout packages that have been modified
 			
 			struct Local
 			{
-				static void OpenMessageLog()
+				static void OpenCheckOutDialog()
 				{
 					GUnrealEd->PromptToCheckoutModifiedPackages();
 				}
 			};
-			FNotificationInfo ErrorNotification( NSLOCTEXT("SourceControl", "CheckOutNotification", "Files need check-out!") );
-			ErrorNotification.bFireAndForget = true;
-			ErrorNotification.Hyperlink = FSimpleDelegate::CreateStatic(&Local::OpenMessageLog);
-			ErrorNotification.HyperlinkText = NSLOCTEXT("SourceControl", "CheckOutHyperlinkText", "Check-Out");
-			ErrorNotification.ExpireDuration = 3.0f; // Need this message to last a little longer than normal since the user may want to "Show Log"
-			ErrorNotification.bUseThrobber = true;
 
-			// For adding notifications.
-			FSlateNotificationManager::Get().AddNotification(ErrorNotification);
+			if (bNeedWarningDialog)
+			{
+				Local::OpenCheckOutDialog();
+			}
+			else
+			{
+				FNotificationInfo ErrorNotification(NSLOCTEXT("SourceControl", "CheckOutNotification", "Files need check-out!"));
+				ErrorNotification.bFireAndForget = true;
+				ErrorNotification.Hyperlink = FSimpleDelegate::CreateStatic(&Local::OpenCheckOutDialog);
+				ErrorNotification.HyperlinkText = NSLOCTEXT("SourceControl", "CheckOutHyperlinkText", "Check-Out");
+				ErrorNotification.ExpireDuration = 10.0f; // Need this message to last a little longer than normal since the user will probably want to click the hyperlink to check out files
+				ErrorNotification.bUseThrobber = true;
+
+				// For adding notifications.
+				FSlateNotificationManager::Get().AddNotification(ErrorNotification);
+			}
 
 			// No longer have a pending prompt.
 			bNeedToPromptForCheckout = false;
@@ -1548,7 +1569,7 @@ void UUnrealEdEngine::PromptToCheckoutModifiedPackages( bool bPromptAll )
 	{
 		for( TMap<TWeakObjectPtr<UPackage>,uint8>::TIterator It(PackageToNotifyState); It; ++It )
 		{
-			if( It.Key().IsValid() && (It.Value() == NS_BalloonPrompted || It.Value() == NS_PendingPrompt) )
+			if( It.Key().IsValid() && (It.Value() == NS_PendingWarning || It.Value() == NS_PendingPrompt) )
 			{
 				PackagesToCheckout.Add( It.Key().Get() );
 				It.Value() = NS_DialogPrompted;
@@ -1556,7 +1577,9 @@ void UUnrealEdEngine::PromptToCheckoutModifiedPackages( bool bPromptAll )
 		}
 	}
 
-	FEditorFileUtils::PromptToCheckoutPackages( true, PackagesToCheckout, NULL, NULL, true );
+	const bool bCheckDirty = true;
+	const bool bPromptingAfterModify = true;
+	FEditorFileUtils::PromptToCheckoutPackages( bCheckDirty, PackagesToCheckout, NULL, NULL, bPromptingAfterModify );
 }
 
 

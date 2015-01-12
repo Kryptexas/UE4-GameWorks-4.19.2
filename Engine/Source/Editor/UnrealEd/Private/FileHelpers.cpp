@@ -1020,8 +1020,11 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 	}
 	
 	// The checkout dialog to show users if any packages need to be checked out
+	const FText DialogTitle = NSLOCTEXT("PackagesDialogModule", "CheckoutPackagesDialogTitle", "Check Out Assets");
+	const FText DialogHeading = NSLOCTEXT("PackagesDialogModule", "CheckoutPackagesDialogMessage", "Select assets to check out.");
+
 	FPackagesDialogModule& CheckoutPackagesDialogModule = FModuleManager::LoadModuleChecked<FPackagesDialogModule>( TEXT("PackagesDialog") );
-	CheckoutPackagesDialogModule.CreatePackagesDialog(NSLOCTEXT("PackagesDialogModule", "CheckoutPackagesDialogTitle", "Check Out Assets"), NSLOCTEXT("PackagesDialogModule", "CheckoutPackagesDialogMessage", "Select assets to check out, right-click assets for more options."), false, true);
+	CheckoutPackagesDialogModule.CreatePackagesDialog(DialogTitle, DialogHeading, false, true);
 
 	// Add any of the packages which do not report as editable by source control, yet are currently in the source control depot
 	// If the user has specified to check for dirty packages, only add those which are dirty
@@ -1036,6 +1039,8 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 		const FString& PackageName = PackagesToCheckOut[0]->GetName();
 		PackagesNotSavedDuringSaveAll.Remove(PackageName);
 	}
+
+	bool bShowWarning = false;
 
 	// Iterate through all the packages and add them to the dialog if necessary.
 	for ( TArray<UPackage*>::TConstIterator PackageIter( PackagesToCheckOut ); PackageIter; ++PackageIter )
@@ -1058,18 +1063,20 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 		// Package does not need to be checked out if its already checked out or we are ignoring it for source control
 		bool bSCCCanEdit = !SourceControlState.IsValid() || SourceControlState->CanCheckIn() || SourceControlState->IsIgnored() || SourceControlState->IsUnknown();
 		bool bIsSourceControlled = SourceControlState.IsValid() && SourceControlState->IsSourceControlled();
-		
+
 		if ( !bSCCCanEdit && (bIsSourceControlled && ( !bCheckDirty || ( bCheckDirty && CurPackage->IsDirty() ) ) ) && !SourceControlState->IsCheckedOut() )
 		{
 			if( SourceControlState.IsValid() && !SourceControlState->IsCurrent() )
 			{				
 				// This package is not at the head revision and it should be ghosted as a result
 				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgNotCurrent"), SourceControlState->GetDisplayTooltip().ToString());
+				bShowWarning = true;
 			}
 			else if( SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther() )
 			{
 				// This package is checked out by someone else so it should be ghosted
 				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgCheckedOutOther"), SourceControlState->GetDisplayTooltip().ToString());
+				bShowWarning = true;
 			}
 			else
 			{
@@ -1105,6 +1112,12 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 	// If any packages were added to the dialog, show the dialog to the user and allow them to select which files to check out
 	if ( bPackagesAdded )
 	{
+		if (bShowWarning)
+		{
+			CheckoutPackagesDialogModule.SetWarning(
+				NSLOCTEXT("PackagesDialogModule", "CheckoutPackagesWarnMessage", "Warning: There are modified assets which you will not be able to check out as they are locked or not at the head revision. You may lose your changes if you continue, as you will be unable to submit them to source control."));
+		}
+
 		TAttribute<bool> CheckOutSelectedDisabledAttrib;
 		if( !bHavePackageToCheckOut && !IsCheckOutSelectedDisabled() )
 		{

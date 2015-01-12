@@ -364,12 +364,6 @@ public:
 	/** Selects all subtractive brushes */
 	TSharedPtr< FUICommandInfo > SelectAllSubtractiveBrushes;
 
-	/** Selects all semi-solid brushes */
-	TSharedPtr< FUICommandInfo > SelectAllSemiSolidBrushes;
-
-	/** Selects all non-solid brushes */
-	TSharedPtr< FUICommandInfo > SelectAllNonSolidBrushes;
-
 	/**
 	 * Surface commands                   
 	 */
