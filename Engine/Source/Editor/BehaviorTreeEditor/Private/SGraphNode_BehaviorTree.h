@@ -2,6 +2,24 @@
 
 #pragma once
 
+class UBehaviorTreeGraphNode;
+
+class FDragNodeTimed : public FDragNode
+{
+public:
+	DRAG_DROP_OPERATOR_TYPE(FDragNodeTimed, FDragNode)
+
+	static TSharedRef<FDragNodeTimed> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphNode>& InDraggedNode);
+	static TSharedRef<FDragNodeTimed> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphNode> >& InDraggedNodes);
+
+	UBehaviorTreeGraphNode* GetDropTargetNode() const;
+
+	double StartTime;
+
+protected:
+	typedef FDragNode Super;
+};
+
 class SGraphNode_BehaviorTree : public SGraphNode
 {
 public:
@@ -30,9 +48,6 @@ public:
 
 	/** handle mouse down on the node */
 	FReply OnMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
-
-	/** handle mouse up on the node */
-	FReply OnMouseUp(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
 
 	/** handle mouse move on the node - activate drag and drop when mouse button is being held */
 	virtual FReply OnMouseMove(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent) override;
@@ -67,10 +82,7 @@ public:
 	FVector2D GetCachedPosition() const { return CachedPosition; }
 
 protected:
-	float MouseDownTime;
-
 	uint32 bDragMarkerVisible : 1;
-	uint32 bIsMouseDown : 1;
 
 	uint32 bSuppressDebuggerColor : 1;
 	uint32 bSuppressDebuggerTriggers : 1;
