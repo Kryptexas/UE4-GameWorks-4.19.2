@@ -141,7 +141,7 @@ void APawn::UpdateNavAgent()
 	if (RootComponent != NULL && MovementComponent != NULL && MovementComponent->ShouldUpdateNavAgentWithOwnersCollision())
 	{
 		RootComponent->UpdateBounds();
-		MovementComponent->UpdateNavAgent(this);
+		MovementComponent->UpdateNavAgent(*this);
 	}
 }
 

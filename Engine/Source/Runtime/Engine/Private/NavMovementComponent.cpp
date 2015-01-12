@@ -49,30 +49,30 @@ void UNavMovementComponent::StopActiveMovement()
 	}
 }
 
-void UNavMovementComponent::UpdateNavAgent(AActor* Owner)
+void UNavMovementComponent::UpdateNavAgent(const AActor& Owner)
 {
-	ensure(Owner == NULL || Owner == GetOwner());
-	if (Owner == NULL || ShouldUpdateNavAgentWithOwnersCollision() == false)
+	ensure(&Owner == GetOwner());
+	if (ShouldUpdateNavAgentWithOwnersCollision() == false)
 	{
 		return;
 	}
 
 	// Can't call GetSimpleCollisionCylinder(), because no components will be registered.
 	float BoundRadius, BoundHalfHeight;	
-	Owner->GetSimpleCollisionCylinder(BoundRadius, BoundHalfHeight);
+	Owner.GetSimpleCollisionCylinder(BoundRadius, BoundHalfHeight);
 	NavAgentProps.AgentRadius = BoundRadius;
 	NavAgentProps.AgentHeight = BoundHalfHeight * 2.f;
 }
 
-void UNavMovementComponent::UpdateNavAgent(class UCapsuleComponent* CapsuleComponent)
+void UNavMovementComponent::UpdateNavAgent(const UCapsuleComponent& CapsuleComponent)
 {
-	if (CapsuleComponent == NULL || ShouldUpdateNavAgentWithOwnersCollision() == false)
+	if (ShouldUpdateNavAgentWithOwnersCollision() == false)
 	{
 		return;
 	}
 
-	NavAgentProps.AgentRadius = CapsuleComponent->GetScaledCapsuleRadius();
-	NavAgentProps.AgentHeight = CapsuleComponent->GetScaledCapsuleHalfHeight() * 2.f;
+	NavAgentProps.AgentRadius = CapsuleComponent.GetScaledCapsuleRadius();
+	NavAgentProps.AgentHeight = CapsuleComponent.GetScaledCapsuleHalfHeight() * 2.f;
 }
 
 void UNavMovementComponent::SetUpdateNavAgentWithOwnersCollisions(bool bUpdateWithOwner)
