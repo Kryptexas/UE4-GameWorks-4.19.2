@@ -7,7 +7,7 @@
 #include "Future.h"
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncTest, "Core.Async.Async", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncTest, "Core.Async.Async", EAutomationTestFlags::ATF_SmokeTest)// ATF_Editor)
 
 
 bool FAsyncTest::RunTest(const FString& Parameters)
@@ -30,7 +30,15 @@ bool FAsyncTest::RunTest(const FString& Parameters)
 		auto Future = Async<int>(EAsyncExecution::Thread, Task);
 		int Result = Future.Get();
 
-		TestEqual(TEXT("Task graph task must return expected value"), Result, 123);
+		TestEqual(TEXT("Threaded task must return expected value"), Result, 123);
+	}
+
+	// thread pool task
+	{
+		auto Future = Async<int>(EAsyncExecution::ThreadPool, Task);
+		int Result = Future.Get();
+
+		TestEqual(TEXT("Thread pool task must return expected value"), Result, 123);
 	}
 
 	return true;
