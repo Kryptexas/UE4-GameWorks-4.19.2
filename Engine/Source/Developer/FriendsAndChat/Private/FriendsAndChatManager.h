@@ -417,6 +417,9 @@ private:
 	/** Send a friend invite accepted notification. */
 	void SendInviteAcceptedNotification(TSharedPtr< IFriendItem > Friend);
 
+	/** Get Invite Notification Text */
+	const FText GetInviteNotificationText(TSharedPtr< IFriendItem > Friend) const;
+
 	/** Called when singleton is released. */
 	void ShutdownManager();
 
