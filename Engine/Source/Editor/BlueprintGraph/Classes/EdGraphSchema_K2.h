@@ -56,7 +56,7 @@ public:
 	/** If true, the class will be usable as a base for blueprints */
 	static const FName MD_IsBlueprintBase;
 	
-	/** A listing of classes that this class is accessible from (and only those classes, if present) */
+	/** A listing of classes that this class is accessible from (and only those classes, if present).  Note that this determines the GRAPH CONTEXTS in which the node cannot be placed (e.g. right click menu, palette), and does NOT control menus when dragging off of a context pin (i.e. contextual drag) */
 	static const FName MD_RestrictedToClasses;
 
 	//    function metadata

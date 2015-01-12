@@ -596,8 +596,15 @@ static bool BlueprintActionFilterImpl::IsRestrictedClassMember(FBlueprintActionF
 		if (ActionClass->HasMetaData(FBlueprintMetadata::MD_RestrictedToClasses))
 		{
 			FString const& ClassRestrictions = ActionClass->GetMetaData(FBlueprintMetadata::MD_RestrictedToClasses);
-			for (UClass const* TargetClass : Filter.TargetClasses)
+			for (UBlueprint const* TargetContext : FilterContext.Blueprints)
 			{
+				UClass* TargetClass = TargetContext->GeneratedClass;
+				if(!TargetClass)
+				{
+					// Skip possible null classes (e.g. macros, etc)
+					continue;
+				};
+
 				bool bIsClassListed = false;
 				
 				UClass const* QueryClass = TargetClass;
