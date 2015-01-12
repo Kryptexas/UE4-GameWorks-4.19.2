@@ -2025,7 +2025,15 @@ void UBehaviorTreeComponent::UpdateDebuggerAfterExecution(const UBTTaskNode* Tas
 
 	// accessing RuntimeDesc should never be out of bounds (active task MUST be part of active instance)
 	const uint16& ExecutionIndex = TaskNode->GetExecutionIndex();
-	CurrentStep.InstanceStack[InstanceIdx].RuntimeDesc[ExecutionIndex] = ComposedDesc;
+	if (CurrentStep.InstanceStack[InstanceIdx].RuntimeDesc.IsValidIndex(ExecutionIndex))
+	{
+		CurrentStep.InstanceStack[InstanceIdx].RuntimeDesc[ExecutionIndex] = ComposedDesc;
+	}
+	else
+	{
+		UE_VLOG(GetOwner(), LogBehaviorTree, Error, TEXT("Incomplete debugger data! No runtime description for executed task, instance %d has only %d entries!"),
+			InstanceIdx, CurrentStep.InstanceStack[InstanceIdx].RuntimeDesc.Num());
+	}
 #endif
 }
 
