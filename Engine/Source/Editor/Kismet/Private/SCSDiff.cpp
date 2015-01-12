@@ -4,6 +4,7 @@
 #include "SCSDiff.h"
 #include "SKismetInspector.h"
 #include "SSCSEditor.h"
+#include "BlueprintEditorUtils.h"
 
 #include <vector>
 
