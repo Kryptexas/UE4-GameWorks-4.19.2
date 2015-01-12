@@ -50,28 +50,51 @@ public:
 				]
 				+ SHorizontalBox::Slot()
 				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					[
-						SNew(STextBlock)
-						.Font(FriendStyle.FriendsFontStyleBold)
-						.ColorAndOpacity(FriendStyle.DefaultFontColor)
-						.Text(ViewModel->GetFriendName())
-					]
-					+ SVerticalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					[
-						SNew(STextBlock)
-						.Font(FriendStyle.FriendsFontStyleSmallBold)
-						.ColorAndOpacity(FriendStyle.DefaultFontColor)
-						.Text(ViewModelPtr, &FFriendViewModel::GetFriendLocation)
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				[
 					SNew(SOverlay)
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Fill)
+					[
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.FillWidth(1)
+						[
+							SNew(SVerticalBox)
+							+ SVerticalBox::Slot()
+							[
+								SNew(STextBlock)
+								.Font(FriendStyle.FriendsFontStyleBold)
+								.ColorAndOpacity(FriendStyle.DefaultFontColor)
+								.Text(ViewModel->GetFriendName())
+							]
+							+ SVerticalBox::Slot()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+								.Font(FriendStyle.FriendsFontStyleSmallBold)
+								.ColorAndOpacity(FriendStyle.DefaultFontColor)
+								.Text(ViewModelPtr, &FFriendViewModel::GetFriendLocation)
+							]
+						]
+						+ SHorizontalBox::Slot()
+						.Padding(15, 0)
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Right)
+						[
+							SAssignNew(Anchor, SMenuAnchor)
+							.Method(InArgs._Method)
+							.OnGetMenuContent(this, &SFriendItemImpl::GetMenuContent)
+							.Placement(MenuPlacement_BelowAnchor)
+							.Visibility(this, &SFriendItemImpl::ActionMenuButtonVisibility)
+							.Content()
+							[
+								SNew(SButton)
+								.ButtonStyle(&FriendStyle.FriendActionDropdownButtonStyle)
+								.OnClicked(this, &SFriendItemImpl::HandleItemClicked)
+							]
+						]
+					]
 					+ SOverlay::Slot()
 					.HAlign(HAlign_Right)
 					.VAlign(VAlign_Bottom)
@@ -158,22 +181,6 @@ public:
 									.Text(EFriendActionType::ToText(EFriendActionType::CancelFriendRequest))
 								]
 							]
-						]
-					]
-					+ SOverlay::Slot()
-					.VAlign(VAlign_Center)
-					.Padding(15, 0)
-					[
-						SAssignNew(Anchor, SMenuAnchor)
-						.Method(InArgs._Method)
-						.OnGetMenuContent(this, &SFriendItemImpl::GetMenuContent)
-						.Placement(MenuPlacement_BelowAnchor)
-						.Visibility(this, &SFriendItemImpl::ActionMenuButtonVisibility)
-						.Content()
-						[
-							SNew(SButton)
-							.ButtonStyle(&FriendStyle.FriendActionDropdownButtonStyle)
-							.OnClicked(this, &SFriendItemImpl::HandleItemClicked)
 						]
 					]
 				]
