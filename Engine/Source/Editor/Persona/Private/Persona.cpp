@@ -190,6 +190,10 @@ FPersona::FPersona()
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 
 	GEditor->OnBlueprintPreCompile().AddRaw(this, &FPersona::OnBlueprintPreCompile);
+
+	//Temporary fix for missing attached assets - MDW
+	PreviewScene.GetWorld()->GetWorldSettings()->SetIsTemporarilyHiddenInEditor(false);
+
 }
 
 FPersona::~FPersona()
