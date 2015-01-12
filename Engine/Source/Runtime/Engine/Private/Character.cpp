@@ -120,7 +120,7 @@ void ACharacter::PostInitializeComponents()
 
 		if (CharacterMovement && CapsuleComponent)
 		{
-			CharacterMovement->UpdateNavAgent(CapsuleComponent);
+			CharacterMovement->UpdateNavAgent(*CapsuleComponent);
 		}
 
 		if (Controller == NULL && GetNetMode() != NM_Client)

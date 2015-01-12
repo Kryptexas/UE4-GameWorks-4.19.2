@@ -13,6 +13,9 @@
 #include "Components/PrimitiveComponent.h"
 #include "NavMovementComponent.generated.h"
 
+class AActor;
+class UCapsuleComponent;
+
 /**
  * NavMovementComponent defines base functionality for MovementComponents that move any 'agent' that may be involved in AI pathfinding.
  */
@@ -56,8 +59,8 @@ public:
 	void SetUpdateNavAgentWithOwnersCollisions(bool bUpdateWithOwner);
 	FORCEINLINE bool ShouldUpdateNavAgentWithOwnersCollision() const { return bUpdateNavAgentWithOwnersCollision != 0; }
 	
-	void UpdateNavAgent(class AActor* Owner);
-	void UpdateNavAgent(class UCapsuleComponent* CapsuleComponent);
+	void UpdateNavAgent(const AActor& Owner);
+	void UpdateNavAgent(const UCapsuleComponent& CapsuleComponent);
 
 	/** @returns location of controlled actor - meaning center of collision bounding box */
 	FORCEINLINE FVector GetActorLocation() const { return UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector(FLT_MAX); }
