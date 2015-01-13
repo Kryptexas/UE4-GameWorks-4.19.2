@@ -239,6 +239,18 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 #endif
 }
 
+SIZE_T ULandscapeComponent::GetResourceSize(EResourceSizeMode::Type Mode)
+{
+	SIZE_T ResSize = Super::GetResourceSize(Mode);
+
+	if (GrassMap.IsValid())
+	{
+		ResSize += GrassMap->Data.GetAllocatedSize();
+	}
+
+	return ResSize;
+}
+
 #if WITH_EDITOR
 UMaterialInterface* ULandscapeComponent::GetLandscapeMaterial() const
 {
@@ -466,6 +478,10 @@ void ULandscapeComponent::PostLoad()
 			}
 		}
 	}
+#endif
+
+#if USE_PRECACHED_GRASSMAP_IN_EDITOR
+	GenerateGrassMap();
 #endif
 }
 
@@ -2200,7 +2216,7 @@ static TAutoConsoleVariable<int32> CVarGrassEnable(
 	1,
 	TEXT("1: Enable Grass; 0: Disable Grass"));
 
-#if WITH_EDITOR
+#if WITH_EDITOR && !USE_PRECACHED_GRASSMAP_IN_EDITOR
 DECLARE_CYCLE_STAT(TEXT("Grass Load Source Art"),STAT_GrassLoadSourceArt,STATGROUP_Foliage);
 class FEditorGrassLayerData
 {

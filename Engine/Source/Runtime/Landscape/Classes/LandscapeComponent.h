@@ -8,6 +8,8 @@
 
 #include "LandscapeComponent.generated.h"
 
+#define USE_PRECACHED_GRASSMAP_IN_EDITOR (0)
+
 class ULandscapeLayerInfoObject;
 class ULandscapeInfo;
 class ALandscapeProxy;
@@ -250,7 +252,7 @@ public:
 	/** Platform Data where don't support texture sampling in vertex buffer */
 	FLandscapeComponentDerivedData PlatformData;
 
-	/** Grass data for cooked platforms, also used temporarily when cooking */
+	/** Grass data for cooked platforms, also used temporarily when cooking, but see USE_PRECACHED_GRASSMAP_IN_EDITOR, this might be changing */
 	TSharedPtr<FGrassMap, ESPMode::ThreadSafe> GrassMap;
 
 	virtual ~ULandscapeComponent();
@@ -258,6 +260,7 @@ public:
 	// Begin UObject interface.	
 	virtual void PostInitProperties() override;	
 	virtual void Serialize(FArchive& Ar) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void BeginDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
