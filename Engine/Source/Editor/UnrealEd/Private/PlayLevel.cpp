@@ -302,6 +302,7 @@ void UEditorEngine::EndPlayMap()
 	bIsPlayWorldQueued = false;
 	bIsSimulateInEditorQueued = false;
 	bRequestEndPlayMapQueued = false;
+	bUseVRPreviewForPlayWorld = false;
 
 	// display any info if required.
 	FMessageLog("PIE").Notify( LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."), EMessageSeverity::Warning );
