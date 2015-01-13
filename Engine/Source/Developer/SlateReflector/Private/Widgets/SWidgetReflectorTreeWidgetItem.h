@@ -36,6 +36,17 @@ public:
 		this->OnAccessSourceCode = InArgs._SourceCodeAccessor;
 		this->OnAccessAsset = InArgs._AssetAccessor;
 
+		TSharedPtr<SWidget> Widget = WidgetInfo.Get()->Widget.Pin();
+		if ( Widget.IsValid() )
+		{
+			CachedWidgetType = FText::FromString(Widget->GetTypeAsString());
+			CachedWidgetFile = FText::FromString(Widget->GetCreatedInFile());
+			CachedWidgetLineNumber =  Widget->GetCreatedInLineNumber();
+			CachedWidgetVisibility = FText::FromString(Widget->GetVisibility().ToString());
+
+			CachedReadableLocation = Widget->GetReadableLocation();
+		}
+
 		SMultiColumnTableRow< TSharedPtr<FReflectorNode> >::Construct( SMultiColumnTableRow< TSharedPtr<FReflectorNode> >::FArguments().Padding(1), InOwnerTableView );
 	}
 
@@ -50,9 +61,7 @@ protected:
 	/** @return String representation of the widget we are visualizing */
 	FText GetWidgetType() const
 	{
-		return WidgetInfo.Get()->Widget.IsValid()
-			? FText::FromString(WidgetInfo.Get()->Widget.Pin()->GetTypeAsString())
-			: NSLOCTEXT("SWidgetReflector", "NullWidget", "Null Widget");
+		return CachedWidgetType;
 	}
 	
 	virtual FString GetReadableLocation() const override;
@@ -64,24 +73,17 @@ protected:
 
 	FText GetWidgetFile() const
 	{
-		return WidgetInfo.Get()->Widget.IsValid()
-			? FText::FromString(WidgetInfo.Get()->Widget.Pin()->GetCreatedInFile())
-			: FText::GetEmpty();
+		return CachedWidgetFile;
 	}
 
 	int32 GetWidgetLineNumber() const
 	{
-		return WidgetInfo.Get()->Widget.IsValid()
-			? WidgetInfo.Get()->Widget.Pin()->GetCreatedInLineNumber()
-			: 0;
+		return CachedWidgetLineNumber;
 	}
 
 	FText GetVisibilityAsString() const
 	{
-		TSharedPtr<SWidget> TheWidget = WidgetInfo.Get()->Widget.Pin();
-		return TheWidget.IsValid()
-			? FText::FromString(TheWidget->GetVisibility().ToString())
-			: FText::GetEmpty();
+		return CachedWidgetVisibility;
 	}
 
 	/** @return The tint of the reflector node */
@@ -96,6 +98,13 @@ private:
 
 	/** The info about the widget that we are visualizing. */
 	TAttribute< TSharedPtr<FReflectorNode> > WidgetInfo;
+
+	FText CachedWidgetType;
+	FText CachedWidgetFile;
+	int32 CachedWidgetLineNumber;
+	FText CachedWidgetVisibility;
+
+	FString CachedReadableLocation;
 
 	FAccessSourceCode OnAccessSourceCode;
 

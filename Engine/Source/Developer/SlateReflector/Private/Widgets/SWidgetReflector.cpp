@@ -73,34 +73,36 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 						SNew(SHorizontalBox)
 					
 						+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							[
-								SNew(STextBlock)
-									.Text(LOCTEXT("AppScale", "Application Scale: ").ToString())
-							]
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+								.Text(LOCTEXT("AppScale", "Application Scale: ").ToString())
+						]
 
 						+ SHorizontalBox::Slot()
-							.AutoWidth()
+						.AutoWidth()
+						[
+							SNew(SBox)
+							.MinDesiredWidth(100)
+							.MaxDesiredWidth(250)
 							[
-								SNew(SBox)
-								.MinDesiredWidth(100)
-								.MaxDesiredWidth(250)
-								[
-									SNew(SSpinBox<float>)
-										.Value(this, &SWidgetReflector::HandleAppScaleSliderValue)
-										.MinValue(0.1f)
-										.MaxValue(3.0f)
-										.Delta(0.01f)
-										.OnValueChanged(this, &SWidgetReflector::HandleAppScaleSliderChanged)
-								]
+								SNew(SSpinBox<float>)
+									.Value(this, &SWidgetReflector::HandleAppScaleSliderValue)
+									.MinValue(0.1f)
+									.MaxValue(3.0f)
+									.Delta(0.01f)
+									.OnValueChanged(this, &SWidgetReflector::HandleAppScaleSliderChanged)
 							]
+						]
+
 						+ SHorizontalBox::Slot()
 						.FillWidth(1.0f)
 						[
 							SNew(SSpacer)
 						]
-						+SHorizontalBox::Slot()
+
+						+ SHorizontalBox::Slot()
 						.AutoWidth()
 						.Padding(FMargin(5.0f, 0.0f))
 						[
@@ -108,7 +110,8 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							.Text(LOCTEXT("DisplayTextureAtlases", "Display Texture Atlases"))
 							.OnClicked(this, &SWidgetReflector::HandleDisplayTextureAtlases)
 						]
-						+SHorizontalBox::Slot()
+
+						+ SHorizontalBox::Slot()
 						.AutoWidth()
 						.Padding(FMargin(5.0f, 0.0f))
 						[
@@ -119,39 +122,39 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 					]
 
 				+ SVerticalBox::Slot()
-					.AutoHeight()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
 					[
-						SNew(SHorizontalBox)
+						// Check box that controls LIVE MODE
+						SNew(SCheckBox)
+						.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
+						]
+					]
 
-						+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.Padding(5.0f)
-							[
-								// Check box that controls LIVE MODE
-								SNew(SCheckBox)
-									.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
-									.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
-									[
-										SNew(STextBlock)
-											.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
-									]
-							]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
+					[
+						// Check box that controls PICKING A WIDGET TO INSPECT
+						SNew(SButton)
+						.OnClicked(this, &SWidgetReflector::HandlePickButtonClicked)
+						.ButtonColorAndOpacity(this, &SWidgetReflector::HandlePickButtonColorAndOpacity)
+						[
+							SNew(STextBlock)
+							.Text(this, &SWidgetReflector::HandlePickButtonText)
+						]
+					]
 
-						+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.Padding(5.0f)
-							[
-								// Check box that controls PICKING A WIDGET TO INSPECT
-								SNew(SButton)
-									.OnClicked(this, &SWidgetReflector::HandlePickButtonClicked)
-									.ButtonColorAndOpacity(this, &SWidgetReflector::HandlePickButtonColorAndOpacity)
-									[
-										SNew(STextBlock)
-											.Text(this, &SWidgetReflector::HandlePickButtonText)
-									]
-							]
-
-					+SHorizontalBox::Slot()
+					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(5.0f)
 					[
@@ -173,7 +176,8 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 						#endif
 						.OnClicked_Static( &ToggleSlateStats )
 					]
-					+SHorizontalBox::Slot()
+
+					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(5.0f)
 					[
@@ -181,7 +185,8 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 						.OnClicked( this, &SWidgetReflector::CopyStatsToClipboard )
 						.Text( LOCTEXT("CopyStatsToClipboard", "Copy Stats") )
 					]
-					+SHorizontalBox::Slot()
+
+					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(5.0f)
 					[
