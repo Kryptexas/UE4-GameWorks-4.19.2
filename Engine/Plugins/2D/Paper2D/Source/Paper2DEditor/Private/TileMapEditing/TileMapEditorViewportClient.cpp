@@ -25,6 +25,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 	check(TileMapEditorPtr.IsValid() && TileMapEditorViewportPtr.IsValid());
 
 	PreviewScene = &OwnedPreviewScene;
+	((FAssetEditorModeTools*)ModeTools)->SetPreviewScene(PreviewScene);
 
 	SetRealtime(true);
 

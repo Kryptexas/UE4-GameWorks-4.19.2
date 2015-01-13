@@ -23,11 +23,14 @@ public:
 	// FEditorModeTools interface
 	virtual class USelection* GetSelectedActors() const override;
 	virtual class USelection* GetSelectedObjects() const override;
+	virtual UWorld* GetWorld() const override;
 	// End of FEditorModeTools interface
 
+	void SetPreviewScene(class FPreviewScene* NewPreviewScene);
 protected:
 	class USelection* ActorSet;
 	class USelection* ObjectSet;
+	class FPreviewScene* PreviewScene;
 };
 
 //////////////////////////////////////////////////////////////////////////
