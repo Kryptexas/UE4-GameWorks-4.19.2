@@ -25,7 +25,6 @@ void SComboButton::Construct( const FArguments& InArgs )
 		.Method(InArgs._Method)
 		[
 			SNew( SButton )
-			.ContentPadding( FMargin( 1, 0 ) )
 			.ButtonStyle( OurButtonStyle )
 			.ClickMethod( EButtonClickMethod::MouseDown )
 			.OnClicked( this, &SComboButton::OnButtonClicked )
