@@ -896,6 +896,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 		Instance->CopyBodyInstancePropertiesFrom(&BodyInstance);
 		Instance->InstanceBodyIndex = i; // Set body index 
+		Instance->bAutoWeld = false;
 
 		// make sure we never enable bSimulatePhysics for ISMComps
 		Instance->bSimulatePhysics = false;
