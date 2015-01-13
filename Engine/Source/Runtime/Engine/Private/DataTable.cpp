@@ -454,7 +454,7 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const TArray<const TCHAR*>&
 			FName PropName = MakeValidName(ColumnValue);
 			if(PropName == NAME_None)
 			{
-				OutProblems.Add(FString(TEXT("Missing name for column %d."), ColIdx));
+				OutProblems.Add(FString::Printf(TEXT("Missing name for column %d."), ColIdx));
 			}
 			else
 			{
