@@ -21,6 +21,7 @@
 #include "GameFramework/OnlineSession.h"
 #include "GameFramework/PlayerInput.h"
 #include "GameFramework/GameMode.h"
+#include "GameFramework/PlayerState.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
@@ -135,6 +136,16 @@ void FLocalPlayerContext::SetPlayerController( const APlayerController* InPlayer
 	check( InPlayerController->IsLocalPlayerController() );
 	LocalPlayer = CastChecked<ULocalPlayer>(InPlayerController->Player);
 }
+
+bool FLocalPlayerContext::IsFromLocalPlayer(const AActor* ActorToTest) const
+{
+	return (ActorToTest != nullptr) &&
+		IsValid() &&
+		(ActorToTest == GetPlayerController() ||
+		ActorToTest == GetPlayerState() ||
+		ActorToTest == GetPawn());
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // ULocalPlayer

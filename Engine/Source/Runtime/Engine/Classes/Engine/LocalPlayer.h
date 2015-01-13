@@ -22,6 +22,10 @@ struct ENGINE_API FLocalPlayerContext
 	/** Is this context initialized */
 	bool IsInitialized() const;
 
+	/** This function tests if the given Actor is connected to the Local Player in any way. 
+		It tests against the APlayerController, APlayerState, and APawn. */
+	bool IsFromLocalPlayer(const AActor* ActorToTest) const;
+
 	/* Returns the world context. */
 	UWorld* GetWorld() const;
 
