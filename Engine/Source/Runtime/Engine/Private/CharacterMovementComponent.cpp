@@ -3836,6 +3836,14 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 		{
 			MoveUpdatedComponent(AdjustedDelta, CharacterOwner->GetActorRotation(), true);
 		}
+
+		// Update velocity to reflect actual move
+		if (!bJustTeleported && !HasRootMotion())
+		{
+			Velocity = (GetActorFeetLocation() - OldLocation) / deltaTime;
+		}
+
+		bJustTeleported = false;
 	}
 	else
 	{
