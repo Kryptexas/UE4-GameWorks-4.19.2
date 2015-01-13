@@ -981,6 +981,9 @@ public:
 	/** Find how many nodes reference the supplied actor */
 	static int32 FindNumReferencesToActorFromLevelScript(ULevelScriptBlueprint* LevelScriptBlueprint, AActor* InActor);
 
+	/** Replace all references of the old actor with the new actor */
+	static void ReplaceAllActorRefrences(ULevelScriptBlueprint* InLevelScriptBlueprint, AActor* InOldActor, AActor* InNewActor);
+
 	/** Function to call modify() on all graph nodes which reference this actor */
 	static void  ModifyActorReferencedGraphNodes(ULevelScriptBlueprint* LevelScriptBlueprint, const AActor* InActor);
 
