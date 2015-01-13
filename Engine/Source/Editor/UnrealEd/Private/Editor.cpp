@@ -1204,7 +1204,16 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 						}
 					}
 				}
-
+				
+				// Simulate world composition streaming while in editor world
+				if (EditorContext.World()->WorldComposition)
+				{
+					if (EditorContext.World()->WorldComposition->UpdateEditorStreamingState(ViewLocation))
+					{
+						bProcessViewer = true;
+					}
+				}
+				
 				// Call UpdateLevelStreaming if the visibility of any streaming levels was modified.
 				if ( bProcessViewer )
 				{
