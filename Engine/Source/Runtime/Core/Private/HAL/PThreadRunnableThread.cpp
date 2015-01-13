@@ -33,7 +33,7 @@ uint32 FRunnableThreadPThread::Run()
 	ThreadIsRunning = false;
 
 #if STATS
-	FThreadStats::Shutdown();
+//	FThreadStats::Shutdown();
 #endif
 
 	return ExitCode;
