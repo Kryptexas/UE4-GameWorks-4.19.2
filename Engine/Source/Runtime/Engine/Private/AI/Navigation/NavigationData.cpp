@@ -99,7 +99,7 @@ FSupportedAreaData::FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass, int32
 ANavigationData::ANavigationData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bEnableDrawing(false)
-	, bRebuildAtRuntime(false)
+	, RuntimeGeneration(ERuntimeGenerationType::LegacyGeneration) //TODO: set to a valid value once bRebuildAtRuntime_DEPRECATED is removed
 	, bForceRebuildOnLoad(false)
 	, DataVersion(NAVMESHVER_LATEST)
 	, FindPathImplementation(NULL)
@@ -135,7 +135,15 @@ void ANavigationData::PostInitProperties()
 	{
 		return;
 	}
-	
+
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (RuntimeGeneration == ERuntimeGenerationType::LegacyGeneration)
+		{
+			RuntimeGeneration = bRebuildAtRuntime_DEPRECATED ? ERuntimeGenerationType::Dynamic : ERuntimeGenerationType::Static;
+		}
+	}
+		
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
 		UWorld* WorldOuter = GetWorld();
@@ -170,6 +178,11 @@ void ANavigationData::PostInitializeComponents()
 void ANavigationData::PostLoad() 
 {
 	Super::PostLoad();
+
+	if (GetLinkerUE4Version() < VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION)
+	{
+		RuntimeGeneration = bRebuildAtRuntime_DEPRECATED ? ERuntimeGenerationType::Dynamic : ERuntimeGenerationType::Static;
+	}
 
 	InstantiateAndRegisterRenderingComponent();
 }
@@ -277,7 +290,7 @@ void ANavigationData::OnRegistered()
 	InstantiateAndRegisterRenderingComponent();
 
 	bRegistered = true;
-	ConstructGenerator();
+	ConditionalConstructGenerator();
 }
 
 void ANavigationData::OnUnregistered()
@@ -380,13 +393,18 @@ bool ANavigationData::SupportsRuntimeGeneration() const
 	return false;
 }
 
-void ANavigationData::ConstructGenerator()
+bool ANavigationData::SupportsStreaming() const
+{
+	return false;
+}
+
+void ANavigationData::ConditionalConstructGenerator()
 {
 }
 
 void ANavigationData::RebuildAll()
 {
-	ConstructGenerator(); //recreate generator
+	ConditionalConstructGenerator(); //recreate generator
 	
 	if (NavDataGenerator)
 	{
@@ -413,9 +431,9 @@ void ANavigationData::CancelBuild()
 void ANavigationData::OnNavigationBoundsChanged()
 {
 	// Create generator if it wasn't yet
-	if (SupportsRuntimeGeneration() && NavDataGenerator.Get() == nullptr)
+	if (NavDataGenerator.Get() == nullptr)
 	{
-		ConstructGenerator();
+		ConditionalConstructGenerator();
 	}
 	
 	if (NavDataGenerator)
@@ -460,7 +478,7 @@ TArray<FBox> ANavigationData::GetNavigableBounds() const
 	return Result;
 }
 	
-TArray<FBox> ANavigationData::GetNavigableBoundsInLevel(const FName& InLevelPackageName) const
+TArray<FBox> ANavigationData::GetNavigableBoundsInLevel(ULevel* InLevel) const
 {
 	TArray<FBox> Result;
 	const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
@@ -472,7 +490,7 @@ TArray<FBox> ANavigationData::GetNavigableBoundsInLevel(const FName& InLevelPack
 
 		for (const auto& Bounds : NavigationBounds)
 		{
-			if (Bounds.PackageName == InLevelPackageName)
+			if (Bounds.Level == InLevel)
 			{
 				Result.Add(Bounds.AreaBox);
 			}

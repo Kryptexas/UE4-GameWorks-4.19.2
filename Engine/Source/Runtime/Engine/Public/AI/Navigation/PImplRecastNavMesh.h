@@ -190,6 +190,13 @@ public:
 	dtNavMesh* GetRecastMesh() { return DetourNavMesh; };
 	void ReleaseDetourNavMesh();
 
+	void RemoveTileCacheLayers(int32 TileX, int32 TileY);
+	void RemoveTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx);
+	void AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& Layers);
+	void AddTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx, const FNavMeshTileData& LayerData);
+	FNavMeshTileData GetTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx) const;
+	TArray<FNavMeshTileData> GetTileCacheLayers(int32 TileX, int32 TileY) const;
+	
 	/** Assigns recast generated navmesh to this instance.
 	 *	@param bOwnData if true from now on this FPImplRecastNavMesh instance will be responsible for this piece 
 	 *		of memory
@@ -211,11 +218,17 @@ public:
 	/** Recast's runtime navmesh data that we can query against */
 	dtNavMesh* DetourNavMesh;
 
+	/** Compressed layers data, can be reused for tiles generation */
+	TMap<FIntPoint, TArray<FNavMeshTileData>> CompressedTileCacheLayers;
+
 	/** query used for searching data on game thread */
 	mutable dtNavMeshQuery SharedNavQuery;
 
 	/** Helper function to serialize a single Recast tile. */
 	static void SerializeRecastMeshTile(FArchive& Ar, unsigned char*& TileData, int32& TileDataSize);
+
+	/** Helper function to serialize a Recast tile compressed data. */
+	static void SerializeCompressedTileCacheData(FArchive& Ar, unsigned char*& CompressedData, int32& CompressedDataSize);
 
 	/** Initialize data for pathfinding */
 	bool InitPathfinding(const FVector& UnrealStart, const FVector& UnrealEnd, 

@@ -86,9 +86,9 @@ struct FNavigationDirtyArea
 
 struct FNavigationBounds
 {
-	uint32	UniqueID;
-	FBox	AreaBox;	
-	FName	PackageName;
+	uint32						UniqueID;
+	FBox						AreaBox;	 
+	TWeakObjectPtr<ULevel>		Level;		// The level this bounds belongs to
 
 	bool operator==(const FNavigationBounds& Other) const 
 	{ 

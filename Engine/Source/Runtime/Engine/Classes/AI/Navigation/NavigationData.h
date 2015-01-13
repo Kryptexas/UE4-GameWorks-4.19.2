@@ -375,6 +375,22 @@ private:
 };
 
 /** 
+ *  Supported options for runtime navigation data generation
+ */
+UENUM()
+enum class ERuntimeGenerationType : uint8
+{
+	// No runtime generation, fully static navigation data
+	Static,				
+	// Supports only navigation modifiers updates
+	DynamicModifiersOnly,	
+	// Fully dynamic, supports geometry changes along with navigation modifiers
+	Dynamic,
+	// Only for legacy loading don't use it!
+	LegacyGeneration UMETA(Hidden)
+};
+
+/** 
  *	Represents abstract Navigation Data (sub-classed as NavMesh, NavGraph, etc)
  *	Used as a common interface for all navigation types handled by NavigationSystem
  */
@@ -396,10 +412,14 @@ class ENGINE_API ANavigationData : public AActor
 	//----------------------------------------------------------------------//
 	// game-time config
 	//----------------------------------------------------------------------//
-
+	
 	/** If true, the NavMesh can be dynamically rebuilt at runtime. */
+	UPROPERTY(config)
+	uint32 bRebuildAtRuntime_DEPRECATED:1;
+
+	/** Navigation data runtime generation options */
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
-	uint32 bRebuildAtRuntime:1;
+	ERuntimeGenerationType RuntimeGeneration;
 
 	/** By default navigation will skip the first update after being successfully loaded
 	 *  setting bForceRebuildOnLoad to false can override this behavior */
@@ -442,6 +462,7 @@ class ENGINE_API ANavigationData : public AActor
 
 	virtual bool NeedsRebuild() const { return false; }
 	virtual bool SupportsRuntimeGeneration() const;
+	virtual bool SupportsStreaming() const;
 	virtual void OnNavigationBoundsChanged();
 	virtual void OnStreamingLevelAdded(ULevel* InLevel) {};
 	virtual void OnStreamingLevelRemoved(ULevel* InLevel) {};
@@ -465,7 +486,7 @@ protected:
 
 public:
 	/** Creates new generator in case navigation supports it */
-	virtual void ConstructGenerator();
+	virtual void ConditionalConstructGenerator();
 	
 	/** Triggers rebuild in case navigation supports it */
 	virtual void RebuildAll();
@@ -545,7 +566,7 @@ public:
 	TArray<FBox> GetNavigableBounds() const;
 	
 	/** Returns list of navigable bounds that belongs to specific level */
-	TArray<FBox> GetNavigableBoundsInLevel(const FName& InLevelPackageName) const;
+	TArray<FBox> GetNavigableBoundsInLevel(ULevel* InLevel) const;
 	
 	//----------------------------------------------------------------------//
 	// Debug                                                                

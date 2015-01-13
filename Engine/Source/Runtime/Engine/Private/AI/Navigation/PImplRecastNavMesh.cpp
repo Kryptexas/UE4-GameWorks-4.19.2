@@ -261,6 +261,9 @@ void FPImplRecastNavMesh::ReleaseDetourNavMesh()
 		dtFreeNavMesh(DetourNavMesh);
 	}
 	DetourNavMesh = nullptr;
+	
+	//
+	CompressedTileCacheLayers.Empty();
 }
 
 /**
@@ -298,12 +301,11 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 	if (Ar.IsSaving())
 	{
 		TilesToSave.Reserve(DetourNavMesh->getMaxTiles());
-
-		if (!NavMeshOwner->bRebuildAtRuntime && !IsRunningCommandlet())
+		
+		if (NavMeshOwner->SupportsStreaming() && !IsRunningCommandlet())
 		{
-			// For static navmeshes we save only tiles that belongs to this level
-			FName LevelPackageName = NavMeshOwner->GetOutermost()->GetFName();
-			GetNavMeshTilesIn(NavMeshOwner->GetNavigableBoundsInLevel(LevelPackageName), TilesToSave);
+			// We save only tiles that belongs to this level
+			GetNavMeshTilesIn(NavMeshOwner->GetNavigableBoundsInLevel(NavMeshOwner->GetLevel()), TilesToSave);
 		}
 		else
 		{
@@ -361,6 +363,15 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 				{
 					dtMeshHeader* const TileHeader = (dtMeshHeader*)TileData;
 					dtFree(TileHeader);
+
+					//
+					if (Ar.UE4Ver() >= VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION)
+					{
+						unsigned char* ComressedTileData = NULL;
+						int32 CompressedTileDataSize = 0;
+						SerializeCompressedTileCacheData(Ar, ComressedTileData, CompressedTileDataSize);
+						dtFree(ComressedTileData);
+					}
 				}
 			}
 		}
@@ -392,13 +403,29 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 				{
 					dtMeshHeader* const TileHeader = (dtMeshHeader*)TileData;
 					DetourNavMesh->addTile(TileData, TileDataSize, DT_TILE_FREE_DATA, TileRef, NULL);
+
+					// Serialize compressed tile cache layer
+					if (Ar.UE4Ver() >= VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION)
+					{
+						uint8* ComressedTileData = nullptr;
+						int32 CompressedTileDataSize = 0;
+						SerializeCompressedTileCacheData(Ar, ComressedTileData, CompressedTileDataSize);
+						
+						if (CompressedTileDataSize > 0)
+						{
+							AddTileCacheLayer(TileHeader->x, TileHeader->y, TileHeader->layer,
+								FNavMeshTileData(ComressedTileData, CompressedTileDataSize, TileHeader->layer, Recast2UnrealBox(TileHeader->bmin, TileHeader->bmax)));
+						}
+					}
 				}
 			}
 		}
 	}
 	else if (Ar.IsSaving())
 	{
+		const bool bSupportsRuntimeGeneration = NavMeshOwner->SupportsRuntimeGeneration();
 		dtNavMesh const* ConstNavMesh = DetourNavMesh;
+		
 		for (int TileIndex : TilesToSave)
 		{
 			const dtMeshTile* Tile = ConstNavMesh->getTile(TileIndex);
@@ -408,6 +435,20 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 
 			unsigned char* TileData = Tile->data;
 			SerializeRecastMeshTile(Ar, TileData, TileDataSize);
+
+			// Serialize compressed tile cache layer only if navmesh requires it
+			{
+				uint8* CompressedData = nullptr;
+				int32 CompressedDataSize = 0;
+				if (bSupportsRuntimeGeneration)
+				{
+					FNavMeshTileData TileCacheLayer = GetTileCacheLayer(Tile->header->x, Tile->header->y, Tile->header->layer);
+					CompressedData = TileCacheLayer.GetDataSafe();
+					CompressedDataSize = TileCacheLayer.DataSize;
+				}
+				
+				SerializeCompressedTileCacheData(Ar, CompressedData, CompressedDataSize);
+			}
 		}
 	}
 }
@@ -621,6 +662,26 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 				Ar << *C; C++;
 			}
 		}
+	}
+}
+
+void FPImplRecastNavMesh::SerializeCompressedTileCacheData(FArchive& Ar, unsigned char*& CompressedData, int32& CompressedDataSize)
+{
+	Ar << CompressedDataSize;
+
+	if (CompressedDataSize > 0)
+	{
+		if (Ar.IsLoading())
+		{
+			CompressedData = (unsigned char*)dtAlloc(sizeof(unsigned char)*CompressedDataSize, DT_ALLOC_PERM);
+			if (!CompressedData)
+			{
+				UE_LOG(LogNavigation, Error, TEXT("Failed to alloc tile compressed data"));
+			}
+			FMemory::Memset(CompressedData, 0, CompressedDataSize);
+		}
+
+		Ar.Serialize(CompressedData, CompressedDataSize);
 	}
 }
 
@@ -2344,6 +2405,67 @@ void FPImplRecastNavMesh::SetFilterForbiddenFlags(FRecastQueryFilter* Filter, ui
 {
 	((dtQueryFilter*)Filter)->setExcludeFlags(ForbiddenFlags);
 	// include-exclude don't need to be symmetrical, filter will check both conditions
+}
+
+void FPImplRecastNavMesh::RemoveTileCacheLayers(int32 TileX, int32 TileY)
+{
+	CompressedTileCacheLayers.Remove(FIntPoint(TileX, TileY));
+}
+
+void FPImplRecastNavMesh::RemoveTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx)
+{
+	TArray<FNavMeshTileData>* ExistingLayersList = CompressedTileCacheLayers.Find(FIntPoint(TileX, TileY));
+	if (ExistingLayersList)
+	{
+		if (ExistingLayersList->IsValidIndex(LayerIdx))
+		{
+			ExistingLayersList->RemoveAt(LayerIdx);
+		}
+		
+		if (ExistingLayersList->Num() == 0)
+		{
+			CompressedTileCacheLayers.Remove(FIntPoint(TileX, TileY));
+		}
+	}
+}
+
+void FPImplRecastNavMesh::AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& Layers)
+{
+	CompressedTileCacheLayers.Add(FIntPoint(TileX, TileY), Layers);
+}
+
+void FPImplRecastNavMesh::AddTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx, const FNavMeshTileData& LayerData)
+{
+	TArray<FNavMeshTileData>* ExistingLayersList = CompressedTileCacheLayers.Find(FIntPoint(TileX, TileY));
+	
+	if (ExistingLayersList)
+	{
+		ExistingLayersList->SetNum(FMath::Max(ExistingLayersList->Num(), LayerIdx + 1));
+		(*ExistingLayersList)[LayerIdx] = LayerData;
+	}
+	else
+	{
+		TArray<FNavMeshTileData> LayersList;
+		LayersList.SetNum(FMath::Max(LayersList.Num(), LayerIdx + 1));
+		LayersList[LayerIdx] = LayerData;
+		CompressedTileCacheLayers.Add(FIntPoint(TileX, TileY), LayersList);
+	}
+}
+
+FNavMeshTileData FPImplRecastNavMesh::GetTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx) const
+{
+	const TArray<FNavMeshTileData>* LayersList = CompressedTileCacheLayers.Find(FIntPoint(TileX, TileY));
+	if (LayersList && LayersList->IsValidIndex(LayerIdx))
+	{
+		return (*LayersList)[LayerIdx];
+	}
+
+	return FNavMeshTileData();
+}
+
+TArray<FNavMeshTileData> FPImplRecastNavMesh::GetTileCacheLayers(int32 TileX, int32 TileY) const
+{
+	return CompressedTileCacheLayers.FindRef(FIntPoint(TileX, TileY));
 }
 
 #undef INITIALIZE_NAVQUERY

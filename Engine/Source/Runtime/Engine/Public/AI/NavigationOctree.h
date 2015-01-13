@@ -161,6 +161,11 @@ public:
 
 	const FNavigationRelevantData* GetDataForID(const FOctreeElementId& Id) const;
 
+	ENavGeometryStoringMode GetNavGeometryStoringMode() const
+	{
+		return bGatherGeometry ? StoreNavGeometry : SkipNavGeometry;
+	}
+
 protected:
 
 	uint32 bGatherGeometry : 1;

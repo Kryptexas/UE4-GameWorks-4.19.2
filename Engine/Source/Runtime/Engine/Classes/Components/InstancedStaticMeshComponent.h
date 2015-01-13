@@ -157,7 +157,11 @@ public:
 	
 	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
 	// End UPrimitiveComponent Interface
-
+	
+	// Begin UNavRelevantInterface interface.
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
+	// End UPrimitiveComponent interface.
+	
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;

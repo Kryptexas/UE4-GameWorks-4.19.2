@@ -129,7 +129,8 @@ struct FRecastAreaNavModifierElement
 /**
  * Class handling generation of a single tile, caching data that can speed up subsequent tile generations
  */
-class ENGINE_API FRecastTileGenerator : public FNonAbandonableTask
+class ENGINE_API FRecastTileGenerator 
+	: public FNoncopyable
 {
 	friend FRecastNavMeshGenerator;
 
@@ -155,7 +156,7 @@ public:
 
 	// Memory amount used to construct generator 
 	uint32 UsedMemoryOnStartup;
-	
+		
 protected:
 	/** Does the actual tile generations. 
 	 *	@note always trigger tile generation only via TriggerAsyncBuild. This is a worker function
@@ -380,9 +381,6 @@ public:
 	bool HasDirtyTiles() const;
 
 	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const;
-
-	/** Transfers ownership if tile cache data to the caller */
-	TArray<FNavMeshTileData> TakeIntermediateLayersData(FIntPoint GridCoord) const;
 	
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	virtual void ExportNavigationData(const FString& FileName) const;
@@ -466,9 +464,6 @@ private:
 
 	/** */
 	FRecastNavMeshCachedData AdditionalCachedData;
-
-	/** Compressed layers data, can be reused for tiles generation */
-	mutable TMap<FIntPoint, TArray<FNavMeshTileData>> IntermediateLayerDataMap;
 
 	/** */
 	TMapBase<const AActor*, FBox, false> ActorToAreaMap;

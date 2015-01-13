@@ -296,6 +296,10 @@ public:
 #endif
 	// End UPrimitiveComponent interface.
 
+	// Begin UNavRelevantInterface interface.
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
+	// End UPrimitiveComponent interface.
+	
 	// Begin UMeshComponent interface
 	virtual TArray<class UMaterialInterface*> GetMaterials() const override;
 	// End UMeshComponent interface

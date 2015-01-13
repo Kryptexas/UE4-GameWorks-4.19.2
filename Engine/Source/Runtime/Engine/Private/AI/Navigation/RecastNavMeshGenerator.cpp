@@ -1477,11 +1477,20 @@ void FRecastTileGenerator::Setup(const FRecastNavMeshGenerator& ParentGenerator,
 		}
 	}
 
-	// Take ownership of tile cache data if it exist 
-	CompressedLayers = ParentGenerator.TakeIntermediateLayersData(FIntPoint(TileX, TileY));
+	const bool bGeometryChanged = (DirtyAreas.Num() == 0);
+	if (!bGeometryChanged)
+	{
+		// Get compressed tile cache layers if they exist for this location
+		CompressedLayers = ParentGenerator.GetOwner()->GetTileCacheLayers(TileX, TileY);
+		for (FNavMeshTileData& LayerData : CompressedLayers)
+		{
+			// we don't want to modify shared state inside async task, so make sure we are unique owner
+			LayerData.MakeUnique();
+		}
+	}
 
 	// We have to regenerate layers data in case geometry is changed or tile cache is missing
-	bRegenerateCompressedLayers = (DirtyAreas.Num() == 0 || CompressedLayers.Num() == 0);
+	bRegenerateCompressedLayers = (bGeometryChanged || CompressedLayers.Num() == 0);
 	
 	// Gather geometry for tile if it inside navigable bounds
 	if (InclusionBounds.Num())
@@ -2973,7 +2982,6 @@ void FRecastNavMeshGenerator::CancelBuild()
 	DiscardCurrentBuildingTasks();
 	RunningDirtyTiles.Empty();
 	PendingDirtyTiles.Empty();
-	IntermediateLayerDataMap.Empty();
 
 #if	WITH_EDITOR	
 	RecentlyBuiltTiles.Empty();
@@ -3108,8 +3116,8 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 		}
 	}
 
-	// Remove intermediate layers data at this grid location
-	IntermediateLayerDataMap.Remove(FIntPoint(TileX, TileY));
+	// Remove compressed tile cache layers
+	DestNavMesh->RemoveTileCacheLayers(TileX, TileY);
 
 	return ResultTileIndices;
 }
@@ -3221,13 +3229,6 @@ FBox FRecastNavMeshGenerator::GrowBoundingBox(const FBox& BBox, bool bIncludeAge
 	const FVector BBoxGrowOffsetMin = FVector(0, 0, bIncludeAgentHeight ? Config.AgentHeight : 0.0f);
 
 	return FBox(BBox.Min - BBoxGrowOffsetBoth - BBoxGrowOffsetMin, BBox.Max + BBoxGrowOffsetBoth);
-}
-
-TArray<FNavMeshTileData> FRecastNavMeshGenerator::TakeIntermediateLayersData(FIntPoint GridCoord) const
-{
-	TArray<FNavMeshTileData> Result;
-	IntermediateLayerDataMap.RemoveAndCopyValue(GridCoord, Result);
-	return Result;
 }
 
 static bool IntercestBounds(const FBox& TestBox, const TNavStatArray<FBox>& Bounds)
@@ -3514,12 +3515,11 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 				TArray<uint32> UpdatedTileIndices = AddGeneratedTiles(TileGenerator);
 				UpdatedTiles.Append(UpdatedTileIndices);
 			
-				// Store intermediate layers data, so it can be reused later
-				// TODO: make this optional?
-				TArray<FNavMeshTileData> ComressedLayers = TileGenerator.GetCompressedLayers();
-				if (ComressedLayers.Num())
+				// Store compressed tile cache layers so it can be reused later
+				TArray<FNavMeshTileData> CompressedLayers = TileGenerator.GetCompressedLayers();
+				if (CompressedLayers.Num())
 				{
-					IntermediateLayerDataMap.Add(Element.Coord, ComressedLayers);
+					DestNavMesh->AddTileCacheLayers(Element.Coord.X, Element.Coord.Y, CompressedLayers);
 				}
 			}
 

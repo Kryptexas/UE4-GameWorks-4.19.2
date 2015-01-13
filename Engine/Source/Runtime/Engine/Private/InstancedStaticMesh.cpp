@@ -1360,18 +1360,17 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavi
 	if (StaticMesh && StaticMesh->NavCollision)
 	{
 		UNavCollision* NavCollision = StaticMesh->NavCollision;
-		if (NavCollision->bIsDynamicObstacle)
-				{
-					FCompositeNavModifier Modifiers;
-			NavCollision->GetNavigationModifier(Modifiers, FTransform::Identity);
-					GeomExport->AddNavModifiers(Modifiers);
-				}
-		else if (NavCollision->bHasConvexGeometry)
-				{
-					GeomExport->ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
+		if (StaticMesh->NavCollision->bIsDynamicObstacle)
+		{
+			return false;
+		}
+		
+		if (NavCollision->bHasConvexGeometry)
+		{
+			GeomExport->ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
 				NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), FTransform::Identity);
 
-					GeomExport->ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
+			GeomExport->ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
 				NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), FTransform::Identity);
 		}
 		else
@@ -1380,8 +1379,8 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavi
 			if (BodySetup)
 			{
 				GeomExport->ExportRigidBodySetup(*BodySetup, FTransform::Identity);
-					}
-				}
+			}
+		}
 
 		// Hook per instance transform delegate
 		GeomExport->SetNavDataPerInstanceTransformDelegate(FNavDataPerInstanceTransformDelegate::CreateUObject(this, &UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms));
@@ -1389,6 +1388,14 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavi
 
 	// we don't want "regular" collision export for this component
 	return false;
+}
+
+void UInstancedStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) const
+{
+	Super::GetNavigationData(Data);
+
+	// Hook per instance transform delegate
+	Data.NavDataPerInstanceTransformDelegate = FNavDataPerInstanceTransformDelegate::CreateUObject(this, &UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms);
 }
 
 void UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& InstanceData) const

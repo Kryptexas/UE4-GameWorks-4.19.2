@@ -363,7 +363,7 @@ struct FNavMeshTileData
 		return NavData->RawNavData;
 	}
 
-	FORCEINLINE const uint8* GetDataSafe() const
+	FORCEINLINE uint8* GetDataSafe()
 	{
 		return NavData.IsValid() ? NavData->RawNavData : NULL;
 	}
@@ -376,6 +376,9 @@ struct FNavMeshTileData
 	FORCEINLINE bool IsValid() const { return NavData.IsValid() && GetData() != nullptr && DataSize > 0; }
 
 	uint8* Release();
+
+	// Duplicate shared state so we will have own copy of the data
+	void MakeUnique();
 };
 
 DECLARE_MULTICAST_DELEGATE(FOnNavMeshUpdate);
@@ -697,6 +700,15 @@ public:
 	/** Retrieves number of tiles in this navmesh */
 	int32 GetNavMeshTilesCount() const;
 
+	/**  */
+	void RemoveTileCacheLayers(int32 TileX, int32 TileY);
+	
+	/**  */
+	void AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& Layers);
+	
+	/**  */
+	TArray<FNavMeshTileData> GetTileCacheLayers(int32 TileX, int32 TileY) const;
+	
 	void GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<struct FNavigationPortalEdge>* PathCorridorEdges) const;
 
 	// @todo docuement
@@ -864,7 +876,8 @@ public:
 	
 	virtual bool NeedsRebuild() const override;
 	virtual bool SupportsRuntimeGeneration() const override;
-	virtual void ConstructGenerator() override;
+	virtual bool SupportsStreaming() const override;
+	virtual void ConditionalConstructGenerator() override;
 
 protected:
 	// @todo docuement
