@@ -4798,6 +4798,7 @@ public class GUBP : BuildCommand
         }
 
 		bool WithLinux = !BranchOptions.PlatformsToRemove.Contains(UnrealTargetPlatform.Linux);
+		bool WithoutLinux = ParseParam("NoLinux");
 		// @TODO: exclude temporarily unless running on a Linux machine to prevent spurious GUBP failures
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux || ParseParam("NoLinux"))
 		{
@@ -6214,6 +6215,23 @@ public class GUBP : BuildCommand
 				else
 				{
 					Log("  Rejecting {0}", NodeToDo);
+				}
+			}
+			NodesToDo = NewNodesToDo;
+		}
+		//Remove Plat if specified
+		if(WithoutLinux)
+		{
+			var NewNodesToDo = new HashSet<string>();
+			foreach(var NodeToDo in NodesToDo)
+			{
+				if(!GUBPNodes[NodeToDo].GetFullName().Contains("Linux"))
+				{					
+					NewNodesToDo.Add(NodeToDo);
+				}
+				else
+				{
+					Log(" Rejecting {0} because -NoLinux was requested", NodeToDo);
 				}
 			}
 			NodesToDo = NewNodesToDo;
