@@ -253,9 +253,6 @@ void SetFilterShaders(
 #undef SET_FILTER_SHADER_TYPE
 }
 
-
-
-
 /**
  * Evaluates a normal distribution PDF at given X.
  * This function misses the math for scaling the result (faster, not needed if the resulting values are renormalized).
@@ -264,16 +261,25 @@ void SetFilterShaders(
  * @param Variance - The normal distribution's variance.
  * @return The value of the normal distribution at X. (unscaled)
  */
-static float NormalDistributionUnscaled(float X,float Mean,float Variance)
+static float NormalDistributionUnscaled(float X,float Mean,float Variance, EFilterShape FilterShape, float CrossCenterWeight)
 {
-	return FMath::Exp(-FMath::Square(X - Mean) / (2.0f * Variance));
+	float Ret = FMath::Exp(-FMath::Square(X - Mean) / (2.0f * Variance));
+
+	// if center sample
+	if(X == 0.0f)
+	{
+		// give it extra weight
+		Ret += CrossCenterWeight;
+	}
+
+	return Ret;
 }
 
 /**
  * @return NumSamples >0
  */
 
-static uint32 Compute1DGaussianFilterKernel(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius, FVector2D OutOffsetAndWeight[MAX_FILTER_SAMPLES], uint32 MaxFilterSamples)
+static uint32 Compute1DGaussianFilterKernel(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius, FVector2D OutOffsetAndWeight[MAX_FILTER_SAMPLES], uint32 MaxFilterSamples, EFilterShape FilterShape, float CrossCenterWeight)
 {
 	float ClampedKernelRadius = FRCPassPostProcessWeightedSampleSum::GetClampedKernelRadius( InFeatureLevel, KernelRadius );
 	int32 IntegerKernelRadius = FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius( InFeatureLevel, KernelRadius );
@@ -284,7 +290,7 @@ static uint32 Compute1DGaussianFilterKernel(ERHIFeatureLevel::Type InFeatureLeve
 	float WeightSum = 0.0f;
 	for(int32 SampleIndex = -IntegerKernelRadius; SampleIndex <= IntegerKernelRadius; SampleIndex += 2)
 	{
-		float Weight0 = NormalDistributionUnscaled(SampleIndex, 0, ClampedKernelRadius);
+		float Weight0 = NormalDistributionUnscaled(SampleIndex, 0, ClampedKernelRadius, FilterShape, CrossCenterWeight);
 		float Weight1 = 0.0f;
 
 		// Because we use bilinear filtering we only require half the sample count.
@@ -294,7 +300,7 @@ static uint32 Compute1DGaussianFilterKernel(ERHIFeatureLevel::Type InFeatureLeve
 		//    c * .. but another texel to the right would accidentially leak into this computation.
 		if(SampleIndex != IntegerKernelRadius)
 		{
-			Weight1 = NormalDistributionUnscaled(SampleIndex + 1, 0, ClampedKernelRadius);
+			Weight1 = NormalDistributionUnscaled(SampleIndex + 1, 0, ClampedKernelRadius, FilterShape, CrossCenterWeight);
 		}
 
 		float TotalWeight = Weight0 + Weight1;
@@ -320,6 +326,7 @@ FRCPassPostProcessWeightedSampleSum::FRCPassPostProcessWeightedSampleSum(EFilter
 	, SizeScale(InSizeScale)
 	, TintValue(InTintValue)
 	, DebugName(InDebugName)
+	, CrossCenterWeight(0.0f)
 {
 }
 
@@ -368,7 +375,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	// compute 1D filtered samples
 	uint32 MaxNumSamples = GetMaxNumSamples(FeatureLevel);
 
-	uint32 NumSamples = Compute1DGaussianFilterKernel(FeatureLevel, EffectiveBlurRadius, OffsetAndWeight, MaxNumSamples);
+	uint32 NumSamples = Compute1DGaussianFilterKernel(FeatureLevel, EffectiveBlurRadius, OffsetAndWeight, MaxNumSamples, FilterShape, CrossCenterWeight);
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessWeightedSampleSum, TEXT("PostProcessWeightedSampleSum#%d"), NumSamples);
 

@@ -122,6 +122,9 @@ public:
 	static float GetClampedKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius);
 	static int GetIntegerKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius);
 
+	// @param InCrossCenterWeight >=0
+	void SetCrossCenterWeight(float InCrossCenterWeight) { check(InCrossCenterWeight >= 0.0f); CrossCenterWeight = InCrossCenterWeight; }
+
 private:
 	void DrawQuad(FRHICommandListImmediate& RHICmdList, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const;
 	static uint32 GetMaxNumSamples(ERHIFeatureLevel::Type InFeatureLevel);
@@ -132,6 +135,9 @@ private:
 	float SizeScale;
 	FLinearColor TintValue;
 	const TCHAR* DebugName;
+	// to give the center sample some special weight (see r.Bloom.Cross), >=0
+	float CrossCenterWeight;
+
 	// @return true: half x resolution for horizontal pass, vertical pass takes that as input, lower quality
 	bool DoFastBlur() const;
 };

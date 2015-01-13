@@ -100,6 +100,16 @@ static TAutoConsoleVariable<float> CVarMotionBlurSoftEdgeSize(
 	TEXT(" 0:off (not free and does never completely disable), >0, 1.0 (default)"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarBloomCross(
+	TEXT("r.Bloom.Cross"),
+	0.0f,
+	TEXT("Experimental feature to give bloom kernel a more bright center sample (values between 1 and 3 work without causing aliasing)\n")
+	TEXT("Existing bloom get lowered to match the same brightness\n")
+	TEXT("<0 for a anisomorphic lens flare look (X only)\n")
+	TEXT(" 0 off (default)\n")
+	TEXT(">0 for a cross look (X and Y)"),
+	ECVF_RenderThreadSafe);
+
 IMPLEMENT_SHADER_TYPE(,FPostProcessVS,TEXT("PostProcessBloom"),TEXT("MainPostprocessCommonVS"),SF_Vertex);
 
 // -------------------------------------------------------
@@ -138,6 +148,7 @@ static FRenderingCompositeOutputRef RenderHalfResBloomThreshold(FPostprocessCont
 
 
 // 2 pass Gaussian blur using uni-linear filtering
+// @param CrossCenterWeight see r.Bloom.Cross (positive for X and Y, otherwise for X only)
 static FRenderingCompositeOutputRef RenderGaussianBlur(
 	FPostprocessContext& Context,
 	const TCHAR* DebugNameX,
@@ -145,16 +156,22 @@ static FRenderingCompositeOutputRef RenderGaussianBlur(
 	const FRenderingCompositeOutputRef& Input,
 	float SizeScale,
 	FLinearColor Tint = FLinearColor::White,
-	const FRenderingCompositeOutputRef Additive = FRenderingCompositeOutputRef())
+	const FRenderingCompositeOutputRef Additive = FRenderingCompositeOutputRef(),
+	float CrossCenterWeight = 0.0f)
 {
 	// Gaussian blur in x
 	FRCPassPostProcessWeightedSampleSum* PostProcessBlurX = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessWeightedSampleSum(EFS_Horiz, EFCM_Weighted, SizeScale, DebugNameX));
 	PostProcessBlurX->SetInput(ePId_Input0, Input);
+	if(CrossCenterWeight > 0)
+	{
+		PostProcessBlurX->SetCrossCenterWeight(CrossCenterWeight);
+	}
 
 	// Gaussian blur in y
 	FRCPassPostProcessWeightedSampleSum* PostProcessBlurY = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessWeightedSampleSum(EFS_Vert, EFCM_Weighted, SizeScale, DebugNameY, Tint));
 	PostProcessBlurY->SetInput(ePId_Input0, FRenderingCompositeOutputRef(PostProcessBlurX));
 	PostProcessBlurY->SetInput(ePId_Input1, Additive);
+	PostProcessBlurY->SetCrossCenterWeight(FMath::Abs(CrossCenterWeight));
 
 	return FRenderingCompositeOutputRef(PostProcessBlurY);
 }
@@ -167,7 +184,9 @@ static FRenderingCompositeOutputRef RenderBloom(
 	FLinearColor Tint = FLinearColor::White,
 	const FRenderingCompositeOutputRef Additive = FRenderingCompositeOutputRef())
 {
-	return RenderGaussianBlur(Context, TEXT("BloomBlurX"), TEXT("BloomBlurY"), PreviousBloom, Size, Tint, Additive);
+	const float CrossBloom = CVarBloomCross.GetValueOnRenderThread();
+
+	return RenderGaussianBlur(Context, TEXT("BloomBlurX"), TEXT("BloomBlurY"), PreviousBloom, Size, Tint, Additive,CrossBloom);
 }
 
 static void AddTonemapper(
