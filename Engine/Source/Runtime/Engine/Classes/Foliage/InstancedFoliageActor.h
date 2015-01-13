@@ -106,7 +106,11 @@ public:
 	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone = true);
 
 
-	// Get the instanced foliage actor for the specified streaming level. Never creates a new IFA.
-	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level);
+	/**
+	* Get the instanced foliage actor for the specified streaming level.
+	* @param bCreateIfNone					Create if doesnt already exist
+	* returns								pointer to foliage object instance
+	*/
+	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
 #endif	//WITH_EDITOR
 };

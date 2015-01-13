@@ -790,7 +790,7 @@ AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForCurre
 }
 
 
-AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ULevel* InLevel)
+AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ULevel* InLevel, bool bCreateIfNone /* = true */)
 {
 	if (!InLevel)
 	{
@@ -805,6 +805,15 @@ AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel
 			return InstancedFoliageActor;
 		}
 	}
+
+	if (bCreateIfNone)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.OverrideLevel = InLevel;
+
+		return InLevel->GetWorld()->SpawnActor<AInstancedFoliageActor>(SpawnParams);
+	}
+
 	return nullptr;
 }
 
