@@ -17,6 +17,7 @@ ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectI
 	bSearchInsideLogs = true;
 	GraphsBackgroundColor = FColor(0, 0, 0, 70);
 	bResetDataWithNewSession = false;
+	bDrawExtremesOnGraphs = false;
 }
 
 #if WITH_EDITOR

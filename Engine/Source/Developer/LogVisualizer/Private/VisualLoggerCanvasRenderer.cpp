@@ -112,6 +112,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 	struct FGraphLineData
 	{
 		FName DataName;
+		FVector2D LeftExtreme, RightExtreme;
 		TArray<FVector2D> Samples;
 	};
 	typedef TMap<FName, FGraphLineData > FGraphLines;
@@ -141,16 +142,21 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 
 	const TArray<FVisualLogDevice::FVisualLogEntryItem> &ObjectItems = CurrentTimeLine.Pin()->GetEntries();
 	int32 ColorIndex = 0;
+	int32 LeftSideOutsideIndex = INDEX_NONE;
+	int32 RightSideOutsideIndex = INDEX_NONE;
+
 	for (int32 EntryIndex = 0; EntryIndex < ObjectItems.Num(); ++EntryIndex)
 	{
 		const FVisualLogEntry* CurrentEntry = &(ObjectItems[EntryIndex].Entry);
 		if (CurrentEntry->TimeStamp < TimeStampWindow.X)
 		{
+			LeftSideOutsideIndex = EntryIndex;
 			continue;
 		}
 
 		if (CurrentEntry->TimeStamp > TimeStampWindow.Y)
 		{
+			RightSideOutsideIndex = EntryIndex;
 			break;
 		}
 
@@ -164,10 +170,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 			const FName CurrentDataName = CurrentSample.DataName;
 
 			const bool bIsValidByFilter = VisualLoggerInterface.Pin()->IsValidCategory(CurrentSample.GraphName.ToString(), CurrentSample.DataName.ToString(), ELogVerbosity::All);
-			const bool bCurrentDataNamePassed = true;// !bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentDataName.ToString().Find(QuickFilterText) != INDEX_NONE);
-
-
-			if (bIsValidByFilter /*&& bCurrentCategoryPassed*/ && bCurrentDataNamePassed)
+			if (bIsValidByFilter)
 			{
 				FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
 				FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.DataName);
@@ -179,6 +182,33 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 
 				GraphData.Max.X = FMath::Max(GraphData.Max.X, CurrentSample.SampleValue.X);
 				GraphData.Max.Y = FMath::Max(GraphData.Max.Y, CurrentSample.SampleValue.Y);
+			}
+		}
+	}
+	
+	const int32 ExtremeValueIndexes[] = { LeftSideOutsideIndex != INDEX_NONE ? LeftSideOutsideIndex : 0, RightSideOutsideIndex != INDEX_NONE ? RightSideOutsideIndex : ObjectItems.Num() - 1 };
+	for (int32 ObjectIndex = 0; ObjectIndex < 2; ++ObjectIndex)
+	{
+		const FVisualLogEntry* CurrentEntry = &(ObjectItems[ExtremeValueIndexes[ObjectIndex]].Entry);
+		const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
+		for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
+		{
+			FVisualLogHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+
+			const FName CurrentCategory = CurrentSample.Category;
+			const FName CurrentGraphName = CurrentSample.GraphName;
+			const FName CurrentDataName = CurrentSample.DataName;
+
+			const bool bIsValidByFilter = VisualLoggerInterface.Pin()->IsValidCategory(CurrentSample.GraphName.ToString(), CurrentSample.DataName.ToString(), ELogVerbosity::All);
+			if (bIsValidByFilter)
+			{
+				FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
+				FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.DataName);
+				LineData.DataName = CurrentSample.DataName;
+				if (ObjectIndex == 0)
+					LineData.LeftExtreme = CurrentSample.SampleValue;
+				else
+					LineData.RightExtreme = CurrentSample.SampleValue;
 			}
 		}
 	}
@@ -211,6 +241,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 		int32 GraphIndex = 0;
 		int32 CurrentColumn = 0;
 		int32 CurrentRow = 0;
+		bool bDrawExtremesOnGraphs = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bDrawExtremesOnGraphs;
 		for (auto It(CollectedGraphs.CreateIterator()); It; ++It)
 		{
 			TWeakObjectPtr<UReporterGraph> HistogramGraph = Canvas->GetReporterGraph();
@@ -222,7 +253,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 			int32 LineIndex = 0;
 			UFont* Font = GEngine->GetSmallFont();
 			int32 MaxStringSize = 0;
-			float Hue = 0;//StartGoldenRatio[GraphIndex++];
+			float Hue = 0;
 
 			auto& CategoriesForGraph = UsedGraphCategories.FindOrAdd(It->Key.ToString());
 
@@ -244,6 +275,8 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 				HistogramGraph->GetGraphLine(LineIndex)->Color = FLinearColor::FGetHSV(Hue * 255, 0, 244);
 				HistogramGraph->GetGraphLine(LineIndex)->LineName = DataName;
 				HistogramGraph->GetGraphLine(LineIndex)->Data.Append(LinesIt->Value.Samples);
+				HistogramGraph->GetGraphLine(LineIndex)->LeftExtreme = LinesIt->Value.LeftExtreme;
+				HistogramGraph->GetGraphLine(LineIndex)->RightExtreme = LinesIt->Value.RightExtreme;
 
 				int32 DummyY, CurrentX;
 				StringSize(Font, CurrentX, DummyY, *LinesIt->Value.DataName.ToString());
@@ -267,6 +300,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 			HistogramGraph->SetBackgroundColor(GraphsBackgroundColor);
 			HistogramGraph->SetLegendPosition(/*bShowHistogramLabelsOutside*/ false ? ELegendPosition::Outside : ELegendPosition::Inside);
 			HistogramGraph->OffsetDataSets(/*bOffsetDataSet*/false);
+			HistogramGraph->DrawExtremesOnGraph(bDrawExtremesOnGraphs);
 			HistogramGraph->bVisible = true;
 			HistogramGraph->Draw(Canvas);
 

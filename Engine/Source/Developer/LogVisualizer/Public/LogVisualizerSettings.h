@@ -72,10 +72,13 @@ public:
 	UPROPERTY(config)
 	TArray<FFiltersPreset> FilterPresets;
 
-
 	/**Whether to store all filter settings on exit*/
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bPresistentFilters;
+
+	/** Whether to extreme values on graph (data has to be provided for extreme values) */
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	bool bDrawExtremesOnGraphs;
 
 	UPROPERTY(config)
 	FFiltersPreset PresistentPresets;
