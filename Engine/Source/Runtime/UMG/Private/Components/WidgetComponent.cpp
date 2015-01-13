@@ -55,8 +55,6 @@ public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
 	{
 		const FMatrix& LocalToWorld = GetLocalToWorld();
-	
-		FDynamicMeshBuilder MeshBuilder;
 
 		if( RenderTarget )
 		{
@@ -72,6 +70,8 @@ public:
 
 				for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 				{
+					FDynamicMeshBuilder MeshBuilder;
+
 					if ( VisibilityMap & ( 1 << ViewIndex ) )
 					{
 						VertexIndices[0] = MeshBuilder.AddVertex(FVector(U, V, 0), FVector2D(0, 0), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
