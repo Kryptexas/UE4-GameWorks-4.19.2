@@ -12,6 +12,8 @@
 class FIOSTargetSettingsCustomization : public IDetailCustomization
 {
 public:
+	~FIOSTargetSettingsCustomization();
+
 	// Makes a new instance of this detail layout class for a specific detail view requesting it
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
@@ -38,6 +40,7 @@ private:
 	bool bCertificateInstalled;
 
 	TSharedPtr<FMonitoredProcess> IPPProcess;
+	FDelegateHandle TickerHandle;
 
 private:
 	FIOSTargetSettingsCustomization();
