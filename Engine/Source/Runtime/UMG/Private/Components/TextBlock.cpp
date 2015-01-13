@@ -12,7 +12,6 @@ UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
 {
 	bIsVariable = false;
 
-	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
@@ -171,6 +170,11 @@ const FSlateBrush* UTextBlock::GetEditorIcon()
 const FText UTextBlock::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
+}
+
+void UTextBlock::OnCreationFromPalette()
+{
+	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
 }
 
 #endif
