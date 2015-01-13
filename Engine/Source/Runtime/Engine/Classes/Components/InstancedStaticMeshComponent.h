@@ -6,6 +6,8 @@
 
 #include "InstancedStaticMeshComponent.generated.h"
 
+DECLARE_STATS_GROUP(TEXT("Foliage"), STATGROUP_Foliage, STATCAT_Advanced);
+
 class FStaticLightingTextureMapping_InstancedStaticMesh;
 class FInstancedLightMap2D;
 class FInstancedShadowMap2D;

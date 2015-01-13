@@ -54,8 +54,6 @@
 #include "AI/Navigation/NavCollision.h"
 #include "Components/InstancedStaticMeshComponent.h"
 
-DECLARE_STATS_GROUP(TEXT("Foliage"), STATGROUP_Foliage, STATCAT_Advanced);
-
 extern TAutoConsoleVariable<float> CVarFoliageMinimumScreenSize;
 extern TAutoConsoleVariable<float> CVarFoliageLODDistanceScale;
 
