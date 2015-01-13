@@ -410,7 +410,7 @@ struct CORE_API FGenericPlatformProcess
 
 #if PLATFORM_HAS_BSD_TIME 
 
-	/** Sleep this thread for Seconds.  0.0 means release the current timeslice to let other threads get some attention. */
+	/** Sleep this thread for Seconds.  0.0 means release the current time slice to let other threads get some attention. */
 	static void Sleep( float Seconds );
 	/** Sleep this thread infinitely. */
 	static void SleepInfinite();
@@ -418,13 +418,30 @@ struct CORE_API FGenericPlatformProcess
 #endif // PLATFORM_HAS_BSD_TIME
 
 	/**
-	 * Creates a new event,
+	 * Creates a new event.
 	 *
 	 * @param bIsManualReset Whether the event requires manual reseting or not.
-	 * @param InName Whether to use a commonly shared event or not. If so this is the name of the event to share.
-	 * @return Returns the new event object if successful, NULL otherwise.
+	 * @return A new event, or nullptr none could be created.
+	 * @see GetSynchEventFromPool, ReturnSynchEventToPool
 	 */
-	static class FEvent* CreateSynchEvent(bool bIsManualReset = 0);
+	static class FEvent* CreateSynchEvent(bool bIsManualReset = false);
+
+	/**
+	 * Gets an event from the pool or creates a new one if necessary.
+	 *
+	 * @param bIsManualReset Whether the event requires manual reseting or not.
+	 * @return An event, or nullptr none could be created.
+	 * @see CreateSynchEvent, ReturnSynchEventToPool
+	 */
+	static class FEvent* GetSynchEventFromPool(bool bIsManualReset = false);
+
+	/**
+	 * Returns an event to the pool.
+	 *
+	 * @param Event The event to return.
+	 * @see CreateSynchEvent, GetSynchEventFromPool
+	 */
+	static void ReturnSynchEventToPool(FEvent* Event);
 
 	/**
 	 * Creates the platform-specific runnable thread. This should only be called from FRunnableThread::Create.
@@ -510,7 +527,7 @@ struct CORE_API FGenericPlatformProcess
 
 
 #if PLATFORM_USE_PTHREADS
-	// if we are using pthreads, we can set this up at the generic layer
+	// if we are using PThreads, we can set this up at the generic layer
 	#include "PThreadCriticalSection.h"
 	typedef FPThreadsCriticalSection FCriticalSection;
 #endif

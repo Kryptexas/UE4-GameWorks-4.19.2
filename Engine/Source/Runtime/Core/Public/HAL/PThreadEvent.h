@@ -119,6 +119,11 @@ public:
 		return RetVal;
 	}
 
+	virtual bool IsManualReset() override
+	{
+		return bIsManualReset;
+	}
+
 	virtual void Trigger() override
 	{
 		check(bInitialized);

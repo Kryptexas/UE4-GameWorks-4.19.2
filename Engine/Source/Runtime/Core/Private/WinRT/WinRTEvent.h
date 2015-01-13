@@ -36,8 +36,14 @@ public:
 		// Create the event and default it to non-signaled
 //		Event = CreateEvent(NULL, bIsManualReset, 0, NULL);
 		Event = CreateEventEx(NULL, NULL, bIsManualReset ? CREATE_EVENT_MANUAL_RESET : 0, EVENT_ALL_ACCESS);
+		ManualReset = bIsManualReset;
 
 		return Event != NULL;
+	}
+
+	virtual bool IsManualReset() override
+	{
+		return ManualReset;
 	}
 
 	virtual void Trigger () override
@@ -60,6 +66,9 @@ private:
 
 	/** Holds the handle to the event. */
 	HANDLE Event;
+
+	/** Whether the signaled state of the event needs to be reset manually. */
+	bool ManualReset;
 };
 
 

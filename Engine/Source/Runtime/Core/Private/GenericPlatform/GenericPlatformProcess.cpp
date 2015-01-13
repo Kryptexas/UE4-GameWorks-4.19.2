@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
+#include "EventPool.h"
 #include "Public/Modules/ModuleVersion.h"
 
 
@@ -379,6 +380,25 @@ FEvent* FGenericPlatformProcess::CreateSynchEvent(bool bIsManualReset)
 }
 
 
+FEvent* FGenericPlatformProcess::GetSynchEventFromPool(bool bIsManualReset)
+{
+	return bIsManualReset
+		? FEventPool<EEventPoolTypes::ManualReset>::Get().GetEventFromPool()
+		: FEventPool<EEventPoolTypes::AutoReset>::Get().GetEventFromPool();
+}
+
+
+void FGenericPlatformProcess::ReturnSynchEventToPool(FEvent* Event)
+{
+	if (Event->IsManualReset())
+	{
+		FEventPool<EEventPoolTypes::ManualReset>::Get().ReturnToPool(Event);
+	}
+	else
+	{
+		FEventPool<EEventPoolTypes::AutoReset>::Get().ReturnToPool(Event);
+	}
+}
 
 
 #if PLATFORM_USE_PTHREADS

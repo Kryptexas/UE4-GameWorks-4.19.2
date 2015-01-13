@@ -2,6 +2,7 @@
 
 
 #include "CorePrivatePCH.h"
+#include "EventPool.h"
 #include "LockFreeList.h"
 #include "StatsData.h"
 
@@ -174,40 +175,15 @@ FSingleThreadManager& FSingleThreadManager::Get()
 	return Singleton;
 }
 
-class FEventPool
-{
-	TLockFreePointerList<FEvent> Pool;
-public:
-	static FEventPool& Get()
-	{
-		static FEventPool Singleton;
-		return Singleton;
-	}
-	FEvent* GetEventFromPool()
-	{
-		FEvent* Result = Pool.Pop();
-		if (!Result)
-		{
-			Result = FPlatformProcess::CreateSynchEvent();
-		}
-		check(Result);
-		return Result;
-	}
-	void ReturnToPool(FEvent* Event)
-	{
-		check(Event);
-		Pool.Push(Event);
-	}
-};
+FScopedEvent::FScopedEvent()
+	: Event(FEventPool<EEventPoolTypes::AutoReset>::Get().GetEventFromPool())
+{ }
 
-FEvent* FScopedEvent::GetEventFromPool()
+FScopedEvent::~FScopedEvent()
 {
-	return FEventPool::Get().GetEventFromPool();
-}
-
-void FScopedEvent::ReturnToPool(FEvent* Event)
-{
-	FEventPool::Get().ReturnToPool(Event);
+	Event->Wait();
+	FEventPool<EEventPoolTypes::AutoReset>::Get().ReturnToPool(Event);
+	Event = nullptr;
 }
 
 FRunnableThread::~FRunnableThread()

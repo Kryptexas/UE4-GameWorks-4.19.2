@@ -44,10 +44,26 @@ public:
 	 */
 	virtual bool Create( bool bIsManualReset = false ) = 0;
 
-	/** Triggers the event so any waiting threads are activated */
+	/**
+	 * Whether the signaled state of this event needs to be reset manually.
+	 *
+	 * @return true if the state requires manual resetting, false otherwise.
+	 * @see Reset
+	 */
+	virtual bool IsManualReset() = 0;
+
+	/**
+	 * Triggers the event so any waiting threads are activated.
+	 *
+	 * @see IsManualReset, Reset
+	 */
 	virtual void Trigger() = 0;
 
-	/** Resets the event to an untriggered (waitable) state */
+	/**
+	 * Resets the event to an untriggered (waitable) state.
+	 *
+	 * @see IsManualReset, Trigger
+	 */
 	virtual void Reset() = 0;
 
 	/**
@@ -100,22 +116,15 @@ public:
  *		// MyEvent destructor is here, we wait here.
  * }
  */
-class CORE_API FScopedEvent
+class FScopedEvent
 {
 public:
 
 	/** Default constructor. */
-	FScopedEvent()
-		: Event(GetEventFromPool())
-	{ }
+	CORE_API FScopedEvent();
 
 	/** Destructor. */
-	~FScopedEvent()
-	{
-		Event->Wait();
-		ReturnToPool(Event);
-		Event = nullptr;
-	}
+	CORE_API ~FScopedEvent();
 
 	/** Triggers the event. */
 	void Trigger()
@@ -133,27 +142,9 @@ public:
 		return Event;
 	}
 
-protected:
-
-	/**
-	 * Returns an event object from the pool.
-	 *
-	 * @return An event object.
-	 * @see ReturnToPool
-	 */
-	static FEvent* GetEventFromPool();
-
-	/**
-	 * Returns an event object to the pool.
-	 *
-	 * @param Event The event object to return.
-	 * @see GetEventFromPool
-	 */
-	static void ReturnToPool( FEvent* Event );
-
 private:
 
-	// Holds the event.
+	/** Holds the event. */
 	FEvent* Event;
 };
 
@@ -446,23 +437,28 @@ public:
 
 	// FEvent Interface
 
-	virtual bool Create( bool bIsManualReset = false ) 
+	virtual bool Create( bool bIsManualReset = false ) override
 	{ 
 		bManualReset = bIsManualReset;
 		return true; 
 	}
 
-	virtual void Trigger()
+	virtual bool IsManualReset() override
+	{
+		return bManualReset;
+	}
+
+	virtual void Trigger() override
 	{
 		bTriggered = true;
 	}
 
-	virtual void Reset()
+	virtual void Reset() override
 	{
 		bTriggered = false;
 	}
 
-	virtual bool Wait( uint32 WaitTime, const bool bIgnoreThreadIdleStats = false ) 
+	virtual bool Wait( uint32 WaitTime, const bool bIgnoreThreadIdleStats = false ) override
 	{ 
 		// With only one thread it's assumed the event has been triggered
 		// before Wait is called, otherwise it would end up waiting forever or always fail.
