@@ -1496,6 +1496,11 @@ float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmooth
 	float MaxTickRate = 0.0f;
 	if( !ShouldThrottleCPUUsage() )
 	{
+		// do not limit fps in VR Preview mode
+		if (bUseVRPreviewForPlayWorld)
+		{
+			return 0.0f;
+		}
 		const float SuperMaxTickRate = Super::GetMaxTickRate( DeltaTime, bAllowFrameRateSmoothing );
 		if( SuperMaxTickRate != 0.0f )
 		{
