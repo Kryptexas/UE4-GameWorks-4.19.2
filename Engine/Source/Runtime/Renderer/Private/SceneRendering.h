@@ -603,6 +603,15 @@ public:
 
 	bool DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) const;
 
+	/**
+	* Whether or not to composite editor objects onto the scene as a post processing step
+	*
+	* @param View The view to test against
+	*
+	* @return true if compositing is needed
+	*/
+	static bool ShouldCompositeEditorPrimitives(const FViewInfo& View);
+
 protected:
 
 	// Shared functionality between all scene renderers

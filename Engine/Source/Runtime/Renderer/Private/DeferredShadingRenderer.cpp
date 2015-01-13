@@ -769,7 +769,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		bIsGBufferCurrent = true;
 	}
 
-	if(bIsWireframe && FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives(Views[0]))
+	if(bIsWireframe && FSceneRenderer::ShouldCompositeEditorPrimitives(Views[0]))
 	{
 		// In Editor we want wire frame view modes to be MSAA for better quality. Resolve will be done with EditorPrimitives
 		SetRenderTarget(RHICmdList, GSceneRenderTargets.GetEditorPrimitivesColor(), GSceneRenderTargets.GetEditorPrimitivesDepth());
@@ -1458,27 +1458,4 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandLis
 				EDRF_UseTriangleOptimization);
 		}
 	}
-}
-
-bool FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives(const FViewInfo& View)
-{
-	// If the show flag is enabled
-	if(!View.Family->EngineShowFlags.CompositeEditorPrimitives)
-	{
-		return false;
-	}
-
-	if(GIsEditor && View.Family->EngineShowFlags.Wireframe)
-	{
-		// In Editor we want wire frame view modes to be in MSAA
-		return true;
-	}
-
-	// Any elements that needed compositing were drawn then compositing should be done
-	if( View.ViewMeshElements.Num() || View.TopViewMeshElements.Num() || View.BatchedViewElements.HasPrimsToDraw() || View.TopBatchedViewElements.HasPrimsToDraw() || View.VisibleEditorPrimitives.Num() )
-	{
-		return true;
-	}
-
-	return false;
 }

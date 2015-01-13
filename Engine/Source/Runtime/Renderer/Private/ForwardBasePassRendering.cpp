@@ -96,7 +96,8 @@ public:
 				Parameters.TextureMode,
 				Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(),
 				false,
-				FeatureLevel
+				FeatureLevel,
+				Parameters.bEditorCompositeDepthTest
 				),
 				FeatureLevel
 			);
@@ -109,6 +110,9 @@ void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList& 
 	const auto FeatureLevel = Scene->GetFeatureLevel();
 	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(FeatureLevel);
 	const EBlendMode BlendMode = Material->GetBlendMode();
+
+	// Don't composite static meshes
+	const bool bEditorCompositeDepthTest = false;
 
 	// Only draw opaque materials.
 	if( !IsTranslucentBlendMode(BlendMode) )
@@ -123,7 +127,7 @@ void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList& 
 				Material,
 				StaticMesh->PrimitiveSceneInfo->Proxy,
 				true,
-				false,
+				bEditorCompositeDepthTest,
 				ESceneRenderTargetsMode::DontSet,
 				FeatureLevel
 				),
@@ -193,7 +197,8 @@ public:
 			Parameters.TextureMode,
 			Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(),
 			View.Family->EngineShowFlags.ShaderComplexity,
-			View.GetFeatureLevel()
+			View.GetFeatureLevel(),
+			Parameters.bEditorCompositeDepthTest
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ContextDataType());
@@ -251,7 +256,7 @@ bool FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 				Material,
 				PrimitiveSceneProxy,
 				true,
-				false,
+				DrawingContext.bEditorCompositeDepthTest,
 				DrawingContext.TextureMode,
 				FeatureLevel
 				),
@@ -394,7 +399,7 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 			SCOPE_CYCLE_COUNTER(STAT_DynamicPrimitiveDrawTime);
 			SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 
-			FBasePassForwardOpaqueDrawingPolicyFactory::ContextType Context(ESceneRenderTargetsMode::DontSet);
+			FBasePassForwardOpaqueDrawingPolicyFactory::ContextType Context(false, ESceneRenderTargetsMode::DontSet);
 
 			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 			{
@@ -412,13 +417,13 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 			const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[FeatureLevel]);
 
 			// Draw the base pass for the view's batched mesh elements.
-			DrawViewElements<FBasePassForwardOpaqueDrawingPolicyFactory>(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::DontSet), SDPG_World, true);
+			DrawViewElements<FBasePassForwardOpaqueDrawingPolicyFactory>(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_World, true);
 			
 			// Draw the view's batched simple elements(lines, sprites, etc).
 			View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false);
 
 			// Draw foreground objects last
-			DrawViewElements<FBasePassForwardOpaqueDrawingPolicyFactory>(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true);
+			DrawViewElements<FBasePassForwardOpaqueDrawingPolicyFactory>(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true);
 
 			// Draw the view's batched simple elements(lines, sprites, etc).
 			View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false);

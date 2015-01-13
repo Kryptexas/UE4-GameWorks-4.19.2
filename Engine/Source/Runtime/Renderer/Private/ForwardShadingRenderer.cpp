@@ -13,6 +13,7 @@
 #include "PostProcessMobile.h"
 #include "SceneUtils.h"
 #include "PostProcessUpscale.h"
+#include "PostProcessCompositeEditorPrimitives.h"
 
 uint32 GetShadowQuality();
 
@@ -249,6 +250,15 @@ void FForwardShadingSceneRenderer::SimpleUpscale(FRHICommandListImmediate& RHICm
 
 		Context.FinalOutput.GetOutput()->PooledRenderTarget = Temp;
 		Context.FinalOutput.GetOutput()->RenderTargetDesc = Desc;
+	}
+
+	// Composite editor primitives if we had any to draw and compositing is enabled
+	if (FSceneRenderer::ShouldCompositeEditorPrimitives(View))
+	{
+		FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(false));
+		EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+		//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
+		Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
 	}
 
 	CompositeContext.Root->AddDependency(Context.FinalOutput);
