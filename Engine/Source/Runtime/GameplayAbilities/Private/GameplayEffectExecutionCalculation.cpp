@@ -50,19 +50,12 @@ const FGameplayEffectSpec& FGameplayEffectCustomExecutionParameters::GetOwningSp
 	return *OwningSpec;
 }
 
-FGameplayEffectSpec& FGameplayEffectCustomExecutionParameters::GetOwningSpec()
-{
-	check(OwningSpec);
-	return *OwningSpec;
-}
-
-
 UAbilitySystemComponent* FGameplayEffectCustomExecutionParameters::GetTargetAbilitySystemComponent() const
 {
 	return TargetAbilitySystemComponent.Get();
 }
 
-UAbilitySystemComponent* FGameplayEffectCustomExecutionParameters::GetSourcebilitySystemComponent() const
+UAbilitySystemComponent* FGameplayEffectCustomExecutionParameters::GetSourceAbilitySystemComponent() const
 {
 	check(OwningSpec);
 	return OwningSpec->GetContext().GetInstigatorAbilitySystemComponent();
@@ -178,6 +171,47 @@ bool FGameplayEffectCustomExecutionParameters::AttemptGetCapturedAttributeAggreg
 	return false;
 }
 
+FGameplayEffectCustomExecutionOutput::FGameplayEffectCustomExecutionOutput()
+	: bTriggerConditionalGameplayEffects(false)
+	, bHandledStackCountManually(false)
+{
+}
+
+void FGameplayEffectCustomExecutionOutput::MarkStackCountHandledManually()
+{
+	bHandledStackCountManually = true;
+}
+
+bool FGameplayEffectCustomExecutionOutput::IsStackCountHandledManually() const
+{
+	return bHandledStackCountManually;
+}
+
+void FGameplayEffectCustomExecutionOutput::MarkConditionalGameplayEffectsToTrigger()
+{
+	bTriggerConditionalGameplayEffects = true;
+}
+
+bool FGameplayEffectCustomExecutionOutput::ShouldTriggerConditionalGameplayEffects() const
+{
+	return bTriggerConditionalGameplayEffects;
+}
+
+void FGameplayEffectCustomExecutionOutput::AddOutputModifier(const FGameplayModifierEvaluatedData& InOutputMod)
+{
+	OutputModifiers.Add(InOutputMod);
+}
+
+const TArray<FGameplayModifierEvaluatedData>& FGameplayEffectCustomExecutionOutput::GetOutputModifiers() const
+{
+	return OutputModifiers;
+}
+
+void FGameplayEffectCustomExecutionOutput::GetOutputModifiers(OUT TArray<FGameplayModifierEvaluatedData>& OutOutputModifiers) const
+{
+	OutOutputModifiers.Append(OutputModifiers);
+}
+
 UGameplayEffectExecutionCalculation::UGameplayEffectExecutionCalculation(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -199,7 +233,6 @@ void UGameplayEffectExecutionCalculation::GetValidScopedModifierAttributeCapture
 }
 #endif // #if WITH_EDITORONLY_DATA
 
-bool UGameplayEffectExecutionCalculation::Execute_Implementation(FGameplayEffectCustomExecutionParameters& ExecutionParams, OUT TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const
+void UGameplayEffectExecutionCalculation::Execute_Implementation(const FGameplayEffectCustomExecutionParameters& ExecutionParams, OUT FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const
 {
-	return true;
 }

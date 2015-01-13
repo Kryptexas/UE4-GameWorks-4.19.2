@@ -1103,12 +1103,12 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			const UGameplayEffectExecutionCalculation* ExecCDO = CurExecDef.CalculationClass->GetDefaultObject<UGameplayEffectExecutionCalculation>();
 			check(ExecCDO);
 
-			TArray<FGameplayModifierEvaluatedData> OutModifiers;
-
 			// Run the custom execution
 			FGameplayEffectCustomExecutionParameters ExecutionParams(SpecToUse, CurExecDef.CalculationModifiers, Owner);
-			bool bRunConditionalEffects = ExecCDO->Execute(ExecutionParams, OutModifiers);
+			FGameplayEffectCustomExecutionOutput ExecutionOutput;
+			ExecCDO->Execute(ExecutionParams, ExecutionOutput);
 
+			const bool bRunConditionalEffects = ExecutionOutput.ShouldTriggerConditionalGameplayEffects();
 			if (bRunConditionalEffects)
 			{
 				// If successful, apply conditional specs
@@ -1121,8 +1121,19 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			}
 
 			// Execute any mods the custom execution yielded
+			TArray<FGameplayModifierEvaluatedData> OutModifiers;
+			ExecutionOutput.GetOutputModifiers(OutModifiers);
+
+			const bool bApplyStackCountToEmittedMods = !ExecutionOutput.IsStackCountHandledManually();
+			const int32 SpecStackCount = SpecToUse.StackCount;
+
 			for (FGameplayModifierEvaluatedData& CurExecMod : OutModifiers)
 			{
+				// If the execution didn't manually handle the stack count, automatically apply it here
+				if (bApplyStackCountToEmittedMods && SpecStackCount > 1)
+				{
+					CurExecMod.Magnitude *= SpecStackCount;
+				}
 				InvokeGameplayCueExecute |= InternalExecuteMod(SpecToUse, CurExecMod);
 			}
 		}
