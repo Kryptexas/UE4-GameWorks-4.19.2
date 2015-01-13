@@ -2750,17 +2750,17 @@ FRotator AActor::K2_GetActorRotation() const
 
 FVector AActor::GetActorForwardVector() const
 {
-	return GetTransform().GetUnitAxis(EAxis::X);
+	return GetActorQuat().RotateVector(FVector::ForwardVector);
 }
 
 FVector AActor::GetActorUpVector() const
 {
-	return GetTransform().GetUnitAxis(EAxis::Z);
+	return GetActorQuat().RotateVector(FVector::UpVector);
 }
 
 FVector AActor::GetActorRightVector() const
 {
-	return GetTransform().GetUnitAxis(EAxis::Y);
+	return GetActorQuat().RotateVector(FVector::RightVector);
 }
 
 USceneComponent* AActor::K2_GetRootComponent() const

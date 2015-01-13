@@ -290,6 +290,14 @@ public:
 	 * @return vector after rotation
 	 */
 	FVector RotateVector( FVector V ) const;
+	
+	/**
+	 * Rotate a vector by the inverse of this quaternion.
+	 *
+	 * @param V the vector to be rotated
+	 * @return vector after rotation by the inverse of this quaternion.
+	 */
+	FVector UnrotateVector( FVector V ) const;
 
 	/**
 	 * @return quaternion with W=0 and V=theta*v.
@@ -515,15 +523,9 @@ FORCEINLINE FQuat::FQuat( const FRotator& R )
 }
 
 
-inline FVector FQuat::operator*( const FVector& V ) const
+FORCEINLINE FVector FQuat::operator*( const FVector& V ) const
 {
-	FQuat VQ(V.X, V.Y, V.Z, 0.f);
-	FQuat VT, VR;
-	FQuat I = Inverse();
-	VectorQuaternionMultiply(&VT, this, &VQ);
-	VectorQuaternionMultiply(&VR, &VT, &I);
-
-	return FVector(VR.X, VR.Y, VR.Z);
+	return RotateVector(V);
 }
 
 
@@ -809,14 +811,44 @@ FORCEINLINE FVector FQuat::GetRotationAxis() const
 
 FORCEINLINE FVector FQuat::RotateVector( FVector V ) const
 {	
+#if WITH_DIRECTXMATH
+	FVector Result;
+	VectorQuaternionVector3Rotate(&Result, &V, this);
+	return Result;
+
+	/*
+	// In unit testing this appears to be slower than the non-vectorized version.
+#elif PLATFORM_ENABLE_VECTORINTRINSICS
+	FQuat VQ(V.X, V.Y, V.Z, 0.f);
+	FQuat VT, VR;
+	FQuat I = Inverse();
+	VectorQuaternionMultiply(&VT, this, &VQ);
+	VectorQuaternionMultiply(&VR, &VT, &I);
+
+	return FVector(VR.X, VR.Y, VR.Z);
+	*/
+
+#else
 	// (q.W*q.W-qv.qv)v + 2(qv.v)qv + 2 q.W (qv x v)
 
 	const FVector qv(X, Y, Z);
-	FVector vOut = 2.f * W * (qv ^ V);
+	FVector vOut = (2.f * W) * (qv ^ V);
 	vOut += ((W * W) - (qv | qv)) * V;
 	vOut += (2.f * (qv | V)) * qv;
 
 	return vOut;
+#endif
+}
+
+FORCEINLINE FVector FQuat::UnrotateVector( FVector V ) const
+{	
+#if WITH_DIRECTXMATH
+	FVector Result;
+	VectorQuaternionVector3InverseRotate(&Result, &V, this);
+	return Result;
+#else
+	return Inverse().RotateVector(V);
+#endif
 }
 
 

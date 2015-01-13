@@ -30,6 +30,9 @@ public:
 	/** Unreal forward vector (1,0,0) */
 	static CORE_API const FVector ForwardVector;
 
+	/** Unreal right vector (0,1,0) */
+	static CORE_API const FVector RightVector;
+
 public:
 
 #if ENABLE_NAN_DIAGNOSTIC

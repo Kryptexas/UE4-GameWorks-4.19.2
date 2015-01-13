@@ -296,6 +296,80 @@ struct FMath : public FPlatformMath
 		return Loge(Value) * LogToLog2;
 	}
 
+	/**
+	* Computes the sine and cosine of a scalar float.
+	*
+	* @param ScalarSin	Pointer to where the Sin result should be stored
+	* @param ScalarCos	Pointer to where the Cos result should be stored
+	* @param Value  input angles 
+	*/
+	static FORCEINLINE void SinCos( float* ScalarSin, float* ScalarCos, float  Value )
+	{
+		// Map Value to y in [-pi,pi], x = 2*pi*quotient + remainder.
+		float quotient = (INV_PI*0.5f)*Value;
+		if (Value >= 0.0f)
+		{
+			quotient = (float)((int)(quotient + 0.5f));
+		}
+		else
+		{
+			quotient = (float)((int)(quotient - 0.5f));
+		}
+		float y = Value - (2.0f*PI)*quotient;
+
+		// Map y to [-pi/2,pi/2] with sin(y) = sin(Value).
+		float sign;
+		if (y > HALF_PI)
+		{
+			y = PI - y;
+			sign = -1.0f;
+		}
+		else if (y < -HALF_PI)
+		{
+			y = -PI - y;
+			sign = -1.0f;
+		}
+		else
+		{
+			sign = +1.0f;
+		}
+
+		float y2 = y * y;
+
+		// 11-degree minimax approximation
+		*ScalarSin = ( ( ( ( (-2.3889859e-08f * y2 + 2.7525562e-06f) * y2 - 0.00019840874f ) * y2 + 0.0083333310f ) * y2 - 0.16666667f ) * y2 + 1.0f ) * y;
+
+		// 10-degree minimax approximation
+		float p = ( ( ( ( -2.6051615e-07f * y2 + 2.4760495e-05f ) * y2 - 0.0013888378f ) * y2 + 0.041666638f ) * y2 - 0.5f ) * y2 + 1.0f;
+		*ScalarCos = sign*p;
+	}
+
+	/**
+	* Computes the ASin of a scalar float.
+	*
+	* @param Value  input angle 
+	* @return ASin of Value
+	*/
+	static FORCEINLINE float FastAsin( float Value )
+	{
+		// Clamp input to [-1,1].
+		bool nonnegative = (Value >= 0.0f);
+		float x = FMath::Abs(Value);
+		float omx = 1.0f - x;
+		if (omx < 0.0f)
+		{
+			omx = 0.0f;
+		}
+		float root = FMath::Sqrt(omx);
+
+		// 7-degree minimax approximation
+		float result = ( ( ( ( ( ( -0.0012624911f * x + 0.0066700901f ) * x - 0.0170881256f ) * x + 0.0308918810f ) * x - 0.0501743046f ) * x + 0.0889789874f ) * x - 0.2145988016f ) * x + 1.5707963050f;
+		result *= root;  // acos(|x|)
+
+		// acos(x) = pi - acos(-x) when x < 0, asin(x) = pi/2 - acos(x)
+		return (nonnegative ? HALF_PI - result : result - HALF_PI);
+	}
+
 
 	// Conversion Functions
 
