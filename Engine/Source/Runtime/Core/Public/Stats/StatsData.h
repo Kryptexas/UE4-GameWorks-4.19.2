@@ -616,7 +616,7 @@ public:
 	/** Adds a frame worth of messages */
 	void AddMessages(TArray<FStatMessage>& InMessages);
 
-	/** Singleton to get the stats being collected by this executable **/
+	/** Singleton to get the stats being collected by this executable. Can be only accessed from the stats thread. **/
 	static FStatsThreadState& GetLocalState();
 };
 
