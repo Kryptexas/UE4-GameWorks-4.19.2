@@ -69,6 +69,9 @@ private:
 	/** Builds a menu widget with options for snapping in the output domain. */
 	TSharedRef<SWidget> BuildOutputSnapMenu();
 
+	/** Get the current snap label visibility for a given orientation. */
+	EVisibility GetSnapLabelVisibilty(EOrientation LabelOrientation) const;
+
 	TSharedPtr<class SCurveEditor> TrackWidget;
 
 	/**	The tab id for the curve asset tab */

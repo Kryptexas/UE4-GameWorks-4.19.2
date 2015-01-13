@@ -304,49 +304,85 @@ TSharedPtr<FExtender> FCurveAssetEditor::GetToolbarExtender()
 
 	TSharedRef<SWidget> InputSnapWidget =
 		SNew(SVerticalBox)
+		// Vertical Label
 		+ SVerticalBox::Slot()
 		.Padding(4)
 		.AutoHeight()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("InputSnap", "Time Snap"))
+			.Text(LOCTEXT("InputSnapLabelVertical", "Time Snap"))
+			.Visibility(this, &FCurveAssetEditor::GetSnapLabelVisibilty, EOrientation::Orient_Vertical)
 		]
 		+ SVerticalBox::Slot()
 		.Padding(4)
 		.AutoHeight()
 		[
-			SNew(SComboButton)
-			.ContentPadding(1)
-			.OnGetMenuContent(this, &FCurveAssetEditor::BuildInputSnapMenu)
-			.ButtonContent()
+			SNew(SHorizontalBox)
+			// Horizontal Icon Label
+			+ SHorizontalBox::Slot()
+			.VAlign(EVerticalAlignment::VAlign_Center)
+			.AutoWidth()
+			.Padding(FMargin(0, 0, 3, 0))
 			[
-				SNew(SEditableTextBox)
-				.Text(this, &FCurveAssetEditor::GetInputSnapText)
-				.OnTextCommitted(this, &FCurveAssetEditor::InputSnapTextComitted)
+				SNew( STextBlock )
+				.Text( LOCTEXT("InputSnapLabelHorizontal", "Time"))
+				.Visibility(this, &FCurveAssetEditor::GetSnapLabelVisibilty, EOrientation::Orient_Horizontal)
+			]
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SComboButton)
+				.ContentPadding(1)
+				.OnGetMenuContent(this, &FCurveAssetEditor::BuildInputSnapMenu)
+				.ToolTipText(LOCTEXT("TimeSnapToolTip", "Time Snap"))
+				.ButtonContent()
+				[
+					SNew(SEditableTextBox)
+					.Text(this, &FCurveAssetEditor::GetInputSnapText)
+					.MinDesiredWidth(40)
+					.OnTextCommitted(this, &FCurveAssetEditor::InputSnapTextComitted)
+				]
 			]
 		];
 
 	TSharedRef<SWidget> OutputSnapWidget =
 		SNew(SVerticalBox)
+		// Vertical Label
 		+ SVerticalBox::Slot()
 		.Padding(4)
 		.AutoHeight()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("OutputSnap", "Value Snap"))
+			.Text(LOCTEXT("OutputSnapLabelVertical", "Value Snap"))
+			.Visibility(this, &FCurveAssetEditor::GetSnapLabelVisibilty, EOrientation::Orient_Vertical)
 		]
 		+ SVerticalBox::Slot()
 		.Padding(4)
 		.AutoHeight()
 		[
-			SNew(SComboButton)
-			.ContentPadding(1)
-			.OnGetMenuContent(this, &FCurveAssetEditor::BuildOutputSnapMenu)
-			.ButtonContent()
+			SNew(SHorizontalBox)
+			// Horizontal Icon Label
+			+ SHorizontalBox::Slot()
+			.VAlign(EVerticalAlignment::VAlign_Center)
+			.AutoWidth()
+			.Padding(FMargin(0, 0, 3, 0))
 			[
-				SNew(SEditableTextBox)
-				.Text(this, &FCurveAssetEditor::GetOutputSnapText)
-				.OnTextCommitted(this, &FCurveAssetEditor::OutputSnapTextComitted)
+				SNew(STextBlock)
+				.Text(LOCTEXT("OutputSnapLabelHorizontal", "Value"))
+				.Visibility(this, &FCurveAssetEditor::GetSnapLabelVisibilty, EOrientation::Orient_Horizontal)
+			]
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SComboButton)
+				.ContentPadding(1)
+				.OnGetMenuContent(this, &FCurveAssetEditor::BuildOutputSnapMenu)
+				.ToolTipText( LOCTEXT( "ValueSnapToolTip", "Value Snap" ) )
+				.ButtonContent()
+				[
+					SNew(SEditableTextBox)
+					.Text(this, &FCurveAssetEditor::GetOutputSnapText)
+					.MinDesiredWidth(40)
+					.OnTextCommitted(this, &FCurveAssetEditor::OutputSnapTextComitted)
+				]
 			]
 		];
 
@@ -358,6 +394,16 @@ TSharedPtr<FExtender> FCurveAssetEditor::GetToolbarExtender()
 		);
 
 	return ToolbarExtender;
+}
+
+EVisibility FCurveAssetEditor::GetSnapLabelVisibilty(EOrientation LabelOrientation) const
+{
+	if ((FMultiBoxSettings::UseSmallToolBarIcons.Get() && LabelOrientation == EOrientation::Orient_Horizontal) ||
+		(FMultiBoxSettings::UseSmallToolBarIcons.Get() == false && LabelOrientation == EOrientation::Orient_Vertical))
+	{
+		return EVisibility::Visible;
+	}
+	return EVisibility::Collapsed;
 }
 
 #undef LOCTEXT_NAMESPACE
