@@ -309,6 +309,12 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 
 FEditorViewportClient::~FEditorViewportClient()
 {
+	if (bOwnsModeTools)
+	{
+		ModeTools->SetDefaultMode(FBuiltinEditorModes::EM_Default);
+		ModeTools->DeactivateAllModes(); // this also activates the default mode
+	}
+
 	ModeTools->OnEditorModeChanged().RemoveAll(this);
 
 	delete Widget;
