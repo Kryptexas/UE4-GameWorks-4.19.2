@@ -42,16 +42,12 @@ public:
 	virtual bool UsesToolkits() const override;
 	virtual void Enter() override;
 	virtual void Exit() override;
-	//virtual bool BoxSelect(FBox& InBox, bool bInSelect) override;
-
-	//	virtual void PostUndo() override;
 	virtual bool MouseEnter(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
 	virtual bool MouseLeave(FEditorViewportClient* ViewportClient, FViewport* Viewport) override;
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
 	virtual bool CapturedMouseMove(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) override;
 	virtual bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
 	virtual bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
-	// 	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) override;
 	virtual bool InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override;
 	virtual bool InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override;
 	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
@@ -60,8 +56,6 @@ public:
 	virtual bool AllowWidgetMove();
 	virtual bool ShouldDrawWidget() const override;
 	virtual bool UsesTransformWidget() const override;
-	// 	virtual int32 GetWidgetAxisToDraw(FWidget::EWidgetMode InWidgetMode) const override;
-	// 	virtual bool DisallowMouseDeltaTracking() const override;
 	// End of FEdMode interface
 
 	void SetActiveTool(ETileMapEditorTool::Type NewTool);
@@ -110,8 +104,15 @@ protected:
 	
 	//
 	FTransform DrawPreviewSpace;
+
+	// Center of preview rectangle
 	FVector DrawPreviewLocation;
+
+	// Size of rectangle
 	FVector DrawPreviewDimensionsLS;
+
+	// Top left of the component bounds
+	FVector DrawPreviewTopLeft;
 
 	int32 EraseBrushSize;
 
