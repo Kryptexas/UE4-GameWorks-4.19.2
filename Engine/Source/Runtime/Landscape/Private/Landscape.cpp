@@ -2101,22 +2101,20 @@ bool LandscapeMaterialsParameterSetUpdater(FStaticParameterSet &StaticParameterS
 	return UpdateParameterSet<FStaticTerrainLayerWeightParameter, UMaterialExpressionLandscapeLayerWeight>(StaticParameterSet.TerrainLayerWeightParameters, ParentMaterial);
 }
 
-void ALandscapeProxy::FlushFoliageComponents(TSet<ULandscapeComponent*>* OnlyForComponents)
+void ALandscapeProxy::FlushFoliageComponents(const TSet<ULandscapeComponent*>* OnlyForComponents)
 {
 	if (OnlyForComponents)
 	{
-		OnlyForComponents->Add(nullptr); // if the weak pointer in the cache is invalid, we should kill them anyway
-		for (int32 CacheIndex = 0; CacheIndex < FoliageCache.PerComponent.Num(); CacheIndex++)
+		for (FCachedLandscapeFoliage::FPerComponent& CacheItem : FoliageCache.PerComponent)
 		{
-			FCachedLandscapeFoliage::FPerComponent& CacheItem = FoliageCache.PerComponent[CacheIndex];
-			if (OnlyForComponents->Contains(CacheItem.BasedOn.Get()))
+			ULandscapeComponent* Component = CacheItem.BasedOn.Get();
+			// if the weak pointer in the cache is invalid, we should kill them anyway
+			if (Component == nullptr || OnlyForComponents->Contains(Component))
 			{
-				for (int32 LayerIndex = 0; LayerIndex < CacheItem.Layers.Num(); LayerIndex++)
+				for (FCachedLandscapeFoliage::FPerLayer& LayerItem : CacheItem.Layers)
 				{
-					FCachedLandscapeFoliage::FPerLayer& LayerItem = CacheItem.Layers[LayerIndex];
-					for (int32 FoliageIndex = 0; FoliageIndex < LayerItem.Foliage.Num(); FoliageIndex++)
+					for (FCachedLandscapeFoliage::FPerGrassComp& GrassItem : LayerItem.Foliage)
 					{
-						FCachedLandscapeFoliage::FPerGrassComp& GrassItem = LayerItem.Foliage[FoliageIndex];
 						UHierarchicalInstancedStaticMeshComponent *Used = GrassItem.Foliage.Get();
 						if (Used)
 						{

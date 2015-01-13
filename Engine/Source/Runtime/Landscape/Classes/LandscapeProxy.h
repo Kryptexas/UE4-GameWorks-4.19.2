@@ -453,7 +453,7 @@ public:
 	virtual ALandscape* GetLandscapeActor();
 
 	/** Flush the foliage cache */
-	LANDSCAPE_API void FlushFoliageComponents(TSet<ULandscapeComponent*>* OnlyForComponents = nullptr);
+	LANDSCAPE_API void FlushFoliageComponents(const TSet<ULandscapeComponent*>* OnlyForComponents = nullptr);
 
 	/** 
 		Update Foliage 

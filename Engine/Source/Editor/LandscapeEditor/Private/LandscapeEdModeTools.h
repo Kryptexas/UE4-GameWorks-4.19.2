@@ -603,6 +603,9 @@ struct FHeightmapAccessor
 				Component->InvalidateLightingCache();
 			}
 
+			// Flush dynamic foliage (grass)
+			LandscapeInfo->GetLandscapeProxy()->FlushFoliageComponents(&Components);
+
 			// Notify foliage to move any attached instances
 			bool bUpdateFoliage = false;
 			for (ULandscapeComponent* Component : Components)
@@ -652,10 +655,6 @@ struct FHeightmapAccessor
 				// No foliage, just update landscape.
 				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, Data, 0, true);
 			}
-		}
-		else
-		{
-			ChangedComponents.Empty();
 		}
 	}
 
@@ -783,6 +782,9 @@ struct FXYOffsetmapAccessor
 				}
 			}
 
+			// Flush dynamic foliage (grass)
+			LandscapeInfo->GetLandscapeProxy()->FlushFoliageComponents(&Components);
+
 			// Notify foliage to move any attached instances
 			bool bUpdateFoliage = false;
 			for (ULandscapeComponent* Component : Components)
@@ -827,10 +829,6 @@ struct FXYOffsetmapAccessor
 				LandscapeEdit->SetXYOffsetData(X1, Y1, X2, Y2, Data, 0); // XY Offset always need to be update before the height update
 				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetData(), 0, true);
 			}
-		}
-		else
-		{
-			ChangedComponents.Empty();
 		}
 	}
 
@@ -938,6 +936,9 @@ struct FAlphamapAccessor
 		TSet<ULandscapeComponent*> Components;
 		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2, &Components))
 		{
+			// Flush dynamic foliage (grass)
+			LandscapeInfo->GetLandscapeProxy()->FlushFoliageComponents(&Components);
+
 			LandscapeEdit.SetAlphaData(LayerInfo, X1, Y1, X2, Y2, Data, 0, PaintingRestriction, bBlendWeight, bUseTotalNormalize);
 			ModifiedComponents.Append(Components);
 		}
@@ -1006,7 +1007,8 @@ struct FFullWeightmapAccessor
 {
 	enum { bUseInterp = bInUseInterp };
 	FFullWeightmapAccessor(ULandscapeInfo* InLandscapeInfo)
-		: LandscapeEdit(InLandscapeInfo)
+		: LandscapeInfo(InLandscapeInfo)
+		, LandscapeEdit(InLandscapeInfo)
 	{
 	}
 	void GetData(int32& X1, int32& Y1, int32& X2, int32& Y2, TMap<FIntPoint, TArray<uint8>>& Data)
@@ -1023,8 +1025,12 @@ struct FFullWeightmapAccessor
 
 	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction)
 	{
-		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2))
+		TSet<ULandscapeComponent*> Components;
+		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2, &Components))
 		{
+			// Flush dynamic foliage (grass)
+			LandscapeInfo->GetLandscapeProxy()->FlushFoliageComponents(&Components);
+
 			LandscapeEdit.SetAlphaData(DirtyLayerInfos, X1, Y1, X2, Y2, Data, 0, PaintingRestriction);
 		}
 		DirtyLayerInfos.Empty();
@@ -1036,7 +1042,9 @@ struct FFullWeightmapAccessor
 	}
 
 	TSet<ULandscapeLayerInfoObject*> DirtyLayerInfos;
+
 private:
+	ULandscapeInfo* LandscapeInfo;
 	FLandscapeEditDataInterface LandscapeEdit;
 };
 
