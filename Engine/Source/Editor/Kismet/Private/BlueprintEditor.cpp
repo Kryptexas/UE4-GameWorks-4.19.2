@@ -2902,6 +2902,14 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 		// Point the camera at it
 		GUnrealEd->Exec( ReferencedActor->GetWorld(), TEXT("CAMERA ALIGN ACTIVEVIEWPORTONLY"));
 	}
+	else if(const UFunction* Function = Cast<const UFunction>(ObjectReference))
+	{
+		UEdGraph* FunctionGraph = FBlueprintEditorUtils::FindScopeGraph(GetBlueprintObj(), Function);
+		if(FunctionGraph)
+		{
+			OpenDocument(const_cast<UEdGraph*>(FunctionGraph), FDocumentTracker::OpenNewDocument);
+		}
+	}
 	else
 	{
 		UE_LOG(LogBlueprint, Warning, TEXT("Unknown type of hyperlinked object"));
