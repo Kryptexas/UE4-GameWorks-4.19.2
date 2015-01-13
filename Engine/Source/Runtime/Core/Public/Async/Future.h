@@ -15,14 +15,15 @@ public:
 
 	/** Default constructor. */
 	FFutureState()
-		: CompletionEvent(FPlatformProcess::CreateSynchEvent(true))
+		: CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true))
 		, Complete(false)
 	{ }
 
 	/** Destructor. */
 	~FFutureState()
 	{
-		delete CompletionEvent;
+		FPlatformProcess::ReturnSynchEventToPool(CompletionEvent);
+		CompletionEvent = nullptr;
 	}
 
 public:
