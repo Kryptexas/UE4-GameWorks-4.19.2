@@ -1,31 +1,24 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WinRTEvent.h: Declares the FEventWin class.
-=============================================================================*/
-
 #pragma once
 
 #include "AllowWinRTPlatformTypes.h"
 
+
 /**
  * Implements the WinRT version of the FEvent interface.
  */
-class FEventWinRT : public FEvent
+class FEventWinRT
+	: public FEvent
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FEventWinRT()
 		: Event(NULL)
-	{
-	}
+	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~FEventWinRT()
 	{
 		if (Event != NULL)
@@ -34,8 +27,9 @@ public:
 		}
 	}
 
-
 public:
+
+	// FEvent interface
 
 	virtual bool Create (bool bIsManualReset = false) override
 	{
@@ -62,11 +56,11 @@ public:
 
 	virtual bool Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats = false) override;
 
-
 private:
 
-	// Holds the handle to the event
+	/** Holds the handle to the event. */
 	HANDLE Event;
 };
+
 
 #include "HideWinRTPlatformTypes.h"

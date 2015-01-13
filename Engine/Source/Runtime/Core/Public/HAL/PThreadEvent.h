@@ -93,6 +93,10 @@ public:
 		}
 	}
 
+public:
+
+	// FEvent interface
+
 	virtual bool Create( bool _bIsManualReset = false ) override
 	{
 		check(!bInitialized);
