@@ -531,7 +531,7 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 
 	check(ActorInfo->AbilitySystemComponent.IsValid());
 	const FGameplayTagContainer* CooldownTags = GetCooldownTags();
-	if (CooldownTags)
+	if (CooldownTags && CooldownTags->Num() > 0)
 	{
 		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(CooldownTags));
 		if (Durations.Num() > 0)
@@ -554,7 +554,7 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecH
 	CooldownDuration = 0.f;
 	
 	const FGameplayTagContainer* CooldownTags = GetCooldownTags();
-	if (CooldownTags)
+	if (CooldownTags && CooldownTags->Num() > 0)
 	{
 		TArray< float > DurationRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(CooldownTags));
 		if (DurationRemaining.Num() > 0)
@@ -580,7 +580,7 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecH
 
 const FGameplayTagContainer* UGameplayAbility::GetCooldownTags() const
 {
-	UGameplayEffect* CDGE =GetCooldownGameplayEffect();
+	UGameplayEffect* CDGE = GetCooldownGameplayEffect();
 	return CDGE ? &CDGE->InheritableOwnedTagsContainer.CombinedTags : nullptr;
 }
 

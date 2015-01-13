@@ -1084,6 +1084,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 		, CachedStartGameStateTime(0)
 		, StartWorldTime(0.f)
 		, IsInhibited(true)
+		, IsPendingRemove(false)
 	{
 	}
 
@@ -1095,6 +1096,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 		, CachedStartGameStateTime(InStartGameStateTime)
 		, StartWorldTime(CurrentWorldTime)
 		, IsInhibited(true)
+		, IsPendingRemove(false)
 	{
 	}
 
@@ -1120,6 +1122,8 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	// Not sure if this should replicate or not. If replicated, we may have trouble where IsInhibited doesn't appear to change when we do tag checks (because it was previously inhibited, but replication made it inhibited).
 	UPROPERTY()
 	bool IsInhibited;
+
+	bool IsPendingRemove;
 
 	FOnActiveGameplayEffectRemoved	OnRemovedDelegate;
 
@@ -1259,15 +1263,12 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	friend struct FActiveGameplayEffect;
 	friend class UAbilitySystemComponent;
+	friend struct FScopedActiveGameplayEffectLock;
+	friend class AAbilitySystemDebugHUD;
 
-	FActiveGameplayEffectsContainer() {};
+	FActiveGameplayEffectsContainer();
 
 	UAbilitySystemComponent* Owner;
-
-	UPROPERTY()
-	TArray<FActiveGameplayEffect>	GameplayEffects;
-
-	TQueue<FActiveGameplayEffect>	GameplayEffectsPendingAdd;
 
 	void RegisterWithOwner(UAbilitySystemComponent* Owner);	
 	
@@ -1361,6 +1362,9 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 private:
 
+	UPROPERTY()
+	TArray<FActiveGameplayEffect>	GameplayEffects;
+
 	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
 	
 	/**
@@ -1422,6 +1426,9 @@ private:
 
 	/** After application has gone through, give stacking rules a chance to do something as the source of the gameplay effect (E.g., remove an old version) */
 	void ApplyStackingLogicPostApplyAsSource(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle);
+
+	mutable int32 ScopedLockCount;
+	int32 PendingRemoves;
 };
 
 template<>
@@ -1434,89 +1441,14 @@ struct TStructOpsTypeTraits< FActiveGameplayEffectsContainer > : public TStructO
 };
 
 
-USTRUCT()
-struct GAMEPLAYABILITIES_API FActiveGameplayEffectAction
-{
-	GENERATED_USTRUCT_BODY()
-	FActiveGameplayEffectAction()
-	: bIsInitialized(false)
-	{
-	}
-
-	void InitForAddGE(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC)
-	{
-		OwningASC = InOwningASC;
-		bRemove = false;
-		bIsInitialized = true;
-	}
-
-	void InitForRemoveGE(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC, const FActiveGameplayEffectHandle& InHandle, int32 InStacksToRemove)
-	{
-		OwningASC = InOwningASC;
-		Handle = InHandle;
-		StacksToRemove = InStacksToRemove;
-		bRemove = true;
-		bIsInitialized = true;
-	}
-
-	void PerformAction();
-
-	UPROPERTY()
-	TWeakObjectPtr<UAbilitySystemComponent> OwningASC;
-
-	/** This is needed for removals, and does not exist for additions. */
-	UPROPERTY()
-	FActiveGameplayEffectHandle Handle;
-
-	UPROPERTY()
-	bool bRemove;
-
-	UPROPERTY()
-	bool bIsInitialized;
-
-	UPROPERTY()
-	int32 StacksToRemove;
-};
-
-
 struct GAMEPLAYABILITIES_API FScopedActiveGameplayEffectLock
 {
-	FScopedActiveGameplayEffectLock();
+	FScopedActiveGameplayEffectLock(FActiveGameplayEffectsContainer& InContainer);
 	~FScopedActiveGameplayEffectLock();
 
 private:
-	static int32 AGELockCount;
-	static TArray<TSharedPtr<FActiveGameplayEffectAction>> DeferredAGEActions;
-
-public:
-	static bool IsLockInEffect()
-	{
-		return (AGELockCount ? true : false);
-	}
-
-	static FActiveGameplayEffectAction* AddAction()
-	{
-		check(IsLockInEffect());
-		FActiveGameplayEffectAction* DataPtr = new FActiveGameplayEffectAction();
-		DeferredAGEActions.Add(TSharedPtr<FActiveGameplayEffectAction>(DataPtr));
-		return DataPtr;
-	}
-
-	void ClearActions()
-	{
-		DeferredAGEActions.Reset();
-	}
-
-	int32 NumActions()
-	{
-		return DeferredAGEActions.Num();
-	}
-
-	FActiveGameplayEffectAction* GetAction(int32 Index)
-	{
-		check((Index >= 0) && (Index < DeferredAGEActions.Num()));
-		return DeferredAGEActions[Index].Get();
-	}
+	FActiveGameplayEffectsContainer& Container;
 };
 
 
+#define GAMEPLAYEFFECT_SCOPE_LOCK()	FScopedActiveGameplayEffectLock ActiveScopeLock(*this);

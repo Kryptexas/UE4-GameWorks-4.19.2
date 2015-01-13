@@ -640,20 +640,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 
 void UAbilitySystemComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle)
 {
-	FActiveGameplayEffect* GameplayEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
-	if (GameplayEffect)
-	{
-		ABILITY_VLOG(OwnerActor, Log, TEXT("Executed Periodic Effect %s"), *GameplayEffect->Spec.Def->GetFName().ToString());
-
-		for (FGameplayModifierInfo Modifier : GameplayEffect->Spec.Def->Modifiers)
-		{
-			float Magnitude = 0.f;
-			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(GameplayEffect->Spec, Magnitude);
-			ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
-		}
-
-		ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
-	}
+	ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
 }
 
 void UAbilitySystemComponent::ExecuteGameplayEffect(FGameplayEffectSpec &Spec, FPredictionKey PredictionKey)
@@ -681,19 +668,6 @@ void UAbilitySystemComponent::CheckDurationExpired(FActiveGameplayEffectHandle H
 
 bool UAbilitySystemComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle, int32 StacksToRemove)
 {
-	FActiveGameplayEffect* GameplayEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
-	if (GameplayEffect)
-	{
-		ABILITY_VLOG(OwnerActor, Log, TEXT("Removed %s"), *GameplayEffect->Spec.Def->GetFName().ToString());
-
-		for (FGameplayModifierInfo Modifier : GameplayEffect->Spec.Def->Modifiers)
-		{
-			float Magnitude = 0.f;
-			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(GameplayEffect->Spec, Magnitude);
-			ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
-		}
-	}
-
 	return ActiveGameplayEffects.RemoveActiveGameplayEffect(Handle, StacksToRemove);
 }
 
