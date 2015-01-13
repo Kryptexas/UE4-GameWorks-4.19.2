@@ -1515,7 +1515,14 @@ protected:
 	{
 		if (!bPeriodic)
 		{
-			return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
+			if (ShaderFrequency == SF_Vertex)
+			{
+				return AddInlinedCodeChunk(MCT_Float, TEXT("Parameters.GameTime"));
+			}
+			else
+			{
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
+			}
 		}
 		else if (Period == 0.0f)
 		{
@@ -1535,7 +1542,14 @@ protected:
 	{
 		if (!bPeriodic)
 		{
-			return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
+			if (ShaderFrequency == SF_Vertex)
+			{
+				return AddInlinedCodeChunk(MCT_Float, TEXT("Parameters.RealTime"));
+			}
+			else
+			{
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
+			}
 		}
 		else if (Period == 0.0f)
 		{

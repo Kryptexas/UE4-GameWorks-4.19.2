@@ -242,10 +242,13 @@ struct FMaterialVertexParameters
 	half4 VertexColor;
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
 	float2 TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX];
-#if (ES2_PROFILE || ES3_1_PROFILE)
+	#if (ES2_PROFILE || ES3_1_PROFILE)
 	float2 TexCoordOffset; // Offset for UV localization for large UV values
+	#endif
 #endif
-#endif
+
+	float GameTime;
+	float RealTime;
 
 	/** Per-particle properties. Only valid for particle vertex factories. */
 	FMaterialParticleParameters Particle;

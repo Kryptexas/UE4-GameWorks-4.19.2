@@ -126,7 +126,7 @@ void MainVertexShader(
 	float4 TranslatedWorldPosition = VertexFactoryGetWorldPosition( Input, VFIntermediates );
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal( Input, VFIntermediates );
 
-	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, TranslatedWorldPosition.xyz, TangentToLocal);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, TranslatedWorldPosition.xyz, TangentToLocal, View.GameTime, View.RealTime);
 	// Isolate instructions used for world position offset on xbox 360, 
 	// As these cause the optimizer to generate different position calculating instructions in each pass, resulting in self-z-fighting.
 	// This is only necessary for shaders used in passes that have depth testing enabled.
@@ -142,7 +142,7 @@ void MainVertexShader(
 #endif // #if USING_TESSELLATION
 	float4 PrevTranslatedWorldPosition = VertexFactoryGetPreviousWorldPosition( Input, VFIntermediates );	
 
-	VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, PrevTranslatedWorldPosition.xyz, TangentToLocal);
+	VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, PrevTranslatedWorldPosition.xyz, TangentToLocal, View.PrevFrameGameTime, View.PrevFrameRealTime);
 	PrevTranslatedWorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
 	
 #if USING_TESSELLATION

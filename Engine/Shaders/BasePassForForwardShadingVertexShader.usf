@@ -45,7 +45,7 @@ void Main(
 	float4 WorldPosition = WorldPositionExcludingWPO;
 
 	half3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);	
-	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal, View.GameTime, View.RealTime);
 
 	half3 WorldPositionOffset = GetMaterialWorldPositionOffset(VertexParameters);
 	
