@@ -363,6 +363,18 @@ void FRHICommandResetRenderQuery::Execute(FRHICommandListBase& CmdList)
 }
 #endif
 
+void FRHICommandBeginOcclusionQueryBatch::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(BeginOcclusionQueryBatch);
+	INTERNAL_DECORATOR(BeginOcclusionQueryBatch)();
+}
+
+void FRHICommandEndOcclusionQueryBatch::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(EndOcclusionQueryBatch);
+	INTERNAL_DECORATOR(EndOcclusionQueryBatch)();
+}
+
 void FRHICommandBeginScene::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginScene);

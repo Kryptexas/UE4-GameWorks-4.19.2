@@ -1038,6 +1038,8 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 	SCOPE_CYCLE_COUNTER(STAT_BeginOcclusionTestsTime);
 	const bool bUseDownsampledDepth = IsValidRef(GSceneRenderTargets.GetSmallDepthSurface()) && GSceneRenderTargets.UseDownsizedOcclusionQueries();
 
+	RHICmdList.BeginOcclusionQueryBatch();
+
 	if (bUseDownsampledDepth)
 	{
 		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSmallDepthSurface());
@@ -1186,6 +1188,8 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 			}
 		}
 	}
+
+	RHICmdList.EndOcclusionQueryBatch();
 
 	for( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 	{

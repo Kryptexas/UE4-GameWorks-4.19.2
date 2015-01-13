@@ -1054,6 +1054,22 @@ struct FRHICommandResetRenderQuery : public FRHICommand<FRHICommandResetRenderQu
 };
 #endif
 
+struct FRHICommandBeginOcclusionQueryBatch : public FRHICommand<FRHICommandBeginOcclusionQueryBatch>
+{
+	FORCEINLINE_DEBUGGABLE FRHICommandBeginOcclusionQueryBatch()
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandEndOcclusionQueryBatch : public FRHICommand<FRHICommandEndOcclusionQueryBatch>
+{
+	FORCEINLINE_DEBUGGABLE FRHICommandEndOcclusionQueryBatch()
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
 struct FRHICommandBeginScene : public FRHICommand<FRHICommandBeginScene>
 {
 	FORCEINLINE_DEBUGGABLE FRHICommandBeginScene()
@@ -1777,6 +1793,26 @@ public:
 		new (AllocCommand<FRHICommandResetRenderQuery>()) FRHICommandResetRenderQuery(RenderQuery);
 	}
 #endif
+
+	FORCEINLINE_DEBUGGABLE void BeginOcclusionQueryBatch()
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(BeginOcclusionQueryBatch)();
+			return;
+		}
+		new (AllocCommand<FRHICommandBeginOcclusionQueryBatch>()) FRHICommandBeginOcclusionQueryBatch();
+	}
+
+	FORCEINLINE_DEBUGGABLE void EndOcclusionQueryBatch()
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(EndOcclusionQueryBatch)();
+			return;
+		}
+		new (AllocCommand<FRHICommandEndOcclusionQueryBatch>()) FRHICommandEndOcclusionQueryBatch();
+	}
 
 #if PLATFORM_SUPPORTS_RHI_THREAD
 	FORCEINLINE_DEBUGGABLE void BeginScene()

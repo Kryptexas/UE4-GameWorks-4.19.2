@@ -10,6 +10,14 @@
 // Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
 #if !UE_BUILD_DOCS
 
+void FOpenGLDynamicRHI::RHIBeginOcclusionQueryBatch()
+{
+}
+
+void FOpenGLDynamicRHI::RHIEndOcclusionQueryBatch()
+{
+}
+
 FRenderQueryRHIRef FOpenGLDynamicRHI::RHICreateRenderQuery(ERenderQueryType QueryType)
 {
 	VERIFY_GL_SCOPE();

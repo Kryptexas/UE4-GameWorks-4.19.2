@@ -1310,12 +1310,31 @@ DEFINE_RHIMETHOD_CMDLIST_1(
 	FRenderQueryRHIParamRef,RenderQuery,
 	,
 	);
-DEFINE_RHIMETHOD_3(
-	bool,GetRenderQueryResult,
-	FRenderQueryRHIParamRef,RenderQuery,
-	uint64&,OutResult,
-	bool,bWait,
-	return,return true;
+#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
+	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(
+		bool,GetRenderQueryResult,
+		FRenderQueryRHIParamRef,RenderQuery,
+		uint64&,OutResult,
+		bool,bWait,
+		return,return true;
+	);
+#else
+	DEFINE_RHIMETHOD_3(
+		bool,GetRenderQueryResult,
+		FRenderQueryRHIParamRef,RenderQuery,
+		uint64&,OutResult,
+		bool,bWait,
+		return,return true;
+	);
+#endif
+
+DEFINE_RHIMETHOD_CMDLIST_0(
+	void,BeginOcclusionQueryBatch,
+	,
+	);
+DEFINE_RHIMETHOD_CMDLIST_0(
+	void,EndOcclusionQueryBatch,
+	,
 	);
 
 #if PLATFORM_SUPPORTS_RHI_THREAD

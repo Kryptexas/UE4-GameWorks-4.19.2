@@ -6,6 +6,13 @@
 
 #include "D3D11RHIPrivate.h"
 
+void FD3D11DynamicRHI::RHIBeginOcclusionQueryBatch()
+{
+}
+
+void FD3D11DynamicRHI::RHIEndOcclusionQueryBatch()
+{
+}
 
 FRenderQueryRHIRef FD3D11DynamicRHI::RHICreateRenderQuery(ERenderQueryType QueryType)
 {
