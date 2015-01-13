@@ -117,15 +117,14 @@ protected:
 	 */
 	void DestroyExistingSession(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate);
 
-private:
 	/**
 	 * Implementation of DestroyExistingSession
 	 *
+	 * @param OutResult Handle to the added delegate.
 	 * @param SessionName name of session to destroy
 	 * @param Delegate delegate to call at session destruction
-	 * @return Handle to the added delegate.
 	 */
-	FDelegateHandle DestroyExistingSession_Impl(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate);
+	void DestroyExistingSession_Impl(FDelegateHandle& OutResult, FName SessionName, FOnDestroySessionCompleteDelegate& Delegate);
 
 protected:
 	/**

@@ -132,7 +132,7 @@ void UOnlineSessionClient::OnEndForJoinSessionComplete(FName SessionName, bool b
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnEndForJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
 	SessionInt->ClearOnEndSessionCompleteDelegate_Handle(OnEndForJoinSessionCompleteDelegateHandle);
-	OnDestroyForJoinSessionCompleteDelegateHandle = DestroyExistingSession_Impl(SessionName, OnDestroyForJoinSessionCompleteDelegate);
+	DestroyExistingSession_Impl(OnDestroyForJoinSessionCompleteDelegateHandle, SessionName, OnDestroyForJoinSessionCompleteDelegate);
 }
 
 /**
@@ -228,31 +228,29 @@ void UOnlineSessionClient::OnDestroyForMainMenuComplete(FName SessionName, bool 
  */
 void UOnlineSessionClient::DestroyExistingSession(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate)
 {
-	DestroyExistingSession_Impl(SessionName, Delegate);
+	FDelegateHandle UnusedHandle;
+	DestroyExistingSession_Impl(UnusedHandle, SessionName, Delegate);
 }
 
 /**
  * Implementation of DestroyExistingSession
  *
+ * @param OutResult Handle to the added delegate.
  * @param SessionName name of session to destroy
  * @param Delegate delegate to call at session destruction
- * @return Handle to the added delegate.
  */
-FDelegateHandle UOnlineSessionClient::DestroyExistingSession_Impl(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate)
+void UOnlineSessionClient::DestroyExistingSession_Impl(FDelegateHandle& OutResult, FName SessionName, FOnDestroySessionCompleteDelegate& Delegate)
 {
-	FDelegateHandle Result;
-
 	if (SessionInt.IsValid())
 	{
-		Result = SessionInt->AddOnDestroySessionCompleteDelegate_Handle(Delegate);
+		OutResult = SessionInt->AddOnDestroySessionCompleteDelegate_Handle(Delegate);
 		SessionInt->DestroySession(SessionName);
 	}
 	else
 	{
+		OutResult = FDelegateHandle();
 		Delegate.ExecuteIfBound(SessionName, true);
 	}
-
-	return Result;
 }
 
 /**
@@ -341,7 +339,7 @@ bool UOnlineSessionClient::HandleDisconnectInternal(UWorld* World, UNetDriver* N
 			if (!bHandlingDisconnect)
 			{
 				bHandlingDisconnect = true;
-				OnDestroyForMainMenuCompleteDelegateHandle = DestroyExistingSession_Impl(GameSessionName, OnDestroyForMainMenuCompleteDelegate);
+				DestroyExistingSession_Impl(OnDestroyForMainMenuCompleteDelegateHandle, GameSessionName, OnDestroyForMainMenuCompleteDelegate);
 			}
 
 			return true;
