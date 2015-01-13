@@ -91,7 +91,7 @@ public:
 	 */
 	static ESubsequentsMode::Type GetSubsequentsMode()
 	{
-		return ESubsequentsMode::TrackSubsequents;
+		return ESubsequentsMode::FireAndForget;
 	}
 
 private:
