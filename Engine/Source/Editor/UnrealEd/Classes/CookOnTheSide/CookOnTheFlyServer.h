@@ -623,6 +623,26 @@ private:
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
 
+	// data about the current package being processed
+	struct FReentryData
+	{
+		FName FileName;
+		bool bBeginCacheFinished;
+		int BeginCacheCount;
+
+		FReentryData() : FileName(NAME_None), bBeginCacheFinished(false), BeginCacheCount(0)
+		{ }
+
+		void Reset( const FName& InFilename )
+		{
+			FileName = InFilename;
+			bBeginCacheFinished = false;
+			BeginCacheCount = 0;
+		}
+	};
+
+	FReentryData CurrentReentryData;
+
 	FThreadSafeQueue<struct FRecompileRequest*> RecompileRequests;
 	FFilenameQueue CookRequests; // list of requested files
 	FThreadSafeUnsolicitedPackagesList UnsolicitedCookedPackages;
