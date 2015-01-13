@@ -109,7 +109,7 @@ public:
 	// End of UObject interface
 
 
-	FVector GetTilePositionInLocalSpace(int32 TileX, int32 TileY, int32 LayerIndex = 0) const;
+	FVector GetTilePositionInLocalSpace(float TileX, float TileY, int32 LayerIndex = 0) const;
 
 	FBoxSphereBounds GetRenderBounds() const;
 
