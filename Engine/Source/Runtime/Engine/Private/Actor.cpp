@@ -1777,7 +1777,7 @@ void AActor::DispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponen
 	// If component is still alive, call delegate on component
 	if(!MyComp->IsPendingKill())
 	{
-		MyComp->OnComponentHit.Broadcast(OtherActor, MyComp, OtherComp, FVector(0,0,0), Hit);
+		MyComp->OnComponentHit.Broadcast(OtherActor, OtherComp, FVector(0,0,0), Hit);
 	}
 }
 
@@ -3062,7 +3062,7 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 
 	if(MyInfo.Component.IsValid() && MyInfo.Component.Get()->OnComponentHit.IsBound())
 	{
-		MyInfo.Component.Get()->OnComponentHit.Broadcast(OtherInfo.Actor.Get(), MyInfo.Component.Get(), OtherInfo.Component.Get(), RigidCollisionData.TotalNormalImpulse, Result);
+		MyInfo.Component.Get()->OnComponentHit.Broadcast(OtherInfo.Actor.Get(), OtherInfo.Component.Get(), RigidCollisionData.TotalNormalImpulse, Result);
 	}
 }
 
