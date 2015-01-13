@@ -26,6 +26,7 @@
 			"IncludeBase": ".\\UHTDebugging",
 			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Inc\\UHTDebugging\\",
 			"ClassesHeaders": [
+				".\\UHTDebugging\\TestDeprecatedObject.h",
 				".\\UHTDebugging\\TestObject.h",
 				".\\UHTDebugging\\TestInterface.h",
 				".\\UHTDebugging\\TestInterfaceObject.h",

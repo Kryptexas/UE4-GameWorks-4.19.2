@@ -1,0 +1,19 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "TestDeprecatedObject.generated.h"
+
+namespace EFoo
+{
+	enum Bar
+	{
+		Example,
+	};
+}
+
+UCLASS(deprecated)
+class UDEPRECATED_TestDeprecatedObject : public UObject
+{
+	GENERATED_UCLASS_BODY()
+};

@@ -3994,7 +3994,7 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 			FError::Throwf(TEXT("Extra ';' before end of file") );
 		}
 	}
-	else if (Token.Matches(NameLookupCPP.GetNameCPP(Class)))
+	else if (bEncounteredNewStyleClass_UnmatchedBrackets && Token.Matches(NameLookupCPP.GetNameCPP(Class)))
 	{
 		if(!TryToMatchConstructorParameterList(Token))
 		{
