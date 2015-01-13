@@ -43,7 +43,8 @@
 
 **/
 template<typename TTask>
-class FAutoDeleteAsyncTask : private FQueuedWork
+class FAutoDeleteAsyncTask
+	: private IQueuedWork
 {
 	/** User job embedded in this task */ 
 	TTask Task;
@@ -238,7 +239,8 @@ public:
 
 **/
 template<typename TTask>
-class FAsyncTask : private FQueuedWork
+class FAsyncTask
+	: private IQueuedWork
 {
 	/** User job embedded in this task */ 
 	TTask Task;

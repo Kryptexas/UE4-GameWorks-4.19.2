@@ -294,7 +294,7 @@ protected:
 	volatile int32 TimeToDie;
 
 	/** The work this thread is doing. */
-	FQueuedWork* volatile QueuedWork;
+	IQueuedWork* volatile QueuedWork;
 
 	/** The pool this thread belongs to. */
 	class FQueuedThreadPool* OwningThreadPool;
@@ -312,7 +312,7 @@ protected:
 		{
 			// Wait for some work to do
 			DoWorkEvent->Wait();
-			FQueuedWork* LocalQueuedWork = QueuedWork;
+			IQueuedWork* LocalQueuedWork = QueuedWork;
 			QueuedWork = nullptr;
 			FPlatformMisc::MemoryBarrier();
 			check(LocalQueuedWork || TimeToDie); // well you woke me up, where is the job or termination request?
@@ -393,7 +393,7 @@ public:
 	 *
 	 * @param InQueuedWork The queued work to perform
 	 */
-	void DoWork(FQueuedWork* InQueuedWork)
+	void DoWork(IQueuedWork* InQueuedWork)
 	{
 		check(QueuedWork == nullptr && "Can't do more than one task at a time");
 		// Tell the thread the work to be done
@@ -414,7 +414,7 @@ class FQueuedThreadPoolBase : public FQueuedThreadPool
 protected:
 
 	/** The work queue to pull from. */
-	TArray<FQueuedWork*> QueuedWork;
+	TArray<IQueuedWork*> QueuedWork;
 	
 	/** The thread pool to dole work out to. */
 	TArray<FQueuedThread*> QueuedThreads;
@@ -522,7 +522,7 @@ public:
 		}
 	}
 
-	void AddQueuedWork(FQueuedWork* InQueuedWork) override
+	void AddQueuedWork(IQueuedWork* InQueuedWork) override
 	{
 		if (TimeToDie)
 		{
@@ -558,7 +558,7 @@ public:
 		}
 	}
 
-	virtual bool RetractQueuedWork(FQueuedWork* InQueuedWork) override
+	virtual bool RetractQueuedWork(IQueuedWork* InQueuedWork) override
 	{
 		if (TimeToDie)
 		{
@@ -570,10 +570,10 @@ public:
 		return !!QueuedWork.RemoveSingle(InQueuedWork);
 	}
 
-	virtual FQueuedWork* ReturnToPoolOrGetNextJob(FQueuedThread* InQueuedThread) override
+	virtual IQueuedWork* ReturnToPoolOrGetNextJob(FQueuedThread* InQueuedThread) override
 	{
 		check(InQueuedThread != nullptr);
-		FQueuedWork* Work = nullptr;
+		IQueuedWork* Work = nullptr;
 		// Check to see if there is any work to be done
 		FScopeLock sl(SynchQueue);
 		if (TimeToDie)

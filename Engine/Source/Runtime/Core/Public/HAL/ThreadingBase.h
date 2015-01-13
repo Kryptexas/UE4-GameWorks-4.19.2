@@ -535,7 +535,7 @@ public:
  * about the object being run. This allows queuing of disparate tasks and
  * servicing those tasks with a generic thread pool.
  */
-class FQueuedWork
+class IQueuedWork
 {
 public:
 
@@ -559,8 +559,12 @@ public:
 	 * Virtual destructor so that child implementations are guaranteed a chance
 	 * to clean up any resources they allocated.
 	 */
-	virtual ~FQueuedWork() { }
+	virtual ~IQueuedWork() { }
 };
+
+
+DEPRECATED(4.8, "FQueuedWork has been renamed to IQueuedWork")
+typedef IQueuedWork FQueuedWork;
 
 
 /**
@@ -593,7 +597,7 @@ public:
 	 * @param InQueuedWork The work that needs to be done asynchronously
 	 * @see RetractQueuedWork
 	 */
-	virtual void AddQueuedWork( FQueuedWork* InQueuedWork ) = 0;
+	virtual void AddQueuedWork( IQueuedWork* InQueuedWork ) = 0;
 
 	/**
 	 * Attempts to retract a previously queued task.
@@ -602,7 +606,7 @@ public:
 	 * @return true if the work was retracted
 	 * @see AddQueuedWork
 	 */
-	virtual bool RetractQueuedWork( FQueuedWork* InQueuedWork ) = 0;
+	virtual bool RetractQueuedWork( IQueuedWork* InQueuedWork ) = 0;
 
 	/**
 	 * Places a thread back into the available pool
@@ -610,7 +614,7 @@ public:
 	 * @param InQueuedThread The thread that is ready to be pooled
 	 * @return next job or null if there is no job available now
 	 */
-	virtual FQueuedWork* ReturnToPoolOrGetNextJob( class FQueuedThread* InQueuedThread ) = 0;
+	virtual IQueuedWork* ReturnToPoolOrGetNextJob( class FQueuedThread* InQueuedThread ) = 0;
 
 public:
 

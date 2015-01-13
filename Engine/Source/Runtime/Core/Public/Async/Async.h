@@ -160,7 +160,7 @@ private:
  */
 template<typename ResultType>
 class TAsyncQueuedWork
-	: public FQueuedWork
+	: public IQueuedWork
 {
 public:
 
@@ -177,7 +177,7 @@ public:
 
 public:
 
-	// FQueuedWork interface
+	// IQueuedWork interface
 
 	virtual void DoThreadedWork() override
 	{
