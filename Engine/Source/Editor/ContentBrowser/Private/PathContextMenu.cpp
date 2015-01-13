@@ -30,6 +30,11 @@ void FPathContextMenu::SetOnNewAssetRequested(const FNewAssetContextMenu::FOnNew
 	OnNewAssetRequested = InOnNewAssetRequested;
 }
 
+void FPathContextMenu::SetOnImportAssetRequested( const FNewAssetContextMenu::FOnImportAssetRequested& InOnImportAssetRequested )
+{
+	OnImportAssetRequested = InOnImportAssetRequested;
+}
+
 void FPathContextMenu::SetOnRenameFolderRequested(const FOnRenameFolderRequested& InOnRenameFolderRequested)
 {
 	OnRenameFolderRequested = InOnRenameFolderRequested;
@@ -82,7 +87,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 		{
 			// New Asset (submenu)
 			MenuBuilder.AddSubMenu(
-				LOCTEXT( "CreateNewAsset", "Create Asset" ),
+				LOCTEXT( "CreateNewAsset", "Add New" ),
 				LOCTEXT( "CreateNewAssetTooltip", "Create a new asset." ),
 				FNewMenuDelegate::CreateRaw( this, &FPathContextMenu::MakeNewAssetSubMenu ),
 				false,
@@ -243,7 +248,7 @@ void FPathContextMenu::MakeNewAssetSubMenu(FMenuBuilder& MenuBuilder)
 	const FString& SourcesPath = GetFirstSelectedPath();
 	if ( ensure(SourcesPath.Len()) )
 	{
-		FNewAssetContextMenu::MakeContextMenu(MenuBuilder, SourcesPath, OnNewAssetRequested, FNewAssetContextMenu::FOnNewFolderRequested());
+		FNewAssetContextMenu::MakeContextMenu(MenuBuilder, SourcesPath, OnNewAssetRequested, FNewAssetContextMenu::FOnNewFolderRequested(), OnImportAssetRequested, FNewAssetContextMenu::FOnGetContentRequested());
 	}
 }
 

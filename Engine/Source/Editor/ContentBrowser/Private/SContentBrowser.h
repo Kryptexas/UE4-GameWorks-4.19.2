@@ -164,11 +164,14 @@ private:
 	/** Imports a new piece of content. */
 	FReply HandleImportClicked();
 
+	/** Imports a new piece of content to a specific path. */
+	void ImportAsset(const FString& InPath);
+
 	/** Saves dirty content. */
 	FReply OnSaveClicked();
 
 	/** Opens the add content dialog. */
-	FReply OnAddContentClicked();
+	void OnAddContentRequested();
 
 	/** Handler for when the selection set in the asset view has changed. */
 	void OnAssetSelectionChanged(const FAssetData& SelectedAsset);

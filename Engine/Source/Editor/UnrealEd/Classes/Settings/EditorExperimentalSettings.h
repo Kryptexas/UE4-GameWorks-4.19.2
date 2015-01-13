@@ -84,10 +84,6 @@ public:
 	/** Enables Environment Queries editor */
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
-
-	/** Enables GetContent button in asset browser */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Get Feature Content (Requires content browser reopening)"))
-	bool bGetFeatureContent;
 	
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

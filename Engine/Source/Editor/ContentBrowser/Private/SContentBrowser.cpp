@@ -57,6 +57,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 	PathContextMenu = MakeShareable(new FPathContextMenu( AsShared() ));
 	PathContextMenu->SetOnNewAssetRequested( FNewAssetContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested) );
+	PathContextMenu->SetOnImportAssetRequested(FNewAssetContextMenu::FOnImportAssetRequested::CreateSP(this, &SContentBrowser::ImportAsset));
 	PathContextMenu->SetOnRenameFolderRequested(FPathContextMenu::FOnRenameFolderRequested::CreateSP(this, &SContentBrowser::OnRenameFolderRequested));
 	PathContextMenu->SetOnFolderDeleted(FPathContextMenu::FOnFolderDeleted::CreateSP(this, &SContentBrowser::OnOpenedFolderDeleted));
 
@@ -133,7 +134,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								[
 									SNew( STextBlock )
 									.TextStyle( FEditorStyle::Get(), "ContentBrowser.TopBar.Font" )
-									.Text( LOCTEXT( "NewButton", "Create" ) )
+									.Text( LOCTEXT( "NewButton", "Add New" ) )
 								]
 							]
 						]
@@ -173,42 +174,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 									SNew( STextBlock )
 									.TextStyle( FEditorStyle::Get(), "ContentBrowser.TopBar.Font" )
 									.Text( LOCTEXT( "Import", "Import" ) )
-								]
-							]
-						]
-
-						// Get content
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Left)
-						[
-							SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-							.ToolTipText(LOCTEXT("AddContentTooltip", "Get more content."))
-							.ContentPadding(0)
-							.Visibility(UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->bGetFeatureContent == false ? EVisibility::Collapsed : EVisibility::Visible)
-							.OnClicked(this, &SContentBrowser::OnAddContentClicked)
-							[
-								SNew(SHorizontalBox)
-
-								// Get Content Icon
-								+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.VAlign(VAlign_Center)
-								[
-									SNew(SImage)
-									.Image(FEditorStyle::GetBrush("ContentBrowser.AddContent"))
-								]
-
-								// Get Content Text
-								+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.VAlign(VAlign_Center)
-								.Padding(0, 0, 2, 0)
-								[
-									SNew(STextBlock)
-									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
-									.Text(LOCTEXT("GetContent", "Get Content"))
 								]
 							]
 						]
@@ -675,15 +640,17 @@ FText SContentBrowser::GetImportTooltipText() const
 
 FReply SContentBrowser::HandleImportClicked()
 {
-	FString CurrentPath = GetCurrentPath();
+	ImportAsset( GetCurrentPath() );
+	return FReply::Handled();
+}
 
-	if ( ensure( !CurrentPath.IsEmpty() ) )
+void SContentBrowser::ImportAsset( const FString& InPath )
+{
+	if ( ensure( !InPath.IsEmpty() ) )
 	{
 		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>( "AssetTools" );
-		AssetToolsModule.Get().ImportAssets( CurrentPath );
+		AssetToolsModule.Get().ImportAssets( InPath );
 	}
-
-	return FReply::Handled();
 }
 
 void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync )
@@ -1312,7 +1279,9 @@ TSharedRef<SWidget> SContentBrowser::MakeCreateAssetContextMenu()
 		MenuBuilder, 
 		CurrentPath, 
 		FNewAssetContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested),
-		OnNewFolderRequested);
+		OnNewFolderRequested,
+		FNewAssetContextMenu::FOnImportAssetRequested(),
+		FNewAssetContextMenu::FOnGetContentRequested::CreateSP(this, &SContentBrowser::OnAddContentRequested));
 
 	FDisplayMetrics DisplayMetrics;
 	FSlateApplication::Get().GetDisplayMetrics( DisplayMetrics );
@@ -1360,14 +1329,12 @@ FReply SContentBrowser::OnSaveClicked()
 	return FReply::Handled();
 }
 
-FReply SContentBrowser::OnAddContentClicked()
+void SContentBrowser::OnAddContentRequested()
 {
 	IAddContentDialogModule& AddContentDialogModule = FModuleManager::LoadModuleChecked<IAddContentDialogModule>("AddContentDialog");
 	FWidgetPath WidgetPath;
 	FSlateApplication::Get().GeneratePathToWidgetChecked(AsShared(), WidgetPath);
 	AddContentDialogModule.ShowDialog(WidgetPath.GetWindow());
-
-	return FReply::Handled();
 }
 
 void SContentBrowser::OnAssetSelectionChanged(const FAssetData& SelectedAsset)

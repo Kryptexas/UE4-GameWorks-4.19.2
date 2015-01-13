@@ -13,6 +13,9 @@ public:
 	/** Sets the handler for when new assets are requested */
 	void SetOnNewAssetRequested(const FNewAssetContextMenu::FOnNewAssetRequested& InOnNewAssetRequested);
 
+	/** Sets the handler for when importing an asset is requested */
+	void SetOnImportAssetRequested( const FNewAssetContextMenu::FOnImportAssetRequested& InOnImportAssetRequested );
+
 	/** Delegate for when the context menu requests a rename of a folder */
 	DECLARE_DELEGATE_OneParam(FOnRenameFolderRequested, const FString& /*FolderToRename*/);
 	void SetOnRenameFolderRequested(const FOnRenameFolderRequested& InOnRenameFolderRequested);
@@ -125,6 +128,7 @@ private:
 	TArray<FString> SelectedPaths;
 	TWeakPtr<SWidget> ParentContent;
 	FNewAssetContextMenu::FOnNewAssetRequested OnNewAssetRequested;
+	FNewAssetContextMenu::FOnImportAssetRequested OnImportAssetRequested;
 	FOnRenameFolderRequested OnRenameFolderRequested;
 	FOnFolderDeleted OnFolderDeleted;
 
