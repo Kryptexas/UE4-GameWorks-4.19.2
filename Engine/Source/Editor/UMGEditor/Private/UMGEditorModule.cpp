@@ -97,7 +97,11 @@ public:
 
 	void PostCompile(UBlueprint* Blueprint)
 	{
-		delete ReRegister;
+		if (ReRegister)
+		{
+			delete ReRegister;
+			ReRegister = nullptr;
+		}
 		
 		if ( GIsEditor && GEditor )
 		{
