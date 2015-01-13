@@ -18,7 +18,7 @@ FRecastTileData::FRawData::~FRawData()
 #if WITH_RECAST
 	dtFree(RawData);
 #else
-	delete RawData;
+	FMemory::Free(RawData);
 #endif
 }
 
