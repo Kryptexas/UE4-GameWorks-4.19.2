@@ -473,11 +473,11 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	float TileSizeUU;
 
 	/** horizontal size of voxelization cell */
-	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "1.0"))
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "1.0", ClampMax = "1024.0"))
 	float CellSize;
 
 	/** vertical size of voxelization cell */
-	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "1.0"))
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "1.0", ClampMax = "1024.0"))
 	float CellHeight;
 
 	/** Radius of smallest agent to traverse this navmesh */
@@ -507,7 +507,7 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	float MergeRegionSize;
 
 	/** How much navigable shapes can get simplified - the higher the value the more freedom */
-	UPROPERTY(EditAnywhere, Category=Generation, config)
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "0.0"))
 	float MaxSimplificationError;
 
 	/** navmesh draw distance in game (always visible in editor) */
@@ -637,6 +637,7 @@ public:
 
 	// Begin UObject Interface
 	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;	
 
 #if WITH_EDITOR

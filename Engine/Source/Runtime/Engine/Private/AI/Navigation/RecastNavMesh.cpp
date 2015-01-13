@@ -37,6 +37,8 @@
 
 #endif // WITH_RECAST
 
+static const int32 ArbitraryMaxVoxelTileSize = 1024;
+
 FNavMeshTileData::FNavData::~FNavData()
 {
 #if WITH_RECAST
@@ -468,6 +470,13 @@ void ARecastNavMesh::CleanUp()
 	DestroyRecastPImpl();
 }
 
+void ARecastNavMesh::PostLoad()
+{
+	Super::PostLoad();
+	// tilesize validation. This is temporary and should get removed by 4.9
+	TileSizeUU = FMath::Clamp(TileSizeUU, CellSize, ArbitraryMaxVoxelTileSize * CellSize);
+}
+
 void ARecastNavMesh::PostInitProperties()
 {
 	if (HasAnyFlags(RF_ClassDefaultObject) == true)
@@ -492,6 +501,8 @@ void ARecastNavMesh::PostInitProperties()
 	}
 	
 	Super::PostInitProperties();
+
+	TileSizeUU = FMath::Clamp(TileSizeUU, CellSize, ArbitraryMaxVoxelTileSize * CellSize);
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
@@ -1796,17 +1807,9 @@ void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 					TileSizeUU = FMath::Max(16.f * AgentRadius, RECAST_MIN_TILE_SIZE);
 				}
 
-				// tile's dimension can't exceed 2^16 x cell size, as it's being stored on 2 bytes
-				const int32 DimensionVX = FMath::CeilToInt(TileSizeUU / CellSize);
-				if (DimensionVX > MAX_uint16)
-				{
-					TileSizeUU = MAX_uint16 * CellSize;
-				}
-				// also it can't be 0, and if it's 1 then we should make sure tile size is equal to cell size
-				else if (DimensionVX <= 1)
-				{
-					TileSizeUU = CellSize;
-				}
+				// tile's can't be too big, otherwise we'll crash while tryng to allocate
+				// memory during navmesh generation
+				TileSizeUU = FMath::Clamp(TileSizeUU, CellSize, ArbitraryMaxVoxelTileSize * CellSize);
 			}
 
 			if (HasAnyFlags(RF_ClassDefaultObject) == false)
