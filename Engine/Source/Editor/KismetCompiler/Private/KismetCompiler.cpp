@@ -2547,7 +2547,7 @@ void FKismetCompilerContext::VerifyValidOverrideEvent(const UEdGraph* Graph)
 					{
 						MessageLog.Warning(*EventNode->GetDeprecationMessage(), EventNode);
 					}
-					else
+					else if(!Function->HasAllFunctionFlags(FUNC_Const))	// ...allow legacy event nodes that override methods declared as 'const' to pass.
 					{
 						MessageLog.Error(TEXT("The function in node @@ cannot be overridden and/or placed as event"), EventNode);
 					}
