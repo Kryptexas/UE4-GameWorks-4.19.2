@@ -787,6 +787,12 @@ namespace UnrealBuildTool
                         }
                     }
 
+					// @todo ubtmake: remove this when building with RPCUtility works
+					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS)
+					{
+						BuildConfiguration.bUseUBTMakefiles = false;
+					}
+
                     // If we were asked to enable fast build iteration, we want the 'gather' phase to default to off (unless it is overridden below
                     // using a command-line option.)
                     if( BuildConfiguration.bUseUBTMakefiles )
