@@ -1327,7 +1327,7 @@ void FAssetContextMenu::ExecuteGoToDocsForAsset(UClass* SelectedClass, const FSt
 		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedClass, ExcerptSection);
 		if (!DocumentationLink.IsEmpty())
 		{
-			IDocumentation::Get()->Open( DocumentationLink );
+			IDocumentation::Get()->Open(DocumentationLink, FDocumentationSourceInfo(TEXT("cb_docs")));
 		}
 	}
 }

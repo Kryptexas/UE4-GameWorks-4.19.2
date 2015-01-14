@@ -27,14 +27,14 @@ FDocumentation::~FDocumentation()
 
 }
 
-bool FDocumentation::OpenHome() const
+bool FDocumentation::OpenHome(FDocumentationSourceInfo Source) const
 {
-	return Open( TEXT("%ROOT%") );
+	return Open( TEXT("%ROOT%"), Source );
 }
 
-bool FDocumentation::OpenHome(const FCultureRef& Culture) const
+bool FDocumentation::OpenHome(const FCultureRef& Culture, FDocumentationSourceInfo Source) const
 {
-	return Open(TEXT("%ROOT%"), Culture);
+	return Open(TEXT("%ROOT%"), Culture, Source);
 }
 
 bool FDocumentation::OpenAPIHome() const
@@ -53,7 +53,7 @@ bool FDocumentation::OpenAPIHome() const
 	}
 }
 
-bool FDocumentation::Open( const FString& Link ) const
+bool FDocumentation::Open(const FString& Link, FDocumentationSourceInfo Source) const
 {
 	FString DocumentationUrl;
 
@@ -83,17 +83,16 @@ bool FDocumentation::Open( const FString& Link ) const
 		FString OnDiskPath = FDocumentationLink::ToFilePath(Link);
 		if (IFileManager::Get().FileSize(*OnDiskPath) != INDEX_NONE)
 		{
-			DocumentationUrl = FDocumentationLink::ToFileUrl(Link);
+			DocumentationUrl = FDocumentationLink::ToFileUrl(Link, Source);
 		}
 	}
 
-	
 	
 	if (DocumentationUrl.IsEmpty())
 	{
 		// When opening a doc website we always request the most ideal culture for our documentation.
 		// The DNS will redirect us if necessary.
-		DocumentationUrl = FDocumentationLink::ToUrl(Link);
+		DocumentationUrl = FDocumentationLink::ToUrl(Link, Source);
 	}
 
 	if (!DocumentationUrl.IsEmpty())
@@ -109,7 +108,7 @@ bool FDocumentation::Open( const FString& Link ) const
 	return !DocumentationUrl.IsEmpty();
 }
 
-bool FDocumentation::Open(const FString& Link, const FCultureRef& Culture) const
+bool FDocumentation::Open(const FString& Link, const FCultureRef& Culture, FDocumentationSourceInfo Source) const
 {
 	FString DocumentationUrl;
 
@@ -118,13 +117,13 @@ bool FDocumentation::Open(const FString& Link, const FCultureRef& Culture) const
 		FString OnDiskPath = FDocumentationLink::ToFilePath(Link, Culture);
 		if (IFileManager::Get().FileSize(*OnDiskPath) != INDEX_NONE)
 		{
-			DocumentationUrl = FDocumentationLink::ToFileUrl(Link, Culture);
+			DocumentationUrl = FDocumentationLink::ToFileUrl(Link, Culture, Source);
 		}
 	}
 
 	if (DocumentationUrl.IsEmpty())
 	{
-		DocumentationUrl = FDocumentationLink::ToUrl(Link, Culture);
+		DocumentationUrl = FDocumentationLink::ToUrl(Link, Culture, Source);
 	}
 
 	if (!DocumentationUrl.IsEmpty())
