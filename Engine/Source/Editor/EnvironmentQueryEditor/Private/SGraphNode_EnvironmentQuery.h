@@ -2,6 +2,24 @@
 
 #pragma once
 
+class UEnvironmentQueryGraphNode_Test;
+
+class FDragNodeEQSTimed : public FDragNode
+{
+public:
+	DRAG_DROP_OPERATOR_TYPE(FDragNodeEQSTimed, FDragNode)
+
+	static TSharedRef<FDragNodeEQSTimed> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphNode>& InDraggedNode);
+	static TSharedRef<FDragNodeEQSTimed> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphNode> >& InDraggedNodes);
+
+	UEnvironmentQueryGraphNode_Test* GetDropTargetNode() const;
+
+	double StartTime;
+
+protected:
+	typedef FDragNode Super;
+};
+
 class SGraphNode_EnvironmentQuery : public SGraphNode
 {
 public:
@@ -20,16 +38,12 @@ public:
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnMouseMove(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent) override;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual void SetOwner(const TSharedRef<SGraphPanel>& OwnerPanel) override;
 
 	// End of SGraphNode interface
 
 	/** handle mouse down on the node */
 	FReply OnMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
-
-	/** handle mouse up on the node */
-	FReply OnMouseUp(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
 
 	/** adds decorator widget inside current node */
 	void AddTest(TSharedPtr<SGraphNode> TestWidget);
@@ -55,10 +69,7 @@ protected:
 	TArray< TSharedPtr<SGraphNode> > TestWidgets;
 	TSharedPtr<SVerticalBox> TestBox;
 
-	float MouseDownTime;
-
 	uint32 bDragMarkerVisible : 1;
-	uint32 bIsMouseDown : 1;
 
 	FSlateColor GetBorderBackgroundColor() const;
 	FSlateColor GetBackgroundColor() const;
