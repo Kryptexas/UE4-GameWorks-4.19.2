@@ -7,11 +7,11 @@
 UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 , Input(NAME_None, ENiagaraDataType::Vector)
-, bExposeWhenConstant(true)
 , FloatDefault(1.0f)
 , VectorDefault(1.0f, 1.0f, 1.0f, 1.0f)
 , MatrixDefault(FMatrix::Identity)
 , bCanBeExposed(true)
+, bExposeWhenConstant(true)
 {
 }
 
