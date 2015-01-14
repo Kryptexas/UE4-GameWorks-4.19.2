@@ -808,7 +808,7 @@ private:
 
 /** Encapsulate require and ignore tags */
 USTRUCT(BlueprintType)
-struct FGameplayTagRequirements
+struct GAMEPLAYABILITIES_API FGameplayTagRequirements
 {
 	GENERATED_USTRUCT_BODY()
 
