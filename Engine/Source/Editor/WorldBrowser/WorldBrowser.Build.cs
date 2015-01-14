@@ -43,6 +43,7 @@ public class WorldBrowser : ModuleRules
                 "LandscapeEditor",
 				"Levels",
                 "ImageWrapper",
+                "Foliage",
             }
 		);
 

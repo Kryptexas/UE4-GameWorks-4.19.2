@@ -9,8 +9,8 @@
 #include "BSPOps.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
-#include "Foliage/InstancedFoliageActor.h"
-#include "Foliage/FoliageType.h"
+#include "InstancedFoliageActor.h"
+#include "FoliageType.h"
 #include "InstancedFoliage.h"
 #include "Components/BrushComponent.h"
 #include "Engine/StaticMesh.h"

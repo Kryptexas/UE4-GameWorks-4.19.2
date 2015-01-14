@@ -23,7 +23,7 @@
 #include "Landscape.h"
 #include "GameFramework/WorldSettings.h"
 #include "Engine/Light.h"
-#include "Foliage/InstancedFoliageActor.h"
+#include "InstancedFoliageActor.h"
 #include "LandscapeMeshProxyActor.h"
 #include "LandscapeMeshProxyComponent.h"
 

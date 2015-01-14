@@ -1,9 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-
-#include "Engine/InteractiveFoliageActor.h"
-#include "Components/InteractiveFoliageComponent.h"
+#include "FoliagePrivate.h"
+#include "InteractiveFoliageActor.h"
+#include "InteractiveFoliageComponent.h"
 #include "Components/CapsuleComponent.h"
 
 AInteractiveFoliageActor::AInteractiveFoliageActor(const FObjectInitializer& ObjectInitializer)

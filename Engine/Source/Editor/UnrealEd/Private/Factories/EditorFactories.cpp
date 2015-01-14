@@ -42,7 +42,7 @@
 #include "EnumEditorUtils.h"
 #include "StructureEditorUtils.h"
 
-#include "Foliage/InstancedFoliageActor.h"
+#include "InstancedFoliageActor.h"
 
 #include "Particles/ParticleSystem.h"
 

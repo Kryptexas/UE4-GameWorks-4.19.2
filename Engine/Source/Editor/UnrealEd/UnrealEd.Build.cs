@@ -50,7 +50,7 @@ public class UnrealEd : ModuleRules
                 "IntroTutorials",
                 "SuperSearch",
 				"OutputLog",
-				"Landscape"
+				"Landscape",
 			}
 		);
 
@@ -118,6 +118,7 @@ public class UnrealEd : ModuleRules
 				"Landscape",
 				"HeadMountedDisplay",
 				"MeshPaint",
+                "Foliage",
 			}
 		);
 

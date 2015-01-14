@@ -18,8 +18,8 @@
 #include "Editor/LevelEditor/Public/SLevelViewport.h"
 
 // Classes
-#include "Foliage/InstancedFoliageActor.h"
-#include "Foliage/FoliageType.h"
+#include "InstancedFoliageActor.h"
+#include "FoliageType.h"
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
 #include "LandscapeHeightfieldCollisionComponent.h"

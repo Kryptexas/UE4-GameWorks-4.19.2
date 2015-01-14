@@ -42,59 +42,63 @@ public:
 
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	// Called in response to BSP rebuilds to migrate foliage from obsolete to new components.
-	ENGINE_API void MapRebuild();
+	FOLIAGE_API void MapRebuild();
 
 	// Moves instances based on the specified component to the current streaming level
-	ENGINE_API void MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent);
+	FOLIAGE_API void MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent);
 
 	// Change all instances based on one component to a new component (possible in another level).
 	// The instances keep the same world locations
-	ENGINE_API void MoveInstancesToNewComponent(UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent);
+	FOLIAGE_API void MoveInstancesToNewComponent(UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent);
 
 	// Move instances based on a component that has just been moved.
 	void MoveInstancesForMovedComponent(UActorComponent* InComponent);
 
+	/** Subscribes for actors transformation events */
+	void SubscribeToUpdateEvents();
+
 	// Returns a map of Static Meshes and their placed instances attached to a component.
-	ENGINE_API TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> GetInstancesForComponent(UActorComponent* InComponent);
+	FOLIAGE_API TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> GetInstancesForComponent(UActorComponent* InComponent);
 
 	// Deletes the instances attached to a component
-	ENGINE_API void DeleteInstancesForComponent(UActorComponent* InComponent);
+	FOLIAGE_API void DeleteInstancesForComponent(UActorComponent* InComponent);
 
 	// Deletes the instances spawned by a component
-	ENGINE_API void DeleteInstancesForSpawner(UActorComponent* InComponent);
+	FOLIAGE_API void DeleteInstancesForSpawner(UActorComponent* InComponent);
 
 	// Finds a mesh entry
-	ENGINE_API FFoliageMeshInfo* FindMesh(UFoliageType* InType);
+	FOLIAGE_API FFoliageMeshInfo* FindMesh(UFoliageType* InType);
 
 	// Finds a mesh entry or adds it if it doesn't already exist
-	ENGINE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
+	FOLIAGE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
 
 	// Add a new static mesh.
-	ENGINE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr);
-	ENGINE_API FFoliageMeshInfo* AddMesh(UFoliageType* InType);
+	FOLIAGE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr);
+	FOLIAGE_API FFoliageMeshInfo* AddMesh(UFoliageType* InType);
 
 	// Remove the static mesh from the mesh list, and all its instances.
-	ENGINE_API void RemoveMesh(UFoliageType* InFoliageType);
+	FOLIAGE_API void RemoveMesh(UFoliageType* InFoliageType);
 
 	// Performs a reverse lookup from a mesh to its settings
-	ENGINE_API UFoliageType* GetSettingsForMesh(UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo = nullptr);
+	FOLIAGE_API UFoliageType* GetSettingsForMesh(UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo = nullptr);
 
 	// Select an individual instance.
-	ENGINE_API void SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle);
+	FOLIAGE_API void SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle);
 
 	// Propagate the selected instances to the actual render components
-	ENGINE_API void ApplySelectionToComponents(bool bApply);
+	FOLIAGE_API void ApplySelectionToComponents(bool bApply);
 
 	// Updates the SelectedMesh property of the actor based on the actual selected instances
-	ENGINE_API void CheckSelection();
+	FOLIAGE_API void CheckSelection();
 
 	// Returns the location for the widget
-	ENGINE_API FVector GetSelectionLocation();
+	FOLIAGE_API FVector GetSelectionLocation();
 
 	// Transforms Editor specific data which is stored in world space
-	ENGINE_API void ApplyLevelTransform(const FTransform& LevelTransform);
+	FOLIAGE_API void ApplyLevelTransform(const FTransform& LevelTransform);
 
 	/**
 	* Get the instanced foliage actor for the current streaming level.
@@ -103,7 +107,7 @@ public:
 	* @param bCreateIfNone					Create if doesnt already exist
 	* returns								pointer to foliage object instance
 	*/
-	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone = true);
+	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone = true);
 
 
 	/**
@@ -111,6 +115,16 @@ public:
 	* @param bCreateIfNone					Create if doesnt already exist
 	* returns								pointer to foliage object instance
 	*/
-	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
+	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
 #endif	//WITH_EDITOR
+
+private:
+#if WITH_EDITOR
+	void OnLevelActorMoved(AActor* InActor);
+#endif
+private:
+#if WITH_EDITOR
+	FDelegateHandle OnLevelActorMovedDelegateHandle;
+#endif
+
 };

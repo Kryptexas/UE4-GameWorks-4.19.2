@@ -170,7 +170,7 @@ struct FFoliageMeshInfo
 	TSet<int32> SelectedIndices;
 #endif
 
-	ENGINE_API FFoliageMeshInfo();
+	FOLIAGE_API FFoliageMeshInfo();
 
 	~FFoliageMeshInfo() // =default
 	{ }
@@ -201,25 +201,25 @@ struct FFoliageMeshInfo
 	}
 
 #if WITH_EDITOR
-	ENGINE_API void AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const FFoliageInstance& InNewInstance);
-	ENGINE_API void RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove);
-	ENGINE_API void PreMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToMove);
-	ENGINE_API void PostMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesMoved);
-	ENGINE_API void PostUpdateInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesUpdated, bool bReAddToHash = false);
-	ENGINE_API void DuplicateInstances(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const TArray<int32>& InInstancesToDuplicate);
-	ENGINE_API void GetInstancesInsideSphere(const FSphere& Sphere, TArray<int32>& OutInstances);
-	ENGINE_API bool CheckForOverlappingSphere(const FSphere& Sphere);
-	ENGINE_API bool CheckForOverlappingInstanceExcluding(int32 TestInstanceIdx, float Radius, TSet<int32>& ExcludeInstances);
+	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const FFoliageInstance& InNewInstance);
+	FOLIAGE_API void RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove);
+	FOLIAGE_API void PreMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToMove);
+	FOLIAGE_API void PostMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesMoved);
+	FOLIAGE_API void PostUpdateInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesUpdated, bool bReAddToHash = false);
+	FOLIAGE_API void DuplicateInstances(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const TArray<int32>& InInstancesToDuplicate);
+	FOLIAGE_API void GetInstancesInsideSphere(const FSphere& Sphere, TArray<int32>& OutInstances);
+	FOLIAGE_API bool CheckForOverlappingSphere(const FSphere& Sphere);
+	FOLIAGE_API bool CheckForOverlappingInstanceExcluding(int32 TestInstanceIdx, float Radius, TSet<int32>& ExcludeInstances);
 
 	// Destroy existing clusters and reassign all instances to new clusters
-	ENGINE_API void ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings);
+	FOLIAGE_API void ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings);
 
-	ENGINE_API void ReapplyInstancesToComponent();
+	FOLIAGE_API void ReapplyInstancesToComponent();
 
-	ENGINE_API void SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& Instances);
+	FOLIAGE_API void SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& Instances);
 
 	// Get the number of placed instances
-	ENGINE_API int32 GetInstanceCount() const;
+	FOLIAGE_API int32 GetInstanceCount() const;
 
 	// For debugging. Validate state after editing.
 	void CheckValid();
@@ -339,23 +339,5 @@ public:
 		}
 
 		return Ar;
-	}
-};
-
-
-/** InstancedStaticMeshInstance hit proxy */
-struct HInstancedStaticMeshInstance : public HHitProxy
-{
-	UInstancedStaticMeshComponent* Component;
-	int32 InstanceIndex;
-
-	DECLARE_HIT_PROXY(ENGINE_API);
-	HInstancedStaticMeshInstance(UInstancedStaticMeshComponent* InComponent, int32 InInstanceIndex) : HHitProxy(HPP_World), Component(InComponent), InstanceIndex(InInstanceIndex) {}
-
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-
-	virtual EMouseCursor::Type GetMouseCursor()
-	{
-		return EMouseCursor::CardinalCross;
 	}
 };

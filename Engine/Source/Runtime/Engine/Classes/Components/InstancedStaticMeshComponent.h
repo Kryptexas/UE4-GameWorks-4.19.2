@@ -214,3 +214,19 @@ protected:
 	friend FInstancedShadowMap2D;
 };
 
+/** InstancedStaticMeshInstance hit proxy */
+struct HInstancedStaticMeshInstance : public HHitProxy
+{
+	UInstancedStaticMeshComponent* Component;
+	int32 InstanceIndex;
+
+	DECLARE_HIT_PROXY(ENGINE_API);
+	HInstancedStaticMeshInstance(UInstancedStaticMeshComponent* InComponent, int32 InInstanceIndex) : HHitProxy(HPP_World), Component(InComponent), InstanceIndex(InInstanceIndex) {}
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
+	virtual EMouseCursor::Type GetMouseCursor()
+	{
+		return EMouseCursor::CardinalCross;
+	}
+};

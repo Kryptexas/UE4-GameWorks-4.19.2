@@ -4,13 +4,11 @@
 	InstancedFoliage.cpp: Instanced foliage implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "StaticMeshResources.h"
+#include "FoliagePrivate.h"
+#include "InstancedFoliage.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
-#include "Foliage/InstancedFoliageActor.h"
-#include "Foliage/FoliageType_InstancedStaticMesh.h"
 #include "Components/ModelComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Serialization/CustomVersion.h"
@@ -23,7 +21,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogInstancedFoliage, Log, All);
 
-IMPLEMENT_HIT_PROXY(HInstancedStaticMeshInstance, HHitProxy);
 
 // Custom serialization version for all packages containing Instance Foliage
 struct FFoliageCustomVersion
@@ -1043,12 +1040,12 @@ FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageT
 
 	UFoliageType_InstancedStaticMesh* Settings = nullptr;
 #if WITH_EDITORONLY_DATA
-	if (InMesh->FoliageDefaultSettings)
+	/*if (InMesh->FoliageDefaultSettings)
 	{
 		// TODO: Can't we just use this directly?
 		Settings = DuplicateObject<UFoliageType_InstancedStaticMesh>(InMesh->FoliageDefaultSettings, this);
 	}
-	else
+	else*/
 #endif
 	{
 		Settings = ConstructObject<UFoliageType_InstancedStaticMesh>(UFoliageType_InstancedStaticMesh::StaticClass(), this);
@@ -1247,6 +1244,16 @@ void AInstancedFoliageActor::PostEditUndo()
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 		MeshInfo.ReapplyInstancesToComponent();
+	}
+}
+
+void AInstancedFoliageActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (RootComponent)
+	{
+		RootComponent->SetMobility(EComponentMobility::Static);	//ensure mobility is not changed
 	}
 }
 
@@ -1533,6 +1540,11 @@ void AInstancedFoliageActor::PostLoad()
 	}
 #endif
 
+	if (RootComponent)
+	{
+		RootComponent->SetMobility(EComponentMobility::Static);	//instanced foliage is always static
+	}
+
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
@@ -1611,6 +1623,34 @@ void AInstancedFoliageActor::PostLoad()
 #endif
 }
 
+#if WITH_EDITOR
+
+void AInstancedFoliageActor::OnLevelActorMoved(AActor* InActor)
+{
+	if (!GetWorld()->IsPlayInEditor())
+	{
+		if(AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InActor->GetLevel()))
+		{
+			TInlineComponentArray<UActorComponent*> Components;
+			GetComponents(Components);
+
+			for (int32 Idx = 0; Idx < Components.Num(); ++Idx)
+			{
+				IFA->MoveInstancesForMovedComponent(Components[Idx]);
+			}
+		}
+	}
+}
+
+void AInstancedFoliageActor::SubscribeToUpdateEvents()
+{
+	if (!GetWorld()->IsPlayInEditor())
+	{
+		OnLevelActorMovedDelegateHandle   = GEngine->OnActorMoved().AddUObject(this, &AInstancedFoliageActor::OnLevelActorMoved);
+	}
+}
+#endif
+
 //
 // Serialize all our UObjects for RTGC 
 //
@@ -1645,11 +1685,7 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 	Super::AddReferencedObjects(This, Collector);
 }
 
-/** InstancedStaticMeshInstance hit proxy */
-void HInstancedStaticMeshInstance::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	Collector.AddReferencedObject(Component);
-}
+
 
 void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {

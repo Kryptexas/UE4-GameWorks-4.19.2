@@ -4,7 +4,7 @@
 
 #include "Landscape.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
-#include "Foliage/InstancedFoliageActor.h"
+#include "InstancedFoliageActor.h"
 #include "AI/Navigation/NavigationSystem.h"
 
 //

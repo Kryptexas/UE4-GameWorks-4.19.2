@@ -13,6 +13,13 @@
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
+IMPLEMENT_HIT_PROXY(HInstancedStaticMeshInstance, HHitProxy);
+
+/** InstancedStaticMeshInstance hit proxy */
+void HInstancedStaticMeshInstance::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(Component);
+}
 
 FStaticMeshInstanceBuffer::FStaticMeshInstanceBuffer(ERHIFeatureLevel::Type InFeatureLevel):
 	InstanceData(NULL)

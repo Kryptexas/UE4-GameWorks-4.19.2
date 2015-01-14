@@ -5,7 +5,7 @@
 #include "SFoliageEdit.h"
 #include "FoliageEditActions.h"
 #include "FoliageEdMode.h"
-#include "Foliage/FoliageType.h"
+#include "FoliageType.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Dialogs/DlgPickAssetPath.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"

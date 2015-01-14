@@ -15,7 +15,6 @@
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "ISCSEditorCustomization.h"
 #include "ComponentVisualizer.h"
-#include "InstancedFoliage.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "CanvasTypes.h"
 #include "EngineUtils.h"

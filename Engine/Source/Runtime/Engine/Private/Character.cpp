@@ -13,7 +13,6 @@
 #include "DisplayDebugHelpers.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
-#include "Foliage/InstancedFoliageActor.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/DamageType.h"
 
@@ -412,12 +411,6 @@ namespace MovementBaseUtility
 			AActor* NewBaseOwner = NewBase->GetOwner();
 			if (NewBaseOwner)
 			{
-				// NOTE: TTP# 341962: Temp hack to fix issues with landing on Foliage actors with thousands of components.
-				if (Cast<AInstancedFoliageActor>(NewBaseOwner))
-				{
-					return;
-				}
-
 				if (NewBaseOwner->PrimaryActorTick.bCanEverTick)
 				{
 					BasedObjectTick.AddPrerequisite(NewBaseOwner, NewBaseOwner->PrimaryActorTick);
@@ -443,12 +436,6 @@ namespace MovementBaseUtility
 			AActor* OldBaseOwner = OldBase->GetOwner();
 			if (OldBaseOwner)
 			{
-				// NOTE: TTP# 341962: Temp hack to fix issues with landing on Foliage actors with thousands of components.
-				if (Cast<AInstancedFoliageActor>(OldBaseOwner))
-				{
-					return;
-				}
-
 				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
 
 				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.

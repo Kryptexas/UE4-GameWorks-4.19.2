@@ -23,6 +23,7 @@ public class AssetTools : ModuleRules
 				"UnrealEd",
 				"Kismet",
 				"Landscape",
+                "Foliage",
 			}
 		);
 

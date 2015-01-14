@@ -16,7 +16,7 @@ ActorFactory.cpp:
 #include "BSPOps.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
-#include "Engine/InteractiveFoliageActor.h"
+#include "InteractiveFoliageActor.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
 

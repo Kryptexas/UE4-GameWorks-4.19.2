@@ -371,9 +371,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FString HighResSourceMeshName;
 
 #if WITH_EDITORONLY_DATA
-	/** Default settings when using this mesh for instanced foliage */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=StaticMesh)
-	const UFoliageType_InstancedStaticMesh* FoliageDefaultSettings;
+
 
 	/** Importing data and options used for this mesh */
 	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)

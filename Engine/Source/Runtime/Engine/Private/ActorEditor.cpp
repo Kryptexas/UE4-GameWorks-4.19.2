@@ -7,7 +7,6 @@
 #include "UObjectToken.h"
 #include "LevelUtils.h"
 #include "MapErrors.h"
-#include "Foliage/InstancedFoliageActor.h"
 #include "Engine/LevelBounds.h"
 #include "Components/ChildActorComponent.h"
 
@@ -34,27 +33,7 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	FName PropertyName = PropertyThatChanged != NULL ? PropertyThatChanged->GetFName() : NAME_None;
 	
-	bool bTransformationChanged = false;
-
-	if ( PropertyName==Name_RelativeLocation || PropertyName==Name_RelativeRotation || PropertyName==Name_RelativeScale3D )
-	{
-		bTransformationChanged = true;
-
-		if ( GIsEditor && !GetWorld()->IsPlayInEditor() )
-		{
-			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(GetLevel());
-			if (IFA)
-			{
-				TInlineComponentArray<UActorComponent*> Components;
-				GetComponents(Components);
-
-				for ( int32 Idx = 0 ; Idx < Components.Num() ; ++Idx )
-				{
-					IFA->MoveInstancesForMovedComponent( Components[Idx] );
-				}
-			}
-		}
-	}
+	const bool bTransformationChanged = (PropertyName == Name_RelativeLocation || PropertyName == Name_RelativeRotation || PropertyName == Name_RelativeScale3D);
 
 	if ( ReregisterComponentsWhenModified() )
 	{
@@ -92,21 +71,6 @@ void AActor::PostEditMove(bool bFinished)
 
 	if ( bFinished )
 	{
-		if ( GIsEditor && !GetWorld()->IsPlayInEditor() && !FLevelUtils::IsMovingLevel())
-		{
-			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(GetLevel());
-			if (IFA)
-			{
-				TInlineComponentArray<UActorComponent*> Components;
-				GetComponents(Components);
-
-				for ( int32 Idx = 0 ; Idx < Components.Num() ; ++Idx )
-				{
-					IFA->MoveInstancesForMovedComponent( Components[Idx] );
-				}
-			}
-		}
-
 		GetWorld()->bDoDelayedUpdateCullDistanceVolumes = true;
 		GetWorld()->bAreConstraintsDirty = true;
 

@@ -30,7 +30,7 @@
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMaterialInstanceConstant.h"
 #include "LandscapeSplinesComponent.h"
-#include "Foliage/InstancedFoliageActor.h"
+#include "InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/Selection.h"
 #include "LandscapeGizmoActiveActor.h"

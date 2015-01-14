@@ -11,7 +11,6 @@
 #include "ShaderParameterUtils.h"
 
 #include "Misc/UObjectToken.h"
-#include "Components/InteractiveFoliageComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Components/ModelComponent.h"
 #include "Components/NiagaraComponent.h"
@@ -35,7 +34,6 @@
 #include "StaticMeshLight.h"
 #include "SpeedTreeWind.h"
 #include "ComponentInstanceDataCache.h"
-#include "InstancedFoliage.h"
 #include "VertexFactory.h"
 #include "LocalVertexFactory.h"
 
@@ -351,7 +349,6 @@ private:
 	FShaderParameter CPUInstanceTransform;
 	FShaderParameter CPUInstanceInverseTransform;
 };
-
 
 /*-----------------------------------------------------------------------------
 	FInstancedStaticMeshRenderData

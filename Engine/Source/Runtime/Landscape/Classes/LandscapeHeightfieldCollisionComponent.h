@@ -4,8 +4,7 @@
 #pragma once
 
 class ULandscapeLayerInfoObject;
-
-#include "Foliage/InstancedFoliageActor.h"
+class AInstancedFoliageActor;
 
 #include "LandscapeHeightfieldCollisionComponent.generated.h"
 

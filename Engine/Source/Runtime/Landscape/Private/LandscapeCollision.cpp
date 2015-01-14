@@ -19,7 +19,7 @@ LandscapeCollision.cpp: Landscape collision
 #include "LandscapeLayerInfoObject.h"
 #include "LandscapeInfo.h"
 #include "InstancedFoliage.h"
-#include "Foliage/FoliageType.h"
+#include "FoliageType.h"
 #include "Engine/StaticMesh.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
@@ -28,6 +28,7 @@ LandscapeCollision.cpp: Landscape collision
 #include "Engine/CollisionProfile.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
+#include "InstancedFoliageActor.h"
 
 TMap<FGuid, ULandscapeHeightfieldCollisionComponent::FPhysXHeightfieldRef* > GSharedHeightfieldRefs;
 

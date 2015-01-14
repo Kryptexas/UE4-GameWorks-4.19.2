@@ -293,11 +293,11 @@ class UFoliageType : public UObject
 	int32 ChangeCount;
 
 	
-	ENGINE_API float GetSeedDensitySquared() const { return InitialSeedDensity * InitialSeedDensity; }
-	ENGINE_API float GetMaxRadius() const;
-	ENGINE_API float GetScaleForAge(const float Age) const;
-	ENGINE_API float GetInitAge(FRandomStream& RandomStream) const;
-	ENGINE_API float GetNextAge(const float CurrentAge, const int32 NumSteps) const;
+	FOLIAGE_API float GetSeedDensitySquared() const { return InitialSeedDensity * InitialSeedDensity; }
+	FOLIAGE_API float GetMaxRadius() const;
+	FOLIAGE_API float GetScaleForAge(const float Age) const;
+	FOLIAGE_API float GetInitAge(FRandomStream& RandomStream) const;
+	FOLIAGE_API float GetNextAge(const float CurrentAge, const int32 NumSteps) const;
 
 private:
 
