@@ -76,3 +76,11 @@ bool FMetalDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 	OutNumPixels = *QueryMemory;
 	return true;
 }
+
+void FMetalDynamicRHI::RHIBeginOcclusionQueryBatch()
+{
+}
+
+void FMetalDynamicRHI::RHIEndOcclusionQueryBatch()
+{
+}
