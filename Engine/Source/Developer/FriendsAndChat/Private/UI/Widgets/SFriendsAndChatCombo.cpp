@@ -31,13 +31,21 @@ private:
 public:
 
 	SLATE_USER_ARGS(SFriendsAndChatComboButton)
-		: _bSetButtonTextToSelectedItem(false)
+		: _bShowIcon(false)
+		, _IconBrush(nullptr)
+		, _bSetButtonTextToSelectedItem(false)
 		, _bAutoCloseWhenClicked(true)
 		, _ContentWidth(150)
 	{}
 
 		/** Text to display on main button. */
 		SLATE_TEXT_ATTRIBUTE(ButtonText)
+
+		/** Whether the optional icon is shown */
+		SLATE_ATTRIBUTE(bool, bShowIcon)
+
+		/** Optional icon brush */
+		SLATE_ATTRIBUTE(const FSlateBrush*, IconBrush)
 
 		SLATE_ARGUMENT(const FFriendsAndChatStyle*, FriendStyle)
 
@@ -69,6 +77,8 @@ public:
 		DropdownItems = InArgs._DropdownItems;
 		OnItemClickedDelegate = InArgs._OnDropdownItemClicked;
 		ButtonText = InArgs._ButtonText;
+		bShowIcon = InArgs._bShowIcon;
+		IconBrush = InArgs._IconBrush;
 		bSetButtonTextToSelectedItem = InArgs._bSetButtonTextToSelectedItem;
 
 		const FComboButtonStyle& ComboButtonStyle = FriendStyle.FriendListComboButtonStyle;
@@ -89,19 +99,36 @@ public:
 				.ButtonStyle(&ComboButtonStyle.ButtonStyle)
 				.ClickMethod(EButtonClickMethod::MouseDown)
 				.OnClicked(this, &SFriendsAndChatComboButton::OnButtonClicked)
-				.ContentPadding(FMargin(15, 0, 44, 0))
+				.ContentPadding(0)
 				.ForegroundColor(FLinearColor::White)
 				[
 					SNew(SBox)
 					.WidthOverride(ContentWidth)
 					.HeightOverride(DROPDOWN_MAX_HEIGHT)
+					.Padding(FMargin(8, 0, 0, 0))
 					.VAlign(VAlign_Center)
 					[
-						SNew(STextBlock)
-						.Text(this, &SFriendsAndChatComboButton::GetButtonText)
-						.Font(FriendStyle.FriendsFontStyleBold)
-						.ShadowOffset(FVector2D(0, 1))
-						.ShadowColorAndOpacity(FColor(0, 84, 80))
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.Padding(FMargin(0, 0, 8, 0))
+						.AutoWidth()
+						[
+							SNew(SImage)
+							.Visibility(this, &SFriendsAndChatComboButton::GetIconVisibility)
+							.Image(this, &SFriendsAndChatComboButton::GetIconBrush)
+						]
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(FMargin(0, 2, 22, 0))
+						[
+							SNew(STextBlock)
+							.Text(this, &SFriendsAndChatComboButton::GetButtonText)
+							.Font(FriendStyle.FriendsFontStyleBold)
+							.ShadowOffset(FVector2D(0, 1))
+							.ShadowColorAndOpacity(FColor(0, 84, 80))
+						]
 					]
 				]
 			]
@@ -176,8 +203,7 @@ private:
 			.AutoWidth()
 			[
 				SNew(SBox)
-				//.Padding(FMargin(1,0,0,0))
-				.WidthOverride(ContentWidth + 30)
+				.WidthOverride(ContentWidth - 30)
 				[
 					SNew(SImage)
 					.Image(BackgroundLeftImage)
@@ -217,6 +243,7 @@ private:
 		if (bSetButtonTextToSelectedItem && DropdownItems.IsSet() && DropdownItems.Get().IsValidIndex(Idx))
 		{
 			ButtonText = DropdownItems.Get()[Idx].EntryText;
+			IconBrush = DropdownItems.Get()[Idx].EntryIcon;
 		}
 		if (OnItemClickedDelegate.IsBound() && DropdownItems.IsSet() && DropdownItems.Get().IsValidIndex(Idx))
 		{
@@ -236,11 +263,27 @@ private:
 		return ButtonText.Get();
 	}
 
+	EVisibility GetIconVisibility() const
+	{
+		return bShowIcon.Get() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	const FSlateBrush* GetIconBrush() const
+	{
+		return IconBrush.Get();
+	}
+
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
 
 	/** String value displayed on the main button */
 	TAttribute<FText> ButtonText;
+
+	/** Whether the optional icon is shown */
+	TAttribute<bool> bShowIcon;
+
+	/** Optional icon brush */
+	TAttribute<const FSlateBrush*> IconBrush;
 
 	/** Delegate to call when user clicks item from the dropdown list. */
 	FOnDropdownItemClicked OnItemClickedDelegate;
@@ -273,6 +316,8 @@ public:
 			[
 				SNew(SFriendsAndChatComboButton)
 				.ButtonText(InArgs._ButtonText)
+				.bShowIcon(InArgs._bShowIcon)
+				.IconBrush(InArgs._IconBrush)
 				.FriendStyle(InArgs._FriendStyle)
 				.bSetButtonTextToSelectedItem(InArgs._bSetButtonTextToSelectedItem)
 				.DropdownItems(InArgs._DropdownItems)

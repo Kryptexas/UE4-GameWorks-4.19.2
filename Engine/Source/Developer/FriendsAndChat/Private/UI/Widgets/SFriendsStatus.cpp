@@ -7,15 +7,9 @@
 
 #define LOCTEXT_NAMESPACE "SFriendsStatus"
 
-namespace FriendsStatusImplDefs
-{
-	const static FName OnlineTag("Online");
-	const static FName AwayTag("Away");
-}
-
 /**
  * Declares the Friends Status display widget
-*/
+ */
 class SFriendsStatusImpl : public SFriendsStatus
 {
 public:
@@ -27,18 +21,25 @@ public:
 
 		FFriendsStatusViewModel* ViewModelPtr = &ViewModel.Get();
 
+		const TArray<FFriendsStatusViewModel::FOnlineState>& StatusOptions = ViewModelPtr->GetStatusList();
+		SFriendsAndChatCombo::FItemsArray ComboMenuItems;
+		for (const auto& StatusOption : StatusOptions)
+		{
+			if (StatusOption.bIsDisplayed)
+			{
+				ComboMenuItems.AddItem(StatusOption.DisplayText, GetStatusBrush(StatusOption.State), FName(*StatusOption.DisplayText.ToString()));
+			}
+		}
+
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SFriendsAndChatCombo)
 			.FriendStyle(&FriendStyle)
 			.ButtonText(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
-			.DropdownItems
-			(
-				SFriendsAndChatCombo::FItemsArray()
-				+ SFriendsAndChatCombo::FItemData(FText::FromString(FriendsStatusImplDefs::OnlineTag.ToString()), FriendsStatusImplDefs::OnlineTag, true)
-				+ SFriendsAndChatCombo::FItemData(FText::FromString(FriendsStatusImplDefs::AwayTag.ToString()), FriendsStatusImplDefs::AwayTag, true)
-			)
-			.bSetButtonTextToSelectedItem(true)
+			.bShowIcon(true)
+			.IconBrush(this, &SFriendsStatusImpl::GetCurrentStatusBrush)
+			.DropdownItems(ComboMenuItems)
+			.bSetButtonTextToSelectedItem(false)
 			.bAutoCloseWhenClicked(true)
 			.ContentWidth(FriendStyle.StatusButtonSize.X)
 			.OnDropdownItemClicked(this, &SFriendsStatusImpl::HandleStatusChanged)
@@ -48,35 +49,49 @@ public:
 private:
 	void HandleStatusChanged(FName ItemTag)
 	{
-		EOnlinePresenceState::Type OnlineState = EOnlinePresenceState::Offline;
-
-		if (ItemTag == FriendsStatusImplDefs::OnlineTag)
+		if (ViewModel.IsValid())
 		{
-			OnlineState = EOnlinePresenceState::Online;
-		}
-		else if (ItemTag == FriendsStatusImplDefs::AwayTag)
-		{
-			OnlineState = EOnlinePresenceState::Away;
-		}
+			const TArray<FFriendsStatusViewModel::FOnlineState>& StatusOptions = ViewModel->GetStatusList();
+			
+			const FFriendsStatusViewModel::FOnlineState* FoundStatePtr = StatusOptions.FindByPredicate([ItemTag](const FFriendsStatusViewModel::FOnlineState& InOnlineState) -> bool
+			{
+				return InOnlineState.DisplayText.ToString() == ItemTag.ToString();
+			});
 
-		ViewModel->SetOnlineStatus(OnlineState);
+			EOnlinePresenceState::Type OnlineState = EOnlinePresenceState::Offline;
+
+			if (FoundStatePtr != nullptr)
+			{
+				OnlineState =  FoundStatePtr->State;
+			}
+
+			ViewModel->SetOnlineStatus(OnlineState);
+		}
 	}
 
-
-	const FSlateBrush* GetStatusBrush() const
+	const FSlateBrush* GetCurrentStatusBrush() const
 	{
-		switch (ViewModel->GetOnlineStatus())
+		if (ViewModel.IsValid())
+		{
+			return GetStatusBrush(ViewModel->GetOnlineStatus());
+		}
+		return nullptr;
+	}
+
+	const FSlateBrush* GetStatusBrush(EOnlinePresenceState::Type OnlineState) const
+	{
+		switch (OnlineState)
 		{	
-		case EOnlinePresenceState::Away:
-		case EOnlinePresenceState::ExtendedAway:
-			return &FriendStyle.AwayBrush;
-		case EOnlinePresenceState::Chat:
-		case EOnlinePresenceState::DoNotDisturb:
-		case EOnlinePresenceState::Online:
-			return &FriendStyle.OnlineBrush;
-		case EOnlinePresenceState::Offline:
-		default:
-			return &FriendStyle.OfflineBrush;
+			case EOnlinePresenceState::Away:
+			case EOnlinePresenceState::ExtendedAway:
+				return &FriendStyle.AwayBrush;
+			case EOnlinePresenceState::Chat:
+			case EOnlinePresenceState::DoNotDisturb:
+			case EOnlinePresenceState::Online:
+				return &FriendStyle.OnlineBrush;
+			case EOnlinePresenceState::Offline:
+			default:
+				return &FriendStyle.OfflineBrush;
 		};
 	}
 

@@ -15,17 +15,21 @@ public:
 	public:
 
 		/** Ctor */
-		FItemData(TAttribute<FText> EntryText, FName ButtonTag, TAttribute<bool> bIsEnabled)
-			: EntryText(EntryText)
-			, bIsEnabled(bIsEnabled)
-			, ButtonTag(ButtonTag)
+		FItemData(const FText& InEntryText, const FSlateBrush* InEntryIcon, const FName& InButtonTag, bool InIsEnabled)
+			: EntryText(InEntryText)
+			, EntryIcon(InEntryIcon)
+			, bIsEnabled(InIsEnabled)
+			, ButtonTag(InButtonTag)
 		{}
 
 		/** Text content */
-		TAttribute<FText> EntryText;
+		FText EntryText;
+
+		/** Optional icon brush */
+		const FSlateBrush* EntryIcon;
 
 		/** Is this item actually enabled/selectable */
-		TAttribute<bool> bIsEnabled;
+		bool bIsEnabled;
 
 		/** Tag that will be returned by OnDropdownItemClicked delegate when button corresponding to this item is clicked */
 		FName ButtonTag;
@@ -45,20 +49,28 @@ public:
 		}
 
 		/** Adds item to array and returns itself */
-		FItemsArray & AddItem(TAttribute<FText> EntryText, FName ButtonTag, TAttribute<bool> bIsEnabled = true)
+		FItemsArray & AddItem(const FText& InEntryText, const FSlateBrush* InEntryIcon, const FName& InButtonTag, bool InIsEnabled = true)
 		{
-			return operator+(FItemData(EntryText, ButtonTag, bIsEnabled));
+			return operator+(FItemData(InEntryText, InEntryIcon, InButtonTag, InIsEnabled));
 		}
 	};
 
 	SLATE_USER_ARGS(SFriendsAndChatCombo)
-		: _bSetButtonTextToSelectedItem(false)
+		: _bShowIcon(false)
+		, _IconBrush(nullptr)
+		, _bSetButtonTextToSelectedItem(false)
 		, _bAutoCloseWhenClicked(true)
 		, _ContentWidth(150)
 	{}
 
 		/** Text to display on main button. */
 		SLATE_TEXT_ATTRIBUTE(ButtonText)
+
+		/** Whether the optional icon is shown */
+		SLATE_ATTRIBUTE(bool, bShowIcon)
+
+		/** Optional icon brush */
+		SLATE_ATTRIBUTE(const FSlateBrush*, IconBrush)
 
 		SLATE_ARGUMENT(const FFriendsAndChatStyle*, FriendStyle)
 
