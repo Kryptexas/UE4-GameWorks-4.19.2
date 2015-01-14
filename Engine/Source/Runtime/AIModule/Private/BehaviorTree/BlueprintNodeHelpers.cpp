@@ -253,4 +253,15 @@ namespace BlueprintNodeHelpers
 			}
 		}
 	}
+
+	//----------------------------------------------------------------------//
+	// DEPRECATED
+	//----------------------------------------------------------------------//
+	void AbortLatentActions(UActorComponent* OwnerOb, const UObject* Ob)
+	{
+		if (OwnerOb && Ob)
+		{
+			AbortLatentActions(OwnerOb, Ob);
+		}
+	}
 }

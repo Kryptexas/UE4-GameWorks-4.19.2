@@ -1012,7 +1012,7 @@ void UNavigationSystem::SimpleMoveToActor(AController* Controller, const AActor*
 	}
 	else
 	{
-		const ANavigationData* NavData = NavSys->GetNavDataForProps(Controller->GetNavAgentProperties());
+		const ANavigationData* NavData = NavSys->GetNavDataForProps(Controller->GetNavAgentPropertiesRef());
 		FPathFindingQuery Query(Controller, NavData, Controller->GetNavAgentLocation(), Goal->GetActorLocation());
 		FPathFindingResult Result = NavSys->FindPathSync(Query);
 		if (Result.IsSuccessful())
@@ -1068,7 +1068,7 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 	}
 	else
 	{
-		const ANavigationData* NavData = NavSys->GetNavDataForProps(Controller->GetNavAgentProperties());
+		const ANavigationData* NavData = NavSys->GetNavDataForProps(Controller->GetNavAgentPropertiesRef());
 		FPathFindingQuery Query(Controller, NavData, Controller->GetNavAgentLocation(), GoalLocation);
 		FPathFindingResult Result = NavSys->FindPathSync(Query);
 		if (Result.IsSuccessful())
@@ -1130,7 +1130,7 @@ UNavigationPath* UNavigationSystem::FindPathToLocationSynchronously(UObject* Wor
 			
 			if (NavAgent != NULL)
 			{
-				const FNavAgentProperties& AgentProps = NavAgent->GetNavAgentProperties();
+				const FNavAgentProperties& AgentProps = NavAgent->GetNavAgentPropertiesRef();
 				NavigationData = NavSys->GetNavDataForProps(AgentProps);
 				bValidPathContext = true;
 			}
@@ -1186,7 +1186,7 @@ bool UNavigationSystem::NavigationRaycast(UObject* WorldContextObject, const FVe
 		INavAgentInterface* MyNavAgent = Cast<INavAgentInterface>(Querier);
 		if (MyNavAgent)
 		{
-			const FNavAgentProperties& AgentProps = MyNavAgent->GetNavAgentProperties();
+			const FNavAgentProperties& AgentProps = MyNavAgent->GetNavAgentPropertiesRef();
 			NavData = NavSys->GetNavDataForProps(AgentProps);
 		}
 		if (NavData == NULL)
