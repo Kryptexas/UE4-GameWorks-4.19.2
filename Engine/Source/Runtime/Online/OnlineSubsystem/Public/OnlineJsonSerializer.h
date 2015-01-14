@@ -83,6 +83,28 @@
 			Serializer.EndObject(); \
 		}
 
+#define ONLINE_JSON_SERIALIZE_OBJECT_SERIALIZABLE(JsonName, JsonSerializableObject) \
+		/* Process the JsonName field differently because it is an object */ \
+		if (Serializer.IsLoading()) \
+		{ \
+			/* Read in the value from the JsonName field */ \
+			if (Serializer.GetObject()->HasTypedField<EJson::Object>(JsonName)) \
+			{ \
+				TSharedPtr<FJsonObject> JsonObj = Serializer.GetObject()->GetObjectField(JsonName); \
+				if (JsonObj.IsValid()) \
+				{ \
+					JsonSerializableObject.FromJson(JsonObj); \
+				} \
+			} \
+		} \
+		else \
+		{ \
+			/* Write the value to the JsonName field */ \
+			Serializer.StartObject(JsonName); \
+			JsonSerializableObject.Serialize(Serializer); \
+			Serializer.EndObject(); \
+		}
+
 /** Array of string data */
 typedef TArray<FString> FJsonSerializableArray;
 
