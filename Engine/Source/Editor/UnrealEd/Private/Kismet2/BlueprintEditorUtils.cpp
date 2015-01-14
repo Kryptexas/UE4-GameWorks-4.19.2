@@ -46,6 +46,7 @@
 #include "NotificationManager.h"
 #include "Editor/Blutility/Public/IBlutilityModule.h"
 
+#include "Engine/InheritableComponentHandler.h"
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);
@@ -1135,6 +1136,21 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		// Make sure the simple construction script is loaded, since the outer hierarchy isn't compatible with PreloadMembers past the root node
 		FBlueprintEditorUtils::PreloadConstructionScript(Blueprint);
 
+		// Preload Overriden Components
+		if (Blueprint->InheritableComponentHandler)
+		{
+			if (Blueprint->InheritableComponentHandler->HasAllFlags(RF_NeedLoad))
+			{
+				auto Linker = Blueprint->InheritableComponentHandler->GetLinker();
+				if (Linker)
+				{
+					Linker->Preload(Blueprint->InheritableComponentHandler);
+				}
+			}
+
+			Blueprint->InheritableComponentHandler->PreloadAllTempates();
+		}
+
 		// Purge any NULL graphs
 		FBlueprintEditorUtils::PurgeNullGraphs(Blueprint);
 
@@ -1411,6 +1427,9 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			USimpleConstructionScript* SCSRootNode = Blueprint->SimpleConstructionScript;
 			Blueprint->SimpleConstructionScript = NULL;
 
+			UInheritableComponentHandler* InheritableComponentHandler = Blueprint->InheritableComponentHandler;
+			Blueprint->InheritableComponentHandler = NULL;
+
 			TArray<UActorComponent*> Templates = Blueprint->ComponentTemplates;
 			Blueprint->ComponentTemplates.Empty();
 
@@ -1493,9 +1512,19 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 				OldToNewMap.Add(OldTimeline, NewTimeline);
 			}
 
+			if (InheritableComponentHandler)
+			{
+				NewBPGC->InheritableComponentHandler = Cast<UInheritableComponentHandler>(StaticDuplicateObject(InheritableComponentHandler, NewBPGC, *InheritableComponentHandler->GetName()));
+				if (NewBPGC->InheritableComponentHandler)
+				{
+					NewBPGC->InheritableComponentHandler->UpdateOwnerClass(NewBPGC);
+				}
+			}
+
 			Blueprint->SimpleConstructionScript = NewBPGC->SimpleConstructionScript;
 			Blueprint->ComponentTemplates = NewBPGC->ComponentTemplates;
 			Blueprint->Timelines = NewBPGC->Timelines;
+			Blueprint->InheritableComponentHandler = NewBPGC->InheritableComponentHandler;
 
 			Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
 
@@ -2379,6 +2408,11 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 
 	// No implemented interfaces
 	if( Blueprint->ImplementedInterfaces.Num() > 0 )
+	{
+		return false;
+	}
+
+	if (Blueprint->InheritableComponentHandler && !Blueprint->InheritableComponentHandler->IsEmpty())
 	{
 		return false;
 	}

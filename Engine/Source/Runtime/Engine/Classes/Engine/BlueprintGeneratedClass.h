@@ -434,6 +434,10 @@ public:
 	UPROPERTY()
 	class USimpleConstructionScript* SimpleConstructionScript;
 
+	/** Stores data to override (in children classes) components (created by SCS) from parent classes */
+	UPROPERTY()
+	class UInheritableComponentHandler* InheritableComponentHandler;
+
 	UPROPERTY()
 	UStructProperty* UberGraphFramePointerProperty;
 

@@ -23,6 +23,7 @@
 #include "EdGraph/EdGraphNode_Documentation.h"
 #include "Engine/DynamicBlueprintBinding.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Engine/InheritableComponentHandler.h"
 
 static bool bDebugPropertyPropagation = false;
 
@@ -257,6 +258,14 @@ void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectC
 		{
 			SubObjectsToSave.AddObject(Curve);
 		}
+	}
+
+	if (Blueprint->InheritableComponentHandler)
+	{
+		SubObjectsToSave.AddObject(Blueprint->InheritableComponentHandler);
+		TArray<UActorComponent*> AllTemplates;
+		Blueprint->InheritableComponentHandler->GetAllTemplates(AllTemplates);
+		SubObjectsToSave.AddObjects(AllTemplates);
 	}
 }
 
@@ -1768,10 +1777,12 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		BPGClass->ComponentTemplates.Empty();
 		BPGClass->Timelines.Empty();
 		BPGClass->SimpleConstructionScript = NULL;
+		BPGClass->InheritableComponentHandler = NULL;
 
 		BPGClass->ComponentTemplates = Blueprint->ComponentTemplates;
 		BPGClass->Timelines = Blueprint->Timelines;
 		BPGClass->SimpleConstructionScript = Blueprint->SimpleConstructionScript;
+		BPGClass->InheritableComponentHandler = Blueprint->InheritableComponentHandler;
 	}
 
 	//@TODO: Not sure if doing this again is actually necessary
@@ -3262,6 +3273,14 @@ void FKismetCompilerContext::Compile()
 			continue;
 		}
 		++TimelineIndex;
+	}
+
+	if (CompileOptions.CompileType == EKismetCompileType::Full)
+	{
+		if (Blueprint->InheritableComponentHandler)
+		{
+			Blueprint->InheritableComponentHandler->RemoveInvalidAndUnnecessaryTemplates();
+		}
 	}
 
 	CleanAndSanitizeClass(TargetClass, OldCDO);
