@@ -319,6 +319,14 @@ int32 UAbilitySystemComponent::GetNumActiveGameplayEffects() const
 	return ActiveGameplayEffects.GetNumGameplayEffects();
 }
 
+void UAbilitySystemComponent::GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies)
+{
+	for (const auto& ActiveEffect : ActiveGameplayEffects.GameplayEffects)
+	{
+		OutSpecCopies.Add(ActiveEffect.Spec);
+	}
+}
+
 const FGameplayTagContainer* UAbilitySystemComponent::GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const
 {
 	return ActiveGameplayEffects.GetGameplayEffectSourceTagsFromHandle(Handle);

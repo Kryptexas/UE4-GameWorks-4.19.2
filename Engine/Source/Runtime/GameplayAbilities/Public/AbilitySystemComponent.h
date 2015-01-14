@@ -375,6 +375,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// Returns the number of gameplay effects that are currently active on this ability system component
 	int32 GetNumActiveGameplayEffects() const;
 
+	// Makes a copy of all the active effects on this ability component
+	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies);
+
 	void SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute);
 
 	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
