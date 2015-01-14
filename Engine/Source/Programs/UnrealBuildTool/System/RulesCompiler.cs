@@ -1742,7 +1742,7 @@ namespace UnrealBuildTool
 		/// <param name="Target">Information about the target associated with this target</param>
 		/// <returns>The build target object for the specified build rules source file</returns>
 		public static UEBuildTarget CreateTarget(string TargetName, TargetInfo Target,
-			List<string> InAdditionalDefinitions, string InRemoteRoot, List<OnlyModule> InOnlyModules, bool bInEditorRecompile)
+			List<string> InAdditionalDefinitions, string InRemoteRoot, List<OnlyModule> InOnlyModules, bool bInEditorRecompile, string InOverridenAppName)
 		{
 			var CreateTargetStartTime = DateTime.UtcNow;
 
@@ -1830,7 +1830,8 @@ namespace UnrealBuildTool
 							InAdditionalDefinitions:InAdditionalDefinitions, 
 							InRemoteRoot:InRemoteRoot, 
 							InOnlyModules:InOnlyModules,
-							bInEditorRecompile:bInEditorRecompile);
+							bInEditorRecompile:bInEditorRecompile,
+							InOverridenAppName: InOverridenAppName);
 					}
 					break;
 			}
