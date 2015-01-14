@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Engine.h"
 #include "StaticMeshResources.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "InstancedFoliageActor.h"
