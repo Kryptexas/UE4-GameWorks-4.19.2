@@ -179,19 +179,23 @@ class UFoliageType : public UObject
 	UPROPERTY()
 	uint32 ShowInstanceSettings:1;
 
-	/** Controls whether the foliage should cast a shadow or not. **/
+	/** Controls whether the foliage should take part in static lighting/shadowing. If false, mesh will not receive or cast static lighting or shadows, regardless of other settings. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
+	uint32 bEnableStaticLighting : 1;
+
+	/** Controls whether the foliage should cast a shadow or not. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
 	uint32 CastShadow:1;
 
-	/** Controls whether the foliage should inject light into the Light Propagation Volume.  This flag is only used if CastShadow is true. **/
+	/** Controls whether the foliage should inject light into the Light Propagation Volume.  This flag is only used if CastShadow is true. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
 	uint32 bAffectDynamicIndirectLighting:1;
 
-	/** Controls whether the primitive should affect dynamic distance field lighting methods.  This flag is only used if CastShadow is true. **/
+	/** Controls whether the primitive should affect dynamic distance field lighting methods.  This flag is only used if CastShadow is true. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, AdvancedDisplay, meta=(EditCondition="CastShadow"))
 	uint32 bAffectDistanceFieldLighting:1;
 
-	/** Controls whether the foliage should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. **/
+	/** Controls whether the foliage should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
 	uint32 bCastDynamicShadow:1;
 
@@ -211,7 +215,7 @@ class UFoliageType : public UObject
 	UPROPERTY(BlueprintReadOnly, Category=Lighting)
 	uint32 bOverrideLightMapRes:1;
 
-	/** Overrides the lightmap resolution defined in the static mesh. A value of 0 disables static lighting/shadowing */
+	/** Overrides the lightmap resolution defined in the static mesh */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(DisplayName="Light Map Resolution", EditCondition="bOverrideLightMapRes"))
 	int32 OverriddenLightMapRes;
 
