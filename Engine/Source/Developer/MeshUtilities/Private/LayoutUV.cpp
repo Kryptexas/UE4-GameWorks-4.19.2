@@ -160,7 +160,7 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 		Chart.MaxUV = FVector2D( -FLT_MAX, -FLT_MAX );
 		Chart.UVArea = 0.0f;
 		Chart.WorldScale = FVector2D::ZeroVector;
-		FMemory::MemSet( Chart.Join, 0xff );
+		FMemory::Memset( Chart.Join, 0xff );
 
 		Chart.FirstTri = Tri;
 

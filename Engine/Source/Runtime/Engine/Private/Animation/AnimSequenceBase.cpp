@@ -145,7 +145,7 @@ void FFloatCurve::UpdateOrAddKey(float NewKey, float CurrentTime)
 // we don't want to have = operator. This only copies curves, but leaving naming and everything else intact. 
 void FVectorCurve::CopyCurve(FVectorCurve& SourceCurve)
 {
-	FMemory::MemCopy(FloatCurves, SourceCurve.FloatCurves);
+	FMemory::Memcpy(FloatCurves, SourceCurve.FloatCurves);
 }
 
 FVector FVectorCurve::Evaluate(float CurrentTime, float BlendWeight) const

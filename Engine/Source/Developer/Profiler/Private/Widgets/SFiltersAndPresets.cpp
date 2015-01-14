@@ -580,7 +580,7 @@ SFiltersAndPresets::SFiltersAndPresets()
 	, SortingMode( EStatGroupingOrSortingMode::StatName )
 	, bExpansionSaved( false )
 {
-	FMemory::MemSet( bStatTypeIsVisible, 1 );
+	FMemory::Memset( bStatTypeIsVisible, 1 );
 }
 
 SFiltersAndPresets::~SFiltersAndPresets()

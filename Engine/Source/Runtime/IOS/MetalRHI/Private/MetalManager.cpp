@@ -188,12 +188,12 @@ FMetalManager::FMetalManager()
 		CurrentColorRenderTextures[Index] = nil;
 		PreviousColorRenderTextures[Index] = nil;
 	}
-	FMemory::MemSet(CurrentRenderTargetsViewInfo, 0);
-	FMemory::MemSet(PreviousRenderTargetsViewInfo, 0);
-	FMemory::MemSet(CurrentDepthViewInfo, 0);
-	FMemory::MemSet(PreviousDepthViewInfo, 0);
-	FMemory::MemSet(CurrentStencilViewInfo, 0);
-	FMemory::MemSet(PreviousStencilViewInfo, 0);
+	FMemory::Memzero(CurrentRenderTargetsViewInfo);
+	FMemory::Memzero(PreviousRenderTargetsViewInfo);
+	FMemory::Memzero(CurrentDepthViewInfo);
+	FMemory::Memzero(PreviousDepthViewInfo);
+	FMemory::Memzero(CurrentStencilViewInfo);
+	FMemory::Memzero(PreviousStencilViewInfo);
 
 	CommandQueue = [Device newCommandQueue];
 
