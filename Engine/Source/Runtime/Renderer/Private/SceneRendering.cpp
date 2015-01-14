@@ -1046,6 +1046,29 @@ void FSceneRenderer::OnStartFrame()
 	}
 }
 
+bool FSceneRenderer::ShouldCompositeEditorPrimitives(const FViewInfo& View)
+{
+	// If the show flag is enabled
+	if (!View.Family->EngineShowFlags.CompositeEditorPrimitives)
+	{
+		return false;
+	}
+
+	if (GIsEditor && View.Family->EngineShowFlags.Wireframe)
+	{
+		// In Editor we want wire frame view modes to be in MSAA
+		return true;
+	}
+
+	// Any elements that needed compositing were drawn then compositing should be done
+	if (View.ViewMeshElements.Num() || View.TopViewMeshElements.Num() || View.BatchedViewElements.HasPrimsToDraw() || View.TopBatchedViewElements.HasPrimsToDraw() || View.VisibleEditorPrimitives.Num())
+	{
+		return true;
+	}
+
+	return false;
+}
+
 /*-----------------------------------------------------------------------------
 	FRendererModule::BeginRenderingViewFamily
 -----------------------------------------------------------------------------*/
