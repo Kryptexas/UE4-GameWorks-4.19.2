@@ -3150,12 +3150,6 @@ float FSlateApplication::GetCursorRadius() const
 
 FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation ) const
 {
-	// Do nothing if this window has no size
-	if (InSize == FVector2D::ZeroVector)
-	{
-		return FVector2D(InAnchor.Left, InAnchor.Top);
-	}
-
 	FVector2D CalculatedPopUpWindowPosition( 0, 0 );
 
 	FPlatformRect AnchorRect;
