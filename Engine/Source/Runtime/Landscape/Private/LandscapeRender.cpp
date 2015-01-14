@@ -2318,12 +2318,12 @@ void ULandscapeComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimit
 {
 	ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(GetOuter());
 	FSphere BoundingSphere = Bounds.GetSphere();
-	float StreamingDistanceMultiplier = 1.f;
+	float LocalStreamingDistanceMultiplier = 1.f;
 	if (Proxy)
 	{
-		StreamingDistanceMultiplier = Proxy->StreamingDistanceMultiplier;
+		LocalStreamingDistanceMultiplier = FMath::Max(0.0f, Proxy->StreamingDistanceMultiplier);
 	}
-	const float TexelFactor = 0.75f * StreamingDistanceMultiplier * ComponentSizeQuads * FMath::Abs(Proxy->GetRootComponent()->RelativeScale3D.X);
+	const float TexelFactor = 0.75f * LocalStreamingDistanceMultiplier * ComponentSizeQuads * FMath::Abs(Proxy->GetRootComponent()->RelativeScale3D.X);
 
 	// Normal usage...
 	// Enumerate the textures used by the material.

@@ -353,8 +353,9 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	/**
 	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
 	 * 1.0 is the default, whereas a higher value increases the streamed-in resolution.
+	 * Value can be < 0 (from legcay content, or code changes)
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ClampMin = 0))
 	float StreamingDistanceMultiplier;
 
 	/** Bias multiplier for Light Propagation Volume lighting */
@@ -371,8 +372,6 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FString HighResSourceMeshName;
 
 #if WITH_EDITORONLY_DATA
-
-
 	/** Importing data and options used for this mesh */
 	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;

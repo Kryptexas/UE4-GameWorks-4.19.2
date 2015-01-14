@@ -627,8 +627,9 @@ public:
 	/**
 	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
 	 * 1.0 is the default, whereas a higher value increases the streamed-in resolution.
+	 * Value can be < 0 (from legcay content, or code changes)
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureStreaming)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureStreaming, meta=(ClampMin = 0))
 	float StreamingDistanceMultiplier;
 
 	UPROPERTY(Category=Mesh, BlueprintReadWrite)

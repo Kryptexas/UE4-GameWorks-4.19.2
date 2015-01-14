@@ -1337,11 +1337,11 @@ float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex)
 	{
 		if( bUseMaximumStreamingTexelRatio )
 		{
-			StreamingTextureFactor = RenderData->MaxStreamingTextureFactor * StreamingDistanceMultiplier;
+			StreamingTextureFactor = RenderData->MaxStreamingTextureFactor * FMath::Max(0.0f, StreamingDistanceMultiplier);
 		}
 		else if( RequestedUVIndex == 0 )
 		{
-			StreamingTextureFactor = RenderData->StreamingTextureFactors[RequestedUVIndex] * StreamingDistanceMultiplier;
+			StreamingTextureFactor = RenderData->StreamingTextureFactors[RequestedUVIndex] * FMath::Max(0.0f, StreamingDistanceMultiplier);
 		}
 		else
 		{

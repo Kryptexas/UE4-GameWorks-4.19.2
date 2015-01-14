@@ -313,8 +313,9 @@ public:
 	/**
 	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
 	 * 1.0 is the default, whereas a higher value increases the streamed-in resolution.
+	 * Value can be < 0 (from legcay content, or code changes)
 	 */
-	UPROPERTY(EditAnywhere, Category=Landscape, meta=(ClampMin=0))
+	UPROPERTY(EditAnywhere, Category=Landscape)
 	float StreamingDistanceMultiplier;
 
 	/** Combined material used to render the landscape */

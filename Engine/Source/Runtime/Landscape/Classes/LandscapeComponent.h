@@ -131,7 +131,7 @@ class ULandscapeComponent : public UPrimitiveComponent
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 SectionBaseY;
 
-	/** Total number of quads for this component */
+	/** Total number of quads for this component, has to be >0 */
 	UPROPERTY()
 	int32 ComponentSizeQuads;
 

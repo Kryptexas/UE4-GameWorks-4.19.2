@@ -516,7 +516,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 		}
 
 		const FSphere BoundingSphere	= Bounds.GetSphere();
-		const float LocalTexelFactor	= StaticMesh->GetStreamingTextureFactor(0) * StreamingDistanceMultiplier;
+		const float LocalTexelFactor	= StaticMesh->GetStreamingTextureFactor(0) * FMath::Max(0.0f, StreamingDistanceMultiplier);
 		const float LocalLightmapFactor	= bHasValidLightmapCoordinates ? StaticMesh->GetStreamingTextureFactor(StaticMesh->LightMapCoordinateIndex) : 1.0f;
 		const float WorldTexelFactor	= SplineDeformFactor * LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
 		const float WorldLightmapFactor	= SplineDeformFactor * LocalLightmapFactor * ComponentToWorld.GetMaximumAxisScale();

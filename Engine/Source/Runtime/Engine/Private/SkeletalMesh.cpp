@@ -1932,8 +1932,9 @@ void USkeletalMesh::ReleaseResources()
 	ReleaseResourcesFence.BeginFence();
 }
 
+// @param InStreamingDistanceMultiplier should be >= 0
 template <bool bExtraBoneInfluencesT>
-static void GetStreamingTextureFactorForLOD(FStaticLODModel& LODModel, TArray<float>& CachedStreamingTextureFactors, float StreamingDistanceMultiplier)
+static void GetStreamingTextureFactorForLOD(FStaticLODModel& LODModel, TArray<float>& CachedStreamingTextureFactors, float InStreamingDistanceMultiplier)
 {
 	int32 NumTotalTriangles = LODModel.GetTotalFaces();
 
@@ -2003,7 +2004,7 @@ static void GetStreamingTextureFactorForLOD(FStaticLODModel& LODModel, TArray<fl
 					float TexelRatio = TexelRatios[UVIndex][ FMath::TruncToInt(TexelRatios[UVIndex].Num() * 0.75f) ];
 					if ( UVIndex == 0 )
 					{
-						TexelRatio *= StreamingDistanceMultiplier;
+						TexelRatio *= InStreamingDistanceMultiplier;
 					}
 					CachedStreamingTextureFactors[UVIndex] = TexelRatio;
 				}
@@ -2035,11 +2036,11 @@ float USkeletalMesh::GetStreamingTextureFactor( int32 RequestedUVIndex )
 			FStaticLODModel& LODModel = Resource->LODModels[0];
 			if (LODModel.DoesVertexBufferHaveExtraBoneInfluences())
 			{
-				GetStreamingTextureFactorForLOD<true>(LODModel, CachedStreamingTextureFactors, StreamingDistanceMultiplier);
+				GetStreamingTextureFactorForLOD<true>(LODModel, CachedStreamingTextureFactors, FMath::Max(0.0f, StreamingDistanceMultiplier));
 			}
 			else
 			{
-				GetStreamingTextureFactorForLOD<false>(LODModel, CachedStreamingTextureFactors, StreamingDistanceMultiplier);
+				GetStreamingTextureFactorForLOD<false>(LODModel, CachedStreamingTextureFactors, FMath::Max(0.0f, StreamingDistanceMultiplier));
 			}
 		}
 		else
