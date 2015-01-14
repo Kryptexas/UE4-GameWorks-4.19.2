@@ -587,7 +587,7 @@ void UWorldComposition::UpdateStreamingState()
 		{
 			FVector ViewLocation;
 			FRotator ViewRotation;
-			Player->PlayerController->GetActorEyesViewPoint(ViewLocation, ViewRotation);
+			Player->PlayerController->GetPlayerViewPoint(ViewLocation, ViewRotation);
 			CentroidLocation+= ViewLocation;
 			NumViews++;
 		}
