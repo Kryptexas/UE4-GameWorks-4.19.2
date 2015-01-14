@@ -19,8 +19,8 @@ class FNiagaraExpression_VMOperation : public FNiagaraExpression
 public:
 	VectorVM::EOp OpCode;
 
-	FNiagaraExpression_VMOperation(FNiagaraCompiler* Compiler, ENiagaraDataType InType, TArray<TNiagaraExprPtr>& InputExpressions, VectorVM::EOp Op)
-		: FNiagaraExpression(Compiler, InType)
+	FNiagaraExpression_VMOperation(FNiagaraCompiler* Compiler, const FNiagaraVariableInfo& InResult, TArray<TNiagaraExprPtr>& InputExpressions, VectorVM::EOp Op)
+		: FNiagaraExpression(Compiler, InResult)
 		, OpCode(Op)
 	{
 		SourceExpressions = InputExpressions;
@@ -92,22 +92,19 @@ class FNiagaraExpression_VMOutput : public FNiagaraExpression
 {
 public:
 
-	FNiagaraExpression_VMOutput(class FNiagaraCompiler* InCompiler, ENiagaraDataType InType, FName InName, TNiagaraExprPtr& InSourceExpression)
-		: FNiagaraExpression(InCompiler, InType)
-		, AttributeName(InName)
+	FNiagaraExpression_VMOutput(class FNiagaraCompiler* InCompiler, const FNiagaraVariableInfo& InAttribute, TNiagaraExprPtr& InSourceExpression)
+		: FNiagaraExpression(InCompiler, InAttribute)
 	{
 		ResultLocation = ENiagaraExpressionResultLocation::OutputData;
 		SourceExpressions.Add(InSourceExpression);
 		check(SourceExpressions.Num() == 1);
 	}
 
-	FName AttributeName;
-
 	virtual void Process()override
 	{
 		FNiagaraCompiler_VectorVM* VMCompiler = (FNiagaraCompiler_VectorVM*)Compiler;
 		check(ResultLocation == ENiagaraExpressionResultLocation::OutputData);
-		ResultIndex = VMCompiler->GetAttributeIndex(AttributeName);
+		ResultIndex = VMCompiler->GetAttributeIndex(Result);
 		
 		FNiagaraExpression* SrcExpr = GetSourceExpression(0).Get();
 		check(SourceExpressions.Num() == 1);
@@ -160,10 +157,10 @@ uint8 FNiagaraCompiler_VectorVM::GetResultVMIndex(FNiagaraExpression* Expression
 	}
 }
 
-ENiagaraDataType FNiagaraCompiler_VectorVM::GetConstantResultIndex(FName Name, bool bInternal, int32& OutResultIndex, int32& OutComponentIndex)
+ENiagaraDataType FNiagaraCompiler_VectorVM::GetConstantResultIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutResultIndex, int32& OutComponentIndex)
 {
 	ENiagaraDataType Type;
-	ConstantData.GetTableIndex(Name, bInternal, OutResultIndex, OutComponentIndex, Type);
+	ConstantData.GetTableIndex(Constant, bInternal, OutResultIndex, OutComponentIndex, Type);
 	return Type;
 }
 
@@ -186,9 +183,9 @@ void FNiagaraCompiler_VectorVM::WriteCode(uint8 InCode)
 	Script->ByteCode.Add(InCode);
 }
 
-TNiagaraExprPtr FNiagaraCompiler_VectorVM::Output(FName OutputName, TNiagaraExprPtr& SourceExpression)
+TNiagaraExprPtr FNiagaraCompiler_VectorVM::Output(const FNiagaraVariableInfo& Attr, TNiagaraExprPtr& SourceExpression)
 {
-	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_VMOutput(this, ENiagaraDataType::Vector, OutputName, SourceExpression)));
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_VMOutput(this, Attr, SourceExpression)));
 	return Expressions[Index];
 }
 
@@ -202,30 +199,13 @@ void FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	Source = CastChecked<UNiagaraScriptSource>(InScript->Source);
 
 	// Clone the source graph so we can modify it as needed; merging in the child graphs
-	UEdGraph* UpdateGraph = FEdGraphUtilities::CloneGraph(Source->UpdateGraph, Source, &MessageLog, true);
-	FEdGraphUtilities::MergeChildrenGraphsIn(UpdateGraph, UpdateGraph, /*bRequireSchemaMatch=*/ true);
+	SourceGraph = CastChecked<UNiagaraGraph>(FEdGraphUtilities::CloneGraph(Source->NodeGraph, Source, &MessageLog));
+	FEdGraphUtilities::MergeChildrenGraphsIn(SourceGraph, SourceGraph, /*bRequireSchemaMatch=*/ true);
 
 	TempRegisters.AddZeroed(VectorVM::NumTempRegisters);
 
 	// Find the output node.
-	UNiagaraNodeOutputUpdate* OutputNode = NULL;
-	{
-		TArray<UNiagaraNodeOutputUpdate*> OutputNodes;
-		Source->UpdateGraph->GetNodesOfClass(OutputNodes);
-		if (OutputNodes.Num() != 1)
-		{
-			UE_LOG(LogNiagaraCompiler_VectorVM, Error, TEXT("Script contains %s output nodes: %s"),
-				OutputNodes.Num() == 0 ? TEXT("no") : TEXT("too many"),
-				*InScript->GetPathName()
-				);
-			return;
-		}
-		OutputNode = OutputNodes[0];
-	}
-	check(OutputNode);
-
-	//Todo - Replace with attributes defined by an Emitter object.
-	Source->GetParticleAttributes(Attributes);
+	UNiagaraNodeOutput* OutputNode = SourceGraph->FindOutputNode();
 
 	TArray<FNiagaraNodeResult> OutputExpressions;
 	OutputNode->Compile(this, OutputExpressions);
@@ -257,13 +237,13 @@ void FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	Script->ByteCode.Add((int8)VectorVM::EOp::done);
 
 	Script->ConstantData = ConstantData;
-	Script->Attributes = Attributes;
-	//To do - scalar and matrix attributes.
+	Script->Attributes = OutputNode->Outputs;
 }
 
 TNiagaraExprPtr FNiagaraCompiler_VectorVM::Expression_VMNative(VectorVM::EOp Op, TArray<TNiagaraExprPtr>& InputExpressions)
 {
-	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_VMOperation(this, ENiagaraDataType::Vector, InputExpressions, Op)));
+	static const FName OpName(TEXT("VMOp"));
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_VMOperation(this, FNiagaraVariableInfo(OpName, ENiagaraDataType::Vector), InputExpressions, Op)));
 	return Expressions[Index];
 }
 
@@ -495,7 +475,7 @@ void FNiagaraCompiler_VectorVM::Matrix_Internal(TArray<TNiagaraExprPtr>& InputEx
 {
 	//Just collect the matrix rows into an expression for what ever use subsequent expressions have.
 	TNiagaraExprPtr MatrixExpr = Expression_Collection(InputExpressions);
-	MatrixExpr->ResultType = ENiagaraDataType::Matrix;
+	MatrixExpr->Result.Type = ENiagaraDataType::Matrix;
 	OutputExpressions.Add(MatrixExpr);
 }
 

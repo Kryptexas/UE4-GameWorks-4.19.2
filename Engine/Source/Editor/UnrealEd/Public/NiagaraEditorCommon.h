@@ -80,12 +80,12 @@ typedef TSharedPtr<class FNiagaraExpression> TNiagaraExprPtr;
 class FNiagaraExpression : public TSharedFromThis<FNiagaraExpression>
 {
 public:
-	FNiagaraExpression(class FNiagaraCompiler* InCompiler, ENiagaraDataType InResultType)
+	FNiagaraExpression(class FNiagaraCompiler* InCompiler, const FNiagaraVariableInfo& InResult)
 		: Compiler(InCompiler)
 		, ResultLocation(ENiagaraExpressionResultLocation::Unknown)
 		, ResultIndex(INDEX_NONE)
 		, ComponentIndex(INDEX_NONE)
-		, ResultType(InResultType)
+		, Result(InResult)
 	{
 	}
 
@@ -115,8 +115,8 @@ public:
 	/** The index of the component we're accessing. Typically this is unused and set to INDEX_NONE. Scalar ops will set and use it however. */
 	int32 ComponentIndex;
 
-	/** The data type of the result. */
-	ENiagaraDataType ResultType;
+	/** The variable info for the result of this expression. */
+	FNiagaraVariableInfo Result;
 
 	//Expressions that this one relies on. Will be processed before this one.
 	TArray<TNiagaraExprPtr> SourceExpressions;
@@ -155,6 +155,7 @@ public:
 		case ENiagaraDataType::Scalar: Default = TEXT("1.0f");	break;
 		case ENiagaraDataType::Vector: Default = TEXT("1.0f,1.0f,1.0f,1.0f");	break;
 		case ENiagaraDataType::Matrix: Default = TEXT("1.0f,0.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,0.0f,1.0f");	break;
+		case ENiagaraDataType::Curve: Default = TEXT("");	break;
 		};
 	}
 };

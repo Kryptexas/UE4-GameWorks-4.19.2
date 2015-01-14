@@ -19,6 +19,12 @@ struct FNiagaraScriptConstantData
 	UPROPERTY()
 	FNiagaraConstants InternalConstants;
 
+	void Empty()
+	{
+		ExternalConstants.Empty();
+		InternalConstants.Empty();
+	}
+
 	/** Fill a constants table ready for use in an update or spawn. */
 	void FillConstantTable(const FNiagaraConstantMap& ExternalConstantsMap, TArray<FVector4>& OutConstantTable, TArray<FNiagaraDataObject *> &DataObjTable) const
 	{
@@ -32,52 +38,23 @@ struct FNiagaraScriptConstantData
 		InternalConstants.AppendBufferConstants(DataObjTable);
 	}
 
-	void SetOrAddInternal(FName Name, float Sc)
+	template<typename T>
+	void SetOrAddInternal(const FNiagaraVariableInfo& Constant, const T& Value)
 	{
-		InternalConstants.SetOrAdd(Name, Sc);
+		InternalConstants.SetOrAdd(Constant, Value);
 	}
 
-	void SetOrAddInternal(FName Name, const FVector4& Vc)
+	template<typename T>
+	void SetOrAddExternal(const FNiagaraVariableInfo& Constant, const T& Value)
 	{
-		InternalConstants.SetOrAdd(Name, Vc);
+		ExternalConstants.SetOrAdd(Constant, Value);
 	}
-
-	void SetOrAddInternal(FName Name, const FMatrix& Mc)
-	{
-		InternalConstants.SetOrAdd(Name, Mc);
-	}
-
-	void SetOrAddInternal(FName Name, FNiagaraDataObject* Curve)
-	{
-		InternalConstants.SetOrAdd(Name, Curve);
-	}
-
-	void SetOrAddExternal(FName Name, float Sc)
-	{
-		ExternalConstants.SetOrAdd(Name, Sc);
-	}
-
-	void SetOrAddExternal(FName Name, const FVector4& Vc)
-	{
-		ExternalConstants.SetOrAdd(Name, Vc);
-	}
-
-	void SetOrAddExternal(FName Name, const FMatrix& Mc)
-	{
-		ExternalConstants.SetOrAdd(Name, Mc);
-	}
-
-	void SetOrAddExternal(FName Name, FNiagaraDataObject* Curve)
-	{
-		ExternalConstants.SetOrAdd(Name, Curve);
-	}
-
 
 	/**
 	Calculates the index into a a constant table created from this constant data for the given constant name.
 	Obviously, assumes the constant data is complete. Any additions etc will invalidate previously calculated indexes.
 	*/
-	void GetTableIndex(FName Name, bool bInternal, int32& OutConstantIdx, int32& OutComponentIndex, ENiagaraDataType& OutType)const
+	void GetTableIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutConstantIdx, int32& OutComponentIndex, ENiagaraDataType& OutType)const
 	{
 		int32 Base = bInternal ? ExternalConstants.GetTableSize() : 0;
 		int32 ConstIdx = INDEX_NONE;
@@ -85,20 +62,20 @@ struct FNiagaraScriptConstantData
 		ENiagaraDataType Type;
 		const FNiagaraConstants& Consts = bInternal ? InternalConstants : ExternalConstants;
 
-		ConstIdx = Consts.GetAbsoluteIndex_Scalar(Name);
+		ConstIdx = Consts.GetAbsoluteIndex_Scalar(Constant);
 		Type = ENiagaraDataType::Scalar;
 		if (ConstIdx == INDEX_NONE)
 		{
-			ConstIdx = Consts.GetTableIndex_Vector(Name);
+			ConstIdx = Consts.GetTableIndex_Vector(Constant);
 			Type = ENiagaraDataType::Vector;
 			if (ConstIdx == INDEX_NONE)
 			{
-				ConstIdx = Consts.GetTableIndex_Matrix(Name);
+				ConstIdx = Consts.GetTableIndex_Matrix(Constant);
 				Type = ENiagaraDataType::Matrix;
 
 				if (ConstIdx == INDEX_NONE)	// curves/buffers are in a separate table, so set base to 0
 				{
-					ConstIdx = Consts.GetTableIndex_DataObj(Name);
+					ConstIdx = Consts.GetTableIndex_DataObj(Constant);
 					Type = ENiagaraDataType::Curve;
 					Base = 0;
 				}

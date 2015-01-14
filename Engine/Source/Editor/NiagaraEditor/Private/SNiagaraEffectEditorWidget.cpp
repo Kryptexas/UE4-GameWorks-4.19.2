@@ -556,7 +556,7 @@ void SEmitterWidget::OnUpdateScriptSelectedFromPicker(UObject *Asset)
 
 	// Set the object found from the asset picker
 	CurUpdateScript = Cast<UNiagaraScript>(Asset);
-	Emitter->GetProperties()->UpdateScript = CurUpdateScript;
+	Emitter->SetUpdateScript(CurUpdateScript);
 
 	UpdateScriptConstantListSlot->DetachWidget();
 	(*UpdateScriptConstantListSlot)
@@ -577,7 +577,8 @@ void SEmitterWidget::OnSpawnScriptSelectedFromPicker(UObject *Asset)
 
 	// Set the object found from the asset picker
 	CurSpawnScript = Cast<UNiagaraScript>(Asset);
-	Emitter->GetProperties()->SpawnScript = CurSpawnScript;
+	Emitter->SetSpawnScript(CurSpawnScript);
+
 	SpawnScriptConstantListSlot->DetachWidget();
 	(*SpawnScriptConstantListSlot)
 		[

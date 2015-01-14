@@ -83,6 +83,8 @@ public:
 	virtual ~FNiagaraSimulation()
 	{}
 
+	void Init();
+
 	void Tick(float DeltaSeconds);
 
 
@@ -96,19 +98,21 @@ public:
 
 	NiagaraEffectRenderer *GetEffectRenderer()	{ return EffectRenderer; }
 	
-	bool IsEnabled()	{ return bIsEnabled;  }
-	void SetEnabled(bool bInEnabled)	{ bIsEnabled = bInEnabled;  }
+	bool IsEnabled()const 	{ return bIsEnabled;  }
 
 	ENGINE_API void SetRenderModuleType(EEmitterRenderModuleType Type, ERHIFeatureLevel::Type FeatureLevel);
 
 	int32 GetNumParticles()	{ return Data.GetNumParticles(); }
 
 	FNiagaraEmitterProperties *GetProperties()	{ return Props; }
-	void SetProperties(FNiagaraEmitterProperties *InProps)	{ Props = InProps; }
+	void SetProperties(FNiagaraEmitterProperties *InProps);
 
 	ENGINE_API float GetTotalCPUTime();
 	ENGINE_API int	GetTotalBytesUsed();
 
+	ENGINE_API void SetSpawnScript(UNiagaraScript* Script);
+	ENGINE_API void SetUpdateScript(UNiagaraScript* Script);
+	ENGINE_API void SetEnabled(bool bEnabled);
 private:
 	FNiagaraEmitterProperties *Props;		// points to an entry in the array of FNiagaraProperties stored in the EffectInstance (itself pointing to the effect's properties)
 
@@ -153,10 +157,6 @@ private:
 
 	int32 SpawnAndKillParticles(int32 NumToSpawn);
 
-
-	/** Spawn a new particle at this index */
-	int32 SpawnParticles(int32 NumToSpawn);
-
 	/** Util to move a particle */
 	void MoveParticleToIndex(int32 SrcIndex, int32 DestIndex)
 	{
@@ -171,4 +171,5 @@ private:
 		}
 	}
 
+	bool CheckAttriubtesForRenderer();
 };

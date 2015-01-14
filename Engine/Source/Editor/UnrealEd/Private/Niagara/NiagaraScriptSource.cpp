@@ -20,6 +20,55 @@ class UNiagaraScriptSource* UNiagaraGraph::GetSource() const
 	return CastChecked<UNiagaraScriptSource>(GetOuter());
 }
 
+UNiagaraNodeOutput* UNiagaraGraph::FindOutputNode() const
+{
+	for (UEdGraphNode* Node : Nodes)
+	{
+		if (UNiagaraNodeOutput* OutNode = Cast<UNiagaraNodeOutput>(Node))
+		{
+			return OutNode;
+		}
+	}
+	check(0);
+	return NULL;
+}
+
+void UNiagaraGraph::FindInputNodes(TArray<class UNiagaraNodeInput*>& OutInputNodes) const
+{
+	for (UEdGraphNode* Node : Nodes)
+	{
+		if (UNiagaraNodeInput* InNode = Cast<UNiagaraNodeInput>(Node))
+		{
+			OutInputNodes.Add(InNode);
+		}
+	}
+}
+
+int32 UNiagaraGraph::GetAttributeIndex(const FNiagaraVariableInfo& Attr)const
+{
+	const UNiagaraNodeOutput* OutNode = FindOutputNode();
+	check(OutNode);
+	for (int32 i = 0; i < OutNode->Outputs.Num(); ++i)
+	{
+		if (OutNode->Outputs[i] == Attr)
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
+}
+
+void UNiagaraGraph::GetAttributes(TArray< FNiagaraVariableInfo >& OutAttributes)const
+{
+	const UNiagaraNodeOutput* OutNode = FindOutputNode();
+	check(OutNode);
+
+	for (const FNiagaraVariableInfo& Attr : OutNode->Outputs)
+	{
+		check(!OutAttributes.Find(Attr));
+		OutAttributes.Add(Attr);
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // UNiagraScriptSource
@@ -32,15 +81,17 @@ UNiagaraScriptSource::UNiagaraScriptSource(const FObjectInitializer& ObjectIniti
 void UNiagaraScriptSource::PostLoad()
 {
 	Super::PostLoad();
+
+#if WITH_EDITOR
 	UNiagaraScript* ScriptOwner = Cast<UNiagaraScript>(GetOuter());
-	if (ScriptOwner)
+	if (ScriptOwner && ScriptOwner->ByteCode.Num() == 0)
 	{
 		ScriptOwner->ConditionalPostLoad();
 		//FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
-		//NiagaraEditorModule.CompileScript(ScriptOwner);
+		//NiagaraEditorModule.CompileScript(ScriptOwner);	
 		Compile();
 	}
-
+#endif
 }
 
 
@@ -53,38 +104,26 @@ void UNiagaraScriptSource::Compile()
 	ExposedVectorConstants.Empty();
 
 	// grab all constant nodes that are exposed to the editor
-	TArray<UNiagaraNodeConstant*> ConstNodes;
-	UpdateGraph->GetNodesOfClass<UNiagaraNodeConstant>(ConstNodes);
-	for (UNiagaraNodeConstant *Node : ConstNodes)
+	TArray<UNiagaraNodeInput*> ConstNodes;
+	NodeGraph->GetNodesOfClass<UNiagaraNodeInput>(ConstNodes);
+	for (UNiagaraNodeInput *Node : ConstNodes)
 	{
-		if (Node->bExposeToEffectEditor)
+		if (Node->IsExposedConstant())
 		{
-			if(Node->DataType == ENiagaraDataType::Vector)
+			if(Node->Input.Type == ENiagaraDataType::Vector)
 			{
 				EditorExposedVectorConstant *Const = new EditorExposedVectorConstant();
-				Const->ConstName = Node->ConstName;
+				Const->ConstName = Node->Input.Name;
 				ExposedVectorConstants.Add( MakeShareable(Const) );
 			}
-			else if(Node->DataType == ENiagaraDataType::Curve)
+			else if (Node->Input.Type == ENiagaraDataType::Curve)
 			{
 				EditorExposedVectorCurveConstant *Const = new EditorExposedVectorCurveConstant();
-				Const->ConstName = Node->ConstName;
+				Const->ConstName = Node->Input.Name;
 				ExposedVectorCurveConstants.Add(MakeShareable(Const));
 			}
 		}
 	}
-}
-
-
-void UNiagaraScriptSource::GetParticleAttributes(TArray<FName>& VectorOutputs)
-{
-	VectorOutputs.Empty();
-
-	VectorOutputs.Add(FName(TEXT("Particle Position")));
-	VectorOutputs.Add(FName(TEXT("Particle Velocity")));
-	VectorOutputs.Add(FName(TEXT("Particle Color")));
-	VectorOutputs.Add(FName(TEXT("Particle Rotation")));
-	VectorOutputs.Add(FName(TEXT("Particle Age")));
 }
 
 void UNiagaraScriptSource::GetEmitterAttributes(TArray<FName>& VectorInputs, TArray<FName>& MatrixInputs)

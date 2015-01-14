@@ -38,9 +38,8 @@ class FNiagaraExpression_GetAttribute : public FNiagaraExpression
 {
 public:
 
-	FNiagaraExpression_GetAttribute(class FNiagaraCompiler* InCompiler, ENiagaraDataType InType, FName InName)
-		: FNiagaraExpression(InCompiler, InType)
-		, AttributeName(InName)
+	FNiagaraExpression_GetAttribute(class FNiagaraCompiler* InCompiler, const FNiagaraVariableInfo& InAttribute)
+		: FNiagaraExpression(InCompiler, InAttribute)
 	{
 		ResultLocation = ENiagaraExpressionResultLocation::InputData;
 	}
@@ -48,10 +47,8 @@ public:
 	virtual void Process()override
 	{
 		check(ResultLocation == ENiagaraExpressionResultLocation::InputData);
-		ResultIndex = Compiler->GetAttributeIndex(AttributeName);
+		ResultIndex = Compiler->GetAttributeIndex(Result);
 	}
-
-	FName AttributeName;
 };
 
 /** Expression that gets a constant. */
@@ -59,34 +56,35 @@ class FNiagaraExpression_GetConstant : public FNiagaraExpression
 {
 public:
 
-	FNiagaraExpression_GetConstant(class FNiagaraCompiler* InCompiler, ENiagaraDataType InType, FName InName, bool bIsInternal)
-		: FNiagaraExpression(InCompiler, InType)
-		, ConstantName(InName)
+	FNiagaraExpression_GetConstant(class FNiagaraCompiler* InCompiler, const FNiagaraVariableInfo& InConstant, bool bIsInternal)
+		: FNiagaraExpression(InCompiler, InConstant)
 		, bInternal(bIsInternal)
 	{
 		ResultLocation = ENiagaraExpressionResultLocation::Constants;
 		//For matrix constants we must add 4 input expressions that will be filled in as the constant is processed.
 		//They must at least exist now so that other expressions can reference them.
-		if (ResultType == ENiagaraDataType::Matrix)
+		if (Result.Type == ENiagaraDataType::Matrix)
 		{
-			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
-			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
-			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
-			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
+			static const FName ResultName(TEXT("MatrixComponent"));
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, FNiagaraVariableInfo(ResultName, ENiagaraDataType::Vector))));
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, FNiagaraVariableInfo(ResultName, ENiagaraDataType::Vector))));
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, FNiagaraVariableInfo(ResultName, ENiagaraDataType::Vector))));
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, FNiagaraVariableInfo(ResultName, ENiagaraDataType::Vector))));
 		}
-		else if (ResultType == ENiagaraDataType::Curve)
-		{
-			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Curve)));
-		}
+// 		else if (Result.Type == ENiagaraDataType::Curve)
+// 		{
+// 			static const FName ResultName(TEXT("Curve"));
+// 			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, FNiagaraVariableInfo(ResultName, ENiagaraDataType::Curve))));
+// 		}
 	}
 
 	virtual void Process()override
 	{
 		check(ResultLocation == ENiagaraExpressionResultLocation::Constants);
 		//Get the index of the constant. Also gets a component index if this is for a packed scalar constant.
-		Compiler->GetConstantResultIndex(ConstantName, bInternal, ResultIndex, ComponentIndex);
+		Compiler->GetConstantResultIndex(Result, bInternal, ResultIndex, ComponentIndex);
 		
-		if (ResultType == ENiagaraDataType::Matrix)
+		if (Result.Type == ENiagaraDataType::Matrix)
 		{
 			check(SourceExpressions.Num() == 4);
 			TNiagaraExprPtr Src0 = GetSourceExpression(0);
@@ -102,13 +100,12 @@ public:
 			Src3->ResultLocation = ENiagaraExpressionResultLocation::Constants;
 			Src3->ResultIndex = ResultIndex + 3;
 		}
-		else if (ResultType == ENiagaraDataType::Curve)
+		else if (Result.Type == ENiagaraDataType::Curve)
 		{
 			ResultLocation = ENiagaraExpressionResultLocation::BufferConstants;
 		}
 	}
 
-	FName ConstantName;
 	bool bInternal;
 };
 
@@ -117,8 +114,8 @@ class FNiagaraExpression_Collection : public FNiagaraExpression
 {
 public:
 
-	FNiagaraExpression_Collection(class FNiagaraCompiler* InCompiler, ENiagaraDataType Type, TArray<TNiagaraExprPtr>& InSourceExpressions)
-		: FNiagaraExpression(InCompiler, Type)
+	FNiagaraExpression_Collection(class FNiagaraCompiler* InCompiler, const FNiagaraVariableInfo& Result, TArray<TNiagaraExprPtr>& InSourceExpressions)
+		: FNiagaraExpression(InCompiler, Result)
 	{
 		SourceExpressions = InSourceExpressions;
 	}
@@ -135,9 +132,9 @@ void FNiagaraCompiler::CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs
 	check(OpInfo->Inputs.Num() == NumInputs);
 	for (int32 i = 0; i < NumInputs ; ++i)
 	{
-		if (!(OpInfo->Inputs[i].DataType == Inputs[i]->ResultType || Inputs[i]->ResultType == ENiagaraDataType::Unknown))
+		if (OpInfo->Inputs[i].DataType != Inputs[i]->Result.Type)
 		{
-			UE_LOG(LogNiagaraCompiler, Error, TEXT("Exression %s has incorrect inputs!\nExpected: %d - Actual: %d"), *OpName.ToString(), (int32)OpInfo->Inputs[i].DataType, (int32)((TNiagaraExprPtr)Inputs[i])->ResultType);
+			UE_LOG(LogNiagaraCompiler, Error, TEXT("Exression %s has incorrect inputs!\nExpected: %d - Actual: %d"), *OpName.ToString(), (int32)OpInfo->Inputs[i].DataType, (int32)((TNiagaraExprPtr)Inputs[i])->Result.Type.GetValue());
 		}
 	}
 }
@@ -151,16 +148,16 @@ void FNiagaraCompiler::CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outpu
 	check(OpInfo->Outputs.Num() == NumOutputs);
 	for (int32 i = 0; i < NumOutputs; ++i)
 	{
-		if (!(OpInfo->Outputs[i].DataType == Outputs[i]->ResultType || Outputs[i]->ResultType == ENiagaraDataType::Unknown))
+		if (OpInfo->Outputs[i].DataType != Outputs[i]->Result.Type)
 		{
-			UE_LOG(LogNiagaraCompiler, Error, TEXT("Exression %s has incorrect outputs!\nExpected: %d - Actual: %d"), *OpName.ToString(), (int32)OpInfo->Outputs[i].DataType, (int32)((TNiagaraExprPtr)Outputs[i])->ResultType);
+			UE_LOG(LogNiagaraCompiler, Error, TEXT("Exression %s has incorrect outputs!\nExpected: %d - Actual: %d"), *OpName.ToString(), (int32)OpInfo->Outputs[i].DataType, (int32)((TNiagaraExprPtr)Outputs[i])->Result.Type.GetValue());
 		}
 	}
 }
 
-int32 FNiagaraCompiler::GetAttributeIndex(FName Name)
+int32 FNiagaraCompiler::GetAttributeIndex(const FNiagaraVariableInfo& Attr)const
 {
-	return Attributes.Find(Name);
+	return SourceGraph->GetAttributeIndex(Attr);
 }
 
 TNiagaraExprPtr FNiagaraCompiler::CompileOutputPin(UEdGraphPin* Pin)
@@ -206,36 +203,44 @@ TNiagaraExprPtr FNiagaraCompiler::CompilePin(UEdGraphPin* Pin)
 		{
 			//No connections to this input so add the default as a const expression.
 			const UEdGraphSchema_Niagara* Schema = Cast<const UEdGraphSchema_Niagara>(Pin->GetSchema());
-			ENiagaraDataType DataType = Schema->GetPinDataType(Pin);
+			ENiagaraDataType PinType = Schema->GetPinType(Pin);
 
 			FString ConstString = Pin->GetDefaultAsString();
 			FName ConstName(*ConstString);
-			
-			if (DataType == ENiagaraDataType::Scalar)
+
+			FNiagaraVariableInfo Var(ConstName, PinType);
+
+			switch (PinType)
+			{
+			case ENiagaraDataType::Scalar:
 			{
 				float Default;
 				Schema->GetPinDefaultValue(Pin, Default);
-				ConstantData.SetOrAddInternal(ConstName, Default);
+				ConstantData.SetOrAddInternal(Var, Default);
 			}
-			else if (DataType == ENiagaraDataType::Vector)
+				break;
+			case ENiagaraDataType::Vector:
 			{
 				FVector4 Default;
 				Schema->GetPinDefaultValue(Pin, Default);
-				ConstantData.SetOrAddInternal(ConstName, Default);
-
+				ConstantData.SetOrAddInternal(Var, Default);
 			}
-			else if (DataType == ENiagaraDataType::Matrix)
+				break;
+			case ENiagaraDataType::Matrix:
 			{
 				FMatrix Default;
 				Schema->GetPinDefaultValue(Pin, Default);
-				ConstantData.SetOrAddInternal(ConstName, Default);
+				ConstantData.SetOrAddInternal(Var, Default);
 			}
-			else if (DataType == ENiagaraDataType::Curve)
+				break;
+			case ENiagaraDataType::Curve:
 			{
 				FNiagaraDataObject *Default = nullptr;
-				ConstantData.SetOrAddInternal(ConstName, Default);
+				ConstantData.SetOrAddInternal(Var, Default);
 			}
-			Ret = Expression_GetInternalConstant(ConstName, DataType);
+				break;
+			}
+			Ret = Expression_GetInternalConstant(Var);
 		}
 	}
 	else
@@ -246,63 +251,63 @@ TNiagaraExprPtr FNiagaraCompiler::CompilePin(UEdGraphPin* Pin)
 	return Ret;
 }
 
-void FNiagaraCompiler::GetParticleAttributes(TArray<FName>& OutAttributes)
+void FNiagaraCompiler::GetParticleAttributes(TArray<FNiagaraVariableInfo>& OutAttributes)const
 {
-	check(Source);
-	Source->GetParticleAttributes(OutAttributes);
+	check(SourceGraph);
+	SourceGraph->GetAttributes(OutAttributes);
 }
 
-TNiagaraExprPtr FNiagaraCompiler::Expression_GetAttribute(FName AttributeName)
+TNiagaraExprPtr FNiagaraCompiler::Expression_GetAttribute(const FNiagaraVariableInfo& Attribute)
 {
-	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetAttribute(this, ENiagaraDataType::Vector, AttributeName)));
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetAttribute(this, Attribute)));
 	return Expressions[Index];
 }
 
-TNiagaraExprPtr FNiagaraCompiler::Expression_GetExternalConstant(FName ConstantName, ENiagaraDataType Type)
+TNiagaraExprPtr FNiagaraCompiler::Expression_GetExternalConstant(const FNiagaraVariableInfo& Constant)
 {
-	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetConstant(this, Type, ConstantName, false)));
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetConstant(this, Constant, false)));
 	return Expressions[Index];
 }
 
-TNiagaraExprPtr FNiagaraCompiler::Expression_GetInternalConstant(FName ConstantName, ENiagaraDataType Type)
+TNiagaraExprPtr FNiagaraCompiler::Expression_GetInternalConstant(const FNiagaraVariableInfo& Constant)
 {
-	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetConstant(this, Type, ConstantName, true)));
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetConstant(this, Constant, true)));
 	return Expressions[Index];
 }
 
 TNiagaraExprPtr FNiagaraCompiler::Expression_Collection(TArray<TNiagaraExprPtr>& SourceExpressions)
 {
-	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_Collection(this, ENiagaraDataType::Unknown, SourceExpressions)));
+	//Todo - Collection expressions are just to collect parts of a matrix currently. Its a crappy way to do things that should be replaced.
+	//Definitely don't start using it for collections of other things.
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_Collection(this, FNiagaraVariableInfo(NAME_None, ENiagaraDataType::Vector), SourceExpressions)));
 	return Expressions[Index];
 }
 
-TNiagaraExprPtr FNiagaraCompiler::GetAttribute(FName AttributeName)
+TNiagaraExprPtr FNiagaraCompiler::GetAttribute(const FNiagaraVariableInfo& Attribute)
 {
-	return Expression_GetAttribute(AttributeName);
+	return Expression_GetAttribute(Attribute);
 }
 
-TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(FName ConstantName, float Default)
+TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(const FNiagaraVariableInfo& Constant, float Default)
 {
-	SetOrAddConstant(false, ConstantName, Default);
-	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Scalar);
+	SetOrAddConstant(false, Constant, Default);
+	return Expression_GetExternalConstant(Constant);
+}
+TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default)
+{
+	SetOrAddConstant(false, Constant, Default);
+	return Expression_GetExternalConstant(Constant);
+}
+TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default)
+{
+	SetOrAddConstant(false, Constant, Default);
+	return Expression_GetExternalConstant(Constant);
 }
 
-TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(FName ConstantName, FVector4 Default)
+TNiagaraExprPtr FNiagaraCompiler::GetExternalCurveConstant(const FNiagaraVariableInfo& Constant)
 {
-	SetOrAddConstant(false, ConstantName, Default);
-	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Vector);
-}
-
-TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(FName ConstantName, const FMatrix& Default)
-{
-	SetOrAddConstant(false, ConstantName, Default);
-	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Matrix);
-}
-
-TNiagaraExprPtr FNiagaraCompiler::GetExternalCurveConstant(FName ConstantName)
-{
-	SetOrAddConstant<FNiagaraDataObject*>(false, ConstantName, nullptr);
-	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Curve);
+	SetOrAddConstant<FNiagaraDataObject*>(false, Constant, nullptr);
+	return Expression_GetExternalConstant(Constant);
 }
 
 #undef LOCTEXT_NAMESPACE

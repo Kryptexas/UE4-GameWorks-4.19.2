@@ -1,14 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Niagara/NiagaraCommon.h"
+
 #include "NiagaraComponent.generated.h"
-
-/* Predefined particle attribute names */
-const FName ParticleAttr_Position = "Position";
-const FName ParticleAttr_Velocity = "Velocity";
-const FName ParticleAttr_Color = "Color";
-
-
 
 /**
 * Contains the simulation data for a single FNiagaraSimulation
@@ -19,13 +15,9 @@ class FNiagaraEmitterParticleData
 public:
 	FNiagaraEmitterParticleData()
 		: CurrentBuffer(0),
-		NumParticles(0)
+		NumParticles(0),
+		ParticleAllocation(0)
 	{
-		AddAttribute("Position");
-		AddAttribute("Velocity");
-		AddAttribute("Color");
-		AddAttribute("Rotation");
-		AddAttribute("Age");
 	}
 
 	~FNiagaraEmitterParticleData() {}
@@ -35,30 +27,43 @@ public:
 		ParticleBuffers[CurrentBuffer].Reset(NumExpectedParticles * AttrMap.Num());
 		ParticleBuffers[CurrentBuffer].AddUninitialized(NumExpectedParticles * AttrMap.Num());
 
-		//Can we make this a ring buffer and cut memory use in half?
-
 		ParticleAllocation = NumExpectedParticles;
 	}
 
-	const FVector4 *GetAttributeData(FName Name) const
+	void Reset()
 	{
-		int32 Offset = AttrMap[Name] * ParticleAllocation;
-		return ParticleBuffers[CurrentBuffer].GetData() + Offset;
+		AttrMap.Empty();
+		NumParticles = 0;
+		ParticleAllocation = 0;
+		CurrentBuffer = 0;
 	}
 
-	FVector4 *GetAttributeDataWrite(FName Name) 
+	const FVector4 *GetAttributeData(const FNiagaraVariableInfo& AttrID) const
 	{
-		int32 Offset = AttrMap[Name] * ParticleAllocation;
-		return ParticleBuffers[CurrentBuffer].GetData() + Offset;
+		const uint32* Offset = AttrMap.Find(AttrID);
+		return Offset ? ParticleBuffers[CurrentBuffer].GetData() + (*Offset * ParticleAllocation) : NULL;
 	}
 
-	
-
-
-	void AddAttribute(FName NewAttrName)
+	FVector4 *GetAttributeDataWrite(const FNiagaraVariableInfo& AttrID)
 	{
-		uint32 Idx = AttrMap.Num();
-		AttrMap.Add(NewAttrName, Idx);
+		const uint32* Offset = AttrMap.Find(AttrID);
+		return Offset ? ParticleBuffers[CurrentBuffer].GetData() + (*Offset * ParticleAllocation) : NULL;
+	}
+
+	bool HasAttriubte(const FNiagaraVariableInfo& AttrID)
+	{
+		return AttrMap.Find(AttrID) != NULL;
+	}
+
+	void SetAttributes(const TArray<FNiagaraVariableInfo>& Attrs)
+	{
+		Reset();
+		for (const FNiagaraVariableInfo& Attr : Attrs)
+		{
+			//TODO: Support attributes of any type. This may as well wait until the move of matrix ops etc over into UNiagaraScriptStructs.
+			uint32 Idx = AttrMap.Num();
+			AttrMap.Add(Attr, Idx);
+		}
 	}
 
 	int GetNumAttributes()				{ return AttrMap.Num(); }
@@ -71,12 +76,11 @@ public:
 	FVector4 *GetCurrentBuffer()		{ return ParticleBuffers[CurrentBuffer].GetData(); }
 	FVector4 *GetPreviousBuffer()		{ return ParticleBuffers[CurrentBuffer^0x1].GetData(); }
 
-	int GetBytesUsed()	{ return (ParticleBuffers[0].Num() + ParticleBuffers[1].Num()) * 16 + Attributes.Num() * 4; }
+	int GetBytesUsed()	{ return (ParticleBuffers[0].Num() + ParticleBuffers[1].Num()) * 16 + AttrMap.Num() * 4; }
 private:
 	uint32 CurrentBuffer, NumParticles, ParticleAllocation;
 	TArray<FVector4> ParticleBuffers[2];
-	TArray<FVector4*> Attributes;
-	TMap<FName, uint32> AttrMap;
+	TMap<FNiagaraVariableInfo, uint32> AttrMap;
 };
 
 
@@ -122,6 +126,9 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface.
+
+	static const TArray<FNiagaraVariableInfo>& GetSystemConstants();
+
 };
 
 

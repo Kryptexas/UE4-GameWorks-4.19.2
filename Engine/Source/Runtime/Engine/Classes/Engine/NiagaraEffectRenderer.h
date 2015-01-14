@@ -62,6 +62,10 @@ public:
 
 	virtual bool HasDynamicData() = 0;
 
+	virtual bool SetMaterialUsage() = 0;
+
+	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() = 0;
+
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View, FNiagaraSceneProxy *SceneProxy)
 	{
 		FPrimitiveViewRelevance Result;
@@ -84,7 +88,7 @@ public:
 	void SetMaterial(UMaterial *InMaterial, ERHIFeatureLevel::Type FeatureLevel)
 	{
 		Material = InMaterial;
-		if (!Material)
+		if (!Material || !SetMaterialUsage())
 		{
 			Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
@@ -135,7 +139,7 @@ public:
 	virtual void CreateRenderThreadResources() override;
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
-
+	virtual bool SetMaterialUsage();
 	/** Update render data buffer from attributes */
 	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraEmitterParticleData &Data) override;
 
@@ -144,7 +148,9 @@ public:
 	bool HasDynamicData();
 
 	UClass *GetPropertiesClass() override { return UNiagaraSpriteRendererProperties::StaticClass(); }
-	
+
+	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes();
+
 private:
 	UNiagaraSpriteRendererProperties *Properties;
 	struct FNiagaraDynamicDataSprites *DynamicDataRender;
@@ -175,6 +181,8 @@ public:
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
 
+	virtual bool SetMaterialUsage();
+
 	/** Update render data buffer from attributes */
 	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraEmitterParticleData &Data);
 
@@ -201,6 +209,8 @@ public:
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) override;
 	int GetDynamicDataSize();
 	bool HasDynamicData();
+
+	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes();
 
 	UClass *GetPropertiesClass() override { return UNiagaraRibbonRendererProperties::StaticClass(); }
 

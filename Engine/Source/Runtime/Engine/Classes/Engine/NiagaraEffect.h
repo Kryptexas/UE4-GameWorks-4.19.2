@@ -108,19 +108,19 @@ public:
 
 	ENGINE_API TSharedPtr<FNiagaraSimulation> AddEmitter(FNiagaraEmitterProperties *Properties);
 
-	void SetConstant(FName ConstantName, const float Value)
+	void SetConstant(FNiagaraVariableInfo ID, const float Value)
 	{
-		Constants.SetOrAdd(ConstantName, Value);
+		Constants.SetOrAdd(ID, Value);
 	}
 
-	void SetConstant(FName ConstantName, const FVector4& Value)
+	void SetConstant(FNiagaraVariableInfo ID, const FVector4& Value)
 	{
-		Constants.SetOrAdd(ConstantName, Value);
+		Constants.SetOrAdd(ID, Value);
 	}
 
-	void SetConstant(FName ConstantName, const FMatrix& Value)
+	void SetConstant(FNiagaraVariableInfo ID, const FMatrix& Value)
 	{
-		Constants.SetOrAdd(ConstantName, Value);
+		Constants.SetOrAdd(ID, Value);
 	}
 
 	void SetConstant(FName ConstantName, FNiagaraDataObject *Value)

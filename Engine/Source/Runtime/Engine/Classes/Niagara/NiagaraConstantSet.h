@@ -12,43 +12,74 @@ struct FNiagaraConstantMap
 	GENERATED_USTRUCT_BODY()
 
 private:
-	TMap<FName, float> ScalarConstants;
-	TMap<FName, FVector4> VectorConstants;
-	TMap<FName, FMatrix> MatrixConstants;
-	TMap<FName, class FNiagaraDataObject*> DataConstants;
+	TMap<FNiagaraVariableInfo, float> ScalarConstants;
+	TMap<FNiagaraVariableInfo, FVector4> VectorConstants;
+	TMap<FNiagaraVariableInfo, FMatrix> MatrixConstants;
+	TMap<FNiagaraVariableInfo, class FNiagaraDataObject*> DataConstants;
 
 public:
 
+	void Empty()
+	{
+		ScalarConstants.Empty();
+		VectorConstants.Empty();
+		MatrixConstants.Empty();
+	}
+
+	void SetOrAdd(FNiagaraVariableInfo ID, float Sc)
+	{
+		check(ID.Type == ENiagaraDataType::Scalar);
+		ScalarConstants.FindOrAdd(ID) = Sc;
+	}
+
+	void SetOrAdd(FNiagaraVariableInfo ID, const FVector4& Vc)
+	{
+		check(ID.Type == ENiagaraDataType::Vector);
+		VectorConstants.FindOrAdd(ID) = Vc;
+	}
+
+	void SetOrAdd(FNiagaraVariableInfo ID, const FMatrix& Mc)
+	{
+		check(ID.Type == ENiagaraDataType::Matrix);
+		MatrixConstants.FindOrAdd(ID) = Mc;
+	}
+
+	void SetOrAdd(FNiagaraVariableInfo ID, FNiagaraDataObject* Cc)
+	{
+		check(ID.Type == ENiagaraDataType::Curve);
+		DataConstants.FindOrAdd(ID) = Cc;
+	}
+
 	void SetOrAdd(FName Name, float Sc)
 	{
-		ScalarConstants.FindOrAdd(Name) = Sc;
+		ScalarConstants.FindOrAdd(FNiagaraVariableInfo(Name, ENiagaraDataType::Scalar)) = Sc;
 	}
 
 	void SetOrAdd(FName Name, const FVector4& Vc)
 	{
-		VectorConstants.FindOrAdd(Name) = Vc;
+		VectorConstants.FindOrAdd(FNiagaraVariableInfo(Name, ENiagaraDataType::Vector)) = Vc;
 	}
 
 	void SetOrAdd(FName Name, const FMatrix& Mc)
 	{
-		MatrixConstants.FindOrAdd(Name) = Mc;
+		MatrixConstants.FindOrAdd(FNiagaraVariableInfo(Name, ENiagaraDataType::Matrix)) = Mc;
 	}
 
 	void SetOrAdd(FName Name, class FNiagaraDataObject* Cc)
 	{
-		DataConstants.FindOrAdd(Name) = Cc;
+		DataConstants.FindOrAdd(FNiagaraVariableInfo(Name, ENiagaraDataType::Curve)) = Cc;
 	}
 
 
-	float* FindScalar(FName InName){ return ScalarConstants.Find(InName); }
-	FVector4* FindVector(FName InName){ return VectorConstants.Find(InName); }
-	FMatrix* FindMatrix(FName InName){ return MatrixConstants.Find(InName); }
-	const float* FindScalar(FName InName)const { return ScalarConstants.Find(InName); }
-	const FVector4* FindVector(FName InName)const { return VectorConstants.Find(InName); }
-	const FMatrix* FindMatrix(FName InName)const { return MatrixConstants.Find(InName); }
-	FNiagaraDataObject* FindDataObj(FName InName) const 
+	float* FindScalar(FNiagaraVariableInfo ID){ return ScalarConstants.Find(ID); }
+	FVector4* FindVector(FNiagaraVariableInfo ID){ return VectorConstants.Find(ID); }
+	FMatrix* FindMatrix(FNiagaraVariableInfo ID){ return MatrixConstants.Find(ID); }
+	const float* FindScalar(FNiagaraVariableInfo ID)const { return ScalarConstants.Find(ID); }
+	const FVector4* FindVector(FNiagaraVariableInfo ID)const { return VectorConstants.Find(ID); }
+	const FMatrix* FindMatrix(FNiagaraVariableInfo ID)const { return MatrixConstants.Find(ID); }
+	FNiagaraDataObject* FindDataObj(FNiagaraVariableInfo ID) const
 	{
-		FNiagaraDataObject * const *Ptr = DataConstants.Find(InName);
+		FNiagaraDataObject * const *Ptr = DataConstants.Find(ID);
 		if (Ptr)
 		{
 			return *Ptr;
@@ -56,6 +87,10 @@ public:
 
 		return nullptr; 
 	}
+	float* FindScalar(FName Name) { return ScalarConstants.Find(FNiagaraVariableInfo(Name,ENiagaraDataType::Scalar)); }
+	FVector4* FindVector(FName Name) { return VectorConstants.Find(FNiagaraVariableInfo(Name, ENiagaraDataType::Vector)); }
+	FMatrix* FindMatrix(FName Name) { return MatrixConstants.Find(FNiagaraVariableInfo(Name, ENiagaraDataType::Matrix)); }
+	FNiagaraDataObject* FindDataObj(FName Name)const { return FindDataObj(FNiagaraVariableInfo(Name, ENiagaraDataType::Curve)); }
 
 	void Merge(FNiagaraConstantMap &InMap)
 	{
@@ -99,26 +134,36 @@ struct FNiagaraConstants
 private:
 
 	UPROPERTY()
-	TArray<float> ScalarConstants;
+	TArray<FNiagaraVariableInfo> ScalarConstantsInfo;
 	UPROPERTY()
-	TArray<FName> ScalarNames;
+	TArray<FNiagaraVariableInfo> VectorConstantsInfo;
+	UPROPERTY()
+	TArray<FNiagaraVariableInfo> MatrixConstantsInfo;
+	//UPROPERTY()
+	TArray<FNiagaraVariableInfo> DataObjectConstantsInfo;
 
+	UPROPERTY()
+	TArray<float> ScalarConstants;
 	UPROPERTY()
 	TArray<FVector4> VectorConstants;
 	UPROPERTY()
-	TArray<FName> VectorNames;
-
-	UPROPERTY()
 	TArray<FMatrix> MatrixConstants;
-	UPROPERTY()
-	TArray<FName> MatrixNames;
-
 	//UPROPERTY()
 	TArray<FNiagaraDataObject*> DataObjectConstants;
-	//UPROPERTY()
-	TArray<FName> DataObjectNames;
 
 public:
+
+	void Empty()
+	{
+		ScalarConstantsInfo.Empty();
+		VectorConstantsInfo.Empty();
+		MatrixConstantsInfo.Empty();
+		DataObjectConstantsInfo.Empty();
+		ScalarConstants.Empty();
+		VectorConstants.Empty();
+		MatrixConstants.Empty();
+		DataObjectConstants.Empty();
+	}
 
 	/** Fills the entire constants set into the constant table. */
 	void AppendToConstantsTable(TArray<FVector4>& ConstantsTable)const
@@ -134,7 +179,7 @@ public:
 		}
 
 		Idx += FMath::Min(1, NewIdx % 4);//Move to the next table entry if needed.
-		for (FVector4 Vc : VectorConstants)
+		for (const FVector4& Vc : VectorConstants)
 		{
 			ConstantsTable[Idx++] = Vc;
 		}
@@ -162,10 +207,9 @@ public:
 		int32 Idx = ConstantsTable.Num();
 		int32 NewIdx = 0;
 		ConstantsTable.AddUninitialized(ScalarTableSize() + VectorTableSize() + MatrixTableSize());
-		for (int32 i = 0; i < ScalarNames.Num(); ++i)
+		for (int32 i = 0; i < ScalarConstants.Num(); ++i)
 		{
-			FName ScName = ScalarNames[i];
-			const float* Scalar = Externals.FindScalar(ScName);
+			const float* Scalar = Externals.FindScalar(ScalarConstantsInfo[i]);
 			ConstantsTable[Idx + (NewIdx / 4)][NewIdx % 4] = Scalar ? *Scalar : ScalarConstants[i];
 			++NewIdx;
 			Idx = NewIdx % 4 == 0 ? Idx + 1 : Idx;
@@ -173,17 +217,15 @@ public:
 
 		Idx += FMath::Min(1, NewIdx % 4);//Move to the next table entry if needed.
 
-		for (int32 i = 0; i < VectorNames.Num(); ++i)
+		for (int32 i = 0; i < VectorConstants.Num(); ++i)
 		{
-			FName VcName = VectorNames[i];
-			const FVector4* Vector = Externals.FindVector(VcName);
+			const FVector4* Vector = Externals.FindVector(VectorConstantsInfo[i]);
 			ConstantsTable[Idx++] = Vector ? *Vector : VectorConstants[i];
 		}
 
-		for (int32 i = 0; i < MatrixNames.Num(); ++i)
+		for (int32 i = 0; i < MatrixConstants.Num(); ++i)
 		{
-			FName McName = MatrixNames[i];
-			const FMatrix* Mat = Externals.FindMatrix(McName);
+			const FMatrix* Mat = Externals.FindMatrix(MatrixConstantsInfo[i]);
 			FMatrix Mc = Mat ? *Mat : MatrixConstants[i];
 			ConstantsTable[Idx] = FVector4(Mc.M[0][0], Mc.M[0][1], Mc.M[0][2], Mc.M[0][3]);
 			ConstantsTable[Idx + 1] = FVector4(Mc.M[1][0], Mc.M[1][1], Mc.M[1][2], Mc.M[1][3]);
@@ -194,78 +236,73 @@ public:
 
 	void AppendExternalBufferConstants(TArray<class FNiagaraDataObject*> &DataObjs, const FNiagaraConstantMap& Externals) const
 	{
-		for (int32 i = 0; i < DataObjectNames.Num(); ++i)
+		for (int32 i = 0; i < DataObjectConstantsInfo.Num(); ++i)
 		{
-			FName CcName = DataObjectNames[i];
-			FNiagaraDataObject* Data = Externals.FindDataObj(CcName);
+			FNiagaraVariableInfo CcID = DataObjectConstantsInfo[i];
+			FNiagaraDataObject* Data = Externals.FindDataObj(CcID);
 			DataObjs.Add(Data);
 		}
 	}
 
-
-
-	void SetOrAdd(FName Name, float Sc)
+	void SetOrAdd(const FNiagaraVariableInfo& Constant, float Value)
 	{
-		int32 Idx = ScalarNames.Find(Name);
+		int32 Idx = ScalarConstantsInfo.Find(Constant);
 		if (Idx == INDEX_NONE)
 		{
-			ScalarNames.Add(Name);
-			ScalarConstants.Add(Sc);
+			ScalarConstantsInfo.Add(Constant);
+			ScalarConstants.Add(Value);
 		}
 		else
 		{
-			ScalarConstants[Idx] = Sc;
+			ScalarConstants[Idx] = Value;
 		}
-
 	}
 
-	void SetOrAdd(FName Name, const FVector4& Vc)
+	void SetOrAdd(const FNiagaraVariableInfo& Constant, FVector4 Value)
 	{
-		int32 Idx = VectorNames.Find(Name);
+		int32 Idx = VectorConstantsInfo.Find(Constant);
 		if (Idx == INDEX_NONE)
 		{
-			VectorNames.Add(Name);
-			VectorConstants.Add(Vc);
+			VectorConstantsInfo.Add(Constant);
+			VectorConstants.Add(Value);
 		}
 		else
 		{
-			VectorConstants[Idx] = Vc;
+			VectorConstants[Idx] = Value;
 		}
 	}
 
-	void SetOrAdd(FName Name, const FMatrix& Mc)
+	void SetOrAdd(const FNiagaraVariableInfo& Constant, const FMatrix& Value)
 	{
-		int32 Idx = MatrixNames.Find(Name);
+		int32 Idx = MatrixConstantsInfo.Find(Constant);
 		if (Idx == INDEX_NONE)
 		{
-			MatrixNames.Add(Name);
-			MatrixConstants.Add(Mc);
+			MatrixConstantsInfo.Add(Constant);
+			MatrixConstants.Add(Value);
 		}
 		else
 		{
-			MatrixConstants[Idx] = Mc;
+			MatrixConstants[Idx] = Value;
 		}
 	}
 
-
-
-	void SetOrAdd(FName Name, FNiagaraDataObject* Cc)
+	void SetOrAdd(const FNiagaraVariableInfo& Constant, FNiagaraDataObject* Value)
 	{
-		int32 Idx = DataObjectNames.Find(Name);
+		int32 Idx = DataObjectConstantsInfo.Find(Constant);
 		if (Idx == INDEX_NONE)
 		{
-			DataObjectNames.Add(Name);
-			DataObjectConstants.Add(Cc);
+			DataObjectConstantsInfo.Add(Constant);
+			DataObjectConstants.Add(Value);
 		}
 		else
 		{
-			DataObjectConstants[Idx] = Cc;
+			DataObjectConstants[Idx] = Value;
 		}
 	}
 
-	FORCEINLINE int32 NumScalars()const { return ScalarNames.Num(); }
-	FORCEINLINE int32 NumVectors()const { return VectorNames.Num(); }
-	FORCEINLINE int32 NumMatrices()const { return MatrixNames.Num(); }
+	FORCEINLINE int32 NumScalars()const { return ScalarConstants.Num(); }
+	FORCEINLINE int32 NumVectors()const { return VectorConstants.Num(); }
+	FORCEINLINE int32 NumMatrices()const { return MatrixConstants.Num(); }
 	FORCEINLINE int32 ScalarTableSize()const { return(NumScalars() / 4) + FMath::Min(1,NumScalars() % 4); }
 	FORCEINLINE int32 VectorTableSize()const { return(NumVectors()); }
 	FORCEINLINE int32 MatrixTableSize()const { return(NumMatrices() * 4); }
@@ -274,9 +311,9 @@ public:
 	FORCEINLINE int32 GetTableSize()const { return ScalarTableSize() + VectorTableSize() + MatrixTableSize(); }
 
 	/** Return the first constant used for this constant in a table. */
-	FORCEINLINE int32 GetTableIndex_Scalar(FName InName)const
+	FORCEINLINE int32 GetTableIndex_Scalar(const FNiagaraVariableInfo& Constant)const
 	{ 
-		int Idx = ScalarNames.Find(InName);
+		int Idx = ScalarConstantsInfo.Find(Constant);
 		if (Idx != INDEX_NONE)
 		{
 			return Idx / 4;
@@ -284,9 +321,9 @@ public:
 		return INDEX_NONE;
 	}
 
-	FORCEINLINE int32 GetTableIndex_Vector(FName InName)const
+	FORCEINLINE int32 GetTableIndex_Vector(const FNiagaraVariableInfo& Constant)const
 	{ 
-		int Idx = VectorNames.Find(InName);
+		int Idx = VectorConstantsInfo.Find(Constant);
 		if (Idx != INDEX_NONE)
 		{
 			return ScalarTableSize() + Idx;
@@ -294,9 +331,9 @@ public:
 		return INDEX_NONE;
 	}
 
-	FORCEINLINE int32 GetTableIndex_Matrix(FName InName)const
+	FORCEINLINE int32 GetTableIndex_Matrix(const FNiagaraVariableInfo& Constant)const
 	{ 
-		int Idx = MatrixNames.Find(InName);
+		int Idx = MatrixConstantsInfo.Find(Constant);
 		if (Idx != INDEX_NONE)
 		{
 			return ScalarTableSize() + VectorTableSize() + Idx * 4;
@@ -304,12 +341,12 @@ public:
 		return INDEX_NONE;
 	}
 
-	FORCEINLINE int32 GetTableIndex_DataObj(FName InName)const
+	FORCEINLINE int32 GetTableIndex_DataObj(const FNiagaraVariableInfo& Constant)const
 	{ 
-		return DataObjectNames.Find(InName); 
+		return DataObjectConstantsInfo.Find(Constant); 
 	}
 
 	/** Return the absolute index of the passed scalar. Can be used to get the component index also. */
-	FORCEINLINE int32 GetAbsoluteIndex_Scalar(FName InName)const{ return ScalarNames.Find(InName); }
+	FORCEINLINE int32 GetAbsoluteIndex_Scalar(const FNiagaraVariableInfo& Constant)const{ return ScalarConstantsInfo.Find(Constant); }
 };
 

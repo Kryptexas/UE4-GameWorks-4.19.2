@@ -16,7 +16,7 @@
 DECLARE_CYCLE_STAT(TEXT("Gen Verts"),STAT_NiagaraGenerateVertices,STATGROUP_Niagara);
 DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"),STAT_NiagaraNumParticles,STATGROUP_Niagara);
 
-
+DEFINE_LOG_CATEGORY(LogNiagara);
 
 FNiagaraSceneProxy::FNiagaraSceneProxy(const UNiagaraComponent* InComponent)
 		:	FPrimitiveSceneProxy(InComponent)
@@ -136,24 +136,6 @@ void FNiagaraSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>&
 	}
 }
 
-
-
-
-namespace ENiagaraVectorAttr
-{
-	enum Type
-	{
-		Position,
-		Velocity,
-		Color,
-		Rotation,
-		RelativeTime,
-		MaxVectorAttribs
-	};
-}
-
-
-
 //////////////////////////////////////////////////////////////////////////
 
 UNiagaraComponent::UNiagaraComponent(const FObjectInitializer& ObjectInitializer)
@@ -170,22 +152,22 @@ void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickTy
 
 	if (EffectInstance)
 	{ 
-
+		static FNiagaraVariableInfo Const_Zero(TEXT("ZERO"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_DeltaTime(TEXT("Delta Time"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterPos(TEXT("Emitter Position"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterX(TEXT("Emitter X Axis"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterY(TEXT("Emitter Y Axis"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterZ(TEXT("Emitter Z Axis"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterTransform(TEXT("Emitter Transform"), ENiagaraDataType::Matrix);
 		//Todo, open this up to the UI and setting via code and BPs.
-		static FName Const_Zero(TEXT("ZERO"));
 		EffectInstance->SetConstant(Const_Zero, FVector4(0.0f, 0.0f, 0.0f, 0.0f));	// zero constant
-		static FName Const_DeltaTime(TEXT("Delta Time"));
 		EffectInstance->SetConstant(Const_DeltaTime, FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
-		static FName Const_EmitterPos(TEXT("Emitter Position"));
 		EffectInstance->SetConstant(Const_EmitterPos, FVector4(ComponentToWorld.GetTranslation()));
-		static FName Const_EmitterX(TEXT("Emitter X Axis"));
 		EffectInstance->SetConstant(Const_EmitterX, FVector4(ComponentToWorld.GetUnitAxis(EAxis::X)));
-		static FName Const_EmitterY(TEXT("Emitter Y Axis"));
 		EffectInstance->SetConstant(Const_EmitterY, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Y)));
-		static FName Const_EmitterZ(TEXT("Emitter Z Axis"));
 		EffectInstance->SetConstant(Const_EmitterZ, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Z)));
-		static FName Const_EmitterTransform(TEXT("Emitter Transform"));
 		EffectInstance->SetConstant(Const_EmitterTransform, ComponentToWorld.ToMatrixWithScale());
+
 		EffectInstance->Tick(DeltaSeconds);
 	}
 
@@ -303,4 +285,28 @@ void UNiagaraComponent::SetAsset(UNiagaraEffect *InAsset)
 	Asset = InAsset;
 
 	EffectInstance = new FNiagaraEffectInstance(Asset, this);
+}
+
+const TArray<FNiagaraVariableInfo>& UNiagaraComponent::GetSystemConstants()
+{
+	static TArray<FNiagaraVariableInfo> SystemConstants;
+	if (SystemConstants.Num() == 0)
+	{
+		static FNiagaraVariableInfo Const_Zero(TEXT("ZERO"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_DeltaTime(TEXT("Delta Time"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterPos(TEXT("Emitter Position"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterX(TEXT("Emitter X Axis"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterY(TEXT("Emitter Y Axis"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterZ(TEXT("Emitter Z Axis"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterTransform(TEXT("Emitter Transform"), ENiagaraDataType::Matrix);
+		SystemConstants.Add(Const_Zero);
+		SystemConstants.Add(Const_DeltaTime);
+		SystemConstants.Add(Const_EmitterPos);
+		SystemConstants.Add(Const_EmitterPos);
+		SystemConstants.Add(Const_EmitterX);
+		SystemConstants.Add(Const_EmitterY);
+		SystemConstants.Add(Const_EmitterZ);
+		SystemConstants.Add(Const_EmitterTransform);
+	}
+	return SystemConstants;
 }

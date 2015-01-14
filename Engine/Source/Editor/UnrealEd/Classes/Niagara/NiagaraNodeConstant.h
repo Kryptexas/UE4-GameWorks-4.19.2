@@ -5,8 +5,8 @@
 #include "Niagara/NiagaraCommon.h"
 #include "NiagaraNodeConstant.generated.h"
 
-UCLASS(MinimalAPI)
-class UNiagaraNodeConstant : public UNiagaraNode
+UCLASS(MinimalAPI, Deprecated)
+class UDEPRECATED_NiagaraNodeConstant : public UNiagaraNode
 {
 	GENERATED_UCLASS_BODY()
 

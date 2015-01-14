@@ -21,7 +21,8 @@ class UNiagaraScript : public UObject
 	FNiagaraScriptConstantData ConstantData;
 
 	/** Attributes used by this script. */
-	TArray<FName> Attributes;
+	UPROPERTY()
+ 	TArray<FNiagaraVariableInfo> Attributes;
 
 #if WITH_EDITORONLY_DATA
 	/** 'Source' data/graphs for this script */

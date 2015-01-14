@@ -47,7 +47,7 @@ public:
 
 	TOptional<float> GetConstX() const	
 	{
-		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		const FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
 		if (ConstPtr)
 		{
 			return ConstPtr->X;
@@ -57,7 +57,7 @@ public:
 
 	TOptional<float> GetConstY() const
 	{
-		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		const FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
 		if (ConstPtr)
 		{
 			return ConstPtr->Y;
@@ -67,7 +67,7 @@ public:
 
 	TOptional<float> GetConstZ() const
 	{
-		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		const FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
 		if (ConstPtr)
 		{
 			return ConstPtr->Z;
@@ -77,7 +77,7 @@ public:
 
 	TOptional<float> GetConstW() const
 	{
-		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		const FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
 		if (ConstPtr)
 		{
 			return ConstPtr->W;
@@ -119,7 +119,7 @@ public:
 		Emitter = InArgs._Emitter;
 		ConstantName = InArgs._ConstantName;
 
-		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		const FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
 		FVector4 ConstVal;
 
 		if (ConstPtr)
@@ -330,8 +330,8 @@ public:
 
 	void OnEmitterEnabledChanged(ECheckBoxState NewCheckedState)
 	{
-		const bool bNewEnabledState = (NewCheckedState == ECheckBoxState::Checked);
-		Emitter->GetProperties()->bIsEnabled = bNewEnabledState;
+		const bool bNewEnabledState = (NewCheckedState == ESlateCheckBoxState::Checked);
+		Emitter->SetEnabled(bNewEnabledState);
 	}
 
 	ECheckBoxState IsEmitterEnabled() const
