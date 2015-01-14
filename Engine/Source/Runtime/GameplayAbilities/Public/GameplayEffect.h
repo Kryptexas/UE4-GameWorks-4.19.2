@@ -606,9 +606,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Display)
 	TArray<FGameplayEffectCue>	GameplayCues;
 
-	/** Description of this gameplay effect. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Display)
-	FText Description;
+	/** Data for the UI representation of this effect. This should include things like text, icons, etc. Not available in server-only builds. */
+	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category = Display)
+	class UGameplayEffectUIData* UIData;
 
 	// ----------------------------------------------------------------------
 	//	Tag Containers

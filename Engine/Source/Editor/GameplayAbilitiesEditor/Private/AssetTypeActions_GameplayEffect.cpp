@@ -46,8 +46,6 @@ void CopyInfoFromDataGE(const UGameplayEffect& InGE, UGameplayEffect& OutGE)
 		OutGE.GameplayCues.Add(InCue);
 	}
 
-	OutGE.Description = InGE.Description;
-
 	OutGE.UpdateInheritedTagProperties();
 }
 
