@@ -420,21 +420,21 @@ bool FPrimitiveSceneInfo::ShouldRenderVelocity(const FViewInfo& View, bool bChec
 		const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
 
 		// Only render if visible.
-		if(!bVisible)
+		if (!bVisible)
 		{
 			return false;
 		}
 	}
-	// Used to determine whether object is movable or not.
-	if(!Proxy->IsMovable())
+
+	const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
+
+	if (!Proxy->IsMovable() && !PrimitiveViewRelevance.bHasWorldPositionOffset)
 	{
 		return false;
 	}
 
-	const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
-
 	// !Skip translucent objects as they don't support velocities and in the case of particles have a significant CPU overhead.
-	if(!PrimitiveViewRelevance.bOpaqueRelevance || !PrimitiveViewRelevance.bRenderInMainPass)
+	if (!PrimitiveViewRelevance.bOpaqueRelevance || !PrimitiveViewRelevance.bRenderInMainPass)
 	{
 		return false;
 	}
@@ -446,19 +446,20 @@ bool FPrimitiveSceneInfo::ShouldRenderVelocity(const FViewInfo& View, bool bChec
 	float MinScreenRadiusForVelocityPassSquared = FMath::Square(MinScreenRadiusForVelocityPass);
 
 	// Skip primitives that only cover a small amount of screenspace, motion blur on them won't be noticeable.
-	if(FMath::Square(Proxy->GetBounds().SphereRadius) <= MinScreenRadiusForVelocityPassSquared * LODFactorDistanceSquared)
+	if (FMath::Square(Proxy->GetBounds().SphereRadius) <= MinScreenRadiusForVelocityPassSquared * LODFactorDistanceSquared)
 	{
 		return false;
 	}
 
 	// Only render primitives with velocity.
-	if(!FVelocityDrawingPolicy::HasVelocity(View, this))
+	if (!FVelocityDrawingPolicy::HasVelocity(View, this, PrimitiveViewRelevance.bHasWorldPositionOffset))
 	{
 		return false;
 	}
 
 	return true;
 }
+
 void FPrimitiveSceneInfo::ApplyWorldOffset(FVector InOffset)
 {
 	Proxy->ApplyWorldOffset(InOffset);

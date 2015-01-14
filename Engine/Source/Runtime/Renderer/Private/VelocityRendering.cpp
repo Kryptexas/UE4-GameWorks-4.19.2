@@ -273,41 +273,42 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, ElementData, PolicyContext);
 }
 
-bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo)
+bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bHasWorldPositionOffset)
 {
 	checkSlow(IsInParallelRenderingThread());
 
 	// No velocity if motionblur is off, or if it's a non-moving object (treat as background in that case)
-	if(View.bCameraCut || !PrimitiveSceneInfo->Proxy->IsMovable())
+	if (View.bCameraCut || (!PrimitiveSceneInfo->Proxy->IsMovable() && !bHasWorldPositionOffset))
 	{
 		return false;
 	}
 
-	if(PrimitiveSceneInfo->Proxy->AlwaysHasVelocity())
+	if (PrimitiveSceneInfo->Proxy->AlwaysHasVelocity())
 	{
 		return true;
 	}
 
-	if(PrimitiveSceneInfo->bVelocityIsSupressed)
+	if (PrimitiveSceneInfo->bVelocityIsSupressed)
 	{
 		return false;
 	}
 
 	// check if the primitive has moved
+	if (!bHasWorldPositionOffset)
 	{
 		FMatrix PreviousLocalToWorld;
 
 		// hack
 		FScene* Scene = PrimitiveSceneInfo->Scene;
 
-		if(Scene->MotionBlurInfoData.GetPrimitiveMotionBlurInfo(PrimitiveSceneInfo, PreviousLocalToWorld))
+		if (Scene->MotionBlurInfoData.GetPrimitiveMotionBlurInfo(PrimitiveSceneInfo, PreviousLocalToWorld))
 		{
 			check(PrimitiveSceneInfo->Proxy);
 
 			const FMatrix& LocalToWorld = PrimitiveSceneInfo->Proxy->GetLocalToWorld();
 
 			// Hasn't moved (treat as background by not rendering any special velocities)?
-			if(LocalToWorld.Equals(PreviousLocalToWorld, 0.0001f))
+			if (LocalToWorld.Equals(PreviousLocalToWorld, 0.0001f))
 			{
 				return false;
 			}
@@ -349,12 +350,13 @@ int32 Compare(const FVelocityDrawingPolicy& A,const FVelocityDrawingPolicy& B)
 
 void FVelocityDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh, ContextType)
 {
-	// Velocity only needs to be directly rendered for movable meshes.
-	if(StaticMesh->PrimitiveSceneInfo->Proxy->IsMovable())
+	const auto FeatureLevel = Scene->GetFeatureLevel();
+	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
+	const FMaterial* Material = MaterialRenderProxy->GetMaterial(FeatureLevel);
+
+	// Velocity only needs to be directly rendered for movable meshes, or those that modify WPO
+	if (StaticMesh->PrimitiveSceneInfo->Proxy->IsMovable() || Material->MaterialModifiesMeshPosition_RenderThread())
 	{
-		const auto FeatureLevel = Scene->GetFeatureLevel();
-	    const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
-		const FMaterial* Material = MaterialRenderProxy->GetMaterial(FeatureLevel);
 	    EBlendMode BlendMode = Material->GetBlendMode();
 	    if(BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 	    {
@@ -368,7 +370,7 @@ void FVelocityDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* St
 			if (DrawingPolicy.SupportsVelocity())
 			{
 				// Add the static mesh to the depth-only draw list.
-				Scene->VelocityDrawList.AddMesh(StaticMesh, FVelocityDrawingPolicy::ElementDataType(), DrawingPolicy, Scene->GetFeatureLevel());
+				Scene->VelocityDrawList.AddMesh(StaticMesh, FVelocityDrawingPolicy::ElementDataType(), DrawingPolicy, FeatureLevel);
 			}
 	    }
 	}
@@ -404,7 +406,7 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 		FVelocityDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), FeatureLevel);
 		if(DrawingPolicy.SupportsVelocity())
 		{			
-			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 			DrawingPolicy.SetSharedState(RHICmdList, &View, FVelocityDrawingPolicy::ContextDataType());
 			for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); ++BatchElementIndex)
 			{
@@ -413,12 +415,9 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 			}
 			return true;
 		}
-		return false;
 	}
-	else
-	{
-		return false;
-	}
+
+	return false;
 }
 
 

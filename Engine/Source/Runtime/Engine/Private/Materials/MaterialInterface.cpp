@@ -18,6 +18,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
 	OutViewRelevance.bSubsurfaceProfileRelevance = bSubsurfaceProfile;
+	OutViewRelevance.bHasWorldPositionOffset = bHasWorldPositionOffset;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -57,6 +58,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;
 		MaterialRelevance.bSubsurfaceProfile = (Material->MaterialDomain == MD_Surface) && !bIsTranslucent && (ShadingModel == MSM_SubsurfaceProfile);
+		MaterialRelevance.bHasWorldPositionOffset = MaterialResource->MaterialModifiesMeshPosition_GameThread();
 
 		return MaterialRelevance;
 	}

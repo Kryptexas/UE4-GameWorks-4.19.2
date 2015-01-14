@@ -39,6 +39,8 @@ struct FPrimitiveViewRelevance
 	uint32 bNormalTranslucencyRelevance : 1;
 	/** The primitive has one or more elements that have the SubsurfaceProfile shading model. */
 	uint32 bSubsurfaceProfileRelevance : 1;
+	// The primitive has one or more elements that have World Position Offset.
+	uint32 bHasWorldPositionOffset : 1;
 
 	/** 
 	 * Whether this primitive view relevance has been initialized this frame.  
@@ -69,6 +71,7 @@ struct FPrimitiveViewRelevance
 		bSeparateTranslucencyRelevance(false),
 		bNormalTranslucencyRelevance(false),
 		bSubsurfaceProfileRelevance(false),
+		bHasWorldPositionOffset(false),
 		bInitializedThisFrame(false)
 	{}
 
@@ -91,6 +94,7 @@ struct FPrimitiveViewRelevance
 		bNormalTranslucencyRelevance |= B.bNormalTranslucencyRelevance != 0;
 		bInitializedThisFrame |= B.bInitializedThisFrame;
 		bSubsurfaceProfileRelevance |= B.bSubsurfaceProfileRelevance != 0;
+		bHasWorldPositionOffset |= B.bHasWorldPositionOffset != 0;
 		return *this;
 	}
 
