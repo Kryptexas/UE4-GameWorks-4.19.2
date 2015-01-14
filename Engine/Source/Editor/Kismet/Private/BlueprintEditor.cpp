@@ -660,11 +660,53 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 	}
 }
 
+USCS_Node* FBlueprintEditor::OnSCSEditorAddNewComponent(UClass* InComponentClass)
+{
+	check(InComponentClass != nullptr);
+
+	UBlueprint* Blueprint = GetBlueprintObj();
+	check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
+
+	return Blueprint->SimpleConstructionScript->CreateNode(InComponentClass);
+}
+
+USCS_Node* FBlueprintEditor::OnSCSEditorAddExistingComponent(UActorComponent* InComponentInstance)
+{
+	check(InComponentInstance != nullptr);
+
+	UBlueprint* Blueprint = GetBlueprintObj();
+	check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
+
+	if(InComponentInstance->GetOuter() == GetTransientPackage())
+	{
+		// Relocate the instance from the transient package to the BPGC and assign it a unique object name
+		InComponentInstance->Rename(NULL, Blueprint->GeneratedClass, REN_DontCreateRedirectors|REN_DoNotDirty);
+	}
+
+	return Blueprint->SimpleConstructionScript->CreateNode(InComponentInstance);
+}
+
 void FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
 {
 	if (SCSViewport.IsValid())
 	{
 		SCSViewport->OnComponentSelectionChanged();
+	}
+
+	UBlueprint* Blueprint = GetBlueprintObj();
+	check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
+
+	// Update the selection visualization
+	AActor* EditorActorInstance = Blueprint->SimpleConstructionScript->GetComponentEditorActorInstance();
+	if (EditorActorInstance != NULL)
+	{
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+		EditorActorInstance->GetComponents(PrimitiveComponents);
+
+		for (int32 Idx = 0; Idx < PrimitiveComponents.Num(); ++Idx)
+		{
+			PrimitiveComponents[Idx]->PushSelectionToProxy();
+		}
 	}
 }
 
@@ -702,14 +744,6 @@ void FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes(const TArray<FSCSEdit
 	{
 		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
 		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
-	}
-}
-
-void FBlueprintEditor::OnSCSEditorHighlightPropertyInDetailsView(const FPropertyPath& InPropertyPath)
-{
-	if(Inspector.IsValid())
-	{
-		Inspector->GetPropertyView()->HighlightProperty(InPropertyPath);
 	}
 }
 
@@ -1172,12 +1206,13 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 			BlueprintObj->SimpleConstructionScript->SetFlags(RF_Transactional);
 
 			// Recreate (or create) any widgets that depend on the SCS
-			SCSEditor = SAssignNew(SCSEditor, SSCSEditor, BlueprintObj->SimpleConstructionScript)
+			SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
 				.InEditingMode(this, &FBlueprintEditor::InEditingMode)
-				.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
+				.ActorContext(this, &FBlueprintEditor::GetPreviewActor)
+				.OnAddNewComponent(this, &FBlueprintEditor::OnSCSEditorAddNewComponent)
+				.OnAddExistingComponent(this, &FBlueprintEditor::OnSCSEditorAddExistingComponent)
 				.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
-				.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes)
-				.OnHighlightPropertyInDetailsView(this, &FBlueprintEditor::OnSCSEditorHighlightPropertyInDetailsView);
+				.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes);
 			SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
 				.BlueprintEditor(SharedThis(this));
 		}
@@ -1956,12 +1991,13 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		InBlueprint->ParentClass->IsChildOf(AActor::StaticClass()) && 
 		InBlueprint->SimpleConstructionScript )
 	{
-		SCSEditor = SAssignNew(SCSEditor, SSCSEditor, InBlueprint->SimpleConstructionScript)
+		SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
 			.InEditingMode(this, &FBlueprintEditor::InEditingMode)
-			.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
+			.ActorContext(this, &FBlueprintEditor::GetPreviewActor)
+			.OnAddNewComponent(this, &FBlueprintEditor::OnSCSEditorAddNewComponent)
+			.OnAddExistingComponent(this, &FBlueprintEditor::OnSCSEditorAddExistingComponent)
 			.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
-			.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes)
-			.OnHighlightPropertyInDetailsView(this, &FBlueprintEditor::OnSCSEditorHighlightPropertyInDetailsView);
+			.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes);
 		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
 			.BlueprintEditor(SharedThis(this));
 	}
@@ -6876,7 +6912,7 @@ void FBlueprintEditor::OnFindInstancesCustomEvent()
 
 AActor* FBlueprintEditor::GetPreviewActor() const
 {
-	return SCSViewport->GetPreviewActor();
+	return SCSViewport.IsValid() ? SCSViewport->GetPreviewActor() : nullptr;
 }
 
 FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, const FVector2D& InPosition, UEdGraph* InGraph)

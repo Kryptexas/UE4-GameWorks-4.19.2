@@ -41,7 +41,7 @@ USceneComponent* FComponentEditorUtils::GetSceneComponent( UObject* Object, UObj
 							USCS_Node* SCS_Node = SCSNodes[ SCSNodeIndex ];
 							if( SCS_Node && SCS_Node->ComponentTemplate == SubObject )
 							{
-								return SCS_Node->GetParentComponentTemplate( Blueprint );
+								return SCS_Node->GetParentComponentTemplate();
 							}
 						}
 					}

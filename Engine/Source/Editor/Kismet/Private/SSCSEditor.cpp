@@ -301,7 +301,7 @@ FString FSCSEditorTreeNode::GetDisplayString() const
 	}
 }
 
-UActorComponent* FSCSEditorTreeNode::FindComponentInstanceInActor(const AActor* InActor, bool bIsPreviewActor) const
+UActorComponent* FSCSEditorTreeNode::FindComponentInstanceInActor(const AActor* InActor) const
 {
 	USCS_Node* SCS_Node = GetSCSNode();
 	UActorComponent* ComponentTemplate = GetComponentTemplate();
@@ -314,13 +314,14 @@ UActorComponent* FSCSEditorTreeNode::FindComponentInstanceInActor(const AActor* 
 			FName VariableName = SCS_Node->GetVariableName();
 			if(VariableName != NAME_None)
 			{
+				UWorld* World = InActor->GetWorld();
 				UObjectPropertyBase* Property = FindField<UObjectPropertyBase>(InActor->GetClass(), VariableName);
 				if(Property != NULL)
 				{
 					// Return the component instance that's stored in the property with the given variable name
 					ComponentInstance = Cast<UActorComponent>(Property->GetObjectPropertyValue_InContainer(InActor));
 				}
-				else if(bIsPreviewActor)
+				else if(World != nullptr && World->WorldType == EWorldType::Preview)
 				{
 					// If this is the preview actor, return the cached component instance that's being used for the preview actor prior to recompiling the Blueprint
 					ComponentInstance = SCS_Node->EditorComponentInstance;
@@ -1085,6 +1086,7 @@ EVisibility SSCS_RowWidget::GetRootLabelVisibility() const
 
 TSharedPtr<SWidget> SSCS_RowWidget::BuildSceneRootDropActionMenu(FSCSEditorTreeNodePtrType DroppedNodePtr)
 {
+	check(SCSEditor.IsValid());
 	FMenuBuilder MenuBuilder(true, SCSEditor.Pin()->CommandList);
 
 	MenuBuilder.BeginSection("SceneRootNodeDropActions", LOCTEXT("SceneRootNodeDropActionContextMenu", "Drop Actions"));
@@ -1092,9 +1094,8 @@ TSharedPtr<SWidget> SSCS_RowWidget::BuildSceneRootDropActionMenu(FSCSEditorTreeN
 		const FText DroppedVariableNameText = FText::FromName( DroppedNodePtr->GetVariableName() );
 		const FText NodeVariableNameText = FText::FromName( NodePtr->GetVariableName() );
 
-		check(SCSEditor.IsValid());
-		check(SCSEditor.Pin()->SCS);
-		const bool bDroppedInSameBlueprint = DroppedNodePtr->GetBlueprint() == SCSEditor.Pin()->SCS->GetBlueprint();
+		check(NodePtr.IsValid());
+		const bool bDroppedInSameBlueprint = DroppedNodePtr->GetBlueprint() == NodePtr->GetBlueprint();
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DropActionLabel_AttachToRootNode", "Attach"),
@@ -1280,7 +1281,7 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 					DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_AttachToOrMakeNewRoot", "Drop here to see available actions.");
 					DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_AttachToOrMakeNewRoot;
 				}
-				else if(DraggedNodePtr->GetBlueprint() != SCSEditor.Pin()->SCS->GetBlueprint())
+				else if(DraggedNodePtr->GetBlueprint() != NodePtr->GetBlueprint())
 				{
 					if(bCanMakeNewRoot)
 					{
@@ -1356,7 +1357,7 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 			else if(HoveredTemplate->CanAttachAsChild(DraggedTemplate, NAME_None))
 			{
 				// Attach the dragged node(s) to this node
-				if(DraggedNodePtr->GetBlueprint() != SCSEditor.Pin()->SCS->GetBlueprint())
+				if(DraggedNodePtr->GetBlueprint() != NodePtr->GetBlueprint())
 				{
 					if(DragRowOp->SourceNodes.Num() > 1)
 					{
@@ -1480,17 +1481,16 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 	check(NodePtr.IsValid());
 	check(DroppedNodePtrs.Num() > 0);
 
+	// Get the current Blueprint context
+	UBlueprint* Blueprint = NodePtr->GetBlueprint();
+	check(Blueprint);
+
 	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
 	check(SCSEditorPtr.IsValid());
 
-	// Get the current Blueprint context
-	check(SCSEditorPtr->SCS);
-	UBlueprint* Blueprint = SCSEditorPtr->SCS->GetBlueprint();
-	check(Blueprint);
-
 	// Get the current Actor context
-	AActor* PreviewActor = SCSEditorPtr->PreviewActor.Get();
-	check(PreviewActor != nullptr);
+	AActor* Actor = SCSEditorPtr->ActorContext.Get();
+	check(Actor != nullptr);
 
 	bool bRegenerateTreeNodes = false;
 	const FScopedTransaction TransactionContext(DroppedNodePtrs.Num() > 1 ? LOCTEXT("AttachComponents", "Attach Components") : LOCTEXT("AttachComponent", "Attach Component"));
@@ -1549,12 +1549,12 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 						SCS_Node->AttachToName = NAME_None;
 					}
 
-					// Attempt to locate a matching instance of the component template in the preview scene
-					USceneComponent* PreviewSceneComponent = Cast<USceneComponent>(DroppedNodePtr->FindComponentInstanceInActor(PreviewActor, true));
-					if(PreviewSceneComponent)
+					// Attempt to locate a matching registered instance of the component template in the Actor context that's being edited
+					USceneComponent* InstancedSceneComponent = Cast<USceneComponent>(DroppedNodePtr->FindComponentInstanceInActor(Actor));
+					if(InstancedSceneComponent && InstancedSceneComponent->IsRegistered())
 					{
 						// If we find a match, save off the world position
-						FTransform ComponentToWorld = PreviewSceneComponent->GetComponentToWorld();
+						FTransform ComponentToWorld = InstancedSceneComponent->GetComponentToWorld();
 						SceneComponentTemplate->RelativeLocation = ComponentToWorld.GetTranslation();
 						SceneComponentTemplate->RelativeRotation = ComponentToWorld.Rotator();
 						SceneComponentTemplate->RelativeScale3D = ComponentToWorld.GetScale3D();
@@ -1565,13 +1565,13 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 			// Attach the dropped node to the given node
 			NodePtr->AddChild(DroppedNodePtr);
 
-			// Attempt to locate a matching instance of the parent component template in the preview scene
-			USceneComponent* PreviewSceneParentComponent = Cast<USceneComponent>(NodePtr->FindComponentInstanceInActor(PreviewActor, true));
-			if(SceneComponentTemplate && PreviewSceneParentComponent)
+			// Attempt to locate a matching instance of the parent component template in the Actor context that's being edited
+			USceneComponent* ParentSceneComponent = Cast<USceneComponent>(NodePtr->FindComponentInstanceInActor(Actor));
+			if(SceneComponentTemplate && ParentSceneComponent && ParentSceneComponent->IsRegistered())
 			{
-				// If we find a match, calculate its new position relative to the scene root component instance in the preview scene
+				// If we find a match, calculate its new position relative to the scene root component instance in its current scene
 				FTransform ComponentToWorld(SceneComponentTemplate->RelativeRotation, SceneComponentTemplate->RelativeLocation, SceneComponentTemplate->RelativeScale3D);
-				FTransform ParentToWorld = PreviewSceneParentComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName);
+				FTransform ParentToWorld = ParentSceneComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName);
 				FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
 
 				// Store new relative location value (if not set to absolute)
@@ -1610,8 +1610,8 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 	check(SCSEditorPtr.IsValid());
 
 	// Get the current preview Actor context
-	AActor* PreviewActor = SCSEditorPtr->PreviewActor.Get();
-	check(PreviewActor != nullptr);
+	AActor* Actor = SCSEditorPtr->ActorContext.Get();
+	check(Actor != nullptr);
 
 	const FScopedTransaction TransactionContext(DroppedNodePtrs.Num() > 1 ? LOCTEXT("DetachComponents", "Detach Components") : LOCTEXT("DetachComponent", "Detach Component"));
 
@@ -1622,7 +1622,7 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 		// Detach the node from its parent
 		NodePtr->RemoveChild(DroppedNodePtr);
 
-		// If the associated component template is a scene component, maintain its preview world position
+		// If the associated component template is a scene component, maintain its current world position
 		USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(DroppedNodePtr->GetComponentTemplate());
 		if(SceneComponentTemplate)
 		{
@@ -1638,12 +1638,12 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 				SCS_Node->AttachToName = NAME_None;
 			}
 
-			// Attempt to locate a matching instance of the component template in the preview scene
-			USceneComponent* PreviewSceneComponent = Cast<USceneComponent>(DroppedNodePtr->FindComponentInstanceInActor(PreviewActor, true));
-			if(PreviewSceneComponent)
+			// Attempt to locate a matching instance of the component template in the Actor context that's being edited
+			USceneComponent* InstancedSceneComponent = Cast<USceneComponent>(DroppedNodePtr->FindComponentInstanceInActor(Actor));
+			if(InstancedSceneComponent && InstancedSceneComponent->IsRegistered())
 			{
 				// If we find a match, save off the world position
-				FTransform ComponentToWorld = PreviewSceneComponent->GetComponentToWorld();
+				FTransform ComponentToWorld = InstancedSceneComponent->GetComponentToWorld();
 				SceneComponentTemplate->RelativeLocation = ComponentToWorld.GetTranslation();
 				SceneComponentTemplate->RelativeRotation = ComponentToWorld.Rotator();
 				SceneComponentTemplate->RelativeScale3D = ComponentToWorld.GetScale3D();
@@ -1654,13 +1654,13 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 		check(SCSEditorPtr->SceneRootNodePtr.IsValid());
 		SCSEditorPtr->SceneRootNodePtr->AddChild(DroppedNodePtr);
 
-		// Attempt to locate a matching instance of the scene root component template in the preview scene
-		USceneComponent* PreviewSceneRootComponent = Cast<USceneComponent>(SCSEditorPtr->SceneRootNodePtr->FindComponentInstanceInActor(PreviewActor, true));
-		if(SceneComponentTemplate && PreviewSceneRootComponent)
+		// Attempt to locate a matching instance of the scene root component template in the Actor context that's being edited
+		USceneComponent* InstancedSceneRootComponent = Cast<USceneComponent>(SCSEditorPtr->SceneRootNodePtr->FindComponentInstanceInActor(Actor));
+		if(SceneComponentTemplate && InstancedSceneRootComponent && InstancedSceneRootComponent->IsRegistered())
 		{
 			// If we find a match, calculate its new position relative to the scene root component instance in the preview scene
 			FTransform ComponentToWorld(SceneComponentTemplate->RelativeRotation, SceneComponentTemplate->RelativeLocation, SceneComponentTemplate->RelativeScale3D);
-			FTransform ParentToWorld = PreviewSceneRootComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName);
+			FTransform ParentToWorld = InstancedSceneRootComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName);
 			FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
 
 			// Store new relative location value (if not set to absolute)
@@ -1691,19 +1691,15 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
 	check(SCSEditorPtr.IsValid());
 
-	// Get the current SCS context
-	USimpleConstructionScript* SCS = SCSEditorPtr->SCS;
-	check(SCS != NULL);
-
-	// Get the current Blueprint context
-	UBlueprint* Blueprint = SCS->GetBlueprint();
-	check(Blueprint != NULL);
-
 	// Get the current scene root node
 	FSCSEditorTreeNodePtrType& SceneRootNodePtr = SCSEditorPtr->SceneRootNodePtr;
 
 	check(NodePtr.IsValid() && NodePtr == SceneRootNodePtr);
 	check(DroppedNodePtr.IsValid());
+
+	// Get the current Blueprint context
+	UBlueprint* Blueprint = NodePtr->GetBlueprint();
+	check(Blueprint != NULL && Blueprint->SimpleConstructionScript != nullptr);
 
 	// Create a transaction record
 	const FScopedTransaction TransactionContext(LOCTEXT("MakeNewSceneRoot", "Make New Scene Root"));
@@ -1764,7 +1760,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 		check(SceneRootNodePtr->CanReparent());
 
 		// Remove the current scene root node from the SCS context
-		SCS->RemoveNode(SceneRootNodePtr->GetSCSNode());
+		Blueprint->SimpleConstructionScript->RemoveNode(SceneRootNodePtr->GetSCSNode());
 	}
 
 	// Save old root node
@@ -1778,7 +1774,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	SceneRootNodePtr = DroppedNodePtr;
 
 	// Add dropped node to the SCS context
-	SCS->AddNode(SceneRootNodePtr->GetSCSNode());
+	Blueprint->SimpleConstructionScript->AddNode(SceneRootNodePtr->GetSCSNode());
 
 	// Set old root as child of new root
 	if(OldSceneRootNodePtr.IsValid())
@@ -1798,8 +1794,14 @@ void SSCS_RowWidget::PostDragDropAction(bool bRegenerateTreeNodes)
 
 		PinnedEditor->RefreshSelectionDetails();
 
-		check(PinnedEditor->SCS != NULL);
-		FBlueprintEditorUtils::PostEditChangeBlueprintActors(PinnedEditor->SCS->GetBlueprint());
+		if(NodePtr.IsValid())
+		{
+			UBlueprint* Blueprint = NodePtr->GetBlueprint();
+			if(Blueprint != nullptr)
+			{
+				FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
+			}
+		}
 	}
 }
 
@@ -1896,7 +1898,8 @@ FString SSCS_RowWidget::GetDocumentationExcerptName() const
 
 UBlueprint* SSCS_RowWidget::GetBlueprint() const
 {
-	return SCSEditor.Pin()->Blueprint;
+	check(NodePtr.IsValid());
+	return NodePtr->GetBlueprint();
 }
 
 bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage)
@@ -1941,13 +1944,12 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 // SSCSEditor
 
 
-void SSCSEditor::Construct( const FArguments& InArgs, USimpleConstructionScript* InSCS )
+void SSCSEditor::Construct( const FArguments& InArgs )
 {
-	SCS = InSCS;
-	Blueprint = InSCS->GetBlueprint();
-
-	PreviewActor = InArgs._PreviewActor;
+	ActorContext = InArgs._ActorContext;
 	bInEditingMode = InArgs._InEditingMode;
+	OnAddNewComponent = InArgs._OnAddNewComponent;
+	OnAddExistingComponent = InArgs._OnAddExistingComponent;
 	OnTreeViewSelectionChanged = InArgs._OnTreeViewSelectionChanged;
 	OnUpdateSelectionFromNodes = InArgs._OnUpdateSelectionFromNodes;
 	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;
@@ -2141,10 +2143,20 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename );
 
 				// Collect the classes of all selected objects
+				UBlueprint* Blueprint = nullptr;
 				TArray<UClass*> SelectionClasses;
 				for( auto NodeIter = SelectedNodes.CreateConstIterator(); NodeIter; ++NodeIter )
 				{
 					auto TreeNode = *NodeIter;
+
+					// All nodes should belong to the same Blueprint
+					check(Blueprint == nullptr || Blueprint == TreeNode->GetBlueprint());
+
+					if(Blueprint == nullptr)
+					{
+						Blueprint = TreeNode->GetBlueprint();
+					}
+
 					if( TreeNode->GetComponentTemplate() )
 					{
 						SelectionClasses.Add( TreeNode->GetComponentTemplate()->GetClass() );
@@ -2601,13 +2613,20 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		// Reset the scene root node
 		SceneRootNodePtr.Reset();
 
-		// Get the Blueprint class default object as well as the inheritance stack
+		// Get the class default object
 		AActor* CDO = NULL;
 		TArray<UBlueprint*> ParentBPStack;
-		if(Blueprint->GeneratedClass != NULL)
+		AActor* Actor = ActorContext.Get();
+		if(Actor != nullptr)
 		{
-			CDO = Blueprint->GeneratedClass->GetDefaultObject<AActor>();
-			UBlueprint::GetBlueprintHierarchyFromClass(Blueprint->GeneratedClass, ParentBPStack);
+			UClass* ActorClass = Actor->GetClass();
+			if(ActorClass != nullptr)
+			{
+				CDO = ActorClass->GetDefaultObject<AActor>();
+
+				// If it's a Blueprint-generated class, also get the inheritance stack
+				UBlueprint::GetBlueprintHierarchyFromClass(ActorClass, ParentBPStack);
+			}
 		}
 
 		if(CDO != NULL)
@@ -2625,7 +2644,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				}
 			}
 
-		// Add the native base class SceneComponent hierarchy
+			// Add the native base class SceneComponent hierarchy
 			for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
 			{
 				USceneComponent* SceneComp = Cast<USceneComponent>(*CompIter);
@@ -2649,7 +2668,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 
 					if(SCS_Node->ParentComponentOrVariableName != NAME_None)
 					{
-						USceneComponent* ParentComponent = SCS_Node->GetParentComponentTemplate(Blueprint);
+						USceneComponent* ParentComponent = SCS_Node->GetParentComponentTemplate();
 						if(ParentComponent != NULL)
 						{
 							FSCSEditorTreeNodePtrType ParentNodePtr = FindTreeNode(ParentComponent);
@@ -2751,23 +2770,38 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 {
 	const FScopedTransaction Transaction( LOCTEXT("AddComponent", "Add Component") );
 
-	// Create a new template and add it to the blueprint
+	check(OnAddNewComponent.IsBound());
+	USCS_Node* NewNode = OnAddNewComponent.Execute(NewComponentClass);
+
+	USimpleConstructionScript* SCS = NewNode->GetSCS();
+	check(SCS != nullptr);
+
+	UBlueprint* Blueprint = SCS->GetBlueprint();
+	check(Blueprint != nullptr);
+
+	// Save current state
 	Blueprint->Modify();
+	SaveSCSCurrentState(SCS);
 
-	SaveSCSCurrentState( Blueprint->SimpleConstructionScript );
-
-	USCS_Node* NewNode = SCS->CreateNode(NewComponentClass);
 	return AddNewNode(NewNode, Asset, true);
 }
 
 UActorComponent* SSCSEditor::AddNewNode(USCS_Node* NewNode,  UObject* Asset, bool bMarkBlueprintModified, bool bSetFocusToNewItem)
 {
+	check(NewNode != nullptr);
+
 	if(Asset)
 	{
 		FComponentAssetBrokerage::AssignAssetToComponent(NewNode->ComponentTemplate, Asset);
 	}
 
 	FSCSEditorTreeNodePtrType NewNodePtr;
+
+	USimpleConstructionScript* SCS = NewNode->GetSCS();
+	check(SCS != nullptr);
+
+	UBlueprint* Blueprint = SCS->GetBlueprint();
+	check(Blueprint != nullptr);
 
 	// Reset the scene root node if it's set to the default one that's managed by the SCS
 	if(SceneRootNodePtr.IsValid() && SceneRootNodePtr->GetSCSNode() == SCS->GetDefaultSceneRootNode())
@@ -2956,12 +2990,6 @@ void SSCSEditor::PasteNodes()
 {
 	const FScopedTransaction Transaction(LOCTEXT("PasteComponents", "Paste Component(s)"));
 
-	// Mark the Blueprint as about to be modified
-	Blueprint->Modify();
-
-	// Mark the SCS and all SCS nodes as about to be modified
-	SaveSCSCurrentState(Blueprint->SimpleConstructionScript);
-
 	// Get the text from the clipboard
 	FString TextToImport;
 	FPlatformMisc::ClipboardPaste(TextToImport);
@@ -2973,6 +3001,7 @@ void SSCSEditor::PasteNodes()
 	SCSTreeWidget->ClearSelection();
 
 	// Create a new tree node for each new (pasted) component
+	UBlueprint* Blueprint = nullptr;
 	TMap<FName, FSCSEditorTreeNodePtrType> NewNodeMap;
 	for(auto NewObjectIt = Factory->NewObjectMap.CreateIterator(); NewObjectIt; ++NewObjectIt)
 	{
@@ -2980,11 +3009,28 @@ void SSCSEditor::PasteNodes()
 		UActorComponent* NewActorComponent = NewObjectIt->Value;
 		check(NewActorComponent);
 
-		// Relocate the instance from the transient package to the BPGC and assign it a unique object name
-		NewActorComponent->Rename(NULL, Blueprint->GeneratedClass, REN_DontCreateRedirectors|REN_DoNotDirty);
+		// Ask the delegate to create a new SCS node to wrap the component
+		check(OnAddExistingComponent.IsBound());
+		USCS_Node* SCS_Node = OnAddExistingComponent.Execute(NewActorComponent);
+
+		check(SCS_Node != nullptr);
+		USimpleConstructionScript* SCS = SCS_Node->GetSCS();
+		check(SCS != nullptr && (Blueprint == nullptr || Blueprint == SCS->GetBlueprint()));
+		
+		if(Blueprint == nullptr)
+		{
+			Blueprint = SCS->GetBlueprint();
+			check(Blueprint != nullptr);
+
+			// Mark the Blueprint as about to be modified
+			Blueprint->Modify();
+
+			// Mark the SCS and all SCS nodes as about to be modified
+			SaveSCSCurrentState(SCS);
+		}
 
 		// Create a new SCS node to contain the new component and add it to the tree
-		NewActorComponent = AddNewNode(SCS->CreateNode(NewActorComponent), NULL, false, false);
+		NewActorComponent = AddNewNode(SCS_Node, NULL, false, false);
 		if(NewActorComponent)
 		{
 			// Locate the node that corresponds to the new component template
@@ -3042,46 +3088,61 @@ void SSCSEditor::OnDeleteNodes()
 {
 	const FScopedTransaction Transaction( LOCTEXT("RemoveComponent", "Remove Component") );
 
-	// Get the current render info for the blueprint. If this is NULL then the blueprint is not currently visualizable (no visible primitive components)
-	FThumbnailRenderingInfo* RenderInfo = GUnrealEd->GetThumbnailManager()->GetRenderingInfo( Blueprint );
-
-	// Saving objects for restoring purpose.
-	Blueprint->Modify();
-	SSCSEditor::SaveSCSCurrentState( Blueprint->SimpleConstructionScript );
-
 	// Remove node from SCS
+	UBlueprint* Blueprint = nullptr;
+	FThumbnailRenderingInfo* RenderInfo = nullptr;
 	TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
 	for (int32 i = 0; i < SelectedNodes.Num(); ++i)
 	{
 		auto Node = SelectedNodes[i];
 
+		USCS_Node* SCS_Node = Node->GetSCSNode();
+		if(SCS_Node != nullptr)
+		{
+			USimpleConstructionScript* SCS = SCS_Node->GetSCS();
+			check(SCS != nullptr && (Blueprint == nullptr || Blueprint == SCS->GetBlueprint()));
+
+			if(Blueprint == nullptr)
+			{
+				Blueprint = SCS->GetBlueprint();
+				check(Blueprint != nullptr);
+
+				// Get the current render info for the blueprint. If this is NULL then the blueprint is not currently visualizable (no visible primitive components)
+				FThumbnailRenderingInfo* RenderInfo = GUnrealEd->GetThumbnailManager()->GetRenderingInfo( Blueprint );
+
+				// Saving objects for restoring purpose.
+				Blueprint->Modify();
+				SaveSCSCurrentState( SCS );
+			}
+		}
+
 		RemoveComponentNode(Node);
 	}
 
-	// Will call UpdateTree as part of OnBlueprintChanged handling
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+	if(Blueprint != nullptr)
+	{
+		// Will call UpdateTree as part of OnBlueprintChanged handling
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+		// If we had a thumbnail before we deleted any components, check to see if we should clear it
+		// If we deleted the final visualizable primitive from the blueprint, GetRenderingInfo should return NULL
+		FThumbnailRenderingInfo* NewRenderInfo = GUnrealEd->GetThumbnailManager()->GetRenderingInfo( Blueprint );
+		if ( RenderInfo && !NewRenderInfo )
+		{
+			// We removed the last visible primitive component, clear the thumbnail
+			const FString BPFullName = FString::Printf(TEXT("%s %s"), *Blueprint->GetClass()->GetName(), *Blueprint->GetPathName());
+			UPackage* BPPackage = Blueprint->GetOutermost();
+			ThumbnailTools::CacheEmptyThumbnail( BPFullName, BPPackage );
+		}
+	}
 
 	// Do this AFTER marking the Blueprint as modified
 	UpdateSelectionFromNodes(SCSTreeWidget->GetSelectedItems());
-
-	// If we had a thumbnail before we deleted any components, check to see if we should clear it
-	// If we deleted the final visualizable primitive from the blueprint, GetRenderingInfo should return NULL
-	FThumbnailRenderingInfo* NewRenderInfo = GUnrealEd->GetThumbnailManager()->GetRenderingInfo( Blueprint );
-	if ( RenderInfo && !NewRenderInfo )
-	{
-		// We removed the last visible primitive component, clear the thumbnail
-		const FString BPFullName = FString::Printf(TEXT("%s %s"), *Blueprint->GetClass()->GetName(), *Blueprint->GetPathName());
-		UPackage* BPPackage = Blueprint->GetOutermost();
-		ThumbnailTools::CacheEmptyThumbnail( BPFullName, BPPackage );
-	}
 }
 
 void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 {
 	check(InNodePtr.IsValid());
-
-	// Remove any instances of variable accessors from the blueprint graphs
-	FBlueprintEditorUtils::RemoveVariableNodes(Blueprint, InNodePtr->GetVariableName());
 
 	// Clear selection if current
 	if(SCSTreeWidget->GetSelectedItems().Contains(InNodePtr))
@@ -3092,8 +3153,17 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 	USCS_Node* SCS_Node = InNodePtr->GetSCSNode();
 	if(SCS_Node != NULL)
 	{
+		USimpleConstructionScript* SCS = SCS_Node->GetSCS();
+		check(SCS != nullptr);
+
+		// Remove any instances of variable accessors from the blueprint graphs
+		UBlueprint* Blueprint = SCS->GetBlueprint();
+		if(Blueprint != nullptr)
+		{
+			FBlueprintEditorUtils::RemoveVariableNodes(Blueprint, InNodePtr->GetVariableName());
+		}
+
 		// Remove node from SCS tree
-		check(SCS_Node->GetSCS() == SCS);
 		SCS->RemoveNodeAndPromoteChildren(SCS_Node);
 
 		// Clear the delegate
@@ -3122,19 +3192,6 @@ void SSCSEditor::OnTreeSelectionChanged(FSCSEditorTreeNodePtrType, ESelectInfo::
 
 	// Pass the tree selection change event along to the delegate
 	OnTreeViewSelectionChanged.ExecuteIfBound(SelectedNodes);
-
-	// Update the selection visualization
-	AActor* EditorActorInstance = SCS->GetComponentEditorActorInstance();
-	if (EditorActorInstance != NULL)
-	{
-		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
-		EditorActorInstance->GetComponents(PrimitiveComponents);
-
-		for (int32 Idx = 0; Idx < PrimitiveComponents.Num(); ++Idx)
-		{
-			PrimitiveComponents[Idx]->PushSelectionToProxy();
-		}
-	}
 }
 
 bool SSCSEditor::IsNodeInSimpleConstructionScript( USCS_Node* Node ) const
@@ -3169,7 +3226,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 	
 	// Determine whether or not the given node is inherited from a parent Blueprint
 	USimpleConstructionScript* NodeSCS = InSCSNode->GetSCS();
-	const bool bIsInherited = NodeSCS != Blueprint->SimpleConstructionScript;
+	const bool bIsInherited = NodeSCS != nullptr && InParentNodePtr.IsValid() && NodeSCS->GetBlueprint() != InParentNodePtr->GetBlueprint();
 
 	if(InSCSNode->ComponentTemplate->IsA(USceneComponent::StaticClass()))
 	{

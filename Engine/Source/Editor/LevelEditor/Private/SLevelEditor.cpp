@@ -579,9 +579,9 @@ public:
 						ComponentsBox->ClearChildren();
 						ComponentsBox->AddSlot()
 						[
-							SAssignNew(SCSEditor, SSCSEditor, Blueprint->SimpleConstructionScript)
+							SAssignNew(SCSEditor, SSCSEditor)
 							.InEditingMode(true)
-							.PreviewActor(this, &SActorDetails::GetSelectedActor)												// Get the instance of the actor in the world
+							.ActorContext(this, &SActorDetails::GetSelectedActor)												// Get the instance of the actor in the world
 							.OnTreeViewSelectionChanged(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)				// A selection has been made in the tree view, so inform the level editor
 							//.OnUpdateSelectionFromNodes(this, &SLevelEditor::OnSCSEditorUpdateSelectionFromNodes)				// Unsure, don't think it's needed
 							//.OnHighlightPropertyInDetailsView(this, &SLevelEditor::OnSCSEditorHighlightPropertyInDetailsView)	// Also unsure and don't think it's needed

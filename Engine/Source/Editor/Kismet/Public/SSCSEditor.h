@@ -59,10 +59,9 @@ public:
 	 * Finds the component instance represented by this node contained within a given Actor instance.
 	 *
 	 * @param InActor The Actor instance to use as the container object for finding the component instance.
-	 * @param bIsPreviewActor Whether or not the given actor represents the "preview" actor in the SCS editor viewport.
 	 * @return The component instance represented by this node and contained within the given Actor instance, or NULL if not found.
 	 */
-	UActorComponent* FindComponentInstanceInActor(const AActor* InActor, bool bIsPreviewActor = false) const;
+	UActorComponent* FindComponentInstanceInActor(const AActor* InActor) const;
 	/** 
 	 * @return This object's parent node (or an invalid reference if no parent is assigned).
 	 */
@@ -376,29 +375,35 @@ typedef SSCSEditorDragDropTree SSCSTreeType;
 class KISMET_API SSCSEditor : public SCompoundWidget
 {
 public:
+	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddNewComponent, class UClass*);
+	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddExistingComponent, class UActorComponent*);
 	DECLARE_DELEGATE_OneParam(FOnTreeViewSelectionChanged, const TArray<FSCSEditorTreeNodePtrType>&);
 	DECLARE_DELEGATE_OneParam(FOnUpdateSelectionFromNodes, const TArray<FSCSEditorTreeNodePtrType>&);
 	DECLARE_DELEGATE_OneParam(FOnHighlightPropertyInDetailsView, const class FPropertyPath&);
 
 	SLATE_BEGIN_ARGS( SSCSEditor )
 		:_InEditingMode(true)
-		,_PreviewActor(nullptr)
+		,_ActorContext(nullptr)
 		,_HideComponentClassCombo(false)
+		,_OnAddNewComponent()
+		,_OnAddExistingComponent()
 		,_OnTreeViewSelectionChanged()
 		,_OnUpdateSelectionFromNodes()
 		,_OnHighlightPropertyInDetailsView()
 		{}
 
 		SLATE_ATTRIBUTE(bool, InEditingMode)
-		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
+		SLATE_ATTRIBUTE(class AActor*, ActorContext)
 		SLATE_ATTRIBUTE(bool, HideComponentClassCombo)
+		SLATE_EVENT(FOnAddNewComponent, OnAddNewComponent)
+		SLATE_EVENT(FOnAddExistingComponent, OnAddExistingComponent)
 		SLATE_EVENT(FOnTreeViewSelectionChanged, OnTreeViewSelectionChanged)
 		SLATE_EVENT(FOnUpdateSelectionFromNodes, OnUpdateSelectionFromNodes)
 		SLATE_EVENT(FOnHighlightPropertyInDetailsView, OnHighlightPropertyInDetailsView)
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, USimpleConstructionScript* InSCS);
+	void Construct(const FArguments& InArgs);
 
 	/** Override OnKeyDown */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
@@ -601,12 +606,6 @@ protected:
 	/** Returns the set of expandable nodes that are currently collapsed in the UI */
 	void GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, TSet<FSCSEditorTreeNodePtrType>& OutCollapsedNodes) const;
 public:
-	/** Pointer to the script that we are editing */
-	USimpleConstructionScript* SCS;
-
-	/** Pointer to blueprint we were created with */
-	UBlueprint* Blueprint;
-
 	/** Tree widget */
 	TSharedPtr<SSCSTreeType> SCSTreeWidget;
 
@@ -625,11 +624,17 @@ public:
 	/** Whether or not the deferred rename request was flagged as transactional */
 	bool bIsDeferredRenameRequestTransactional;
 
+	/** Attribute that provides access to the Actor context for which we are viewing/editing the SCS. */
+	TAttribute<class AActor*> ActorContext;
+
 	/** Attribute to control whether or not to allow editing. */
 	TAttribute<bool> bInEditingMode;
 
-	/** Attribute that provides access to the "preview" Actor context. */
-	TAttribute<AActor*> PreviewActor;
+	/** Delegate to invoke when a new SCS node needs to be created for a component class type. */
+	FOnAddNewComponent OnAddNewComponent;
+
+	/** Delegate to invoke when a new SCS node needs to be created for an existing component instance. */
+	FOnAddExistingComponent OnAddExistingComponent;
 
 	/** Delegate to invoke on tree view selection change. */
 	FOnTreeViewSelectionChanged OnTreeViewSelectionChanged;
