@@ -29,12 +29,12 @@ uint32 FRunnableThreadPThread::Run()
 		ThreadInitSyncEvent->Trigger();
 	}
 
+#if STATS
+	FThreadStats::Shutdown();
+#endif
+
 	// Clean ourselves up without waiting
 	ThreadIsRunning = false;
-
-#if STATS
-//	FThreadStats::Shutdown();
-#endif
 
 	return ExitCode;
 }
