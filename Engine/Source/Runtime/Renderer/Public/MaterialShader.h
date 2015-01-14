@@ -140,6 +140,8 @@ private:
 	TArray<FShaderUniformBufferParameter> ParameterCollectionUniformBuffers;
 	TArray<FShaderParameter> PerFrameScalarExpressions;
 	TArray<FShaderParameter> PerFrameVectorExpressions;
+	TArray<FShaderParameter> PerFramePrevScalarExpressions;
+	TArray<FShaderParameter> PerFramePrevVectorExpressions;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderResourceParameter LightAttenuation;
 	FShaderResourceParameter LightAttenuationSampler;

@@ -240,6 +240,8 @@ public:
 			+ UniformCubeTextureExpressions.GetAllocatedSize()
 			+ PerFrameUniformScalarExpressions.GetAllocatedSize()
 			+ PerFrameUniformVectorExpressions.GetAllocatedSize()
+			+ PerFramePrevUniformScalarExpressions.GetAllocatedSize()
+			+ PerFramePrevUniformVectorExpressions.GetAllocatedSize()
 			+ ParameterCollections.GetAllocatedSize()
 			+ (UniformBufferStruct ? (sizeof(FUniformBufferStruct) + UniformBufferStruct->GetMembers().GetAllocatedSize()) : 0);
 	}
@@ -252,6 +254,8 @@ protected:
 	TArray<TRefCountPtr<FMaterialUniformExpressionTexture> > UniformCubeTextureExpressions;
 	TArray<TRefCountPtr<FMaterialUniformExpression> > PerFrameUniformScalarExpressions;
 	TArray<TRefCountPtr<FMaterialUniformExpression> > PerFrameUniformVectorExpressions;
+	TArray<TRefCountPtr<FMaterialUniformExpression> > PerFramePrevUniformScalarExpressions;
+	TArray<TRefCountPtr<FMaterialUniformExpression> > PerFramePrevUniformVectorExpressions;
 
 	/** Ids of parameter collections referenced by the material that was translated. */
 	TArray<FGuid> ParameterCollections;
@@ -747,6 +751,7 @@ private:
 enum ECompiledMaterialProperty
 {
 	CompiledMP_EmissiveColorCS = MP_MAX,
+	CompiledMP_PrevWorldPositionOffset,
 	CompiledMP_MAX
 };
 
@@ -1094,7 +1099,7 @@ protected:
 	 * @param OverrideShaderFrequency SF_NumFrequencies to not override
 	 * @return cases to the proper type e.g. Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
 	 */
-	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies) const = 0;
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) const = 0;
 
 	/** Returns the index to the Expression in the Expressions array, or -1 if not found. */
 	int32 FindExpression(const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >&Expressions, const FMaterialUniformExpressionTexture &Expression);
@@ -1543,7 +1548,7 @@ protected:
 	UMaterialInstance* MaterialInstance;
 
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	ENGINE_API virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const;
+	ENGINE_API virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const override;
 	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const;
 	ENGINE_API virtual bool HasMaterialAttributesConnected() const;
 	/** Useful for debugging. */

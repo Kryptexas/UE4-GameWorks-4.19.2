@@ -67,11 +67,11 @@ FMaterialResource::FMaterialResource()
 {
 }
 
-int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
+int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const
 {
 	// needs to be called in this function!!
 	// sets CurrentShaderFrequency
-	Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+	Compiler->SetMaterialProperty(Property, OverrideShaderFrequency, bUsePreviousFrameTime);
 
 	EShaderFrequency ShaderFrequency = Compiler->GetCurrentShaderFrequency();
 
@@ -3057,7 +3057,7 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		return &CustomizedUVs[InProperty - MP_CustomizedUVs0];
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 

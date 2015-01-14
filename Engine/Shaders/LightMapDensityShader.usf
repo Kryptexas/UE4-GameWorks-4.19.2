@@ -78,7 +78,7 @@ void MainVertexShader(
 	float4 WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
 
-	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal, View.GameTime, View.RealTime);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
 	WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
 
 #if USING_TESSELLATION

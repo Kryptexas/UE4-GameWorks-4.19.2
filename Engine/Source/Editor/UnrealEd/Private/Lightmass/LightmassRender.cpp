@@ -266,10 +266,10 @@ public:
 	// Material properties.
 
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const override
 	{
 		// needs to be called in this function!!
-		Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+		Compiler->SetMaterialProperty(Property, OverrideShaderFrequency, bUsePreviousFrameTime);
 
 		int32 Ret = CompilePropertyAndSetMaterialPropertyWithoutCast(Property, Compiler);
 

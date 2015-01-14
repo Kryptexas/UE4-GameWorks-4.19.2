@@ -124,10 +124,10 @@ bool FMatExpressionPreview::ShouldCache(EShaderPlatform Platform, const FShaderT
 	return false;
 }
 
-int32 FMatExpressionPreview::CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
+int32 FMatExpressionPreview::CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const
 {
 	// needs to be called in this function!!
-	Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+	Compiler->SetMaterialProperty(Property, OverrideShaderFrequency, bUsePreviousFrameTime);
 
 	int32 Ret = INDEX_NONE;
 
@@ -138,7 +138,7 @@ int32 FMatExpressionPreview::CompilePropertyAndSetMaterialProperty(EMaterialProp
 		// Get back into gamma corrected space, as DrawTile does not do this adjustment.
 		Ret = Compiler->Power(Compiler->Max(Expression->CompilePreview(Compiler, OutputIndex, -1), Compiler->Constant(0)), Compiler->Constant(1.f / 2.2f));
 	}
-	else if ( Property == MP_WorldPositionOffset)
+	else if (Property == MP_WorldPositionOffset)
 	{
 		//set to 0 to prevent off by 1 pixel errors
 		Ret = Compiler->Constant(0.0f);

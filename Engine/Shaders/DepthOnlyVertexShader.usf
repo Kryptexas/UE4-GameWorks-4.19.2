@@ -83,7 +83,7 @@ void Main(
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
-	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPos.xyz, TangentToLocal, View.GameTime, View.RealTime);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPos.xyz, TangentToLocal);
 
 	// Isolate instructions used for world position offset
 	// As these cause the optimizer to generate different position calculating instructions in each pass, resulting in self-z-fighting.

@@ -802,10 +802,10 @@ public:
 
 	// Material properties.
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const
 	{
 		// needs to be called in this function!!
-		Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+		Compiler->SetMaterialProperty(Property, OverrideShaderFrequency, bUsePreviousFrameTime);
 
 		int32 Ret = CompilePropertyAndSetMaterialPropertyWithoutCast(Property, Compiler);
 
@@ -905,7 +905,7 @@ public:
 	
 			return Compiler->Constant(0.0f);
 		}
-		else if( Property == MP_WorldPositionOffset)
+		else if (Property == MP_WorldPositionOffset)
 		{
 			//This property MUST return 0 as a default or during the process of rendering textures out for lightmass to use, pixels will be off by 1.
 			return Compiler->Constant(0.0f);

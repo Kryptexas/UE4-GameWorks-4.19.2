@@ -247,9 +247,6 @@ struct FMaterialVertexParameters
 	#endif
 #endif
 
-	float GameTime;
-	float RealTime;
-
 	/** Per-particle properties. Only valid for particle vertex factories. */
 	FMaterialParticleParameters Particle;
 };
@@ -1177,6 +1174,11 @@ half GetMaterialOpacity(FMaterialPixelParameters Parameters)
 }
 
 float3 GetMaterialWorldPositionOffset(FMaterialVertexParameters Parameters)
+{
+%s;
+}
+
+float3 GetMaterialPreviousWorldPositionOffset(FMaterialVertexParameters Parameters)
 {
 %s;
 }

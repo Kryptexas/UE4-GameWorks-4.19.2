@@ -191,6 +191,8 @@ protected:
 	/** true if the material reads particle color in the pixel shader. */
 	uint32 bUsesParticleColor : 1;
 	uint32 bUsesTransformVector : 1;
+	// True if the current property requires last frame's time
+	uint32 bUsesPreviousFrameTime : 1;
 	/** Tracks the number of texture coordinates used by this material. */
 	uint32 NumUserTexCoords;
 	/** Tracks the number of texture coordinates used by the vertex shader in this material. */
@@ -232,6 +234,7 @@ public:
 	,	bUsesVertexColor(false)
 	,	bUsesParticleColor(false)
 	,	bUsesTransformVector(false)
+	,	bUsesPreviousFrameTime(false)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
 	{}
@@ -321,6 +324,12 @@ public:
 				Chunk[CompiledMP_EmissiveColorCS]		= Material->CompilePropertyAndSetMaterialProperty(MP_EmissiveColor,this, SF_Compute);
 			}
 
+			if (Chunk[MP_WorldPositionOffset] != -1)
+			{
+				// Only calculate previous WPO if there is a current WPO
+				Chunk[CompiledMP_PrevWorldPositionOffset] = Material->CompilePropertyAndSetMaterialProperty(MP_WorldPositionOffset, this, SF_Vertex, true);
+			}
+
 			for (uint32 CustomUVIndex = MP_CustomizedUVs0; CustomUVIndex <= MP_CustomizedUVs7; CustomUVIndex++)
 			{
 				// Only compile custom UV inputs for UV channels requested by the pixel shader inputs
@@ -342,7 +351,6 @@ public:
 			{
 				int32 WPOFreq = (int32)GetMaterialPropertyShaderFrequency(MP_WorldPositionOffset);
 				FShaderCodeChunk& WPOChunk = CodeChunks[MP_WorldPositionOffset][WPOFreq][Chunk[MP_WorldPositionOffset]];
-				FMaterialRenderContext DummyContext( NULL, *Material, NULL );
 
 				// Determine whether the world position offset is used. 
 				// If the output chunk has a uniform expression, it is constant, and GetNumberValue returns the default property value then WPO isn't used.
@@ -350,6 +358,7 @@ public:
 				if( WPOChunk.UniformExpression && WPOChunk.UniformExpression->IsConstant() )
 				{
 					FLinearColor WPOValue;
+					FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
 					WPOChunk.UniformExpression->GetNumberValue(DummyContext, WPOValue);
 					if (FVector(WPOValue) == FVector::ZeroVector)
 					{
@@ -440,6 +449,16 @@ public:
 				{
 					ResourcesString += FString::Printf(TEXT("float4 UE_Material_PerFrameVectorExpression%u;"), Index) + "\r\n\r\n";
 				}
+
+				for (int32 Index = 0, Num = MaterialCompilationOutput.UniformExpressionSet.PerFramePrevUniformScalarExpressions.Num(); Index < Num; ++Index)
+				{
+					ResourcesString += FString::Printf(TEXT("float UE_Material_PerFramePrevScalarExpression%u;"), Index) + "\r\n\r\n";
+				}
+
+				for (int32 Index = 0, Num = MaterialCompilationOutput.UniformExpressionSet.PerFramePrevUniformVectorExpressions.Num(); Index < Num; ++Index)
+				{
+					ResourcesString += FString::Printf(TEXT("float4 UE_Material_PerFramePrevVectorExpression%u;"), Index) + "\r\n\r\n";
+				}
 			}
 
 			for(uint32 PropertyId = 0; PropertyId < MP_MAX; ++PropertyId)
@@ -456,11 +475,21 @@ public:
 					TranslatedCodeChunks[PropertyId]);
 			}
 
-			if (bCompileForComputeShader)
+			for(uint32 PropertyId = MP_MAX; PropertyId < CompiledMP_MAX; ++PropertyId)
 			{
-				for(uint32 PropertyId = MP_MAX; PropertyId < CompiledMP_MAX; ++PropertyId)
+				switch(PropertyId)
 				{
-					GetFixedParameterCode(Chunk[PropertyId], MP_EmissiveColor, SF_Compute, TranslatedCodeChunkDefinitions[PropertyId], TranslatedCodeChunks[PropertyId]);
+				case CompiledMP_EmissiveColorCS:
+					if (bCompileForComputeShader)
+					{
+						GetFixedParameterCode(Chunk[PropertyId], MP_EmissiveColor, SF_Compute, TranslatedCodeChunkDefinitions[PropertyId], TranslatedCodeChunks[PropertyId]);
+					}
+					break;
+				case CompiledMP_PrevWorldPositionOffset:
+					GetFixedParameterCode(Chunk[PropertyId], MP_WorldPositionOffset, SF_Vertex, TranslatedCodeChunkDefinitions[PropertyId], TranslatedCodeChunks[PropertyId]);
+					break;
+				default: check(0);
+					break;
 				}
 			}
 
@@ -623,6 +652,7 @@ public:
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Opacity));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_OpacityMask));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_WorldPositionOffset));
+		LazyPrintf.PushParam(*GenerateFunctionCode(CompiledMP_PrevWorldPositionOffset));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_WorldDisplacement));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_TessellationMultiplier));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_SubsurfaceColor));
@@ -1004,8 +1034,16 @@ protected:
 		{
 			if (CodeChunk.UniformExpression->IsChangingPerFrame())
 			{
-				const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
-				FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameScalarExpression%u"), ScalarInputIndex);
+				if (bUsesPreviousFrameTime)
+				{
+					const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFramePrevUniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
+					FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFramePrevScalarExpression%u"), ScalarInputIndex);
+				}
+				else
+				{
+					const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
+					FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameScalarExpression%u"), ScalarInputIndex);
+				}
 			}
 			else
 			{
@@ -1029,8 +1067,16 @@ protected:
 
 			if (CodeChunk.UniformExpression->IsChangingPerFrame())
 			{
-				const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
-				FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameVectorExpression%u%s"), VectorInputIndex, Mask);
+				if (bUsesPreviousFrameTime)
+				{
+					const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFramePrevUniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
+					FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFramePrevVectorExpression%u%s"), VectorInputIndex, Mask);
+				}
+				else
+				{
+					const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
+					FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameVectorExpression%u%s"), VectorInputIndex, Mask);
+				}
 			}
 			else
 			{
@@ -1167,7 +1213,7 @@ protected:
 	 * This affects the internal state of the compiler and the results of all functions except GetFixedParameterCode.
 	 * @param OverrideShaderFrequency SF_NumFrequencies to not override
 	 */
-	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies)
+	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false)
 	{
 		MaterialProperty = InProperty;
 
@@ -1179,6 +1225,8 @@ protected:
 		{
 			ShaderFrequency = GetMaterialPropertyShaderFrequency(InProperty);
 		}
+
+		bUsesPreviousFrameTime = bUsePreviousFrameTime;
 	}
 	virtual EShaderFrequency GetCurrentShaderFrequency() const
 	{
@@ -1515,14 +1563,12 @@ protected:
 	{
 		if (!bPeriodic)
 		{
-			if (ShaderFrequency == SF_Vertex)
+			if (bUsesPreviousFrameTime)
 			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("Parameters.GameTime"));
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameGameTime"));
 			}
-			else
-			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
-			}
+
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
 		}
 		else if (Period == 0.0f)
 		{
@@ -1542,14 +1588,12 @@ protected:
 	{
 		if (!bPeriodic)
 		{
-			if (ShaderFrequency == SF_Vertex)
+			if (bUsesPreviousFrameTime)
 			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("Parameters.RealTime"));
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameRealTime"));
 			}
-			else
-			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
-			}
+
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
 		}
 		else if (Period == 0.0f)
 		{

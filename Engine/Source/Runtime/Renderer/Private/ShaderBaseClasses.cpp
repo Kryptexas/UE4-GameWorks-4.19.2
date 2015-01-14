@@ -48,6 +48,20 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 		PerFrameVectorExpressions.Add(Parameter);
 	}
 
+	for (int32 Index = 0; Index < Initializer.UniformExpressionSet.PerFramePrevUniformScalarExpressions.Num(); Index++)
+	{
+		FShaderParameter Parameter;
+		Parameter.Bind(Initializer.ParameterMap, *FString::Printf(TEXT("UE_Material_PerFramePrevScalarExpression%u"), Index));
+		PerFramePrevScalarExpressions.Add(Parameter);
+	}
+
+	for (int32 Index = 0; Index < Initializer.UniformExpressionSet.PerFramePrevUniformVectorExpressions.Num(); Index++)
+	{
+		FShaderParameter Parameter;
+		Parameter.Bind(Initializer.ParameterMap, *FString::Printf(TEXT("UE_Material_PerFramePrevVectorExpression%u"), Index));
+		PerFramePrevVectorExpressions.Add(Parameter);
+	}
+
 	DeferredParameters.Bind(Initializer.ParameterMap);
 	LightAttenuation.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTexture"));
 	LightAttenuationSampler.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTextureSampler"));
@@ -200,6 +214,37 @@ void FMaterialShader::SetParameters(
 					SetShaderValue(RHICmdList, ShaderRHI, Parameter, TempValue);
 				}
 			}
+
+			// Now previous frame's expressions
+			const int32 NumPrevScalarExpressions = PerFramePrevScalarExpressions.Num();
+			const int32 NumPrevVectorExpressions = PerFramePrevVectorExpressions.Num();
+			if (NumPrevScalarExpressions > 0 || NumPrevVectorExpressions > 0)
+			{
+				MaterialRenderContext.Time = View.Family->CurrentWorldTime - View.Family->DeltaWorldTime;
+				MaterialRenderContext.RealTime = View.Family->CurrentRealTime - View.Family->DeltaWorldTime;
+
+				for (int32 Index = 0; Index < NumPrevScalarExpressions; ++Index)
+				{
+					auto& Parameter = PerFramePrevScalarExpressions[Index];
+					if (Parameter.IsBound())
+					{
+						FLinearColor TempValue;
+						MaterialUniformExpressionSet.PerFramePrevUniformScalarExpressions[Index]->GetNumberValue(MaterialRenderContext, TempValue);
+						SetShaderValue(RHICmdList, ShaderRHI, Parameter, TempValue.R);
+					}
+				}
+
+				for (int32 Index = 0; Index < NumPrevVectorExpressions; ++Index)
+				{
+					auto& Parameter = PerFramePrevVectorExpressions[Index];
+					if (Parameter.IsBound())
+					{
+						FLinearColor TempValue;
+						MaterialUniformExpressionSet.PerFramePrevUniformVectorExpressions[Index]->GetNumberValue(MaterialRenderContext, TempValue);
+						SetShaderValue(RHICmdList, ShaderRHI, Parameter, TempValue);
+					}
+				}
+			}
 		}
 	}
 
@@ -312,6 +357,8 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 
 	Ar << PerFrameScalarExpressions;
 	Ar << PerFrameVectorExpressions;
+	Ar << PerFramePrevScalarExpressions;
+	Ar << PerFramePrevVectorExpressions;
 
 	return bShaderHasOutdatedParameters;
 }

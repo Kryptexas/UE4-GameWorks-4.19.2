@@ -108,7 +108,7 @@ public:
 	
 	// Material properties.
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const;
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const override;
 
 	virtual int32 GetMaterialDomain() const override { return MD_Surface; }
 	virtual FString GetMaterialUsageDescription() const { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
