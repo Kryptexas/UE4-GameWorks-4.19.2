@@ -1247,16 +1247,6 @@ void AInstancedFoliageActor::PostEditUndo()
 	}
 }
 
-void AInstancedFoliageActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if (RootComponent)
-	{
-		RootComponent->SetMobility(EComponentMobility::Static);	//ensure mobility is not changed
-	}
-}
-
 void AInstancedFoliageActor::ApplySelectionToComponents(bool bApply)
 {
 	bool bNeedsUpdate = false;
@@ -1539,11 +1529,6 @@ void AInstancedFoliageActor::PostLoad()
 		}
 	}
 #endif
-
-	if (RootComponent)
-	{
-		RootComponent->SetMobility(EComponentMobility::Static);	//instanced foliage is always static
-	}
 
 #if WITH_EDITOR
 	if (GIsEditor)
