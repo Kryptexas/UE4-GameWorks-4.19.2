@@ -13,6 +13,8 @@
 #include "TaskGraphInterfaces.h"
 #endif
 
+#define LOCTEXT_NAMESPACE "GpuProfiler"
+
 static TAutoConsoleVariable<FString> GProfileGPUPatternCVar(
 	TEXT("r.ProfileGPU.Pattern"),
 	TEXT("*"),
@@ -189,6 +191,16 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 
 		UE_LOG(LogRHI, Warning, TEXT("Perf marker hierarchy, total GPU time %.2fms"), RootResult * 1000.0f);
 
+		// Display a warning if this is a GPU profile and the GPU was profiled with v-sync enabled
+		FText VsyncEnabledWarningText = FText::GetEmpty();
+		static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
+		if (CVSyncVar->GetInt() != 0)
+		{
+			VsyncEnabledWarningText = LOCTEXT("GpuProfileVsyncEnabledWarning",
+				"WARNING: This GPU profile was captured with v-sync enabled.  V-sync wait time may show up in any bucket, and as a result the data in this profile may be skewed. Please profile with v-sync disabled to obtain the most accurate data.");
+			UE_LOG(LogRHI, Warning, TEXT("%s"), *(VsyncEnabledWarningText.ToString()));
+		}
+
 		LogDisjointQuery();
 
 		TMap<FString, FGPUProfilerEventNodeStats> EventHistogram;
@@ -283,13 +295,14 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 			{
 				struct FDisplayProfilerVisualizer
 				{
-					void Thread( TSharedPtr<FVisualizerEvent> InVisualizerData )
+					void Thread( TSharedPtr<FVisualizerEvent> InVisualizerData, const FText InVsyncEnabledWarningText )
 					{
 						static FName TaskGraphModule(TEXT("TaskGraph"));			
 						if (FModuleManager::Get().IsModuleLoaded(TaskGraphModule))
 						{
 							IProfileVisualizerModule& ProfileVisualizer = FModuleManager::GetModuleChecked<IProfileVisualizerModule>(TaskGraphModule);
-							ProfileVisualizer.DisplayProfileVisualizer( InVisualizerData, TEXT("GPU") );
+							// Display a warning if this is a GPU profile and the GPU was profiled with v-sync enabled (otherwise InVsyncEnabledWarningText is empty)
+							ProfileVisualizer.DisplayProfileVisualizer( InVisualizerData, TEXT("GPU"), InVsyncEnabledWarningText, FLinearColor::Red );
 						}
 					}
 				} DisplayProfilerVisualizer;
@@ -301,7 +314,7 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 					STATGROUP_TaskGraphTasks);
 
 				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-					FSimpleDelegateGraphTask::FDelegate::CreateRaw(&DisplayProfilerVisualizer, &FDisplayProfilerVisualizer::Thread, VisualizerData),
+					FSimpleDelegateGraphTask::FDelegate::CreateRaw(&DisplayProfilerVisualizer, &FDisplayProfilerVisualizer::Thread, VisualizerData, VsyncEnabledWarningText),
 					GET_STATID(STAT_FSimpleDelegateGraphTask_DisplayProfilerVisualizer), nullptr, ENamedThreads::GameThread
 				);
 			}
@@ -355,3 +368,5 @@ uint64 FGPUTiming::GTimingFrequency = 0;
 
 /** Whether the static variables have been initialized. */
 bool FGPUTiming::GAreGlobalsInitialized = false;
+
+#undef LOCTEXT_NAMESPACE

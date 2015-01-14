@@ -15,7 +15,7 @@
  * @param ProfileData Visualizer data
  * @return Visualizer window
  */
-void MakeTaskGraphVisualizerWindow( TSharedPtr< FVisualizerEvent > ProfileData, const FText& WindowTitle, const FText& ProfilerType )
+void MakeTaskGraphVisualizerWindow( TSharedPtr< FVisualizerEvent > ProfileData, const FText& WindowTitle, const FText& ProfilerType, const FText& HeaderMessageText = FText::GetEmpty(), const FLinearColor& HeaderMessageTextColor = FLinearColor::White )
 {
 	FGlobalTabmanager::Get()->InsertNewDocumentTab
 		(
@@ -27,6 +27,8 @@ void MakeTaskGraphVisualizerWindow( TSharedPtr< FVisualizerEvent > ProfileData, 
 				SNew( SProfileVisualizer )
 				.ProfileData( ProfileData )
 				.ProfilerType( ProfilerType )
+				.HeaderMessageText( HeaderMessageText )
+				.HeaderMessageTextColor( HeaderMessageTextColor )
 			]
 		);
 }
@@ -125,7 +127,7 @@ void ShutdownProfileVisualizer()
 
 static bool GHasRegisteredVisualizerLayout = false;
 
-void DisplayProfileVisualizer( TSharedPtr< FVisualizerEvent > InProfileData, const TCHAR* InProfilerType )
+void DisplayProfileVisualizer(TSharedPtr< FVisualizerEvent > InProfileData, const TCHAR* InProfilerType, const FText& HeaderMessageText = FText::GetEmpty(), const FLinearColor& HeaderMessageTextColor = FLinearColor::White)
 {
 	check( IsInGameThread() );
 
@@ -152,8 +154,7 @@ void DisplayProfileVisualizer( TSharedPtr< FVisualizerEvent > InProfileData, con
 	const FText WindowTitle = FText::Format( NSLOCTEXT("TaskGraph", "WindowTitle", "{ProfilerType} Visualizer"), Args );
 	const FText ProfilerType = FText::Format( NSLOCTEXT("TaskGraph", "ProfilerType", "{ProfilerType} Profile"), Args );
 
-
-	MakeTaskGraphVisualizerWindow( InProfileData, WindowTitle, ProfilerType );
+	MakeTaskGraphVisualizerWindow( InProfileData, WindowTitle, ProfilerType, HeaderMessageText, HeaderMessageTextColor );
 	
 }
 
@@ -171,10 +172,10 @@ public:
 	{
 		::ShutdownProfileVisualizer();
 	}
-	virtual void DisplayProfileVisualizer( TSharedPtr< FVisualizerEvent > InProfileData, const TCHAR* InProfilerType ) override
+	virtual void DisplayProfileVisualizer(TSharedPtr< FVisualizerEvent > InProfileData, const TCHAR* InProfilerType, const FText& HeaderMessageText, const FLinearColor& HeaderMessageTextColor) override
 	{
 #if	WITH_EDITOR
-		::DisplayProfileVisualizer( InProfileData, InProfilerType );
+		::DisplayProfileVisualizer( InProfileData, InProfilerType, HeaderMessageText, HeaderMessageTextColor );
 #endif // WITH_EDITOR
 	}
 };
