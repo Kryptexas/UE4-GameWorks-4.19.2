@@ -192,6 +192,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	VertexColorMask = FOLIAGEVERTEXCOLORMASK_Disabled;
 	VertexColorMaskThreshold = 0.5f;
 
+	bEnableStaticLighting = true;
 	CastShadow = true;
 	bCastDynamicShadow = true;
 	bCastStaticShadow = true;
@@ -202,7 +203,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	bReceivesDecals = false;
 
 	bOverrideLightMapRes = false;
-	OverriddenLightMapRes = 32;
+	OverriddenLightMapRes = 8;
 
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
@@ -278,7 +279,7 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	// Ensure that OverriddenLightMapRes is a factor of 4
-	OverriddenLightMapRes = FMath::Max(OverriddenLightMapRes + 3 & ~3, 4);
+	OverriddenLightMapRes = OverriddenLightMapRes > 4 ? OverriddenLightMapRes + 3 & ~3 : 4;
 	++ChangeCount;
 }
 #endif
@@ -376,7 +377,7 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 	{
 		Component = ConstructObject<UHierarchicalInstancedStaticMeshComponent>(UHierarchicalInstancedStaticMeshComponent::StaticClass(), InIFA, NAME_None, RF_Transactional);
 
-		Component->Mobility = EComponentMobility::Static;
+		Component->Mobility = InSettings->bEnableStaticLighting ? EComponentMobility::Static : EComponentMobility::Movable;
 
 		Component->StaticMesh = InSettings->GetStaticMesh();
 		Component->bSelectable = true;
