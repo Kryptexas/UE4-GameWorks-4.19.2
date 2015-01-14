@@ -1,10 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "MeshBatch.h"
 #include "BlueprintGeneratedClass.generated.h"
 
+
 class UEdGraphPin;
+
 
 USTRUCT()
 struct FNodeToCodeAssociation
@@ -17,8 +20,8 @@ public:
 	int32 Offset;
 public:
 	FNodeToCodeAssociation()
-	: Node(NULL)
-	, Scope(NULL)
+	: Node(nullptr)
+	, Scope(nullptr)
 	, Offset(0)
 	{
 	}
@@ -30,6 +33,7 @@ public:
 	{
 	}
 };
+
 
 USTRUCT()
 struct FDebuggingInfoForSingleFunction
@@ -55,6 +59,7 @@ public:
 	}
 };
 
+
 USTRUCT()
 struct FPointerToUberGraphFrame
 {
@@ -64,7 +69,7 @@ public:
 	uint8* RawPointer;
 
 	FPointerToUberGraphFrame() 
-		: RawPointer(NULL)
+		: RawPointer(nullptr)
 	{}
 
 	~FPointerToUberGraphFrame()
@@ -72,6 +77,7 @@ public:
 		check(!RawPointer);
 	}
 };
+
 
 template<>
 struct TStructOpsTypeTraits<FPointerToUberGraphFrame> : public TStructOpsTypeTraitsBase
@@ -82,6 +88,7 @@ struct TStructOpsTypeTraits<FPointerToUberGraphFrame> : public TStructOpsTypeTra
 		WithCopy = false,
 	};
 };
+
 
 //////////////////////////////////////////////////////////////////////////
 // TSimpleRingBuffer
@@ -158,6 +165,7 @@ private:
 	int32 WriteIndex;
 };
 
+
 struct FStructUtils
 {
 private:
@@ -167,6 +175,7 @@ public:
 	// does structures have exactly the same memory layout
 	ENGINE_API static bool TheSameLayout(const UStruct* StructA, const UStruct* StructB, bool bCheckPropertiesNames = false);
 };
+
 
 USTRUCT()
 struct ENGINE_API FBlueprintDebugData
@@ -207,7 +216,7 @@ public:
 		DebugPinToPropertyMap.Empty();
 	}
 
-	// Returns the UEdGraphNode associated with the UUID, or NULL if there isn't one.
+	// Returns the UEdGraphNode associated with the UUID, or nullptr if there isn't one.
 	UEdGraphNode* FindNodeFromUUID(int32 UUID) const
 	{
 		if (const TWeakObjectPtr<UEdGraphNode>* pParentNode = DebugNodesAllocatedUniqueIDsMap.Find(UUID))
@@ -215,7 +224,7 @@ public:
 			return pParentNode->Get();
 		}
 	
-		return NULL;
+		return nullptr;
 	}
 
 	bool IsValid() const
@@ -223,16 +232,16 @@ public:
 		return DebugNodeLineNumbers.Num() > 0;
 	}
 
-	// Finds the UEdGraphNode associated with the code location Function+CodeOffset, or NULL if there isn't one
+	// Finds the UEdGraphNode associated with the code location Function+CodeOffset, or nullptr if there isn't one
 	UEdGraphNode* FindSourceNodeFromCodeLocation(UFunction* Function, int32 CodeOffset, bool bAllowImpreciseHit) const
 	{
 		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(Function))
 		{
 			UEdGraphNode* Result = pFuncInfo->LineNumberToSourceNodeMap.FindRef(CodeOffset).Get();
 
-			if ((Result == NULL) && bAllowImpreciseHit)
+			if ((Result == nullptr) && bAllowImpreciseHit)
 			{
-				for (int32 TrialOffset = CodeOffset + 1; (Result == NULL) && (TrialOffset < Function->Script.Num()); ++TrialOffset)
+				for (int32 TrialOffset = CodeOffset + 1; (Result == nullptr) && (TrialOffset < Function->Script.Num()); ++TrialOffset)
 				{
 					Result = pFuncInfo->LineNumberToSourceNodeMap.FindRef(TrialOffset).Get();
 				}
@@ -241,10 +250,10 @@ public:
 			return Result;
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
-	// Finds the macro source node associated with the code location Function+CodeOffset, or NULL if there isn't one
+	// Finds the macro source node associated with the code location Function+CodeOffset, or nullptr if there isn't one
 	UEdGraphNode* FindMacroSourceNodeFromCodeLocation(UFunction* Function, int32 CodeOffset) const
 	{
 		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(Function))
@@ -252,7 +261,7 @@ public:
 			return pFuncInfo->LineNumberToMacroSourceNodeMap.FindRef(CodeOffset).Get();
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	// Finds the macro instance node(s) associated with the code location Function+CodeOffset. The returned set can be empty.
@@ -274,7 +283,7 @@ public:
 		}
 	}
 
-	// Finds the macro source node associated with the code location Function+CodeOffset, or NULL if there isn't one
+	// Finds the macro source node associated with the code location Function+CodeOffset, or nullptr if there isn't one
 	UEdGraphPin* FindExecPinFromCodeLocation(UFunction* Function, int32 CodeOffset) const
 	{
 		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(Function))
@@ -282,7 +291,7 @@ public:
 			return pFuncInfo->LineNumberToPinMap.FindRef(CodeOffset).Get();
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	// Finds the breakpoint injection site(s) in bytecode if any were associated with the given node
@@ -304,7 +313,7 @@ public:
 	UProperty* FindClassPropertyForPin(const UEdGraphPin* Pin) const
 	{
 		UProperty* PropertyPtr = DebugPinToPropertyMap.FindRef(Pin);
-		if ((PropertyPtr == NULL) && (Pin->Direction == EGPD_Input) && (Pin->LinkedTo.Num() > 0))
+		if ((PropertyPtr == nullptr) && (Pin->Direction == EGPD_Input) && (Pin->LinkedTo.Num() > 0))
 		{
 			// Try checking the other side of the connection
 			PropertyPtr = DebugPinToPropertyMap.FindRef(Pin->LinkedTo[0]);
@@ -361,7 +370,7 @@ public:
 		DebugNodesAllocatedUniqueIDsMap.Add(UUID, TrueSourceNode);
 	}
 
-	// Returns the object that caused the specified property to be created (can return NULL if the association is unknown)
+	// Returns the object that caused the specified property to be created (can return nullptr if the association is unknown)
 	UObject* FindObjectThatCreatedProperty(class UProperty* AssociatedProperty) const
 	{
 		if (const TWeakObjectPtr<UObject>* pValue = DebugPinToPropertyMap.FindKey(AssociatedProperty))
@@ -370,7 +379,7 @@ public:
 		}
 		else
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -389,11 +398,11 @@ public:
 	 * Retrieves the most recently executed node (created to help pinpoint 
 	 * runtime errors).
 	 * 
-	 * @returns The most recently executed node (NULL if there is not one).
+	 * @returns The most recently executed node (nullptr if there is not one).
 	 */
 	UEdGraphNode* GetLastExecutedNode()
 	{
-		UEdGraphNode* LastExecutedNode = NULL;
+		UEdGraphNode* LastExecutedNode = nullptr;
 		if (IsValid())
 		{
 			TWeakObjectPtr<UEdGraphNode> NodePtr = DebugNodeLineNumbers.Top().Node;
@@ -407,6 +416,7 @@ public:
 	}
 #endif
 };
+
 
 UCLASS()
 class ENGINE_API UBlueprintGeneratedClass : public UClass

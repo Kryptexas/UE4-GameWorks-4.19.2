@@ -1,57 +1,62 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-//
-// Simulated network driver for recording and playing back game sessions.
 #pragma once
+
 #include "DemoNetDriver.generated.h"
 
+
+/**
+ * Simulated network driver for recording and playing back game sessions.
+ */
 UCLASS(transient, config=Engine)
-class UDemoNetDriver : public UNetDriver
+class UDemoNetDriver
+	: public UNetDriver
 {
 	GENERATED_UCLASS_BODY()
 
-	// Variables.
-
 	/** Name of the file to read/write from */
-	FString				DemoFilename;
+	FString DemoFilename;
 
 	/** Handle to the archive that will read/write network packets */
-	FArchive*			FileAr;
+	FArchive* FileAr;
 
 	/** Current record/playback frame number */
-	int32				DemoFrameNum;
+	int32 DemoFrameNum;
 
 	/** Last time (in real seconds) that we recorded a frame */
-	double				LastRecordTime;
+	double LastRecordTime;
 
 	/** Time (in game seconds) that have elapsed between recorded frames */
-	float				DemoDeltaTime;
+	float DemoDeltaTime;
 
 	/** Total time of demo in seconds */
-	float				DemoTotalTime;
+	float DemoTotalTime;
 
 	/** Current record/playback position in seconds */
-	float				DemoCurrentTime;
+	float DemoCurrentTime;
 
 	/** Total number of frames in the demo */
-	int32				DemoTotalFrames;
+	int32 DemoTotalFrames;
 
 	/** during playback, set to offset of where the stream ends (we don't want to continue reading into the meta data section) */
-	int32				EndOfStreamOffset;
+	int32 EndOfStreamOffset;
 
 	/** True if we're in the middle of recording a frame */
-	bool				bIsRecordingDemoFrame;
+	bool bIsRecordingDemoFrame;
 
 	/** True if we are at the end of playing a demo */
-	bool				bDemoPlaybackDone;
+	bool bDemoPlaybackDone;
 
 	/** This is our spectator controller that is used to view the demo world from */
-	APlayerController*	SpectatorController;
+	APlayerController* SpectatorController;
 
-	UPROPERTY( config )
-	FString				DemoSpectatorClass;
+	UPROPERTY(config)
+	FString DemoSpectatorClass;
 
-	// Begin UNetDriver interface.
+public:
+
+	// UNetDriver interface.
+
 	virtual bool InitBase( bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error ) override;
 	virtual void FinishDestroy() override;
 	virtual FString LowLevelGetNetworkNumber() override;
@@ -59,13 +64,16 @@ class UDemoNetDriver : public UNetDriver
 	virtual bool InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool bReuseAddressAndPort, FString& Error ) override;
 	virtual void TickDispatch( float DeltaSeconds ) override;
 	virtual void TickFlush( float DeltaSeconds ) override;
-	virtual void ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = NULL );
+	virtual void ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = nullptr );
 	virtual bool IsAvailable() const override { return true; }
-	// End UNetDriver interface.
+	
+public:
 
-	// Begin FExec interface.
+	// FExec interface
+
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-	// End FExec interface.
+
+public:
 
 	/** @todo document */
 	bool UpdateDemoTime( float* DeltaTime, float TimeDilation );

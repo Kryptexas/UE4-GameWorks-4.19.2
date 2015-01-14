@@ -1,12 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// Engine: The base class of the global application object classes.
-//=============================================================================
-
 #pragma once
+
 #include "World.h"
 #include "Engine.generated.h"
+
 
 class FScreenSaverInhibitor;
 class UDeviceProfileManager;
@@ -15,6 +13,9 @@ class FCommonViewportClient;
 class FCanvas;
 
 
+/**
+ * Enumerats types of fully loaded packages.
+ */
 UENUM()
 enum EFullyLoadPackageType
 {
@@ -31,8 +32,9 @@ enum EFullyLoadPackageType
 	FULLYLOAD_MAX,
 };
 
+
 /**
- * A transition type.
+ * Enumerates transition types.
  */
 UENUM()
 enum ETransitionType
@@ -47,6 +49,7 @@ enum ETransitionType
 	TT_MAX,
 };
 
+
 UENUM()
 enum EConsoleType
 {
@@ -54,6 +57,7 @@ enum EConsoleType
 	CONSOLE_Mobile,
 	CONSOLE_MAX,
 };
+
 
 /** Struct to help hold information about packages needing to be fully-loaded for DLC, etc */
 USTRUCT()
@@ -84,6 +88,7 @@ struct FFullyLoadedPackagesInfo
 	}
 
 };
+
 
 /** level streaming updates that should be applied immediately after committing the map change */
 USTRUCT()
@@ -116,6 +121,7 @@ struct FLevelStreamingStatus
 	
 };
 
+
 /**
  * Container for describing various types of netdrivers available to the engine
  * The engine will try to construct a netdriver of a given type and, failing that,
@@ -146,6 +152,7 @@ struct FNetDriverDefinition
 	}
 };
 
+
 /**
  * Active and named net drivers instantiated from an FNetDriverDefinition
  * The net driver will remain instantiated on this struct until it is destroyed
@@ -174,6 +181,7 @@ struct FNamedNetDriver
 
 	~FNamedNetDriver() {}
 };
+
 
 /** FWorldContext
  *	A context for dealing with UWorlds at the engine level. As the engine brings up and destroys world, we need a way to keep straight
@@ -329,8 +337,7 @@ struct FWorldContext
 		, RunAsDedicated(false)
 		, bWaitingOnOnlineSubsystem(false)
 		, ThisCurrentWorld(nullptr)
-	{
-	}
+	{ }
 
 private:
 
@@ -358,6 +365,7 @@ struct FStatColorMapEntry
 
 };
 
+
 USTRUCT()
 struct FStatColorMapping
 {
@@ -379,6 +387,7 @@ struct FStatColorMapping
 	}
 
 };
+
 
 /** Info about one note dropped in the map during PIE. */
 USTRUCT()
@@ -407,7 +416,6 @@ struct FDropNoteInfo
 
 };
 
-/************************************/
 
 /** On-screen debug message handling */
 /** Helper struct for tracking on screen messages. */
@@ -448,6 +456,7 @@ struct FScreenMessageString
 	
 };
 
+
 UENUM()
 namespace EMatineeCaptureType
 {
@@ -459,6 +468,7 @@ namespace EMatineeCaptureType
 		JPEG	UMETA(DisplayName="JPEG Image Sequence")
 	};
 }
+
 
 USTRUCT()
 struct FGameNameRedirect
@@ -497,6 +507,7 @@ struct FClassRedirect
 	bool InstanceOnly;
 };
 
+
 USTRUCT()
 struct FStructRedirect
 {
@@ -508,6 +519,7 @@ struct FStructRedirect
 	UPROPERTY()
 	FString NewStructName;
 };
+
 
 USTRUCT()
 struct FPluginRedirect
@@ -521,10 +533,12 @@ struct FPluginRedirect
 	FString NewPluginName;
 };
 
+
 class IAnalyticsProvider;
 
 DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
 DECLARE_DELEGATE(FEndStreamingPauseDelegate);
+
 
 /**
  * Abstract base class of all Engine classes, responsible for management of systems critical to editor or game systems.
@@ -2005,7 +2019,7 @@ public:
 	/** @return whether we're currently running in split screen (more than one local player) */
 	bool IsSplitScreen(UWorld *InWorld);
 
-	/** @return whether we're currently running with stereoscopic 3D enabled for the specified viewport (or globally, if viewport is NULL) */
+	/** @return whether we're currently running with stereoscopic 3D enabled for the specified viewport (or globally, if viewport is nullptr) */
 	bool IsStereoscopic3D(FViewport* InViewport = nullptr);
 
 	/**
@@ -2561,87 +2575,87 @@ private:
 
 public:
 	/**
-	 * Delegate we fire every time a new stat has been registered
+	 * Delegate we fire every time a new stat has been registered.
 	 *
-	 * @param FName	- The name of the new stat
-	 * @param FName - The category of the new stat
-	 * @param FText - The description of the new stat
+	 * @param FName The name of the new stat.
+	 * @param FName The category of the new stat.
+	 * @param FText The description of the new stat.
 	 */
 	DECLARE_EVENT_ThreeParams(UEngine, FOnNewStatRegistered, const FName&, const FName&, const FText&);
 	static FOnNewStatRegistered NewStatDelegate;
 	
 	/**
-	 * Wrapper for firing a simple stat exec
+	 * Wrapper for firing a simple stat exec.
 	 *
-	 * @param World	- The world to apply the exec to
-	 * @param ViewportClient - The viewport to apply the exec to
-	 * @param InName - The exec string
+	 * @param World	The world to apply the exec to.
+	 * @param ViewportClient The viewport to apply the exec to.
+	 * @param InName The exec string.
 	 */
 	void ExecEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* InName);
 
 	/**
-	 * Check to see if the specified stat name is a simple stat
+	 * Check to see if the specified stat name is a simple stat.
 	 *
-	 * @param InName - The name of the stat we're checking
-	 * @returns true if the stat is a registered simple stat
+	 * @param InName The name of the stat we're checking.
+	 * @returns true if the stat is a registered simple stat.
 	 */
 	bool IsEngineStat(const FString& InName);
 
 	/**
-	 * Set the state of the specified stat
+	 * Set the state of the specified stat.
 	 *
-	 * @param World	- The world to apply the exec to
-	 * @param ViewportClient - The viewport to apply the exec to
-	 * @param InName - The stat name
-	 * @param bShow - The state we would like the stat to be in
+	 * @param World	The world to apply the exec to.
+	 * @param ViewportClient The viewport to apply the exec to.
+	 * @param InName The stat name.
+	 * @param bShow The state we would like the stat to be in.
 	 */
 	void SetEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const FString& InName, const bool bShow);
 
 	/**
-	 * Set the state of the specified stats (note: array processed in reverse order when !bShow)
+	 * Set the state of the specified stats (note: array processed in reverse order when !bShow).
 	 *
-	 * @param World	- The world to apply the exec to
-	 * @param ViewportClient - The viewport to apply the exec to
-	 * @param InNames - The stat names
-	 * @param bShow - The state we would like the stat to be in
+	 * @param World	The world to apply the exec to.
+	 * @param ViewportClient The viewport to apply the exec to.
+	 * @param InNames The stat names.
+	 * @param bShow The state we would like the stat to be in.
 	 */
 	void SetEngineStats(UWorld* World, FCommonViewportClient* ViewportClient, const TArray<FString>& InNames, const bool bShow);
 
 	/**
 	 * Function to render all the simple stats
 	 *
-	 * @param World	- The world being drawn to
-	 * @param ViewportClient - The viewport being drawn to
-	 * @param Canvas - The canvas to use when drawing
-	 * @param LHSX - The left hand side X position to start drawing from
-	 * @param InOutLHSY - The left hand side Y position to start drawing from
-	 * @param RHSX - The right hand side X position to start drawing from
-	 * @param InOutRHSY - The right hand side Y position to start drawing from
-	 * @param ViewLocation - The world space view location
-	 * @param ViewRotation - The world space view rotation
+	 * @param World	The world being drawn to.
+	 * @param ViewportClient The viewport being drawn to.
+	 * @param Canvas The canvas to use when drawing.
+	 * @param LHSX The left hand side X position to start drawing from.
+	 * @param InOutLHSY The left hand side Y position to start drawing from.
+	 * @param RHSX The right hand side X position to start drawing from.
+	 * @param InOutRHSY The right hand side Y position to start drawing from.
+	 * @param ViewLocation The world space view location.
+	 * @param ViewRotation The world space view rotation.
 	 */
 	void RenderEngineStats(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 LHSX, int32& InOutLHSY, int32 RHSX, int32& InOutRHSY, const FVector* ViewLocation, const FRotator* ViewRotation);
 
 private:
 	/**
-	 * Function definition for those stats which have their own render funcsions (or affect another render functions)
+	 * Function definition for those stats which have their own render funcsions (or affect another render functions).
 	 *
-	 * @param World	- The world being drawn to
-	 * @param ViewportClient - The viewport being drawn to
-	 * @param Canvas - The canvas to use when drawing
-	 * @param X - The X position to draw to
-	 * @param Y - The Y position to draw to
-	 * @param ViewLocation - The world space view location
-	 * @param ViewRotation - The world space view rotation
+	 * @param World	The world being drawn to.
+	 * @param ViewportClient The viewport being drawn to.
+	 * @param Canvas The canvas to use when drawing.
+	 * @param X The X position to draw to.
+	 * @param Y The Y position to draw to.
+	 * @param ViewLocation The world space view location.
+	 * @param ViewRotation The world space view rotation.
 	 */
 	typedef int32 (UEngine::*EngineStatRender)(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation);
 
 	/**
-	 * Function definition for those stats which have their own toggle funcsions (or toggle other stats)
+	 * Function definition for those stats which have their own toggle funcsions (or toggle other stats).
 	 *
-	 * @param World	- The world being drawn to
-	 * @param ViewportClient - The viewport being drawn to
-	 * @param Stream - The remaining characters from the Exec call
+	 * @param World	The world being drawn to.
+	 * @param ViewportClient The viewport being drawn to.
+	 * @param Stream The remaining characters from the Exec call.
 	 */
 	typedef bool (UEngine::*EngineStatToggle)(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream);
 
@@ -2684,12 +2698,13 @@ private:
 	TArray<FEngineStatFuncs> EngineStats;
 
 private:
+
 	/**
-	 * Functions for performing other actions when the stat is toggled, should only be used when registering with EngineStats
+	 * Functions for performing other actions when the stat is toggled, should only be used when registering with EngineStats.
 	 *
-	 * @param World	- The world being drawn to
-	 * @param ViewportClient - The viewport being drawn to
-	 * @param Stream - The remaining characters from the Exec call (optional)
+	 * @param World	The world being drawn to.
+	 * @param ViewportClient The viewport being drawn to.
+	 * @param Stream The remaining characters from the Exec call (optional).
 	 */
 	bool ToggleStatFPS(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 	bool ToggleStatDetailed(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
@@ -2705,15 +2720,15 @@ private:
 	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 
 	/**
-	 * Functions for rendering the various simple stats, should only be used when registering with EngineStats
+	 * Functions for rendering the various simple stats, should only be used when registering with EngineStats.
 	 *
-	 * @param World	- The world being drawn to
-	 * @param ViewportClient - The viewport being drawn to
-	 * @param Canvas - The canvas to use when drawing
-	 * @param X - The X position to draw to
-	 * @param Y - The Y position to draw to
-	 * @param ViewLocation - The world space view location
-	 * @param ViewRotation - The world space view rotation
+	 * @param World	The world being drawn to.
+	 * @param ViewportClient The viewport being drawn to.
+	 * @param Canvas The canvas to use when drawing.
+	 * @param X The X position to draw to.
+	 * @param Y The Y position to draw to.
+	 * @param ViewLocation The world space view location.
+	 * @param ViewRotation The world space view rotation.
 	 */
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	int32 RenderStatVersion(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);

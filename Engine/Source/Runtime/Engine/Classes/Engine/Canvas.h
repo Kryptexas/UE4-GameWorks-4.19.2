@@ -1,16 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// Canvas: A drawing canvas.
-//=============================================================================
-
 #pragma once
 
 #include "CanvasTypes.h"
 #include "Canvas.generated.h"
 
+
 class FSceneView;
 class UFont;
+
 
 /**
  * Holds texture information with UV coordinates as well.
@@ -37,20 +35,23 @@ struct FCanvasIcon
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CanvasIcon)
 	float VL;
 
-
 	FCanvasIcon()
-		: Texture(NULL)
+		: Texture(nullptr)
 		, U(0)
 		, V(0)
 		, UL(0)
 		, VL(0)
-	{
-	}
+	{ }
 
 };
 
+
+/**
+ * A drawing canvas.
+ */
 UCLASS(transient)
-class ENGINE_API UCanvas : public UObject
+class ENGINE_API UCanvas
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -110,6 +111,7 @@ class ENGINE_API UCanvas : public UObject
 	int32 CachedDisplayHeight;
 
 public:
+
 	FCanvas* Canvas;
 	FSceneView* SceneView;
 	FMatrix	ViewProjectionMatrix;
@@ -117,55 +119,56 @@ public:
 
 	// UCanvas interface.
 	
-	/** Initialise Canvas */
+	/** Initializes the canvas. */
 	void Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView);
 
-	/** Changes the view for the canvas */
+	/** Changes the view for the canvas. */
 	void SetView(FSceneView* InView);
 
-	/** Update Canvas */
+	/** Updates the canvas. */
 	void Update();
 
-	/* Applies the current Platform's safezone to the current Canvas position.  Automatically called by Update */
+	/* Applies the current Platform's safe zone to the current Canvas position. Automatically called by Update. */
 	void ApplySafeZoneTransform();
 	void PopSafeZoneTransform();
 
-	/* Updates cached SafeZone data from the device.  Call when main device is resized */
+	/* Updates cached SafeZone data from the device.  Call when main device is resized. */
 	void UpdateSafeZoneData();
 
-	/* Function to go through all constructed canvas items and update their safezone data */
+	/* Function to go through all constructed canvas items and update their safe zone data. */
 	static void UpdateAllCanvasSafeZoneData();
 	
-
 	/** 
 	 * Draw arbitrary aligned rectangle.
-	 * @param Tex - Texture to draw
-	 * @param X - Position to draw X
-	 * @param Y - Position to draw Y
-	 * @param XL - Width of tile
-	 * @param YL - Height of tile
-	 * @param U - Horizontal position of the upper left corner of the portion of the texture to be shown(texels)
-	 * @param V - Vertical position of the upper left corner of the portion of the texture to be shown(texels)
-	 * @param UL - The width of the portion of the texture to be drawn(texels). 
-	 * @param VL - The height of the portion of the texture to be drawn(texels). 
-	 * @param ClipTile - true to clip tile
-	 * @param BlendMode - blending mode of texture
+	 *
+	 * @param Tex Texture to draw.
+	 * @param X Position to draw X.
+	 * @param Y Position to draw Y.
+	 * @param XL Width of tile.
+	 * @param YL Height of tile.
+	 * @param U Horizontal position of the upper left corner of the portion of the texture to be shown(texels).
+	 * @param V Vertical position of the upper left corner of the portion of the texture to be shown(texels).
+	 * @param UL The width of the portion of the texture to be drawn(texels).
+	 * @param VL The height of the portion of the texture to be drawn(texels).
+	 * @param ClipTile true to clip tile.
+	 * @param BlendMode Blending mode of texture.
 	 */
 	void DrawTile(UTexture* Tex, float X, float Y, float XL, float YL, float U, float V, float UL, float VL, EBlendMode BlendMode=BLEND_Translucent);
 
-	/** calculate the length of a string 
-	 * @param Font - font used
-	 * @param ScaleX - scale in X axis
-	 * @param ScaleY - scale in Y axis
-	 * @param XL out - horizontal length of string
-	 * @param YL out - vertical length of string
-	 * @param Text - string to calculate for
+	/**
+	 * Calculate the length of a string.
+	 *
+	 * @param Font The font used.
+	 * @param ScaleX Scale in X axis.
+	 * @param ScaleY Scale in Y axis.
+	 * @param XL out Horizontal length of string.
+	 * @param YL out Vertical length of string.
+	 * @param Text String to calculate for.
 	 */
 	static void ClippedStrLen(const UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Text);
 
 	/**	
-	 * Calculate the size of a string built from a font, word wrapped
-	 * to a specified region.
+	 * Calculate the size of a string built from a font, word wrapped to a specified region.
 	 */
 	void VARARGS WrappedStrLenf(const UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Fmt, ...);
 		
@@ -174,16 +177,17 @@ public:
 	 */
 	int32 WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, const UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) ;
 	
-	/** Draws a string of text to the screen 
-	 * @param InFont - font to draw with
-	 * @param InText - string to be drawn
-	 * @param X - Position to draw X
-	 * @param Y - Position to draw Y
-	 * @param XScale - Optional. The horizontal scaling to apply to the text. 
-	 * @param YScale - Optional. The vertical scaling to apply to the text. 
-	 * @param RenderInfo - Optional. The FontRenderInfo to use when drawing the text.
+	/**
+	 * Draws a string of text to the screen.
 	 *
-	 * returns the Y extent of the rendered text
+	 * @param InFont The font to draw with.
+	 * @param InText The string to be drawn.
+	 * @param X Position to draw X.
+	 * @param Y Position to draw Y.
+	 * @param XScale Optional. The horizontal scaling to apply to the text. 
+	 * @param YScale Optional. The vertical scaling to apply to the text. 
+	 * @param RenderInfo Optional. The FontRenderInfo to use when drawing the text.
+	 * @return The Y extent of the rendered text.
 	 */
 	float DrawText(const UFont* InFont, const FString& InText, float X, float Y, float XScale = 1.f, float YScale = 1.f, const FFontRenderInfo& RenderInfo = FFontRenderInfo());
 
@@ -228,7 +232,6 @@ public:
 	 */
 	static void CanvasStringSize( FTextSizingParameters& Parameters, const TCHAR* pText );
 
-
 	/**
 	 * Parses a single string into an array of strings that will fit inside the specified bounding region.
 	 *
@@ -254,35 +257,42 @@ public:
 
 	void WrapString( FTextSizingParameters& Parameters, const float InCurX, const TCHAR* const pText, TArray<FWrappedStringElement>& out_Lines, FCanvasWordWrapper::FWrappedLineData* const OutWrappedLineData = nullptr);
 
-
-	/** Transforms a 3D world-space vector into 2D screen coordinates. */
+	/**
+	 * Transforms a 3D world-space vector into 2D screen coordinates.
+	 *
+	 * @param Location The vector to transform.
+	 * @return The transformed vector.
+	 */
 	FVector Project(FVector Location) const;
 
 	/** 
 	 * Transforms 2D screen coordinates into a 3D world-space origin and direction.
-	 * @param ScreenPos - screen coordinates in pixels
-	 * @param WorldOrigin (out) - world-space origin vector
-	 * @param WorldDirection (out) - world-space direction vector
+	 *
+	 * @param ScreenPos Screen coordinates in pixels.
+	 * @param WorldOrigin (out) World-space origin vector.
+	 * @param WorldDirection (out) World-space direction vector.
 	 */
 	void Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection) const;
 
 	/**
 	 * Calculate the length of a string, taking text wrapping into account.
-	 * @param InFont - The Font use
-	 * @param Text	 - string to calculate for
-	 * @param XL out - horizontal length of string
-	 * @param YL out - vertical length of string
+	 *
+	 * @param InFont The Font use.
+	 * @param Text The string to calculate for.
+	 * @param XL out Horizontal length of string.
+	 * @param YL out Vertical length of string.
 	 */
 	void StrLen(const UFont* InFont, const FString& InText, float& XL, float& YL);
 
 	/** 
 	 * Calculates the horizontal and vertical size of a given string. This is used for clipped text as it does not take wrapping into account.
-	 * @param Font	 - Font 
-	 * @param Text	 - string to calculate for
-	 * @param XL out - horizontal length of string
-	 * @param YL out - vertical length of string
-	 * @param ScaleX - scale that the string is expected to draw at horizontally
-	 * @param ScaleY - scale that the string is expected to draw at vertically
+	 *
+	 * @param Font The font to use.
+	 * @param Text String to calculate for.
+	 * @param XL out Horizontal length of string.
+	 * @param YL out Vertical length of string.
+	 * @param ScaleX Scale that the string is expected to draw at horizontally.
+	 * @param ScaleY Scale that the string is expected to draw at vertically.
 	 */
 	void TextSize( const UFont* InFont, const FString& InText, float& XL, float& YL, float ScaleX=1.f, float ScaleY=1.f);
 	

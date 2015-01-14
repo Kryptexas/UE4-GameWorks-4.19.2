@@ -17,7 +17,7 @@ struct FCollisionProfileName
 
 	FCollisionProfileName()
 		: Name(NAME_None)
-	{}
+	{ }
 
 	UPROPERTY(EditAnywhere, Category = Collision)
 	FName Name;
@@ -89,21 +89,21 @@ struct FCustomChannelSetup
 
 	/** Default Response for the channel */
 	UPROPERTY()
-	TEnumAsByte<enum ECollisionResponse>	DefaultResponse;
+	TEnumAsByte<enum ECollisionResponse> DefaultResponse;
 
 	/** Sets meta data TraceType="1" for the enum entry if true. Otherwise, this channel will be treated as object query channel, so you can query object types**/
 	UPROPERTY()
-	bool	bTraceType;
+	bool bTraceType;
 	
 	/** Specifies if this is static object. Otherwise it will be dynamic object. This is used for query all objects vs all static objects vs all dynamic objects **/
 	UPROPERTY()
-	bool	bStaticObject;	
+	bool bStaticObject;	
 
 	FCustomChannelSetup()
 		: DefaultResponse(ECR_Block)
 		, bTraceType(false)
 		, bStaticObject(false)
-	{}
+	{ }
 
 	bool operator==(const FCustomChannelSetup& Other) const
 	{
@@ -143,6 +143,7 @@ class UCollisionProfile
 	GENERATED_UCLASS_BODY()
 
 private:
+
 	// This is hacky, but without this edit tag, we can't get valid property handle
 	// and we can't save them properly to config, so we need this tag. 
 	UPROPERTY(globalconfig)

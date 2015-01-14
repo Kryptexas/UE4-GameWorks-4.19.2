@@ -1,14 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "ControlChannel.generated.h"
 
-//
-// A channel for exchanging connection control messages
-//
 
+/**
+ * A channel for exchanging connection control messages.
+ */
 UCLASS(transient, customConstructor)
-class UControlChannel : public UChannel
+class UControlChannel
+	: public UChannel
 {
 	GENERATED_UCLASS_BODY()
 

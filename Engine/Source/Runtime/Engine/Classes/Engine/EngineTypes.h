@@ -11,12 +11,12 @@
 #include "EngineTypes.generated.h"
 
 
-
 /**
  * Default number of components to expect in TInlineAllocators used with AActor component arrays.
  * Used by engine code to try to avoid allocations in AActor::GetComponents(), among others.
  */
 enum { NumInlinedActorComponents = 24 };
+
 
 /**
  * TInlineComponentArray is simply a TArray that reserves a fixed amount of space on the stack
@@ -37,6 +37,7 @@ enum EAspectRatioAxisConstraint
 	AspectRatio_MAX,
 };
 
+
 /** The type of metric we want about the actor **/
 UENUM()
 enum EActorMetricsType
@@ -46,6 +47,7 @@ enum EActorMetricsType
 	METRICS_SECTIONS,
 	METRICS_MAX,
 };
+
 
 // Return values for UEngine::Browse
 namespace EBrowseReturnVal
@@ -58,6 +60,7 @@ namespace EBrowseReturnVal
 	};
 }
 
+
 UENUM()
 namespace EAttachLocation
 {
@@ -68,6 +71,7 @@ namespace EAttachLocation
 		SnapToTarget
 	};
 }
+
 
 /**
  * A priority for sorting scene elements by depth.
@@ -83,6 +87,7 @@ enum ESceneDepthPriorityGroup
 	SDPG_MAX,
 };
 
+
 UENUM()
 enum EIndirectLightingCacheQuality
 {
@@ -93,6 +98,7 @@ enum EIndirectLightingCacheQuality
 	/** The object will get a 5x5x5 stable volume of interpolated indirect lighting, which allows gradients of lighting intensity across the receiving object. */
 	ILCQ_Volume
 };
+
 
 /** Note: This is mirrored in Lightmass, be sure to update the blend mode structure and logic there if this changes. */
 // Note: Check UMaterialInstance::Serialize if changed!!
@@ -107,6 +113,7 @@ enum EBlendMode
 	BLEND_MAX,
 };
 
+
 UENUM()
 enum ESamplerSourceMode
 {
@@ -117,6 +124,7 @@ enum ESamplerSourceMode
 	/** Shared sampler source that does not consume a sampler slot.  Uses clamp addressing and gets filter mode from the world texture group. */
 	SSM_Clamp_WorldGroupSettings UMETA(DisplayName="Shared: Clamp")
 };
+
 
 UENUM()
 enum ETranslucencyLightingMode
@@ -149,6 +157,7 @@ enum ETranslucencyLightingMode
 	TLM_MAX,
 };
 
+
 /**
  * Enumerates available options for the translucency sort policy.
  */
@@ -168,6 +177,7 @@ namespace ETranslucentSortPolicy
 	};
 }
 
+
 /** Controls the way that the width scale property affects anim trails */
 UENUM()
 enum ETrailWidthMode
@@ -176,6 +186,7 @@ enum ETrailWidthMode
 	ETrailWidthMode_FromFirst UMETA(DisplayName = "From First Socket"),
 	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
 };
+
 
 // Note: Check UMaterialInstance::Serialize if changed!!
 UENUM()
@@ -191,6 +202,7 @@ enum EMaterialShadingModel
 	MSM_MAX,
 };
 
+
 // This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code.
 UENUM()
 enum EMaterialTessellationMode
@@ -203,6 +215,7 @@ enum EMaterialTessellationMode
 	MTM_PNTriangles UMETA(DisplayName="PN Triangles"),
 	MTM_MAX,
 };
+
 
 UENUM()
 enum EMaterialSamplerType
@@ -217,6 +230,7 @@ enum EMaterialSamplerType
 	SAMPLERTYPE_LinearGrayscale UMETA(DisplayName = "Linear Grayscale"),
 	SAMPLERTYPE_MAX,
 };
+
 
 /**	Lighting build quality enumeration */
 UENUM()
@@ -248,6 +262,7 @@ enum ETriangleSortOption
 	TRISORT_MAX,
 };
 
+
 /** Enum to specify which axis to use for the forward vector when using TRISORT_CustomLeftRight sort mode */
 UENUM()
 enum ETriangleSortAxis
@@ -257,6 +272,7 @@ enum ETriangleSortAxis
 	TSA_Z_Axis,
 	TSA_MAX,
 };
+
 
 /** Movement modes for Characters. */
 UENUM(BlueprintType)
@@ -383,6 +399,7 @@ enum EOverlapFilterOption
 	OverlapFilter_StaticOnly UMETA(DisplayName="AllStaticObjects"),
 };
 
+
 UENUM(BlueprintType)
 enum EObjectTypeQuery
 {
@@ -421,6 +438,7 @@ enum EObjectTypeQuery
 
 	ObjectTypeQuery_MAX	UMETA(Hidden)
 };
+
 
 UENUM(BlueprintType)
 enum ETraceTypeQuery
@@ -461,6 +479,7 @@ enum ETraceTypeQuery
 	TraceTypeQuery_MAX	UMETA(Hidden)
 };
 
+
 /** Enum indicating which physics scene to use. */
 UENUM()
 enum EPhysicsSceneType
@@ -474,6 +493,7 @@ enum EPhysicsSceneType
 	PST_MAX,
 };
 
+
 /** Enum indicating how each type should respond */
 UENUM(BlueprintType)
 enum ECollisionResponse
@@ -484,6 +504,7 @@ enum ECollisionResponse
 	ECR_MAX,
 };
 
+
 UENUM()
 enum EFilterInterpolationType
 {
@@ -492,6 +513,7 @@ enum EFilterInterpolationType
 	BSIT_Cubic,
 	BSIT_MAX
 };
+
 
 UENUM()
 enum EInputConsumeOptions
@@ -504,6 +526,7 @@ enum EInputConsumeOptions
 	ICO_ConsumeNone,
 	ICO_MAX
 };
+
 
 namespace EWorldType
 {
@@ -518,12 +541,14 @@ namespace EWorldType
 	};
 }
 
+
 enum class EFlushLevelStreamingType
 {
 	None,			
 	Full,			// Allow multiple load requests
 	Visibility,		// Flush visibility only, do not allow load requests, flushes async loading as well
 };
+
 
 USTRUCT()
 struct FResponseChannel
@@ -546,6 +571,7 @@ struct FResponseChannel
 		: Channel(InChannel)
 		, Response(InResponse) {}
 };
+
 
 /**
  *	Container for indicating a set of collision channels that this object will collide with.
@@ -750,12 +776,15 @@ struct ENGINE_API FCollisionResponseContainer
 	static FCollisionResponseContainer CreateMinContainer(const FCollisionResponseContainer& A, const FCollisionResponseContainer& B);
 
 	static const struct FCollisionResponseContainer & GetDefaultResponseContainer() { return DefaultResponseContainer; }
+
 private:
+
 	/** static variable for default data to be used without reconstructing everytime **/
 	static FCollisionResponseContainer DefaultResponseContainer;
 
 	friend class UCollisionProfile;
 };
+
 
 /** Enum for controlling the falloff of strength of a radial impulse as a function of distance from Origin. */
 UENUM()
@@ -768,6 +797,7 @@ enum ERadialImpulseFalloff
 	RIF_MAX,
 };
 
+
 /** Presets of values used in considering when put this body to sleep. */
 UENUM()
 enum ESleepFamily
@@ -778,6 +808,7 @@ enum ESleepFamily
 	SF_Sensitive,
 	SF_MAX,
 };
+
 
 /** Enum used to indicate what type of timeline signature a function matches */
 UENUM()
@@ -790,6 +821,7 @@ enum ETimelineSigType
 	ETS_InvalidSignature,
 	ETS_MAX,
 };
+
 
 /** Enum used to describe what type of collision is enabled on a body */
 UENUM()
@@ -805,6 +837,7 @@ namespace ECollisionEnabled
 		QueryAndPhysics UMETA(DisplayName="Collision Enabled") 
 	}; 
 } 
+
 
 /** describes the physical state of a rigid body */
 USTRUCT()
@@ -833,9 +866,9 @@ struct FRigidBodyState
 		, LinVel(ForceInit)
 		, AngVel(ForceInit)
 		, Flags(0)
-	{
-	}
+	{ }
 };
+
 
 namespace ERigidBodyFlags
 {
@@ -846,6 +879,7 @@ namespace ERigidBodyFlags
 		NeedsUpdate			= 0x02,
 	};
 }
+
 
 /** Rigid body error correction data */
 USTRUCT()
@@ -889,11 +923,12 @@ struct FRigidBodyErrorCorrection
 		, AngularInterpAlpha(0.1f)
 		, AngularRecipFixTime(1.0f)
 		, BodySpeedThresholdSq(0.2f)
-	{
-	}
+	{ }
 };
 
-/** Information about one contact between a pair of rigid bodies
+
+/**
+ * Information about one contact between a pair of rigid bodies.
  */
 USTRUCT()
 struct FRigidBodyContactInfo
@@ -920,19 +955,18 @@ struct FRigidBodyContactInfo
 	{
 		for (int32 ElementIndex = 0; ElementIndex < 2; ElementIndex++)
 		{
-			PhysMaterial[ElementIndex] = NULL;
+			PhysMaterial[ElementIndex] = nullptr;
 		}
 	}
-
 
 	FRigidBodyContactInfo(	const FVector& InContactPosition, 
 							const FVector& InContactNormal, 
 							float InPenetration, 
 							UPhysicalMaterial* InPhysMat0, 
 							UPhysicalMaterial* InPhysMat1 )
-	:	ContactPosition(InContactPosition)
-	,	ContactNormal(InContactNormal)
-	,	ContactPenetration(InPenetration)
+		: ContactPosition(InContactPosition)
+		, ContactNormal(InContactNormal)
+		, ContactPenetration(InPenetration)
 	{
 		PhysMaterial[0] = InPhysMat0;
 		PhysMaterial[1] = InPhysMat1;
@@ -942,7 +976,9 @@ struct FRigidBodyContactInfo
 	void SwapOrder();
 };
 
-/** Information about an overall collision, including contacts
+
+/**
+ * Information about an overall collision, including contacts.
  */
 USTRUCT()
 struct FCollisionImpactData
@@ -986,11 +1022,11 @@ struct FFractureEffect
 	class USoundBase* Sound;
 
 	FFractureEffect()
-		: ParticleSystem(NULL)
-		, Sound(NULL)
-	{
-	}
+		: ParticleSystem(nullptr)
+		, Sound(nullptr)
+	{ }
 };
+
 
 /**	Struct for handling positions relative to a base actor, which is potentially moving */
 USTRUCT()
@@ -1023,6 +1059,7 @@ struct ENGINE_API FBasedPosition
 	friend FArchive& operator<<( FArchive& Ar, FBasedPosition& T );
 };
 
+
 /** A line of subtitle text and the time at which it should be displayed. */
 USTRUCT()
 struct FSubtitleCue
@@ -1039,9 +1076,9 @@ struct FSubtitleCue
 
 	FSubtitleCue()
 		: Time(0)
-	{
-	}
+	{ }
 };
+
 
 /**	A subtitle localized to a specific language. */
 USTRUCT()
@@ -1076,9 +1113,9 @@ struct FLocalizedSubtitle
 		: bMature(false)
 		, bManualWordWrap(false)
 		, bSingleLine(false)
-	{
-	}
+	{ }
 };
+
 
 /**	Per-light settings for Lightmass */
 USTRUCT()
@@ -1097,9 +1134,9 @@ struct FLightmassLightSettings
 	FLightmassLightSettings()
 		: IndirectLightingSaturation(1.0f)
 		, ShadowExponent(2.0f)
-	{
-	}
+	{ }
 };
+
 
 /**	Point/spot settings for Lightmass */
 USTRUCT()
@@ -1107,6 +1144,7 @@ struct FLightmassPointLightSettings : public FLightmassLightSettings
 {
 	GENERATED_USTRUCT_BODY()
 };
+
 
 /**	Directional light settings for Lightmass */
 USTRUCT()
@@ -1123,6 +1161,7 @@ struct FLightmassDirectionalLightSettings : public FLightmassLightSettings
 	{
 	}
 };
+
 
 /**	Per-object settings for Lightmass */
 USTRUCT()
@@ -1198,6 +1237,7 @@ struct FLightmassPrimitiveSettings
 	// Functions.
 	friend FArchive& operator<<(FArchive& Ar, FLightmassPrimitiveSettings& Settings);
 };
+
 
 /**	Debug options for Lightmass */
 USTRUCT()
@@ -1293,6 +1333,7 @@ struct FLightmassDebugOptions
 	ENGINE_API FLightmassDebugOptions();
 };
 
+
 /**
  *	Debug options for Swarm
  */
@@ -1329,6 +1370,7 @@ struct FSwarmDebugOptions
 	void Touch();
 };
 
+
 UENUM()
 enum ELightMapPaddingType
 {
@@ -1336,6 +1378,7 @@ enum ELightMapPaddingType
 	LMPT_PrePadding,
 	LMPT_NoPadding
 };
+
 
 /**
  * Bit-field flags that affects storage (e.g. packing, streaming) and other info about a shadowmap.
@@ -1348,6 +1391,7 @@ enum EShadowMapFlags
 	// Shadowmap should be placed in a streaming texture
 	SMF_Streamed		= 0x00000001
 };
+
 
 /** reference to a specific material in a PrimitiveComponent */
 USTRUCT()
@@ -1365,26 +1409,24 @@ struct FPrimitiveMaterialRef
 	int32 ElementIndex;
 
 	FPrimitiveMaterialRef()
-		: Primitive(NULL)
-		, Decal(NULL)
+		: Primitive(nullptr)
+		, Decal(nullptr)
 		, ElementIndex(0)
-	{
-	}
+	{ }
 
 	FPrimitiveMaterialRef(UPrimitiveComponent* InPrimitive, int32 InElementIndex)
 		: Primitive(InPrimitive)
-		, Decal(NULL)
+		, Decal(nullptr)
 		, ElementIndex(InElementIndex)
-	{
-	}
+	{ 	}
 
 	FPrimitiveMaterialRef(UDecalComponent* InDecal, int32 InElementIndex)
-		: Primitive(NULL)
+		: Primitive(nullptr)
 		, Decal(InDecal)
 		, ElementIndex(InElementIndex)
-	{
-	}
+	{ 	}
 };
+
 
 /**
  * Structure containing information about one hit of a trace, such as point of impact and surface normal at that point.
@@ -1551,7 +1593,7 @@ struct ENGINE_API FHitResult
 				return &InHits[HitIdx];
 			}
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	/** Static utility function that returns the number of blocking hits in array. */
@@ -1575,6 +1617,7 @@ struct ENGINE_API FHitResult
 	}
 };
 
+
 template<>
 struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
 {
@@ -1583,6 +1626,7 @@ struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
 		WithNetSerializer = true,
 	};
 };
+
 
 /** Structure containing information about one hit of an overlap test */
 USTRUCT()
@@ -1619,6 +1663,7 @@ struct ENGINE_API FOverlapResult
 	}
 };
 
+
 /** Structure containing information about minimum translation direction (MTD) */
 USTRUCT()
 struct ENGINE_API FMTDResult
@@ -1639,6 +1684,7 @@ struct ENGINE_API FMTDResult
 	}
 };
 
+
 /** Struct used for passing information from Matinee to an Actor for blending animations during a sequence. */
 USTRUCT()
 struct FAnimSlotInfo
@@ -1653,6 +1699,7 @@ struct FAnimSlotInfo
 	UPROPERTY()
 	TArray<float> ChannelWeights;
 };
+
 
 /** Used to indicate each slot name and how many channels they have. */
 USTRUCT()
@@ -1671,10 +1718,10 @@ struct FAnimSlotDesc
 
 	FAnimSlotDesc()
 		: NumChannels(0)
-	{
-	}
+	{ }
 
 };
+
 
 /** Container for Animation Update Rate parameters.
  * They are shared for all components of an Actor, so they can be updated in sync. */
@@ -1706,15 +1753,15 @@ private:
 	bool bSkipEvaluation;
 
 public:
-	/** Default constructor */
+
+	/** Default constructor. */
 	FAnimUpdateRateParameters()
 		: UpdateRate(1)
 		, EvaluationRate(1)
 		, bInterpolateSkippedFrames(false)
 		, bSkipUpdate(false)
 		, bSkipEvaluation(false)
-	{
-	}
+	{ }
 
 	/** Set parameters and verify inputs.
 	 * @param : Owner Actor owner calling this.
@@ -1755,6 +1802,7 @@ public:
 	}
 };
 
+
 /**
  * Point Of View type.
  */
@@ -1790,6 +1838,7 @@ struct FPOV
 	}
 };
 
+
 /**
  * The importance of a mesh feature when automatically generating mesh LODs.
  */
@@ -1806,6 +1855,7 @@ namespace EMeshFeatureImportance
 		Highest
 	};
 }
+
 
 /**
  * Settings used to reduce a mesh.
@@ -1860,8 +1910,7 @@ struct FMeshReductionSettings
 		, ShadingImportance(EMeshFeatureImportance::Normal)
 		, bRecalculateNormals(false)
 		, BaseLODModel(0)
-	{
-	}
+	{ }
 
 	/** Equality operator. */
 	bool operator==(const FMeshReductionSettings& Other) const
@@ -1883,6 +1932,7 @@ struct FMeshReductionSettings
 		return !(*this == Other);
 	}
 };
+
 
 /**
  * Settings applied when building a mesh.
@@ -1960,7 +2010,7 @@ struct FMeshBuildSettings
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 		, DistanceFieldResolutionScale(1.0f)
 		, bGenerateDistanceFieldAsIfTwoSided(false)
-	{}
+	{ }
 
 	/** Equality operator. */
 	bool operator==(const FMeshBuildSettings& Other) const
@@ -1985,6 +2035,7 @@ struct FMeshBuildSettings
 		return !(*this == Other);
 	}
 };
+
 
 USTRUCT()
 struct FMeshProxySettings
@@ -2035,8 +2086,7 @@ struct FMeshProxySettings
 		, ClippingLevel(0.0)
 		, AxisIndex(0)
 		, bPlaneNegativeHalfspace(false)
-	{
-	}
+	{ }
 
 	/** Equality operator. */
 	bool operator==(const FMeshProxySettings& Other) const
@@ -2056,24 +2106,26 @@ struct FMeshProxySettings
 	}
 };
 
+
 USTRUCT()
 struct ENGINE_API FDamageEvent
 {
 	GENERATED_USTRUCT_BODY()
 
 public:
-	FDamageEvent() 
-	{}
+
+	/** Default constructor (no initialization). */
+	FDamageEvent() { }
 
 	FDamageEvent(FDamageEvent const& InDamageEvent)
 		: DamageTypeClass(InDamageEvent.DamageTypeClass)
-	{}
+	{ }
 	
 	explicit FDamageEvent(TSubclassOf<class UDamageType> InDamageTypeClass)
 		: DamageTypeClass(InDamageTypeClass)
-	{}
+	{ }
 
-	/** Optional DamageType for this event.  If NULL, UDamageType will be assumed. */
+	/** Optional DamageType for this event.  If nullptr, UDamageType will be assumed. */
 	UPROPERTY()
 	TSubclassOf<class UDamageType> DamageTypeClass;
 
@@ -2086,6 +2138,7 @@ public:
 	/** This is for compatibility with old-style functions which want a unified set of hit data regardless of type of hit.  Ideally this will go away over time. */
 	virtual void GetBestHitInfo(AActor const* HitActor, AActor const* HitInstigator, struct FHitResult& OutHitInfo, FVector& OutImpulseDir) const;
 };
+
 
 USTRUCT()
 struct ENGINE_API FPointDamageEvent : public FDamageEvent
@@ -2202,6 +2255,7 @@ enum ENetRole
 	ROLE_MAX,
 };
 
+
 UENUM()
 enum ENetDormancy
 {
@@ -2217,6 +2271,7 @@ enum ENetDormancy
 	DORM_Initial,
 	DORN_MAX,
 };
+
 
 UENUM()
 namespace EAutoReceiveInput
@@ -2235,6 +2290,7 @@ namespace EAutoReceiveInput
 	};
 }
 
+
 UENUM()
 enum class EAutoPossessAI : uint8
 {
@@ -2243,6 +2299,7 @@ enum class EAutoPossessAI : uint8
 	Spawned,				// Only possess by an AI Controller if Pawn is spawned after the world has loaded.
 	PlacedInWorldOrSpawned, // Pawn is automatically possessed by an AI Controller whenever it is created.
 };
+
 
 UENUM(BlueprintType)
 namespace EEndPlayReason
@@ -2257,6 +2314,7 @@ namespace EEndPlayReason
 	};
 
 }
+
 
 DECLARE_DYNAMIC_DELEGATE(FTimerDynamicDelegate);
 
@@ -2388,7 +2446,8 @@ struct FRepMovement
 	}
 };
 
-/** Handles attachment replication to clients. Movement replication will not happen while AttachParent is non-NULL */
+
+/** Handles attachment replication to clients. Movement replication will not happen while AttachParent is non-nullptr */
 USTRUCT()
 struct FRepAttachment
 {
@@ -2413,13 +2472,13 @@ struct FRepAttachment
 	class USceneComponent* AttachComponent;
 
 	FRepAttachment()
-		: AttachParent(NULL)
+		: AttachParent(nullptr)
 		, LocationOffset(ForceInit)
 		, RelativeScale3D(ForceInit)
 		, RotationOffset(ForceInit)
 		, AttachSocket(NAME_None)
-		, AttachComponent(NULL)
-	{}
+		, AttachComponent(nullptr)
+	{ }
 };
 
 
@@ -2475,16 +2534,14 @@ struct FWalkableSlopeOverride
 	float WalkableSlopeAngle;
 
 	FWalkableSlopeOverride()
-	: WalkableSlopeBehavior(WalkableSlope_Default)
-	, WalkableSlopeAngle(0.f)
-	{
-	}
+		: WalkableSlopeBehavior(WalkableSlope_Default)
+		, WalkableSlopeAngle(0.f)
+	{ }
 
 	FWalkableSlopeOverride(EWalkableSlopeBehavior NewSlopeBehavior, float NewSlopeAngle)
-	: WalkableSlopeBehavior(NewSlopeBehavior)
-	, WalkableSlopeAngle(NewSlopeAngle)
-	{
-	}
+		: WalkableSlopeBehavior(NewSlopeBehavior)
+		, WalkableSlopeAngle(NewSlopeAngle)
+	{ }
 
 	// Given a walkable floor normal Z value, either relax or restrict the value if we override such behavior.
 	float ModifyWalkableFloorZ(float InWalkableFloorZ) const
@@ -2532,6 +2589,7 @@ struct TStructOpsTypeTraits<FRepMovement> : public TStructOpsTypeTraitsBase
 	};
 };
 
+
 /** Structure to hold and pass around transient flags used during replication. */
 struct FReplicationFlags
 {
@@ -2557,6 +2615,7 @@ struct FReplicationFlags
 	}
 };
 
+
 static_assert(sizeof(FReplicationFlags) == 4, "FReplicationFlags has invalid size.");
 
 /** Struct used to specify the property name of the component to constrain */
@@ -2569,6 +2628,7 @@ struct FConstrainComponentPropName
 	UPROPERTY(EditAnywhere, Category=Constraint)
 	FName	ComponentName;
 };
+
 
 /** 
  *	Struct that allows for different ways to reference a component. 
@@ -2593,6 +2653,7 @@ struct ENGINE_API FComponentReference
 	/** Get the actual component pointer from this reference */
 	class USceneComponent* GetComponent(AActor* OwningActor) const;
 };
+
 
 /** Types of surfaces in the game. */
 UENUM(BlueprintType)
@@ -2664,6 +2725,7 @@ enum EPhysicalSurface
 	SurfaceType_Max UMETA(Hidden)
 };
 
+
 /** Describes how often this component is allowed to move. */
 UENUM()
 namespace EComponentMobility
@@ -2696,6 +2758,7 @@ namespace EComponentMobility
 		Movable
 	};
 }
+
 
 UCLASS(abstract, config=Engine)
 class ENGINE_API UEngineTypes : public UObject
@@ -2757,6 +2820,7 @@ struct FComponentSocketDescription
 	}
 };
 
+
 // ANGULAR DOF
 UENUM()
 enum EAngularConstraintMotion
@@ -2787,6 +2851,7 @@ struct FFilePath
 	FString FilePath;
 };
 
+
 /**
  * Structure for directory paths that are displayed in the UI.
  */
@@ -2801,6 +2866,7 @@ struct FDirectoryPath
 	UPROPERTY(EditAnywhere, Category=Path)
 	FString Path;
 };
+
 
 /**
 * This is used for redirecting old name to new name
@@ -2822,16 +2888,17 @@ struct ENGINE_API FRedirector
 	FRedirector()
 		: OldName(NAME_None)
 		, NewName(NAME_None)
-	{}
+	{ }
 
 	FRedirector(FName InOldName, FName InNewName)
 		: OldName(InOldName)
 		, NewName(InNewName)
-	{}
+	{ }
 };
 
+
 /** 
- * Structure for recording float values and displaying them as an Histogram through DrawDebugFloatHistory
+ * Structure for recording float values and displaying them as an Histogram through DrawDebugFloatHistory.
  */
 USTRUCT(BlueprintType)
 struct FDebugFloatHistory
@@ -2865,16 +2932,14 @@ public:
 		, MinValue(0.f)
 		, MaxValue(0.f)
 		, bAutoAdjustMinMax(true)
-	{
-	}
+	{ }
 
 	FDebugFloatHistory(float const & InMaxSamples, float const & InMinValue, float const & InMaxValue, bool const & InbAutoAdjustMinMax)
 		: MaxSamples(InMaxSamples)
 		, MinValue(InMinValue)
 		, MaxValue(InMaxValue)
 		, bAutoAdjustMinMax(InbAutoAdjustMinMax)
-	{
-	}
+	{ }
 
 	/**
 	 * Record a new Sample.
@@ -2936,6 +3001,7 @@ public:
 	}
 };
 
+
 /** info for glow when using depth field rendering */
 USTRUCT(BlueprintType)
 struct FDepthFieldGlowInfo
@@ -2968,32 +3034,31 @@ struct FDepthFieldGlowInfo
 		, GlowColor(ForceInit)
 		, GlowOuterRadius(ForceInit)
 		, GlowInnerRadius(ForceInit)
+	{ }
+
+	bool operator==(const FDepthFieldGlowInfo& Other) const
 	{
+		if (Other.bEnableGlow != bEnableGlow)
+		{
+			return false;
+		}
+		else if (!bEnableGlow)
+		{
+			// if the glow is disabled on both, the other values don't matter
+			return true;
+		}
+		else
+		{
+			return (Other.GlowColor == GlowColor && Other.GlowOuterRadius == GlowOuterRadius && Other.GlowInnerRadius == GlowInnerRadius);
+		}
 	}
 
-
-		bool operator==(const FDepthFieldGlowInfo& Other) const
-		{
-			if (Other.bEnableGlow != bEnableGlow)
-			{
-				return false;
-			}
-			else if (!bEnableGlow)
-			{
-				// if the glow is disabled on both, the other values don't matter
-				return true;
-			}
-			else
-			{
-				return (Other.GlowColor == GlowColor && Other.GlowOuterRadius == GlowOuterRadius && Other.GlowInnerRadius == GlowInnerRadius);
-			}
-		}
-		bool operator!=(const FDepthFieldGlowInfo& Other) const
-		{
-			return !(*this == Other);
-		}
-	
+	bool operator!=(const FDepthFieldGlowInfo& Other) const
+	{
+		return !(*this == Other);
+	}	
 };
+
 
 /** information used in font rendering */
 USTRUCT(BlueprintType)
@@ -3017,6 +3082,7 @@ struct FFontRenderInfo
 		: bClipText(false), bEnableShadow(false)
 	{}
 };
+
 
 /** Simple 2d triangle with UVs */
 USTRUCT()
@@ -3070,8 +3136,8 @@ struct FCanvasUVTri
 		, V2_Pos(ForceInit)
 		, V2_UV(ForceInit)
 		, V2_Color(ForceInit)
-	{
-	}
+	{ }
 };
+
 
 template <> struct TIsZeroConstructType<FCanvasUVTri> { enum { Value = true }; };

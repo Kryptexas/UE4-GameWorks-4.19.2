@@ -1,9 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
 #include "GameFramework/Volume.h"
 #include "CullDistanceVolume.generated.h"
+
 
 /**
  * Helper structure containing size and cull distance pair.
@@ -25,20 +26,18 @@ struct FCullDistanceSizePair
 	FCullDistanceSizePair()
 		: Size(0)
 		, CullDistance(0)
-	{
-	}
+	{ }
 
 	FCullDistanceSizePair(float InSize, float InCullDistance)
 		: Size(InSize)
 		, CullDistance(InCullDistance)
-	{
-	}
-
-
+	{ }
 };
 
+
 UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume))
-class ACullDistanceVolume : public AVolume
+class ACullDistanceVolume
+	: public AVolume
 {
 	GENERATED_UCLASS_BODY()
 
@@ -55,14 +54,16 @@ class ACullDistanceVolume : public AVolume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CullDistanceVolume)
 	uint32 bEnabled:1;
 
+public:
 
+	// UObject Interface
 
-	// Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditMove(bool bFinished) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+
+public:
 
 	/** 
 	 * Override Destroyed so that we can re-calculate primitive draw distances after this volume has been deleted.
@@ -80,6 +81,3 @@ class ACullDistanceVolume : public AVolume
 	/** Get the set of primitives and new max draw distances defined by this volume. */
 	void GetPrimitiveMaxDrawDistances(TMap<UPrimitiveComponent*,float>& OutCullDistances);
 };
-
-
-

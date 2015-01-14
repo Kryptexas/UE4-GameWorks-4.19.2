@@ -1,9 +1,12 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "CurveTable.generated.h"
 
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogCurveTable, Log, All);
+
 
 // forward declare JSON writer
 template <class CharType>
@@ -11,9 +14,13 @@ struct TPrettyJsonPrintPolicy;
 template <class CharType, class PrintPolicy>
 class TJsonWriter;
 
-/** Imported spreadsheet table as curves */
+
+/**
+ * Imported spreadsheet table as curves.
+ */
 UCLASS(MinimalAPI)
-class UCurveTable : public UObject
+class UCurveTable
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -38,15 +45,15 @@ class UCurveTable : public UObject
 		if(RowName == NAME_None)
 		{
 			UE_CLOG(WarnIfNotFound, LogCurveTable, Warning, TEXT("UCurveTable::FindRow : NAME_None is invalid row name for CurveTable '%s' (%s)."), *GetPathName(), *ContextString);
-			return NULL;
+			return nullptr;
 		}
 
 		FRichCurve* const* FoundCurve = RowMap.Find(RowName);
 
-		if(FoundCurve == NULL)
+		if(FoundCurve == nullptr)
 		{
 			UE_CLOG(WarnIfNotFound, LogCurveTable, Warning, TEXT("UCurveTable::FindRow : Row '%s' not found in CurveTable '%s' (%s)."), *RowName.ToString(), *GetPathName(), *ContextString);
-			return NULL;
+			return nullptr;
 		}
 
 		return (FRichCurve*)*FoundCurve;
@@ -82,18 +89,19 @@ protected:
 
 };
 
-/** Handle to a particular row in a table*/
+
+/**
+ * Handle to a particular row in a table.
+ */
 USTRUCT(BlueprintType)
 struct ENGINE_API FCurveTableRowHandle
 {
 	GENERATED_USTRUCT_BODY()
 
 	FCurveTableRowHandle()
-		: CurveTable(NULL)
+		: CurveTable(nullptr)
 		, RowName(NAME_None)
-	{
-
-	}
+	{ }
 
 	/** Pointer to table we want a row from */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CurveTableRowHandle)
@@ -106,7 +114,7 @@ struct ENGINE_API FCurveTableRowHandle
 	/** Returns true if the curve is valid */
 	bool IsValid() const
 	{
-		return (GetCurve() != NULL);
+		return (GetCurve() != nullptr);
 	}
 
 	static const FString Unknown;
@@ -130,6 +138,7 @@ struct ENGINE_API FCurveTableRowHandle
 	bool operator==(const FCurveTableRowHandle& Other) const;
 	bool operator!=(const FCurveTableRowHandle& Other) const;
 };
+
 
 /** Macro to call GetCurve with a correct error info. Assumed to be called within a UObject */
 #define GETCURVE_REPORTERROR(Handle) Handle.GetCurve(FString::Printf(TEXT("%s.%s"), *GetPathName(), TEXT(#Handle)))

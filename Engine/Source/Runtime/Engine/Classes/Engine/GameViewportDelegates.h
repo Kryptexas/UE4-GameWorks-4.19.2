@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * Delegate type used by UGameViewportClient when a screenshot has been captured
  *

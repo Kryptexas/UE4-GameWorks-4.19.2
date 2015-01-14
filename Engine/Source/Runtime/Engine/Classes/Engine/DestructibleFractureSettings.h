@@ -4,6 +4,7 @@
 
 #include "DestructibleFractureSettings.generated.h"
 
+
 #if WITH_APEX
 
 // Forward declares
@@ -23,6 +24,7 @@ namespace physx
 };
 #endif // WITH_APEX
 
+
 /** 
  * Options for APEX asset import.
  **/
@@ -36,6 +38,7 @@ namespace EDestructibleImportOptions
 		PreserveSettings	= 1<<0,
 	};
 };
+
 
 /** Parameters to describe the application of U,V coordinates on a particular slice within a destructible. */
 USTRUCT()
@@ -80,13 +83,12 @@ struct FFractureMaterial
 	int32		InteriorElementIndex;
 
 	FFractureMaterial()
-	: UVScale(100.0f, 100.0f)
-	, UVOffset(0.0f, 0.0f)
-	, Tangent(0.0f, 0.0f, 0.0f)
-	, UAngle(0.0f)
-	, InteriorElementIndex(-1)
-	{
-	}
+		: UVScale(100.0f, 100.0f)
+		, UVOffset(0.0f, 0.0f)
+		, Tangent(0.0f, 0.0f, 0.0f)
+		, UAngle(0.0f)
+		, InteriorElementIndex(-1)
+	{ }
 
 	// Begin FFractureMaterial interface
 #if WITH_APEX
@@ -138,17 +140,18 @@ struct FDestructibleChunkParameters
 	bool bDoNotCrumble;
 
 	FDestructibleChunkParameters()
-	: bIsSupportChunk(false)
-	, bDoNotFracture(false)
-	, bDoNotDamage(false)
-	, bDoNotCrumble(false)
-	{
-	}
+		: bIsSupportChunk(false)
+		, bDoNotFracture(false)
+		, bDoNotDamage(false)
+		, bDoNotCrumble(false)
+	{ }
 };
+
 
 /** Information to create an NxDestructibleAsset */
 UCLASS(MinimalAPI)
-class UDestructibleFractureSettings : public UObject
+class UDestructibleFractureSettings
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 

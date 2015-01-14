@@ -1,20 +1,19 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/**
- * Decal to add texture/material on existing geometry.
- *
- */
-
 #pragma once
+
 #include "DecalActor.generated.h"
 
-//
-// Forward declarations.
-//
+
 class UBoxComponent;
 
+
+/**
+* Decal to add texture/material on existing geometry.
+*/
 UCLASS(hidecategories=(Collision, Attachment, Actor, Input, Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI)
-class ADecalActor : public AActor
+class ADecalActor
+	: public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -65,6 +64,7 @@ public:
 #endif // WITH_EDITOR
 
 public:
+
 	/** Returns Decal subobject **/
 	ENGINE_API class UDecalComponent* GetDecal() const;
 #if WITH_EDITORONLY_DATA
@@ -76,6 +76,3 @@ public:
 	ENGINE_API UBoxComponent* GetBoxComponent() const;
 #endif
 };
-
-
-

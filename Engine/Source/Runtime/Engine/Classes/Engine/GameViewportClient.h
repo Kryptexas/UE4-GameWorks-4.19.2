@@ -1,6 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 
 #include "ShowFlags.h"
@@ -659,8 +658,8 @@ private:
 
 	/** 
 	 * Applies requested changes to display configuration 
-	 * @param	Dimensions - Pointer to new dimensions of the display. NULL for no change.
-	 * @param	WindowMode - What window mode do we want to st the display to.
+	 * @param Dimensions Pointer to new dimensions of the display. nullptr for no change.
+	 * @param WindowMode What window mode do we want to st the display to.
 	 */
 	bool SetDisplayConfiguration( const FIntPoint* Dimensions, EWindowMode::Type WindowMode);
 

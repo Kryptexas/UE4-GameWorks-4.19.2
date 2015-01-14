@@ -1,16 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-//
-// Base class of communication channels.
-//
-
 #pragma once
+
 #include "Channel.generated.h"
+
 
 // Constant for all buffers that are reading from the network
 const int MAX_STRING_SERIALIZE_SIZE	= NAME_SIZE;
 
-// Types of channels.
+/**
+ * Enumerates channel types.
+ */
 enum EChannelType
 {
 	CHTYPE_None			= 0,  // Invalid type.
@@ -21,11 +21,17 @@ enum EChannelType
 	CHTYPE_MAX          = 8,  // Maximum.
 };
 
+
 // The channel index to use for voice
 #define VOICE_CHANNEL_INDEX 1
 
+
+/**
+ * Base class of communication channels.
+ */
 UCLASS(transient)
-class ENGINE_API UChannel : public UObject
+class ENGINE_API UChannel
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 	
@@ -56,15 +62,13 @@ class ENGINE_API UChannel : public UObject
 	/** @return true if the specified channel type exists. */
 	static bool IsKnownChannelType( int32 Type );
 
-	
-	// Begin UObject Interface
+public:
 
+	// UObject overrides
 
 	virtual void BeginDestroy() override;
 
-
-	// End UObject Interface
-	
+public:	
 
 	/** UChannel interface. */
 	virtual void Init( UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally );
@@ -125,7 +129,7 @@ protected:
 	/** Closes the actor channel but with a 'dormant' flag set so it can be reopened */
 	virtual void BecomeDormant() { }
 
-	/** cleans up channel structures and NULLs references to the channel */
+	/** cleans up channel structures and nulls references to the channel */
 	virtual bool CleanUp( const bool bForDestroy );
 
 private:
@@ -133,7 +137,7 @@ private:
 	/** Just sends the bunch out on the connection */
 	int32 SendRawBunch(FOutBunch* Bunch, bool Merge);
 
-	/** Final step to prepare bunch to be sent. If reliable, adds to ack list. */
+	/** Final step to prepare bunch to be sent. If reliable, adds to acknowldege list. */
 	FOutBunch* PrepBunch(FOutBunch* Bunch, FOutBunch* OutBunch, bool Merge);
 
 	/** Received next bunch to process. This handles partial bunches */

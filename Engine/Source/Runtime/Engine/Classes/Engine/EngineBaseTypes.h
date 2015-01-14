@@ -88,7 +88,7 @@ struct FTickPrerequisite
 
 		/** Noop constructor **/
 		FTickPrerequisite()
-		: PrerequisiteTickFunction(NULL)
+		: PrerequisiteTickFunction(nullptr)
 		{
 		}
 		/** 
@@ -115,7 +115,7 @@ struct FTickPrerequisite
 			{
 				return PrerequisiteTickFunction;
 			}
-			return NULL;
+			return nullptr;
 		}
 	
 };
@@ -181,7 +181,7 @@ protected:
 	TEnumAsByte<enum ETickingGroup> ActualTickGroup;
 
 private:
-	/** Completion handle for the task that will run this tick. Caution, this is no reset to NULL until an unspecified future time **/
+	/** Completion handle for the task that will run this tick. Caution, this is no reset to nullptr until an unspecified future time **/
 	FGraphEventRef CompletionHandle;
 
 	/** Prerequisites for this tick function **/
@@ -615,7 +615,7 @@ struct ENGINE_API FURL
 	// Constructors.
 	/* FURL() prevent default from being generated */
 	explicit FURL( ENoInit ) { }
-	FURL( const TCHAR* Filename=NULL );
+	FURL( const TCHAR* Filename=nullptr );
 	FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type );
 	static void StaticInit();
 	static void StaticExit();
@@ -635,7 +635,7 @@ struct ENGINE_API FURL
 	void LoadURLConfig( const TCHAR* Section, const FString& Filename=GGameIni );
 	void SaveURLConfig( const TCHAR* Section, const TCHAR* Item, const FString& Filename=GGameIni ) const;
 	void AddOption( const TCHAR* Str );
-	void RemoveOption( const TCHAR* Key, const TCHAR* Section = NULL, const FString& Filename = GGameIni);
+	void RemoveOption( const TCHAR* Key, const TCHAR* Section = nullptr, const FString& Filename = GGameIni);
 	FString ToString( bool FullyQualified=0 ) const;
 	ENGINE_API friend FArchive& operator<<( FArchive& Ar, FURL& U );
 
