@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Components/InstancedStaticMeshComponent.h"
+#include "StaticMeshResources.h"
 
 #include "HierarchicalInstancedStaticMeshComponent.generated.h"
 
@@ -57,6 +58,8 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	GENERATED_UCLASS_BODY()
 
 	TSharedPtr<TArray<FClusterNode>, ESPMode::ThreadSafe> ClusterTreePtr;
+
+	FStaticMeshInstanceData WriteOncePrebuiltInstanceBuffer;
 	
 	// Table for remaping instances from cluster tree to PerInstanceSMData order
 	UPROPERTY()
@@ -99,18 +102,14 @@ public:
 	void BuildTree();
 	void BuildTreeAsync();
 	static void BuildTreeAnyThread(
-		const TArray<FInstancedStaticMeshInstanceData>& PerInstanceSMData, 
+		TArray<FMatrix>& InstanceTransforms, 
 		const FBox& MeshBox,
 		TArray<FClusterNode>& OutClusterTree,
 		TArray<int32>& OutSortedInstances,
 		TArray<int32>& OutInstanceReorderTable,
 		int32 MaxInstancesPerLeaf
 		);
-	void AcceptPrebuiltTree(
-		TArray<FClusterNode>& InClusterTree,
-		TArray<int32>& InSortedInstances,
-		TArray<int32>& InInstanceReorderTable
-		);
+	void AcceptPrebuiltTree(TArray<FClusterNode>& InClusterTree);
 	void BuildFlatTree(const TArray<int32>& LeafInstanceCounts);
 	bool IsAsyncBuilding() const { return bIsAsyncBuilding; }
 	bool IsTreeFullyBuilt() const { return NumBuiltInstances == PerInstanceSMData.Num() && RemovedInstances.Num() == 0; }

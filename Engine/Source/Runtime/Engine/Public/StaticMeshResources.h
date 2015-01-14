@@ -892,6 +892,95 @@ protected:
 	float GetScreenSize(int32 LODIndex) const;
 };
 
+/*-----------------------------------------------------------------------------
+	FStaticMeshInstanceData
+-----------------------------------------------------------------------------*/
+
+/** The implementation of the static mesh instance data storage type. */
+class FStaticMeshInstanceData :
+	public FStaticMeshVertexDataInterface,
+	public TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>
+{
+public:
+
+	enum 
+	{
+		VectorsPerInstance = 7
+	};
+	typedef TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT> ArrayType;
+
+	/**
+	 * Constructor
+	 * @param InNeedsCPUAccess - true if resource array data should be CPU accessible
+	 */
+	FStaticMeshInstanceData(bool InNeedsCPUAccess=false)
+		:	TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>(InNeedsCPUAccess)
+	{
+	}
+
+	static uint32 StaticGetStride()
+	{
+		return sizeof(FVector4) * VectorsPerInstance;
+	}
+
+	static SIZE_T GetResourceSize(uint32 NumInstances)
+	{
+		return SIZE_T(NumInstances) * SIZE_T(StaticGetStride());
+	}
+
+	int32 GetNumInstances()
+	{
+		check(Num() % VectorsPerInstance == 0);
+		return Num() / VectorsPerInstance;
+	}
+
+	/**
+	 * Resizes the vertex data buffer, discarding any data which no longer fits.
+	 * @param NumVertices - The number of vertices to allocate the buffer for.
+	 */
+	virtual void ResizeBuffer(uint32 NumInstances)
+	{
+		checkf(0, TEXT("ArrayType::Add is not supported on all platforms"));
+	}
+
+	virtual uint32 GetStride() const
+	{
+		return StaticGetStride();
+	}
+	virtual uint8* GetDataPointer()
+	{
+		return (uint8*)&(*this)[0];
+	}
+	virtual FResourceArrayInterface* GetResourceArray()
+	{
+		return this;
+	}
+	virtual void Serialize(FArchive& Ar)
+	{
+		TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>::BulkSerialize(Ar);
+	}
+
+	void Set(const TArray<FVector4>& RawData)
+	{
+		*((ArrayType*)this) = TArray<FVector4,TAlignedHeapAllocator<VERTEXBUFFER_ALIGNMENT> >(RawData);
+	}
+
+	void AllocateInstances(int32 NumInstances)
+	{
+		// We cannot write directly to the data on all platforms,
+		// so we make a TArray of the right type, then assign it
+		check( GetStride() % sizeof(FVector4) == 0 );
+		Empty((NumInstances * GetStride()) / sizeof(FVector4));
+		AddUninitialized((NumInstances * GetStride()) / sizeof(FVector4));
+	}
+	FORCEINLINE FVector4* GetInstanceWriteAddress(int32 InstanceIndex)
+	{
+		return GetData() + InstanceIndex * VectorsPerInstance;
+	}
+
+};
+
+
 #if WITH_EDITOR
 /**
  * Remaps painted vertex colors when the renderable mesh has changed.

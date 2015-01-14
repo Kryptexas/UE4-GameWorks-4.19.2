@@ -2409,10 +2409,8 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	int32 TotalInstances;
 
 	// output
-	TArray<FInstancedStaticMeshInstanceData> PerInstanceSMData;
+	FStaticMeshInstanceData InstanceBuffer;
 	TArray<FClusterNode> ClusterTree;
-	TArray<int32> SortedInstances;
-	TArray<int32> InstanceReorderTable;
 
 	FAsyncGrassBuilder(ALandscapeProxy* Landscape, ULandscapeComponent* Component, ULandscapeLayerInfoObject* LayerInfo, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent, int32 SqrtSubsections, int32 SubX, int32 SubY, FAsyncGrassBuilder* CopyFrom)
 		: FGrassBuilderBase(Landscape, Component, LayerInfo, SqrtSubsections, SubX, SubY)
@@ -2477,16 +2475,19 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 
 		if (NumKept)
 		{
+			TArray<FMatrix> InstanceTransforms;
+			InstanceTransforms.AddUninitialized(NumKept);
 			TotalInstances += NumKept;
 
-
-			FInstancedStaticMeshInstanceData Inst;
-			Inst.LightmapUVBias = FVector2D( -1.0f, -1.0f );
-			Inst.ShadowmapUVBias = FVector2D( -1.0f, -1.0f );
 			{
+				// @todo: Make LD-customizable per component?
+				const float RandomInstanceIDBase = 0.0f;
+				const float RandomInstanceIDRange = 1.0f;
+
 				InstanceTime -= FPlatformTime::Seconds();
-				PerInstanceSMData.Reserve(NumKept);
+				InstanceBuffer.AllocateInstances(NumKept);
 				int32 InstanceIndex = 0;
+				int32 OutInstanceIndex = 0;
 				for (int32 xStart = 0; xStart < SqrtMaxInstances; xStart++ )
 				{
 					for (int32 yStart = 0; yStart < SqrtMaxInstances; yStart++ )
@@ -2495,6 +2496,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 						if (Instance.bKeep)
 						{
 							float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
+							FMatrix OutXForm;
 							if (AlignToSurface)
 							{
 								FVector PosX1 = xStart ? Instances[InstanceIndex - SqrtMaxInstances].Pos : Instance.Pos;
@@ -2511,18 +2513,32 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 									const FVector NewY = NewZ ^ NewX;
 
 									FMatrix Align = FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
-									Inst.Transform = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * Align * FTranslationMatrix(Instance.Pos) * XForm;
+									OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * Align * FTranslationMatrix(Instance.Pos) * XForm;
 								}
 								else
 								{
-									Inst.Transform = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
+									OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
 								}
 							}
 							else
 							{
-								Inst.Transform = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
+								OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
 							}
-							PerInstanceSMData.Add(Inst);
+							InstanceTransforms[OutInstanceIndex] = OutXForm;
+							FVector4* RenderData = InstanceBuffer.GetInstanceWriteAddress(OutInstanceIndex++);
+
+							const float RandomInstanceID = RandomInstanceIDBase + RandomStream.GetFraction() * RandomInstanceIDRange;
+							RenderData[0] = FVector4(-1.0f, -1.0f, 0.0f, 0.0f);
+
+							// Instance -> local matrix.  Every mesh instance has it's own transformation into
+							// the actor's coordinate space.
+							RenderData[1] = FVector4(OutXForm.M[0][0], OutXForm.M[1][0], OutXForm.M[2][0], OutXForm.M[3][0]);
+							RenderData[2] = FVector4(OutXForm.M[0][1], OutXForm.M[1][1], OutXForm.M[2][1], OutXForm.M[3][1]);
+							RenderData[3] = FVector4(OutXForm.M[0][2], OutXForm.M[1][2], OutXForm.M[2][2], OutXForm.M[3][2]);
+
+							RenderData[4] = FVector4(0.0f, 0.0f, 0.0f, -1.0f);
+							RenderData[5] = FVector4(0.0f, 0.0f, 0.0f, -1.0f);
+							RenderData[6] = FVector4(0.0f, 0.0f, 0.0f, RandomInstanceID);
 						}
 						InstanceIndex++;
 					}
@@ -2531,7 +2547,35 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 			}
 			{
 				BuildTime -= FPlatformTime::Seconds();
-				UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(PerInstanceSMData, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, FMath::Clamp<int32>(CVarMinInstancesPerLeaf.GetValueOnAnyThread(), 16, 256 * 128));
+				TArray<int32> SortedInstances;
+				TArray<int32> InstanceReorderTable;
+				UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, FMath::Clamp<int32>(CVarMinInstancesPerLeaf.GetValueOnAnyThread(), 16, 256 * 128));
+
+				// in-place sort the instances
+				FVector4 SwapBuffer[FStaticMeshInstanceData::VectorsPerInstance];
+				int32 FirstUnfixedIndex = 0;
+				int32 Stride = FStaticMeshInstanceData::VectorsPerInstance * sizeof(FVector4);
+				for (int32 FirstUnfixedIndex = 0; FirstUnfixedIndex < NumKept; FirstUnfixedIndex++)
+				{
+					int32 LoadFrom = SortedInstances[FirstUnfixedIndex];
+					if (LoadFrom != FirstUnfixedIndex)
+					{
+						check(LoadFrom > FirstUnfixedIndex);
+						FMemory::Memcpy(SwapBuffer, InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), Stride);
+						FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceBuffer.GetInstanceWriteAddress(LoadFrom), Stride);
+						FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(LoadFrom), SwapBuffer, Stride);
+
+						int32 SwapGoesTo = InstanceReorderTable[FirstUnfixedIndex];
+						check(SwapGoesTo > FirstUnfixedIndex);
+						check(SortedInstances[SwapGoesTo] == FirstUnfixedIndex);
+						SortedInstances[SwapGoesTo] = LoadFrom;
+						InstanceReorderTable[LoadFrom] = SwapGoesTo;
+
+						InstanceReorderTable[FirstUnfixedIndex] = FirstUnfixedIndex;
+						SortedInstances[FirstUnfixedIndex] = FirstUnfixedIndex;
+					}
+				}
+
 				BuildTime += FPlatformTime::Seconds();
 			}
 		}
@@ -2930,11 +2974,8 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 				UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent = Inner.Foliage.Get();
 				if (HierarchicalInstancedStaticMeshComponent && StillUsed.Contains(HierarchicalInstancedStaticMeshComponent))
 				{
-					Exchange(HierarchicalInstancedStaticMeshComponent->PerInstanceSMData, Inner.Builder->PerInstanceSMData);
-					HierarchicalInstancedStaticMeshComponent->AcceptPrebuiltTree(Inner.Builder->ClusterTree, Inner.Builder->SortedInstances, Inner.Builder->InstanceReorderTable);
-
-					//@todo - this is sketchy, what you really want to do is flush the grass cache instead of doing a render thread update
-					HierarchicalInstancedStaticMeshComponent->bNeverNeedsRenderUpdate = true;
+					Exchange(HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, Inner.Builder->InstanceBuffer);
+					HierarchicalInstancedStaticMeshComponent->AcceptPrebuiltTree(Inner.Builder->ClusterTree);
 
 					if (bForceSync)
 					{

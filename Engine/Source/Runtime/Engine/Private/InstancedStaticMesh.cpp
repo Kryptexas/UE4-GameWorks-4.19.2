@@ -23,6 +23,7 @@ void HInstancedStaticMeshInstance::AddReferencedObjects(FReferenceCollector& Col
 
 FStaticMeshInstanceBuffer::FStaticMeshInstanceBuffer(ERHIFeatureLevel::Type InFeatureLevel):
 	InstanceData(NULL)
+	, Stride(0)
 {
 	SetFeatureLevel(InFeatureLevel);
 }
@@ -62,20 +63,8 @@ static void FillInstanceRenderData(const FInstancedStaticMeshInstanceData& Insta
 	RenderData[6] = FVector4(Inverse.M[0][2], Inverse.M[1][2], Inverse.M[2][2], RandomInstanceID);
 }
 
-/**
- * Initializes the buffer with the component's data.
- * @param InComponent - The owning component
- */
-void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies)
+void FStaticMeshInstanceBuffer::SetupCPUAccess(UInstancedStaticMeshComponent* InComponent)
 {
-	bool bUseRemapTable = InComponent->PerInstanceSMData.Num() == InComponent->InstanceReorderTable.Num();
-
-	NumInstances = InComponent->PerInstanceSMData.Num();
-	int32 NumRemoved = InComponent->RemovedInstances.Num();
-
-	// Allocate the vertex data storage type.
-	AllocateData();
-
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 
 	const bool bNeedsCPUAccess = InComponent->CastShadow && InComponent->bAffectDistanceFieldLighting 
@@ -83,12 +72,21 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 		&& CVar->GetValueOnGameThread() != 0;
 
 	InstanceData->SetAllowCPUAccess(InstanceData->GetAllowCPUAccess() || bNeedsCPUAccess);
+}
 
-	// We cannot write directly to the data on all platforms,
-	// so we make a TArray of the right type, then assign it
-	check( GetStride() % sizeof(FVector4) == 0 );
-	InstanceData->Empty((NumInstances + NumRemoved) * GetStride() / sizeof(FVector4));
-	InstanceData->AddUninitialized((NumInstances + NumRemoved) * GetStride() / sizeof(FVector4));
+void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies)
+{
+	bool bUseRemapTable = InComponent->PerInstanceSMData.Num() == InComponent->InstanceReorderTable.Num();
+
+	int32 NumInstances = InComponent->PerInstanceSMData.Num();
+	int32 NumRemoved = InComponent->RemovedInstances.Num();
+
+	// Allocate the vertex data storage type.
+	AllocateData();
+
+	SetupCPUAccess(InComponent);
+
+	InstanceData->AllocateInstances(NumInstances + NumRemoved);
 
 	// @todo: Make LD-customizable per component?
 	const float RandomInstanceIDBase = 0.0f;
@@ -102,7 +100,7 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	{
 		const FInstancedStaticMeshInstanceData& Instance = InComponent->PerInstanceSMData[InstanceIndex];
 
-		FVector4* InstanceRenderData = InstanceData->GetData() + (bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex) * (GetStride() / sizeof(FVector4));
+		FVector4* InstanceRenderData = InstanceData->GetInstanceWriteAddress(bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex);
 
 		// X, Y	: Shadow map UV bias
 		// Z, W : Encoded HitProxy ID and selection mask.
@@ -151,10 +149,18 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	}
 }
 
+void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other)
+{
+	AllocateData(Other);
+	SetupCPUAccess(InComponent);
+}
+
+
 /** Serializer. */
 FArchive& operator<<(FArchive& Ar,FStaticMeshInstanceBuffer& InstanceBuffer)
 {
-	Ar << InstanceBuffer.Stride << InstanceBuffer.NumInstances;
+	int32 NumInstances = InstanceBuffer.GetNumInstances();
+	Ar << InstanceBuffer.Stride << NumInstances;
 
 	if(Ar.IsLoading())
 	{
@@ -202,6 +208,12 @@ void FStaticMeshInstanceBuffer::AllocateData()
 	Stride = InstanceData->GetStride();
 }
 
+void FStaticMeshInstanceBuffer::AllocateData(FStaticMeshInstanceData& Other)
+{
+	AllocateData();
+	Other.SetAllowCPUAccess(InstanceData->GetAllowCPUAccess());
+	Exchange(Other, *InstanceData);
+}
 
 
 
@@ -824,6 +836,7 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanc
 
 FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 {
+	ProxySize = 0;
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have instances
@@ -845,6 +858,7 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 			InstancingRandomSeed = FMath::Rand();
 		}
 
+		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num());
 		return ::new FInstancedStaticMeshSceneProxy(this, GetWorld()->FeatureLevel);
 	}
 	else
@@ -1300,6 +1314,8 @@ void UInstancedStaticMeshComponent::ClearInstances()
 	InstanceReorderTable.Empty();
 	RemovedInstances.Empty();
 
+	ProxySize = 0;
+
 	// Release any physics representations
 	ClearAllInstanceBodies();
 
@@ -1424,7 +1440,7 @@ SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type M
 	SIZE_T ResSize = Super::GetResourceSize(Mode);
 
 	// proxy stuff
-	ResSize += FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num());
+	ResSize += ProxySize; 
 
 	// component stuff
 	ResSize += InstanceBodies.GetAllocatedSize();

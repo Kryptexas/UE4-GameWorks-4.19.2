@@ -599,6 +599,19 @@ public:
 		check(InComponent->InstanceReorderTable.Num() == InComponent->PerInstanceSMData.Num());
 	}
 
+	FHierarchicalStaticMeshSceneProxy(UHierarchicalInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
+		: FInstancedStaticMeshSceneProxy(InComponent, InFeatureLevel, Other)
+		, ClusterTreePtr(InComponent->ClusterTreePtr)
+		, ClusterTree(*InComponent->ClusterTreePtr)
+		, FirstUnbuiltIndex(InComponent->NumBuiltInstances)
+		, LastUnbuiltIndex(InstancedRenderData.NumInstances+InComponent->RemovedInstances.Num()-1)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		, CaptureTag(0)
+#endif
+	{
+		check(!InComponent->InstanceReorderTable.Num() && !InComponent->PerInstanceSMData.Num());
+	}
+
 	// FPrimitiveSceneProxy interface.
 	
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
@@ -1284,19 +1297,8 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 
 FBoxSphereBounds UHierarchicalInstancedStaticMeshComponent::CalcBounds(const FTransform& BoundTransform) const
 {
-	const bool bMeshIsValid =
-		// make sure we have instances
-		PerInstanceSMData.Num() > 0 &&
-		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
-		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
-		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
-
 	const TArray<FClusterNode>& ClusterTree = *ClusterTreePtr;
-
-	if ((ClusterTree.Num() || UnbuiltInstanceBounds.IsValid) && bMeshIsValid)
+	if (ClusterTree.Num() || UnbuiltInstanceBounds.IsValid)
 	{
 		FBoxSphereBounds Result;
 		if (ClusterTree.Num())
@@ -1536,7 +1538,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 }
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(
-	const TArray<FInstancedStaticMeshInstanceData>& PerInstanceSMData, 
+	TArray<FMatrix>& InstanceTransforms, 
 	const FBox& MeshBox,
 	TArray<FClusterNode>& OutClusterTree,
 	TArray<int32>& OutSortedInstances,
@@ -1544,13 +1546,6 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(
 	int32 MaxInstancesPerLeaf
 	)
 {
-	TArray<FMatrix> InstanceTransforms;
-	InstanceTransforms.AddUninitialized(PerInstanceSMData.Num());
-	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
-	{
-		InstanceTransforms[Index] = PerInstanceSMData[Index].Transform;
-	}
-
 	TUniquePtr<FClusterBuilder> Builder(new FClusterBuilder(InstanceTransforms, MeshBox, MaxInstancesPerLeaf));
 	Builder->Build();
 
@@ -1560,13 +1555,12 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(
 
 }
 
-void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(
-	TArray<FClusterNode>& InClusterTree,
-	TArray<int32>& InSortedInstances,
-	TArray<int32>& InInstanceReorderTable
-	)
+void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(TArray<FClusterNode>& InClusterTree)
 {
-	NumBuiltInstances = PerInstanceSMData.Num();
+	// this is only for prebuild data, already in the correct order
+	check(!PerInstanceSMData.Num());
+	NumBuiltInstances = WriteOncePrebuiltInstanceBuffer.GetNumInstances();
+	check(NumBuiltInstances);
 	UnbuiltInstanceBounds.Init();
 	RemovedInstances.Empty();
 	ClusterTreePtr = MakeShareable(new TArray<FClusterNode>);
@@ -1576,7 +1570,7 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have instances
-		PerInstanceSMData.Num() > 0 &&
+		NumBuiltInstances > 0 &&
 		// make sure we have an actual staticmesh
 		StaticMesh &&
 		StaticMesh->HasValidRenderData() &&
@@ -1594,13 +1588,7 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(
 		{
 			InstancingRandomSeed = FMath::Rand();
 		}
-
 		Exchange(*ClusterTreePtr, InClusterTree);
-		Exchange(InstanceReorderTable, InInstanceReorderTable);
-		Exchange(SortedInstances, InSortedInstances);
-
-		FlushAccumulatedNavigationUpdates();
-
 	}
 	MarkRenderStateDirty();
 }
@@ -1807,10 +1795,12 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_HierarchicalInstancedStaticMeshComponent_CreateSceneProxy);
 
+	ProxySize = 0;
+
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have instances
-		PerInstanceSMData.Num() > 0 &&
+		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.GetNumInstances() > 0)&&
 		// make sure we have an actual staticmesh
 		StaticMesh &&
 		StaticMesh->HasValidRenderData() &&
@@ -1828,6 +1818,15 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 			InstancingRandomSeed = FMath::Rand();
 		}
 
+		if (WriteOncePrebuiltInstanceBuffer.GetNumInstances() > 0)
+		{
+			ProxySize = FStaticMeshInstanceData::GetResourceSize(WriteOncePrebuiltInstanceBuffer.GetNumInstances());
+
+			//@todo - this is sketchy, what you really want to do is flush the grass cache instead of doing a render thread update
+			bNeverNeedsRenderUpdate = true; // we can never update it because the data is gone
+			return ::new FHierarchicalStaticMeshSceneProxy(this, GetWorld()->FeatureLevel, WriteOncePrebuiltInstanceBuffer);
+		}
+		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num());
 		return ::new FHierarchicalStaticMeshSceneProxy(this, GetWorld()->FeatureLevel);
 	}
 	return NULL;

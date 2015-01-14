@@ -27,7 +27,6 @@
 #include "Components/TimelineComponent.h"
 #include "SlateBasics.h"
 #include "NavDataGenerator.h"
-#include "OnlineSubsystemUtils.h"
 #include "AI/Navigation/RecastHelpers.h"
 
 #include "StaticMeshResources.h"
@@ -62,78 +61,8 @@ extern TAutoConsoleVariable<float> CVarFoliageLODDistanceScale;
 extern const int32 InstancedStaticMeshMaxTexCoord;
 
 /*-----------------------------------------------------------------------------
-	FStaticMeshInstanceData
------------------------------------------------------------------------------*/
-
-/** The implementation of the static mesh instance data storage type. */
-class FStaticMeshInstanceData :
-	public FStaticMeshVertexDataInterface,
-	public TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>
-{
-public:
-
-	enum 
-	{
-		VectorsPerInstance = 7
-	};
-	typedef TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT> ArrayType;
-
-	/**
-	 * Constructor
-	 * @param InNeedsCPUAccess - true if resource array data should be CPU accessible
-	 */
-	FStaticMeshInstanceData(bool InNeedsCPUAccess=false)
-		:	TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>(InNeedsCPUAccess)
-	{
-	}
-
-	static uint32 StaticGetStride()
-	{
-		return sizeof(FVector4) * VectorsPerInstance;
-	}
-
-	static SIZE_T GetResourceSize(uint32 NumInstances)
-	{
-		return SIZE_T(NumInstances) * SIZE_T(StaticGetStride());
-	}
-
-	/**
-	 * Resizes the vertex data buffer, discarding any data which no longer fits.
-	 * @param NumVertices - The number of vertices to allocate the buffer for.
-	 */
-	virtual void ResizeBuffer(uint32 NumInstances)
-	{
-		checkf(0, TEXT("ArrayType::Add is not supported on all platforms"));
-	}
-
-	virtual uint32 GetStride() const
-	{
-		return StaticGetStride();
-	}
-	virtual uint8* GetDataPointer()
-	{
-		return (uint8*)&(*this)[0];
-	}
-	virtual FResourceArrayInterface* GetResourceArray()
-	{
-		return this;
-	}
-	virtual void Serialize(FArchive& Ar)
-	{
-		TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>::BulkSerialize(Ar);
-	}
-
-	void Set(const TArray<FVector4>& RawData)
-	{
-		*((ArrayType*)this) = TArray<FVector4,TAlignedHeapAllocator<VERTEXBUFFER_ALIGNMENT> >(RawData);
-	}
-};
-
-
-/*-----------------------------------------------------------------------------
 	FStaticMeshInstanceBuffer
 -----------------------------------------------------------------------------*/
-
 
 /** A vertex buffer of positions. */
 class FStaticMeshInstanceBuffer : public FVertexBuffer
@@ -156,6 +85,13 @@ public:
 	 */
 	void Init(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies);
 
+	/**
+	 * Initializes the buffer with the component's data.
+	 * @param InComponent - The owning component; this need not have PerInstanceSMData, as we are taking a prebuilt instance buffer
+	 * @param Other - instance data, this call assumes the memory, so this will be empty after the call
+	 */
+	void InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other);
+
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar, FStaticMeshInstanceBuffer& VertexBuffer);
 
@@ -171,7 +107,7 @@ public:
 	}
 	FORCEINLINE uint32 GetNumInstances() const
 	{
-		return NumInstances;
+		return InstanceData ? InstanceData->GetNumInstances() : 0;
 	}
 
 	const void* GetRawData() const
@@ -191,11 +127,13 @@ private:
 	/** The cached vertex stride. */
 	uint32 Stride;
 
-	/** The cached number of instances. */
-	uint32 NumInstances;
-
 	/** Allocates the vertex data storage type. */
 	void AllocateData();
+
+	/** Accepts preallocated data; Other is left empty after the call because no memory is copied. */
+	void AllocateData(FStaticMeshInstanceData& Other);
+
+	void SetupCPUAccess(UInstancedStaticMeshComponent* InComponent);
 };
 
 /*-----------------------------------------------------------------------------
@@ -365,11 +303,7 @@ public:
 	  , FeatureLevel(InFeatureLevel)
 	{
 		// Allocate the vertex factories for each LOD
-		for( int32 LODIndex=0;LODIndex<LODModels.Num();LODIndex++ )
-		{
-			FInstancedStaticMeshVertexFactory* VertexFactory = new(VertexFactories)FInstancedStaticMeshVertexFactory;
-			VertexFactory->SetFeatureLevel(InFeatureLevel);
-		}
+		InitVertexFactories();
 
 		// Create hit proxies for each instance if the component wants
 		if( GIsEditor && InComponent->bHasPerInstanceHitProxies )
@@ -383,6 +317,20 @@ public:
 
 		// initialize the instance buffer from the component's instances
 		InstanceBuffer.Init(Component, HitProxies);
+		NumInstances = InstanceBuffer.GetNumInstances();
+		InitResources();
+	}
+
+	FInstancedStaticMeshRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
+		: Component(InComponent)
+		, InstanceBuffer(InFeatureLevel)
+		, LODModels(Component->StaticMesh->RenderData->LODResources)
+		, FeatureLevel(InFeatureLevel)
+	{
+		InitVertexFactories();
+		// initialize the instance buffer from the component's instances
+		InstanceBuffer.InitFromPreallocatedData(Component, Other);
+		NumInstances = InstanceBuffer.GetNumInstances();
 		InitResources();
 	}
 
@@ -459,6 +407,22 @@ public:
 
 	/** Feature level used when creating instance data */
 	ERHIFeatureLevel::Type FeatureLevel;
+
+	/** Feature level used when creating instance data */
+	int32 NumInstances;
+
+private:
+
+	void InitVertexFactories()
+	{
+		// Allocate the vertex factories for each LOD
+		for( int32 LODIndex=0;LODIndex<LODModels.Num();LODIndex++ )
+		{
+			FInstancedStaticMeshVertexFactory* VertexFactory = new(VertexFactories)FInstancedStaticMeshVertexFactory;
+			VertexFactory->SetFeatureLevel(FeatureLevel);
+		}
+	}
+
 };
 
 
@@ -477,47 +441,19 @@ public:
 	,	bHasSelectedInstances(InComponent->SelectedInstances.Num() > 0)
 #endif
 	{
-#if WITH_EDITOR
-		if( bHasSelectedInstances )
-		{
-			// if we have selected indices, mark scene proxy as selected.
-			SetSelection_GameThread(true);
-		}
-#endif
-		// Make sure all the materials are okay to be rendered as an instanced mesh.
-		for (int32 LODIndex = 0; LODIndex < LODs.Num(); LODIndex++)
-		{
-			FStaticMeshSceneProxy::FLODInfo& LODInfo = LODs[LODIndex];
-			for (int32 SectionIndex = 0; SectionIndex < LODInfo.Sections.Num(); SectionIndex++)
-			{
-				FStaticMeshSceneProxy::FLODInfo::FSectionInfo& Section = LODInfo.Sections[SectionIndex];
-				if (!Section.Material->CheckMaterialUsage_Concurrent(MATUSAGE_InstancedStaticMeshes))
-				{
-					Section.Material = UMaterial::GetDefaultMaterial(MD_Surface);
-				}
-			}
-		}
-
-		check(InstancedRenderData.InstanceBuffer.GetStride() == sizeof(FInstancingUserData::FInstanceStream));
-
-		const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(InFeatureLevel));
-
-		// Copy the parameters for LOD - all instances
-		UserData_AllInstances.MeshRenderData = InComponent->StaticMesh->RenderData;
-		UserData_AllInstances.StartCullDistance = InComponent->InstanceStartCullDistance;
-		UserData_AllInstances.EndCullDistance = InComponent->InstanceEndCullDistance;
-		UserData_AllInstances.bRenderSelected = true;
-		UserData_AllInstances.bRenderUnselected = true;
-		UserData_AllInstances.RenderData = bInstanced ? nullptr : &InstancedRenderData;
-
-		// selected only
-		UserData_SelectedInstances = UserData_AllInstances;
-		UserData_SelectedInstances.bRenderUnselected = false;
-
-		// unselected only
-		UserData_DeselectedInstances = UserData_AllInstances;
-		UserData_DeselectedInstances.bRenderSelected = false;
+		SetupProxy(InComponent);
 	}
+
+	FInstancedStaticMeshSceneProxy(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
+		:	FStaticMeshSceneProxy(InComponent)
+		,	InstancedRenderData(InComponent, InFeatureLevel, Other)
+#if WITH_EDITOR
+		,	bHasSelectedInstances(InComponent->SelectedInstances.Num() > 0)
+#endif
+	{
+		SetupProxy(InComponent);
+	}
+
 
 	~FInstancedStaticMeshSceneProxy()
 	{
@@ -603,6 +539,52 @@ protected:
 
 	/** Common path for the Get*MeshElement functions */
 	void SetupInstancedMeshBatch(int32 LODIndex, int32 BatchIndex, FMeshBatch& OutMeshBatch) const;
+
+private:
+
+	void SetupProxy(UInstancedStaticMeshComponent* InComponent)
+	{
+#if WITH_EDITOR
+		if( bHasSelectedInstances )
+		{
+			// if we have selected indices, mark scene proxy as selected.
+			SetSelection_GameThread(true);
+		}
+#endif
+		// Make sure all the materials are okay to be rendered as an instanced mesh.
+		for (int32 LODIndex = 0; LODIndex < LODs.Num(); LODIndex++)
+		{
+			FStaticMeshSceneProxy::FLODInfo& LODInfo = LODs[LODIndex];
+			for (int32 SectionIndex = 0; SectionIndex < LODInfo.Sections.Num(); SectionIndex++)
+			{
+				FStaticMeshSceneProxy::FLODInfo::FSectionInfo& Section = LODInfo.Sections[SectionIndex];
+				if (!Section.Material->CheckMaterialUsage_Concurrent(MATUSAGE_InstancedStaticMeshes))
+				{
+					Section.Material = UMaterial::GetDefaultMaterial(MD_Surface);
+				}
+			}
+		}
+
+		check(InstancedRenderData.InstanceBuffer.GetStride() == sizeof(FInstancingUserData::FInstanceStream));
+
+		const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(InstancedRenderData.FeatureLevel));
+
+		// Copy the parameters for LOD - all instances
+		UserData_AllInstances.MeshRenderData = InComponent->StaticMesh->RenderData;
+		UserData_AllInstances.StartCullDistance = InComponent->InstanceStartCullDistance;
+		UserData_AllInstances.EndCullDistance = InComponent->InstanceEndCullDistance;
+		UserData_AllInstances.bRenderSelected = true;
+		UserData_AllInstances.bRenderUnselected = true;
+		UserData_AllInstances.RenderData = bInstanced ? nullptr : &InstancedRenderData;
+
+		// selected only
+		UserData_SelectedInstances = UserData_AllInstances;
+		UserData_SelectedInstances.bRenderUnselected = false;
+
+		// unselected only
+		UserData_DeselectedInstances = UserData_AllInstances;
+		UserData_DeselectedInstances.bRenderSelected = false;
+	}
 };
 
 #if WITH_EDITOR

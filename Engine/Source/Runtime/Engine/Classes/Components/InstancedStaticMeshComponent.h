@@ -90,6 +90,9 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UPROPERTY()
 	TArray<int32> RemovedInstances;
 
+	/** Tracks outstanding proxysize, as this is a bit hard to do with the fire-and-forget grass. */
+	SIZE_T ProxySize;
+
 	/** Add an instance to this component. Transform is given in local space of this component.  */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
 	virtual int32 AddInstance(const FTransform& InstanceTransform);
