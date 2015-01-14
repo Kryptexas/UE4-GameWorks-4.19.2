@@ -51,9 +51,10 @@ void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Materia
 			OverrideMaterials[ElementIndex] = Material;
 			MarkRenderStateDirty();
 
-			if (BodyInstance.IsValidBodyInstance())
+			FBodyInstance* BodyInst = GetBodyInstance();
+			if (BodyInst && BodyInst->IsValidBodyInstance())
 			{
-				BodyInstance.UpdatePhysicalMaterials();
+				BodyInst->UpdatePhysicalMaterials();
 			}
 		}
 	}
