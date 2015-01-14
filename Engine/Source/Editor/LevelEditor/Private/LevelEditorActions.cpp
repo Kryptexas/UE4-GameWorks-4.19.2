@@ -49,6 +49,7 @@
 #include "EngineBuildSettings.h"
 #include "HotReloadInterface.h"
 #include "ISourceControlModule.h"
+#include "SourceControlWindows.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "Engine/Selection.h"
@@ -920,6 +921,54 @@ bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	return !HotReloadSupport.IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
 }
+
+void FLevelEditorActionCallbacks::ConnectToSourceControl_Clicked()
+{
+	// Show login window regardless of current status - its useful as a shortcut to change settings.
+	ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
+	SourceControlModule.ShowLoginDialog(FSourceControlLoginClosed(), ELoginWindowMode::Modeless, EOnLoginWindowStartup::PreserveProvider);
+}
+
+bool FLevelEditorActionCallbacks::CheckOutModifiedFiles_CanExecute()
+{
+	ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
+	if (ISourceControlModule::Get().IsEnabled() &&
+		ISourceControlModule::Get().GetProvider().IsAvailable())
+	{
+		TArray<UPackage*> PackagesToSave;
+		FEditorFileUtils::GetDirtyWorldPackages(PackagesToSave);
+		FEditorFileUtils::GetDirtyContentPackages(PackagesToSave);
+
+		return PackagesToSave.Num() > 0;
+	}
+
+	return false;
+}
+
+void FLevelEditorActionCallbacks::CheckOutModifiedFiles_Clicked()
+{
+	TArray<UPackage*> PackagesToSave;
+	FEditorFileUtils::GetDirtyWorldPackages(PackagesToSave);
+	FEditorFileUtils::GetDirtyContentPackages(PackagesToSave);
+
+	const bool bCheckDirty = true;
+	const bool bPromptUserToSave = false;
+	FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptUserToSave);
+}
+
+bool FLevelEditorActionCallbacks::SubmitToSourceControl_CanExecute()
+{
+	ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
+	return ISourceControlModule::Get().IsEnabled() &&
+		   ISourceControlModule::Get().GetProvider().IsAvailable() &&
+		   FSourceControlWindows::CanChoosePackagesToCheckIn();
+}
+
+void FLevelEditorActionCallbacks::SubmitToSourceControl_Clicked()
+{
+	FSourceControlWindows::ChoosePackagesToCheckIn();
+}
+
 
 void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
 {
@@ -2864,6 +2913,11 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( MaterialQualityLevel_Low, "Low", "Sets material quality in the scene to low.", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( MaterialQualityLevel_High, "High", "Sets material quality in the scene to high.", EUserInterfaceActionType::RadioButton, FInputGesture() );
+
+	UI_COMMAND( ConnectToSourceControl, "Connect to Source Control...", "Opens a dialog to connect to source control.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( ChangeSourceControlSettings, "Change Source Control Settings...", "Opens a dialog to change source control settings.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( CheckOutModifiedFiles, "Check Out Modified Files...", "Opens a dialog to check out any assets which have been modified.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( SubmitToSourceControl, "Submit to Source Control...", "Opens a dialog with check in options for content and levels.", EUserInterfaceActionType::Button, FInputGesture());
 
 	static const FText FeatureLevelLabels[ERHIFeatureLevel::Num] = 
 	{

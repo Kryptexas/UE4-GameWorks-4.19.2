@@ -551,6 +551,14 @@ public:
 	//TSharedPtr< FUICommandInfo > FoliageMode;
 
 	/**
+	 * Source Control Commands
+	 */
+	TSharedPtr< FUICommandInfo > ConnectToSourceControl;
+	TSharedPtr< FUICommandInfo > ChangeSourceControlSettings;
+	TSharedPtr< FUICommandInfo > CheckOutModifiedFiles;
+	TSharedPtr< FUICommandInfo > SubmitToSourceControl;
+
+	/**
 	 * Misc Commands
 	 */
 	TSharedPtr< FUICommandInfo > ShowSelectedDetails;
@@ -750,6 +758,23 @@ public:
 	 */
 	static void RecompileGameCode_Clicked();
 	static bool Recompile_CanExecute();
+
+	/**
+	 * Called when requesting connection to source control
+	 */
+	static void ConnectToSourceControl_Clicked();
+
+	/**
+	 * Called when Check Out Modified Files is clicked
+	 */
+	static void CheckOutModifiedFiles_Clicked();
+	static bool CheckOutModifiedFiles_CanExecute();
+
+	/**
+	 * Called when Submit to Source Control is clicked
+	 */
+	static void SubmitToSourceControl_Clicked();
+	static bool SubmitToSourceControl_CanExecute();
 
 	/**
 	 * Called when the FindInContentBrowser command is executed
