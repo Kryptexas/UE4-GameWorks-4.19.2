@@ -1614,7 +1614,7 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	 *									SIZE = the ElementSize of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopySingleValueToScriptVM( void* Dest, void const* Src ) const
+	virtual void CopySingleValueToScriptVM( void* Dest, void const* Src ) const override
 	{
 		*(UObject**)Dest = GetObjectPropertyValue(Src);
 	}
@@ -1626,7 +1626,7 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	 *									OFFSET = the Offset of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopyCompleteValueToScriptVM( void* Dest, void const* Src ) const
+	virtual void CopyCompleteValueToScriptVM( void* Dest, void const* Src ) const override
 	{
 		for (int32 Index = 0; Index < ArrayDim; Index++)
 		{
@@ -1644,7 +1644,7 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	 *									SIZE = the ElementSize of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopySingleValueFromScriptVM( void* Dest, void const* Src ) const
+	virtual void CopySingleValueFromScriptVM( void* Dest, void const* Src ) const override
 	{
 		SetObjectPropertyValue(Dest, *(UObject**)Src);
 	}
@@ -1656,7 +1656,7 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	 *									OFFSET = the Offset of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopyCompleteValueFromScriptVM( void* Dest, void const* Src ) const
+	virtual void CopyCompleteValueFromScriptVM( void* Dest, void const* Src ) const override
 	{
 		checkSlow(ElementSize == sizeof(UObject*)); // the idea that script pointers are the same size as weak pointers is maybe required, maybe not
 		for (int32 Index = 0; Index < ArrayDim; Index++)
@@ -1686,6 +1686,9 @@ public:
 	 */
 	static bool ParseObjectPropertyValue( const UProperty* Property, UObject* OwnerObject, UClass* RequiredMetaClass, uint32 PortFlags, const TCHAR*& Buffer, UObject*& out_ResolvedValue );
 	static UObject* FindImportedObject( const UProperty* Property, UObject* OwnerObject, UClass* ObjectClass, UClass* RequiredMetaClass, const TCHAR* Text, uint32 PortFlags = 0);
+	
+	// Returns the qualified export path for a given object, parent, and export root scope
+	static FString GetExportPath(const UObject* Object, const UObject* Parent, const UObject* ExportRootScope, const uint32 PortFlags);
 
 	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const
 	{

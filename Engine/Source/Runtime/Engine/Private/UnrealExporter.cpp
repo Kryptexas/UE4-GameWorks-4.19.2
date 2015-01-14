@@ -491,7 +491,8 @@ void UExporter::EmitBeginObject( FOutputDevice& Ar, UObject* Obj, uint32 PortFla
 		// do we want the archetype string?
 		if (!bIsExportingDefaultObject)
 		{
-			Ar.Logf(TEXT(" Archetype=%s'%s'"), *Obj->GetArchetype()->GetClass()->GetName(), *Obj->GetArchetype()->GetPathName());
+			UObject* Archetype = Obj->GetArchetype();
+			Ar.Logf(TEXT(" Archetype=%s"), *UObjectPropertyBase::GetExportPath(Archetype, Archetype->GetOutermost(), Archetype->GetOuter(), PortFlags));
 		}
 	}
 
