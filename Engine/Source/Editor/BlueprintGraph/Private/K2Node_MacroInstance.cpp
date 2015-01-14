@@ -356,6 +356,56 @@ FName UK2Node_MacroInstance::GetPaletteIcon(FLinearColor& OutColor) const
 	return TEXT("GraphEditor.Macro_16x");
 }
 
+FText UK2Node_MacroInstance::GetCompactNodeTitle() const
+{
+	// Special case handling for standard macros
+	// @TODO Change this to use metadata by allowing macros to specify CompactNodeTitle metadata
+	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
+	if(MacroGraph != nullptr && MacroGraph->GetOuter()->GetName() == TEXT("StandardMacros"))
+	{
+		FName MacroName = FName(*MacroGraph->GetName());
+		if(	MacroName == TEXT("IncrementFloat" ) ||
+			MacroName == TEXT("IncrementInt"))
+		{
+			return LOCTEXT("IncrementCompactNodeTitle", "++");
+		}
+		else if( MacroName == TEXT("DecrementFloat") || 
+				 MacroName == TEXT("DecrementInt"))
+		{
+			return LOCTEXT("DecrementCompactNodeTitle", "--");
+		}
+		else if( MacroName == TEXT("NegateFloat") || 
+				 MacroName == TEXT("NegateInt") )
+		{
+			return LOCTEXT("DecrementCompactNodeTitle", "-");
+		}
+	}	
+
+	return Super::GetCompactNodeTitle();
+}
+
+bool UK2Node_MacroInstance::ShouldDrawCompact() const
+{
+	// Special case handling for standard macros
+	// @TODO Change this to use metadata by allowing macros to specify CompactNodeTitle metadata
+	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
+	if(MacroGraph != nullptr && MacroGraph->GetOuter()->GetName() == TEXT("StandardMacros"))
+	{
+		FName MacroName = FName(*MacroGraph->GetName());
+		if(	MacroName == TEXT("IncrementFloat" ) ||
+			MacroName == TEXT("IncrementInt") || 
+			MacroName == TEXT("DecrementFloat") || 
+			MacroName == TEXT("DecrementInt") || 
+			MacroName == TEXT("NegateFloat") || 
+			MacroName == TEXT("NegateInt") )
+		{
+			return true;
+		}
+	}
+
+	return Super::ShouldDrawCompact();
+}
+
 bool UK2Node_MacroInstance::CanPasteHere(const UEdGraph* TargetGraph) const
 {
 	bool bCanPaste = false;
