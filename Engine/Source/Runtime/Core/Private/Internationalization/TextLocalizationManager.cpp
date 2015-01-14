@@ -21,6 +21,8 @@ void BeginInitTextLocalization()
 
 void EndInitTextLocalization()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("EndInitTextLocalization"), STAT_EndInitTextLocalization, STATGROUP_LoadTime);
+
 	const bool ShouldLoadEditor = WITH_EDITOR;
 	const bool ShouldLoadGame = FApp::IsGame();
 

@@ -805,6 +805,8 @@ bool AnyNewlyLoadedUObjects()
 
 void ProcessNewlyLoadedUObjects()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ProcessNewlyLoadedUObjects"), STAT_ProcessNewlyLoadedUObjects, STATGROUP_ObjectVerbose);
+
 	UClassRegisterAllCompiledInClasses();
 
 	while( AnyNewlyLoadedUObjects() )

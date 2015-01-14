@@ -325,6 +325,8 @@ void SaveGlobalShaderMapToDerivedDataCache(EShaderPlatform Platform)
 
 TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool bRefreshShaderMap)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("GetGlobalShaderMap"), STAT_GetGlobalShaderMap, STATGROUP_LoadTime);
+
 	// No global shaders needed on dedicated server
 	if (FPlatformProperties::IsServerOnly())
 	{
