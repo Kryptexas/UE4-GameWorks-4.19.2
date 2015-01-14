@@ -129,13 +129,6 @@ void UBTTaskNode::WrappedTickTask(UBehaviorTreeComponent* OwnerComp, uint8* Node
 		WrappedTickTask(*OwnerComp, NodeMemory, DeltaSeconds);
 	}
 }
-void UBTTaskNode::WrappedOnTaskFinished(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) const
-{
-	if (OwnerComp)
-	{
-		WrappedOnTaskFinished(*OwnerComp, NodeMemory, TaskResult);
-	}
-}
 void UBTTaskNode::FinishLatentTask(UBehaviorTreeComponent* OwnerComp, EBTNodeResult::Type TaskResult) const
 {
 	if (OwnerComp)
@@ -178,13 +171,6 @@ void UBTTaskNode::OnMessage(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory
 	if (OwnerComp)
 	{
 		OnMessage(*OwnerComp, NodeMemory, Message, RequestID, bSuccess);
-	}
-}
-void UBTTaskNode::OnTaskFinished(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
-{
-	if (OwnerComp)
-	{
-		OnTaskFinished(*OwnerComp, NodeMemory, TaskResult);
 	}
 }
 void UBTTaskNode::WaitForMessage(UBehaviorTreeComponent* OwnerComp, FName MessageType) const
