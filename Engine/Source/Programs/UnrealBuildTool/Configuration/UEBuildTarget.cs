@@ -95,30 +95,29 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// A container for a binary files (dll, exe) with its associated debug info.
 	/// </summary>
-	public class FileManifest
+	public class BuildManifest
 	{
-		public readonly List<string> FileManifestItems = new List<string>();
+		public readonly List<string> BuildProducts = new List<string>();
 
-		public FileManifest()
+		public BuildManifest()
 		{
 		}
 
-		public void AddFileName( string FilePath )
+		public void AddBuildProduct(string FileName)
 		{
-			FileManifestItems.Add( Path.GetFullPath( FilePath ) );
-		}
-
-		public void AddBinaryNames(string OutputFilePath, string DebugInfoExtension)
-		{
-			// Only add unique files to the manifest. Multiple games have many shared binaries.
-			if( !FileManifestItems.Any( x => Path.GetFullPath( OutputFilePath ) == x ) )
+			string FullFileName = Path.GetFullPath(FileName);
+			if (!BuildProducts.Contains(FullFileName))
 			{
-				string FullPath = Path.GetFullPath(OutputFilePath);
-				FileManifestItems.Add( FullPath );
-				if (!string.IsNullOrEmpty(DebugInfoExtension))
-				{
-					FileManifestItems.Add(Path.ChangeExtension(FullPath, DebugInfoExtension));
-				}
+				BuildProducts.Add(FullFileName);
+			}
+		}
+
+		public void AddBuildProduct(string FileName, string DebugInfoExtension)
+		{
+			AddBuildProduct(FileName);
+			if(!String.IsNullOrEmpty(DebugInfoExtension))
+			{
+				AddBuildProduct(Path.ChangeExtension(FileName, DebugInfoExtension));
 			}
 		}
 	}
@@ -992,7 +991,7 @@ namespace UnrealBuildTool
 		/// <param name="Binaries">Target binaries</param>
 		/// <param name="Platform">Tareet platform</param>
 		/// <param name="Manifest">Manifest</param>
-		protected void CleanTarget(List<UEBuildBinary> Binaries, CPPTargetPlatform Platform, FileManifest Manifest)
+		protected void CleanTarget(List<UEBuildBinary> Binaries, CPPTargetPlatform Platform, BuildManifest Manifest)
 		{
 			{
 				var TargetFilename = RulesCompiler.GetTargetFilename(GameName);
@@ -1015,8 +1014,8 @@ namespace UnrealBuildTool
 
 				// Collect all files to delete.
 				var AdditionalFileExtensions = new string[] { ".lib", ".exp", ".dll.response" };
-				var AllFilesToDelete = new List<string>(Manifest.FileManifestItems);
-				foreach (var FileManifestItem in Manifest.FileManifestItems)
+				var AllFilesToDelete = new List<string>(Manifest.BuildProducts);
+				foreach (var FileManifestItem in Manifest.BuildProducts)
 				{
 					var FileExt = Path.GetExtension(FileManifestItem);
 					if (FileExt == ".dll" || FileExt == ".exe")
@@ -1316,11 +1315,11 @@ namespace UnrealBuildTool
 				ManifestPath = "../Intermediate/Build/Manifest.xml";
 			}
 
-			FileManifest Manifest = new FileManifest();
+			BuildManifest Manifest = new BuildManifest();
 			if (UEBuildConfiguration.bMergeManifests)
 			{
 				// Load in existing manifest (if any)
-				Manifest = Utils.ReadClass<FileManifest>(ManifestPath);
+				Manifest = Utils.ReadClass<BuildManifest>(ManifestPath);
 			}
 
 			UnrealTargetPlatform TargetPlatform = CPPTargetPlatformToUnrealTargetPlatform( Platform );
@@ -1347,7 +1346,7 @@ namespace UnrealBuildTool
 				// Create and add the binary and associated debug info
 				foreach (string OutputFilePath in Binary.Config.OutputFilePaths)
 				{
-					Manifest.AddBinaryNames(OutputFilePath, DebugInfoExtension);
+					Manifest.AddBuildProduct(OutputFilePath, DebugInfoExtension);
 				}
 
 				if (Binary.Config.Type == UEBuildBinaryType.Executable &&
@@ -1356,17 +1355,17 @@ namespace UnrealBuildTool
 				{
 					foreach (string OutputFilePath in Binary.Config.OutputFilePaths)
 					{
-						Manifest.AddBinaryNames(UEBuildBinary.GetAdditionalConsoleAppPath(OutputFilePath), DebugInfoExtension);
+						Manifest.AddBuildProduct(UEBuildBinary.GetAdditionalConsoleAppPath(OutputFilePath), DebugInfoExtension);
 					}
 				}
 
-                ToolChain.AddFilesToManifest(ref Manifest,Binary);
+                ToolChain.AddFilesToManifest(Manifest, Binary);
 			}
 			{
 				string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(UEBuildBinaryType.StaticLibrary);
 				foreach (var RedistLib in SpecialRocketLibFilesThatAreBuildProducts)
 				{
-					Manifest.AddBinaryNames(RedistLib, DebugInfoExtension);
+					Manifest.AddBuildProduct(RedistLib, DebugInfoExtension);
 				}
 			}
 
@@ -1377,7 +1376,7 @@ namespace UnrealBuildTool
 			}
 			if (UEBuildConfiguration.bGenerateManifest)
 			{
-				Utils.WriteClass<FileManifest>(Manifest, ManifestPath, "");
+				Utils.WriteClass<BuildManifest>(Manifest, ManifestPath, "");
 			}
 		}
 

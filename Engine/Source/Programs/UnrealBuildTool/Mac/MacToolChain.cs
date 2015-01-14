@@ -1228,7 +1228,7 @@ namespace UnrealBuildTool
 
 		static private string BundleContentsDirectory = "";
 
-        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
 		{
 			if (Binary.Target.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{
@@ -1258,10 +1258,7 @@ namespace UnrealBuildTool
 					if (Path.GetExtension(AdditionalLibrary) == ".dylib")
 					{
 						string Entry = BundleContentsDirectory + "MacOS/" + LibName;
-						if (!Manifest.FileManifestItems.Contains(Path.GetFullPath(Entry)))
-						{
-							Manifest.AddFileName(Entry);
-						}
+						Manifest.AddBuildProduct(Entry);
 					}
 				}
 			}
@@ -1272,25 +1269,25 @@ namespace UnrealBuildTool
 				{
 					foreach (string ResourceFile in Directory.GetFiles(Resource.ResourcePath, "*", SearchOption.AllDirectories))
 					{
-						Manifest.AddFileName(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, ResourceFile.Substring(Path.GetDirectoryName(Resource.ResourcePath).Length + 1)));
+						Manifest.AddBuildProduct(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, ResourceFile.Substring(Path.GetDirectoryName(Resource.ResourcePath).Length + 1)));
 					}
 				}
 				else
 				{
-					Manifest.AddFileName(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath)));
+					Manifest.AddBuildProduct(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath)));
 				}
 			}
 
 			if (Binary.Config.Type == UEBuildBinaryType.Executable)
 			{
 				// And we also need all the resources
-				Manifest.AddFileName(BundleContentsDirectory + "Info.plist");
-				Manifest.AddFileName(BundleContentsDirectory + "PkgInfo");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/UE4.icns");
+				Manifest.AddBuildProduct(BundleContentsDirectory + "Info.plist");
+				Manifest.AddBuildProduct(BundleContentsDirectory + "PkgInfo");
+				Manifest.AddBuildProduct(BundleContentsDirectory + "Resources/UE4.icns");
 
 				if (Binary.Config.TargetName.StartsWith("UE4Editor"))
 				{
-					Manifest.AddFileName(BundleContentsDirectory + "Resources/UProject.icns");
+					Manifest.AddBuildProduct(BundleContentsDirectory + "Resources/UProject.icns");
 				}
 			}
 		}

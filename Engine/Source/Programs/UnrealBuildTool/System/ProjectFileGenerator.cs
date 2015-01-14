@@ -1981,17 +1981,17 @@ namespace UnrealBuildTool
 		/// </summary>
 		protected virtual bool WriteProjectFileManifest()
 		{
-			FileManifest Manifest = new FileManifest();
+			BuildManifest Manifest = new BuildManifest();
 			foreach( var CurProject in GeneratedProjectFiles )
 			{
 				foreach( var SourceFile in CurProject.SourceFiles )
 				{
-					Manifest.AddFileName( SourceFile.FilePath );
+					Manifest.AddBuildProduct( SourceFile.FilePath );
 				}
 			}
 
 			string ManifestName = Path.Combine( ProjectFileGenerator.IntermediateProjectFilesPath, "UE4SourceFiles.xml" );
-			Utils.WriteClass<FileManifest>( Manifest, ManifestName, "" );
+			Utils.WriteClass<BuildManifest>( Manifest, ManifestName, "" );
 			return true;
 		}
 

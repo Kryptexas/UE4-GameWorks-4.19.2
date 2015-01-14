@@ -940,13 +940,13 @@ namespace UnrealBuildTool
 			return Outputs.ToArray();
 		}
 
-		public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+		public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
 		{
 			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
 			foreach (string BinaryPath in Binary.Config.OutputFilePaths)
 			{
 				string ApkFile = Path.ChangeExtension(BinaryPath, ".apk");
-				Manifest.AddFileName(ApkFile);
+				Manifest.AddBuildProduct(ApkFile);
 			}
 		}
 

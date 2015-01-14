@@ -68,10 +68,10 @@ public class BuildCommonTools : BuildCommand
 		string ManifestPath = ParseParamValue("manifest");
 		if(ManifestPath != null)
 		{
-			UnrealBuildTool.FileManifest Manifest = new UnrealBuildTool.FileManifest();
+			BuildManifest Manifest = new BuildManifest();
 			foreach(string BuildProductFile in Builder.BuildProductFiles)
 			{
-				Manifest.AddFileName(BuildProductFile);
+				Manifest.AddBuildProduct(BuildProductFile);
 			}
 			UnrealBuildTool.Utils.WriteClass(Manifest, ManifestPath, "");
 		}
