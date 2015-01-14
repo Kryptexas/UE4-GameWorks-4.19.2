@@ -591,6 +591,52 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 	return false;
 }
 
+void UActorChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
+{
+	if ( MustBeMappedGuidsInLastBunch.Num() > 0 )
+	{
+		// Just add our list to the main list on package map so we can re-use the code in UChannel to add them all together
+		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
+		PackageMapClient->GetMustBeMappedGuidsInLastBunch().Append( MustBeMappedGuidsInLastBunch );
+
+		MustBeMappedGuidsInLastBunch.Empty();
+	}
+
+	// Actually add them to the bunch
+	Super::AppendMustBeMappedGuids( Bunch );
+}
+
+void UChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
+{
+	UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
+	TArray< FNetworkGUID >& MustBeMappedGuidsInLastBunch = PackageMapClient->GetMustBeMappedGuidsInLastBunch();
+
+	if ( MustBeMappedGuidsInLastBunch.Num() > 0 )
+	{
+		// Rewrite the bunch with the unique guids in front
+		FOutBunch TempBunch( *Bunch );
+
+		Bunch->Reset();
+
+		// Write all the guids out
+		uint16 NumMustBeMappedGUIDs = MustBeMappedGuidsInLastBunch.Num();
+		*Bunch << NumMustBeMappedGUIDs;
+		for ( int32 i = 0; i < MustBeMappedGuidsInLastBunch.Num(); i++ )
+		{
+			*Bunch << MustBeMappedGuidsInLastBunch[i];
+		}
+
+		// Append the original bunch data at the end
+		Bunch->SerializeBits( TempBunch.GetData(), TempBunch.GetNumBits() );
+
+		Bunch->bHasMustBeMappedGUIDs = 1;
+
+		MustBeMappedGuidsInLastBunch.Empty();
+	}
+}
+
 FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 {
 	check(!Closing);
@@ -628,37 +674,17 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		Merge = false;
 	}
 
-	// Append any "must be mapped" guids to front of bunch
-	// This is so the client will know to make sure they are loaded, and pause the stream until they are
-	TArray< FNetworkGUID > & MustBeMappedGuidsInLastBunch = PackageMapClient->GetMustBeMappedGuidsInLastBunch();
-
-	if ( MustBeMappedGuidsInLastBunch.Num() > 0 && Connection->Driver->IsServer() )
+	if ( Connection->Driver->IsServer() )
 	{
-		//UE_LOG( LogNet, Warning, TEXT( "SendBunch: Appending must be mapped guids. NumGuids: %i" ), MustBeMappedGuidsInLastBunch.Num() );
+		// Append any "must be mapped" guids to front of bunch from the packagemap
+		AppendMustBeMappedGuids( Bunch );
 
-		// Rewrite the bunch with the unique guids in front
-		FOutBunch TempBunch( *Bunch );
-
-		Bunch->Reset();
-
-		// Write all the guids out
-		uint16 NumMustBeMappedGUIDs = MustBeMappedGuidsInLastBunch.Num();
-		*Bunch << NumMustBeMappedGUIDs;
-		for ( int32 i = 0; i < MustBeMappedGuidsInLastBunch.Num(); i++ )
+		if ( Bunch->bHasMustBeMappedGUIDs )
 		{
-			*Bunch << MustBeMappedGuidsInLastBunch[i];
+			// We can't merge with this, since we need all the unique static guids in the front
+			Merge = false;
 		}
-
-		// Append the original bunch data at the end
-		Bunch->SerializeBits( TempBunch.GetData(), TempBunch.GetNumBits() );
-
-		Bunch->bHasMustBeMappedGUIDs = 1;
-
-		// We can't merge with this, since we need all the unique static guids in the front
-		Merge = false;
 	}
-
-	MustBeMappedGuidsInLastBunch.Empty();
 
 	//-----------------------------------------------------
 	// Contemplate merging.
@@ -1872,6 +1898,12 @@ bool UActorChannel::ReplicateActor()
 
 	checkSlow(Actor);
 	checkSlow(!Closing);
+
+	// The package map shouldn't have any carry over guids
+	if ( CastChecked< UPackageMapClient >( Connection->PackageMap )->GetMustBeMappedGuidsInLastBunch().Num() != 0 )
+	{
+		UE_LOG( LogNet, Warning, TEXT( "ReplicateActor: PackageMap->GetMustBeMappedGuidsInLastBunch().Num() != 0: %i" ), CastChecked< UPackageMapClient >( Connection->PackageMap )->GetMustBeMappedGuidsInLastBunch().Num() );
+	}
 
 	// Time how long it takes to replicate this particular actor
 	STAT( FScopeCycleCounterUObject FunctionScope(Actor) );

@@ -75,6 +75,8 @@ class ENGINE_API UActorChannel
 
 	TArray< TWeakObjectPtr< UObject > >	CreateSubObjects;		// Any sub-object we created on this channel
 
+	TArray< FNetworkGUID >				MustBeMappedGuidsInLastBunch;		// Array of guids that will async load on client. This list is used for queued RPC's.
+
 	/**
 	 * Default constructor
 	 */
@@ -114,6 +116,9 @@ public:
 	void SetChannelActor( AActor* InActor );
 
 	void SetChannelActorForDestroy( struct FActorDestructionInfo *DestructInfo );
+
+	/** Append any "must be mapped" guids to front of bunch. These are guids that the client will wait on before processing this bunch. */
+	virtual void AppendMustBeMappedGuids( FOutBunch* Bunch ) override;
 
 	virtual void Serialize(FArchive& Ar) override;
 
