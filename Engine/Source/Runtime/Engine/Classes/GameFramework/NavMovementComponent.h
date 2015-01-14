@@ -179,15 +179,3 @@ inline void UNavMovementComponent::StopMovementImmediately()
 	Super::StopMovementImmediately();
 	StopActiveMovement();
 }
-
-//----------------------------------------------------------------------//
-// DEPRECATED
-//----------------------------------------------------------------------//
-const FNavAgentProperties* UNavMovementComponent::GetNavAgentProperties() const 
-{ 
-	return &GetNavAgentPropertiesRef();
-}
-FNavAgentProperties* UNavMovementComponent::GetNavAgentProperties() 
-{ 
-	return &GetNavAgentPropertiesRef();
-}
