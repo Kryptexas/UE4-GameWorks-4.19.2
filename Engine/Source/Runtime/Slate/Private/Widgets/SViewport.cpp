@@ -35,6 +35,22 @@ void SViewport::Construct( const FArguments& InArgs )
 	];
 }
 
+void SViewport::SetActive(bool bActive)
+{
+	if (bActive && !ActiveTimerHandle.IsValid())
+	{
+		ActiveTimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SViewport::EnsureTick));
+	}
+	else if (!bActive && ActiveTimerHandle.IsValid())
+	{
+		UnRegisterActiveTimer(ActiveTimerHandle.Pin().ToSharedRef());
+	}
+}
+
+EActiveTimerReturnType SViewport::EnsureTick(double InCurrentTime, float InDeltaTime)
+{
+	return EActiveTimerReturnType::Continue;
+}
 
 int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {

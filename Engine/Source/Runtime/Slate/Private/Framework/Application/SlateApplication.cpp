@@ -1837,8 +1837,9 @@ void FSlateApplication::InvalidateAllViewports()
 
 void FSlateApplication::RegisterGameViewport( TSharedRef<SViewport> InViewport )
 {
+	InViewport->SetActive(true);
 	GameViewportWidget = InViewport;
-
+	
 	FWidgetPath PathToViewport;
 	// If we cannot find the window it could have been destroyed.
 	if (FSlateWindowHelper::FindPathToWidget(SlateWindows, InViewport, PathToViewport, EVisibility::All))
@@ -1859,6 +1860,11 @@ void FSlateApplication::RegisterGameViewport( TSharedRef<SViewport> InViewport )
 void FSlateApplication::UnregisterGameViewport()
 {
 	ResetToDefaultInputSettings();
+
+	if (GameViewportWidget.IsValid())
+	{
+		GameViewportWidget.Pin()->SetActive(false);
+	}
 	GameViewportWidget.Reset();
 }
 
