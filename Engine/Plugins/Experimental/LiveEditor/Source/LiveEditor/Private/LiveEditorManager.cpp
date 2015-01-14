@@ -624,6 +624,7 @@ void FLiveEditorManager::CreateLiveEditorWorld()
 										.CreatePhysicsScene(false)
 										.RequiresHitProxies(false)
 										.CreateNavigation(false)
+										.CreateAISystem(false)
 										.ShouldSimulatePhysics(false)
 										.SetTransactional(bTransactional));
 	LiveEditorWorld->InitializeActorsForPlay(FURL());

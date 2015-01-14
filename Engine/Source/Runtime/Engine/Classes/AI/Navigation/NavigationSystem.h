@@ -532,8 +532,8 @@ public:
 	//----------------------------------------------------------------------//
 	// Custom navigation links
 	//----------------------------------------------------------------------//
-	void RegisterCustomLink(INavLinkCustomInterface* CustomLink);
-	void UnregisterCustomLink(INavLinkCustomInterface* CustomLink);
+	void RegisterCustomLink(INavLinkCustomInterface& CustomLink);
+	void UnregisterCustomLink(INavLinkCustomInterface& CustomLink);
 	
 	/** find custom link by unique ID */
 	INavLinkCustomInterface* GetCustomLink(uint32 UniqueLinkId) const;
@@ -832,5 +832,14 @@ private:
 	 *  Depends on runtime generation settings of each navigation data, always ERuntimeGenerationType::Dynamic in the editor world
 	 */
 	ERuntimeGenerationType GetRuntimeGenerationType() const;
+
+	//----------------------------------------------------------------------//
+	// DEPRECATED
+	//----------------------------------------------------------------------//
+public:
+	DEPRECATED(4.8, "This version is deprecated. Please use the one taking reference to INavLinkCustomInterface rather than a pointer instead.")
+	void RegisterCustomLink(INavLinkCustomInterface* CustomLink);
+	DEPRECATED(4.8, "This version is deprecated. Please use the one taking reference to INavLinkCustomInterface rather than a pointer instead.")
+	void UnregisterCustomLink(INavLinkCustomInterface* CustomLink);
 };
 

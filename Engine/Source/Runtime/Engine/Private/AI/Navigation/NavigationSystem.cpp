@@ -551,6 +551,17 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 				}
 			}
 		}
+		else if (World->GetLevels().Num() > 1)
+		{
+			// this is a bit of a @hack for the time being until we reorganize navigation data instances (4.9?)
+			// the point of this hack is to force editor-time navmesh rebuilding if we have any sublevels
+			// since currently there's no information regarding whether we already have all navigation built 
+			// for all the actors in sublevels
+			for (ANavigationData* NavData : NavDataSet)
+			{
+				NavData->MarkAsNeedingUpdate();
+			}
+		}
 	}
 }
 
@@ -1647,14 +1658,14 @@ void UNavigationSystem::UnregisterNavData(ANavigationData* NavData)
 	NavData->OnUnregistered();
 }
 
-void UNavigationSystem::RegisterCustomLink(INavLinkCustomInterface* CustomLink)
+void UNavigationSystem::RegisterCustomLink(INavLinkCustomInterface& CustomLink)
 {
-	CustomLinksMap.Add(CustomLink->GetLinkId(), CustomLink);
+	CustomLinksMap.Add(CustomLink.GetLinkId(), &CustomLink);
 }
 
-void UNavigationSystem::UnregisterCustomLink(INavLinkCustomInterface* CustomLink)
+void UNavigationSystem::UnregisterCustomLink(INavLinkCustomInterface& CustomLink)
 {
-	CustomLinksMap.Remove(CustomLink->GetLinkId());
+	CustomLinksMap.Remove(CustomLink.GetLinkId());
 }
 
 INavLinkCustomInterface* UNavigationSystem::GetCustomLink(uint32 UniqueLinkId) const
@@ -1947,7 +1958,6 @@ UNavigationSystem* UNavigationSystem::CreateNavigationSystem(UWorld* WorldOwner)
 
 void UNavigationSystem::InitializeForWorld(UWorld* World, FNavigationSystem::EMode Mode)
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UNavigationSystem::InitializeForWorld"), STAT_NavSys_InitializeForWorld, STATGROUP_Navigation);
 	if (World)
 	{
 		UNavigationSystem* NavSys = World->GetNavigationSystem();
@@ -3481,4 +3491,23 @@ bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const 
 bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex)
 {
 	return Path != NULL && Path->DoesIntersectBox(Box, AgentLocation, StartingIndex);
+}
+
+//----------------------------------------------------------------------//
+// DEPRECATED
+//----------------------------------------------------------------------//
+void UNavigationSystem::RegisterCustomLink(INavLinkCustomInterface* CustomLink)
+{
+	if (CustomLink)
+	{
+		RegisterCustomLink(*CustomLink);
+	}
+}
+
+void UNavigationSystem::UnregisterCustomLink(INavLinkCustomInterface* CustomLink)
+{
+	if (CustomLink)
+	{
+		UnregisterCustomLink(*CustomLink);
+	}
 }

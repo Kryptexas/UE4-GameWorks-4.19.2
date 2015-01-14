@@ -1479,6 +1479,8 @@ void ARecastNavMesh::OnStreamingLevelAdded(ULevel* InLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMesh_OnStreamingLevelAdded);
 	
+	bWantsUpdate = true;
+
 	if (SupportsStreaming() && GetWorld()->IsGameWorld())
 	{
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);

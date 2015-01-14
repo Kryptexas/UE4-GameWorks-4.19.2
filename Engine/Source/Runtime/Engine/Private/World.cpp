@@ -763,7 +763,11 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	// Prepare AI systems
 	if (IVS.bCreateNavigation)
 	{
-		UNavigationSystem::CreateNavigationSystem(this);
+		AWorldSettings* WorldSettings = GetWorldSettings();
+		if (WorldSettings->bEnableNavigationSystem)
+		{
+			UNavigationSystem::CreateNavigationSystem(this);
+		}
 	}
 
 	if (IVS.bCreateAISystem)
