@@ -337,13 +337,13 @@ struct IStreamingManager
 	}
 
 	/** Returns the number of view infos. */
-	int32 GetNumViews() const
+	ENGINE_API int32 GetNumViews() const
 	{
 		return CurrentViewInfos.Num();
 	}
 
 	/** Returns the view info by the specified index. */
-	const FStreamingViewInfo& GetViewInformation( int32 ViewIndex ) const
+	ENGINE_API const FStreamingViewInfo& GetViewInformation( int32 ViewIndex ) const
 	{
 		return CurrentViewInfos[ ViewIndex ];
 	}
@@ -417,7 +417,7 @@ protected:
 	};
 
 	/** Current collection of views that need to be taken into account for streaming. Emptied every frame. */
-	static TArray<FStreamingViewInfo> CurrentViewInfos;
+	ENGINE_API static TArray<FStreamingViewInfo> CurrentViewInfos;
 
 	/** Pending views. Emptied every frame. */
 	static TArray<FStreamingViewInfo> PendingViewInfos;
