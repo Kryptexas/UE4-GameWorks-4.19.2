@@ -13,6 +13,7 @@
 class UFoliageType;
 struct FFoliageInstancePlacementInfo;
 struct FFoliageMeshInfo;
+class UFoliageType_InstancedStaticMesh;
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor
@@ -76,7 +77,7 @@ public:
 	FOLIAGE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
 
 	// Add a new static mesh.
-	FOLIAGE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr);
+	FOLIAGE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr, const UFoliageType_InstancedStaticMesh* DefaultSettings = nullptr);
 	FOLIAGE_API FFoliageMeshInfo* AddMesh(UFoliageType* InType);
 
 	// Remove the static mesh from the mesh list, and all its instances.
