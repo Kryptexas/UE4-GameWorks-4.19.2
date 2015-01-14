@@ -31,7 +31,7 @@ SteamControllerInterface::SteamControllerInterface( const TSharedRef< FGenericAp
 		// [RCL] 2014-05-05 FIXME: disable when could not init?
 		if (bInited)
 		{
-			FMemory::MemZero(ControllerStates);
+			FMemory::Memzero(ControllerStates);
 		}
 	}
 	else

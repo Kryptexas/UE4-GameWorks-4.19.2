@@ -13,7 +13,7 @@ FAIResourceLock::FAIResourceLock()
 
 void FAIResourceLock::ForceClearAllLocks()
 {
-	FMemory::MemZero(Locks);
+	FMemory::Memzero(Locks);
 }
 
 FString FAIResourceLock::GetLockPriorityName() const

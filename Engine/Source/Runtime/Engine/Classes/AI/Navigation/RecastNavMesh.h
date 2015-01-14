@@ -599,8 +599,8 @@ public:
 			, HitTime(FLT_MAX)
 			, HitNormal(0.f)
 		{
-			FMemory::MemZero(CorridorPolys);
-			FMemory::MemZero(CorridorCost);
+			FMemory::Memzero(CorridorPolys);
+			FMemory::Memzero(CorridorCost);
 		}
 
 		FORCEINLINE int32 GetMaxCorridorSize() const { return MAX_PATH_CORRIDOR_POLYS; }

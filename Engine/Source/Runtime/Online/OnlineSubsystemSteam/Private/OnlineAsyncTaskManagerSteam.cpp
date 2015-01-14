@@ -87,7 +87,7 @@ private:
 	FOnlineAsyncEventSteamLobbyEnter() :
 		FOnlineAsyncEvent(NULL)
 	{
-		FMemory::MemZero(CallbackResults);
+		FMemory::Memzero(CallbackResults);
 	}
 
 public:
@@ -161,7 +161,7 @@ private:
 	FOnlineAsyncEventSteamLobbyChatUpdate() :
 		FOnlineAsyncEvent(NULL)
 	{
-		FMemory::MemZero(CallbackResults);
+		FMemory::Memzero(CallbackResults);
 	}
 
 public:

@@ -916,7 +916,7 @@ static void MakeBodyFromCollisionObjects(UStaticMesh* StaticMesh, const SpeedTre
 		{
 			// sphere object
 			FKSphereElem SphereElem;
-			FMemory::MemZero(SphereElem);
+			FMemory::Memzero(SphereElem);
 			SphereElem.Radius = CollisionObject.m_fRadius;
 			SphereElem.Center = Pos1;
 			AggGeo.SphereElems.Add(SphereElem);
@@ -925,7 +925,7 @@ static void MakeBodyFromCollisionObjects(UStaticMesh* StaticMesh, const SpeedTre
 		{
 			// capsule/sphyll object
 			FKSphylElem SphylElem;
-			FMemory::MemZero(SphylElem);
+			FMemory::Memzero(SphylElem);
 			SphylElem.Radius = CollisionObject.m_fRadius;
 			FVector UpDir = Pos2 - Pos1;
 			SphylElem.Length = UpDir.Size();

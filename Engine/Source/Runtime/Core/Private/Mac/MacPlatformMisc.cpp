@@ -1487,7 +1487,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 		
 		static const int MAX_DEPTH = 100;
 		static uint64 StackTrace[MAX_DEPTH];
-		FMemory::MemZero( StackTrace );
+		FMemory::Memzero( StackTrace );
 		FPlatformStackWalk::CaptureStackBackTrace( StackTrace, MAX_DEPTH, Context );
 		
 		// Skip the first two entries as they are inside the stack walking code.

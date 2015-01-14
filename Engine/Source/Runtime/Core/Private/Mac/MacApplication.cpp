@@ -230,7 +230,7 @@ FMacApplication::FMacApplication()
 								   }];
 
 #if WITH_EDITOR
-	FMemory::MemZero(GestureUsage);
+	FMemory::Memzero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
 #endif
 }
@@ -1368,7 +1368,7 @@ void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
 
     Provider->RecordEvent(FString("Mac.Gesture.Usage"), GestureAttributes);
 
-	FMemory::MemZero(GestureUsage);
+	FMemory::Memzero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
 }
 

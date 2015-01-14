@@ -105,7 +105,7 @@ static void PlatformInitPixelFormatForDevice(HDC DeviceContext)
 {
 	// Pixel format descriptor for the context.
 	PIXELFORMATDESCRIPTOR PixelFormatDesc;
-	FMemory::MemZero(PixelFormatDesc);
+	FMemory::Memzero(PixelFormatDesc);
 	PixelFormatDesc.nSize		= sizeof(PIXELFORMATDESCRIPTOR);
 	PixelFormatDesc.nVersion	= 1;
 	PixelFormatDesc.dwFlags		= PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
@@ -137,7 +137,7 @@ static void PlatformCreateDummyGLWindow(FPlatformOpenGLContext* OutContext)
 		WNDCLASS wc;
 
 		bInitializedWindowClass = true;
-		FMemory::MemZero(wc);
+		FMemory::Memzero(wc);
 		wc.style = CS_OWNDC;
 		wc.lpfnWndProc = PlatformDummyGLWndproc;
 		wc.cbClsExtra = 0;

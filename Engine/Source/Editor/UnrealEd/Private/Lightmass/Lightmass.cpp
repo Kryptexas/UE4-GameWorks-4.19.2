@@ -106,7 +106,7 @@ static NSwarm::TChannelFlags LM_DEBUGOUTPUT_CHANNEL_FLAGS		= NSwarm::SWARM_JOB_C
 
 void Copy( const ULightComponentBase* In, Lightmass::FLightData& Out )
 {	
-	FMemory::MemZero(Out);
+	FMemory::Memzero(Out);
 
 	Out.LightFlags = 0;
 	if (In->CastShadows)

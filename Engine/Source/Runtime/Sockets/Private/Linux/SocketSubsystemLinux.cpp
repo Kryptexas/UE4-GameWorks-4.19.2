@@ -109,7 +109,7 @@ TSharedRef<FInternetAddr> FSocketSubsystemLinux::GetLocalHostAddr(FOutputDevice&
 		ifreq IfReqs[8];
 		
 		ifconf IfConfig;
-		FMemory::MemZero(IfConfig);
+		FMemory::Memzero(IfConfig);
 		IfConfig.ifc_req = IfReqs;
 		IfConfig.ifc_len = sizeof(IfReqs);
 		

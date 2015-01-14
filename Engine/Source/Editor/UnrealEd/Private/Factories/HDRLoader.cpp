@@ -222,7 +222,7 @@ void FHDRLoadHelper::ExtractDDSInRGBE(TArray<uint8>& OutDDSFile) const
 
 		FDDSFileHeader* header = (FDDSFileHeader*)(OutDDSFile.GetData() + 4);
 
-		FMemory::MemZero(*header);
+		FMemory::Memzero(*header);
 
 		header->dwSize = sizeof(FDDSFileHeader);
 		header->dwFlags = DDSF_Caps | DDSF_Height | DDSF_Width | DDSF_PixelFormat;

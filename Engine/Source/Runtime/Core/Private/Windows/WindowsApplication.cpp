@@ -84,9 +84,9 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	// Save the current sticky/toggle/filter key settings so they can be restored them later
 	// If there are .ini settings, use them instead of the current system settings.
 	// NOTE: Whenever we exit and restore these settings gracefully, the .ini settings are removed.
-	FMemory::MemZero(StartupStickyKeys);
-	FMemory::MemZero(StartupToggleKeys);
-	FMemory::MemZero(StartupFilterKeys);
+	FMemory::Memzero(StartupStickyKeys);
+	FMemory::Memzero(StartupToggleKeys);
+	FMemory::Memzero(StartupFilterKeys);
 	
 	StartupStickyKeys.cbSize = sizeof(StartupStickyKeys);
 	StartupToggleKeys.cbSize = sizeof(StartupToggleKeys);
@@ -590,7 +590,7 @@ void FWindowsApplication::GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayM
 EWindowTitleAlignment::Type FWindowsApplication::GetWindowTitleAlignment() const
 {
 	OSVERSIONINFOEX VersionInfo;
-	FMemory::MemZero(VersionInfo);
+	FMemory::Memzero(VersionInfo);
 	VersionInfo.dwMajorVersion = 6;
 	VersionInfo.dwMinorVersion = 2;
 	VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);

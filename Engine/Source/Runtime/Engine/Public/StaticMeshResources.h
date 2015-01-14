@@ -27,7 +27,7 @@ public:
 		, BasePercentTrianglesMult(1.0f)
 		, DisplayName( NSLOCTEXT( "UnrealEd", "None", "None" ) )
 	{
-		FMemory::MemZero(SettingsBias);
+		FMemory::Memzero(SettingsBias);
 		SettingsBias.PercentTriangles = 1.0f;
 	}
 

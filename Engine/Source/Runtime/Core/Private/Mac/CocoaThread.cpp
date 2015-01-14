@@ -168,7 +168,7 @@ private:
 		{
 			CFRunLoopSourceContext Context;
 			FCocoaRunLoopSourceInfo* Info = [[FCocoaRunLoopSourceInfo alloc] initWithSource:this];
-			FMemory::MemZero(Context);
+			FMemory::Memzero(Context);
 			Context.version = 0;
 			Context.info = Info;
 			Context.retain = CFRetain;

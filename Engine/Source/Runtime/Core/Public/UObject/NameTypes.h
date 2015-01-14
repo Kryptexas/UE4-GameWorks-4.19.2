@@ -319,7 +319,7 @@ public:
 		: NumElements(0)
 		, NumChunks(0)
 	{
-		FMemory::MemZero(Chunks);
+		FMemory::Memzero(Chunks);
 	}
 	/** 
 	 * Return the number of elements in the array 

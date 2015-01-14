@@ -369,7 +369,7 @@ static void SetProcessMemoryLimit( SIZE_T ProcessMemoryLimitMB )
 {
 	HANDLE JobObject = ::CreateJobObject(nullptr, TEXT("UE4-JobObject"));
 	JOBOBJECT_EXTENDED_LIMIT_INFORMATION JobLimitInfo;
-	FMemory::MemZero( JobLimitInfo );
+	FMemory::Memzero( JobLimitInfo );
 	JobLimitInfo.ProcessMemoryLimit = 1024*1024*ProcessMemoryLimitMB;
 	JobLimitInfo.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_PROCESS_MEMORY;
 	const BOOL bSetJob = ::SetInformationJobObject(JobObject,JobObjectExtendedLimitInformation,&JobLimitInfo,sizeof(JobLimitInfo));
@@ -2181,7 +2181,7 @@ FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 				break;
 			}
 
-			FMemory::MemZero( DisplayDevice );
+			FMemory::Memzero( DisplayDevice );
 			DisplayDevice.cb = sizeof( DisplayDevice );
 			DeviceIndex++;
 		}

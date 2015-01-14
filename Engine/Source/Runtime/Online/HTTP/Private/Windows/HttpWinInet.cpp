@@ -1213,7 +1213,7 @@ void FURLWinInet::ClearCachedData() const
 {
 	URLPtr = NULL;
 	URLParameters.Reset();
-	FMemory::MemZero(URLParts);
+	FMemory::Memzero(URLParts);
 }
 
 void FURLWinInet::CrackUrlParameters() const

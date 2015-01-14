@@ -30,7 +30,7 @@ void SProfilerMiniView::Reset()
 	RecentlyAddedFrames.Empty();
 	StatMetadata = nullptr;
 
-	FMemory::MemZero( PaintStateMemory );
+	FMemory::Memzero( PaintStateMemory );
 	PaintState = nullptr;
 
 	MousePositionOnButtonDown = FVector2D::ZeroVector;

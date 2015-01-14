@@ -283,7 +283,7 @@ void FD3D11Viewport::PresentWithVsyncDWM()
 
 	// Find out how long since we last flipped and query DWM for timing information.
 	QueryPerformanceCounter(&Cycles);
-	FMemory::MemZero(TimingInfo);
+	FMemory::Memzero(TimingInfo);
 	TimingInfo.cbSize = sizeof(DWM_TIMING_INFO);
 	DwmGetCompositionTimingInfo(WindowHandle, &TimingInfo);
 

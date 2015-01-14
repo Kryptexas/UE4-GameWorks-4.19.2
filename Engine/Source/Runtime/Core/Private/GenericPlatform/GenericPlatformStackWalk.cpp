@@ -52,7 +52,7 @@ void FGenericPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString,
 	// Temporary memory holding the stack trace.
 	static const int MAX_DEPTH = 100;
 	uint64 StackTrace[MAX_DEPTH];
-	FMemory::MemZero( StackTrace );
+	FMemory::Memzero( StackTrace );
 
 	// Capture stack backtrace.
 	FPlatformStackWalk::CaptureStackBackTrace( StackTrace, MAX_DEPTH, Context );

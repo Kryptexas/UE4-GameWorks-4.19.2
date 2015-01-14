@@ -989,7 +989,7 @@ void FGearVR::Startup()
 
 	UE_LOG(LogHMD, Log, TEXT("GearVR starting with CPU: %d GPU: %d"), CpuLevel, GpuLevel);
 
-	FMemory::MemZero(VrModeParms);
+	FMemory::Memzero(VrModeParms);
 	VrModeParms.AsynchronousTimeWarp = true;
 	VrModeParms.DistortionFileName = NULL;
 	VrModeParms.EnableImageServer = false;

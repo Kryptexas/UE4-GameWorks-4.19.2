@@ -54,7 +54,7 @@ struct FRecastBuildConfig : public rcConfig
 
 	void Reset()
 	{
-		FMemory::MemZero(*this);
+		FMemory::Memzero(*this);
 		bPerformVoxelFiltering = true;
 		bGenerateDetailedMesh = true;
 		bGenerateBVTree = true;

@@ -213,10 +213,10 @@ FWindowsWindow::FWindowsWindow()
 	, OLEReferenceCount(0)
 	, bIsVisible( false )
 {
-	FMemory::MemZero(PreFullscreenWindowPlacement);
+	FMemory::Memzero(PreFullscreenWindowPlacement);
 	PreFullscreenWindowPlacement.length = sizeof(WINDOWPLACEMENT);
 
-	FMemory::MemZero(PreParentMinimizedWindowPlacement);
+	FMemory::Memzero(PreParentMinimizedWindowPlacement);
 	PreParentMinimizedWindowPlacement.length = sizeof(WINDOWPLACEMENT);
 }
 
@@ -311,7 +311,7 @@ void FWindowsWindow::AdjustWindowRegion( int32 Width, int32 Height )
 void FWindowsWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 NewHeight )
 {
 	WINDOWINFO WindowInfo;
-	FMemory::MemZero( WindowInfo );
+	FMemory::Memzero( WindowInfo );
 	WindowInfo.cbSize = sizeof( WindowInfo );
 	::GetWindowInfo( HWnd, &WindowInfo );
 
@@ -700,7 +700,7 @@ bool FWindowsWindow::IsPointInWindow( int32 X, int32 Y ) const
 int32 FWindowsWindow::GetWindowBorderSize() const
 {
 	WINDOWINFO WindowInfo;
-	FMemory::MemZero( WindowInfo );
+	FMemory::Memzero( WindowInfo );
 	WindowInfo.cbSize = sizeof( WindowInfo );
 	::GetWindowInfo( HWnd, &WindowInfo );
 

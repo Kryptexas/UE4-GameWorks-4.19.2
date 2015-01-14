@@ -4487,7 +4487,7 @@ void FEditorViewportStats::Initialize()
 	if ( !bInitialized )
 	{
 		bInitialized = true;
-		FMemory::MemZero(DataPoints);
+		FMemory::Memzero(DataPoints);
 	}
 }
 
@@ -4569,7 +4569,7 @@ void FEditorViewportStats::SendUsageData()
 	FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Usage.Viewport.Orthographic"), OrthographicUsage);
 
 	// Clear all the usage data in case we do it twice.
-	FMemory::MemZero(DataPoints);
+	FMemory::Memzero(DataPoints);
 }
 
 

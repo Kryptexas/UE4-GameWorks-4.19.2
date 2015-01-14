@@ -1932,8 +1932,8 @@ FOpenGLShaderParameterCache::~FOpenGLShaderParameterCache()
 		FMemory::Free(PackedGlobalUniforms[0]);
 	}
 
-	FMemory::MemZero(PackedUniformsScratch);
-	FMemory::MemZero(PackedGlobalUniforms);
+	FMemory::Memzero(PackedUniformsScratch);
+	FMemory::Memzero(PackedGlobalUniforms);
 
 	GlobalUniformArraySize = -1;
 }

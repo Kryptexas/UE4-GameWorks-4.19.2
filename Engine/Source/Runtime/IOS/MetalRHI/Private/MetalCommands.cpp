@@ -771,7 +771,7 @@ void FMetalDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 			FRHICommandList_RecursiveHazardous RHICmdList;
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GClearMRTBoundShaderState[0], GVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 			FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
-			FMemory::MemZero(ShaderClearColors);
+			FMemory::Memzero(ShaderClearColors);
 
 			for (int32 i = 0; i < NumClearColors; i++)
 			{

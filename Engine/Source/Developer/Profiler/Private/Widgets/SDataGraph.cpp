@@ -197,8 +197,8 @@ SDataGraph::SDataGraph()
 {
 	ScaleY = FMath::Pow( 2.0f, MouseWheelAcc );
 
-	FMemory::MemZero( FrameIndices );
-	FMemory::MemZero( FrameTimesMS );
+	FMemory::Memzero( FrameIndices );
+	FMemory::Memzero( FrameTimesMS );
 }
 
 SDataGraph::~SDataGraph()

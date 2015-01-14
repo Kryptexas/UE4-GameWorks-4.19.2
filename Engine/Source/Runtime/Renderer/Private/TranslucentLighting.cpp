@@ -1082,7 +1082,7 @@ void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Fea
 		GeometryShader->SetParameters(RHICmdList, VolumeBounds);
 
 		FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
-		FMemory::MemZero(ShaderClearColors);
+		FMemory::Memzero(ShaderClearColors);
 
 		for (int32 i = 0; i < NumRenderTargets; i++)
 		{

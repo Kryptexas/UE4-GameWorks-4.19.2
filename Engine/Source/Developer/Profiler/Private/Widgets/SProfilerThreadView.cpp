@@ -26,7 +26,7 @@ void SProfilerThreadView::Reset()
 {
 	ProfilerStream = nullptr;
 
-	FMemory::MemZero( PaintStateMemory );
+	FMemory::Memzero( PaintStateMemory );
 	PaintState = nullptr;
 
 	MousePosition = FVector2D::ZeroVector;

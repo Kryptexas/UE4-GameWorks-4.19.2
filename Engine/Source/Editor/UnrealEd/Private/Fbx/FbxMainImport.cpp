@@ -292,7 +292,7 @@ FFbxImporter::FFbxImporter()
 	Scene = NULL;
 	
 	ImportOptions = new FBXImportOptions();
-	FMemory::MemZero(*ImportOptions);
+	FMemory::Memzero(*ImportOptions);
 	
 	CurPhase = NOTSTARTED;
 }

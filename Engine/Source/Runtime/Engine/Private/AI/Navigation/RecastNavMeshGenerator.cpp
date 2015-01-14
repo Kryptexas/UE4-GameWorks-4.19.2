@@ -1167,7 +1167,7 @@ struct FOffMeshData
 			}
 
 			dtOffMeshLinkCreateParams NewInfo;
-			FMemory::MemZero(NewInfo);
+			FMemory::Memzero(NewInfo);
 
 			// not doing anything to link's points order - should be already ordered properly by link processor
 			StoreUnrealPoint(NewInfo.vertsA0, LocalToWorld.TransformPosition(Link.Left));
@@ -1205,7 +1205,7 @@ struct FOffMeshData
 			}
 
 			dtOffMeshLinkCreateParams NewInfo;
-			FMemory::MemZero(NewInfo);
+			FMemory::Memzero(NewInfo);
 
 			// not doing anything to link's points order - should be already ordered properly by link processor
 			StoreUnrealPoint(NewInfo.vertsA0, LocalToWorld.TransformPosition(Link.LeftStart));
@@ -2865,7 +2865,7 @@ bool FRecastNavMeshGenerator::ConstructTiledNavMesh()
 		++Version;
 		
 		dtNavMeshParams TiledMeshParameters;
-		FMemory::MemZero(TiledMeshParameters);	
+		FMemory::Memzero(TiledMeshParameters);	
 		rcVcopy(TiledMeshParameters.orig, &FVector::ZeroVector.X);
 		TiledMeshParameters.tileWidth = Config.tileSize * Config.cs;
 		TiledMeshParameters.tileHeight = Config.tileSize * Config.cs;
