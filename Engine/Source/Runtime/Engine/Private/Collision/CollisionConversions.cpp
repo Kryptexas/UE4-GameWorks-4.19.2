@@ -8,7 +8,9 @@
 #include "CollisionDebugDrawing.h"
 #include "CollisionConversions.h"
 #include "Components/DestructibleComponent.h"
+#include "Components/LineBatchComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+
 
 #define DRAW_OVERLAPPING_TRIS (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 extern TAutoConsoleVariable<int32> CVarShowInitialOverlaps;
