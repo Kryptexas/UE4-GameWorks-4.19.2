@@ -175,28 +175,146 @@ void UPaperTileMap::UpdateBodySetup()
 	}
 }
 
+void UPaperTileMap::GetTileToLocalParameters(FVector& OutCornerPosition, FVector& OutStepX, FVector& OutStepY, FVector& OutOffsetYFactor) const
+{
+	switch (ProjectionMode)
+	{
+	case ETileMapProjectionMode::Orthogonal:
+	default:
+		OutCornerPosition = -(TileWidth * PaperAxisX * 0.5f) + (TileHeight * PaperAxisY * 0.5f);
+		OutOffsetYFactor = FVector::ZeroVector;
+		OutStepX = PaperAxisX * TileWidth;
+		OutStepY = -PaperAxisY * TileHeight;
+		break;
+	case ETileMapProjectionMode::IsometricDiamond:
+		OutCornerPosition = (TileHeight * PaperAxisY * 0.5f);
+		OutOffsetYFactor = FVector::ZeroVector;
+		OutStepX = (TileWidth * PaperAxisX * 0.5f) - (TileHeight * PaperAxisY * 0.5f);
+		OutStepY = (TileWidth * PaperAxisX * -0.5f) - (TileHeight * PaperAxisY * 0.5f);
+		break;
+	case ETileMapProjectionMode::IsometricStaggered:
+		OutCornerPosition = 0.5f * TileHeight * PaperAxisY;
+		OutOffsetYFactor = 0.5f * TileWidth * PaperAxisX;
+		OutStepX = PaperAxisX * TileWidth;
+		OutStepY = -PaperAxisY * TileHeight;
+		break;
+	}
+}
+
+void UPaperTileMap::GetLocalToTileParameters(FVector& OutCornerPosition, FVector& OutStepX, FVector& OutStepY, FVector& OutOffsetYFactor) const
+{
+	switch (ProjectionMode)
+	{
+	case ETileMapProjectionMode::Orthogonal:
+	default:
+		OutCornerPosition = -(TileWidth * PaperAxisX * 0.5f) + (TileHeight * PaperAxisY * 0.5f);
+		OutOffsetYFactor = FVector::ZeroVector;
+		OutStepX = PaperAxisX / TileWidth;
+		OutStepY = -PaperAxisY / TileHeight;
+		break;
+	case ETileMapProjectionMode::IsometricDiamond:
+		OutCornerPosition = (TileHeight * PaperAxisY * 0.5f);
+		OutOffsetYFactor = FVector::ZeroVector;
+		OutStepX = (PaperAxisX / TileWidth) - (PaperAxisY / TileHeight);
+		OutStepY = (-PaperAxisX / TileWidth) - (PaperAxisY / TileHeight);
+		break;
+	case ETileMapProjectionMode::IsometricStaggered:
+		OutCornerPosition = 0.5f * TileHeight * PaperAxisY;
+		OutOffsetYFactor = 0.5f * TileWidth * PaperAxisX;
+		OutStepX = PaperAxisX / TileWidth;
+		OutStepY = -PaperAxisY / TileHeight;
+		break;
+	}
+}
+
+void UPaperTileMap::GetTileCoordinatesFromLocalSpacePosition(const FVector& Position, int32& OutTileX, int32& OutTileY) const
+{
+	FVector CornerPosition;
+	FVector OffsetYFactor;
+	FVector ParameterAxisX;
+	FVector ParameterAxisY;
+
+	// position is in pixels
+	// axis is tiles to pixels
+
+	GetLocalToTileParameters(/*out*/ CornerPosition, /*out*/ ParameterAxisX, /*out*/ ParameterAxisY, /*out*/ OffsetYFactor);
+
+	const FVector RelativePosition = Position - CornerPosition;
+	const float ProjectionSpaceXInTiles = FVector::DotProduct(RelativePosition, ParameterAxisX);
+	const float ProjectionSpaceYInTiles = FVector::DotProduct(RelativePosition, ParameterAxisY);
+
+	OutTileX = FMath::FloorToInt(ProjectionSpaceXInTiles);
+	OutTileY = FMath::FloorToInt(ProjectionSpaceYInTiles);
+}
+
 FVector UPaperTileMap::GetTilePositionInLocalSpace(float TileX, float TileY, int32 LayerIndex) const
 {
-	//@TODO: Tile pivot issue
-	const FVector PartialX = PaperAxisX * (TileX - 0.5f) * TileWidth;
-	const FVector PartialY = PaperAxisY * -(TileY - 0.5f) * TileHeight;
-	const FVector PartialZ = PaperAxisZ * (LayerIndex * SeparationPerLayer);
+	FVector CornerPosition;
+	FVector OffsetYFactor;
+	FVector StepX;
+	FVector StepY;
 
-	const FVector LocalPos(PartialX + PartialY + PartialZ);
-	
+	GetTileToLocalParameters(/*out*/ CornerPosition, /*out*/ StepX, /*out*/ StepY, /*out*/ OffsetYFactor);
+
+	FVector TotalOffset;
+	switch (ProjectionMode)
+	{
+	case ETileMapProjectionMode::Orthogonal:
+	default:
+		TotalOffset = CornerPosition;
+		break;
+	case ETileMapProjectionMode::IsometricDiamond:
+		TotalOffset = CornerPosition;
+		break;
+	case ETileMapProjectionMode::IsometricStaggered:
+		TotalOffset = CornerPosition + ((int32)TileY & 1) * OffsetYFactor;
+		break;
+	}
+
+	const FVector PartialX = TileX * StepX;
+	const FVector PartialY = TileY * StepY;
+
+	const float TotalSeparation = (SeparationPerLayer * LayerIndex) + (SeparationPerTileX * TileX) + (SeparationPerTileY * TileY);
+	const FVector PartialZ = TotalSeparation * PaperAxisZ;
+
+	const FVector LocalPos(PartialX + PartialY + PartialZ + TotalOffset);
+
 	return LocalPos;
+}
+
+FVector UPaperTileMap::GetTileCenterInLocalSpace(float TileX, float TileY, int32 LayerIndex) const
+{
+	return GetTilePositionInLocalSpace(TileX + 0.5f, TileY + 0.5f, LayerIndex);
 }
 
 FBoxSphereBounds UPaperTileMap::GetRenderBounds() const
 {
-	//@TODO: Tile pivot issue
 	const float Depth = SeparationPerLayer * (TileLayers.Num() - 1);
 	const float HalfThickness = 2.0f;
-	const FVector TopLeft((-0.5f)*TileWidth, -HalfThickness - Depth, -(MapHeight - 0.5f) * TileHeight);
-	const FVector Dimenisons(MapWidth*TileWidth, Depth + 2 * HalfThickness, MapHeight * TileHeight);
 
-	const FBox Box(TopLeft, TopLeft + Dimenisons);
-	return FBoxSphereBounds(Box);
+	switch (ProjectionMode)
+	{
+		case ETileMapProjectionMode::Orthogonal:
+		default:
+		{
+			const FVector BottomLeft((-0.5f) * TileWidth, -HalfThickness - Depth, -(MapHeight - 0.5f) * TileHeight);
+			const FVector Dimensions(MapWidth*TileWidth, Depth + 2 * HalfThickness, MapHeight * TileHeight);
+
+			const FBox Box(BottomLeft, BottomLeft + Dimensions);
+			return FBoxSphereBounds(Box);
+		}
+		case ETileMapProjectionMode::IsometricDiamond:
+		{
+			 const FVector BottomLeft((-0.5f) * TileWidth * MapWidth, -HalfThickness - Depth, -MapHeight * TileHeight);
+			 const FVector Dimensions(MapWidth*TileWidth, Depth + 2 * HalfThickness, (MapHeight + 1) * TileHeight);
+
+			 const FBox Box(BottomLeft, BottomLeft + Dimensions);
+			 return FBoxSphereBounds(Box);
+		}
+// 		case ETileMapProjectionMode::IsometricStaggered:
+// 		{
+// 		}
+	}
 }
 
 UPaperTileLayer* UPaperTileMap::AddNewLayer(bool bCollisionLayer, int32 InsertionIndex)

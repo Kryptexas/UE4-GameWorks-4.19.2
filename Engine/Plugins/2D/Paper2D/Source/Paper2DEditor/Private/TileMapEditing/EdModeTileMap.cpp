@@ -83,10 +83,12 @@ FEdModeTileMap::FEdModeTileMap()
 	, PaintSourceTileSet(nullptr)
 	, PaintSourceTopLeft(0, 0)
 	, PaintSourceDimensions(0, 0)
+	, bIsLastCursorValid(false)
 	, DrawPreviewDimensionsLS(0.0f, 0.0f, 0.0f)
 	, EraseBrushSize(1)
 {
 	bDrawPivot = false;
+	bDrawGrid = false;
 }
 
 FEdModeTileMap::~FEdModeTileMap()
@@ -167,6 +169,9 @@ bool FEdModeTileMap::MouseEnter(FEditorViewportClient* ViewportClient, FViewport
 bool FEdModeTileMap::MouseLeave(FEditorViewportClient* ViewportClient, FViewport* Viewport)
 {
 	DrawPreviewDimensionsLS = FVector::ZeroVector;
+	bIsLastCursorValid = false;
+	LastCursorTileMap.Reset();
+
 	CursorPreviewComponent->SetVisibility(false);
 	return FEdMode::MouseLeave(ViewportClient, Viewport);
 }
@@ -304,23 +309,25 @@ void FEdModeTileMap::Render(const FSceneView* View, FViewport* Viewport, FPrimit
 		return;
 	}
 
-	// Make sure the cursor is visible OR we're flood filling.  No point drawing a paint cue when there's no cursor.
-// 	if( Viewport->IsCursorVisible() || IsForceRendered())
-// 	{
-// 		if( !PDI->IsHitTesting() )
-// 		{
-// 		}
-// 	}
-
 	// Draw the preview cursor
-	if (!DrawPreviewDimensionsLS.IsNearlyZero())
+	if (bIsLastCursorValid)
 	{
-		FVector X = DrawPreviewSpace.GetScaledAxis(EAxis::X);
-		FVector Y = DrawPreviewSpace.GetScaledAxis(EAxis::Y);
-		FVector Z = DrawPreviewSpace.GetScaledAxis(EAxis::Z);
-		FVector Base = DrawPreviewLocation;
+		if (UPaperTileMap* TileMap = LastCursorTileMap.Get())
+		{
+			// Slight depth bias so that the wireframe grid overlay doesn't z-fight with the tiles themselves
+			const float DepthBias = 0.0001f;
+			FLinearColor CursorWireColor = FLinearColor::White;
 
-		DrawOrientedWireBox(PDI, Base, X, Y, Z, DrawPreviewDimensionsLS, FLinearColor::White, SDPG_Foreground, 0.0f, 0.0001f);
+			const FVector TL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + 0, LastCursorTileY + 0, LastCursorTileZ)));
+			const FVector TR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + CursorWidth, LastCursorTileY + 0, LastCursorTileZ)));
+			const FVector BL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + 0, LastCursorTileY + CursorHeight, LastCursorTileZ)));
+			const FVector BR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + CursorWidth, LastCursorTileY + CursorHeight, LastCursorTileZ)));
+
+			PDI->DrawLine(TL, TR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+			PDI->DrawLine(TR, BR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+			PDI->DrawLine(BR, BL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+			PDI->DrawLine(BL, TL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+		}
 	}
 }
 
@@ -345,6 +352,21 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 	if (bDrawToolDescription && !DrawPreviewDimensionsLS.IsNearlyZero())
 	{
 		const FString ToolDescriptionString = ToolDescription.ToString();
+
+		FVector2D ScreenSpacePreviewLocation;
+		if (View->WorldToPixel(DrawPreviewTopLeft, /*out*/ ScreenSpacePreviewLocation))
+		{
+			int32 XL;
+			int32 YL;
+			StringSize(GEngine->GetLargeFont(), XL, YL, *ToolDescriptionString);
+			Canvas->DrawShadowedString(ScreenSpacePreviewLocation.X, ScreenSpacePreviewLocation.Y - YL, *ToolDescriptionString, GEngine->GetLargeFont(), FLinearColor::White);
+		}
+	}
+
+
+	if (bIsLastCursorValid)
+	{
+		const FString ToolDescriptionString = FString::Printf(TEXT("%d, %d"), LastCursorTileX, LastCursorTileY);
 
 		FVector2D ScreenSpacePreviewLocation;
 		if (View->WorldToPixel(DrawPreviewTopLeft, /*out*/ ScreenSpacePreviewLocation))
@@ -427,9 +449,6 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 			{
 				UPaperTileLayer* Layer = TileMap->TileLayers[LayerIndex];
 
-				const float WX = TileMap->MapWidth * TileMap->TileWidth;
-				const float WY = TileMap->MapHeight * TileMap->TileHeight;
-
 				ComponentToWorld = (TileMapComponent != nullptr) ? TileMapComponent->ComponentToWorld : FTransform::Identity;
 				const FVector LocalStart = ComponentToWorld.InverseTransformPosition(TraceStart);
 				const FVector LocalDirection = ComponentToWorld.InverseTransformVector(TraceDir);
@@ -442,11 +461,7 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 				FVector Intersection;
 				if (FMath::SegmentPlaneIntersection(LocalStart, LocalEnd, LayerPlane, /*out*/ Intersection))
 				{
-					const float NormalizedX = (FVector::DotProduct(Intersection, PaperAxisX) + 0.5f * TileMap->TileWidth) / WX;
-					const float NormalizedY = (-FVector::DotProduct(Intersection, PaperAxisY) + 0.5f * TileMap->TileHeight) / WY;
-
-					OutTileX = FMath::FloorToInt(NormalizedX * TileMap->MapWidth);
-					OutTileY = FMath::FloorToInt(NormalizedY * TileMap->MapHeight);
+					TileMap->GetTileCoordinatesFromLocalSpacePosition(Intersection, /*out*/ OutTileX, /*out*/ OutTileY);
 
 					const bool bInBounds = (OutTileX > -BrushWidth) && (OutTileX < TileMap->MapWidth) && (OutTileY > -BrushHeight) && (OutTileY < TileMap->MapHeight);
 					if (bInBounds || bAllowOutOfBounds)
@@ -856,6 +871,8 @@ void FEdModeTileMap::SynchronizePreviewWithTileMap(UPaperTileMap* NewTileMap)
 void FEdModeTileMap::UpdatePreviewCursor(const FViewportCursorLocation& Ray)
 {
 	DrawPreviewDimensionsLS = FVector::ZeroVector;
+	bIsLastCursorValid = false;
+	LastCursorTileMap.Reset();
 
 	// See if we should draw the preview
 	{
@@ -863,12 +880,18 @@ void FEdModeTileMap::UpdatePreviewCursor(const FViewportCursorLocation& Ray)
 		int32 LocalTileY0;
 		if (UPaperTileLayer* TileLayer = GetSelectedLayerUnderCursor(Ray, /*out*/ LocalTileX0, /*out*/ LocalTileY0, /*bAllowOutOfBounds=*/ true))
 		{
-			const int32 LocalTileX1 = LocalTileX0 + CursorWidth;
-			const int32 LocalTileY1 = LocalTileY0 + CursorHeight;
-
 			UPaperTileMap* TileMap = TileLayer->GetTileMap();
 			int32 LayerIndex;
 			ensure(TileMap->TileLayers.Find(TileLayer, LayerIndex));
+
+			LastCursorTileX = LocalTileX0;
+			LastCursorTileY = LocalTileY0;
+			LastCursorTileZ = LayerIndex;
+			bIsLastCursorValid = true;
+			LastCursorTileMap = TileMap;
+
+			const int32 LocalTileX1 = LocalTileX0 + CursorWidth;
+			const int32 LocalTileY1 = LocalTileY0 + CursorHeight;
 
 			DrawPreviewTopLeft = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX0, LocalTileY0, LayerIndex));
 			const FVector WorldPosition = DrawPreviewTopLeft;
@@ -879,7 +902,7 @@ void FEdModeTileMap::UpdatePreviewCursor(const FViewportCursorLocation& Ray)
 
 			DrawPreviewDimensionsLS = 0.5f*((PaperAxisX * CursorWidth * TileMap->TileWidth) + (PaperAxisY * -CursorHeight * TileMap->TileHeight));
 
-			const FVector ComponentPreviewLocation = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX0 + 0.5f, LocalTileY0 + 0.5f, LayerIndex));
+			const FVector ComponentPreviewLocation = ComponentToWorld.TransformPosition(TileMap->GetTileCenterInLocalSpace(LocalTileX0, LocalTileY0, LayerIndex));
 			CursorPreviewComponent->SetWorldLocation(ComponentPreviewLocation);
 			CursorPreviewComponent->SetWorldRotation(FRotator(ComponentToWorld.GetRotation()));
 			SynchronizePreviewWithTileMap(TileMap);

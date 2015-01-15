@@ -109,6 +109,12 @@ protected:
 	FVector DrawPreviewLocation;
 
 	// Size of rectangle
+	int32 LastCursorTileX;
+	int32 LastCursorTileY;
+	int32 LastCursorTileZ;
+	bool bIsLastCursorValid;
+	TWeakObjectPtr<UPaperTileMap> LastCursorTileMap;
+
 	FVector DrawPreviewDimensionsLS;
 
 	// Top left of the component bounds
