@@ -56,9 +56,11 @@ public:
 	static void FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager);
 	void FillLoadPresetMenu(FMenuBuilder& Builder);
 
+	void GetTimelines(TArray<TSharedPtr<class STimeline> >&, bool bOnlySelectedOnes = false);
+
 	/** Callback for for when the owner tab's visual state is being persisted. */
 	void HandleMajorTabPersistVisualState();
-	void OnTabLosed();
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 	void OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry);
 	void CollectNewCategories(const FVisualLogDevice::FVisualLogEntryItem& Entry);
@@ -99,6 +101,10 @@ public:
 	void SetFiltersPreset(const struct FFiltersPreset& Preset);
 	void OnNewWorld(UWorld* NewWorld);
 	void ResetData();
+
+protected:
+	void OnMoveCursorLeftCommand();
+	void OnMoveCursorRightCommand();
 
 protected:
 	// Holds the list of UI commands.

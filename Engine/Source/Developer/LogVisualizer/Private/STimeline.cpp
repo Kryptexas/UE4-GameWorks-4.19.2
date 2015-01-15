@@ -130,7 +130,7 @@ void STimeline::UpdateVisibilityForEntry(FVisualLogDevice::FVisualLogEntryItem& 
 {
 	TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
 	FVisualLoggerHelpers::GetCategories(CurrentEntry.Entry, OutCategories);
-	bool bHasValidCategories = VisualLoggerInterface.Pin()->HasValidCategories(OutCategories);
+	bool bHasValidCategories = FLogVisualizer::Get().GetVisualLoggerInterface()->HasValidCategories(OutCategories);
 
 	if (bSearchInsideLogs && bHasValidCategories && SearchString.Len() > 0)
 	{
@@ -185,7 +185,6 @@ void STimeline::AddEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)
 
 void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView> VisualLoggerView, TSharedPtr<FSequencerTimeSliderController> TimeSliderController, TSharedPtr<STimelinesContainer> InContainer, const FVisualLogDevice::FVisualLogEntryItem& Entry)
 {
-	VisualLoggerInterface = InArgs._VisualLoggerInterface.Get();
 	OnGetMenuContent = InArgs._OnGetMenuContent;
 
 	Owner = InContainer;
@@ -251,7 +250,6 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView
 				[
 					// Search box for searching through the outliner
 					SAssignNew(TimelineBar, STimelineBar, TimeSliderController, SharedThis(this))
-					.VisualLoggerInterface(InArgs._VisualLoggerInterface)
 				]
 			]
 		];
@@ -269,4 +267,19 @@ const FSlateBrush* STimeline::GetBorder() const
 	{
 		return FLogVisualizerStyle::Get().GetBrush("ToolBar.Button.Normal");
 	}
+}
+
+void STimeline::Goto(float ScrubPosition) 
+{ 
+	TimelineBar->SnapScrubPosition(ScrubPosition); 
+}
+
+void STimeline::GotoNextItem() 
+{ 
+	TimelineBar->GotoNextItem(); 
+}
+
+void STimeline::GotoPreviousItem() 
+{ 
+	TimelineBar->GotoPreviousItem(); 
 }

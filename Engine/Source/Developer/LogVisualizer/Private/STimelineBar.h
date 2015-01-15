@@ -11,7 +11,6 @@ class STimelineBar : public SLeafWidget
 public:
 	SLATE_BEGIN_ARGS(STimelineBar){}
 		SLATE_EVENT(FOnItemSelectionChanged, OnItemSelectionChanged)
-		SLATE_ATTRIBUTE(TWeakPtr<IVisualLoggerInterface>, VisualLoggerInterface)
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
@@ -32,9 +31,10 @@ public:
 
 	void OnSelect();
 	void OnDeselect();
+	void GotoNextItem(int32 MoveDistance = 1);
+	void GotoPreviousItem(int32 MoveDistance = 1);
 
 protected:
-	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	TSharedPtr<class FSequencerTimeSliderController> TimeSliderController;
 	TWeakPtr<class STimeline> TimelineOwner;
 	mutable int32 CurrentItemIndex;

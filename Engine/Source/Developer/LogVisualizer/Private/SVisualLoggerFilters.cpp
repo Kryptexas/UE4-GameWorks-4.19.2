@@ -12,59 +12,9 @@
 // SLogFilterList
 /////////////////////
 
-FColor SVisualLoggerFilters::ColorPalette[] = {
-	FColor(0xff00A480),
-	FColorList::Aquamarine,
-	FColorList::Cyan,
-	FColorList::Brown,
-	FColorList::Green,
-	FColorList::Orange,
-	FColorList::Magenta,
-	FColorList::BrightGold,
-	FColorList::NeonBlue,
-	FColorList::MediumSlateBlue,
-	FColorList::SpicyPink,
-	FColorList::SpringGreen,
-	FColorList::SteelBlue,
-	FColorList::SummerSky,
-	FColorList::Violet,
-	FColorList::VioletRed,
-	FColorList::YellowGreen,
-	FColor(0xff62E200),
-	FColor(0xff1F7B67),
-	FColor(0xff62AA2A),
-	FColor(0xff70227E),
-	FColor(0xff006B53),
-	FColor(0xff409300),
-	FColor(0xff5D016D),
-	FColor(0xff34D2AF),
-	FColor(0xff8BF13C),
-	FColor(0xffBC38D3),
-	FColor(0xff5ED2B8),
-	FColor(0xffA6F16C),
-	FColor(0xffC262D3),
-	FColor(0xff0F4FA8),
-	FColor(0xff00AE68),
-	FColor(0xffDC0055),
-	FColor(0xff284C7E),
-	FColor(0xff21825B),
-	FColor(0xffA52959),
-	FColor(0xff05316D),
-	FColor(0xff007143),
-	FColor(0xff8F0037),
-	FColor(0xff4380D3),
-	FColor(0xff36D695),
-	FColor(0xffEE3B80),
-	FColor(0xff6996D3),
-	FColor(0xff60D6A7),
-	FColor(0xffEE6B9E)
-};
-
 #define LOCTEXT_NAMESPACE "SVisualLoggerFilters"
-void SVisualLoggerFilters::Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList, TSharedPtr<IVisualLoggerInterface> InVisualLoggerInterface)
+void SVisualLoggerFilters::Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList)
 {
-	VisualLoggerInterface = InVisualLoggerInterface;
-
 	ChildSlot
 		[
 			SAssignNew(FilterBox, SWrapBox)
@@ -305,38 +255,6 @@ void SVisualLoggerFilters::InvalidateCanvas()
 #endif
 }
 
-FLinearColor SVisualLoggerFilters::GetColorForUsedCategory(int32 Index) const
-{
-	if (Index >= 0 && Index < sizeof(ColorPalette) / sizeof(ColorPalette[0]))
-	{
-		return ColorPalette[Index];
-	}
-
-	static bool bReateColorList = false;
-	static FColorList StaticColor;
-	if (!bReateColorList)
-	{
-		bReateColorList = true;
-		StaticColor.CreateColorMap();
-	}
-	return StaticColor.GetFColorByIndex(Index);
-}
-
-FLinearColor SVisualLoggerFilters::GetColorForUsedCategory(const FString& InFilterName) const
-{
-	int32 CategoryIndex = 0;
-	for (auto& CurrentFilter : Filters)
-	{
-		if (CurrentFilter->GetFilterNameAsString() == InFilterName)
-		{
-			break;
-		}
-		CategoryIndex++;
-	}
-
-	return GetColorForUsedCategory(CategoryIndex);
-}
-
 uint32 SVisualLoggerFilters::GetCategoryIndex(const FString& InFilterName) const
 {
 	uint32 CategoryIndex = 0;
@@ -362,7 +280,7 @@ void SVisualLoggerFilters::AddFilter(const FString& InFilterName)
 		}
 	}
 
-	const FLinearColor Color = GetColorForUsedCategory(Filters.Num());
+	const FLinearColor Color = FLogVisualizer::Get().GetColorForCategory(Filters.Num());
 	TSharedRef<SFilterWidget> NewFilter =
 		SNew(SFilterWidget)
 		.FilterName(*InFilterName)
@@ -412,7 +330,7 @@ void SVisualLoggerFilters::OnFiltersChanged()
 	Settings->CurrentPresets.CategoryFilters = EnabledFilters;
 	Settings->SaveConfig();
 
-	VisualLoggerInterface.Pin()->GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
+	FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
 }
 
 void SVisualLoggerFilters::AddFilter(const FString& GraphName, const FString& DataName)

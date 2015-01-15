@@ -27,11 +27,9 @@ public:
 	SLATE_BEGIN_ARGS(SVisualLoggerFilters) { }
 	SLATE_END_ARGS()
 		
-	void Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList, TSharedPtr<IVisualLoggerInterface> VisualLoggerInterface);
+	void Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList);
 	void AddFilter(const FString& InFilterName);
 	void AddFilter(const FString& GraphName, const FString& DataName);
-	FLinearColor GetColorForUsedCategory(int32 Index) const;
-	FLinearColor GetColorForUsedCategory(const FString& InFilterName) const;
 	uint32 GetCategoryIndex(const FString& InFilterName) const;
 	bool IsFilterEnabled(const FString& InFilterName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All);
 	bool IsFilterEnabled(const FString& InGraphName, const FString& InDataName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All);
@@ -53,10 +51,8 @@ public:
 protected:
 	/** The horizontal box which contains all the filters */
 	TSharedPtr<SWrapBox> FilterBox;
-	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	TArray<TSharedRef<SFilterWidget> > Filters;
 	TMap<FName, TArray<FSimpleGraphFilter> > GraphFilters;
 	TSharedPtr<SComboButton> GraphsFilterCombo;
 	FString GraphsFilter;
-	static FColor ColorPalette[];
 };

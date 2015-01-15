@@ -33,10 +33,8 @@ namespace ELogsSortMode
 	};
 }
 
-void SVisualLoggerLogsList::Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList, TSharedPtr<IVisualLoggerInterface> InVisualLoggerInterface)
+void SVisualLoggerLogsList::Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList)
 {
-	VisualLoggerInterface = InVisualLoggerInterface;
-
 	ChildSlot
 		[
 			SAssignNew(LogsLinesWidget, SListView<TSharedPtr<FLogEntryItem> >)
@@ -144,7 +142,7 @@ void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisu
 
 	TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
 	FVisualLoggerHelpers::GetCategories(LogEntry.Entry, OutCategories);
-	if (VisualLoggerInterface.Pin()->HasValidCategories(OutCategories) == false)
+	if (FLogVisualizer::Get().GetVisualLoggerInterface()->HasValidCategories(OutCategories) == false)
 	{
 		return;
 	}
@@ -156,13 +154,13 @@ void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisu
 		bool bShowLine = true;
 
 		FString CurrentCategory = LogLine->Category.ToString();
-		bShowLine = VisualLoggerInterface.Pin()->IsValidCategory(CurrentCategory, LogLine->Verbosity) /*&& (bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentCategory.Find(QuickFilterText) != INDEX_NONE))*/;
+		bShowLine = FLogVisualizer::Get().GetVisualLoggerInterface()->IsValidCategory(CurrentCategory, LogLine->Verbosity) /*&& (bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentCategory.Find(QuickFilterText) != INDEX_NONE))*/;
 
 		if (bShowLine)
 		{
 			FLogEntryItem EntryItem;
 			EntryItem.Category = LogLine->Category.ToString();
-			EntryItem.CategoryColor = VisualLoggerInterface.Pin()->GetCategoryColor(LogLine->Category);
+			EntryItem.CategoryColor = FLogVisualizer::Get().GetColorForCategory(LogLine->Category.ToString());
 			EntryItem.Verbosity = LogLine->Verbosity;
 			EntryItem.Line = LogLine->Line;
 			EntryItem.UserData = LogLine->UserData;
@@ -177,13 +175,13 @@ void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisu
 		bool bShowLine = true;
 
 		FString CurrentCategory = Event.Name;
-		bShowLine = VisualLoggerInterface.Pin()->IsValidCategory(Event.Name, Event.Verbosity) /*&& (bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentCategory.Find(QuickFilterText) != INDEX_NONE))*/;
+		bShowLine = FLogVisualizer::Get().GetVisualLoggerInterface()->IsValidCategory(Event.Name, Event.Verbosity) /*&& (bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentCategory.Find(QuickFilterText) != INDEX_NONE))*/;
 
 		if (bShowLine)
 		{
 			FLogEntryItem EntryItem;
 			EntryItem.Category = Event.Name;
-			EntryItem.CategoryColor = VisualLoggerInterface.Pin()->GetCategoryColor(*EntryItem.Category);
+			EntryItem.CategoryColor = FLogVisualizer::Get().GetColorForCategory(*EntryItem.Category);
 			EntryItem.Verbosity = Event.Verbosity;
 			EntryItem.Line = FString::Printf(TEXT("Registered event: '%s' (%d times)%s"), *Event.Name, Event.Counter, Event.EventTags.Num() ? TEXT("\n") : TEXT(""));
 			for (auto& EventTag : Event.EventTags)

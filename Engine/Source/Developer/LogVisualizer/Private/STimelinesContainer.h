@@ -9,7 +9,6 @@ class STimelinesContainer : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(STimelinesContainer){}
-		SLATE_ATTRIBUTE(TWeakPtr<IVisualLoggerInterface>, VisualLoggerInterface)
 	SLATE_END_ARGS()
 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -66,6 +65,5 @@ protected:
 	TArray<TSharedPtr<class STimeline> > TimelineItems;
 	TArray< TSharedPtr<class STimeline> > SelectedNodes;
 	TSharedPtr<SVerticalBox> ContainingBorder;
-	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	float CachedMinTime, CachedMaxTime;
 };

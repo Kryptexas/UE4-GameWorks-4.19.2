@@ -16,8 +16,7 @@ TSharedRef<SWidget> STimelinesContainer::MakeTimeline(TSharedPtr<class SVisualLo
 	ContainingBorder->AddSlot()
 		[
 			SAssignNew(NewTimeline, STimeline, VisualLoggerView, TimeSliderController, SharedThis(this), Entry)
-			.OnItemSelectionChanged(this->VisualLoggerInterface.Pin()->GetVisualLoggerEvents().OnItemSelectionChanged)
-			.VisualLoggerInterface(this->VisualLoggerInterface)
+			.OnItemSelectionChanged(FLogVisualizer::Get().GetVisualLoggerEvents().OnItemSelectionChanged)
 			.OnGetMenuContent(this, &STimelinesContainer::GetRightClickMenuContent)
 		];
 
@@ -72,7 +71,7 @@ void STimelinesContainer::SetSelectionState(TSharedPtr<class STimeline> Affected
 			SelectedNodes.Add(AffectedNode);
 			AffectedNode->OnSelect();
 		}
-		VisualLoggerInterface.Pin()->GetVisualLoggerEvents().OnObjectSelectionChanged.ExecuteIfBound(AffectedNode);
+		FLogVisualizer::Get().GetVisualLoggerEvents().OnObjectSelectionChanged.ExecuteIfBound(AffectedNode);
 	}
 	else if (AffectedNode.IsValid())
 	{
@@ -272,7 +271,6 @@ void STimelinesContainer::Construct(const FArguments& InArgs, TSharedRef<class S
 {
 	TimeSliderController = InTimeSliderController;
 	VisualLoggerView = InVisualLoggerView;
-	VisualLoggerInterface = InArgs._VisualLoggerInterface.Get();
 
 	ChildSlot
 		[

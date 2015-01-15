@@ -187,7 +187,6 @@ FCustomVersionRegistration GVisualLoggerVersion(EVisualLoggerVersion::GUID, EVis
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-#include "Developer/LogVisualizer/Public/LogVisualizerModule.h"
 #if WITH_EDITOR
 #include "SlateBasics.h"
 #endif

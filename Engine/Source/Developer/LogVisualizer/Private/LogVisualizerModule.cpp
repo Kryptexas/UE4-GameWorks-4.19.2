@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
-#include "LogVisualizerModule.h"
+#include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "LogVisualizerStyle.h"
 #include "SDockTab.h"
 #include "VisualLoggerRenderingActor.h"
@@ -19,9 +19,26 @@ static const FName VisualLoggerTabName("VisualLogger");
 
 //DEFINE_LOG_CATEGORY(LogLogVisualizer);
 
+class FLogVisualizerModule : public ILogVisualizer
+{
+public:
+	// Begin IModuleInterface
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
+	// End IModuleInterface
+
+	virtual void Goto(float Timestamp, FName LogOwner) override;
+	virtual void GotoNextItem() override;
+	virtual void GotoPreviousItem() override;
+
+private:
+	TSharedRef<SDockTab> SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs);
+};
+
 void FLogVisualizerModule::StartupModule()
 {
 	FLogVisualizerStyle::Initialize();
+	FLogVisualizer::Initialize();
 
 	FVisualLoggerCommands::Register();
 	IModularFeatures::Get().RegisterModularFeature(VisualLoggerTabName, this);
@@ -57,13 +74,14 @@ void FLogVisualizerModule::ShutdownModule()
 		SettingsModule->UnregisterSettings("Editor", "General", "VisualLogger");
 	}
 
+	FLogVisualizer::Shutdown();
 	FLogVisualizerStyle::Shutdown();
 }
 
 TSharedRef<SDockTab> FLogVisualizerModule::SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 	const TSharedRef<SDockTab> MajorTab = SNew(SDockTab)
-		.TabRole(ETabRole::MajorTab);
+		.TabRole(ETabRole::NomadTab);
 
 	TSharedPtr<SWidget> TabContent;
 
@@ -73,6 +91,22 @@ TSharedRef<SDockTab> FLogVisualizerModule::SpawnLogVisualizerTab(const FSpawnTab
 
 	return MajorTab;
 }
+
+void FLogVisualizerModule::Goto(float Timestamp, FName LogOwner)
+{
+	FLogVisualizer::Get().Goto(Timestamp, LogOwner);
+}
+
+void FLogVisualizerModule::GotoNextItem()
+{
+	FLogVisualizer::Get().GotoNextItem();
+}
+
+void FLogVisualizerModule::GotoPreviousItem()
+{
+	FLogVisualizer::Get().GotoPreviousItem();
+}
+
 
 IMPLEMENT_MODULE(FLogVisualizerModule, LogVisualizer);
 #undef LOCTEXT_NAMESPACE

@@ -69,32 +69,29 @@ void SVisualLoggerView::GetTimelines(TArray<TSharedPtr<STimeline> >& OutList, bo
 	OutList = bOnlySelectedOnes ? TimelinesContainer->GetSelectedNodes() : TimelinesContainer->GetAllNodes();
 }
 
-void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList, TSharedPtr<IVisualLoggerInterface> InVisualLoggerInterface)
+void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList)
 {
-	VisualLoggerInterface = InVisualLoggerInterface;
 	AnimationOutlinerFillPercentage = .25f;
-	VisualLoggerEvents = VisualLoggerInterface.Pin()->GetVisualLoggerEvents();
+	VisualLoggerEvents = FLogVisualizer::Get().GetVisualLoggerEvents();
 
 	FVisualLoggerTimeSliderArgs TimeSliderArgs;
 	TimeSliderArgs.ViewRange = InArgs._ViewRange;
 	TimeSliderArgs.ClampMin = InArgs._ViewRange.Get().GetLowerBoundValue();
 	TimeSliderArgs.ClampMax = InArgs._ViewRange.Get().GetUpperBoundValue();
 	TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
+	FLogVisualizer::Get().GetTimeSliderController()->SetTimesliderArgs(TimeSliderArgs);
 
 	TSharedRef<SScrollBar> ZoomScrollBar =
 		SNew(SScrollBar)
 		.Orientation(EOrientation::Orient_Horizontal)
 		.Thickness(FVector2D(2.0f, 2.0f));
 	ZoomScrollBar->SetState(0.0f, 1.0f);
-
-	TSharedPtr<FSequencerTimeSliderController> TimeSliderController(new FSequencerTimeSliderController(TimeSliderArgs));
-	TimeSliderController->SetExternalScrollbar(ZoomScrollBar);
-	VisualLoggerInterface.Pin()->SetTimeSliderController(TimeSliderController);
+	FLogVisualizer::Get().GetTimeSliderController()->SetExternalScrollbar(ZoomScrollBar);
 
 	// Create the top and bottom sliders
 	const bool bMirrorLabels = true;
-	TSharedRef<ITimeSlider> TopTimeSlider = SNew(STimeSlider, TimeSliderController.ToSharedRef()).MirrorLabels(bMirrorLabels);
-	TSharedRef<ITimeSlider> BottomTimeSlider = SNew(STimeSlider, TimeSliderController.ToSharedRef()).MirrorLabels(bMirrorLabels);
+	TSharedRef<ITimeSlider> TopTimeSlider = SNew(STimeSlider, FLogVisualizer::Get().GetTimeSliderController().ToSharedRef()).MirrorLabels(bMirrorLabels);
+	TSharedRef<ITimeSlider> BottomTimeSlider = SNew(STimeSlider, FLogVisualizer::Get().GetTimeSliderController().ToSharedRef()).MirrorLabels(bMirrorLabels);
 
 	TSharedRef<SScrollBar> ScrollBar =
 		SNew(SScrollBar)
@@ -200,10 +197,10 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 					+ SVerticalBox::Slot()
 					.FillHeight(1.0)
 					[
-						SNew(SInputCatcherOverlay, TimeSliderController.ToSharedRef())
+						SNew(SInputCatcherOverlay, FLogVisualizer::Get().GetTimeSliderController().ToSharedRef())
 						+ SOverlay::Slot()
 						[
-							MakeSectionOverlay(TimeSliderController.ToSharedRef(), InArgs._ViewRange, InArgs._ScrubPosition, false)
+							MakeSectionOverlay(FLogVisualizer::Get().GetTimeSliderController().ToSharedRef(), InArgs._ViewRange, InArgs._ScrubPosition, false)
 						]
 						+ SOverlay::Slot()
 						[
@@ -211,13 +208,12 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 							.ExternalScrollbar(ScrollBar)
 							+ SScrollBox::Slot()
 							[
-								SAssignNew(TimelinesContainer, STimelinesContainer, SharedThis(this), TimeSliderController.ToSharedRef())
-								.VisualLoggerInterface(VisualLoggerInterface)
+								SAssignNew(TimelinesContainer, STimelinesContainer, SharedThis(this), FLogVisualizer::Get().GetTimeSliderController().ToSharedRef())
 							]
 						]
 						+ SOverlay::Slot()
 						[
-							MakeSectionOverlay(TimeSliderController.ToSharedRef(), InArgs._ViewRange, InArgs._ScrubPosition, true)
+							MakeSectionOverlay(FLogVisualizer::Get().GetTimeSliderController().ToSharedRef(), InArgs._ViewRange, InArgs._ScrubPosition, true)
 						]
 						+ SOverlay::Slot()
 						.VAlign(VAlign_Bottom)
@@ -271,12 +267,6 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 		];
 
 		SearchBox->SetText(FText::FromString(CurrentPresets.DataFilter));
-		//ScrollBox->AddSlot()
-		//[
-		//	SAssignNew(TimelinesContainer, STimelinesContainer, SharedThis(this), TimeSliderController.ToSharedRef())
-		//	.VisualLoggerInterface(VisualLoggerInterface)
-		//];
-
 }
 
 void SVisualLoggerView::SetAnimationOutlinerFillPercentage(float FillPercentage) 
@@ -358,7 +348,7 @@ void SVisualLoggerView::OnFiltersSearchChanged(const FText& Filter)
 
 FCursorReply SVisualLoggerView::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
-	if (VisualLoggerInterface.Pin()->GetTimeSliderController()->IsPanning())
+	if (FLogVisualizer::Get().GetTimeSliderController()->IsPanning())
 	{
 		return FCursorReply::Cursor(EMouseCursor::GrabHand);
 	}

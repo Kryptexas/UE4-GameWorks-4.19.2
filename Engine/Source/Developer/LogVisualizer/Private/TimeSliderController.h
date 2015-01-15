@@ -24,6 +24,7 @@ class FSequencerTimeSliderController : public ITimeSliderController
 {
 public:
 	FSequencerTimeSliderController(const FVisualLoggerTimeSliderArgs& InArgs);
+	void SetTimesliderArgs(const FVisualLoggerTimeSliderArgs& InArgs);
 
 	/** ITimeSliderController Interface */
 	virtual int32 OnPaintTimeSlider( bool bMirrorLabels, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;

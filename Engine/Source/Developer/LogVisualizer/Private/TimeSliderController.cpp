@@ -103,6 +103,11 @@ FSequencerTimeSliderController::FSequencerTimeSliderController(const FVisualLogg
 	CursorBackground = FEditorStyle::GetBrush("Sequencer.SectionArea.Background");
 }
 
+void FSequencerTimeSliderController::SetTimesliderArgs(const FVisualLoggerTimeSliderArgs& InArgs)
+{
+	TimeSliderArgs = InArgs;
+}
+
 struct FDrawTickArgs
 {
 	/** Geometry of the area */

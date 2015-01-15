@@ -8,7 +8,7 @@ public:
 	SLATE_BEGIN_ARGS(SVisualLoggerLogsList){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList, TSharedPtr<IVisualLoggerInterface> VisualLoggerInterface);
+	void Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList);
 
 	TSharedRef<ITableRow> LogEntryLinesGenerateRow(TSharedPtr<struct FLogEntryItem> Item, const TSharedRef<STableViewBase>& OwnerTable);
 	void LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, ESelectInfo::Type SelectInfo);
@@ -23,6 +23,5 @@ public:
 protected:
 	TSharedPtr<SListView<TSharedPtr<struct FLogEntryItem> > > LogsLinesWidget;
 	TArray<TSharedPtr<struct FLogEntryItem> > LogEntryLines;
-	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	FVisualLogDevice::FVisualLogEntryItem CurrentLogEntry;
 };

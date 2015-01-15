@@ -9,7 +9,6 @@ class STimeline : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(STimeline){}
-		SLATE_ATTRIBUTE(TWeakPtr<IVisualLoggerInterface>, VisualLoggerInterface)
 		SLATE_EVENT(FOnItemSelectionChanged, OnItemSelectionChanged)
 		SLATE_EVENT(FOnGetContent, OnGetMenuContent)
 	SLATE_END_ARGS();
@@ -39,13 +38,17 @@ public:
 	FName GetOwnerClassName() { return OwnerClassName; }
 	void HandleLogVisualizerSettingChanged(FName Name);
 	void UpdateVisibilityForEntry(FVisualLogDevice::FVisualLogEntryItem& Entry, const FString& SearchString, bool SearchInsideLogs);
+	TSharedPtr<class STimelinesContainer> GetOwner() { return Owner; }
+
+	void Goto(float ScrubPosition);
+	void GotoNextItem();
+	void GotoPreviousItem();
 
 protected:
 	TArray<FVisualLogDevice::FVisualLogEntryItem> Entries;
 	TArray<const FVisualLogDevice::FVisualLogEntryItem*> HiddenEntries;
 	TSharedPtr<class STimelinesContainer> Owner;
 	TSharedPtr<class STimelineBar> TimelineBar;
-	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	TSharedPtr<SMenuAnchor> PopupAnchor;
 
 	FName Name;
