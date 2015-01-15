@@ -587,17 +587,20 @@ void FBlueprintEditor::AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 
 	}
 }
 
-void FBlueprintEditor::RefreshEditors()
+void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason)
 {
-	DocumentManager->CleanInvalidTabs();
-
-	DocumentManager->RefreshAllTabs();
-
-	// The workflow manager only tracks document tabs.
-	FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
-	if (MyBlueprintWidget.IsValid())
+	if( Reason != ERefreshBlueprintEditorReason::BlueprintCompiled )
 	{
-		MyBlueprintWidget->Refresh();
+		DocumentManager->CleanInvalidTabs();
+
+		DocumentManager->RefreshAllTabs();
+
+		// The workflow manager only tracks document tabs.
+		FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
+		if (MyBlueprintWidget.IsValid())
+		{
+			MyBlueprintWidget->Refresh();
+		}
 	}
 
 	if(SCSEditor.IsValid())
@@ -2713,10 +2716,8 @@ void FBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJ
 	if (InBlueprint)
 	{
 		// Refresh the graphs
-		if( !bIsJustBeingCompiled )
-		{
-			RefreshEditors();
-		}
+		ERefreshBlueprintEditorReason::Type Reason = bIsJustBeingCompiled ? ERefreshBlueprintEditorReason::BlueprintCompiled : ERefreshBlueprintEditorReason::UnknownReason;
+		RefreshEditors(Reason);
 
 		// Notify that the blueprint has been changed (update Content browser, etc)
 		InBlueprint->PostEditChange();
