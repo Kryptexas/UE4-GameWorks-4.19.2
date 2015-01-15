@@ -1066,6 +1066,18 @@ void FObjectReplicator::QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bu
 	}
 
 	RemoteFunctions->SerializeBits( Bunch.GetData(), Bunch.GetNumBits() );
+
+	if ( Connection != NULL && Connection->PackageMap != NULL )
+	{
+		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
+		// We need to copy over any info that was obtained on the package map during serialization, and remember it until we actually call SendBunch
+		if ( PackageMapClient->GetMustBeMappedGuidsInLastBunch().Num() )
+		{
+			OwningChannel->MustBeMappedGuidsInLastBunch.Append( PackageMapClient->GetMustBeMappedGuidsInLastBunch() );
+			PackageMapClient->GetMustBeMappedGuidsInLastBunch().Empty();
+		}
+	}
 }
 
 bool FObjectReplicator::ReadyForDormancy(bool suppressLogs)

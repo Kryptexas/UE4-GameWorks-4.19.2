@@ -73,6 +73,8 @@ class ENGINE_API UActorChannel : public UChannel
 	double						QueuedBunchStartTime;	// Time when since queued bunches was last empty
 	TSet< FNetworkGUID >		PendingGuidResolves;	// These guids are waiting for their resolves, we need to queue up bunches until these are resolved
 
+	TArray< FNetworkGUID >				MustBeMappedGuidsInLastBunch;		// Array of guids that will async load on client. This list is used for queued RPC's.
+
 	/**
 	 * Default constructor
 	 */
@@ -117,6 +119,9 @@ class ENGINE_API UActorChannel : public UChannel
 	void SetChannelActor( AActor* InActor );
 
 	void SetChannelActorForDestroy( struct FActorDestructionInfo *DestructInfo );
+
+	/** Append any "must be mapped" guids to front of bunch. These are guids that the client will wait on before processing this bunch. */
+	virtual void AppendMustBeMappedGuids( FOutBunch* Bunch ) override;
 
 	virtual void Serialize(FArchive& Ar) override;
 
