@@ -76,8 +76,8 @@ namespace AutomationTool
 			Log("Copied UBT manifest to {0}", OutFile);
 
 
-			FileManifest Manifest = ReadManifest(ManifestName);
-			foreach (string Item in Manifest.FileManifestItems)
+			UnrealBuildTool.BuildManifest Manifest = ReadManifest(ManifestName);
+			foreach (string Item in Manifest.BuildProducts)
 			{
 				PrepareBuildProduct(Item);
 			}
@@ -89,8 +89,8 @@ namespace AutomationTool
 			{
 				throw new AutomationException("BUILD FAILED UBT Manifest {0} does not exist.", ManifestName);
 			}
-			FileManifest Manifest = ReadManifest(ManifestName);
-			foreach (string Item in Manifest.FileManifestItems)
+			UnrealBuildTool.BuildManifest Manifest = ReadManifest(ManifestName);
+			foreach (string Item in Manifest.BuildProducts)
 			{
 				if (!FileExists_NoExceptions(Item))
 				{
@@ -130,7 +130,7 @@ namespace AutomationTool
 
 		public class XGEItem
 		{
-			public FileManifest Manifest;
+			public UnrealBuildTool.BuildManifest Manifest;
 			public string CommandLine;
 			public UnrealBuildTool.UnrealTargetPlatform Platform;
 			public string Config;
@@ -229,7 +229,7 @@ namespace AutomationTool
 			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
 			Platform.Platforms[Item.Platform].PostBuildTarget(this, Item.ProjectName, Item.UProjectPath, Item.Config);
 
-			foreach (string ManifestItem in Item.Manifest.FileManifestItems)
+			foreach (string ManifestItem in Item.Manifest.BuildProducts)
 			{
 				if (!FileExists_NoExceptions(ManifestItem))
 				{
@@ -239,9 +239,9 @@ namespace AutomationTool
 			}
 		}
 
-		void XGEDeleteBuildProducts(FileManifest Manifest)
+		void XGEDeleteBuildProducts(UnrealBuildTool.BuildManifest Manifest)
 		{
-			foreach (string Item in Manifest.FileManifestItems)
+			foreach (string Item in Manifest.BuildProducts)
 			{
 				DeleteFile(Item);
 			}

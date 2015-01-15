@@ -1391,31 +1391,13 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// A container for a binary files (dll, exe) with its associated debug info.
-		/// </summary>
-		public class FileManifest
-		{
-			/// <summary>
-			/// Items
-			/// </summary>
-			public readonly List<string> FileManifestItems = new List<string>();
-
-			/// <summary>
-			/// Constructor
-			/// </summary>
-			public FileManifest()
-			{
-			}
-		}
-
-		/// <summary>
 		/// Reads a file manifest and returns it
 		/// </summary>
 		/// <param name="ManifestName">ManifestName</param>
 		/// <returns></returns>
-		public static FileManifest ReadManifest(string ManifestName)
+		public static UnrealBuildTool.BuildManifest ReadManifest(string ManifestName)
 		{
-			return XmlHandler.ReadXml<FileManifest>(ManifestName);
+			return XmlHandler.ReadXml<UnrealBuildTool.BuildManifest>(ManifestName);
 		}
 
 		private static void CloneDirectoryRecursiveWorker(string SourcePathBase, string TargetPathBase, List<string> ClonedFiles)

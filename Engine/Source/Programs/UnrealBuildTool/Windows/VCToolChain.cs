@@ -1409,7 +1409,7 @@ namespace UnrealBuildTool
 			return IncludePaths;
 		}
 
-        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
         {
             // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
             if (UnrealBuildTool.BuildingRocket() &&
@@ -1418,7 +1418,7 @@ namespace UnrealBuildTool
                 Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
             {
                 // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
-                Manifest.AddBinaryNames(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
+                Manifest.AddBuildProduct(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
             }
         }
 
