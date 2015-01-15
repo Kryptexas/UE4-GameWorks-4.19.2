@@ -3024,19 +3024,41 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		check((Ar.GetPortFlags() & PPF_Duplicate) || (GetStructureSize() >= sizeof(UObject)));
 		check(!GetSuperClass() || !GetSuperClass()->HasAnyFlags(RF_NeedLoad));
+		
+		// record the current CDO, as it stands, so we can compare against it 
+		// after we've serialized in the new CDO (to detect if, as a side-effect
+		// of the serialization, a different CDO was generated)
 		UObject* const OldCDO = ClassDefaultObject;
-		UObject* TempClassDefaultObject = NULL;
-		Ar << TempClassDefaultObject;
-		// we need to avoid a case, when while class regeneration a different CDO is set, and now we set it to an stale one (ttp#343166)
+
+		// serialize in the CDO, but first store it here (in a temporary var) so
+		// we can check to see if it should be the authoritative CDO (a newer 
+		// CDO could be generated as a side-effect of this serialization)
+		//
+		// @TODO: for USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING, do we need to 
+		//        defer this serialization (should we just save off the tagged
+		//        serialization data for later use)?
+		UObject* PerspectiveNewCDO = NULL;
+		Ar << PerspectiveNewCDO;
+
+		// Blueprint class regeneration could cause the class's CDO to be set.
+		// The CDO (<<) serialization call (above) probably will invoke class 
+		// regeneration, and as a side-effect the CDO could already be set by 
+		// the time it returns. So we only want to set the CDO here (to what was 
+		// serialized in) if it hasn't already changed (else, the serialized
+		// version could be stale). See: TTP #343166
 		if (ClassDefaultObject == OldCDO)
 		{
-			ClassDefaultObject = TempClassDefaultObject;
+			ClassDefaultObject = PerspectiveNewCDO;
 		}
-		else if (TempClassDefaultObject != ClassDefaultObject)
+		// if we reach this point, then the CDO was regenerated as a side-effect
+		// of the serialization... let's log if the regenerated CDO (what's 
+		// already been set) is not the same as what was returned from the 
+		// serialization (could mean the CDO was regenerated multiple times?)
+		else if (PerspectiveNewCDO != ClassDefaultObject)
 		{
 			UE_LOG(LogClass, Log, TEXT("CDO was changed while class serialization.\n\tOld: '%s'\n\tSerialized: '%s'\n\tActual: '%s'")
 				, OldCDO ? *OldCDO->GetFullName() : TEXT("NULL")
-				, TempClassDefaultObject ? *TempClassDefaultObject->GetFullName() : TEXT("NULL")
+				, PerspectiveNewCDO ? *PerspectiveNewCDO->GetFullName() : TEXT("NULL")
 				, ClassDefaultObject ? *ClassDefaultObject->GetFullName() : TEXT("NULL"));
 		}
 		ClassUnique = 0;

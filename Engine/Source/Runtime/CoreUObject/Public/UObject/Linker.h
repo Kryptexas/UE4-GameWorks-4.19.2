@@ -1625,6 +1625,17 @@ private:
 	int32 LoadMetaDataFromExportMap(bool bForcePreload = false);
 
 	UObject* CreateImport( int32 Index );
+
+	/**
+	 * Determines if the specified import belongs to a native "compiled in"
+	 * package (as opposed to an asset-file package). Recursive if the
+	 * specified import is not a package itself.
+	 * 
+	 * @param  ImportIndex    An index into the ImportMap, defining the import you wish to check.
+	 * @return True if the specified import comes from (or is) a "compiled in" package, otherwise false (it is an asset import).
+	 */
+	bool IsImportNative(const int32 ImportIndex) const;
+
 	UObject* IndexToObject( FPackageIndex Index );
 
 	void DetachExport( int32 i );
@@ -1813,6 +1824,35 @@ private:
 	 * @return	Returns true if regeneration was successful, otherwise false
 	 */
 	bool RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObject);
+
+	/**
+	 * Determines if the specified import should be deferred. If so, it will 
+	 * instantiate a placeholder object in its place.
+	 * 
+	 * @param  ImportIndex    An index into this linker's ImportMap, specifying which import to check.
+	 * @return True if the specified import was deferred, other wise false (it is ok to load it).
+	 */
+	bool DeferPotentialCircularImport(const int32 ImportIndex);
+
+	/**
+	 * Combs the ImportMap for any imports that were deferred, and then loads 
+	 * them. After that, deferred CDOs are serialized in and the Blueprint class
+	 * is regenerated.
+	 * 
+	 * @param  LoadClass    The (Blueprint) class that was loading, while we deferred dependencies.
+	 */
+	void ResolveDeferredDependencies(UClass* LoadClass);
+
+#if	USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	/** 
+	 * For deferring dependency loads, we block CDO serialization until the 
+	 * class if complete. If we attempt to serialize the CDO whil that is 
+	 * happening, we instead defer it and record the export's index here (so we 
+	 * can return to it later).
+	 */
+	int32 DeferredExportIndex;
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 
 	/** 
 	 * Creates the export hash.
