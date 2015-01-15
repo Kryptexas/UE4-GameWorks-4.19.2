@@ -117,6 +117,10 @@ public:
 	* returns								pointer to foliage object instance
 	*/
 	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
+
+	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
+	void NotifyFoliageTypeChanged(UFoliageType* FoliageType);
+
 #endif	//WITH_EDITOR
 
 private:

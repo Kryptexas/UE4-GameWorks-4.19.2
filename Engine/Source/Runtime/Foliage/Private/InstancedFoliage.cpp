@@ -33,6 +33,8 @@ struct FFoliageCustomVersion
 		FoliageUsingHierarchicalISMC = 1,
 		// Changed Component to not RF_Transactional
 		HierarchicalISMCNonTransactional = 2,
+		// Added FoliageTypeUpdateGuid
+		AddedFoliageTypeUpdateGuid = 3,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -135,6 +137,11 @@ FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo& MeshInfo)
 		Ar << MeshInfo.Instances;
 	}
 
+	if (Ar.CustomVer(FFoliageCustomVersion::GUID) >= FFoliageCustomVersion::AddedFoliageTypeUpdateGuid)
+	{
+		Ar << MeshInfo.FoliageTypeUpdateGuid;
+	}
+
 	// Serialize the transient data for undo.
 	if (Ar.IsTransacting())
 	{
@@ -223,6 +230,8 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	FRichCurve* Curve = ScaleCurve.GetRichCurve();
 	Curve->AddKey(0.f, 0.f);
 	Curve->AddKey(1.f, 1.f);
+
+	UpdateGuid = FGuid::NewGuid();
 }
 
 
@@ -278,6 +287,17 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 	// Ensure that OverriddenLightMapRes is a factor of 4
 	OverriddenLightMapRes = OverriddenLightMapRes > 4 ? OverriddenLightMapRes + 3 & ~3 : 4;
 	++ChangeCount;
+
+	UpdateGuid = FGuid::NewGuid();
+
+	// Notify any currently-loaded InstancedFoliageActors
+	if (IsFoliageReallocationRequiredForPropertyChange(PropertyChangedEvent))
+	{
+		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject | RF_PendingKill); It; ++It)
+		{
+			It->NotifyFoliageTypeChanged(this);
+		}
+	}
 }
 #endif
 
@@ -591,6 +611,7 @@ int32 FFoliageMeshInfo::GetInstanceCount() const
 void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings)
 {
 	// Detach all components
+
 	InIFA->UnregisterAllComponents();
 
 	if (Component != nullptr)
@@ -605,6 +626,9 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 	InstanceHash->Empty();
 	ComponentHash.Empty();
 	SelectedIndices.Empty();
+
+	// Copy the UpdateGuid from the foliage type
+	FoliageTypeUpdateGuid = InSettings->UpdateGuid;
 
 	// Re-add
 	for (FFoliageInstance& Instance : OldInstances)
@@ -1111,6 +1135,7 @@ FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UFoliageType* InType)
 	}
 
 	FFoliageMeshInfo* MeshInfo = &*FoliageMeshes.Add(InType);
+	MeshInfo->FoliageTypeUpdateGuid = InType->UpdateGuid;
 	InType->IsSelected = true;
 
 	return MeshInfo;
@@ -1487,6 +1512,7 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 				FoliageType = (UFoliageType_InstancedStaticMesh*)StaticDuplicateObject(FoliageType, this, nullptr, RF_AllFlags & ~(RF_Standalone | RF_Public));
 				FoliageType->Mesh = OldMeshInfo.Key;
 			}
+			NewMeshInfo.FoliageTypeUpdateGuid = FoliageType->UpdateGuid;
 			FoliageMeshes.Add(FoliageType, TUniqueObj<FFoliageMeshInfo>(MoveTemp(NewMeshInfo)));
 		}
 	}
@@ -1574,6 +1600,16 @@ void AInstancedFoliageActor::PostLoad()
 				MeshInfo.ReallocateClusters(this, MeshPair.Key);
 			}
 
+			// Update foliage components if the foliage settings object was changed while the level was not loaded.
+			if (MeshInfo.FoliageTypeUpdateGuid != FoliageType->UpdateGuid)
+			{
+				if (MeshInfo.FoliageTypeUpdateGuid.IsValid())
+				{
+					MeshInfo.ReallocateClusters(this, MeshPair.Key);
+				}
+				MeshInfo.FoliageTypeUpdateGuid = FoliageType->UpdateGuid;
+			}
+
 			// Update the hash.
 			for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
 			{
@@ -1609,6 +1645,15 @@ void AInstancedFoliageActor::PostLoad()
 }
 
 #if WITH_EDITOR
+
+void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType)
+{
+	FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType);
+	if (MeshInfo)
+	{
+		MeshInfo->ReallocateClusters(this, FoliageType);
+	}
+}
 
 void AInstancedFoliageActor::OnLevelActorMoved(AActor* InActor)
 {

@@ -157,6 +157,9 @@ struct FFoliageMeshInfo
 	UHierarchicalInstancedStaticMeshComponent* Component;
 
 #if WITH_EDITORONLY_DATA
+	// Allows us to detect if FoliageType was updated while this level wasn't loaded
+	FGuid FoliageTypeUpdateGuid;
+
 	// Editor-only placed instances
 	TArray<FFoliageInstance> Instances;
 
@@ -179,6 +182,7 @@ struct FFoliageMeshInfo
 		// even VC++2013 doesn't support "=default" on move constructors
 		: Component(Other.Component)
 #if WITH_EDITORONLY_DATA
+		, FoliageTypeUpdateGuid(MoveTemp(Other.FoliageTypeUpdateGuid))
 		, Instances(MoveTemp(Other.Instances))
 		, InstanceHash(MoveTemp(Other.InstanceHash))
 		, ComponentHash(MoveTemp(Other.ComponentHash))
@@ -191,6 +195,7 @@ struct FFoliageMeshInfo
 	{
 		Component = Other.Component;
 #if WITH_EDITORONLY_DATA
+		FoliageTypeUpdateGuid = MoveTemp(Other.FoliageTypeUpdateGuid);
 		Instances = MoveTemp(Other.Instances);
 		InstanceHash = MoveTemp(Other.InstanceHash);
 		ComponentHash = MoveTemp(Other.ComponentHash);

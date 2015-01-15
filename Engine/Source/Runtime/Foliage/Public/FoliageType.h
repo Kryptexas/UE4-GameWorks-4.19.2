@@ -20,6 +20,11 @@ class UFoliageType : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+	/* A GUID that is updated every time the foliage type is modified, 
+	   so foliage placed in the level can detect the FoliageType has changed. */
+	UPROPERTY()
+	FGuid UpdateGuid;
+
 	UPROPERTY(EditAnywhere, Category=Painting)
 	float Density;
 
@@ -227,6 +232,9 @@ class UFoliageType : public UObject
 	virtual UStaticMesh* GetStaticMesh() PURE_VIRTUAL(UFoliageType::GetStaticMesh, return nullptr; );
 
 #if WITH_EDITOR
+	/* Lets subclasses decide if the InstancedFoliageActor should reallocate its instances if the specified property change event occurs */
+	virtual bool IsFoliageReallocationRequiredForPropertyChange(struct FPropertyChangedEvent& PropertyChangedEvent) const { return true; }
+
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
