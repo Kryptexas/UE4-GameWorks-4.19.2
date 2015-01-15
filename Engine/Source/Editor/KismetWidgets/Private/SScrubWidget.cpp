@@ -373,7 +373,7 @@ void SScrubWidget::CommitValue( float NewValue, bool bSliderClamp, bool bCommitt
 	OnValueChanged.ExecuteIfBound( NewValue );
 }
 
-FVector2D SScrubWidget::ComputeDesiredSize() const 
+FVector2D SScrubWidget::ComputeDesiredSize( float ) const
 {
 	return FVector2D(100, 30);
 }

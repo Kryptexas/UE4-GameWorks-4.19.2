@@ -39,7 +39,7 @@ public:
 		return LayerId;
 	}
 
-	virtual FVector2D ComputeDesiredSize() const
+	virtual FVector2D ComputeDesiredSize(float) const
 	{
 		return FVector2D(Size.X, Size.Y);
 	}

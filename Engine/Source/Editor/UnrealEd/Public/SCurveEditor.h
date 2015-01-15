@@ -357,7 +357,7 @@ private:
 	FSimpleDelegate OnCreateAsset;
 
 	// SWidget interface
-	UNREALED_API virtual FVector2D ComputeDesiredSize() const override;
+	UNREALED_API virtual FVector2D ComputeDesiredSize(float) const override;
 
 	/** Paint a curve */
 	void PaintCurve(TSharedPtr<FCurveViewModel> CurveViewModel, const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, 

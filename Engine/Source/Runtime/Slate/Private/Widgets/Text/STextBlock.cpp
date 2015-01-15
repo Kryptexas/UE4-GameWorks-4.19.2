@@ -168,7 +168,7 @@ FReply STextBlock::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, cons
 	return FReply::Unhandled();
 }
 
-FVector2D STextBlock::ComputeDesiredSize() const
+FVector2D STextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 #if SLATE_HD_STATS
 	SCOPE_CYCLE_COUNTER( STAT_SlateComputeDesiredSize_STextBlock );
@@ -182,7 +182,7 @@ FVector2D STextBlock::ComputeDesiredSize() const
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
 		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
-		/*Scale, */GetComputedTextStyle()
+		LayoutScaleMultiplier, GetComputedTextStyle()
 		);
 
 #else//WITH_FANCY_TEXT

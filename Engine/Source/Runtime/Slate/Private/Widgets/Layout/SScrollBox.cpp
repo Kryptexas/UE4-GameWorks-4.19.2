@@ -75,7 +75,7 @@ public:
 	}
 
 
-	virtual FVector2D ComputeDesiredSize() const override
+	virtual FVector2D ComputeDesiredSize(float) const override
 	{
 		FVector2D ThisDesiredSize = FVector2D::ZeroVector;
 		for(int32 SlotIndex=0; SlotIndex < Children.Num(); ++SlotIndex )

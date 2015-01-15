@@ -51,7 +51,7 @@ public:
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
-	virtual FVector2D ComputeDesiredSize() const;
+	virtual FVector2D ComputeDesiredSize(float) const;
 
 	/**
 	 * Sets the curve that is being edited by this editor

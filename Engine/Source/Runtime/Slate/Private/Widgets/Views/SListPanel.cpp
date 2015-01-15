@@ -158,7 +158,7 @@ void SListPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 /**
  * Simply the sum of all the children (vertically), and the largest width (horizontally).
  */
-FVector2D SListPanel::ComputeDesiredSize() const
+FVector2D SListPanel::ComputeDesiredSize( float ) const
 {
 	float MaxWidth = 0;
 	float TotalHeight = 0;

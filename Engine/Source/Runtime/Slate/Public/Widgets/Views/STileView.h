@@ -191,6 +191,7 @@ public:
 			const double EndOfListOffset = NumItemsPaddedToFillLastRow - NumItemsWide * RowsPerScreen;
 			const double ClampedScrollOffset = FMath::Clamp(STableViewBase::ScrollOffset, 0.0, EndOfListOffset);
 			const bool bAtEndOfList = (STableViewBase::ScrollOffset >= ClampedScrollOffset);
+			const float LayoutScaleMultiplier = MyGeometry.GetAccumulatedLayoutTransform().GetScale();
 			
 			// Once we run out of vertical and horizontal space, we stop generating widgets.
 			float WidthUsedSoFar = 0.0f;
@@ -224,7 +225,7 @@ public:
 					}
 				}
 
-				const float GeneratedItemHeight = SListView<ItemType>::GenerateWidgetForItem( CurItem, ItemIndex, StartIndex );
+				const float GeneratedItemHeight = SListView<ItemType>::GenerateWidgetForItem(CurItem, ItemIndex, StartIndex, LayoutScaleMultiplier);
 
 				// The widget used up some of the available horizontal space.
 				WidthUsedSoFar += ItemWidth;

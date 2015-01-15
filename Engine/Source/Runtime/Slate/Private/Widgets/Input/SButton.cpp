@@ -320,7 +320,7 @@ void SButton::PlayHoverSound() const
 	FSlateApplication::Get().PlaySound( HoveredSound );
 }
 
-FVector2D SButton::ComputeDesiredSize() const
+FVector2D SButton::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 	// When there is no widget in the button, it sizes itself based on
 	// the border image specified by the style.
@@ -330,7 +330,7 @@ FVector2D SButton::ComputeDesiredSize() const
 	}
 	else
 	{
-		return SBorder::ComputeDesiredSize();
+		return SBorder::ComputeDesiredSize(LayoutScaleMultiplier);
 	}
 }
 

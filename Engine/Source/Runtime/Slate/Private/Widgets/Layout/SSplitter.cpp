@@ -262,7 +262,7 @@ static FVector2D ComputeDesiredSizeForSplitter( const float PhysicalSplitterHand
 * A Panel's desired size in the space required to arrange of its children on the screen while respecting all of
 * the children's desired sizes and any layout-related options specified by the user. See StackPanel for an example.
 */
-FVector2D SSplitter::ComputeDesiredSize() const
+FVector2D SSplitter::ComputeDesiredSize( float ) const
 {
 	FVector2D MyDesiredSize = (Orientation == Orient_Horizontal)
 		? ComputeDesiredSizeForSplitter<Orient_Horizontal>( PhysicalSplitterHandleSize, Children )
@@ -732,7 +732,7 @@ void SSplitter2x2::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrang
 
 
 
-FVector2D SSplitter2x2::ComputeDesiredSize() const
+FVector2D SSplitter2x2::ComputeDesiredSize( float ) const
 {
 	return FVector2D(100,100);
 }

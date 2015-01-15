@@ -45,7 +45,7 @@ public:
 
 	// SWidget overrides
 
-	virtual FVector2D ComputeDesiredSize( ) const;
+	virtual FVector2D ComputeDesiredSize(float) const;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent );
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );

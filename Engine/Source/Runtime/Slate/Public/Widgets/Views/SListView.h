@@ -791,11 +791,12 @@ public:
 			bool bGeneratedEnoughForSmoothScrolling = false;
 			bool AtEndOfList = false;
 
+			const float LayoutScaleMultiplier = MyGeometry.GetAccumulatedLayoutTransform().GetScale();
 			for( int32 ItemIndex = StartIndex; !bGeneratedEnoughForSmoothScrolling && ItemIndex < SourceItems->Num(); ++ItemIndex )
 			{
 				const ItemType& CurItem = (*SourceItems)[ItemIndex];
 
-				const float ItemHeight = GenerateWidgetForItem( CurItem, ItemIndex, StartIndex );
+				const float ItemHeight = GenerateWidgetForItem(CurItem, ItemIndex, StartIndex, LayoutScaleMultiplier);
 
 				const bool IsFirstItem = ItemIndex == StartIndex;
 
@@ -846,7 +847,7 @@ public:
 				{
 					const ItemType& CurItem = (*SourceItems)[ItemIndex];
 
-					const float ItemHeight = GenerateWidgetForItem( CurItem, ItemIndex, StartIndex );
+					const float ItemHeight = GenerateWidgetForItem(CurItem, ItemIndex, StartIndex, LayoutScaleMultiplier);
 
 					if (HeightGeneratedSoFar + ItemHeight > MyGeometry.Size.Y)
 					{
@@ -869,7 +870,7 @@ public:
 
 	}
 
-	float GenerateWidgetForItem( const ItemType& CurItem, int32 ItemIndex, int32 StartIndex )
+	float GenerateWidgetForItem( const ItemType& CurItem, int32 ItemIndex, int32 StartIndex, float LayoutScaleMultiplier )
 	{
 		// Find a previously generated Widget for this item, if one exists.
 		TSharedPtr<ITableRow> WidgetForItem = WidgetGenerator.GetWidgetForItem( CurItem );
@@ -889,7 +890,7 @@ public:
 
 		// We rely on the widgets desired size in order to determine how many will fit on screen.
 		const TSharedRef<SWidget> NewlyGeneratedWidget = WidgetForItem->AsWidget();
-		NewlyGeneratedWidget->SlatePrepass();		
+		NewlyGeneratedWidget->SlatePrepass(LayoutScaleMultiplier);
 
 		const bool IsFirstWidgetOnScreen = (ItemIndex == StartIndex);
 		const float ItemHeight = NewlyGeneratedWidget->GetDesiredSize().Y;
@@ -1189,6 +1190,7 @@ protected:
 			if ( SourceItems != nullptr && SourceItems->Num() > 0 )
 			{
 				int ItemIndex = StartingItemIndex;
+				const float LayoutScaleMultiplier = MyGeometry.GetAccumulatedLayoutTransform().GetScale();
 				while( AbsScrollByAmount != 0 && ItemIndex < SourceItems->Num() && ItemIndex >= 0 )
 				{
 					const ItemType CurItem = (*SourceItems)[ ItemIndex ];
@@ -1206,7 +1208,7 @@ protected:
 						// Let the item generator know that we encountered the current Item and associated Widget.
 						WidgetGenerator.OnItemSeen( CurItem, RowWidget.ToSharedRef() );
 
-						RowWidget->AsWidget()->SlatePrepass();
+						RowWidget->AsWidget()->SlatePrepass(LayoutScaleMultiplier);
 					}
 
 					if ( ScrollByAmountInSlateUnits > 0 )

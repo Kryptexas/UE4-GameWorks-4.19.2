@@ -110,9 +110,9 @@ int32 SClippingHorizontalBox::OnPaint( const FPaintArgs& Args, const FGeometry& 
 	return SHorizontalBox::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
-FVector2D SClippingHorizontalBox::ComputeDesiredSize() const
+FVector2D SClippingHorizontalBox::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
-	FVector2D Size = SBoxPanel::ComputeDesiredSize();
+	FVector2D Size = SBoxPanel::ComputeDesiredSize(LayoutScaleMultiplier);
 	if (ClippedIdx == (Children.Num() - 2))
 	{
 		// If the wrap button isn't being shown, subtract it's size from the total desired size

@@ -54,7 +54,7 @@ void SOverlay::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
  *
  * @return The desired size.
  */
-FVector2D SOverlay::ComputeDesiredSize() const
+FVector2D SOverlay::ComputeDesiredSize( float ) const
 {
 	FVector2D MaxSize(0,0);
 	for ( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )

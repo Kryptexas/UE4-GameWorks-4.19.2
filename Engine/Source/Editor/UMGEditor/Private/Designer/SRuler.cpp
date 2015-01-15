@@ -366,7 +366,7 @@ FReply SRuler::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& Mou
 	return FReply::Unhandled();
 }
 
-FVector2D SRuler::ComputeDesiredSize() const
+FVector2D SRuler::ComputeDesiredSize( float ) const
 {
 	return Orientation == Orient_Horizontal ? FVector2D(100, 18) : FVector2D(18, 100);
 }

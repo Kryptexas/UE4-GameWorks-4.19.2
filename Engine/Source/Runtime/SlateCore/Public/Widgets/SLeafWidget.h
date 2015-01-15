@@ -38,7 +38,7 @@ private:
 	 * take child widgets into account as LeafWidgets have none by definition. For example, the TextBlock widget simply
 	 * measures the area necessary to display its text with the given font and font size.
 	 */
-	virtual FVector2D ComputeDesiredSize( ) const = 0;
+	virtual FVector2D ComputeDesiredSize(float) const = 0;
 	
 	/**
 	 * Overwritten from SWidget.

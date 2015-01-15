@@ -414,7 +414,7 @@ public:
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SHyperlink)
-									.Text(LOCTEXT("SHyperlinkText", "Hyperlink"))
+									.Text(LOCTEXT("SHyperlinkText", "Text to appear in the Hyperlink widget."))
 			
 							]
 

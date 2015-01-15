@@ -437,7 +437,7 @@ FReply SColorGradientEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyE
 	return FReply::Unhandled();
 }
 
-FVector2D SColorGradientEditor::ComputeDesiredSize() const
+FVector2D SColorGradientEditor::ComputeDesiredSize( float ) const
 {
 	return FVector2D( 1000, 75 );
 }

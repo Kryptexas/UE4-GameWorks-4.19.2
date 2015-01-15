@@ -367,7 +367,12 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 }
 
 
-void SWidget::SlatePrepass()	
+void SWidget::SlatePrepass()
+{
+	SlatePrepass( FSlateApplicationBase::Get().GetApplicationScale() );
+}
+
+void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 {
 	// Cache child desired sizes first. This widget's desired size is
 	// a function of its children's sizes.
@@ -378,20 +383,21 @@ void SWidget::SlatePrepass()
 		const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
 		if ( Child->Visibility.Get() != EVisibility::Collapsed )
 		{
+			const float ChildLayoutScaleMultiplier = GetRelativeLayoutScale( MyChildren->GetSlotAt(ChildIndex) );
 			// Recur: Descend down the widget tree.
-			Child->SlatePrepass();
+			Child->SlatePrepass(LayoutScaleMultiplier*ChildLayoutScaleMultiplier);
 		}
 	}
 
 	// Cache this widget's desired size.
-	CacheDesiredSize();
+	CacheDesiredSize(LayoutScaleMultiplier);
 }
 
 
-void SWidget::CacheDesiredSize()
+void SWidget::CacheDesiredSize(float LayoutScaleMultiplier)
 {
 	// Cache this widget's desired size.
-	this->Advanced_SetDesiredSize( this->ComputeDesiredSize() );
+	this->Advanced_SetDesiredSize(this->ComputeDesiredSize(LayoutScaleMultiplier));
 }
 
 
@@ -664,6 +670,11 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	}
 
 	return NewLayerID;
+}
+
+float SWidget::GetRelativeLayoutScale(const FSlotBase& Child) const
+{
+	return 1.0f;
 }
 
 void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const

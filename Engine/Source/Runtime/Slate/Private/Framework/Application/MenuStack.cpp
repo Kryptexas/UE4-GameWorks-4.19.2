@@ -102,8 +102,9 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 	// Adjust the position of popup windows so they do not go out of the visible area of the monitor(s)	
 	if( bShouldAutoSize )
 	{
-		// @todo: Doesn't take into account potential window border size
-		WrappedContent->SlatePrepass();
+		// @todo slate: Assumes that popup is not Scaled up or down from application scale.
+		WrappedContent->SlatePrepass( FSlateApplication::Get().GetApplicationScale() );
+		// @todo slate: Doesn't take into account potential window border size
 		ExpectedSize = WrappedContent->GetDesiredSize();
 	}
 	EOrientation Orientation = (TransitionEffect.SlideDirection == FPopupTransitionEffect::SubMenu) ? Orient_Horizontal : Orient_Vertical;

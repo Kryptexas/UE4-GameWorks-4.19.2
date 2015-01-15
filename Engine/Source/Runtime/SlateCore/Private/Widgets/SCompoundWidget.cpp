@@ -38,7 +38,7 @@ FChildren* SCompoundWidget::GetChildren()
 }
 
 
-FVector2D SCompoundWidget::ComputeDesiredSize() const
+FVector2D SCompoundWidget::ComputeDesiredSize( float ) const
 {
 	EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 	if ( ChildVisibility != EVisibility::Collapsed )

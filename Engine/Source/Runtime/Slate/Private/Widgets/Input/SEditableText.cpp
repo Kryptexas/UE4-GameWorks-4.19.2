@@ -1217,7 +1217,7 @@ TSharedRef< SWidget > SEditableText::GetWidget()
 	return SharedThis( this );
 }
 
-FVector2D SEditableText::ComputeDesiredSize() const
+FVector2D SEditableText::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	const FSlateFontInfo& FontInfo = Font.Get();
@@ -1230,11 +1230,11 @@ FVector2D SEditableText::ComputeDesiredSize() const
 	const FString StringToRender = GetStringToRender();
 	if( !StringToRender.IsEmpty() )
 	{
-		TextSize = FontMeasureService->Measure( StringToRender, FontInfo, 1.0f/*CachedGeometry.Scale*/ );
+		TextSize = FontMeasureService->Measure(StringToRender, FontInfo, LayoutScaleMultiplier) / LayoutScaleMultiplier;
 	}
 	else
 	{
-		TextSize = FontMeasureService->Measure( HintText.Get( ).ToString( ), FontInfo, 1.0f/*CachedGeometry.Scale*/ );
+		TextSize = FontMeasureService->Measure(HintText.Get().ToString(), FontInfo, LayoutScaleMultiplier) / LayoutScaleMultiplier;
 	}
 	
 	const float DesiredWidth = FMath::Max(TextSize.X, MinDesiredWidth.Get()) + CaretWidth;

@@ -90,7 +90,7 @@ int32 SFxWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 
 }
 
-FVector2D SFxWidget::ComputeDesiredSize() const
+FVector2D SFxWidget::ComputeDesiredSize( float ) const
 {
 	// Layout scale affects out desired size.
 	return TransformVector(LayoutScale.Get(), ChildSlot.GetWidget()->GetDesiredSize());

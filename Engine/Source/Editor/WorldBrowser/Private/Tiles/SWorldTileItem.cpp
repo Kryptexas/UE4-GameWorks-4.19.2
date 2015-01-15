@@ -356,7 +356,7 @@ FVector2D SWorldTileItem::GetDesiredSizeForMarquee() const
 	return SNodePanel::SNode::GetDesiredSizeForMarquee();
 }
 
-FVector2D SWorldTileItem::ComputeDesiredSize() const
+FVector2D SWorldTileItem::ComputeDesiredSize( float ) const
 {
 	return TileModel->GetLevelSize2D();
 }

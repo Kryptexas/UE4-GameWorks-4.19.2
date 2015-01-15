@@ -477,13 +477,13 @@ public:
 	}
 
 	/** Compute the desired size for this widget */
-	virtual FVector2D ComputeDesiredSize() const override
+	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override
 	{
 		const float MinWidthVal = MinWidth.Get();
 
 		if (MinWidthVal == 0.0f)
 		{
-			return SCompoundWidget::ComputeDesiredSize();
+			return SCompoundWidget::ComputeDesiredSize(LayoutScaleMultiplier);
 		}
 		else
 		{

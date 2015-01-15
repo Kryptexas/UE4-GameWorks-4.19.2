@@ -144,7 +144,7 @@ int32 SVirtualJoystick::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 	return RetLayerId;
 }
 
-FVector2D SVirtualJoystick::ComputeDesiredSize() const
+FVector2D SVirtualJoystick::ComputeDesiredSize( float ) const
 {
 	return FVector2D(100, 100);
 }

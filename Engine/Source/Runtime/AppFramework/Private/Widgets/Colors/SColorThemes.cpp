@@ -498,7 +498,7 @@ void SThemeColorBlocksBar::OnArrangeChildren( const FGeometry& AllottedGeometry,
 *
 * @return The desired size.
 */
-FVector2D SThemeColorBlocksBar::ComputeDesiredSize() const
+FVector2D SThemeColorBlocksBar::ComputeDesiredSize( float ) const
 {
 	return FVector2D(64, 16);
 }

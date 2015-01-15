@@ -61,7 +61,7 @@ FReply SImage::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEve
 /**
  * An Image's desired size is whatever the image looks best as. This is decided on a case by case basis via the Width and Height properties.
  */
-FVector2D SImage::ComputeDesiredSize() const
+FVector2D SImage::ComputeDesiredSize( float ) const
 {
 	const FSlateBrush* ImageBrush = Image.Get();
 	if (ImageBrush != nullptr)

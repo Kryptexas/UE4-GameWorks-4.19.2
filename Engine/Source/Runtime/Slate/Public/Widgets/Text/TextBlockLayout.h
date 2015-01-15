@@ -47,7 +47,7 @@ public:
 	/**
 	 * Get the computed desired size for this layout, updating the internal cache as required
 	 */
-	FVector2D ComputeDesiredSize(const FWidgetArgs& InWidgetArgs/*, const float InScale*/, const FTextBlockStyle& InTextStyle);
+	FVector2D ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, const float InScale, const FTextBlockStyle& InTextStyle);
 
 	/**
 	 * Paint this layout, updating the internal cache as required
@@ -95,9 +95,6 @@ private:
 
 	/** The last known size of the layout from the previous OnPaint, used to guess at an auto-wrapping width in ComputeDesiredSize */
 	FVector2D CachedSize;
-
-	/** The cached desired size - this should be updated using a text layout scale of 1 whenever the text layout becomes dirty */
-	FVector2D CachedDesiredSize;
 
 	/** The state of the text the last time it was updated (used to allow updates when the text is changed) */
 	FTextSnapshot TextLastUpdate;

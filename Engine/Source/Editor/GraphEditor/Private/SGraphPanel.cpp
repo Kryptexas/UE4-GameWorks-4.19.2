@@ -299,9 +299,9 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 							if(OverlayInfo.Widget->GetVisibility() == EVisibility::Visible)
 							{
 								// call SlatePrepass as these widgets are not in the 'normal' child hierarchy
-								OverlayInfo.Widget->SlatePrepass();
+								OverlayInfo.Widget->SlatePrepass(AllottedGeometry.GetAccumulatedLayoutTransform().GetScale());
 
-								const FGeometry WidgetGeometry = CurWidget.Geometry.MakeChild(OverlayInfo.OverlayOffset, OverlayInfo.Widget->GetDesiredSize(), 1.f);
+								const FGeometry WidgetGeometry = CurWidget.Geometry.MakeChild(OverlayInfo.OverlayOffset, OverlayInfo.Widget->GetDesiredSize());
 
 								OverlayInfo.Widget->Paint(Args.WithNewParent(this), WidgetGeometry, MyClippingRect, OutDrawElements, CurWidgetsMaxLayerId, InWidgetStyle, bParentEnabled);
 							}
@@ -608,7 +608,7 @@ void SGraphPanel::ArrangeChildrenForContextMenuSummon(const FGeometry& AllottedG
 		const TSharedRef<SNode>& SomeChild = VisibleChildren[ChildIndex];
 		if (!SomeChild->RequiresSecondPassLayout())
 		{
-			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild( SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSizeForMarquee(), GetZoomAmount() ) );
+			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSizeForMarquee(), GetZoomAmount()));
 		}
 	}
 
@@ -619,7 +619,7 @@ void SGraphPanel::ArrangeChildrenForContextMenuSummon(const FGeometry& AllottedG
 		if (SomeChild->RequiresSecondPassLayout())
 		{
 			SomeChild->PerformSecondPassLayout(NodeToWidgetLookup);
-			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild( SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSizeForMarquee(), GetZoomAmount() ) );
+			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSizeForMarquee(), GetZoomAmount()));
 		}
 	}
 }

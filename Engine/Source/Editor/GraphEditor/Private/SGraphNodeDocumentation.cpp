@@ -275,7 +275,7 @@ float SGraphNodeDocumentation::GetDocumentationWrapWidth() const
 	return UserSize.X - GraphNodeDocumentationDefs::LineWrapAdjustment;
 }
 
-FVector2D SGraphNodeDocumentation::ComputeDesiredSize() const
+FVector2D SGraphNodeDocumentation::ComputeDesiredSize( float ) const
 {
 	return FVector2D( UserSize.X, UserSize.Y + GetTitleBarHeight() );
 }

@@ -428,6 +428,7 @@ bool SGraphNode::IsSelectedExclusively() const
 void SGraphNode::SetOwner( const TSharedRef<SGraphPanel>& OwnerPanel )
 {
 	check( !OwnerGraphPanelPtr.IsValid() );
+	SetParentPanel(OwnerPanel);
 	OwnerGraphPanelPtr = OwnerPanel;
 	GraphNode->NodeWidget = SharedThis(this);
 

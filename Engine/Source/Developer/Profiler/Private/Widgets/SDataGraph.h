@@ -324,7 +324,7 @@ public:
 	
 
 protected:
-	virtual FVector2D ComputeDesiredSize() const override
+	virtual FVector2D ComputeDesiredSize(float) const override
 	{
 		return FVector2D(16.0f,16.0f);
 	}

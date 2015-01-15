@@ -132,7 +132,7 @@ public:
 	bool HitTest(const FGeometry& AllottedGeometry, FVector2D MouseLocalPose) const;
 
 	virtual FVector2D GetSize() const;
-	virtual FVector2D ComputeDesiredSize() const;
+	virtual FVector2D ComputeDesiredSize(float) const;
 
 	float GetDataStartPos() const;
 
@@ -255,7 +255,7 @@ public:
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 
 	void				AddTrackNode( TSharedRef<STrackNode> Node );
-	FVector2D			ComputeDesiredSize() const override;
+	FVector2D			ComputeDesiredSize(float) const override;
 	virtual FChildren*	GetChildren() override;
 
 protected:

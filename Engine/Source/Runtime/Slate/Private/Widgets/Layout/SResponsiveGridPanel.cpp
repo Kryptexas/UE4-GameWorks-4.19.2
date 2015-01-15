@@ -271,7 +271,7 @@ void SResponsiveGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry,
 	}
 }
 
-void SResponsiveGridPanel::CacheDesiredSize()
+void SResponsiveGridPanel::CacheDesiredSize(float LayoutScaleMultiplier)
 {
 	// The desired size of the grid is the sum of the desires sizes for every row and column.
 	TArray<float> Columns;
@@ -296,10 +296,10 @@ void SResponsiveGridPanel::CacheDesiredSize()
 		TotalDesiredSizes.Y += ( RowGutter * 2 )  * ( Slots[Slots.Num() - 1].RowParam );
 	}
 
-	SPanel::CacheDesiredSize();
+	SPanel::CacheDesiredSize(LayoutScaleMultiplier);
 }
 
-FVector2D SResponsiveGridPanel::ComputeDesiredSize() const
+FVector2D SResponsiveGridPanel::ComputeDesiredSize( float ) const
 {
 	return TotalDesiredSizes;
 }

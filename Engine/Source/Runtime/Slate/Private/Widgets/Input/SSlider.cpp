@@ -109,7 +109,7 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	return LayerId;
 }
 
-FVector2D SSlider::ComputeDesiredSize() const
+FVector2D SSlider::ComputeDesiredSize( float ) const
 {
 	static const FVector2D SSliderDesiredSize(16.0f, 16.0f);
 

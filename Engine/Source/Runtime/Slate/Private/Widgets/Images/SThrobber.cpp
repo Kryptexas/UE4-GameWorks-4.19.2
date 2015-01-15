@@ -158,7 +158,7 @@ int32 SCircularThrobber::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	return LayerId;
 }
 
-FVector2D SCircularThrobber::ComputeDesiredSize() const
+FVector2D SCircularThrobber::ComputeDesiredSize( float ) const
 {
 	return FVector2D(Radius, Radius) * 2;
 }

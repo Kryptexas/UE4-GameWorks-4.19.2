@@ -51,7 +51,7 @@ int32 SRichTextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& Allotted
 	return LayerId;
 }
 
-FVector2D SRichTextBlock::ComputeDesiredSize() const
+FVector2D SRichTextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 	// todo: jdale - The scale needs to be passed to ComputeDesiredSize
 	//const float Scale = CachedScale;
@@ -59,7 +59,7 @@ FVector2D SRichTextBlock::ComputeDesiredSize() const
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
 		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
-		/*Scale, */TextStyle
+		LayoutScaleMultiplier, TextStyle
 		);
 
 	return TextSize;

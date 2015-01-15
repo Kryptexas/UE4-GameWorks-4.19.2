@@ -488,7 +488,7 @@ void SCurveEditor::PushKeyMenu(const FGeometry& InMyGeometry, FVector2D Position
 }
 
 
-FVector2D SCurveEditor::ComputeDesiredSize() const
+FVector2D SCurveEditor::ComputeDesiredSize( float ) const
 {
 	return DesiredSize.Get();
 }

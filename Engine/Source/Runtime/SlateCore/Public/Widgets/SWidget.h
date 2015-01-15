@@ -477,21 +477,25 @@ public:
 	// LAYOUT
 	//
 
-	/**
-	 * Applies styles as it descends through the widget hierarchy.
-	 * Gathers desired sizes on the way up.
-	 * i.e. Caches the desired size of all of this widget's children recursively, then caches desired size for itself.
-	 */
+	public:
+	
+	/** DEPRECATED version of SlatePrepass that assumes no scaling beyond AppScale*/
 	void SlatePrepass();
 
+	/**
+	 * Descends to leafmost widgets in the hierarchy and gathers desired sizes on the way up.
+	 * i.e. Caches the desired size of all of this widget's children recursively, then caches desired size for itself.
+	 */
+	void SlatePrepass(float LayoutScaleMultiplier);
+
 	/** @return the DesiredSize that was computed the last time CacheDesiredSize() was called. */
-	const FVector2D& GetDesiredSize() const;
+	public:  const FVector2D& GetDesiredSize() const;
 
 	/**
 	 * The system calls this method. It performs a breadth-first traversal of every visible widget and asks
 	 * each widget to cache how big it needs to be in order to present all of its content.
 	 */
-	protected: virtual void CacheDesiredSize();
+	protected: virtual void CacheDesiredSize(float);
 	
 	/**
 	 * Explicitly set the desired size. This is highly advanced functionality that is meant
@@ -508,11 +512,16 @@ public:
 	 * widget is simulating a bouncing ball, you should just return a reasonable size; e.g. 160x160. Let the programmer set up a reasonable
 	 * rule of resizing the bouncy ball simulation.
 	 *
+	 * @param  LayoutScaleMultiplier    This parameter is safe to ignore for almost all widgets; only really affects text measuring.
+	 *
 	 * @return The desired size.
 	 */
-	private: virtual FVector2D ComputeDesiredSize() const = 0;
+	private: virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const = 0;
 
 	public:
+
+	/** What is the Child's scale relative to this widget. */
+	virtual float GetRelativeLayoutScale( const FSlotBase& Child ) const;
 
 	/**
 	 * Non-virtual entry point for arrange children. ensures common work is executed before calling the virtual

@@ -30,7 +30,7 @@ public:
 	 *
 	 * @return The desired size.
 	 */
-	virtual FVector2D ComputeDesiredSize( ) const = 0;
+	virtual FVector2D ComputeDesiredSize(float) const = 0;
 
 	/**
 	 * All widgets must provide a way to access their children in a layout-agnostic way.

@@ -232,11 +232,11 @@ void SWizard::ShowPage( int32 PageIndex )
 /* SCompoundWidget overrides
  *****************************************************************************/
 
-FVector2D SWizard::ComputeDesiredSize() const
+FVector2D SWizard::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 	if (DesiredSize.IsZero())
 	{
-		return SCompoundWidget::ComputeDesiredSize();
+		return SCompoundWidget::ComputeDesiredSize(LayoutScaleMultiplier);
 	}
 
 	return DesiredSize;

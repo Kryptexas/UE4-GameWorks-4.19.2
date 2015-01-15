@@ -82,7 +82,7 @@ void SBox::SetMaxDesiredHeight(TAttribute<FOptionalSize> InMaxDesiredHeight)
 	MaxDesiredHeight = InMaxDesiredHeight;
 }
 
-FVector2D SBox::ComputeDesiredSize() const
+FVector2D SBox::ComputeDesiredSize( float ) const
 {
 	EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 

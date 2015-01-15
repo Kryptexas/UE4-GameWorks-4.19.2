@@ -219,7 +219,7 @@ void SNodePanel::ArrangeChildNodes(const FGeometry& AllottedGeometry, FArrangedC
 		const TSharedRef<SNode>& SomeChild = ChildrenToArrange[ChildIndex];
 		if (!SomeChild->RequiresSecondPassLayout())
 		{
-			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild( SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSize(), GetZoomAmount() ) );
+			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSize(), GetZoomAmount()));
 		}
 	}
 
@@ -230,12 +230,12 @@ void SNodePanel::ArrangeChildNodes(const FGeometry& AllottedGeometry, FArrangedC
 		if (SomeChild->RequiresSecondPassLayout())
 		{
 			SomeChild->PerformSecondPassLayout(NodeToWidgetLookup);
-			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild( SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSize(), GetZoomAmount() ) );
+			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSize(), GetZoomAmount()));
 		}
 	}
 }
 
-FVector2D SNodePanel::ComputeDesiredSize() const
+FVector2D SNodePanel::ComputeDesiredSize( float ) const
 {	
 	// In this case, it would be an expensive computation that is not worth performing.
 	// Users prefer to explicitly size canvases just like they do with text documents, browser pages, etc.
@@ -983,6 +983,11 @@ FReply SNodePanel::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEven
 {
 	TotalGestureMagnify = 0.0f;
 	return FReply::Unhandled();
+}
+
+float SNodePanel::GetRelativeLayoutScale(const FSlotBase& Child) const
+{
+	return GetZoomAmount();
 }
 
 void SNodePanel::FindNodesAffectedByMarquee( FGraphPanelSelectionSet& OutAffectedNodes ) const

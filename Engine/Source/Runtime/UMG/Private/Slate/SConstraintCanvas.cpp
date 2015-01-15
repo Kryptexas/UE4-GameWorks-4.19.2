@@ -168,7 +168,7 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	return MaxLayerId;
 }
 
-FVector2D SConstraintCanvas::ComputeDesiredSize() const
+FVector2D SConstraintCanvas::ComputeDesiredSize( float ) const
 {
 	FVector2D DesiredSize(0,0);
 

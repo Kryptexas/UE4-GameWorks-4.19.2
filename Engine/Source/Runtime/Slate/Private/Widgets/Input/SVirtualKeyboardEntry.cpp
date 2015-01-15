@@ -134,7 +134,7 @@ void SVirtualKeyboardEntry::Tick( const FGeometry& AllottedGeometry, const doubl
  *
  * @return  The widget's desired size
  */
-FVector2D SVirtualKeyboardEntry::ComputeDesiredSize() const
+FVector2D SVirtualKeyboardEntry::ComputeDesiredSize( float ) const
 {
 	const FSlateFontInfo& FontInfo = Font.Get();
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();

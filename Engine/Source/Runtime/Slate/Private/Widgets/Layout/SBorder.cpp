@@ -190,9 +190,9 @@ FReply SBorder::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPo
 	return FReply::Unhandled();
 }
 
-FVector2D SBorder::ComputeDesiredSize() const
+FVector2D SBorder::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
-	return DesiredSizeScale.Get() * SCompoundWidget::ComputeDesiredSize();
+	return DesiredSizeScale.Get() * SCompoundWidget::ComputeDesiredSize(LayoutScaleMultiplier);
 }
 
 void SBorder::SetBorderBackgroundColor(const TAttribute<FSlateColor>& InColorAndOpacity)

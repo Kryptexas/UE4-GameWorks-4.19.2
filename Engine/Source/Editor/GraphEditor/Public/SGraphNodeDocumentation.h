@@ -11,7 +11,7 @@ public:
 	SLATE_END_ARGS()
 
 	// Begin SPanel Interface
-	virtual FVector2D ComputeDesiredSize() const override;
+	virtual FVector2D ComputeDesiredSize(float) const override;
 	// End SPanel interface
 
 	// Begin SWidget Interface

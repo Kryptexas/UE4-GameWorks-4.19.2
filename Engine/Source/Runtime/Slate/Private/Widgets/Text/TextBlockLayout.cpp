@@ -18,17 +18,17 @@ FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRe
 	, Marshaller(InMarshaller)
 	, TextHighlighter(FSlateTextHighlightRunRenderer::Create())
 	, CachedSize(ForceInitToZero)
-	, CachedDesiredSize(ForceInitToZero)
 {
 	TextLayout->SetLineBreakIterator(InLineBreakPolicy);
 }
 
-FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs/*, const float InScale*/, const FTextBlockStyle& InTextStyle)
+FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, const float InScale, const FTextBlockStyle& InTextStyle)
 {
 	TextLayout->SetWrappingWidth(CalculateWrappingWidth(InWidgetArgs));
 	TextLayout->SetMargin(InWidgetArgs.Margin.Get());
 	TextLayout->SetJustification(InWidgetArgs.Justification.Get());
 	TextLayout->SetLineHeightPercentage(InWidgetArgs.LineHeightPercentage.Get());
+	TextLayout->SetScale(InScale);
 
 	// Has the style used for this text block changed?
 	if(!IsStyleUpToDate(InTextStyle))
@@ -74,24 +74,10 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs/*
 		}
 	}
 
-	// We need to update our cached desired size if the text layout has become dirty
-	// todo: jdale - This is a hack until we can perform accurate measuring in ComputeDesiredSize
-	if(TextLayout->IsLayoutDirty())
-	{
-		// The desired size must always have a scale of 1, OnPaint will make sure the scale is set correctly for painting
-		TextLayout->SetScale(1.0f);
-		TextLayout->UpdateIfNeeded();
-
-		CachedDesiredSize = TextLayout->GetSize();
-	}
-	else
-	{
-		// This logic may look odd, but IsLayoutDirty() only checks that we've made a change that might affect the layout (which in turn might affect the 
-		// desired size), however there's also highlight changes, which don't affect the size, but still require a call to UpdateIfNeeded() to be applied
-		TextLayout->UpdateIfNeeded();
-	}
-
-	return CachedDesiredSize;
+	// We need to update our size if the text layout has become dirty
+	TextLayout->UpdateIfNeeded();
+	
+	return TextLayout->GetSize();
 }
 
 int32 FTextBlockLayout::OnPaint(const FPaintArgs& InPaintArgs, const FGeometry& InAllottedGeometry, const FSlateRect& InClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
@@ -123,7 +109,6 @@ int32 FTextBlockLayout::OnPaint(const FPaintArgs& InPaintArgs, const FGeometry& 
 		}
 	}
 
-	TextLayout->SetScale(InAllottedGeometry.Scale);
 	TextLayout->SetVisibleRegion(InAllottedGeometry.Size, AutoScrollValue);
 
 	TextLayout->UpdateIfNeeded();

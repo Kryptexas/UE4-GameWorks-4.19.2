@@ -202,7 +202,7 @@ void SGraphNodeComment::UpdateGraphNode()
 	];
 }
 
-FVector2D SGraphNodeComment::ComputeDesiredSize() const
+FVector2D SGraphNodeComment::ComputeDesiredSize( float ) const
 {
 	return UserSize;
 }

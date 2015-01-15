@@ -172,7 +172,7 @@ void SWrapBox::ClearChildren()
 	Slots.Empty();
 }
 
-FVector2D SWrapBox::ComputeDesiredSize() const
+FVector2D SWrapBox::ComputeDesiredSize( float ) const
 {
 	FVector2D MyDesiredSize = FVector2D::ZeroVector;
 	FVector2D RowDesiredSize = FVector2D::ZeroVector;

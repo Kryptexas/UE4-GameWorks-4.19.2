@@ -89,7 +89,7 @@ void SRealtimeProfilerLineGraph::Construct(const FArguments& InArgs)
 	
 }
 
-FVector2D SRealtimeProfilerLineGraph::ComputeDesiredSize() const
+FVector2D SRealtimeProfilerLineGraph::ComputeDesiredSize( float ) const
 {
 	return FVector2D(128,64);
 }

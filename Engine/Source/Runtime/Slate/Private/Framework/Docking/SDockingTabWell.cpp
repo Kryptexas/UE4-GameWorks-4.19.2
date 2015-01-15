@@ -157,7 +157,7 @@ int32 SDockingTabWell::OnPaint( const FPaintArgs& Args, const FGeometry& Allotte
 }
 
 
-FVector2D SDockingTabWell::ComputeDesiredSize() const
+FVector2D SDockingTabWell::ComputeDesiredSize( float ) const
 {
 	FVector2D DesiredSizeResult(0,0);
 

@@ -22,7 +22,7 @@ void SColorWheel::Construct( const FArguments& InArgs )
 /* SWidget overrides
  *****************************************************************************/
 
-FVector2D SColorWheel::ComputeDesiredSize( ) const
+FVector2D SColorWheel::ComputeDesiredSize( float ) const
 {
 	return Image->ImageSize + SelectorImage->ImageSize;
 }

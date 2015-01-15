@@ -122,7 +122,7 @@ int32 SCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 }
 
 
-FVector2D SCanvas::ComputeDesiredSize() const
+FVector2D SCanvas::ComputeDesiredSize( float ) const
 {
 	// Canvas widgets have no desired size -- their size is always determined by their container
 	return FVector2D::ZeroVector;

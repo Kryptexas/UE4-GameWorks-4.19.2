@@ -90,7 +90,7 @@ public:
 	UObject* GetObjectBeingDisplayed() const;
 	// End of SNodePanel::SNode
 
-	virtual FVector2D ComputeDesiredSize() const  override;
+	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	/** Helpers to draw scrub handles and snap offsets */
@@ -372,7 +372,7 @@ protected:
 	int32 GetHitNotifyNode(const FGeometry& MyGeometry, const FVector2D& Position);
 
 	TSharedPtr<SWidget> SummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-	virtual FVector2D ComputeDesiredSize() const override;
+	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -1042,7 +1042,7 @@ void SAnimNotifyNode::DropCancelled()
 	bBeingDragged = false;
 }
 
-FVector2D SAnimNotifyNode::ComputeDesiredSize() const 
+FVector2D SAnimNotifyNode::ComputeDesiredSize( float ) const
 {
 	return GetSize();
 }
@@ -1566,7 +1566,7 @@ void SAnimNotifyTrack::Construct(const FArguments& InArgs)
 	Update();
 }
 
-FVector2D SAnimNotifyTrack::ComputeDesiredSize() const 
+FVector2D SAnimNotifyTrack::ComputeDesiredSize( float ) const
 {
 	FVector2D Size;
 	Size.X = 200;

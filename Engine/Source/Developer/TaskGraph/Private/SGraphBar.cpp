@@ -209,7 +209,7 @@ FReply SGraphBar::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent&
 	return SLeafWidget::OnMouseMove( MyGeometry, MouseEvent );
 }
 
-FVector2D SGraphBar::ComputeDesiredSize() const
+FVector2D SGraphBar::ComputeDesiredSize( float ) const
 {
 	return FVector2D( 500.0f, 50.0f );
 }

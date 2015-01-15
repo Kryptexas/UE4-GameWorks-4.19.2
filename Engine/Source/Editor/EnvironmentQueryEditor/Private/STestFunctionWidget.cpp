@@ -187,7 +187,7 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	return LayerId;
 }
 
-FVector2D STestFunctionWidget::ComputeDesiredSize() const
+FVector2D STestFunctionWidget::ComputeDesiredSize( float ) const
 {
 	return FVector2D(128, 92);
 }

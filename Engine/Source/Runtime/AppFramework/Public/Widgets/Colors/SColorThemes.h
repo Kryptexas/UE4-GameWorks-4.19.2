@@ -276,7 +276,7 @@ public:
 	 *
 	 * @return The desired size.
 	 */
-	virtual FVector2D ComputeDesiredSize() const override;
+	virtual FVector2D ComputeDesiredSize(float) const override;
 
 	/**
 	 * All widgets must provide a way to access their children in a layout-agnostic way.

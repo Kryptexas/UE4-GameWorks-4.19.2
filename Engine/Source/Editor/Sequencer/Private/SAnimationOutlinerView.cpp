@@ -202,7 +202,6 @@ void SAnimationOutlinerView::OnArrangeChildren( const FGeometry& AllottedGeometr
 	const float Padding = SequencerLayoutConstants::NodePadding;
 	const float IndentAmount = SequencerLayoutConstants::IndentAmount;
 
-	const float Scale = 1.0f;
 	float CurrentHeight = 0;
 	for (int32 WidgetIndex = 0; WidgetIndex < Children.Num(); ++WidgetIndex)
 	{
@@ -219,7 +218,7 @@ void SAnimationOutlinerView::OnArrangeChildren( const FGeometry& AllottedGeometr
 			// Place the widget at the current height, at the nodes desired size
 			ArrangedChildren.AddWidget( 
 				Visibility, 
-				AllottedGeometry.MakeChild( Widget, FVector2D( WidgetIndentOffset, CurrentHeight ), FVector2D( AllottedGeometry.GetDrawSize().X-WidgetIndentOffset, HeightIncrement ), Scale ) 
+				AllottedGeometry.MakeChild( Widget, FVector2D( WidgetIndentOffset, CurrentHeight ), FVector2D( AllottedGeometry.GetDrawSize().X-WidgetIndentOffset, HeightIncrement ) ) 
 				);
 		
 			// Compute the start height for the next widget

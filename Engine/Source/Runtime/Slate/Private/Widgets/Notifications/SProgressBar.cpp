@@ -254,7 +254,7 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
  *
  * @return  The widget's desired size
  */
-FVector2D SProgressBar::ComputeDesiredSize() const
+FVector2D SProgressBar::ComputeDesiredSize( float ) const
 {
 	return GetMarqueeImage()->ImageSize;
 }

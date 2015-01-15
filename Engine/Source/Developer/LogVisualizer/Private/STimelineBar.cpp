@@ -257,7 +257,7 @@ void STimelineBar::Construct(const FArguments& InArgs, TSharedPtr<FSequencerTime
 	TRange<float> LocalViewRange = TimeSliderController->GetTimeSliderArgs().ViewRange.Get();
 }
 
-FVector2D STimelineBar::ComputeDesiredSize() const
+FVector2D STimelineBar::ComputeDesiredSize(float) const
 {
 	return FVector2D(5000.0f, 20.0f);
 }

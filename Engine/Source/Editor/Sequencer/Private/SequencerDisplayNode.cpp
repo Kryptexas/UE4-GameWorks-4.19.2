@@ -24,7 +24,7 @@ public:
 
 	/** SLeafWidget Interface */
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual FVector2D ComputeDesiredSize() const override;
+	virtual FVector2D ComputeDesiredSize(float) const override;
 	
 	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode )
 	{
@@ -86,7 +86,7 @@ int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Al
 	return LayerId+1;
 }
 
-FVector2D SSequencerObjectTrack::ComputeDesiredSize() const
+FVector2D SSequencerObjectTrack::ComputeDesiredSize( float ) const
 {
 	// Note: X Size is not used
 	return FVector2D( 100.0f, RootNode->GetNodeHeight() );

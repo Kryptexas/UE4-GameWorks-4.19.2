@@ -170,7 +170,7 @@ FVector2D SExpandableArea::GetSectionScale() const
 	return FVector2D( 1.0f, Scale );
 }
 
-FVector2D SExpandableArea::ComputeDesiredSize() const
+FVector2D SExpandableArea::ComputeDesiredSize( float ) const
 {
 	EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 	if ( ChildVisibility != EVisibility::Collapsed )

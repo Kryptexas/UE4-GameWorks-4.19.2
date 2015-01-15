@@ -155,7 +155,7 @@ private:
 		}
 	}
 
-	virtual FVector2D ComputeDesiredSize() const override
+	virtual FVector2D ComputeDesiredSize(float) const override
 	{
 		return FVector2D(100,100);
 	}
@@ -709,7 +709,7 @@ void SWindow::MoveWindowTo( FVector2D NewPosition )
 {
 	if (NativeWindow.IsValid())
 	{
-#if PLATFORM_LINUX
+#if 1//PLATFORM_LINUX
 		// Slate code often expects cached screen position to be accurate immediately after the move.
 		// This expectation is generally invalid (see UE-1308) as there may be a delay before the OS reports it back.
 		// This hack sets the position speculatively, keeping Slate happy while also giving the OS chance to report it
@@ -730,7 +730,7 @@ void SWindow::ReshapeWindow( FVector2D NewPosition, FVector2D NewSize )
 {
 	if (NativeWindow.IsValid())
 	{
-#if PLATFORM_LINUX
+#if 1//PLATFORM_LINUX
 		// Slate code often expects cached screen position to be accurate immediately after the move.
 		// This expectation is generally invalid (see UE-1308) as there may be a delay before the OS reports it back.
 		// This hack sets the position speculatively, keeping Slate happy while also giving the OS chance to report it
@@ -1091,7 +1091,7 @@ void SWindow::ShowWindow()
 		// Repositioning the window on show with the new size solves this.
 		if ( SizingRule == ESizingRule::Autosized && AutoCenterRule != EAutoCenter::None )
 		{
-			SlatePrepass();
+			SlatePrepass( FSlateApplicationBase::Get().GetApplicationScale() );
 			ReshapeWindow( InitialDesiredScreenPosition - (GetDesiredSize() * 0.5f), GetDesiredSize() );
 		}
 
@@ -1439,10 +1439,14 @@ FReply SWindow::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& M
 
 }
 
-FVector2D SWindow::ComputeDesiredSize() const
+FVector2D SWindow::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
-	const float Scale = FSlateApplicationBase::Get().GetApplicationScale();
-	return SCompoundWidget::ComputeDesiredSize() * Scale;
+	return SCompoundWidget::ComputeDesiredSize(LayoutScaleMultiplier) * LayoutScaleMultiplier;
+}
+
+float SWindow::GetRelativeLayoutScale(const FSlotBase& Child) const
+{
+	return FSlateApplicationBase::Get().GetApplicationScale();
 }
 
 const TArray< TSharedRef<SWindow> >& SWindow::GetChildWindows() const

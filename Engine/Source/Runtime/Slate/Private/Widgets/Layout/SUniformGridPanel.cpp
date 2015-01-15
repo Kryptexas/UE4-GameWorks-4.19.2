@@ -52,7 +52,7 @@ void SUniformGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 	}
 }
 
-FVector2D SUniformGridPanel::ComputeDesiredSize() const
+FVector2D SUniformGridPanel::ComputeDesiredSize( float ) const
 {
 	FVector2D MaxChildDesiredSize = FVector2D::ZeroVector;
 	const FVector2D SlotPaddingDesiredSize = SlotPadding.Get().GetDesiredSize();

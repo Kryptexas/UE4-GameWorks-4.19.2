@@ -308,7 +308,7 @@ public:
 			return &Children;
 		}
 
-		virtual FVector2D ComputeDesiredSize() const override
+		virtual FVector2D ComputeDesiredSize(float) const override
 		{
 			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 			{
@@ -325,8 +325,28 @@ public:
 			return FVector2D::ZeroVector;
 		}
 
+		virtual float GetRelativeLayoutScale(const FSlotBase& Child) const
+		{
+			const FNodeSlot& ThisSlot = static_cast<const FNodeSlot&>(Child);
+			if ( !ThisSlot.AllowScale.Get() )
+			{
+				// Child slots that do not allow zooming should scale themselves to negate the node panel's zoom.
+				TSharedPtr<SNodePanel> ParentPanel = GetParentPanel();
+				if (ParentPanel.IsValid())
+				{					
+					return 1.0f/ParentPanel->GetZoomAmount();
+				}
+			}
+
+			return 1.0f;
+		}
+
 		virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override
 		{
+			// Child slots that do not allow zooming should scale themselves to negate the node panel's zoom.
+			TSharedPtr<SNodePanel> ParentPanel = GetParentPanel();
+			const float ZoomInverse = ParentPanel.IsValid() ? 1.0f / ParentPanel->GetZoomAmount() : 1.0f;
+
 			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 			{
 				const FNodeSlot& CurChild = Children[ChildIndex];
@@ -334,7 +354,7 @@ public:
 				if ( ArrangedChildren.Accepts(ChildVisibility) )
 				{
 					const FMargin SlotPadding(CurChild.SlotPadding.Get());
-					const float GeometryScale = CurChild.AllowScale.Get() ? 1.f : 1.f / AllottedGeometry.Scale;
+					// If this child is not allowed to scale, its scale relative to its parent should undo the parent widget's scaling.
 					FVector2D Size;
 
 					if( CurChild.Size.IsSet() )
@@ -347,12 +367,12 @@ public:
 						AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, CurChild, SlotPadding);
 						Size = FVector2D( XResult.Size, YResult.Size );
 					}
-					const FArrangedWidget ChildGeom = 
-					AllottedGeometry.MakeChild(
+					const FArrangedWidget ChildGeom =
+						AllottedGeometry.MakeChild(
 						CurChild.GetWidget(),
 						CurChild.Offset.Get(),
 						Size,
-						GeometryScale
+						GetRelativeLayoutScale(CurChild)
 					);
 					ArrangedChildren.AddWidget( ChildVisibility, ChildGeom );
 				}
@@ -494,6 +514,11 @@ public:
 			return GetSortDepth() < NodeIn.GetSortDepth();
 		}
 
+		void SetParentPanel(const TSharedPtr<SNodePanel>& InParent)
+		{
+			ParentPanelPtr = InParent;
+		}
+
 	protected:
 		SNode()
 		: BorderImage( FCoreStyle::Get().GetBrush( "NoBorder" ) )
@@ -528,7 +553,13 @@ public:
 
 	private:
 
+		TSharedPtr<SNodePanel> GetParentPanel() const
+		{
+			return ParentPanelPtr.Pin();
+		}
+
 		TPanelChildren<FNodeSlot> Children;
+		TWeakPtr<SNodePanel> ParentPanelPtr;
 
 	};
 
@@ -536,7 +567,7 @@ public:
 
 	// SPanel interface
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
-	virtual FVector2D ComputeDesiredSize() const override;
+	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
 	// End of SPanel interface
 
@@ -552,7 +583,7 @@ public:
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent ) override;
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
-
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
 	// End of SWidget interface
 public:
 	/**

@@ -36,14 +36,14 @@ public:
 		];
 	}
 
-	virtual FVector2D ComputeDesiredSize() const override
+	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override
 	{
 		const float MinWidthVal = MinWidth.Get().Get(0.0f);
 		const float MaxWidthVal = MaxWidth.Get().Get(0.0f);
 
 		if ( MinWidthVal == 0.0f && MaxWidthVal == 0.0f )
 		{
-			return SCompoundWidget::ComputeDesiredSize();
+			return SCompoundWidget::ComputeDesiredSize(LayoutScaleMultiplier);
 		}
 		else
 		{

@@ -74,7 +74,7 @@ public:
 	 *
 	 * @return The desired width and height.
 	 */
-	virtual FVector2D ComputeDesiredSize() const override
+	virtual FVector2D ComputeDesiredSize(float) const override
 	{
 		return ViewportSize.Get();
 	}

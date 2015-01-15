@@ -2236,7 +2236,7 @@ int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& 
 	return LayerId;
 }
 
-void SMultiLineEditableText::CacheDesiredSize()
+void SMultiLineEditableText::CacheDesiredSize(float LayoutScaleMultiplier)
 {
 	// Get the wrapping width and font to see if they have changed
 	float WrappingWidth = WrapTextAt.Get();
@@ -2257,10 +2257,10 @@ void SMultiLineEditableText::CacheDesiredSize()
 	TextLayout->SetVisibleRegion( CachedSize, ScrollOffset );
 	TextLayout->UpdateIfNeeded();
 
-	SWidget::CacheDesiredSize();
+	SWidget::CacheDesiredSize(LayoutScaleMultiplier);
 }
 
-FVector2D SMultiLineEditableText::ComputeDesiredSize() const
+FVector2D SMultiLineEditableText::ComputeDesiredSize( float ) const
 {
 	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
 	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
