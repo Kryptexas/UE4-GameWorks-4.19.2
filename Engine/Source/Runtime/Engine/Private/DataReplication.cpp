@@ -1074,9 +1074,12 @@ void FObjectReplicator::QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bu
 		// We need to copy over any info that was obtained on the package map during serialization, and remember it until we actually call SendBunch
 		if ( PackageMapClient->GetMustBeMappedGuidsInLastBunch().Num() )
 		{
-			OwningChannel->MustBeMappedGuidsInLastBunch.Append( PackageMapClient->GetMustBeMappedGuidsInLastBunch() );
+			OwningChannel->QueuedMustBeMappedGuidsInLastBunch.Append( PackageMapClient->GetMustBeMappedGuidsInLastBunch() );
 			PackageMapClient->GetMustBeMappedGuidsInLastBunch().Empty();
 		}
+
+		// Copy over any exported bunches
+		PackageMapClient->AppendExportBunches( OwningChannel->QueuedExportBunches );
 	}
 }
 

@@ -104,6 +104,9 @@ public:
 	 */
 	void ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck );
 	
+	/** Append any export bunches */
+	virtual void AppendExportBunches( TArray< FOutBunch* >& OutExportBunches );
+
 	/** Append any "must be mapped" guids to front of bunch. These are guids that the client will wait on before processing this bunch. */
 	virtual void AppendMustBeMappedGuids( FOutBunch* Bunch );
 
