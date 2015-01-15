@@ -566,11 +566,15 @@ protected:
 	TEnumAsByte<EGameplayAbilityReplicationPolicy::Type> ReplicationPolicy;
 
 	UPROPERTY(EditDefaultsOnly, Category = Advanced)
-	TEnumAsByte<EGameplayAbilityInstancingPolicy::Type>	InstancingPolicy;						
+	TEnumAsByte<EGameplayAbilityInstancingPolicy::Type>	InstancingPolicy;					
 
 	/** If this is set, the server-side version of the ability can be canceled by the client-side version. The client-side version can always be canceled by the server. */
 	UPROPERTY(EditDefaultsOnly, Category = Advanced)
 	bool bServerRespectsRemoteAbilityCancellation;
+
+	/** if true, and trying to activate an already active instanced ability, end it and re-trigger it. */
+	UPROPERTY(EditDefaultsOnly, Category = Advanced)
+	bool bRetriggerInstancedAbility;
 
 	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authoring, confirmed, etc. */
 	UPROPERTY(BlueprintReadOnly, Category = Ability)

@@ -175,6 +175,8 @@ public:
 	uint32 GetLinkUserId(NavNodeRef LinkPolyID) const;
 	/** Retrieves start and end point of offmesh link */
 	bool GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const;
+	/** Check if poly is a custom link */
+	bool IsCustomLink(NavNodeRef PolyRef) const;
 
 	/** Retrieves bounds of cluster. Returns false on error. */
 	bool GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBounds) const;

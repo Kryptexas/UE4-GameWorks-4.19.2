@@ -4,6 +4,23 @@
 
 #if WITH_FANCY_TEXT
 
+namespace
+{
+	/**
+     * Helper function to solve some issues with ternary operators inside construction of a widget.
+	 */
+	TSharedRef< SWidget > AsWidgetRef( const TSharedPtr< SWidget >& InWidget )
+	{
+		if ( InWidget.IsValid() )
+		{
+			return InWidget.ToSharedRef();
+		}
+		else
+		{
+			return SNullWidget::NullWidget;
+		}
+	}
+}
 
 /**
  * Construct this widget
@@ -25,7 +42,6 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 	TAttribute<FSlateColor> BackgroundColor = InArgs._BackgroundColor.IsSet() ? InArgs._BackgroundColor : InArgs._Style->BackgroundColor;
 	ReadOnlyForegroundColor = InArgs._ReadOnlyForegroundColor.IsSet() ? InArgs._ReadOnlyForegroundColor : InArgs._Style->ReadOnlyForegroundColor;
 
-	TSharedPtr<SWidget> HScrollBarWidget;
 	TSharedPtr<SScrollBar> HScrollBar = InArgs._HScrollBar;
 	if (!HScrollBar.IsValid())
 	{
@@ -35,15 +51,8 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 			.Orientation(Orient_Horizontal)
 			.AlwaysShowScrollbar(InArgs._AlwaysShowScrollbars)
 			.Thickness(FVector2D(5.0f, 5.0f));
-		HScrollBarWidget = HScrollBar;
 	}
-	else
-	{
-		// User provided an external scrollbar, use a null widget
-		HScrollBarWidget = SNullWidget::NullWidget;
-	}
-
-	TSharedPtr<SWidget> VScrollBarWidget;
+	
 	TSharedPtr<SScrollBar> VScrollBar = InArgs._VScrollBar;
 	if (!VScrollBar.IsValid())
 	{
@@ -53,12 +62,6 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 			.Orientation(Orient_Vertical)
 			.AlwaysShowScrollbar(InArgs._AlwaysShowScrollbars)
 			.Thickness(FVector2D(5.0f, 5.0f));
-		VScrollBarWidget = VScrollBar;
-	}
-	else
-	{
-		// User provided an external scrollbar, use a null widget
-		VScrollBarWidget = SNullWidget::NullWidget;
 	}
 
 	SBorder::Construct( SBorder::FArguments()
@@ -68,7 +71,6 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 		.Padding( Padding )
 		[
 			SAssignNew( Box, SHorizontalBox)
-
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
@@ -105,17 +107,17 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 
 				+SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding((InArgs._HScrollBar.IsValid()) ? FMargin(0) : HScrollBarPadding)
+				.Padding(HScrollBarPadding)
 				[
-					HScrollBarWidget.ToSharedRef()
+					AsWidgetRef( HScrollBar )
 				]
 			]
 
 			+SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding((InArgs._VScrollBar.IsValid()) ? FMargin(0) : VScrollBarPadding)
+			.Padding(VScrollBarPadding)
 			[
-				VScrollBarWidget.ToSharedRef()
+				AsWidgetRef( VScrollBar )
 			]
 		]
 	);

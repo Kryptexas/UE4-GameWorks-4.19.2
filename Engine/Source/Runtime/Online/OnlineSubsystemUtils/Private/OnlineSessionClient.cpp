@@ -9,8 +9,6 @@
 
 #include "Engine/GameInstance.h"
 
-#define INVALID_CONTROLLERID 255
-
 UOnlineSessionClient::UOnlineSessionClient(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -18,22 +16,28 @@ UOnlineSessionClient::UOnlineSessionClient(const FObjectInitializer& ObjectIniti
 	bIsFromInvite = false;
 }
 
+UWorld* UOnlineSessionClient::GetWorld() const
+{
+	ULocalPlayer* LP = Cast<ULocalPlayer>(GetOuter());
+	if (LP != nullptr && LP->PlayerController != nullptr)
+	{
+		return LP->PlayerController->GetWorld();
+	}
+
+	return nullptr;
+}
+
 APlayerController* UOnlineSessionClient::GetPlayerController()
 {
 	ULocalPlayer* LP = Cast<ULocalPlayer>(GetOuter());
-	if (LP != NULL)
+	if (LP != nullptr)
 	{
 		return LP->PlayerController;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-/**
- * Helper function to retrieve the controller id of the owning controller
- *
- * @return controller id of the controller
- */
 int32 UOnlineSessionClient::GetControllerId()
 {
 	ULocalPlayer* LP = Cast<ULocalPlayer>(GetOuter());
@@ -45,9 +49,17 @@ int32 UOnlineSessionClient::GetControllerId()
 	return INVALID_CONTROLLERID;
 }
 
-/**
- * Register all delegates needed to manage online sessions
- */
+TSharedPtr<FUniqueNetId> UOnlineSessionClient::GetUniqueId()
+{
+	ULocalPlayer* LP = Cast<ULocalPlayer>(GetOuter());
+	if (LP != nullptr)
+	{
+		return LP->GetCachedUniqueNetId();
+	}
+
+	return nullptr;
+}
+
 void UOnlineSessionClient::RegisterOnlineDelegates(UWorld* InWorld)
 {
 	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld);
@@ -74,9 +86,6 @@ void UOnlineSessionClient::RegisterOnlineDelegates(UWorld* InWorld)
 	OnDestroyForMainMenuCompleteDelegate = FOnDestroySessionCompleteDelegate::CreateUObject(this, &UOnlineSessionClient::OnDestroyForMainMenuComplete);
 }
 
-/**
- * Tear down all delegates used to manage online sessions
- */
 void UOnlineSessionClient::ClearOnlineDelegates(UWorld* InWorld)
 {
 	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld);
@@ -95,13 +104,6 @@ void UOnlineSessionClient::ClearOnlineDelegates(UWorld* InWorld)
 	SessionInt = NULL;
 }
 
-/**
- * Delegate fired when an invite request has been accepted (via external UI)
- *
- * @param LocalUserNum local user accepting invite
- * @param bWasSuccessful true if the async action completed without error, false if there was an error
- * @param SearchResult search result containing the invite data
- */
 void UOnlineSessionClient::OnSessionInviteAccepted(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnSessionInviteAccepted LocalUserNum: %d bSuccess: %d"), LocalUserNum, bWasSuccessful);
@@ -122,12 +124,6 @@ void UOnlineSessionClient::OnSessionInviteAccepted(int32 LocalUserNum, bool bWas
 	}
 }
 
-/**
- * Transition from ending a session to destroying a session
- *
- * @param SessionName session that just ended
- * @param bWasSuccessful was the end session attempt successful
- */
 void UOnlineSessionClient::OnEndForJoinSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnEndForJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
@@ -135,12 +131,6 @@ void UOnlineSessionClient::OnEndForJoinSessionComplete(FName SessionName, bool b
 	DestroyExistingSession_Impl(OnDestroyForJoinSessionCompleteDelegateHandle, SessionName, OnDestroyForJoinSessionCompleteDelegate);
 }
 
-/**
- * Ends an existing session of a given name
- *
- * @param SessionName name of session to end
- * @param Delegate delegate to call at session end
- */
 void UOnlineSessionClient::EndExistingSession(FName SessionName, FOnEndSessionCompleteDelegate& Delegate)
 {
 	EndExistingSession_Impl(SessionName, Delegate);
@@ -170,12 +160,6 @@ FDelegateHandle UOnlineSessionClient::EndExistingSession_Impl(FName SessionName,
 	return Result;
 }
 
-/**
- * Transition from destroying a session to joining a new one of the same name
- *
- * @param SessionName name of session recently destroyed
- * @param bWasSuccessful was the destroy attempt successful
- */
 void UOnlineSessionClient::OnDestroyForJoinSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnDestroyForJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
@@ -196,12 +180,6 @@ void UOnlineSessionClient::OnDestroyForJoinSessionComplete(FName SessionName, bo
 	bHandlingDisconnect = false;
 }
 
-/**
- * Transition from destroying a session to returning to the main menu
- *
- * @param SessionName name of session recently destroyed
- * @param bWasSuccessful was the destroy attempt successful
- */
 void UOnlineSessionClient::OnDestroyForMainMenuComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnDestroyForMainMenuComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
@@ -220,12 +198,6 @@ void UOnlineSessionClient::OnDestroyForMainMenuComplete(FName SessionName, bool 
 	bHandlingDisconnect = false;
 }
 
-/**
- * Destroys an existing session of a given name
- *
- * @param SessionName name of session to destroy
- * @param Delegate delegate to call at session destruction
- */
 void UOnlineSessionClient::DestroyExistingSession(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate)
 {
 	FDelegateHandle UnusedHandle;
@@ -253,12 +225,6 @@ void UOnlineSessionClient::DestroyExistingSession_Impl(FDelegateHandle& OutResul
 	}
 }
 
-/**
- * Delegate fired when the joining process for an online session has completed
- *
- * @param SessionName the name of the session this callback is for
- * @param bWasSuccessful true if the async action completed without error, false if there was an error
- */
 void UOnlineSessionClient::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), static_cast<int32>(Result));
@@ -287,13 +253,6 @@ void UOnlineSessionClient::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 	}
 }
 
-/**
- * Join a session of a given name after potentially tearing down an existing one
- *
- * @param LocalUserNum local user id
- * @param SessionName name of session to join
- * @param SearchResult the session to join
- */
 void UOnlineSessionClient::JoinSession(int32 LocalUserNum, FName SessionName, const FOnlineSessionSearchResult& SearchResult)
 {
 	// Clean up existing sessions if applicable
@@ -312,9 +271,6 @@ void UOnlineSessionClient::JoinSession(int32 LocalUserNum, FName SessionName, co
 	}
 }
 
-/**
- * Called to tear down any online sessions and return to main menu
- */
 void UOnlineSessionClient::HandleDisconnect(UWorld *World, UNetDriver *NetDriver)
 {
 	bool bWasHandled = HandleDisconnectInternal(World, NetDriver);

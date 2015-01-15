@@ -19,6 +19,10 @@
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameMode.h"
 
+#if UE_SERVER
+#include "PerfCountersModule.h"
+#endif
+
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
 DEFINE_STAT(STAT_Channels);
@@ -167,8 +171,9 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	}
 
 #if STATS
-	// Update network stats
-	if ( Time - StatUpdateTime > StatPeriod && ( ClientConnections.Num() > 0 || ServerConnection != NULL ) )
+	// Update network stats (only main game net driver for now)
+	if (NetDriverName == NAME_GameNetDriver && 
+		Time - StatUpdateTime > StatPeriod && ( ClientConnections.Num() > 0 || ServerConnection != NULL ))
 	{
 		int32 Ping = 0;
 		int32 NumOpenChannels = 0;
@@ -257,6 +262,94 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			}
 		}
 
+#if UE_SERVER
+		IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
+		if (PerfCounters)
+		{
+			// Update total connections
+			PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num());
+
+#define MAX_NETSTATS 8
+			struct FNetPerfStruct
+			{
+				int32 Ping;
+				int32 InBytes;
+				int32 OutBytes;
+				int32 PacketLoss;
+			};
+
+			FNetPerfStruct NetStats[MAX_NETSTATS];
+			FMemory::Memzero(&NetStats, MAX_NETSTATS);
+
+			if (ClientConnections.Num() > 0)
+			{
+				// Update per connection statistics
+				int32 MinPing = MAX_int32;
+				int32 AvgPing = 0;
+				int32 MaxPing = MIN_int32;
+				int32 PingCount = 0;
+
+				for (int32 i = 0; i < ClientConnections.Num() && i < MAX_NETSTATS; i++)
+				{
+					UNetConnection* Connection = ClientConnections[i];
+
+					if (Connection != nullptr)
+					{
+						if (Connection->PlayerController != nullptr && Connection->PlayerController->PlayerState != nullptr)
+						{
+							// Ping value calculated per client
+							NetStats[i].Ping = (int32)Connection->PlayerController->PlayerState->Ping * 4;
+
+							if (NetStats[i].Ping < MinPing)
+							{
+								MinPing = NetStats[i].Ping;
+							}
+
+							if (NetStats[i].Ping > MaxPing)
+							{
+								MaxPing = NetStats[i].Ping;
+							}
+
+							AvgPing += NetStats[i].Ping;
+							PingCount++;
+						}
+
+						//Store the data per frame only 
+						NetStats[i].InBytes = Connection->InBytes;
+						NetStats[i].OutBytes = Connection->OutBytes;
+						NetStats[i].PacketLoss = Connection->InPacketsLost + Connection->OutPacketsLost;
+					}
+				}
+
+				PerfCounters->Set(TEXT("AvgPing"), (float)AvgPing / (float)PingCount);
+				PerfCounters->Set(TEXT("MaxPing"), MaxPing);
+				PerfCounters->Set(TEXT("MinPing"), MinPing);
+			}
+			else
+			{
+				PerfCounters->Set(TEXT("AvgPing"), 0.0f);
+				PerfCounters->Set(TEXT("MaxPing"), 0);
+				PerfCounters->Set(TEXT("MinPing"), 0);
+			}
+
+#define WRITE_NETSTATS(Perf, Idx, Data) \
+			Perf->Set(TEXT("Ping_") TEXT(#Idx), Data.Ping); \
+ 			Perf->Set(TEXT("InBytes_") TEXT(#Idx), Data.InBytes); \
+ 			Perf->Set(TEXT("OutBytes_") TEXT(#Idx), Data.OutBytes); \
+ 			Perf->Set(TEXT("PktLoss_") TEXT(#Idx), Data.PacketLoss); 
+
+			WRITE_NETSTATS(PerfCounters, 0, NetStats[0]);
+			WRITE_NETSTATS(PerfCounters, 1, NetStats[1]);
+			WRITE_NETSTATS(PerfCounters, 2, NetStats[2]);
+			WRITE_NETSTATS(PerfCounters, 3, NetStats[3]);
+			WRITE_NETSTATS(PerfCounters, 4, NetStats[4]);
+			WRITE_NETSTATS(PerfCounters, 5, NetStats[5]);
+			WRITE_NETSTATS(PerfCounters, 6, NetStats[6]);
+			WRITE_NETSTATS(PerfCounters, 7, NetStats[7]);
+#undef WRITE_NETSTATS
+		}
+#endif // UE_SERVER
+
 		// Copy the net status values over
 		SET_DWORD_STAT(STAT_Ping, Ping);
 		SET_DWORD_STAT(STAT_Channels, NumOpenChannels);
@@ -309,7 +402,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		VoiceOutPercent = 0;
 		StatUpdateTime = Time;
 	}
-#endif
+#endif // STATS
 
 	// Poll all sockets.
 	if( ServerConnection )

@@ -61,6 +61,22 @@ bool FGameplayTagContainer::HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<E
 	return false;
 }
 
+bool FGameplayTagContainer::RemoveTagByExplicitName(const FName& TagName)
+{
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	//for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
+	for (auto GameplayTag : this->GameplayTags)
+	{
+		if (GameplayTag.GetTagName() == TagName)
+		{
+			RemoveTag(GameplayTag);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 FGameplayTagContainer FGameplayTagContainer::GetGameplayTagParents() const
 {
 	FGameplayTagContainer ResultContainer;
@@ -199,56 +215,37 @@ bool FGameplayTagContainer::Serialize(FArchive& Ar)
 	
 	if (Ar.IsLoading())
 	{
-		// Regardless of version, want loading to have a chance to handle redirects
-		RedirectTags();
+		UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
 
 		// If loading old version, add old tags to the new gameplay tags array so they can be saved out with the new version
+		// This needs to happen 
+		// NOTE: DeprecatedTagNamesNotFoundInTagMap should be removed along with the bOldTagVer when we remove backwards
+		// compatibility, and the signature of RedirectTagsForContainer (below) should be changed appropriately as well.
+		TArray<FName> DeprecatedTagNamesNotFoundInTagMap;
 		if (bOldTagVer)
 		{
-			UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
 			for (auto It = Tags_DEPRECATED.CreateConstIterator(); It; ++It)
 			{
-				FGameplayTag Tag = TagManager.RequestGameplayTag(*It);
-				TagManager.AddLeafTagToContainer(*this, Tag);
+				const bool bErrorIfNotFound = false;
+				FGameplayTag Tag = TagManager.RequestGameplayTag(*It, bErrorIfNotFound);
+				if (Tag.IsValid())
+				{
+					TagManager.AddLeafTagToContainer(*this, Tag);
+				}
+				else
+				{	// For tags not found in the current table, add them to a list to be checked when handling
+					// redirection (below).
+					DeprecatedTagNamesNotFoundInTagMap.Add(*It);
+				}
 			}
 		}
+
+		// Rename any tags that may have changed by the ini file.  Redirects can happen regardless of version.
+		// Regardless of version, want loading to have a chance to handle redirects
+		TagManager.RedirectTagsForContainer(*this, DeprecatedTagNamesNotFoundInTagMap);
 	}
 
 	return true;
-}
-
-void FGameplayTagContainer::RedirectTags()
-{
-	FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIni );
-	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
-	
-	for (FConfigSection::TIterator It(*PackageRedirects); It; ++It)
-	{
-		if (It.Key() == TEXT("GameplayTagRedirects"))
-		{
-			FName OldTagName = NAME_None;
-			FName NewTagName;
-
-			FParse::Value( *It.Value(), TEXT("OldTagName="), OldTagName );
-			FParse::Value( *It.Value(), TEXT("NewTagName="), NewTagName );
-
-			int32 TagIndex = 0;
-			if (Tags_DEPRECATED.Find(OldTagName, TagIndex))
-			{
-				Tags_DEPRECATED.RemoveAt(TagIndex);
-				Tags_DEPRECATED.AddUnique(NewTagName);
-			}
-
-			FGameplayTag OldTag = TagManager.RequestGameplayTag(OldTagName);
-			FGameplayTag NewTag = TagManager.RequestGameplayTag(NewTagName);
-
-			if (HasTag(OldTag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
-			{
-				RemoveTag(OldTag);
-				AddTag(NewTag);
-			}
-		}
-	}
 }
 
 int32 FGameplayTagContainer::Num() const

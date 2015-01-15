@@ -52,7 +52,7 @@ void UPendingNetGame::InitNetDriver()
 		else
 		{
 			// error initializing the network stack...
-			UE_LOG(LogNet, Log, TEXT("error initializing the network stack"));
+			UE_LOG(LogNet, Warning, TEXT("error initializing the network stack"));
 			GEngine->DestroyNamedNetDriver(this, NetDriver->NetDriverName);
 			NetDriver = NULL;
 

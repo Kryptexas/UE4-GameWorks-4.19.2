@@ -2726,7 +2726,15 @@ namespace BuildPromotionTestHelper
 			{
 				AssetData = EditorBuildPromotionTestUtils::GetAssetDataFromPackagePath(AssetPackagePath);
 				Asset = AssetData.GetAsset();
-				OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("BlueprintDescription"), TEXT("Modified by BuildPromotionTest TM")));
+				if (Asset)
+				{
+					OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("BlueprintDescription"), TEXT("Modified by BuildPromotionTest TM")));
+				}
+				else
+				{
+					SkippedTests.Add(TEXT("ContentBrowser: Open Blueprint. (Asset not found)"));
+					UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("Skipping Asset: BlueprintAsset not found"));
+				}
 			}
 			else
 			{
@@ -2740,7 +2748,15 @@ namespace BuildPromotionTestHelper
 			{
 				AssetData = EditorBuildPromotionTestUtils::GetAssetDataFromPackagePath(AssetPackagePath);
 				Asset = AssetData.GetAsset();
-				OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("TwoSided"), TEXT("true")));
+				if (Asset)
+				{
+					OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("TwoSided"), TEXT("true")));
+				}
+				else
+				{
+					SkippedTests.Add(TEXT("ContentBrowser: Open Material. (Asset not found)"));
+					UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("Skipping Asset: MaterialAsset not found"));
+				}
 			}
 			else
 			{
@@ -2754,7 +2770,15 @@ namespace BuildPromotionTestHelper
 			{
 				AssetData = EditorBuildPromotionTestUtils::GetAssetDataFromPackagePath(AssetPackagePath);
 				Asset = AssetData.GetAsset();
-				OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("UpdateTime_FPS"), TEXT("100")));
+				if (Asset)
+				{
+					OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("UpdateTime_FPS"), TEXT("100")));
+				}
+				else
+				{
+					SkippedTests.Add(TEXT("ContentBrowser: Open ParticleSystem. (Asset not found)"));
+					UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("Skipping Asset: ParticleSystemAsset not found"));
+				}
 			}
 			else
 			{
@@ -2768,7 +2792,15 @@ namespace BuildPromotionTestHelper
 			{
 				AssetData = EditorBuildPromotionTestUtils::GetAssetDataFromPackagePath(AssetPackagePath);
 				Asset = AssetData.GetAsset();
-				OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("bUseFullPrecisionUVs"), TEXT("1")));
+				if (Asset)
+				{
+					OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("bUseFullPrecisionUVs"), TEXT("1")));
+				}
+				else
+				{
+					SkippedTests.Add(TEXT("ContentBrowser: Open SkeletalMesh. (Asset not found)"));
+					UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("Skipping Asset: SkeletalMeshAsset not found"));
+				}
 			}
 			else
 			{
@@ -2782,7 +2814,15 @@ namespace BuildPromotionTestHelper
 			{
 				AssetData = EditorBuildPromotionTestUtils::GetAssetDataFromPackagePath(AssetPackagePath);
 				Asset = AssetData.GetAsset();
-				OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("AutoLODPixelError"), TEXT("42.f")));
+				if (Asset)
+				{
+					OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("AutoLODPixelError"), TEXT("42.f")));
+				}
+				else
+				{
+					SkippedTests.Add(TEXT("ContentBrowser: Open StaticMesh. (Asset not found)"));
+					UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("Skipping Asset: StaticMeshAsset not found"));
+				}
 			}
 			else
 			{
@@ -2796,7 +2836,15 @@ namespace BuildPromotionTestHelper
 			{
 				AssetData = EditorBuildPromotionTestUtils::GetAssetDataFromPackagePath(AssetPackagePath);
 				Asset = AssetData.GetAsset();
-				OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("LODBias"), TEXT("2")));
+				if (Asset)
+				{
+					OpenInfo.Add(FOpenAssetInfo(Asset, AssetData, TEXT("LODBias"), TEXT("2")));
+				}
+				else
+				{
+					SkippedTests.Add(TEXT("ContentBrowser: Open Texture. (Asset not found)"));
+					UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("Skipping Asset: TextureAsset not found"));
+				}
 			}
 			else
 			{

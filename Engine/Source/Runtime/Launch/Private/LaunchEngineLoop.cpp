@@ -920,11 +920,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		FMath::RandInit( 0 );
 		FMath::SRandInit( 0 );
+		UE_LOG(LogInit, Display, TEXT("RandInit(0) SRandInit(0)."));
 	}
 	else
 	{
-		FMath::RandInit( FPlatformTime::Cycles() );
-		FMath::SRandInit( FPlatformTime::Cycles() );
+		uint32 Cycles1 = FPlatformTime::Cycles();
+		FMath::RandInit(Cycles1);
+		uint32 Cycles2 = FPlatformTime::Cycles();
+		FMath::SRandInit(Cycles2);
+		UE_LOG(LogInit, Display, TEXT("RandInit(%d) SRandInit(%d)."), Cycles1, Cycles2);
 	}
 
 

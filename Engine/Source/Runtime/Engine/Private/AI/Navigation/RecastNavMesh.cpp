@@ -1212,6 +1212,17 @@ bool ARecastNavMesh::GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FV
 	return bSuccess;
 }
 
+bool ARecastNavMesh::IsCustomLink(NavNodeRef LinkPolyID) const
+{
+	bool bSuccess = false;
+	if (RecastNavMeshImpl)
+	{
+		bSuccess = RecastNavMeshImpl->IsCustomLink(LinkPolyID);
+	}
+
+	return bSuccess;
+}
+
 bool ARecastNavMesh::GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBounds) const
 {
 	bool bSuccess = false;

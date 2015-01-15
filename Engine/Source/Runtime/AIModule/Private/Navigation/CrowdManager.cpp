@@ -693,14 +693,17 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAge
 		AgentParams.separationWeight = CrowdComponent->GetCrowdSeparationWeight();
 		AgentParams.obstacleAvoidanceType = CrowdComponent->GetCrowdAvoidanceQuality();
 	
-		AgentParams.updateFlags =
-			(CrowdComponent->IsCrowdAnticipateTurnsActive() ? DT_CROWD_ANTICIPATE_TURNS : 0) |
-			(CrowdComponent->IsCrowdObstacleAvoidanceActive() ? DT_CROWD_OBSTACLE_AVOIDANCE : 0) |
-			(CrowdComponent->IsCrowdSeparationActive() ? DT_CROWD_SEPARATION : 0) |
-			(CrowdComponent->IsCrowdOptimizeVisibilityEnabled() ? (DT_CROWD_OPTIMIZE_VIS | DT_CROWD_OPTIMIZE_VIS_MULTI) : 0) |
-			(CrowdComponent->IsCrowdOptimizeTopologyActive() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
-			(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0) |
-			(CrowdComponent->IsCrowdSlowdownAtGoalEnabled() ? DT_CROWD_SLOWDOWN_AT_GOAL : 0);
+		if (CrowdComponent->IsCrowdSimulationEnabled())
+		{
+			AgentParams.updateFlags =
+				(CrowdComponent->IsCrowdAnticipateTurnsActive() ? DT_CROWD_ANTICIPATE_TURNS : 0) |
+				(CrowdComponent->IsCrowdObstacleAvoidanceActive() ? DT_CROWD_OBSTACLE_AVOIDANCE : 0) |
+				(CrowdComponent->IsCrowdSeparationActive() ? DT_CROWD_SEPARATION : 0) |
+				(CrowdComponent->IsCrowdOptimizeVisibilityEnabled() ? (DT_CROWD_OPTIMIZE_VIS | DT_CROWD_OPTIMIZE_VIS_MULTI) : 0) |
+				(CrowdComponent->IsCrowdOptimizeTopologyActive() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
+				(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0) |
+				(CrowdComponent->IsCrowdSlowdownAtGoalEnabled() ? DT_CROWD_SLOWDOWN_AT_GOAL : 0);
+		}
 
 		AgentParams.avoidanceGroup = CrowdComponent->GetAvoidanceGroup();
 		AgentParams.groupsToAvoid = CrowdComponent->GetGroupsToAvoid();

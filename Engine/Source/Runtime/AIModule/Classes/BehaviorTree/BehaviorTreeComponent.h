@@ -5,6 +5,7 @@
 #include "AITypes.h"
 #include "BrainComponent.h"
 #include "BehaviorTreeTypes.h"
+#include "GameplayTagContainer.h"
 #include "BehaviorTreeComponent.generated.h"
 
 class UBTNode;
@@ -174,6 +175,12 @@ public:
 	virtual FString DescribeActiveTasks() const;
 	virtual FString DescribeActiveTrees() const;
 
+	/** @return the cooldown tag end time, 0.0f if CooldownTag is not found */
+	float GetTagCooldownEndTime(FGameplayTag CooldownTag) const;
+
+	/** add to the cooldown tag's duration */
+	void AddCooldownTagDuration(FGameplayTag CooldownTag, float CooldownDuration, bool bAddToExistingDuration);
+
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const override;
 #endif
@@ -201,6 +208,9 @@ protected:
 	/** message observers mapped by instance & execution index */
 	TMultiMap<FBTNodeIndex,FAIMessageObserverHandle> TaskMessageObservers;
 
+	/** behavior cooldowns mapped by tag to last time it was set */
+	TMap<FGameplayTag, float> CooldownTagsMap;
+
 #if USE_BEHAVIORTREE_DEBUGGER
 	/** search flow for debugger */
 	mutable TArray<TArray<FBehaviorTreeDebuggerInstance::FNodeFlowData> > CurrentSearchFlow;
@@ -210,6 +220,9 @@ protected:
 
 	/** debugger's recorded data */
 	mutable TArray<FBehaviorTreeExecutionStep> DebuggerSteps;
+
+	/** set when at least one debugger window is opened */
+	static int32 ActiveDebuggerCounter;
 #endif
 
 	/** index of last active instance on stack */
@@ -298,6 +311,9 @@ protected:
 
 	/** update runtime description of given task node in latest debugger's snapshot */
 	void UpdateDebuggerAfterExecution(const UBTTaskNode* TaskNode, uint16 InstanceIdx) const;
+
+	/** check if debugger is currently running and can gather data */
+	static bool IsDebuggerActive();
 
 	EBTNodeRelativePriority CalculateRelativePriority(const UBTNode* NodeA, const UBTNode* NodeB) const;
 

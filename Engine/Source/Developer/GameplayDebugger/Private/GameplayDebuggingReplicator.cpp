@@ -620,3 +620,73 @@ void AGameplayDebuggingReplicator::DrawDebugData(class UCanvas* Canvas, class AP
 
 #endif
 }
+
+void AGameplayDebuggingReplicator::DebugNextPawn(UClass* CompareClass, APawn* CurrentPawn)
+{
+	APawn* LastSeen = nullptr;
+	APawn* FirstSeen = nullptr;
+	// Search through the list looking for the next one of this type
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; It++)
+	{
+		APawn* IterPawn = *It;
+		if (IterPawn->IsA(CompareClass))
+		{
+			if (LastSeen == CurrentPawn)
+			{
+				SetActorToDebug(IterPawn);
+				return;
+			}
+			LastSeen = IterPawn;
+			if (FirstSeen == nullptr)
+			{
+				FirstSeen = IterPawn;
+			}
+		}
+	}
+	// See if we need to wrap around the list
+	if (FirstSeen != nullptr)
+	{
+		SetActorToDebug(FirstSeen);
+	}
+}
+
+void AGameplayDebuggingReplicator::DebugPrevPawn(UClass* CompareClass, APawn* CurrentPawn)
+{
+	APawn* LastSeen = nullptr;
+	APawn* PrevSeen = nullptr;
+	APawn* FirstSeen = nullptr;
+	// Search through the list looking for the prev one of this type
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; It++)
+	{
+		APawn* IterPawn = *It;
+		if (IterPawn->IsA(CompareClass))
+		{
+			if (LastSeen == CurrentPawn && FirstSeen != CurrentPawn)
+			{
+				SetActorToDebug(PrevSeen);
+				return;
+			}
+			PrevSeen = LastSeen;
+			LastSeen = IterPawn;
+			if (FirstSeen == nullptr)
+			{
+				FirstSeen = IterPawn;
+				if (CurrentPawn == nullptr)
+				{
+					SetActorToDebug(FirstSeen);
+					return;
+				}
+			}
+		}
+	}
+	// Wrap from the beginning to the end
+	if (FirstSeen == CurrentPawn)
+	{
+		SetActorToDebug(LastSeen);
+	}
+	// Handle getting the previous to the end
+	else if (LastSeen == CurrentPawn)
+	{
+		SetActorToDebug(PrevSeen);
+	}
+}

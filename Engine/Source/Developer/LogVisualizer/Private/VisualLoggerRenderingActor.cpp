@@ -200,7 +200,7 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 #endif
 
 	const float Length = 100;
-	const FVector DirectionNorm = FVector(0, 0, 1).GetSafeNormal();
+	const FVector DirectionNorm = FVector(0, 0, 1).SafeNormal();
 	FVector YAxis, ZAxis;
 	DirectionNorm.FindBestAxisVectors(YAxis, ZAxis);
 	Cones.Add(FDebugRenderSceneProxy::FCone(FScaleMatrix(FVector(Length)) * FMatrix(DirectionNorm, YAxis, ZAxis, Entry->Location), 5, 5, FColor::Red));
@@ -375,7 +375,7 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 			for (int32 Index = 0; Index + 2 < ElementToDraw->Points.Num(); Index += 3)
 			{
 				const FVector Orgin = ElementToDraw->Points[Index];
-				const FVector Direction = ElementToDraw->Points[Index + 1].GetSafeNormal();
+				const FVector Direction = ElementToDraw->Points[Index + 1].SafeNormal();
 				const FVector Angles = ElementToDraw->Points[Index + 2];
 				const float Length = Angles.X;
 

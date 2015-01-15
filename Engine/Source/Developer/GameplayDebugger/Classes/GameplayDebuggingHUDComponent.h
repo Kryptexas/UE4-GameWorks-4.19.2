@@ -21,10 +21,19 @@ struct GAMEPLAYDEBUGGER_API FDebugCategoryView
 	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::GameView1, GDS->GetCustomViewNames().GameView1.Len() ? GDS->GetCustomViewNames().GameView1 : TEXT("GameView1")));\
 }
 
-UCLASS(notplaceable)
+UCLASS(config = Engine, notplaceable)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingHUDComponent : public AActor
 {
 	GENERATED_UCLASS_BODY()
+
+	UPROPERTY(config)
+	float MenuStartX;
+	UPROPERTY(config)
+	float MenuStartY;
+	UPROPERTY(config)
+	float DebugInfoStartX;
+	UPROPERTY(config)
+	float DebugInfoStartY;
 
 	struct FPrintContext
 	{

@@ -56,6 +56,18 @@ public:
 	virtual const FString GetClientId() const override;
 
 	/**
+	* Get the name of the client the user is logged in on
+	* @return The client name
+	*/
+	virtual const FString GetClientName() const override;
+
+	/**
+	* Get the player's session id
+	* @return The session id the user is playing in
+	*/
+	virtual const FString GetSessionId() const override;
+
+	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */

@@ -104,12 +104,8 @@ void UBTCompositeNode::OnChildDeactivation(FBehaviorTreeSearchData& SearchData, 
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIndex];
 
-	// pass to decorators, unless it's from aborting, which will be handled separately
-	// (needs to remove all pending aux nodes from all branches, not only closest children)
-	if (NodeResult != EBTNodeResult::Aborted)
-	{
-		NotifyDecoratorsOnDeactivation(SearchData, ChildIndex, NodeResult);
-	}
+	// pass to decorators
+	NotifyDecoratorsOnDeactivation(SearchData, ChildIndex, NodeResult);
 
 	// pass to child composite
 	if (ChildInfo.ChildComposite)
@@ -186,22 +182,37 @@ void UBTCompositeNode::NotifyDecoratorsOnActivation(FBehaviorTreeSearchData& Sea
 void UBTCompositeNode::NotifyDecoratorsOnDeactivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIdx];
-	for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
+	if (NodeResult == EBTNodeResult::Aborted)
 	{
-		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[DecoratorIndex];
-		DecoratorOb->WrappedOnNodeProcessed(SearchData, NodeResult);
-		DecoratorOb->WrappedOnNodeDeactivation(SearchData, NodeResult);
-
-		// leaving child branch: 
-		if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::Self)
+		// simple notify when aborting execution:
+		// - search update will be collected separately (UBehaviorTreeComponent::UnregisterAuxNodesUpTo)
+		// - can't modify result in OnNodeProcessed
+		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 		{
-			// - observers with mode "Self" are now out of scope, remove them
-			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(DecoratorOb, SearchData.OwnerComp.GetActiveInstanceIdx(), EBTNodeUpdateMode::Remove));
+			const UBTDecorator* DecoratorOb = ChildInfo.Decorators[DecoratorIndex];
+			DecoratorOb->WrappedOnNodeDeactivation(SearchData, NodeResult);
 		}
-		else if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::LowerPriority)
+	}
+	else
+	{
+		// regular execution flow
+		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 		{
-			// - observers with mode "Lower Priority" will try to reactivate themselves ("Both" is not removed on node activation)
-			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(DecoratorOb, SearchData.OwnerComp.GetActiveInstanceIdx(), EBTNodeUpdateMode::AddForLowerPri));
+			const UBTDecorator* DecoratorOb = ChildInfo.Decorators[DecoratorIndex];
+			DecoratorOb->WrappedOnNodeProcessed(SearchData, NodeResult);
+			DecoratorOb->WrappedOnNodeDeactivation(SearchData, NodeResult);
+
+			// leaving child branch: 
+			if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::Self)
+			{
+				// - observers with mode "Self" are now out of scope, remove them
+				SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(DecoratorOb, SearchData.OwnerComp.GetActiveInstanceIdx(), EBTNodeUpdateMode::Remove));
+			}
+			else if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::LowerPriority)
+			{
+				// - observers with mode "Lower Priority" will try to reactivate themselves ("Both" is not removed on node activation)
+				SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(DecoratorOb, SearchData.OwnerComp.GetActiveInstanceIdx(), EBTNodeUpdateMode::AddForLowerPri));
+			}
 		}
 	}
 }

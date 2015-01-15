@@ -83,6 +83,48 @@ const FString FFriendItem::GetClientId() const
 	return Result;
 }
 
+const FString FFriendItem::GetClientName() const
+{
+	FString Result;
+	if (OnlineFriend.IsValid())
+	{
+		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
+		const FVariantData* ClientId = OnlinePresence.Status.Properties.Find(DefaultClientIdKey);
+		if (ClientId != nullptr &&
+			ClientId->GetType() == EOnlineKeyValuePairDataType::String)
+		{
+			ClientId->GetValue(Result);
+		}
+	}
+
+	// hardcoded for now, need a generic way to receive client names or map client ids to names
+	if (Result == TEXT("300d79839c914445948e3c1100f211db"))
+	{
+		Result = TEXT("Fortnite");
+	}
+	else if (Result == TEXT("1252412dc7704a9690f6ea4611bc81ee"))
+	{
+		Result = TEXT("Unreal Tournament");
+	}
+	return Result;
+}
+
+const FString FFriendItem::GetSessionId() const
+{
+	FString Result;
+	if (OnlineFriend.IsValid())
+	{
+		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
+		const FVariantData* SessionId = OnlinePresence.Status.Properties.Find(DefaultSessionIdKey);
+		if (SessionId != nullptr &&
+			SessionId->GetType() == EOnlineKeyValuePairDataType::String)
+		{
+			SessionId->GetValue(Result);
+		}
+	}
+	return Result;
+}
+
 const bool FFriendItem::IsOnline() const
 {
 	if(OnlineFriend.IsValid())

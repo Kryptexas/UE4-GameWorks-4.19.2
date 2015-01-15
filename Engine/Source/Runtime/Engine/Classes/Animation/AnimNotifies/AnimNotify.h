@@ -27,8 +27,11 @@ class ENGINE_API UAnimNotify : public UObject
 	/** Color of Notify in editor */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimNotify)
 	FColor NotifyColor;
-
 #endif // WITH_EDITORONLY_DATA
+
+#if WITH_EDITOR
+	virtual void OnAnimNotifyCreatedInEditor(FAnimNotifyEvent& ContainingAnimNotifyEvent) {};
+#endif
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation);
 

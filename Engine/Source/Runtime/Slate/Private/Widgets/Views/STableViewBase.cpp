@@ -436,10 +436,19 @@ FReply STableViewBase::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 		this->InertialScrollManager.ClearScrollVelocity();
 
 		const float AmountScrolledInItems = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount, EAllowOverscroll::No );
-		if (FMath::Abs(AmountScrolledInItems) > 0.0f)
+
+		switch ( ConsumeMouseWheel )
 		{
+		case EConsumeMouseWheel::Always:
 			return FReply::Handled();
+		case EConsumeMouseWheel::WhenScrollingPossible: //default behavior
+		default:
+			if ( FMath::Abs( AmountScrolledInItems ) > 0.0f )
+			{
+				return FReply::Handled();
+			}
 		}
+		
 	}
 	return FReply::Unhandled();
 }
@@ -596,7 +605,8 @@ STableViewBase::STableViewBase( ETableViewMode::Type InTableViewMode )
 	, bIsScrollingActiveTimerRegistered( false )
 	, Overscroll()
 	, AllowOverscroll(EAllowOverscroll::Yes)
-	, bItemsNeedRefresh( false )
+	, ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
+	, bItemsNeedRefresh( false )	
 {
 }
 

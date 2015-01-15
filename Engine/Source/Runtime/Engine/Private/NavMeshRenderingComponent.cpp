@@ -13,6 +13,8 @@
 
 #include "NavMeshRenderingHelpers.h"
 
+static bool GForceDisableNavmeshRendering = false; // FIXME: Temporary Hack! to disable navmesh rendering completely because of performance drops (SebaK for Cameron change)
+
 UNavMeshRenderingComponent::UNavMeshRenderingComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -20,13 +22,15 @@ UNavMeshRenderingComponent::UNavMeshRenderingComponent(const FObjectInitializer&
 	AlwaysLoadOnClient = false;
 	AlwaysLoadOnServer = false;
 	bSelectable = false;
+	GConfig->GetBool(TEXT("NavMeshRenderingComponent"), TEXT("bForceDisableNavmeshRendering"), GForceDisableNavmeshRendering, GEngineIni);
 }
 
 FPrimitiveSceneProxy* UNavMeshRenderingComponent::CreateSceneProxy()
 {
 #if WITH_RECAST && WITH_EDITOR
 	FPrimitiveSceneProxy* SceneProxy = NULL;
-	if (IsVisible())
+
+	if (!GForceDisableNavmeshRendering && IsVisible())
 	{
 		FNavMeshSceneProxyData ProxyData;
 		ProxyData.Reset();

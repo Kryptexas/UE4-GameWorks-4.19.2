@@ -24,6 +24,10 @@ FBehaviorTreeDebugger::FBehaviorTreeDebugger()
 
 	FEditorDelegates::BeginPIE.AddRaw(this, &FBehaviorTreeDebugger::OnBeginPIE);
 	FEditorDelegates::EndPIE.AddRaw(this, &FBehaviorTreeDebugger::OnEndPIE);
+
+#if USE_BEHAVIORTREE_DEBUGGER
+	UBehaviorTreeComponent::ActiveDebuggerCounter++;
+#endif
 }
 
 FBehaviorTreeDebugger::~FBehaviorTreeDebugger()
@@ -34,6 +38,10 @@ FBehaviorTreeDebugger::~FBehaviorTreeDebugger()
 	FBehaviorTreeDelegates::OnTreeStarted.RemoveAll(this);
 	FBehaviorTreeDelegates::OnDebugLocked.RemoveAll(this);
 	FBehaviorTreeDelegates::OnDebugSelected.RemoveAll(this);
+
+#if USE_BEHAVIORTREE_DEBUGGER
+	UBehaviorTreeComponent::ActiveDebuggerCounter--;
+#endif
 }
 
 void FBehaviorTreeDebugger::CacheRootNode()

@@ -433,7 +433,6 @@ FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget 
 		{
 			FNodeConstructionParams NewNodeParams;
 			NewNodeParams.VariableName = VariableName;
-			const UBlueprint* DropOnBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(&Graph);
 			NewNodeParams.Graph = &Graph;
 			NewNodeParams.GraphPosition = GraphPosition;
 			NewNodeParams.VariableSource= Outer;

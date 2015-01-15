@@ -66,7 +66,8 @@ public:
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
 		, _AllowOverscroll(EAllowOverscroll::Yes)
-	{ }
+		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
+		{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
 
@@ -96,14 +97,16 @@ public:
 		
 		SLATE_ARGUMENT( EAllowOverscroll, AllowOverscroll );
 
-		SLATE_END_ARGS()
+		SLATE_ARGUMENT( EConsumeMouseWheel, ConsumeMouseWheel );
 
-		/**
-		 * Construct this widget
-		 *
-		 * @param	InArgs	The declaration data for this widget
-		 */
-		void Construct( const typename SListView<ItemType>::FArguments& InArgs )
+	SLATE_END_ARGS()
+
+	/**
+		* Construct this widget
+		*
+		* @param	InArgs	The declaration data for this widget
+		*/
+	void Construct( const typename SListView<ItemType>::FArguments& InArgs )
 	{
 		this->OnGenerateRow = InArgs._OnGenerateRow;
 		this->OnItemScrolledIntoView = InArgs._OnItemScrolledIntoView;
@@ -118,6 +121,7 @@ public:
 		this->bClearSelectionOnClick = InArgs._ClearSelectionOnClick;
 
 		this->AllowOverscroll = InArgs._AllowOverscroll;
+		this->ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;

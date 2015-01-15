@@ -241,6 +241,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Returns true if we should import tags from UGameplayTagsSettings objects (configured by INI files) */
 	static bool ShouldImportTagsFromINI();
 
+	void RedirectTagsForContainer(FGameplayTagContainer& Container, TArray<FName>& DeprecatedTagNamesNotFoundInTagMap);
+
 private:
 
 	friend class FGameplayTagTest;

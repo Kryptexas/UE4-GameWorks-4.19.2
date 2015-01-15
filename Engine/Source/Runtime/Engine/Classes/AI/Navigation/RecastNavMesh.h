@@ -866,6 +866,9 @@ public:
 	/** @return true is specified segment is fully on navmesh (respecting the optional filter) */
 	bool IsSegmentOnNavmesh(const FVector& SegmentStart, const FVector& SegmentEnd, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const;
 
+	/** Check if poly is a custom link */
+	bool IsCustomLink(NavNodeRef PolyRef) const;
+
 	/** finds stringpulled path from given corridor */
 	bool FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks = NULL) const;
 

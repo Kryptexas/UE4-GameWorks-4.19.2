@@ -97,6 +97,7 @@ void FFriendsAndChatManager::Login()
 
 			FriendsList.Empty();
 			PendingFriendsList.Empty();
+			OldUserPresenceMap.Empty();
 
 			if ( UpdateFriendsTickerDelegate.IsBound() == false )
 			{
@@ -569,7 +570,7 @@ int32 FFriendsAndChatManager::GetFilteredFriendsList( TArray< TSharedPtr< IFrien
 	return OutFriendsList.Num();
 }
 
-TArray< TSharedPtr< IFriendItem > >& FFriendsAndChatManager::GetrecentPlayerList()
+TArray< TSharedPtr< IFriendItem > >& FFriendsAndChatManager::GetRecentPlayerList()
 {
 	return RecentPlayersList;
 }
@@ -630,11 +631,14 @@ bool FFriendsAndChatManager::IsInJoinableGameSession() const
 		OnlineSubMcp->GetPresenceInterface().IsValid())
 	{
 		TSharedPtr<FUniqueNetId> CurrentUserId = OnlineSubMcp->GetIdentityInterface()->GetUniquePlayerId(0);
-		TSharedPtr<FOnlineUserPresence> Presence;
-		OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*CurrentUserId, Presence);
-		if (Presence.IsValid())
+		if (CurrentUserId.IsValid())
 		{
-			bIsGameJoinable = Presence->bIsJoinable;
+			TSharedPtr<FOnlineUserPresence> Presence;
+			OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*CurrentUserId, Presence);
+			if (Presence.IsValid())
+			{
+				bIsGameJoinable = Presence->bIsJoinable;
+			}
 		}
 	}
 
@@ -1227,7 +1231,7 @@ void FFriendsAndChatManager::OnQueryUserIdMappingComplete(bool bWasSuccessful, c
 			{
 				FOnSendInviteComplete Delegate = FOnSendInviteComplete::CreateSP(this, &FFriendsAndChatManager::OnSendInviteComplete);
 				FriendsInterface->SendInvite(0, PendingOutgoingFriendRequests[Index].Get(), EFriendsLists::ToString( EFriendsLists::Default ), Delegate);
-				AddFriendsToast(LOCTEXT("FriendRequestSentToast", "Request Sent"));
+				AddFriendsToast(LOCTEXT("FFriendsAndChatManager_FriendRequestSent", "Request Sent"));
 			}
 		}
 		else
@@ -1251,9 +1255,116 @@ void FFriendsAndChatManager::OnSendInviteComplete( int32 LocalPlayer, bool bWasS
 	}
 }
 
-void FFriendsAndChatManager::OnPresenceReceived( const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence)
+void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& NewPresence)
 {
 	RefreshList();
+
+	// Compare to previous presence for this friend, display a toast if a friend has came online or joined a game
+	TSharedPtr<FUniqueNetId> SelfId = OnlineIdentity->GetUniquePlayerId(0);
+	bool bIsSelf = (SelfId.IsValid() && UserId == *SelfId);
+	TSharedPtr<IFriendItem> PresenceFriend = FindUser(UserId);
+	bool bFoundFriend = PresenceFriend.IsValid();
+	bool bFriendNotificationsBound = OnFriendsActionNotification().IsBound();
+	// Don't show notifications if we're building the friends list presences for the first time.
+	// Guess at this using the size of the saved presence list. OK to show the last 1 or 2, but avoid spamming dozens of notifications at startup
+	int32 OnlineFriendCount = 0;
+	for (auto Friend : FriendsList)
+	{
+		if (Friend->IsOnline())
+		{
+			OnlineFriendCount++;
+		}
+	}
+	// When a new friend comes online, we should see eg. OnlineFriedCount = 3, OldUserPresence = 2.  Only assume we're starting up if there's a difference of 2 or more
+	bool bJustStartedUp = (OnlineFriendCount - 1 > OldUserPresenceMap.Num());
+
+	// Skip notifications for various reasons
+	if (!bIsSelf)
+	{
+		UE_LOG(LogOnline, Verbose, TEXT("Checking friend presence change for notification %s"), *UserId.ToString());
+		if (!bJustStartedUp && bFoundFriend && bFriendNotificationsBound)
+		{
+			const FString& FriendName = PresenceFriend->GetName();
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("FriendName"), FText::FromString(FriendName));
+
+			const FOnlineUserPresence* OldPresencePtr = OldUserPresenceMap.Find(FUniqueNetIdString(UserId.ToString()));
+			if (OldPresencePtr == nullptr)
+			{
+				if ( NewPresence->bIsOnline == true)
+				{
+					// Had no previous presence, if the new one is online then they just logged on
+					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_Online", "{FriendName} Is Now Online"), Args);
+					TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(PresenceChangeText.ToString()));
+					NotificationMessage->SetMessageType(EFriendsRequestType::PresenceChange);
+					OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
+					UE_LOG(LogOnline, Verbose, TEXT("Notifying friend came online %s %s"), *FriendName, *UserId.ToString());
+				}
+				else
+				{
+					// This probably shouldn't be possible but can demote from warning if this turns out to be a valid use case
+					UE_LOG(LogOnline, Warning, TEXT("Had no cached presence for user, then received an Offline presence. ??? %s %s"), *FriendName, *UserId.ToString());
+				}
+			}
+			else
+			{
+				// Have a previous presence, see what changed
+				const FOnlineUserPresence& OldPresence = *OldPresencePtr;
+				// Get the session id from the data blob
+				FString NewSessionId = PresenceFriend->GetSessionId();
+				FString OldSessionId = TEXT("");
+				const FVariantData* SessionId = OldPresence.Status.Properties.Find(DefaultSessionIdKey);
+				if (SessionId != nullptr &&
+					SessionId->GetType() == EOnlineKeyValuePairDataType::String)
+				{
+					SessionId->GetValue(OldSessionId);
+				}
+
+				if (OldPresence.bIsPlaying == false && NewPresence->bIsPlaying == true)
+				{
+					Args.Add(TEXT("GameName"), FText::FromString(PresenceFriend->GetClientName()));
+					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_Online", "{FriendName} Is Now Playing {GameName}"), Args);
+					TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(PresenceChangeText.ToString()));
+					NotificationMessage->SetMessageType(EFriendsRequestType::PresenceChange);
+					OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
+					UE_LOG(LogOnline, Verbose, TEXT("Notifying friend isPlaying %s %s"), *FriendName, *UserId.ToString());
+				}
+				else if (OldPresence.bIsPlayingThisGame == false && NewPresence->bIsPlayingThisGame == true)
+				{
+					// could limit notifications to same game only by removing isPlaying check above
+					Args.Add(TEXT("GameName"), FText::FromString(PresenceFriend->GetClientName()));
+					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_Online", "{FriendName} Is Now Playing {GameName}"), Args);
+					TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(PresenceChangeText.ToString()));
+					NotificationMessage->SetMessageType(EFriendsRequestType::PresenceChange);
+					OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
+					UE_LOG(LogOnline, Verbose, TEXT("Notifying friend isPlayingThisGame %s %s"), *FriendName, *UserId.ToString());
+				}
+				else if ( (OldPresence.bIsJoinable == false && NewPresence->bIsJoinable == true)
+					|| (OldSessionId != NewSessionId && NewSessionId != TEXT(""))
+					|| (OldPresence.SessionId != NewPresence->SessionId && NewPresence->SessionId.IsValid()) )
+				{
+					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_Online", "{FriendName} Is Now In A Game"), Args);
+					TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(PresenceChangeText.ToString()));
+					NotificationMessage->SetMessageType(EFriendsRequestType::PresenceChange);
+					OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
+					UE_LOG(LogOnline, Verbose, TEXT("Notifying friend joinable or sessionId change %s %s"), *FriendName, *UserId.ToString());
+				}
+			}
+		}
+
+		// Make a copy of new presence to backup
+		if (NewPresence->bIsOnline)
+		{
+			OldUserPresenceMap.Add(FUniqueNetIdString(UserId.ToString()), NewPresence.Get());
+			UE_LOG(LogOnline, Verbose, TEXT("Added friend presence to oldpresence map %s"), *UserId.ToString());
+		}
+		else
+		{
+			// Or remove the presence if they went offline
+			OldUserPresenceMap.Remove(FUniqueNetIdString(UserId.ToString()));
+			UE_LOG(LogOnline, Verbose, TEXT("Removed offline friend presence from oldpresence map %s"), *UserId.ToString());
+		}
+	}
 }
 
 void FFriendsAndChatManager::OnPresenceUpdated(const FUniqueNetId& UserId, const bool bWasSuccessful)

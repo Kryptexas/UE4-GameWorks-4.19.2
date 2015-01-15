@@ -30,6 +30,8 @@ public:
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit( true )
 		, _AlwaysShowScrollbars( false )
+		, _HScrollBar()
+		, _VScrollBar()
 		, _WrapTextAt(0.0f)
 		, _AutoWrapText(false)
 		, _SelectAllTextOnCommit( false )

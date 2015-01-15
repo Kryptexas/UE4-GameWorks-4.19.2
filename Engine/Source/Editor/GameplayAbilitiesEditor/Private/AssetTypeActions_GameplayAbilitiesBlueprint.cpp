@@ -22,6 +22,11 @@ FText FAssetTypeActions_GameplayAbilitiesBlueprint::GetName() const
 	return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_GameplayAbilitiesBlueprint", "Gameplay Ability Blueprint"); 
 }
 
+FColor FAssetTypeActions_GameplayAbilitiesBlueprint::GetTypeColor() const
+{
+	return FColor(0, 96, 128);
+}
+
 void FAssetTypeActions_GameplayAbilitiesBlueprint::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;

@@ -749,15 +749,6 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		}
 	}
 
-	// If we're instance per actor and we're already active, don't let us activate again as this breaks the graph
-	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
-	{
-		if (Spec->IsActive())
-		{
-			return false;
-		}
-	}
-
 	// If it's instance once the instanced ability will be set, otherwise it will be null
 	UGameplayAbility* InstancedAbility = Spec->GetPrimaryInstance();
 
@@ -774,6 +765,22 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	else if (!Ability->CanActivateAbility(Handle, ActorInfo))
 	{
 		return false;
+	}
+
+	// If we're instance per actor and we're already active, don't let us activate again as this breaks the graph
+	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
+	{
+		if (Spec->IsActive())
+		{
+			if (Ability->bRetriggerInstancedAbility)
+			{
+				Ability->EndAbility(Handle, ActorInfo, Spec->ActivationInfo, true);
+			}
+			else
+			{
+				return false;
+			}
+		}
 	}
 
 	// Make sure we have a primary

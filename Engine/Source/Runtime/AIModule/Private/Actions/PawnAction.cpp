@@ -274,8 +274,7 @@ bool UPawnAction::Pause(const UPawnAction* PausedBy)
 	
 	if (AbortState == EPawnActionAbortState::LatentAbortInProgress || AbortState == EPawnActionAbortState::AbortDone)
 	{
-		UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Not pausing due to being in unpausable aborting state")
-			, *GetName(), *ChildAction->GetName());
+		UE_VLOG(GetPawn(), LogPawnAction, Warning, TEXT("%s> Not pausing due to being in unpausable aborting state"), *GetName());
 		return false;
 	}
 

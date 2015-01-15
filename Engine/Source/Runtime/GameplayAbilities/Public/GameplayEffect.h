@@ -1083,7 +1083,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 		: StartGameStateTime(0)
 		, CachedStartGameStateTime(0)
 		, StartWorldTime(0.f)
-		, IsInhibited(true)
+		, bIsInhibited(true)
 		, IsPendingRemove(false)
 	{
 	}
@@ -1095,7 +1095,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 		, StartGameStateTime(InStartGameStateTime)
 		, CachedStartGameStateTime(InStartGameStateTime)
 		, StartWorldTime(CurrentWorldTime)
-		, IsInhibited(true)
+		, bIsInhibited(true)
 		, IsPendingRemove(false)
 	{
 	}
@@ -1121,7 +1121,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	// Not sure if this should replicate or not. If replicated, we may have trouble where IsInhibited doesn't appear to change when we do tag checks (because it was previously inhibited, but replication made it inhibited).
 	UPROPERTY()
-	bool IsInhibited;
+	bool bIsInhibited;
 
 	bool IsPendingRemove;
 
@@ -1269,6 +1269,19 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	FActiveGameplayEffectsContainer();
 
 	UAbilitySystemComponent* Owner;
+
+#if ENABLE_VISUAL_LOG
+	struct DebugExecutedGameplayEffectData
+	{
+		FString GameplayEffectName;
+		FString ActivationState;
+		FGameplayAttribute Attribute;
+		float Magnitude;
+	};
+
+	// Stores a record of gameplay effects that have executed and their results. Useful for debugging.
+	TArray<DebugExecutedGameplayEffectData> DebugExecutedGameplayEffects;
+#endif // ENABLE_VISUAL_LOG
 
 	void RegisterWithOwner(UAbilitySystemComponent* Owner);	
 	

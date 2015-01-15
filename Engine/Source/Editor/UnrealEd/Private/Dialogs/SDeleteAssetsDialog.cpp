@@ -836,8 +836,10 @@ void SDeleteAssetsDialog::ExecuteDeleteReferencers()
 	for ( const FAssetData& SelectedAsset : SelectedAssets )
 	{
 		UObject* ObjectToDelete = SelectedAsset.GetAsset();
-		
-		DeleteModel->AddObjectToDelete( ObjectToDelete );
+		if (ObjectToDelete)
+		{
+			DeleteModel->AddObjectToDelete(ObjectToDelete);
+		}
 		if ( !bIsActiveTimerRegistered )
 		{
 			bIsActiveTimerRegistered = true;

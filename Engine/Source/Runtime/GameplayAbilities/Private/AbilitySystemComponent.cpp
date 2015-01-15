@@ -180,6 +180,11 @@ void UAbilitySystemComponent::ApplyModToAttribute(const FGameplayAttribute &Attr
 	}
 }
 
+void UAbilitySystemComponent::ApplyModToAttributeUnsafe(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude)
+{
+	ActiveGameplayEffects.ApplyModToAttribute(Attribute, ModifierOp, ModifierMagnitude);
+}
+
 FGameplayEffectSpecHandle UAbilitySystemComponent::MakeOutgoingSpec(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level, FGameplayEffectContextHandle Context) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetOutgoingSpec);
@@ -455,7 +460,20 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTa
 		PredictionKey = FPredictionKey();
 	}
 
-	return Target->ApplyGameplayEffectSpecToSelf(Spec, PredictionKey);
+	FActiveGameplayEffectHandle ReturnHandle;
+
+	if (!UAbilitySystemGlobals::Get().PredictTargetGameplayEffects)
+	{
+		// If we don't want to predict target effects, clear prediction key
+		PredictionKey = FPredictionKey();
+	}
+
+	if (Target)
+	{
+		ReturnHandle = Target->ApplyGameplayEffectSpecToSelf(Spec, PredictionKey);
+	}
+
+	return ReturnHandle;
 }
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec &Spec, FPredictionKey PredictionKey)
@@ -1169,7 +1187,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				}
 			}
 
-			Canvas->SetDrawColor(ActiveGE.IsInhibited ? FColor(128, 128, 128): FColor::White );
+			Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128): FColor::White );
 
 			YPos += Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s"), *ASC_CleanupName(GetNameSafe(ActiveGE.Spec.Def)), *DurationStr, *StackString ), 4.f, YPos);
 
@@ -1201,7 +1219,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 
 				YPos += Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Mod: %s. %s. %.2f"), *ModInfo.Attribute.GetName(), *EGameplayModOpToString(ModInfo.ModifierOp), ModSpec.GetEvaluatedMagnitude() ), 7.f, YPos);
 
-				Canvas->SetDrawColor(ActiveGE.IsInhibited ? FColor(128, 128, 128): FColor::White );
+				Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128): FColor::White );
 			}
 
 			YPos += YL;

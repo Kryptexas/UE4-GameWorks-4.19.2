@@ -31,6 +31,12 @@ struct FAnalyticsEventAttribute
 	{
 	}
 
+	FAnalyticsEventAttribute(const FString& InName,FGuid InValue)
+		:AttrName(InName)
+		,AttrValue(InValue.ToString())
+	{
+	}
+
 	// Allow any type that we have a valid format specifier for (disallowing implicit conversions).
 	template <typename T>
 	FAnalyticsEventAttribute(const FString& InName, T InValue)

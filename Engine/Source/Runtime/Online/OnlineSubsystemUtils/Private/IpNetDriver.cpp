@@ -133,6 +133,7 @@ bool UIpNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectURL
 {
 	if( !InitBase( true, InNotify, ConnectURL, false, Error ) )
 	{
+		UE_LOG(LogNet, Warning, TEXT("Failed to init net driver ConnectURL: %s: %s"), *ConnectURL.ToString(), *Error);
 		return false;
 	}
 
@@ -151,6 +152,7 @@ bool UIpNetDriver::InitListen( FNetworkNotify* InNotify, FURL& LocalURL, bool bR
 {
 	if( !InitBase( false, InNotify, LocalURL, bReuseAddressAndPort, Error ) )
 	{
+		UE_LOG(LogNet, Warning, TEXT("Failed to init net driver ListenURL: %s: %s"), *LocalURL.ToString(), *Error);
 		return false;
 	}
 

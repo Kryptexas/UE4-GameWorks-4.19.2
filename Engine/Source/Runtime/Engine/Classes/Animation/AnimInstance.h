@@ -21,8 +21,14 @@ class UWorld;
 class FTransform;
 class FDebugDisplayInfo;
 
+DECLARE_DELEGATE_OneParam(FOnMontageStarted, UAnimMontage*)
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
 DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, UAnimMontage*, bool /*bInterrupted*/)
+
+/**
+* Delegate for when Montage is started
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageStartedMCDelegate, UAnimMontage*, Montage);
 
 /**
 * Delegate for when Montage is completed, whether interrupted or finished
@@ -414,6 +420,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnMontageBlendingOutStartedMCDelegate OnMontageBlendingOut;
 	
+	/** Called when a montage has started */
+	UPROPERTY(BlueprintAssignable)
+	FOnMontageStartedMCDelegate OnMontageStarted;
+
 	/** Called when a montage has ended, whether interrupted or finished*/
 	UPROPERTY(BlueprintAssignable)
 	FOnMontageEndedMCDelegate OnMontageEnded;

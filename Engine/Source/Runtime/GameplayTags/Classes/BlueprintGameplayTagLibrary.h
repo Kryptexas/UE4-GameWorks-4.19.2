@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameplayTagContainer.h"
+#include "GameplayTagAssetInterface.h"
 #include "BlueprintGameplayTagLibrary.generated.h"
 
 // Forward declarations
@@ -83,4 +84,16 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, Category = "GameplayTags")
 	static FGameplayTag MakeLiteralGameplayTag(FGameplayTag Value);
+
+	/**
+	 * Check Gameplay tags in the interface has all of the specified tags in the tag container (expands to include parents of asset tags)
+	 *
+	 * @param TagContainerInterface		An Interface to a tag container
+	 * @param OtherContainer			A Tag Container
+	 *
+	 * @return True if the tagcontainer in the interface has all the tags inside the container.
+	 */
+	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "TRUE"))
+	static bool HasAllMatchingGameplayTags(TScriptInterface<IGameplayTagAssetInterface> TagContainerInterface, const FGameplayTagContainer& OtherContainer, bool bCountEmptyAsMatch);
+
 };

@@ -39,9 +39,21 @@ public:
 
 	/**
 	 * Get the client the user is logged in on
-	 * @return The client id of the user
+	 * @return The client id
 	 */
 	virtual const FString GetClientId() const = 0;
+
+	/**
+	* Get the client name the user is logged in on
+	* @return The client name
+	*/
+	virtual const FString GetClientName() const = 0;
+
+	/**
+	* Get the player's session id
+	* @return The session id the user is playing in
+	*/
+	virtual const FString GetSessionId() const = 0;
 
 	/**
 	 * Get if the user is online.

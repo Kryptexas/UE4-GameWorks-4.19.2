@@ -35,6 +35,16 @@ const FString FFriendRecentPlayerItem::GetClientId() const
 	return TEXT("");
 }
 
+const FString FFriendRecentPlayerItem::GetClientName() const
+{
+	return TEXT("");
+}
+
+const FString FFriendRecentPlayerItem::GetSessionId() const
+{
+	return TEXT("");
+}
+
 const bool FFriendRecentPlayerItem::IsOnline() const
 {
 	return false;

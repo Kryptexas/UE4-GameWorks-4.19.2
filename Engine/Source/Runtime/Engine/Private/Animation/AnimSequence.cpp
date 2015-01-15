@@ -424,6 +424,20 @@ void UAnimSequence::PostLoad()
 		INC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSize(EResourceSizeMode::Exclusive) );
 	}
 
+	{
+		LOG_SCOPE_VERBOSITY_OVERRIDE(LogAnimation, ELogVerbosity::Warning);
+ 		// convert animnotifies
+ 		for (int32 I=0; I<Notifies.Num(); ++I)
+ 		{
+ 			if (Notifies[I].Notify!=NULL)
+ 			{
+				FString Label = Notifies[I].Notify->GetClass()->GetName();
+				Label = Label.Replace(TEXT("AnimNotify_"), TEXT(""), ESearchCase::CaseSensitive);
+				Notifies[I].NotifyName = FName(*Label);
+ 			}
+ 		}
+	}
+
 	for(FAnimNotifyEvent& Notify : Notifies)
 	{
 		if(Notify.DisplayTime_DEPRECATED != 0.0f)

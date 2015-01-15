@@ -942,14 +942,14 @@ void FGameplayEffectAttributeCaptureSpecContainer::UnregisterLinkedAggregatorCal
 /** This is the core function that turns the ActiveGE 'on' or 'off */
 void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContainer& OwnerTags, FActiveGameplayEffectsContainer& OwningContainer)
 {
-	bool ShouldBeInhibited = !Spec.Def->OngoingTagRequirements.RequirementsMet(OwnerTags);
+	bool bShouldBeInhibited = !Spec.Def->OngoingTagRequirements.RequirementsMet(OwnerTags);
 
-	if (IsInhibited != ShouldBeInhibited)
+	if (bIsInhibited != bShouldBeInhibited)
 	{
 		// All OnDirty callbacks must be inhibited until we update this entire GameplayEffect.
 		FScopedAggregatorOnDirtyBatch	AggregatorOnDirtyBatcher;
 
-		if (ShouldBeInhibited)
+		if (bShouldBeInhibited)
 		{
 			// Remove our ActiveGameplayEffects modifiers with our Attribute Aggregators
 			OwningContainer.RemoveActiveGameplayEffectGrantedTagsAndModifiers(*this);
@@ -959,7 +959,7 @@ void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContai
 			OwningContainer.AddActiveGameplayEffectGrantedTagsAndModifiers(*this);
 		}
 
-		IsInhibited = ShouldBeInhibited;
+		bIsInhibited = bShouldBeInhibited;
 	}
 }
 
@@ -1300,7 +1300,7 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependencyChange(FActiveGamepla
 			FGameplayEffectSpec& Spec = ActiveEffect->Spec;
 
 			// We must update attribute aggregators only if we are actually 'on' right now, and if we are non periodic (periodic effects do their thing on execute callbacks)
-			bool MustUpdateAttributeAggregators = (ActiveEffect->IsInhibited == false && (Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD));
+			bool MustUpdateAttributeAggregators = (ActiveEffect->bIsInhibited == false && (Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD));
 
 			// As we update our modifier magnitudes, we will update our owner's attribute aggregators. When we do this, we have to clear them first of all of our (Handle's) previous mods.
 			// Since we could potentially have two mods to the same attribute, one that gets updated, and one that doesnt - we need to do this in two passes.
@@ -1604,6 +1604,7 @@ bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Sp
 		 */
 		if (AttributeSet->PreGameplayEffectExecute(ExecuteData))
 		{
+			float OldValueOfProperty = Owner->GetNumericAttribute(ModEvalData.Attribute);
 			ApplyModToAttribute(ModEvalData.Attribute, ModEvalData.ModifierOp, ModEvalData.Magnitude, &ExecuteData);
 
 			FGameplayEffectModifiedAttribute* ModifiedAttribute = Spec.GetModifiedAttribute(ModEvalData.Attribute);
@@ -1616,6 +1617,15 @@ bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Sp
 
 			/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc */
 			AttributeSet->PostGameplayEffectExecute(ExecuteData);
+
+#if ENABLE_VISUAL_LOG
+			DebugExecutedGameplayEffectData DebugData;
+			DebugData.GameplayEffectName = Spec.Def->GetName();
+			DebugData.ActivationState = "INSTANT";
+			DebugData.Attribute = ModEvalData.Attribute;
+			DebugData.Magnitude = Owner->GetNumericAttribute(ModEvalData.Attribute) - OldValueOfProperty;
+			DebugExecutedGameplayEffects.Add(DebugData);
+#endif // ENABLE_VISUAL_LOG
 
 			bExecuted = true;
 		}
@@ -1856,7 +1866,7 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 	FGameplayTagContainer OwnerTags;
 	Owner->GetOwnedGameplayTags(OwnerTags);
 	
-	Effect.IsInhibited = true; // Effect has to start inhibited, if it should be uninhibited, CheckOnGoingTagRequirements will handle that state change
+	Effect.bIsInhibited = true; // Effect has to start inhibited, if it should be uninhibited, CheckOnGoingTagRequirements will handle that state change
 	Effect.CheckOngoingTagRequirements(OwnerTags, *this);
 }
 

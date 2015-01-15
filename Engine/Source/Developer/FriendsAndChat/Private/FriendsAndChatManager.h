@@ -213,7 +213,7 @@ public:
 	 * Get the recent players list.
 	 * @return the list.
 	 */
-	TArray< TSharedPtr< IFriendItem > >& GetrecentPlayerList();
+	TArray< TSharedPtr< IFriendItem > >& GetRecentPlayerList();
 
 	/**
 	 * Get outgoing request list.
@@ -502,7 +502,7 @@ private:
 	 * @param UserId		The user ID.
 	 * @param Presence	The user presence.
 	 */
-	void OnPresenceReceived( const class FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence);
+	void OnPresenceReceived(const class FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& NewPresence);
 
 	/**
 	 * Delegate used when a users presence is updated.
@@ -629,6 +629,8 @@ private:
 	TArray< TSharedPtr< IFriendItem > > RecentPlayersList;
 	// Holds the filtered friends list used in the UI
 	TArray< TSharedPtr< IFriendItem > > FilteredFriendsList;
+	// Holds the list of old presence data for comparison to new presence updates
+	TMap< FUniqueNetIdString, FOnlineUserPresence > OldUserPresenceMap;
 	// Holds the outgoing friend request list used in the UI
 	TArray< TSharedPtr< IFriendItem > > FilteredOutgoingList;
 	// Holds the unprocessed friends list generated from a friends request update

@@ -9,6 +9,10 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 
+#if USE_BEHAVIORTREE_DEBUGGER
+int32 UBehaviorTreeComponent::ActiveDebuggerCounter = 0;
+#endif
+
 //----------------------------------------------------------------------//
 // UBehaviorTreeComponent
 //----------------------------------------------------------------------//
@@ -1759,6 +1763,31 @@ FString UBehaviorTreeComponent::DescribeActiveTrees() const
 	return Assets.Len() ? Assets.LeftChop(2) : TEXT("None");
 }
 
+float UBehaviorTreeComponent::GetTagCooldownEndTime(FGameplayTag CooldownTag) const
+{
+	const float CooldownEndTime = CooldownTagsMap.FindRef(CooldownTag);
+	return CooldownEndTime;
+}
+
+void UBehaviorTreeComponent::AddCooldownTagDuration(FGameplayTag CooldownTag, float CooldownDuration, bool bAddToExistingDuration)
+{
+	if (CooldownTag.IsValid())
+	{
+		float* CurrentEndTime = CooldownTagsMap.Find(CooldownTag);
+
+		// If we are supposed to add to an existing duration, do that, otherwise we set a new value.
+		if (bAddToExistingDuration && (CurrentEndTime != nullptr))
+		{
+			*CurrentEndTime += CooldownDuration;
+		}
+		else
+		{
+			CooldownTagsMap.Add(CooldownTag, (GetWorld()->GetTimeSeconds() + CooldownDuration));
+		}
+	}
+}
+
+
 #if ENABLE_VISUAL_LOG
 void UBehaviorTreeComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
@@ -1826,6 +1855,11 @@ void UBehaviorTreeComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) con
 void UBehaviorTreeComponent::StoreDebuggerExecutionStep(EBTExecutionSnap::Type SnapType)
 {
 #if USE_BEHAVIORTREE_DEBUGGER
+	if (!IsDebuggerActive())
+	{
+		return;
+	}
+
 	FBehaviorTreeExecutionStep CurrentStep;
 	CurrentStep.StepIndex = DebuggerSteps.Num() ? DebuggerSteps.Last().StepIndex + 1 : 0;
 	CurrentStep.TimeStamp = GetWorld()->GetTimeSeconds();
@@ -1921,6 +1955,11 @@ void UBehaviorTreeComponent::StoreDebuggerInstance(FBehaviorTreeDebuggerInstance
 void UBehaviorTreeComponent::StoreDebuggerRemovedInstance(uint16 InstanceIdx) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
+	if (!IsDebuggerActive())
+	{
+		return;
+	}
+
 	FBehaviorTreeDebuggerInstance StoreInfo;
 	StoreDebuggerInstance(StoreInfo, InstanceIdx, EBTExecutionSnap::OutOfNodes);
 
@@ -1931,6 +1970,11 @@ void UBehaviorTreeComponent::StoreDebuggerRemovedInstance(uint16 InstanceIdx) co
 void UBehaviorTreeComponent::StoreDebuggerSearchStep(const UBTNode* Node, uint16 InstanceIdx, EBTNodeResult::Type NodeResult) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
+	if (!IsDebuggerActive())
+	{
+		return;
+	}
+
 	if (Node && NodeResult != EBTNodeResult::InProgress && NodeResult != EBTNodeResult::Aborted)
 	{
 		FBehaviorTreeDebuggerInstance::FNodeFlowData FlowInfo;
@@ -1953,6 +1997,11 @@ void UBehaviorTreeComponent::StoreDebuggerSearchStep(const UBTNode* Node, uint16
 void UBehaviorTreeComponent::StoreDebuggerSearchStep(const UBTNode* Node, uint16 InstanceIdx, bool bPassed) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
+	if (!IsDebuggerActive())
+	{
+		return;
+	}
+
 	if (Node && !bPassed)
 	{
 		FBehaviorTreeDebuggerInstance::FNodeFlowData FlowInfo;
@@ -1972,6 +2021,11 @@ void UBehaviorTreeComponent::StoreDebuggerSearchStep(const UBTNode* Node, uint16
 void UBehaviorTreeComponent::StoreDebuggerRestart(const UBTNode* Node, uint16 InstanceIdx, bool bAllowed)
 {
 #if USE_BEHAVIORTREE_DEBUGGER
+	if (!IsDebuggerActive())
+	{
+		return;
+	}
+
 	if (Node)
 	{
 		FBehaviorTreeDebuggerInstance::FNodeFlowData FlowInfo;
@@ -2027,6 +2081,11 @@ void UBehaviorTreeComponent::StoreDebuggerRuntimeValues(TArray<FString>& Runtime
 void UBehaviorTreeComponent::UpdateDebuggerAfterExecution(const UBTTaskNode* TaskNode, uint16 InstanceIdx) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
+	if (!IsDebuggerActive())
+	{
+		return;
+	}
+
 	FBehaviorTreeExecutionStep& CurrentStep = DebuggerSteps.Last();
 
 	// store runtime values
@@ -2063,6 +2122,11 @@ void UBehaviorTreeComponent::UpdateDebuggerAfterExecution(const UBTTaskNode* Tas
 void UBehaviorTreeComponent::StoreDebuggerBlackboard(TMap<FName, FString>& BlackboardValueDesc) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
+	if (!IsDebuggerActive())
+	{
+		return;
+	}
+
 	if (BlackboardComp && BlackboardComp->HasValidAsset())
 	{
 		const int32 NumKeys = BlackboardComp->GetNumKeys();
@@ -2079,5 +2143,28 @@ void UBehaviorTreeComponent::StoreDebuggerBlackboard(TMap<FName, FString>& Black
 			BlackboardValueDesc.Add(BlackboardComp->GetKeyName(KeyIndex), Value);
 		}
 	}
+#endif
+}
+
+bool UBehaviorTreeComponent::IsDebuggerActive()
+{
+#if USE_BEHAVIORTREE_DEBUGGER
+	if (ActiveDebuggerCounter <= 0)
+	{
+		static bool bAlwaysGatherData = false;
+		static uint64 PrevFrameCounter = 0;
+
+		if (GFrameCounter != PrevFrameCounter)
+		{
+			GConfig->GetBool(TEXT("/Script/UnrealEd.EditorUserSettings"), TEXT("bAlwaysGatherBehaviorTreeDebuggerData"), bAlwaysGatherData, GEditorUserSettingsIni);
+			PrevFrameCounter = GFrameCounter;
+		}
+
+		return bAlwaysGatherData;
+	}
+
+	return true;
+#else
+	return false;
 #endif
 }

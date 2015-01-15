@@ -70,6 +70,11 @@ bool FSkeletalMeshMerge::DoMerge(TArray<FRefPoseOverride>* RefPoseOverrides /* =
 
 void FSkeletalMeshMerge::MergeSkeleton(const TArray<FRefPoseOverride>* RefPoseOverrides /* = nullptr */)
 {
+	// Release the rendering resources.
+
+	MergeMesh->ReleaseResources();
+	MergeMesh->ReleaseResourcesFence.Wait();
+
 	// Build the reference skeleton & sockets.
 
 	BuildReferenceSkeleton(SrcMeshList, NewRefSkeleton);
@@ -771,9 +776,6 @@ bool FSkeletalMeshMerge::OverrideReferenceBonePose(int32 SourceBoneIndex, const 
 void FSkeletalMeshMerge::ReleaseResources(int32 Slack)
 {
 	FSkeletalMeshResource* Resource = MergeMesh->GetImportedResource();
-
-	MergeMesh->ReleaseResources();
-	MergeMesh->ReleaseResourcesFence.Wait();
 
 	Resource->LODModels.Empty(Slack);
 	MergeMesh->LODInfo.Empty(Slack);

@@ -333,8 +333,8 @@ void AGameSession::UpdateSessionJoinability(FName InSessionName, bool bPublicSea
 			FOnlineSessionSettings* GameSettings = SessionInt->GetSessionSettings(InSessionName);
 			if (GameSettings != NULL)
 			{
+				GameSettings->bShouldAdvertise = bPublicSearchable;
 				GameSettings->bAllowInvites = bAllowInvites;
-				GameSettings->bAllowJoinInProgress = bPublicSearchable;
 				GameSettings->bAllowJoinViaPresence = bJoinViaPresence && !bJoinViaPresenceFriendsOnly;
 				GameSettings->bAllowJoinViaPresenceFriendsOnly = bJoinViaPresenceFriendsOnly;
 				SessionInt->UpdateSession(InSessionName, *GameSettings, true);

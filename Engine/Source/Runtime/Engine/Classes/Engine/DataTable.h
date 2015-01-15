@@ -48,9 +48,9 @@ class UDataTable
 	TMap<FName, uint8*>		RowMap;
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() override;
-	virtual void Serialize( FArchive& Ar ) override;
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	ENGINE_API virtual void FinishDestroy() override;
+	ENGINE_API virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End  UObject interface
 
 	// Begin UDataTable interface

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "AssetTypeActions_Base.h"
+
 class FAssetTypeActions_CSVAssetBase : public FAssetTypeActions_Base
 {
 public:

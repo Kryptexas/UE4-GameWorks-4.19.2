@@ -72,7 +72,7 @@ AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplic
 	return NULL;
 }
 
-void AGameplayDebuggingHUDComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
+void AGameplayDebuggingHUDComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories) 
 {
 	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, TEXT("NavMesh")));
 	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, TEXT("Basic")));
@@ -85,7 +85,8 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	DefaultContext = FPrintContext(GEngine->GetSmallFont(), Canvas, 20, 20);
+	// Allow child hud components to position the displayed info
+	DefaultContext = FPrintContext(GEngine->GetSmallFont(), Canvas, DebugInfoStartX, DebugInfoStartY);;
 	DefaultContext.FontRenderInfo.bEnableShadow = true;
 
 	if (DefaultContext.Canvas != NULL)
@@ -166,17 +167,17 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 
 		FCanvasTileItem TileItem(FVector2D(10, 10), GWhiteTexture, FVector2D(TotalWidth + 20, MaxHeight + 20), FColor(0, 0, 0, 20));
 		TileItem.BlendMode = SE_BLEND_Translucent;
-		DrawItem(DefaultContext, TileItem, 0, 0);
+		DrawItem(DefaultContext, TileItem, MenuStartX, MenuStartY);
 
-		PrintString(DefaultContext, FColorList::LightBlue, HeaderDesc, 2, 2);
+		PrintString(DefaultContext, FColorList::LightBlue, HeaderDesc, MenuStartX + 2.f, MenuStartY + 2.f);
 
-			float XPos = 20.0f;
+			float XPos = MenuStartX + 20.f;
 			for (int32 i = 0; i < Categories.Num(); i++)
 			{
 				const bool bIsActive = GameplayDebuggerSettings(GetDebuggingReplicator()).CheckFlag(Categories[i].View) ? true : false;
 				const bool bIsDisabled = Categories[i].View == EAIDebugDrawDataView::NavMesh ? false : (DebugComponent && DebugComponent->GetSelectedActor() ? false: true);
 
-				PrintString(DefaultContext, bIsDisabled ? (bIsActive ? FColorList::DarkGreen  : FColorList::LightGrey) : (bIsActive ? FColorList::Green : FColorList::White), Categories[i].Desc, XPos, 20);
+				PrintString(DefaultContext, bIsDisabled ? (bIsActive ? FColorList::DarkGreen  : FColorList::LightGrey) : (bIsActive ? FColorList::Green : FColorList::White), Categories[i].Desc, XPos, MenuStartY + MaxHeight + 2.f);
 				XPos += CategoriesWidth[i];
 			}
 		DefaultContext.Font = OldFont;

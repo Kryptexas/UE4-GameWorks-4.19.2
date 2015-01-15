@@ -122,6 +122,16 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	FORCEINLINE AActor* GetSelectedActorToDebug() { return LastSelectedActorToDebug; }
 	void SetActorToDebug(AActor* InActor);
 
+	/**
+	 * Iterates through the pawn list to find the next pawn of the specified type to debug
+	 */
+	void DebugNextPawn(UClass* CompareClass, APawn* CurrentPawn = nullptr);
+
+	/**
+	 * Iterates through the pawn list to find the previous pawn of the specified type to debug
+	 */
+	void DebugPrevPawn(UClass* CompareClass, APawn* CurrentPawn = nullptr);
+
 	uint32 DebuggerShowFlags;
 
 	static FOnSelectionChanged OnSelectionChangedDelegate;

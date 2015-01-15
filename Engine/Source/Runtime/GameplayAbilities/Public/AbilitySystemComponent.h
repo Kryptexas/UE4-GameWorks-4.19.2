@@ -133,6 +133,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 */
 	void ApplyModToAttribute(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude);
 
+	/**
+	 *  Applies an inplace mod to the given attribute. Unlike ApplyModToAttribute this function will run on the client or server.
+	 *  This may result in problems related to prediction and will not roll back properly.
+	 */
+	void ApplyModToAttributeUnsafe(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude);
+
 	/** Returns current (final) value of an attribute */
 	float GetNumericAttribute(const FGameplayAttribute &Attribute);
 

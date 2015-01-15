@@ -33,9 +33,10 @@ void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool
 	EndTask();
 }
 
-UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay, float Rate, FName StartSection)
+UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject,
+	FName TaskInstanceName, UAnimMontage *MontageToPlay, float Rate, FName StartSection)
 {
-	UAbilityTask_PlayMontageAndWait* MyObj = NewTask<UAbilityTask_PlayMontageAndWait>(WorldContextObject);
+	UAbilityTask_PlayMontageAndWait* MyObj = NewTask<UAbilityTask_PlayMontageAndWait>(WorldContextObject, TaskInstanceName);
 	MyObj->MontageToPlay = MontageToPlay;
 	MyObj->Rate = Rate;
 	MyObj->StartSection = StartSection;
@@ -58,10 +59,17 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 			}
 			else
 			{
-				ABILITY_LOG(Warning, TEXT("UAbilityTask_PlayMontageAndWait called in Ability %s with null montage."), *Ability->GetName());
+				ABILITY_LOG(Warning, TEXT("UAbilityTask_PlayMontageAndWait called in Ability %s with null montage; Task Instance Name %s."), *Ability->GetName(), *InstanceName.ToString());
 			}
 		}
 	}
+}
+
+void UAbilityTask_PlayMontageAndWait::ExternalCancel()
+{
+	check(AbilitySystemComponent.IsValid());
+	OnCancelled.Broadcast();
+	Super::ExternalCancel();
 }
 
 void UAbilityTask_PlayMontageAndWait::OnDestroy(bool AbilityEnded)

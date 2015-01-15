@@ -1688,6 +1688,17 @@ bool FPImplRecastNavMesh::GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& Point
 	return false;
 }
 
+bool FPImplRecastNavMesh::IsCustomLink(NavNodeRef PolyRef) const
+{
+	if (DetourNavMesh)
+	{
+		const dtOffMeshConnection* offMeshCon = DetourNavMesh->getOffMeshConnectionByRef(PolyRef);
+		return offMeshCon && offMeshCon->userId;
+	}
+
+	return false;
+}
+
 bool FPImplRecastNavMesh::GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBounds) const
 {
 	if (DetourNavMesh == NULL || !ClusterRef)

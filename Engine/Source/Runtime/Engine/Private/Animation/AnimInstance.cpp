@@ -1738,6 +1738,8 @@ float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate
 				RootMotionMontageInstance = NewInstance;
 			}
 
+			OnMontageStarted.Broadcast(MontageToPlay);
+
 			return NewInstance->Montage->SequenceLength;
 		}
 		else

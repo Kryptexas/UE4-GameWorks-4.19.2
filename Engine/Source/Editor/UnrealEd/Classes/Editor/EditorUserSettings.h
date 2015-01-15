@@ -26,6 +26,10 @@ class UEditorUserSettings : public UObject
 	/** If enabled, tooltips on SGraphPaletteItems will show the associated action's string id */
 	UPROPERTY(/*EditAnywhere - deprecated (moved into UBlueprintEditorSettings), */config/*, Category=DeveloperTools*/)
 	uint32 bDisplayActionListItemRefIds:1;
+
+	/** If enabled, behavior tree debugger will collect its data even when all behavior tree editor windows are closed */
+	UPROPERTY(EditAnywhere, config, Category = AI)
+	uint32 bAlwaysGatherBehaviorTreeDebuggerData : 1;
 	
 	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */
 	UPROPERTY(EditAnywhere, config, Category=Performance)

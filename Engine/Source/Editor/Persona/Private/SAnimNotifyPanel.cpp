@@ -1947,6 +1947,12 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* No
 				}
 			}
 		}
+
+		NewEvent.Notify->OnAnimNotifyCreatedInEditor(NewEvent);
+	}
+	else if (NewEvent.NotifyStateClass)
+	{
+		NewEvent.NotifyStateClass->OnAnimNotifyCreatedInEditor(NewEvent);
 	}
 
 	Sequence->MarkPackageDirty();

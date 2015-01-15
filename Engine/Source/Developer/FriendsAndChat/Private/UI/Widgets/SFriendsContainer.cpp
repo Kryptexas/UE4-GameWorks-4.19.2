@@ -10,6 +10,7 @@
 #include "SFriendsStatus.h"
 #include "SFriendsUserSettings.h"
 #include "SFriendsToolTip.h"
+#include "FriendListViewModel.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsContainer"
 

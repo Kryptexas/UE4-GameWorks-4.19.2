@@ -10,7 +10,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogCSVImportFactory, Log, All);
 
 UCLASS(hidecategories=Object)
-class UCSVImportFactory : public UFactory
+class UNREALED_API UCSVImportFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
@@ -30,3 +30,17 @@ private:
 
 };
 
+/** Enum to indicate what to import CSV as */
+enum class ECSVImportType : uint8
+{
+	/** Import as UDataTable */
+	ECSV_DataTable,
+	/** Import as UCurveTable */
+	ECSV_CurveTable,
+	/** Import as a UCurveFloat */
+	ECSV_CurveFloat,
+	/** Import as a UCurveVector */
+	ECSV_CurveVector,
+	/** Import as a UCurveLinearColor */
+	ECSV_CurveLinearColor,
+};

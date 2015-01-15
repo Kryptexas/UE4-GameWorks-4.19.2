@@ -1104,24 +1104,27 @@ FGraphAppearanceInfo FBlueprintEditor::GetGraphAppearance() const
 
 FGraphAppearanceInfo FBlueprintEditor::GetGraphAppearance(UEdGraph* InGraph) const
 {
-	UBlueprint* Blueprint = (InGraph != nullptr) ? FBlueprintEditorUtils::FindBlueprintForGraph(InGraph) : GetBlueprintObj();
-
 	// Create the appearance info
 	FGraphAppearanceInfo AppearanceInfo;
-	switch (Blueprint->BlueprintType)
+
+	UBlueprint* Blueprint = (InGraph != nullptr) ? FBlueprintEditorUtils::FindBlueprintForGraph(InGraph) : GetBlueprintObj();
+	if (Blueprint != NULL)
 	{
-	case BPTYPE_LevelScript:
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_LevelScript", "LEVEL BLUEPRINT");
-		break;
-	case BPTYPE_MacroLibrary:
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Macro", "MACRO");
-		break;
-	case BPTYPE_Interface:
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Interface", "INTERFACE");
-		break;
-	default:
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Blueprint", "BLUEPRINT");
-		break;
+		switch (Blueprint->BlueprintType)
+		{
+		case BPTYPE_LevelScript:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_LevelScript", "LEVEL BLUEPRINT");
+			break;
+		case BPTYPE_MacroLibrary:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Macro", "MACRO");
+			break;
+		case BPTYPE_Interface:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Interface", "INTERFACE");
+			break;
+		default:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Blueprint", "BLUEPRINT");
+			break;
+		}
 	}
 
 	UEdGraph const* EditingGraph = GetFocusedGraph();
@@ -7083,7 +7086,8 @@ bool FBlueprintEditor::IsEditable(UEdGraph* InGraph) const
 
 bool FBlueprintEditor::IsGraphPanelEnabled(UEdGraph* InGraph) const
 {
-	bool const bIsInterface = (FBlueprintEditorUtils::FindBlueprintForGraph(InGraph)->BlueprintType == BPTYPE_Interface);
+	const UBlueprint* BlueprintForGraph = FBlueprintEditorUtils::FindBlueprintForGraph(InGraph);
+	bool const bIsInterface = ((BlueprintForGraph != NULL) && (BlueprintForGraph->BlueprintType == BPTYPE_Interface));
 	bool const bIsDelegate  = FBlueprintEditorUtils::IsDelegateSignatureGraph(InGraph);
 	bool const bIsMathExpression = FBlueprintEditorUtils::IsMathExpressionGraph(InGraph);
 

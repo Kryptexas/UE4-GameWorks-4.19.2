@@ -205,9 +205,6 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 */
 	bool Serialize(FArchive& Ar);
 
-	/** Renames any tags that may have changed by the ini file */
-	void RedirectTags();
-
 	/**
 	 * Returns the Tag Count
 	 *
@@ -260,6 +257,19 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category=GameplayTags)
 	TArray<FGameplayTag> GameplayTags;
 
+	/**
+	 * If a Tag with the specified tag name explicitly exists, it will remove that tag and return true.  Otherwise, it 
+	   returns false.  It does NOT check the TagName for validity (i.e. the tag could be obsolete and so not exist in
+	   the table). It also does NOT check parents (because it cannot do so for a tag that isn't in the table).
+	   NOTE: This function should ONLY ever be used by GameplayTagsManager when redirecting tags.  Do NOT make this
+	   function public!
+	 */
+	bool RemoveTagByExplicitName(const FName& TagName);
+
+	// Allow the redirection helper class access to RemoveTagByExplicitName.  It can then (through friendship) allow
+	// access to others without exposing everything the Container has privately to everyone.
+	friend class FGameplayTagRedirectHelper;
+
 private:
 
 	/** Array of gameplay tags */
@@ -273,6 +283,16 @@ private:
 	
 	FORCEINLINE friend TArray<FGameplayTag>::TConstIterator begin(const FGameplayTagContainer& Array) { return Array.CreateConstIterator(); }
 	FORCEINLINE friend TArray<FGameplayTag>::TConstIterator end(const FGameplayTagContainer& Array) { return TArray<FGameplayTag>::TConstIterator(Array.GameplayTags, Array.GameplayTags.Num()); }
+};
+
+// This helper class exists to keep FGameplayTagContainers protected and private fields appropriately private while
+// exposing only necessary features to the GameplayTagsManager.
+class FGameplayTagRedirectHelper
+{
+private:
+	FORCEINLINE static bool RemoveTagByExplicitName(FGameplayTagContainer& Container, const FName& TagName) { return Container.RemoveTagByExplicitName(TagName); }
+
+	friend class UGameplayTagsManager;
 };
 
 template<>

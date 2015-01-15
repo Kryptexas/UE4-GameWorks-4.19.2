@@ -98,7 +98,12 @@ public class Engine : ModuleRules
 					"SlateRHIRenderer",
 				}
 			);
-		};
+		}
+
+		if (Target.Type == TargetRules.TargetType.Server)
+		{
+			PrivateDependencyModuleNames.Add("PerfCounters");
+		}
 
 		if (UEBuildConfiguration.bBuildDeveloperTools)
 		{

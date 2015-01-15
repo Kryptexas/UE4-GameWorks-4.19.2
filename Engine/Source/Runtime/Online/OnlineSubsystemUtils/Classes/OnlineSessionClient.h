@@ -8,6 +8,11 @@
 #include "OnlineSessionInterface.h"
 #include "OnlineSessionClient.generated.h"
 
+class UWorld;
+class APlayerController;
+
+#define INVALID_CONTROLLERID 255
+
 UCLASS(config=Game)
 class ONLINESUBSYSTEMUTILS_API UOnlineSessionClient : public UOnlineSession
 {
@@ -45,10 +50,16 @@ protected:
 	UPROPERTY(Transient)
 	bool bHandlingDisconnect;
 
+	/** @return the current game world */
+	virtual UWorld* GetWorld() const override;
+
 	/**
 	 * Get the player controller associated with this session (from the owning ULocalPlayer)
 	 */
-	class APlayerController* GetPlayerController();
+	APlayerController* GetPlayerController();
+
+	/** @return the unique id associated with the player who owns this class */
+	TSharedPtr<FUniqueNetId> GetUniqueId();
 
 	/**
 	 * Helper function to retrieve the controller id of the owning controller
@@ -142,7 +153,7 @@ protected:
 	 * @param SessionName name of session to join
 	 * @param SearchResult the session to join
 	 */
-	void JoinSession(int32 LocalUserNum, FName SessionName, const FOnlineSessionSearchResult& SearchResult);
+	virtual void JoinSession(int32 LocalUserNum, FName SessionName, const FOnlineSessionSearchResult& SearchResult);
 
 	/**
 	 * Delegate fired when an invite request has been accepted (via external UI)
