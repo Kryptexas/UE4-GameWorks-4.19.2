@@ -46,13 +46,7 @@ static void FillInstanceRenderData(const FInstancedStaticMeshInstanceData& Insta
 	RenderData[2] = FVector4(Instance.Transform.M[0][1], Instance.Transform.M[1][1], Instance.Transform.M[2][1], Instance.Transform.M[3][1]);
 	RenderData[3] = FVector4(Instance.Transform.M[0][2], Instance.Transform.M[1][2], Instance.Transform.M[2][2], Instance.Transform.M[3][2]);
 
-	// Instance -> local rotation matrix (3x3)
-	// hide the offset (bias) of the lightmap and the per-instance random id in the matrix's w
-	const FMatrix Inverse = Instance.Transform;
-
-	RenderData[4] = FVector4(Inverse.M[0][0], Inverse.M[1][0], Inverse.M[2][0], Instance.LightmapUVBias.X);
-	RenderData[5] = FVector4(Inverse.M[0][1], Inverse.M[1][1], Inverse.M[2][1], Instance.LightmapUVBias.Y);
-	RenderData[6] = FVector4(Inverse.M[0][2], Inverse.M[1][2], Inverse.M[2][2], RandomInstanceID);
+	RenderData[4] = FVector4(Instance.LightmapUVBias.X, Instance.LightmapUVBias.Y, RandomInstanceID, 0);
 }
 
 /**
@@ -127,11 +121,8 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 			RenderData[1] = FVector4(0, 0, 0, 0);
 			RenderData[2] = FVector4(0, 0, 0, 0);
 			RenderData[3] = FVector4(0, 0, 0, 0);
-			
-			// inverse is identity
-			RenderData[4] = FVector4(1, 0, 0, 0);
-			RenderData[5] = FVector4(0, 1, 0, 0);
-			RenderData[6] = FVector4(0, 0, 1, 0);
+		
+			RenderData[4] = FVector4(0, 0, 0, 0);
 		}
 	}
 }
@@ -307,9 +298,7 @@ void FInstancedStaticMeshVertexFactory::InitRHI()
 		Elements.Add(AccessStreamComponent(Data.InstancedTransformComponent[0],9));
 		Elements.Add(AccessStreamComponent(Data.InstancedTransformComponent[1],10));
 		Elements.Add(AccessStreamComponent(Data.InstancedTransformComponent[2],11));
-		Elements.Add(AccessStreamComponent(Data.InstancedInverseTransformComponent[0],12));
-		Elements.Add(AccessStreamComponent(Data.InstancedInverseTransformComponent[1],13));
-		Elements.Add(AccessStreamComponent(Data.InstancedInverseTransformComponent[2],14));
+		Elements.Add(AccessStreamComponent(Data.InstancedLightmapUVBiasComponent, 12));
 	}
 
 	// we don't need per-vertex shadow or lightmap rendering
@@ -465,17 +454,14 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 				CurInstanceBufferOffset += sizeof(float) * 4;
 			}
 
-			for (int32 MatrixRow = 0; MatrixRow < 3; MatrixRow++)
-			{
-				Data.InstancedInverseTransformComponent[MatrixRow] = FVertexStreamComponent(
-					&InstancedRenderData->InstanceBuffer,
-					CurInstanceBufferOffset, 
-					InstancedRenderData->InstanceBuffer.GetStride(),
-					VET_Float4,
-					true
-					);
-				CurInstanceBufferOffset += sizeof(float) * 4;
-			}
+			Data.InstancedLightmapUVBiasComponent = FVertexStreamComponent(
+				&InstancedRenderData->InstanceBuffer,
+				CurInstanceBufferOffset, 
+				InstancedRenderData->InstanceBuffer.GetStride(),
+				VET_Float4,
+				true
+				);
+			CurInstanceBufferOffset += sizeof(float) * 4;
 		}
 
 		// Assign to the vertex factory for this LOD.
@@ -1591,7 +1577,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			auto* InstanceStream = ((const FInstancingUserData::FInstanceStream*)InstancingData->RenderData->InstanceBuffer.GetRawData()) + BatchElement.UserIndex;
 			SetShaderValue(RHICmdList, VS, CPUInstanceShadowMapBias, InstanceStream->InstanceShadowmapUVBias);
 			SetShaderValueArray(RHICmdList, VS, CPUInstanceTransform, InstanceStream->InstanceTransform, 3);
-			SetShaderValueArray(RHICmdList, VS, CPUInstanceInverseTransform, InstanceStream->InstanceInverseTransform, 3);
+			SetShaderValue(RHICmdList, VS, CPUInstanceLightmapUVBias, InstanceStream->InstanceLightmapUVBias);
 		}
 	}
 }
