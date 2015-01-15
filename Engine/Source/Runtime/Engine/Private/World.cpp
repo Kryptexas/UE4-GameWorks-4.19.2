@@ -764,7 +764,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	if (IVS.bCreateNavigation)
 	{
 		AWorldSettings* WorldSettings = GetWorldSettings();
-		if (WorldSettings->bEnableNavigationSystem)
+		if (WorldSettings && WorldSettings->bEnableNavigationSystem)
 		{
 			UNavigationSystem::CreateNavigationSystem(this);
 		}
