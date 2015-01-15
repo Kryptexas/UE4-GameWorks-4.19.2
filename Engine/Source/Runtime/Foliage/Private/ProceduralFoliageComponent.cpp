@@ -30,36 +30,26 @@ void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageI
 			ULevel* OwningLevel = EcoInst.BaseComponent->GetOwner()->GetLevel();
 		
 			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(OwningLevel);
-			const UFoliageType_InstancedStaticMesh* Type = EcoInst.Type;
-			FFoliageMeshInfo* MeshInfo;
-			if (UStaticMesh* StaticMesh = EcoInst.StaticMesh)
+			UFoliageType_InstancedStaticMesh* Type = EcoInst.Type;
+			if (FFoliageMeshInfo* MeshInfo = IFA->FindOrAddMesh(Type))
 			{
-				if (IFA->GetSettingsForMesh(StaticMesh) == nullptr)
+				/* Convert ProceduralFoliage instance into foliage instance*/
+				Inst.DrawScale3D = FVector(EcoInst.Scale);
+				Inst.Location = EcoInst.Location;
+				Inst.Rotation = EcoInst.Rotation.Rotator();
+				Inst.Flags |= FOLIAGE_NoRandomYaw;
+
+				if (Type->AlignToNormal)
 				{
-					IFA->AddMesh(StaticMesh, nullptr, Type);
+					Inst.AlignToNormal(EcoInst.Normal, Type->AlignMaxAngle);
 				}
 
-				UFoliageType* Settings = IFA->GetSettingsForMesh(StaticMesh, &MeshInfo);
-				if (Settings && MeshInfo)
-				{
-					/* Convert ProceduralFoliage instance into foliage instance*/
-					Inst.DrawScale3D = FVector(EcoInst.Scale);
-					Inst.Location = EcoInst.Location;
-					Inst.Rotation = EcoInst.Rotation.Rotator();
-					Inst.Flags |= FOLIAGE_NoRandomYaw;
 
-					if (Type->AlignToNormal)
-					{
-						Inst.AlignToNormal(EcoInst.Normal, Type->AlignMaxAngle);
-					}
+				Inst.Base = EcoInst.BaseComponent;
+				Inst.Spawner = BaseComponent;
 
 
-					Inst.Base = EcoInst.BaseComponent;
-					Inst.Spawner = BaseComponent;
-
-
-					MeshInfo->AddInstance(IFA, Settings, Inst);
-				}
+				MeshInfo->AddInstance(IFA, Type, Inst);
 			}
 		}
 	}

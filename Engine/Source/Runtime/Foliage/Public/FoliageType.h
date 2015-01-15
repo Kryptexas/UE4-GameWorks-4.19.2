@@ -292,11 +292,6 @@ class UFoliageType : public UObject
 	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth"))
 	float OverlapPriority;
 
-	/** The set of meshes to be used for representing an instance placed in the world.*/
-	UPROPERTY(Category = Procedural, EditAnywhere)
-	TArray<UStaticMesh*> StaticMeshes;
-
-
 	UPROPERTY()
 	int32 ChangeCount;
 
