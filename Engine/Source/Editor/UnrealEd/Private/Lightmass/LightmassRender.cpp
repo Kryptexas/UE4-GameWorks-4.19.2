@@ -183,20 +183,25 @@ public:
 	/** Initializes the material proxy and kicks off async shader compiling. */
 	void BeginCompiling(UMaterialInterface* InMaterialInterface, EMaterialProperty InPropertyToCompile, EMaterialShaderMapUsage::Type InUsage)
 	{
-		MaterialInterface = InMaterialInterface;
-		Material = MaterialInterface ? MaterialInterface->GetMaterial() : NULL;
-		PropertyToCompile = InPropertyToCompile;
-		Usage = InUsage;
+		if (InMaterialInterface)
+		{
+			MaterialInterface = InMaterialInterface;
+			Material = MaterialInterface ? MaterialInterface->GetMaterial() : NULL;
+			PropertyToCompile = InPropertyToCompile;
+			Usage = InUsage;
 
-		Material->AppendReferencedTextures(ReferencedTextures);
+			Material->AppendReferencedTextures(ReferencedTextures);
 
-		FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
-
-		FMaterialShaderMapId ResourceId;
-		Resource->GetShaderMapId(GMaxRHIShaderPlatform, ResourceId);
-		// Override with a special usage so we won't re-use the shader map used by the material for rendering
-		ResourceId.Usage = GetShaderMapUsage();
-		CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
+			FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
+			if (Resource)
+			{
+				FMaterialShaderMapId ResourceId;
+				Resource->GetShaderMapId(GMaxRHIShaderPlatform, ResourceId);
+				// Override with a special usage so we won't re-use the shader map used by the material for rendering
+				ResourceId.Usage = GetShaderMapUsage();
+				CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
+			}
+		}
 	}
 
 	virtual const TArray<UTexture*>& GetReferencedTextures() const override
