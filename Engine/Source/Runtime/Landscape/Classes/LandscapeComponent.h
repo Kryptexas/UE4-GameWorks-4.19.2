@@ -8,8 +8,6 @@
 
 #include "LandscapeComponent.generated.h"
 
-#define USE_PRECACHED_GRASSMAP_IN_EDITOR (0)
-
 class ULandscapeLayerInfoObject;
 class ULandscapeInfo;
 class ALandscapeProxy;
@@ -252,7 +250,7 @@ public:
 	/** Platform Data where don't support texture sampling in vertex buffer */
 	FLandscapeComponentDerivedData PlatformData;
 
-	/** Grass data for cooked platforms, also used temporarily when cooking, but see USE_PRECACHED_GRASSMAP_IN_EDITOR, this might be changing */
+	/** Grass data for generation **/
 	TSharedPtr<FGrassMap, ESPMode::ThreadSafe> GrassMap;
 
 	virtual ~ULandscapeComponent();
