@@ -12,5 +12,5 @@ FPaperFlipbookSceneProxy::FPaperFlipbookSceneProxy(const UPaperFlipbookComponent
 	//@TODO: PAPER2D: WireframeColor = RenderComp->GetWireframeColor();
 
 	Material = InComponent->GetMaterial(0);
-	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
+	MaterialRelevance = InComponent->GetMaterialRelevance_GameThread(GetScene().GetFeatureLevel());
 }

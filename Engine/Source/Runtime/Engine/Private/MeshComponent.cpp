@@ -60,7 +60,7 @@ void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Materia
 	}
 }
 
-FMaterialRelevance UMeshComponent::GetMaterialRelevance(ERHIFeatureLevel::Type InFeatureLevel) const
+FMaterialRelevance UMeshComponent::GetMaterialRelevance_GameThread(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	// Combine the material relevance for all materials.
 	FMaterialRelevance Result;
@@ -71,7 +71,7 @@ FMaterialRelevance UMeshComponent::GetMaterialRelevance(ERHIFeatureLevel::Type I
 		{
 			MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
-		Result |= MaterialInterface->GetRelevance_Concurrent(InFeatureLevel);
+		Result |= MaterialInterface->GetRelevance(InFeatureLevel);
 	}
 	return Result;
 }

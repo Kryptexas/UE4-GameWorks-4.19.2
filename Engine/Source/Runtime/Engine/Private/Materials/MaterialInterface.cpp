@@ -39,6 +39,7 @@ void UMaterialInterface::PostLoad()
 	PostLoadDefaultMaterials();
 }
 
+template<bool IsGameThread>
 FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Material, ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	if(Material)
@@ -58,7 +59,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;
 		MaterialRelevance.bSubsurfaceProfile = (Material->MaterialDomain == MD_Surface) && !bIsTranslucent && (ShadingModel == MSM_SubsurfaceProfile);
-		MaterialRelevance.bHasWorldPositionOffset = MaterialResource->MaterialModifiesMeshPosition_GameThread();
+		MaterialRelevance.bHasWorldPositionOffset = IsGameThread ? MaterialResource->MaterialModifiesMeshPosition_GameThread() : MaterialResource->MaterialModifiesMeshPosition_RenderThread();
 
 		return MaterialRelevance;
 	}
@@ -72,7 +73,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance(ERHIFeatureLevel::Type InFea
 {
 	// Find the interface's concrete material.
 	const UMaterial* Material = GetMaterial();
-	return GetRelevance_Internal(Material, InFeatureLevel);
+	return GetRelevance_Internal<true>(Material, InFeatureLevel);
 }
 
 FMaterialRelevance UMaterialInterface::GetRelevance_Concurrent(ERHIFeatureLevel::Type InFeatureLevel) const
@@ -80,7 +81,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Concurrent(ERHIFeatureLevel:
 	// Find the interface's concrete material.
 	TMicRecursionGuard RecursionGuard;
 	const UMaterial* Material = GetMaterial_Concurrent(RecursionGuard);
-	return GetRelevance_Internal(Material, InFeatureLevel);
+	return GetRelevance_Internal<false>(Material, InFeatureLevel);
 }
 
 int32 UMaterialInterface::GetWidth() const
