@@ -71,10 +71,16 @@ public:
 	FOLIAGE_API void DeleteInstancesForSpawner(UActorComponent* InComponent);
 
 	// Finds a mesh entry
-	FOLIAGE_API FFoliageMeshInfo* FindMesh(UFoliageType* InType);
+	FOLIAGE_API FFoliageMeshInfo* FindMesh(const UFoliageType* InType);
+
+	// Finds a mesh entry
+	FOLIAGE_API const FFoliageMeshInfo* FindMesh(const UFoliageType* InType) const;
 
 	// Finds a mesh entry or adds it if it doesn't already exist
 	FOLIAGE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
+
+	// Finds the number of instances overlapping with the sphere. 
+	FOLIAGE_API int32 GetOverlappingSphereCount(const UFoliageType* FoliageType, const FSphere& Sphere) const;
 
 	// Add a new static mesh.
 	FOLIAGE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr, const UFoliageType_InstancedStaticMesh* DefaultSettings = nullptr);
@@ -84,7 +90,7 @@ public:
 	FOLIAGE_API void RemoveMesh(UFoliageType* InFoliageType);
 
 	// Performs a reverse lookup from a mesh to its settings
-	FOLIAGE_API UFoliageType* GetSettingsForMesh(UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo = nullptr);
+	FOLIAGE_API UFoliageType* GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo = nullptr);
 
 	// Select an individual instance.
 	FOLIAGE_API void SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle);

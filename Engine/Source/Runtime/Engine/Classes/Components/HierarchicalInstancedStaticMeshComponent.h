@@ -97,6 +97,10 @@ public:
 	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace) override;
 	virtual void ClearInstances() override;
 
+
+	/** Get the number of instances that overlap a given sphere */
+	int32 GetOverlappingSphereCount(const FSphere& Sphere) const;
+
 	virtual bool ShouldCreatePhysicsState() const override;
 
 	void BuildTree();

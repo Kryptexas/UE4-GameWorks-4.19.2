@@ -1871,6 +1871,28 @@ static void GatherInstanceTransformsInArea(const UHierarchicalInstancedStaticMes
 	}
 }
 
+int32 UHierarchicalInstancedStaticMeshComponent::GetOverlappingSphereCount(const FSphere& Sphere) const
+{
+	int32 Count = 0;
+	TArray<FTransform> Transforms;
+	const FBox AABB(Sphere.Center - FVector(Sphere.W), Sphere.Center + FVector(Sphere.W));
+	GatherInstanceTransformsInArea(*this, AABB, 0, Transforms);
+	const FBoxSphereBounds Bounds = StaticMesh->GetBounds();
+
+	for (const FTransform& TM : Transforms)
+	{
+		const FVector Center = TM.GetLocation();
+		const FSphere InstanceSphere(Center, Bounds.SphereRadius);
+		
+		if (Sphere.Intersects(InstanceSphere))
+		{
+			++Count;
+		}
+	}
+
+	return Count;
+}
+
 void UHierarchicalInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& InstanceData) const
 {
 	if (IsTreeFullyBuilt())
