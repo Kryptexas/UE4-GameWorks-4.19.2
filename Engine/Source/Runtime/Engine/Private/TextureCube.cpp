@@ -17,6 +17,8 @@ UTextureCube::UTextureCube(const FObjectInitializer& ObjectInitializer)
 
 void UTextureCube::Serialize(FArchive& Ar)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UTextureCube::Serialize"), STAT_TextureCube_Serialize, STATGROUP_LoadTime);
+
 	Super::Serialize(Ar);
 
 	FStripDataFlags StripFlags(Ar);

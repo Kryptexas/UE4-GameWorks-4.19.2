@@ -7,6 +7,8 @@
 #include "CorePrivatePCH.h"
 #include "Serialization/AsyncIOSystemBase.h"
 
+DECLARE_STATS_GROUP_VERBOSE(TEXT("AsyncIOSystem"),STATGROUP_AsyncIOSystem, STATCAT_Advanced);
+
 /*-----------------------------------------------------------------------------
 	FAsyncIOSystemBase implementation.
 -----------------------------------------------------------------------------*/
@@ -106,6 +108,8 @@ void FAsyncIOSystemBase::LogIORequest(const FString& Message, const FAsyncIORequ
 
 bool FAsyncIOSystemBase::InternalRead( IFileHandle* FileHandle, int64 Offset, int64 Size, void* Dest )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncIOSystemBase::InternalRead"), STAT_AsyncIOSystemBase_InternalRead, STATGROUP_AsyncIOSystem);
+
 	FScopeLock ScopeLock( ExclusiveReadCriticalSection );
 
 	bool bRetVal = false;
@@ -182,6 +186,8 @@ int64 FAsyncIOSystemBase::PlatformMinimumReadSize()
 
 void FAsyncIOSystemBase::FulfillCompressedRead( const FAsyncIORequest& IORequest, IFileHandle* FileHandle )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncIOSystemBase::FulfillCompressedRead"), STAT_AsyncIOSystemBase_FulfillCompressedRead, STATGROUP_AsyncIOSystem);
+
 	if (GbLogAsyncLoading == true)
 	{
 		LogIORequest(TEXT("FulfillCompressedRead"), IORequest);

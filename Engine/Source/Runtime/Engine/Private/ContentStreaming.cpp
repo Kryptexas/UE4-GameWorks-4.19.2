@@ -41,9 +41,6 @@ DEFINE_STAT(STAT_NumWantingTextures);
 
 DEFINE_STAT(STAT_StreamingTextures);
 
-DEFINE_STAT(STAT_RenderingThreadUpdateTime);
-DEFINE_STAT(STAT_RenderingThreadFinalizeTime);
-
 DEFINE_STAT(STAT_TotalStaticTextureHeuristicSize);
 DEFINE_STAT(STAT_TotalDynamicHeuristicSize);
 DEFINE_STAT(STAT_TotalLastRenderHeuristicSize);
@@ -1046,9 +1043,9 @@ public:
 	}
 
 	/** Statistics for the async work. */
-	struct FThreadStats
+	struct FAsyncStats
 	{
-		FThreadStats()
+		FAsyncStats()
 		{
 			Reset();
 		}
@@ -1095,7 +1092,7 @@ public:
 	}
 
 	/** Returns the thread statistics. */
-	const FThreadStats& GetStats() const
+	const FAsyncStats& GetStats() const
 	{
 		return ThreadStats;
 	}
@@ -1105,6 +1102,7 @@ private:
 	/** Performs the async work. */
 	void DoWork()
 	{
+		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncTextureStreaming::DoWork"), STAT_AsyncTextureStreaming_DoWork, STATGROUP_StreamingDetails);
 		PrioritizedTextures.Empty( StreamingManager.StreamingTextures.Num() );
 
 		// Calculate DynamicWantedMips and DynamicMinDistanceSq for all dynamic textures.
@@ -1220,7 +1218,7 @@ private:
 	/** Context (temporary info) used for the async work. */
 	FStreamingContext			ThreadContext;
 	/** Thread statistics. */
-	FThreadStats				ThreadStats;
+	FAsyncStats				ThreadStats;
 	/** Whether the async work should abort its processing. */
 	volatile bool				bAbort;
 };
@@ -3264,7 +3262,7 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 	FStreamingContext Context( bProcessEverything, IndividualStreamingTexture, bCollectTextureStats );
 
 	const TArray<FTexturePriority>& PrioritizedTextures = AsyncWork->GetTask().GetPrioritizedTextures();
-	FAsyncTextureStreaming::FThreadStats ThreadStats = AsyncWork->GetTask().GetStats();
+	FAsyncTextureStreaming::FAsyncStats ThreadStats = AsyncWork->GetTask().GetStats();
 	Context.AddStats( AsyncWork->GetTask().GetContext() );
 
 #if STATS

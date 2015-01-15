@@ -849,6 +849,8 @@ void UReflectionCaptureComponent::SerializeSourceData(FArchive& Ar)
 
 void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UReflectionCaptureComponent::Serialize"), STAT_ReflectionCaptureComponent_Serialize, STATGROUP_LoadTime);
+
 	Super::Serialize(Ar);
 
 	bool bCooked = false;

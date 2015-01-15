@@ -1546,10 +1546,10 @@ void FTexture2DResource::BeginCancelUpdate()
  */
 void FTexture2DResource::UpdateMipCount()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FTexture2DResource::UpdateMipCount"), STAT_Texture2DResource_UpdateMipCount, STATGROUP_StreamingDetails);
+
 	FTexture2DScopedDebugInfo ScopedDebugInfo(Owner);
 	const TIndirectArray<FTexture2DMipMap>& OwnerMips = Owner->GetPlatformMips();
-
-	SCOPE_CYCLE_COUNTER(STAT_RenderingThreadUpdateTime);
 
 	static auto CVarVirtualTextureReducedMemoryEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VirtualTextureReducedMemory"));
 	check(CVarVirtualTextureReducedMemoryEnabled);
@@ -1717,7 +1717,8 @@ void FTexture2DResource::UpdateMipCount()
  */
 void FTexture2DResource::LoadMipData()
 {
-	SCOPE_CYCLE_COUNTER(STAT_RenderingThreadUpdateTime);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FTexture2DResource::LoadMipData"), STAT_Texture2DResource_LoadMipData, STATGROUP_StreamingDetails);
+
 	check(Owner->bIsStreamable);
 	check(Owner->PendingMipChangeRequestStatus.GetValue() == TexState_InProgress_Loading);
 
@@ -1914,6 +1915,8 @@ void FTexture2DResource::LoadMipData()
 
 void FCreateTextureTask::DoWork()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FCreateTextureTask::DoWork"), STAT_CreateTextureTask_DoWork, STATGROUP_StreamingDetails);
+
 	{
 		FTexture2DRHIRef AsyncTexture = RHIAsyncCreateTexture2D(Args.SizeX,Args.SizeY,Args.Format,Args.NumMips,Args.Flags,Args.MipData,Args.NumNewMips);
 		check(IsValidRef(AsyncTexture));
@@ -1935,7 +1938,7 @@ void FCreateTextureTask::DoWork()
 
 void FTexture2DResource::UploadMipData()
 {
-	SCOPE_CYCLE_COUNTER(STAT_RenderingThreadFinalizeTime);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FTexture2DResource::UploadMipData"), STAT_Texture2DResource_UploadMipData, STATGROUP_StreamingDetails);
 
 	check(Owner->bIsStreamable);
 	check(Owner->PendingMipChangeRequestStatus.GetValue()==TexState_InProgress_Upload);
@@ -2171,7 +2174,7 @@ void FTexture2DResource::FinalizeMipCount()
  */
 void FTexture2DResource::CancelUpdate()
 {
-	SCOPE_CYCLE_COUNTER(STAT_RenderingThreadUpdateTime);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FTexture2DResource::CancelUpdate"), STAT_Texture2DResource_CancelUpdate, STATGROUP_StreamingDetails);
 
 	// TexState_InProgress_Finalization is valid as the request status gets decremented in the main thread. The actual
 	// call to FinalizeMipCount will happen after this one though.

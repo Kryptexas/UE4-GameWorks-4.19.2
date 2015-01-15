@@ -284,6 +284,8 @@ struct FLegacyCoverIndexPair
 
 void ULevel::Serialize( FArchive& Ar )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ULevel::Serialize"), STAT_Level_Serialize, STATGROUP_LoadTime);
+
 	Super::Serialize( Ar );
 
 	Ar << Actors;
