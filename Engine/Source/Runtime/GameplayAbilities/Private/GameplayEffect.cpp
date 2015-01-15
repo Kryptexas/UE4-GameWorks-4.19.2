@@ -1923,7 +1923,7 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 				}
 			}
 
-			InternalRemoveActiveGameplayEffect(Idx, StacksToRemove);
+			InternalRemoveActiveGameplayEffect(Idx, StacksToRemove, true);
 			return true;
 		}
 	}
@@ -1932,13 +1932,14 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 }
 
 /** Called by server to actually remove a GameplayEffect */
-bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 Idx, int32 StacksToRemove)
+bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 Idx, int32 StacksToRemove, bool bPrematureRemoval)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RemoveActiveGameplayEffect);
 	
 	if (ensure(Idx < GameplayEffects.Num()))
 	{
 		FActiveGameplayEffect& Effect = GameplayEffects[Idx];
+		ensure(!Effect.IsPendingRemove);
 
 		if (StacksToRemove > 0 && Effect.Spec.StackCount > StacksToRemove)
 		{
@@ -1947,6 +1948,9 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 			OnStackCountChange(Effect);
 			return false;
 		}
+
+		// Mark the effect as pending removal
+		Effect.IsPendingRemove = true;
 
 		bool ShouldInvokeGameplayCueEvent = true;
 		const bool bIsNetAuthority = IsNetAuthority();
@@ -1983,6 +1987,9 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		// Remove this handle from the global map
 		Effect.Handle.RemoveFromGlobalMap();
 
+		// Attempt to apply expiration effects, if necessary
+		InternalApplyExpirationEffects(Effect.Spec, bPrematureRemoval);
+
 		bool ModifiedArray = false;
 
 		// Finally remove the ActiveGameplayEffect
@@ -1990,7 +1997,6 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		{
 			// We are locked, so this removal is now pending.
 			PendingRemoves++;
-			Effect.IsPendingRemove = true;
 		}
 		else
 		{
@@ -2015,7 +2021,7 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 /** Called by client and server: This does cleanup that has to happen whether the effect is being removed locally or due to replication */
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect)
 {
-	// Remove our tag requirements from the dependancy map
+	// Remove our tag requirements from the dependency map
 	RemoveActiveEffectTagDependency(Effect.Spec.Def->OngoingTagRequirements.IgnoreTags, Effect.Handle);
 	RemoveActiveEffectTagDependency(Effect.Spec.Def->OngoingTagRequirements.RequireTags, Effect.Handle);
 
@@ -2075,6 +2081,46 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffectTagDependency(const FGam
 			if (Ptr->Num() <= 0)
 			{
 				ActiveEffectTagDependencies.Remove(Tag);
+			}
+		}
+	}
+}
+
+void FActiveGameplayEffectsContainer::InternalApplyExpirationEffects(const FGameplayEffectSpec& ExpiringSpec, bool bPrematureRemoval)
+{
+	GAMEPLAYEFFECT_SCOPE_LOCK();
+
+	check(Owner);
+
+	// Don't allow prediction of expiration effects
+	if (IsNetAuthority())
+	{
+		const UGameplayEffect* ExpiringGE = ExpiringSpec.Def;
+		if (ExpiringGE)
+		{
+			// Determine the appropriate type of effect to apply depending on whether the effect is being prematurely removed or not
+			const TArray<TSubclassOf<UGameplayEffect>>& ExpiryEffects = (bPrematureRemoval ? ExpiringGE->PrematureExpirationEffectClasses : ExpiringGE->RoutineExpirationEffectClasses);
+
+			for (const TSubclassOf<UGameplayEffect>& CurExpiryEffect : ExpiryEffects)
+			{
+				if (CurExpiryEffect)
+				{
+					const UGameplayEffect* CurExpiryCDO = CurExpiryEffect->GetDefaultObject<UGameplayEffect>();
+					check(CurExpiryCDO);
+									
+					const FGameplayEffectContextHandle& ExpiringSpecContextHandle = ExpiringSpec.GetEffectContext();
+					FGameplayEffectContextHandle NewContextHandle = FGameplayEffectContextHandle(UAbilitySystemGlobals::Get().AllocGameplayEffectContext());
+					
+					// Pass along old instigator to new effect context
+					// @todo: Creation of this spec needs to include tags, etc. from the original spec as well
+					if (NewContextHandle.IsValid())
+					{
+						NewContextHandle.AddInstigator(ExpiringSpecContextHandle.GetInstigator(), ExpiringSpecContextHandle.GetEffectCauser());
+					}
+				
+					FGameplayEffectSpec NewExpirySpec(CurExpiryCDO, NewContextHandle, ExpiringSpec.GetLevel());
+					Owner->ApplyGameplayEffectSpecToSelf(NewExpirySpec);
+				}
 			}
 		}
 	}
@@ -2190,7 +2236,7 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 					TimerManager.ClearTimer(Effect.PeriodHandle);
 				}
 
-				InternalRemoveActiveGameplayEffect(Idx, -1);
+				InternalRemoveActiveGameplayEffect(Idx, -1, false);
 			}
 			else
 			{
@@ -2294,7 +2340,7 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 		const FActiveGameplayEffect& Effect = GameplayEffects[idx];
 		if (Query.Matches(Effect))
 		{
-			InternalRemoveActiveGameplayEffect(idx, StacksToRemove);			
+			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);			
 		}
 	}
 }
@@ -2384,6 +2430,12 @@ void FActiveGameplayEffectHandle::RemoveFromGlobalMap()
 
 bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 {
+	// Anything in the ignore handle list is an immediate non-match
+	if (IgnoreHandles.Contains(Effect.Handle))
+	{
+		return false;
+	}
+
 	if (CustomMatch.IsBound())
 	{
 		return CustomMatch.Execute(Effect);

@@ -478,6 +478,10 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTa
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec &Spec, FPredictionKey PredictionKey)
 {
+	// Scope lock the container after the addition has taken place to prevent the new effect from potentially getting mangled during the remainder
+	// of the add operation
+	FScopedActiveGameplayEffectLock ScopeLock(ActiveGameplayEffects);
+
 	// Check Network Authority
 	if (!HasNetworkAuthorityToApplyGameplayEffect(PredictionKey))
 	{
@@ -638,7 +642,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	if (IsOwnerActorAuthoritative() && Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags.Num() > 0)
 	{
 		// Clear tags is always removing all stacks.
-		ActiveGameplayEffects.RemoveActiveEffects(FActiveGameplayEffectQuery(&Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags), -1);
+		FActiveGameplayEffectQuery ClearQuery(&Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags);
+		if (MyHandle.IsValid())
+		{
+			ClearQuery.IgnoreHandles.Add(MyHandle);
+		}
+		ActiveGameplayEffects.RemoveActiveEffects(ClearQuery, -1);
 	}
 
 	// todo: this is ignoring the returned handles, should we put them into a TArray and return all of the handles?

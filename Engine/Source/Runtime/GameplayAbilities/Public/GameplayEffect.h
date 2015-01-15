@@ -586,6 +586,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Overflow, meta=(EditCondition="bDenyOverflowApplication"))
 	bool bClearStackOnOverflow;
 
+	/** Effects to apply when this effect is made to expire prematurely (like via a forced removal, clear tags, etc.); Only works for effects with a duration */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Expiration)
+	TArray<TSubclassOf<UGameplayEffect>> PrematureExpirationEffectClasses;
+
+	/** Effects to apply when this effect expires naturally via its duration; Only works for effects with a duration */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Expiration)
+	TArray<TSubclassOf<UGameplayEffect>> RoutineExpirationEffectClasses;
+
 	void GetTargetEffects(TArray<const UGameplayEffect*>& OutEffects) const;
 
 	// ------------------------------------------------
@@ -1174,51 +1182,20 @@ struct FActiveGameplayEffectQuery
 	GENERATED_USTRUCT_BODY()
 
 	FActiveGameplayEffectQuery()
-		: OwningTagContainer(NULL)
-		, EffectTagContainer(NULL)
-		, OwningTagContainer_Rejection(NULL)
-		, EffectTagContainer_Rejection(NULL)
-		, EffectSource(NULL)
+		: OwningTagContainer(nullptr)
+		, EffectTagContainer(nullptr)
+		, OwningTagContainer_Rejection(nullptr)
+		, EffectTagContainer_Rejection(nullptr)
+		, EffectSource(nullptr)
 	{
 	}
 
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute(), const UObject* InEffectSource = NULL)
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer)
 		: OwningTagContainer(InOwningTagContainer)
-		, EffectTagContainer(NULL)
-		, OwningTagContainer_Rejection(NULL)
-		, EffectTagContainer_Rejection(NULL)
-		, ModifyingAttribute(InModifyingAttribute)
-		, EffectSource(InEffectSource)
-	{
-	}
-
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute(), const UObject* InEffectSource = NULL)
-		: OwningTagContainer(InOwningTagContainer)
-		, EffectTagContainer(InEffectTagContainer)
-		, OwningTagContainer_Rejection(NULL)
-		, EffectTagContainer_Rejection(NULL)
-		, ModifyingAttribute(InModifyingAttribute)
-		, EffectSource(InEffectSource)
-	{
-	}
-
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, const FGameplayTagContainer* InOwningTagContainer_Rejection, FGameplayAttribute InModifyingAttribute = FGameplayAttribute(), const UObject* InEffectSource = NULL)
-		: OwningTagContainer(InOwningTagContainer)
-		, EffectTagContainer(InEffectTagContainer)
-		, OwningTagContainer_Rejection(InOwningTagContainer_Rejection)
-		, EffectTagContainer_Rejection(NULL)
-		, ModifyingAttribute(InModifyingAttribute)
-		, EffectSource(InEffectSource)
-	{
-	}
-
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, const FGameplayTagContainer* InOwningTagContainer_Rejection, const FGameplayTagContainer* InEffectTagContainer_Rejection, FGameplayAttribute InModifyingAttribute = FGameplayAttribute(), const UObject* InEffectSource = NULL)
-		: OwningTagContainer(InOwningTagContainer)
-		, EffectTagContainer(InEffectTagContainer)
-		, OwningTagContainer_Rejection(InOwningTagContainer_Rejection)
-		, EffectTagContainer_Rejection(InEffectTagContainer_Rejection)
-		, ModifyingAttribute(InModifyingAttribute)
-		, EffectSource(InEffectSource)
+		, EffectTagContainer(nullptr)
+		, OwningTagContainer_Rejection(nullptr)
+		, EffectTagContainer_Rejection(nullptr)
+		, EffectSource(nullptr)
 	{
 	}
 
@@ -1245,6 +1222,9 @@ struct FActiveGameplayEffectQuery
 
 	// Matches on GameplayEffects which come from this source
 	const UObject* EffectSource;
+
+	// Handles to ignore as matches, even if other criteria is met
+	TArray<FActiveGameplayEffectHandle> IgnoreHandles;
 };
 
 
@@ -1393,8 +1373,8 @@ private:
 	bool IsNetAuthority() const;
 
 	/** Called internally to actually remove a GameplayEffect or to reduce its StackCount. Returns true if we resized our internal GameplayEffect array. */
-	bool InternalRemoveActiveGameplayEffect(int32 Idx, int32 StacksToRemove);
-
+	bool InternalRemoveActiveGameplayEffect(int32 Idx, int32 StacksToRemove, bool bPrematureRemoval);
+	
 	/** Called both in server side creation and replication creation/deletion */
 	void InternalOnActiveGameplayEffectAdded(FActiveGameplayEffect& Effect);
 	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect);
@@ -1404,6 +1384,9 @@ private:
 
 	/** Updates tag dependency map when a GameplayEffect is removed */
 	void RemoveActiveEffectTagDependency(const FGameplayTagContainer& Tags, FActiveGameplayEffectHandle Handle);
+
+	/** Internal helper function to apply expiration effects from a removed/expired gameplay effect spec */
+	void InternalApplyExpirationEffects(const FGameplayEffectSpec& ExpiringSpec, bool bPrematureRemoval);
 
 	// -------------------------------------------------------------------------------------------
 
