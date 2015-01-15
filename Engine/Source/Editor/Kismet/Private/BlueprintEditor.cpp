@@ -597,10 +597,11 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 
 		// The workflow manager only tracks document tabs.
 		FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
-		if (MyBlueprintWidget.IsValid())
-		{
-			MyBlueprintWidget->Refresh();
-		}
+	}
+
+	if (MyBlueprintWidget.IsValid())
+	{
+		MyBlueprintWidget->Refresh();
 	}
 
 	if(SCSEditor.IsValid())
