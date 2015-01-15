@@ -409,6 +409,10 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
 			FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[GroupLeaderIndex];
 			GroupLeader.SourceAsset->TickAssetPlayerInstance(GroupLeader, this, TickContext);
+			if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+			{
+				ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
+			}
 
 			// Update everything else to follow the leader
 			if (SyncGroup.ActivePlayers.Num() > 1)
@@ -421,13 +425,12 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 					{
 						const FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
 						AssetPlayer.SourceAsset->TickAssetPlayerInstance(AssetPlayer, this, TickContext);
+						if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+						{
+							ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayer.EffectiveBlendWeight);
+						}
 					}
 				}
-			}
-
-			if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
-			{
-				ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
 			}
 		}
 	}
