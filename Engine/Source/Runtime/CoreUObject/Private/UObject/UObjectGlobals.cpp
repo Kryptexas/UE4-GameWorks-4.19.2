@@ -782,6 +782,8 @@ UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* InNam
 */
 UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, ULinkerLoad* ImportLinker)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("LoadPackageInternal"), STAT_LoadPackageInternal, STATGROUP_ObjectVerbose);
+
 	UPackage* Result = NULL;
 
 	FString FileToLoad;
@@ -1663,7 +1665,7 @@ UObject* StaticAllocateObject
 	bool* bOutRecycledSubobject
 )
 {
-//	SCOPE_CYCLE_COUNTER(STAT_AllocateObject);
+	SCOPE_CYCLE_COUNTER(STAT_AllocateObject);
 	checkSlow(InOuter != INVALID_OBJECT); // not legal
 	check(!InClass || (InClass->ClassWithin && InClass->ClassConstructor));
 #if WITH_EDITOR
@@ -1906,7 +1908,7 @@ FObjectInitializer::~FObjectInitializer()
 	check(GIsInConstructor >= 0);
 	GConstructedObject = LastConstructedObject;
 
-//	SCOPE_CYCLE_COUNTER(STAT_PostConstructInitializeProperties);
+	SCOPE_CYCLE_COUNTER(STAT_PostConstructInitializeProperties);
 	check(Obj);
 	const bool bIsCDO = Obj->HasAnyFlags(RF_ClassDefaultObject);
 	UClass* Class = Obj->GetClass();
@@ -2196,7 +2198,7 @@ UObject* StaticConstructObject
 	// Don't call the constructor on recycled subobjects, they haven't been destroyed.
 	if (!bRecycledSubobject)
 	{		
-		FScopeCycleCounterUObject ConstructorScope(Result);
+		FScopeCycleCounterUObject ConstructorScope(Result, GET_STATID(STAT_ConstructObject));
 		(*InClass->ClassConstructor)( FObjectInitializer(Result, InTemplate, bCopyTransientsFromClassDefaults, true, InInstanceGraph) );
 	}
 	

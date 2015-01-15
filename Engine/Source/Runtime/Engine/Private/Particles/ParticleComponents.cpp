@@ -3945,7 +3945,7 @@ int32 UParticleSystemComponent::GetCurrentDetailMode() const
 void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParticleComputeTickTime);
-	FScopeCycleCounterUObject AdditionalScope(AdditionalStatObject());
+	FScopeCycleCounterUObject AdditionalScope(AdditionalStatObject(), GET_STATID(STAT_ParticleComputeTickTime));
 	// Tick Subemitters.
 	int32 EmitterIndex;
 	for (EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
