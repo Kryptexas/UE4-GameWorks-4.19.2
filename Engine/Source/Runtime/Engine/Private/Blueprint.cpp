@@ -364,29 +364,33 @@ void UBlueprint::Serialize(FArchive& Ar)
 
 bool UBlueprint::RenameGeneratedClasses( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
-	FName SkelClassName, GenClassName;
-	GetBlueprintClassNames(GenClassName, SkelClassName, FName(InName));
+	const bool bRenameGeneratedClasses = !(Flags & REN_SkipGeneratedClasses );
 
-	UPackage* NewTopLevelObjectOuter = NewOuter ? NewOuter->GetOutermost() : NULL;
-	if (GeneratedClass != NULL)
+	if(bRenameGeneratedClasses)
 	{
-		bool bMovedOK = GeneratedClass->Rename(*GenClassName.ToString(), NewTopLevelObjectOuter, Flags);
-		if (!bMovedOK)
+		FName SkelClassName, GenClassName;
+		GetBlueprintClassNames(GenClassName, SkelClassName, FName(InName));
+
+		UPackage* NewTopLevelObjectOuter = NewOuter ? NewOuter->GetOutermost() : NULL;
+		if (GeneratedClass != NULL)
 		{
-			return false;
+			bool bMovedOK = GeneratedClass->Rename(*GenClassName.ToString(), NewTopLevelObjectOuter, Flags);
+			if (!bMovedOK)
+			{
+				return false;
+			}
+		}
+
+		// Also move skeleton class, if different from generated class, to new package (again, to create redirector)
+		if (SkeletonGeneratedClass != NULL && SkeletonGeneratedClass != GeneratedClass)
+		{
+			bool bMovedOK = SkeletonGeneratedClass->Rename(*SkelClassName.ToString(), NewTopLevelObjectOuter, Flags);
+			if (!bMovedOK)
+			{
+				return false;
+			}
 		}
 	}
-
-	// Also move skeleton class, if different from generated class, to new package (again, to create redirector)
-	if (SkeletonGeneratedClass != NULL && SkeletonGeneratedClass != GeneratedClass)
-	{
-		bool bMovedOK = SkeletonGeneratedClass->Rename(*SkelClassName.ToString(), NewTopLevelObjectOuter, Flags);
-		if (!bMovedOK)
-		{
-			return false;
-		}
-	}
-
 	return true;
 }
 
