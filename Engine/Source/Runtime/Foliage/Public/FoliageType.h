@@ -238,62 +238,62 @@ class UFoliageType : public UObject
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-	/** Ecosystem specific parameters */
+	/** Procedural specific parameters */
 
 	/** Specifies the number of seeds to populate along 10 meters. The number is implicitly squared to cover a 10m x 10m area*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0.0", UIMin = "0.0"))
 	float InitialSeedDensity;
 
 	/** The average distance between the spreading instance and its seeds. For example, a tree with an AverageSpreadDistance 10 will ensure the average distance between the tree and its seeds is 10cm */
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0.0", UIMin = "0.0"))
 	float AverageSpreadDistance;
 
 	/** Specifies how much seed distance varies from the average. For example, a tree with an AverageSpreadDistance 10 and a SpreadVariance 1 will produce seeds with an average distance of 10cm plus or minus 1cm */
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0.0", UIMin = "0.0"))
 	float SpreadVariance;
 
 	/** The CollisionRadius determines when two instances overlap. When two instances overlap a winner will be picked based on rules and priority. */
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Collision", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Collision", ClampMin = "0.0", UIMin = "0.0"))
 	float CollisionRadius;
 
 	/** The ShadeRadius determines when two instances overlap. If an instance can grow in the shade this radius is ignored.*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Collision", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Collision", ClampMin = "0.0", UIMin = "0.0"))
 	float ShadeRadius;
 
 	/** The number of times we age the species and spread its seeds. */
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0", UIMin = "0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0", UIMin = "0"))
 	int32 NumSteps;
 
 	/** The number of seeds an instance will spread in a single step of the simulation. */
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0", UIMin = "0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0", UIMin = "0"))
 	int32 SeedsPerStep;
 
 	/** Whether the species can grow in shade. If this is true shade radius is ignored during overlap tests*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Growth"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth"))
 	bool bGrowsInShade;
 
 	/** The minimum scale that an instance will be. Corresponds to age = 0*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Growth", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth", ClampMin = "0.0", UIMin = "0.0"))
 	float MinScale;
 
 	/** The maximum scale that a seed will grow to. Corresponds to age = 1*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth", ClampMin = "0.0", UIMin = "0.0"))
 	float MaxScale;
 
 	/** Specifies the oldest a new seed can be. The new seed will have an age randomly distributed in [0,InitMaxAge] */
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Growth", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth", ClampMin = "0.0", UIMin = "0.0"))
 	float InitialMaxAge;
 
 	/** Specifies the oldest a seed can be. After reaching this age the instance will still spread seeds, but will not get any older*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Growth", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth", ClampMin = "0.0", UIMin = "0.0"))
 	float MaxAge;
 
 	/** When two instances overlap we must determine which instance to remove. The instance with a lower OverlapPriority will be removed. In the case where OverlapPriority is the same regular simulation rules apply.*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Growth"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth"))
 	float OverlapPriority;
 
 	/** The set of meshes to be used for representing an instance placed in the world.*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Rendering"))
+	UPROPERTY(Category = Procedural, EditAnywhere)
 	TArray<UStaticMesh*> StaticMeshes;
 
 
@@ -310,7 +310,7 @@ class UFoliageType : public UObject
 private:
 
 	/** The curve used to interpolate the instance scale.*/
-	UPROPERTY(Category = Ecosystem, EditAnywhere, meta = (Subcategory = "Rendering"))
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth"))
 	FRuntimeFloatCurve ScaleCurve;
 };
 

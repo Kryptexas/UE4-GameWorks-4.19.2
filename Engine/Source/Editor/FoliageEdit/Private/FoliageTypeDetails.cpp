@@ -48,6 +48,6 @@ void AddSubcategoryProperties(IDetailCategoryBuilder& CategoryBuilder)
 void FFoliageTypeDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	AddSubcategoryProperties(DetailBuilder.EditCategory("General"));
-	AddSubcategoryProperties(DetailBuilder.EditCategory("Ecosystem"));
+	AddSubcategoryProperties(DetailBuilder.EditCategory("Procedural"));
 	AddSubcategoryProperties(DetailBuilder.EditCategory("Painting"));
 }

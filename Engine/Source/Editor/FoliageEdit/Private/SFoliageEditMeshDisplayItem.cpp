@@ -1956,7 +1956,7 @@ bool SFoliageEditMeshDisplayItem::IsPropertyVisible(const FPropertyAndParent& Pr
 	const FName CategoryName = FObjectEditorUtils::GetCategoryFName(&PropertyAndParent.Property);
 	
 	FString Subcategory = "";
-	if ( (CategoryName != FName("Ecosystem")) && PropertyAndParent.Property.HasMetaData(FName("Subcategory")))
+	if ( (CategoryName != FName("Procedural")) && PropertyAndParent.Property.HasMetaData(FName("Subcategory")))
 	{
 		Subcategory = PropertyAndParent.Property.GetMetaData(FName("Subcategory"));
 	}

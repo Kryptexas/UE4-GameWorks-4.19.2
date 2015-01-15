@@ -9,6 +9,11 @@ const FName FoliageEditAppIdentifier = FName(TEXT("FoliageEdApp"));
 #include "FoliageEdMode.h"
 #include "PropertyEditing.h"
 #include "FoliageTypeDetails.h"
+#include "ProceduralFoliageComponent.h"
+#include "ProceduralFoliageComponentVisualizer.h"
+#include "ProceduralFoliageComponentDetails.h"
+#include "ActorFactoryProceduralFoliage.h"
+#include "ComponentVisualizer.h"
 
 /**
  * Foliage Edit Mode module
@@ -32,6 +37,15 @@ public:
 		// Register the details customizer
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout("FoliageType", FOnGetDetailCustomizationInstance::CreateStatic(&FFoliageTypeDetails::MakeInstance));
+
+		GUnrealEd->RegisterComponentVisualizer(UProceduralFoliageComponent::StaticClass()->GetFName(), MakeShareable(new FProceduralFoliageComponentVisualizer));
+
+		FPropertyEditorModule& PropertyEditor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyEditor.RegisterCustomClassLayout("ProceduralFoliageComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FProceduralFoliageComponentDetails::MakeInstance));
+
+		// Actor Factories
+		UActorFactoryProceduralFoliage* ProceduralFoliageActorFactory = ConstructObject<UActorFactoryProceduralFoliage>(UActorFactoryProceduralFoliage::StaticClass());
+		GEditor->ActorFactories.Add(ProceduralFoliageActorFactory);
 	}
 
 	/**
