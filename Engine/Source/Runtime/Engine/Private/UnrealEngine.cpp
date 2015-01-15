@@ -10463,7 +10463,7 @@ bool UEngine::ShouldAbsorbAuthorityOnlyEvent()
 			}
 		}
 
-		if (useIt)
+		if (useIt && (Context.World() != nullptr))
 		{
 			return (Context.World()->GetNetMode() ==  NM_Client);
 		}
@@ -10504,7 +10504,7 @@ bool UEngine::ShouldAbsorbCosmeticOnlyEvent()
 			}
 		}
 
-		if (useIt)
+		if (useIt && (Context.World() != nullptr))
 		{
 			return (Context.World()->GetNetMode() == NM_DedicatedServer);
 		}
