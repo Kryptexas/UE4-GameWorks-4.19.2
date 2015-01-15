@@ -130,12 +130,7 @@ void UPhysicsHandleComponent::GrabComponent(UPrimitiveComponent* InComponent, FN
 			NewJoint->setMotion(PxD6Axis::eX, PxD6Motion::eFREE);
 			NewJoint->setMotion(PxD6Axis::eY, PxD6Motion::eFREE);
 			NewJoint->setMotion(PxD6Axis::eZ, PxD6Motion::eFREE);
-
-			NewJoint->setDrive(PxD6Drive::eX, PxD6JointDrive(LinearStiffness, LinearDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
-			NewJoint->setDrive(PxD6Drive::eY, PxD6JointDrive(LinearStiffness, LinearDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
-			NewJoint->setDrive(PxD6Drive::eZ, PxD6JointDrive(LinearStiffness, LinearDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
 			NewJoint->setDrivePosition(PxTransform(PxVec3(0,0,0)));
-
 
 			NewJoint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
 			NewJoint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
@@ -143,16 +138,7 @@ void UPhysicsHandleComponent::GrabComponent(UPrimitiveComponent* InComponent, FN
 			
 			bRotationConstrained = bConstrainRotation;
 			
-			if (bRotationConstrained)
-			{
-				NewJoint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive(AngularStiffness, AngularDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
-
-				//NewJoint->setDrive(PxD6Drive::eTWIST, PxD6JointDrive(AngularStiffness, AngularDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
-				//NewJoint->setDrive(PxD6Drive::eSWING, PxD6JointDrive(AngularStiffness, AngularDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
-				
-				//PosJointDesc.setGlobalAxis(NxVec3(0,0,1));
-			}
-
+			UpdateDriveSettings();
 		}
 	
 	}
@@ -163,6 +149,25 @@ void UPhysicsHandleComponent::GrabComponent(UPrimitiveComponent* InComponent, FN
 	GrabbedBoneName = InBoneName;
 }
 
+void UPhysicsHandleComponent::UpdateDriveSettings()
+{
+#if WITH_PHYSX
+	if(HandleData != nullptr)
+	{
+		HandleData->setDrive(PxD6Drive::eX, PxD6JointDrive(LinearStiffness, LinearDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
+		HandleData->setDrive(PxD6Drive::eY, PxD6JointDrive(LinearStiffness, LinearDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
+		HandleData->setDrive(PxD6Drive::eZ, PxD6JointDrive(LinearStiffness, LinearDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
+
+		if (bRotationConstrained)
+		{
+			HandleData->setDrive(PxD6Drive::eSLERP, PxD6JointDrive(AngularStiffness, AngularDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
+
+			//NewJoint->setDrive(PxD6Drive::eTWIST, PxD6JointDrive(AngularStiffness, AngularDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
+			//NewJoint->setDrive(PxD6Drive::eSWING, PxD6JointDrive(AngularStiffness, AngularDamping, PX_MAX_F32, PxD6JointDriveFlag::eACCELERATION));
+		}
+	}
+#endif // WITH_PHYSX
+}
 
 void UPhysicsHandleComponent::ReleaseComponent()
 {
@@ -196,6 +201,8 @@ void UPhysicsHandleComponent::ReleaseComponent()
 	}
 #endif // WITH_PHYSX
 }
+
+
 
 
 void UPhysicsHandleComponent::SetTargetLocation(FVector NewLocation)
@@ -285,4 +292,33 @@ void UPhysicsHandleComponent::GetTargetLocationAndRotation(FVector& OutLocation,
 {
 	OutRotation = TargetTransform.Rotator();
 	OutLocation = TargetTransform.GetTranslation();
+}
+
+void UPhysicsHandleComponent::SetLinearDamping(float NewLinearDamping)
+{
+	LinearDamping = NewLinearDamping;
+	UpdateDriveSettings();
+}
+
+void UPhysicsHandleComponent::SetLinearStiffness(float NewLinearStiffness)
+{
+	LinearStiffness = NewLinearStiffness;
+	UpdateDriveSettings();
+}
+
+void UPhysicsHandleComponent::SetAngularDamping(float NewAngularDamping)
+{
+	AngularDamping = NewAngularDamping;
+	UpdateDriveSettings();
+}
+
+void UPhysicsHandleComponent::SetAngularStiffness(float NewAngularStiffness)
+{
+	AngularStiffness = NewAngularStiffness;
+	UpdateDriveSettings();
+}
+
+void UPhysicsHandleComponent::SetInterpolationSpeed(float NewInterpolationSpeed)
+{
+	InterpolationSpeed = NewInterpolationSpeed;
 }
