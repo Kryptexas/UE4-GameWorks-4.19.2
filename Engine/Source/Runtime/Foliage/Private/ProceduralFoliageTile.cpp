@@ -57,7 +57,7 @@ bool UProceduralFoliageTile::HandleOverlaps(FProceduralFoliageInstance* Instance
 	return bSurvived;
 }
 
-FProceduralFoliageInstance* UProceduralFoliageTile::NewSeed(const FVector& Location, float Scale, UFoliageType_InstancedStaticMesh* Type, float InAge, bool bBlocker)
+FProceduralFoliageInstance* UProceduralFoliageTile::NewSeed(const FVector& Location, float Scale, const UFoliageType_InstancedStaticMesh* Type, float InAge, bool bBlocker)
 {
 	const float InitRadius = Type->GetMaxRadius() * Scale;
 	{
@@ -69,6 +69,8 @@ FProceduralFoliageInstance* UProceduralFoliageTile::NewSeed(const FVector& Locat
 		NewInst->Normal = FVector(0, 0, 1);
 		NewInst->Scale = Scale;
 		NewInst->bBlocker = bBlocker;
+		
+	
 
 		Broadphase.Insert(NewInst);
 		const bool bSurvived = HandleOverlaps(NewInst);
@@ -126,7 +128,7 @@ void UProceduralFoliageTile::AgeSeeds()
 	{
 		if (Instance->IsAlive())
 		{
-			UFoliageType_InstancedStaticMesh* Type = Instance->Type;
+			const UFoliageType_InstancedStaticMesh* Type = Instance->Type;
 			if (SimulationStep <= Type->NumSteps)
 			{
 				const float CurrentAge = Instance->Age;
@@ -162,7 +164,7 @@ void UProceduralFoliageTile::SpreadSeeds(TArray<FProceduralFoliageInstance*>& Ne
 			continue;
 		}
 
-		UFoliageType_InstancedStaticMesh* Type = Inst->Type;
+		const UFoliageType_InstancedStaticMesh* Type = Inst->Type;
 
 		if (SimulationStep <= Type->NumSteps)
 		{

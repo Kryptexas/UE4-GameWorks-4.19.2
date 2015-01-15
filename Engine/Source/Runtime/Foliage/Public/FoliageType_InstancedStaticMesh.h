@@ -13,7 +13,7 @@ class UFoliageType_InstancedStaticMesh : public UFoliageType
 	UPROPERTY(EditAnywhere, Category=FoliageType)
 	UStaticMesh* Mesh;
 
-	virtual UStaticMesh* GetStaticMesh() override
+	virtual UStaticMesh* GetStaticMesh() const override
 	{
 		return Mesh;
 	}

@@ -95,7 +95,8 @@ public:
 	float Scale;
 
 	UPROPERTY()
-	UFoliageType_InstancedStaticMesh* Type;
+	const UFoliageType_InstancedStaticMesh* Type;
+
 
 	bool bBlocker;
 
