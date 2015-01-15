@@ -32,9 +32,8 @@ UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetDataUsingAct
 void UAbilityTask_WaitTargetData::Activate()
 {
 	// Need to handle case where target actor was passed into task
-	if (Ability.IsValid() && TargetClass == NULL)
+	if (Ability.IsValid() && (TargetClass == NULL) && TargetActor.IsValid())
 	{
-		check(TargetActor.IsValid());
 		AGameplayAbilityTargetActor* SpawnedActor = TargetActor.Get();
 
 		TargetClass = SpawnedActor->GetClass();

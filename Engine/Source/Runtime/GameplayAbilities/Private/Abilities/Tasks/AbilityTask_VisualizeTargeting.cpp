@@ -31,9 +31,9 @@ UAbilityTask_VisualizeTargeting* UAbilityTask_VisualizeTargeting::VisualizeTarge
 
 void UAbilityTask_VisualizeTargeting::Activate()
 {
-	if (Ability.IsValid() && TargetClass == NULL)
+	// Need to handle case where target actor was passed into task
+	if (Ability.IsValid() && (TargetClass == NULL) && TargetActor.IsValid())
 	{
-		check(TargetActor.IsValid());
 		AGameplayAbilityTargetActor* SpawnedActor = TargetActor.Get();
 
 		TargetClass = SpawnedActor->GetClass();
