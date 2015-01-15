@@ -29,8 +29,8 @@ void FWorldBrowserModule::StartupModule()
 		GEngine->OnWorldAdded().AddRaw(this, &FWorldBrowserModule::OnWorldCreated);
 		GEngine->OnWorldDestroyed().AddRaw(this, &FWorldBrowserModule::OnWorldDestroyed);
 	}
-	UWorldComposition::OnWorldCompositionCreated.AddRaw(this, &FWorldBrowserModule::OnWorldCompositionChanged);
-	UWorldComposition::OnWorldCompositionDestroyed.AddRaw(this, &FWorldBrowserModule::OnWorldCompositionChanged);
+
+	UWorldComposition::EnableWorldCompositionEvent.BindRaw(this, &FWorldBrowserModule::EnableWorldComposition);
 }
 
 void FWorldBrowserModule::ShutdownModule()
@@ -40,8 +40,8 @@ void FWorldBrowserModule::ShutdownModule()
 		GEngine->OnWorldAdded().RemoveAll(this);
 		GEngine->OnWorldDestroyed().RemoveAll(this);
 	}
-	UWorldComposition::OnWorldCompositionCreated.RemoveAll(this);
-	UWorldComposition::OnWorldCompositionDestroyed.RemoveAll(this);
+	
+	UWorldComposition::EnableWorldCompositionEvent.Unbind();
 
 	FLevelCollectionCommands::Unregister();
 
@@ -128,7 +128,70 @@ TSharedPtr<FLevelCollectionModel> FWorldBrowserModule::SharedWorldModel(UWorld* 
 	return SharedWorldModel;
 }
 
+bool FWorldBrowserModule::EnableWorldComposition(UWorld* InWorld, bool bEnable)
+{
+	if (InWorld == nullptr || InWorld->WorldType != EWorldType::Editor)
+	{
+		return false;
+	}
+		
+	if (!bEnable)
+	{
+		if (InWorld->WorldComposition != nullptr)
+		{
+			InWorld->FlushLevelStreaming();
+			InWorld->WorldComposition->MarkPendingKill();
+			InWorld->WorldComposition = nullptr;
+			OnWorldCompositionChanged(InWorld);
+		}
 
+		return false;
+	}
+	
+	if (InWorld->WorldComposition == nullptr)
+	{
+		FString RootPackageName = InWorld->GetOutermost()->GetName();
 
+		// Map should be saved to disk
+		if (!FPackageName::DoesPackageExist(RootPackageName))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("EnableWorldCompositionNotSaved_Message", "Please save your level to disk before enabling World Composition"));
+			return false;
+		}
+			
+		// All existing sub-levels on this map should be removed
+		int32 NumExistingSublevels = InWorld->StreamingLevels.Num();
+		if (NumExistingSublevels > 0)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("EnableWorldCompositionExistingSublevels_Message", "World Composition cannot be enabled because there are already sub-levels manually added to the persistent level. World Composition uses auto-discovery so you must first remove any manually added sub-levels from the Levels window"));
+			return false;
+		}
+			
+		UWorldComposition* WorldCompostion = ConstructObject<UWorldComposition>(UWorldComposition::StaticClass(), InWorld);
+		// All map files found in the same and folder and all sub-folders will be added ass sub-levels to this map
+		// Make sure user understands this
+		int32 NumFoundSublevels = WorldCompostion->GetTilesList().Num();
+		if (NumFoundSublevels)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("NumSubLevels"), NumFoundSublevels);
+			Arguments.Add(TEXT("FolderLocation"), FText::FromString(FPackageName::GetLongPackagePath(RootPackageName)));
+			const FText Message = FText::Format(LOCTEXT("EnableWorldCompositionPrompt_Message", "World Composition auto-discovers sub-levels by scanning the folder the level is saved in, and all sub-folders. {NumSubLevels} level files were found in {FolderLocation} and will be added as sub-levels. Do you want to continue?"), Arguments);
+			
+			auto AppResult = FMessageDialog::Open(EAppMsgType::OkCancel, Message);
+			if (AppResult != EAppReturnType::Ok)
+			{
+				WorldCompostion->MarkPendingKill();
+				return false;
+			}
+		}
+			
+		// 
+		InWorld->WorldComposition = WorldCompostion;
+		OnWorldCompositionChanged(InWorld);
+	}
+	
+	return true;
+}
 
 #undef LOCTEXT_NAMESPACE
