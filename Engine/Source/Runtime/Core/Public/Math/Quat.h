@@ -622,8 +622,8 @@ FORCEINLINE FQuat& FQuat::operator=( const FQuat& Other )
 FORCEINLINE FQuat::FQuat( FVector Axis, float AngleRad )
 {
 	const float half_a = 0.5f * AngleRad;
-	const float s = FMath::Sin(half_a);
-	const float c = FMath::Cos(half_a);
+	float s, c;
+	FMath::SinCos(&s, &c, half_a);
 
 	X = s * Axis.X;
 	Y = s * Axis.Y;

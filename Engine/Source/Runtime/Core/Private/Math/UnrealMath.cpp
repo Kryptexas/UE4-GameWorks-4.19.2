@@ -771,8 +771,8 @@ FQuat FQuat::FindBetween(const FVector& vec1, const FVector& vec2)
 		angle = PI - angle;
 	}
 
-	const float sinHalfAng = FMath::Sin(0.5f * angle);
-	const float cosHalfAng = FMath::Cos(0.5f * angle);
+	float sinHalfAng, cosHalfAng;
+	FMath::SinCos(&sinHalfAng, &cosHalfAng, 0.5f * angle);
 	const FVector axis = cross / crossMag;
 
 	return FQuat(

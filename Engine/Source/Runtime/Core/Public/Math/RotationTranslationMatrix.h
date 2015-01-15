@@ -44,13 +44,11 @@ FORCEINLINE FRotationTranslationMatrix::FRotationTranslationMatrix(const FRotato
 
 #else
 	
-	static const float DEG_TO_RAD = PI/(180.f);
-
 	float SP, SY, SR;
 	float CP, CY, CR;
-	FMath::SinCos(&SP, &CP, Rot.Pitch * DEG_TO_RAD);
-	FMath::SinCos(&SY, &CY, Rot.Yaw * DEG_TO_RAD);
-	FMath::SinCos(&SR, &CR, Rot.Roll * DEG_TO_RAD);
+	FMath::SinCos(&SP, &CP, FMath::DegreesToRadians(Rot.Pitch));
+	FMath::SinCos(&SY, &CY, FMath::DegreesToRadians(Rot.Yaw));
+	FMath::SinCos(&SR, &CR, FMath::DegreesToRadians(Rot.Roll));
 
 #endif
 

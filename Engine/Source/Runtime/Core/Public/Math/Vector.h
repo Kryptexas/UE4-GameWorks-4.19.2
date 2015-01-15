@@ -1023,8 +1023,8 @@ FORCEINLINE FVector::FVector( const FVector2D V, float InZ )
 
 inline FVector FVector::RotateAngleAxis( const float AngleDeg, const FVector& Axis ) const
 {
-	const float S	= FMath::Sin(AngleDeg * PI / 180.f);
-	const float C	= FMath::Cos(AngleDeg * PI / 180.f);
+	float S, C;
+	FMath::SinCos(&S, &C, FMath::DegreesToRadians(AngleDeg));
 
 	const float XX	= Axis.X * Axis.X;
 	const float YY	= Axis.Y * Axis.Y;
