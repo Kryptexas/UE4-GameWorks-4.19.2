@@ -37,7 +37,8 @@ public:
 	// Begin AActor interface.
 	// we don't want to have our components automatically destroyed by the Blueprint code
 	virtual void RerunConstructionScripts() override {}
-	// Add world origin offset
+	virtual void PostRegisterAllComponents() override;
+	virtual void PostUnregisterAllComponents() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End AActor interface.
 
@@ -125,6 +126,7 @@ private:
 private:
 #if WITH_EDITOR
 	FDelegateHandle OnLevelActorMovedDelegateHandle;
+	FDelegateHandle OnApplyLevelTransformDelegateHandle;
 #endif
 
 };

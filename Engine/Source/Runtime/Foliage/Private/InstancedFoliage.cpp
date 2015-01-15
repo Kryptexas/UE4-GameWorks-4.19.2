@@ -1670,7 +1670,32 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 	Super::AddReferencedObjects(This, Collector);
 }
 
+void AInstancedFoliageActor::PostRegisterAllComponents()
+{
+	Super::PostRegisterAllComponents();
 
+#if WITH_EDITOR
+	if (!IsTemplate())
+	{
+		ULevel* Level = GetLevel();
+		Level->OnApplyLevelTransform.Remove(OnApplyLevelTransformDelegateHandle); // RegisterAllComponents can be called many times before calling UnregisterAllComponents
+		OnApplyLevelTransformDelegateHandle = Level->OnApplyLevelTransform.AddUObject(this, &AInstancedFoliageActor::ApplyLevelTransform);
+	}
+#endif// WITH_EDITOR
+}
+
+void AInstancedFoliageActor::PostUnregisterAllComponents()
+{
+#if WITH_EDITOR
+	if (!IsTemplate())
+	{
+		ULevel* Level = GetLevel();
+		Level->OnApplyLevelTransform.Remove(OnApplyLevelTransformDelegateHandle);
+	}
+#endif// WITH_EDITOR
+
+	Super::PostUnregisterAllComponents();
+}
 
 void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {

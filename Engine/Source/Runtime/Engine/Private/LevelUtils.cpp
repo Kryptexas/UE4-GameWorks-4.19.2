@@ -384,14 +384,9 @@ void FLevelUtils::ApplyLevelTransform( ULevel* Level, const FTransform& LevelTra
 		{
 			ApplyPostEditMove( Level );						
 		}
-
-		// We need to transform foliage Editor data which is stored in world space
-		/*AInstancedFoliageActor* FoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
-		if (FoliageActor)
-		{
-			FoliageActor->ApplyLevelTransform(LevelTransform);
-		}*/
 #endif // WITH_EDITOR
+
+		Level->OnApplyLevelTransform.Broadcast(LevelTransform);
 	}
 }
 

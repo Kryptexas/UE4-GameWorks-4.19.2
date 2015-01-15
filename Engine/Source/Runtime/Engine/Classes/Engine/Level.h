@@ -437,6 +437,10 @@ public:
 		return (OwningWorld && this == OwningWorld->CurrentLevelPendingVisibility);
 	}
 
+	// Event on level transform changes
+	DECLARE_MULTICAST_DELEGATE_OneParam(FLevelTransformEvent, const FTransform&);
+	FLevelTransformEvent OnApplyLevelTransform;
+
 #if WITH_EDITORONLY_DATA
 	/** Level simplification settings for each LOD */
 	UPROPERTY()
