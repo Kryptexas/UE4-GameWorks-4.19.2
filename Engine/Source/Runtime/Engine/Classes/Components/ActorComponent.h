@@ -59,6 +59,7 @@ protected:
 	uint32 bReplicates:1;
 
 	/** Is this component safe to ID over the network by name?  */
+	UPROPERTY()
 	uint32 bNetAddressable:1;
 
 private:
