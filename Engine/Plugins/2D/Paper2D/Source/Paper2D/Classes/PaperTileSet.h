@@ -36,6 +36,13 @@ class PAPER2D_API UPaperTileSet : public UObject
 	UPROPERTY(Category=TileSet, EditAnywhere, meta=(UIMin=0, ClampMin=0))
 	FIntPoint DrawingOffset;
 
+#if WITH_EDITORONLY_DATA
+	/** The background color displayed in the tile set viewer */
+	UPROPERTY(Category=TileSet, EditAnywhere)
+	FLinearColor BackgroundColor;
+#endif
+
+
 	// UObject interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

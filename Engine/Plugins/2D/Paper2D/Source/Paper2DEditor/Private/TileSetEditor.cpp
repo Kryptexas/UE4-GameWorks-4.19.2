@@ -54,6 +54,10 @@ public:
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 	// End of FViewportClient interface
 
+	// FEditorViewportClient interface
+	virtual FLinearColor GetBackgroundColor() const override;
+	// End of FEditorViewportClient interface
+
 public:
 	// Tile set
 	TWeakObjectPtr<UPaperTileSet> TileSetBeingEdited;
@@ -122,6 +126,18 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		FCanvasBoxItem BoxItem(FVector2D(X, Y), FVector2D(W, H));
 		BoxItem.SetColor(Rect.Color);
 		Canvas->DrawItem(BoxItem);
+	}
+}
+
+FLinearColor FTileSetEditorViewportClient::GetBackgroundColor() const
+{
+	if (UPaperTileSet* TileSet = TileSetBeingEdited.Get())
+	{
+		return TileSet->BackgroundColor;
+	}
+	else
+	{
+		return FEditorViewportClient::GetBackgroundColor();
 	}
 }
 
