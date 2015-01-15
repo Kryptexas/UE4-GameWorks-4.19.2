@@ -2648,6 +2648,9 @@ private:
 	/** List of actors that were selected before Undo/redo */
 	TArray<AActor*> OldSelectedActors;
 
+	/** List of components that were selected before Undo/redo */
+	TArray<UActorComponent*> OldSelectedComponents;
+
 	/** The notification item to use for undo/redo */
 	TSharedPtr<class SNotificationItem> UndoRedoNotificationItem;
 

@@ -1385,6 +1385,8 @@ void FTrackingTransaction::Begin(const FText& Description)
 	{
 		GroupActor->Modify();
 	}
+
+	// Modify selected components
 	for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
 	{
 		CastChecked<UActorComponent>(*It)->Modify();
@@ -2392,48 +2394,57 @@ void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInpu
 	}
 
 	PreDragActorTransforms.Empty();
-	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It && !bIsTrackingBrushModification; ++It)
+	if (GEditor->GetSelectedComponentCount() > 0)
 	{
-		AActor* Actor = static_cast<AActor*>(*It);
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-		if( bIsDraggingWidget )
+		if (bIsDraggingWidget)
 		{
-			// Notify that this actor is beginning to move
-			GEditor->BroadcastBeginObjectMovement( *Actor );
+			Widget->SetSnapEnabled(true);
 		}
-
-		Widget->SetSnapEnabled(true);
-
-		// See if any brushes are about to be transformed via their Widget
-		TArray<AActor*> AttachedActors;
-		Actor->GetAttachedActors( AttachedActors );
-		const bool bExactClass = true;
-		// First, check for selected brush actors, check the actors attached actors for brush actors as well.  If a parent actor moves, the bsp needs to be rebuilt
-		ABrush* Brush = Cast< ABrush >( Actor );
-		if (Brush && (!Brush->IsVolumeBrush() && !FActorEditorUtils::IsABuilderBrush(Actor)))
+	}
+	else
+	{
+		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It && !bIsTrackingBrushModification; ++It)
 		{
-			bIsTrackingBrushModification = true;
-		}
-		else // Next, check for selected groups actors that contain brushes
-		{
-			AGroupActor* GroupActor = Cast<AGroupActor>(Actor);
-			if (GroupActor)
+			AActor* Actor = static_cast<AActor*>( *It );
+			checkSlow(Actor->IsA(AActor::StaticClass()));
+
+			if (bIsDraggingWidget)
 			{
-				TArray<AActor*> GroupMembers;
-				GroupActor->GetAllChildren(GroupMembers, true);
-				for (int32 GroupMemberIdx = 0; GroupMemberIdx < GroupMembers.Num(); ++GroupMemberIdx)
+				// Notify that this actor is beginning to move
+				GEditor->BroadcastBeginObjectMovement(*Actor);
+			}
+
+			Widget->SetSnapEnabled(true);
+
+			// See if any brushes are about to be transformed via their Widget
+			TArray<AActor*> AttachedActors;
+			Actor->GetAttachedActors(AttachedActors);
+			const bool bExactClass = true;
+			// First, check for selected brush actors, check the actors attached actors for brush actors as well.  If a parent actor moves, the bsp needs to be rebuilt
+			ABrush* Brush = Cast< ABrush >(Actor);
+			if (Brush && ( !Brush->IsVolumeBrush() && !FActorEditorUtils::IsABuilderBrush(Actor) ))
+			{
+				bIsTrackingBrushModification = true;
+			}
+			else // Next, check for selected groups actors that contain brushes
+			{
+				AGroupActor* GroupActor = Cast<AGroupActor>(Actor);
+				if (GroupActor)
 				{
-					Brush = Cast< ABrush >( GroupMembers[GroupMemberIdx] );
-					if ( Brush && (!Brush->IsVolumeBrush() && !FActorEditorUtils::IsABuilderBrush(Actor)))
+					TArray<AActor*> GroupMembers;
+					GroupActor->GetAllChildren(GroupMembers, true);
+					for (int32 GroupMemberIdx = 0; GroupMemberIdx < GroupMembers.Num(); ++GroupMemberIdx)
 					{
-						bIsTrackingBrushModification = true;
+						Brush = Cast< ABrush >(GroupMembers[GroupMemberIdx]);
+						if (Brush && ( !Brush->IsVolumeBrush() && !FActorEditorUtils::IsABuilderBrush(Actor) ))
+						{
+							bIsTrackingBrushModification = true;
+						}
 					}
 				}
 			}
 		}
 	}
-
 
 	// Start a transformation transaction if required
 	if( !bTrackingHandledExternally )

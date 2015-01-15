@@ -1048,11 +1048,18 @@ void UEditorEngine::HandleTransactorBeforeRedoUndo( FUndoSessionContext SessionC
 {
 	//Get the list of all selected actors before the undo/redo is performed
 	OldSelectedActors.Empty();
-
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 	{
 		AActor* Actor = CastChecked<AActor>( *It );
 		OldSelectedActors.Add( Actor);
+	}
+
+	// Get the list of selected components as well
+	OldSelectedComponents.Empty();
+	for (FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
+	{
+		auto Component = CastChecked<UActorComponent>(*It);
+		OldSelectedComponents.Add(Component);
 	}
 }
 
@@ -1094,54 +1101,105 @@ UTransactor* UEditorEngine::CreateTrans()
 void UEditorEngine::PostUndo (bool bSuccess)
 {
 	//Make sure that the proper objects display as selected
-	//Get the list of all selected actors after the operation
-	TArray<AActor*> SelectedActors;
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	if (GetSelectedComponentCount() > 0)
 	{
-		AActor* Actor = CastChecked<AActor>( *It );
-		//if this actor is NOT in a hidden level add it to the list - otherwise de-select it
-		if( FLevelUtils::IsLevelLocked( Actor ) == false )
+		//@todo Check to see if component owner is in a hidden level
+		
+		// Get a list of all selected components after the operation
+		TArray<UActorComponent*> SelectedComponents;
+		for (FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
 		{
-			SelectedActors.Add( Actor);
+			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
 		}
-		else
+		
+		USelection* Selection = GetSelectedComponents();
+		Selection->BeginBatchSelectOperation();
+
+		//Deselect all of the actors that were selected prior to the operation
+		for (int32 OldSelectedComponentIndex = OldSelectedComponents.Num() - 1; OldSelectedComponentIndex >= 0; --OldSelectedComponentIndex)
 		{
-			GetSelectedActors()->Select( Actor, false );				
+			UActorComponent* Component = OldSelectedComponents[OldSelectedComponentIndex];
+
+			//To stop us from unselecting and then reselecting again (causing two force update components, we will remove (from both lists) any object that was selected and should continue to be selected
+			int32 FoundIndex;
+			if (SelectedComponents.Find(Component, FoundIndex))
+			{
+				OldSelectedComponents.RemoveAt(OldSelectedComponentIndex);
+				SelectedComponents.RemoveAt(FoundIndex);
+			}
+			else
+			{
+				// Deselect without any notification
+				SelectComponent(Component, false, false);
+				//Actor->UpdateComponentTransforms();
+			}
 		}
+
+		//Select all of the components left in SelectedComponents
+		for (int32 SelectedComponentIndex = 0; SelectedComponentIndex < SelectedComponents.Num(); ++SelectedComponentIndex)
+		{
+			UActorComponent* Component = SelectedComponents[SelectedComponentIndex];
+			SelectComponent(Component, true, false);	//false is to stop notify which is done below if bOpWasSuccessful
+			//Actor->UpdateComponentTransforms();
+		}
+
+		OldSelectedComponents.Empty();
+
+		// We want to broadcast the component SelectionChangedEvent even if the selection didn't actually change
+		Selection->MarkBatchDirty();
+		Selection->EndBatchSelectOperation();
 	}
-
-	USelection* Selection = GetSelectedActors();
-	Selection->BeginBatchSelectOperation();
-
-	//Deselect all of the actors that were selected prior to the operation
-	for ( int32 OldSelectedActorIndex = OldSelectedActors.Num()-1 ; OldSelectedActorIndex >= 0 ; --OldSelectedActorIndex )
+	else
 	{
-		AActor* Actor = OldSelectedActors[OldSelectedActorIndex];
-
-		//To stop us from unselecting and then reselecting again (causing two force update components, we will remove (from both lists) any object that was selected and should continue to be selected
-		int32 FoundIndex;
-		if (SelectedActors.Find(Actor, FoundIndex))
+		//Get the list of all selected actors after the operation
+		TArray<AActor*> SelectedActors;
+		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 		{
-			OldSelectedActors.RemoveAt(OldSelectedActorIndex);
-			SelectedActors.RemoveAt(FoundIndex);
+			AActor* Actor = CastChecked<AActor>(*It);
+			//if this actor is NOT in a hidden level add it to the list - otherwise de-select it
+			if (FLevelUtils::IsLevelLocked(Actor) == false)
+			{
+				SelectedActors.Add(Actor);
+			}
+			else
+			{
+				GetSelectedActors()->Select(Actor, false);
+			}
 		}
-		else
+
+		USelection* Selection = GetSelectedActors();
+		Selection->BeginBatchSelectOperation();
+
+		//Deselect all of the actors that were selected prior to the operation
+		for (int32 OldSelectedActorIndex = OldSelectedActors.Num() - 1; OldSelectedActorIndex >= 0; --OldSelectedActorIndex)
 		{
-			SelectActor( Actor, false, false );//First false is to deselect, 2nd is to notify
+			AActor* Actor = OldSelectedActors[OldSelectedActorIndex];
+
+			//To stop us from unselecting and then reselecting again (causing two force update components, we will remove (from both lists) any object that was selected and should continue to be selected
+			int32 FoundIndex;
+			if (SelectedActors.Find(Actor, FoundIndex))
+			{
+				OldSelectedActors.RemoveAt(OldSelectedActorIndex);
+				SelectedActors.RemoveAt(FoundIndex);
+			}
+			else
+			{
+				SelectActor(Actor, false, false);//First false is to deselect, 2nd is to notify
+				Actor->UpdateComponentTransforms();
+			}
+		}
+
+		//Select all of the actors in SelectedActors
+		for (int32 SelectedActorIndex = 0; SelectedActorIndex < SelectedActors.Num(); ++SelectedActorIndex)
+		{
+			AActor* Actor = SelectedActors[SelectedActorIndex];
+			SelectActor(Actor, true, false);	//false is to stop notify which is done below if bOpWasSuccessful
 			Actor->UpdateComponentTransforms();
 		}
-	}
 
-	//Select all of the actors in SelectedActors
-	for ( int32 SelectedActorIndex = 0 ; SelectedActorIndex < SelectedActors.Num() ; ++SelectedActorIndex )
-	{
-		AActor* Actor = SelectedActors[SelectedActorIndex];
-		SelectActor( Actor, true, false );	//false is to stop notify which is done below if bOpWasSuccessful
-		Actor->UpdateComponentTransforms();
+		OldSelectedActors.Empty();
+		Selection->EndBatchSelectOperation();
 	}
-
-	OldSelectedActors.Empty();
-	Selection->EndBatchSelectOperation();
 }
 
 bool UEditorEngine::UndoTransaction()

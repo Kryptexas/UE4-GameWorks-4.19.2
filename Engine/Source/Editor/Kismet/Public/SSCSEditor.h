@@ -417,12 +417,6 @@ public:
 	/** Returns true if in editing mode */
 	bool InEditingMode() const;
 
-	/**
-	 * Sets the Simple Construction Script this tree is visualizing
-	 * @param InSCS The SCS to edit
-	 */
-	void SetSCS(USimpleConstructionScript* InSCS);
-
 	/** Adds a component to the SCS Table
 	   @param NewComponentClass	(In) The class to add
 	   @param Asset				(In) Optional asset to assign to the component
