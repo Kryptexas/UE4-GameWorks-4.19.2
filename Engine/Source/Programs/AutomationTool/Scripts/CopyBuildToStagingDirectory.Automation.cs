@@ -411,12 +411,15 @@ public partial class Project : CommandUtils
 
 	public static void DumpTargetManifest(Dictionary<string, string> Mapping, string Filename, string StageDir, List<string> CRCFiles)
 	{
-		if (Mapping.Count > 0)
+        // const string Iso8601DateTimeFormat = "%Y-%m-%dT%H:%M:%S.%sZ";
+        // const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd HH':'mm':'ss'Z'";
+        const string Iso8601DateTimeFormat = "u"; // predefined universal Iso standard format
+        if (Mapping.Count > 0)
 		{
 			var Lines = new List<string>();
 			foreach (var Pair in Mapping)
 			{
-				string TimeStamp = File.GetLastWriteTimeUtc(Pair.Key).ToString();
+                string TimeStamp = File.GetLastWriteTimeUtc(Pair.Key).ToString(Iso8601DateTimeFormat);
 				if (CRCFiles.Contains(Pair.Value))
 				{
 					byte[] FileData = File.ReadAllBytes(StageDir + "/" + Pair.Value);
