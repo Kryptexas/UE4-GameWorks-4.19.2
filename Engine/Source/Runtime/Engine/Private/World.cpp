@@ -5374,15 +5374,21 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
             SlowTask.EnterProgressFrame(10.0f);
             if (Scene)
             {
-                PersistentLevel->ReleaseRenderingResources();
+				for (auto* Level : Levels)
+				{
+					Level->ReleaseRenderingResources();
+				}
+
                 Scene->Release();
                 GetRendererModule().RemoveScene(Scene);
-
                 GetRendererModule().AllocateScene(this, bRequiresHitProxies, FXSystem != nullptr, InFeatureLevel );
 
-                PersistentLevel->InitializeRenderingResources();
-                PersistentLevel->PrecomputedVisibilityHandler.UpdateScene(Scene);
-                PersistentLevel->PrecomputedVolumeDistanceField.UpdateScene(Scene);
+				for (auto* Level : Levels)
+				{
+					Level->InitializeRenderingResources();
+					Level->PrecomputedVisibilityHandler.UpdateScene(Scene);
+					Level->PrecomputedVolumeDistanceField.UpdateScene(Scene);
+				}
             }
 
             SlowTask.EnterProgressFrame(10.0f);
