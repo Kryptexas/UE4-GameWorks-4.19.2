@@ -905,7 +905,7 @@ public:
 
 	enum 
 	{
-		VectorsPerInstance = 7
+		VectorsPerInstance = 5
 	};
 	typedef TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT> ArrayType;
 

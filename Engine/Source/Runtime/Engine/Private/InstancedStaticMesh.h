@@ -146,7 +146,7 @@ struct FInstancingUserData
 	{
 		FVector4 InstanceShadowmapUVBias;
 		FVector4 InstanceTransform[3];
-		FVector4 InstanceInverseTransform[3];
+		FVector4 InstanceLightmapUVBias;
 	};
 
 	class FInstancedStaticMeshRenderData* RenderData;
@@ -174,8 +174,8 @@ public:
 		/** The stream to read the mesh transform from. */
 		FVertexStreamComponent InstancedTransformComponent[3];
 
-		/** The stream to read the inverse transform, as well as the Lightmap Bias in 0/1 */
-		FVertexStreamComponent InstancedInverseTransformComponent[3];
+		/** The stream to read the Lightmap Bias and Random instance ID from. */
+		FVertexStreamComponent InstancedLightmapUVBiasComponent;
 	};
 
 	/**
@@ -254,7 +254,7 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 		InstancingWorldViewOriginOneParameter.Bind(ParameterMap, TEXT("InstancingWorldViewOriginOne"));
 		CPUInstanceShadowMapBias.Bind(ParameterMap, TEXT("CPUInstanceShadowMapBias"));
 		CPUInstanceTransform.Bind(ParameterMap, TEXT("CPUInstanceTransform"));
-		CPUInstanceInverseTransform.Bind(ParameterMap, TEXT("CPUInstanceInverseTransform"));
+		CPUInstanceLightmapUVBias.Bind(ParameterMap, TEXT("CPUInstanceLightmapUVBias"));
 	}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
@@ -270,7 +270,7 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 		Ar << InstancingWorldViewOriginOneParameter;
 		Ar << CPUInstanceShadowMapBias;
 		Ar << CPUInstanceTransform;
-		Ar << CPUInstanceInverseTransform;
+		Ar << CPUInstanceLightmapUVBias;
 	}
 
 	virtual uint32 GetSize() const { return sizeof(*this); }
@@ -285,7 +285,7 @@ private:
 
 	FShaderParameter CPUInstanceShadowMapBias;
 	FShaderParameter CPUInstanceTransform;
-	FShaderParameter CPUInstanceInverseTransform;
+	FShaderParameter CPUInstanceLightmapUVBias;
 };
 
 /*-----------------------------------------------------------------------------
