@@ -524,7 +524,15 @@ public:
 		GEditor->OnPostTransformComponents().AddRaw(this, &SActorDetails::OnEditorPostTransformComponents);
 
 		FPropertyEditorModule& PropPlugin = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		const FDetailsViewArgs DetailsViewArgs( true, true, true, false, false, GUnrealEd, false, TabIdentifier );
+		FDetailsViewArgs DetailsViewArgs;
+		DetailsViewArgs.bUpdatesFromSelection = true;
+		DetailsViewArgs.bLockable = true;
+		DetailsViewArgs.bObjectsUseNameArea = false;
+		DetailsViewArgs.NotifyHook = GUnrealEd;
+		DetailsViewArgs.ViewIdentifier = TabIdentifier;
+		DetailsViewArgs.bCustomNameAreaLocation = true;
+		DetailsViewArgs.bCustomFilterAreaLocation = true;
+
 		DetailsView = PropPlugin.CreateDetailView(DetailsViewArgs);
 
 		DetailsView->SetIsPropertyVisibleDelegate( FIsPropertyVisible::CreateStatic( &Local::IsPropertyVisible ) );
@@ -532,16 +540,32 @@ public:
 		// Set up a delegate to call to add generic details to the view
 		DetailsView->SetGenericLayoutDetailsDelegate( FOnGetDetailCustomizationInstance::CreateStatic( &FLevelEditorGenericDetails::MakeInstance ) );
 
-		SAssignNew(ComponentsBox, SScrollBox)
-			.Visibility(EVisibility::Collapsed);
+		SAssignNew(ComponentsBox, SBox)
+		.Visibility(EVisibility::Collapsed);
 
 		ChildSlot
 		[
-			SAssignNew(DetailsSplitter, SSplitter)
-			.Orientation(Orient_Vertical)
-			+ SSplitter::Slot()
+			SNew( SVerticalBox )
+			+SVerticalBox::Slot()
+			.Padding(0.0f, 0.0f, 0.0f, 2.0f)
+			.AutoHeight()
 			[
-				DetailsView.ToSharedRef()
+				DetailsView->GetNameAreaWidget().ToSharedRef()
+			]
+			+ SVerticalBox::Slot()
+			.Padding(0.0f, 0.0f, 0.0f, 2.0f)
+			.AutoHeight()
+			[
+				DetailsView->GetFilterAreaWidget().ToSharedRef()
+			]
+			+SVerticalBox::Slot()
+			[
+				SAssignNew(DetailsSplitter, SSplitter)
+				.Orientation(Orient_Vertical)
+				+ SSplitter::Slot()
+				[
+					DetailsView.ToSharedRef()
+				]
 			]
 		];
 
@@ -575,9 +599,8 @@ public:
 				{
 					bShowingComponents = true;
 
-					ComponentsBox->ClearChildren();
-					ComponentsBox->AddSlot()
-					[
+					ComponentsBox->SetContent
+					(
 						SAssignNew(SCSEditor, SSCSEditor)
 						.InEditingMode(true)
 						.ActorContext(this, &SActorDetails::GetSelectedActor)												// Get the instance of the actor in the world
@@ -586,7 +609,7 @@ public:
 						//.OnHighlightPropertyInDetailsView(this, &SLevelEditor::OnSCSEditorHighlightPropertyInDetailsView)	// Also unsure and don't think it's needed
 						//.OnAddNewComponent()
 						//.OnAddExistingComponent()
-					];
+					);
 				}
 			}
 
@@ -899,7 +922,7 @@ private:
 
 	TSharedPtr<SSplitter> DetailsSplitter;
 	TSharedPtr<IDetailsView> DetailsView;
-	TSharedPtr<SScrollBox> ComponentsBox;
+	TSharedPtr<SBox> ComponentsBox;
 	
 	/** SCS editor */
 	TSharedPtr<SSCSEditor> SCSEditor;

@@ -106,7 +106,7 @@ TSharedRef< SWidget > SDetailNameArea::BuildObjectNameArea( const TArray< TWeakO
 
 			ObjectNameArea->AddSlot()
 				.AutoWidth()
-				.Padding(0, 0, 6, 0)
+				.Padding(0, 0, 3, 0)
 				[
 					SNew(SBox)
 					.WidthOverride(200.0f)

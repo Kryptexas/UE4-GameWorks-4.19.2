@@ -35,7 +35,10 @@ struct FDetailsViewArgs
 	uint32 bShowActorLabel : 1;
 	/** Bind this delegate to hide differing properties */
 	uint32 bShowDifferingPropertiesOption : 1;
-
+	/** If true the name area will be created but will not be displayed so it can be placed in a custom location.  */
+	uint32 bCustomNameAreaLocation : 1;
+	/** If true the filter area will be created but will not be displayed so it can be placed in a custom location.  */
+	uint32 bCustomFilterAreaLocation : 1;
 	/** Default constructor */
 	FDetailsViewArgs( const bool InUpdateFromSelection = false
 					, const bool InLockable = false
@@ -58,6 +61,8 @@ struct FDetailsViewArgs
 		, bShowModifiedPropertiesOption(true)
 		, bShowActorLabel(true)
 		, bShowDifferingPropertiesOption(false)
+		, bCustomNameAreaLocation(false)
+		, bCustomFilterAreaLocation(false)
 	{
 	}
 };
@@ -203,4 +208,10 @@ public:
 	 * Sets the set of properties that are considered differing, used when filtering out identical properties
 	 */
 	virtual void UpdatePropertiesWhitelist(const TSet<FPropertyPath> InWhitelistedProperties) = 0;
+
+	/** Returns the name area widget used to display object naming functionality so it can be placed in a custom location.  Note FDetailsViewArgs.bCustomNameAreaLocation must be true */
+	virtual TSharedPtr<SWidget> GetNameAreaWidget() = 0;
+
+	/** Returns the search area widget used to display search and view options so it can be placed in a custom location.  Note FDetailsViewArgs.bCustomFilterAreaLocation must be true */
+	virtual TSharedPtr<SWidget> GetFilterAreaWidget() = 0;
 };
