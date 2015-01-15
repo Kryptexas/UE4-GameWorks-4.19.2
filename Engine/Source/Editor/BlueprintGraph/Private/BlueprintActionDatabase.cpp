@@ -906,7 +906,11 @@ static void BlueprintActionDatabaseImpl::OnWorldDestroyed(UWorld* DestroyedWorld
 static bool BlueprintActionDatabaseImpl::IsObjectValidForDatabase(UObject const* Object)
 {
 	bool bReturn = false;
-	if(Object->GetOutermost()->PackageFlags & PKG_PlayInEditor)
+	if( Object == nullptr )
+	{
+		bReturn = false;
+	}
+	else if(Object->GetOutermost()->PackageFlags & PKG_PlayInEditor)
 	{
 		// Do not keep track of any PIE objects as we may prevent them from being cleaned up when ending PIE
 		bReturn = false;
@@ -1170,7 +1174,8 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 		// blueprint
 		if (!bHadExistingEntry)
 		{
-			OnBlueprintChangedDelegateHandle = BlueprintAsset->OnChanged().AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+			BlueprintAsset->OnChanged().AddRaw(this, &FBlueprintActionDatabase::OnBlueprintChanged);
+			BlueprintAsset->OnCompiled().AddRaw(this, &FBlueprintActionDatabase::OnBlueprintChanged);
 		}
 	}
 
@@ -1226,7 +1231,8 @@ void FBlueprintActionDatabase::ClearAssetActions(UObject* const AssetObject)
 
 	if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject))
 	{
-		BlueprintAsset->OnChanged().Remove(OnBlueprintChangedDelegateHandle);
+		BlueprintAsset->OnChanged().RemoveAll(this);
+		BlueprintAsset->OnCompiled().RemoveAll(this);
 	}
 
 	if (bHasEntry && (ActionList->Num() > 0) && !BlueprintActionDatabaseImpl::bIsInitializing)
@@ -1297,6 +1303,11 @@ void FBlueprintActionDatabase::RegisterAllNodeActions(FBlueprintActionDatabaseRe
 		TGuardValue< TSubclassOf<UEdGraphNode> > ScopedNodeClass(Registrar.GeneratingClass, NodeClass);
 		BlueprintActionDatabaseImpl::GetNodeSpecificActions(NodeClass, Registrar);
 	}
+}
+
+void FBlueprintActionDatabase::OnBlueprintChanged(UBlueprint* InBlueprint)
+{
+	BlueprintActionDatabaseImpl::OnBlueprintChanged(InBlueprint);
 }
 
 #undef LOCTEXT_NAMESPACE

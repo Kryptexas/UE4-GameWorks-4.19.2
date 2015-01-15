@@ -16,6 +16,10 @@
 
 #define LOCTEXT_NAMESPACE "KismetCompiler"
 
+DECLARE_CYCLE_STAT(TEXT("Choose Terminal Scope"), EKismetCompilerStats_ChooseTerminalScope, STATGROUP_KismetCompiler);
+DECLARE_CYCLE_STAT(TEXT("Resolve compiled statements"), EKismetCompilerStats_ResolveCompiledStatements, STATGROUP_KismetCompiler );
+
+
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerUtilities
 

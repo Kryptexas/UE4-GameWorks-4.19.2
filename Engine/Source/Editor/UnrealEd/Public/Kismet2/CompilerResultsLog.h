@@ -224,9 +224,6 @@ public:
 	}
 };
 
-#define BP_SCOPED_COMPILER_EVENT_NAME(Name) \
-	FScopedCompilerEvent ScopedCompilerEvent(Name)
-
 #if STATS
 #define BP_SCOPED_COMPILER_EVENT_STAT(Stat) \
 	SCOPE_CYCLE_COUNTER(Stat); \

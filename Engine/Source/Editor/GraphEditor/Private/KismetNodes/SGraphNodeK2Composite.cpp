@@ -29,7 +29,7 @@ void SGraphNodeK2Composite::UpdateGraphNode()
 	RightNodeBox.Reset();
 	LeftNodeBox.Reset();
 
-	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
+	SetupErrorReporting();
 	TSharedPtr<SNodeTitle> NodeTitle = SNew(SNodeTitle, GraphNode);
 
 	//
@@ -104,7 +104,7 @@ void SGraphNodeK2Composite::UpdateGraphNode()
 								.AutoHeight()
 								.Padding(1.0f)
 								[
-									ErrorText->AsShared()
+									ErrorReporting->AsWidget()
 								]
 							]
 						]

@@ -9,13 +9,14 @@
 #include "ComponentInstanceDataCache.h"
 #include "Engine/DynamicBlueprintBinding.h"
 
-DEFINE_STAT(EKismetReinstancerStats_ReplaceInstancesOfClass);
-DEFINE_STAT(EKismetReinstancerStats_FindReferencers);
-DEFINE_STAT(EKismetReinstancerStats_ReplaceReferences);
-DEFINE_STAT(EKismetReinstancerStats_ReplacementConstruction);
-DEFINE_STAT(EKismetReinstancerStats_UpdateBytecodeReferences);
-DEFINE_STAT(EKismetReinstancerStats_RecompileChildClasses);
-DEFINE_STAT(EKismetReinstancerStats_ReplaceClassNoReinsancing);
+DECLARE_CYCLE_STAT(TEXT("Replace Instances"), EKismetReinstancerStats_ReplaceInstancesOfClass, STATGROUP_KismetReinstancer );
+DECLARE_CYCLE_STAT(TEXT("Find Referencers"), EKismetReinstancerStats_FindReferencers, STATGROUP_KismetReinstancer );
+DECLARE_CYCLE_STAT(TEXT("Replace References"), EKismetReinstancerStats_ReplaceReferences, STATGROUP_KismetReinstancer );
+DECLARE_CYCLE_STAT(TEXT("Construct Replacements"), EKismetReinstancerStats_ReplacementConstruction, STATGROUP_KismetReinstancer );
+DECLARE_CYCLE_STAT(TEXT("Update Bytecode References"), EKismetReinstancerStats_UpdateBytecodeReferences, STATGROUP_KismetReinstancer );
+DECLARE_CYCLE_STAT(TEXT("Recompile Child Classes"), EKismetReinstancerStats_RecompileChildClasses, STATGROUP_KismetReinstancer );
+DECLARE_CYCLE_STAT(TEXT("Replace Classes Without Reinstancing"), EKismetReinstancerStats_ReplaceClassNoReinsancing, STATGROUP_KismetReinstancer );
+DECLARE_CYCLE_STAT(TEXT("Reinstance Objects"), EKismetCompilerStats_ReinstanceObjects, STATGROUP_KismetCompiler);
 
 struct FReplaceReferenceHelper
 {
@@ -272,7 +273,7 @@ FBlueprintCompileReinstancer::~FBlueprintCompileReinstancer()
 
 void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 {
-	BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Reinstance Objects"));
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ReinstanceObjects);
 
 	// Make sure we only reinstance classes once!
 	if( bHasReinstanced )

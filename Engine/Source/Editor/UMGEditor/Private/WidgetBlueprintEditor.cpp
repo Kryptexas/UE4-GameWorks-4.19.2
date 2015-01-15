@@ -40,6 +40,7 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	if ( Blueprint )
 	{
 		Blueprint->OnChanged().RemoveAll(this);
+		Blueprint->OnCompiled().RemoveAll(this);
 	}
 
 	GEditor->OnObjectsReplaced().RemoveAll(this);
@@ -222,9 +223,9 @@ void FWidgetBlueprintEditor::InvalidatePreview()
 	bPreviewInvalidated = true;
 }
 
-void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
+void FWidgetBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled )
 {
-	FBlueprintEditor::OnBlueprintChanged(InBlueprint);
+	FBlueprintEditor::OnBlueprintChangedImpl(InBlueprint, bIsJustBeingCompiled);
 
 	if ( InBlueprint )
 	{
