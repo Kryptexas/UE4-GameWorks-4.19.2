@@ -213,7 +213,10 @@ public:
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package, EStateCacheUsage::Use);
 
 		FString CheckedOutBy;
-		SourceControlState->IsCheckedOutOther(&CheckedOutBy);
+		if (SourceControlState.IsValid())
+		{
+			SourceControlState->IsCheckedOutOther(&CheckedOutBy);
+		}
 
 		return CheckedOutBy;
 	}
