@@ -15,76 +15,73 @@ UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetData(UObject
 {
 	auto MyObj = NewTask<UAbilityTask_WaitTargetData>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
 	MyObj->TargetClass = InTargetClass;
+	MyObj->TargetActor = NULL;
 	MyObj->ConfirmationType = ConfirmationType;
 	return MyObj;
 }
 
-bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> TargetClass, AGameplayAbilityTargetActor*& SpawnedActor)
+UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetDataUsingActor(UObject* WorldContextObject, FName TaskInstanceName, TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType, AGameplayAbilityTargetActor* InTargetActor)
+{
+	auto MyObj = NewTask<UAbilityTask_WaitTargetData>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
+	MyObj->TargetClass = NULL;
+	MyObj->TargetActor = InTargetActor;
+	MyObj->ConfirmationType = ConfirmationType;
+	return MyObj;
+}
+
+void UAbilityTask_WaitTargetData::Activate()
+{
+	// Need to handle case where target actor was passed into task
+	if (Ability.IsValid() && TargetClass == NULL)
+	{
+		check(TargetActor.IsValid());
+		AGameplayAbilityTargetActor* SpawnedActor = TargetActor.Get();
+
+		TargetClass = SpawnedActor->GetClass();
+
+		if (ShouldSpawnTargetActor())
+		{
+			InitializeTargetActor(SpawnedActor);
+			FinalizeTargetActor(SpawnedActor);
+		}
+		else
+		{
+			TargetActor = NULL;
+
+			// We may need a better solution here.  We don't know the target actor isn't needed till after it's already been spawned.
+			SpawnedActor->Destroy();
+			SpawnedActor = nullptr;
+		}
+
+		RegisterTargetDataCallbacks();
+	}
+}
+
+bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass, AGameplayAbilityTargetActor*& SpawnedActor)
 {
 	SpawnedActor = nullptr;
 
-	UGameplayAbility* MyAbility = Ability.Get();
-	if (MyAbility)
+	if (Ability.IsValid())
 	{
-		const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
-
-		const bool bReplicates = CDO->GetReplicates();
-		const bool bIsLocallyControlled = MyAbility->GetCurrentActorInfo()->IsLocallyControlled();
-
-		// Spawn the actor if this is a locally controlled ability (always) or if this is a replicating targeting mode.
-		// (E.g., server will spawn this target actor to replicate to all non owning clients)
-		if (bReplicates || bIsLocallyControlled || CDO->ShouldProduceTargetDataOnServer)
+		if (ShouldSpawnTargetActor())
 		{
-			UClass* Class = *TargetClass;
+			UClass* Class = *InTargetClass;
 			if (Class != NULL)
 			{
 				UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 				SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FVector::ZeroVector, FRotator::ZeroRotator, NULL, NULL, true);
 			}
 
-			// If we spawned the target actor, always register the callbacks for when the data is ready.
-			SpawnedActor->TargetDataReadyDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReadyCallback);
-			SpawnedActor->CanceledDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback);
-
-			MyTargetActor = SpawnedActor;
-
-			AGameplayAbilityTargetActor* TargetActor = CastChecked<AGameplayAbilityTargetActor>(SpawnedActor);
-			if (TargetActor)
+			if (SpawnedActor)
 			{
-				TargetActor->MasterPC = MyAbility->GetCurrentActorInfo()->PlayerController.Get();
-			}
-		}		
-
-		// If not locally controlled (server for remote client), see if TargetData was already sent
-		// else register callback for when it does get here.
-		if (!bIsLocallyControlled)
-		{
-			// Register with the TargetData callbacks if we are expecting client to send them
-			if (!CDO->ShouldProduceTargetDataOnServer)
-			{
-				// Problem here - if there's targeting data just sitting around, fire events don't get hooked up because of this if-else, even if we don't end the task.
-				if (AbilitySystemComponent->ReplicatedTargetData.IsValid(0))
-				{
-					ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
-					if (ConfirmationType == EGameplayTargetingConfirmation::CustomMulti)
-					{
-						//Since multifire is supported, we still need to hook up the callbacks
-						OnTargetDataReplicatedCallbackDelegateHandle = AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
-						AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
-					}
-					else
-					{
-						EndTask();
-					}
-				}
-				else
-				{
-					OnTargetDataReplicatedCallbackDelegateHandle = AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
-					AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
-				}
+				TargetActor = SpawnedActor;
+				InitializeTargetActor(SpawnedActor);
 			}
 		}
+
+		RegisterTargetDataCallbacks();
 	}
+
 	return (SpawnedActor != nullptr);
 }
 
@@ -92,46 +89,124 @@ void UAbilityTask_WaitTargetData::FinishSpawningActor(UObject* WorldContextObjec
 {
 	if (SpawnedActor && !SpawnedActor->IsPendingKill())
 	{
-		check(MyTargetActor == SpawnedActor);
+		check(TargetActor == SpawnedActor);
 
 		const FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
 
 		SpawnedActor->FinishSpawning(SpawnTransform);
 
-		// User ability activation is inhibited while this is active
-		AbilitySystemComponent->SetUserAbilityActivationInhibited(true);
-		AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
+		FinalizeTargetActor(SpawnedActor);
+	}
+}
 
-		SpawnedActor->StartTargeting(Ability.Get());
+bool UAbilityTask_WaitTargetData::ShouldSpawnTargetActor() const
+{
+	check(TargetClass);
+	check(Ability.IsValid());
 
-		if (SpawnedActor->ShouldProduceTargetData())
+	// Spawn the actor if this is a locally controlled ability (always) or if this is a replicating targeting mode.
+	// (E.g., server will spawn this target actor to replicate to all non owning clients)
+
+	const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
+
+	const bool bReplicates = CDO->GetReplicates();
+	const bool bIsLocallyControlled = Ability->GetCurrentActorInfo()->IsLocallyControlled();
+	const bool bShouldProduceTargetDataOnServer = CDO->ShouldProduceTargetDataOnServer;
+
+	return (bReplicates || bIsLocallyControlled || bShouldProduceTargetDataOnServer);
+}
+
+void UAbilityTask_WaitTargetData::InitializeTargetActor(AGameplayAbilityTargetActor* SpawnedActor) const
+{
+	check(SpawnedActor);
+	check(Ability.IsValid());
+
+	SpawnedActor->MasterPC = Ability->GetCurrentActorInfo()->PlayerController.Get();
+
+	// If we spawned the target actor, always register the callbacks for when the data is ready.
+	SpawnedActor->TargetDataReadyDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReadyCallback);
+	SpawnedActor->CanceledDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback);
+}
+
+void UAbilityTask_WaitTargetData::FinalizeTargetActor(AGameplayAbilityTargetActor* SpawnedActor) const
+{
+	check(SpawnedActor);
+	check(Ability.IsValid());
+
+	// User ability activation is inhibited while this is active
+	AbilitySystemComponent->SetUserAbilityActivationInhibited(true);
+	AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
+
+	SpawnedActor->StartTargeting(Ability.Get());
+
+	if (SpawnedActor->ShouldProduceTargetData())
+	{
+		// If instant confirm, then stop targeting immediately.
+		// Note this is kind of bad: we should be able to just call a static func on the CDO to do this. 
+		// But then we wouldn't get to set ExposeOnSpawnParameters.
+		if (ConfirmationType == EGameplayTargetingConfirmation::Instant)
 		{
-			// If instant confirm, then stop targeting immediately.
-			// Note this is kind of bad: we should be able to just call a static func on the CDO to do this. 
-			// But then we wouldn't get to set ExposeOnSpawnParameters.
-			if (ConfirmationType == EGameplayTargetingConfirmation::Instant)
+			SpawnedActor->ConfirmTargeting();
+		}
+		else if (ConfirmationType == EGameplayTargetingConfirmation::UserConfirmed)
+		{
+			// If not locally controlled, check if we already have a confirm/cancel repped to us
+			if (!Ability->GetCurrentActorInfo()->IsLocallyControlled())
 			{
-				SpawnedActor->ConfirmTargeting();
-			}
-			else if (ConfirmationType == EGameplayTargetingConfirmation::UserConfirmed)
-			{
-				// If not locally controlled, check if we already have a confirm/cancel repped to us
-				if (!Ability->GetCurrentActorInfo()->IsLocallyControlled())
+				if (AbilitySystemComponent->ReplicatedConfirmAbility)
 				{
-					if (AbilitySystemComponent->ReplicatedConfirmAbility)
-					{
-						SpawnedActor->ConfirmTargeting();
-						return;
-					}
-					else if (AbilitySystemComponent->ReplicatedCancelAbility)
-					{
-						SpawnedActor->CancelTargeting();
-						return;
-					}
+					SpawnedActor->ConfirmTargeting();
+					return;
 				}
+				else if (AbilitySystemComponent->ReplicatedCancelAbility)
+				{
+					SpawnedActor->CancelTargeting();
+					return;
+				}
+			}
 
-				// Bind to the Cancel/Confirm Delegates (called from local confirm or from repped confirm)
-				SpawnedActor->BindToConfirmCancelInputs();
+			// Bind to the Cancel/Confirm Delegates (called from local confirm or from repped confirm)
+			SpawnedActor->BindToConfirmCancelInputs();
+		}
+	}
+}
+
+void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
+{
+	check(TargetClass);
+	check(Ability.IsValid());
+
+	const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
+
+	const bool bIsLocallyControlled = Ability->GetCurrentActorInfo()->IsLocallyControlled();
+	const bool bShouldProduceTargetDataOnServer = CDO->ShouldProduceTargetDataOnServer;
+
+	// If not locally controlled (server for remote client), see if TargetData was already sent
+	// else register callback for when it does get here.
+	if (!bIsLocallyControlled)
+	{
+		// Register with the TargetData callbacks if we are expecting client to send them
+		if (!bShouldProduceTargetDataOnServer)
+		{
+			// Problem here - if there's targeting data just sitting around, fire events don't get hooked up because of this if-else, even if we don't end the task.
+			if (AbilitySystemComponent->ReplicatedTargetData.IsValid(0))
+			{
+				ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
+				if (ConfirmationType == EGameplayTargetingConfirmation::CustomMulti)
+				{
+					//Since multifire is supported, we still need to hook up the callbacks
+					AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+					AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
+				}
+				else
+				{
+					EndTask();
+				}
+			}
+			else
+			{
+				AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+				AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 			}
 		}
 	}
@@ -151,7 +226,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 	 *	explicitly, the client is basically just sending a 'confirm' and the server is now going to do the work
 	 *	in OnReplicatedTargetDataReceived.
 	 */
-	if (MyTargetActor.IsValid() && !MyTargetActor->OnReplicatedTargetDataReceived(Data))
+	if (TargetActor.IsValid() && !TargetActor->OnReplicatedTargetDataReceived(Data))
 	{
 		Cancelled.Broadcast(Data);
 	}
@@ -211,9 +286,9 @@ void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbility
 void UAbilityTask_WaitTargetData::ExternalConfirm(bool bEndTask)
 {
 	check(AbilitySystemComponent.IsValid());
-	if (MyTargetActor.IsValid())
+	if (TargetActor.IsValid())
 	{
-		AGameplayAbilityTargetActor* CachedTargetActor = MyTargetActor.Get();
+		AGameplayAbilityTargetActor* CachedTargetActor = TargetActor.Get();
 		if (CachedTargetActor->ShouldProduceTargetData())
 		{
 			CachedTargetActor->ConfirmTargetingAndContinue();
@@ -236,12 +311,12 @@ void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 	AbilitySystemComponent->ConsumeAbilityConfirmCancel();
 	AbilitySystemComponent->SetUserAbilityActivationInhibited(false);
 
-	AbilitySystemComponent->ReplicatedTargetDataDelegate.Remove(OnTargetDataReplicatedCallbackDelegateHandle);
+	AbilitySystemComponent->ReplicatedTargetDataDelegate.RemoveUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
 	AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.RemoveDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 
-	if (MyTargetActor.IsValid())
+	if (TargetActor.IsValid())
 	{
-		MyTargetActor->Destroy();
+		TargetActor->Destroy();
 	}
 
 	Super::OnDestroy(AbilityEnded);
@@ -249,9 +324,12 @@ void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 
 bool UAbilityTask_WaitTargetData::ShouldReplicateDataToServer() const
 {
+	check(Ability.IsValid());
+	check(TargetActor.IsValid()); // Target actor should always be valid on client
+
 	// Send TargetData to the server IFF we are the client and this isn't a GameplayTargetActor that can produce data on the server	
 	const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();
-	if (!Info->IsNetAuthority() && !TargetClass->GetDefaultObject<AGameplayAbilityTargetActor>()->ShouldProduceTargetDataOnServer)
+	if (!Info->IsNetAuthority() && !TargetActor->ShouldProduceTargetDataOnServer)
 	{
 		return true;
 	}

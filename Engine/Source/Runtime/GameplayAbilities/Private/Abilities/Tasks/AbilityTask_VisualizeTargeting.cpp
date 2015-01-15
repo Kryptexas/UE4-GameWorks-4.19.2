@@ -14,10 +14,85 @@ UAbilityTask_VisualizeTargeting::UAbilityTask_VisualizeTargeting(const FObjectIn
 UAbilityTask_VisualizeTargeting* UAbilityTask_VisualizeTargeting::VisualizeTargeting(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass, FName TaskInstanceName, float Duration)
 {
 	UAbilityTask_VisualizeTargeting* MyObj = NewTask<UAbilityTask_VisualizeTargeting>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
+	MyObj->TargetClass = InTargetClass;
+	MyObj->TargetActor = NULL;
 	MyObj->SetDuration(Duration);
 	return MyObj;
 }
 
+UAbilityTask_VisualizeTargeting* UAbilityTask_VisualizeTargeting::VisualizeTargetingUsingActor(UObject* WorldContextObject, AGameplayAbilityTargetActor* InTargetActor, FName TaskInstanceName, float Duration)
+{
+	UAbilityTask_VisualizeTargeting* MyObj = NewTask<UAbilityTask_VisualizeTargeting>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
+	MyObj->TargetClass = NULL;
+	MyObj->TargetActor = InTargetActor;
+	MyObj->SetDuration(Duration);
+	return MyObj;
+}
+
+void UAbilityTask_VisualizeTargeting::Activate()
+{
+	if (Ability.IsValid() && TargetClass == NULL)
+	{
+		check(TargetActor.IsValid());
+		AGameplayAbilityTargetActor* SpawnedActor = TargetActor.Get();
+
+		TargetClass = SpawnedActor->GetClass();
+
+		if (ShouldSpawnTargetActor())
+		{
+			InitializeTargetActor(SpawnedActor);
+			FinalizeTargetActor(SpawnedActor);
+		}
+		else
+		{
+			TargetActor = NULL;
+
+			// We may need a better solution here.  We don't know the target actor isn't needed till after it's already been spawned.
+			SpawnedActor->Destroy();
+			SpawnedActor = nullptr;
+		}
+	}
+}
+
+bool UAbilityTask_VisualizeTargeting::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass, AGameplayAbilityTargetActor*& SpawnedActor)
+{
+	SpawnedActor = nullptr;
+
+	if (Ability.IsValid())
+	{
+		if (ShouldSpawnTargetActor())
+		{
+			UClass* Class = *InTargetClass;
+			if (Class != NULL)
+			{
+				UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+				SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FVector::ZeroVector, FRotator::ZeroRotator, NULL, NULL, true);
+			}
+
+			if (SpawnedActor)
+			{
+				TargetActor = SpawnedActor;
+				InitializeTargetActor(SpawnedActor);
+			}
+		}
+	}
+
+	return (SpawnedActor != nullptr);
+}
+
+void UAbilityTask_VisualizeTargeting::FinishSpawningActor(UObject* WorldContextObject, AGameplayAbilityTargetActor* SpawnedActor)
+{
+	if (SpawnedActor)
+	{
+		check(TargetActor == SpawnedActor);
+
+		const FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
+
+		SpawnedActor->FinishSpawning(SpawnTransform);
+
+		FinalizeTargetActor(SpawnedActor);
+	}
+}
 
 void UAbilityTask_VisualizeTargeting::SetDuration(const float Duration)
 {
@@ -27,60 +102,45 @@ void UAbilityTask_VisualizeTargeting::SetDuration(const float Duration)
 	}
 }
 
-bool UAbilityTask_VisualizeTargeting::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> TargetClass, AGameplayAbilityTargetActor*& SpawnedActor)
+bool UAbilityTask_VisualizeTargeting::ShouldSpawnTargetActor() const
 {
-	SpawnedActor = nullptr;
+	check(TargetClass);
+	check(Ability.IsValid());
 
-	UGameplayAbility* MyAbility = Ability.Get();
-	if (MyAbility)
-	{
-		const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
+	// Spawn the actor if this is a locally controlled ability (always) or if this is a replicating targeting mode.
+	// (E.g., server will spawn this target actor to replicate to all non owning clients)
 
-		const bool bReplicates = CDO->GetReplicates();
-		const bool bIsLocallyControlled = MyAbility->GetCurrentActorInfo()->IsLocallyControlled();
+	const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
 
-		// Spawn the actor if this is a locally controlled ability (always) or if this is a replicating targeting mode.
-		// (E.g., server will spawn this target actor to replicate to all non owning clients)
-		if (bReplicates || bIsLocallyControlled)
-		{
-			UClass* Class = *TargetClass;
-			if (Class != NULL)
-			{
-				UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-				SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FVector::ZeroVector, FRotator::ZeroRotator, NULL, NULL, true);
-			}
+	const bool bReplicates = CDO->GetReplicates();
+	const bool bIsLocallyControlled = Ability->GetCurrentActorInfo()->IsLocallyControlled();
 
-			MyTargetActor = SpawnedActor;
-
-			AGameplayAbilityTargetActor* TargetActor = CastChecked<AGameplayAbilityTargetActor>(SpawnedActor);
-			if (TargetActor)
-			{
-				TargetActor->MasterPC = MyAbility->GetCurrentActorInfo()->PlayerController.Get();
-			}
-		}
-	}
-	return (SpawnedActor != nullptr);
+	return (bReplicates || bIsLocallyControlled);
 }
 
-void UAbilityTask_VisualizeTargeting::FinishSpawningActor(UObject* WorldContextObject, AGameplayAbilityTargetActor* SpawnedActor)
+void UAbilityTask_VisualizeTargeting::InitializeTargetActor(AGameplayAbilityTargetActor* SpawnedActor) const
 {
-	if (SpawnedActor)
-	{
-		check(MyTargetActor == SpawnedActor);
+	check(SpawnedActor);
+	check(Ability.IsValid());
 
-		const FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
+	SpawnedActor->MasterPC = Ability->GetCurrentActorInfo()->PlayerController.Get();
+}
 
-		SpawnedActor->FinishSpawning(SpawnTransform);
-		AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
-		SpawnedActor->StartTargeting(Ability.Get());
-	}
+void UAbilityTask_VisualizeTargeting::FinalizeTargetActor(AGameplayAbilityTargetActor* SpawnedActor) const
+{
+	check(SpawnedActor);
+	check(Ability.IsValid());
+
+	AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
+
+	SpawnedActor->StartTargeting(Ability.Get());
 }
 
 void UAbilityTask_VisualizeTargeting::OnDestroy(bool AbilityEnded)
 {
-	if (MyTargetActor.IsValid())
+	if (TargetActor.IsValid())
 	{
-		MyTargetActor->Destroy();
+		TargetActor->Destroy();
 	}
 
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_OnTimeElapsed);
