@@ -1318,5 +1318,8 @@ FIntVector UGameplayStatics::GetWorldOriginLocation(UObject* WorldContextObject)
 void UGameplayStatics::SetWorldOriginLocation(UObject* WorldContextObject, FIntVector NewLocation)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	return World ? World->RequestNewWorldOrigin(NewLocation) : false;
+	if ( World )
+	{
+		World->RequestNewWorldOrigin(NewLocation);
+	}
 }
