@@ -22,5 +22,5 @@ UObject* UProceduralFoliageFactory::FactoryCreateNew(UClass* Class, UObject* InP
 
 uint32 UProceduralFoliageFactory::GetMenuCategories() const
 {
-	return EAssetTypeCategories::Foliage;
+	return EAssetTypeCategories::Misc;
 }
