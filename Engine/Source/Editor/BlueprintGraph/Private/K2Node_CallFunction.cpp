@@ -605,6 +605,9 @@ void UK2Node_CallFunction::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin
 	// END TEMP
 
 	Super::ReallocatePinsDuringReconstruction(OldPins);
+
+	// Connect Execute and Then pins for functions, which became pure.
+	ReconnectPureExecPins(OldPins);
 }
 
 UEdGraphPin* UK2Node_CallFunction::CreateSelfPin(const UFunction* Function)
@@ -2032,6 +2035,53 @@ FName UK2Node_CallFunction::GetCornerIcon() const
 FName UK2Node_CallFunction::GetPaletteIcon(FLinearColor& OutColor) const
 {
 	return GetPaletteIconForFunction(GetTargetFunction(), OutColor);
+}
+
+bool UK2Node_CallFunction::ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins)
+{
+	if (bIsPureFunc)
+	{
+		// look for an old exec pin
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		UEdGraphPin* PinExec = nullptr;
+		for (int32 PinIdx = 0; PinIdx < OldPins.Num(); PinIdx++)
+		{
+			if (OldPins[PinIdx]->PinName == K2Schema->PN_Execute)
+			{
+				PinExec = OldPins[PinIdx];
+				break;
+			}
+		}
+		if (PinExec)
+		{
+			// look for old then pin
+			UEdGraphPin* PinThen = nullptr;
+			for (int32 PinIdx = 0; PinIdx < OldPins.Num(); PinIdx++)
+			{
+				if (OldPins[PinIdx]->PinName == K2Schema->PN_Then)
+				{
+					PinThen = OldPins[PinIdx];
+					break;
+				}
+			}
+			if (PinThen)
+			{
+				// reconnect all incoming links to old exec pin to the far end of the old then pin.
+				if (PinThen->LinkedTo.Num() > 0)
+				{
+					UEdGraphPin* PinThenLinked = PinThen->LinkedTo[0];
+					while (PinExec->LinkedTo.Num() > 0)
+					{
+						UEdGraphPin* PinExecLinked = PinExec->LinkedTo[0];
+						PinExecLinked->BreakLinkTo(PinExec);
+						PinExecLinked->MakeLinkTo(PinThenLinked);
+					}
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 FText UK2Node_CallFunction::GetToolTipHeading() const

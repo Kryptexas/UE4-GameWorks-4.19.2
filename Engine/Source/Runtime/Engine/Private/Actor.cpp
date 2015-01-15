@@ -3478,22 +3478,22 @@ UMaterialInstanceDynamic* AActor::MakeMIDForMaterial(class UMaterialInterface* P
 	return NULL;
 }
 
-float AActor::GetDistanceTo(AActor* OtherActor)
+float AActor::GetDistanceTo(const AActor* OtherActor) const
 {
 	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size() : 0.f;
 }
 
-float AActor::GetHorizontalDistanceTo(AActor* OtherActor)
+float AActor::GetHorizontalDistanceTo(const AActor* OtherActor) const
 {
 	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size2D() : 0.f;
 }
 
-float AActor::GetVerticalDistanceTo(AActor* OtherActor)
+float AActor::GetVerticalDistanceTo(const AActor* OtherActor) const
 {
 	return OtherActor ? FMath::Abs((GetActorLocation().Z - OtherActor->GetActorLocation().Z)) : 0.f;
 }
 
-float AActor::GetDotProductTo(AActor* OtherActor)
+float AActor::GetDotProductTo(const AActor* OtherActor) const
 {
 	if (OtherActor)
 	{
@@ -3505,7 +3505,7 @@ float AActor::GetDotProductTo(AActor* OtherActor)
 	return -2.0;
 }
 
-float AActor::GetHorizontalDotProductTo(AActor* OtherActor)
+float AActor::GetHorizontalDotProductTo(const AActor* OtherActor) const
 {
 	if (OtherActor)
 	{
