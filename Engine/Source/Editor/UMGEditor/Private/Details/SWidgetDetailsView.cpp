@@ -196,6 +196,11 @@ void SWidgetDetailsView::RegisterCustomizations()
 void SWidgetDetailsView::OnEditorSelectionChanging()
 {
 	ClearFocusIfOwned();
+
+	// We force the destruction of the currently monitored object when selection is about to change, to ensure all migrations occur
+	// immediately.
+	SelectedObjects.Empty();
+	PropertyView->SetObjects(SelectedObjects);
 }
 
 void SWidgetDetailsView::OnEditorSelectionChanged()
