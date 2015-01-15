@@ -749,6 +749,11 @@ void UWidget::GatherAllChildren(UWidget* Root, TSet<UWidget*>& Children)
 
 UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descendant)
 {
+	if ( Root == nullptr )
+	{
+		return nullptr;
+	}
+
 	UWidget* Parent = Descendant->GetParent();
 
 	while ( Parent != nullptr )
