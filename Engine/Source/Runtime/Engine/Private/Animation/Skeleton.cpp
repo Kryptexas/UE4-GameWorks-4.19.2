@@ -94,6 +94,8 @@ void USkeleton::PostDuplicate(bool bDuplicateForPIE)
 
 void USkeleton::Serialize( FArchive& Ar )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("USkeleton::Serialize"), STAT_Skeleton_Serialize, STATGROUP_LoadTime );
+
 	Super::Serialize(Ar);
 
 	if( Ar.UE4Ver() >= VER_UE4_REFERENCE_SKELETON_REFACTOR )

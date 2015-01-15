@@ -938,6 +938,8 @@ void USoundWave::SerializeCookedPlatformData(FArchive& Ar)
 		return;
 	}
 
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("USoundWave::SerializeCookedPlatformData"), STAT_SoundWave_SerializeCookedPlatformData, STATGROUP_LoadTime );
+
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsCooking() && Ar.IsPersistent())
 	{

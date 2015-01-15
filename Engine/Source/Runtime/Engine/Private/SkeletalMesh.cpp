@@ -1001,6 +1001,7 @@ void FMultiSizeIndexContainer::CopyIndexBuffer(const TArray<uint32>& NewArray)
 
 void FMultiSizeIndexContainer::Serialize(FArchive& Ar, bool bNeedsCPUAccess)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("FMultiSizeIndexContainer::Serialize"), STAT_MultiSizeIndexContainer_Serialize, STATGROUP_LoadTime );
 	if (Ar.UE4Ver() < VER_UE4_KEEP_SKEL_MESH_INDEX_DATA)
 	{
 		bool bOldNeedsCPUAccess = true;
@@ -1151,6 +1152,8 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 */
 void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("FStaticLODModel::Serialize"), STAT_StaticLODModel_Serialize, STATGROUP_LoadTime );
+
 	const uint8 LodAdjacencyStripFlag = 1;
 	FStripDataFlags StripFlags( Ar, Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::Tessellation) ? LodAdjacencyStripFlag : 0 );
 
@@ -1687,6 +1690,8 @@ void FSkeletalMeshSourceData::Clear()
 /** Serialization. */
 void FSkeletalMeshSourceData::Serialize( FArchive& Ar, USkeletalMesh* SkeletalMesh )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("FSkeletalMeshSourceData::Serialize"), STAT_SkeletalMeshSourceData_Serialize, STATGROUP_LoadTime );
+
 	if ( Ar.IsLoading() )
 	{
 		bool bHaveSourceData = false;
@@ -1864,6 +1869,8 @@ void FSkeletalMeshResource::ReleaseResources()
 
 void FSkeletalMeshResource::Serialize(FArchive& Ar, USkeletalMesh* Owner)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("FSkeletalMeshResource::Serialize"), STAT_SkeletalMeshResource_Serialize, STATGROUP_LoadTime );
+
 	LODModels.Serialize(Ar,Owner);
 }
 
@@ -2278,6 +2285,8 @@ bool USkeletalMesh::IsReadyForFinishDestroy()
 
 void USkeletalMesh::Serialize( FArchive& Ar )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("USkeletalMesh::Serialize"), STAT_SkeletalMesh_Serialize, STATGROUP_LoadTime );
+
 	Super::Serialize(Ar);
 
 	FStripDataFlags StripFlags( Ar );

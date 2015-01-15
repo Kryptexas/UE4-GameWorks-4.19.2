@@ -1185,6 +1185,8 @@ static void SerializePlatformData(
 	bool bCooked
 	)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("SerializePlatformData"), STAT_Texture_SerializePlatformData, STATGROUP_LoadTime );
+
 	UEnum* PixelFormatEnum = UTexture::GetPixelFormatEnum();
 
 	Ar << PlatformData->SizeX;
@@ -1668,6 +1670,8 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 	{
 		return;
 	}
+
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("UTexture::SerializeCookedPlatformData"), STAT_Texture_SerializeCookedData, STATGROUP_LoadTime );
 
 	UEnum* PixelFormatEnum = UTexture::GetPixelFormatEnum();
 

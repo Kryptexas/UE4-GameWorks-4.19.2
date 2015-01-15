@@ -1251,6 +1251,8 @@ void LoadSpecialMaterial(const FString& MaterialName, UMaterial*& Material, bool
  */
 void UEngine::InitializeObjectReferences()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::InitializeObjectReferences"), STAT_InitializeObjectReferences, STATGROUP_LoadTime);
+
 	// initialize the special engine/editor materials
 	if (AllowDebugViewmodes())
 	{
@@ -8598,6 +8600,8 @@ void LoadGametypeContent(FWorldContext &Context, const FURL& URL)
 
 bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetGame* Pending, FString& Error )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::LoadMap"), STAT_LoadMap, STATGROUP_LoadTime);
+
 	NETWORK_PROFILER(GNetworkProfiler.TrackSessionChange(true,URL));
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapStart( URL.Map ) );
 	Error = TEXT("");
@@ -9016,12 +9020,16 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		}
 	}
 
-	// load any per-map packages
-	check(WorldContext.World()->PersistentLevel);
-	LoadPackagesFully(WorldContext.World(), FULLYLOAD_Map, WorldContext.World()->PersistentLevel->GetOutermost()->GetName());
+	{
+		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::LoadMap.LoadPackagesFully"), STAT_LoadMap_LoadPackagesFully, STATGROUP_LoadTime);
 
-	// Make sure "always loaded" sub-levels are fully loaded
-	WorldContext.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
+		// load any per-map packages
+		check(WorldContext.World()->PersistentLevel);
+		LoadPackagesFully(WorldContext.World(), FULLYLOAD_Map, WorldContext.World()->PersistentLevel->GetOutermost()->GetName());
+
+		// Make sure "always loaded" sub-levels are fully loaded
+		WorldContext.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
+	}
 	
 	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);
 	
