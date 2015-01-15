@@ -24,6 +24,7 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 
 #if WITH_EDITORONLY_DATA
 	SelectedLayerIndex = INDEX_NONE;
+	BackgroundColor = FColor(55, 55, 55);
 #endif
 
 	LayerNameIndex = 0;

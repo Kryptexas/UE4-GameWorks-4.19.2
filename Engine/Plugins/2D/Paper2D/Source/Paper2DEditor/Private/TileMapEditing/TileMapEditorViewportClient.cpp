@@ -148,6 +148,18 @@ void FTileMapEditorViewportClient::Tick(float DeltaSeconds)
 	}
 }
 
+FLinearColor FTileMapEditorViewportClient::GetBackgroundColor() const
+{
+	if (UPaperTileMap* TileMap = RenderTileMapComponent->TileMap)
+	{
+		return TileMap->BackgroundColor;
+	}
+	else
+	{
+		return FEditorViewportClient::GetBackgroundColor();
+	}
+}
+
 void FTileMapEditorViewportClient::ToggleShowMeshEdges()
 {
 	EngineShowFlags.MeshEdges = !EngineShowFlags.MeshEdges;
