@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "Tests/CircularDependencyTestActor.h"
+#include "K2Node.h"
 
 ACircularDependencyTestActor::ACircularDependencyTestActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
