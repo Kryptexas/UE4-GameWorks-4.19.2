@@ -34,6 +34,7 @@ class UK2Node_DynamicCast : public UK2Node
 	virtual bool IsNodePure() const override { return bIsPureCast; }
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
+	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
 	// End of UK2Node interface
 
 	/** Get the 'valid cast' exec pin */
@@ -63,6 +64,9 @@ protected:
 	/** Flips the node's purity (adding/removing exec pins as needed). */
 	void TogglePurity();
 
+	/** Update exec pins when converting from impure to pure. */
+	bool ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins);
+	
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;
 

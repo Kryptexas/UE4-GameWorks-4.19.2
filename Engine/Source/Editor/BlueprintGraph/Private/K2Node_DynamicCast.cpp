@@ -388,4 +388,60 @@ void UK2Node_DynamicCast::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 	}
 }
 
+void UK2Node_DynamicCast::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
+{
+	Super::ReallocatePinsDuringReconstruction(OldPins);
+
+	// Update exec pins if we converted from impure to pure
+	ReconnectPureExecPins(OldPins);
+}
+
+
+bool UK2Node_DynamicCast::ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins)
+{
+	if (bIsPureCast)
+	{
+		// look for an old exec pin
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		UEdGraphPin* PinExec = nullptr;
+		for (UEdGraphPin* Pin : OldPins)
+		{
+			if (Pin->PinName == K2Schema->PN_Execute)
+			{
+				PinExec = Pin;
+				break;
+			}
+		}
+		if (PinExec)
+		{
+			// look for old then pin
+			UEdGraphPin* PinThen = nullptr;
+			for (UEdGraphPin* Pin : OldPins)
+			{
+				if (Pin->PinName == K2Schema->PN_Then)
+				{
+					PinThen = Pin;
+					break;
+				}
+			}
+			if (PinThen)
+			{
+				// reconnect all incoming links to old exec pin to the far end of the old then pin.
+				if (PinThen->LinkedTo.Num() > 0)
+				{
+					UEdGraphPin* PinThenLinked = PinThen->LinkedTo[0];
+					while (PinExec->LinkedTo.Num() > 0)
+					{
+						UEdGraphPin* PinExecLinked = PinExec->LinkedTo[0];
+						PinExecLinked->BreakLinkTo(PinExec);
+						PinExecLinked->MakeLinkTo(PinThenLinked);
+					}
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 #undef LOCTEXT_NAMESPACE
