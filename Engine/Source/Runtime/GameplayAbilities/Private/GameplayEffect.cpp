@@ -2376,6 +2376,66 @@ bool FActiveGameplayEffectsContainer::HasPredictedEffectWithPredictedKey(FPredic
 	return false;
 }
 
+#if ENABLE_VISUAL_LOG
+void FActiveGameplayEffectsContainer::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
+{
+	FVisualLogStatusCategory ActiveEffectsCategory;
+	ActiveEffectsCategory.Category = TEXT("Effects");
+
+	TMultiMap<FGameplayAttribute, FActiveGameplayEffectsContainer::DebugExecutedGameplayEffectData> EffectMap;
+
+	// Add all of the active gameplay effects
+	for (const FActiveGameplayEffect& Effect : GameplayEffects)
+	{
+		ensure(Effect.Spec.Modifiers.Num() == Effect.Spec.Def->Modifiers.Num());
+		for (int32 Idx = 0; Idx < Effect.Spec.Modifiers.Num(); ++Idx)
+		{
+			FActiveGameplayEffectsContainer::DebugExecutedGameplayEffectData Data;
+			Data.Attribute = Effect.Spec.Def->Modifiers[Idx].Attribute;
+			Data.ActivationState = Effect.bIsInhibited ? TEXT("INHIBITED") : TEXT("ACTIVE");
+			Data.GameplayEffectName = Effect.Spec.Def->GetName();
+			Data.Magnitude = Effect.Spec.Modifiers[Idx].GetEvaluatedMagnitude();
+
+			EffectMap.Add(Data.Attribute, Data);
+		}
+	}
+
+	// Add the executed gameplay effects if we recorded them
+	for (FActiveGameplayEffectsContainer::DebugExecutedGameplayEffectData Data : DebugExecutedGameplayEffects)
+	{
+		EffectMap.Add(Data.Attribute, Data);
+	}
+
+	// For each attribute that was modified go through all of its modifiers and list them
+	TArray<FGameplayAttribute> AttributeKeys;
+	EffectMap.GetKeys(AttributeKeys);
+
+	for (const FGameplayAttribute& Attribute : AttributeKeys)
+	{
+		float CombinedModifierValue = 0.f;
+		ActiveEffectsCategory.Add(TEXT(" --- Attribute --- "), Attribute.GetName());
+
+		TArray<FActiveGameplayEffectsContainer::DebugExecutedGameplayEffectData> AttributeEffects;
+		EffectMap.MultiFind(Attribute, AttributeEffects);
+
+		for (const FActiveGameplayEffectsContainer::DebugExecutedGameplayEffectData& DebugData : AttributeEffects)
+		{
+			ActiveEffectsCategory.Add(DebugData.GameplayEffectName, DebugData.ActivationState);
+			ActiveEffectsCategory.Add(TEXT("Magnitude"), FString::Printf(TEXT("%f"), DebugData.Magnitude));
+
+			if (DebugData.ActivationState != "INHIBITED")
+			{
+				CombinedModifierValue += DebugData.Magnitude;
+			}
+		}
+
+		ActiveEffectsCategory.Add(TEXT("Total Modification"), FString::Printf(TEXT("%f"), CombinedModifierValue));
+	}
+
+	Snapshot->Status.Add(ActiveEffectsCategory);
+}
+#endif // ENABLE_VISUAL_LOG
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	Misc

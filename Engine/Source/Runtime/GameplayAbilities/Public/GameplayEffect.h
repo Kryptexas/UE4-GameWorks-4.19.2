@@ -1261,6 +1261,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	// Stores a record of gameplay effects that have executed and their results. Useful for debugging.
 	TArray<DebugExecutedGameplayEffectData> DebugExecutedGameplayEffects;
+
+	GAMEPLAYABILITIES_API void GrabDebugSnapshot(FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 
 	void RegisterWithOwner(UAbilitySystemComponent* Owner);	
