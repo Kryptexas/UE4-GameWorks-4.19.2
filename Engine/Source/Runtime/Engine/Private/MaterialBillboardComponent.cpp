@@ -188,9 +188,9 @@ public:
 						VertexArray.Vertices[0].Position  = -WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
 						VertexArray.Vertices[0].TexCoords = FVector2D(0,0);
 						VertexArray.Vertices[1].Position  = +WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
-						VertexArray.Vertices[1].TexCoords = FVector2D(1,0);
+						VertexArray.Vertices[1].TexCoords = FVector2D(0,1);
 						VertexArray.Vertices[2].Position  = -WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
-						VertexArray.Vertices[2].TexCoords = FVector2D(0,1);
+						VertexArray.Vertices[2].TexCoords = FVector2D(1,0);
 						VertexArray.Vertices[3].Position  = +WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
 						VertexArray.Vertices[3].TexCoords = FVector2D(1,1);
 			
@@ -285,4 +285,24 @@ void UMaterialBillboardComponent::AddElement(
 	Element->DistanceToSizeCurve = DistanceToSizeCurve;
 
 	MarkRenderStateDirty();
+}
+
+UMaterialInterface* UMaterialBillboardComponent::GetMaterial(int32 Index) const
+{
+	UMaterialInterface* ResultMI = nullptr;
+	if (Elements.IsValidIndex(Index))
+	{
+		ResultMI = Elements[Index].Material;
+	}
+	return ResultMI;
+}
+
+void UMaterialBillboardComponent::SetMaterial(int32 ElementIndex, class UMaterialInterface* Material)
+{
+	if (Elements.IsValidIndex(ElementIndex))
+	{
+		Elements[ElementIndex].Material = Material;
+
+		MarkRenderStateDirty();
+	}
 }
