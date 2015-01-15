@@ -147,8 +147,6 @@ FReply SDockTab::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent&
 	return FReply::Unhandled();
 }
 
-
-
 void SDockTab::SetContent( TSharedRef<SWidget> InContent )
 {
 	Content = InContent;
@@ -159,7 +157,6 @@ void SDockTab::SetContent( TSharedRef<SWidget> InContent )
 	}
 }
 
-
 void SDockTab::SetLeftContent( TSharedRef<SWidget> InContent )
 {
 	this->TabWellContentLeft = InContent;
@@ -169,7 +166,6 @@ void SDockTab::SetLeftContent( TSharedRef<SWidget> InContent )
 		ParentPtr.Pin()->RefreshParentContent();
 	}
 }
-
 
 void SDockTab::SetRightContent( TSharedRef<SWidget> InContent )
 {

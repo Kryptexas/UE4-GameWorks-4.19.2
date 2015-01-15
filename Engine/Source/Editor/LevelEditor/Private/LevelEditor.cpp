@@ -42,7 +42,10 @@ FLevelEditorModule::FLevelEditorModule()
 
 TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 {
-	TSharedRef<SDockTab> LevelEditorTab = SNew(SDockTab) .TabRole(ETabRole::MajorTab) .ContentPadding( FMargin(0,2,0,0) );
+	TSharedRef<SDockTab> LevelEditorTab = SNew(SDockTab)
+		.TabRole(ETabRole::MajorTab)
+		.ContentPadding( FMargin(0) );
+
 	SetLevelEditorInstanceTab(LevelEditorTab);
 	TSharedPtr< SWindow > OwnerWindow = InArgs.GetOwnerWindow();
 	
