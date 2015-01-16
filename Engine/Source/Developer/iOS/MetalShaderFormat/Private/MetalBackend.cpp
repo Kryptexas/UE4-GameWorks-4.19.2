@@ -675,7 +675,7 @@ protected:
 					char* TempPtr = Temp;
 					do
 					{
-						*TempPtr = toupper(*Found);
+						*TempPtr++ = tolower(*Found);
 						++Found;
 					}
 					while (*Found);
