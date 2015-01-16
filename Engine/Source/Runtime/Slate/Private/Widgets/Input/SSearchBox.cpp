@@ -6,22 +6,23 @@
 
 void SSearchBox::Construct( const FArguments& InArgs )
 {
-	check(InArgs._Style);
+	// Allow style to be optionally overridden, but fallback to default if not specified
+	const FSearchBoxStyle* InStyle = InArgs._Style.IsSet() ? InArgs._Style.GetValue() : &FCoreStyle::Get().GetWidgetStyle<FSearchBoxStyle>("SearchBox");
 
 	OnSearchDelegate = InArgs._OnSearch;
 	OnTextChangedDelegate = InArgs._OnTextChanged;
 	OnTextCommittedDelegate = InArgs._OnTextCommitted;
 	DelayChangeNotificationsWhileTyping = InArgs._DelayChangeNotificationsWhileTyping;
 
-	InactiveFont = InArgs._Style->TextBoxStyle.Font;
-	ActiveFont = InArgs._Style->ActiveFontInfo;
+	InactiveFont = InStyle->TextBoxStyle.Font;
+	ActiveFont = InStyle->ActiveFontInfo;
 
 	bTypingFilterText = false;
 	LastTypeTime = 0;
 	FilterDelayAfterTyping = 0.25f;
 
 	SEditableTextBox::Construct( SEditableTextBox::FArguments()
-		.Style( &InArgs._Style->TextBoxStyle )
+		.Style( &InStyle->TextBoxStyle )
 		.Font( this, &SSearchBox::GetWidgetFont )
 		.Text( InArgs._InitialText )
 		.HintText( InArgs._HintText )
@@ -41,6 +42,7 @@ void SSearchBox::Construct( const FArguments& InArgs )
 	{
 		Box->InsertSlot(SlotIndex++)
 		.AutoWidth()
+		.Padding(InStyle->ImagePadding)
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -54,12 +56,13 @@ void SSearchBox::Construct( const FArguments& InArgs )
 			.IsFocusable(false)
 			[
 				SNew(SImage)
-				.Image( &InArgs._Style->UpArrowImage )
+				.Image( &InStyle->UpArrowImage )
 				.ColorAndOpacity( FSlateColor::UseForeground() )
 			]
 		];
 		Box->InsertSlot(SlotIndex++)
 		.AutoWidth()
+		.Padding(InStyle->ImagePadding)
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -73,7 +76,7 @@ void SSearchBox::Construct( const FArguments& InArgs )
 			.IsFocusable(false)
 			[
 				SNew(SImage)
-				.Image( &InArgs._Style->DownArrowImage )
+				.Image( &InStyle->DownArrowImage )
 				.ColorAndOpacity( FSlateColor::UseForeground() )
 			]
 		];
@@ -82,18 +85,22 @@ void SSearchBox::Construct( const FArguments& InArgs )
 	// Add a search glass image so that the user knows this text box is for searching
 	Box->InsertSlot(SlotIndex++)
 	.AutoWidth()
+	.Padding(InStyle->ImagePadding)
 	.HAlign(HAlign_Center)
 	.VAlign(VAlign_Center)
 	[
 		SNew(SImage)
 		.Visibility(this, &SSearchBox::GetSearchGlassVisibility)
-		.Image( &InArgs._Style->GlassImage )
+		.Image( &InStyle->GlassImage )
 		.ColorAndOpacity( FSlateColor::UseForeground() )
 	];
 
 	// Add an X to clear the search whenever there is some text typed into it
 	Box->InsertSlot(SlotIndex++)
 	.AutoWidth()
+	.Padding(InStyle->ImagePadding)
+	.HAlign(HAlign_Center)
+	.VAlign(VAlign_Center)
 	[
 		SNew(SButton)
 		.Visibility(this, &SSearchBox::GetXVisibility)
@@ -108,7 +115,7 @@ void SSearchBox::Construct( const FArguments& InArgs )
 		.IsFocusable(false)
 		[
 			SNew(SImage)
-			.Image( &InArgs._Style->ClearImage )
+			.Image( &InStyle->ClearImage )
 			.ColorAndOpacity( FSlateColor::UseForeground() )
 		]
 	];
