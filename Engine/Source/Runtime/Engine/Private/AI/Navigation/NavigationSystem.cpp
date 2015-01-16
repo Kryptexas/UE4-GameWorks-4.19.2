@@ -119,8 +119,10 @@ FNavDataConfig::FNavDataConfig(float Radius, float Height)
 	, Color(140, 255, 0, 164)
 	, DefaultQueryExtent(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL)
 	, NavigationDataClass(ARecastNavMesh::StaticClass())
+	, NavigationDataClassName(NavigationDataClass)
 {
 }
+
 //----------------------------------------------------------------------//
 // FNavigationLockContext                                                                
 //----------------------------------------------------------------------//
@@ -304,31 +306,66 @@ void UNavigationSystem::UpdateAbstractNavData()
 		AbstractNavData->OnRegistered();
 	}
 }
+
+void UNavigationSystem::SetSupportedAgentsNavigationClass(int32 AgentIndex, TSubclassOf<ANavigationData> NavigationDataClass)
+{
+	check(SupportedAgents.IsValidIndex(AgentIndex));
+	SupportedAgents[AgentIndex].NavigationDataClass = NavigationDataClass;
+
+	if (NavigationDataClass != nullptr)
+	{
+		SupportedAgents[AgentIndex].NavigationDataClassName = FStringClassReference::GetOrCreateIDForClass(NavigationDataClass);
+	}
+	else
+	{
+		SupportedAgents[AgentIndex].NavigationDataClassName.Reset();
+	}
+
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		if (HasAnyFlags(RF_ClassDefaultObject) == false)
+		{
+			// set it at CDO to properly show up in project settings
+			// @hack the reason for doing it this way is that engine doesn't handle default TSubclassOf properties
+			//	set to game-specific classes;
+			UNavigationSystem* NavigationSystemCDO = GetMutableDefault<UNavigationSystem>(GetClass());
+			NavigationSystemCDO->SetSupportedAgentsNavigationClass(AgentIndex, NavigationDataClass);
+		}
+	}
+#endif // WITH_EDITOR
+}
+
 void UNavigationSystem::PostInitProperties()
 {
 	Super::PostInitProperties();
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		// make sure there's at leas one supported navigation agent size
+		// make sure there's at least one supported navigation agent size
 		if (SupportedAgents.Num() == 0)
 		{
 			SupportedAgents.Add(FNavDataConfig(FNavigationSystem::FallbackAgentRadius, FNavigationSystem::FallbackAgentHeight));
 		}
-
-		// gather navigation creators
-		NavDataClasses.Empty(RequiredNavigationDataClassNames.Num());
-		for (int32 Index = 0; Index < RequiredNavigationDataClassNames.Num(); ++Index)
+		else
 		{
-			TSubclassOf<ANavigationData> NavDataClass = LoadClass<ANavigationData>(NULL, *RequiredNavigationDataClassNames[Index].ToString(), NULL, LOAD_None, NULL);
-			if (NavDataClass)
+			for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); ++AgentIndex)
 			{
-				NavDataClasses.AddUnique(NavDataClass);
-			}
-			else
-			{
-				UE_LOG(LogNavigation, Warning, TEXT("Unable to find navigation data class \'%s\' while setting up require navigation types")
-					, *RequiredNavigationDataClassNames[Index].ToString());
+				FNavDataConfig& SupportedAgentConfig = SupportedAgents[AgentIndex];
+				// a piece of legacy maintanance 
+				if (SupportedAgentConfig.NavigationDataClass != nullptr && SupportedAgentConfig.NavigationDataClassName.IsValid() == false)
+				{
+					// fill NavigationDataClassName
+					SupportedAgentConfig.NavigationDataClassName = FStringClassReference(SupportedAgentConfig.NavigationDataClass);
+				}
+				else
+				{
+					TSubclassOf<ANavigationData> NavigationDataClass = SupportedAgentConfig.NavigationDataClassName.IsValid()
+						? LoadClass<ANavigationData>(NULL, *SupportedAgentConfig.NavigationDataClassName.ToString(), NULL, LOAD_None, NULL)
+						: nullptr;
+
+					SetSupportedAgentsNavigationClass(AgentIndex, NavigationDataClass);
+				}
 			}
 		}
 
@@ -353,15 +390,6 @@ void UNavigationSystem::PostInitProperties()
 #endif
 		FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
 		UNavigationSystem::NavigationDirtyEvent.AddUObject(this, &UNavigationSystem::OnNavigationDirtied);
-	}
-	
-	// update SupportedActors' navigation classes
-	for (FNavDataConfig& SupportedAgentConfig : SupportedAgents)
-	{
-		if (SupportedAgentConfig.NavigationDataClassName.IsValid())
-		{
-			SupportedAgentConfig.NavigationDataClass = LoadClass<ANavigationData>(NULL, *SupportedAgentConfig.NavigationDataClassName.ToString(), NULL, LOAD_None, NULL);
-		}
 	}
 }
 
@@ -408,17 +436,11 @@ void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		if (PropName == NAME_NavigationDataClass)
 		{
 			int32 SupportedAgentIndex = PropertyChangedEvent.GetArrayIndex(NAME_SupportedAgents.ToString());
-			if (SupportedAgentIndex != INDEX_NONE)
+			if (SupportedAgents.IsValidIndex(SupportedAgentIndex))
 			{
 				// reflect the change to SupportedAgent's 
-				if (SupportedAgents[SupportedAgentIndex].NavigationDataClass != nullptr)
-				{
-					SupportedAgents[SupportedAgentIndex].NavigationDataClassName = FStringClassReference::GetOrCreateIDForClass(SupportedAgents[SupportedAgentIndex].NavigationDataClass);
-				}
-				else
-				{
-					SupportedAgents[SupportedAgentIndex].NavigationDataClassName.Reset();
-				}
+				SetSupportedAgentsNavigationClass(SupportedAgentIndex, SupportedAgents[SupportedAgentIndex].NavigationDataClass);
+				SaveConfig();
 			}
 		}
 	}
