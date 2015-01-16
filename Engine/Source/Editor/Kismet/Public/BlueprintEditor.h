@@ -358,12 +358,6 @@ public:
 	/** Refresh the preview viewport to reflect changes in the SCS */
 	void UpdateSCSPreview(bool bUpdateNow = false);
 
-	/** Delegate invoked when the SCS editor widget needs to create a new component node for a component class type */
-	USCS_Node* OnSCSEditorAddNewComponent(UClass* InComponentClass);
-
-	/** Delegate invoked when the SCS editor widget needs to create a new component node for an existing component instance */
-	USCS_Node* OnSCSEditorAddExistingComponent(UActorComponent* InComponentInstance);
-
 	/** Delegate invoked when the tree view selection is changed in the SCS editor widget */
 	void OnSCSEditorTreeViewSelectionChanged(const TArray< TSharedPtr<class FSCSEditorTreeNode> >& SelectedNodes);
 
