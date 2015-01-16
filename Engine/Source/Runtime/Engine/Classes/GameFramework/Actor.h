@@ -2148,7 +2148,7 @@ public:
 	 *     Actor->GetComponents(PrimComponents);
 	 * }
 	 */
-	template<class T, class AllocatorType = FDefaultAllocator>
+	template<class T, class AllocatorType>
 	void GetComponents(TArray<T*, AllocatorType>& OutComponents) const
 	{
 		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to GetComponents must be derived from ActorComponent");
@@ -2168,7 +2168,7 @@ public:
 	}
 
 	/** UActorComponent specialization of GetComponents() to avoid unnecessary casts. */
-	template<class AllocatorType = FDefaultAllocator>
+	template<class AllocatorType>
 	void GetComponents(TArray<UActorComponent*, AllocatorType>& OutComponents) const
 	{
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
