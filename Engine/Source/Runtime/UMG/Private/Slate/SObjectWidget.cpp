@@ -153,6 +153,8 @@ FReply SObjectWidget::OnAnalogValueChanged(const FGeometry& MyGeometry, const FA
 
 FReply SObjectWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnMouseButtonDown(MyGeometry, MouseEvent);
+
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
 		return WidgetObject->OnMouseButtonDown(MyGeometry, MouseEvent).NativeReply;
@@ -163,6 +165,8 @@ FReply SObjectWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 
 FReply SObjectWidget::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnPreviewMouseButtonDown(MyGeometry, MouseEvent);
+
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
 		return WidgetObject->OnPreviewMouseButtonDown(MyGeometry, MouseEvent).NativeReply;
@@ -173,6 +177,8 @@ FReply SObjectWidget::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, cons
 
 FReply SObjectWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnMouseButtonUp(MyGeometry, MouseEvent);
+
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
 		return WidgetObject->OnMouseButtonUp(MyGeometry, MouseEvent).NativeReply;

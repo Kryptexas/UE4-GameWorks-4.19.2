@@ -115,6 +115,10 @@ public:
 
 	float GetHoveredWidgetTime() const;
 
+	void AddPostDesignerLayoutAction(TFunction<void()> Action);
+
+	TArray< TFunction<void()> >& GetQueuedDesignerActions();
+
 public:
 	/** Fires whenever the selected set of widgets changing */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanging;
@@ -211,4 +215,6 @@ private:
 
 	/**  */
 	bool bIsRealTime;
+
+	TArray< TFunction<void()> > QueuedDesignerActions;
 };

@@ -341,7 +341,7 @@ void FWidgetBlueprintEditor::PasteWidgets()
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
 	FWidgetReference Target = Widgets.Num() > 0 ? *Widgets.CreateIterator() : FWidgetReference();
 
-	FWidgetBlueprintEditorUtils::PasteWidgets(GetWidgetBlueprintObj(), Target, PasteDropLocation);
+	FWidgetBlueprintEditorUtils::PasteWidgets(SharedThis(this), GetWidgetBlueprintObj(), Target, PasteDropLocation);
 
 	//TODO UMG - Select the newly selected pasted widgets.
 }
@@ -707,6 +707,16 @@ FWidgetReference FWidgetBlueprintEditor::GetHoveredWidget() const
 float FWidgetBlueprintEditor::GetHoveredWidgetTime() const
 {
 	return HoverTime;
+}
+
+void FWidgetBlueprintEditor::AddPostDesignerLayoutAction(TFunction<void()> Action)
+{
+	QueuedDesignerActions.Add(Action);
+}
+
+TArray< TFunction<void()> >& FWidgetBlueprintEditor::GetQueuedDesignerActions()
+{
+	return QueuedDesignerActions;
 }
 
 #undef LOCTEXT_NAMESPACE
