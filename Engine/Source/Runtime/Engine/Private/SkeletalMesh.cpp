@@ -2826,7 +2826,7 @@ UMorphTarget* USkeletalMesh::FindMorphTarget( FName MorphTargetName ) const
 	return NULL;
 }
 
-USkeletalMeshSocket const* USkeletalMesh::FindSocket(FName InSocketName) const
+USkeletalMeshSocket* USkeletalMesh::FindSocket(FName InSocketName) const
 {
 	if(InSocketName == NAME_None)
 	{

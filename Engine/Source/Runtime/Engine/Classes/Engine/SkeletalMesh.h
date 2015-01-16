@@ -752,7 +752,8 @@ public:
 	 *	Find a socket object in this SkeletalMesh by name. 
 	 *	Entering NAME_None will return NULL. If there are multiple sockets with the same name, will return the first one.
 	 */
-	ENGINE_API class USkeletalMeshSocket const* FindSocket(FName InSocketName) const;
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	ENGINE_API USkeletalMeshSocket* FindSocket(FName InSocketName) const;
 
 	// @todo document
 	ENGINE_API FMatrix GetRefPoseMatrix( int32 BoneIndex ) const;
