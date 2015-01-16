@@ -948,6 +948,36 @@ void FLevelEditorActionCallbacks::GoToDocsForActor_Clicked()
 	}
 }
 
+void FLevelEditorActionCallbacks::AddScriptBehavior_Clicked()
+{
+	AActor* SelectedActor = GEditor->GetSelectedActors()->GetTop<AActor>();
+
+	if (SelectedActor)
+	{
+		const FName Name = *FString::Printf(TEXT("%s_BPClass"), *SelectedActor->GetName());
+
+		// Create and init a new Blueprint
+		UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(SelectedActor->GetClass(), SelectedActor->GetLevel(), Name, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+		if (NewBP)
+		{
+			NewBP->ClearFlags(RF_Standalone);
+			ULevel::LevelDirtiedEvent.Broadcast();
+
+			FKismetEditorUtilities::CompileBlueprint(NewBP);
+
+			// the editor should be opened AFTER being added to the asset 
+			// registry (some systems could queue off of the asset registry 
+			// add event, and already having that blueprint open can be odd)
+			FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
+
+			GEditor->ReplaceSelectedActors(GEditor->FindActorFactoryByClass(UActorFactoryBlueprint::StaticClass()), FAssetData(NewBP));
+
+			// Mark the package dirty...
+			SelectedActor->MarkPackageDirty();
+		}
+	}
+}
+
 void FLevelEditorActionCallbacks::FindInContentBrowser_Clicked()
 {
 	GEditor->SyncToContentBrowser();
@@ -2645,6 +2675,8 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( GoToCodeForActor, "Go to C++ Code for Actor", "Opens a code editing IDE and navigates to the source file associated with the seleced actor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( GoToDocsForActor, "Go to Documentation for Actor", "Opens documentation for the Actor in the default web browser", EUserInterfaceActionType::Button, FInputGesture() );
+
+	UI_COMMAND( AddScriptBehavior, "Customize Scripting Behavior", "Click to customize scripting behavior of this Actor", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( PasteHere, "Paste Here", "Pastes the actor at the click location", EUserInterfaceActionType::Button, FInputGesture() );
 

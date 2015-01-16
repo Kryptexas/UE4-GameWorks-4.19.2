@@ -2429,6 +2429,11 @@ bool FBlueprintEditorUtils::IsLevelScriptBlueprint(const UBlueprint* Blueprint)
 	return (Blueprint->BlueprintType == BPTYPE_LevelScript);
 }
 
+bool FBlueprintEditorUtils::IsAnonymousBlueprintClass(const UClass* Class)
+{
+	return (Class->GetOutermost()->ContainsMap());
+}
+
 bool FBlueprintEditorUtils::SupportsConstructionScript(const UBlueprint* Blueprint)
 {
 	return(	!FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint) && 
