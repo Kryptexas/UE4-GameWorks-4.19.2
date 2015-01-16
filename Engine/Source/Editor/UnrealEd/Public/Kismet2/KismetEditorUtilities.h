@@ -93,7 +93,17 @@ public:
 	 * @param bReplaceActor			If true, replace the actor in the scene with one based on the created blueprint
 	 * @return The blueprint created from the actor
 	 */
-	static UBlueprint* CreateBlueprintFromActor(const FString& Path, UObject* Actor, bool bReplaceActor );
+	static UBlueprint* CreateBlueprintFromActor(const FString& Path, AActor* Actor, bool bReplaceActor );
+
+	/** 
+	 * Take an Actor and generate a blueprint based on it. Uses the Actors type as the parent class. 
+	 * @param BlueprintName			The name to use for the Blueprint
+	 * @param Outer					The outer object to create the blueprint within
+	 * @param Actor					The actor to use as the template for the blueprint
+	 * @param bReplaceActor			If true, replace the actor in the scene with one based on the created blueprint
+	 * @return The blueprint created from the actor
+	 */
+	static UBlueprint* CreateBlueprintFromActor(const FName BlueprintName, UObject* Outer, AActor* Actor, bool bReplaceActor );
 
 	/** 
 	 * Take a list of Actors and generate a blueprint  by harvesting the components they have. Uses AActor as parent class type as the parent class. 

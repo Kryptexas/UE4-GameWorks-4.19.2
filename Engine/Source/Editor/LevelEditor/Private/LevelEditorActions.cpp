@@ -955,28 +955,7 @@ void FLevelEditorActionCallbacks::AddScriptBehavior_Clicked()
 	if (SelectedActor)
 	{
 		const FName Name = *FString::Printf(TEXT("%s_BPClass"), *SelectedActor->GetName());
-
-		// Create and init a new Blueprint
-		UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(SelectedActor->GetClass(), SelectedActor->GetLevel(), Name, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
-		if (NewBP)
-		{
-			NewBP->ClearFlags(RF_Standalone);
-			ULevel::LevelDirtiedEvent.Broadcast();
-
-			UEngine::CopyPropertiesForUnrelatedObjects(SelectedActor, NewBP->GeneratedClass->GetDefaultObject<AActor>());
-
-			FKismetEditorUtilities::CompileBlueprint(NewBP);
-
-			// the editor should be opened AFTER being added to the asset 
-			// registry (some systems could queue off of the asset registry 
-			// add event, and already having that blueprint open can be odd)
-			FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
-
-			GEditor->ReplaceSelectedActors(GEditor->FindActorFactoryByClass(UActorFactoryBlueprint::StaticClass()), FAssetData(NewBP));
-
-			// Mark the package dirty...
-			SelectedActor->MarkPackageDirty();
-		}
+		FKismetEditorUtilities::CreateBlueprintFromActor(Name, SelectedActor->GetLevel(), SelectedActor, true);
 	}
 }
 
