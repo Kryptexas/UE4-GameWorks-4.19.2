@@ -3092,32 +3092,34 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 	TArray<uint32> ResultTileIndices;
 	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
 	
-	check(DetourMesh == nullptr || DetourMesh->isEmpty() == false);
-	const int32 NumLayers = DetourMesh != nullptr ? DetourMesh->getTileCountAt(TileX, TileY) : 0;
-	
-	if (NumLayers > 0)
+	if (DetourMesh != nullptr && DetourMesh->isEmpty() == false)
 	{
-		TArray<dtMeshTile*> Tiles;
-		Tiles.AddZeroed(NumLayers);
-		DetourMesh->getTilesAt(TileX, TileY, (const dtMeshTile**)Tiles.GetData(), NumLayers);
-	
-		for (int32 i = 0; i < NumLayers; i++)
+		const int32 NumLayers = DetourMesh != nullptr ? DetourMesh->getTileCountAt(TileX, TileY) : 0;
+
+		if (NumLayers > 0)
 		{
-			const int32 LayerIndex = Tiles[i]->header->layer;
-			const dtTileRef TileRef = DetourMesh->getTileRef(Tiles[i]);
+			TArray<dtMeshTile*> Tiles;
+			Tiles.AddZeroed(NumLayers);
+			DetourMesh->getTilesAt(TileX, TileY, (const dtMeshTile**)Tiles.GetData(), NumLayers);
 
-			NumActiveTiles--;
-			UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), removing TileRef: 0x%X (active:%d)"),
-				*DestNavMesh->GetName(), TileX, TileY, LayerIndex, TileRef, NumActiveTiles);
+			for (int32 i = 0; i < NumLayers; i++)
+			{
+				const int32 LayerIndex = Tiles[i]->header->layer;
+				const dtTileRef TileRef = DetourMesh->getTileRef(Tiles[i]);
 
-			DetourMesh->removeTile(TileRef, nullptr, nullptr);
+				NumActiveTiles--;
+				UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), removing TileRef: 0x%X (active:%d)"),
+					*DestNavMesh->GetName(), TileX, TileY, LayerIndex, TileRef, NumActiveTiles);
 
-			ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(TileRef));
+				DetourMesh->removeTile(TileRef, nullptr, nullptr);
+
+				ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(TileRef));
+			}
 		}
-	}
 
-	// Remove compressed tile cache layers
-	DestNavMesh->RemoveTileCacheLayers(TileX, TileY);
+		// Remove compressed tile cache layers
+		DestNavMesh->RemoveTileCacheLayers(TileX, TileY);
+	}
 
 	return ResultTileIndices;
 }
