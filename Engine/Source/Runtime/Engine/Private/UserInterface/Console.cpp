@@ -11,6 +11,7 @@
 #include "DefaultValueHelper.h"
 #include "ConsoleSettings.h"
 #include "GameFramework/InputSettings.h"
+#include "Stats/StatsData.h"
 
 static const uint32 MAX_AUTOCOMPLETION_LINES = 20;
 
@@ -219,6 +220,23 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 		AutoCompleteList[NewIdx].Command = FString(TEXT("open 127.0.0.1"));
 		AutoCompleteList[NewIdx].Desc = FString(TEXT("open 127.0.0.1 (opens connection to localhost)"));
 	}
+
+	// stat commands
+	{
+		const TSet<FName>& StatGroupNames = FStatGroupGameThreadNotifier::Get().StatGroupNames;
+
+		int32 NewIdx = AutoCompleteList.AddZeroed(StatGroupNames.Num());
+		for (const FName& StatGroupName : StatGroupNames)
+		{
+			FString Command = FString(TEXT("Stat "));
+			Command += StatGroupName.ToString().RightChop(sizeof("STATGROUP_") - 1);
+
+			AutoCompleteList[NewIdx].Command = Command;
+			AutoCompleteList[NewIdx].Desc = FString();
+			NewIdx++;
+		}
+	}
+
 	// build the magic tree!
 	for (int32 ListIdx = 0; ListIdx < AutoCompleteList.Num(); ListIdx++)
 	{

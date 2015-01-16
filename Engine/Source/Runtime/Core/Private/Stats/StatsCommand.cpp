@@ -1426,12 +1426,12 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 	{
 		FString AddArgs;
 		const TCHAR* TempCmd = Cmd;
-		bResult = true;
 
 		FString ArgNoWhitespaces = FDefaultValueHelper::RemoveWhitespaces(TempCmd);
 		const bool bIsEmpty = ArgNoWhitespaces.IsEmpty();
 #if STATS
-		if( bIsEmpty && Ar )
+		bResult = true;
+		if (bIsEmpty && Ar)
 		{
 			PrintStatsHelpToOutputDevice( *Ar );
 		}
@@ -1500,10 +1500,25 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		{
 		}
 		else
-#endif
 		{
 			bResult = false;
+
+			FString MaybeGroup;
+			if (FParse::Token(TempCmd, MaybeGroup, false) && MaybeGroup.Len() > 0)
+			{
+				// If there is + at the end of the group name, remove it
+				const int32 PlusPos = MaybeGroup.Len() - 1;
+				const bool bHierarchy = MaybeGroup[MaybeGroup.Len() - 1] == TEXT('+');
+				if (bHierarchy)
+				{
+					MaybeGroup.RemoveAt(PlusPos, 1, false);
+				}
+
+				const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + MaybeGroup));
+				bResult = FStatGroupGameThreadNotifier::Get().StatGroupNames.Contains(MaybeGroupFName);
+			}
 		}
+#endif
 
 		check(IsInGameThread());
 		if( !bIsEmpty )
