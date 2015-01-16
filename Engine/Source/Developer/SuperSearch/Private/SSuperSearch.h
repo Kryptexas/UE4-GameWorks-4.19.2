@@ -76,7 +76,7 @@ protected:
 	
 	void OnMenuOpenChanged(bool bIsOpen);
 
-	void ActOnSuggestion(TSharedPtr<FSearchEntry> SearchEntry);
+	void ActOnSuggestion(TSharedPtr<FSearchEntry> SearchEntry, FString const& Category);
 		
 	void UpdateSuggestions();
 
