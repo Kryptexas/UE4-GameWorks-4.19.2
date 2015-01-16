@@ -373,10 +373,29 @@ typedef SSCSEditorDragDropTree SSCSTreeType;
 class SSCSEditor : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SSCSEditor ){}
+	DECLARE_DELEGATE_OneParam(FOnTreeViewSelectionChanged, const TArray<FSCSEditorTreeNodePtrType>&);
+	DECLARE_DELEGATE_OneParam(FOnUpdateSelectionFromNodes, const TArray<FSCSEditorTreeNodePtrType>&);
+	DECLARE_DELEGATE_OneParam(FOnHighlightPropertyInDetailsView, const class FPropertyPath&);
+
+	SLATE_BEGIN_ARGS( SSCSEditor )
+		:_InEditingMode(true)
+		,_PreviewActor(nullptr)
+		,_HideComponentClassCombo(false)
+		,_OnTreeViewSelectionChanged()
+		,_OnUpdateSelectionFromNodes()
+		,_OnHighlightPropertyInDetailsView()
+		{}
+
+		SLATE_ATTRIBUTE(bool, InEditingMode)
+		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
+		SLATE_ATTRIBUTE(bool, HideComponentClassCombo)
+		SLATE_EVENT(FOnTreeViewSelectionChanged, OnTreeViewSelectionChanged)
+		SLATE_EVENT(FOnUpdateSelectionFromNodes, OnUpdateSelectionFromNodes)
+		SLATE_EVENT(FOnHighlightPropertyInDetailsView, OnHighlightPropertyInDetailsView)
+
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint, TSharedPtr<class SKismetInspector> Inspector = TSharedPtr<class SKismetInspector>() );
+	void Construct(const FArguments& InArgs, USimpleConstructionScript* InSCS);
 
 	/** Override OnKeyDown */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
@@ -432,7 +451,7 @@ public:
 	/** Called when selection in the tree changes */
 	void OnTreeSelectionChanged(FSCSEditorTreeNodePtrType InSelectedNodePtr, ESelectInfo::Type SelectInfo);
 
-	/** Update the Kismet2 inspector from the passed in nodes */
+	/** Update any associated selection (e.g. details view) from the passed in nodes */
 	void UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType> &SelectedNodes );
 
 	/** Refresh the tree control to reflect changes in the SCS */
@@ -450,11 +469,12 @@ public:
 	/**
 	 * Fills out an events section in ui.
 	 * @param Menu								the menu to add the events section into
-	 * @param BlueprintEditor					the active blueprint editor containing the selected objects
+	 * @param Blueprint							the active blueprint context being edited
 	 * @param SelectedClass						the common component class to build the events list from
+	 * @param CanExecuteActionDelegate			the delegate to query whether or not to execute the UI action
 	 * @param GetSelectedObjectsDelegate		the delegate to fill the currently select variables / components
 	 */
-	static void BuildMenuEventsSection( FMenuBuilder& Menu, TSharedPtr<FBlueprintEditor> BlueprintEditor, UClass* SelectedClass, FGetSelectedObjectsDelegate GetSelectedObjectsDelegate );
+	static void BuildMenuEventsSection( FMenuBuilder& Menu, UBlueprint* Blueprint, UClass* SelectedClass, FCanExecuteAction CanExecuteActionDelegate, FGetSelectedObjectsDelegate GetSelectedObjectsDelegate );
 
 	/**
 	 * Given an actor component, attempts to find an associated tree node.
@@ -527,12 +547,12 @@ protected:
 
 	/**
 	 * Function to create events for the current selection
-	 * @param BlueprintEditor				the active blueprint editor
+	 * @param Blueprint						the active blueprint context
 	 * @param EventName						the event to add
 	 * @param GetSelectedObjectsDelegate	the delegate to gather information about current selection
 	 * @param NodeIndex						an index to a specified node to add event for or < 0 for all selected nodes.
 	 */
-	static void CreateEventsForSelection(TSharedPtr<FBlueprintEditor> BlueprintEditor, FName EventName, FGetSelectedObjectsDelegate GetSelectedObjectsDelegate);
+	static void CreateEventsForSelection(UBlueprint* Blueprint, FName EventName, FGetSelectedObjectsDelegate GetSelectedObjectsDelegate);
 
 	/**
 	 * Function to construct an event for a node
@@ -578,12 +598,6 @@ public:
 	/** Pointer to blueprint we were created with */
 	UBlueprint* Blueprint;
 
-	/** Pointer back to owning Kismet 2 tool */
-	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
-
-	/** Pointer back to companion inspector tool */
-	TWeakPtr<class SKismetInspector> KismetInspectorPtr;
-
 	/** Tree widget */
 	TSharedPtr<SSCSTreeType> SCSTreeWidget;
 
@@ -601,6 +615,21 @@ public:
 
 	/** Whether or not the deferred rename request was flagged as transactional */
 	bool bIsDeferredRenameRequestTransactional;
+
+	/** Attribute to control whether or not to allow editing. */
+	TAttribute<bool> bInEditingMode;
+
+	/** Attribute that provides access to the "preview" Actor context. */
+	TAttribute<AActor*> PreviewActor;
+
+	/** Delegate to invoke on tree view selection change. */
+	FOnTreeViewSelectionChanged OnTreeViewSelectionChanged;
+
+	/** Delegate to invoke when details should be updated. */
+	FOnUpdateSelectionFromNodes OnUpdateSelectionFromNodes;
+
+	/** Delegate to invoke when the given property should be highlighted in the details view (e.g. diff). */
+	FOnHighlightPropertyInDetailsView OnHighlightPropertyInDetailsView;
 private:
 
 	/** Flag to enable/disable component editing */

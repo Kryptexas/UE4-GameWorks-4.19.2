@@ -1448,16 +1448,14 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
 	check(SCSEditorPtr.IsValid());
 
-	TSharedPtr<FBlueprintEditor> Kismet2Ptr = SCSEditorPtr->Kismet2Ptr.Pin();
-	check(Kismet2Ptr.IsValid());
-
-	AActor* PreviewActor = Kismet2Ptr->GetPreviewActor();
-	check(PreviewActor);
-
 	// Get the current Blueprint context
 	check(SCSEditorPtr->SCS);
 	UBlueprint* Blueprint = SCSEditorPtr->SCS->GetBlueprint();
 	check(Blueprint);
+
+	// Get the current Actor context
+	AActor* PreviewActor = SCSEditorPtr->PreviewActor.Get();
+	check(PreviewActor != nullptr);
 
 	bool bRegenerateTreeNodes = false;
 	const FScopedTransaction TransactionContext(DroppedNodePtrs.Num() > 1 ? LOCTEXT("AttachComponents", "Attach Components") : LOCTEXT("AttachComponent", "Attach Component"));
@@ -1576,11 +1574,9 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
 	check(SCSEditorPtr.IsValid());
 
-	TSharedPtr<FBlueprintEditor> Kismet2Ptr = SCSEditorPtr->Kismet2Ptr.Pin();
-	check(Kismet2Ptr.IsValid());
-
-	AActor* PreviewActor = Kismet2Ptr->GetPreviewActor();
-	check(PreviewActor);
+	// Get the current preview Actor context
+	AActor* PreviewActor = SCSEditorPtr->PreviewActor.Get();
+	check(PreviewActor != nullptr);
 
 	const FScopedTransaction TransactionContext(DroppedNodePtrs.Num() > 1 ? LOCTEXT("DetachComponents", "Detach Components") : LOCTEXT("DetachComponent", "Detach Component"));
 
@@ -1910,12 +1906,16 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 // SSCSEditor
 
 
-void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint, TSharedPtr<SKismetInspector> Inspector )
+void SSCSEditor::Construct( const FArguments& InArgs, USimpleConstructionScript* InSCS )
 {
-	Kismet2Ptr = InKismet2;
-	KismetInspectorPtr = Inspector.IsValid() ? Inspector : InKismet2->GetInspector();
 	SCS = InSCS;
-	Blueprint = InBlueprint;
+	Blueprint = InSCS->GetBlueprint();
+
+	PreviewActor = InArgs._PreviewActor;
+	bInEditingMode = InArgs._InEditingMode;
+	OnTreeViewSelectionChanged = InArgs._OnTreeViewSelectionChanged;
+	OnUpdateSelectionFromNodes = InArgs._OnUpdateSelectionFromNodes;
+	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;
 
 	CommandList = MakeShareable( new FUICommandList );
 	CommandList->MapAction( FGenericCommands::Get().Cut,
@@ -1988,7 +1988,11 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 		);
 
 	TSharedPtr<SWidget> Contents;
-	if( InKismet2.IsValid() )
+	if( InArgs._HideComponentClassCombo.Get() )
+	{
+		Contents = SCSTreeWidget;
+	}
+	else
 	{
 		Contents = SNew(SVerticalBox)
 
@@ -2005,17 +2009,12 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 				.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
 			]
 		]
-
 		// Tree
 		+ SVerticalBox::Slot()
 		.Padding(0.f, 0.f, 0.f, 2.f)
 		[
 			SCSTreeWidget.ToSharedRef()
 		];
-	}
-	else
-	{
-		Contents = SCSTreeWidget;
 	}
 
 	this->ChildSlot
@@ -2112,18 +2111,18 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 					}
 				}
 
-				TSharedPtr<FBlueprintEditor> PinnedBlueprintEditor = Kismet2Ptr.Pin();
-				if ( PinnedBlueprintEditor.IsValid() && SelectionClasses.Num() )
+				if ( SelectionClasses.Num() )
 				{
 					// Find the common base class of all selected classes
 					UClass* SelectedClass = UClass::FindCommonBase( SelectionClasses );
 					// Build an event submenu if we can generate events
-					if( FBlueprintEditor::CanClassGenerateEvents( SelectedClass ))
+					if( FBlueprintEditorUtils::CanClassGenerateEvents( SelectedClass ))
 					{
 						MenuBuilder.AddSubMenu(	LOCTEXT("AddEventSubMenu", "Add Event"), 
 							LOCTEXT("ActtionsSubMenu_ToolTip", "Add Event"), 
-							FNewMenuDelegate::CreateStatic( &SSCSEditor::BuildMenuEventsSection, PinnedBlueprintEditor, SelectedClass, 
-							FGetSelectedObjectsDelegate::CreateSP(this, &SSCSEditor::GetSelectedItemsForContextMenu)));
+							FNewMenuDelegate::CreateStatic( &SSCSEditor::BuildMenuEventsSection,
+								Blueprint, SelectedClass, FCanExecuteAction::CreateSP(this, &SSCSEditor::InEditingMode),
+								FGetSelectedObjectsDelegate::CreateSP(this, &SSCSEditor::GetSelectedItemsForContextMenu)));
 					}
 				}
 			}
@@ -2139,12 +2138,11 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 	return TSharedPtr<SWidget>();
 }
 
-void SSCSEditor::BuildMenuEventsSection(FMenuBuilder& Menu, TSharedPtr<FBlueprintEditor> BlueprintEditor, UClass* SelectedClass, FGetSelectedObjectsDelegate GetSelectedObjectsDelegate)
+void SSCSEditor::BuildMenuEventsSection(FMenuBuilder& Menu, UBlueprint* Blueprint, UClass* SelectedClass, FCanExecuteAction CanExecuteActionDelegate, FGetSelectedObjectsDelegate GetSelectedObjectsDelegate)
 {
 	// Get Selected Nodes
 	TArray<FComponentEventConstructionData> SelectedNodes;
 	GetSelectedObjectsDelegate.ExecuteIfBound( SelectedNodes );
-	UBlueprint* Blueprint = BlueprintEditor->GetBlueprintObj();
 
 	struct FMenuEntry
 	{
@@ -2178,8 +2176,7 @@ void SSCSEditor::BuildMenuEventsSection(FMenuBuilder& Menu, TSharedPtr<FBlueprin
 						FMenuEntry NewEntry;
 						NewEntry.Label = ( SelectedNodes.Num() > 1 ) ?	FText::Format( LOCTEXT("ViewEvent_ToolTipFor", "{0} for {1}"), FText::FromName( EventName ), FText::FromName( VariableName )) : 
 																		FText::Format( LOCTEXT("ViewEvent_ToolTip", "{0}"), FText::FromName( EventName ));
-						NewEntry.UIAction =	FUIAction(FExecuteAction::CreateStatic( &SSCSEditor::ViewEvent, Blueprint, EventName, *NodeIter ),
-													  FCanExecuteAction::CreateSP( BlueprintEditor.Get(), &FBlueprintEditor::InEditingMode ));
+						NewEntry.UIAction =	FUIAction(FExecuteAction::CreateStatic( &SSCSEditor::ViewEvent, Blueprint, EventName, *NodeIter ), CanExecuteActionDelegate);
 						NodeActions.Add( NewEntry );
 						ComponentEventViewEntries++;
 					}
@@ -2190,8 +2187,7 @@ void SSCSEditor::BuildMenuEventsSection(FMenuBuilder& Menu, TSharedPtr<FBlueprin
 			// Create menu Add entry
 				FMenuEntry NewEntry;
 				NewEntry.Label = FText::Format( LOCTEXT("AddEvent_ToolTip", "Add {0}" ), FText::FromName( EventName ));
-				NewEntry.UIAction =	FUIAction(FExecuteAction::CreateStatic( &SSCSEditor::CreateEventsForSelection, BlueprintEditor, EventName, GetSelectedObjectsDelegate),
-											  FCanExecuteAction::CreateSP(BlueprintEditor.Get(), &FBlueprintEditor::InEditingMode));
+				NewEntry.UIAction =	FUIAction(FExecuteAction::CreateStatic( &SSCSEditor::CreateEventsForSelection, Blueprint, EventName, GetSelectedObjectsDelegate), CanExecuteActionDelegate);
 				Actions.Add( NewEntry );
 		}
 	}
@@ -2211,11 +2207,10 @@ void SSCSEditor::BuildMenuEventsSection(FMenuBuilder& Menu, TSharedPtr<FBlueprin
 	Menu.EndSection();
 }
 
-void SSCSEditor::CreateEventsForSelection(TSharedPtr<FBlueprintEditor> BlueprintEditor, FName EventName, FGetSelectedObjectsDelegate GetSelectedObjectsDelegate)
+void SSCSEditor::CreateEventsForSelection(UBlueprint* Blueprint, FName EventName, FGetSelectedObjectsDelegate GetSelectedObjectsDelegate)
 {	
 	if (EventName != NAME_None)
 	{
-		UBlueprint* Blueprint = BlueprintEditor->GetBlueprintObj();
 		TArray<FComponentEventConstructionData> SelectedNodes;
 		GetSelectedObjectsDelegate.ExecuteIfBound(SelectedNodes);
 
@@ -2514,9 +2509,8 @@ void SSCSEditor::HighlightTreeNode(FName TreeNodeName, const class FPropertyPath
 
 			if (Property != FPropertyPath())
 			{
-				auto KismetInspectorSPtr = KismetInspectorPtr.Pin();
-				check(KismetInspectorSPtr.IsValid());
-				KismetInspectorSPtr->GetPropertyView()->HighlightProperty(Property);
+				// Invoke the delegate to highlight the property
+				OnHighlightPropertyInDetailsView.ExecuteIfBound(Property);
 			}
 
 			return;
@@ -2534,8 +2528,6 @@ void SSCSEditor::HighlightTreeNode(const USCS_Node* Node, FName Property)
 	SelectNode( TreeNode, false );
 	if( Property != FName() )
 	{
-		auto KismetInspectorSPtr = KismetInspectorPtr.Pin();
-		check( KismetInspectorSPtr.IsValid() );
 		UActorComponent* Component = TreeNode->GetComponentTemplate();
 		UProperty* CurrentProp = FindField<UProperty>(Component->GetClass(), Property);
 		FPropertyPath Path;
@@ -2544,7 +2536,9 @@ void SSCSEditor::HighlightTreeNode(const USCS_Node* Node, FName Property)
 			FPropertyInfo NewInfo = { CurrentProp, -1 };
 			Path.ExtendPath(NewInfo);
 		}
-		KismetInspectorSPtr->GetPropertyView()->HighlightProperty( Path );
+
+		// Invoke the delegate to highlight the property
+		OnHighlightPropertyInDetailsView.ExecuteIfBound( Path );
 	}
 }
 
@@ -2674,11 +2668,9 @@ void SSCSEditor::ClearSelection()
 {
 	check(SCSTreeWidget.IsValid());
 	SCSTreeWidget->ClearSelection();
-	
-	if( KismetInspectorPtr.IsValid() )
-	{
-		KismetInspectorPtr.Pin()->ShowDetailsForObjects(TArray<UObject*>());
-	}
+
+	// Invoke the selection changed delegate with an empty selection set
+	OnTreeViewSelectionChanged.ExecuteIfBound(TArray<FSCSEditorTreeNodePtrType>());
 }
 
 
@@ -2712,7 +2704,7 @@ void SSCSEditor::SaveSCSNode( USCS_Node* Node )
 
 bool SSCSEditor::InEditingMode() const
 {
-	return Kismet2Ptr.IsValid() && NULL == GEditor->PlayWorld;
+	return bInEditingMode.Get() && nullptr == GEditor->PlayWorld;
 }
 
 UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset  )
@@ -3071,26 +3063,8 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 
 void SSCSEditor::UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType> &SelectedNodes )
 {
-	// Convert the selection set to an array of UObject* pointers
-	FText InspectorTitle = FText::GetEmpty();
-	TArray<UObject*> InspectorObjects;
-	InspectorObjects.Empty(SelectedNodes.Num());
-	for (auto NodeIt = SelectedNodes.CreateConstIterator(); NodeIt; ++NodeIt)
-	{
-		auto NodePtr = *NodeIt;
-		if(NodePtr.IsValid() && NodePtr->CanEditDefaults())
-		{
-			InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
-			InspectorObjects.Add(NodePtr->GetComponentTemplate());
-		}
-	}
-
-	// Update the details panel
-	if (KismetInspectorPtr.IsValid())
-	{
-		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-		KismetInspectorPtr.Pin()->ShowDetailsForObjects(InspectorObjects, Options);
-	}
+	// Invoke the delegate to update any selection details
+	OnUpdateSelectionFromNodes.ExecuteIfBound(SelectedNodes);
 }
 
 void SSCSEditor::RefreshSelectionDetails()
@@ -3100,16 +3074,14 @@ void SSCSEditor::RefreshSelectionDetails()
 
 void SSCSEditor::OnTreeSelectionChanged(FSCSEditorTreeNodePtrType, ESelectInfo::Type /*SelectInfo*/)
 {
-	UpdateSelectionFromNodes(SCSTreeWidget->GetSelectedItems());
+	// Get the selected tree nodes
+	const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes = SCSTreeWidget->GetSelectedItems();
 
-	if( Kismet2Ptr.IsValid() )
-	{
-		TSharedPtr<class SSCSEditorViewport> ViewportPtr = Kismet2Ptr.Pin()->GetSCSViewport();
-		if (ViewportPtr.IsValid())
-		{
-			ViewportPtr->OnComponentSelectionChanged();
-		}
-	}
+	// Update the details view selection
+	UpdateSelectionFromNodes(SelectedNodes);
+
+	// Pass the tree selection change event along to the delegate
+	OnTreeViewSelectionChanged.ExecuteIfBound(SelectedNodes);
 
 	// Update the selection visualization
 	AActor* EditorActorInstance = SCS->GetComponentEditorActorInstance();

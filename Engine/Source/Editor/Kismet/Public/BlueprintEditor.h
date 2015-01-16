@@ -358,6 +358,15 @@ public:
 	/** Refresh the preview viewport to reflect changes in the SCS */
 	void UpdateSCSPreview(bool bUpdateNow = false);
 
+	/** Delegate invoked when the tree view selection is changed in the SCS editor widget */
+	void OnSCSEditorTreeViewSelectionChanged(const TArray< TSharedPtr<class FSCSEditorTreeNode> >& SelectedNodes);
+
+	/** Delegate to update the Inspector (details) panel from the given set of selected nodes */
+	void OnSCSEditorUpdateSelectionFromNodes(const TArray< TSharedPtr<class FSCSEditorTreeNode> >& SelectedNodes);
+
+	/** Delegate invoked when the given property should be highlighted in the Inspector (details) panel */
+	void OnSCSEditorHighlightPropertyInDetailsView(const class FPropertyPath& InPropertyPath);
+
 	/** Pin visibility accessors */
 	void SetPinVisibility(SGraphEditor::EPinVisibility Visibility);
 	bool GetPinVisibility(SGraphEditor::EPinVisibility Visibility) const { return PinVisibility == Visibility; }
@@ -434,12 +443,6 @@ public:
 	 * @param	InTargetPin The pin on which to base the variable.
 	 */
 	void DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin* InTargetPin );		
-
-	/**
-	 * Checks for events in the argument class
-	 * @param InClass	The class to check for events.
-	 */
-	static bool CanClassGenerateEvents( UClass* InClass );
 
 	/** Called when node is spawned by keymap */
 	void OnNodeSpawnedByKeymap();
