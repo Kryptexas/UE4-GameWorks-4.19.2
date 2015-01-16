@@ -911,7 +911,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 	if(NumBodies > 0)
 	{
-		FBodyInstance::InitBodies(InstanceBodies, Transforms, GetBodySetup(), this, GetWorld()->GetPhysicsScene());
+		FBodyInstance::InitBodies(InstanceBodies, Transforms, GetBodySetup(), this, GetWorld()->GetPhysicsScene(), nullptr, true);
 	}
 }
 

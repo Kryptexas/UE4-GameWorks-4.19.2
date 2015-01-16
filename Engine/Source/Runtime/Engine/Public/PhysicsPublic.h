@@ -294,6 +294,37 @@ public:
 	 */
 	float							FrameTimeSmoothingFactor[PST_MAX];
 
+#if WITH_PHYSX
+	/** Body instances awaiting scene add */
+	TArray<FBodyInstance*> DeferredAddInstances[PST_MAX];
+	/** PhysX Actors awaiting scene add */
+	TArray<PxActor*> DeferredAddActors[PST_MAX];
+
+	/** Body instances awaiting scene remove */
+	TArray<FBodyInstance*> DeferredRemoveInstances[PST_MAX];
+	/** PhysX Actors awaiting scene remove */
+	TArray<PxActor*> DeferredRemoveActors[PST_MAX];
+
+	/** Flush the deferred actor and instance arrays, either adding or removing from the scene */
+	void FlushDeferredActors();
+
+	/** Defer the addition of an actor to a scene, this will actually be performed before the *next*
+	 *  Physics tick
+	 *	@param OwningInstance - The FBodyInstance that owns the actor
+	 *	@param Actor - The actual PhysX actor to add
+	 *	@param SceneType - The scene type to add the actor to
+	 */
+	void DeferAddActor(FBodyInstance* OwningInstance, PxActor* Actor, EPhysicsSceneType SceneType);
+
+	/** Defer the removal of an actor to a scene, this will actually be performed before the *next*
+	 *  Physics tick
+	 *	@param OwningInstance - The FBodyInstance that owns the actor
+	 *	@param Actor - The actual PhysX actor to add
+	 *	@param SceneType - The scene type to add the actor to
+	 */
+	void DeferRemoveActor(FBodyInstance* OwningInstance, PxActor* Actor, EPhysicsSceneType SceneType);
+#endif
+
 private:
 	/** DeltaSeconds from UWorld. */
 	float										DeltaSeconds;

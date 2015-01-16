@@ -109,6 +109,15 @@ private:
 	friend struct FBodyInstance;
 };
 
+enum class BodyInstanceSceneState
+{
+	NotAdded,
+	AwaitingAdd,
+	Added,
+	AwaitingRemove,
+	Removed
+};
+
 /** Container for a physics representation of an object */
 USTRUCT()
 struct ENGINE_API FBodyInstance
@@ -329,6 +338,13 @@ public:
 	TSharedPtr<TArray<ANSICHAR>> CharDebugName;
 #endif	//WITH_PHYSX
 
+	/** Per instance data used to initialize dynamic instances */
+	/** Initial physx velocity to apply to dynamic instances */
+	FVector InitialLinearVelocity;
+
+	/** When initializing dynamic instances their component or velocity can override the bStartAwake flag */
+	bool bWokenExternally;
+
 	/** PrimitiveComponent containing this body.   */
 	TWeakObjectPtr<class UPrimitiveComponent> OwnerComponent;
 
@@ -361,7 +377,7 @@ public:
 	 *	@param InRBScene The physics scene to place the body into
 	 *	@param InAggregate An aggregate to place the body into
 	 */
-	void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+	void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool bDefer = false);
 
 	/** Initialise multiple rigid bodies 
 	 *	@param Bodies List of body instances to initialise
@@ -371,7 +387,7 @@ public:
 	 *	@param InRBScene The physics scene to put the bodies into
 	 *	@param InAggregate Aggregate to place the bodies into, be aware for PhysX we can only have 128 elements in an aggregate!
 	 */
-	static void InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+	static void InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool Defer = false);
 
 	/** Initialises one or more rigid bodies
 	 *	@param Bodies First body instance to initialise
@@ -382,7 +398,7 @@ public:
 	 *	@param InRBScene Scene to place the bodies into
 	 *	@param InAggregate Aggregate to place the bodies into, be aware for PhysX we can only have 128 elements in an aggregate!
 	 */
-	static void InitBodies(FBodyInstance** Bodies, FTransform* Transforms, int32 NumBodies, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+	static void InitBodies(FBodyInstance** Bodies, FTransform* Transforms, int32 NumBodies, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool Defer = false);
 
 	void InitBody_Legacy(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
 
@@ -392,6 +408,12 @@ public:
 	 *	@param Setup Body setup for this instance
 	 */
 	static bool ValidateTransform(const FTransform &Transform, FString& DebugName, UBodySetup* Setup);
+
+#if WITH_PHYSX
+	/** Initialise dynamic properties for this instance when using PhysX - this must be done after scene addition.
+	 */
+	void InitDynamicProperties();
+#endif // WITH_PHYSX
 
 #endif	//UE_WITH_PHYSICS
 
@@ -717,6 +739,9 @@ public:
 #if WITH_PHYSX
 public:
 	FPhysxUserData PhysxUserData;
+
+	// Current state of the physx body for tracking deferred addition and removal.
+	BodyInstanceSceneState CurrentSceneState;
 
 private:
 	/**

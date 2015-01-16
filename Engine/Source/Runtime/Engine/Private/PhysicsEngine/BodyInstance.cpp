@@ -240,7 +240,10 @@ FBodyInstance::FBodyInstance()
 , RigidActorSync(NULL)
 , RigidActorAsync(NULL)
 , BodyAggregate(NULL)
+, InitialLinearVelocity(0.0f)
+, bWokenExternally(false)
 , PhysxUserData(this)
+, CurrentSceneState(BodyInstanceSceneState::NotAdded)
 #endif	//WITH_PHYSX
 #if WITH_BOX2D
 , BodyInstancePtr(nullptr)
@@ -887,17 +890,17 @@ DEFINE_STAT(STAT_BulkSceneAdd);
 
 #if UE_WITH_PHYSICS
 
-void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/ )
+void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/, bool bDefer /*= false*/ )
 {
 	FBodyInstance* Instance = this;
 	FTransform TransformCopy = Transform;
-	InitBodies(&Instance, &TransformCopy, 1, Setup, PrimComp, InRBScene, InAggregate);
+	InitBodies(&Instance, &TransformCopy, 1, Setup, PrimComp, InRBScene, InAggregate, bDefer);
 }
 
-void FBodyInstance::InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/)
+void FBodyInstance::InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/, bool Defer /*= false*/)
 {
 	check(Bodies.Num() == Transforms.Num());
-	InitBodies(Bodies.GetData(), Transforms.GetData(), Bodies.Num(), BodySetup, PrimitiveComp, InRBScene, InAggregate);
+	InitBodies(Bodies.GetData(), Transforms.GetData(), Bodies.Num(), BodySetup, PrimitiveComp, InRBScene, InAggregate, Defer);
 }
 
 void FBodyInstance::InitBody_Legacy(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PxAggregate* InAggregate)
@@ -1401,7 +1404,7 @@ void FBodyInstance::InitBody_Legacy(UBodySetup* Setup, const FTransform& Transfo
 }
 
 
-void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, int32 NumBodies, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/ )
+void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, int32 NumBodies, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/, bool bDefer /*= false*/ )
 {
 	SCOPE_CYCLE_COUNTER(STAT_BulkInit);
 
@@ -1422,6 +1425,9 @@ void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, i
 	TArray<PxActor*> PhysXAsyncActors;
 	TArray<PxActor*> PhysXDynamicActors;
 	PhysXSyncActors.Reserve(NumBodies);
+
+	// No reason to defer if there's an existing aggregate.
+	const bool bCanDefer = bDefer && !InAggregate;
 
 	if(PSceneAsync)
 	{
@@ -1489,11 +1495,10 @@ void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, i
 		}
 	}
 
-	bool bStartAwakeOverride = false;
-
+	bool bComponentAwake = false;
 	if(SkelMeshComp)
 	{
-		bStartAwakeOverride = SkelMeshComp->BodyInstance.bStartAwake;
+		bComponentAwake = SkelMeshComp->BodyInstance.bStartAwake;
 	}
 
 	FVector InitialLinVel(EForceInit::ForceInitToZero);
@@ -1503,7 +1508,7 @@ void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, i
 
 		if(InitialLinVel.Size() > KINDA_SMALL_NUMBER)
 		{
-			bStartAwakeOverride = true;
+			bComponentAwake = true;
 		}
 	}
 	PxVec3 PxInitialLinVel = U2PVector(InitialLinVel);
@@ -1535,10 +1540,10 @@ void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, i
 
 				if(SkelMeshComp)
 				{
-					bStartAwakeOverride = Instance->bStartAwake && SkelMeshComp->BodyInstance.bStartAwake;
+					bComponentAwake = Instance->bStartAwake && SkelMeshComp->BodyInstance.bStartAwake;
 				}
 
-				if(Instance->bStartAwake || bStartAwakeOverride)
+				if(Instance->bStartAwake || bComponentAwake)
 				{
 					BodyDefinition.awake = true;
 				}
@@ -1823,21 +1828,53 @@ void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, i
 			continue;
 		}
 
-		PhysXSyncActors.Add(PNewActorSync);
-		if(PNewActorAsync)
+		if(bCanDefer)
 		{
-			PhysXAsyncActors.Add(PNewActorAsync);
+			if(PNewDynamic)
+			{
+				InRBScene->DeferAddActor(Instance, PNewDynamic, Instance->UseAsyncScene() ? PST_Async : PST_Sync);
+			}
+			else
+			{
+				if(PNewActorSync)
+				{
+					InRBScene->DeferAddActor(Instance, PNewActorSync, PST_Sync);
+				}
+				if(PNewActorAsync)
+				{
+					InRBScene->DeferAddActor(Instance, PNewActorAsync, PST_Async);
+				}
+			}
 		}
-
-		if(PNewDynamic)
+		else
 		{
-			PhysXDynamicActors.Add(PNewDynamic);
-		}
+			if(PNewActorSync)
+			{
+				PhysXSyncActors.Add(PNewActorSync);
+			}
 
+			if(PNewActorAsync)
+			{
+				PhysXAsyncActors.Add(PNewActorAsync);
+			}
+
+			if(PNewDynamic)
+			{
+				PhysXDynamicActors.Add(PNewDynamic);
+			}
+
+			// Set the instance to added as we'll add it to the scene in a moment.
+			// This makes sure if it ends up in one of the deferred queues later it 
+			// functions correctly
+			Instance->CurrentSceneState = BodyInstanceSceneState::Added;
+		}
+		
 		Instance->RigidActorSync = PNewActorSync;
 		Instance->RigidActorAsync = PNewActorAsync;
 		Instance->SceneIndexSync = InRBScene->PhysXSceneIndex[PST_Sync];
 		Instance->SceneIndexAsync = PSceneAsync ? InRBScene->PhysXSceneIndex[PST_Async] : 0;
+		Instance->InitialLinearVelocity = InitialLinVel;
+		Instance->bWokenExternally = bComponentAwake;
 		Instance->UpdatePhysicsFilterData();
 	}
 
@@ -1865,6 +1902,7 @@ void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, i
 		}
 	}
 	
+	if(!bCanDefer)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_BulkSceneAdd);
 		// Use the aggregate if it exists, has enough slots and is in the correct scene (or no scene)
@@ -1892,64 +1930,21 @@ void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, i
 				}
 			}
 		}
-	}
 
-	// Set up dynamic instance data
-	if(!bStatic)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_InitBodyPostAdd);
-		for(int32 BodyIdx = 0 ; BodyIdx < NumBodies ; ++BodyIdx)
+		// Set up dynamic instance data
+		if(!bStatic)
 		{
-			FBodyInstance* Instance = Bodies[BodyIdx];
-			
-			if(PxRigidDynamic* RigidActor = Instance->GetPxRigidDynamic())
+			SCOPE_CYCLE_COUNTER(STAT_InitBodyPostAdd);
+			for(int32 BodyIdx = 0 ; BodyIdx < NumBodies ; ++BodyIdx)
 			{
-				Instance->UpdateMassProperties();
-				Instance->UpdateDampingProperties();
-				Instance->SetMaxAngularVelocity(Instance->MaxAngularVelocity, false);
-				Instance->SetMaxDepenetrationVelocity(Instance->bOverrideMaxDepenetrationVelocity ? Instance->MaxDepenetrationVelocity : UPhysicsSettings::Get()->MaxDepenetrationVelocity);
-
-				if(Instance->ShouldInstanceSimulatingPhysics())
-				{
-					RigidActor->setLinearVelocity(PxInitialLinVel);
-				}
-
-				float SleepEnergyThresh = RigidActor->getSleepThreshold();
-				if(Instance->SleepFamily == SF_Sensitive)
-				{
-					SleepEnergyThresh /= 20.f;
-				}
-				RigidActor->setSleepThreshold(SleepEnergyThresh);
-				// set solver iteration count 
-				int32 PositionIterCount = FMath::Clamp(Instance->PositionSolverIterationCount, 1, 255);
-				int32 VelocityIterCount = FMath::Clamp(Instance->VelocitySolverIterationCount, 1, 255);
-				RigidActor->setSolverIterationCounts(PositionIterCount, VelocityIterCount);
-
-				if(RigidActor->getScene())
-				{
-					Instance->CreateDOFLock();
-					if(IsRigidBodyNonKinematic(RigidActor))
-					{
-						if(SkelMeshComp)
-						{
-							bStartAwakeOverride = Instance->bStartAwake && SkelMeshComp->BodyInstance.bStartAwake;
-						}
-
-						if(Instance->bStartAwake || bStartAwakeOverride)
-						{
-							RigidActor->wakeUp();
-						}
-						else
-						{
-							RigidActor->putToSleep();
-						}
-					}
-				}
+				FBodyInstance* Instance = Bodies[BodyIdx];
+				Instance->InitDynamicProperties();
 			}
-			
 		}
 	}
-#endif
+
+	
+#endif // WITH_PHYSX
 }
 
 
@@ -4492,6 +4487,51 @@ bool FBodyInstance::ValidateTransform(const FTransform &Transform, FString& Debu
 
 	return true;
 }
+
+#if WITH_PHYSX
+void FBodyInstance::InitDynamicProperties()
+{
+	if(PxRigidDynamic* RigidActor = GetPxRigidDynamic())
+	{
+		UpdateMassProperties();
+		UpdateDampingProperties();
+		SetMaxAngularVelocity(MaxAngularVelocity, false);
+		SetMaxDepenetrationVelocity(bOverrideMaxDepenetrationVelocity ? MaxDepenetrationVelocity : UPhysicsSettings::Get()->MaxDepenetrationVelocity);
+
+		if(ShouldInstanceSimulatingPhysics())
+		{
+			RigidActor->setLinearVelocity(U2PVector(InitialLinearVelocity));
+		}
+
+		float SleepEnergyThresh = RigidActor->getSleepThreshold();
+		if(SleepFamily == SF_Sensitive)
+		{
+			SleepEnergyThresh /= 20.f;
+		}
+		RigidActor->setSleepThreshold(SleepEnergyThresh);
+		// set solver iteration count 
+		int32 PositionIterCount = FMath::Clamp(PositionSolverIterationCount, 1, 255);
+		int32 VelocityIterCount = FMath::Clamp(VelocitySolverIterationCount, 1, 255);
+		RigidActor->setSolverIterationCounts(PositionIterCount, VelocityIterCount);
+
+		if(RigidActor->getScene())
+		{
+			CreateDOFLock();
+			if(IsRigidBodyNonKinematic(RigidActor))
+			{
+				if(bStartAwake || bWokenExternally)
+				{
+					RigidActor->wakeUp();
+				}
+				else
+				{
+					RigidActor->putToSleep();
+				}
+			}
+		}
+	}
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////
 // FBodyInstanceEditorHelpers
