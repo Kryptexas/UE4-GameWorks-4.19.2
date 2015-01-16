@@ -401,6 +401,7 @@ UEnum* UTexture::GetPixelFormatEnum()
 	static UEnum* PixelFormatEnum = NULL;
 	if (PixelFormatEnum == NULL)
 	{
+		check(IsInGameThread());
 		UEnum::LookupEnumName(PixelFormatUnknownName, &PixelFormatEnum);
 		check(PixelFormatEnum);
 	}
