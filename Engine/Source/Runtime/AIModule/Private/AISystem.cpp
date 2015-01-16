@@ -65,10 +65,13 @@ void UAISystem::WorldOriginLocationChanged(FIntVector OldOriginLocation, FIntVec
 
 void UAISystem::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* NewWorld)
 {
-	if (EnvironmentQueryManager)
+	if (bCleanupResources)
 	{
-		EnvironmentQueryManager->OnWorldCleanup();
-		EnvironmentQueryManager = nullptr;
+		if (EnvironmentQueryManager)
+		{
+			EnvironmentQueryManager->OnWorldCleanup();
+			EnvironmentQueryManager = nullptr;
+		}
 	}
 }
 
