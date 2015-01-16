@@ -11,6 +11,7 @@
 class UBehaviorTree;
 class UAnimInstance;
 class APawn;
+class AAIController; 
 class UBlackboardComponent;
 class UAIAsyncTaskBlueprintProxy;
 
@@ -27,6 +28,11 @@ class AIMODULE_API UAIBlueprintHelperLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, Category="AI", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))
 	static APawn* SpawnAIFromClass(UObject* WorldContextObject, TSubclassOf<APawn> PawnClass, UBehaviorTree* BehaviorTree, FVector Location, FRotator Rotation=FRotator::ZeroRotator, bool bNoCollisionFail=false);
+
+	/** The way it works exactly is if the actor passed in is a pawn, then the function retrieves 
+	 *	pawn's controller cast to AIController. Otherwise the function returns actor cast to AIController. */
+	UFUNCTION(BlueprintCallable, Category = "AI", meta = (DefaultToSelf = "ControlledObject"))
+	static AAIController* GetAIController(AActor* ControlledActor);
 
 	UFUNCTION(BlueprintPure, Category="AI", meta=(DefaultToSelf="Target"))
 	static UBlackboardComponent* GetBlackboard(AActor* Target);
