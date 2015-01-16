@@ -97,7 +97,7 @@ UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(U
 
 		if (bValidQuery)
 		{
-			const FAIRequestID RequestID = AIController->RequestPathAndMove(Query, NULL, AcceptanceRadius, bStopOnOverlap, NULL);
+			const FAIRequestID RequestID = AIController->RequestPathAndMove(Query, TargetActor, AcceptanceRadius, bStopOnOverlap, NULL);
 			if (RequestID.IsValid())
 			{
 				MyObj->AIController = AIController;
