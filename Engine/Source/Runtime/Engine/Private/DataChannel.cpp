@@ -1374,6 +1374,21 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 			else if (!Actor->bNetTemporary && Actor->GetWorld() != NULL && !GIsRequestingExit)
 			{
 				UE_LOG(LogNetDormancy, Verbose, TEXT("Channel[%d] '%s' Destroying Actor."), ChIndex, *Describe() );
+
+				// Destroy any sub-objects we created
+				for ( int32 i = 0; i < CreateSubObjects.Num(); i++ )
+				{
+					if ( CreateSubObjects[i].IsValid() )
+					{
+						Actor->OnSubobjectDestroyFromReplication( CreateSubObjects[i].Get() );
+
+						CreateSubObjects[i]->MarkPendingKill();
+					}
+				}
+
+				CreateSubObjects.Empty();
+
+				// Destroy the actor
 				Actor->Destroy( true );
 			}
 		}
@@ -2311,7 +2326,11 @@ UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDe
 	{
 		if ( SubObj )
 		{
+			// Stop tracking this sub-object
+			CreateSubObjects.Remove( SubObj );
+
 			Actor->OnSubobjectDestroyFromReplication( SubObj );
+
 			SubObj->MarkPendingKill();
 		}
 		bObjectDeleted = true;
@@ -2351,6 +2370,8 @@ UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDe
 
 	if ( SubObj == NULL )
 	{
+		check( !IsServer );
+
 		// Construct the sub-object
 		UE_LOG( LogNetTraffic, Log, TEXT( "UActorChannel::ReadContentBlockHeader: Instantiating sub-object. Class: %s, Actor: %s" ), *SubObjClass->GetName(), *Actor->GetName() );
 
@@ -2366,6 +2387,9 @@ UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDe
 		
 		// Register the component guid
 		Connection->Driver->GuidCache->RegisterNetGUID_Client( NetGUID, SubObj );
+
+		// Track which sub-object guids we are creating
+		CreateSubObjects.AddUnique( SubObj );
 	}
 
 	return SubObj;
