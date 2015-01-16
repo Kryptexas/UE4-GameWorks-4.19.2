@@ -469,26 +469,27 @@ void UAnimSequence::PostLoad()
 }
 
 #if WITH_EDITOR
-void UAnimSequence::VerifyTrackMap()
+void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 {
-	USkeleton* MySkeleton = GetSkeleton();
-	if(AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && MySkeleton!=NULL)
+	USkeleton* UseSkeleton = (MySkeleton)? MySkeleton: GetSkeleton();
+
+	if(AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track names."), *GetName());
 
-		const TArray<FBoneNode>& BoneTree = MySkeleton->GetBoneTree();
+		const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
 		AnimationTrackNames.Empty();
 		AnimationTrackNames.AddUninitialized(TrackToSkeletonMapTable.Num());
 		for(int32 I=0; I<TrackToSkeletonMapTable.Num(); ++I)
 		{
 			const FTrackToSkeletonMap& TrackMap = TrackToSkeletonMapTable[I];
-			AnimationTrackNames[I] = MySkeleton->GetReferenceSkeleton().GetBoneName(TrackMap.BoneTreeIndex);
+			AnimationTrackNames[I] = UseSkeleton->GetReferenceSkeleton().GetBoneName(TrackMap.BoneTreeIndex);
 		}
 	}
-	else if (MySkeleton != NULL)
+	else if (UseSkeleton != NULL)
 	{
 		int32 NumTracks = AnimationTrackNames.Num();
-		int32 NumSkeletonBone = MySkeleton->GetReferenceSkeleton().GetNum();
+		int32 NumSkeletonBone = UseSkeleton->GetReferenceSkeleton().GetNum();
 
 		bool bNeedsFixing = false;
 		// verify all tracks are still valid
@@ -509,10 +510,10 @@ void UAnimSequence::VerifyTrackMap()
 		{
 			UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track index."), *GetName());
 
-			const TArray<FBoneNode>& BoneTree = MySkeleton->GetBoneTree();
+			const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
 			for(int32 I=NumTracks-1; I>=0; --I)
 			{
-				int32 BoneTreeIndex = MySkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
+				int32 BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
 				if (BoneTreeIndex == INDEX_NONE)
 				{
 					RemoveTrack(I);
@@ -2305,6 +2306,10 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConv
 		// I have to set this here in order for compression
 		// that has to happen outside of this after Skeleton changes
 		SetSkeleton(NewSkeleton);
+	}
+	else
+	{
+		VerifyTrackMap(NewSkeleton);
 	}
 
 	PostProcessSequence();
