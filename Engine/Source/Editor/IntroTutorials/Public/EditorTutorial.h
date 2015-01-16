@@ -284,20 +284,20 @@ public:
 
 protected:
 	/** Event fired when a tutorial stage begins */
-	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
-	void OnTutorialStageStarted(FName StageName) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
+	void OnTutorialStageStarted(FName StageName);
 
 	/** Event fired when a tutorial stage ends */
-	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
-	void OnTutorialStageEnded(FName StageName) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
+	void OnTutorialStageEnded(FName StageName);
 
 	/** Event fired when a tutorial is launched */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
-	void OnTutorialLaunched() const;
+	void OnTutorialLaunched();
 
 	/** Event fired when a tutorial is closed */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
-	void OnTutorialClosed() const;
+	void OnTutorialClosed();
 
 	/** Advance to the next stage of a tutorial */
 	UFUNCTION(BlueprintCallable, Category="Tutorial")
