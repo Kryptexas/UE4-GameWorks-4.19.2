@@ -402,12 +402,18 @@ bool UNavigationSystem::ConditionallyCreateNavOctree()
 	}
 
 	bSupportRebuilding = GetWorld()->IsGameWorld() == false;
-	for (int32 NavDataClassIndex = 0; NavDataClassIndex < NavDataClasses.Num() && bSupportRebuilding == false; ++NavDataClassIndex)
+	
+	// BEGIN: 4.7 - specific fix. No need to be merged back to main
+	for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num() && bSupportRebuilding == false; ++AgentIndex)
 	{
-		const ANavigationData* NavDataCDO = GetDefault<ANavigationData>(NavDataClasses[NavDataClassIndex]);
-		check(NavDataCDO);
-		bSupportRebuilding = NavDataCDO->bRebuildAtRuntime;
+		if (SupportedAgents[AgentIndex].NavigationDataClass != nullptr)
+		{
+			const ANavigationData* NavDataCDO = GetDefault<ANavigationData>(SupportedAgents[AgentIndex].NavigationDataClass);
+			check(NavDataCDO);
+			bSupportRebuilding = NavDataCDO->bRebuildAtRuntime;
+		}
 	}
+	// END: 4.7 - specific fix. No need to be merged back to main
 
 	if (bSupportRebuilding)
 	{
