@@ -27,7 +27,7 @@ void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageI
 	{
 		if (EcoInst.BaseComponent)
 		{
-			ULevel* OwningLevel = EcoInst.BaseComponent->GetOwner()->GetLevel();
+			ULevel* OwningLevel = EcoInst.BaseComponent->GetComponentLevel();
 		
 			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(OwningLevel);
 			const UFoliageType_InstancedStaticMesh* Type = EcoInst.Type;
