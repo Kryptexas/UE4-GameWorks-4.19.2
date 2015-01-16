@@ -1061,13 +1061,20 @@ public:
 	AActor* UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* ActorLocation, EObjectFlags ObjectFlags = RF_Transactional );
 
 	/**
-	 * Replaces the selected Actors with the same number of a different kind of Actor
-	 * if a Factory is specified, it is used to spawn the requested Actors, otherwise NewActorClass is used (one or the other must be specified)
+	 * Replaces the selected Actors with the same number of a different kind of Actor using the specified factory to spawn the new Actors
 	 * note that only Location, Rotation, Drawscale, Drawscale3D, Tag, and Group are copied from the old Actors
 	 * 
 	 * @param Factory - the Factory to use to create Actors
 	 */
-	void ReplaceSelectedActors(UActorFactory* Factory, const FAssetData& AssetData, UClass* NewActorClass);
+	void ReplaceSelectedActors(UActorFactory* Factory, const FAssetData& AssetData);
+
+	/**
+	 * Replaces specified Actors with the same number of a different kind of Actor using the specified factory to spawn the new Actors
+	 * note that only Location, Rotation, Drawscale, Drawscale3D, Tag, and Group are copied from the old Actors
+	 * 
+	 * @param Factory - the Factory to use to create Actors
+	 */
+	void ReplaceActors(UActorFactory* Factory, const FAssetData& AssetData, const TArray<AActor*> ActorsToReplace);
 
 	/**
 	 * Converts passed in brushes into a single static mesh actor. 
