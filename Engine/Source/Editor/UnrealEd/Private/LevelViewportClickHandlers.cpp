@@ -264,6 +264,44 @@ namespace ClickHandlers
 		return false;
 	}
 
+	bool ClickComponent(FLevelEditorViewportClient* ViewportClient, HActor* ActorHitProxy, const FViewportClick& Click)
+	{
+		bool bComponentClicked = false;
+		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponents", "Clicking on Components"));
+
+		UActorComponent* SelectedComponent = const_cast<UPrimitiveComponent*>(ActorHitProxy->PrimComponent); 
+		GEditor->GetSelectedComponents()->Modify();
+
+		if (Click.IsControlDown())
+		{
+			const bool bSelect = !SelectedComponent->IsSelected();
+			if (bSelect)
+			{
+				UE_LOG(LogEditorViewport, Log, TEXT("Clicking on Component (CTRL LMB): %s (%s)"), *SelectedComponent->GetClass()->GetName(), *SelectedComponent->GetName());
+			}
+			GEditor->SelectComponent(SelectedComponent, bSelect, true, true);
+			bComponentClicked = true;
+		}
+		else if (Click.IsShiftDown())
+		{
+			if (!SelectedComponent->IsSelected())
+			{
+				const bool bSelect = true;
+				GEditor->SelectComponent(SelectedComponent, bSelect, true, true);
+			}
+			bComponentClicked = true;
+		}
+		else
+		{
+			GEditor->GetSelectedComponents()->DeselectAll();
+			UE_LOG(LogEditorViewport, Log, TEXT("Clicking on Component (LMB): %s (%s)"), *SelectedComponent->GetClass()->GetName(), *SelectedComponent->GetName());
+			GEditor->SelectComponent(SelectedComponent, true, true, true);
+			bComponentClicked = true;
+		}
+
+		return bComponentClicked;
+	}
+
 	void ClickBrushVertex(FLevelEditorViewportClient* ViewportClient,ABrush* InBrush,FVector* InVertex,const FViewportClick& Click)
 	{
 		// Pivot snapping

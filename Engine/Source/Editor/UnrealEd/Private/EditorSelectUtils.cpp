@@ -271,8 +271,8 @@ void UUnrealEdEngine::SetActorSelectionFlags (AActor* InActor)
 void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 {
 	// Pick a new common pivot, or not.
-	AActor* SingleActor=NULL;
-	USceneComponent* SingleComponent = NULL;
+	AActor* SingleActor = nullptr;
+	USceneComponent* SingleComponent = nullptr;
 
 	if (GetSelectedComponentCount() > 0)
 	{
@@ -348,7 +348,7 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 
 
 
-void UUnrealEdEngine::NoteSelectionChange()
+void UUnrealEdEngine::NoteSelectionChange(bool bComponentSelectionChanged)
 {
 	// The selection changed, so make sure the pivot (widget) is located in the right place
 	UpdatePivotLocationForSelection( true );
@@ -363,16 +363,20 @@ void UUnrealEdEngine::NoteSelectionChange()
 		ActiveModes[ModeIndex]->ActorSelectionChangeNotify();
 	}
 
-	USelection* Selection = GetSelectedActors();
+	USelection* Selection = bComponentSelectionChanged ? GetSelectedComponents() : GetSelectedActors();
 	USelection::SelectionChangedEvent.Broadcast(Selection);
 
-	//whenever selection changes, recompute whether the selection contains a locked actor
-	bCheckForLockActors = true;
+	
+	if (!bComponentSelectionChanged)
+	{
+		//whenever selection changes, recompute whether the selection contains a locked actor
+		bCheckForLockActors = true;
 
-	//whenever selection changes, recompute whether the selection contains a world info actor
-	bCheckForWorldSettingsActors = true;
+		//whenever selection changes, recompute whether the selection contains a world info actor
+		bCheckForWorldSettingsActors = true;
 
-	UpdateFloatingPropertyWindows();
+		UpdateFloatingPropertyWindows();
+	}
 
 	RedrawLevelEditingViewports();
 }
@@ -514,25 +518,25 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 			}
 		}
 
-			if(GEditor->bGroupingActive)
-			{
+		if (GEditor->bGroupingActive)
+		{
 			// if this actor is a group, do a group select/deselect
-				AGroupActor* SelectedGroupActor = Cast<AGroupActor>(Actor);
-				if( SelectedGroupActor )
-				{
+			AGroupActor* SelectedGroupActor = Cast<AGroupActor>(Actor);
+			if (SelectedGroupActor)
+			{
 				SelectGroup(SelectedGroupActor, true, bInSelected, bNotify);
-				}
-				else
-				{
+			}
+			else
+			{
 				// Select/Deselect this actor's entire group, starting from the top locked group.
 				// If none is found, just use the actor.
-					AGroupActor* ActorLockedRootGroup = AGroupActor::GetRootForActor(Actor, true);
-					if( ActorLockedRootGroup )
-					{
+				AGroupActor* ActorLockedRootGroup = AGroupActor::GetRootForActor(Actor, true);
+				if (ActorLockedRootGroup)
+				{
 					SelectGroup(ActorLockedRootGroup, false, bInSelected, bNotify);
-					}
 				}
 			}
+		}
 
 		// Don't do any work if the actor's selection state is already the selected state.
 		const bool bActorSelected = Actor->IsSelected();
@@ -577,6 +581,52 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 				//reset the property windows.  In case something has changed since previous selection
 				UpdateFloatingPropertyWindows();
 			}
+		}
+	}
+}
+
+void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden)
+{
+	// Don't do any work if the component is already selected
+	const bool bComponentSelected = Component->IsSelected();
+	if (( bComponentSelected && !bInSelected ) || ( !bComponentSelected && bInSelected ))
+	{
+		if (bInSelected)
+		{
+			UE_LOG(LogEditorSelectUtils, Verbose, TEXT("Selected Component: %s"), *Component->GetClass()->GetName());
+		}
+		else
+		{
+			UE_LOG(LogEditorSelectUtils, Verbose, TEXT("Deselected Component: %s"), *Component->GetClass()->GetName());
+		}
+
+		GetSelectedComponents()->Select(Component, bInSelected);
+
+		// Update the selection visualization
+		AActor* ComponentOwner = Component->GetOwner();
+		if (ComponentOwner != nullptr)
+		{
+			//@todo dhertzka - need selection override delegates for the primitive components
+			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+			ComponentOwner->GetComponents(PrimitiveComponents);
+
+			for (int32 Idx = 0; Idx < PrimitiveComponents.Num(); ++Idx)
+			{
+				PrimitiveComponents[Idx]->PushSelectionToProxy();
+			}
+		}
+
+		if (bNotify)
+		{
+			NoteSelectionChange(true);
+		}
+	}
+	else
+	{
+		if (bNotify)
+		{
+			//reset the property windows.  In case something has changed since previous selection
+			UpdateFloatingPropertyWindows();
 		}
 	}
 }

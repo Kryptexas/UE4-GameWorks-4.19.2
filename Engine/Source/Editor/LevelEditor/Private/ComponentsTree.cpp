@@ -98,6 +98,9 @@ void SComponentsTree::Construct(const FArguments& InArgs, TSharedPtr<class IDeta
 	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true );
 	DetailsViewArgs.bHideActorNameArea = true;
 
+	bSelectionGuard = false;
+	USelection::SelectionChangedEvent.AddRaw(this, &SComponentsTree::OnEditorSelectionChanged);
+
 	PropertyView = InPropertyView;
 
 	this->ChildSlot
@@ -131,10 +134,49 @@ void SComponentsTree::Construct(const FArguments& InArgs, TSharedPtr<class IDeta
 	UpdateTree();
 }
 
+SComponentsTree::~SComponentsTree()
+{
+	USelection::SelectionChangedEvent.RemoveAll(this);
+}
+
+void SComponentsTree::OnEditorSelectionChanged(UObject* Object)
+{
+	if (!bSelectionGuard)
+	{
+		TArray<UObject*> Objects;
+		auto Selection = Cast<USelection>(Object);
+		if (Selection == GEditor->GetSelectedComponents() && GEditor->GetSelectedComponentCount() > 0)
+		{
+			// Enable the selection guard to prevent OnTreeSelectionChanged() from altering the editor's component selection
+			TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
+
+			// Update the tree selection to match the level editor component selection
+			TreeWidget->ClearSelection();
+			for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+			{
+				UActorComponent* Component = CastChecked<UActorComponent>(*It);
+				if (Component)
+				{
+					TreeWidget->SetItemSelection(GetNodeFromActorComponent(Component), true);
+					Objects.Add(Component);
+				}
+			}
+
+			PropertyView->SetObjects(Objects, true);
+		}
+	}
+}
+
 void SComponentsTree::SetObjects(const TArray<UObject*>& InObjects)
 {
 	if (InObjects.Num() == 1)
 	{
+		auto NewActor = Cast<AActor>(InObjects[0]);
+		if (NewActor == Actor)
+		{
+			return;
+		}
+
 		Actor = Cast<AActor>(InObjects[0]);
 	}
 	else
@@ -164,26 +206,33 @@ void SComponentsTree::OnGetChildrenForTree( FComponentTreeNodePtrType InNodePtr,
 
 void SComponentsTree::OnTreeSelectionChanged(FComponentTreeNodePtrType InSelectedNodePtr, ESelectInfo::Type SelectInfo)
 {
-	TArray<UObject*> Objects;
-
-	USelection* SelectedComponents = GEditor->GetSelectedComponents();
-	SelectedComponents->BeginBatchSelectOperation();
-	SelectedComponents->DeselectAll();
-
-	for (FComponentTreeNodePtrType SelectedNode : TreeWidget->GetSelectedItems())
+	if (!bSelectionGuard)
 	{
-		if (SelectedNode.IsValid() && SelectedNode->Component.IsValid())
-		{
-			UActorComponent* Component = SelectedNode->Component.Get();
-			Objects.Add(Component);
-			SelectedComponents->Select(Component);
-		}
-	}
-	
-	SelectedComponents->EndBatchSelectOperation();
-	PropertyView->SetObjects(Objects, false);
+		// Enable the selection guard to prevent OnEditorSelectionChanged() from altering the contents of TreeWidget
+		TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
 
-	GEditor->RedrawLevelEditingViewports();
+		// Update the editor's component selection
+		TArray<UObject*> Objects;
+		USelection* SelectedComponents = GEditor->GetSelectedComponents();
+		SelectedComponents->BeginBatchSelectOperation();
+		SelectedComponents->DeselectAll();
+
+		for (FComponentTreeNodePtrType SelectedNode : TreeWidget->GetSelectedItems())
+		{
+			if (SelectedNode.IsValid() && SelectedNode->Component.IsValid())
+			{
+				UActorComponent* Component = SelectedNode->Component.Get();
+				Objects.Add(Component);
+				SelectedComponents->Select(Component);
+			}
+		}
+
+		PropertyView->SetObjects(Objects, false);
+
+		SelectedComponents->EndBatchSelectOperation();
+		GUnrealEd->UpdatePivotLocationForSelection(true);
+		GEditor->RedrawLevelEditingViewports();
+	}
 }
 
 void SComponentsTree::OnSelectedCompClass(TSubclassOf<UActorComponent> CompClass)
@@ -255,4 +304,48 @@ void SComponentsTree::UpdateTree()
 		TreeWidget->SetItemExpansion(RootNode, true);
 	}
 	TreeWidget->RequestTreeRefresh();
+}
+
+FComponentTreeNodePtrType SComponentsTree::GetNodeFromActorComponent(UActorComponent* ActorComponent, bool bIncludeAttachedComponents)
+{
+	FComponentTreeNodePtrType ReturnNode = nullptr;
+
+	if (ActorComponent)
+	{
+		for (auto RootNode : RootNodes)
+		{
+			ReturnNode = FindTreeNodeRecursive(ActorComponent, RootNode);
+
+			if (ReturnNode.IsValid())
+			{
+				break;
+			}
+		}
+	}
+	
+	return ReturnNode;
+}
+
+FComponentTreeNodePtrType SComponentsTree::FindTreeNodeRecursive(const UActorComponent* InComponent, const FComponentTreeNodePtrType& Node) const
+{
+	FComponentTreeNodePtrType LocatedNode = nullptr;
+
+	if (Node->Component.IsValid() && Node->Component.Get() == InComponent)
+	{
+		LocatedNode = Node;
+	}
+	else
+	{
+		// Recursively check NodePtr and all of its children until a matching node is found
+		for (auto ChildNode : Node->ChildNodes)
+		{
+			LocatedNode = FindTreeNodeRecursive(InComponent, ChildNode);
+			if (LocatedNode.IsValid())
+			{
+				break;
+			}
+		}
+	}
+
+	return LocatedNode;
 }
