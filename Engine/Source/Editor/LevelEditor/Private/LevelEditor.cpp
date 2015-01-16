@@ -549,7 +549,29 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	ActionList.MapAction( Commands.Build,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Build_Execute ) );
 
-	ActionList.MapAction( Commands.RecompileGameCode,
+	ActionList.MapAction(
+		Commands.ConnectToSourceControl,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ConnectToSourceControl_Clicked)
+		);
+
+	ActionList.MapAction(
+		Commands.ChangeSourceControlSettings,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ConnectToSourceControl_Clicked)
+		);
+
+	ActionList.MapAction(
+		Commands.CheckOutModifiedFiles,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::CheckOutModifiedFiles_Clicked),
+		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::CheckOutModifiedFiles_CanExecute)
+		);
+
+	ActionList.MapAction(
+		Commands.SubmitToSourceControl,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SubmitToSourceControl_Clicked),
+		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SubmitToSourceControl_CanExecute)
+		);
+
+	ActionList.MapAction(Commands.RecompileGameCode,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::RecompileGameCode_Clicked ),
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Recompile_CanExecute )
 		);

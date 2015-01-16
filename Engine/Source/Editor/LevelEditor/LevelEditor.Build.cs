@@ -40,6 +40,7 @@ public class LevelEditor : ModuleRules
 				"MessageLog",
 				"NewsFeed",
                 "SourceControl",
+                "SourceControlWindows",
                 "StatsViewer",
 				"UnrealEd", 
 				"RenderCore",
