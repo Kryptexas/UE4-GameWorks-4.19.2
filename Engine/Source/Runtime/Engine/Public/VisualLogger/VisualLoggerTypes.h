@@ -29,6 +29,7 @@ namespace EVisualLoggerVersion
 		HistogramGraphsSerialization = 1,
 		AddedOwnerClassName = 2,
 		StatusCategoryWithChildren = 3,
+		TransformationForShapes = 4,
 		// -----<new versions can be added before this line>-------------------------------------------------
 		// - this needs to be the last line (see note below)
 		VersionPlusOne,
@@ -115,6 +116,7 @@ struct ENGINE_API FVisualLogShapeElement
 	FName Category;
 	TEnumAsByte<ELogVerbosity::Type> Verbosity;
 	TArray<FVector> Points;
+	FMatrix TransformationMatrix;
 	int32 UniqueId;
 	EVisualLoggerShapeElement Type;
 	uint8 Color;
@@ -180,7 +182,7 @@ struct ENGINE_API FVisualLogEntry
 	// segment
 	void AddElement(const FVector& Start, const FVector& End, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 	// box
-	void AddElement(const FBox& Box, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
+	void AddElement(const FBox& Box, const FMatrix& Matrix, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 	// Cone
 	void AddElement(const FVector& Orgin, const FVector& Direction, float Length, float AngleWidth, float AngleHeight, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 	// Cylinder
@@ -323,6 +325,7 @@ void FVisualLogStatusCategory::AddChild(const FVisualLogStatusCategory& Child)
 FORCEINLINE
 FVisualLogShapeElement::FVisualLogShapeElement(EVisualLoggerShapeElement InType)
 : Verbosity(ELogVerbosity::All)
+, TransformationMatrix(FMatrix::Identity)
 , Type(InType)
 , Color(0xff)
 , Thicknes(0)
@@ -334,6 +337,7 @@ FORCEINLINE
 FVisualLogShapeElement::FVisualLogShapeElement(const FString& InDescription, const FColor& InColor, uint16 InThickness, const FName& InCategory)
 : Category(InCategory)
 , Verbosity(ELogVerbosity::All)
+, TransformationMatrix(FMatrix::Identity)
 , Type(EVisualLoggerShapeElement::Invalid)
 , Thicknes(InThickness)
 {

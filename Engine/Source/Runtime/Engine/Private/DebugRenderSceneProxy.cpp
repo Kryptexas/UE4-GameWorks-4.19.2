@@ -163,11 +163,11 @@ void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 			{
 				if (DrawType & SolidAndWireMeshes || DrawType & WireMesh)
 				{
-					DrawWireBox(PDI, Box.Box, Box.Color, SDPG_World, DrawType & SolidAndWireMeshes ? 2 : 0, 0, true);
+					DrawWireBox(PDI, Box.Transform.ToMatrixWithScale(), Box.Box, Box.Color, SDPG_World, DrawType & SolidAndWireMeshes ? 2 : 0, 0, true);
 				}
 				if (DrawType & SolidAndWireMeshes || DrawType & SolidMesh)
 				{
-					GetBoxMesh(FTransform(Box.Box.GetCenter()).ToMatrixNoScale(), Box.Box.GetExtent(), MaterialCache[Box.Color.WithAlpha(60)], SDPG_World, ViewIndex, Collector);
+					GetBoxMesh(FTransform(Box.Box.GetCenter()).ToMatrixNoScale() * Box.Transform.ToMatrixWithScale(), Box.Box.GetExtent(), MaterialCache[Box.Color.WithAlpha(60)], SDPG_World, ViewIndex, Collector);
 				}
 			}
 

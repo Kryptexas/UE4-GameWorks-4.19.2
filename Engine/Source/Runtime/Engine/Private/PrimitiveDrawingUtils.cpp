@@ -844,7 +844,7 @@ void DrawWireBox(FPrimitiveDrawInterface* PDI, const FBox& Box, const FLinearCol
 }
 
 
-void DrawWireBox( FPrimitiveDrawInterface* PDI, const FMatrix& Matrix, const FBox& Box, const FLinearColor& Color, uint8 DepthPriority )
+void DrawWireBox(FPrimitiveDrawInterface* PDI, const FMatrix& Matrix, const FBox& Box, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	FVector B[ 2 ];
 	B[ 0 ] = Box.Min;
@@ -860,19 +860,19 @@ void DrawWireBox( FPrimitiveDrawInterface* PDI, const FMatrix& Matrix, const FBo
 			P.Y = B[ j ].Y; Q.Y = B[ j ].Y;
 			P.Z = B[ 0 ].Z; Q.Z = B[ 1 ].Z;
 			P = Matrix.TransformPosition( P ); Q = Matrix.TransformPosition( Q );
-			PDI->DrawLine( P, Q, Color, DepthPriority );
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
 			P.Y = B[ i ].Y; Q.Y = B[ i ].Y;
 			P.Z = B[ j ].Z; Q.Z = B[ j ].Z;
 			P.X = B[ 0 ].X; Q.X = B[ 1 ].X;
 			P = Matrix.TransformPosition( P ); Q = Matrix.TransformPosition( Q );
-			PDI->DrawLine( P, Q, Color, DepthPriority );
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
 			P.Z = B[ i ].Z; Q.Z = B[ i ].Z;
 			P.X = B[ j ].X; Q.X = B[ j ].X;
 			P.Y = B[ 0 ].Y; Q.Y = B[ 1 ].Y;
 			P = Matrix.TransformPosition( P ); Q = Matrix.TransformPosition( Q );
-			PDI->DrawLine( P, Q, Color, DepthPriority );
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 		}
 	}
 }

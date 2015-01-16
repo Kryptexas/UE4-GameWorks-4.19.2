@@ -116,6 +116,9 @@ void AVisualLoggerRenderingActor::AddDebugRendering()
 		const FVector BoxExtent(100, 100, 100);
 		const FBox Box(FVector(128), FVector(300));
 		Boxes.Add(FDebugRenderSceneProxy::FDebugBox(Box, FColor::Red));
+		FTransform Trans;
+		Trans.SetRotation(FQuat::MakeFromEuler(FVector(0.1, 0.2, 1.2)));
+		Boxes.Add(FDebugRenderSceneProxy::FDebugBox(Box, FColor::Red, Trans));
 	}
 	{
 		const FVector Orgin = FVector(400,0,128);
@@ -354,8 +357,8 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 			const FVector* BoxExtent = ElementToDraw->Points.GetData();
 			for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, BoxExtent += 2)
 			{
-				const FBox Box(*BoxExtent, *(BoxExtent + 1));
-				Boxes.Add(FDebugRenderSceneProxy::FDebugBox(Box, Color));
+				const FBox Box = FBox(*BoxExtent, *(BoxExtent + 1));
+				Boxes.Add(FDebugRenderSceneProxy::FDebugBox(Box, Color, FTransform(ElementToDraw->TransformationMatrix)));
 
 				if (bDrawLabel)
 				{

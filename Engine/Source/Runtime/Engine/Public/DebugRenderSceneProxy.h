@@ -82,13 +82,19 @@ public:
 	/** Struct to hold info about boxes to render. */
 	struct FDebugBox
 	{
-		FDebugBox( const FBox& InBox, const FColor& InColor )
-			: Box( InBox ), Color( InColor )
+		FDebugBox(const FBox& InBox, const FColor& InColor)
+			: Box(InBox), Color(InColor)
+		{
+		}
+
+		FDebugBox(const FBox& InBox, const FColor& InColor, const FTransform& InTransform)
+			: Box(InBox), Color(InColor), Transform(InTransform)
 		{
 		}
 
 		FBox Box;
 		FColor Color;
+		FTransform Transform;
 	};
 
 	/** Struct to hold info about cylinders to render. */
