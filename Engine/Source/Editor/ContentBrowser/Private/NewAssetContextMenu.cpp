@@ -118,8 +118,26 @@ private:
 	TSharedPtr< FAssetThumbnail > Thumbnail;
 };
 
-void FNewAssetContextMenu::MakeContextMenu(FMenuBuilder& MenuBuilder, const FString& InPath, const FOnNewAssetRequested& InOnNewAssetRequested, const FOnNewFolderRequested& InOnNewFolderRequested)
+void FNewAssetContextMenu::MakeContextMenu( FMenuBuilder& MenuBuilder, const FString& InPath, const FOnNewAssetRequested& InOnNewAssetRequested, const FOnNewFolderRequested& InOnNewFolderRequested, const FOnImportAssetRequested& InOnImportAssetRequested, const FOnGetContentRequested& InOnGetContentRequested )
 {
+	// Get Content
+	if ( InOnGetContentRequested.IsBound() )
+	{
+		MenuBuilder.BeginSection( "ContentBrowserGetContent", LOCTEXT( "GetContentMenuHeading", "Content" ) );
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT( "GetContentText", "Add feature or content pack..." ),
+				LOCTEXT( "GetContentTooltip", "Add features and content packs to the project." ),
+				FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.AddContent" ),
+				FUIAction(
+				FExecuteAction::CreateStatic( &FNewAssetContextMenu::ExecuteGetContent, InOnGetContentRequested )
+				)
+				);
+		}
+		MenuBuilder.EndSection();
+	}
+
+	// New Folder
 	if(InOnNewFolderRequested.IsBound() && GetDefault<UContentBrowserSettings>()->DisplayFolders)
 	{
 		MenuBuilder.BeginSection("ContentBrowserNewFolder", LOCTEXT("FolderMenuHeading", "Folder") );
@@ -134,31 +152,34 @@ void FNewAssetContextMenu::MakeContextMenu(FMenuBuilder& MenuBuilder, const FStr
 		MenuBuilder.EndSection(); //ContentBrowserNewFolder
 	}
 
-	// The new style menu
-	MenuBuilder.BeginSection( "ContentBrowserCreateAsset", LOCTEXT( "ImportAssetMenuHeading", "Import Asset" ) );
+	// Import
+	if (InOnImportAssetRequested.IsBound())
 	{
-		// Get the import label
-		FText ImportAssetLabel;
-		if ( !InPath.IsEmpty() )
+		MenuBuilder.BeginSection( "ContentBrowserImportAsset", LOCTEXT( "ImportAssetMenuHeading", "Import Asset" ) );
 		{
-			ImportAssetLabel = FText::Format( LOCTEXT( "ImportAsset", "Import to {0}..." ), FText::FromString( InPath ) );
-		}
-		else
-		{
-			ImportAssetLabel = LOCTEXT( "ImportAsset_NoPath", "Import" );
-		}
+			// Get the import label
+			FText ImportAssetLabel;
+			if ( !InPath.IsEmpty() )
+			{
+				ImportAssetLabel = FText::Format( LOCTEXT( "ImportAsset", "Import to {0}..." ), FText::FromString( InPath ) );
+			}
+			else
+			{
+				ImportAssetLabel = LOCTEXT( "ImportAsset_NoPath", "Import" );
+			}
 
-		MenuBuilder.AddMenuEntry(
-			ImportAssetLabel,
-			LOCTEXT( "ImportAssetTooltip", "Imports an asset from file to this folder." ),
-			FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.ImportIcon" ),
-			FUIAction(
-			FExecuteAction::CreateStatic( &FNewAssetContextMenu::ExecuteImportAsset, InPath ),
-			FCanExecuteAction::CreateStatic( &FNewAssetContextMenu::IsAssetPathSelected, InPath )
-			)
-			);
+			MenuBuilder.AddMenuEntry(
+				ImportAssetLabel,
+				LOCTEXT( "ImportAssetTooltip", "Imports an asset from file to this folder." ),
+				FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.ImportIcon" ),
+				FUIAction(
+				FExecuteAction::CreateStatic( &FNewAssetContextMenu::ExecuteImportAsset, InOnImportAssetRequested, InPath ),
+				FCanExecuteAction::CreateStatic( &FNewAssetContextMenu::IsAssetPathSelected, InPath )
+				)
+				);
+		}
+		MenuBuilder.EndSection();
 	}
-	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("ContentBrowserNewBasicAsset", LOCTEXT("BasicAssetsMenuHeading", "Create Basic Asset") );
 	{
@@ -303,13 +324,9 @@ bool FNewAssetContextMenu::IsAssetPathSelected(FString InPath)
 	return !InPath.IsEmpty();
 }
 
-void FNewAssetContextMenu::ExecuteImportAsset( FString InPath )
+void FNewAssetContextMenu::ExecuteImportAsset( FOnImportAssetRequested InOnInportAssetRequested, FString InPath )
 {
-	if ( ensure( !InPath.IsEmpty() ) )
-	{
-		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>( "AssetTools" );
-		AssetToolsModule.Get().ImportAssets( InPath );
-	}
+	InOnInportAssetRequested.ExecuteIfBound( InPath );
 }
 
 void FNewAssetContextMenu::ExecuteNewAsset(FString InPath, TWeakObjectPtr<UClass> FactoryClass, FOnNewAssetRequested InOnNewAssetRequested)
@@ -326,6 +343,11 @@ void FNewAssetContextMenu::ExecuteNewFolder(FString InPath, FOnNewFolderRequeste
 	{
 		InOnNewFolderRequested.ExecuteIfBound(InPath);
 	}
+}
+
+void FNewAssetContextMenu::ExecuteGetContent( FOnGetContentRequested InOnGetContentRequested )
+{
+	InOnGetContentRequested.ExecuteIfBound();
 }
 
 #undef LOCTEXT_NAMESPACE

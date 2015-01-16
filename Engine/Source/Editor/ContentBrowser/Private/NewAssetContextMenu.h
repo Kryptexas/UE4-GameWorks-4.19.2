@@ -7,9 +7,11 @@ class FNewAssetContextMenu
 public:
 	DECLARE_DELEGATE_TwoParams( FOnNewAssetRequested, const FString& /*SelectedPath*/, TWeakObjectPtr<UClass> /*FactoryClass*/ );
 	DECLARE_DELEGATE_OneParam( FOnNewFolderRequested, const FString& /*SelectedPath*/ );
+	DECLARE_DELEGATE_OneParam( FOnImportAssetRequested, const FString& );
+	DECLARE_DELEGATE( FOnGetContentRequested )
 
 	/** Makes the context menu widget */
-	static void MakeContextMenu(FMenuBuilder& MenuBuilder, const FString& InPath, const FOnNewAssetRequested& InOnNewAssetRequested, const FOnNewFolderRequested& InOnNewFolderRequested);
+	static void MakeContextMenu(FMenuBuilder& MenuBuilder, const FString& InPath, const FOnNewAssetRequested& InOnNewAssetRequested, const FOnNewFolderRequested& InOnNewFolderRequested, const FOnImportAssetRequested& InOnImportAssetRequested, const FOnGetContentRequested& InOnGetContentRequested);
 
 private:
 	/** Handle creating a new asset from an asset category */
@@ -19,11 +21,14 @@ private:
 	static bool IsAssetPathSelected(FString InPath);
 
 	/** Handle when the "Import" button is clicked */
-	static void ExecuteImportAsset( FString InPath );
+	static void ExecuteImportAsset(FOnImportAssetRequested InOnImportAssetRequested, FString InPath);
 
 	/** Create a new asset using the specified factory at the specified path */
 	static void ExecuteNewAsset(FString InPath, TWeakObjectPtr<UClass> FactoryClass, FOnNewAssetRequested InOnNewAssetRequested);
 
 	/** Create a new folder at the specified path */
 	static void ExecuteNewFolder(FString InPath, FOnNewFolderRequested InOnNewFolderRequested);
+
+	/** Handle when the "Get Content" button is clicked */
+	static void ExecuteGetContent( FOnGetContentRequested InOnGetContentRequested );
 };
