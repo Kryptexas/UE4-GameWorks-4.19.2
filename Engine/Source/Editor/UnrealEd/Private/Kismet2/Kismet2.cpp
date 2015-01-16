@@ -1398,6 +1398,15 @@ TSharedPtr<class IBlueprintEditor> FKismetEditorUtilities::GetIBlueprintEditorFo
 		for (UObject* TestOuter = ObjectToFocusOn->GetOuter(); TestOuter; TestOuter = TestOuter->GetOuter())
 		{
 			TargetBP = Cast<UBlueprint>(TestOuter);
+
+			if(TargetBP == nullptr)
+			{
+				if(UBlueprintGeneratedClass* BPGeneratedClass = Cast<UBlueprintGeneratedClass>(TestOuter))
+				{
+					TargetBP = Cast<UBlueprint>(BPGeneratedClass->ClassGeneratedBy);
+				}
+			}
+
 			if (TargetBP != NULL)
 			{
 				break;

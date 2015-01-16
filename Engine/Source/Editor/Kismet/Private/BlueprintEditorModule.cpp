@@ -99,6 +99,9 @@ void FBlueprintEditorModule::StartupModule()
 
 	// Listen for clicks in log so we can focus on the object, might have to restart K2 if the K2 tab has been closed
 	MessageLogModule.GetLogListing("BlueprintLog")->OnMessageTokenClicked().AddStatic( &FocusBlueprintEditorOnObject );
+	
+	// Also listen for clicks in the PIE log, runtime errors with Blueprints may post clickable links there
+	MessageLogModule.GetLogListing("PIE")->OnMessageTokenClicked().AddStatic( &FocusBlueprintEditorOnObject );
 
 	// Add a page for pre-loading of the editor
 	MessageLogModule.GetLogListing("BlueprintLog")->NewPage(LOCTEXT("PreloadLogPageLabel", "Editor Load"));
