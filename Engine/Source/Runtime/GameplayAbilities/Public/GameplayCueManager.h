@@ -148,6 +148,8 @@ private:
 
 	void AddGameplayCueData_Internal(FGameplayTag  GameplayCueTag, FStringAssetReference StringRef);
 
+	void AddAssetDataList_Internal(const TArray<FAssetData>& AssetDataList, FName TagPropertyName);
+
 	void BuildAccelerationMap_Internal();
 
 	TArray<FString>	LoadedPaths;
