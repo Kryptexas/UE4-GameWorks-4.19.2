@@ -42,6 +42,36 @@ public:
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End AActor interface.
 
+
+	// Performs a reverse lookup from a mesh to its settings
+	FOLIAGE_API UFoliageType* GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo = nullptr);
+
+	// Finds the number of instances overlapping with the sphere. 
+	FOLIAGE_API int32 GetOverlappingSphereCount(const UFoliageType* FoliageType, const FSphere& Sphere) const;
+
+	// Finds a mesh entry
+	FOLIAGE_API FFoliageMeshInfo* FindMesh(const UFoliageType* InType);
+
+	// Finds a mesh entry
+	FOLIAGE_API const FFoliageMeshInfo* FindMesh(const UFoliageType* InType) const;
+
+	/**
+	* Get the instanced foliage actor for the current streaming level.
+	*
+	* @param InCreationWorldIfNone			World to create the foliage instance in
+	* @param bCreateIfNone					Create if doesnt already exist
+	* returns								pointer to foliage object instance
+	*/
+	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone = true);
+
+
+	/**
+	* Get the instanced foliage actor for the specified streaming level.
+	* @param bCreateIfNone					Create if doesnt already exist
+	* returns								pointer to foliage object instance
+	*/
+	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
+
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 
@@ -67,17 +97,8 @@ public:
 	// Deletes the instances spawned by a component
 	FOLIAGE_API void DeleteInstancesForSpawner(UActorComponent* InComponent);
 
-	// Finds a mesh entry
-	FOLIAGE_API FFoliageMeshInfo* FindMesh(const UFoliageType* InType);
-
-	// Finds a mesh entry
-	FOLIAGE_API const FFoliageMeshInfo* FindMesh(const UFoliageType* InType) const;
-
 	// Finds a mesh entry or adds it if it doesn't already exist
 	FOLIAGE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
-
-	// Finds the number of instances overlapping with the sphere. 
-	FOLIAGE_API int32 GetOverlappingSphereCount(const UFoliageType* FoliageType, const FSphere& Sphere) const;
 
 	// Add a new static mesh.
 	FOLIAGE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr, const UFoliageType_InstancedStaticMesh* DefaultSettings = nullptr);
@@ -85,9 +106,6 @@ public:
 
 	// Remove the static mesh from the mesh list, and all its instances.
 	FOLIAGE_API void RemoveMesh(UFoliageType* InFoliageType);
-
-	// Performs a reverse lookup from a mesh to its settings
-	FOLIAGE_API UFoliageType* GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo = nullptr);
 
 	// Select an individual instance.
 	FOLIAGE_API void SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle);
@@ -103,23 +121,6 @@ public:
 
 	// Transforms Editor specific data which is stored in world space
 	FOLIAGE_API void ApplyLevelTransform(const FTransform& LevelTransform);
-
-	/**
-	* Get the instanced foliage actor for the current streaming level.
-	*
-	* @param InCreationWorldIfNone			World to create the foliage instance in
-	* @param bCreateIfNone					Create if doesnt already exist
-	* returns								pointer to foliage object instance
-	*/
-	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone = true);
-
-
-	/**
-	* Get the instanced foliage actor for the specified streaming level.
-	* @param bCreateIfNone					Create if doesnt already exist
-	* returns								pointer to foliage object instance
-	*/
-	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
 
 	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
 	void NotifyFoliageTypeChanged(UFoliageType* FoliageType);

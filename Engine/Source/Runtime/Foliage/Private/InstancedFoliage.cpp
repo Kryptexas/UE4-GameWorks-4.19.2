@@ -793,7 +793,6 @@ AInstancedFoliageActor::AInstancedFoliageActor(const FObjectInitializer& ObjectI
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-#if WITH_EDITOR
 AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone)
 {
 	for (TActorIterator<AInstancedFoliageActor> It(InWorld); It; ++It)
@@ -839,6 +838,61 @@ AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel
 	return nullptr;
 }
 
+
+int32 AInstancedFoliageActor::GetOverlappingSphereCount(const UFoliageType* FoliageType, const FSphere& Sphere) const
+{
+	if (const FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType))
+	{
+		if (MeshInfo->Component)
+		{
+			return MeshInfo->Component->GetOverlappingSphereCount(Sphere);
+		}
+	}
+
+	return 0;
+}
+
+
+UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo)
+{
+	UFoliageType* Type = nullptr;
+	FFoliageMeshInfo* MeshInfo = nullptr;
+
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		UFoliageType* Settings = MeshPair.Key;
+		if (Settings && Settings->GetStaticMesh() == InMesh)
+		{
+			Type = MeshPair.Key;
+			MeshInfo = &*MeshPair.Value;
+			break;
+		}
+	}
+
+	if (OutMeshInfo)
+	{
+		*OutMeshInfo = MeshInfo;
+	}
+	return Type;
+}
+
+
+FFoliageMeshInfo* AInstancedFoliageActor::FindMesh(const UFoliageType* InType)
+{
+	TUniqueObj<FFoliageMeshInfo>* MeshInfoEntry = FoliageMeshes.Find(InType);
+	FFoliageMeshInfo* MeshInfo = MeshInfoEntry ? &MeshInfoEntry->Get() : nullptr;
+	return MeshInfo;
+}
+
+const FFoliageMeshInfo* AInstancedFoliageActor::FindMesh(const UFoliageType* InType) const
+{
+	const TUniqueObj<FFoliageMeshInfo>* MeshInfoEntry = FoliageMeshes.Find(InType);
+	const FFoliageMeshInfo* MeshInfo = MeshInfoEntry ? &MeshInfoEntry->Get() : nullptr;
+	return MeshInfo;
+}
+
+
+#if WITH_EDITOR
 void AInstancedFoliageActor::MoveInstancesForMovedComponent(UActorComponent* InComponent)
 {
 	bool bUpdatedInstances = false;
@@ -1042,39 +1096,11 @@ TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> AInstancedFoli
 	return Result;
 }
 
-FFoliageMeshInfo* AInstancedFoliageActor::FindMesh(const UFoliageType* InType)
-{
-	TUniqueObj<FFoliageMeshInfo>* MeshInfoEntry = FoliageMeshes.Find(InType);
-	FFoliageMeshInfo* MeshInfo = MeshInfoEntry ? &MeshInfoEntry->Get() : nullptr;
-	return MeshInfo;
-}
-
-const FFoliageMeshInfo* AInstancedFoliageActor::FindMesh(const UFoliageType* InType) const
-{
-	const TUniqueObj<FFoliageMeshInfo>* MeshInfoEntry = FoliageMeshes.Find(InType);
-	const FFoliageMeshInfo* MeshInfo = MeshInfoEntry ? &MeshInfoEntry->Get() : nullptr;
-	return MeshInfo;
-}
-
-
 FFoliageMeshInfo* AInstancedFoliageActor::FindOrAddMesh(UFoliageType* InType)
 {
 	TUniqueObj<FFoliageMeshInfo>* MeshInfoEntry = FoliageMeshes.Find(InType);
 	FFoliageMeshInfo* MeshInfo = MeshInfoEntry ? &MeshInfoEntry->Get() : AddMesh(InType);
 	return MeshInfo;
-}
-
-int32 AInstancedFoliageActor::GetOverlappingSphereCount(const UFoliageType* FoliageType, const FSphere& Sphere) const
-{
-	if (const FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType))
-	{
-		if (MeshInfo->Component)
-		{
-			return MeshInfo->Component->GetOverlappingSphereCount(Sphere);
-		}
-	}
-
-	return 0;
 }
 
 FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings, const UFoliageType_InstancedStaticMesh* DefaultSettings)
@@ -1178,29 +1204,6 @@ void AInstancedFoliageActor::RemoveMesh(UFoliageType* InSettings)
 	FoliageMeshes.Remove(InSettings);
 	RegisterAllComponents();
 	CheckSelection();
-}
-
-UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo)
-{
-	UFoliageType* Type = nullptr;
-	FFoliageMeshInfo* MeshInfo = nullptr;
-
-	for (auto& MeshPair : FoliageMeshes)
-	{
-		UFoliageType* Settings = MeshPair.Key;
-		if (Settings && Settings->GetStaticMesh() == InMesh)
-		{
-			Type = MeshPair.Key;
-			MeshInfo = &*MeshPair.Value;
-			break;
-		}
-	}
-
-	if (OutMeshInfo)
-	{
-		*OutMeshInfo = MeshInfo;
-	}
-	return Type;
 }
 
 void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InInstanceIndex, bool bToggle)
