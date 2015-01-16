@@ -2,6 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "WidgetSlotPair.h"
+#include "WidgetBlueprintEditorUtils.h"
 
 UWidgetSlotPair::UWidgetSlotPair()
 {
