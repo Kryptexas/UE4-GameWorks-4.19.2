@@ -150,8 +150,8 @@ class USCS_Node : public UObject
 	/** Sets parent component attributes based on the given component instance */
 	ENGINE_API void SetParent(USceneComponent* InParentComponent);
 
-	/** Finds and returns the parent component template through the given Blueprint */
-	ENGINE_API USceneComponent* GetParentComponentTemplate(UBlueprint* InBlueprint) const;
+	/** Finds and returns the parent component template */
+	ENGINE_API USceneComponent* GetParentComponentTemplate() const;
 
 	/** Test whether or not the given string is a valid variable name string */
 	ENGINE_API bool IsValidVariableNameString(const FString& InString);

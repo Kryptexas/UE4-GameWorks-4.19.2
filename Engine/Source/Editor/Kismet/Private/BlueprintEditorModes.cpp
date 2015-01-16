@@ -325,11 +325,12 @@ void FBlueprintComponentsApplicationMode::PostActivateMode()
 	TSharedPtr<FBlueprintEditor> BP = MyBlueprintEditor.Pin();
 	if (BP.IsValid())
 	{
+		BP->EnableSCSPreview(true);
+		BP->UpdateSCSPreview(true);
+		BP->GetInspector()->EnableComponentDetailsCustomization(true);
+
 		auto SCSEditor = BP->GetSCSEditor();
 		SCSEditor->UpdateTree();
-		BP->EnableSCSPreview(true);
-		BP->UpdateSCSPreview();
-		BP->GetInspector()->EnableComponentDetailsCustomization(true);
 
 		// Reselect the cached components
 		TArray<TSharedPtr<FSCSEditorTreeNode>> Selection;

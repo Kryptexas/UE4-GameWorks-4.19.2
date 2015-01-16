@@ -230,7 +230,7 @@ void FSCSEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 			{
 				FSCSEditorTreeNodePtrType SelectedNode = SelectedNodes[SelectionIndex];
 
-				UActorComponent* Comp = SelectedNode->FindComponentInstanceInActor(PreviewActor, true);
+				UActorComponent* Comp = SelectedNode->FindComponentInstanceInActor(PreviewActor);
 				if(Comp != NULL && Comp->IsRegistered())
 				{
 					// Try and find a visualizer
@@ -257,7 +257,7 @@ void FSCSEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 			{
 				FSCSEditorTreeNodePtrType SelectedNode = SelectedNodes[SelectionIndex];
 
-				UActorComponent* Comp = Cast<USceneComponent>(SelectedNode->FindComponentInstanceInActor(PreviewActor, true));
+				UActorComponent* Comp = Cast<USceneComponent>(SelectedNode->FindComponentInstanceInActor(PreviewActor));
 				if (Comp != NULL && Comp->IsRegistered())
 				{
 					// Try and find a visualizer
@@ -278,7 +278,7 @@ void FSCSEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 		auto SelectedNodes = BlueprintEditorPtr.Pin()->GetSelectedSCSEditorTreeNodes();
 		if(bIsManipulating && SelectedNodes.Num() > 0)
 		{
-			USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodes[0]->FindComponentInstanceInActor(PreviewActor, true));
+			USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodes[0]->FindComponentInstanceInActor(PreviewActor));
 			if(SceneComp)
 			{
 				const FVector WidgetLocation = GetWidgetLocation();
@@ -388,7 +388,7 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 					if(bCanEdit)
 					{
-						USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodePtr->FindComponentInstanceInActor(PreviewActor, true));
+						USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodePtr->FindComponentInstanceInActor(PreviewActor));
 						USceneComponent* SelectedTemplate = Cast<USceneComponent>(SelectedNodePtr->GetComponentTemplate());
 						if(SceneComp != NULL && SelectedTemplate != NULL)
 						{
@@ -494,7 +494,7 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 										if(ArchetypeInstance != NULL)
 										{
 											const bool bIsProcessingPreviewActor = (ArchetypeInstance == PreviewActor);
-											SceneComp = Cast<USceneComponent>(SelectedNodePtr->FindComponentInstanceInActor(ArchetypeInstance, bIsProcessingPreviewActor));
+											SceneComp = Cast<USceneComponent>(SelectedNodePtr->FindComponentInstanceInActor(ArchetypeInstance));
 											if(!bIsProcessingPreviewActor && SceneComp != nullptr && !UpdatedComponents.Contains(SceneComp))
 											{
 												FComponentEditorUtils::PropagateTransformPropertyChange(SceneComp, SceneComp->RelativeLocation, OldRelativeLocation, SelectedTemplate->RelativeLocation, UpdatedComponents);
@@ -570,7 +570,7 @@ FWidget::EWidgetMode FSCSEditorViewportClient::GetWidgetMode() const
 			for ( int32 CurrentNodeIndex=0; CurrentNodeIndex < SelectedNodes.Num(); CurrentNodeIndex++ )
 			{
 				FSCSEditorTreeNodePtrType CurrentNodePtr = SelectedNodes[CurrentNodeIndex];
-				if ( CurrentNodePtr.IsValid() && !RootNodes.Contains( CurrentNodePtr ) && !CurrentNodePtr->IsRoot() && CurrentNodePtr->CanEditDefaults() && CurrentNodePtr->FindComponentInstanceInActor(PreviewActor, true))
+				if ( CurrentNodePtr.IsValid() && !RootNodes.Contains( CurrentNodePtr ) && !CurrentNodePtr->IsRoot() && CurrentNodePtr->CanEditDefaults() && CurrentNodePtr->FindComponentInstanceInActor(PreviewActor))
 				{
 					// a non-NULL, non-root item is selected, draw the widget
 					ReturnWidgetMode = WidgetMode;
@@ -605,7 +605,7 @@ FVector FSCSEditorViewportClient::GetWidgetLocation() const
 		if(SelectedNodes.Num() > 0)
 		{
 			// Use the last selected item for the widget location
-			USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodes.Last().Get()->FindComponentInstanceInActor(PreviewActor, true));
+			USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodes.Last().Get()->FindComponentInstanceInActor(PreviewActor));
 			if( SceneComp )
 			{
 				TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(SceneComp);
@@ -638,7 +638,7 @@ FMatrix FSCSEditorViewportClient::GetWidgetCoordSystem() const
 			if(SelectedNodes.Num() > 0)
 			{
 				const auto SelectedNode = SelectedNodes.Last();
-				USceneComponent* SceneComp = SelectedNode.IsValid() ? Cast<USceneComponent>(SelectedNode->FindComponentInstanceInActor(PreviewActor, true)) : NULL;
+				USceneComponent* SceneComp = SelectedNode.IsValid() ? Cast<USceneComponent>(SelectedNode->FindComponentInstanceInActor(PreviewActor)) : NULL;
 				if( SceneComp )
 				{
 					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditor->CustomizeSCSEditor(SceneComp);
@@ -742,7 +742,7 @@ void FSCSEditorViewportClient::FocusViewportToSelection()
 		if(SelectedNodes.Num() > 0)
 		{
 			// Use the last selected item for the widget location
-			USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodes.Last()->FindComponentInstanceInActor(PreviewActor, true));
+			USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodes.Last()->FindComponentInstanceInActor(PreviewActor));
 			if( SceneComp )
 			{
 				FocusViewportOnBox( SceneComp->Bounds.GetBox() );

@@ -1178,7 +1178,7 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 							// Check to see if the root node has set an explicit parent
 							if(RootNode->ParentComponentOrVariableName != NAME_None)
 							{
-								USceneComponent* ParentComponentTemplate = RootNode->GetParentComponentTemplate(Blueprint);
+								USceneComponent* ParentComponentTemplate = RootNode->GetParentComponentTemplate();
 								if(ParentComponentTemplate != NULL)
 								{
 									if(NativeInstanceMap.Contains(ParentComponentTemplate))

@@ -4672,7 +4672,6 @@ bool FBlueprintComponentDetails::IsNodeAttachable() const
 			check(BlueprintEditorPtr.IsValid());
 			TSharedPtr<SSCSEditor> Editor = BlueprintEditorPtr.Pin()->GetSCSEditor();
 			check( Editor.IsValid() );
-			check( Editor->SCS );
 
 			USCS_Node* SCS_Node = CachedNodePtr->GetSCSNode();
 			if (SCS_Node != NULL && Editor->IsNodeInSimpleConstructionScript(SCS_Node))
@@ -4713,7 +4712,6 @@ void FBlueprintComponentDetails::OnBrowseSocket()
 	{
 		TSharedPtr<SSCSEditor> Editor = BlueprintEditorPtr.Pin()->GetSCSEditor();
 		check( Editor.IsValid() );
-		check( Editor->SCS );
 
 		FSCSEditorTreeNodePtrType ParentFNode = CachedNodePtr->GetParent();
 
