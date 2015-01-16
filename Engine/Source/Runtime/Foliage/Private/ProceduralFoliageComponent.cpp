@@ -189,6 +189,7 @@ void UProceduralFoliageComponent::SpawnTiles()
 					TArray<FProceduralFoliageInstance>* ProceduralFoliageInstances = new TArray<FProceduralFoliageInstance>();
 					JTile->InstancesToArray();
 					JTile->CreateInstancesToSpawn(*ProceduralFoliageInstances, TileTM, World, HalfHeight);
+					JTile->Empty();
 
 					return ProceduralFoliageInstances;
 					

@@ -15,6 +15,11 @@ FProceduralFoliageBroadphase::FProceduralFoliageBroadphase(const FProceduralFoli
 	OtherBroadphase.QuadTree.Duplicate(&QuadTree);
 }
 
+void FProceduralFoliageBroadphase::Empty()
+{
+	QuadTree.Empty();
+}
+
 /*Takes the instance and returns the AABB that contains both its shade and collision radius*/
 FBox2D GetMaxAABB(FProceduralFoliageInstance* Instance)
 {

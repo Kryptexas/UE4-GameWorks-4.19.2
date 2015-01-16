@@ -14,6 +14,7 @@ public:
 	bool GetOverlaps(FProceduralFoliageInstance* Instance, TArray<FProceduralFoliageOverlap>& Overlaps) const;
 	void GetInstancesInBox(const FBox2D& Box, TArray<FProceduralFoliageInstance*>& Instances) const;
 	void Remove(FProceduralFoliageInstance* Instance);
+	void Empty();
 
 private:
 	TQuadTree<FProceduralFoliageInstance*, 4> QuadTree;

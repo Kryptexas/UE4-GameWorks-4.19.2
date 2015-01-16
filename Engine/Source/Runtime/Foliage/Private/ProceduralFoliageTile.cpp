@@ -378,6 +378,33 @@ void UProceduralFoliageTile::CreateInstancesToSpawn(TArray<FProceduralFoliageIns
 	}
 }
 
+void UProceduralFoliageTile::Empty()
+{
+	Broadphase.Empty();
+	InstancesArray.Empty();
+	
+	for (FProceduralFoliageInstance* Inst : Instances)
+	{
+		delete Inst;
+	}
+
+	Instances.Empty();
+	PendingRemovals.Empty();
+}
+
+SIZE_T UProceduralFoliageTile::GetResourceSize(EResourceSizeMode::Type Mode)
+{
+	SIZE_T TotalSize = 0;
+	for (FProceduralFoliageInstance* Inst : Instances)
+	{
+		TotalSize += sizeof(FProceduralFoliageInstance);
+	}
+	
+	//@TODO: account for broadphase
+	return TotalSize;
+}
+
+
 void UProceduralFoliageTile::GetInstancesInAABB(const FBox2D& LocalAABB, TArray<FProceduralFoliageInstance*>& OutInstances, bool bOnTheBorder) const
 {
 	TArray<FProceduralFoliageInstance*> InstancesInAABB;
