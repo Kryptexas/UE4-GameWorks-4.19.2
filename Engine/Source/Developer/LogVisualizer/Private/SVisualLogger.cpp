@@ -719,6 +719,30 @@ void SVisualLogger::ResetData()
 	{
 		VisualLoggerFilters->ResetData();
 	}
+
+	if (LogsList.IsValid())
+	{
+		LogsList->OnItemSelectionChanged(FVisualLogDevice::FVisualLogEntryItem());
+	}
+
+	if (StatusView.IsValid())
+	{
+		StatusView->OnItemSelectionChanged(FVisualLogDevice::FVisualLogEntryItem());
+	}
+
+	if (VisualLoggerCanvasRenderer.IsValid())
+	{
+		VisualLoggerCanvasRenderer->OnItemSelectionChanged(FVisualLogEntry());
+		VisualLoggerCanvasRenderer->ObjectSelectionChanged(NULL);
+	}
+
+	AVisualLoggerRenderingActor* HelperActor = Cast<AVisualLoggerRenderingActor>(FLogVisualizer::Get().GetVisualLoggerHelperActor());
+	if (HelperActor)
+	{
+		HelperActor->OnItemSelectionChanged(FVisualLogDevice::FVisualLogEntryItem());
+		HelperActor->ObjectSelectionChanged(NULL);
+	}
+
 }
 
 void SVisualLogger::OnNewWorld(UWorld* NewWorld)

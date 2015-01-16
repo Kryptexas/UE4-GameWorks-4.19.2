@@ -393,16 +393,22 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 			}
 
 			const TArray<FVisualLogLine>& LogLines = CurrentEntry.LogLines;
+			bool bAddedWarning = false;
+			bool bAddedError = false;
 			for (const FVisualLogLine& CurrentLine : LogLines)
 			{
-				if (CurrentLine.Verbosity <= ELogVerbosity::Error)
+				if (CurrentLine.Verbosity <= ELogVerbosity::Error && !bAddedError)
 				{
 					ErrorTimes.AddUnique(CurrentEntry.TimeStamp);
-					break;
+					bAddedError = true;
 				}
-				else if (CurrentLine.Verbosity == ELogVerbosity::Warning)
+				else if (CurrentLine.Verbosity == ELogVerbosity::Warning && !bAddedWarning)
 				{
 					WarningTimes.AddUnique(CurrentEntry.TimeStamp);
+					bAddedWarning = true;
+				}
+				if (bAddedError && bAddedWarning)
+				{
 					break;
 				}
 			}

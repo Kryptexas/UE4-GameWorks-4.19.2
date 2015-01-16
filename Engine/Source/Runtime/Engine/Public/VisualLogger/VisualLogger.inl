@@ -76,6 +76,18 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 		if (World)
 		{
 			World->GetTimerManager().ClearAllTimersForObject(this);
+			for (auto& CurrentPair : CurrentEntryPerObject)
+			{
+				FVisualLogEntry* Entry = &CurrentPair.Value;
+				if (Entry->TimeStamp >= 0 && Entry->TimeStamp < TimeStamp)
+				{
+					for (auto* Device : OutputDevices)
+					{
+						Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], ObjectToClassNameMap[CurrentPair.Key], *Entry);
+					}
+					Entry->Reset();
+				}
+			}
 		}
 	}
 

@@ -72,9 +72,9 @@ public:
 
 private:
 	/** Handler for when the filter checkbox is clicked */
-	void FilterToggled(ESlateCheckBoxState::Type NewState)
+	void FilterToggled(ECheckBoxState NewState)
 	{
-		bEnabled = NewState == ESlateCheckBoxState::Checked;
+		bEnabled = NewState == ECheckBoxState::Checked;
 		OnFilterChanged.ExecuteIfBound();
 	}
 
@@ -126,10 +126,10 @@ private:
 	void RemoveAllFilters() { OnRequestRemoveAll.ExecuteIfBound(); }
 
 	/** Handler to determine the "checked" state of the filter checkbox */
-	ESlateCheckBoxState::Type IsChecked() const { return bEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; }
+	ECheckBoxState IsChecked() const { return bEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; }
 
 	/** Handler to determine the color of the checkbox when it is checked */
-	FSlateColor GetFilterForegroundColor() const { return IsChecked() == ESlateCheckBoxState::Checked ? FilterColor : FLinearColor::White; }
+	FSlateColor GetFilterForegroundColor() const { return IsChecked() == ECheckBoxState::Checked ? FilterColor : FLinearColor::White; }
 
 	/** Handler to determine the padding of the checkbox text when it is pressed */
 	FMargin GetFilterNamePadding() const { return ToggleButtonPtr->IsPressed() ? FMargin(3, 2, 4, 0) : FMargin(3, 1, 4, 1); }
@@ -138,7 +138,7 @@ private:
 	FSlateColor GetFilterNameColorAndOpacity() const
 	{
 		const float DimFactor = 0.75f;
-		return IsChecked() == ESlateCheckBoxState::Checked ? (IsHovered() ? ColorCategory * DimFactor : ColorCategory) : (IsHovered() ? FLinearColor::White : FLinearColor::White * DimFactor);
+		return IsChecked() == ECheckBoxState::Checked ? (IsHovered() ? ColorCategory * DimFactor : ColorCategory) : (IsHovered() ? FLinearColor::White : FLinearColor::White * DimFactor);
 	}
 
 	FSlateColor GetBorderBackgroundColor() const
