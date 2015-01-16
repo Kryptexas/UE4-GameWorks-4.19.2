@@ -9,6 +9,8 @@
 #include "ProceduralFoliage.h"
 #include "Async/Async.h"
 
+#define LOCTEXT_NAMESPACE "ProceduralFoliage"
+
 UProceduralFoliageComponent::UProceduralFoliageComponent(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
@@ -133,6 +135,8 @@ void UProceduralFoliageComponent::SpawnTiles()
 		const FVector2D OverlapY(0.f, Overlap);
 
 		TArray<TFuture< TArray<FProceduralFoliageInstance>* >> Futures;
+		FScopedSlowTask SlowTask(TilesX * TilesY, LOCTEXT("PlaceProceduralFoliage", "Placing ProceduralFoliage..."));
+		SlowTask.MakeDialog();
 
 		for (int32 X = 0; X < TilesX; ++X)
 		{
@@ -147,7 +151,7 @@ void UProceduralFoliageComponent::SpawnTiles()
 
 				UProceduralFoliageTile* JTile = ProceduralFoliage->CreateTempTile();
 
-				Futures.Add(Async<TArray<FProceduralFoliageInstance>*>(EAsyncExecution::TaskGraph, [=]()
+				Futures.Add(Async<TArray<FProceduralFoliageInstance>*>(EAsyncExecution::ThreadPool, [=]()
 				{
 					FTransform TileTM = ComponentToWorld;
 					const FVector OrientedOffset = ComponentToWorld.TransformVectorNoScale(FVector(X, Y, 0.f) * FVector(InnerTileSize, InnerTileSize, 0.f));
@@ -201,6 +205,7 @@ void UProceduralFoliageComponent::SpawnTiles()
 				TArray<FProceduralFoliageInstance>* ProceduralFoliageInstances = Futures[FutureIdx++].Get();
 				SpawnInstances(*ProceduralFoliageInstances, World, this);
 				delete ProceduralFoliageInstances;
+				SlowTask.EnterProgressFrame(1);
 			}
 		}
 	}
@@ -223,3 +228,5 @@ void UProceduralFoliageComponent::SpawnProceduralContent()
 	SpawnTiles();
 #endif
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -18,9 +18,9 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	UProceduralFoliage* ProceduralFoliage;
+	const UProceduralFoliage* ProceduralFoliage;
 
-	void Simulate(UProceduralFoliage* ProceduralFoliage, const int32 MaxNumSteps = -1);
+	void Simulate(const UProceduralFoliage* ProceduralFoliage, const int32 RandomSeed, const int32 MaxNumSteps = -1);
 	void RemoveInstances();
 	void RemoveInstance(FProceduralFoliageInstance* Inst);
 
@@ -31,7 +31,7 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 
 	virtual void BeginDestroy() override;
 
-	void InitSimulation(UProceduralFoliage* ProceduralFoliage);
+	void InitSimulation(const UProceduralFoliage* ProceduralFoliage, const int32 RandomSeed);
 
 	void InstancesToArray();
 private:

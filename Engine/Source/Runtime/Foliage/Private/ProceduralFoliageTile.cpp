@@ -270,11 +270,9 @@ void UProceduralFoliageTile::FlushPendingRemovals()
 	PendingRemovals.Empty();
 }
 
-void UProceduralFoliageTile::InitSimulation(UProceduralFoliage* InProceduralFoliage)
+void UProceduralFoliageTile::InitSimulation(const UProceduralFoliage* InProceduralFoliage, const int32 RandomSeed)
 {
-	
-
-	RandomStream.Initialize(InProceduralFoliage->GetRandomNumber());
+	RandomStream.Initialize(RandomSeed);
 	ProceduralFoliage = InProceduralFoliage;
 	SimulationStep = 0;
 	Broadphase = FProceduralFoliageBroadphase(ProceduralFoliage->TileSize);
@@ -301,9 +299,9 @@ void UProceduralFoliageTile::StepSimulation()
 	FlushPendingRemovals();
 }
 
-void UProceduralFoliageTile::Simulate(UProceduralFoliage* InProceduralFoliage, const int32 MaxNumSteps)
+void UProceduralFoliageTile::Simulate(const UProceduralFoliage* InProceduralFoliage, const int32 RandomSeed, const int32 MaxNumSteps)
 {
-	InitSimulation(InProceduralFoliage);
+	InitSimulation(InProceduralFoliage, RandomSeed);
 
 	int32 MaxSteps = 0;
 	for(const FProceduralFoliageTypeData& Data : ProceduralFoliage->GetTypes())
@@ -320,14 +318,10 @@ void UProceduralFoliageTile::Simulate(UProceduralFoliage* InProceduralFoliage, c
 		MaxSteps = FMath::Min(MaxSteps, MaxNumSteps);	//only take as many steps as given
 	}
 
-	FScopedSlowTask SlowTask(MaxSteps, LOCTEXT("SimulateProceduralFoliage", "Simulate ProceduralFoliage..."));
-	SlowTask.MakeDialog();
-	
 	for (int32 Step = 0; Step < MaxSteps; ++Step)
 	{
 		StepSimulation();
 		++SimulationStep;
-		SlowTask.EnterProgressFrame(1);
 	}
 
 	InstancesToArray();
