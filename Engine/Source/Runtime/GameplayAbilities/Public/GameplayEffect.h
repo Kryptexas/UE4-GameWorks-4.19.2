@@ -1355,6 +1355,9 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	bool HasApplicationImmunityToSpec(const FGameplayEffectSpec& SpecToApply) const;
 
+	void IncrementLock();
+	void DecrementLock();
+
 private:
 
 	UPROPERTY()

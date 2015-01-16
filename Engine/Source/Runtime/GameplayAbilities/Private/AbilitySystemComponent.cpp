@@ -1039,6 +1039,16 @@ void UAbilitySystemComponent::GetSubobjectsWithStableNamesForNetworking(TArray<U
 	}
 }
 
+void UAbilitySystemComponent::PreNetReceive()
+{
+	ActiveGameplayEffects.IncrementLock();
+}
+	
+void UAbilitySystemComponent::PostNetReceive()
+{
+	ActiveGameplayEffects.DecrementLock();
+}
+
 void UAbilitySystemComponent::OnRep_GameplayEffects()
 {
 
