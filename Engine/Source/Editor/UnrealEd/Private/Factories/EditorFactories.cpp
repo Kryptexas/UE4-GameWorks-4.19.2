@@ -7173,13 +7173,13 @@ bool UDataTableFactory::ConfigureProperties()
 
 		TSharedRef<SWidget> MakeRowStructItemWidget(class UScriptStruct* Struct) const
 		{
-			return SNew(STextBlock).Text(Struct ? Struct->GetDisplayNameText().ToString() : FString());
+			return SNew(STextBlock).Text(Struct ? Struct->GetDisplayNameText() : FText::GetEmpty());
 		}
 
-		FString GetSelectedRowOptionText() const
+		FText GetSelectedRowOptionText() const
 		{
 			UScriptStruct* Struct = RowStructCombo.IsValid() ? RowStructCombo->GetSelectedItem() : NULL;
-			return Struct ? Struct->GetDisplayNameText().ToString() : FString();
+			return Struct ? Struct->GetDisplayNameText() : FText::GetEmpty();
 		}
 
 		FReply OnCreate()

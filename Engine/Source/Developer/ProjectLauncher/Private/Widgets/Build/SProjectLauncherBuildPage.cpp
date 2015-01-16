@@ -276,16 +276,16 @@ void SProjectLauncherBuildPage::HandleBuildConfigurationSelectorConfigurationSel
 }
 
 
-FString SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText() const
+FText SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		return EBuildConfigurations::ToString(SelectedProfile->GetBuildConfiguration());
+		return FText::FromString(EBuildConfigurations::ToString(SelectedProfile->GetBuildConfiguration()));
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 

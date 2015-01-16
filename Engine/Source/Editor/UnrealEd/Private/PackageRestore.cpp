@@ -267,7 +267,7 @@ namespace PackageRestore
 				.FillWidth(1)
 				[
 					SNew(STextBlock) 
-					.Text(Item->GetPackageName())
+					.Text(FText::FromString(Item->GetPackageName()))
 				]
 				+SHorizontalBox::Slot()
 				.Padding(FMargin(4, 0, 0, 0))
@@ -280,7 +280,7 @@ namespace PackageRestore
 					.FillWidth(1)
 					[
 						SNew(STextBlock) 
-						.Text(Item->GetPackageFilename())
+						.Text(FText::FromString(Item->GetPackageFilename()))
 					]
 					+SHorizontalBox::Slot()
 					.Padding(FMargin(2, 0, 0, 0))
@@ -302,7 +302,7 @@ namespace PackageRestore
 					.FillWidth(1)
 					[
 						SNew(STextBlock) 
-						.Text(Item->GetAutoSaveFilename())
+						.Text(FText::FromString(Item->GetAutoSaveFilename()))
 					]
 					+SHorizontalBox::Slot()
 					.Padding(FMargin(2, 0, 0, 0))

@@ -315,7 +315,7 @@ UObject* UEdGraphNode::GetJumpTargetForDoubleClick() const
 	return NULL;
 }
 
-FString UEdGraphNode::GetPinDisplayName(const UEdGraphPin* Pin) const
+FText UEdGraphNode::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
 	return GetSchema()->GetPinDisplayName(Pin);
 }

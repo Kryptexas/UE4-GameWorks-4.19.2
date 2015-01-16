@@ -118,7 +118,7 @@ void SDeviceProfileDetailsPanel::RefreshUI()
 						.VAlign(VAlign_Center)
 						[
 							SNew( STextBlock )
-							.Text( FString::Printf( TEXT( "%s selected" ), *ViewingProfile->GetName() ) )
+							.Text( FText::Format( LOCTEXT( "SelectedDeviceProfileFmt", "{0} selected" ), FText::FromString(ViewingProfile->GetName()) ) )
 						]
 					]
 				]

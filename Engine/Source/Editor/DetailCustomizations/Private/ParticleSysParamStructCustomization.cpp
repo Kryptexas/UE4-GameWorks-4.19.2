@@ -168,7 +168,7 @@ TSharedRef<SWidget> FParticleSysParamStructCustomization::OnGenerateComboWidget(
 		SNew(SBox)
 		[
 			SNew(STextBlock)
-			.Text(*InComboString)
+			.Text(FText::FromString(*InComboString))
 			.ToolTipText(ToolTip)
 			.Font(IPropertyTypeCustomizationUtils::GetRegularFont())
 		];

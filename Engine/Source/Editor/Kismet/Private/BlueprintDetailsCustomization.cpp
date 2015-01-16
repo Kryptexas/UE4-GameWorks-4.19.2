@@ -1175,7 +1175,7 @@ TSharedRef< ITableRow > FBlueprintVarActionDetails::MakeCategoryViewWidget( TSha
 {
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock) .Text(*Item.Get())
+			SNew(STextBlock) .Text(FText::FromString(*Item.Get()))
 		];
 }
 
@@ -2498,7 +2498,7 @@ void FBlueprintGraphActionDetails::SetNetFlags( TWeakObjectPtr<UK2Node_EditableP
 	}
 }
 
-FString FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
+FText FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
 {
 	const UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
@@ -2514,7 +2514,7 @@ FString FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
 		NetFlags = SuperFunction->FunctionFlags & ReplicatedNetMask;
 	}
 
-	return ReplicationSpecifierProperName(NetFlags).ToString();
+	return ReplicationSpecifierProperName(NetFlags);
 }
 
 bool FBaseBlueprintGraphActionDetails::ConditionallyCleanUpResultNode()
@@ -2724,7 +2724,7 @@ TSharedRef< ITableRow > FBlueprintDelegateActionDetails::MakeCategoryViewWidget(
 {
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock) .Text(*Item.Get())
+			SNew(STextBlock) .Text(FText::FromString(*Item.Get()))
 		];
 }
 
@@ -3426,7 +3426,7 @@ TSharedRef< ITableRow > FBlueprintGraphActionDetails::MakeCategoryViewWidget( TS
 {
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock) .Text(*Item.Get())
+			SNew(STextBlock) .Text(FText::FromString(*Item.Get()))
 		];
 }
 
@@ -3468,11 +3468,11 @@ TSharedRef<ITableRow> FBlueprintGraphActionDetails::HandleGenerateRowAccessSpeci
 		.Content()
 		[
 			SNew( STextBlock ) 
-				.Text( SpecifierName.IsValid() ? SpecifierName->LocalizedName.ToString() : FString() )
+				.Text( SpecifierName.IsValid() ? SpecifierName->LocalizedName : FText::GetEmpty() )
 		];
 }
 
-FString FBlueprintGraphActionDetails::GetCurrentAccessSpecifierName() const
+FText FBlueprintGraphActionDetails::GetCurrentAccessSpecifierName() const
 {
 	uint32 AccessSpecifierFlag = 0;
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
@@ -3484,7 +3484,7 @@ FString FBlueprintGraphActionDetails::GetCurrentAccessSpecifierName() const
 	{
 		AccessSpecifierFlag = FUNC_AccessSpecifiers & CustomEventNode->FunctionFlags;
 	}
-	return AccessSpecifierProperName( AccessSpecifierFlag ).ToString();
+	return AccessSpecifierProperName( AccessSpecifierFlag );
 }
 
 bool FBlueprintGraphActionDetails::IsAccessSpecifierVisible() const
@@ -3843,8 +3843,8 @@ void FBlueprintInterfaceLayout::GenerateHeaderRowContent( FDetailWidgetRow& Node
 	[
 		SNew(STextBlock)
 			.Text( bShowsInheritedInterfaces ?
-			LOCTEXT("BlueprintInheritedInterfaceTitle", "Inherited Interfaces").ToString() :
-			LOCTEXT("BlueprintImplementedInterfaceTitle", "Implemented Interfaces").ToString() )
+			LOCTEXT("BlueprintInheritedInterfaceTitle", "Inherited Interfaces") :
+			LOCTEXT("BlueprintImplementedInterfaceTitle", "Implemented Interfaces") )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 	];
 }
@@ -4162,7 +4162,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintDetails_ParentClass", "Parent Class").ToString())
+			.Text(LOCTEXT("BlueprintDetails_ParentClass", "Parent Class"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -4284,7 +4284,7 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 		];
 
 		PopulateVariableCategories();
-		const FString CategoryTooltip = LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one.").ToString();
+		const FText CategoryTooltip = LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one.");
 
 		VariableCategory.AddCustomRow( LOCTEXT("BlueprintComponentDetails_VariableCategoryLabel", "Category") )
 		.NameContent()
@@ -4612,7 +4612,7 @@ TSharedRef< ITableRow > FBlueprintComponentDetails::MakeVariableCategoryViewWidg
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 	[
 		SNew(STextBlock)
-		.Text(*Item.Get())
+		.Text(FText::FromString(*Item.Get()))
 	];
 }
 
@@ -5060,7 +5060,7 @@ TSharedRef< ITableRow > FBlueprintDocumentationDetails::MakeExcerptViewWidget( T
 		SNew( STableRow<TSharedPtr<FString>>, OwnerTable )
 		[
 			SNew( STextBlock )
-			.Text( *Item.Get() )
+			.Text( FText::FromString(*Item.Get()) )
 		];
 }
 

@@ -112,7 +112,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			SAssignNew(FbxOptionWindow, SFbxOptionWindow)
 			.ImportUI(ImportUI)
 			.WidgetWindow(Window)
-			.FullPath(FullPath)
+			.FullPath(FText::FromString(FullPath))
 			.ForcedImportType( bForceImportType ? TOptional<EFBXImportType>( ImportType ) : TOptional<EFBXImportType>() )
 			.IsObjFormat( bIsObjFormat )
 		);

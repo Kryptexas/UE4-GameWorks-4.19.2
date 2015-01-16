@@ -117,7 +117,7 @@ protected:
 
 	FSlateColor GetBorderBackgroundColor() const;
 	FSlateColor GetBackgroundColor() const;
-	FString	GetDescription() const;
+	FText GetDescription() const;
 
 	virtual const FSlateBrush* GetNameIcon() const;
 	virtual EVisibility GetBlueprintIconVisibility() const;

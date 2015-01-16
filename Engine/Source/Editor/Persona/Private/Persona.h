@@ -57,7 +57,7 @@ public:
 	void SetPreviewVertexAnim(UVertexAnimation* VertexAnim);
 
 	/** Update the inspector that displays information about the current selection*/
-	void UpdateSelectionDetails(UObject* Object, const FString& ForcedTitle);
+	void UpdateSelectionDetails(UObject* Object, const FText& ForcedTitle);
 
 	void SetDetailObject(UObject* Obj);
 
@@ -219,7 +219,7 @@ protected:
 	virtual void StartEditingDefaults(bool bAutoFocus, bool bForceRefresh = false) override;
 	virtual void Compile() override;
 	virtual void OnGraphEditorFocused(const TSharedRef<class SGraphEditor>& InGraphEditor) override;
-	virtual FString GetDefaultEditorTitle() override;
+	virtual FText GetDefaultEditorTitle() override;
 	virtual void OnConvertToSequenceEvaluator() override;
 	virtual void OnConvertToSequencePlayer() override;
 	virtual void OnConvertToBlendSpaceEvaluator() override;
@@ -230,7 +230,7 @@ protected:
 	virtual void CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints) override;
 	virtual FGraphAppearanceInfo GetGraphAppearance() const override;
 	virtual bool IsEditable(UEdGraph* InGraph) const override;
-	virtual FString GetGraphDecorationString(UEdGraph* InGraph) const override;
+	virtual FText GetGraphDecorationString(UEdGraph* InGraph) const override;
 	// End of FBlueprintEditor interface
 
 	// IAssetEditorInstance interface

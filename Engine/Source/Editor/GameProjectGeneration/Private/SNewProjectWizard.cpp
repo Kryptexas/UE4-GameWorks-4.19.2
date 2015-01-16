@@ -852,9 +852,9 @@ TSharedPtr<FTemplateItem> SNewProjectWizard::GetSelectedTemplateItem() const
 	return NULL;
 }
 
-FString SNewProjectWizard::GetSelectedTemplateClassTypes() const
+FText SNewProjectWizard::GetSelectedTemplateClassTypes() const
 {
-	return GetSelectedTemplateProperty<FString>(&FTemplateItem::ClassTypes);
+	return FText::FromString(GetSelectedTemplateProperty<FString>(&FTemplateItem::ClassTypes));
 }
 
 EVisibility SNewProjectWizard::GetSelectedTemplateClassVisibility() const
@@ -862,9 +862,9 @@ EVisibility SNewProjectWizard::GetSelectedTemplateClassVisibility() const
 	return GetSelectedTemplateProperty<FString>(&FTemplateItem::ClassTypes).IsEmpty() == false? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-FString SNewProjectWizard::GetSelectedTemplateAssetTypes() const
+FText SNewProjectWizard::GetSelectedTemplateAssetTypes() const
 {
-	return GetSelectedTemplateProperty<FString>(&FTemplateItem::AssetTypes);
+	return FText::FromString(GetSelectedTemplateProperty<FString>(&FTemplateItem::AssetTypes));
 }
 
 EVisibility SNewProjectWizard::GetSelectedTemplateAssetVisibility() const

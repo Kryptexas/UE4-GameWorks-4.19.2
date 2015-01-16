@@ -104,7 +104,7 @@ private:
 	/**
 	 *  @return The text of level name while it is not being edited
 	 */
-	FString GetLevelDisplayNameText() const;
+	FText GetLevelDisplayNameText() const;
 	
 	/** */
 	FSlateFontInfo GetLevelDisplayNameFont() const;

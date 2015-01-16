@@ -104,7 +104,7 @@ public:
 
 	TSharedRef<class SWidget> OnGetDebuggerActorsMenu();
 	void OnDebuggerActorSelected(TWeakObjectPtr<UBehaviorTreeComponent> InstanceToDebug);
-	FString GetDebuggerActorDesc() const;
+	FText GetDebuggerActorDesc() const;
 	FGraphAppearanceInfo GetGraphAppearance() const;
 	bool InEditingMode(bool bGraphIsEditable) const;
 

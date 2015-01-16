@@ -224,25 +224,32 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 {
 	struct Local
 	{
-		static FString GetFrameRateAsString() 
+		static FText GetFrameRateAsString() 
 		{
 			// Clamp to avoid huge averages at startup or after hitches
 			const float AverageFPS = 1.0f / FSlateApplication::Get().GetAverageDeltaTime();
 			const float ClampedFPS = ( AverageFPS < 0.0f || AverageFPS > 4000.0f ) ? 0.0f : AverageFPS;
 
-			return FString::Printf( TEXT( "% 3.1f" ), ClampedFPS );
+			static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+				.SetMinimumFractionalDigits(1)
+				.SetMaximumFractionalDigits(1);
+			return FText::AsNumber( ClampedFPS, &FormatOptions );
 		}
 
-		static FString GetFrameTimeAsString() 
+		static FText GetFrameTimeAsString() 
 		{
 			// Clamp to avoid huge averages at startup or after hitches
 			const float AverageMS = FSlateApplication::Get().GetAverageDeltaTime() * 1000.0f;
 			const float ClampedMS = ( AverageMS < 0.0f || AverageMS > 4000.0f ) ? 0.0f : AverageMS;
 
-			return FString::Printf( TEXT( "% 3.1f ms" ), ClampedMS );
+			static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+				.SetMinimumFractionalDigits(1)
+				.SetMaximumFractionalDigits(1);
+			static const FText FrameTimeFmt = FText::FromString(TEXT("{0} ms"));
+			return FText::Format( FrameTimeFmt, FText::AsNumber( ClampedMS, &FormatOptions ) );
 		}
 
-		static FString GetMemoryAsString() 
+		static FText GetMemoryAsString() 
 		{
 			// Only refresh process memory allocated after every so often, to reduce fixed frame time overhead
 			static SIZE_T StaticLastTotalAllocated = 0;
@@ -257,12 +264,16 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 				QueriesUntilUpdate = 60;
 			}
 
-			return FString::Printf( TEXT( "% 5.2f mb" ), (float)StaticLastTotalAllocated / ( 1024.0f * 1024.0f ) );
+			static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+				.SetMinimumFractionalDigits(2)
+				.SetMaximumFractionalDigits(2);
+			static const FText MemorySizeFmt = FText::FromString(TEXT("{0} mb"));
+			return FText::Format( MemorySizeFmt, FText::AsNumber( (float)StaticLastTotalAllocated / ( 1024.0f * 1024.0f ), &FormatOptions ) );
 		}
 
-		static FString GetUObjectCountAsString() 
+		static FText GetUObjectCountAsString() 
 		{
-			return FString::Printf( TEXT( " %i"), GUObjectArray.GetObjectArrayNumMinusAvailable() );
+			return FText::AsNumber(GUObjectArray.GetObjectArrayNumMinusAvailable());
 		}
 
 		static void OpenVideo( FString SourceFilePath )
@@ -379,7 +390,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 			.VAlign(VAlign_Bottom)
 			[
 				SNew( STextBlock )
-				.Text( LOCTEXT("FrameRateLabel", "FPS:") )
+				.Text( LOCTEXT("FrameRateLabel", "FPS: ") )
 				.Font( LabelFont )
 				.ColorAndOpacity( FLinearColor( 0.3f, 0.3f, 0.3f ) )
 			]
@@ -426,7 +437,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 				.VAlign(VAlign_Bottom)
 				[
 					SNew( STextBlock )
-					.Text( LOCTEXT("MemoryLabel", "Mem:") )
+					.Text( LOCTEXT("MemoryLabel", "Mem: ") )
 					.Font( LabelFont )
 					.ColorAndOpacity( FLinearColor( 0.3f, 0.3f, 0.3f ) )
 				]
@@ -453,7 +464,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 				.VAlign(VAlign_Bottom)
 				[
 					SNew( STextBlock )
-						.Text( LOCTEXT("UObjectCountLabel", "Objs:") )
+						.Text( LOCTEXT("UObjectCountLabel", "Objs: ") )
 						.Font( LabelFont )
 						.ColorAndOpacity( FLinearColor( 0.3f, 0.3f, 0.3f ) )
 				]

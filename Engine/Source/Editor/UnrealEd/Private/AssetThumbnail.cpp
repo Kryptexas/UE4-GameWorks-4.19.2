@@ -482,7 +482,7 @@ private:
 		return false;
 	}
 
-	FString GetLabelText() const
+	FText GetLabelText() const
 	{
 		if ( Label == EThumbnailLabel::ClassName )
 		{
@@ -493,10 +493,10 @@ private:
 			return GetAssetDisplayName();
 		}
 
-		return FString();
+		return FText::GetEmpty();
 	}
 
-	FString GetDisplayNameForClass( UClass* Class ) const
+	FText GetDisplayNameForClass( UClass* Class ) const
 	{
 		FText ClassDisplayName;
 		if ( Class )
@@ -514,10 +514,10 @@ private:
 			}
 		}
 
-		return ClassDisplayName.ToString();
+		return ClassDisplayName;
 	}
 
-	FString GetAssetClassDisplayName() const
+	FText GetAssetClassDisplayName() const
 	{
 		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
 		FString AssetClass = AssetData.AssetClass.ToString();
@@ -528,10 +528,10 @@ private:
 			return GetDisplayNameForClass( Class );
 		}
 
-		return AssetClass;
+		return FText::FromString(AssetClass);
 	}
 
-	FString GetAssetDisplayName() const
+	FText GetAssetDisplayName() const
 	{
 		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
 
@@ -541,7 +541,7 @@ private:
 			return GetDisplayNameForClass( Class );
 		}
 
-		return AssetData.AssetName.ToString();
+		return FText::FromName(AssetData.AssetName);
 	}
 
 	void OnRenderedThumbnailChanged( bool bInHasRenderedThumbnail )

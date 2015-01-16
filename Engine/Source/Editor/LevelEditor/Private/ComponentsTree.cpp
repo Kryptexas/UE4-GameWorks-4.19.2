@@ -36,14 +36,14 @@ void SComponentRowWidget::Construct( const FArguments& InArgs, FComponentTreeNod
 {
 	NodePtr = InNodePtr;
 
-	FString ComponentName;
+	FText ComponentName;
 	const FSlateBrush* ComponentIcon = FEditorStyle::GetBrush("SCS.NativeComponent");
 	FSlateColor ComponentColor = FLinearColor::White;
 
 	TSharedPtr<FComponentTreeNode> Node = NodePtr.Pin();
 	if(Node.IsValid() && Node->Component.IsValid())
 	{
-		ComponentName = Node->Component->GetName();
+		ComponentName = FText::FromString(Node->Component->GetName());
 		ComponentIcon = FClassIconFinder::FindIconForClass( Node->Component->GetClass(), TEXT("SCS.Component") );
 
 		// Color native and BP-made components in different colors

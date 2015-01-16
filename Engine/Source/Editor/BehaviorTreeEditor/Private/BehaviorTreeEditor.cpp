@@ -456,20 +456,20 @@ EVisibility FBehaviorTreeEditor::GetInjectedNodeVisibility() const
 FGraphAppearanceInfo FBehaviorTreeEditor::GetGraphAppearance() const
 {
 	FGraphAppearanceInfo AppearanceInfo;
-	AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText", "BEHAVIOR TREE").ToString();
+	AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText", "BEHAVIOR TREE");
 
 	const int32 StepIdx = Debugger.IsValid() ? Debugger->GetShownStateIndex() : 0;
 	if (Debugger.IsValid() && !Debugger->IsDebuggerRunning())
 	{
-		AppearanceInfo.PIENotifyText = TEXT("INACTIVE");
+		AppearanceInfo.PIENotifyText = LOCTEXT("InactiveLabel", "INACTIVE");
 	}
 	else if (StepIdx)
 	{
-		AppearanceInfo.PIENotifyText = FString::Printf(TEXT("%d STEP%s BACK"), StepIdx, StepIdx > 1 ? TEXT("S") : TEXT(""));
+		AppearanceInfo.PIENotifyText = FText::Format(LOCTEXT("StepsBackLabelFmt", "STEPS BACK: {0}"), FText::AsNumber(StepIdx));
 	}
 	else if (FBehaviorTreeDebugger::IsPlaySessionPaused())
 	{
-		AppearanceInfo.PIENotifyText = TEXT("PAUSED");
+		AppearanceInfo.PIENotifyText = LOCTEXT("PausedLabel", "PAUSED");
 	}
 	
 	return AppearanceInfo;
@@ -1053,9 +1053,9 @@ void FBehaviorTreeEditor::OnDebuggerActorSelected(TWeakObjectPtr<UBehaviorTreeCo
 	}
 }
 
-FString FBehaviorTreeEditor::GetDebuggerActorDesc() const
+FText FBehaviorTreeEditor::GetDebuggerActorDesc() const
 {
-	return Debugger.IsValid() ? Debugger->GetDebuggedInstanceDesc() : FString();
+	return Debugger.IsValid() ? FText::FromString(Debugger->GetDebuggedInstanceDesc()) : FText::GetEmpty();
 }
 
 void FBehaviorTreeEditor::BindDebuggerToolbarCommands()

@@ -81,7 +81,7 @@ private:
 	EVisibility GetGlobalErrorLabelIDELinkVisibility() const;
 
 	/** Gets the text to display in the global error label */
-	FString GetGlobalErrorLabelText() const;
+	FText GetGlobalErrorLabelText() const;
 
 	/** Handler for when the user enters the "name class" page */
 	void OnNamePageEntered();

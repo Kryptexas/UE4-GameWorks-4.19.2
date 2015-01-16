@@ -116,19 +116,19 @@ private:
 	 * Get the name to be displayed for this asset
 	 * @returns the name of the asset
 	 */
-	FString OnGetAssetName() const;
+	FText OnGetAssetName() const;
 
 	/** 
 	 * Get the class name to be displayed for this asset
 	 * @returns the class name of this asset
 	 */
-	FString OnGetAssetClassName() const;
+	FText OnGetAssetClassName() const;
 
 	/** 
 	 * Get the tooltip to be displayed for this asset
 	 * @returns the tooltip string
 	 */
-	FString OnGetToolTip() const;
+	FText OnGetToolTip() const;
 
 	/** 
 	 * Set the value of the asset referenced by this property editor.

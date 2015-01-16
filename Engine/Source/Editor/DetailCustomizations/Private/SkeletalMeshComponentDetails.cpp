@@ -331,7 +331,7 @@ TSharedRef<SWidget> FSkeletalMeshComponentDetails::GetClassPickerMenuContent()
 		];
 }
 
-FString FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName() const
+FText FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName() const
 {
 	check(AnimationBlueprintHandle->IsValidHandle());
 
@@ -339,11 +339,11 @@ FString FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName() const
 	AnimationBlueprintHandle->GetValue(Object);
 	if(Object)
 	{
-		return Object->GetName();
+		return FText::FromString(Object->GetName());
 	}
 	else
 	{
-		return FString(TEXT("None"));
+		return LOCTEXT("None", "None");
 	}
 }
 

@@ -198,7 +198,7 @@ TSharedPtr<SUniformGridPanel> FDataTableEditor::CreateGridPanel()
 						.OnMouseButtonDown(RowClickCallback)
 						[
 							SNew(STextBlock)
-							.Text(Row[Column])
+							.Text(FText::FromString(Row[Column]))
 							.ToolTipText(bIsHeader 
 							?	(FString::Printf(TEXT("Column '%s"), *ColumnTitles[Column])) 
 							:	(FString::Printf(TEXT("%s: %s"), *ColumnTitles[Column], *Row[Column])))
