@@ -544,9 +544,12 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 	{
 		if ( HandleBunch->bOpen )
 		{
-			check( !OpenedLocally );					// If we opened the channel, we shouldn't be receiving bOpen commands from the other side
-			check( OpenPacketId.First == INDEX_NONE );	// This should be the first and only assignment of the packet range (we should only receive one bOpen bunch)
-			check( OpenPacketId.Last == INDEX_NONE );	// This should be the first and only assignment of the packet range (we should only receive one bOpen bunch)
+			if ( ChType != CHTYPE_Voice )	// Voice channels can open from both side simultaneously, so ignore this logic until we resolve this
+			{
+				check( !OpenedLocally );					// If we opened the channel, we shouldn't be receiving bOpen commands from the other side
+				check( OpenPacketId.First == INDEX_NONE );	// This should be the first and only assignment of the packet range (we should only receive one bOpen bunch)
+				check( OpenPacketId.Last == INDEX_NONE );	// This should be the first and only assignment of the packet range (we should only receive one bOpen bunch)
+			}
 
 			// Remember the range.
 			// In the case of a non partial, HandleBunch == Bunch
@@ -558,25 +561,28 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			UE_LOG( LogNetTraffic, Verbose, TEXT( "ReceivedNextBunch: Channel now fully open. ChIndex: %i, OpenPacketId.First: %i, OpenPacketId.Last: %i" ), ChIndex, OpenPacketId.First, OpenPacketId.Last );
 		}
 
-		// Don't process any packets until we've fully opened this channel 
-		// (unless we opened it locally, in which case it's safe to process packets)
-		if ( !OpenedLocally && !OpenAcked )
+		if ( ChType != CHTYPE_Voice )	// Voice channels can open from both side simultaneously, so ignore this logic until we resolve this
 		{
-			// If we receive a reliable at this point, this means reliables are out of order, which shouldn't be possible
-			check( !HandleBunch->bReliable );
+			// Don't process any packets until we've fully opened this channel 
+			// (unless we opened it locally, in which case it's safe to process packets)
+			if ( !OpenedLocally && !OpenAcked )
+			{
+				// If we receive a reliable at this point, this means reliables are out of order, which shouldn't be possible
+				check( !HandleBunch->bReliable );
 
-			// Don't ack this packet (since we won't process all of it)
-			bOutSkipAck = true;
+				// Don't ack this packet (since we won't process all of it)
+				bOutSkipAck = true;
 
-			UE_LOG( LogNetTraffic, Warning, TEXT( "ReceivedNextBunch: Skipping bunch since channel isn't fully open. ChIndex: %i" ), ChIndex );
-			return false;
+				UE_LOG( LogNetTraffic, Warning, TEXT( "ReceivedNextBunch: Skipping bunch since channel isn't fully open. ChIndex: %i" ), ChIndex );
+				return false;
+			}
+
+			// At this point, we should have the open packet range
+			// This is because if we opened the channel locally, we set it immediately when we sent the first bOpen bunch
+			// If we opened it from a remote connection, then we shouldn't be processing any packets until it's fully opened (which is handled above)
+			check( OpenPacketId.First != INDEX_NONE );
+			check( OpenPacketId.Last != INDEX_NONE );
 		}
-
-		// At this point, we should have the open packet range
-		// This is because if we opened the channel locally, we set it immediately when we sent the first bOpen bunch
-		// If we opened it from a remote connection, then we shouldn't be processing any packets until it's fully opened (which is handled above)
-		check( OpenPacketId.First != INDEX_NONE );
-		check( OpenPacketId.Last != INDEX_NONE );
 
 		// Receive it in sequence.
 		return ReceivedSequencedBunch( *HandleBunch );
@@ -1764,7 +1770,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 		if( !Bunch.bOpen )
 		{
 			// This absolutely shouldn't happen anymore, since we no longer process packets until channel is fully open early on
-			UE_LOG(LogNetTraffic, Error, TEXT( "UActorChannel::ProcessBunch: New actor channel received non-open packet. bOpen: %i, bClose: %i, bReliable: %i, bPartial: %i, bPartialInitial: %i, bPartialFinal: %i, ChType: %i, ChIndex: %i, Closing: %i, OpenedLocally: %i, OpenAcked: %i, NetGUID: %s" ), (int)Bunch.bOpen, (int)Bunch.bClose, (int)Bunch.bReliable, (int)Bunch.bPartial, (int)Bunch.bPartialInitial, (int)Bunch.bPartialFinal, (int)Bunch.ChType, ChIndex, (int)Closing, (int)OpenedLocally, (int)OpenAcked, *ActorNetGUID.ToString() );
+			UE_LOG(LogNetTraffic, Error, TEXT( "UActorChannel::ProcessBunch: New actor channel received non-open packet. bOpen: %i, bClose: %i, bReliable: %i, bPartial: %i, bPartialInitial: %i, bPartialFinal: %i, ChType: %i, ChIndex: %i, Closing: %i, OpenedLocally: %i, OpenAcked: %i, NetGUID: %s" ), (int)Bunch.bOpen, (int)Bunch.bClose, (int)Bunch.bReliable, (int)Bunch.bPartial, (int)Bunch.bPartialInitial, (int)Bunch.bPartialFinal, (int)ChType, ChIndex, (int)Closing, (int)OpenedLocally, (int)OpenAcked, *ActorNetGUID.ToString() );
 			return;
 		}
 
