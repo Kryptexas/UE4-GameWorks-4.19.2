@@ -98,7 +98,7 @@ public:
 
 	virtual uint32 GetStride() const
 	{
-		const uint32 VectorsPerInstance = 7;
+		const uint32 VectorsPerInstance = 5;
 		return sizeof(FVector4) * VectorsPerInstance;
 	}
 	virtual uint8* GetDataPointer()
