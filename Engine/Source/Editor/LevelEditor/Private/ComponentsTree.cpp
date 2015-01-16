@@ -253,8 +253,8 @@ void SComponentsTree::OnSelectedCompClass(TSubclassOf<UActorComponent> CompClass
 		UActorComponent* NewComp = ConstructObject<UActorComponent>(CompClass, Actor.Get(), NAME_None, RF_Transactional);
 		check(NewComp);
 
-		// Add to SerializedComponents array so it gets saved
-		Actor->SerializedComponents.Add(NewComp);
+		// Add to InstanceComponents array so it gets saved
+		Actor->InstanceComponents.Add(NewComp);
 
 		// If a scene component, and actor has a root component, attach it to root
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComp);

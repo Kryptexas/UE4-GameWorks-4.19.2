@@ -1148,21 +1148,21 @@ AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, co
 	AActor* NewActor = nullptr;
 	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing) 
 	{
-		// Spawn a temporary actor for dragging around
-		AActor* NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
+	// Spawn a temporary actor for dragging around
+	AActor* NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
 
-		USceneComponent* RootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), NewActor, FName("Root"), RF_Transactional);
-		RootComponent->Mobility = EComponentMobility::Movable;
-		RootComponent->SetWorldLocationAndRotation(Location, Rotation);
-		NewActor->SetRootComponent(RootComponent);
+	USceneComponent* RootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), NewActor, FName("Root"), RF_Transactional);
+	RootComponent->Mobility = EComponentMobility::Movable;
+	RootComponent->SetWorldLocationAndRotation(Location, Rotation);
+	NewActor->SetRootComponent(RootComponent);
 
 		UBillboardComponent* BillboardComponent	= CreateEditorOnlyBillboardComponent(NewActor, RootComponent);
 
-		NewActor->SerializedComponents.Add(RootComponent);
-		NewActor->SerializedComponents.Add(BillboardComponent);
+	NewActor->InstanceComponents.Add(RootComponent);
+	NewActor->InstanceComponents.Add(BillboardComponent);
 
-		return NewActor;
-	}
+	return NewActor;
+}
 
 	return NewActor;
 }
@@ -1188,8 +1188,8 @@ AActor* UActorFactoryCharacter::SpawnActor(UObject* Asset, ULevel* InLevel, cons
 	AActor* NewActor = nullptr;
 	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
 	{
-		NewActor = Super::SpawnActor( Asset, InLevel, Location, Rotation, ObjectFlags, Name );
-	}
+			NewActor = Super::SpawnActor( Asset, InLevel, Location, Rotation, ObjectFlags, Name );
+		}
 
 	return NewActor;
 }
@@ -1215,8 +1215,8 @@ AActor* UActorFactoryPawn::SpawnActor(UObject* Asset, ULevel* InLevel, const FVe
 	AActor* NewActor = nullptr;
 	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
 	{
-		NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
-	}
+			NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
+		}
 
 	return NewActor;
 }

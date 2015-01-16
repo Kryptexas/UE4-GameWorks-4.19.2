@@ -542,7 +542,7 @@ void AActor::ProcessUserConstructionScript()
 void AActor::FinishAndRegisterComponent(UActorComponent* Component)
 {
 	Component->RegisterComponent();
-	SerializedComponents.Add(Component);
+	BlueprintCreatedComponents.Add(Component);
 }
 
 UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, const FString& InName)
@@ -557,7 +557,7 @@ UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, 
 		NewActorComp->bCreatedByConstructionScript = true;
 
 		// Need to do this so component gets saved - Components array is not serialized
-		SerializedComponents.Add(NewActorComp);
+		BlueprintCreatedComponents.Add(NewActorComp);
 	}
 	return NewActorComp;
 }

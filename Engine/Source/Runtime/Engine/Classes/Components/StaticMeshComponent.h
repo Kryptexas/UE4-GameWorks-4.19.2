@@ -448,8 +448,8 @@ public:
 	/** Returns the wireframe color to use for this component. */
 	FColor GetWireframeColor() const;
 
-	/** Get this components index in its parents serialized components array (used for matching instance data) */
-	int32 GetSerializedComponentIndex() const;
+	/** Get this components index in its parents blueprint created components array (used for matching instance data) */
+	int32 GetBlueprintCreatedComponentIndex() const;
 };
 
 

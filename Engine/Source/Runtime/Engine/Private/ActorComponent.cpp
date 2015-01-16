@@ -698,7 +698,14 @@ void UActorComponent::DestroyComponent()
 	AActor* Owner = GetOwner();
 	if(Owner != NULL)
 	{
-		Owner->SerializedComponents.Remove(this);
+		if (bCreatedByConstructionScript)
+		{
+			Owner->BlueprintCreatedComponents.Remove(this);
+		}
+		else
+		{
+			Owner->InstanceComponents.Remove(this);
+		}
 		Owner->RemoveOwnedComponent(this);
 		if (Owner->GetRootComponent() == this)
 		{
