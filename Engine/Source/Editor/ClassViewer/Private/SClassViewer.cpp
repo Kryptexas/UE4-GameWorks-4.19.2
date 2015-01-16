@@ -1132,25 +1132,7 @@ namespace ClassViewer
 		 */
 		static void OpenCreateCPlusPlusClassWizard(UClass* InCreationClass)
 		{
-			TSharedRef<SWindow> AddCodeWindow =
-				SNew(SWindow)
-				.Title(LOCTEXT( "AddCodeWindowHeader", "Add Code"))
-				.ClientSize( FVector2D(1280, 720) )
-				.SizingRule( ESizingRule::FixedSize )
-				.SupportsMinimize(false) 
-				.SupportsMaximize(false);
-
-			AddCodeWindow->SetContent( FGameProjectGenerationModule::Get().CreateNewClassDialog(InCreationClass) );
-
-			TSharedPtr<SWindow> ParentWindow = FGlobalTabmanager::Get()->GetRootWindow();
-			if (ParentWindow.IsValid())
-			{
-				FSlateApplication::Get().AddWindowAsNativeChild(AddCodeWindow, ParentWindow.ToSharedRef());
-			}
-			else
-			{
-				FSlateApplication::Get().AddWindow(AddCodeWindow);
-			}
+			FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(InCreationClass, FString(), FGlobalTabmanager::Get()->GetRootWindow());
 		}
 
 		/**

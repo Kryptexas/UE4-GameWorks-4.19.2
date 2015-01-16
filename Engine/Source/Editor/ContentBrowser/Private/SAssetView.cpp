@@ -13,6 +13,7 @@
 #include "ObjectTools.h"
 #include "KismetEditorUtilities.h"
 #include "IPluginManager.h"
+#include "NativeClassHierarchy.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -43,6 +44,13 @@ SAssetView::~SAssetView()
 	// Unregister listener for asset loading and object property changes
 	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
+
+	// Unsubscribe from class events
+	if ( bCanShowClasses )
+	{
+		TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
+		NativeClassHierarchy->OnClassHierarchyUpdated().RemoveAll( this );
+	}
 
 	// Remove the listener for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().RemoveAll(this);
@@ -87,6 +95,13 @@ void SAssetView::Construct( const FArguments& InArgs )
 	// Listen for when assets are loaded or changed to update item data
 	FCoreUObjectDelegates::OnAssetLoaded.AddSP(this, &SAssetView::OnAssetLoaded);
 	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &SAssetView::OnObjectPropertyChanged);
+
+	// Listen to find out when the available classes are changed, so that we can refresh our paths
+	if ( bCanShowClasses )
+	{
+		TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
+		NativeClassHierarchy->OnClassHierarchyUpdated().AddSP( this, &SAssetView::OnClassHierarchyUpdated );
+	}
 
 	// Listen for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SAssetView::HandleSettingChanged);
@@ -398,7 +413,11 @@ const FSourcesData& SAssetView::GetSourcesData() const
 
 bool SAssetView::IsAssetPathSelected() const
 {
-	return SourcesData.PackagePaths.Num() > 0 && !SourcesData.PackagePaths[0].ToString().StartsWith(TEXT("/Classes"));
+	int32 NumAssetPaths, NumClassPaths;
+	ContentBrowserUtils::CountPathTypes(SourcesData.PackagePaths, NumAssetPaths, NumClassPaths);
+
+	// Check that only asset paths are selected
+	return NumAssetPaths > 0 && NumClassPaths == 0;
 }
 
 void SAssetView::SetBackendFilter(const FARFilter& InBackendFilter)
@@ -1285,12 +1304,13 @@ void SAssetView::RefreshSourceItems()
 
 	const bool bShowAll = SourcesData.IsEmpty() && BackendFilter.IsEmpty();
 
-	bool bWantToShowShowClasses = false;
+	bool bShowClasses = false;
+	TArray<FName> ClassPathsToShow;
 
 	if ( bShowAll )
 	{
 		AssetRegistryModule.Get().GetAllAssets(Items);
-		bWantToShowShowClasses = true;
+		bShowClasses = true;
 		bWereItemsRecursivelyFiltered = true;
 	}
 	else
@@ -1303,8 +1323,17 @@ void SAssetView::RefreshSourceItems()
 
 		bWereItemsRecursivelyFiltered = bRecurse;
 
-		// Remove the classes path if it is in the list. We will add classes to the results later
-		bWantToShowShowClasses = Filter.PackagePaths.Remove(TEXT("/Classes")) > 0;
+		// Move any class paths into their own array
+		Filter.PackagePaths.RemoveAll([&ClassPathsToShow](const FName& PackagePath) -> bool
+		{
+			if(ContentBrowserUtils::IsClassPath(PackagePath.ToString()))
+			{
+				ClassPathsToShow.Add(PackagePath);
+				return true;
+			}
+			return false;
+		});
+		bShowClasses = ClassPathsToShow.Num() > 0;
 
 		if ( SourcesData.Collections.Num() > 0 && Filter.ObjectPaths.Num() == 0 )
 		{
@@ -1338,42 +1367,21 @@ void SAssetView::RefreshSourceItems()
 	}
 
 	// If we are showing classes in the asset list...
-	if (bWantToShowShowClasses && bCanShowClasses)
+	if (bShowClasses && bCanShowClasses)
 	{
-		// Make a map of UClasses to ActorFactories that support them
-		const TArray< UActorFactory *>& ActorFactories = GEditor->ActorFactories;
-		TMap<UClass*, UActorFactory*> ActorFactoryMap;
-		for ( int32 FactoryIdx = 0; FactoryIdx < ActorFactories.Num(); ++FactoryIdx )
+		// Load the native class hierarchy
+		TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
+
+		FNativeClassHierarchyFilter ClassFilter;
+		ClassFilter.ClassPaths = ClassPathsToShow;
+		ClassFilter.bRecursivePaths = ShouldFilterRecursively() || !IsShowingFolders() || !ClassPathsToShow.Num();
+
+		// Find all the classes that match the current criteria
+		TArray<UClass*> MatchingClasses;
+		NativeClassHierarchy->GetMatchingClasses(ClassFilter, MatchingClasses);
+		for(UClass* CurrentClass : MatchingClasses)
 		{
-			UActorFactory* ActorFactory = ActorFactories[FactoryIdx];
-
-			if ( ActorFactory )
-			{
-				ActorFactoryMap.Add(ActorFactory->GetDefaultActorClass( FAssetData() ), ActorFactory);
-			}
-		}
-
-		// Add loaded classes
-		FText UnusedErrorMessage;
-		FAssetData NoAssetData;
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
-		{
-			// Don't offer skeleton classes
-			bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(*ClassIt);
-
-			if ( !ClassIt->HasAllClassFlags(CLASS_NotPlaceable) &&
-				!ClassIt->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) &&
-				ClassIt->IsChildOf(AActor::StaticClass()) &&
-				(!ClassIt->IsChildOf(ABrush::StaticClass()) || ClassIt->IsChildOf(AVolume::StaticClass())) &&
-				!bIsSkeletonClass )
-			{
-				UActorFactory** ActorFactory = ActorFactoryMap.Find(*ClassIt);
-
-				if ( !ActorFactory || (*ActorFactory)->CanCreateActorFrom( NoAssetData, UnusedErrorMessage ) )
-				{
-					Items.Add(FAssetData(*ClassIt));
-				}
-			}
+			Items.Add(FAssetData(CurrentClass));
 		}
 	}
 
@@ -1604,31 +1612,75 @@ void SAssetView::RefreshFilteredItems()
 
 void SAssetView::RefreshFolders()
 {
-	if(IsShowingFolders() && !ShouldFilterRecursively())
+	if(!IsShowingFolders() || ShouldFilterRecursively())
 	{
-		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		for(auto SourcePathIt(SourcesData.PackagePaths.CreateConstIterator()); SourcePathIt; SourcePathIt++)
-		{		
-			TArray<FString> SubPaths;
-			AssetRegistryModule.Get().GetSubPaths((*SourcePathIt).ToString(), SubPaths, false);
-			for(auto SubPathIt(SubPaths.CreateConstIterator()); SubPathIt; SubPathIt++)	
-			{
-				// If this is a developer folder, and we don't want to show them try the next path
-				if ( !bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(*SubPathIt) )
-				{
-					continue;
-				}
+		return;
+	}
+	
+	// Split the selected paths into asset and class paths
+	TArray<FName> AssetPathsToShow;
+	TArray<FName> ClassPathsToShow;
+	for(const FName& PackagePath : SourcesData.PackagePaths)
+	{
+		if(ContentBrowserUtils::IsClassPath(PackagePath.ToString()))
+		{
+			ClassPathsToShow.Add(PackagePath);
+		}
+		else
+		{
+			AssetPathsToShow.Add(PackagePath);
+		}
+	}
 
-				if(!Folders.Contains(*SubPathIt))
-				{
-					FilteredAssetItems.Add(MakeShareable(new FAssetViewFolder(*SubPathIt)));
-					RefreshList();
-					Folders.Add(*SubPathIt);
-					bPendingSortFilteredItems = true;
-				}
+	TArray<FString> FoldersToAdd;
+
+	const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	for(const FName& PackagePath : AssetPathsToShow)
+	{		
+		TArray<FString> SubPaths;
+		AssetRegistryModule.Get().GetSubPaths(PackagePath.ToString(), SubPaths, false);
+		for(const FString& SubPath : SubPaths)
+		{
+			// If this is a developer folder, and we don't want to show them try the next path
+			if(!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(SubPath))
+			{
+				continue;
+			}
+
+			if(!Folders.Contains(SubPath))
+			{
+				FoldersToAdd.Add(SubPath);
 			}
 		}
+	}
+
+	// If we are showing classes in the asset list then we need to show their folders too
+	if(bCanShowClasses && ClassPathsToShow.Num() > 0)
+	{
+		// Load the native class hierarchy
+		TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
+
+		FNativeClassHierarchyFilter ClassFilter;
+		ClassFilter.ClassPaths = ClassPathsToShow;
+		ClassFilter.bRecursivePaths = false;
+
+		// Find all the classes that match the current criteria
+		TArray<FString> MatchingFolders;
+		NativeClassHierarchy->GetMatchingFolders(ClassFilter, MatchingFolders);
+		FoldersToAdd.Append(MatchingFolders);
+	}
+
+	if(FoldersToAdd.Num() > 0)
+	{
+		for(const FString& FolderPath : FoldersToAdd)
+		{
+			FilteredAssetItems.Add(MakeShareable(new FAssetViewFolder(FolderPath)));
+			Folders.Add(FolderPath);
+		}
+
+		RefreshList();
+		bPendingSortFilteredItems = true;
 	}
 }
 
@@ -2036,6 +2088,12 @@ void SAssetView::OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& 
 	{
 		RecentlyLoadedOrChangedAssets.Add( FName(*Asset->GetPathName()), Asset );
 	}
+}
+
+void SAssetView::OnClassHierarchyUpdated()
+{
+	// The class hierarchy has changed in some way, so we need to refresh our backend list
+	RequestSlowFullListRefresh();
 }
 
 void SAssetView::OnFrontendFiltersChanged()

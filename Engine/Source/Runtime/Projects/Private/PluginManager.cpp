@@ -534,6 +534,7 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 		PluginStatus.bIsEnabledByDefault = PluginInfo.bEnabledByDefault;
 		PluginStatus.bIsBetaVersion = PluginInfo.bIsBetaVersion;
 		PluginStatus.bHasContentFolder = PluginInfo.bCanContainContent;
+		PluginStatus.Modules = PluginInfo.Modules;
 
 		// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
 		const FString Icon128FilePath = FPaths::GetPath(Plugin->FileName) / PluginSystemDefs::RelativeIcon128FilePath;

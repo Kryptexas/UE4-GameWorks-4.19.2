@@ -218,6 +218,9 @@ private:
 	/** Called from an engine core event when a new content path has been added or removed, so that we can refresh our root set of paths */
 	void OnContentPathMountedOrDismounted( const FString& AssetPath, const FString& FileSystemPath );
 
+	/** Called when the class hierarchy is updated due to the available modules changing */
+	void OnClassHierarchyUpdated();
+
 	/** Delegate called when an editor setting is changed */
 	void HandleSettingChanged(FName PropertyName);
 
@@ -274,12 +277,6 @@ private:
 
 	/** The paths that were last reported by OnPathExpanded event. Used in preserving expansion when filtering folders */
 	TSet< FString > LastExpandedPaths;
-
-	/** The name of the root tree item for placeable classes */
-	FString ClassesRootName;
-
-	/** The name of the root tree item for game content */
-	FString GameRootName;
 
 	/** If not empty, this is the path of the folders to sync once they are available while assets are still being discovered */
 	TArray<FString> PendingInitialPaths;

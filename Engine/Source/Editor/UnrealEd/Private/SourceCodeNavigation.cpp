@@ -173,7 +173,31 @@ private:
 
 
 FSourceFileDatabase::FSourceFileDatabase()
+	: bIsDirty(true)
 {
+	// Register to be notified when new .Build.cs files are added to the project
+	FSourceCodeNavigation::AccessOnNewModuleAdded().AddRaw(this, &FSourceFileDatabase::OnNewModuleAdded);
+
+	UpdateIfNeeded();
+}
+
+FSourceFileDatabase::~FSourceFileDatabase()
+{
+	FSourceCodeNavigation::AccessOnNewModuleAdded().RemoveAll(this);
+}
+
+void FSourceFileDatabase::UpdateIfNeeded()
+{
+	if (!bIsDirty)
+	{
+		return;
+	}
+
+	bIsDirty = false;
+
+	ModuleNames.Reset();
+	DisallowedHeaderNames.Empty();
+
 	// Find all the build rules within the game and engine directories
 	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Developer")), TEXT("*.Build.cs"));
 	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Editor")), TEXT("*.Build.cs"));
@@ -236,6 +260,11 @@ void FSourceFileDatabase::FindRootFilesRecursive(TArray<FString> &FileNames, con
 			FileNames.Add(BaseDirectory / BasedFileNames[Idx]);
 		}
 	}
+}
+
+void FSourceFileDatabase::OnNewModuleAdded(FName InModuleName)
+{
+	bIsDirty = true;
 }
 
 
@@ -366,6 +395,9 @@ private:
 
 	/** Multi-cast delegate that fires after a compiler is not found. */
 	FSourceCodeNavigation::FOnCompilerNotFound OnCompilerNotFound;
+
+	/** Multi-cast delegate that fires after a new module (.Build.cs file) has been added */
+	FSourceCodeNavigation::FOnNewModuleAdded OnNewModuleAdded;
 
 	friend class FSourceCodeNavigation;
 };
@@ -653,6 +685,7 @@ const FSourceFileDatabase& FSourceCodeNavigation::GetSourceFileDatabase()
 	FScopeLock Lock(&CriticalSection);
 
 	static FSourceFileDatabase Instance;
+	Instance.UpdateIfNeeded();
 	return Instance;
 }
 
@@ -1536,6 +1569,11 @@ bool FSourceCodeNavigation::OpenModuleSolution()
 FSourceCodeNavigation::FOnCompilerNotFound& FSourceCodeNavigation::AccessOnCompilerNotFound()
 {
 	return FSourceCodeNavigationImpl::Get().OnCompilerNotFound;
+}
+
+FSourceCodeNavigation::FOnNewModuleAdded& FSourceCodeNavigation::AccessOnNewModuleAdded()
+{
+	return FSourceCodeNavigationImpl::Get().OnNewModuleAdded;
 }
 
 bool FSourceCodeNavigation::FindModulePath( const FString& ModuleName, FString &OutModulePath )

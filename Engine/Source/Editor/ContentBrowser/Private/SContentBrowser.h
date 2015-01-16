@@ -72,6 +72,9 @@ private:
 	/** Called to retrieve the text that should be highlighted on assets */
 	FText GetHighlightedText() const;
 
+	/** Called to work out whether the import button should be enabled */
+	bool IsImportEnabled() const;
+
 	/** Called to retrieve the text that should be in the import tooltip */
 	FText GetImportTooltipText() const;
 
@@ -120,6 +123,9 @@ private:
 	/** Handler for when the path view requests an asset creation */
 	void NewAssetRequested(const FString& SelectedPath, TWeakObjectPtr<UClass> FactoryClass);
 
+	/** Handler for when the path view requests a class creation */
+	void NewClassRequested(const FString& SelectedPath);
+
 	/** Handler for when the path context menu requests a folder creation */
 	void NewFolderRequested(const FString& SelectedPath);
 
@@ -149,11 +155,17 @@ private:
 	/** Gets the content for the path picker combo button */
 	TSharedRef<SWidget> GetPathPickerContent();
 
-	/** Handle creating a context menu to generate a new asset */
-	TSharedRef<SWidget> MakeCreateAssetContextMenu(bool bShowGetContent, bool bShowImport);
+	/** Handle creating a context menu for the "Add New" button */
+	TSharedRef<SWidget> MakeAddNewContextMenu(bool bShowGetContent, bool bShowImport);
 
-	/** Gets the tool tip for the new asset button */
-	FText GetNewAssetToolTipText() const;
+	/** Called to work out whether the import button should be enabled */
+	bool IsAddNewEnabled() const;
+
+	/** Gets the tool tip for the "Add New" button */
+	FText GetAddNewToolTipText() const;
+
+	/** Called to work out whether the "Filters" combo should be enabled */
+	bool IsFilterMenuEnabled() const;
 
 	/** Makes the filters menu */
 	TSharedRef<SWidget> MakeAddFilterMenu();
@@ -265,9 +277,6 @@ private:
 
 	/** Returns true if currently filtering by a source */
 	bool IsFilteredBySource() const;
-
-	/** Returns true if a real asset path is selected (i.e \Engine\* or \Game\*) */
-	bool IsAssetPathSelected() const;
 
 	/** Handler for when the context menu or asset view requests to find assets in the asset tree */
 	void OnFindInAssetTreeRequested(const TArray<FAssetData>& AssetsToFind);

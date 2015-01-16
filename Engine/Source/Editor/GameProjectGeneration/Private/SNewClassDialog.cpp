@@ -40,35 +40,15 @@ struct FParentClassItem
 class FNativeClassParentFilter : public IClassViewerFilter
 {
 public:
-	FNativeClassParentFilter(const TSharedPtr<FModuleContextInfo>* InSelectedModuleInfoPtr)
-		: SelectedModuleInfoPtr(InSelectedModuleInfoPtr)
+	FNativeClassParentFilter()
 	{
+		ProjectModules = GameProjectUtils::GetCurrentProjectModules();
 	}
 
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{
-		// You may not make native classes based on blueprint generated classes
-		const bool bIsBlueprintClass = (InClass->ClassGeneratedBy != NULL);
-
-		// UObject is special cased to be extensible since it would otherwise not be since it doesn't pass the API check (intrinsic class).
-		const bool bIsExplicitlyUObject = (InClass == UObject::StaticClass());
-
-		// Is this class in the same module as our current module?
-		const FString ClassModuleName = InClass->GetOutermost()->GetName().RightChop( FString(TEXT("/Script/")).Len() );
-		const TSharedPtr<FModuleContextInfo>& ModuleInfo = *SelectedModuleInfoPtr;
-		const bool bIsInDestinationModule = (ModuleInfo.IsValid() && ModuleInfo->ModuleName == ClassModuleName);
-
-		// You need API if you are either not UObject itself and you are not in the destination module
-		const bool bNeedsAPI = !bIsExplicitlyUObject && !bIsInDestinationModule;
-
-		// You may not make a class that is not DLL exported.
-		// MinimalAPI classes aren't compatible with the DLL export macro, but can still be used as a valid base
-		const bool bHasAPI = InClass->HasAnyClassFlags(CLASS_RequiredAPI) || InClass->HasAnyClassFlags(CLASS_MinimalAPI);
-
-		// @todo should we support interfaces?
-		const bool bIsInterface = InClass->IsChildOf(UInterface::StaticClass());
-
-		return !bIsBlueprintClass && (!bNeedsAPI || bHasAPI) && !bIsInterface;
+		// We allow a class that belongs to any module in the current project, as you don't actually choose the destination module until after you've selected your parent class
+		return GameProjectUtils::IsValidBaseClassForCreation(InClass, ProjectModules);
 	}
 
 	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
@@ -77,8 +57,8 @@ public:
 	}
 
 private:
-	/** Pointer to the currently selected module in the new class dialog */
-	const TSharedPtr<FModuleContextInfo>* SelectedModuleInfoPtr;
+	/** The list of currently available modules for this project */
+	TArray<FModuleContextInfo> ProjectModules;
 };
 
 static void FindPublicEngineHeaderFiles(TArray<FString>& OutFiles, const FString& Path)
@@ -106,8 +86,25 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 		}
 	}
 
+	// If we've been given an initial path that maps to a valid project module, use that as our initial module and path
+	if(!InArgs._InitialPath.IsEmpty())
+	{
+		const FString AbsoluteInitialPath = FPaths::ConvertRelativePathToFull(InArgs._InitialPath);
+		for(const auto& AvailableModule : AvailableModules)
+		{
+			if(AbsoluteInitialPath.StartsWith(AvailableModule->ModuleSourcePath))
+			{
+				SelectedModuleInfo = AvailableModule;
+				NewClassPath = AbsoluteInitialPath;
+				break;
+			}
+		}
+	}
+
+	// If we didn't get given a valid path override (see above), try and automatically work out the best default module
 	// If we have a runtime module with the same name as our project, then use that
 	// Otherwise, set out default target module as the first runtime module in the list
+	if(!SelectedModuleInfo.IsValid())
 	{
 		const FString ProjectName = FApp::GetGameName();
 		for(const auto& AvailableModule : AvailableModules)
@@ -130,9 +127,10 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 			// No runtime modules? Just take the first available module then
 			SelectedModuleInfo = AvailableModules[0];
 		}
+
+		NewClassPath = SelectedModuleInfo->ModuleSourcePath;
 	}
 
-	NewClassPath = SelectedModuleInfo->ModuleSourcePath;
 	ClassLocation = GameProjectUtils::EClassLocation::UserDefined; // the first call to UpdateInputValidity will set this correctly based on NewClassPath
 
 	ParentClassInfo = GameProjectUtils::FNewClassInfo(InArgs._Class);
@@ -158,7 +156,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	Options.bShowObjectRootClass = true;
 
 	// Prevent creating native classes based on blueprint classes
-	Options.ClassFilter = MakeShareable(new FNativeClassParentFilter(&SelectedModuleInfo));
+	Options.ClassFilter = MakeShareable(new FNativeClassParentFilter());
 
 	ClassViewer = StaticCastSharedRef<SClassViewer>(FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &SNewClassDialog::OnAdvancedClassSelected)));
 
@@ -170,7 +168,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	ChildSlot
 	[
 		SNew(SBorder)
-		.Padding(FMargin(26, 8))
+		.Padding(18)
 		.BorderImage( FEditorStyle::GetBrush("Docking.Tab.ContentAreaBrush") )
 		[
 			SNew(SVerticalBox)
@@ -186,16 +184,55 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 				.OnCanceled(this, &SNewClassDialog::CancelClicked)
 				.OnFinished(this, &SNewClassDialog::FinishClicked)
 				.InitialPageIndex(ParentClassInfo.IsSet() ? 1 : 0)
+				.PageFooter()
+				[
+					// Get IDE information
+					SNew(SBorder)
+					.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelVisibility )
+					.BorderImage( FEditorStyle::GetBrush("NewClassDialog.ErrorLabelBorder") )
+					.Padding(FMargin(0, 5))
+					.Content()
+					[
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						.AutoWidth()
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("MessageLog.Warning"))
+						]
+
+						+SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text( this, &SNewClassDialog::GetGlobalErrorLabelText )
+							.TextStyle( FEditorStyle::Get(), "NewClassDialog.ErrorLabelFont" )
+						]
+
+						+SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.AutoWidth()
+						.Padding(5.f, 0.f)
+						[
+							SNew(SGetSuggestedIDEWidget)
+						]
+					]
+				]
 				
 				// Choose parent class
 				+SWizard::Page()
+				.CanShow(!ParentClassInfo.IsSet()) // We can't move to this widget page if we've been given a parent class to use
 				[
 					SNew(SVerticalBox)
 
 					// Title
 					+SVerticalBox::Slot()
 					.AutoHeight()
-					.Padding(0, 20, 0, 0)
+					.Padding(0)
 					[
 						SNew(STextBlock)
 						.TextStyle( FEditorStyle::Get(), "NewClassDialog.PageTitle" )
@@ -237,46 +274,6 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							[
 								SNew(STextBlock)
 								.Text( LOCTEXT( "FullClassTree", "Show All Classes" ) )
-							]
-						]
-					]
-
-					// Get IDE information
-					+SVerticalBox::Slot()
-					.Padding(0, 5)
-					.AutoHeight()
-					[
-						SNew(SBorder)
-						.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelVisibility )
-						.BorderImage( FEditorStyle::GetBrush("NewClassDialog.ErrorLabelBorder") )
-						.Content()
-						[
-							SNew(SHorizontalBox)
-
-							+SHorizontalBox::Slot()
-							.VAlign(VAlign_Center)
-							.Padding(2.f)
-							.AutoWidth()
-							[
-								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("MessageLog.Warning"))
-							]
-
-							+SHorizontalBox::Slot()
-							.VAlign(VAlign_Center)
-							[
-								SNew(STextBlock)
-								.Text( this, &SNewClassDialog::GetGlobalErrorLabelText )
-								.TextStyle( FEditorStyle::Get(), "NewClassDialog.ErrorLabelFont" )
-							]
-
-							+SHorizontalBox::Slot()
-							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Center)
-							.AutoWidth()
-							.Padding(5.f, 0.f)
-							[
-								SNew(SGetSuggestedIDEWidget)
 							]
 						]
 					]
@@ -404,7 +401,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 					// Title
 					+SVerticalBox::Slot()
 					.AutoHeight()
-					.Padding(0, 20, 0, 0)
+					.Padding(0)
 					[
 						SNew(STextBlock)
 						.TextStyle( FEditorStyle::Get(), "NewClassDialog.PageTitle" )
@@ -999,16 +996,25 @@ void SNewClassDialog::FinishClicked()
 		// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
 		bPreventPeriodicValidityChecksUntilNextChange = true;
 
+		// Display a nag if we didn't automatically hot-reload for the newly added class
+		const bool bShowHotReloadNag = !GEditor->AccessEditorUserSettings().bAutomaticallyHotReloadNewClasses;
+
 		if ( HeaderFilePath.IsEmpty() || CppFilePath.IsEmpty() || !FSlateApplication::Get().SupportsSourceAccess() )
 		{
 			// Code successfully added, notify the user. We are either running on a platform that does not support source access or a file was not given so don't ask about editing the file
-			const FText Message = FText::Format( LOCTEXT("AddCodeSuccess", "Successfully added class {0}."), FText::FromString(NewClassName) );
+			const FText Message = FText::Format( (bShowHotReloadNag) 
+				? LOCTEXT("AddCodeSuccessWithHotReload", "Successfully added class {0}, however you must recompile {1} before it will appear in the Content Browser.")
+				: LOCTEXT("AddCodeSuccess", "Successfully added class {0}.")
+				, FText::FromString(NewClassName), FText::FromString(SelectedModuleInfo->ModuleName) );
 			FMessageDialog::Open(EAppMsgType::Ok, Message);
 		}
 		else
 		{
 			// Code successfully added, notify the user and ask about opening the IDE now
-			const FText Message = FText::Format( LOCTEXT("AddCodeSuccessWithSync", "Successfully added class {0}. Would you like to edit the code now?"), FText::FromString(NewClassName) );
+			const FText Message = FText::Format( (bShowHotReloadNag) 
+				? LOCTEXT("AddCodeSuccessWithHotReloadAndSync", "Successfully added class {0}, however you must recompile {1} before it will appear in the Content Browser.\n\nWould you like to edit the code now?")
+				: LOCTEXT("AddCodeSuccessWithSync", "Successfully added class {0}. Would you like to edit the code now?")
+				, FText::FromString(NewClassName), FText::FromString(SelectedModuleInfo->ModuleName) );
 			if ( FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes )
 			{
 				TArray<FString> SourceFiles;
@@ -1221,6 +1227,21 @@ void SNewClassDialog::UpdateInputValidity()
 	{
 		const TSet<FString>& DisallowedHeaderNames = FSourceCodeNavigation::GetSourceFileDatabase().GetDisallowedHeaderNames();
 		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, *SelectedModuleInfo, DisallowedHeaderNames, LastInputValidityErrorText);
+	}
+
+	// Validate that the class is valid for the currently selected module
+	// As a project can have multiple modules, this lets us update the class validity as the user changes the target module
+	if ( bLastInputValidityCheckSuccessful && ParentClassInfo.BaseClass )
+	{
+		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidBaseClassForCreation(ParentClassInfo.BaseClass, *SelectedModuleInfo);
+		if ( !bLastInputValidityCheckSuccessful )
+		{
+			LastInputValidityErrorText = FText::Format(
+				LOCTEXT("NewClassError_InvalidBaseClassForModule", "{0} cannot be used as a base class in the {1} module. Please make sure that {0} is API exported."),
+				FText::FromString(ParentClassInfo.BaseClass->GetName()),
+				FText::FromString(SelectedModuleInfo->ModuleName)
+				);
+		}
 	}
 
 	LastPeriodicValidityCheckTime = FSlateApplication::Get().GetCurrentTime();
