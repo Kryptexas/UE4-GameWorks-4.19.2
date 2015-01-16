@@ -48,7 +48,7 @@ public:
 		: _Content()
 		, _TabWellContentLeft()
 		, _TabWellContentRight()
-		, _ContentPadding( FMargin( 5 ) )
+		, _ContentPadding( FMargin( 2 ) )
 		, _TabRole(ETabRole::PanelTab)
 		, _Label()
 		, _Icon( FStyleDefaults::GetNoBrush() )

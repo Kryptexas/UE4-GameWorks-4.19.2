@@ -33,7 +33,7 @@ public:
 		TSharedPtr<SWidget> Content;
 		if( bIsTopNode )
 		{
-			Content=
+			Content =
 				SNew( SBorder )
 				.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryMiddle") )
 				.Padding( FMargin( 0.0f, 3.0f, 0.0f, 0.0f ) )
@@ -118,15 +118,15 @@ public:
 			}
 			else
 			{
-				SplitterArea = 
-					SNew( SSpacer )
-					.Size( FVector2D(1.0f, 3.0f) );
+				SplitterArea = SNew(SSpacer);
 			}
 
-			Content=
+			SplitterArea = SNew(SSpacer);
+
+			Content =
 				SNew( SBorder )
 				.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryBottom") )
-				.Padding( FMargin( 0.0f, 0.0f, 0.0f, 0.0f ) )
+				.Padding( FMargin( 0.0f, 0.0f, 0.0f, 2.0f ) )
 				[
 					SplitterArea.ToSharedRef()	
 				];
