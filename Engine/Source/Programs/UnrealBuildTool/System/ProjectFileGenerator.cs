@@ -198,6 +198,15 @@ namespace UnrealBuildTool
 		/// @todo projectfiles: Nasty global static list.  This is only really used for IntelliSense, and to avoid extra folder searches for projects we've already cached source files for.
 		public static readonly Dictionary<string, ProjectFile> ModuleToProjectFileMap = new Dictionary<string, ProjectFile>( StringComparer.InvariantCultureIgnoreCase );
 
+		/// When generating IntelliSense data, we may want to only generate data for a specific project file, even if other targets make use of modules
+		/// in this project file.  This is useful to prevent unusual or hacky global definitions from Programs affecting the Editor/Engine modules.  We
+		/// always want the most common and useful definitions to be set when working with solutions with many modules.
+		public static ProjectFile OnlyGenerateIntelliSenseDataForProject
+		{
+			get;
+			private set;
+		}
+
 	
 		/// File extension for project files we'll be generating (e.g. ".vcxproj")
 		abstract public string ProjectFileExtension
@@ -519,7 +528,7 @@ namespace UnrealBuildTool
 				{
 					// Figure out which targets we need about IntelliSense for.  We only need to worry about targets for projects
 					// that we're actually generating in this session.
-					List<string> IntelliSenseTargetFiles = new List<string>();
+					var IntelliSenseTargetFiles = new List<Tuple<ProjectFile, string>>();
 					{
 						// Engine targets
 						if( EngineProject != null )
@@ -532,7 +541,7 @@ namespace UnrealBuildTool
 									// for good quality IntelliSense.  For example, we want WITH_EDITORONLY_DATA=1, so using the editor targets works well.
 									if( ProjectTarget.TargetRules.Type == TargetRules.TargetType.Editor )
 									{ 
-										IntelliSenseTargetFiles.Add( ProjectTarget.TargetFilePath );
+										IntelliSenseTargetFiles.Add( Tuple.Create(EngineProject, ProjectTarget.TargetFilePath) );
 									}
 								}
 							}
@@ -545,7 +554,7 @@ namespace UnrealBuildTool
 							{
 								if( !String.IsNullOrEmpty( ProjectTarget.TargetFilePath ) )
 								{
-									IntelliSenseTargetFiles.Add( ProjectTarget.TargetFilePath );
+									IntelliSenseTargetFiles.Add( Tuple.Create( ProgramProject, ProjectTarget.TargetFilePath ) );
 								}
 							}
 						}
@@ -561,7 +570,7 @@ namespace UnrealBuildTool
 									// for good quality IntelliSense.  For example, we want WITH_EDITORONLY_DATA=1, so using the editor targets works well.
 									if( ProjectTarget.TargetRules.Type == TargetRules.TargetType.Editor )
 									{ 
-										IntelliSenseTargetFiles.Add( ProjectTarget.TargetFilePath );
+										IntelliSenseTargetFiles.Add( Tuple.Create( GameProject, ProjectTarget.TargetFilePath ) );
 									}
 								}
 							}
@@ -1289,7 +1298,7 @@ namespace UnrealBuildTool
 		/// <param name="Arguments">Incoming command-line arguments to UBT</param>
 		/// <param name="TargetFiles">Target files</param>
 		/// <return>Whether the process was successful or not</return>
-		private bool GenerateIntelliSenseData( String[] Arguments, List<string> TargetFiles )
+		private bool GenerateIntelliSenseData( String[] Arguments, List<Tuple<ProjectFile, string>> TargetFiles )
 		{
 			var bSuccess = true;
 			if( ShouldGenerateIntelliSenseData() && TargetFiles.Count > 0 )
@@ -1298,8 +1307,10 @@ namespace UnrealBuildTool
 				{
 					for(int TargetIndex = 0; TargetIndex < TargetFiles.Count; ++TargetIndex)
 					{
-						var CurTarget = TargetFiles[ TargetIndex ];
-						var TargetName = Utils.GetFilenameWithoutAnyExtensions( CurTarget );	// Twice, to remove both extensions from *.Target.cs file
+						var TargetProjectFile = TargetFiles[ TargetIndex ].Item1;
+						var CurTarget = TargetFiles[ TargetIndex ].Item2;
+
+						var TargetName = Utils.GetFilenameWithoutAnyExtensions( CurTarget );
 
 						Log.TraceVerbose( "Found target: " + TargetName );
 
@@ -1311,7 +1322,14 @@ namespace UnrealBuildTool
 						// projects from being able to do the same. Capture the state beforehand, and reset if after running UBT. 
 						bool bHasProjectFile = UnrealBuildTool.HasUProjectFile();
 
+						// We only want to update definitions and include paths for modules that are part of this target's project file.
+						ProjectFileGenerator.OnlyGenerateIntelliSenseDataForProject = TargetProjectFile;
+
+						// Run UnrealBuildTool, pretending to build this target but instead only gathering data for IntelliSense (include paths and definitions).
+						// No actual compiling or linking will happen because we early out using the ProjectFileGenerator.bGenerateProjectFiles global
 						bSuccess = UnrealBuildTool.RunUBT( ArgumentsCopy ) == ECompilationResult.Succeeded;
+						ProjectFileGenerator.OnlyGenerateIntelliSenseDataForProject = null;
+
 						if( !bSuccess )
 						{
 							break;
