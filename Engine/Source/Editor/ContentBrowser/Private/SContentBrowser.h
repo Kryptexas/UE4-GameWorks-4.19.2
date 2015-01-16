@@ -150,7 +150,7 @@ private:
 	TSharedRef<SWidget> GetPathPickerContent();
 
 	/** Handle creating a context menu to generate a new asset */
-	TSharedRef<SWidget> MakeCreateAssetContextMenu();
+	TSharedRef<SWidget> MakeCreateAssetContextMenu(bool bShowGetContent, bool bShowImport);
 
 	/** Gets the tool tip for the new asset button */
 	FText GetNewAssetToolTipText() const;
