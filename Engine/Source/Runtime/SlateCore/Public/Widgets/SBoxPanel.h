@@ -200,8 +200,12 @@ public:
 		return NewSlot;
 	}
 
-	FSlot& InsertSlot( int32 Index )
+	FSlot& InsertSlot(int32 Index = INDEX_NONE)
 	{
+		if (Index == INDEX_NONE)
+		{
+			return AddSlot();
+		}
 		SHorizontalBox::FSlot& NewSlot = *new SHorizontalBox::FSlot();
 		this->Children.Insert(&NewSlot, Index);
 		return NewSlot;
@@ -339,8 +343,12 @@ public:
 		return NewSlot;
 	}
 
-	FSlot& InsertSlot(int32 Index)
+	FSlot& InsertSlot(int32 Index = INDEX_NONE)
 	{
+		if (Index == INDEX_NONE)
+		{
+			return AddSlot();
+		}
 		SVerticalBox::FSlot& NewSlot = *new SVerticalBox::FSlot();
 		this->Children.Insert(&NewSlot, Index);
 		return NewSlot;
