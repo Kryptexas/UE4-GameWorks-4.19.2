@@ -16,7 +16,7 @@ typedef TSharedPtr<class FSCSEditorTreeNode> FSCSEditorTreeNodePtrType;
  *
  * Wrapper class for component template nodes displayed in the SCS editor tree widget.
  */
-class FSCSEditorTreeNode : public TSharedFromThis<FSCSEditorTreeNode>
+class KISMET_API FSCSEditorTreeNode : public TSharedFromThis<FSCSEditorTreeNode>
 {
 public:
 	/** 
@@ -370,7 +370,7 @@ private:
 
 typedef SSCSEditorDragDropTree SSCSTreeType;
 
-class SSCSEditor : public SCompoundWidget
+class KISMET_API SSCSEditor : public SCompoundWidget
 {
 public:
 	DECLARE_DELEGATE_OneParam(FOnTreeViewSelectionChanged, const TArray<FSCSEditorTreeNodePtrType>&);
@@ -408,6 +408,12 @@ public:
 
 	/** Returns true if in editing mode */
 	bool InEditingMode() const;
+
+	/**
+	 * Sets the Simple Construction Script this tree is visualizing
+	 * @param InSCS The SCS to edit
+	 */
+	void SetSCS(USimpleConstructionScript* InSCS);
 
 	/** Adds a component to the SCS Table
 	   @param NewComponentClass	(In) The class to add

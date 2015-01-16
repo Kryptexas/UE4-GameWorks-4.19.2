@@ -39,6 +39,8 @@
 #include "TutorialMetaData.h"
 #include "SDockTab.h"
 #include "ComponentsTree.h"
+#include "SSCSEditor.h"
+#include "ComponentEditorUtils.h"
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
 static const FName LevelEditorStatsViewerTab("LevelEditorStatsViewer");
@@ -513,6 +515,13 @@ public:
 			}
 		};
 
+		bSelectionGuard = false;
+
+		// Event subscriptions
+		USelection::SelectionChangedEvent.AddRaw(this, &SActorDetails::OnEditorSelectionChanged);
+		GEditor->OnComponentInstanceTransformed().AddRaw(this, &SActorDetails::OnComponentInstanceTransformed);
+		GEditor->OnPostTransformComponents().AddRaw(this, &SActorDetails::OnEditorPostTransformComponents);
+
 		FPropertyEditorModule& PropPlugin = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		const FDetailsViewArgs DetailsViewArgs( true, true, true, false, false, GUnrealEd, false, TabIdentifier );
 		DetailsView = PropPlugin.CreateDetailView(DetailsViewArgs);
@@ -523,11 +532,7 @@ public:
 		DetailsView->SetGenericLayoutDetailsDelegate( FOnGetDetailCustomizationInstance::CreateStatic( &FLevelEditorGenericDetails::MakeInstance ) );
 
 		SAssignNew(ComponentsBox, SScrollBox)
-		+SScrollBox::Slot()
-		[
-			SAssignNew(ComponentsTree, SComponentsTree, DetailsView)
-			.Visibility(EVisibility::Collapsed)
-		];
+			.Visibility(EVisibility::Collapsed);
 
 		ChildSlot
 		[
@@ -539,6 +544,18 @@ public:
 			]
 		];
 
+		DetailsSplitter->AddSlot(0)
+		.Value(.2f)
+		[
+			ComponentsBox.ToSharedRef()
+		];
+	}
+
+	~SActorDetails()
+	{
+		USelection::SelectionChangedEvent.RemoveAll(this);
+		GEditor->OnComponentInstanceTransformed().RemoveAll(this);
+		GEditor->OnPostTransformComponents().RemoveAll(this);
 	}
 
 	void SetObjects( const TArray<UObject*>& InObjects )
@@ -546,39 +563,210 @@ public:
 		if(!DetailsView->IsLocked() )
 		{
 			DetailsView->SetObjects( InObjects );
-				
+			
+			bool bShowingComponents = false;
+			
 			if( GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
 			{
-				bool bTreeVisible = ComponentsTree->GetVisibility().IsVisible();
-				ComponentsTree->SetObjects(InObjects);
-				if( bTreeVisible != ComponentsTree->GetVisibility().IsVisible())
+				auto Actor = GetSelectedActor();
+				if (Actor)
 				{
-					if( bTreeVisible )
+					auto Blueprint = Cast<UBlueprint>(Actor->GetClass()->ClassGeneratedBy);
+					if (Blueprint && Blueprint->SimpleConstructionScript)
 					{
-						DetailsSplitter->RemoveAt(0);
-					}
-					else
-					{
-						DetailsSplitter->AddSlot(0)
-						.Value(.2f)
+						bShowingComponents = true;
+
+						ComponentsBox->ClearChildren();
+						ComponentsBox->AddSlot()
 						[
-							ComponentsBox.ToSharedRef()
+							SAssignNew(SCSEditor, SSCSEditor, Blueprint->SimpleConstructionScript)
+							.InEditingMode(true)
+							.PreviewActor(this, &SActorDetails::GetSelectedActor)												// Get the instance of the actor in the world
+							.OnTreeViewSelectionChanged(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)				// A selection has been made in the tree view, so inform the level editor
+							//.OnUpdateSelectionFromNodes(this, &SLevelEditor::OnSCSEditorUpdateSelectionFromNodes)				// Unsure, don't think it's needed
+							//.OnHighlightPropertyInDetailsView(this, &SLevelEditor::OnSCSEditorHighlightPropertyInDetailsView)	// Also unsure and don't think it's needed
 						];
 					}
 				}
 			}
-			else
+
+			ComponentsBox->SetVisibility(bShowingComponents ? EVisibility::Visible : EVisibility::Collapsed);
+		}
+	}
+
+	const TSharedPtr<SSCSEditor>& GetSCSEditor() const
+	{
+		return SCSEditor;
+	}
+
+private:
+
+	void OnComponentInstanceTransformed(USceneComponent& Component, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale)
+	{
+		// Locate and update the template component the corresponds to the transformed component instance
+		auto SCSTreeNode = SCSEditor->GetNodeFromActorComponent(&Component);
+		if (SCSTreeNode.IsValid())
+		{
+			auto ComponentTemplate = Cast<USceneComponent>(SCSTreeNode->GetComponentTemplate());
+			check(ComponentTemplate);
+
+			GEditor->ApplyDeltaToComponent(
+				ComponentTemplate,
+				true,
+				&InDeltaDrag,
+				&InDeltaRot,
+				&InDeltaScale,
+				GEditor->GetPivotLocation());
+
+			auto PreviewActor = GetSelectedActor();
+			check(PreviewActor);
+
+			auto Blueprint = Cast<UBlueprint>(PreviewActor->GetClass()->ClassGeneratedBy);
+			if (Blueprint != nullptr)
 			{
-				ComponentsTree->SetVisibility( EVisibility::Collapsed );
+				//@todo this doesn't include any of the "PropagateChange" logic/calls that are in FSCSEditorViewportClient::InputWidgetDelta()
+
+				// Like PostEditMove(), but we only need to re-run construction scripts
+				if (Blueprint->bRunConstructionScriptOnDrag)
+				{
+					PreviewActor->RerunConstructionScripts();
+				}
+
+				// Update the component selection to the new reconstructed component
+				USelection* EditorComponentSelection = GEditor->GetSelectedComponents();
+				EditorComponentSelection->Modify();
+				EditorComponentSelection->Deselect(&Component);
+				
+				UActorComponent* ReconstructedComponent = SCSTreeNode->FindComponentInstanceInActor(PreviewActor);
+				check(ReconstructedComponent);
+				EditorComponentSelection->Select(ReconstructedComponent);
+				DetailsView->SetObject(ReconstructedComponent);
 			}
 		}
 	}
 
-private:
+	void OnEditorPostTransformComponents()
+	{
+		// Update the component selection with the reconstructed components
+		if (!bSelectionGuard)
+		{
+			// Enable the selection guard to prevent OnEditorSelectionChanged() from altering the contents of the SCSTreeWidget
+			TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
+
+			// Update the editor's component selection
+			TArray<UObject*> Objects;
+			USelection* SelectedComponents = GEditor->GetSelectedComponents();
+
+			SelectedComponents->Modify();
+			SelectedComponents->BeginBatchSelectOperation();
+			SelectedComponents->DeselectAll();
+
+			auto SelectedActor = GetSelectedActor();
+			check(SelectedActor);
+
+			auto SelectedNodes = SCSEditor->GetSelectedNodes();
+			for (auto& SelectedNode : SelectedNodes)
+			{
+				if (SelectedNode.IsValid())
+				{
+					UActorComponent* Component = SelectedNode->FindComponentInstanceInActor(SelectedActor);
+					if (Component)
+					{
+						Objects.Add(Component);
+						SelectedComponents->Select(Component);
+					}
+				}
+			}
+			
+			DetailsView->SetObjects(Objects, false);
+			SelectedComponents->EndBatchSelectOperation();
+		}
+	}
+
+	void OnEditorSelectionChanged(UObject* Object)
+	{
+		if (!bSelectionGuard && SCSEditor.IsValid())
+		{
+			TArray<UObject*> Objects;
+			auto Selection = Cast<USelection>(Object);
+			if (Selection == GEditor->GetSelectedComponents() || Selection == GEditor->GetSelectedActors())
+			{
+				// Enable the selection guard to prevent OnTreeSelectionChanged() from altering the editor's component selection
+				TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
+
+				// Update the tree selection to match the level editor component selection
+				auto& SCSTreeWidget = SCSEditor->SCSTreeWidget;
+				SCSTreeWidget->ClearSelection();
+				for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+				{
+					UActorComponent* Component = CastChecked<UActorComponent>(*It);
+					if (Component)
+					{
+						SCSTreeWidget->SetItemSelection(SCSEditor->GetNodeFromActorComponent(Component), true);
+						Objects.Add(Component);
+					}
+				}
+
+				DetailsView->SetObjects(Objects);
+			}
+		}
+	}
+	
+	AActor* GetSelectedActor() const
+	{
+		//@todo this won't work w/ multi-select
+		return Cast<AActor>(*GEditor->GetSelectedActorIterator());
+	}
+
+	void OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
+	{
+		if (!bSelectionGuard/* && Actor != nullptr*/)
+		{
+			auto Actor = GetSelectedActor();
+			if (Actor)
+			{
+				// Enable the selection guard to prevent OnEditorSelectionChanged() from altering the contents of the SCSTreeWidget
+				TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
+
+				// Update the editor's component selection
+				TArray<UObject*> Objects;
+				USelection* SelectedComponents = GEditor->GetSelectedComponents();
+
+				SelectedComponents->BeginBatchSelectOperation();
+				SelectedComponents->DeselectAll();
+
+				for (auto& SelectedNode : SelectedNodes)
+				{
+					if (SelectedNode.IsValid())
+					{
+						UActorComponent* Component = SelectedNode->FindComponentInstanceInActor(Actor);
+						if (Component)
+						{
+							Objects.Add(Component);
+							SelectedComponents->Select(Component);
+						}
+					}
+				}
+				DetailsView->SetObjects(Objects, false);
+
+				SelectedComponents->EndBatchSelectOperation();
+
+				GUnrealEd->SetActorSelectionFlags(Actor);
+				GUnrealEd->UpdatePivotLocationForSelection(true);
+				GEditor->RedrawLevelEditingViewports();
+			}
+		}
+	}
+
 	TSharedPtr<SSplitter> DetailsSplitter;
 	TSharedPtr<IDetailsView> DetailsView;
 	TSharedPtr<SScrollBox> ComponentsBox;
-	TSharedPtr<SComponentsTree> ComponentsTree;
+	
+	/** SCS editor */
+	TSharedPtr<SSCSEditor> SCSEditor;
+
+	bool bTreeVisible;
+	bool bSelectionGuard;
 };
 
 

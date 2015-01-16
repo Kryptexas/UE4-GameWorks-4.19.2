@@ -2532,30 +2532,38 @@ void FLevelEditorViewportClient::TrackingStopped()
 	// Don't do this if AddDelta was never called.
 	if( bDidAnythingActuallyChange && MouseDeltaTracker->HasReceivedDelta() )
 	{
-		for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+		// If components are selected, we'll need to notify after rerunning the construction script on the selected actor(s)
+		const bool bComponentsAreSelected = GEditor->GetSelectedComponentCount() > 0;
+
+		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 		{
 			AActor* Actor = static_cast<AActor*>( *It );
-			checkSlow( Actor->IsA(AActor::StaticClass()) );
+			checkSlow(Actor->IsA(AActor::StaticClass()));
 
 			// Verify that the actor is in the same world as the viewport before moving it.
-			if(GEditor->PlayWorld)
+			if (GEditor->PlayWorld)
 			{
-				if(bIsSimulateInEditorViewport)
+				if (bIsSimulateInEditorViewport)
 				{
 					// If the Actor's outer (level) outer (world) is not the PlayWorld then it cannot be moved in this viewport.
-					if( !(GEditor->PlayWorld == Actor->GetOuter()->GetOuter()) )
+					if (!( GEditor->PlayWorld == Actor->GetOuter()->GetOuter() ))
 					{
 						continue;
 					}
 				}
-				else if( !(GEditor->EditorWorld == Actor->GetOuter()->GetOuter()) )
+				else if (!( GEditor->EditorWorld == Actor->GetOuter()->GetOuter() ))
 				{
 					continue;
 				}
 			}
 
-			Actor->PostEditMove( true );
-			GEditor->BroadcastEndObjectMovement( *Actor );
+			Actor->PostEditMove(true);
+			GEditor->BroadcastEndObjectMovement(*Actor);
+		}
+
+		if (bComponentsAreSelected)
+		{
+			GEditor->BroadcastPostTransformComponents();
 		}
 
 		if (!bPivotMovedIndependently)
@@ -3040,6 +3048,8 @@ void FLevelEditorViewportClient::ApplyDeltaToComponent(USceneComponent* InCompon
 		&InDeltaRot,
 		&ModifiedDeltaScale,
 		GEditor->GetPivotLocation());
+
+	GEditor->BroadcastComponentInstanceTransformed(*InComponent, InDeltaDrag, InDeltaRot, ModifiedDeltaScale);
 }
 
 /** Helper function for ModifyScale - Convert the active Dragging Axis to per-axis flags */

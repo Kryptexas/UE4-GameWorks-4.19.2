@@ -15,6 +15,7 @@ public class Kismet : ModuleRules
 				"EditorWidgets",
 				"Analytics",
                 "DerivedDataCache",
+                "LevelEditor",
 			}
 			);
 
@@ -37,7 +38,6 @@ public class Kismet : ModuleRules
 				"AnimGraph",
 				"PropertyEditor",
 				"SourceControl",
-				"LevelEditor",
                 "InputCore",
 				"EngineSettings",
                 "Projects",
