@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Gameframework/Actor.h"
+#include "GameFramework/Actor.h"
 #include "CircularDependencyTestActor.generated.h"
 
 UENUM(BlueprintType)
