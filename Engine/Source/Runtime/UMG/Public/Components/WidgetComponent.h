@@ -107,6 +107,10 @@ private:
 	/** The Alignment/Pivot point that the widget is placed at relative to the position. */
 	UPROPERTY(EditAnywhere, Category=UI)
 	FVector2D Pivot;
+
+	/** The Screen Space ZOrder that is used if the widget is displayed in screen space. */
+	UPROPERTY(EditDefaultsOnly, Category=UI)
+	int32 ZOrder;
 	
 	/** The maximum distance from which a player can interact with this widget */
 	UPROPERTY(EditAnywhere, Category=UI, meta=(ClampMin="0.0", UIMax="5000.0", ClampMax="100000.0"))

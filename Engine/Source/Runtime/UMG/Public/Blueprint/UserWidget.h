@@ -140,11 +140,13 @@ public:
 	virtual void SetIsDesignTime(bool bInDesignTime) override;
 
 	/**
-	 * Adds it to the game's viewport, defaults to filling the entire viewport area.
-	 * @param bModal If this dialog should steal keyboard/mouse focus and consume all input. Great for a fullscreen menu. Terrible for HUDs.
+	 * Adds it to the game's viewport and fills the entire screen, unless SetDesiredSizeInViewport is called
+	 * to explicitly set the size.
+	 *
+	 * @param ZOrder The higher the number the greater the priority when determining if it will above other widgets.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Viewport")
-	void AddToViewport();
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Viewport", meta=( AdvancedDisplay = "ZOrder" ))
+	void AddToViewport(int32 ZOrder = 0);
 
 	/**
 	 * Removes the widget from the viewport.
