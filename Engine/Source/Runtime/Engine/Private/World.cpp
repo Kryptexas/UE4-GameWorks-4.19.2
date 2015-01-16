@@ -591,10 +591,13 @@ bool UWorld::PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPacka
 		}
 	}
 #if WITH_EDITOR
-	// If this level has a level script, rebuild it now to ensure no stale data is stored in the level script actor
-	if( !IsRunningCommandlet() && PersistentLevel->GetLevelScriptBlueprint(true) )
+	// Rebuild all level blueprints now to ensure no stale data is stored on the actors
+	if( !IsRunningCommandlet() )
 	{
-		FKismetEditorUtilities::CompileBlueprint(PersistentLevel->GetLevelScriptBlueprint(true), true, true);
+		for (UBlueprint* Blueprint : PersistentLevel->GetLevelBlueprints())
+		{
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
+		}
 	}
 #endif
 
@@ -5407,9 +5410,9 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	if(PersistentLevel && PersistentLevel->OwningWorld)
 	{
-		if(ULevelScriptBlueprint* LevelBlueprint = PersistentLevel->GetLevelScriptBlueprint(true))
+		for (UBlueprint* Blueprint : PersistentLevel->GetLevelBlueprints())
 		{
-			LevelBlueprint->GetAssetRegistryTags(OutTags);
+			Blueprint->GetAssetRegistryTags(OutTags);
 		}
 	}
 }
