@@ -1488,9 +1488,13 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
 	check(SCSEditorPtr.IsValid());
 
-	// Get the current Actor context
-	AActor* Actor = SCSEditorPtr->ActorContext.Get();
-	check(Actor != nullptr);
+	// Get the current "instanced" Actor context
+	AActor* Actor = SCSEditorPtr->PreviewActor.Get();
+	if(Actor == nullptr)
+	{
+		Actor = SCSEditorPtr->ActorContext.Get();
+		check(Actor != nullptr);
+	}
 
 	bool bRegenerateTreeNodes = false;
 	const FScopedTransaction TransactionContext(DroppedNodePtrs.Num() > 1 ? LOCTEXT("AttachComponents", "Attach Components") : LOCTEXT("AttachComponent", "Attach Component"));
@@ -1609,9 +1613,13 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
 	check(SCSEditorPtr.IsValid());
 
-	// Get the current preview Actor context
-	AActor* Actor = SCSEditorPtr->ActorContext.Get();
-	check(Actor != nullptr);
+	// Get the current "instanced" Actor context
+	AActor* Actor = SCSEditorPtr->PreviewActor.Get();
+	if(Actor == nullptr)
+	{
+		Actor = SCSEditorPtr->ActorContext.Get();
+		check(Actor != nullptr);
+	}
 
 	const FScopedTransaction TransactionContext(DroppedNodePtrs.Num() > 1 ? LOCTEXT("DetachComponents", "Detach Components") : LOCTEXT("DetachComponent", "Detach Component"));
 
@@ -1949,6 +1957,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	EditorMode = InArgs._EditorMode;
 	ActorContext = InArgs._ActorContext;
 	AllowEditing = InArgs._AllowEditing;
+	PreviewActor = InArgs._PreviewActor;
 	OnTreeViewSelectionChanged = InArgs._OnTreeViewSelectionChanged;
 	OnUpdateSelectionFromNodes = InArgs._OnUpdateSelectionFromNodes;
 	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;

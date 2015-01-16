@@ -357,6 +357,9 @@ public:
 
 	/** Refresh the preview viewport to reflect changes in the SCS */
 	void UpdateSCSPreview(bool bUpdateNow = false);
+	
+	/** Delegate invoked when the SCS editor needs to obtain the Actor context for editing */
+	AActor* GetSCSEditorActorContext() const;
 
 	/** Delegate invoked when the tree view selection is changed in the SCS editor widget */
 	void OnSCSEditorTreeViewSelectionChanged(const TArray< TSharedPtr<class FSCSEditorTreeNode> >& SelectedNodes);

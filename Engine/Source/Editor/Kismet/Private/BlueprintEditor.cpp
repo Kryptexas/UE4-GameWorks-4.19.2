@@ -665,6 +665,18 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 	}
 }
 
+AActor* FBlueprintEditor::GetSCSEditorActorContext() const
+{
+	// Return the current CDO that was last generated for the class
+	UBlueprint* Blueprint = GetBlueprintObj();
+	if(Blueprint != nullptr && Blueprint->GeneratedClass != nullptr)
+	{
+		return Blueprint->GeneratedClass->GetDefaultObject<AActor>();
+	}
+	
+	return nullptr;
+}
+
 void FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
 {
 	if (SCSViewport.IsValid())
@@ -1189,7 +1201,8 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 
 			// Recreate (or create) any widgets that depend on the SCS
 			SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
-				.ActorContext(BlueprintObj->GeneratedClass->GetDefaultObject<AActor>())
+				.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
+				.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
 				.AllowEditing(this, &FBlueprintEditor::InEditingMode)
 				.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
 				.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes);
@@ -1973,7 +1986,8 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		InBlueprint->SimpleConstructionScript )
 	{
 		SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
-			.ActorContext(InBlueprint->GeneratedClass->GetDefaultObject<AActor>())
+			.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
+			.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
 			.AllowEditing(this, &FBlueprintEditor::InEditingMode)
 			.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
 			.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes);
