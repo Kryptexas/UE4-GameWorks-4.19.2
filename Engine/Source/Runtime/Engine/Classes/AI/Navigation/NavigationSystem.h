@@ -733,6 +733,9 @@ protected:
 	/** self-registering exec command to handle nav sys console commands */
 	static FNavigationSystemExec ExecHandler;
 #endif // !UE_BUILD_SHIPPING
+
+	/** collection of delegates to create all available navigation data types */
+	static TArray<TSubclassOf<ANavigationData> > NavDataClasses;
 	
 	/** whether seamless navigation building is enabled */
 	static bool bNavigationAutoUpdateEnabled;

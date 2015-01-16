@@ -187,6 +187,7 @@ void FNavigationLockContext::UnlockUpdates()
 // UNavigationSystem                                                                
 //----------------------------------------------------------------------//
 bool UNavigationSystem::bNavigationAutoUpdateEnabled = true;
+TArray<TSubclassOf<ANavigationData> > UNavigationSystem::NavDataClasses;
 TArray<const UClass*> UNavigationSystem::NavAreaClasses;
 TArray<UClass*> UNavigationSystem::PendingNavAreaRegistration;
 TSubclassOf<UNavArea> UNavigationSystem::DefaultWalkableArea = NULL;
@@ -366,6 +367,13 @@ void UNavigationSystem::PostInitProperties()
 					SetSupportedAgentsNavigationClass(AgentIndex, NavigationDataClass);
 				}
 			}
+		}
+
+		if (NavDataClasses.Num() == 0)
+		{
+			// @note: if you don't want navigation system to be created at all you can disable it by 
+			// setting AWorldSettings.bEnableNavigationSystem to false
+			UE_LOG(LogNavigation, Error, TEXT("No navigation data types found while setting up required navigation types!"));
 		}
 
 		ConditionallyCreateNavOctree();
@@ -2793,6 +2801,11 @@ void UNavigationSystem::Build()
 	const double BuildStartTime = FPlatformTime::Seconds();
 
 	SpawnMissingNavigationData();
+
+	if (NavDataClasses.Num() == 0)
+	{
+		return;
+	}
 
 	// make sure freshly created navigation instances are registered before we try to build them
 	ProcessRegistrationCandidates();
