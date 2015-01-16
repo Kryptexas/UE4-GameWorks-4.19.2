@@ -1033,7 +1033,7 @@ void FActorDetails::AddSingleBlueprintRow( IDetailCategoryBuilder& BlueprintCate
 						.AutoWidth()
 						[
 							SNew(STextBlock)
-							.Text( FText::Format( LOCTEXT("CreateBlueprintFromActor", "Create {0} Blueprint..."), FText::FromString( SelectedActorClassName ) ) )
+							.Text( FText::Format( LOCTEXT("CreateBlueprintFromActor", "Create {0} Class Blueprint..."), FText::FromString( SelectedActorClassName ) ) )
 							.Font(IDetailLayoutBuilder::GetDetailFont())
 						]
 
