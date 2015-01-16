@@ -62,6 +62,8 @@ FBehaviorTreeEditor::FBehaviorTreeEditor()
 
 	BehaviorTree = nullptr;
 	BlackboardData = nullptr;
+
+	bCheckDirtyOnAssetSave = true;
 }
 
 FBehaviorTreeEditor::~FBehaviorTreeEditor()
