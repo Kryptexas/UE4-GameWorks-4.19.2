@@ -68,6 +68,8 @@ void SAssetDiscoveryIndicator::Construct( const FArguments& InArgs )
 				SNew(STextBlock)
 				.Font( FEditorStyle::GetFontStyle("AssetDiscoveryIndicator.DiscovertingAssetsFont") )
 				.Text( NSLOCTEXT("AssetDiscoveryIndicator", "DiscoveringAssets", "Discovering Assets").ToString() )
+				.AutoWrapText(true)
+				.Justification(ETextJustify::Center)
 			]
 
 			// Progress bar
