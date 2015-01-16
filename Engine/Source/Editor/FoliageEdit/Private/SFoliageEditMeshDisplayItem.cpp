@@ -1683,11 +1683,6 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SFoliageEditMeshDisplayItem::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
-{
-	FoliageEditPtr.Pin()->GetFoliageEditMode()->ReallocateClusters(FoliageSettingsPtr);
-}
-
 void SFoliageEditMeshDisplayItem::BindCommands()
 {
 	const FFoliageEditCommands& Commands = FFoliageEditCommands::Get();

@@ -105,5 +105,8 @@ public:
 
 	// Get the instanced foliage actor for the specified streaming level. Never creates a new IFA.
 	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level);
+
+	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
+	void NotifyFoliageTypeChanged(UFoliageType* FoliageType);
 #endif	//WITH_EDITOR
 };
