@@ -930,11 +930,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedPackageInitCode(UPackage* Packa
 	FString ApiString = FString::Printf(TEXT("%s_API "), *API);
 	FString SingletonName(GetPackageSingletonName(Package));
 
-	if( GeneratedFunctionBodyTextSplit.Num() == 0 )
-	{
-		new(GeneratedFunctionBodyTextSplit) FStringOutputDeviceCountLines;
-	}
-	FStringOutputDevice& GeneratedFunctionText = GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num()-1];
+	FStringOutputDevice& GeneratedFunctionText = GetGeneratedFunctionTextDevice();
 
 	GeneratedFunctionDeclarations.Logf(TEXT("    %sclass UPackage* %s;\r\n"), *ApiString, *SingletonName);
 
@@ -992,14 +988,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedPackageInitCode(UPackage* Packa
 
 void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 {
-	int32 MaxLinesPerCpp = 30000;
-
-	if ((GeneratedFunctionBodyTextSplit.Num() == 0) || (GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num()-1].GetLineCount() > MaxLinesPerCpp))
-	{
-		new(GeneratedFunctionBodyTextSplit) FStringOutputDeviceCountLines;
-	}
-	FStringOutputDevice& GeneratedFunctionText = GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num()-1];
-
+	FStringOutputDevice& GeneratedFunctionText = GetGeneratedFunctionTextDevice();
 	check(!FriendText.Len());
 	// Emit code to build the UObjects that used to be in .u files
 	bool bIsNoExport = Class->HasAnyClassFlags(CLASS_NoExport) || FClassUtils::IsTemporaryClass(Class);
@@ -4312,6 +4301,18 @@ bool IsExportOrTemporaryClass(FClass* Class)
 	bool bIsExportClass = Class->HasAnyClassFlags(CLASS_Native) && !(Class->HasAnyClassFlags(CLASS_NoExport | CLASS_Intrinsic) || bIsTemporaryClass);
 
 	return bIsExportClass || bIsTemporaryClass;
+}
+
+FStringOutputDevice& FNativeClassHeaderGenerator::GetGeneratedFunctionTextDevice()
+{
+	int32 MaxLinesPerCpp = 30000;
+
+	if ((GeneratedFunctionBodyTextSplit.Num() == 0) || (GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num() - 1].GetLineCount() > MaxLinesPerCpp))
+	{
+		new(GeneratedFunctionBodyTextSplit)FStringOutputDeviceCountLines;
+	}
+
+	return GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num() - 1];
 }
 
 // Constructor.
