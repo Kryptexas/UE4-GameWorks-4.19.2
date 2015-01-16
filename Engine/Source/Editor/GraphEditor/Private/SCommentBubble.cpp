@@ -337,7 +337,8 @@ void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT( "CommentBubble", "CommentCommitted", "Comment Changed" ) );
 		GraphNode->Modify();
-		GraphNode->NodeComment = NewText.ToString();
+		GraphNode->OnRenameNode(NewText.ToString());
+//		GraphNode->NodeComment = NewText.ToString();
 	}
 }
 
