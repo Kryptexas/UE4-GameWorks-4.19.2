@@ -495,6 +495,8 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 
 	NormalTransactor = GEditor->Trans;
 	InterpEdTrans = new UMatineeTransBuffer( FObjectInitializer(), 8*1024*1024 );
+	InterpEdTrans->OnUndo().AddRaw(this, &FMatinee::OnPostUndoRedo);
+	InterpEdTrans->OnRedo().AddRaw(this, &FMatinee::OnPostUndoRedo);
 	GEditor->Trans = InterpEdTrans;
 
 	// Save viewports' data before it gets overridden by UpdateLevelViewport
@@ -1472,6 +1474,11 @@ void FMatinee::StopPlaying()
 void FMatinee::StartRecordingMovie()
 {
 	GUnrealEd->PlayMap(NULL, NULL, 0, -1, false, true);
+}
+
+void FMatinee::OnPostUndoRedo(FUndoSessionContext SessionContext, bool Succeeded)
+{
+	InvalidateTrackWindowViewports();
 }
 
 //Key Command Helpers
