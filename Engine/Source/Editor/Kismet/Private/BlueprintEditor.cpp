@@ -1430,27 +1430,37 @@ void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlu
 		}
 		else
 		{
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
-				MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintComponentsMode,
-				MakeShareable(new FBlueprintComponentsApplicationMode(SharedThis(this))));
-
-			if ( bShouldOpenInDefaultsMode )
+			if ( GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
 			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
-			}
-			else if ( bShouldOpenInComponentsMode && CanAccessComponentsMode() )
-			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
+				AddApplicationMode(
+					FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+					MakeShareable(new FBlueprintEditorUnifiedMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
+				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
 			}
 			else
 			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+				AddApplicationMode(
+					FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+					MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
+				AddApplicationMode(
+					FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+					MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+				AddApplicationMode(
+					FBlueprintEditorApplicationModes::BlueprintComponentsMode,
+					MakeShareable(new FBlueprintComponentsApplicationMode(SharedThis(this))));
+
+				if ( bShouldOpenInDefaultsMode )
+				{
+					SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+				}
+				else if ( bShouldOpenInComponentsMode && CanAccessComponentsMode() )
+				{
+					SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
+				}
+				else
+				{
+					SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+				}
 			}
 		}
 	}
