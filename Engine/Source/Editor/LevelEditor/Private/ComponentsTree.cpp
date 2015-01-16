@@ -230,6 +230,12 @@ void SComponentsTree::OnTreeSelectionChanged(FComponentTreeNodePtrType InSelecte
 		PropertyView->SetObjects(Objects, false);
 
 		SelectedComponents->EndBatchSelectOperation();
+
+		if (Actor.IsValid())
+		{
+			GUnrealEd->SetActorSelectionFlags(Actor.Get());
+		}
+		
 		GUnrealEd->UpdatePivotLocationForSelection(true);
 		GEditor->RedrawLevelEditingViewports();
 	}
