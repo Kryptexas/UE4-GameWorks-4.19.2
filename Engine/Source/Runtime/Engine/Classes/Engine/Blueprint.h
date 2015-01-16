@@ -379,6 +379,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY()
 	TArray<class UTimelineTemplate*> Timelines;
 
+	/** Stores data to override (in children classes) components (created by SCS) from parent classes */
+	UPROPERTY()
+	class UInheritableComponentHandler* InheritableComponentHandler;
+
 	/** The type of this blueprint */
 	UPROPERTY(AssetRegistrySearchable)
 	TEnumAsByte<enum EBlueprintType> BlueprintType;
@@ -549,6 +553,8 @@ public:
 	virtual bool SupportsInputEvents() const;
 
 	bool ChangeOwnerOfTemplates();
+
+	UInheritableComponentHandler* GetInheritableComponentHandler(bool bCreateIfNecessary);
 
 #endif	//#if WITH_EDITOR
 

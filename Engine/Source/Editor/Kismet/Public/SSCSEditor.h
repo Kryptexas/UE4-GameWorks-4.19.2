@@ -187,6 +187,9 @@ public:
 	/** Sets up the delegate for renaming a component */
 	void SetRenameRequestedDelegate(FOnRenameRequested InRenameRequested) { RenameRequestedDelegate = InRenameRequested; }
 
+	/** Get overridden template component, specialized in given blueprint */
+	UActorComponent* GetOverridenComponentTemplate(UBlueprint* Blueprint, bool bCreateIfNecessary) const;
+
 private:
 	bool bIsInherited;
 	TWeakObjectPtr<class USCS_Node> SCSNodePtr;

@@ -33,6 +33,8 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/Selection.h"
 
+#include "Engine/InheritableComponentHandler.h"
+
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
 static const FName SCS_ColumnName_ComponentClass( "ComponentClass" );
@@ -705,6 +707,39 @@ void FSCSEditorTreeNode::OnCompleteRename(const FText& InNewName)
 	{
 		delete TransactionContext;
 	}
+}
+
+UActorComponent* FSCSEditorTreeNode::GetOverridenComponentTemplate(UBlueprint* Blueprint, bool bCreateIfNecessary) const
+{
+	UActorComponent* OverridenComponent = NULL;
+
+	FComponentKey Key(GetSCSNode());
+	if (!Key.IsValid())
+	{
+		UActorComponent* ComponentTemplate = GetComponentTemplate();
+		auto OriginalComponentOwner = ComponentTemplate ? ComponentTemplate->GetOwner() : nullptr;
+		auto ComponentOwnerBPGC = OriginalComponentOwner ? Cast<UBlueprintGeneratedClass>(OriginalComponentOwner->GetClass()) : nullptr;
+		Key = FComponentKey(ComponentOwnerBPGC, GetVariableName());
+	}
+
+	const bool BlueprintCanOverrideComponentFormKey = Key.IsValid() 
+		&& Blueprint 
+		&& Blueprint->ParentClass 
+		&& Blueprint->ParentClass->IsChildOf(Key.OwnerClass);
+
+	if (BlueprintCanOverrideComponentFormKey)
+	{
+		UInheritableComponentHandler* InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(bCreateIfNecessary);
+		if (InheritableComponentHandler)
+		{
+			OverridenComponent = InheritableComponentHandler->GetOverridenComponentTemplate(Key);
+			if (!OverridenComponent && bCreateIfNecessary)
+			{
+				OverridenComponent = InheritableComponentHandler->CreateOverridenComponentTemplate(Key);
+			}
+		}
+	}
+	return OverridenComponent;
 }
 
 //////////////////////////////////////////////////////////////////////////

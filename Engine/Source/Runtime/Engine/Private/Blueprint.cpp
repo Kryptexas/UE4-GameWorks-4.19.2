@@ -22,6 +22,7 @@
 #include "Engine/SCS_Node.h"
 #endif
 #include "Components/TimelineComponent.h"
+#include "Engine/InheritableComponentHandler.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
 
@@ -537,6 +538,11 @@ void UBlueprint::PostLoad()
 	}
 
 	FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(this);
+
+	if (InheritableComponentHandler)
+	{
+		InheritableComponentHandler->RemoveInvalidAndUnnecessaryTemplates();
+	}
 }
 
 void UBlueprint::DebuggingWorldRegistrationHelper(UObject* ObjectProvidingWorld, UObject* ValueToRegister)
@@ -843,6 +849,22 @@ bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)
 	if (const USimpleConstructionScript* SimpleConstructionScript = GeneratedClass->SimpleConstructionScript)
 	{
 		if (!ensure(SimpleConstructionScript->GetOuter() == GeneratedClass))
+		{
+			return false;
+		}
+	}
+
+	if (const UInheritableComponentHandler* InheritableComponentHandler = Blueprint->InheritableComponentHandler)
+	{
+		if (!ensure(InheritableComponentHandler->GetOuter() == GeneratedClass))
+		{
+			return false;
+		}
+	}
+
+	if (const UInheritableComponentHandler* InheritableComponentHandler = GeneratedClass->InheritableComponentHandler)
+	{
+		if (!ensure(InheritableComponentHandler->GetOuter() == GeneratedClass))
 		{
 			return false;
 		}
@@ -1188,6 +1210,24 @@ bool UBlueprint::Modify(bool bAlwaysMarkDirty)
 {
 	bCachedDependenciesUpToDate = false;
 	return Super::Modify(bAlwaysMarkDirty);
+}
+
+UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bCreateIfNecessary)
+{
+	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
+	if (!EnableInheritableComponents)
+	{
+		return NULL;
+	}
+
+	if (!InheritableComponentHandler && bCreateIfNecessary)
+	{
+		auto BPGC = CastChecked<UBlueprintGeneratedClass>(GeneratedClass);
+		ensure(!BPGC->InheritableComponentHandler);
+		InheritableComponentHandler = NewNamedObject<UInheritableComponentHandler>(BPGC, FName(TEXT("InheritableComponentHandler")));
+		BPGC->InheritableComponentHandler = InheritableComponentHandler;
+	}
+	return InheritableComponentHandler;
 }
 
 #endif

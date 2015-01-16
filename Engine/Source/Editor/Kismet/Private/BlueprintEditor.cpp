@@ -677,10 +677,23 @@ void FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes(const TArray<FSCSEdit
 	for (auto NodeIt = SelectedNodes.CreateConstIterator(); NodeIt; ++NodeIt)
 	{
 		auto NodePtr = *NodeIt;
-		if(NodePtr.IsValid() && NodePtr->CanEditDefaults())
+		if (NodePtr.IsValid())
+		{
+			UActorComponent* EditableComponent = nullptr;
+			if (NodePtr->CanEditDefaults())
+			{
+				EditableComponent = NodePtr->GetComponentTemplate();
+			}
+			else if (!NodePtr->IsNative() && NodePtr->IsInherited())
+			{
+				EditableComponent = NodePtr->GetOverridenComponentTemplate(GetBlueprintObj(), true);
+			}
+
+			if (EditableComponent)
 		{
 			InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
-			InspectorObjects.Add(NodePtr->GetComponentTemplate());
+				InspectorObjects.Add(EditableComponent);
+			}
 		}
 	}
 
