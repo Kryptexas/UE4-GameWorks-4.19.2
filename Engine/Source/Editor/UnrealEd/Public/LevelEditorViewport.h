@@ -153,6 +153,7 @@ public:
 	virtual FLinearColor GetBackgroundColor() const override;
 	virtual int32 GetCameraSpeedSetting() const override;
 	virtual void SetCameraSpeedSetting(int32 SpeedSetting) override;
+	virtual void ReceivedFocus(FViewport* Viewport) override;
 	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
 	virtual UWorld* GetWorld() const override;
 
@@ -523,7 +524,6 @@ private:
 	 * Moves the locked actor according to the viewport cameras location and rotation
 	 */
 	void MoveLockedActorToCamera();
-
 	
 	/** @return	Returns true if the delta tracker was used to modify any selected actors or BSP.  Must be called before EndTracking(). */
 	bool HaveSelectedObjectsBeenChanged() const;
@@ -600,8 +600,6 @@ private:
 	 */
 	bool DropObjectsOnWidget(FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, bool bCreateDropPreview = false);
 
-	
-
 	/** Helper functions for ApplyDeltaTo* functions - modifies scale based on grid settings */
 	void ModifyScale( AActor* InActor, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 	void ValidateScale( const FVector& CurrentScale, const FVector& BoxExtent, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
@@ -615,7 +613,7 @@ private:
 public:
 	/** Static: List of objects we're hovering over */
 	static TSet< FViewportHoverTarget > HoveredObjects;
-		
+	
 	/** Parent level editor that owns this viewport.  Currently, this may be null if the parent doesn't happen to be a level editor. */
 	TWeakPtr< class ILevelEditor > ParentLevelEditor;
 
@@ -634,15 +632,14 @@ public:
 
 	FColor					FadeColor;
 
-	
 	float					FadeAmount;
 
 	bool					bEnableFading;
 
 	bool					bEnableColorScaling;
 
-	/** If true then the pivot has been moved independantly of the actor and position updates should not occur when the actor is moved. */
-	bool					bPivotMovedIndependantly;
+	/** If true, the pivot has been moved independently of the actor and position updates should not occur when the actor is moved. */
+	bool					bPivotMovedIndependently;
 
 	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
 	bool					bEditorCameraCut;
@@ -669,6 +666,9 @@ public:
 
 	/** True if this viewport is to change its view (aspect ratio, post processing, FOV etc) to match that of the currently locked camera, if applicable */
 	bool					bLockedCameraView;
+
+	/** Whether this viewport recently received focus. Used to determine whether component selection is permissible. */
+	bool bReceivedFocusRecently;
 
 private:
 	/** The actors that are currently being placed in the viewport via dragging */

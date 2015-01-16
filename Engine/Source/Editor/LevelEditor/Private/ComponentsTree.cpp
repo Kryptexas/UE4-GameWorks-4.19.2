@@ -145,7 +145,7 @@ void SComponentsTree::OnEditorSelectionChanged(UObject* Object)
 	{
 		TArray<UObject*> Objects;
 		auto Selection = Cast<USelection>(Object);
-		if (Selection == GEditor->GetSelectedComponents() && GEditor->GetSelectedComponentCount() > 0)
+		if ( Selection == GEditor->GetSelectedComponents() || Selection == GEditor->GetSelectedActors() )
 		{
 			// Enable the selection guard to prevent OnTreeSelectionChanged() from altering the editor's component selection
 			TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
@@ -162,7 +162,7 @@ void SComponentsTree::OnEditorSelectionChanged(UObject* Object)
 				}
 			}
 
-			PropertyView->SetObjects(Objects, true);
+			PropertyView->SetObjects(Objects);
 		}
 	}
 }
@@ -181,7 +181,7 @@ void SComponentsTree::SetObjects(const TArray<UObject*>& InObjects)
 	}
 	else
 	{
-		Actor = NULL;
+		Actor = nullptr;
 	}
 	Visibility = (Actor.IsValid() ? EVisibility::Visible : EVisibility::Hidden);
 	UpdateTree();
@@ -206,7 +206,7 @@ void SComponentsTree::OnGetChildrenForTree( FComponentTreeNodePtrType InNodePtr,
 
 void SComponentsTree::OnTreeSelectionChanged(FComponentTreeNodePtrType InSelectedNodePtr, ESelectInfo::Type SelectInfo)
 {
-	if (!bSelectionGuard)
+	if (!bSelectionGuard && Actor != nullptr)
 	{
 		// Enable the selection guard to prevent OnEditorSelectionChanged() from altering the contents of TreeWidget
 		TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
