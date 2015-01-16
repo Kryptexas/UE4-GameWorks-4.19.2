@@ -68,6 +68,7 @@ public class Engine : ModuleRules
 				"VectorVM",
 				"Landscape",
                 "UMG",
+				"Projects"
 			}
         );
 
