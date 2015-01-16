@@ -35,12 +35,12 @@ namespace NetworkProfiler
 			{
 				Series.Enabled = false;
 			}
-			NetworkChart.Series[4].Enabled = true;
+			NetworkChart.Series["PropertySize"].Enabled = true;
 			ChartListBox.SetItemChecked(4, true);
-			NetworkChart.Series[8].Enabled = true;
+			NetworkChart.Series["RPCSize"].Enabled = true;
 			ChartListBox.SetItemChecked(8, true);
-			NetworkChart.Series[23].Enabled = true;
-			ChartListBox.SetItemChecked(23, true);
+			NetworkChart.Series["Events"].Enabled = true;
+			ChartListBox.SetItemChecked(27, true);
 
 			// Force the columns to the way we want them
 			SetupColumns( ActorListView,	new String[]	{ "Total Size (KBytes)", "Count", "Average Size (Bytes)", "Average Size (Bits)", "Time (ms)", "Actor Class" });

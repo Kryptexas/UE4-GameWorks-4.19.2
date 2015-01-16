@@ -21,6 +21,7 @@ namespace NetworkProfiler
 		EndOfStreamMarker,			// End of stream marker		
 		Event,						// Event
 		RawSocketData,				// Raw socket data being sent
+		SendAck,					// Ack being sent
 		MaxAndInvalid,				// Invalid token, also used as the max token index
 	}
 
@@ -90,6 +91,9 @@ namespace NetworkProfiler
 					break;
 				case ETokenTypes.RawSocketData:
 					SerializedToken = new TokenRawSocketData( BinaryStream );
+					break;
+				case ETokenTypes.SendAck:
+					SerializedToken = new TokenSendAck( BinaryStream );
 					break;
 				default:
 					throw new InvalidDataException();
@@ -167,6 +171,14 @@ namespace NetworkProfiler
 		public int SocketNameIndex;
 		/** Bytes actually sent by low level code. */
 		public UInt16 BytesSent;
+		/** Number of bits representing the packet id */
+		public UInt16 NumPacketIdBits;
+		/** Number of bits representing bunches */
+		public UInt16 NumBunchBits;
+		/** Number of bits representing acks */
+		public UInt16 NumAckBits;
+		/** Number of bits used for padding */
+		public UInt16 NumPaddingBits;
 		/** IP in network byte order. */
 		public UInt32 NetworkByteOrderIP;
 
@@ -176,6 +188,10 @@ namespace NetworkProfiler
 			ThreadId = BinaryStream.ReadUInt32();
 			SocketNameIndex = BinaryStream.ReadInt32();
 			BytesSent = BinaryStream.ReadUInt16();
+			NumPacketIdBits = BinaryStream.ReadUInt16();
+			NumBunchBits = BinaryStream.ReadUInt16();
+			NumAckBits = BinaryStream.ReadUInt16();
+			NumPaddingBits = BinaryStream.ReadUInt16();
 			NetworkByteOrderIP = BinaryStream.ReadUInt32();
 		}
 
@@ -188,6 +204,11 @@ namespace NetworkProfiler
 			ReturnList.Add( "SOCKET SEND TO" );
 			ReturnList.Add( "   ThreadId      : " + ThreadId );
 			ReturnList.Add( "   SocketName    : " + NetworkStream.GetName(SocketNameIndex) );
+			ReturnList.Add( "   DesiredBytesSent : " + (NumPacketIdBits + NumBunchBits + NumAckBits + NumPaddingBits) / 8.0f );
+			ReturnList.Add( "      NumPacketIdBits  : " + NumPacketIdBits );
+			ReturnList.Add( "      NumBunchBits     : " + NumBunchBits );
+			ReturnList.Add( "      NumAckBits       : " + NumAckBits );
+			ReturnList.Add( "      NumPaddingBits   : " + NumPaddingBits );
 			ReturnList.Add( "   BytesSent     : " + BytesSent );
 			ReturnList.Add( "   Destination   : " + NetworkByteOrderIP );
 			return ReturnList;
@@ -203,15 +224,26 @@ namespace NetworkProfiler
 		public UInt16 ChannelIndex;
 		/** Channel type. */
 		public byte ChannelType;
-		/** Number of bits serialized/ sent. */
-		public UInt16 NumBits;
+		/** Number of header bits serialized/sent. */
+		public UInt16 NumHeaderBits;
+		/** Number of non-header bits serialized/sent. */
+		public UInt16 NumPayloadBits;
 
 		/** Constructor, serializing members from passed in stream. */
 		public TokenSendBunch(BinaryReader BinaryStream)
 		{
 			ChannelIndex = BinaryStream.ReadUInt16();
 			ChannelType = BinaryStream.ReadByte();
-			NumBits = BinaryStream.ReadUInt16();
+			NumHeaderBits = BinaryStream.ReadUInt16();
+			NumPayloadBits = BinaryStream.ReadUInt16();
+		}
+
+		/**
+		 * Gets the total number of bits serialized for the bunch.
+		 */
+		public int GetNumTotalBits()
+		{
+			return NumHeaderBits + NumPayloadBits;
 		}
 
 		/**
@@ -223,8 +255,10 @@ namespace NetworkProfiler
 			ReturnList.Add( "SEND BUNCH" );
 			ReturnList.Add( "   Channel Index : " + ChannelIndex );
 			ReturnList.Add( "   Channel Type  : " + ChannelType );
-			ReturnList.Add( "   NumBits       : " + NumBits );
-			ReturnList.Add( "   NumBytes      : " + NumBits / 8.0f );
+			ReturnList.Add( "   NumTotalBits  : " + GetNumTotalBits() );
+			ReturnList.Add( "      NumHeaderBits : " + NumHeaderBits );
+			ReturnList.Add( "      NumPayloadBits: " + NumPayloadBits );
+			ReturnList.Add( "   NumTotalBytes : " + GetNumTotalBits() / 8.0f );
 			return ReturnList;
 		}
 	}
@@ -238,15 +272,29 @@ namespace NetworkProfiler
 		public int ActorNameIndex;
 		/** Name table index of function name. */
 		public int FunctionNameIndex;
-		/** Number of bits serialized/ sent. */
-		public UInt16 NumBits;
+		/** Number of bits serialized/sent for the header. */
+		public UInt16 NumHeaderBits;
+		/** Number of bits serialized/sent for the parameters. */
+		public UInt16 NumParameterBits;
+		/** Number of bits serialized/sent for the footer. */
+		public UInt16 NumFooterBits;
 
 		/** Constructor, serializing members from passed in stream. */
 		public TokenSendRPC( BinaryReader BinaryStream )
 		{
 			ActorNameIndex = BinaryStream.ReadInt32();
 			FunctionNameIndex = BinaryStream.ReadInt32();
-			NumBits = BinaryStream.ReadUInt16(); 					
+			NumHeaderBits = BinaryStream.ReadUInt16(); 					
+			NumParameterBits = BinaryStream.ReadUInt16();
+			NumFooterBits = BinaryStream.ReadUInt16();
+		}
+
+		/**
+		 * Gets the total number of bits serialized for the RPC.
+		 */
+		public int GetNumTotalBits()
+		{
+			return NumHeaderBits + NumParameterBits + NumFooterBits;
 		}
 
 		/**
@@ -258,8 +306,11 @@ namespace NetworkProfiler
 			ReturnList.Add( "SEND RPC" );
 			ReturnList.Add( "   Actor         : " + NetworkStream.GetName(ActorNameIndex) );
 			ReturnList.Add( "   Function      : " + NetworkStream.GetName(FunctionNameIndex) );
-			ReturnList.Add( "   NumBits       : " + NumBits );
-			ReturnList.Add( "   NumBytes      : " + NumBits / 8.0f );
+			ReturnList.Add( "   NumTotalBits  : " + GetNumTotalBits() );
+			ReturnList.Add( "      NumHeaderBits    : " + NumHeaderBits );
+			ReturnList.Add( "      NumParameterBits : " + NumParameterBits );
+			ReturnList.Add( "      NumFooterBits    : " + NumFooterBits );
+			ReturnList.Add( "   NumTotalBytes : " + GetNumTotalBits() / 8.0f );
 			return ReturnList;
 		}
 
@@ -461,6 +512,33 @@ namespace NetworkProfiler
 		{
 			int Size = BinaryStream.ReadUInt16();
 			RawData = BinaryStream.ReadBytes( Size );
+		}
+	}
+
+	/**
+	 * Token for sent acks.
+	 */
+	class TokenSendAck : TokenBase
+	{
+		/** Number of bits serialized/sent. */
+		public UInt16	NumBits;
+
+		/** Constructor, serializing members from passed in stream. */
+		public TokenSendAck(BinaryReader BinaryStream)
+		{
+			NumBits = BinaryStream.ReadUInt16();
+		}
+
+		/**
+		 * Converts the token into a multi-string description.
+		 */
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
+		{
+			var ReturnList = new List<string>();
+			ReturnList.Add( "SEND ACK" );
+			ReturnList.Add( "   NumBits  : " + NumBits );
+			ReturnList.Add( "   NumBytes : " + NumBits / 8.0f );
+			return ReturnList;
 		}
 	}
 }

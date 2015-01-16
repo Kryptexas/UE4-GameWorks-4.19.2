@@ -7,6 +7,8 @@
 #ifndef UNREAL_NETWORK_PROFILER_H
 #define UNREAL_NETWORK_PROFILER_H
 
+class UNetConnection;
+
 #if USE_NETWORK_PROFILER 
 
 #define NETWORK_PROFILER( x ) if ( GNetworkProfiler.IsTrackingEnabled() ) { x; }
@@ -42,6 +44,30 @@ private:
 
 	/** URL used for current tracking session.														*/
 	FURL									CurrentURL;
+	
+	/** All the data required for writing sent bunches to the profiler stream						*/
+	struct FSendBunchInfo
+	{
+		uint16 ChannelIndex;
+		uint8 ChannelType;
+		uint16 NumHeaderBits;
+		uint16 NumPayloadBits;
+
+		FSendBunchInfo()
+			: ChannelIndex(0)
+			, ChannelType(0)
+			, NumHeaderBits(0)
+			, NumPayloadBits(0) {}
+
+		FSendBunchInfo( uint16 InChannelIndex, uint8 InChannelType, uint16 InNumHeaderBits, uint16 InNumPayloadBits )
+			: ChannelIndex(InChannelIndex)
+			, ChannelType(InChannelType)
+			, NumHeaderBits(InNumHeaderBits)
+			, NumPayloadBits(InNumPayloadBits) {}
+	};
+
+	/** Stack outgoing bunches per connection, the top bunch for a connection may be popped if it gets merged with a new bunch.		*/
+	TMap<UNetConnection*, TArray<FSendBunchInfo>>	OutgoingBunches;
 
 	/**
 	 * Returns index of passed in name into name array. If not found, adds it.
@@ -72,11 +98,13 @@ public:
 	/**
 	 * Tracks and RPC being sent.
 	 * 
-	 * @param	Actor		Actor RPC is being called on
-	 * @param	Function	Function being called
-	 * @param	NumBits		Number of bits serialized into bunch for this RPC
+	 * @param	Actor				Actor RPC is being called on
+	 * @param	Function			Function being called
+	 * @param	NumHeaderBits		Number of bits serialized into the header for this RPC
+	 * @param	NumParameterBits	Number of bits serialized into parameters of this RPC
+	 * @param	NumFooterBits		Number of bits serialized into the footer of this RPC (EndContentBlock)
 	 */
-	void TrackSendRPC( const AActor* Actor, const UFunction* Function, uint16 NumBits );
+	void TrackSendRPC( const AActor* Actor, const UFunction* Function, uint16 NumHeaderBits, uint16 NumParameterBits, uint16 NumFooterBits );
 	
 	/**
 	 * Low level FSocket::Send information.
@@ -93,9 +121,21 @@ public:
  	 * @param	SocketDesc				Description of socket data is being sent to
 	 * @param	Data					Data sent
 	 * @param	BytesSent				Bytes actually being sent
+	 * @param	NumPacketIdBits			Number of bits sent for the packet id
+	 * @param	NumBunchBits			Number of bits sent in bunches
+	 * @param	NumAckBits				Number of bits sent in acks
+	 * @param	NumPaddingBits			Number of bits appended to the end to byte-align the data
 	 * @param	Destination				Destination address
 	 */
-	ENGINE_API void TrackSocketSendTo( const FString& SocketDesc, const void* Data, uint16 BytesSent, const FInternetAddr& Destination );
+	ENGINE_API void TrackSocketSendTo(
+		const FString& SocketDesc,
+		const void* Data,
+		uint16 BytesSent,
+		uint16 NumPacketIdBits,
+		uint16 NumBunchBits,
+		uint16 NumAckBits,
+		uint16 NumPaddingBits,
+		const FInternetAddr& Destination );
 
 	/**
 	 * Low level FSocket::SendTo information.
@@ -105,7 +145,15 @@ public:
 	 * @param	BytesSent				Bytes actually being sent
 	 * @param	IpAddr					Destination address
 	 */
-	void TrackSocketSendToCore( const FString& SocketDesc, const void* Data, uint16 BytesSent, uint32 IpAddr );
+	void TrackSocketSendToCore(
+		const FString& SocketDesc,
+		const void* Data,
+		uint16 BytesSent,
+		uint16 NumPacketIdBits,
+		uint16 NumBunchBits,
+		uint16 NumAckBits,
+		uint16 NumPaddingBits,
+		uint32 IpAddr );
 
 	
 	/**
@@ -116,6 +164,31 @@ public:
 	 */
 	void TrackSendBunch( FOutBunch* OutBunch, uint16 NumBits );
 	
+	/**
+	 * Add a sent bunch to the stack. These bunches are not written to the stream immediately,
+	 * because they may be merged with another bunch in the future.
+	 *
+	 * @param Connection The connection on which this bunch was sent
+	 * @param OutBunch The bunch being sent
+	 * @param NumHeaderBits Number of bits in the bunch header
+	 * @param NumPayloadBits Number of bits in the bunch, excluding the header
+	 */
+	void PushSendBunch( UNetConnection* Connection, FOutBunch* OutBunch, uint16 NumHeaderBits, uint16 NumPayloadBits );
+
+	/**
+	 * Pops the latest bunch for a connection, since it is going to be merged with the next bunch.
+	 *
+	 * @param Connection the connection which is merging a bunch
+	 */
+	void PopSendBunch( UNetConnection* Connection );
+
+	/**
+	 * Writes all the outgoing bunches for a connection in the stack to the profiler data stream.
+	 *
+	 * @param Connection the connection which is about to send any pending bunches over the network
+	 */
+	void FlushOutgoingBunches( UNetConnection* Connection );
+
 	/**
 	 * Track actor being replicated.
 	 *
@@ -148,6 +221,13 @@ public:
 	 * @param	InURL						URL used for new session
 	 */
 	void TrackSessionChange( bool bShouldContinueTracking, const FURL& InURL );
+
+	/**
+	 * Track sent acks.
+	 *
+	 * @param NumBits Number of bits in the ack
+	 */
+	void TrackSendAck( uint16 NumBits );
 
 	/**
 	 * Processes any network profiler specific exec commands

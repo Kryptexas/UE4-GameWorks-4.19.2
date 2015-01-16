@@ -152,7 +152,7 @@ namespace NetworkProfiler
 					else if( Token.TokenType == ETokenTypes.SendRPC )
 					{
 						var TokenSendRPC = Token as TokenSendRPC;
-						NetworkStream.UpdateSummary( ref NetworkStream.RPCNameToSummary, TokenSendRPC.FunctionNameIndex, TokenSendRPC.NumBits, 0.0f );
+						NetworkStream.UpdateSummary( ref NetworkStream.RPCNameToSummary, TokenSendRPC.FunctionNameIndex, TokenSendRPC.GetNumTotalBits(), 0.0f );
 					}
 
 					// Add properties to the actor token instead of network stream and keep track of summary.

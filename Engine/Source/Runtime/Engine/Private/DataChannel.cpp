@@ -730,7 +730,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		OutBunch                       = Connection->LastOutBunch;
 		Bunch                          = &Connection->LastOut;
 		check(!Bunch->IsError());
-		Connection->LastStart.Pop( Connection->SendBuffer );
+		Connection->PopLastStart();
 		Connection->Driver->OutBunches--;
 	}
 
@@ -821,8 +821,6 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		{
 			UE_LOG(LogNetPartialBunch, Verbose, TEXT("	Bunch[%d]: Bytes: %d Bits: %d ChSequence: %d 0x%X"), PartialNum, ThisOutBunch->GetNumBytes(), ThisOutBunch->GetNumBits(), ThisOutBunch->ChSequence, FCrc::MemCrc_DEPRECATED(ThisOutBunch->GetData(), ThisOutBunch->GetNumBytes()));
 		}
-
-		NETWORK_PROFILER(GNetworkProfiler.TrackSendBunch(ThisOutBunch,ThisOutBunch->GetNumBits()-PreExistingBits));
 
 		// Update Packet Range
 		int32 PacketId = SendRawBunch(ThisOutBunch, Merge);

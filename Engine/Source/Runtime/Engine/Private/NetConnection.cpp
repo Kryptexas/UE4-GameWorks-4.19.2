@@ -425,6 +425,8 @@ void UNetConnection::InitSendBuffer()
 		SendBuffer = FBitWriter(MaxPacket * 8);
 	}
 
+	ResetPacketBitCounts();
+
 	ValidateSendBuffer();
 }
 
@@ -482,6 +484,8 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			WriteBitsToSendBuffer( NULL, 0 );		// This will force the packet id to be written
 		}
 
+		const int NumBitsPrePadding = SendBuffer.GetNumBits();
+
 		// Make sure packet size is byte-aligned.
 		SendBuffer.WriteBit( 1 );
 		while( SendBuffer.GetNumBits() & 7 )
@@ -489,6 +493,10 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			SendBuffer.WriteBit( 0 );
 		}
 		ValidateSendBuffer();
+
+		NumPaddingBits += SendBuffer.GetNumBits() - NumBitsPrePadding;
+
+		NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
 
 		// Send now.
 #if DO_ENABLE_NET_TEST
@@ -1006,7 +1014,8 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	const uint8 *	Bits, 
 	const int32		SizeInBits, 
 	const uint8 *	ExtraBits, 
-	const int32		ExtraSizeInBits )
+	const int32		ExtraSizeInBits,
+	EWriteBitsDataType DataType)
 {
 	ValidateSendBuffer();
 
@@ -1027,6 +1036,8 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	{
 		SendBuffer.WriteIntWrapped( OutPacketId, MAX_PACKETID );
 		ValidateSendBuffer();
+
+		NumPacketIdBits += SendBuffer.GetNumBits();
 	}
 
 	// Add the bits to the queue
@@ -1044,6 +1055,18 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	}
 
 	const int32 RememberedPacketId = OutPacketId;
+
+	switch ( DataType )
+	{
+		case EWriteBitsDataType::Bunch:
+			NumBunchBits += SizeInBits + ExtraSizeInBits;
+			break;
+		case EWriteBitsDataType::Ack:
+			NumAckBits += SizeInBits + ExtraSizeInBits;
+			break;
+		default:
+			break;
+	}
 
 	// Flush now if we are full
 	if ( GetFreeSendBufferBits() == 0 )
@@ -1066,6 +1089,13 @@ int64 UNetConnection::GetFreeSendBufferBits()
 	check( NumberOfFreeBits >= 0 );
 
 	return NumberOfFreeBits;
+}
+
+void UNetConnection::PopLastStart()
+{
+	NumBunchBits -= SendBuffer.GetNumBits() - LastStart.GetNumBits();
+	LastStart.Pop(SendBuffer);
+	NETWORK_PROFILER(GNetworkProfiler.PopSendBunch(this));
 }
 
 void UNetConnection::PurgeAcks()
@@ -1108,7 +1138,9 @@ void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHav
 			}
 		}
 
-		WriteBitsToSendBuffer( AckData.GetData(), AckData.GetNumBits() );
+		NETWORK_PROFILER( GNetworkProfiler.TrackSendAck( AckData.GetNumBits() ) );
+
+		WriteBitsToSendBuffer( AckData.GetData(), AckData.GetNumBits(), nullptr, 0, EWriteBitsDataType::Ack );
 
 		AllowMerge = false;
 
@@ -1177,8 +1209,10 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 		UE_LOG(LogNetTraffic, VeryVerbose, TEXT("Sending: %s"), *Bunch.ToString());
 	}
 
+	NETWORK_PROFILER(GNetworkProfiler.PushSendBunch(this, &Bunch, Header.GetNumBits(), Bunch.GetNumBits()));
+
 	// Write the bits to the buffer and remember the packet id used
-	Bunch.PacketId = WriteBitsToSendBuffer( Header.GetData(), Header.GetNumBits(), Bunch.GetData(), Bunch.GetNumBits() );
+	Bunch.PacketId = WriteBitsToSendBuffer( Header.GetData(), Header.GetNumBits(), Bunch.GetData(), Bunch.GetNumBits(), EWriteBitsDataType::Bunch );
 
 	UE_LOG(LogNetTraffic, Verbose, TEXT("UNetConnection::SendRawBunch. ChIndex: %d. Bits: %d. PacketId: %d"), Bunch.ChIndex, Bunch.GetNumBits(), Bunch.PacketId );
 
@@ -1832,3 +1866,10 @@ bool UNetConnection::TrackLogsPerSecond()
 	return true;
 }
 
+void UNetConnection::ResetPacketBitCounts()
+{
+	NumPacketIdBits = 0;
+	NumBunchBits = 0;
+	NumAckBits = 0;
+	NumPaddingBits = 0;
+}

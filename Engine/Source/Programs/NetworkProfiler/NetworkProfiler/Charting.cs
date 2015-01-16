@@ -63,6 +63,10 @@ namespace NetworkProfiler
 				NetworkChart.Series["RPCCountSec"].Points.AddXY( FrameCounter, Frame.RPCCount * OneOverDeltaTime );
 				NetworkChart.Series["RPCSize"].Points.AddXY( FrameCounter, Frame.RPCSizeBits / 8 );
 				NetworkChart.Series["RPCSizeSec"].Points.AddXY( FrameCounter, Frame.RPCSizeBits / 8 * OneOverDeltaTime );
+				NetworkChart.Series["SendAckCount"].Points.AddXY( FrameCounter, Frame.SendAckCount );
+				NetworkChart.Series["SendAckCountSec"].Points.AddXY( FrameCounter, Frame.SendAckCount * OneOverDeltaTime );
+				NetworkChart.Series["SendAckSize"].Points.AddXY( FrameCounter, Frame.SendAckSizeBits / 8 );
+				NetworkChart.Series["SendAckSizeSec"].Points.AddXY( FrameCounter, Frame.SendAckSizeBits / 8 * OneOverDeltaTime );
 				NetworkChart.Series["SendBunchCount"].Points.AddXY( FrameCounter, Frame.SendBunchCount );
 				NetworkChart.Series["SendBunchCountSec"].Points.AddXY( FrameCounter, Frame.SendBunchCount * OneOverDeltaTime );
 				NetworkChart.Series["SendBunchSize"].Points.AddXY( FrameCounter, Frame.SendBunchSizeBits / 8 );

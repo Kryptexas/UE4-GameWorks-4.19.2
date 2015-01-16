@@ -833,6 +833,8 @@ void UNetDriver::InternalProcessRemoteFunction
 	check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
 	Bunch.WriteIntWrapped(FieldCache->FieldNetIndex, ClassCache->GetMaxIndex()+1);
 
+	const int HeaderBits = Bunch.GetNumBits();
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	Bunch.DebugString = FString::Printf(TEXT("%.2f RPC: %s - %s"), Connection->Driver->Time, *Actor->GetName(), *Function->GetName());
 #endif
@@ -930,6 +932,8 @@ void UNetDriver::InternalProcessRemoteFunction
 	TSharedPtr<FRepLayout> RepLayout = GetFunctionRepLayout( Function );
 	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, Bunch, Parms );
 
+	const int ParameterBits = Bunch.GetNumBits() - HeaderBits;
+
 	// Destroy the memory used for the copied out parameters
 	for ( int32 i = 0; i < LocalOutParms.Num(); i++ )
 	{
@@ -942,6 +946,8 @@ void UNetDriver::InternalProcessRemoteFunction
 	{
 		Ch->EndContentBlock( TargetObj, Bunch );
 	}
+
+	const int FooterBits = Bunch.GetNumBits() - HeaderBits - ParameterBits;
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.RPC.Debug"));
 	bool LogAsWarning = (CVar && CVar->GetValueOnGameThread() == 1);
@@ -981,7 +987,10 @@ void UNetDriver::InternalProcessRemoteFunction
 			UE_LOG(LogNetTraffic, Log,		TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
 		}
 
-		NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor,Function,Bunch.GetNumBits()));
+		// Make sure we're tracking all the bits in the bunch
+		check(Bunch.GetNumBits() == HeaderBits + ParameterBits + FooterBits);
+
+		NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, FooterBits));
 		Ch->SendBunch( &Bunch, 1 );
 	}
 }

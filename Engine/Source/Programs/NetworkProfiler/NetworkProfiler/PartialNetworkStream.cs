@@ -68,6 +68,13 @@ namespace NetworkProfiler
 		/** Total size of bytes sent on non-"Unreal" socket type. */
 		public int OtherSocketSize = 0;
 
+		// Acks
+		
+		/** Number of acks sent. */
+		public int SendAckCount = 0;
+		/** Total size of acks sent. */
+		public int SendAckSizeBits = 0;
+
 		// Detailed information.
 
 		/** List of all tokens in this substream. */
@@ -203,14 +210,14 @@ namespace NetworkProfiler
 					case ETokenTypes.SendBunch:
 						var TokenSendBunch = (TokenSendBunch) Token;
 						SendBunchCount++;
-						SendBunchSizeBits += TokenSendBunch.NumBits;
+						SendBunchSizeBits += TokenSendBunch.GetNumTotalBits();
 						SendBunchCountPerChannel[TokenSendBunch.ChannelType]++;
-						SendBunchSizeBitsPerChannel[TokenSendBunch.ChannelType] += TokenSendBunch.NumBits;
+						SendBunchSizeBitsPerChannel[TokenSendBunch.ChannelType] += TokenSendBunch.GetNumTotalBits();
 						break;
 					case ETokenTypes.SendRPC:
 						var TokenSendRPC = (TokenSendRPC) Token;
 						RPCCount++;
-						RPCSizeBits += TokenSendRPC.NumBits;
+						RPCSizeBits += TokenSendRPC.GetNumTotalBits();
 						break;
 					case ETokenTypes.ReplicateActor:
 						var TokenReplicateActor = (TokenReplicateActor) Token;
@@ -230,6 +237,11 @@ namespace NetworkProfiler
 						NumEvents++;
 						break;
 					case ETokenTypes.RawSocketData:
+						break;
+					case ETokenTypes.SendAck:
+						var TokenSendAck = (TokenSendAck) Token;
+						SendAckCount++;
+						SendAckSizeBits += TokenSendAck.NumBits;
 						break;
 					default:
 						throw new System.IO.InvalidDataException();
@@ -413,45 +425,49 @@ namespace NetworkProfiler
 									"Replicated Size        : {5}^"		+
 									"RPC Count              : {6}^"		+
 									"RPC Size               : {7}^"		+
-									"SendBunch Count        : {8}^"		+
-									"   Control             : {9}^"		+
-									"   Actor               : {10}^"	+
-									"   File                : {11}^"	+
-									"   Voice               : {12}^"	+
-									"SendBunch Size         : {13}^"	+
-									"   Control             : {14}^"	+
-									"   Actor               : {15}^"	+
-									"   File                : {16}^"	+
-									"   Voice               : {17}^"	+
-									"Game Socket Send Count : {18}^"	+
-									"Game Socket Send Size  : {19}^"	+
-									"Misc Socket Send Count : {20}^"	+
-									"Misc Socket Send Size  : {21}^"	+
-									"Outgoing bandwidth     : {22}^"	+
+									"Sent ack count         : {8}^"		+
+									"Sent ack size          : {9}^"		+
+									"SendBunch Count        : {10}^"	+
+									"   Control             : {11}^"	+
+									"   Actor               : {12}^"	+
+									"   File                : {13}^"	+
+									"   Voice               : {14}^"	+
+									"SendBunch Size         : {15}^"	+
+									"   Control             : {16}^"	+
+									"   Actor               : {17}^"	+
+									"   File                : {18}^"	+
+									"   Voice               : {19}^"	+
+									"Game Socket Send Count : {20}^"	+
+									"Game Socket Send Size  : {21}^"	+
+									"Misc Socket Send Count : {22}^"	+
+									"Misc Socket Send Size  : {23}^"	+
+									"Outgoing bandwidth     : {24}^"	+
 									"^"									+
 									"^"									+
 									"Network Summary per second^"		+
 									"^"									+
-									"Actor Count            : {23}^"	+
-									"Property Count         : {24}^"	+
-									"Replicated Size        : {25}^"	+
-									"RPC Count              : {26}^"	+
-									"RPC Size               : {27}^"	+
-									"SendBunch Count        : {28}^"	+
-									"   Control             : {29}^"	+
-									"   Actor               : {30}^"	+
-									"   File                : {31}^"	+
-									"   Voice               : {32}^"	+
-									"SendBunch Size         : {33}^"	+
-									"   Control             : {34}^"	+
-									"   Actor               : {35}^"	+
-									"   File                : {36}^"	+
-									"   Voice               : {37}^"	+
-									"Game Socket Send Count : {38}^"	+
-									"Game Socket Send Size  : {39}^"	+
-									"Misc Socket Send Count : {40}^"	+
-									"Misc Socket Send Size  : {41}^"	+
-									"Outgoing bandwidth     : {42}^";
+									"Actor Count            : {25}^"	+
+									"Property Count         : {26}^"	+
+									"Replicated Size        : {27}^"	+
+									"RPC Count              : {28}^"	+
+									"RPC Size               : {29}^"	+
+									"Sent ack count         : {30}^"	+
+									"Sent ack size          : {31}^"	+
+									"SendBunch Count        : {32}^"	+
+									"   Control             : {33}^"	+
+									"   Actor               : {34}^"	+
+									"   File                : {35}^"	+
+									"   Voice               : {36}^"	+
+									"SendBunch Size         : {37}^"	+
+									"   Control             : {38}^"	+
+									"   Actor               : {39}^"	+
+									"   File                : {40}^"	+
+									"   Voice               : {41}^"	+
+									"Game Socket Send Count : {42}^"	+
+									"Game Socket Send Size  : {43}^"	+
+									"Misc Socket Send Count : {44}^"	+
+									"Misc Socket Send Size  : {45}^"	+
+									"Outgoing bandwidth     : {46}^";
 
 			float OneOverDeltaTime = 1 / (EndTime - StartTime);
 
@@ -464,6 +480,8 @@ namespace NetworkProfiler
 									ConvertToSizeString(ReplicatedSizeBits / 8.0f),
 									ConvertToCountString(RPCCount),
 									ConvertToSizeString(RPCSizeBits / 8.0f),
+									ConvertToCountString(SendAckCount),
+									ConvertToSizeString(SendAckSizeBits / 8.0f),
 									ConvertToCountString(SendBunchCount),
 									ConvertToCountString(SendBunchCountPerChannel[(int)EChannelTypes.Control]),
 									ConvertToCountString(SendBunchCountPerChannel[(int)EChannelTypes.Actor]),
@@ -484,6 +502,8 @@ namespace NetworkProfiler
 									ConvertToSizeString(ReplicatedSizeBits / 8.0f * OneOverDeltaTime),
 									ConvertToCountString(RPCCount * OneOverDeltaTime),
 									ConvertToSizeString(RPCSizeBits / 8.0f * OneOverDeltaTime),
+									ConvertToCountString(SendAckCount * OneOverDeltaTime),
+									ConvertToSizeString(SendAckSizeBits / 8.0f * OneOverDeltaTime),
 									ConvertToCountString(SendBunchCount * OneOverDeltaTime),
 									ConvertToCountString(SendBunchCountPerChannel[(int)EChannelTypes.Control] * OneOverDeltaTime),
 									ConvertToCountString(SendBunchCountPerChannel[(int)EChannelTypes.Actor] * OneOverDeltaTime),
