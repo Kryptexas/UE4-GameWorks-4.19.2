@@ -159,7 +159,7 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 			ModOpString = "Other";
 			break;
 		}
-		FText ModString = FText::Format(LOCTEXT("ModOpAndValue", "{0}: {1}"), FText::FromString(ModString), FText::AsNumber(GameplayEffect->Modifiers[Idx].Magnitude.Value));
+		FText ModString = FText::Format(LOCTEXT("ModOpAndValue", "{0}: {1}"), FText::FromString(ModOpString), FText::AsNumber(GameplayEffect->Modifiers[Idx].Magnitude.Value));
 
 		RightNodeBox->AddSlot()
 			.VAlign(VAlign_Center)
