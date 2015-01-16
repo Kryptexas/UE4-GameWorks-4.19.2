@@ -898,6 +898,7 @@ void UEdGraphSchema_K2::ReplaceSelectedNode(UEdGraphNode* SourceNode, AActor* Ta
 
 			LiteralNode->Modify();
 			LiteralNode->SetObjectRef( TargetActor );
+			LiteralNode->ReconstructNode();
 			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(SourceNode->GetOuter()));
 			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 		}

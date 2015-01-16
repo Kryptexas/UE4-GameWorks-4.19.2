@@ -5131,6 +5131,10 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 			NewActor->PostEditMove(true);
 			NewActor->MarkPackageDirty();
 
+			// Replace references in the level script Blueprint with the new Actor
+			ULevelScriptBlueprint* LSB = NewActor->GetLevel()->GetLevelScriptBlueprint(true);
+			FBlueprintEditorUtils::ReplaceAllActorRefrences(LSB, OldActor, NewActor);
+
 			GEditor->Layers->DisassociateActorFromLayers( OldActor );
 			World->EditorDestroyActor(OldActor, true);
 		}

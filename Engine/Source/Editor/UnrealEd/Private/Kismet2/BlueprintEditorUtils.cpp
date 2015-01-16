@@ -5559,6 +5559,39 @@ int32 FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(ULevelScrip
 	return RefCount;
 }
 
+void FBlueprintEditorUtils::ReplaceAllActorRefrences(ULevelScriptBlueprint* InLevelScriptBlueprint, AActor* InOldActor, AActor* InNewActor)
+{
+	InLevelScriptBlueprint->Modify();
+	FBlueprintEditorUtils::MarkBlueprintAsModified(InLevelScriptBlueprint);
+
+	// Literal nodes are the common "get" type nodes and need to be updated with the new object reference
+	TArray< UK2Node_Literal* > LiteralNodes;
+	FBlueprintEditorUtils::GetAllNodesOfClass(InLevelScriptBlueprint, LiteralNodes);
+
+	for( UK2Node_Literal* LiteralNode : LiteralNodes )
+	{
+		if(LiteralNode->GetObjectRef() == InOldActor)
+		{
+			LiteralNode->Modify();
+			LiteralNode->SetObjectRef(InNewActor);
+			LiteralNode->ReconstructNode();
+		}
+	}
+
+	// Actor Bound Events reference the actors as well and need to be updated
+	TArray< UK2Node_ActorBoundEvent* > ActorEventNodes;
+	FBlueprintEditorUtils::GetAllNodesOfClass(InLevelScriptBlueprint, ActorEventNodes);
+
+	for( UK2Node_ActorBoundEvent* ActorEventNode : ActorEventNodes )
+	{
+		if(ActorEventNode->GetReferencedLevelActor() == InOldActor)
+		{
+			ActorEventNode->Modify();
+			ActorEventNode->EventOwner = InNewActor;
+			ActorEventNode->ReconstructNode();
+		}
+	}
+}
 
 void  FBlueprintEditorUtils::ModifyActorReferencedGraphNodes(ULevelScriptBlueprint* LevelScriptBlueprint, const AActor* InActor)
 {
