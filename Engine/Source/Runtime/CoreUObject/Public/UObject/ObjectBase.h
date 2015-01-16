@@ -1263,6 +1263,7 @@ typedef uint32 ERenameFlags;
 #define REN_DontCreateRedirectors (0x0010) // Don't create an object redirector, even if the class is marked RF_Public
 #define REN_NonTransactional	(0x0020) // Don't call Modify() on the objects, so they won't be stored in the transaction buffer
 #define REN_ForceGlobalUnique	(0x0040) // Force unique names across all packages not just while the scope of the new outer
+#define REN_SkipGeneratedClasses (0x0080) // Prevent renaming of any child generated classes and CDO's in blueprints
 
 /*-----------------------------------------------------------------------------
 	Misc.
