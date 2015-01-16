@@ -193,16 +193,50 @@ namespace ELandscapeLODFalloff
 
 struct FCachedLandscapeFoliage
 {
-	struct FPerGrassComp
+	struct FGrassCompKey
 	{
+		TWeakObjectPtr<ULandscapeComponent> BasedOn;
+		TWeakObjectPtr<ULandscapeLayerInfoObject> Layer;
+		int32 SqrtSubsections;
+		int32 CachedMaxInstancesPerComponent;
+		int32 SubsectionX;
+		int32 SubsectionY;
+
+		FGrassCompKey()
+			: SqrtSubsections(0)
+			, CachedMaxInstancesPerComponent(0)
+			, SubsectionX(0)
+			, SubsectionY(0)
+		{
+		}
+		inline bool operator==(const FGrassCompKey& Other) const
+		{
+			return 
+				SqrtSubsections == Other.SqrtSubsections &&
+				CachedMaxInstancesPerComponent == Other.CachedMaxInstancesPerComponent &&
+				SubsectionX == Other.SubsectionX &&
+				SubsectionY == Other.SubsectionY &&
+				BasedOn == Other.BasedOn &&
+				Layer == Other.Layer;
+		}
+
+		friend uint32 GetTypeHash(const FGrassCompKey& Key)
+		{
+			return GetTypeHash(Key.BasedOn) ^ GetTypeHash(Key.Layer) ^ Key.SqrtSubsections ^ Key.CachedMaxInstancesPerComponent ^ (Key.SubsectionX >> 16) ^ (Key.SubsectionY >> 24);
+		}
+
+	};
+
+	struct FGrassComp
+	{
+		FGrassCompKey Key;
 		TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
 		uint32 LastUsedFrameNumber;
 		double LastUsedTime;
 		bool Pending;
 
-		FPerGrassComp(UHierarchicalInstancedStaticMeshComponent* InFoliage)
-			: Foliage(InFoliage)
-			, Pending(true)
+		FGrassComp()
+			: Pending(true)
 		{
 			Touch();
 		}
@@ -212,35 +246,31 @@ struct FCachedLandscapeFoliage
 			LastUsedTime = FPlatformTime::Seconds();
 		}
 	};
-	struct FPerLayer
-	{
-		int32 SqrtSubsections;
-		int32 CachedMaxInstancesPerComponent;
-		TArray<FPerGrassComp> Foliage;
-		TWeakObjectPtr<ULandscapeLayerInfoObject> Layer;
 
-		FPerLayer(int32 InSqrtSubsections, int32 InCachedMaxInstancesPerComponent, ULandscapeLayerInfoObject* InLayer)
-			: SqrtSubsections(InSqrtSubsections)
-			, CachedMaxInstancesPerComponent(InCachedMaxInstancesPerComponent)
-			, Layer(InLayer)
-		{
-			Foliage.Reserve(SqrtSubsections * SqrtSubsections);
-		}
-	};
-	struct FPerComponent
+	struct FGrassCompKeyFuncs : BaseKeyFuncs<FGrassComp,FGrassCompKey>
 	{
-		TWeakObjectPtr<ULandscapeComponent> BasedOn;
-		TArray<FPerLayer> Layers;
-		FPerComponent(ULandscapeComponent* InBasedOn)
-			: BasedOn(InBasedOn)
+		static KeyInitType GetSetKey(const FGrassComp& Element)
 		{
+			return Element.Key;
+		}
+
+		static bool Matches(KeyInitType A, KeyInitType B)
+		{
+			return A == B;
+		}
+
+		static uint32 GetKeyHash(KeyInitType Key)
+		{
+			return GetTypeHash(Key);
 		}
 	};
-	TArray<FPerComponent> PerComponent;
+
+	typedef TSet<FGrassComp, FGrassCompKeyFuncs> TGrassSet;
+	TSet<FGrassComp, FGrassCompKeyFuncs> CachedGrassComps;
 
 	void ClearCache()
 	{
-		PerComponent.Empty();
+		CachedGrassComps.Empty();
 	}
 };
 
@@ -248,15 +278,13 @@ class FAsyncGrassTask : public FNonAbandonableTask
 {
 public:
 	struct FAsyncGrassBuilder* Builder;
-	TWeakObjectPtr<ULandscapeComponent> BasedOn;
+	FCachedLandscapeFoliage::FGrassCompKey Key;
 	TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
-	TWeakObjectPtr<ULandscapeLayerInfoObject> Layer;
 
-	FAsyncGrassTask(struct FAsyncGrassBuilder* InBuilder, ULandscapeComponent* InBasedOn, UHierarchicalInstancedStaticMeshComponent* InFoliage, ULandscapeLayerInfoObject* InLayer)
+	FAsyncGrassTask(struct FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage)
 		: Builder(InBuilder)
-		, BasedOn(InBasedOn)
+		, Key(InKey)
 		, Foliage(InFoliage)
-		, Layer(InLayer)
 	{
 	}
 	void DoWork();
