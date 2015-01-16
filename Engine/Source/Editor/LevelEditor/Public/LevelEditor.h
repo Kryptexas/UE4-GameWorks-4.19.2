@@ -223,9 +223,6 @@ public:
 	DECLARE_EVENT( FLevelEditorModule, FTakeHighResScreenShotsEvent );
 	virtual FTakeHighResScreenShotsEvent& OnTakeHighResScreenShots() { return TakeHighResScreenShotsEvent; }
 
-	/** Determines whether the level editor can be recompiled on the fly. */
-	inline bool CanBeRecompiled() const { return bCanBeRecompiled; }
-
 private:
 	/**
 	 * Binds all global level editor commands to delegates
@@ -289,9 +286,6 @@ private:
 
 	/* Holds the Editor's tab manager */
 	TSharedPtr<FTabManager> LevelEditorTabManager;
-
-	/* Whether we have source for the level editor, and it can be recompiled. */
-	bool bCanBeRecompiled;
 };
 
 #endif // __LevelEditor_h__
