@@ -2415,7 +2415,7 @@ void FMaterialEditor::OnGoToDocumentation()
 	FString DocumentationLink = GetDocLinkForSelectedNode();
 	if (!DocumentationLink.IsEmpty())
 	{
-		IDocumentation::Get()->Open(DocumentationLink);
+		IDocumentation::Get()->Open(DocumentationLink, FDocumentationSourceInfo(TEXT("rightclick_matnode")));
 	}
 }
 

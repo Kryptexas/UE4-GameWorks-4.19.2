@@ -113,7 +113,7 @@ bool FLevelEditorActionCallbacks::DefaultCanExecuteAction()
 
 void FLevelEditorActionCallbacks::BrowseDocumentation()
 {
-	IDocumentation::Get()->OpenHome();
+	IDocumentation::Get()->OpenHome(FDocumentationSourceInfo(TEXT("help_menu")));
 }
 
 void FLevelEditorActionCallbacks::BrowseAPIReference()
@@ -992,7 +992,7 @@ void FLevelEditorActionCallbacks::GoToDocsForActor_Clicked()
 		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedActorInfo.SelectionClass);
 		if (!DocumentationLink.IsEmpty())
 		{
-			IDocumentation::Get()->Open( DocumentationLink );
+			IDocumentation::Get()->Open( DocumentationLink, FDocumentationSourceInfo(TEXT("rightclick_viewdoc")) );
 		}
 	}
 }

@@ -528,7 +528,7 @@ void FAssetEditorToolkit::FindInContentBrowser_Execute()
 
 void FAssetEditorToolkit::BrowseDocumentation_Execute() const
 {
-	IDocumentation::Get()->Open(GetDocumentationLink());
+	IDocumentation::Get()->Open(GetDocumentationLink(), FDocumentationSourceInfo(TEXT("help_menu_asset")));
 }
 
 void FAssetEditorToolkit::ViewReferences_Execute()

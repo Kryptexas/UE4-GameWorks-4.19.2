@@ -40,7 +40,7 @@ TSharedRef< FUDNParser > FUDNParser::Create( const TSharedPtr< FParserConfigurat
 		{
 			static void OpenLink( const FString& Link )
 			{
-				if ( !IDocumentation::Get()->Open( Link ) )
+				if ( !IDocumentation::Get()->Open( Link, FDocumentationSourceInfo(TEXT("udn_parser")) ) )
 				{
 					FNotificationInfo Info( NSLOCTEXT("FUDNParser", "FailedToOpenLink", "Failed to Open Link") );
 					FSlateNotificationManager::Get().AddNotification(Info);
@@ -1220,7 +1220,7 @@ void FUDNParser::NavigateToLink( FString AdditionalContent )
 	{
 		// external link to documentation
 		FString DocLink = AdditionalContent.RightChop(DocLinkSpecifier.Len());
-		IDocumentation::Get()->Open(DocLink);
+		IDocumentation::Get()->Open(DocLink, FDocumentationSourceInfo(TEXT("udn_parser")));
 	}
 	else if ( AdditionalContent.StartsWith( TutorialLinkSpecifier ) )
 	{

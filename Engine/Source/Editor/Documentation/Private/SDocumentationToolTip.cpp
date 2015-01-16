@@ -274,7 +274,7 @@ void SDocumentationToolTip::ConstructFullTipContent()
 				{
 					static void OpenLink( FString Link )
 					{
-						if ( !IDocumentation::Get()->Open( Link ) )
+						if (!IDocumentation::Get()->Open(Link, FDocumentationSourceInfo(TEXT("rich_tooltips"))))
 						{
 							FNotificationInfo Info( NSLOCTEXT("SToolTip", "FailedToOpenLink", "Failed to Open Link") );
 							FSlateNotificationManager::Get().AddNotification(Info);
