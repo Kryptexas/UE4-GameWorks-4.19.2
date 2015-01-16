@@ -11,12 +11,13 @@
 UObjectPropertyBase::~UObjectPropertyBase()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	// @TODO: sometimes PropertyClass is freed memory, so operating on it causes 
-	//        a crash
-// 	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
-// 	{
-// 		PlaceholderClass->ReferencingProperties.Remove(this);
-// 	}
+	if (PropertyClass->IsValidLowLevelFast(/*bRecursive =*/false))
+	{
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
+		{
+			PlaceholderClass->RemoveTrackedReference(this);
+		}
+	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
@@ -93,7 +94,7 @@ void UObjectPropertyBase::Serialize( FArchive& Ar )
 	{
 		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
 		{
-			PlaceholderClass->ReferencingProperties.Add(this);
+			PlaceholderClass->AddTrackedReference(this);
 		}
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

@@ -2879,7 +2879,8 @@ void ULinkerLoad::Preload( UObject* Object )
 					SCOPE_CYCLE_COUNTER(STAT_LinkerLoadDeferred);
 					if ((LoadFlags & LOAD_DeferDependencyLoads) != (*LoadFlagsGuard & LOAD_DeferDependencyLoads))
 					{
-						ResolveDeferredDependencies(ObjectAsClass);
+						ResolveDeferredDependencies();
+						FinalizeBlueprint(ObjectAsClass);
 					}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 				}
@@ -3449,6 +3450,10 @@ UObject* ULinkerLoad::CreateImport( int32 Index )
 	FObjectImport& Import = ImportMap[ Index ];
 	
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	// if this Import could possibly introduce a circular load (and we're 
+	// actively trying to avoid that at this point in the load process), then 
+	// this will stub in the Import with a placeholder object, to be replace 
+	// later on (this will return true if the import was actually deferred)
 	DeferPotentialCircularImport(Index);
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 

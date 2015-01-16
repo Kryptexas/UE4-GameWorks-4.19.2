@@ -1919,6 +1919,8 @@ public:
 	{
 	}
 
+	virtual ~UClassProperty();
+
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
@@ -2000,6 +2002,8 @@ public:
 		,	InterfaceClass( InInterfaceClass )
 	{
 	}
+
+	virtual ~UInterfaceProperty();
 
 	// UHT interface
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;

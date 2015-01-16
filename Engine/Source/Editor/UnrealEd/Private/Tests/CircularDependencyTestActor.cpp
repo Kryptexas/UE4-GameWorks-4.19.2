@@ -108,6 +108,13 @@ bool ACircularDependencyTestActor::TestVerifyIsBlueprintTypeVar(FName VarName, b
 			return true;
 		}
 	}
+	else if (UInterfaceProperty* InterfaceProp = Cast<UInterfaceProperty>(VarProperty))
+	{
+		if (bCheckPropertyType && Cast<UBlueprintGeneratedClass>(InterfaceProp->InterfaceClass) != nullptr)
+		{
+			return true;
+		}
+	}
 	return !bCheckPropertyType;
 }
 
@@ -118,6 +125,28 @@ bool ACircularDependencyTestActor::RunVerificationTests_Implementation()
 
 bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, uint8* Container, bool bCheckPropertyType)
 {
+	auto TestVerifyClass = [](UClass* ClassToVerify)->bool
+	{
+		return (ClassToVerify != nullptr) && !IsPlaceholderClass(ClassToVerify);
+	};
+
+	bool bBelongsToThisBlueprintClass = false;
+	if (UClass* OwnerClass = Property->GetOwnerClass())
+	{
+		bBelongsToThisBlueprintClass = (OwnerClass == GetClass()) && (Cast<UBlueprintGeneratedClass>(OwnerClass) != nullptr);
+		if (UClass* SuperClass = OwnerClass->GetSuperClass())
+		{
+			FMemberReference VarRef;
+			VarRef.SetExternalMember(Property->GetFName(), SuperClass);
+			// make sure the parent doesn't have this variable
+			bBelongsToThisBlueprintClass &= (VarRef.ResolveMember<UProperty>(GetClass()) == nullptr);
+		}
+	}
+	else if (UStruct* OwnerStruct = Property->GetOwnerStruct())
+	{
+
+	}
+
 	if (UObjectProperty* ObjProp = Cast<UObjectProperty>(Property))
 	{
 		UClass* ClassToVerify = ObjProp->PropertyClass;
@@ -126,36 +155,30 @@ bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, uint8
 			ClassToVerify = Cast<UClass>(ClassProp->GetPropertyValue_InContainer(Container));
 		}
 
-		if (ClassToVerify == nullptr || IsPlaceholderClass(ClassToVerify))
+		if (!TestVerifyClass(ClassToVerify))
+		{
+			return false;
+		}		
+
+		if (bBelongsToThisBlueprintClass)
+		{
+			// assume any object properties that we've added to the BP 
+			// directly should be circular refs (and thus, pointers to other blueprint types) 
+			return TestVerifyIsBlueprintTypeVar(Property->GetFName(), bCheckPropertyType);
+		}
+	}
+	else if (UInterfaceProperty* InterfaceProp = Cast<UInterfaceProperty>(Property))
+	{
+		if (!TestVerifyClass(InterfaceProp->InterfaceClass))
 		{
 			return false;
 		}
 
-		//if (bVerifyObjTypes)
+		if (bBelongsToThisBlueprintClass)
 		{
-			bool bIsBlueprintSubClassProperty = false;
-			if (UClass* OwnerClass = Property->GetOwnerClass())
-			{
-				bIsBlueprintSubClassProperty = (OwnerClass == GetClass()) && (Cast<UBlueprintGeneratedClass>(OwnerClass) != nullptr);
-				if (UClass* SuperClass = OwnerClass->GetSuperClass())
-				{
-					FMemberReference VarRef;
-					VarRef.SetExternalMember(Property->GetFName(), SuperClass);
-					// make sure the parent doesn't have this variable
-					bIsBlueprintSubClassProperty &= (VarRef.ResolveMember<UProperty>(GetClass()) == nullptr);
-				}
-			}
-			else if (UStruct* OwnerStruct = Property->GetOwnerStruct())
-			{
-
-			}
-
-			if (bIsBlueprintSubClassProperty)
-			{
-				// assume any object properties that we've added to the BP 
-				// directly should be circular refs (and thus, pointers to other blueprint types) 
-				return TestVerifyIsBlueprintTypeVar(Property->GetFName(), bCheckPropertyType);
-			}
+			// assume any object properties that we've added to the BP 
+			// directly should be circular refs (and thus, pointers to other blueprint types) 
+			return TestVerifyIsBlueprintTypeVar(Property->GetFName(), bCheckPropertyType);
 		}
 	}
 
