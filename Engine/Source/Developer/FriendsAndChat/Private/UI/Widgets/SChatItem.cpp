@@ -3,6 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "ChatItemViewModel.h"
 #include "ChatViewModel.h"
+#include "ChatDisplayOptionsViewModel.h"
 #include "SChatItem.h"
 
 #define LOCTEXT_NAMESPACE "SChatWindow"
@@ -11,7 +12,7 @@ class SChatItemImpl : public SChatItem
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FChatItemViewModel>& InViewModel, const TSharedRef<FChatViewModel>& InOwnerViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FChatItemViewModel>& InViewModel, const TSharedRef<FChatDisplayOptionsViewModel>& InOwnerViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		MenuMethod = InArgs._Method;
@@ -170,7 +171,7 @@ private:
 	TSharedPtr<FChatItemViewModel> ViewModel;
 
 	// Holds the owner view model
-	TSharedPtr<FChatViewModel> OwnerViewModel;
+	TSharedPtr<FChatDisplayOptionsViewModel> OwnerViewModel;
 
 	TSharedPtr<SBorder> FriendItemBorder;
 

@@ -747,6 +747,8 @@ private:
 	TArray<FString> ChatRoomstoJoin;
 	// Manages private/public chat messages 
 	TSharedPtr<class FFriendsMessageManager> MessageManager;
+	// Holds the chat view model
+	TSharedPtr<class FChatViewModel> ChatViewModel;
 
 	/* Manger state
 	*****************************************************************************/

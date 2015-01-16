@@ -12,6 +12,7 @@
 #include "SFriendsStatus.h"
 #include "FriendRecentPlayerItems.h"
 #include "FriendGameInviteItem.h"
+#include "ChatDisplayOptionsViewModel.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
@@ -344,14 +345,19 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateFriendsListWidget( const F
 
 TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TSharedRef<IChatViewModel> ViewModel)
 {
+	if(!ChatViewModel.IsValid())
+	{
+		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
+	}
+
 	// todo - NDavies = find a better way to do this
-	TSharedRef<FChatViewModel> ChatViewModel = StaticCastSharedRef<FChatViewModel>(ViewModel);
-	ChatViewModel->SetInGameUI(true);
-	ChatViewModel->SetCaptureFocus(true);
+	TSharedRef<FChatDisplayOptionsViewModel> ChatDisplayOptionsViewModel = StaticCastSharedRef<FChatDisplayOptionsViewModel>(ViewModel);
+
+	ChatDisplayOptionsViewModel->SetCaptureFocus(true);
 
 	TSharedPtr<SChatWindow> ChatWidget;
 	Style = *InStyle;
-	SAssignNew(ChatWidget, SChatWindow, ChatViewModel)
+	SAssignNew(ChatWidget, SChatWindow, ChatDisplayOptionsViewModel)
 	.FriendStyle(&Style)
 	.Method(EPopupMethod::UseCurrentWindow);
 	return ChatWidget;
@@ -359,7 +365,11 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 
 TSharedPtr<IChatViewModel> FFriendsAndChatManager::GetChatViewModel()
 {
-	return FChatViewModelFactory::Create(MessageManager.ToSharedRef());
+	if(!ChatViewModel.IsValid())
+	{
+		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
+	}
+	return FChatDisplayOptionsViewModelFactory::Create(ChatViewModel.ToSharedRef());
 }
 
 void FFriendsAndChatManager::CreateChatWindow(const struct FFriendsAndChatStyle* InStyle)
@@ -417,9 +427,14 @@ void FFriendsAndChatManager::HandleChatWindowClosed(const TSharedRef<SWindow>& I
 void FFriendsAndChatManager::SetChatWindowContents()
 {
 	TSharedPtr<SWindowTitleBar> TitleBar;
-	TSharedPtr<FChatViewModel> ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
-	ChatViewModel->SetInGameUI(false);
-	ChatViewModel->SetCaptureFocus(false);
+	if(!ChatViewModel.IsValid())
+	{
+		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
+	}
+
+	TSharedRef<FChatDisplayOptionsViewModel> DisplayViewModel = FChatDisplayOptionsViewModelFactory::Create(ChatViewModel.ToSharedRef());
+	DisplayViewModel->SetInGameUI(false);
+	DisplayViewModel->SetCaptureFocus(false);
 
 	TSharedRef< FFriendsStatusViewModel > StatusViewModel = FFriendsStatusViewModelFactory::Create(SharedThis(this));
 
@@ -458,7 +473,7 @@ void FFriendsAndChatManager::SetChatWindowContents()
 			]
 			+ SVerticalBox::Slot()
 			[
-				SNew(SChatWindow, ChatViewModel.ToSharedRef())
+				SNew(SChatWindow, DisplayViewModel)
 				.FriendStyle( &Style )
 			]
 		]);
