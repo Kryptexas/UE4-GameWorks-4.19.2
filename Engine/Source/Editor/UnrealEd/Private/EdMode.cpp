@@ -432,7 +432,24 @@ FVector FEdMode::GetWidgetLocation() const
 
 bool FEdMode::ShouldDrawWidget() const
 {
-	return (Owner->GetSelectedActors()->GetTop<AActor>() != NULL);
+	bool bDrawWidget = false;
+	if (GEditor->GetSelectedComponentCount() > 0)
+	{
+		for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+		{
+			if (It->IsA<USceneComponent>())
+			{
+				bDrawWidget = true;
+				break;
+			}
+		}
+	}
+	else
+	{
+		bDrawWidget = (GEditor->GetSelectedActors()->GetTop<AActor>() != NULL);
+	}
+
+	return bDrawWidget;
 }
 
 /**

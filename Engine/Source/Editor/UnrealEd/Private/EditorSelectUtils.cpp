@@ -271,25 +271,55 @@ void UUnrealEdEngine::SetActorSelectionFlags (AActor* InActor)
 void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 {
 	// Pick a new common pivot, or not.
-	int32 ActorCount=0;
 	AActor* SingleActor=NULL;
+	USceneComponent* SingleComponent = NULL;
 
-	for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
+	if (GetSelectedComponentCount() > 0)
 	{
-		AActor* Actor = static_cast<AActor*>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-		if ( Actor->GetWorld() == GWorld )
+		for (FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
 		{
-			SingleActor = Actor;
-			bool IsTemplate = Actor->IsTemplate();
-			bool LevelLocked = !FLevelUtils::IsLevelLocked(Actor->GetLevel());
-			check( IsTemplate || LevelLocked );
-			ActorCount++;
+			UActorComponent* Component = CastChecked<UActorComponent>(*It);
+			AActor* ComponentOwner = Component->GetOwner();
+			check(ComponentOwner);
+			check(GetSelectedActors()->IsSelected(ComponentOwner));
+
+			if (ComponentOwner->GetWorld() == GWorld)
+			{
+				SingleActor = ComponentOwner;
+				if (Component->IsA<USceneComponent>())
+				{
+					SingleComponent = CastChecked<USceneComponent>(Component);
+				}
+
+				const bool IsTemplate = ComponentOwner->IsTemplate();
+				const bool LevelLocked = !FLevelUtils::IsLevelLocked(ComponentOwner->GetLevel());
+				check(IsTemplate || LevelLocked);
+			}
+		}
+	}
+	else
+	{
+		for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+		{
+			AActor* Actor = static_cast<AActor*>(*It);
+			checkSlow(Actor->IsA(AActor::StaticClass()));
+
+			if (Actor->GetWorld() == GWorld)
+			{
+				const bool IsTemplate = Actor->IsTemplate();
+				const bool LevelLocked = !FLevelUtils::IsLevelLocked(Actor->GetLevel());
+				check(IsTemplate || LevelLocked);
+
+				SingleActor = Actor;
+			}
 		}
 	}
 	
-	if( ActorCount > 0 ) 
+	if (SingleComponent != NULL)
+	{
+		SetPivot(SingleComponent->GetComponentLocation(), false, true);
+	}
+	else if( SingleActor != NULL ) 
 	{		
 		// For geometry mode use current pivot location as it's set to selected face, not actor
 		FEditorModeTools& Tools = GLevelEditorModeTools();
@@ -333,8 +363,8 @@ void UUnrealEdEngine::NoteSelectionChange()
 		ActiveModes[ModeIndex]->ActorSelectionChangeNotify();
 	}
 
-	USelection* Section = GetSelectedActors();
-	USelection::SelectionChangedEvent.Broadcast(Section);
+	USelection* Selection = GetSelectedActors();
+	USelection::SelectionChangedEvent.Broadcast(Selection);
 
 	//whenever selection changes, recompute whether the selection contains a locked actor
 	bCheckForLockActors = true;
@@ -518,6 +548,13 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 			}
 
 			GetSelectedActors()->Select( Actor, bInSelected );
+			if (!bInSelected)
+			{
+				for (UActorComponent* Component : Actor->GetComponents())
+				{
+					GetSelectedComponents()->Deselect( Component );
+				}
+			}
 			
 			//A fast path to mark selection rather than reconnecting ALL components for ALL actors that have changed state
 			SetActorSelectionFlags (Actor);

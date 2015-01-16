@@ -1113,6 +1113,54 @@ UActorFactoryCameraActor::UActorFactoryCameraActor(const FObjectInitializer& Obj
 }
 
 /*-----------------------------------------------------------------------------
+UActorFactoryEmptyActor
+-----------------------------------------------------------------------------*/
+UActorFactoryEmptyActor::UActorFactoryEmptyActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("EmptyActorDisplayName", "Empty Actor");
+	NewActorClass = AActor::StaticClass();
+}
+
+bool UActorFactoryEmptyActor::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
+{
+	return GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing ? AssetData.ObjectPath == FName(*AActor::StaticClass()->GetPathName()) : false;
+}
+
+AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name )
+{
+	AActor* NewActor = nullptr;
+	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing) 
+	{
+		NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
+
+		USceneComponent* RootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), NewActor, FName("Root"), RF_Transactional);
+		RootComponent->Mobility = EComponentMobility::Static;
+		RootComponent->SetWorldLocationAndRotation(Location, Rotation);
+		NewActor->SetRootComponent(RootComponent);
+
+
+		// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
+		UBillboardComponent* BillboardComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), NewActor, NAME_None, RF_Transactional);
+
+		BillboardComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/S_Actor.S_Actor"));
+		BillboardComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+		BillboardComponent->SpriteInfo.Category = TEXT("EmptyActors");
+		BillboardComponent->SpriteInfo.DisplayName = LOCTEXT("EmptyActorDisplayName", "Empty Actor");
+		BillboardComponent->AttachTo(RootComponent);
+		BillboardComponent->Mobility = EComponentMobility::Static;
+		BillboardComponent->AlwaysLoadOnClient = false;
+		BillboardComponent->AlwaysLoadOnServer = false;
+
+		NewActor->SerializedComponents.Add(RootComponent);
+		NewActor->SerializedComponents.Add(BillboardComponent);
+	}
+
+	return NewActor;
+}
+
+
+/*-----------------------------------------------------------------------------
 UActorFactoryAmbientSound
 -----------------------------------------------------------------------------*/
 UActorFactoryAmbientSound::UActorFactoryAmbientSound(const FObjectInitializer& ObjectInitializer)

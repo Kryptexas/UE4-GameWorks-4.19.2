@@ -666,7 +666,7 @@ TSharedRef< SWidget > SPlacementModeTools::BuildVisualWidget()
 
 TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 {
-	return SNew( SVerticalBox )
+	TSharedRef<SVerticalBox> VerticalBox = SNew( SVerticalBox )
 
 	// Basics
 	+ SVerticalBox::Slot()
@@ -674,45 +674,42 @@ TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 	[
 		BuildDraggableAssetWidget( UActorFactoryCameraActor::StaticClass() )
 	]
-
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		BuildDraggableAssetWidget( UActorFactoryPlayerStart::StaticClass() )
 	]
-
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
-		BuildDraggableAssetWidget(UActorFactoryPointLight::StaticClass())
+		BuildDraggableAssetWidget( UActorFactoryPointLight::StaticClass() )
 	]
-
-
-	// Triggers
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		BuildDraggableAssetWidget( UActorFactoryTriggerBox::StaticClass() )
 	]
-
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		BuildDraggableAssetWidget( UActorFactoryTriggerSphere::StaticClass() )
 	]
-
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		BuildDraggableAssetWidget( UActorFactoryTriggerCapsule::StaticClass() )
-	]
-
-
-	+ SVerticalBox::Slot()
-	.AutoHeight()
-	[
-		BuildDraggableAssetWidget( UActorFactoryTargetPoint::StaticClass() )
 	];
+
+	if( GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
+	{
+		VerticalBox->InsertSlot(0)
+		.AutoHeight()
+		[
+			BuildDraggableAssetWidget(UActorFactoryEmptyActor::StaticClass())
+		];
+	}
+
+	return VerticalBox;
 }
 
 void SPlacementModeTools::UpdateRecentlyPlacedAssets( const TArray< FActorPlacementInfo >& RecentlyPlaced )

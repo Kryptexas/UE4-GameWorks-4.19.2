@@ -54,7 +54,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("GetComponentsTime"),STAT_GetComponentsTime,STATG
  * @see https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Actors/
  * @see UActorComponent
  */
-UCLASS(abstract, BlueprintType, Blueprintable, config=Engine)
+UCLASS(BlueprintType, Blueprintable, config=Engine)
 class ENGINE_API AActor : public UObject
 {
 	/**
@@ -1366,9 +1366,6 @@ public:
 	// Called before editor paste, true allow import
 	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) { return true; }
 
-	// For UUnrealEdEngine::UpdatePropertyWindows()
-	virtual bool GetSelectedComponents(TArray<UObject*>& SelectedObjects) { return false; }
-
 	/** Called by InputKey when an unhandled key is pressed with a selected actor */
 	virtual void EditorKeyPressed(FKey Key, EInputEvent Event) {}
 
@@ -2166,6 +2163,13 @@ public:
 		}
 	}
 
+	// Get a direct reference to the Components array rather than a copy
+	// with the null pointers removed
+	const TArray<UActorComponent*>& GetComponents() const
+	{
+		return OwnedComponents;
+	}
+
 	/** Puts a component in to the OwnedComponents array of the Actor.
 	 *  The Component must be owned by the Actor or else it will assert
 	 *  In general this should not need to be called directly by anything other than UActorComponent functions
@@ -2318,4 +2322,3 @@ FORCEINLINE FVector AActor::GetSimpleCollisionCylinderExtent() const
 	virtual bool TeleportTo( const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest, bool bNoCheck ) override { return Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck); } \
 	virtual FVector GetVelocity() const override { return Super::GetVelocity(); } \
 	float GetDistanceTo(AActor* OtherActor) { return Super::GetDistanceTo(OtherActor); }
-
