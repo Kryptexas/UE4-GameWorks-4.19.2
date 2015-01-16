@@ -751,20 +751,19 @@ void AActor::GetComponentsBoundingCylinder(float& OutCollisionRadius, float& Out
 	float Radius = 0.f;
 	float HalfHeight = 0.f;
 
-	TInlineComponentArray<UPrimitiveComponent*> Components;
-	GetComponents(Components);
-
-	for (int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
+	for (const UActorComponent* ActorComponent : GetComponents())
 	{
-		UPrimitiveComponent* PrimComp = Components[CompIdx];
-
-		// Only use collidable components to find collision bounding box.
-		if ((bIgnoreRegistration || PrimComp->IsRegistered()) && (bNonColliding || PrimComp->IsCollisionEnabled()))
+		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>(ActorComponent);
+		if (PrimComp)
 		{
-			float TestRadius, TestHalfHeight;
-			PrimComp->CalcBoundingCylinder(TestRadius, TestHalfHeight);
-			Radius = FMath::Max(Radius, TestRadius);
-			HalfHeight = FMath::Max(HalfHeight, TestHalfHeight);
+			// Only use collidable components to find collision bounding box.
+			if ((bIgnoreRegistration || PrimComp->IsRegistered()) && (bNonColliding || PrimComp->IsCollisionEnabled()))
+			{
+				float TestRadius, TestHalfHeight;
+				PrimComp->CalcBoundingCylinder(TestRadius, TestHalfHeight);
+				Radius = FMath::Max(Radius, TestRadius);
+				HalfHeight = FMath::Max(HalfHeight, TestHalfHeight);
+			}
 		}
 	}
 
@@ -842,17 +841,16 @@ FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 {
 	FBox Box(0);
 
-	TInlineComponentArray<UPrimitiveComponent*> Components;
-	GetComponents(Components);
-
-	for(int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
+	for (const UActorComponent* ActorComponent : GetComponents())
 	{
-		UPrimitiveComponent* PrimComp = Components[CompIdx];
-
-		// Only use collidable components to find collision bounding box.
-		if( PrimComp->IsRegistered() && (bNonColliding || PrimComp->IsCollisionEnabled()) )
+		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>(ActorComponent);
+		if (PrimComp)
 		{
-			Box += PrimComp->Bounds.GetBox();
+			// Only use collidable components to find collision bounding box.
+			if (PrimComp->IsRegistered() && (bNonColliding || PrimComp->IsCollisionEnabled()))
+			{
+				Box += PrimComp->Bounds.GetBox();
+			}
 		}
 	}
 
@@ -1065,14 +1063,11 @@ float AActor::GetLastRenderTime() const
 {
 	// return most recent of Components' LastRenderTime
 	// @todo UE4 maybe check base component and components attached to it instead?
-	TInlineComponentArray<UPrimitiveComponent*> Components;
-	GetComponents(Components);
-
 	float LastRenderTime = -1000.f;
-	for( int32 i=0; i<Components.Num(); i++ )
+	for (const UActorComponent* ActorComponent : GetComponents())
 	{
-		UPrimitiveComponent* PrimComp = Components[i];
-		if(PrimComp->IsRegistered())
+		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>(ActorComponent);
+		if (PrimComp && PrimComp->IsRegistered())
 		{
 			LastRenderTime = FMath::Max(LastRenderTime, PrimComp->LastRenderTime);
 		}
