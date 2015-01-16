@@ -69,6 +69,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
 	bool bFaceOwnerFlat;
 
+	// If the target is an actor snap to it's location 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
+	bool bSnapToTargetedActor;
+
 protected:
 	/** This indicates whether or not the targeting actor considers the current target to be valid. Defaults to true. */
 	UPROPERTY(BlueprintReadOnly, Category = "Network")

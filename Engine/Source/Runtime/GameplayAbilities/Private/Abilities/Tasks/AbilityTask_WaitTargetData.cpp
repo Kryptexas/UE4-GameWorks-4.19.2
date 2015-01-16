@@ -32,27 +32,34 @@ UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetDataUsingAct
 void UAbilityTask_WaitTargetData::Activate()
 {
 	// Need to handle case where target actor was passed into task
-	if (Ability.IsValid() && (TargetClass == NULL) && TargetActor.IsValid())
+	if (Ability.IsValid() && (TargetClass == NULL))
 	{
-		AGameplayAbilityTargetActor* SpawnedActor = TargetActor.Get();
-
-		TargetClass = SpawnedActor->GetClass();
-
-		if (ShouldSpawnTargetActor())
+		if (TargetActor.IsValid())
 		{
-			InitializeTargetActor(SpawnedActor);
-			FinalizeTargetActor(SpawnedActor);
+			AGameplayAbilityTargetActor* SpawnedActor = TargetActor.Get();
+
+			TargetClass = SpawnedActor->GetClass();
+
+			if (ShouldSpawnTargetActor())
+			{
+				InitializeTargetActor(SpawnedActor);
+				FinalizeTargetActor(SpawnedActor);
+			}
+			else
+			{
+				TargetActor = NULL;
+
+				// We may need a better solution here.  We don't know the target actor isn't needed till after it's already been spawned.
+				SpawnedActor->Destroy();
+				SpawnedActor = nullptr;
+			}
+
+			RegisterTargetDataCallbacks();
 		}
 		else
 		{
-			TargetActor = NULL;
-
-			// We may need a better solution here.  We don't know the target actor isn't needed till after it's already been spawned.
-			SpawnedActor->Destroy();
-			SpawnedActor = nullptr;
+			EndTask();
 		}
-
-		RegisterTargetDataCallbacks();
 	}
 }
 
