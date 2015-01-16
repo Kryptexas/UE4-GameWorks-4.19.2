@@ -699,6 +699,9 @@ private:
 
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */
 	bool bHideCursorDuringCapture;
+
+	/** Handle to the registered ShowCollisionOnSpawnedActors delegate */
+	FDelegateHandle ShowCollisionOnSpawnedActorsDelegateHandle;
 };
 
 

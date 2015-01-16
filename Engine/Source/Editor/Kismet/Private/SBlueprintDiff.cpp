@@ -340,6 +340,9 @@ private:
 
 	/** ListView of differences */
 	TSharedPtr<SListViewType> DiffList;
+
+	/** Handle to the registered OnGraphChanged delegate. */
+	FDelegateHandle OnGraphChangedDelegateHandle;
 };
 
 TSharedRef<SWidget>	FDiffResultItem::GenerateWidget() const
@@ -366,7 +369,7 @@ FListItemGraphToDiff::FListItemGraphToDiff( class SBlueprintDiff* InDiff, class 
 	//need to know when it is modified
 	if(InGraphNew)
 	{
-		InGraphNew->AddOnGraphChangedHandler( FOnGraphChanged::FDelegate::CreateRaw(this, &FListItemGraphToDiff::OnGraphChanged));
+		OnGraphChangedDelegateHandle = InGraphNew->AddOnGraphChangedHandler( FOnGraphChanged::FDelegate::CreateRaw(this, &FListItemGraphToDiff::OnGraphChanged));
 	}
 
 	BuildDiffSourceArray();
@@ -376,7 +379,7 @@ FListItemGraphToDiff::~FListItemGraphToDiff()
 {
 	if(GraphNew)
 	{
-		GraphNew->RemoveOnGraphChangedHandler( FOnGraphChanged::FDelegate::CreateRaw(this, &FListItemGraphToDiff::OnGraphChanged));
+		GraphNew->RemoveOnGraphChangedHandler( OnGraphChangedDelegateHandle);
 	}
 }
 

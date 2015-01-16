@@ -70,8 +70,8 @@ void UBTDecorator_CompareBBEntries::OnBecomeRelevant(UBehaviorTreeComponent& Own
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->RegisterObserver(BlackboardKeyA.GetSelectedKeyID(), BBKeyObserver);
-		BlackboardComp->RegisterObserver(BlackboardKeyB.GetSelectedKeyID(), BBKeyObserver);
+		BBKeyObserverDelegateHandles.Add(BlackboardKeyA.GetSelectedKeyID(), BlackboardComp->RegisterObserver(BlackboardKeyA.GetSelectedKeyID(), BBKeyObserver));
+		BBKeyObserverDelegateHandles.Add(BlackboardKeyA.GetSelectedKeyID(), BlackboardComp->RegisterObserver(BlackboardKeyB.GetSelectedKeyID(), BBKeyObserver));
 	}
 }
 
@@ -80,8 +80,10 @@ void UBTDecorator_CompareBBEntries::OnCeaseRelevant(UBehaviorTreeComponent& Owne
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->UnregisterObserver(BlackboardKeyA.GetSelectedKeyID(), BBKeyObserver);
-		BlackboardComp->UnregisterObserver(BlackboardKeyB.GetSelectedKeyID(), BBKeyObserver);
+		BlackboardComp->UnregisterObserver(BlackboardKeyA.GetSelectedKeyID(), BBKeyObserverDelegateHandles.FindRef(BlackboardKeyA.GetSelectedKeyID()));
+		BlackboardComp->UnregisterObserver(BlackboardKeyB.GetSelectedKeyID(), BBKeyObserverDelegateHandles.FindRef(BlackboardKeyB.GetSelectedKeyID()));
+		BBKeyObserverDelegateHandles.Remove(BlackboardKeyA.GetSelectedKeyID());
+		BBKeyObserverDelegateHandles.Remove(BlackboardKeyB.GetSelectedKeyID());
 	}
 }
 

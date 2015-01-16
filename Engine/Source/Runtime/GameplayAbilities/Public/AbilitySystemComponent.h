@@ -820,4 +820,8 @@ protected:
 	friend struct FActiveGameplayEffectsContainer;
 	friend struct FActiveGameplayCue;
 	friend struct FActiveGameplayCueContainer;
+
+private:
+	FDelegateHandle MonitoredTagChangedDelegatHandle;
+	FTimerHandle    OnRep_ActivateAbilitiesTimerHandle;
 };

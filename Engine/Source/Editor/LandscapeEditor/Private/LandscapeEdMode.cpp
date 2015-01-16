@@ -321,8 +321,8 @@ void FEdModeLandscape::Enter()
 	UpdateLandscapeList();
 	UpdateTargetList();
 
-	FEditorSupportDelegates::WorldChange.AddRaw(this, &FEdModeLandscape::OnWorldChange);
-	UMaterial::OnMaterialCompilationFinished().AddRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
+	OnWorldChangeDelegateHandle                 = FEditorSupportDelegates::WorldChange.AddRaw(this, &FEdModeLandscape::OnWorldChange);
+	OnMaterialCompilationFinishedDelegateHandle = UMaterial::OnMaterialCompilationFinished().AddRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
 
 	if (CurrentGizmoActor.IsValid())
 	{
@@ -450,8 +450,8 @@ void FEdModeLandscape::Enter()
 /** FEdMode: Called when the mode is exited */
 void FEdModeLandscape::Exit()
 {
-	FEditorSupportDelegates::WorldChange.RemoveRaw(this, &FEdModeLandscape::OnWorldChange);
-	UMaterial::OnMaterialCompilationFinished().RemoveRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
+	FEditorSupportDelegates::WorldChange.Remove(OnWorldChangeDelegateHandle);
+	UMaterial::OnMaterialCompilationFinished().Remove(OnMaterialCompilationFinishedDelegateHandle);
 
 	// Restore real-time viewport state if we changed it
 	const bool bWantRealTime = false;

@@ -31,6 +31,8 @@ protected:
 
 	FOnBlackboardChange BBKeyObserver;
 
+	TMap<FBlackboard::FKey, FDelegateHandle> BBKeyObserverDelegateHandles;
+
 	virtual void PostInitProperties() override;
 
 	/** called when execution flow controller becomes active */

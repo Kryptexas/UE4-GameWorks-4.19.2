@@ -278,8 +278,14 @@ private:
 	/** FTicker delegate (hot-reload from IDE) */
 	FTickerDelegate TickerDelegate;
 
+	/** Handle to the registered TickerDelegate */
+	FDelegateHandle TickerDelegateHandle;
+
 	/** Callback when game binaries folder changes */
 	IDirectoryWatcher::FDirectoryChanged BinariesFolderChangedDelegate;
+
+	/** Handle to the registered delegate above */
+	FDelegateHandle BinariesFolderChangedDelegateHandle;
 
 	/** True if currently hot-reloading from editor (suppresses hot-reload from IDE) */
 	bool bIsHotReloadingFromEditor;
@@ -371,14 +377,14 @@ void FHotReloadModule::StartupModule()
 
 	// Register hot-reload from IDE ticker
 	TickerDelegate = FTickerDelegate::CreateRaw(this, &FHotReloadModule::Tick);
-	FTicker::GetCoreTicker().AddTicker(TickerDelegate);
+	TickerDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickerDelegate);
 
 	FModuleManager::Get().OnModulesChanged().AddRaw(this, &FHotReloadModule::ModulesChangedCallback);
 }
 
 void FHotReloadModule::ShutdownModule()
 {
-	FTicker::GetCoreTicker().RemoveTicker(TickerDelegate);
+	FTicker::GetCoreTicker().RemoveTicker(TickerDelegateHandle);
 	ShutdownHotReloadWatcher();
 }
 
@@ -922,7 +928,7 @@ void FHotReloadModule::InitHotReloadWatcher()
 		if (FPaths::DirectoryExists(BinariesPath))
 		{
 			BinariesFolderChangedDelegate = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FHotReloadModule::OnHotReloadBinariesChanged);
-			bDirectoryWatcherInitialized = DirectoryWatcher->RegisterDirectoryChangedCallback(BinariesPath, BinariesFolderChangedDelegate);
+			bDirectoryWatcherInitialized = DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(BinariesPath, BinariesFolderChangedDelegate, BinariesFolderChangedDelegateHandle);
 		}
 	}
 }
@@ -936,7 +942,7 @@ void FHotReloadModule::ShutdownHotReloadWatcher()
 		if (DirectoryWatcher)
 		{
 			FString BinariesPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory());
-			DirectoryWatcher->UnregisterDirectoryChangedCallback(BinariesPath, BinariesFolderChangedDelegate);
+			DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(BinariesPath, BinariesFolderChangedDelegateHandle);
 		}
 	}
 }

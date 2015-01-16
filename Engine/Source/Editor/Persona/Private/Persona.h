@@ -638,4 +638,7 @@ private:
 
 	/** Sequence Browser **/
 	TWeakPtr<class SAnimationSequenceBrowser> SequenceBrowser;
+
+	/** Handle to the registered OnPropertyChangedHandle delegate */
+	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
 };

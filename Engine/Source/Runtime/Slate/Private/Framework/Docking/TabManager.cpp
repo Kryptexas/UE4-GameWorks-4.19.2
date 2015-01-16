@@ -1561,18 +1561,23 @@ const TSharedRef<FGlobalTabmanager>& FGlobalTabmanager::Get()
 	return Instance;
 }
 
-void FGlobalTabmanager::OnActiveTabChanged_Subscribe( const FOnActiveTabChanged::FDelegate& InDelegate )
+FDelegateHandle FGlobalTabmanager::OnActiveTabChanged_Subscribe( const FOnActiveTabChanged::FDelegate& InDelegate )
 {
-	OnActiveTabChanged.Add( InDelegate );
+	return OnActiveTabChanged.Add( InDelegate );
 }
 
 
 
 void FGlobalTabmanager::OnActiveTabChanged_Unsubscribe( const FOnActiveTabChanged::FDelegate& InDelegate )
 {
-	OnActiveTabChanged.Remove( InDelegate );
+	OnActiveTabChanged.DEPRECATED_Remove( InDelegate );
 }
 
+
+void FGlobalTabmanager::OnActiveTabChanged_Unsubscribe( FDelegateHandle Handle )
+{
+	OnActiveTabChanged.Remove( Handle );
+}
 
 
 TSharedPtr<class SDockTab> FGlobalTabmanager::GetActiveTab() const

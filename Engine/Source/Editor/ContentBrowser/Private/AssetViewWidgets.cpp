@@ -160,7 +160,7 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	SourceControlStateDelay = 0.0f;
 	bSourceControlStateRequested = false;
 
-	ISourceControlModule::Get().GetProvider().RegisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateSP(this, &SAssetViewItem::HandleSourceControlStateChanged));
+	ISourceControlModule::Get().GetProvider().RegisterSourceControlStateChanged_Handle(FSourceControlStateChanged::FDelegate::CreateSP(this, &SAssetViewItem::HandleSourceControlStateChanged));
 
 	// Source control state may have already been cached, make sure the control is in sync with 
 	// cached state as the delegate is not going to be invoked again until source control state 

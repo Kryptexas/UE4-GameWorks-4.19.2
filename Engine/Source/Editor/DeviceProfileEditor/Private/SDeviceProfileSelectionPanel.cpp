@@ -218,7 +218,7 @@ void SDeviceProfileSelectionPanel::Construct( const FArguments& InArgs, TWeakObj
 	OnDeviceProfileViewAlone = InArgs._OnDeviceProfileViewAlone;
 
 	// Hook up our regen function to keep track of device profile manager changes
-	DeviceProfileManager->OnManagerUpdated().AddRaw( this, &SDeviceProfileSelectionPanel::RegenerateProfileList );
+	RegenerateProfileListDelegateHandle = DeviceProfileManager->OnManagerUpdated().AddRaw( this, &SDeviceProfileSelectionPanel::RegenerateProfileList );
 
 	ChildSlot
 	[
@@ -267,7 +267,7 @@ SDeviceProfileSelectionPanel::~SDeviceProfileSelectionPanel()
 	if( DeviceProfileManager.IsValid() )
 	{
 		// Remove the delegate when we are destroyed
-		DeviceProfileManager->OnManagerUpdated().RemoveRaw( this, &SDeviceProfileSelectionPanel::RegenerateProfileList );
+		DeviceProfileManager->OnManagerUpdated().Remove( RegenerateProfileListDelegateHandle );
 	}
 }
 

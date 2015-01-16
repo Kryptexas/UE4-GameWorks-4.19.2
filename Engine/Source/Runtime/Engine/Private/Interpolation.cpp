@@ -1663,7 +1663,7 @@ AActor* AMatineeActor::FindViewedActor()
 void AMatineeActor::UpdateReplicatedData( bool bIsBeginningPlay )
 {
 	ForceNetUpdate();
-	
+
 	if (bIsPlaying || bIsBeginningPlay)
 	{
 		GetWorldTimerManager().SetTimer(TimerHandle_CheckPriorityRefresh, this, &AMatineeActor::CheckPriorityRefresh, 1.0f, true);

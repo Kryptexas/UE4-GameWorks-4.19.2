@@ -293,7 +293,9 @@ void UKismetSystemLibrary::K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, f
 		const UWorld* const World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			World->GetTimerManager().SetTimer(Delegate, Time, bLooping);
+			auto& TimerManager = World->GetTimerManager();
+			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			TimerManager.SetTimer(Handle, Delegate, Time, bLooping);
 		}
 	}
 	else
@@ -312,7 +314,9 @@ void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
 		if (World)
 		{
-			World->GetTimerManager().ClearTimer(Delegate);
+			auto& TimerManager = World->GetTimerManager();
+			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			World->GetTimerManager().ClearTimer(Handle);
 		}
 	}
 	else
@@ -332,7 +336,10 @@ void UKismetSystemLibrary::K2_PauseTimer(UObject* Object, FString FunctionName)
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
 		if(World)
 		{
-			World->GetTimerManager().PauseTimer(Delegate);
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    World->GetTimerManager().PauseTimer(Handle);
 		}
 	}
 	else
@@ -352,7 +359,10 @@ void UKismetSystemLibrary::K2_UnPauseTimer(UObject* Object, FString FunctionName
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
 		if(World)
 		{
-			World->GetTimerManager().UnPauseTimer(Delegate);
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    World->GetTimerManager().UnPauseTimer(Handle);
 		}
 	}
 	else
@@ -372,7 +382,10 @@ bool UKismetSystemLibrary::K2_IsTimerActive(UObject* Object, FString FunctionNam
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
 		if(World)
 		{
-			return World->GetTimerManager().IsTimerActive(Delegate);
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().IsTimerActive(Handle);
 		}
 		else
 		{
@@ -397,7 +410,10 @@ bool UKismetSystemLibrary::K2_IsTimerPaused(UObject* Object, FString FunctionNam
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
 		if(World)
 		{
-			return World->GetTimerManager().IsTimerPaused(Delegate);
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().IsTimerPaused(Handle);
 		}
 		else
 		{
@@ -422,7 +438,10 @@ bool UKismetSystemLibrary::K2_TimerExists(UObject* Object, FString FunctionName)
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
 		if(World)
 		{
-			return World->GetTimerManager().TimerExists(Delegate);
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().TimerExists(Handle);
 		}
 		else
 		{
@@ -447,7 +466,10 @@ float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString Func
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);	
 		if(World)
 		{
-			return World->GetTimerManager().GetTimerElapsed(Delegate);
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().GetTimerElapsed(Handle);
 		}
 		else
 		{
@@ -472,7 +494,10 @@ float UKismetSystemLibrary::K2_GetTimerRemainingTime(UObject* Object, FString Fu
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
 		if(World)
 		{
-			return World->GetTimerManager().GetTimerRemaining(Delegate);
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().GetTimerRemaining(Handle);
 		}
 		else
 		{

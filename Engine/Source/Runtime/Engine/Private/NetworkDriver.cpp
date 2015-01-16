@@ -504,23 +504,23 @@ ENetMode UNetDriver::GetNetMode() const
 	return (IsServer() ? (GIsClient ? NM_ListenServer : NM_DedicatedServer) : NM_Client);
 }
 
-void UNetDriver::RegisterTickEvents(class UWorld* InWorld) const
+void UNetDriver::RegisterTickEvents(class UWorld* InWorld)
 {
 	if (InWorld)
 	{
-		InWorld->OnTickDispatch().AddUObject(this, &UNetDriver::TickDispatch);
-		InWorld->OnTickFlush().AddUObject(this, &UNetDriver::TickFlush);
-		InWorld->OnPostTickFlush().AddUObject(this, &UNetDriver::PostTickFlush);
+		TickDispatchDelegateHandle  = InWorld->OnTickDispatch ().AddUObject(this, &UNetDriver::TickDispatch);
+		TickFlushDelegateHandle     = InWorld->OnTickFlush    ().AddUObject(this, &UNetDriver::TickFlush);
+		PostTickFlushDelegateHandle = InWorld->OnPostTickFlush().AddUObject(this, &UNetDriver::PostTickFlush);
 	}
 }
 
-void UNetDriver::UnregisterTickEvents(class UWorld* InWorld) const
+void UNetDriver::UnregisterTickEvents(class UWorld* InWorld)
 {
 	if (InWorld)
 	{
-		InWorld->OnTickDispatch().RemoveUObject(this, &UNetDriver::TickDispatch);
-		InWorld->OnTickFlush().RemoveUObject(this, &UNetDriver::TickFlush);
-		InWorld->OnPostTickFlush().RemoveUObject(this, &UNetDriver::PostTickFlush);
+		InWorld->OnTickDispatch ().Remove(TickDispatchDelegateHandle);
+		InWorld->OnTickFlush    ().Remove(TickFlushDelegateHandle);
+		InWorld->OnPostTickFlush().Remove(PostTickFlushDelegateHandle);
 	}
 }
 

@@ -740,4 +740,7 @@ protected:
 
 	/** Instance responsible for monitoring this editor's performance */
 	FPerformanceMonitor* PerformanceMonitor;
+
+	/** Handle to the registered OnMatineeEditorClosed delegate. */
+	FDelegateHandle OnMatineeEditorClosedDelegateHandle;
 };

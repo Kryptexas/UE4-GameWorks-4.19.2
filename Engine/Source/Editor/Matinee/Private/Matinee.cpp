@@ -956,7 +956,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	bIsInitialized = true;
 
 	// register for any actor move change
-	GEngine->OnActorMoved().AddRaw(this, &FMatinee::OnActorMoved);
+	OnActorMovedDelegateHandle = GEngine->OnActorMoved().AddRaw(this, &FMatinee::OnActorMoved);
 
 	// register for any objects replaced
 	GEditor->OnObjectsReplaced().AddSP(this, &FMatinee::OnObjectsReplaced);
@@ -1965,7 +1965,7 @@ void FMatinee::OnClose()
 	}
 
 	// Unregister call back events
-	GEngine->OnActorMoved().RemoveRaw(this, &FMatinee::OnActorMoved);
+	GEngine->OnActorMoved().Remove(OnActorMovedDelegateHandle);
 	GEditor->OnObjectsReplaced().RemoveAll(this);
 
 	// Restore the perspective viewport audio settings when matinee closes.

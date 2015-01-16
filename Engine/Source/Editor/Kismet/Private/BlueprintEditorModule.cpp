@@ -86,7 +86,9 @@ void FBlueprintEditorModule::StartupModule()
 		// Extend the level viewport context menu to handle blueprints
 		LevelViewportContextMenuBlueprintExtender = FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors::CreateStatic(&ExtendLevelViewportContextMenuForBlueprints);
 		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-		LevelEditorModule.GetAllLevelViewportContextMenuExtenders().Add(LevelViewportContextMenuBlueprintExtender);
+		auto& MenuExtenders = LevelEditorModule.GetAllLevelViewportContextMenuExtenders();
+		MenuExtenders.Add(LevelViewportContextMenuBlueprintExtender);
+		LevelViewportContextMenuBlueprintExtenderDelegateHandle = MenuExtenders.Last().GetHandle();
 	}
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
@@ -123,7 +125,9 @@ void FBlueprintEditorModule::ShutdownModule()
 	if ( FModuleManager::Get().IsModuleLoaded( "LevelEditor" ) )
 	{
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
-		LevelEditorModule.GetAllLevelViewportContextMenuExtenders().Remove(LevelViewportContextMenuBlueprintExtender);
+		LevelEditorModule.GetAllLevelViewportContextMenuExtenders().RemoveAll([&](const FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors& Delegate) {
+			return Delegate.GetHandle() == LevelViewportContextMenuBlueprintExtenderDelegateHandle;
+		});
 	}
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");

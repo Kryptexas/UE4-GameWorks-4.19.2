@@ -152,4 +152,7 @@ private:
 	 * of the blueprint editor. 
 	 */
 	TSharedPtr<FUICommandList> SharedBlueprintEditorCommands;
+
+	/** Handle to a registered LevelViewportContextMenuBlueprintExtender delegate */
+	FDelegateHandle LevelViewportContextMenuBlueprintExtenderDelegateHandle;
 };

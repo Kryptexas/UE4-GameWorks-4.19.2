@@ -128,6 +128,9 @@ private:
 
 	/** Widget to display the name of the asset item and allows for renaming */
 	TSharedPtr< SInlineEditableTextBlock > InlineRenameWidget;
+
+	/** Handle to the registered EnterEditingMode delegate. */
+	FDelegateHandle EnterEditingModeDelegateHandle;
 };
 
 /** A single item in the collection list. */
@@ -231,4 +234,7 @@ private:
 
 	/** Widget to display the name of the collection item and allows for renaming */
 	TSharedPtr< SInlineEditableTextBlock > InlineRenameWidget;
+
+	/** Handle to the registered EnterEditingMode delegate. */
+	FDelegateHandle EnterEditingModeDelegateHandle;
 };

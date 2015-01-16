@@ -93,14 +93,14 @@ void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 
 	// Register for notifications
 	MyRegisteredGraphChangedDelegate = FOnGraphChanged::FDelegate::CreateSP(this, &SGraphPanel::OnGraphChanged);
-	this->GraphObj->AddOnGraphChangedHandler(MyRegisteredGraphChangedDelegate);
+	MyRegisteredGraphChangedDelegateHandle = this->GraphObj->AddOnGraphChangedHandler(MyRegisteredGraphChangedDelegate);
 	
 	ShowGraphStateOverlay = InArgs._ShowGraphStateOverlay;
 }
 
 SGraphPanel::~SGraphPanel()
 {
-	this->GraphObj->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegate);
+	this->GraphObj->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegateHandle);
 }
 
 //////////////////////////////////////////////////////////////////////////

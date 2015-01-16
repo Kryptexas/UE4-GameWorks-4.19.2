@@ -1224,7 +1224,7 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 	}
 
 	// Make sure we know when tabs become active to update details tab
-	FGlobalTabmanager::Get()->OnActiveTabChanged_Subscribe( FOnActiveTabChanged::FDelegate::CreateRaw(this, &FBlueprintEditor::OnActiveTabChanged) );
+	OnActiveTabChangedDelegateHandle = FGlobalTabmanager::Get()->OnActiveTabChanged_Subscribe( FOnActiveTabChanged::FDelegate::CreateRaw(this, &FBlueprintEditor::OnActiveTabChanged) );
 
 	if (InitBlueprints.Num() == 1)
 	{
@@ -1774,7 +1774,7 @@ FBlueprintEditor::~FBlueprintEditor()
 		GetBlueprintObj()->OnChanged().RemoveAll( this );
 	}
 
-	FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe( FOnActiveTabChanged::FDelegate::CreateRaw(this, &FBlueprintEditor::OnActiveTabChanged) );
+	FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe( OnActiveTabChangedDelegateHandle );
 
 	if (FEngineAnalytics::IsAvailable())
 	{

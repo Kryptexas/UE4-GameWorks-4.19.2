@@ -45,6 +45,7 @@ private:
 	TSharedPtr<FString> GetRetargetSourceString(FName RetargetSourceName) const;
 
 	USkeleton::FOnRetargetSourceChanged OnDelegateRetargetSourceChanged;
+	FDelegateHandle OnDelegateRetargetSourceChangedDelegateHandle;
 	void RegisterRetargetSourceChanged();
 	void DelegateRetargetSourceChanged();
 };

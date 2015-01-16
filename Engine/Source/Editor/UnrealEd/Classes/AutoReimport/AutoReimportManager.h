@@ -29,10 +29,14 @@ public:
 	DECLARE_DELEGATE_RetVal_TwoParams( bool, FAutoReimportDelegate, UObject*, const FString&);
 
 	/** Add a handler for reimporting custom file types, ex AddReimportDelegate("xml", FAutoReimportDelegate::CreateStatic(&MyImporter::AutoReimportStuff))  */
-	void AddReimportDelegate(const FString& FileType, const FAutoReimportDelegate& Delegate);
+	FDelegateHandle AddReimportDelegate(const FString& FileType, const FAutoReimportDelegate& Delegate);
 
 	/** Remove a handler for reimporting a custom file type. */
+	DELEGATE_DEPRECATED("This overload of RemoveReimportDelegate is deprecated, instead pass the result of AddReimportDelegate.")
 	void RemoveReimportDelegate( const FString& FileType, const FAutoReimportDelegate& Delegate );
+
+	/** Remove a handler for reimporting a custom file type. */
+	void RemoveReimportDelegate( const FString& FileType, FDelegateHandle Handle );
 
 	/** Reimport the file */
 	static bool ReimportFile(UObject* Obj, const FString File);
@@ -99,6 +103,9 @@ private:
 
 	/*The Directories we are currently watching */
 	FDirectories WatchedDirectories;
+
+	/** Handle to the registered OnDirectoryChanged delegate. */
+	FDelegateHandle OnDirectoryChangedDelegateHandle;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Auto Reimport handlers

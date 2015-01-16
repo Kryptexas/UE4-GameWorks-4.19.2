@@ -12,6 +12,7 @@ DEFINE_LOG_CATEGORY(LogPaperCBExtensions);
 //////////////////////////////////////////////////////////////////////////
 
 FContentBrowserMenuExtender_SelectedAssets ContentBrowserExtenderDelegate;
+FDelegateHandle ContentBrowserExtenderDelegateHandle;
 
 //////////////////////////////////////////////////////////////////////////
 // FContentBrowserSelectedAssetExtensionBase
@@ -324,12 +325,13 @@ void FPaperContentBrowserExtensions::InstallHooks()
 
 	TArray<FContentBrowserMenuExtender_SelectedAssets>& CBMenuExtenderDelegates = FPaperContentBrowserExtensions_Impl::GetExtenderDelegates();
 	CBMenuExtenderDelegates.Add(ContentBrowserExtenderDelegate);
+	ContentBrowserExtenderDelegateHandle = CBMenuExtenderDelegates.Last().GetHandle();
 }
 
 void FPaperContentBrowserExtensions::RemoveHooks()
 {
 	TArray<FContentBrowserMenuExtender_SelectedAssets>& CBMenuExtenderDelegates = FPaperContentBrowserExtensions_Impl::GetExtenderDelegates();
-	CBMenuExtenderDelegates.Remove(ContentBrowserExtenderDelegate);
+	CBMenuExtenderDelegates.RemoveAll([](const FContentBrowserMenuExtender_SelectedAssets& Delegate){ return Delegate.GetHandle() == ContentBrowserExtenderDelegateHandle; });
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1880,14 +1880,19 @@ void USkeletalMeshComponent::UpdateCollisionProfile()
 	}
 }
 
-void USkeletalMeshComponent::RegisterOnSkeletalMeshPropertyChanged( const FOnSkeletalMeshPropertyChanged& Delegate )
+FDelegateHandle USkeletalMeshComponent::RegisterOnSkeletalMeshPropertyChanged( const FOnSkeletalMeshPropertyChanged& Delegate )
 {
-	OnSkeletalMeshPropertyChanged.Add(Delegate);
+	return OnSkeletalMeshPropertyChanged.Add(Delegate);
 }
 
 void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( const FOnSkeletalMeshPropertyChanged& Delegate )
 {
-	OnSkeletalMeshPropertyChanged.Remove(Delegate);
+	OnSkeletalMeshPropertyChanged.DEPRECATED_Remove(Delegate);
+}
+
+void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( FDelegateHandle Handle )
+{
+	OnSkeletalMeshPropertyChanged.Remove(Handle);
 }
 
 void USkeletalMeshComponent::ValidateAnimation()

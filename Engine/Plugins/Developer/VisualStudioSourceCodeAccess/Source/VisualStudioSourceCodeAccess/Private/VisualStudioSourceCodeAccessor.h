@@ -15,6 +15,10 @@ public:
 #endif
 	};
 
+	FVisualStudioSourceCodeAccessor()
+	{
+	}
+
 	/** Initialise internal systems, register delegates etc. */
 	void Startup();
 
@@ -131,4 +135,8 @@ private:
 
 	/** Accessor for SolutionPath. Will try to update it when called from the game thread, otherwise will use the cached value */
 	FString GetSolutionPath() const;
+
+#if WITH_EDITOR
+	FDelegateHandle SaveVisualStudioDocumentsDelegateHandle;
+#endif
 };

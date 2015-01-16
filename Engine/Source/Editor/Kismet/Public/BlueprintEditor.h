@@ -1061,6 +1061,9 @@ private:
 	UEdGraph* HasOpenActionMenu;
 	/** Used to nicely fade instruction text, when the context menu is opened. */
 	float InstructionsFadeCountdown;
+
+	/** Handle to the registered OnActiveTabChanged delegate */
+	FDelegateHandle OnActiveTabChangedDelegateHandle;
 };
 
 #undef LOCTEXT_NAMESPACE
