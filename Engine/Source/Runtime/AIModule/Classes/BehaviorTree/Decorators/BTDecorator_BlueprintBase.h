@@ -104,8 +104,6 @@ protected:
 	/** set if ReceiveConditionCheck is implemented by blueprint */
 	uint32 ReceiveConditionCheckImplementations : 2;
 
-	FOnBlackboardChange BBKeyObserver;
-
 	bool CalculateRawConditionValueImpl(UBehaviorTreeComponent& OwnerComp) const;
 	
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
@@ -199,8 +197,6 @@ protected:
 	/** check if decorator's observer is currently active */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	bool IsDecoratorObserverActive() const;
-
-	TMap<FBlackboard::FKey, FDelegateHandle> BBKeyObserverDelegateHandles;
 
 	friend FBehaviorBlueprintDetails;
 

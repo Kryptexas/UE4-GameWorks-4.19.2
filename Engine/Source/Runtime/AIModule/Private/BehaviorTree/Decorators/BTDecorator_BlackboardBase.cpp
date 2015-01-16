@@ -14,12 +14,6 @@ UBTDecorator_BlackboardBase::UBTDecorator_BlackboardBase(const FObjectInitialize
 	// empty KeySelector = allow everything
 }
 
-void UBTDecorator_BlackboardBase::PostInitProperties()
-{
-	Super::PostInitProperties();
-	BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlackboardBase::OnBlackboardChange);
-}
-
 void UBTDecorator_BlackboardBase::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
@@ -32,7 +26,7 @@ void UBTDecorator_BlackboardBase::OnBecomeRelevant(UBehaviorTreeComponent& Owner
 	if (BlackboardComp)
 	{
 		auto KeyID = BlackboardKey.GetSelectedKeyID();
-		BBKeyObserverDelegateHandles.Add(KeyID, BlackboardComp->RegisterObserver(KeyID, BBKeyObserver));
+		BlackboardComp->RegisterObserver(KeyID, this, FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlackboardBase::OnBlackboardChange));
 	}
 }
 
@@ -41,9 +35,7 @@ void UBTDecorator_BlackboardBase::OnCeaseRelevant(UBehaviorTreeComponent& OwnerC
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		auto KeyID = BlackboardKey.GetSelectedKeyID();
-		BlackboardComp->UnregisterObserver(KeyID, BBKeyObserverDelegateHandles.FindRef(KeyID));
-		BBKeyObserverDelegateHandles.Remove(KeyID);
+		BlackboardComp->UnregisterObserversFrom(this);
 	}
 }
 

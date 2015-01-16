@@ -13,12 +13,6 @@ UBTDecorator_CompareBBEntries::UBTDecorator_CompareBBEntries(const FObjectInitia
 	bNotifyCeaseRelevant = true;
 }
 
-void UBTDecorator_CompareBBEntries::PostInitProperties()
-{
-	Super::PostInitProperties();
-	BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_CompareBBEntries::OnBlackboardChange);
-}
-
 void UBTDecorator_CompareBBEntries::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
@@ -70,8 +64,8 @@ void UBTDecorator_CompareBBEntries::OnBecomeRelevant(UBehaviorTreeComponent& Own
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BBKeyObserverDelegateHandles.Add(BlackboardKeyA.GetSelectedKeyID(), BlackboardComp->RegisterObserver(BlackboardKeyA.GetSelectedKeyID(), BBKeyObserver));
-		BBKeyObserverDelegateHandles.Add(BlackboardKeyA.GetSelectedKeyID(), BlackboardComp->RegisterObserver(BlackboardKeyB.GetSelectedKeyID(), BBKeyObserver));
+		BlackboardComp->RegisterObserver(BlackboardKeyA.GetSelectedKeyID(), this, FOnBlackboardChange::CreateUObject(this, &UBTDecorator_CompareBBEntries::OnBlackboardChange));
+		BlackboardComp->RegisterObserver(BlackboardKeyB.GetSelectedKeyID(), this, FOnBlackboardChange::CreateUObject(this, &UBTDecorator_CompareBBEntries::OnBlackboardChange));
 	}
 }
 
@@ -80,10 +74,7 @@ void UBTDecorator_CompareBBEntries::OnCeaseRelevant(UBehaviorTreeComponent& Owne
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->UnregisterObserver(BlackboardKeyA.GetSelectedKeyID(), BBKeyObserverDelegateHandles.FindRef(BlackboardKeyA.GetSelectedKeyID()));
-		BlackboardComp->UnregisterObserver(BlackboardKeyB.GetSelectedKeyID(), BBKeyObserverDelegateHandles.FindRef(BlackboardKeyB.GetSelectedKeyID()));
-		BBKeyObserverDelegateHandles.Remove(BlackboardKeyA.GetSelectedKeyID());
-		BBKeyObserverDelegateHandles.Remove(BlackboardKeyB.GetSelectedKeyID());
+		BlackboardComp->UnregisterObserversFrom(this);
 	}
 }
 
