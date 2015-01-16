@@ -72,6 +72,7 @@ public class UnrealEd : ModuleRules
 				"UnrealEdMessages",
                 "AIModule",
 				"BlueprintGraph",
+                "Http",
 			}
 		);
 

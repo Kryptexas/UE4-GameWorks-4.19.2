@@ -578,6 +578,16 @@ FFeedbackContext* FDesktopPlatformWindows::GetNativeFeedbackContext()
 	return &FeedbackContext;
 }
 
+FString FDesktopPlatformWindows::GetUserTempPath()
+{
+	TCHAR TempPath[MAX_PATH];
+	ZeroMemory(TempPath, sizeof(TCHAR) * MAX_PATH);
+
+	::GetTempPath(MAX_PATH, TempPath);
+
+	return FString(TempPath).Replace(TEXT("\\"), TEXT("/"));
+}
+
 void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
 {
 	// Get the path to VersionSelector.exe. If we're running from UnrealVersionSelector itself, try to stick with the current configuration.

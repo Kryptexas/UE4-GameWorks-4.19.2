@@ -685,7 +685,16 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 				.Padding( UniformPadding / 2 )
 				[
 					SNew(SHorizontalBox)
-										
+						
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.Padding(2.f)
+					.AutoWidth()
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("MessageLog.Warning"))
+					]
+
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
 					.FillWidth(1.0f)
@@ -695,15 +704,14 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 						.TextStyle(FEditorStyle::Get(), TEXT("GameProjectDialog.ErrorLabelFont"))
 					]
 
-					// A link to a platform-specific IDE, only shown when a compiler is not available
+					// Button/link to the suggested IDE
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
 					.AutoWidth()
+					.Padding(5.f, 0.f)
 					[
-						SNew(SHyperlink)
-						.Text(FText::Format(LOCTEXT("IDEDownloadLinkText", "Download {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE()))
-						.OnNavigate(this, &SNewProjectWizard::OnDownloadIDEClicked, FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL())
-						.Visibility(this, &SNewProjectWizard::GetGlobalErrorLabelIDELinkVisibility)
+						SNew(SGetSuggestedIDEWidget)
 					]
 									
 					// A button to close the persistent global error text
@@ -736,10 +744,19 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 				.Padding(UniformPadding / 2)
 				[
 					SNew(SHorizontalBox)
-										
+					
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.Padding(2.f)
+					.AutoWidth()
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("MessageLog.Warning"))
+					]
+
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
-					.FillWidth(1.0f)
+					.AutoWidth()
 					[
 						SNew(STextBlock)
 						.AutoWrapText(true)
@@ -1031,13 +1048,6 @@ FReply SNewProjectWizard::HandleBrowseButtonClicked()
 	return FReply::Handled();
 }
 
-
-void SNewProjectWizard::OnDownloadIDEClicked(FString URL)
-{
-	FPlatformProcess::LaunchURL( *URL, NULL, NULL );
-}
-
-
 void SNewProjectWizard::HandleTemplateListViewDoubleClick( TSharedPtr<FTemplateItem> TemplateItem )
 {
 	// Advance to the name/location page
@@ -1088,13 +1098,6 @@ EVisibility SNewProjectWizard::GetGlobalErrorLabelCloseButtonVisibility() const
 {
 	return PersistentGlobalErrorLabelText.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
 }
-
-
-EVisibility SNewProjectWizard::GetGlobalErrorLabelIDELinkVisibility() const
-{
-	return (IsCompilerRequired() && !FSourceCodeNavigation::IsCompilerAvailable()) ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
 
 FText SNewProjectWizard::GetGlobalErrorLabelText() const
 {

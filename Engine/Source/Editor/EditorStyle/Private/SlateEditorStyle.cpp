@@ -1590,7 +1590,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetShadowOffset( FVector2D::ZeroVector )
 		);
 
-		Set( "GameProjectDialog.ErrorLabelBorder", new FSlateColorBrush( FLinearColor(0.2, 0, 0) ) );
+		Set( "GameProjectDialog.ErrorLabelBorder", new FSlateColorBrush( FLinearColor(0.2f, 0.f, 0.f, 0.7f) ) );
 		Set( "GameProjectDialog.ErrorLabelCloseButton", new IMAGE_BRUSH( "Icons/Cross_12x", Icon12x12 ) );
 
 		Set( "GameProjectDialog.TemplateListView.TableRow", FTableRowStyle()
@@ -1675,7 +1675,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) )
 		 );
 	
-		Set( "NewClassDialog.ErrorLabelBorder", new FSlateColorBrush( FLinearColor(0.2, 0, 0) ) );
+		Set( "NewClassDialog.ErrorLabelBorder", new FSlateColorBrush( FLinearColor(0.2f, 0.f, 0.f, 0.7f) ) );
 		Set( "NewClassDialog.ErrorLabelCloseButton", new IMAGE_BRUSH( "Icons/Cross_12x", Icon12x12 ) );
 
 		Set( "NewClassDialog.ParentClassListView.TableRow", FTableRowStyle()

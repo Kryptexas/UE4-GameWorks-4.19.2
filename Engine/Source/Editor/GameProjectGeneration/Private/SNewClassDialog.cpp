@@ -222,7 +222,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 						.VAlign(VAlign_Center)
 						[
 							SNew(STextBlock)
-							.Text( FText::Format( LOCTEXT("ChooseParentClassDescription", "You are about to add a C++ source code file. To compile these files you must have {0} installed."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ) )
+							.Text(LOCTEXT("ChooseParentClassDescription", "This will add a C++ header and source code file to your game project."))
 						]
 
 						// Full tree checkbox
@@ -237,6 +237,46 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							[
 								SNew(STextBlock)
 								.Text( LOCTEXT( "FullClassTree", "Show All Classes" ) )
+							]
+						]
+					]
+
+					// Get IDE information
+					+SVerticalBox::Slot()
+					.Padding(0, 5)
+					.AutoHeight()
+					[
+						SNew(SBorder)
+						.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelVisibility )
+						.BorderImage( FEditorStyle::GetBrush("NewClassDialog.ErrorLabelBorder") )
+						.Content()
+						[
+							SNew(SHorizontalBox)
+
+							+SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.Padding(2.f)
+							.AutoWidth()
+							[
+								SNew(SImage)
+								.Image(FEditorStyle::GetBrush("MessageLog.Warning"))
+							]
+
+							+SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text( this, &SNewClassDialog::GetGlobalErrorLabelText )
+								.TextStyle( FEditorStyle::Get(), "NewClassDialog.ErrorLabelFont" )
+							]
+
+							+SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							.AutoWidth()
+							.Padding(5.f, 0.f)
+							[
+								SNew(SGetSuggestedIDEWidget)
 							]
 						]
 					]
@@ -641,38 +681,6 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 					]
 				]
 			]
-
-			// IDE download information
-			+SVerticalBox::Slot()
-			.Padding(0, 5)
-			.AutoHeight()
-			[
-				SNew(SBorder)
-				.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelVisibility )
-				.BorderImage( FEditorStyle::GetBrush("NewClassDialog.ErrorLabelBorder") )
-				.Content()
-				[
-					SNew(SHorizontalBox)
-
-					+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					[
-						SNew(STextBlock)
-						.Text( this, &SNewClassDialog::GetGlobalErrorLabelText )
-						.TextStyle( FEditorStyle::Get(), "NewClassDialog.ErrorLabelFont" )
-					]
-
-					+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(SHyperlink)
-						.Text( FText::Format( LOCTEXT("IDEDownloadLinkText", "Download {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ) )
-						.OnNavigate( this, &SNewClassDialog::OnDownloadIDEClicked, FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL() )
-						.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelIDELinkVisibility )
-					]
-				]
-			]
 		]
 	];
 
@@ -878,12 +886,7 @@ FText SNewClassDialog::GetNameErrorLabelText() const
 
 EVisibility SNewClassDialog::GetGlobalErrorLabelVisibility() const
 {
-	return GetGlobalErrorLabelText().IsEmpty() ? EVisibility::Hidden : EVisibility::Visible;
-}
-
-EVisibility SNewClassDialog::GetGlobalErrorLabelIDELinkVisibility() const
-{
-	return FSourceCodeNavigation::IsCompilerAvailable() ? EVisibility::Collapsed : EVisibility::Visible;
+	return GetGlobalErrorLabelText().IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 FText SNewClassDialog::GetGlobalErrorLabelText() const
@@ -1026,11 +1029,6 @@ void SNewClassDialog::FinishClicked()
 		const FText Message = FText::Format( LOCTEXT("AddCodeFailed", "Failed to add class {0}. {1}"), FText::FromString(NewClassName), FailReason );
 		FMessageDialog::Open(EAppMsgType::Ok, Message);
 	}
-}
-
-void SNewClassDialog::OnDownloadIDEClicked(FString URL)
-{
-	FPlatformProcess::LaunchURL( *URL, NULL, NULL );
 }
 
 FReply SNewClassDialog::HandleChooseFolderButtonClicked()
