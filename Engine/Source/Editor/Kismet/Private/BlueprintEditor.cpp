@@ -2502,7 +2502,7 @@ void FBlueprintEditor::OnGraphEditorDropActor(const TArray< TWeakObjectPtr<AActo
 	// We need to check that the dropped actor is in the right sublevel for the reference
 	ULevel* BlueprintLevel = FBlueprintEditorUtils::GetLevelFromBlueprint(GetBlueprintObj());
 
-	if (BlueprintLevel)
+	if (BlueprintLevel && FBlueprintEditorUtils::IsLevelScriptBlueprint(GetBlueprintObj()))
 	{
 		FVector2D NodeLocation = DropLocation;
 		for (int32 i = 0; i < Actors.Num(); i++)
