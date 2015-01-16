@@ -622,12 +622,13 @@ FBlueprintEditorUnifiedMode::FBlueprintEditorUnifiedMode(TSharedPtr<class FBluep
 	InBlueprintEditor->GetToolbarBuilder()->AddCompileToolbar(ToolbarExtender);
 	InBlueprintEditor->GetToolbarBuilder()->AddScriptingToolbar(ToolbarExtender);
 	InBlueprintEditor->GetToolbarBuilder()->AddBlueprintGlobalOptionsToolbar(ToolbarExtender);
-	InBlueprintEditor->GetToolbarBuilder()->AddDebuggingToolbar(ToolbarExtender);
-
+	
 	if ( bRegisterViewport )
 	{
 		InBlueprintEditor->GetToolbarBuilder()->AddComponentsToolbar(ToolbarExtender);
 	}
+	
+	InBlueprintEditor->GetToolbarBuilder()->AddDebuggingToolbar(ToolbarExtender);
 }
 
 void FBlueprintEditorUnifiedMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)

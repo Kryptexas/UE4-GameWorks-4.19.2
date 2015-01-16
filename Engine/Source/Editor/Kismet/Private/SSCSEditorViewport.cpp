@@ -11,6 +11,7 @@
 #include "Editor/UnrealEd/Public/STransformViewportToolbar.h"
 #include "EditorViewportCommands.h"
 #include "SEditorViewportToolBarMenu.h"
+#include "BlueprintEditorTabs.h"
 
 /*-----------------------------------------------------------------------------
    SSCSEditorViewportToolBar
@@ -253,7 +254,7 @@ void SSCSEditorViewport::BindCommands()
 
 	BlueprintEditorPtr.Pin()->GetToolkitCommands()->MapAction(
 		FBlueprintEditorCommands::Get().EnableSimulation,
-		FExecuteAction::CreateSP(ViewportClient.Get(), &FSCSEditorViewportClient::ToggleIsSimulateEnabled),
+		FExecuteAction::CreateSP(this, &SSCSEditorViewport::ToggleIsSimulateEnabled),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(ViewportClient.Get(), &FSCSEditorViewportClient::GetIsSimulateEnabled));
 
@@ -278,6 +279,21 @@ void SSCSEditorViewport::BindCommands()
 void SSCSEditorViewport::Invalidate()
 {
 	ViewportClient->Invalidate();
+}
+
+void SSCSEditorViewport::ToggleIsSimulateEnabled()
+{
+	// If we're in unified BP editing mode, make the viewport visible when simulation is starting.
+	if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
+	{
+		// Only trigger the switch if the simulation is starting.
+		if ( !ViewportClient->GetIsSimulateEnabled() )
+		{
+			BlueprintEditorPtr.Pin()->GetTabManager()->InvokeTab(FBlueprintEditorTabs::SCSViewportID);
+		}
+	}
+
+	ViewportClient->ToggleIsSimulateEnabled();
 }
 
 void SSCSEditorViewport::EnablePreview(bool bEnable)
