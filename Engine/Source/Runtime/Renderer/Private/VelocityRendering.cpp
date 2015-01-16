@@ -294,7 +294,7 @@ bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitive
 	}
 
 	// check if the primitive has moved
-	if (!bHasWorldPositionOffset)
+	//if (!bHasWorldPositionOffset)
 	{
 		FMatrix PreviousLocalToWorld;
 
