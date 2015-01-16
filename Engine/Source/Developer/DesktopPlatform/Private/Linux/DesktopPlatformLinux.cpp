@@ -380,7 +380,7 @@ FFeedbackContext* FDesktopPlatformLinux::GetNativeFeedbackContext()
 
 FString FDesktopPlatformLinux::GetUserTempPath()
 {
-	//@todo - get the path to the user's temp dir
+	return FString(FPlatformProcess::UserTempDir());
 }
 
 #undef LOCTEXT_NAMESPACE
