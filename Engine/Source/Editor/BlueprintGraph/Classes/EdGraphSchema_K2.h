@@ -636,7 +636,7 @@ public:
 	UFunction* GetCallableParentFunction(UFunction* Function) const;
 
 	/** Whether or not the specified actor is a valid target for bound events and literal references (in the right level, not a builder brush, etc */
-	bool IsActorValidForLevelScriptRefs(const AActor* TestActor, const ULevelScriptBlueprint* Blueprint) const;
+	bool IsActorValidForLevelScriptRefs(const AActor* TestActor, const UBlueprint* Blueprint) const;
 
 	/** 
 	 *	Generate a list of replaceable nodes for context menu based on the editor's current selection 

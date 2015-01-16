@@ -875,12 +875,12 @@ void UEdGraphSchema_K2::ListFunctionsMatchingSignatureAsDelegates(FGraphContextM
 
 }
 
-bool UEdGraphSchema_K2::IsActorValidForLevelScriptRefs(const AActor* TestActor, const ULevelScriptBlueprint* Blueprint) const
+bool UEdGraphSchema_K2::IsActorValidForLevelScriptRefs(const AActor* TestActor, const UBlueprint* Blueprint) const
 {
 	check(Blueprint);
 	
 	return TestActor
-		&& (TestActor->GetLevel() == Blueprint->GetLevel())
+		&& (TestActor->GetLevel() == FBlueprintEditorUtils::GetLevelFromBlueprint(Blueprint))
 		&& FKismetEditorUtilities::IsActorValidForLevelScript(TestActor);
 }
 
@@ -905,30 +905,21 @@ void UEdGraphSchema_K2::ReplaceSelectedNode(UEdGraphNode* SourceNode, AActor* Ta
 
 void UEdGraphSchema_K2::AddSelectedReplaceableNodes( UBlueprint* Blueprint, const UEdGraphNode* InGraphNode, FMenuBuilder* MenuBuilder ) const
 {
-	ULevelScriptBlueprint* LevelBlueprint = Cast<ULevelScriptBlueprint>(Blueprint);
-	
-	if (LevelBlueprint)
+	//Only allow replace object reference functionality for literal nodes
+	const UK2Node_Literal* LiteralNode = Cast<UK2Node_Literal>(InGraphNode);
+	if (LiteralNode)
 	{
-		//Only allow replace object reference functionality for literal nodes
-		if( InGraphNode->IsA( UK2Node_Literal::StaticClass() ) )
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		for(FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 		{
-			UK2Node_Literal* LiteralNode = (UK2Node_Literal*)(InGraphNode);
-
-			if( LiteralNode )
+			// We only care about actors that are referenced in the world for literals, and also in the same level as this blueprint
+			AActor* Actor = Cast<AActor>(*Iter);
+			if( LiteralNode->GetObjectRef() != Actor && IsActorValidForLevelScriptRefs(Actor, Blueprint) )
 			{
-				USelection* SelectedActors = GEditor->GetSelectedActors();
-				for(FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
-				{
-					// We only care about actors that are referenced in the world for literals, and also in the same level as this blueprint
-					AActor* Actor = Cast<AActor>(*Iter);
-					if( LiteralNode->GetObjectRef() != Actor && IsActorValidForLevelScriptRefs(Actor, LevelBlueprint) )
-					{
-						FText Description = FText::Format( LOCTEXT("ChangeToActorName", "Change to <{0}>"), FText::FromString( Actor->GetActorLabel() ) );
-						FText ToolTip = LOCTEXT("ReplaceNodeReferenceToolTip", "Replace node reference");
-						MenuBuilder->AddMenuEntry( Description, ToolTip, FSlateIcon(), FUIAction(
-							FExecuteAction::CreateUObject((UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::ReplaceSelectedNode, const_cast< UEdGraphNode* >(InGraphNode), Actor) ) );
-					}
-				}
+				FText Description = FText::Format( LOCTEXT("ChangeToActorName", "Change to <{0}>"), FText::FromString( Actor->GetActorLabel() ) );
+				FText ToolTip = LOCTEXT("ReplaceNodeReferenceToolTip", "Replace node reference");
+				MenuBuilder->AddMenuEntry( Description, ToolTip, FSlateIcon(), FUIAction(
+					FExecuteAction::CreateUObject((UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::ReplaceSelectedNode, const_cast< UEdGraphNode* >(InGraphNode), Actor) ) );
 			}
 		}
 	}

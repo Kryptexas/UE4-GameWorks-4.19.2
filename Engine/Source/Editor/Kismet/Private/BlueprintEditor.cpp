@@ -2499,12 +2499,11 @@ void FBlueprintEditor::OnGraphEditorFocused(const TSharedRef<SGraphEditor>& InGr
 
 void FBlueprintEditor::OnGraphEditorDropActor(const TArray< TWeakObjectPtr<AActor> >& Actors, UEdGraph* Graph, const FVector2D& DropLocation)
 {
-	// First we need to check that the dropped actor is in the right sublevel for the reference
-	ULevelScriptBlueprint* LevelBlueprint = Cast<ULevelScriptBlueprint>(GetBlueprintObj());
-	if (LevelBlueprint != NULL)
-	{
-		ULevel* BlueprintLevel = LevelBlueprint->GetLevel();
+	// We need to check that the dropped actor is in the right sublevel for the reference
+	ULevel* BlueprintLevel = FBlueprintEditorUtils::GetLevelFromBlueprint(GetBlueprintObj());
 
+	if (BlueprintLevel)
+	{
 		FVector2D NodeLocation = DropLocation;
 		for (int32 i = 0; i < Actors.Num(); i++)
 		{
