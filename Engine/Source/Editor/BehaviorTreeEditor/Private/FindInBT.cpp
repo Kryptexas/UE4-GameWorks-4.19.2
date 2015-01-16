@@ -122,6 +122,7 @@ void SFindInBT::Construct( const FArguments& InArgs, TSharedPtr<FBehaviorTreeEdi
 					SAssignNew(SearchTextField, SSearchBox)
 					.HintText(LOCTEXT("BehaviorTreeSearchHint", "Enter text to find nodes..."))
 					.OnTextChanged(this, &SFindInBT::OnSearchTextChanged)
+					.OnTextCommitted(this, &SFindInBT::OnSearchTextCommitted)
 				]
 			]
 			+SVerticalBox::Slot()
@@ -158,6 +159,11 @@ void SFindInBT::OnSearchTextChanged(const FText& Text)
 	SearchValue = Text.ToString();
 	
 	InitiateSearch();
+}
+
+void SFindInBT::OnSearchTextCommitted(const FText& Text, ETextCommit::Type CommitType)
+{
+	OnSearchTextChanged(Text);
 }
 
 void SFindInBT::InitiateSearch()
