@@ -143,12 +143,12 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) override;
 	virtual TSharedPtr<FDragTool> MakeDragTool( EDragTool::Type DragToolType ) override;
-	virtual bool IsLevelEditorClient() const { return ParentLevelEditor.IsValid(); }
+	virtual bool IsLevelEditorClient() const override { return ParentLevelEditor.IsValid(); }
 	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) override;
 	virtual void TrackingStopped() override;
 	virtual void AbortTracking() override;
 	virtual FVector GetWidgetLocation() const override;
-	virtual FMatrix GetWidgetCoordSystem() const;
+	virtual FMatrix GetWidgetCoordSystem() const override;
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
 	virtual FLinearColor GetBackgroundColor() const override;
 	virtual int32 GetCameraSpeedSetting() const override;
@@ -609,6 +609,9 @@ private:
 
 	/** Project the specified actors into the world according to the current drag parameters */
 	void ProjectActorsIntoWorld(const TArray<AActor*>& Actors, FViewport* Viewport, const FVector& Drag, const FRotator& Rot);
+
+	/** Draw additional details for brushes in the world */
+	void DrawBrushDetails(const FSceneView* View, FPrimitiveDrawInterface* PDI);
 
 public:
 	/** Static: List of objects we're hovering over */
