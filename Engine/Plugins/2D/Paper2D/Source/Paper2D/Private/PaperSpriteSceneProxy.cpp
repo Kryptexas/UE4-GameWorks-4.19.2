@@ -15,7 +15,7 @@ FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(const UPaperSpriteComponent* InCo
 	Material = InComponent->GetMaterial(0);
 	AlternateMaterial = InComponent->GetMaterial(1);
 	MaterialSplitIndex = INDEX_NONE;
-	MaterialRelevance = InComponent->GetMaterialRelevance_GameThread(GetScene().GetFeatureLevel());
+	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
 
 	SourceSprite = InComponent->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
 }

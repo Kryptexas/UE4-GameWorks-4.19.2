@@ -93,7 +93,7 @@ public:
 		: FPrimitiveSceneProxy(Component)
 		, Material(NULL)
 		, DynamicData(NULL)
-		, MaterialRelevance(Component->GetMaterialRelevance_GameThread(GetScene().GetFeatureLevel()))
+		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 		, NumSegments(Component->NumSegments)
 		, CableWidth(Component->CableWidth)
 		, NumSides(Component->NumSides)

@@ -354,7 +354,6 @@ public:
 	ENGINE_API FMaterialRelevance GetRelevance_Concurrent(ERHIFeatureLevel::Type InFeatureLevel) const;
 private:
 	// might get called from game or render thread
-	template<bool IsGameThread>
 	FMaterialRelevance GetRelevance_Internal(const UMaterial* Material, ERHIFeatureLevel::Type InFeatureLevel) const;
 public:
 

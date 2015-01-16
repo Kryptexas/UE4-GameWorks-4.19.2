@@ -58,7 +58,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	ForcedLodModel(InComponent->ForcedLodModel),
 	bCastShadow(InComponent->CastShadow),
 	CollisionTraceFlag(ECollisionTraceFlag::CTF_UseDefault),
-	MaterialRelevance(InComponent->GetMaterialRelevance_GameThread(GetScene().GetFeatureLevel())),
+	MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel())),
 	CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
 	check(RenderData);
