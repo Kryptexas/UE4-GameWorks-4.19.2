@@ -963,6 +963,8 @@ void FLevelEditorActionCallbacks::AddScriptBehavior_Clicked()
 			NewBP->ClearFlags(RF_Standalone);
 			ULevel::LevelDirtiedEvent.Broadcast();
 
+			UEngine::CopyPropertiesForUnrelatedObjects(SelectedActor, NewBP->GeneratedClass->GetDefaultObject<AActor>());
+
 			FKismetEditorUtilities::CompileBlueprint(NewBP);
 
 			// the editor should be opened AFTER being added to the asset 
