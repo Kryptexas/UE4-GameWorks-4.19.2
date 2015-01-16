@@ -395,8 +395,20 @@ namespace UnrealBuildTool
         {
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WIN32=1");
 
-            // Win32 XP is only supported at this time.
-            SupportWindowsXP = SupportWindowsXP && InBuildTarget.Platform == UnrealTargetPlatform.Win32;
+			{
+				ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", UnrealBuildTool.GetUProjectPath());
+				string MinimumOS;
+				if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "MinimumOSVersion", out MinimumOS))
+				{
+					if(string.IsNullOrEmpty(MinimumOS) == false)
+					{
+						SupportWindowsXP = MinimumOS == "MSOS_XP";
+					}
+				}
+			}
+			// Win32 XP is only supported at this time.
+			SupportWindowsXP = SupportWindowsXP && InBuildTarget.Platform == UnrealTargetPlatform.Win32;
+
 
             if( SupportWindowsXP )
             {
