@@ -14,7 +14,9 @@ public:
 
 protected:
 	virtual AActor* SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name ) override;
+	void SetupEditorOnlyBillboardComponent(class UBillboardComponent* BillboardComponent);
+	void OnBlueprintActorPreSpawned(class USimpleConstructionScript* SimpleConstructionScript);
 private:
 	AActor* SpawnActorForDragPreview( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name );
-	void SetupEditorOnlyBillboardComponent( class UBillboardComponent* BillboardComponent );
+
 };

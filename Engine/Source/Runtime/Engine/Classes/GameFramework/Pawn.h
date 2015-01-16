@@ -27,7 +27,7 @@ struct FNavAgentProperties;
  *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/
  */
-UCLASS(abstract, config=Game, BlueprintType, Blueprintable, hidecategories=(Navigation))
+UCLASS(config=Game, BlueprintType, Blueprintable, hidecategories=(Navigation))
 class ENGINE_API APawn : public AActor, public INavAgentInterface
 {
 	GENERATED_BODY()

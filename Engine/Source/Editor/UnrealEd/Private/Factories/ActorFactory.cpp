@@ -1112,13 +1112,59 @@ UActorFactoryCameraActor::UActorFactoryCameraActor(const FObjectInitializer& Obj
 	NewActorClass = ACameraActor::StaticClass();
 }
 
+DECLARE_DELEGATE_OneParam( FOnBlueprintActorPreSpawned, USimpleConstructionScript* );
+
+template <typename ActorClassType>
+static AActor* CreateAnonymousBlueprintAndSpawnActor(ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name, FOnBlueprintActorPreSpawned OnBlueprintActorPreSpawned = FOnBlueprintActorPreSpawned() )
+{
+	UClass* ActorClass = ActorClassType::StaticClass();
+	FName UniqueActorName = MakeUniqueObjectName(InLevel, ActorClass, Name);
+
+	// Spawn a blank actor with an anonymous blueprint
+	// Create and init a new Blueprint
+	const FName BPName = *FString::Printf(TEXT("%s_BPClass"), *UniqueActorName.ToString());
+
+	const FName UniqueBPName = MakeUniqueObjectName(InLevel, UBlueprint::StaticClass(), BPName);
+
+
+	UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(ActorClass, InLevel, UniqueBPName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+	if(NewBP)
+	{
+		NewBP->ClearFlags(RF_Standalone);
+
+		OnBlueprintActorPreSpawned.ExecuteIfBound(NewBP->SimpleConstructionScript);
+
+		FKismetEditorUtilities::CompileBlueprint(NewBP);
+
+		FAssetData AssetData(NewBP);
+		const FString* GeneratedClassPath = AssetData.TagsAndValues.Find("GeneratedClass");
+		if(GeneratedClassPath != NULL && !GeneratedClassPath->IsEmpty())
+		{
+			UClass* GeneratedClass = Cast<UClass>(StaticLoadObject(UClass::StaticClass(), NULL, **GeneratedClassPath, NULL, LOAD_NoWarn, NULL));
+
+			if(GeneratedClass != NULL)
+			{
+				FActorSpawnParameters SpawnInfo;
+				SpawnInfo.OverrideLevel = InLevel;
+				SpawnInfo.ObjectFlags = ObjectFlags;
+				SpawnInfo.Name = UniqueActorName;
+				return InLevel->OwningWorld->SpawnActor(GeneratedClass, &Location, &Rotation, SpawnInfo);
+			}
+		}
+
+	}
+
+	return nullptr;
+}
+
+
 /*-----------------------------------------------------------------------------
 UActorFactoryEmptyActor
 -----------------------------------------------------------------------------*/
 UActorFactoryEmptyActor::UActorFactoryEmptyActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	DisplayName = LOCTEXT("EmptyActorDisplayName", "Empty Actor");
+	DisplayName = LOCTEXT("ActorFactoryEmptyActorDisplayName", "Empty Actor");
 	NewActorClass = AActor::StaticClass();
 }
 
@@ -1132,58 +1178,20 @@ AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, co
 	AActor* NewActor = nullptr;
 	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing) 
 	{
-
 		if( ObjectFlags == RF_Transient )
 		{
 			NewActor = SpawnActorForDragPreview( Asset, InLevel, Location, Rotation, ObjectFlags, Name );
 		}
 		else
 		{
-			FName ActorName(TEXT("Actor"));
-			FName UniqueActorName = MakeUniqueObjectName( InLevel, AActor::StaticClass(), ActorName );
-
-			// Spawn a blank actor with an anonymous blueprint
-			// Create and init a new Blueprint
-			const FName BPName = *FString::Printf(TEXT("%s_BPClass"), *UniqueActorName.ToString());
-
-			const FName UniqueBPName = MakeUniqueObjectName( InLevel, UBlueprint::StaticClass(), BPName );
-
-			
-			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), InLevel, UniqueBPName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
-			if(NewBP)
-			{
-				NewBP->ClearFlags(RF_Standalone);
-
-				USCS_Node* NewSCSNode = NewBP->SimpleConstructionScript->CreateNode( UBillboardComponent::StaticClass() );
-				
-				UBillboardComponent* BillboardComponent = CastChecked<UBillboardComponent>( NewSCSNode->ComponentTemplate );
-
-				SetupEditorOnlyBillboardComponent( BillboardComponent );
-				
-				// Set parameters to parent this node to the "inherited" SCS node
-				NewSCSNode->SetParent( NewBP->SimpleConstructionScript->GetDefaultSceneRootNode() );
-
-				NewBP->SimpleConstructionScript->GetDefaultSceneRootNode()->AddChildNode(NewSCSNode);
-
-				FKismetEditorUtilities::CompileBlueprint(NewBP);
-
-				FAssetData AssetData(NewBP);
-				const FString* GeneratedClassPath = AssetData.TagsAndValues.Find("GeneratedClass");
-				if(GeneratedClassPath != NULL && !GeneratedClassPath->IsEmpty())
-				{
-					UClass* GeneratedClass = Cast<UClass>(StaticLoadObject(UClass::StaticClass(), NULL, **GeneratedClassPath, NULL, LOAD_NoWarn, NULL));
-
-					if(GeneratedClass != NULL)
-					{
-						FActorSpawnParameters SpawnInfo;
-						SpawnInfo.OverrideLevel = InLevel;
-						SpawnInfo.ObjectFlags = ObjectFlags;
-						SpawnInfo.Name = Name;
-						NewActor = InLevel->OwningWorld->SpawnActor(GeneratedClass, &Location, &Rotation, SpawnInfo);
-					}
-				}
-
-			}
+			NewActor = CreateAnonymousBlueprintAndSpawnActor<AActor>(
+				InLevel, 
+				Location, 
+				Rotation, 
+				ObjectFlags, 
+				FName("Actor"),
+				FOnBlueprintActorPreSpawned::CreateUObject( this, &UActorFactoryEmptyActor::OnBlueprintActorPreSpawned )
+				);
 		}
 	}
 
@@ -1196,7 +1204,7 @@ AActor* UActorFactoryEmptyActor::SpawnActorForDragPreview( UObject* Asset, ULeve
 	AActor* NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
 
 	USceneComponent* RootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), NewActor, FName("Root"), RF_Transactional);
-	RootComponent->Mobility = EComponentMobility::Static;
+	RootComponent->Mobility = EComponentMobility::Movable;
 	RootComponent->SetWorldLocationAndRotation(Location, Rotation);
 	NewActor->SetRootComponent(RootComponent);
 
@@ -1219,6 +1227,96 @@ void UActorFactoryEmptyActor::SetupEditorOnlyBillboardComponent( UBillboardCompo
 	BillboardComponent->Mobility = EComponentMobility::Movable;
 	BillboardComponent->AlwaysLoadOnClient = false;
 	BillboardComponent->AlwaysLoadOnServer = false;
+}
+
+void UActorFactoryEmptyActor::OnBlueprintActorPreSpawned( USimpleConstructionScript* SimpleConstructionScript )
+{
+	USCS_Node* NewSCSNode = SimpleConstructionScript->CreateNode(UBillboardComponent::StaticClass());
+
+	UBillboardComponent* BillboardComponent = CastChecked<UBillboardComponent>(NewSCSNode->ComponentTemplate);
+
+	SetupEditorOnlyBillboardComponent(BillboardComponent);
+
+	// Set parameters to parent this node to the "inherited" SCS node
+	NewSCSNode->SetParent(SimpleConstructionScript->GetDefaultSceneRootNode());
+
+	SimpleConstructionScript->GetDefaultSceneRootNode()->AddChildNode(NewSCSNode);
+}
+
+/*-----------------------------------------------------------------------------
+UActorFactoryCharacter
+-----------------------------------------------------------------------------*/
+UActorFactoryCharacter::UActorFactoryCharacter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("ActorFactoryCharacterDisplayName", "Character");
+	NewActorClass = ACharacter::StaticClass();
+}
+
+bool UActorFactoryCharacter::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
+{
+	return GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing ? AssetData.ObjectPath == FName(*ACharacter::StaticClass()->GetPathName()) : false;
+}
+
+AActor* UActorFactoryCharacter::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
+{
+	AActor* NewActor = nullptr;
+	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
+	{
+
+		if(ObjectFlags == RF_Transient)
+		{
+			NewActor = Super::SpawnActor( Asset, InLevel, Location, Rotation, ObjectFlags, Name );
+		}
+		else
+		{
+			NewActor = CreateAnonymousBlueprintAndSpawnActor<ACharacter>( InLevel, Location, Rotation, ObjectFlags, FName("Character") );
+		}
+
+	}
+
+	return NewActor;
+}
+
+
+/*-----------------------------------------------------------------------------
+UActorFactoryPawn
+-----------------------------------------------------------------------------*/
+UActorFactoryPawn::UActorFactoryPawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("ActorFactoryPawnDisplayName", "Pawn");
+	NewActorClass = APawn::StaticClass();
+}
+
+bool UActorFactoryPawn::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
+{
+	return GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing ? AssetData.ObjectPath == FName(*APawn::StaticClass()->GetPathName()) : false;
+}
+
+AActor* UActorFactoryPawn::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
+{
+	AActor* NewActor = nullptr;
+	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
+	{
+		if(ObjectFlags == RF_Transient)
+		{
+			NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
+		}
+		else
+		{
+			NewActor = CreateAnonymousBlueprintAndSpawnActor<APawn>(
+				InLevel,
+				Location,
+				Rotation,
+				ObjectFlags,
+				FName("Pawn"),
+				FOnBlueprintActorPreSpawned::CreateUObject(this, &UActorFactoryPawn::OnBlueprintActorPreSpawned)
+				);
+		}
+	}
+
+	return NewActor;
 }
 
 /*-----------------------------------------------------------------------------
