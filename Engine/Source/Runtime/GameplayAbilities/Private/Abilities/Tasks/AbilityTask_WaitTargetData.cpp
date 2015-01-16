@@ -310,7 +310,7 @@ void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 	AbilitySystemComponent->ConsumeAbilityConfirmCancel();
 	AbilitySystemComponent->SetUserAbilityActivationInhibited(false);
 
-	AbilitySystemComponent->ReplicatedTargetDataDelegate.RemoveUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+	AbilitySystemComponent->ReplicatedTargetDataDelegate.Remove(OnTargetDataReplicatedCallbackDelegateHandle);
 	AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.RemoveDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 
 	if (TargetActor.IsValid())
