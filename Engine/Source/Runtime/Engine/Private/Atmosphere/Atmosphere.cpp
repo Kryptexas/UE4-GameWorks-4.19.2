@@ -705,11 +705,6 @@ public:
 	virtual ~FAtmospherePrecomputeInstanceData()
 	{}
 
-	virtual bool MatchesComponent(const UActorComponent* Component) const override
-	{
-		return (PrecomputeParameter == CastChecked<UAtmosphericFogComponent>(Component)->GetPrecomputeParameters());
-	}
-
 	struct FAtmospherePrecomputeParameters PrecomputeParameter;
 
 	FByteBulkData TransmittanceData;
@@ -768,6 +763,11 @@ void UAtmosphericFogComponent::ApplyComponentInstanceData(FComponentInstanceData
 {
 	check(ComponentInstanceData);
 	FAtmospherePrecomputeInstanceData* PrecomputedData = static_cast<FAtmospherePrecomputeInstanceData*>(const_cast<FComponentInstanceDataBase*>(ComponentInstanceData));
+
+	if (PrecomputedData->PrecomputeParameter != GetPrecomputeParameters())
+	{
+		return;
+	}
 
 	FComponentReregisterContext ReregisterContext(this);
 	ReleaseResource();

@@ -18,7 +18,7 @@ public:
 	virtual ~FComponentInstanceDataBase()
 	{}
 
-	virtual bool MatchesComponent(const UActorComponent* Component) const;
+	bool MatchesComponent(const UActorComponent* Component) const;
 
 protected:
 	/** The name of the source component */

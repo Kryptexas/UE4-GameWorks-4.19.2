@@ -878,13 +878,6 @@ public:
 	virtual ~FPrecomputedLightInstanceData()
 	{}
 
-	// Begin FComponentInstanceDataBase interface
-	virtual bool MatchesComponent(const UActorComponent* Component) const override
-	{
-		return Transform.Equals(CastChecked<ULightComponent>(Component)->ComponentToWorld);
-	}
-	// End FComponentInstanceDataBase interface
-
 	FTransform Transform;
 	FGuid LightGuid;
 	int32 ShadowMapChannel;
@@ -908,6 +901,11 @@ void ULightComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* Com
 {
 	check(ComponentInstanceData);
 	FPrecomputedLightInstanceData* LightMapData  = static_cast<FPrecomputedLightInstanceData*>(ComponentInstanceData);
+
+	if (!LightMapData->Transform.Equals(ComponentToWorld))
+	{
+		return;
+	}
 
 	LightGuid = LightMapData->LightGuid;
 	ShadowMapChannel = LightMapData->ShadowMapChannel;

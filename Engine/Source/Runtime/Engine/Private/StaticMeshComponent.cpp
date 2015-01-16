@@ -33,11 +33,6 @@ public:
 	{
 	}
 
-	virtual bool MatchesComponent(const UActorComponent* Component) const override
-	{
-		return (CastChecked<UStaticMeshComponent>(Component)->StaticMesh == StaticMesh && FComponentInstanceDataBase::MatchesComponent(Component));
-	}
-
 	/** Add vertex color data for a specified LOD before RerunConstructionScripts is called */
 	void AddVertexColorData(const struct FStaticMeshComponentLODInfo& LODInfo, uint32 LODIndex)
 	{
@@ -1579,6 +1574,11 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component
 	// That means all component state that is modified here must be mirrored on the scene proxy, which will be recreated to receive the changes later due to MarkRenderStateDirty.
 	FStaticMeshComponentInstanceData* StaticMeshInstanceData  = static_cast<FStaticMeshComponentInstanceData*>(ComponentInstanceData);
+
+	if (StaticMesh != StaticMeshInstanceData->StaticMesh)
+	{
+		return;
+	}
 
 	// See if data matches current state
 	if(	StaticMeshInstanceData->bHasCachedStaticLighting && StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld) )
