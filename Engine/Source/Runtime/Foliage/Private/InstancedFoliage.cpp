@@ -1680,26 +1680,21 @@ void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType)
 
 void AInstancedFoliageActor::OnLevelActorMoved(AActor* InActor)
 {
-	if (!GetWorld()->IsPlayInEditor())
+	if (!InActor->GetWorld()->IsPlayInEditor())
 	{
 		if(AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InActor->GetLevel()))
 		{
-			TInlineComponentArray<UActorComponent*> Components;
-			GetComponents(Components);
-
-			for (int32 Idx = 0; Idx < Components.Num(); ++Idx)
+			if (IFA == this)	//IFA for each level is registered so we'll get hit multiple times for each sublevel. @TODO: Should we only register the persistant level IFA?
 			{
-				IFA->MoveInstancesForMovedComponent(Components[Idx]);
+				TInlineComponentArray<UActorComponent*> Components;
+				InActor->GetComponents(Components);
+
+				for (int32 Idx = 0; Idx < Components.Num(); ++Idx)
+				{
+					IFA->MoveInstancesForMovedComponent(Components[Idx]);
+				}
 			}
 		}
-	}
-}
-
-void AInstancedFoliageActor::SubscribeToUpdateEvents()
-{
-	if (!GetWorld()->IsPlayInEditor())
-	{
-		OnLevelActorMovedDelegateHandle   = GEngine->OnActorMoved().AddUObject(this, &AInstancedFoliageActor::OnLevelActorMoved);
 	}
 }
 #endif
@@ -1748,6 +1743,8 @@ void AInstancedFoliageActor::PostRegisterAllComponents()
 		ULevel* Level = GetLevel();
 		Level->OnApplyLevelTransform.Remove(OnApplyLevelTransformDelegateHandle); // RegisterAllComponents can be called many times before calling UnregisterAllComponents
 		OnApplyLevelTransformDelegateHandle = Level->OnApplyLevelTransform.AddUObject(this, &AInstancedFoliageActor::ApplyLevelTransform);
+		OnLevelActorMovedDelegateHandle = GEngine->OnActorMoved().AddUObject(this, &AInstancedFoliageActor::OnLevelActorMoved);
+
 	}
 #endif// WITH_EDITOR
 }
@@ -1759,6 +1756,7 @@ void AInstancedFoliageActor::PostUnregisterAllComponents()
 	{
 		ULevel* Level = GetLevel();
 		Level->OnApplyLevelTransform.Remove(OnApplyLevelTransformDelegateHandle);
+		GEngine->OnActorMoved().Remove(OnLevelActorMovedDelegateHandle);
 	}
 #endif// WITH_EDITOR
 

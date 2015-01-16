@@ -57,10 +57,7 @@ public:
 
 	// Move instances based on a component that has just been moved.
 	void MoveInstancesForMovedComponent(UActorComponent* InComponent);
-
-	/** Subscribes for actors transformation events */
-	void SubscribeToUpdateEvents();
-
+	
 	// Returns a map of Static Meshes and their placed instances attached to a component.
 	FOLIAGE_API TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> GetInstancesForComponent(UActorComponent* InComponent);
 
