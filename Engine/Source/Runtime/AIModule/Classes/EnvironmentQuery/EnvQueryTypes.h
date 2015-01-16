@@ -424,7 +424,7 @@ public:
 	/** instance ID */
 	int32 QueryID;
 
-	/** instance owner */
+	/** instance owner. Mind that it doesn't have to be the query's "Querier". This is just the object that is responsible for this query instance. */
 	TWeakObjectPtr<UObject> Owner;
 
 	FORCEINLINE float GetItemScore(int32 Index) const { return Items.IsValidIndex(Index) ? Items[Index].Score : 0.0f; }
