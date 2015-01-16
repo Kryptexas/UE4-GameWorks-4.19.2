@@ -1221,7 +1221,7 @@ bool ULocalPlayer::HandleListPawnComponentsCommand( const TCHAR* Cmd, FOutputDev
 		APawn *Pawn = *It;	
 		UE_LOG(LogPlayerManagement, Log, TEXT("Components for pawn: %s (collision component: %s)"),*Pawn->GetName(),*Pawn->GetRootComponent()->GetName());
 
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Pawn->GetComponents(Components);
 
 		for (int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)

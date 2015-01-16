@@ -372,7 +372,7 @@ FString APlayerController::ConsoleCommand(const FString& Cmd,bool bWriteToLog)
 
 void APlayerController::CleanUpAudioComponents()
 {
-	TArray<UAudioComponent*> Components;
+	TInlineComponentArray<UAudioComponent*> Components;
 	GetComponents(Components);
 
 	for(int32 CompIndex = 0; CompIndex < Components.Num(); CompIndex++)
@@ -2312,7 +2312,7 @@ void APlayerController::BuildInputStack(TArray<UInputComponent*>& InputStack)
 			}
 
 			// See if there is another InputComponent that was added to the Pawn's components array (possibly by script).
-			TArray<UInputComponent*> Components;
+			TInlineComponentArray<UInputComponent*> Components;
 			ControlledPawn->GetComponents(Components);
 
 			for (int32 i=0; i < Components.Num(); i++)
@@ -4421,7 +4421,7 @@ void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TS
 		AActor* HiddenActor = HiddenActors[ActorIndex];
 		if (HiddenActor != NULL)
 		{
-			TArray<UPrimitiveComponent*> Components;
+			TInlineComponentArray<UPrimitiveComponent*> Components;
 			HiddenActor->GetComponents(Components);
 
 			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)

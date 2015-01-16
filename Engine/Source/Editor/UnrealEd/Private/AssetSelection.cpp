@@ -198,7 +198,7 @@ namespace AssetSelectionUtils
 						ActorInfo.bHaveAttachedActor = true;
 					}
 
-					TArray<UActorComponent*> ActorComponents;
+					TInlineComponentArray<UActorComponent*> ActorComponents;
 					CurrentActor->GetComponents(ActorComponents);
 
 					for( UActorComponent* Component : ActorComponents )
@@ -668,7 +668,7 @@ bool FActorFactoryAssetProxy::IsActorValidForMaterialApplication( AActor* Target
 	// a material applied to it. Otherwise, it cannot.
 	if ( TargetActor )
 	{
-		TArray<UMeshComponent*> MeshComponents;
+		TInlineComponentArray<UMeshComponent*> MeshComponents;
 		TargetActor->GetComponents(MeshComponents);
 
 		bIsValid = (MeshComponents.Num() > 0);
@@ -711,7 +711,7 @@ bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMateri
 			TArray<UActorComponent*> FoundMeshComponents;
 
 			// Find which mesh the user clicked on first.
-			TArray<USceneComponent*> SceneComponents;
+			TInlineComponentArray<USceneComponent*> SceneComponents;
 			TargetActor->GetComponents(SceneComponents);
 
 			for ( int32 ComponentIdx=0; ComponentIdx < SceneComponents.Num(); ComponentIdx++ )

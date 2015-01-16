@@ -236,7 +236,7 @@ void UUnrealEdEngine::ResetPivot()
 
 void UUnrealEdEngine::SetActorSelectionFlags (AActor* InActor)
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	InActor->GetComponents(Components);
 
 	//for every component in the actor

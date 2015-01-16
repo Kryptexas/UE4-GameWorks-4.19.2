@@ -89,9 +89,9 @@ namespace UK2Node_LiveEditObjectStatics
 				//FString ComponentName = ComponentPropertyName.LeftChop(SplitIndex);
 				ComponentPropertyName = ComponentPropertyName.RightChop(SplitIndex+1);
 
-				TArray<UActorComponent*> ActorComponents;
+				TInlineComponentArray<UActorComponent*> ActorComponents;
 				AsActor->GetComponents(ActorComponents);
-				for ( TArray<UActorComponent*>::TIterator ComponentIt(ActorComponents); ComponentIt; ++ComponentIt )
+				for ( auto ComponentIt = ActorComponents.CreateIterator(); ComponentIt; ++ComponentIt )
 				{
 					UActorComponent *Component = *ComponentIt;
 					check( Component != NULL );

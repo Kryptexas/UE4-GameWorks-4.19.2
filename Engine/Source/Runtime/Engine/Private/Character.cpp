@@ -424,7 +424,7 @@ namespace MovementBaseUtility
 				}
 
 				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.
-				TArray<UActorComponent*> Components;
+				TInlineComponentArray<UActorComponent*> Components;
 				NewBaseOwner->GetComponents(Components);
 				for (auto& Component : Components)
 				{
@@ -454,7 +454,7 @@ namespace MovementBaseUtility
 				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
 
 				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.
-				TArray<UActorComponent*> Components;
+				TInlineComponentArray<UActorComponent*> Components;
 				OldBaseOwner->GetComponents(Components);
 				for (auto& Component : Components)
 				{

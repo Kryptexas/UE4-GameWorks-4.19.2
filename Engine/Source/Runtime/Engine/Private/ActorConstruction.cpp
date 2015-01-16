@@ -50,7 +50,7 @@ namespace
 		/** Called before UCS execution has started for the given Actor */
 		void PreProcessComponents(const AActor* InActor)
 		{
-			TArray<UActorComponent*> ActorComponents;
+			TInlineComponentArray<UActorComponent*> ActorComponents;
 			InActor->GetComponents(ActorComponents);
 			for (auto CompIt = ActorComponents.CreateConstIterator(); CompIt; ++CompIt)
 			{
@@ -186,7 +186,7 @@ void AActor::ResetPropertiesForConstruction()
 void AActor::DestroyConstructedComponents()
 {
 	// Remove all existing components
-	TArray<UActorComponent*> PreviouslyAttachedComponents;
+	TInlineComponentArray<UActorComponent*> PreviouslyAttachedComponents;
 	GetComponents(PreviouslyAttachedComponents);
 	for (int32 i = 0; i < PreviouslyAttachedComponents.Num(); i++)
 	{

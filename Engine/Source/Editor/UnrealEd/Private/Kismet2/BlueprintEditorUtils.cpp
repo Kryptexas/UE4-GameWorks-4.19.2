@@ -5253,7 +5253,7 @@ void FBlueprintEditorUtils::UpdateRootComponentReference(UBlueprint* Blueprint)
 				if(ParentSceneRootComponent != NULL)
 				{
 					// Search for a scene component with the same name in the Blueprint CDO's Components list
-					TArray<USceneComponent*> SceneComponents;
+					TInlineComponentArray<USceneComponent*> SceneComponents;
 					BlueprintActorCDO->GetComponents(SceneComponents);
 					for(int i = 0; i < SceneComponents.Num(); ++i)
 					{

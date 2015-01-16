@@ -1459,7 +1459,7 @@ void FLevelEditorActionCallbacks::OnSelectStationaryLightsExceedingOverlap()
 	{
 		AActor* Actor = *It;
 
-		TArray<ULightComponent*> Components;
+		TInlineComponentArray<ULightComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -1589,7 +1589,7 @@ bool FLevelEditorActionCallbacks::SaveAnimationFromSkeletalMeshComponent(AActor 
 	}
 
 	// find all skel components
-	TArray<class USkeletalMeshComponent *> SimSkelComponents;
+	TInlineComponentArray<class USkeletalMeshComponent *> SimSkelComponents;
 	SimActor->GetComponents<USkeletalMeshComponent>(SimSkelComponents);
 
 	if(SimSkelComponents.Num() > 0)

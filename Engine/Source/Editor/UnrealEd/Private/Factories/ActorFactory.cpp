@@ -405,7 +405,7 @@ void UActorFactoryDeferredDecal::PostSpawnActor(UObject* Asset, AActor* NewActor
 		GEditor->SetActorLabelUnique(NewActor, Material->GetName());
 
 		// Change properties
-		TArray<UDecalComponent*> DecalComponents;
+		TInlineComponentArray<UDecalComponent*> DecalComponents;
 		NewActor->GetComponents(DecalComponents);
 
 		UDecalComponent* DecalComponent = NULL;
@@ -437,7 +437,7 @@ void UActorFactoryDeferredDecal::PostCreateBlueprint( UObject* Asset, AActor* CD
 
 		if (Material != NULL)
 		{
-			TArray<UDecalComponent*> DecalComponents;
+			TInlineComponentArray<UDecalComponent*> DecalComponents;
 			CDO->GetComponents(DecalComponents);
 
 			UDecalComponent* DecalComponent = NULL;

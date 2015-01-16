@@ -1407,18 +1407,16 @@ bool UNavigationSystem::IsNavigationRelevant(const AActor* TestActor) const
 		return true;
 	}
 
-	TArray<UActorComponent*> Components;
 	if (TestActor)
 	{
-		TestActor->GetComponents(Components);
-	}
-
-	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
-	{
-		NavInterface = Cast<const INavRelevantInterface>(Components[Idx]);
-		if (NavInterface && NavInterface->IsNavigationRelevant())
+		TInlineComponentArray<UActorComponent*> Components;
+		for (int32 Idx = 0; Idx < Components.Num(); Idx++)
 		{
-			return true;
+			NavInterface = Cast<const INavRelevantInterface>(Components[Idx]);
+			if (NavInterface && NavInterface->IsNavigationRelevant())
+			{
+				return true;
+			}
 		}
 	}
 
@@ -2305,7 +2303,7 @@ void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
 	{
 		UpdateNavOctree(Actor);
 
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 Idx = 0; Idx < Components.Num(); Idx++)
@@ -2317,7 +2315,7 @@ void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
 
 void UNavigationSystem::UpdateNavOctreeBounds(AActor* Actor)
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	Actor->GetComponents(Components);
 
 	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
@@ -2336,7 +2334,7 @@ void UNavigationSystem::ClearNavOctreeAll(AActor* Actor)
 	{
 		OnActorUnregistered(Actor);
 
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 Idx = 0; Idx < Components.Num(); Idx++)

@@ -5109,7 +5109,7 @@ static void CopyLightComponentProperties( const AActor& InOldActor, AActor& InNe
 	UActorComponent* LightComponentToCopy = NULL;
 
 	// Go through the old actor's components and look for a light component to copy.
-	TArray<UActorComponent*> OldActorComponents;
+	TInlineComponentArray<UActorComponent*> OldActorComponents;
 	InOldActor.GetComponents(OldActorComponents);
 
 	for( int32 CompToCopyIdx = 0; CompToCopyIdx < OldActorComponents.Num(); ++CompToCopyIdx )
@@ -5133,7 +5133,7 @@ static void CopyLightComponentProperties( const AActor& InOldActor, AActor& InNe
 	// Dont do anything if there is no valid light component to copy from
 	if( LightComponentToCopy )
 	{
-		TArray<UActorComponent*> NewActorComponents;
+		TInlineComponentArray<UActorComponent*> NewActorComponents;
 		InNewActor.GetComponents(NewActorComponents);
 
 		// Find a light component to overwrite in the new actor
@@ -5369,11 +5369,11 @@ void CopyActorComponentProperties( const AActor* SourceActor, AActor* DestActor,
 
 		// Construct a mapping from the default actor of its relevant component names to its actual components. Here relevant component
 		// names are those that match a name provided as a parameter.
-		TArray<UActorComponent*> CDOComponents;
+		TInlineComponentArray<UActorComponent*> CDOComponents;
 		SrcActorDefaultActor->GetComponents(CDOComponents);
 
 		TMap<FString, const UActorComponent*> NameToDefaultComponentMap; 
-		for ( TArray<UActorComponent*>::TConstIterator CompIter( CDOComponents ); CompIter; ++CompIter )
+		for ( TInlineComponentArray<UActorComponent*>::TConstIterator CompIter( CDOComponents ); CompIter; ++CompIter )
 		{
 			const UActorComponent* CurComp = *CompIter;
 			check( CurComp );
@@ -5387,11 +5387,11 @@ void CopyActorComponentProperties( const AActor* SourceActor, AActor* DestActor,
 
 		// Construct a mapping from the source actor of its relevant component names to its actual components. Here relevant component names
 		// are those that match a name provided as a parameter.
-		TArray<UActorComponent*> SourceComponents;
+		TInlineComponentArray<UActorComponent*> SourceComponents;
 		SourceActor->GetComponents(SourceComponents);
 
 		TMap<FString, const UActorComponent*> NameToSourceComponentMap;
-		for ( TArray<UActorComponent*>::TConstIterator CompIter( SourceComponents ); CompIter; ++CompIter )
+		for ( TInlineComponentArray<UActorComponent*>::TConstIterator CompIter( SourceComponents ); CompIter; ++CompIter )
 		{
 			const UActorComponent* CurComp = *CompIter;
 			check( CurComp );
@@ -5405,11 +5405,11 @@ void CopyActorComponentProperties( const AActor* SourceActor, AActor* DestActor,
 
 		bool bCopiedAnyProperty = false;
 
-		TArray<UActorComponent*> DestComponents;
+		TInlineComponentArray<UActorComponent*> DestComponents;
 		DestActor->GetComponents(DestComponents);
 
 		// Iterate through all of the destination actor's components to find the ones which should have properties copied into them.
-		for ( TArray<UActorComponent*>::TIterator DestCompIter( DestComponents ); DestCompIter; ++DestCompIter )
+		for ( TInlineComponentArray<UActorComponent*>::TIterator DestCompIter( DestComponents ); DestCompIter; ++DestCompIter )
 		{
 			UActorComponent* CurComp = *DestCompIter;
 			check( CurComp );
@@ -6918,7 +6918,8 @@ namespace EditorUtilities
 	// TargetComponents array is passed in populated to avoid repeated refetching and StartIndex 
 	// is updated as an optimization based on the assumption that the standard use case is iterating 
 	// over two component arrays that will be parallel in order
-	UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor, const TArray<UActorComponent*>& TargetComponents, int32& StartIndex )
+	template<class AllocatorType = FDefaultAllocator>
+	UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor, const TArray<UActorComponent*, AllocatorType>& TargetComponents, int32& StartIndex )
 	{
 		UActorComponent* TargetComponent = StartIndex < TargetComponents.Num() ? TargetComponents[ StartIndex ] : NULL;
 
@@ -6987,12 +6988,12 @@ namespace EditorUtilities
 
 	UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor )
 	{
-		TArray<UActorComponent*> TargetComponents;
 		UActorComponent* MatchingComponent = NULL;
 		int32 StartIndex = 0;
 
 		if (TargetActor)
 		{
+			TInlineComponentArray<UActorComponent*> TargetComponents;
 			TargetActor->GetComponents(TargetComponents);
 			MatchingComponent = FindMatchingComponentInstance( SourceComponent, TargetActor, TargetComponents, StartIndex );
 		}
@@ -7034,7 +7035,7 @@ namespace EditorUtilities
 					else if (SourceObjectPropertyValue->IsA(UActorComponent::StaticClass()) && InTargetObject->IsA(AActor::StaticClass()))
 					{
 						AActor* const TargetActor = Cast<AActor>(InTargetObject);
-						TArray<UActorComponent*> TargetComponents;
+						TInlineComponentArray<UActorComponent*> TargetComponents;
 						TargetActor->GetComponents(TargetComponents);
 
 						// We can try and fix-up an actor component reference from the PIE world to instead be the version from the persistent world
@@ -7203,8 +7204,8 @@ namespace EditorUtilities
 		}
 
 		// Copy component properties from source to target if they match. Note that the component lists may not be 1-1 due to context-specific components (e.g. editor-only sprites, etc.).
-		TArray<UActorComponent*> SourceComponents;
-		TArray<UActorComponent*> TargetComponents;
+		TInlineComponentArray<UActorComponent*> SourceComponents;
+		TInlineComponentArray<UActorComponent*> TargetComponents;
 
 		SourceActor->GetComponents(SourceComponents);
 		TargetActor->GetComponents(TargetComponents);

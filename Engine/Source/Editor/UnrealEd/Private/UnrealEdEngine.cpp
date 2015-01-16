@@ -208,7 +208,7 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 			const AActor* CurDefaultClassActor = Class->GetDefaultObject<AActor>();
 			if ( CurDefaultClassActor )
 			{
-				TArray<UActorComponent*> Components;
+				TInlineComponentArray<UActorComponent*> Components;
 				CurDefaultClassActor->GetComponents(Components);
 
 				for ( auto* Comp : Components )
@@ -1058,7 +1058,7 @@ void UUnrealEdEngine::UpdateVolumeActorVisibility( UClass* InVolumeActorClass, F
 			AActor* ActorToUpdate = ActorsThatChanged[ ActorIdx ];
 
 			// Find all registered primitive components and update the scene proxy with the actors updated visibility map
-			TArray<UPrimitiveComponent*> PrimitiveComponents;
+			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 			ActorToUpdate->GetComponents(PrimitiveComponents);
 
 			for( int32 ComponentIdx = 0; ComponentIdx < PrimitiveComponents.Num(); ++ComponentIdx )
@@ -1126,7 +1126,7 @@ void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiv
 		if(Actor != NULL)
 		{
 			// Then iterate over components of that actor
-			TArray<UActorComponent*> Components;
+			TInlineComponentArray<UActorComponent*> Components;
 			Actor->GetComponents(Components);
 
 			for(int32 CompIdx=0; CompIdx<Components.Num(); CompIdx++)
@@ -1157,7 +1157,7 @@ void UUnrealEdEngine::DrawComponentVisualizersHUD(const FViewport* Viewport, con
 		if (Actor != NULL)
 		{
 			// Then iterate over components of that actor
-			TArray<UActorComponent*> Components;
+			TInlineComponentArray<UActorComponent*> Components;
 			Actor->GetComponents(Components);
 
 			for (int32 CompIdx = 0; CompIdx<Components.Num(); CompIdx++)

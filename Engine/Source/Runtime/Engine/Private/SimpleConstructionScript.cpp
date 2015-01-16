@@ -251,7 +251,7 @@ void USimpleConstructionScript::FixupRootNodeParentReferences()
 				if(CDO != NULL)
 				{
 					// Look for the parent component in the CDO's components array
-					TArray<UActorComponent*> Components;
+					TInlineComponentArray<UActorComponent*> Components;
 					CDO->GetComponents(Components);
 
 					for (auto CompIter = Components.CreateConstIterator(); CompIter && !bWasFound; ++CompIter)
@@ -313,14 +313,14 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 {
 	if(RootNodes.Num() > 0)
 	{
-		TArray<UActorComponent*> InstancedComponents;
+		TInlineComponentArray<UActorComponent*> InstancedComponents;
 		for(auto NodeIt = RootNodes.CreateIterator(); NodeIt; ++NodeIt)
 		{
 			USCS_Node* RootNode = *NodeIt;
 			if(RootNode != nullptr)
 			{
 				// Get all native scene components
-				TArray<USceneComponent*> Components;
+				TInlineComponentArray<USceneComponent*> Components;
 				Actor->GetComponents(Components);
 
 				// Get the native root component; if it's not set, the first native scene component will be used as root. This matches what's done in the SCS editor.
@@ -639,7 +639,7 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 			bHasSceneComponentRootNodes = CDO->GetRootComponent() != nullptr;
 			if(!bHasSceneComponentRootNodes)
 			{
-				TArray<USceneComponent*> SceneComponents;
+				TInlineComponentArray<USceneComponent*> SceneComponents;
 				CDO->GetComponents(SceneComponents);
 				bHasSceneComponentRootNodes = SceneComponents.Num() > 0;
 			}

@@ -3564,7 +3564,7 @@ void FMeshUtilities::CreateProxyMesh(
 		}
 		else
 		{
-			TArray<UStaticMeshComponent*> Components;
+			TInlineComponentArray<UStaticMeshComponent*> Components;
 			Actor->GetComponents<UStaticMeshComponent>(Components);
 			// TODO: support instanced static meshes
 			Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
@@ -3908,7 +3908,7 @@ void FMeshUtilities::MergeActors(
 	// Collect static mesh components
 	for (AActor* Actor : SourceActors)
 	{
-		TArray<UStaticMeshComponent*> Components;
+		TInlineComponentArray<UStaticMeshComponent*> Components;
 		Actor->GetComponents<UStaticMeshComponent>(Components);
 		ComponentsToMerge.Append(Components);
 	}

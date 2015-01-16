@@ -41,7 +41,7 @@ static void ConformNativeComponents(UBlueprint* Blueprint)
 	{
 		if (AActor* BlueprintCDO = Cast<AActor>(BlueprintClass->ClassDefaultObject))
 		{
-			TArray<UActorComponent*> OldNativeComponents;
+			TInlineComponentArray<UActorComponent*> OldNativeComponents;
 			// collect the native components that this blueprint was serialized out 
 			// with (the native components it had last time it was saved)
 			BlueprintCDO->GetComponents(OldNativeComponents);
@@ -50,11 +50,11 @@ static void ConformNativeComponents(UBlueprint* Blueprint)
 			AActor* NativeCDO = CastChecked<AActor>(NativeSuperClass->ClassDefaultObject);
 			// collect the more up to date native components (directly from the 
 			// native super-class)
-			TArray<UActorComponent*> NewNativeComponents;
+			TInlineComponentArray<UActorComponent*> NewNativeComponents;
 			NativeCDO->GetComponents(NewNativeComponents);
 
 			// utility lambda for finding named components in a supplied list
-			auto FindNamedComponentLambda = [](FName const ComponentName, TArray<UActorComponent*> const& ComponentList)->UActorComponent*
+			auto FindNamedComponentLambda = [](FName const ComponentName, TInlineComponentArray<UActorComponent*> const& ComponentList)->UActorComponent*
 			{
 				UActorComponent* FoundComponent = nullptr;
 				for (UActorComponent* Component : ComponentList)
