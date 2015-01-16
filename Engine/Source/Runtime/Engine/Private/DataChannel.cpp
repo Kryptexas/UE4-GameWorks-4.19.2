@@ -591,20 +591,12 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 	return false;
 }
 
-void UActorChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
+void UChannel::AppendExportBunches( TArray<FOutBunch *>& OutExportBunches )
 {
-	if ( MustBeMappedGuidsInLastBunch.Num() > 0 )
-	{
-		// Just add our list to the main list on package map so we can re-use the code in UChannel to add them all together
-		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+	UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
 
-		PackageMapClient->GetMustBeMappedGuidsInLastBunch().Append( MustBeMappedGuidsInLastBunch );
-
-		MustBeMappedGuidsInLastBunch.Empty();
-	}
-
-	// Actually add them to the bunch
-	Super::AppendMustBeMappedGuids( Bunch );
+	// Let the package map add any outgoing bunches it needs to send
+	PackageMapClient->AppendExportBunches( OutExportBunches );
 }
 
 void UChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
@@ -637,6 +629,34 @@ void UChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
 	}
 }
 
+void UActorChannel::AppendExportBunches( TArray<FOutBunch *>& OutExportBunches )
+{
+	Super::AppendExportBunches( OutExportBunches );
+
+	if ( QueuedExportBunches.Num() )
+	{
+		OutExportBunches.Append( QueuedExportBunches );
+		QueuedExportBunches.Empty();
+	}
+}
+
+void UActorChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
+{
+	if ( QueuedMustBeMappedGuidsInLastBunch.Num() > 0 )
+	{
+		// Just add our list to the main list on package map so we can re-use the code in UChannel to add them all together
+		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
+		PackageMapClient->GetMustBeMappedGuidsInLastBunch().Append( QueuedMustBeMappedGuidsInLastBunch );
+
+		QueuedMustBeMappedGuidsInLastBunch.Empty();
+	}
+
+	// Actually add them to the bunch
+	// NOTE - We do this LAST since we want to capture the append that happened above
+	Super::AppendMustBeMappedGuids( Bunch );
+}
+
 FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 {
 	check(!Closing);
@@ -665,12 +685,13 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 
 	TArray<FOutBunch *> OutgoingBunches;
 
-	UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+	// Add any export bunches
+	AppendExportBunches( OutgoingBunches );
 
-	// Let the package map add any outgoing bunches it needs to send
-	if ( PackageMapClient->AppendExportBunches( OutgoingBunches ) )
+	if ( OutgoingBunches.Num() )
 	{
-		// Dont merge if we have multiple bunches to send.
+		// Don't merge if we are exporting guid's
+		// We can't be for sure if the last bunch has exported guids as well, so this just simplifies things
 		Merge = false;
 	}
 
@@ -1496,6 +1517,17 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 
 	// We don't care about any leftover pending guids at this point
 	PendingGuidResolves.Empty();
+
+	// Free export bunches list
+	for ( int32 i = 0; i < QueuedExportBunches.Num(); i++ )
+	{
+		delete QueuedExportBunches[i];
+	}
+
+	QueuedExportBunches.Empty();
+
+	// Free the must be mapped list
+	QueuedMustBeMappedGuidsInLastBunch.Empty();
 
 	// Free any queued bunches
 	for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
