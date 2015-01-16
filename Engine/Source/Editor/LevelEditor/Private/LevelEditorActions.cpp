@@ -2114,14 +2114,14 @@ bool FLevelEditorActionCallbacks::OnIsLevelStreamingVolumePrevisEnabled()
 	return GetDefault<ULevelEditorViewportSettings>()->bLevelStreamingVolumePrevis;
 }
 
-FString FLevelEditorActionCallbacks::GetAudioVolumeToolTip()
+FText FLevelEditorActionCallbacks::GetAudioVolumeToolTip()
 {
 	if ( !GEditor->IsRealTimeAudioMuted() )
 	{
 		const float Volume = GEditor->GetRealTimeAudioVolume() * 100.0f;
-		return FString::Printf( TEXT( "%.0f" ), Volume );
+		return FText::AsNumber( FMath::RoundToInt(Volume) );
 	}
-	return NSLOCTEXT("UnrealEd", "Muted", "Muted" ).ToString();
+	return NSLOCTEXT("UnrealEd", "Muted", "Muted" );
 }
 
 float FLevelEditorActionCallbacks::GetAudioVolume()
@@ -2172,14 +2172,17 @@ bool FLevelEditorActionCallbacks::OnIsVertexSnapEnabled()
 	return GetDefault<ULevelEditorViewportSettings>()->bSnapVertices;
 }
 
-FString FLevelEditorActionCallbacks::GetActorSnapTooltip()
+FText FLevelEditorActionCallbacks::GetActorSnapTooltip()
 {
 	// If the setting is enabled, return the distance, otherwise say disabled
 	if ( FSnappingUtils::IsSnapToActorEnabled() )
 	{
-		return FString::Printf( TEXT( "%.2f" ), FSnappingUtils::GetActorSnapDistance() );
+		static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+			.SetMinimumFractionalDigits(2)
+			.SetMaximumFractionalDigits(2);
+		return FText::AsNumber( FSnappingUtils::GetActorSnapDistance(), &FormatOptions );
 	}
-	return NSLOCTEXT("UnrealEd", "Disabled", "Disabled" ).ToString();
+	return NSLOCTEXT("UnrealEd", "Disabled", "Disabled" );
 }
 
 float FLevelEditorActionCallbacks::GetActorSnapSetting()

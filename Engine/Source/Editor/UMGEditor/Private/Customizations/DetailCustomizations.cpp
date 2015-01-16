@@ -37,7 +37,7 @@ public:
 		ChildSlot
 		[
 			SNew(SButton)
-			.ToolTipText(Action->TooltipDescription)
+			.ToolTipText(FText::FromString(Action->TooltipDescription))
 			.OnClicked(this, &SGraphSchemaActionButton::AddOrViewEventBinding)
 			.HAlign(HAlign_Center)
 			[

@@ -483,29 +483,29 @@ const FSlateBrush* SWorldHierarchyItem::GetLevelLockBrush() const
 	}
 }
 
-FString SWorldHierarchyItem::GetLevelLockToolTip() const
+FText SWorldHierarchyItem::GetLevelLockToolTip() const
 {
 	//Non-Persistent
 	if (GEngine && GEngine->bLockReadOnlyLevels)
 	{
 		if (LevelModel->IsFileReadOnly())
 		{
-			return LOCTEXT("ReadOnly_LockButtonToolTip", "Read-Only levels are locked!").ToString();
+			return LOCTEXT("ReadOnly_LockButtonToolTip", "Read-Only levels are locked!");
 		}
 	}
 
-	return LOCTEXT("LockButtonToolTip", "Toggle Level Lock").ToString();
+	return LOCTEXT("LockButtonToolTip", "Toggle Level Lock");
 }
 
-FString SWorldHierarchyItem::GetSCCStateTooltip() const
+FText SWorldHierarchyItem::GetSCCStateTooltip() const
 {
 	FSourceControlStatePtr SourceControlState = ISourceControlModule::Get().GetProvider().GetState(LevelModel->GetPackageFileName(), EStateCacheUsage::Use);
 	if(SourceControlState.IsValid())
 	{
-		return SourceControlState->GetDisplayTooltip().ToString();
+		return SourceControlState->GetDisplayTooltip();
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 const FSlateBrush* SWorldHierarchyItem::GetSCCStateImage() const

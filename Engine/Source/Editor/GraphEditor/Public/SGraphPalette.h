@@ -51,7 +51,7 @@ protected:
 	virtual FText GetDisplayText() const;
 
 	/** Callback to get the tooltip */
-	virtual FString GetItemTooltip() const;
+	virtual FText GetItemTooltip() const;
 };
 
 //////////////////////////////////////////////////////////////////////////

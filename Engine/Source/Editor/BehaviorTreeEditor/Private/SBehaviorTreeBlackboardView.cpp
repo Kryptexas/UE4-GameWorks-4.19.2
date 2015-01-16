@@ -171,9 +171,9 @@ private:
 		return DisplayWidget.ToSharedRef();
 	}
 
-	virtual FString GetItemTooltip() const override
+	virtual FText GetItemTooltip() const override
 	{
-		return ActionPtr.Pin()->TooltipDescription;
+		return FText::FromString(ActionPtr.Pin()->TooltipDescription);
 	}
 
 	virtual void OnNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit) override

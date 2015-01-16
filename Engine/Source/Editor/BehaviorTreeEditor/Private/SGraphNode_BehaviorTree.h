@@ -137,5 +137,5 @@ protected:
 	/** Handle hover state changing for the index widget - we use this to highlight sibling nodes */
 	void OnIndexHoverStateChanged(bool bHovered);
 
-	FString GetPinTooltip(UEdGraphPin* GraphPinObj) const;
+	FText GetPinTooltip(UEdGraphPin* GraphPinObj) const;
 };

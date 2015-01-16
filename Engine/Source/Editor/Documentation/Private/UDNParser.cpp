@@ -967,7 +967,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					AppendExcerpt(Box,
 						SNew( SImage )
 						.Image(DynamicBrush.Get())
-						.ToolTipText(Line.AdditionalContent[0])
+						.ToolTipText(FText::FromString(Line.AdditionalContent[0]))
 						);
 
 					DynamicBrushesUsed.AddUnique(DynamicBrush);
@@ -992,7 +992,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 						[
 							SNew( SImage )
 							.Image(DynamicBrush.Get())
-							.ToolTipText(Line.AdditionalContent[0])
+							.ToolTipText(FText::FromString(Line.AdditionalContent[0]))
 						]
 					);
 

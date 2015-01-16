@@ -503,7 +503,7 @@ protected:
 	void OnNavigateToBreakpointLocation();
 
 	const FSlateBrush* GetStatusImage() const;
-	FString GetStatusTooltip() const;
+	FText GetStatusTooltip() const;
 };
 
 FText FBreakpointLineItem::GetLocationDescription() const
@@ -549,22 +549,22 @@ const FSlateBrush* FBreakpointLineItem::GetStatusImage() const
 	return FEditorStyle::GetDefaultBrush();
 }
 
-FString FBreakpointLineItem::GetStatusTooltip() const
+FText FBreakpointLineItem::GetStatusTooltip() const
 {
 	if (UBreakpoint* MyBreakpoint = BreakpointRef.Get())
 	{
 		if (!FKismetDebugUtilities::IsBreakpointValid(MyBreakpoint))
 		{
-			return LOCTEXT("Breakpoint_NoHit", "This breakpoint will not be hit because its node generated no code").ToString();
+			return LOCTEXT("Breakpoint_NoHit", "This breakpoint will not be hit because its node generated no code");
 		}
 		else
 		{
-			return MyBreakpoint->IsEnabledByUser() ? LOCTEXT("ActiveBreakpoint", "Active breakpoint").ToString() : LOCTEXT("InactiveBreakpoint", "Inactive breakpoint").ToString();
+			return MyBreakpoint->IsEnabledByUser() ? LOCTEXT("ActiveBreakpoint", "Active breakpoint") : LOCTEXT("InactiveBreakpoint", "Inactive breakpoint");
 		}
 	}
 	else
 	{
-		return LOCTEXT("NoBreakpoint", "No Breakpoint").ToString();
+		return LOCTEXT("NoBreakpoint", "No Breakpoint");
 	}
 }
 

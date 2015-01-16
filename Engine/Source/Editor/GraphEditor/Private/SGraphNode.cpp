@@ -1180,9 +1180,9 @@ void SGraphNode::PositionThisNodeBetweenOtherNodes(const FVector2D& PrevPos, con
 	GraphNode->NodePosY = NewCorner.Y;
 }
 
-FString SGraphNode::GetErrorMsgToolTip( ) const
+FText SGraphNode::GetErrorMsgToolTip( ) const
 {
-	return GraphNode->ErrorMsg;
+	return FText::FromString(GraphNode->ErrorMsg);
 }
 
 bool SGraphNode::IsNameReadOnly() const

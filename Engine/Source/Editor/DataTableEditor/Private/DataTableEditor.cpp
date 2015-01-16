@@ -200,8 +200,8 @@ TSharedPtr<SUniformGridPanel> FDataTableEditor::CreateGridPanel()
 							SNew(STextBlock)
 							.Text(FText::FromString(Row[Column]))
 							.ToolTipText(bIsHeader 
-							?	(FString::Printf(TEXT("Column '%s"), *ColumnTitles[Column])) 
-							:	(FString::Printf(TEXT("%s: %s"), *ColumnTitles[Column], *Row[Column])))
+							?	(FText::Format(LOCTEXT("ColumnHeaderNameFmt", "Column '{0}'"), FText::FromString(ColumnTitles[Column]))) 
+							:	(FText::Format(LOCTEXT("ColumnRowNameFmt", "{0}: {1}"), FText::FromString(ColumnTitles[Column]), FText::FromString(Row[Column]))))
 						]
 					];
 				}

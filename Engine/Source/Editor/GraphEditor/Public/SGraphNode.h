@@ -212,7 +212,7 @@ protected:
 	 *
 	 *	@return string to be displayed as tooltip.
 	 */
-	FString GetErrorMsgToolTip() const;
+	FText GetErrorMsgToolTip() const;
 
 	/**
 	 * Add a new pin to this graph node. The pin must be newly created.

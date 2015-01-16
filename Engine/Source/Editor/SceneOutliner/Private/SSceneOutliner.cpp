@@ -216,7 +216,7 @@ namespace SceneOutliner
 			SAssignNew( FilterTextBoxWidget, SSearchBox )
 			.Visibility( InInitOptions.bShowSearchBox ? EVisibility::Visible : EVisibility::Collapsed )
 			.HintText( LOCTEXT( "FilterSearch", "Search..." ) )
-			.ToolTipText( LOCTEXT("FilterSearchHint", "Type here to search (pressing enter selects the results)").ToString() )
+			.ToolTipText( LOCTEXT("FilterSearchHint", "Type here to search (pressing enter selects the results)") )
 			.OnTextChanged( this, &SSceneOutliner::OnFilterTextChanged )
 			.OnTextCommitted( this, &SSceneOutliner::OnFilterTextCommitted )
 		];
