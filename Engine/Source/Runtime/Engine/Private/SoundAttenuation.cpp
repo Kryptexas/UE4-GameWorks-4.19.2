@@ -102,7 +102,7 @@ float AttenuationEval(const ESoundDistanceModel DistanceModel, const float Dista
 
 			case ATTENUATION_LogReverse:
 
-				return FMath::Max( 0.5f * FMath::Loge( 1.0f / ( 1.0f - ( Distance / Falloff ) ) ), 0.0f );
+				return FMath::Max(1.0f + 0.5f * FMath::Loge(1.0f - (Distance / Falloff)), 0.0f);
 
 			case ATTENUATION_NaturalSound:
 			{
