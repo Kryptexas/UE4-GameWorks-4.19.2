@@ -828,11 +828,12 @@ void FSCSEditorViewportClient::BeginTransaction(const FText& Description)
 	{
 		ScopedTransaction = new FScopedTransaction(Description);
 
-		if(PreviewBlueprint != NULL)
+		if (PreviewBlueprint != nullptr)
 		{
 			FBlueprintEditorUtils::MarkBlueprintAsModified(PreviewBlueprint);
 		}
 
+		AActor* PreviewActor = GetPreviewActor();
 		TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditorPtr.Pin()->GetSelectedSCSEditorTreeNodes();
 		if(SelectedNodes.Num() > 0)
 		{
@@ -846,11 +847,22 @@ void FSCSEditorViewportClient::BeginTransaction(const FText& Description)
 						SCS_Node->Modify();
 					}
 
+					// Modify both the component template and the instance in the preview actor (provided there is one)
 					UActorComponent* ComponentTemplate = Node->GetComponentTemplate();
-					if(ComponentTemplate != NULL)
+					if (ComponentTemplate != nullptr)
 					{
 						ComponentTemplate->SetFlags(RF_Transactional);
 						ComponentTemplate->Modify();
+					}
+
+					if (PreviewActor)
+					{
+						UActorComponent* ComponentPreviewInstance = Node->FindComponentInstanceInActor(PreviewActor);
+						if (ComponentPreviewInstance != nullptr)
+						{
+							ComponentPreviewInstance->SetFlags(RF_Transactional);
+							ComponentPreviewInstance->Modify();
+						}
 					}
 				}
 			}

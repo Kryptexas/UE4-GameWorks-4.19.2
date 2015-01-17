@@ -589,14 +589,6 @@ public:
 	DECLARE_EVENT_OneParam( UEditorEngine, FOnEndTransformObject, UObject& );
 	FOnEndTransformObject& OnEndObjectMovement() { return OnEndObjectTransformEvent; }
 
-	/** Editor-only event triggered when a component instance in the world is transformed */
-	DECLARE_EVENT_FourParams(UEditorEngine, FOnComponentInstanceTransformed, USceneComponent&, const FVector&, const FRotator&, const FVector&);
-	FOnComponentInstanceTransformed& OnComponentInstanceTransformed() { return OnComponentInstanceTransformedEvent; }
-
-	/** Editor-only event triggered when transformation of a component in the world finishes */
-	DECLARE_EVENT(UEditorEngine, FOnPostTransformComponents);
-	FOnPostTransformComponents& OnPostTransformComponents() { return OnPostTransformComponentsEvent; }
-
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features).  The single bool parameter
 		should be set to true if recording features are needed. */
@@ -616,26 +608,6 @@ public:
 	* @param Object	The actor or component that moved
 	*/
 	void BroadcastEndObjectMovement(UObject& Object) const { OnEndObjectTransformEvent.Broadcast(Object); }
-
-	//@todo dhertzka - this will fail when multiple components are selected; should just send the transform data and update each component based on GetSelectedComponents
-	/**
-	* Called when a component instance in the world has been translated, rotated, or scaled
-	*
-	* @param Component	The component instance the world that was transformed
-	* @param InDeltaDrag
-	* @param InDeltaRot
-	* @param InDeltaScale
-	*/
-	void BroadcastComponentInstanceTransformed(USceneComponent& Component, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale) const
-	{
-		OnComponentInstanceTransformedEvent.Broadcast(Component, InDeltaDrag, InDeltaRot, InDeltaScale);
-	}
-
-	/**
-	* Called after transformation of any component(s) in the world is complete
-	*/
-	void BroadcastPostTransformComponents() { OnPostTransformComponentsEvent.Broadcast(); }
-
 
 	/**	Broadcasts that an object has been reimported. THIS SHOULD NOT BE PUBLIC */
 	void BroadcastObjectReimported(UObject* InObject);
@@ -2622,12 +2594,6 @@ private:
 
 	/** Delegate broadcast when an actor or component has been moved, rotated, or scaled */
 	FOnEndTransformObject OnEndObjectTransformEvent;
-
-	/** Delegate broadcast when a component instance in the world has been moved, rotated, or scaled */
-	FOnComponentInstanceTransformed OnComponentInstanceTransformedEvent;
-
-	/** Delegate broadcast when transformation of any component(s) in the world is complete */
-	FOnPostTransformComponents OnPostTransformComponentsEvent;
 
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features) */
