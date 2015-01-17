@@ -7979,7 +7979,9 @@ bool UEngine::MakeSureMapNameIsValid(FString& InOutMapName)
 	bool bIsValid = !FPackageName::IsShortPackageName(TestMapName);
 	if (bIsValid)
 	{
-		bIsValid = FPackageName::DoesPackageExist(TestMapName);
+		// If the user starts a multiplayer PIE session with an unsaved map,
+		// DoesPackageExist won't find it, so we have to try to find the package in memory as well.
+		bIsValid = (FindObjectFast<UPackage>(nullptr, FName(*TestMapName)) != nullptr) || FPackageName::DoesPackageExist(TestMapName);
 	}
 	else
 	{
