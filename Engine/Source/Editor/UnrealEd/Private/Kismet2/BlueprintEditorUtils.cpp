@@ -1168,7 +1168,10 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			FEditoronlyBlueprintHelper::ChangeBlueprint(Blueprint);
 		}
 
-		if( bHasCode )
+		const bool bDataOnlyClassThatMustBeRecompiled = !bHasCode && !bIsMacro
+			&& (!ClassToRegenerate || (Blueprint->ParentClass != ClassToRegenerate->GetSuperClass()));
+
+		if (bHasCode || bDataOnlyClassThatMustBeRecompiled)
 		{
 			// Make sure parent function calls are up to date
 			FBlueprintEditorUtils::ConformCallsToParentFunctions(Blueprint);
@@ -1248,7 +1251,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			Package->FindExportsInMemoryFirst(true);
 		}
 
-		bRegenerated = bHasCode;
+		bRegenerated = bHasCode || bDataOnlyClassThatMustBeRecompiled;
 
 		if (!FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToRegenerate))
 		{

@@ -158,6 +158,11 @@ struct FConditionalRecompileClassHepler
 		{
 			// If my parent is native, my layout wasn't changed.
 			const UClass* ParentClass = *GeneratingBP->ParentClass;
+			if (!GeneratingBP->GeneratedClass || (GeneratingBP->GeneratedClass->GetSuperClass() != ParentClass))
+			{
+				return ENeededAction::Recompile;
+			}
+
 			if (ParentClass && ParentClass->HasAllClassFlags(CLASS_Native))
 			{
 				return ENeededAction::None;
