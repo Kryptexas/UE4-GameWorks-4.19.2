@@ -91,9 +91,17 @@ public:
 	 */
 	bool IsNative() const { return GetSCSNode() == NULL && GetComponentTemplate() != NULL; }
 	/** 
-	 * @return Whether or not this object represents a component template that was inherited from a parent Blueprint class.
+	 * @return Whether or not this object represents a component template that was inherited from a parent Blueprint class SCS.
 	 */
 	bool IsInherited() const { return bIsInherited; }
+	/**
+	 * @return Whether or not this object represents a component instance rather than a template.
+	 */
+	bool IsInstanced() const { return bIsInstanced; }
+	/**
+	 * @return Whether or not this object represents a component instance that was created by the user and not by a native or Blueprint-generated class.
+	 */
+	bool IsUserInstanced() const { return bIsInstanced && !bWasInstancedFromNativeClass && !GetComponentTemplate()->bCreatedByConstructionScript; }
 	/** 
 	 * @return Whether or not this object represents the default SCS scene root component.
 	 */
@@ -101,7 +109,7 @@ public:
 	/** 
 	 * @return Whether or not this object represents a node that can be deleted from the SCS tree.
 	 */
-	bool CanDelete() const { return !IsNative() && !IsInherited() && !IsDefaultSceneRoot(); }
+	bool CanDelete() const { return IsUserInstanced() || (!IsNative() && !IsInherited() && !IsDefaultSceneRoot()); }
 	/** 
 	 * @return Whether or not this object represents a node that can be renamed from the SCS tree.
 	 */
@@ -109,7 +117,7 @@ public:
 	/** 
 	 * @return Whether or not this object represents a node that can be reparented to other nodes based on its context.
 	 */
-	bool CanReparent() const { return !IsNative() && !IsInherited() && !IsDefaultSceneRoot() && Cast<USceneComponent>(GetComponentTemplate()) != NULL; }
+	bool CanReparent() const { return (IsUserInstanced() || (!IsNative() && !IsInherited() && !IsDefaultSceneRoot())) && Cast<USceneComponent>(GetComponentTemplate()) != NULL; }
 	/** 
 	 * @return Whether or not we can edit default properties for the component template represented by this object.
 	 */
@@ -191,6 +199,7 @@ public:
 
 private:
 	bool bIsInherited;
+	bool bIsInstanced;
 	TWeakObjectPtr<class USCS_Node> SCSNodePtr;
 	TWeakObjectPtr<UActorComponent> ComponentTemplatePtr;
 	FSCSEditorTreeNodePtrType ParentNodePtr;
@@ -199,6 +208,8 @@ private:
 	/** Handles rename requests */
 	bool bNonTransactionalRename;
 	FOnRenameRequested RenameRequestedDelegate;
+
+	bool bWasInstancedFromNativeClass;
 };
 
 //////////////////////////////////////////////////////////////////////////
