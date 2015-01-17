@@ -77,9 +77,6 @@ private:
 	/** Gets the visibility of the global error label */
 	EVisibility GetGlobalErrorLabelVisibility() const;
 
-	/** Gets the visibility of the global error label IDE Link */
-	EVisibility GetGlobalErrorLabelIDELinkVisibility() const;
-
 	/** Gets the text to display in the global error label */
 	FText GetGlobalErrorLabelText() const;
 
@@ -115,9 +112,6 @@ private:
 
 	/** Handler for when finish is clicked */
 	void FinishClicked();
-
-	/** Handler for when the error label IDE hyperlink was clicked */
-	void OnDownloadIDEClicked(FString URL);
 
 	/** Handler for when the "Choose Folder" button is clicked */
 	FReply HandleChooseFolderButtonClicked( );

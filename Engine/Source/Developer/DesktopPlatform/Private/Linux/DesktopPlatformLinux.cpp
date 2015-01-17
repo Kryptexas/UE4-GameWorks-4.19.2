@@ -378,4 +378,9 @@ FFeedbackContext* FDesktopPlatformLinux::GetNativeFeedbackContext()
 	return GWarn;
 }
 
+FString FDesktopPlatformLinux::GetUserTempPath()
+{
+	//@todo - get the path to the user's temp dir
+}
+
 #undef LOCTEXT_NAMESPACE

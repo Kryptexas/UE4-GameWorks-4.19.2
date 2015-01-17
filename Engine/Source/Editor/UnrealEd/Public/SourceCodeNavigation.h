@@ -5,9 +5,11 @@
 #define __SourceCodeNavigation_h__
 
 #pragma once
+#include "IHttpRequest.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSelectionDetails, Log, All);
 
+DECLARE_DELEGATE_OneParam(FOnIDEInstallerDownloadComplete, bool /*bWasSuccessful*/);
 
 /**
  * Singleton holding database of module names and disallowed header names in the engine and current project.
@@ -144,6 +146,12 @@ public:
 
 	/** Returns the url to the location where the suggested IDE can be downloaded */
 	UNREALED_API static FString GetSuggestedSourceCodeIDEDownloadURL();
+
+	/** Returns whether the suggested source code IDE for the current platform can be installed directly (vs. requiring that the user download it manually) */
+	UNREALED_API static bool GetCanDirectlyInstallSourceCodeIDE();
+
+	/** Downloads and installs the suggested IDE (currently only works for Windows) */
+	UNREALED_API static void DownloadAndInstallSuggestedIDE(FOnIDEInstallerDownloadComplete OnDownloadComplete);
 
 	/** Returns true if the compiler for the current platform is available for use */
 	UNREALED_API static bool IsCompilerAvailable();

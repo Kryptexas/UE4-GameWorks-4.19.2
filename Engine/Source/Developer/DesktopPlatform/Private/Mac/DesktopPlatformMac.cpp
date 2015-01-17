@@ -752,4 +752,9 @@ FFeedbackContext* FDesktopPlatformMac::GetNativeFeedbackContext()
 	return &Warn;
 }
 
+FString FDesktopPlatformMac::GetUserTempPath()
+{
+	//@todo - get the path to the user's temp dir
+}
+
 #undef LOCTEXT_NAMESPACE

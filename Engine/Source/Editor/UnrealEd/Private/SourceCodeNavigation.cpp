@@ -5,6 +5,7 @@
 #include "SourceCodeNavigation.h"
 #include "MainFrame.h"
 #include "ISourceCodeAccessModule.h"
+#include "Http.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -22,11 +23,16 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "GameFramework/Pawn.h"
+#include "DesktopPlatformModule.h"
 
 DEFINE_LOG_CATEGORY(LogSelectionDetails);
 
 #define LOCTEXT_NAMESPACE "SourceCodeNavigation"
 
+namespace SourceCodeNavigationDefs
+{
+	FString IDEInstallerFilename("UE4_SuggestedIDEInstaller");
+}
 
 /**
  * Caches information about source symbols for fast look-up
@@ -297,6 +303,15 @@ public:
 
 	/** The final symbol query in a batch completed */
 	void SymbolQueryFinished();
+
+	/** Handler called when the installer for the suggested IDE has finished downloading */
+	void OnSuggestedIDEInstallerDownloadComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FOnIDEInstallerDownloadComplete OnDownloadComplete);
+
+	/** Launches the IDE installer process */
+	void LaunchIDEInstaller(const FString& Filepath);
+
+	/** @return The name of the IDE installer file for the platform */
+	FString GetSuggestedIDEInstallerFileName();
 
 protected:
 	/** FTickableEditorObject interface */
@@ -1439,6 +1454,42 @@ FString FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL()
 	return SourceCodeIDEURL;
 }
 
+bool FSourceCodeNavigation::GetCanDirectlyInstallSourceCodeIDE()
+{
+#if PLATFORM_WINDOWS
+	return true;
+#else
+	return false;
+#endif
+}
+
+void FSourceCodeNavigation::DownloadAndInstallSuggestedIDE(FOnIDEInstallerDownloadComplete OnDownloadComplete)
+{
+	FSourceCodeNavigationImpl& SourceCodeNavImpl = FSourceCodeNavigationImpl::Get();
+
+	// Check to see if the file exists first
+	auto UserTempDir = FPaths::ConvertRelativePathToFull(FDesktopPlatformModule::Get()->GetUserTempPath());
+	FString InstallerFullPath = FString::Printf(TEXT("%s%s"), *UserTempDir, *SourceCodeNavImpl.GetSuggestedIDEInstallerFileName());
+
+	if (!IPlatformFile::GetPlatformPhysical().FileExists(*InstallerFullPath))
+	{
+		FString DownloadURL;
+		TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+		// Download the installer for the suggested IDE
+		HttpRequest->OnProcessRequestComplete().BindRaw(&SourceCodeNavImpl, &FSourceCodeNavigationImpl::OnSuggestedIDEInstallerDownloadComplete, OnDownloadComplete);
+		HttpRequest->SetVerb(TEXT("GET"));
+
+		HttpRequest->SetURL(GetSuggestedSourceCodeIDEDownloadURL());
+		HttpRequest->ProcessRequest();
+	}
+	else
+	{
+		SourceCodeNavImpl.LaunchIDEInstaller(InstallerFullPath);
+		OnDownloadComplete.ExecuteIfBound(true);
+	}
+}
+
 bool FSourceCodeNavigation::IsCompilerAvailable()
 {
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
@@ -1528,6 +1579,38 @@ bool FSourceCodeNavigation::FindClassHeaderPath( const UField *Field, FString &O
 	return false;
 }
 
+void FSourceCodeNavigationImpl::OnSuggestedIDEInstallerDownloadComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FOnIDEInstallerDownloadComplete OnDownloadComplete)
+{
+	if (bWasSuccessful)
+	{
+		// Get the user's temp directory
+		auto UserTempDir = FDesktopPlatformModule::Get()->GetUserTempPath();
+
+		// Create the installer file in the temp dir
+		auto InstallerName = GetSuggestedIDEInstallerFileName();
+		FString Filepath = FString::Printf(TEXT("%s%s"), *UserTempDir, *InstallerName);
+		auto InstallerFileHandle = IPlatformFile::GetPlatformPhysical().OpenWrite(*Filepath);
+
+		// Copy the content from the response into the installer file
+		auto InstallerContent = Response->GetContent();
+
+		bool bWriteSucceeded = InstallerFileHandle->Write(InstallerContent.GetData(), InstallerContent.Num());
+		delete InstallerFileHandle;
+
+		if (bWriteSucceeded)
+		{
+			// Launch the created executable in a separate window to begin the installation
+			LaunchIDEInstaller(Filepath);
+		}
+		else
+		{
+			bWasSuccessful = false;
+		}
+	}
+
+	OnDownloadComplete.ExecuteIfBound(bWasSuccessful);
+}
+
 void FSourceCodeNavigationImpl::TryToGatherFunctions( const FString& ModuleName, const FString& ClassName, TArray< FString >& OutFunctionSymbolNames, bool& OutIsCompleteList )
 {
 	FScopeLock ScopeLock( &SynchronizationObject );
@@ -1581,6 +1664,26 @@ void FSourceCodeNavigationImpl::SymbolQueryFinished()
 
 	// Let others know that we've gathered some new symbols
 	OnSymbolQueryFinished.Broadcast();
+}
+
+FString FSourceCodeNavigationImpl::GetSuggestedIDEInstallerFileName()
+{
+	FString Extension;
+#if PLATFORM_WINDOWS
+	Extension = "exe";
+#elif PLATFORM_MAC
+	Extension = "app";
+#endif
+
+	return FString::Printf(TEXT("%s.%s"), *SourceCodeNavigationDefs::IDEInstallerFilename, *Extension);
+}
+
+void FSourceCodeNavigationImpl::LaunchIDEInstaller(const FString& Filepath)
+{
+#if PLATFORM_WINDOWS
+	auto Params = TEXT("/PromptRestart");
+	FPlatformProcess::CreateProc(*Filepath, Params, true, false, false, nullptr, 0, nullptr, nullptr);
+#endif
 }
 
 void FSourceCodeNavigationImpl::Tick( float DeltaTime )
