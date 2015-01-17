@@ -2075,11 +2075,6 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	}
 }
 
-void SSCSEditor::SetSCS(USimpleConstructionScript* InSCS)
-{
-
-}
-
 FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if ( CommandList->ProcessCommandBindings( InKeyEvent ) )
