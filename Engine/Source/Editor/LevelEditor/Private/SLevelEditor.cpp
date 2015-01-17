@@ -1131,7 +1131,6 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 		return SNew( SDockTab )
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.StatsViewer" ) )
 			.Label( NSLOCTEXT("LevelEditor", "StatsViewerTabTitle", "Statistics") )
-			.ContentPadding( 5 )
 			[
 				StatsViewerModule.CreateStatsViewer()					
 			];

@@ -153,20 +153,23 @@ public:
 		else
 		{
 			// -- Row is for TreeView --
-			
+
 			// Rows in a TreeView need an expander button and some indentation
 			this->ChildSlot
 			[
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.HAlign(HAlign_Right) .VAlign(VAlign_Fill)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Fill)
 				[
 					SNew(SExpanderArrow, SharedThis(this) )
 				]
-				+SHorizontalBox::Slot()
-					.FillWidth(1)
-					.Padding( InPadding )
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1)
+				.Padding( InPadding )
 				[
 					InContent
 				]
