@@ -191,9 +191,12 @@ struct FPreloadMembersHelper
 bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObject)
 {
 #if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-	static ULinkerLoad* RegeneratingLinker = nullptr;
-	checkSlow(!FBlueprintSupport::UseDeferredDependencyVerificationChecks() || (RegeneratingLinker == nullptr) || (RegeneratingLinker == this));
-	TGuardValue<ULinkerLoad*> ReentrantGuard(RegeneratingLinker, this);
+	// @TODO: we can't rely on this check, because once we're in class 
+	//        regeneration, graphs/nodes are force loaded and that could cause
+	//        subsequent class regeneration (for other packages)
+	//static ULinkerLoad* RegeneratingLinker = nullptr;
+	//checkSlow(!FBlueprintSupport::UseDeferredDependencyVerificationChecks() || (RegeneratingLinker == nullptr) || (RegeneratingLinker == this));
+	//TGuardValue<ULinkerLoad*> ReentrantGuard(RegeneratingLinker, this);
 #endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 
 	// determine if somewhere further down the callstack, we're already in this
@@ -339,18 +342,12 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-void ULinkerLoad::ResolveDeferredDependencies(UClass* LoadClass)
+void ULinkerLoad::ResolveDeferredDependencies()
 {
-#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	if (!FBlueprintSupport::UseDeferredDependencyLoading())
-	{
-		return;
-	}
-
 	//--------------------------------------
 	// Phase 2: Resolve Dependency Stubs
 	//--------------------------------------
-	TGuardValue<uint32> LoadFlagsGuard(LoadFlags, LoadFlags & ~LOAD_DeferDependencyLoads);
+	TGuardValue<uint32> LoadFlagsGuard(LoadFlags, (LoadFlags & ~LOAD_DeferDependencyLoads));
 
 	for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
 	{
@@ -361,12 +358,30 @@ void ULinkerLoad::ResolveDeferredDependencies(UClass* LoadClass)
 			Import.XObject = nullptr;
 			UClass* RealClassObj = CastChecked<UClass>(CreateImport(ImportIndex), ECastCheckedType::NullAllowed);
 
-			for (UObjectPropertyBase* ObjProperty : PlaceholderClass->ReferencingProperties)
-			{
-				ObjProperty->PropertyClass = RealClassObj;
-			}
-			PlaceholderClass->ReferencingProperties.Empty();
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+			bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
+			// make sure that we know what utilized this placeholder class... 
+			// right now we only expect UObjectProperties/UClassProperties/
+			// UInterfaceProperties to, but something else could have requested 
+			// the class without logging itself with the placeholder... if  
+			// ReferencingProperties is empty, then there is something out there 
+			// still using a placeholder class
+			checkSlow(bCircumventValidationChecks || PlaceholderClass->HasReferences());
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+
+			PlaceholderClass->ReplaceTrackedReferences(RealClassObj);
 			PlaceholderClass->MarkPendingKill(); // @TODO: ensure these are properly GC'd
+		}
+		else if (UScriptStruct* StructObj = Cast<UScriptStruct>(Import.XObject))
+		{
+			// in case this is a user defined struct, we have to resolve any 
+			// deferred dependencies in the struct 
+			// 
+			// @TODO: could this result in an endless ResolveDeferredDependencies() loop? 
+			if (Import.SourceLinker != nullptr)
+			{
+				Import.SourceLinker->ResolveDeferredDependencies();
+			}
 		}
 	}
 
@@ -374,9 +389,33 @@ void ULinkerLoad::ResolveDeferredDependencies(UClass* LoadClass)
 	//        regeneration is about to force load a lot of this).
 	LoadAllObjects();
 
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
+	for (TObjectIterator<ULinkerPlaceholderClass> PlaceholderIt; PlaceholderIt; ++PlaceholderIt)
+	{
+		ULinkerPlaceholderClass* PlaceholderClass = *PlaceholderIt;
+		if (PlaceholderClass->GetOuter() == LinkerRoot)
+		{
+			// there shouldn't be any deferred dependencies (belonging to this 
+			// linker) that need to be resolved by this point
+			checkSlow( bCircumventValidationChecks || (!PlaceholderClass->HasReferences() && PlaceholderClass->IsPendingKill()) );
+		}
+	}
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+}
+
+void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (!FBlueprintSupport::UseDeferredDependencyLoading())
+	{
+		return;
+	}
+
 	//--------------------------------------
 	// Phase 3: Finalize (serialize CDO & regenerate class)
 	//--------------------------------------
+	TGuardValue<uint32> LoadFlagsGuard(LoadFlags, LoadFlags & ~LOAD_DeferDependencyLoads);
 
 	// since this function is called after class serialization, then we can be
 	// certain that the CDO export object exists (since class serialization 
@@ -400,6 +439,7 @@ void ULinkerLoad::ResolveDeferredDependencies(UClass* LoadClass)
 	// else, the CDO hasn't been touched (which is expected, since the CDO needs the class first)
 	// @TODO: this comment here ^ is in direct conflict with the assumption 
 	//        stated above (that the CDO should be loaded)... figure out which is correct!
+	DeferredExportIndex = INDEX_NONE;
 
 	{
 		check(CDOExportIndex != INDEX_NONE);
@@ -439,17 +479,6 @@ void ULinkerLoad::ResolveDeferredDependencies(UClass* LoadClass)
 		TArray<UObject*> ClassInstances;
 		GetObjectsOfClass(BlueprintClass, ClassInstances, /*bIncludeDerivedClasses =*/true);
 		checkSlow(bCircumventValidationChecks || ClassInstances.Num() == 0);
-
-		for (TObjectIterator<ULinkerPlaceholderClass> PlaceholderIt; PlaceholderIt; ++PlaceholderIt)
-		{
-			ULinkerPlaceholderClass* PlaceholderClass = *PlaceholderIt;
-			// there shouldn't be any deferred dependencies that need to be 
-			// resolved by this point
-			checkSlow(bCircumventValidationChecks || (PlaceholderClass->GetOuter() != LinkerRoot) || PlaceholderClass->IsPendingKill());
-		}
-
-		// @TODO: Test verify there are no instances of the class yet (except for the CDO)
-
 #endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 
 		UObject* OldCDO = BlueprintClass->ClassDefaultObject;
@@ -464,9 +493,6 @@ void ULinkerLoad::ResolveDeferredDependencies(UClass* LoadClass)
 				BlueprintClass->ClassDefaultObject = CDOExport.Object;
 			}
 		}
-		
-		// 
-		DeferredExportIndex = INDEX_NONE;
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }

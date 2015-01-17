@@ -1,10 +1,25 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
+#include "LinkerPlaceholderClass.h"
 
 /*-----------------------------------------------------------------------------
 	UInterfaceProperty.
 -----------------------------------------------------------------------------*/
+
+UInterfaceProperty::~UInterfaceProperty()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (InterfaceClass->IsValidLowLevelFast(/*bRecursive =*/false))
+	{
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
+		{
+			PlaceholderClass->RemoveTrackedReference(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
+
 /**
  * Returns the text to use for exporting this property to header file.
  *
@@ -197,6 +212,16 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	Ar << InterfaceClass;
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (Ar.IsLoading())
+	{
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
+		{
+			PlaceholderClass->AddTrackedReference(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 	if ( !InterfaceClass && !HasAnyFlags(RF_ClassDefaultObject) )
  	{

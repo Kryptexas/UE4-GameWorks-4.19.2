@@ -2,15 +2,39 @@
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
+#include "LinkerPlaceholderClass.h"
 
 /*-----------------------------------------------------------------------------
 	UClassProperty.
 -----------------------------------------------------------------------------*/
 
+UClassProperty::~UClassProperty()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (MetaClass->IsValidLowLevelFast(/*bRecursive =*/false))
+	{
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(MetaClass))
+		{
+			PlaceholderClass->RemoveTrackedReference(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
+
 void UClassProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << MetaClass;
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (Ar.IsLoading())
+	{
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(MetaClass))
+		{
+			PlaceholderClass->AddTrackedReference(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 	if( !(MetaClass||HasAnyFlags(RF_ClassDefaultObject)) )
 	{

@@ -32,7 +32,41 @@ public:
  	virtual void Bind() override;
 	// End of UField interface.
 
-public:
-	/** Links to UObject properties that are currently referencing this class */
-	TSet<UObjectPropertyBase*> ReferencingProperties;
+	/**
+	 * Caches off the supplied property so that we can later replace it's use of
+	 * this class with another (real) class.
+	 * 
+	 * @param  ReferencingProperty    A property that uses and stores this class.
+	 */
+	void AddTrackedReference(UProperty* ReferencingProperty);
+
+	/**
+	 * A query method that let's us check to see if this class is currently 
+	 * being referenced by anything (if this returns false, then a referencing 
+	 * property could have forgotten to add itself... or, we've replaced all
+	 * references).
+	 * 
+	 * @return True if this has anything stored in its ReferencingProperties container, otherwise false.
+	 */
+	bool HasReferences() const;
+
+	/**
+	 * Removes the specified property from this class's internal tracking list 
+	 * (which aims to keep track of properties utilizing this class).
+	 * 
+	 * @param  ReferencingProperty    A property that used to use this class, and now no longer does.
+	 */
+	void RemoveTrackedReference(UProperty* ReferencingProperty);
+
+	/**
+	 * Iterates over all referencing properties and attempts to replace their 
+	 * references to this class with a new (hopefully proper) class.
+	 * 
+	 * @param  ReplacementClass    The class that you want all references to this class replaced with.
+	 */
+	void ReplaceTrackedReferences(UClass* ReplacementClass);
+
+private:
+	/** Links to UProperties that are currently using this class */
+	TSet<UProperty*> ReferencingProperties;
 }; 

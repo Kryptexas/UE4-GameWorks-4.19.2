@@ -1841,7 +1841,15 @@ private:
 	 * 
 	 * @param  LoadClass    The (Blueprint) class that was loading, while we deferred dependencies.
 	 */
-	void ResolveDeferredDependencies(UClass* LoadClass);
+	void ResolveDeferredDependencies();
+
+	/**
+	 * Takes the supplied serialized class and serializes in its CDO, then 
+	 * regenerates both.
+	 * 
+	 * @param  LoadClass    The loaded blueprint class (assumes that it has been fully loaded/serialized).
+	 */
+	void FinalizeBlueprint(UClass* LoadClass);
 
 #if	USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	/** 
