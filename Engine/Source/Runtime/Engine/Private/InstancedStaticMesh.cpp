@@ -669,11 +669,6 @@ public:
 	{
 	}
 
-	virtual bool MatchesComponent(const UActorComponent* Component) const override
-	{
-		return (CastChecked<UStaticMeshComponent>(Component)->StaticMesh == StaticMesh && FComponentInstanceDataBase::MatchesComponent(Component));
-	}
-
 	/** Used to store lightmap data during RerunConstructionScripts */
 	struct FLightMapInstanceData
 	{
@@ -754,6 +749,11 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanc
 	check(ComponentInstanceData);
 
 	FInstancedStaticMeshComponentInstanceData* InstancedMeshData  = static_cast<FInstancedStaticMeshComponentInstanceData*>(ComponentInstanceData);
+
+	if (StaticMesh != InstancedMeshData->StaticMesh)
+	{
+		return;
+	}
 
 	// See if data matches current state
 	if (InstancedMeshData->bHasCachedStaticLighting)
