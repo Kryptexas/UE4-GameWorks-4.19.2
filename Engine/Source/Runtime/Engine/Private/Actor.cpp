@@ -158,9 +158,9 @@ bool AActor::CheckActorComponents()
 			}
 		}
 	}
-	for (int32 Index = 0; Index < SerializedComponents.Num(); Index++)
+	for (int32 Index = 0; Index < BlueprintCreatedComponents.Num(); Index++)
 	{
-		UActorComponent* Inner = SerializedComponents[Index];
+		UActorComponent* Inner = BlueprintCreatedComponents[Index];
 		if (!Inner)
 		{
 			continue;

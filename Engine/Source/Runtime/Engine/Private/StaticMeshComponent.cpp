@@ -1505,10 +1505,10 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMate
 	}
 }
 
-int32 UStaticMeshComponent::GetSerializedComponentIndex() const
+int32 UStaticMeshComponent::GetBlueprintCreatedComponentIndex() const
 {
 	int32 ComponentIndex = 0;
-	for(const auto& Component : GetOwner()->SerializedComponents)
+	for(const auto& Component : GetOwner()->BlueprintCreatedComponents)
 	{
 		if(Component == this)
 		{

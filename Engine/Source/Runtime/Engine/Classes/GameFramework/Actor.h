@@ -2236,9 +2236,13 @@ private:
 
 public:
 
-	/** Array of ActorComponents that is actually serialized per-instance. */
+	/** Array of ActorComponents that are created by blueprints and serialized per-instance. */
 	UPROPERTY(TextExportTransient, NonTransactional)
-	TArray<UActorComponent*> SerializedComponents;
+	TArray<UActorComponent*> BlueprintCreatedComponents;
+
+	/** Array of ActorComponents that have been added by the user on a per-instance basis. */
+	UPROPERTY()
+	TArray<UActorComponent*> InstanceComponents;
 
 public:
 	//=============================================================================
