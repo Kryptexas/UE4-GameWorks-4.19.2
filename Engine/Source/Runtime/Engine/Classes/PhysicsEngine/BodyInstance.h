@@ -389,17 +389,6 @@ public:
 	 */
 	static void InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool Defer = false);
 
-	/** Initialises one or more rigid bodies
-	 *	@param Bodies First body instance to initialise
-	 *	@param Transforms First transform to use
-	 *	@param NumBodies Number of bodies to iterate
-	 *	@param BodySetup Setup to use for bodies
-	 *	@param PrimitiveComp The owning component for the bodies
-	 *	@param InRBScene Scene to place the bodies into
-	 *	@param InAggregate Aggregate to place the bodies into, be aware for PhysX we can only have 128 elements in an aggregate!
-	 */
-	static void InitBodies(FBodyInstance** Bodies, FTransform* Transforms, int32 NumBodies, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool Defer = false);
-
 	void InitBody_Legacy(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
 
 	/** Validate a body transform, outputting debug info

@@ -892,15 +892,23 @@ DEFINE_STAT(STAT_BulkSceneAdd);
 
 void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/, bool bDefer /*= false*/ )
 {
-	FBodyInstance* Instance = this;
-	FTransform TransformCopy = Transform;
-	InitBodies(&Instance, &TransformCopy, 1, Setup, PrimComp, InRBScene, InAggregate, bDefer);
-}
+	static TArray<FBodyInstance*> Bodies;
+	static TArray<FTransform> Transforms;
 
-void FBodyInstance::InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/, bool Defer /*= false*/)
-{
-	check(Bodies.Num() == Transforms.Num());
-	InitBodies(Bodies.GetData(), Transforms.GetData(), Bodies.Num(), BodySetup, PrimitiveComp, InRBScene, InAggregate, Defer);
+	if(Bodies.Num() == 1 && Transforms.Num() == 1)
+	{
+		Bodies[0] = this;
+		Transforms[0] = Transform;
+
+	}
+	else
+	{
+		Bodies.Add(this);
+		Transforms.Add(Transform);
+	}
+	check(Bodies.Num() == Transforms.Num() == 1);
+
+	InitBodies(Bodies, Transforms, Setup, PrimComp, InRBScene, InAggregate, bDefer);
 }
 
 void FBodyInstance::InitBody_Legacy(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PxAggregate* InAggregate)
@@ -1404,14 +1412,15 @@ void FBodyInstance::InitBody_Legacy(UBodySetup* Setup, const FTransform& Transfo
 }
 
 
-void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, int32 NumBodies, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/, bool bDefer /*= false*/ )
+void FBodyInstance::InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate /*= NULL*/, bool bDefer /*= false*/ )
 {
 	SCOPE_CYCLE_COUNTER(STAT_BulkInit);
 
 	check(BodySetup);
 	check(InRBScene);
-	check(NumBodies > 0);
+	check(Bodies.Num() > 0);
 
+	int32 NumBodies = Bodies.Num();
 	AActor* OwningActor = PrimitiveComp ? PrimitiveComp->GetOwner() : nullptr;
 
 	const bool bStatic = PrimitiveComp == nullptr || PrimitiveComp->Mobility != EComponentMobility::Movable;
