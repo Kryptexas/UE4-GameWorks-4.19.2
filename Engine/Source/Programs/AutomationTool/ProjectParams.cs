@@ -220,6 +220,7 @@ namespace AutomationTool
 			this.SkipPak = InParams.SkipPak;
 			this.NoXGE = InParams.NoXGE;
 			this.CookOnTheFly = InParams.CookOnTheFly;
+            this.CookOnTheFlyStreaming = InParams.CookOnTheFlyStreaming;
 			this.FileServer = InParams.FileServer;
 			this.DedicatedServer = InParams.DedicatedServer;
 			this.Client = InParams.Client;
@@ -323,6 +324,7 @@ namespace AutomationTool
             bool? UseDebugParamForEditorExe = null,
             bool? IterativeCooking = null,
 			bool? CookOnTheFly = null,
+            bool? CookOnTheFlyStreaming = null,
 			bool? CrashReporter = null,
 			bool? DedicatedServer = null,
 			bool? Client = null,
@@ -437,6 +439,11 @@ namespace AutomationTool
 			}
 			this.NoXGE = GetParamValueIfNotSpecified(Command, NoXGE, this.NoXGE, "noxge");
 			this.CookOnTheFly = GetParamValueIfNotSpecified(Command, CookOnTheFly, this.CookOnTheFly, "cookonthefly");
+            if (this.CookOnTheFly && this.SkipCook)
+            {
+                this.Cook = false;
+            }
+            this.CookOnTheFlyStreaming = GetParamValueIfNotSpecified(Command, CookOnTheFlyStreaming, this.CookOnTheFlyStreaming, "cookontheflystreaming");
             this.Compressed = GetParamValueIfNotSpecified(Command, Compressed, this.Compressed, "compressed");
             this.UseDebugParamForEditorExe = GetParamValueIfNotSpecified(Command, UseDebugParamForEditorExe, this.UseDebugParamForEditorExe, "UseDebugParamForEditorExe");
             this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, "iterativecooking", "iterate");
@@ -1014,6 +1021,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("cookonthefly", "run the client with cooked data provided by cook on the fly server")]
 		public bool CookOnTheFly { private set; get; }
+
+        /// <summary>
+        /// Run: The client should run in streaming mode when connecting to cook on the fly server
+        /// </summary>
+        [Help("Cookontheflystreaming", "run the client in streaming cook on the fly mode (don't cache files locally instead force reget from server each file load)")]
+        public bool CookOnTheFlyStreaming { private set; get; }
 
 		/// <summary>
 		/// Run: The client runs with cooked data provided by UnrealFileServer, command line: -fileserver
@@ -1761,6 +1774,7 @@ namespace AutomationTool
                 CommandUtils.Log("UseDebugParamForEditorExe={0}", UseDebugParamForEditorExe);
 				CommandUtils.Log("CookFlavor={0}", CookFlavor);
 				CommandUtils.Log("CookOnTheFly={0}", CookOnTheFly);
+                CommandUtils.Log("CookOnTheFlyStreaming={0}", CookOnTheFlyStreaming);
 				CommandUtils.Log("DedicatedServer={0}", DedicatedServer);
 				CommandUtils.Log("DirectoriesToCook={0}", DirectoriesToCook.ToString());
                 CommandUtils.Log("CulturesToCook={0}", CulturesToCook.ToString());
