@@ -40,7 +40,7 @@ private:
 	bool bCertificateInstalled;
 
 	TSharedPtr<FMonitoredProcess> IPPProcess;
-	FTickerDelegate TickerHandle;
+	FDelegateHandle TickerHandle;
 
 private:
 	FIOSTargetSettingsCustomization();
