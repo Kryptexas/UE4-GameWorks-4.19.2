@@ -393,6 +393,7 @@ public:
 	SLATE_BEGIN_ARGS( SSCSEditor )
 		:_EditorMode(BlueprintSCS)
 		,_ActorContext(nullptr)
+		,_PreviewActor(nullptr)
 		,_AllowEditing(true)
 		,_HideComponentClassCombo(false)
 		,_OnTreeViewSelectionChanged()
@@ -402,6 +403,7 @@ public:
 
 		SLATE_ATTRIBUTE(EEditorMode, EditorMode)
 		SLATE_ATTRIBUTE(class AActor*, ActorContext)
+		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
 		SLATE_ATTRIBUTE(bool, AllowEditing)
 		SLATE_ATTRIBUTE(bool, HideComponentClassCombo)
 		SLATE_EVENT(FOnTreeViewSelectionChanged, OnTreeViewSelectionChanged)
@@ -640,6 +642,9 @@ public:
 
 	/** Attribute that provides access to the Actor context for which we are viewing/editing the SCS. */
 	TAttribute<class AActor*> ActorContext;
+
+	/** Attribute that provides access to a "preview" Actor context (may not be same as the Actor context that's being edited. */
+	TAttribute<class AActor*> PreviewActor;
 
 	/** Attribute to indicate whether or not editing is allowed. */
 	TAttribute<bool> AllowEditing;
