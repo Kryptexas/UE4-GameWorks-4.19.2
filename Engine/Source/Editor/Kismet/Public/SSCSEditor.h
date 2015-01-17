@@ -535,6 +535,9 @@ public:
 	 */
 	void GetSelectedItemsForContextMenu(TArray<FComponentEventConstructionData>& OutSelectedItems) const;
 
+	/** Provides access to the Blueprint context that's being edited */
+	class UBlueprint* GetBlueprint() const;
+
 protected:
 	FString GetSelectedClassText() const;
 
@@ -583,7 +586,7 @@ protected:
 	void OnDuplicateComponent();
 
 	/** Helper method to add a tree node for the given SCS node */
-	FSCSEditorTreeNodePtrType AddTreeNode(USCS_Node* InSCSNode, FSCSEditorTreeNodePtrType InParentNodePtr);
+	FSCSEditorTreeNodePtrType AddTreeNode(USCS_Node* InSCSNode, FSCSEditorTreeNodePtrType InParentNodePtr, const bool bIsInherited);
 
 	/** Helper method to add a tree node for the given scene component */
 	FSCSEditorTreeNodePtrType AddTreeNode(USceneComponent* InSceneComponent);
