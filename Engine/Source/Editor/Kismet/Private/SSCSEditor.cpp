@@ -199,6 +199,7 @@ public:
 
 FSCSEditorTreeNode::FSCSEditorTreeNode()
 	:bIsInherited(false)
+	,bIsInstanced(false)
 	,bNonTransactionalRename(false)
 {
 }
@@ -209,7 +210,6 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(USCS_Node* InSCSNode, bool bInIsInherited
 	,SCSNodePtr(InSCSNode)
 	,ComponentTemplatePtr(InSCSNode != NULL ? InSCSNode->ComponentTemplate : NULL)
 	,bNonTransactionalRename(false)
-	,bWasInstancedFromNativeClass(false)
 {
 }
 
@@ -219,13 +219,17 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(UActorComponent* InComponentTemplate)
 	,SCSNodePtr(NULL)
 	,ComponentTemplatePtr(InComponentTemplate)
 	,bNonTransactionalRename(false)
-	,bWasInstancedFromNativeClass(false)
 {
 	check(InComponentTemplate != nullptr);
 	AActor* Owner = InComponentTemplate->GetOwner();
 	if(Owner != nullptr && !Owner->HasAllFlags(RF_ClassDefaultObject))
 	{
 		bIsInstanced = true;
+		bWasInstancedFromNativeClass = false;
+		InstancedComponentName = InComponentTemplate->GetFName();
+
+		ComponentTemplatePtr.Reset();
+		InstancedComponentOwnerPtr = Owner;
 		
 		UClass* OwnerClass = Owner->GetActorClass();
 		if(OwnerClass != nullptr)
@@ -248,6 +252,26 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(UActorComponent* InComponentTemplate)
 			}
 		}
 	}
+}
+
+UActorComponent* FSCSEditorTreeNode::GetComponentTemplate() const
+{
+	if(bIsInstanced && InstancedComponentOwnerPtr.IsValid())
+	{
+		TInlineComponentArray<UActorComponent*> Components;
+		InstancedComponentOwnerPtr.Get()->GetComponents(Components);
+
+		for(auto It = Components.CreateConstIterator(); It; ++It)
+		{
+			UActorComponent* ComponentInstance = *It;
+			if(ComponentInstance->GetFName() == InstancedComponentName)
+			{
+				return ComponentInstance;
+			}
+		}
+	}
+	
+	return ComponentTemplatePtr.Get();
 }
 
 FName FSCSEditorTreeNode::GetVariableName() const
@@ -461,6 +485,17 @@ bool FSCSEditorTreeNode::IsDefaultSceneRoot() const
 		{
 			return SCS_Node == SCS->GetDefaultSceneRootNode();
 		}
+	}
+
+	return false;
+}
+
+bool FSCSEditorTreeNode::IsUserInstanced() const
+{
+	if(bIsInstanced && !bWasInstancedFromNativeClass)
+	{
+		UActorComponent* ComponentInstance = GetComponentTemplate();
+		return ComponentInstance != nullptr && !ComponentInstance->bCreatedByConstructionScript;
 	}
 
 	return false;
