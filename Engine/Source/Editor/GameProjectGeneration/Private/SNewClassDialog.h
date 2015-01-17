@@ -15,7 +15,10 @@ public:
 	{}
 
 	/** The class we want to build our new class from. If this is not specified then the wizard will display classes to the user. */
-	SLATE_ARGUMENT(UClass*, Class)
+	SLATE_ARGUMENT(const UClass*, Class)
+
+	/** The initial path to use as the destination for the new class. If this is not specified, we will work out a suitable default from the available project modules */
+	SLATE_ARGUMENT(FString, InitialPath)
 
 	SLATE_END_ARGS()
 

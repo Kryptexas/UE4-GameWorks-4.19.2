@@ -20,17 +20,27 @@ public:
 	/** Constructs database */
 	FSourceFileDatabase();
 
+	/** Destructs database */
+	~FSourceFileDatabase();
+
 	/** Return array of module names used by the engine and current project, including those in plugins */
 	const TArray<FString>& GetModuleNames() const { return ModuleNames; }
 
 	/** Return set of public header names used by engine modules, which are disallowed as project header names */
 	const TSet<FString>& GetDisallowedHeaderNames() const { return DisallowedHeaderNames; }
 
+	/** Update the list of known modules and disallowed header names if they've become stale */
+	void UpdateIfNeeded();
+
 private:
 
 	/** Return array of filenames matching the given wildcard, recursing into subdirectories if no results are yielded from the base directory */
 	void FindRootFilesRecursive(TArray<FString> &FileNames, const FString &BaseDirectory, const FString &Wildcard);
 
+	/** Called when a new .Build.cs file is added to the current project */
+	void OnNewModuleAdded(FName InModuleName);
+
+	bool bIsDirty;
 	TArray<FString> ModuleNames;
 	TSet<FString> DisallowedHeaderNames;
 };
@@ -178,6 +188,12 @@ public:
 
 	/** Call this to access the multi-cast delegate that you can register a callback with */
 	UNREALED_API static FOnCompilerNotFound& AccessOnCompilerNotFound();
+
+	/** Delegate that's triggered when a new module (.Build.cs file) has been added */
+	DECLARE_MULTICAST_DELEGATE_OneParam( FOnNewModuleAdded, FName );
+
+	/** Call this to access the multi-cast delegate that you can register a callback with */
+	UNREALED_API static FOnNewModuleAdded& AccessOnNewModuleAdded();
 };
 
 

@@ -78,6 +78,9 @@ private:
 	/** Returns the text of the folder name */
 	FText GetNameText() const;
 
+	/** Returns the text to use for the folder tooltip */
+	FText GetToolTipText() const;
+
 	/** Returns the image for the border around this item. Used for drag/drop operations */
 	const FSlateBrush* GetBorderImage() const;
 

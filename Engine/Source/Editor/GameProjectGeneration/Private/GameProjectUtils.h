@@ -172,11 +172,23 @@ public:
 	/** Updates the given project file to an engine identifier. Returns true if the project was updated successfully or if no update was needed */
 	static bool UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason);
 
-	/** Opens a dialog to add code files to a project */
-	static void OpenAddCodeToProjectDialog();
+	/** 
+	 * Opens a dialog to add code files to the current project. 
+	 *
+	 * @param	InClass				The class we should force the user to use as their base class type, or null to allow the user to choose their base class in the UI
+	 * @param	InInitialPath		The initial path we should use as the destination for the new class header file, or an empty string to choose a suitable default based upon the module path
+	 * @param	InParentWindow		The parent window the dialog should use, or null to choose a suitable default parent window (the main frame, if available)
+	 */
+	static void OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow);
 
 	/** Returns true if the specified class name is properly formed and does not conflict with another class */
 	static bool IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, const TSet<FString>& DisallowedHeaderNames, FText& OutFailReason);
+
+	/** Returns true if the specified class is a valid base class for the given module */
+	static bool IsValidBaseClassForCreation(const UClass* InClass, const FModuleContextInfo& InModuleInfo);
+
+	/** Returns true if the specified class is a valid base class for any of the given modules */
+	static bool IsValidBaseClassForCreation(const UClass* InClass, const TArray<FModuleContextInfo>& InModuleInfoArray);
 
 	/** Adds new source code to the project. When returning true, OutSyncFileAndLineNumber will be the the preferred target file to sync in the users code editing IDE, formatted for use with GenericApplication::GotoLineInSource */
 	static bool AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, const TSet<FString>& DisallowedHeaderNames, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
@@ -406,6 +418,10 @@ private:
 
 	/** Internal handler for AddCodeToProject*/
 	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, const TSet<FString>& DisallowedHeaderNames, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+
+	/** Internal handler for IsValidBaseClassForCreation */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FDoesClassNeedAPIExportCallback, const FString& /*ClassModuleName*/);
+	static bool IsValidBaseClassForCreation_Internal(const UClass* InClass, const FDoesClassNeedAPIExportCallback& InDoesClassNeedAPIExport);
 
 	/** Handler for the user confirming they've read the name legnth warning */
 	static void OnWarningReasonOk();

@@ -49,15 +49,21 @@ TSharedRef<class SWidget> FGameProjectGenerationModule::CreateGameProjectDialog(
 }
 
 
-TSharedRef<class SWidget> FGameProjectGenerationModule::CreateNewClassDialog(class UClass* InClass)
+TSharedRef<class SWidget> FGameProjectGenerationModule::CreateNewClassDialog(const UClass* InClass)
 {
 	return SNew(SNewClassDialog).Class(InClass);
 }
 
 
-void FGameProjectGenerationModule::OpenAddCodeToProjectDialog()
+void FGameProjectGenerationModule::OpenAddCodeToProjectDialog(const TSharedPtr<SWindow>& InParentWindow)
 {
-	GameProjectUtils::OpenAddCodeToProjectDialog();
+	GameProjectUtils::OpenAddCodeToProjectDialog(nullptr, FString(), InParentWindow);
+	AddCodeToProjectDialogOpenedEvent.Broadcast();
+}
+
+void FGameProjectGenerationModule::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow)
+{
+	GameProjectUtils::OpenAddCodeToProjectDialog(InClass, InInitialPath, InParentWindow);
 	AddCodeToProjectDialogOpenedEvent.Broadcast();
 }
 
@@ -104,6 +110,16 @@ FString FGameProjectGenerationModule::DetermineModuleIncludePath(const FModuleCo
 TArray<FModuleContextInfo> FGameProjectGenerationModule::GetCurrentProjectModules()
 {
 	return GameProjectUtils::GetCurrentProjectModules();
+}
+
+bool FGameProjectGenerationModule::IsValidBaseClassForCreation(const UClass* InClass, const FModuleContextInfo& InModuleInfo)
+{
+	return GameProjectUtils::IsValidBaseClassForCreation(InClass, InModuleInfo);
+}
+
+bool FGameProjectGenerationModule::IsValidBaseClassForCreation(const UClass* InClass, const TArray<FModuleContextInfo>& InModuleInfoArray)
+{
+	return GameProjectUtils::IsValidBaseClassForCreation(InClass, InModuleInfoArray);
 }
 
 void FGameProjectGenerationModule::GetProjectSourceDirectoryInfo(int32& OutNumFiles, int64& OutDirectorySize)

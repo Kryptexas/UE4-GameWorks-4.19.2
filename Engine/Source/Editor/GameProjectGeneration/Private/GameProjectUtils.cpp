@@ -695,21 +695,31 @@ bool GameProjectUtils::UpdateGameProject(const FString& ProjectFile, const FStri
 	return UpdateGameProjectFile(ProjectFile, EngineIdentifier, NULL, OutFailReason);
 }
 
-void GameProjectUtils::OpenAddCodeToProjectDialog()
+void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow)
 {
+	// If we've been given a class then we only show the second page of the dialog, so we can make the window smaller as that page doesn't have as much content
+	const FVector2D WindowSize = (InClass) ? FVector2D(940, 380) : FVector2D(940, 540);
+
 	TSharedRef<SWindow> AddCodeWindow =
 		SNew(SWindow)
 		.Title(LOCTEXT( "AddCodeWindowHeader", "Add Code"))
-		.ClientSize( FVector2D(940, 540) )
+		.ClientSize( WindowSize )
 		.SizingRule( ESizingRule::FixedSize )
 		.SupportsMinimize(false) .SupportsMaximize(false);
 
-	AddCodeWindow->SetContent( SNew(SNewClassDialog) );
+	AddCodeWindow->SetContent( SNew(SNewClassDialog).Class(InClass).InitialPath(InInitialPath) );
 
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-	if (MainFrameModule.GetParentWindow().IsValid())
+	TSharedPtr<SWindow> ParentWindow = InParentWindow;
+	if (!ParentWindow.IsValid())
 	{
-		FSlateApplication::Get().AddWindowAsNativeChild(AddCodeWindow, MainFrameModule.GetParentWindow().ToSharedRef());
+		static const FName MainFrameModuleName = "MainFrame";
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(MainFrameModuleName);
+		ParentWindow = MainFrameModule.GetParentWindow();
+	}
+
+	if (ParentWindow.IsValid())
+	{
+		FSlateApplication::Get().AddWindowAsNativeChild(AddCodeWindow, ParentWindow.ToSharedRef());
 	}
 	else
 	{
@@ -789,6 +799,55 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 	}
 
 	return true;
+}
+
+bool GameProjectUtils::IsValidBaseClassForCreation(const UClass* InClass, const FModuleContextInfo& InModuleInfo)
+{
+	auto DoesClassNeedAPIExport = [&InModuleInfo](const FString& InClassModuleName) -> bool
+	{
+		return InModuleInfo.ModuleName != InClassModuleName;
+	};
+
+	return IsValidBaseClassForCreation_Internal(InClass, FDoesClassNeedAPIExportCallback::CreateLambda(DoesClassNeedAPIExport));
+}
+
+bool GameProjectUtils::IsValidBaseClassForCreation(const UClass* InClass, const TArray<FModuleContextInfo>& InModuleInfoArray)
+{
+	auto DoesClassNeedAPIExport = [&InModuleInfoArray](const FString& InClassModuleName) -> bool
+	{
+		for(const FModuleContextInfo& ModuleInfo : InModuleInfoArray)
+		{
+			if(ModuleInfo.ModuleName == InClassModuleName)
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+
+	return IsValidBaseClassForCreation_Internal(InClass, FDoesClassNeedAPIExportCallback::CreateLambda(DoesClassNeedAPIExport));
+}
+
+bool GameProjectUtils::IsValidBaseClassForCreation_Internal(const UClass* InClass, const FDoesClassNeedAPIExportCallback& InDoesClassNeedAPIExport)
+{
+	// You may not make native classes based on blueprint generated classes
+	const bool bIsBlueprintClass = (InClass->ClassGeneratedBy != nullptr);
+
+	// UObject is special cased to be extensible since it would otherwise not be since it doesn't pass the API check (intrinsic class).
+	const bool bIsExplicitlyUObject = (InClass == UObject::StaticClass());
+
+	// You need API if you are not UObject itself, and you're in a module that was validated as needing API export
+	const FString ClassModuleName = InClass->GetOutermost()->GetName().RightChop( FString(TEXT("/Script/")).Len() );
+	const bool bNeedsAPI = !bIsExplicitlyUObject && InDoesClassNeedAPIExport.Execute(ClassModuleName);
+
+	// You may not make a class that is not DLL exported.
+	// MinimalAPI classes aren't compatible with the DLL export macro, but can still be used as a valid base
+	const bool bHasAPI = InClass->HasAnyClassFlags(CLASS_RequiredAPI) || InClass->HasAnyClassFlags(CLASS_MinimalAPI);
+
+	// @todo should we support interfaces?
+	const bool bIsInterface = InClass->IsChildOf(UInterface::StaticClass());
+
+	return !bIsBlueprintClass && (!bNeedsAPI || bHasAPI) && !bIsInterface;
 }
 
 bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, const TSet<FString>& DisallowedHeaderNames, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
@@ -2880,7 +2939,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		return false;
 	}
 
-	FScopedSlowTask SlowTask( 5,  LOCTEXT( "AddingCodeToProject", "Adding code to project..." ) );
+	FScopedSlowTask SlowTask( 5, LOCTEXT( "AddingCodeToProject", "Adding code to project..." ) );
 	SlowTask.MakeDialog();
 
 	SlowTask.EnterProgressFrame();
@@ -2972,6 +3031,8 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	{
 		// This is the first time we add code to this project so compile its game DLL
 		const FString GameModuleName = FApp::GetGameName();
+		check(ModuleInfo.ModuleName == GameModuleName);
+
 		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
 		const bool bReloadAfterCompiling = true;
 		const bool bForceCodeProject = true;
@@ -2980,6 +3041,53 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		{
 			OutFailReason = LOCTEXT("FailedToCompileNewGameModule", "Failed to compile newly created game module.");
 			return false;
+		}
+
+		// Notify that we've created a brand new module
+		FSourceCodeNavigation::AccessOnNewModuleAdded().Broadcast(*GameModuleName);
+	}
+	else if (GEditor->AccessEditorUserSettings().bAutomaticallyHotReloadNewClasses)
+	{
+		FModuleStatus ModuleStatus;
+		const FName ModuleFName = *ModuleInfo.ModuleName;
+		if (ensure(FModuleManager::Get().QueryModule(ModuleFName, ModuleStatus)))
+		{
+			// Compile the module that the class was added to so that the newly added class with appear in the Content Browser
+			TArray<UPackage*> PackagesToRebind;
+			if (ModuleStatus.bIsLoaded)
+			{
+				const bool bIsHotReloadable = FModuleManager::Get().DoesLoadedModuleHaveUObjects(ModuleFName);
+				if (bIsHotReloadable)
+				{
+					// Is there a UPackage with the same name as this module?
+					const FString PotentialPackageName = FString(TEXT("/Script/")) + ModuleInfo.ModuleName;
+					UPackage* Package = FindPackage(nullptr, *PotentialPackageName);
+					if (Package)
+					{
+						PackagesToRebind.Add(Package);
+					}
+				}
+			}
+
+			IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+			if (PackagesToRebind.Num() > 0)
+			{
+				// Perform a hot reload
+				const bool bWaitForCompletion = true;			
+				HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, *GWarn);
+			}
+			else
+			{
+				// Perform a regular unload, then reload
+				const bool bReloadAfterRecompile = true;
+				const bool bForceCodeProject = false;
+				const bool bFailIfGeneratedCodeChanges = true;
+				if (!HotReloadSupport.RecompileModule(ModuleFName, bReloadAfterRecompile, *GWarn, bFailIfGeneratedCodeChanges, bForceCodeProject))
+				{
+					OutFailReason = FText::Format(LOCTEXT("FailedToCompileModuleFmt", "Failed to automatically compile the '{0}' module."), FText::FromString(ModuleInfo.ModuleName));
+					return false;
+				}
+			}
 		}
 	}
 
