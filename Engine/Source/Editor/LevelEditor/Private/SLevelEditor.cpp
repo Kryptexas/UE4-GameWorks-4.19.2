@@ -602,7 +602,7 @@ public:
 					ComponentsBox->SetContent
 					(
 						SAssignNew(SCSEditor, SSCSEditor)
-						.InEditingMode(true)
+						.EditorMode(SSCSEditor::EEditorMode::ActorInstance)
 						.ActorContext(this, &SActorDetails::GetSelectedActor)												// Get the instance of the actor in the world
 						.OnTreeViewSelectionChanged(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)				// A selection has been made in the tree view, so inform the level editor
 						//.OnUpdateSelectionFromNodes(this, &SLevelEditor::OnSCSEditorUpdateSelectionFromNodes)				// Unsure, don't think it's needed

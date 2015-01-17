@@ -660,32 +660,6 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 	}
 }
 
-USCS_Node* FBlueprintEditor::OnSCSEditorAddNewComponent(UClass* InComponentClass)
-{
-	check(InComponentClass != nullptr);
-
-	UBlueprint* Blueprint = GetBlueprintObj();
-	check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
-
-	return Blueprint->SimpleConstructionScript->CreateNode(InComponentClass);
-}
-
-USCS_Node* FBlueprintEditor::OnSCSEditorAddExistingComponent(UActorComponent* InComponentInstance)
-{
-	check(InComponentInstance != nullptr);
-
-	UBlueprint* Blueprint = GetBlueprintObj();
-	check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
-
-	if(InComponentInstance->GetOuter() == GetTransientPackage())
-	{
-		// Relocate the instance from the transient package to the BPGC and assign it a unique object name
-		InComponentInstance->Rename(NULL, Blueprint->GeneratedClass, REN_DontCreateRedirectors|REN_DoNotDirty);
-	}
-
-	return Blueprint->SimpleConstructionScript->CreateNode(InComponentInstance);
-}
-
 void FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
 {
 	if (SCSViewport.IsValid())
@@ -1207,10 +1181,8 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 
 			// Recreate (or create) any widgets that depend on the SCS
 			SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
-				.InEditingMode(this, &FBlueprintEditor::InEditingMode)
-				.ActorContext(this, &FBlueprintEditor::GetPreviewActor)
-				.OnAddNewComponent(this, &FBlueprintEditor::OnSCSEditorAddNewComponent)
-				.OnAddExistingComponent(this, &FBlueprintEditor::OnSCSEditorAddExistingComponent)
+				.ActorContext(BlueprintObj->GeneratedClass->GetDefaultObject<AActor>())
+				.AllowEditing(this, &FBlueprintEditor::InEditingMode)
 				.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
 				.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes);
 			SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
@@ -1992,10 +1964,8 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		InBlueprint->SimpleConstructionScript )
 	{
 		SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
-			.InEditingMode(this, &FBlueprintEditor::InEditingMode)
-			.ActorContext(this, &FBlueprintEditor::GetPreviewActor)
-			.OnAddNewComponent(this, &FBlueprintEditor::OnSCSEditorAddNewComponent)
-			.OnAddExistingComponent(this, &FBlueprintEditor::OnSCSEditorAddExistingComponent)
+			.ActorContext(InBlueprint->GeneratedClass->GetDefaultObject<AActor>())
+			.AllowEditing(this, &FBlueprintEditor::InEditingMode)
 			.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
 			.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes);
 		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)

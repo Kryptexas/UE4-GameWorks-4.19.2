@@ -375,6 +375,15 @@ typedef SSCSEditorDragDropTree SSCSTreeType;
 class KISMET_API SSCSEditor : public SCompoundWidget
 {
 public:
+	/* Editor mode */
+	enum EEditorMode
+	{
+		/* View/edit the SCS in a BGPC */
+		BlueprintSCS,
+		/* View/edit the Actor instance */
+		ActorInstance
+	};
+
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddNewComponent, class UClass*);
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddExistingComponent, class UActorComponent*);
 	DECLARE_DELEGATE_OneParam(FOnTreeViewSelectionChanged, const TArray<FSCSEditorTreeNodePtrType>&);
@@ -382,21 +391,19 @@ public:
 	DECLARE_DELEGATE_OneParam(FOnHighlightPropertyInDetailsView, const class FPropertyPath&);
 
 	SLATE_BEGIN_ARGS( SSCSEditor )
-		:_InEditingMode(true)
+		:_EditorMode(BlueprintSCS)
 		,_ActorContext(nullptr)
+		,_AllowEditing(true)
 		,_HideComponentClassCombo(false)
-		,_OnAddNewComponent()
-		,_OnAddExistingComponent()
 		,_OnTreeViewSelectionChanged()
 		,_OnUpdateSelectionFromNodes()
 		,_OnHighlightPropertyInDetailsView()
 		{}
 
-		SLATE_ATTRIBUTE(bool, InEditingMode)
+		SLATE_ATTRIBUTE(EEditorMode, EditorMode)
 		SLATE_ATTRIBUTE(class AActor*, ActorContext)
+		SLATE_ATTRIBUTE(bool, AllowEditing)
 		SLATE_ATTRIBUTE(bool, HideComponentClassCombo)
-		SLATE_EVENT(FOnAddNewComponent, OnAddNewComponent)
-		SLATE_EVENT(FOnAddExistingComponent, OnAddExistingComponent)
 		SLATE_EVENT(FOnTreeViewSelectionChanged, OnTreeViewSelectionChanged)
 		SLATE_EVENT(FOnUpdateSelectionFromNodes, OnUpdateSelectionFromNodes)
 		SLATE_EVENT(FOnHighlightPropertyInDetailsView, OnHighlightPropertyInDetailsView)
@@ -414,8 +421,8 @@ public:
 	/** Used by tree control - get children for a specified node */
 	void OnGetChildrenForTree(FSCSEditorTreeNodePtrType InNodePtr, TArray<FSCSEditorTreeNodePtrType>& OutChildren);
 
-	/** Returns true if in editing mode */
-	bool InEditingMode() const;
+	/** Returns true if editing is allowed */
+	bool IsEditingAllowed() const;
 
 	/** Adds a component to the SCS Table
 	   @param NewComponentClass	(In) The class to add
@@ -423,13 +430,20 @@ public:
 	   @return The reference of the newly created ActorComponent */
 	UActorComponent* AddNewComponent(UClass* NewComponentClass, UObject* Asset);
 
-	/** Adds a new Node to the component Table
-	   @param NewNode	(In) The node to add
+	/** Adds a new SCS Node to the component Table
+	   @param NewNode	(In) The SCS node to add
 	   @param Asset		(In) Optional asset to assign to the component
 	   @param bMarkBlueprintModified (In) Whether or not to mark the Blueprint as structurally modified
 	   @param bSetFocusToNewItem (In) Select the new item and activate the inline rename widget (default is true)
 	   @return The reference of the newly created ActorComponent */
 	UActorComponent* AddNewNode(USCS_Node* NewNode, UObject* Asset, bool bMarkBlueprintModified, bool bSetFocusToNewItem = true);
+
+	/** Adds a new component instance node to the component Table
+		@param NewNode	(In) The component instance node to add
+		@param Asset	(In) Optional asset to assign to the component
+		@param bSetFocusToNewItem (In) Select the new item and activate the inline rename widget (default is true)
+		@return The reference of the newly created ActorComponent */
+	UActorComponent* AddNewNode(UActorComponent* NewNode, UObject* Asset, bool bSetFocusToNewItem = true);
 	
 	/** Returns true if the specified component is currently selected */
 	bool IsComponentSelected(const UPrimitiveComponent* PrimComponent) const;
@@ -621,17 +635,14 @@ public:
 	/** Whether or not the deferred rename request was flagged as transactional */
 	bool bIsDeferredRenameRequestTransactional;
 
+	/** Attribute to indicate which editor mode we're in. */
+	TAttribute<EEditorMode> EditorMode;
+
 	/** Attribute that provides access to the Actor context for which we are viewing/editing the SCS. */
 	TAttribute<class AActor*> ActorContext;
 
-	/** Attribute to control whether or not to allow editing. */
-	TAttribute<bool> bInEditingMode;
-
-	/** Delegate to invoke when a new SCS node needs to be created for a component class type. */
-	FOnAddNewComponent OnAddNewComponent;
-
-	/** Delegate to invoke when a new SCS node needs to be created for an existing component instance. */
-	FOnAddExistingComponent OnAddExistingComponent;
+	/** Attribute to indicate whether or not editing is allowed. */
+	TAttribute<bool> AllowEditing;
 
 	/** Delegate to invoke on tree view selection change. */
 	FOnTreeViewSelectionChanged OnTreeViewSelectionChanged;
