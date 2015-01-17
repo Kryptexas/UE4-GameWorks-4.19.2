@@ -1603,6 +1603,8 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	,	PropertyClass( InClass )
 	{}
 
+	virtual ~UObjectPropertyBase();
+
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);

@@ -1,7 +1,148 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "CoreUObjectPrivate.h"
+#include "UObject/LinkerPlaceholderClass.h"
+#include "Linker.h"
+#include "PropertyTag.h"
 
 
+/** 
+ * Defined in BlueprintSupport.cpp
+ * Duplicates all fields of a class in depth-first order. It makes sure that everything contained
+ * in a class is duplicated before the class itself, as well as all function parameters before the
+ * function itself.
+ *
+ * @param	StructToDuplicate			Instance of the struct that is about to be duplicated
+ * @param	Writer						duplicate writer instance to write the duplicated data to
+ */
+void FBlueprintSupport::DuplicateAllFields(UStruct* StructToDuplicate, FDuplicateDataWriter& Writer)
+{
+	// This is a very simple fake topological-sort to make sure everything contained in the class
+	// is processed before the class itself is, and each function parameter is processed before the function
+	if (StructToDuplicate)
+	{
+		// Make sure each field gets allocated into the array
+		for (TFieldIterator<UField> FieldIt(StructToDuplicate, EFieldIteratorFlags::ExcludeSuper); FieldIt; ++FieldIt)
+		{
+			UField* Field = *FieldIt;
+
+			// Make sure functions also do their parameters and children first
+			if (UFunction* Function = dynamic_cast<UFunction*>(Field))
+			{
+				for (TFieldIterator<UField> FunctionFieldIt(Function, EFieldIteratorFlags::ExcludeSuper); FunctionFieldIt; ++FunctionFieldIt)
+				{
+					UField* InnerField = *FunctionFieldIt;
+					Writer.GetDuplicatedObject(InnerField);
+				}
+			}
+
+			Writer.GetDuplicatedObject(Field);
+		}
+	}
+}
+
+bool FBlueprintSupport::UseDeferredDependencyLoading()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	static const FBoolConfigValueHelper DeferDependencyLoads(TEXT("Kismet"), TEXT("bDeferDependencyLoads"), GEngineIni);
+	return DeferDependencyLoads;
+#else
+	return false;
+#endif
+}
+
+bool FBlueprintSupport::UseDeferredCDOSerialization()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	static const FBoolConfigValueHelper DeferCDOSerializations(TEXT("Kismet"), TEXT("bDeferCDOLoadSerialization"), GEngineIni);
+	return UseDeferredDependencyLoading() && DeferCDOSerializations;
+#else 
+	return false;
+#endif
+}
+
+bool FBlueprintSupport::UseDeferredLoadingForSubsequentLoads()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	static const FBoolConfigValueHelper PropagateDeferredFlagForStructs(TEXT("Kismet"), TEXT("bPropagateDeferredLoadsForStructs"), GEngineIni);
+	return UseDeferredDependencyLoading() && PropagateDeferredFlagForStructs;
+#else 
+	return false;
+#endif
+}
+
+bool FBlueprintSupport::UseDeferredDependencyVerificationChecks()
+{
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	static const FBoolConfigValueHelper TestCheckDeferredDependencies(TEXT("Kismet"), TEXT("bCheckDeferredDependencies"), GEngineIni);
+	return UseDeferredDependencyLoading() && TestCheckDeferredDependencies;
+#else 
+	return false;
+#endif
+}
+
+/*******************************************************************************
+ * FScopedClassDependencyGather
+ ******************************************************************************/
+
+#if WITH_EDITOR
+UClass* FScopedClassDependencyGather::BatchMasterClass = NULL;
+TArray<UClass*> FScopedClassDependencyGather::BatchClassDependencies;
+
+FScopedClassDependencyGather::FScopedClassDependencyGather(UClass* ClassToGather)
+	: bMasterClass(false)
+{
+	// Do NOT track duplication dependencies, as these are intermediate products that we don't care about
+	if( !GIsDuplicatingClassForReinstancing )
+	{
+		if( BatchMasterClass == NULL )
+		{
+			// If there is no current dependency master, register this class as the master, and reset the array
+			BatchMasterClass = ClassToGather;
+			BatchClassDependencies.Empty();
+			bMasterClass = true;
+		}
+		else
+		{
+			// This class was instantiated while another class was gathering dependencies, so record it as a dependency
+			BatchClassDependencies.AddUnique(ClassToGather);
+		}
+	}
+}
+
+FScopedClassDependencyGather::~FScopedClassDependencyGather()
+{
+	// If this gatherer was the initial gatherer for the current scope, process 
+	// dependencies (unless compiling on load is explicitly disabled)
+	if( bMasterClass && !GForceDisableBlueprintCompileOnLoad )
+	{
+		for( auto DependencyIter = BatchClassDependencies.CreateIterator(); DependencyIter; ++DependencyIter )
+		{
+			UClass* Dependency = *DependencyIter;
+			if( Dependency->ClassGeneratedBy != BatchMasterClass->ClassGeneratedBy )
+			{
+				Dependency->ConditionalRecompileClass(&GObjLoaded);
+			}
+		}
+
+		// Finally, recompile the master class to make sure it gets updated too
+		BatchMasterClass->ConditionalRecompileClass(&GObjLoaded);
+		
+		BatchMasterClass = NULL;
+	}
+}
+
+TArray<UClass*> const& FScopedClassDependencyGather::GetCachedDependencies()
+{
+	return BatchClassDependencies;
+}
+#endif //WITH_EDITOR
+
+
+
+/*******************************************************************************
+ * ULinkerLoad
+ ******************************************************************************/
+ 
 struct FPreloadMembersHelper
 {
 	static void PreloadMembers(UObject* InObject)
@@ -49,6 +190,12 @@ struct FPreloadMembersHelper
  */
 bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObject)
 {
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	static ULinkerLoad* RegeneratingLinker = nullptr;
+	checkSlow(!FBlueprintSupport::UseDeferredDependencyVerificationChecks() || (RegeneratingLinker == nullptr) || (RegeneratingLinker == this));
+	TGuardValue<ULinkerLoad*> ReentrantGuard(RegeneratingLinker, this);
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+
 	// determine if somewhere further down the callstack, we're already in this
 	// function for this class
 	bool const bAlreadyRegenerating = LoadClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated);
@@ -141,6 +288,193 @@ bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObj
 	return bSuccessfulRegeneration;
 }
 
+bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (!FBlueprintSupport::UseDeferredDependencyLoading())
+	{
+		return false;
+	}
+
+	//--------------------------------------
+	// Phase 1: Stub in Dependencies
+	//--------------------------------------
+
+	FObjectImport& Import = ImportMap[Index];
+	if (Import.XObject != nullptr)
+	{
+		// this import has already been created
+		return Import.XObject->IsA<ULinkerPlaceholderClass>();
+	}
+
+	if ((LoadFlags & LOAD_DeferDependencyLoads) && !IsImportNative(Index))
+	{
+		if (UObject* ClassPackage = FindObject<UPackage>(/*Outer =*/nullptr, *Import.ClassPackage.ToString()))
+		{
+			if (const UClass* ImportClass = FindObject<UClass>(ClassPackage, *Import.ClassName.ToString()))
+			{
+				bool const bIsBlueprintClass = ImportClass->IsChildOf<UClass>();
+				if (bIsBlueprintClass)
+				{
+					UPackage* PlaceholderOuter = LinkerRoot;
+					UClass*   PlaceholderType  = ULinkerPlaceholderClass::StaticClass();
+
+					FName PlaceholderName(*FString::Printf(TEXT("PLACEHOLDER-CLASS_%s"), *Import.ObjectName.ToString()));
+					PlaceholderName = MakeUniqueObjectName(PlaceholderOuter, PlaceholderType, PlaceholderName);
+
+					UClass* Placeholder = ConstructObject<ULinkerPlaceholderClass>(PlaceholderType, PlaceholderOuter, PlaceholderName, RF_Public | RF_Transient);
+					// make sure the class is fully formed (has its 
+					// ClassAddReferencedObjects/ClassConstructor members set)
+					Placeholder->Bind();
+					Placeholder->StaticLink(/*bRelinkExistingProperties =*/true);
+
+					Import.XObject = Placeholder;
+				}
+			}
+		}
+	}
+	return (Import.XObject != nullptr);
+#else // !USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	return false;
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
+
+void ULinkerLoad::ResolveDeferredDependencies(UClass* LoadClass)
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (!FBlueprintSupport::UseDeferredDependencyLoading())
+	{
+		return;
+	}
+
+	//--------------------------------------
+	// Phase 2: Resolve Dependency Stubs
+	//--------------------------------------
+	TGuardValue<uint32> LoadFlagsGuard(LoadFlags, LoadFlags & ~LOAD_DeferDependencyLoads);
+
+	for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
+	{
+		FObjectImport& Import = ImportMap[ImportIndex];
+
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(Import.XObject))
+		{
+			Import.XObject = nullptr;
+			UClass* RealClassObj = CastChecked<UClass>(CreateImport(ImportIndex), ECastCheckedType::NullAllowed);
+
+			for (UObjectPropertyBase* ObjProperty : PlaceholderClass->ReferencingProperties)
+			{
+				ObjProperty->PropertyClass = RealClassObj;
+			}
+			PlaceholderClass->ReferencingProperties.Empty();
+			PlaceholderClass->MarkPendingKill(); // @TODO: ensure these are properly GC'd
+		}
+	}
+
+	// @TODO: don't know if we need this, but could be good to have (as class 
+	//        regeneration is about to force load a lot of this).
+	LoadAllObjects();
+
+	//--------------------------------------
+	// Phase 3: Finalize (serialize CDO & regenerate class)
+	//--------------------------------------
+
+	// since this function is called after class serialization, then we can be
+	// certain that the CDO export object exists (since class serialization 
+	// would call CreateExport() for the CDO)
+
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
+	checkSlow(bCircumventValidationChecks || (LoadClass->ClassDefaultObject != nullptr));
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+
+	// this should assert if the index hasn't been set (as we expect)
+	int32 CDOExportIndex = LoadClass->ClassDefaultObject->GetLinkerIndex();
+	if (CDOExportIndex == INDEX_NONE)
+	{
+		CDOExportIndex = DeferredExportIndex;
+	}
+	else if (DeferredExportIndex != INDEX_NONE)
+	{
+		check(CDOExportIndex == DeferredExportIndex);
+	}
+	// else, the CDO hasn't been touched (which is expected, since the CDO needs the class first)
+	// @TODO: this comment here ^ is in direct conflict with the assumption 
+	//        stated above (that the CDO should be loaded)... figure out which is correct!
+
+	{
+		check(CDOExportIndex != INDEX_NONE);
+		FObjectExport& CDOExport = ExportMap[CDOExportIndex];
+
+		UObject* CDO = CDOExport.Object;
+		if (FBlueprintSupport::UseDeferredCDOSerialization())
+		{
+			// have to prematurely set the CDO's linker so we can force a Preload()/
+			// Serialization of the CDO before we regenerate the Blueprint class
+			{
+				const EObjectFlags OldFlags = CDO->GetFlags();
+				CDO->ClearFlags(RF_NeedLoad | RF_NeedPostLoad);
+				CDO->SetLinker(this, CDOExportIndex, /*bShouldDetatchExisting =*/false);
+				CDO->SetFlags(OldFlags);
+			}
+			// should load the CDO (ensuring that it has been serialized in by the 
+			// time we get to class regeneration)
+			//
+			// NOTE: this is point where circular dependencies could reveal 
+			//       themselves, as the CDO could depend on a class not listed in 
+			//       the package's imports
+			//
+			// @TODO: should we block/detect reentrant behavior? would this CDO ever
+			//        need another CDO?
+			Preload(CDO);
+		}
+
+		UClass* BlueprintClass = Cast<UClass>(IndexToObject(CDOExport.ClassIndex));
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+		checkSlow(bCircumventValidationChecks || CDO->HasAnyFlags(RF_LoadCompleted));
+		checkSlow(bCircumventValidationChecks || BlueprintClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
+
+		// at this point there should not be any instances of the Blueprint (else,
+		// we'd have to reinstance and that is too expensive an operation to 
+		// have at load time)
+		TArray<UObject*> ClassInstances;
+		GetObjectsOfClass(BlueprintClass, ClassInstances, /*bIncludeDerivedClasses =*/true);
+		checkSlow(bCircumventValidationChecks || ClassInstances.Num() == 0);
+
+		for (TObjectIterator<ULinkerPlaceholderClass> PlaceholderIt; PlaceholderIt; ++PlaceholderIt)
+		{
+			ULinkerPlaceholderClass* PlaceholderClass = *PlaceholderIt;
+			// there shouldn't be any deferred dependencies that need to be 
+			// resolved by this point
+			checkSlow(bCircumventValidationChecks || (PlaceholderClass->GetOuter() != LinkerRoot) || PlaceholderClass->IsPendingKill());
+		}
+
+		// @TODO: Test verify there are no instances of the class yet (except for the CDO)
+
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+
+		UObject* OldCDO = BlueprintClass->ClassDefaultObject;
+		if (RegenerateBlueprintClass(BlueprintClass, CDO))
+		{
+			// emulate class CDO serialization (RegenerateBlueprintClass() could 
+			// have a side-effect where it overwrites the class's CDO; so we 
+			// want to make sure that we don't overwrite that new CDO with a 
+			// stale one)
+			if (OldCDO == BlueprintClass->ClassDefaultObject)
+			{
+				BlueprintClass->ClassDefaultObject = CDOExport.Object;
+			}
+		}
+		
+		// 
+		DeferredExportIndex = INDEX_NONE;
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
+
+/*******************************************************************************
+ * UObject
+ ******************************************************************************/
+
 /** 
  * Returns whether this object is contained in or part of a blueprint object
  */
@@ -188,6 +522,10 @@ void UObject::DestroyNonNativeProperties()
 	}
 }
 
+/*******************************************************************************
+ * FObjectInitializer
+ ******************************************************************************/
+
 /** 
  * Initializes a non-native property, according to the initialization rules. If the property is non-native
  * and does not have a zero constructor, it is initialized with the default value.
@@ -211,92 +549,3 @@ bool FObjectInitializer::InitNonNativeProperty(UProperty* Property, UObject* Dat
 		return false;
 	}
 }
-
-/** 
- * Defined in BlueprintSupport.cpp
- * Duplicates all fields of a class in depth-first order. It makes sure that everything contained
- * in a class is duplicated before the class itself, as well as all function parameters before the
- * function itself.
- *
- * @param	StructToDuplicate			Instance of the struct that is about to be duplicated
- * @param	Writer						duplicate writer instance to write the duplicated data to
- */
-void FBlueprintSupport::DuplicateAllFields(UStruct* StructToDuplicate, FDuplicateDataWriter& Writer)
-{
-	// This is a very simple fake topological-sort to make sure everything contained in the class
-	// is processed before the class itself is, and each function parameter is processed before the function
-	if (StructToDuplicate)
-	{
-		// Make sure each field gets allocated into the array
-		for (TFieldIterator<UField> FieldIt(StructToDuplicate, EFieldIteratorFlags::ExcludeSuper); FieldIt; ++FieldIt)
-		{
-			UField* Field = *FieldIt;
-
-			// Make sure functions also do their parameters and children first
-			if (UFunction* Function = dynamic_cast<UFunction*>(Field))
-			{
-				for (TFieldIterator<UField> FunctionFieldIt(Function, EFieldIteratorFlags::ExcludeSuper); FunctionFieldIt; ++FunctionFieldIt)
-				{
-					UField* InnerField = *FunctionFieldIt;
-					Writer.GetDuplicatedObject(InnerField);
-				}
-			}
-
-			Writer.GetDuplicatedObject(Field);
-		}
-	}
-}
-
-#if WITH_EDITOR
-UClass* FScopedClassDependencyGather::BatchMasterClass = NULL;
-TArray<UClass*> FScopedClassDependencyGather::BatchClassDependencies;
-
-FScopedClassDependencyGather::FScopedClassDependencyGather(UClass* ClassToGather)
-	: bMasterClass(false)
-{
-	// Do NOT track duplication dependencies, as these are intermediate products that we don't care about
-	if( !GIsDuplicatingClassForReinstancing )
-	{
-		if( BatchMasterClass == NULL )
-		{
-			// If there is no current dependency master, register this class as the master, and reset the array
-			BatchMasterClass = ClassToGather;
-			BatchClassDependencies.Empty();
-			bMasterClass = true;
-		}
-		else
-		{
-			// This class was instantiated while another class was gathering dependencies, so record it as a dependency
-			BatchClassDependencies.AddUnique(ClassToGather);
-		}
-	}
-}
-
-FScopedClassDependencyGather::~FScopedClassDependencyGather()
-{
-	// If this gatherer was the initial gatherer for the current scope, process 
-	// dependencies (unless compiling on load is explicitly disabled)
-	if( bMasterClass && !GForceDisableBlueprintCompileOnLoad )
-	{
-		for( auto DependencyIter = BatchClassDependencies.CreateIterator(); DependencyIter; ++DependencyIter )
-		{
-			UClass* Dependency = *DependencyIter;
-			if( Dependency->ClassGeneratedBy != BatchMasterClass->ClassGeneratedBy )
-			{
-				Dependency->ConditionalRecompileClass(&GObjLoaded);
-			}
-		}
-
-		// Finally, recompile the master class to make sure it gets updated too
-		BatchMasterClass->ConditionalRecompileClass(&GObjLoaded);
-		
-		BatchMasterClass = NULL;
-	}
-}
-
-TArray<UClass*> const& FScopedClassDependencyGather::GetCachedDependencies()
-{
-	return BatchClassDependencies;
-}
-
-#endif //WITH_EDITOR

@@ -2,10 +2,23 @@
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
+#include "LinkerPlaceholderClass.h"
 
 /*-----------------------------------------------------------------------------
 	UObjectPropertyBase.
 -----------------------------------------------------------------------------*/
+
+UObjectPropertyBase::~UObjectPropertyBase()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	// @TODO: sometimes PropertyClass is freed memory, so operating on it causes 
+	//        a crash
+// 	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
+// 	{
+// 		PlaceholderClass->ReferencingProperties.Remove(this);
+// 	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
 
 void UObjectPropertyBase::InstanceSubobjects(void* Data, void const* DefaultData, UObject* Owner, FObjectInstancingGraph* InstanceGraph )
 {
@@ -74,6 +87,16 @@ void UObjectPropertyBase::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << PropertyClass;
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (Ar.IsLoading())
+	{
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
+		{
+			PlaceholderClass->ReferencingProperties.Add(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 void UObjectPropertyBase::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {	

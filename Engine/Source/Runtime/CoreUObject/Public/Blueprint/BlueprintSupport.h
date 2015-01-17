@@ -17,6 +17,15 @@ struct FBlueprintSupport
 	 * @param	Writer						duplicate writer instance to write the duplicated data to
 	 */
 	static void DuplicateAllFields(class UStruct* StructToDuplicate, class FDuplicateDataWriter& Writer);
+
+	/** 
+	 * A series of query functions that we can use to easily gate-off/disable 
+	 * aspects of the deferred loading (mostly for testing purposes). 
+	 */
+	static bool UseDeferredDependencyLoading();
+	static bool UseDeferredCDOSerialization();
+	static bool UseDeferredLoadingForSubsequentLoads();
+	static bool UseDeferredDependencyVerificationChecks();
 };
 
 #if WITH_EDITOR

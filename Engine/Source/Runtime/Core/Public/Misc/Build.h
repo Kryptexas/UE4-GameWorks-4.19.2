@@ -240,3 +240,6 @@
 
 /** Enable UberGraphPersistentFrame feature. It can speed up BP compilation (re-instancing) in editor, but introduce an unnecessary overhead in runtime. */
 #define USE_UBER_GRAPH_PERSISTENT_FRAME 1
+
+#define USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING (WITH_EDITOR && 0)
+#define TEST_CHECK_DEPENDENCY_LOAD_DEFERRING   (USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING && 1)
