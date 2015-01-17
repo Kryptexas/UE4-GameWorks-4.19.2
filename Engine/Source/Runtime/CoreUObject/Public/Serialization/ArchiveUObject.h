@@ -1092,7 +1092,7 @@ public:
 				}
 				else
 				{
-					ObjectClass->SerializeBin(*this, SearchObject, 0);
+					ObjectClass->SerializeBin(*this, SearchObject);
 				}
 				StopSerializingDefaults();
 			}
@@ -1161,7 +1161,7 @@ public:
 						}
 						else
 						{
-							ObjectClass->SerializeBin(*this, Obj, 0);
+							ObjectClass->SerializeBin(*this, Obj);
 						}
 						StopSerializingDefaults();
 					}

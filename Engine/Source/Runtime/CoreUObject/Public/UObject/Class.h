@@ -289,7 +289,7 @@ public:
 	//
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties);
 
-	virtual void SerializeBin( FArchive& Ar, void* Data, int32 MaxReadBytes ) const;
+	virtual void SerializeBin( FArchive& Ar, void* Data ) const;
 
 	/**
 	 * Serializes the class properties that reside in Data if they differ from the corresponding values in DefaultData

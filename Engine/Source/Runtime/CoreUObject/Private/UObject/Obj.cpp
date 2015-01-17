@@ -907,7 +907,7 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 	}
 	else
 	{
-		Class->SerializeBin( Ar, const_cast<UObject *>(this), 0 );
+		Class->SerializeBin( Ar, const_cast<UObject *>(this) );
 	}
 
 	if( HasAnyFlags(RF_ClassDefaultObject) )

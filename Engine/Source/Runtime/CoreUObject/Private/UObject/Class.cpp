@@ -726,7 +726,7 @@ void UStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
 // Serialize all of the class's data that belongs in a particular
 // bin and resides in Data.
 //
-void UStruct::SerializeBin( FArchive& Ar, void* Data, int32 MaxReadBytes ) const
+void UStruct::SerializeBin( FArchive& Ar, void* Data ) const
 {
 	if( Ar.IsObjectReferenceCollector() )
 	{
@@ -748,7 +748,7 @@ void UStruct::SerializeBinEx( FArchive& Ar, void* Data, void const* DefaultData,
 {
 	if ( !DefaultData || !DefaultStruct )
 	{
-		SerializeBin(Ar, Data, 0);
+		SerializeBin(Ar, Data);
 		return;
 	}
 
@@ -1209,7 +1209,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
 
 				// This property is ok.			
-				Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
+				Tag.SerializeTaggedProperty( Ar, Property, DestAddress, NULL );
 
 				AdvanceProperty = true;
 				continue;
@@ -1259,7 +1259,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						// need to know how much data this call to SerializeTaggedProperty consumes, so mark where we are
 						int32 DataOffset = Ar.Tell();
 
-						Tag.SerializeTaggedProperty( Ar, Property, DataPtr, 0, DefaultValue );
+						Tag.SerializeTaggedProperty( Ar, Property, DataPtr, DefaultValue );
 
 						// set the tag's size
 						Tag.Size = Ar.Tell() - DataOffset;
@@ -3147,7 +3147,7 @@ void UClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
 	}
 	else
 	{
-		SerializeBin(Ar, Object, 0);
+		SerializeBin(Ar, Object);
 	}
 	Ar.StopSerializingDefaults();
 }

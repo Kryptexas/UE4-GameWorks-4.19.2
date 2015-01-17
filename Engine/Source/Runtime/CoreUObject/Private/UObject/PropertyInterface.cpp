@@ -102,7 +102,7 @@ bool UInterfaceProperty::Identical( const void* A, const void* B, uint32 PortFla
 	return (InterfaceA->GetObject() == InterfaceB->GetObject() && InterfaceA->GetInterface() == InterfaceB->GetInterface());
 }
 
-void UInterfaceProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UInterfaceProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	FScriptInterface* InterfaceValue = (FScriptInterface*)Value;
 

@@ -104,7 +104,7 @@ bool UStructProperty::UseBinaryOrNativeSerialization(const FArchive& Ar) const
 	return bUseBinarySerialization || bUseNativeSerialization;
 }
 
-void UStructProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UStructProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	const bool bUseBinarySerialization = UseBinarySerialization(Ar);
 	const bool bUseNativeSerialization = UseNativeSerialization();
@@ -135,7 +135,7 @@ void UStructProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadByt
 			}
 			else
 			{
-				Struct->SerializeBin( Ar, Value, MaxReadBytes );
+				Struct->SerializeBin( Ar, Value );
 			}
 		}
 		else

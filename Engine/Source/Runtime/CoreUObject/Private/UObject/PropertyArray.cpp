@@ -54,7 +54,7 @@ bool UArrayProperty::Identical( const void* A, const void* B, uint32 PortFlags )
 	}
 	return true;
 }
-void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	checkSlow(Inner);
 
@@ -70,11 +70,9 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadByte
 	}
 	ArrayHelper.CountBytes( Ar );
 
-	const int32 ArrayMaxReadBytes = MaxReadBytes > 0 ? ( MaxReadBytes - sizeof( n ) ) : 0;
 	for( int32 i=0; i<n; i++ )
 	{
-		const int32 ItemMaxReadBytes = ArrayMaxReadBytes > 0 ? ArrayMaxReadBytes / n: 0;
-		Inner->SerializeItem( Ar, ArrayHelper.GetRawPtr(i), ItemMaxReadBytes );
+		Inner->SerializeItem( Ar, ArrayHelper.GetRawPtr(i) );
 	}
 }
 

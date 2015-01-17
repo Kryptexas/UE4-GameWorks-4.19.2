@@ -98,7 +98,7 @@ bool UMulticastDelegateProperty::Identical( const void* A, const void* B, uint32
 	return bResult;
 }
 
-void UMulticastDelegateProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UMulticastDelegateProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	Ar << *GetPropertyValuePtr(Value);
 }

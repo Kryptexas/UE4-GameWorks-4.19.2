@@ -109,7 +109,7 @@ struct FPropertyTag
 	}
 
 	// Property serializer.
-	void SerializeTaggedProperty( FArchive& Ar, UProperty* Property, uint8* Value, int32 MaxReadBytes, uint8* Defaults )
+	void SerializeTaggedProperty( FArchive& Ar, UProperty* Property, uint8* Value, uint8* Defaults )
 	{
 		if (Property->GetClass() == UBoolProperty::StaticClass())
 		{
@@ -124,7 +124,7 @@ struct FPropertyTag
 			UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
 			Ar.SetSerializedProperty(Property);
 
-			Property->SerializeItem( Ar, Value, MaxReadBytes, Defaults );
+			Property->SerializeItem( Ar, Value, Defaults );
 
 			Ar.SetSerializedProperty(OldSerializedProperty);
 		}

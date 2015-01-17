@@ -216,7 +216,7 @@ bool UBoolProperty::Identical( const void* A, const void* B, uint32 PortFlags ) 
 	return ((*ByteValueA ^ (B ? *ByteValueB : 0)) & FieldMask) == 0;
 }
 
-void UBoolProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UBoolProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	check(FieldSize != 0);
 	uint8* ByteValue = (uint8*)Value + ByteOffset;

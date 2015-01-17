@@ -30,7 +30,7 @@ bool UAssetObjectProperty::Identical( const void* A, const void* B, uint32 PortF
 	return ObjectA.GetUniqueID() == ObjectB.GetUniqueID();
 }
 
-void UAssetObjectProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UAssetObjectProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	// We never serialize our reference while the garbage collector is harvesting references
 	// to objects, because we don't want asset pointers to keep objects from being garbage collected

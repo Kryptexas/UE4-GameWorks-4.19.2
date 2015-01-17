@@ -186,7 +186,7 @@ void UDataTable::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 			{
 				// Serialize all of the properties to make sure they get in the collector
 				FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector( This, Collector );
-				This->RowStruct->SerializeBin(ObjectReferenceCollector, RowData, 0);
+				This->RowStruct->SerializeBin(ObjectReferenceCollector, RowData);
 			}
 		}
 	}

@@ -39,7 +39,7 @@ bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) 
 	return FTextInspector::GetDisplayString(ValueA).IsEmpty();
 }
 
-void UTextProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UTextProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	const TCppType PropertyValue = GetPropertyValue(Value);
 	if ( Ar.IsSaving() && Ar.IsPersistent() && PropertyValue.IsTransient() )
