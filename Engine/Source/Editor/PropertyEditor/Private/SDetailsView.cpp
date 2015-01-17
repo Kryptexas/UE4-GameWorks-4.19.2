@@ -126,7 +126,7 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/true, /*bRecurse=*/false )));
 
-	TSharedRef<SHorizontalBox> FilterRow = SNew( SHorizontalBox )
+	FilterRow = SNew( SHorizontalBox )
 		.Visibility( this, &SDetailsView::GetFilterBoxVisibility )
 		+SHorizontalBox::Slot()
 		.FillWidth( 1 )
@@ -175,50 +175,59 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			];
 	}
 
+	// Create the name area which does not change when selection changes
+	SAssignNew(NameArea, SDetailNameArea, &SelectedObjects)
+		// the name area is only for actors
+		.Visibility(this, &SDetailsView::GetActorNameAreaVisibility)
+		.ShowActorLabel(DetailsViewArgs.bShowActorLabel)
+		// only show the selection tip if we're not selecting objects
+		.SelectionTip(!DetailsViewArgs.bHideSelectionTip);
+
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+
+	if( !DetailsViewArgs.bCustomNameAreaLocation )
+	{
+		VerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(0.0f, 0.0f, 0.0f, 4.0f)
+		[
+			NameArea.ToSharedRef()
+		];
+	}
+
+	if( !DetailsViewArgs.bCustomFilterAreaLocation )
+	{
+		VerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
+		[
+			FilterRow.ToSharedRef()
+		];
+	}
+
+	VerticalBox->AddSlot()
+	.FillHeight(1)
+	.Padding(0)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			ConstructTreeView(ExternalScrollbar)
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SBox)
+			.WidthOverride(16.0f)
+			[
+				ExternalScrollbar
+			]
+		]
+	];
 
 	ChildSlot
 	[
-		SNew( SVerticalBox )
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding( 0.0f, 0.0f, 0.0f, 4.0f )
-		[
-			// Create the name area which does not change when selection changes
-			SAssignNew( NameArea, SDetailNameArea, &SelectedObjects )
-			// the name area is only for actors
-			.Visibility( this, &SDetailsView::GetActorNameAreaVisibility  )
-			.OnLockButtonClicked( this, &SDetailsView::OnLockButtonClicked )
-			.IsLocked( this, &SDetailsView::IsLocked )
-			.ShowLockButton( DetailsViewArgs.bLockable )
-			.ShowActorLabel( DetailsViewArgs.bShowActorLabel )
-			// only show the selection tip if we're not selecting objects
-			.SelectionTip( !DetailsViewArgs.bHideSelectionTip )
-		]
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding( 0.0f, 0.0f, 0.0f, 2.0f )
-		[
-			FilterRow
-		]
-		+ SVerticalBox::Slot()
-		.FillHeight(1)
-		.Padding(0)
-		[
-			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
-			[
-				ConstructTreeView( ExternalScrollbar )
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew( SBox )
-				.WidthOverride( 16.0f )
-				[
-					ExternalScrollbar
-				]
-			]
-		]
+		VerticalBox
 	];
 }
 
@@ -640,6 +649,18 @@ bool SDetailsView::IsCategoryHiddenByClass( FName CategoryName ) const
 bool SDetailsView::IsConnected() const
 {
 	return RootPropertyNode.IsValid() && (RootPropertyNode->GetNumObjects() > 0);
+}
+
+const FSlateBrush* SDetailsView::OnGetLockButtonImageResource() const
+{
+	if (bIsLocked)
+	{
+		return FEditorStyle::GetBrush(TEXT("PropertyWindow.Locked"));
+	}
+	else
+	{
+		return FEditorStyle::GetBrush(TEXT("PropertyWindow.Unlocked"));
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

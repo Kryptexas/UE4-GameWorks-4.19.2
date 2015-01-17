@@ -437,6 +437,16 @@ void SDetailsViewBase::OnFilterTextChanged(const FText& InFilterText)
 
 }
 
+TSharedPtr<SWidget> SDetailsViewBase::GetNameAreaWidget()
+{
+	return DetailsViewArgs.bCustomNameAreaLocation ? NameArea : nullptr;
+}
+
+TSharedPtr<SWidget> SDetailsViewBase::GetFilterAreaWidget()
+{
+	return DetailsViewArgs.bCustomFilterAreaLocation ? FilterRow : nullptr;
+}
+
 /** 
  * Hides or shows properties based on the passed in filter text
  * 
