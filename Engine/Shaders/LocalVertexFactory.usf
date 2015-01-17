@@ -18,7 +18,7 @@ float4 ShadowMapCoordinateScaleBias;
 #if USE_INSTANCING
 
 #if USE_DITHERED_LOD_TRANSITION
-    float4 InstancingViewZCompareZero;
+    float4 InstancingViewZCompareZero;  // w contains random lod scale 
     float4 InstancingViewZCompareOne;
     float4 InstancingViewZConstant;
     float4 InstancingWorldViewOriginZero;
@@ -459,8 +459,9 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation + View.PreViewTranslation.xyz) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
 	Intermediates.PerInstanceParams.z = InstancingFadeOutParams.z * SelectedValue + InstancingFadeOutParams.w * (1-SelectedValue);
 	#if USE_DITHERED_LOD_TRANSITION
-		float ViewZZero = length(InstanceLocation - InstancingWorldViewOriginZero.xyz);
-		float ViewZOne = length(InstanceLocation - InstancingWorldViewOriginOne.xyz);
+		float RandomLOD = InstancingViewZCompareZero.w * Intermediates.PerInstanceParams.x;
+		float ViewZZero = length(InstanceLocation - InstancingWorldViewOriginZero.xyz) + RandomLOD;
+		float ViewZOne = length(InstanceLocation - InstancingWorldViewOriginOne.xyz) + RandomLOD;
 		Intermediates.PerInstanceParams.w = 
 			dot(ViewZZero > InstancingViewZCompareZero.xyz, InstancingViewZConstant.xyz) * InstancingWorldViewOriginZero.w +
 			dot(ViewZOne > InstancingViewZCompareOne.xyz, InstancingViewZConstant.xyz) * InstancingWorldViewOriginOne.w;

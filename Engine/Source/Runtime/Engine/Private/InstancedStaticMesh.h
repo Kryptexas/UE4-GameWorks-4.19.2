@@ -53,6 +53,7 @@
 
 extern TAutoConsoleVariable<float> CVarFoliageMinimumScreenSize;
 extern TAutoConsoleVariable<float> CVarFoliageLODDistanceScale;
+extern TAutoConsoleVariable<float> CVarRandomLODRange;
 
 
 // This must match the maximum a user could specify in the material (see 
