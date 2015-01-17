@@ -855,7 +855,7 @@ public:
 
 
 	// @todo document
-	void UpdateInstances();
+	void UpdateInstances(bool bEmptyInstances = false);
 
 
 	// @todo document
