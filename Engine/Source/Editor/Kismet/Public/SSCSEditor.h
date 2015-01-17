@@ -52,9 +52,9 @@ public:
 	 */
 	class USCS_Node* GetSCSNode() const { return SCSNodePtr.Get(); }
 	/**
-	 * @return The component template represented by this object.
+	 * @return The component template or instance represented by this object.
 	 */
-	UActorComponent* GetComponentTemplate() const { return ComponentTemplatePtr.Get(); }
+	UActorComponent* GetComponentTemplate() const;
 	/**
 	 * Finds the component instance represented by this node contained within a given Actor instance.
 	 *
@@ -101,7 +101,7 @@ public:
 	/**
 	 * @return Whether or not this object represents a component instance that was created by the user and not by a native or Blueprint-generated class.
 	 */
-	bool IsUserInstanced() const { return bIsInstanced && !bWasInstancedFromNativeClass && !GetComponentTemplate()->bCreatedByConstructionScript; }
+	bool IsUserInstanced() const;
 	/** 
 	 * @return Whether or not this object represents the default SCS scene root component.
 	 */
@@ -210,6 +210,8 @@ private:
 	FOnRenameRequested RenameRequestedDelegate;
 
 	bool bWasInstancedFromNativeClass;
+	FName InstancedComponentName;
+	TWeakObjectPtr<AActor> InstancedComponentOwnerPtr;
 };
 
 //////////////////////////////////////////////////////////////////////////
