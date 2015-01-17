@@ -1383,7 +1383,9 @@ void SPathView::OnContentPathMountedOrDismounted( const FString& AssetPath, cons
 void SPathView::OnClassHierarchyUpdated()
 {
 	// The class hierarchy has changed in some way, so we need to refresh our set of paths
-	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPathView::TriggerRepopulate));
+	bNeedsRepopulate = true;
+	// @todo 4.7 MERGE: This change should NOT be merged back to main.  This code is relying on a feature that we did not merge to the 4.7 branch.
+	// RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPathView::TriggerRepopulate));
 }
 
 void SPathView::HandleSettingChanged(FName PropertyName)
