@@ -7,7 +7,6 @@ ACircularDependencyTestActor::ACircularDependencyTestActor(const FObjectInitiali
 	: Super(ObjectInitializer)
 	, TestState(ETestResult::Unknown)
 {
-	VisualizeNewTestState(TestState, TestState);
 }
 
 bool ACircularDependencyTestActor::SetTestState(ETestResult::Type NewState)
@@ -34,7 +33,7 @@ bool ACircularDependencyTestActor::TestVerifyClass(bool bCheckPropertyType)
 
 	for (UProperty* ClassProp = BPClass->PropertyLink; ClassProp != nullptr; ClassProp = ClassProp->PropertyLinkNext)
 	{
-		if (!TestVerifyProperty(ClassProp, bCheckPropertyType))
+		if (!TestVerifyProperty(ClassProp, (uint8*)this, bCheckPropertyType))
 		{
 			SetTestState(ETestResult::Failed);
 			return false;
@@ -42,7 +41,8 @@ bool ACircularDependencyTestActor::TestVerifyClass(bool bCheckPropertyType)
 
 		if (UStructProperty* StructProp = Cast<UStructProperty>(ClassProp))
 		{
-			if ((StructProp->Struct == nullptr) || !TestVerifyStructMember(StructProp->Struct, bCheckPropertyType))
+			uint8* StructInst = StructProp->ContainerPtrToValuePtr<uint8>(this);
+			if ((StructProp->Struct == nullptr) || !TestVerifyStructMember(StructProp->Struct, (uint8*)StructInst, bCheckPropertyType))
 			{
 				SetTestState(ETestResult::Failed);
 				return false;
@@ -52,24 +52,25 @@ bool ACircularDependencyTestActor::TestVerifyClass(bool bCheckPropertyType)
 	return true;
 }
 
-bool ACircularDependencyTestActor::TestVerifyStructMember(UScriptStruct* Struct, bool bCheckPropertyType)
+bool ACircularDependencyTestActor::TestVerifyStructMember(UScriptStruct* Struct, uint8* StructInst, bool bCheckPropertyType)
 {
 	for (UProperty* StructProp = Struct->PropertyLink; StructProp != nullptr; StructProp = StructProp->NextRef)
 	{
-		if (!TestVerifyProperty(StructProp, bCheckPropertyType))
+		if (!TestVerifyProperty(StructProp, StructInst, bCheckPropertyType))
 		{
 			SetTestState(ETestResult::Failed);
 			return false;
 		}
 
-// 		if (UStructProperty* StructProp2 = Cast<UStructProperty>(StructProp))
-// 		{
-// 			if ((StructProp2->Struct == nullptr) || !TestVerifyStructMember(StructProp2->Struct, bCheckPropertyType))
-// 			{
-// 				SetTestState(ETestResult::Failed);
-// 				return false;
-// 			}
-// 		}
+		if (UStructProperty* StructProp2 = Cast<UStructProperty>(StructProp))
+		{
+			uint8* StructInst2 = StructProp2->ContainerPtrToValuePtr<uint8>(StructInst);
+			if ((StructProp2->Struct == nullptr) || !TestVerifyStructMember(StructProp2->Struct, StructInst2, bCheckPropertyType))
+			{
+				SetTestState(ETestResult::Failed);
+				return false;
+			}
+		}
 	}
 	return true;
 }
@@ -114,14 +115,14 @@ bool ACircularDependencyTestActor::RunVerificationTests_Implementation()
 	return TestVerifyClass();
 }
 
-bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, bool bCheckPropertyType)
+bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, uint8* Container, bool bCheckPropertyType)
 {
 	if (UObjectProperty* ObjProp = Cast<UObjectProperty>(Property))
 	{
 		UClass* ClassToVerify = ObjProp->PropertyClass;
 		if (UClassProperty* ClassProp = Cast<UClassProperty>(ObjProp))
 		{
-			//ClassToVerify = Cast<UClass>(ClassProp->GetPropertyValue_InContainer(this));
+			ClassToVerify = Cast<UClass>(ClassProp->GetPropertyValue_InContainer(Container));
 		}
 
 		if (ClassToVerify == nullptr || IsPlaceholderClass(ClassToVerify))
@@ -142,6 +143,10 @@ bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, bool 
 					// make sure the parent doesn't have this variable
 					bIsBlueprintSubClassProperty &= (VarRef.ResolveMember<UProperty>(GetClass()) == nullptr);
 				}
+			}
+			else if (UStruct* OwnerStruct = Property->GetOwnerStruct())
+			{
+
 			}
 
 			if (bIsBlueprintSubClassProperty)

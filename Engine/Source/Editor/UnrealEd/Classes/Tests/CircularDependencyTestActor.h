@@ -31,8 +31,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Development|Tests")
 	bool TestVerifyClass(bool bCheckPropertyType = true);
 
-	UFUNCTION(BlueprintCallable, Category="Development|Tests")
-	bool TestVerifyStructMember(UScriptStruct* Struct, bool bCheckPropertyType = true);
+	//UFUNCTION(BlueprintCallable, Category="Development|Tests")
+	bool TestVerifyStructMember(UScriptStruct* Struct, uint8* Container, bool bCheckPropertyType = true);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Development|Tests")
 	bool RunVerificationTests();
@@ -51,5 +51,5 @@ protected:
 	TEnumAsByte<ETestResult::Type> TestState;
 
 private: 
-	bool TestVerifyProperty(UProperty* Property, bool bCheckPropertyType);
+	bool TestVerifyProperty(UProperty* Property, uint8* Container, bool bCheckPropertyType);
 };
