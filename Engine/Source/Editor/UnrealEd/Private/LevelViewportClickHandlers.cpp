@@ -269,7 +269,25 @@ namespace ClickHandlers
 		//@todo hotkeys for component placement?
 		
 		bool bComponentClicked = false;
-		UActorComponent* Component = const_cast<UPrimitiveComponent*>(ActorHitProxy->PrimComponent); 
+
+		USceneComponent* Component = nullptr;
+
+		// Find the component in the actor that matches the PrimComponent on the hit proxy
+		TInlineComponentArray<USceneComponent*> SceneComponents;
+		ActorHitProxy->Actor->GetComponents(SceneComponents);
+		for (auto CompIt = SceneComponents.CreateConstIterator(); CompIt; ++CompIt)
+		{
+			auto SceneComp = *CompIt;
+			if (SceneComp == ActorHitProxy->PrimComponent)
+			{
+				Component = SceneComp;
+			}
+		}
+		
+		if (!Component)
+		{
+			return false;
+		}
 		
 		// Pivot snapping
 		if (Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown())

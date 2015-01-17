@@ -2446,54 +2446,57 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 
 	if(ActorComponent)
 	{
-		// If the given component instance is not already an archetype object
-		if(!ActorComponent->IsTemplate())
+		if (EditorMode == EEditorMode::BlueprintSCS)
 		{
-			// Get the component owner's class object
-			check(ActorComponent->GetOwner() != NULL);
-			UClass* OwnerClass = ActorComponent->GetOwner()->GetActorClass();
-
-			// If the given component is one that's created during Blueprint construction
-			if(ActorComponent->bCreatedByConstructionScript)
+			// If the given component instance is not already an archetype object
+			if (!ActorComponent->IsTemplate())
 			{
-				// Get the Blueprint object associated with the owner's class
-				UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(OwnerClass);
-				if(Blueprint && Blueprint->SimpleConstructionScript)
+				// Get the component owner's class object
+				check(ActorComponent->GetOwner() != NULL);
+				UClass* OwnerClass = ActorComponent->GetOwner()->GetActorClass();
+
+				// If the given component is one that's created during Blueprint construction
+				if (ActorComponent->bCreatedByConstructionScript)
 				{
-					// Attempt to locate an SCS node with a variable name that matches the name of the given component
-					TArray<USCS_Node*> AllNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-					for(int32 i = 0; i < AllNodes.Num(); ++i)
+					// Get the Blueprint object associated with the owner's class
+					UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(OwnerClass);
+					if (Blueprint && Blueprint->SimpleConstructionScript)
 					{
-						USCS_Node* SCS_Node = AllNodes[i];
-						
-						check(SCS_Node != NULL);
-						if(SCS_Node->VariableName == ActorComponent->GetFName())
+						// Attempt to locate an SCS node with a variable name that matches the name of the given component
+						TArray<USCS_Node*> AllNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
+						for (int32 i = 0; i < AllNodes.Num(); ++i)
 						{
-							// We found a match; redirect to the component archetype instance that may be associated with a tree node
-							ActorComponent = SCS_Node->ComponentTemplate;
-							break;
+							USCS_Node* SCS_Node = AllNodes[i];
+
+							check(SCS_Node != NULL);
+							if (SCS_Node->VariableName == ActorComponent->GetFName())
+							{
+								// We found a match; redirect to the component archetype instance that may be associated with a tree node
+								ActorComponent = SCS_Node->ComponentTemplate;
+								break;
+							}
 						}
 					}
 				}
-			}
-			else
-			{
-				// Get the class default object
-				const AActor* CDO = Cast<AActor>(OwnerClass->GetDefaultObject());
-				if(CDO)
+				else
 				{
-					// Iterate over the Components array and attempt to find a component with a matching name
-					TInlineComponentArray<UActorComponent*> Components;
-					CDO->GetComponents(Components);
-
-					for(auto It = Components.CreateConstIterator(); It; ++It)
+					// Get the class default object
+					const AActor* CDO = Cast<AActor>(OwnerClass->GetDefaultObject());
+					if (CDO)
 					{
-						UActorComponent* ComponentTemplate = *It;
-						if(ComponentTemplate->GetFName() == ActorComponent->GetFName())
+						// Iterate over the Components array and attempt to find a component with a matching name
+						TInlineComponentArray<UActorComponent*> Components;
+						CDO->GetComponents(Components);
+
+						for (auto It = Components.CreateConstIterator(); It; ++It)
 						{
-							// We found a match; redirect to the component archetype instance that may be associated with a tree node
-							ActorComponent = ComponentTemplate;
-							break;
+							UActorComponent* ComponentTemplate = *It;
+							if (ComponentTemplate->GetFName() == ActorComponent->GetFName())
+							{
+								// We found a match; redirect to the component archetype instance that may be associated with a tree node
+								ActorComponent = ComponentTemplate;
+								break;
+							}
 						}
 					}
 				}
@@ -2501,7 +2504,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 		}
 
 		// If we have a valid component archetype instance, attempt to find a tree node that corresponds to it
-		if(ActorComponent->IsTemplate())
+		if((EditorMode == EEditorMode::BlueprintSCS && ActorComponent->IsTemplate()) || EditorMode == EEditorMode::ActorInstance)
 		{
 			for(int32 i = 0; i < RootNodes.Num() && !NodePtr.IsValid(); i++)
 			{

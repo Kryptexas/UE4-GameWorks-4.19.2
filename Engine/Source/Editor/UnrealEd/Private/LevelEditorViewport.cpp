@@ -1789,6 +1789,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			// 3. The LMB was pressed or we already have a component selected (so that right-clicking a selected actor won't select a component)
 			// 4. The click was not a double click (unless a component has already been selected)
 			// 5. The level viewport didn't just receive focus this frame (again unless a component has already been selected)
+			// 6. The component selected is not a hidden editor-only component
 			const bool bActorAlreadySelectedExclusively = GEditor->GetSelectedActors()->IsSelected(ActorHitProxy->Actor) && ( GEditor->GetSelectedActorCount() == 1 );
 			const bool bComponentAlreadySelected = GEditor->GetSelectedComponentCount() > 0;
 	
@@ -1796,7 +1797,10 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 													&& (Click.GetEvent() != IE_DoubleClick) 
 													&& !bReceivedFocusRecently;
 
-			const bool bSelectComponent = bActorAlreadySelectedExclusively && ( bComponentAlreadySelected || bCanBeginSelectingComponents );
+			auto HitComponent = ActorHitProxy->PrimComponent;
+			const bool bHitSelectableComponent = HitComponent != nullptr && HitComponent->AlwaysLoadOnClient && HitComponent->AlwaysLoadOnServer;
+
+			const bool bSelectComponent = bActorAlreadySelectedExclusively && bHitSelectableComponent && ( bComponentAlreadySelected || bCanBeginSelectingComponents );
 
 			if (bSelectComponent && GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
 			{
@@ -2393,8 +2397,9 @@ void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInpu
 		}
 	}
 
+	const bool bIsDraggingComponents = GEditor->GetSelectedComponentCount() > 0;
 	PreDragActorTransforms.Empty();
-	if (GEditor->GetSelectedComponentCount() > 0)
+	if (bIsDraggingComponents)
 	{
 		if (bIsDraggingWidget)
 		{
@@ -2453,26 +2458,27 @@ void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInpu
 		{
 			TrackingTransaction.TransCount++;
 
+			FText ObjectTypeBeingTracked = bIsDraggingComponents ? LOCTEXT("TransactionFocus_Components", "Components") : LOCTEXT("TransactionFocus_Actors", "Actors");
 			FText TrackingDescription;
 
 			switch( GetWidgetMode() )
 			{
 			case FWidget::WM_Translate:
-				TrackingDescription = LOCTEXT("MoveActorsTransaction", "Move Actors");
+				TrackingDescription = FText::Format(LOCTEXT("MoveTransaction", "Move {0}"), ObjectTypeBeingTracked);
 				break;
 			case FWidget::WM_Rotate:
-				TrackingDescription = LOCTEXT("RotateActorsTransaction", "Rotate Actors");
+				TrackingDescription = FText::Format(LOCTEXT("RotateTransaction", "Rotate {0}"), ObjectTypeBeingTracked);
 				break;
 			case FWidget::WM_Scale:
-				TrackingDescription = LOCTEXT("ScaleActorsTransaction", "Scale Actors");
+				TrackingDescription = FText::Format(LOCTEXT("ScaleTransaction", "Scale {0}"), ObjectTypeBeingTracked);
 				break;
 			case FWidget::WM_TranslateRotateZ:
-				TrackingDescription = LOCTEXT("TranslateRotateZActorsTransaction", "Translate/RotateZ Actors");
+				TrackingDescription = FText::Format(LOCTEXT("TranslateRotateZTransaction", "Translate/RotateZ {0}"), ObjectTypeBeingTracked);
 				break;
 			default:
 				if( bNudge )
 				{
-					TrackingDescription = LOCTEXT("NudgeActorsTransaction", "Nudge Actors");
+					TrackingDescription = FText::Format(LOCTEXT("NudgeTransaction", "Nudge {0}"), ObjectTypeBeingTracked);
 				}
 			}
 
@@ -2543,9 +2549,6 @@ void FLevelEditorViewportClient::TrackingStopped()
 	// Don't do this if AddDelta was never called.
 	if( bDidAnythingActuallyChange && MouseDeltaTracker->HasReceivedDelta() )
 	{
-		// If components are selected, we'll need to notify after rerunning the construction script on the selected actor(s)
-		const bool bComponentsAreSelected = GEditor->GetSelectedComponentCount() > 0;
-
 		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 		{
 			AActor* Actor = static_cast<AActor*>( *It );
@@ -2570,11 +2573,6 @@ void FLevelEditorViewportClient::TrackingStopped()
 
 			Actor->PostEditMove(true);
 			GEditor->BroadcastEndObjectMovement(*Actor);
-		}
-
-		if (bComponentsAreSelected)
-		{
-			GEditor->BroadcastPostTransformComponents();
 		}
 
 		if (!bPivotMovedIndependently)
@@ -3059,8 +3057,6 @@ void FLevelEditorViewportClient::ApplyDeltaToComponent(USceneComponent* InCompon
 		&InDeltaRot,
 		&ModifiedDeltaScale,
 		GEditor->GetPivotLocation());
-
-	GEditor->BroadcastComponentInstanceTransformed(*InComponent, InDeltaDrag, InDeltaRot, ModifiedDeltaScale);
 }
 
 /** Helper function for ModifyScale - Convert the active Dragging Axis to per-axis flags */
