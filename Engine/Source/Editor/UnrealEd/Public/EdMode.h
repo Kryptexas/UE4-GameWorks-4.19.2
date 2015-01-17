@@ -273,7 +273,7 @@ protected:
 	FEditorModeTools* Owner;
 
 	// Property Widgets
-
+public:
 	/** Structure that holds info about our optional property widget */
 	struct FPropertyWidgetInfo
 	{
@@ -290,6 +290,7 @@ protected:
 		}
 	};
 
+protected:
 	/**
 	 * Returns the first selected Actor, or NULL if there is no selection.
 	 */
@@ -301,9 +302,8 @@ protected:
 	 * @param InStruct The type of structure/class to access widget info structures for.
 	 * @param InContainer The container of the given type.
 	 * @param OutInfos An array of widget info structures (output).
-	 * @param PropertyNamePrefix Optional prefix to use to filter the output.
 	 */
-	void GetPropertyWidgetInfos(const UStruct* InStruct, const void* InContainer, TArray<FPropertyWidgetInfo>& OutInfos, FString PropertyNamePrefix = TEXT(""), FString DisplayNamePrefix = TEXT("")) const;
+	void GetPropertyWidgetInfos(const UStruct* InStruct, const void* InContainer, TArray<FPropertyWidgetInfo>& OutInfos) const;
 
 	/** Name of the property currently being edited */
 	FString EditedPropertyName;
