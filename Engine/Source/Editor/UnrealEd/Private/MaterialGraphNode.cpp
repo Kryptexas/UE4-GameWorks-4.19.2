@@ -34,7 +34,7 @@
 #include "GraphEditorSettings.h"
 #include "EditorClassUtils.h"
 #include "GenericCommands.h"
-//#include "ScopedTransaction.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
