@@ -25,7 +25,7 @@ struct ENGINE_API FComponentKey
 	{}
 
 	FComponentKey(UBlueprintGeneratedClass* InOwnerClass, FName InVariableNam)
-		: OwnerClass(nullptr)
+		: OwnerClass(InOwnerClass)
 		, VariableName(InVariableNam)
 	{}
 
@@ -69,7 +69,6 @@ private:
 
 public:
 	UActorComponent* CreateOverridenComponentTemplate(FComponentKey Key);
-	void UpdateOverridenComponentTemplate(FComponentKey Key);
 	void UpdateOwnerClass(UBlueprintGeneratedClass* OwnerClass);
 	void RemoveInvalidAndUnnecessaryTemplates();
 	bool IsValid() const;

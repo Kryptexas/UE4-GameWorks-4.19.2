@@ -31,7 +31,7 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 	}
 	ensure(Cast<UBlueprintGeneratedClass>(GetOuter()));
 	auto NewComponentTemplate = ConstructObject<UActorComponent>(
-		BestArchetype->GetClass(), GetOuter(), BestArchetype->GetFName(), RF_ArchetypeObject, BestArchetype);
+		BestArchetype->GetClass(), GetOuter(), BestArchetype->GetFName(), RF_ArchetypeObject | RF_Public, BestArchetype);
 
 	FComponentOverrideRecord NewRecord;
 	NewRecord.ComponentKey = Key;
@@ -39,27 +39,6 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 	Records.Add(NewRecord);
 
 	return NewComponentTemplate;
-}
-
-void UInheritableComponentHandler::UpdateOverridenComponentTemplate(FComponentKey Key)
-{
-	auto FoundRecord = FindRecord(Key);
-	if (!FoundRecord)
-	{
-		UE_LOG(LogBlueprint, Warning, TEXT("UpdateOverridenComponentTemplate '%s': cannot find overriden template for component '%s' from '%s'"),
-			*GetPathNameSafe(this), *Key.VariableName.ToString(), *GetPathNameSafe(Key.OwnerClass));
-		return;
-	}
-
-	check(FoundRecord->ComponentTemplate);
-
-	// TODO: save diff against current (previous) archetype. This part is tricky:
-	// the diff should be made before the archetype is updated
-	// OR the diff should be made from saved archetype
-
-	// TODO: copy data from best archetype (it should be new/updated one)
-
-	// TODO: restore custom data from diff
 }
 
 void UInheritableComponentHandler::UpdateOwnerClass(UBlueprintGeneratedClass* OwnerClass)

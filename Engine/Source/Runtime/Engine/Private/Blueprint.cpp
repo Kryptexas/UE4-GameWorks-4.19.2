@@ -538,11 +538,6 @@ void UBlueprint::PostLoad()
 	}
 
 	FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(this);
-
-	if (InheritableComponentHandler)
-	{
-		InheritableComponentHandler->RemoveInvalidAndUnnecessaryTemplates();
-	}
 }
 
 void UBlueprint::DebuggingWorldRegistrationHelper(UObject* ObjectProvidingWorld, UObject* ValueToRegister)
