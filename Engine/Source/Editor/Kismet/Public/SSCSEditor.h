@@ -113,7 +113,7 @@ public:
 	/** 
 	 * @return Whether or not this object represents a node that can be renamed from the SCS tree.
 	 */
-	bool CanRename() const { return !IsNative() && !IsInherited() && !IsDefaultSceneRoot(); }
+	bool CanRename() const { return IsUserInstanced() || (!IsNative() && !IsInherited() && !IsDefaultSceneRoot()); }
 	/** 
 	 * @return Whether or not this object represents a node that can be reparented to other nodes based on its context.
 	 */
@@ -174,6 +174,16 @@ public:
 	 * @return The child node with a component template that matches the given component template instance, or an invalid node reference if no match was found.
 	 */
 	FSCSEditorTreeNodePtrType FindChild(const UActorComponent* InComponentTemplate, bool bRecursiveSearch = false, uint32* OutDepth = NULL) const;
+
+	/** 
+	 * Attempts to find a reference to the child node that matches the given component variable or instance name.
+	 *
+	 * @param InVariableOrInstanceName The component variable or instance name to match.
+	 * @param bRecursiveSearch Whether or not to recursively search child nodes (default == false).
+	 * @param OutDepth If non-NULL, the depth of the child node will be returned in this parameter on success (default == NULL).
+	 * @return The child node with a component variable or instance name that matches the given name, or an invalid node reference if no match was found.
+	 */
+	FSCSEditorTreeNodePtrType FindChild(const FName& InVariableOrInstanceName, bool bRecursiveSearch = false, uint32* OutDepth = NULL) const;
 
 	/** 
 	 * Removes the given node from the list of child nodes.
@@ -626,6 +636,9 @@ protected:
 	/** Helper method to recursively find a tree node for the given scene component starting at the given tree node */
 	FSCSEditorTreeNodePtrType FindTreeNode(const UActorComponent* InComponent, FSCSEditorTreeNodePtrType InStartNodePtr = FSCSEditorTreeNodePtrType()) const;
 
+	/** Helper method to recursively find a tree node for the given variable or instance name starting at the given tree node */
+	FSCSEditorTreeNodePtrType FindTreeNode(const FName& InVariableOrInstanceName, FSCSEditorTreeNodePtrType InStartNodePtr = FSCSEditorTreeNodePtrType()) const;
+
 	/** Callback when a component item is scrolled into view */
 	void OnItemScrolledIntoView( FSCSEditorTreeNodePtrType InItem, const TSharedPtr<ITableRow>& InWidget);
 
@@ -644,8 +657,8 @@ public:
 	/** Command list for handling actions in the SSCSEditor */
 	TSharedPtr< FUICommandList > CommandList;
 
-	/** Weak reference to an SCS node that has been requested to be renamed */
-	TWeakObjectPtr<USCS_Node> DeferredRenameRequest;
+	/** Name of a node that has been requested to be renamed */
+	FName DeferredRenameRequest;
 
 	/** Whether or not the deferred rename request was flagged as transactional */
 	bool bIsDeferredRenameRequestTransactional;

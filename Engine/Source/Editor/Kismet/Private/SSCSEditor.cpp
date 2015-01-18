@@ -4,6 +4,7 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "BlueprintUtilities.h"
 #include "ComponentAssetBroker.h"
 
@@ -747,6 +748,43 @@ FSCSEditorTreeNodePtrType FSCSEditorTreeNode::FindChild(const UActorComponent* I
 	return Result;
 }
 
+FSCSEditorTreeNodePtrType FSCSEditorTreeNode::FindChild(const FName& InVariableOrInstanceName, bool bRecursiveSearch, uint32* OutDepth) const
+{
+	FSCSEditorTreeNodePtrType Result;
+
+	// Ensure that the given name is valid
+	if(InVariableOrInstanceName != NAME_None)
+	{
+		// Look for a match in our set of child nodes
+		for(int32 ChildIndex = 0; ChildIndex < Children.Num() && !Result.IsValid(); ++ChildIndex)
+		{
+			FName ItemName = Children[ChildIndex]->GetVariableName();
+			if(ItemName == NAME_None)
+			{
+				UActorComponent* ComponentTemplateOrInstance = Children[ChildIndex]->GetComponentTemplate();
+				check(ComponentTemplateOrInstance != nullptr);
+				ItemName = ComponentTemplateOrInstance->GetFName();
+			}
+
+			if(InVariableOrInstanceName == ItemName)
+			{
+				Result = Children[ChildIndex];
+			}
+			else if(bRecursiveSearch)
+			{
+				Result = Children[ChildIndex]->FindChild(InVariableOrInstanceName, true, OutDepth);
+			}
+		}
+	}
+
+	if(OutDepth && Result.IsValid())
+	{
+		*OutDepth += 1;
+	}
+
+	return Result;
+}
+
 void FSCSEditorTreeNode::RemoveChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 {
 	// Remove the given node as a child and reset its parent link
@@ -792,7 +830,23 @@ void FSCSEditorTreeNode::OnCompleteRename(const FText& InNewName)
 		TransactionContext = new FScopedTransaction(LOCTEXT("RenameComponentVariable", "Rename Component Variable"));
 	}
 
-	FBlueprintEditorUtils::RenameComponentMemberVariable(GetBlueprint(), GetSCSNode(), FName( *InNewName.ToString() ));
+	if(bIsInstanced)
+	{
+		UActorComponent* ComponentInstance = GetComponentTemplate();
+		check(ComponentInstance != nullptr);
+
+		ERenameFlags RenameFlags = REN_DontCreateRedirectors;
+		if(!TransactionContext)
+		{
+			RenameFlags |= REN_NonTransactional;
+		}
+
+		ComponentInstance->Rename(*InNewName.ToString(), nullptr, RenameFlags);
+	}
+	else
+	{
+		FBlueprintEditorUtils::RenameComponentMemberVariable(GetBlueprint(), GetSCSNode(), FName( *InNewName.ToString() ));
+	}
 
 	if(TransactionContext)
 	{
@@ -2090,14 +2144,22 @@ UBlueprint* SSCS_RowWidget::GetBlueprint() const
 
 bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage)
 {
-	USCS_Node* SCS_Node = NodePtr->GetSCSNode();
-	if(SCS_Node != NULL && !InNewText.IsEmpty() && !SCS_Node->IsValidVariableNameString(InNewText.ToString()))
+	if(!InNewText.IsEmpty() && !FComponentEditorUtils::IsValidVariableNameString(NodePtr->GetComponentTemplate(), InNewText.ToString()))
 	{
 		OutErrorMessage = LOCTEXT("RenameFailed_NotValid", "This name is reserved for engine use.");
 		return false;
 	}
 
-	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(GetBlueprint(), NodePtr->GetVariableName()));
+	UBlueprint* Blueprint = GetBlueprint();
+	TSharedPtr<INameValidatorInterface> NameValidator;
+	if(Blueprint != nullptr)
+	{
+		NameValidator = MakeShareable(new FKismetNameValidator(GetBlueprint(), NodePtr->GetVariableName()));
+	}
+	else
+	{
+		NameValidator = MakeShareable(new FStringSetNameValidator(NodePtr->GetComponentTemplate()->GetName()));
+	}
 
 	EValidatorResult ValidatorResult = NameValidator->IsValid(InNewText.ToString());
 	if(ValidatorResult == EValidatorResult::AlreadyInUse)
@@ -2124,6 +2186,14 @@ bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutE
 void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type InTextCommit)
 {
 	NodePtr->OnCompleteRename(InNewName);
+
+	// No need to call UpdateTree() in SCS editor mode; it will already be called by MBASM internally
+	check(SCSEditor.IsValid());
+	TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();
+	if(PinnedEditor.IsValid() && PinnedEditor->EditorMode.Get() == SSCSEditor::EEditorMode::ActorInstance)
+	{
+		PinnedEditor->UpdateTree();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2287,11 +2357,21 @@ FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 
 TSharedRef<ITableRow> SSCSEditor::MakeTableRowWidget( FSCSEditorTreeNodePtrType InNodePtr, const TSharedRef<STableViewBase>& OwnerTable )
 {
-	// Native components do not have a SCSNode, so ignore them
-	if(InNodePtr->GetSCSNode() && DeferredRenameRequest.Get() == InNodePtr->GetSCSNode())
+	if(DeferredRenameRequest != NAME_None)
 	{
-		SCSTreeWidget->SetSelection(InNodePtr);
-		OnRenameComponent(false);
+		FName ItemName = InNodePtr->GetVariableName();
+		if(ItemName == NAME_None)
+		{
+			UActorComponent* ComponentTemplateOrInstance = InNodePtr->GetComponentTemplate();
+			check(ComponentTemplateOrInstance != nullptr);
+			ItemName = ComponentTemplateOrInstance->GetFName();
+		}
+
+		if(DeferredRenameRequest == ItemName)
+		{
+			SCSTreeWidget->SetSelection(InNodePtr);
+			OnRenameComponent(false);
+		}
 	}
 
 	// Setup a meta tag for this node
@@ -2933,9 +3013,9 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		}
 
 		// If we have a pending deferred rename request, redirect it to the new tree node
-		if(DeferredRenameRequest.IsValid())
+		if(DeferredRenameRequest != NAME_None)
 		{
-			FSCSEditorTreeNodePtrType NodeToRenamePtr = FindTreeNode(DeferredRenameRequest.Get());
+			FSCSEditorTreeNodePtrType NodeToRenamePtr = FindTreeNode(DeferredRenameRequest);
 			if(NodeToRenamePtr.IsValid())
 			{
 				SCSTreeWidget->RequestScrollIntoView(NodeToRenamePtr);
@@ -3442,7 +3522,21 @@ void SSCSEditor::OnDeleteNodes()
 	}
 	else    // SSCSEditor::EEditorMode::ActorInstance
 	{
-		// @TODO - Actor instance mode
+		AActor* ActorInstance = ActorContext.Get();
+		check(ActorInstance != nullptr);
+
+		ActorInstance->Modify();
+
+		TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
+		for (int32 i = 0; i < SelectedNodes.Num(); ++i)
+		{
+			auto Node = SelectedNodes[i];
+
+			RemoveComponentNode(Node);
+		}
+
+		// Rebuild the tree view to reflect the new component hierarchy
+		UpdateTree();
 	}
 
 	// Do this AFTER marking the Blueprint as modified
@@ -3483,7 +3577,14 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 	}
 	else    // SSCSEditor::EEditorMode::ActorInstance
 	{
-		// @TODO - Actor instance mode
+		AActor* ActorInstance = ActorContext.Get();
+		check(ActorInstance != nullptr);
+
+		UActorComponent* ComponentInstance = InNodePtr->GetComponentTemplate();
+		check(ComponentInstance != nullptr);
+
+		// Destroy the component instance
+		ComponentInstance->DestroyComponent();
 	}
 }
 
@@ -3751,13 +3852,67 @@ FSCSEditorTreeNodePtrType SSCSEditor::FindTreeNode(const UActorComponent* InComp
 	return NodePtr;
 }
 
+FSCSEditorTreeNodePtrType SSCSEditor::FindTreeNode(const FName& InVariableOrInstanceName, FSCSEditorTreeNodePtrType InStartNodePtr) const
+{
+	FSCSEditorTreeNodePtrType NodePtr;
+	if(InVariableOrInstanceName != NAME_None)
+	{
+		// Start at the scene root node if none was given
+		if(!InStartNodePtr.IsValid())
+		{
+			InStartNodePtr = SceneRootNodePtr;
+		}
+
+		if(InStartNodePtr.IsValid())
+		{
+			FName ItemName = InStartNodePtr->GetVariableName();
+			if(ItemName == NAME_None)
+			{
+				UActorComponent* ComponentTemplateOrInstance = InStartNodePtr->GetComponentTemplate();
+				check(ComponentTemplateOrInstance != nullptr);
+				ItemName = ComponentTemplateOrInstance->GetFName();
+			}
+
+			// Check to see if the given name matches the item name
+			if(InVariableOrInstanceName == ItemName)
+			{
+				NodePtr = InStartNodePtr;
+			}
+			else
+			{
+				// Recursively search for the node in our child set
+				NodePtr = InStartNodePtr->FindChild(InVariableOrInstanceName);
+				if(!NodePtr.IsValid())
+				{
+					for(int32 i = 0; i < InStartNodePtr->GetChildren().Num() && !NodePtr.IsValid(); ++i)
+					{
+						NodePtr = FindTreeNode(InVariableOrInstanceName, InStartNodePtr->GetChildren()[i]);
+					}
+				}
+			}
+		}
+	}
+
+	return NodePtr;
+}
+
 void SSCSEditor::OnItemScrolledIntoView( FSCSEditorTreeNodePtrType InItem, const TSharedPtr<ITableRow>& InWidget)
 {
-	USCS_Node* SCS_Node = DeferredRenameRequest.Get();
-	if( SCS_Node && SCS_Node == InItem->GetSCSNode() )
+	if(DeferredRenameRequest != NAME_None)
 	{
-		DeferredRenameRequest.Reset();
-		InItem->OnRequestRename(bIsDeferredRenameRequestTransactional);
+		FName ItemName = InItem->GetVariableName();
+		if(ItemName == NAME_None)
+		{
+			UActorComponent* ComponentTemplateOrInstance = InItem->GetComponentTemplate();
+			check(ComponentTemplateOrInstance != nullptr);
+			ItemName = ComponentTemplateOrInstance->GetFName();
+		}
+
+		if(DeferredRenameRequest == ItemName)
+		{
+			DeferredRenameRequest = NAME_None;
+			InItem->OnRequestRename(bIsDeferredRenameRequestTransactional);
+		}
 	}
 }
 
@@ -3769,7 +3924,14 @@ void SSCSEditor::OnRenameComponent(bool bTransactional)
 	check(SelectedItems.Num() == 1);
 
 	SCSTreeWidget->RequestScrollIntoView(SelectedItems[0]);
-	DeferredRenameRequest = SelectedItems[0]->GetSCSNode();
+	DeferredRenameRequest = SelectedItems[0]->GetVariableName();
+	if(DeferredRenameRequest == NAME_None)
+	{
+		UActorComponent* ComponentTemplateOrInstance = SelectedItems[0]->GetComponentTemplate();
+		check(ComponentTemplateOrInstance != nullptr);
+		DeferredRenameRequest = ComponentTemplateOrInstance->GetFName();
+	}
+
 	bIsDeferredRenameRequestTransactional = bTransactional;
 }
 

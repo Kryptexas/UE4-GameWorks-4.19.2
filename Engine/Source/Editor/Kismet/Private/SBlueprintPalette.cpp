@@ -34,6 +34,7 @@
 #include "BlueprintEditorSettings.h" // for bShowActionMenuItemSignatures
 #include "SInlineEditableTextBlock.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 
@@ -1111,7 +1112,7 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 		for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
 		{
 			USCS_Node* Node = *NodeIt;
-			if (Node->VariableName == OriginalName && !Node->IsValidVariableNameString(InNewText.ToString()))
+			if (Node->VariableName == OriginalName && !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, InNewText.ToString()))
 			{
 				OutErrorMessage = LOCTEXT("RenameFailed_NotValid", "This name is reserved for engine use.");
 				return false;
