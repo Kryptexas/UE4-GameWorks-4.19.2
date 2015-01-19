@@ -221,6 +221,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 		AutoCompleteList[NewIdx].Desc = FString(TEXT("open 127.0.0.1 (opens connection to localhost)"));
 	}
 
+#if STATS
 	// stat commands
 	{
 		const TSet<FName>& StatGroupNames = FStatGroupGameThreadNotifier::Get().StatGroupNames;
@@ -236,6 +237,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 			NewIdx++;
 		}
 	}
+#endif
 
 	// build the magic tree!
 	for (int32 ListIdx = 0; ListIdx < AutoCompleteList.Num(); ListIdx++)
