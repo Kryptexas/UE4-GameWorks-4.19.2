@@ -40,13 +40,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category=Blackboard)
 	FBlackboardKeySelector BlackboardKeyB;
 
-	FOnBlackboardChange BBKeyObserver;
-
-	TMap<FBlackboard::FKey, FDelegateHandle> BBKeyObserverDelegateHandles;
-
 public:
-
-	virtual void PostInitProperties() override;
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 	virtual FString GetStaticDescription() const override;

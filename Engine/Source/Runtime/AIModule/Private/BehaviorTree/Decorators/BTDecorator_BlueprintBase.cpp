@@ -49,11 +49,6 @@ void UBTDecorator_BlueprintBase::PostInitProperties()
 		
 	InitializeProperties();
 	
-	if (bIsObservingBB)
-	{
-		BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlueprintBase::OnBlackboardChange);
-	}
-
 	if (ReceiveConditionCheckImplementations || bIsObservingBB)
 	{
 		bNotifyBecomeRelevant = true;
@@ -106,7 +101,7 @@ void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent& OwnerC
 			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(ObservedKeyNames[NameIndex]);
 			if (KeyID != FBlackboard::InvalidKey)
 			{
-				BBKeyObserverDelegateHandles.Add(KeyID, BlackboardComp->RegisterObserver(KeyID, BBKeyObserver));
+				BlackboardComp->RegisterObserver(KeyID, this, FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlueprintBase::OnBlackboardChange));
 			}
 		}
 	}
@@ -117,15 +112,7 @@ void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent& OwnerCo
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		for (int32 NameIndex = 0; NameIndex < ObservedKeyNames.Num(); NameIndex++)
-		{
-			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(ObservedKeyNames[NameIndex]);
-			if (KeyID != FBlackboard::InvalidKey)
-			{
-				BlackboardComp->UnregisterObserver(KeyID, BBKeyObserverDelegateHandles.FindRef(KeyID));
-				BBKeyObserverDelegateHandles.Remove(KeyID);
-			}
-		}
+		BlackboardComp->UnregisterObserversFrom(this);
 	}
 		
 	if (AIOwner != nullptr && ReceiveObserverDeactivatedImplementations & FBTNodeBPImplementationHelper::AISpecific)
