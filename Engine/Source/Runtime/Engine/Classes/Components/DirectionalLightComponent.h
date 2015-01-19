@@ -92,7 +92,7 @@ class UDirectionalLightComponent : public ULightComponent
 	 * If DynamicShadowDistanceStationaryLight is large (currently > 8000), this will be forced off.
 	 * Disabling this can reduce shadowing cost significantly with many movable objects.
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=CascadedShadowMaps)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=CascadedShadowMaps, DisplayName = "Inset Shadows For Movable Objects")
 	uint32 bUseInsetShadowsForMovableObjects : 1;
 
 	/** 
