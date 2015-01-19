@@ -125,6 +125,25 @@ static TAutoConsoleVariable<int32> CVarUseConservativeShadowBounds(
 	TEXT("Whether to use safe and conservative shadow frustum creation that wastes some shadowmap space"),
 	ECVF_RenderThreadSafe);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+// read and written on the render thread
+bool GDumpShadowSetup = false;
+void DumpShadowDumpSetup()
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND(
+		DumpShadowDumpSetup,
+	{
+		GDumpShadowSetup = true;
+	});
+}
+
+FAutoConsoleCommand CmdDumpShadowDumpSetup(
+	TEXT("r.DumpShadows"),
+	TEXT("Dump shadow setup (for developer only, only for non shiping build)"),
+	FConsoleCommandDelegate::CreateStatic(DumpShadowDumpSetup)
+	);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 /**
  * Helper function to determine fade alpha value for shadows based on resolution. In the below ASCII art (1) is
  * the MinShadowResolution and (2) is the ShadowFadeResolution. Alpha will be 0 below the min resolution and 1
@@ -484,7 +503,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 ,	ResolutionX(InResolutionX)
 ,	ResolutionY(InResolutionY)
 ,	MaxScreenPercent(1.0f)
-,	ShadowSplitIndex(Initializer.SplitIndex)
+,	ShadowSplitIndex(Initializer.InitShadowSplitIndex)
 ,	bAllocated(false)
 ,	bAllocatedInTranslucentLayout(false)
 ,	bRendered(false)
@@ -572,7 +591,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 			PreShadowTranslation = -SnappedWorldPosition;
 		}
 
-		if (Initializer.SplitIndex >= 0 && bDirectionalLight)
+		if (Initializer.InitShadowSplitIndex >= 0 && bDirectionalLight)
 		{
 			checkSlow(InDependentView);
 			ShadowBounds = InLightSceneInfo->Proxy->GetShadowSplitBounds(*InDependentView, ShadowSplitIndex, 0);
@@ -709,7 +728,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 
 			if (PrimitiveSceneInfo->StaticMeshes.Num() > 0)
 			{
-				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+				for (int32 ViewIndex = 0, ViewCount = Views.Num(); ViewIndex < ViewCount; ViewIndex++)
 				{
 					FViewInfo& CurrentView = *Views[ViewIndex];
 
@@ -1807,6 +1826,48 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 			}
 		}
 	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if(GDumpShadowSetup)
+	{
+		GDumpShadowSetup = false;
+
+		UE_LOG(LogRenderer, Display, TEXT("Dump Shadow Setup:"));
+
+		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		{
+			FViewInfo& View = Views[ViewIndex];
+
+			UE_LOG(LogRenderer, Display, TEXT(" View  %d/%d"), ViewIndex, Views.Num());
+
+			uint32 LightIndex = 0;
+			for(TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt, ++LightIndex)
+			{
+				FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightIt.GetIndex()];
+				FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightIt.GetIndex()];
+
+				UE_LOG(LogRenderer, Display, TEXT("  Light %d/%d:"), LightIndex, Scene->Lights.Num());
+
+				for( int32 ShadowIndex = 0, ShadowCount = VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex < ShadowCount; ShadowIndex++ )
+				{
+					FProjectedShadowInfo& ProjectedShadowInfo = *VisibleLightInfo.AllProjectedShadows[ShadowIndex];
+
+					if(VisibleLightViewInfo.bInViewFrustum)
+					{
+						UE_LOG(LogRenderer, Display, TEXT("   Shadow %d/%d: %d"),  ShadowIndex, ShadowCount, ProjectedShadowInfo.ShadowId);
+						UE_LOG(LogRenderer, Display, TEXT("    WholeSceneDir=%d SplitIndex=%d near=%f far=%f"),
+							ProjectedShadowInfo.IsWholeSceneDirectionalShadow(),
+							ProjectedShadowInfo.ShadowSplitIndex,
+							ProjectedShadowInfo.CascadeSettings.SplitNear,
+							ProjectedShadowInfo.CascadeSettings.SplitFar);
+						UE_LOG(LogRenderer, Display, TEXT("    bDistField=%d"),
+							ProjectedShadowInfo.bRayTracedDistanceFieldShadow);
+					}
+				}
+			}
+		}
+	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void FSceneRenderer::GatherShadowDynamicMeshElements()
@@ -2063,12 +2124,12 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 		// If rendering in stereo mode we render shadow depths only for the left eye, but project for both eyes!
 		if (View.StereoPass != eSSP_RIGHT_EYE)
 		{
-			const int32 NumSplits = LightSceneInfo.Proxy->GetNumViewDependentWholeSceneShadows(View);
-			for (int32 SplitIndex = 0; SplitIndex < NumSplits; SplitIndex++)
+			const uint32 NumSplits = LightSceneInfo.Proxy->GetNumViewDependentWholeSceneShadows(View);
+			for (uint32 LocalShadowSplitIndex = 0; LocalShadowSplitIndex < NumSplits; LocalShadowSplitIndex++)
 			{
 				FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;
 
-				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, SplitIndex, ProjectedShadowInitializer))
+				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, LocalShadowSplitIndex, ProjectedShadowInitializer))
 				{
 					const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetShadowDepthTextureResolution();
 					// Create the projected shadow info.
@@ -2111,7 +2172,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 					if (LightSceneInfo.Proxy->GetViewDependentRsmWholeSceneProjectedShadowInitializer(View, Lpv.GetBoundingBox(), ProjectedShadowInitializer))
 					{
 						// moved out from the FProjectedShadowInfo constructor
-						ProjectedShadowInitializer.SplitIndex = 0;
+						ProjectedShadowInitializer.InitShadowSplitIndex = 0;
 
 						const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetReflectiveShadowMapTextureResolution();
 

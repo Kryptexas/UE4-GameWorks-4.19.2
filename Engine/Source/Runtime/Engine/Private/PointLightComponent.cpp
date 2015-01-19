@@ -82,7 +82,7 @@ public:
 			OutInitializer.WAxis = FVector4(0,0,1,0);
 			OutInitializer.MinLightW = 0.1f;
 			OutInitializer.MaxDistanceToCastInLightW = Radius;
-			OutInitializer.SplitIndex = INDEX_NONE;
+			OutInitializer.InitShadowSplitIndex = INDEX_NONE;
 			OutInitializer.bRayTracedDistanceFieldShadow = UseRayTracedDistanceFieldShadows() && DoesPlatformSupportDistanceFieldShadowing(ViewFamily.GetShaderPlatform());
 		
 			return true;

@@ -566,7 +566,7 @@ public:
 class ENGINE_API FWholeSceneProjectedShadowInitializer : public FProjectedShadowInitializer
 {
 public:
-	int32 SplitIndex;
+	int32 InitShadowSplitIndex;
 	
 	FShadowCascadeSettings CascadeSettings;
 
@@ -577,9 +577,9 @@ public:
 	bool bRayTracedDistanceFieldShadow;
 
 	FWholeSceneProjectedShadowInitializer()
-	:	SplitIndex(INDEX_NONE)
-	,	bOnePassPointLightShadow(false)
-	,	bRayTracedDistanceFieldShadow(false)
+		: InitShadowSplitIndex(INDEX_NONE)
+		, bOnePassPointLightShadow(false)
+		, bRayTracedDistanceFieldShadow(false)
 	{}	
 };
 
@@ -688,7 +688,7 @@ public:
 	/** Whether this light should create per object shadows for dynamic objects. */
 	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const;
 
-	virtual int32 GetNumViewDependentWholeSceneShadows(const FSceneView& View) const { return 0; }
+	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View) const { return 0; }
 
 	/**
 	 * Sets up a projected shadow initializer that's dependent on the current view for shadows from the entire scene.
@@ -696,7 +696,7 @@ public:
 	 */
 	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(
 		const class FSceneView& View, 
-		int32 SplitIndex,
+		uint32 InShadowSplitIndex,
 		class FWholeSceneProjectedShadowInitializer& OutInitializer) const
 	{
 		return false;
@@ -726,7 +726,7 @@ public:
 	}
 
 	// @param OutCascadeSettings can be 0
-	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, int32 SplitIndex, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
+	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, uint32 InShadowSplitIndex, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 
 	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View) const

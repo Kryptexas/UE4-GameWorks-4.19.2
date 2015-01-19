@@ -696,7 +696,7 @@ public:
 		const FViewInfo& View, 
 		const FLightSceneInfo* LightSceneInfo, 
 		const FProjectedShadowInfo* ShadowMap, 
-		int32 VolumeCascadeIndexValue, 
+		uint32 VolumeCascadeIndexValue,
 		bool bDynamicallyShadowed) const
 	{
 		SetDeferredLightParameters(RHICmdList, ShaderRHI, Shader->GetUniformBufferParameter<FDeferredLightUniformStruct>(), LightSceneInfo, View);
@@ -754,11 +754,11 @@ public:
 	}
 	FTranslucentObjectShadowingPS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, const FProjectedShadowInfo* ShadowMap, int32 VolumeCascadeIndexValue)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, const FProjectedShadowInfo* ShadowMap, uint32 VolumeCascadeIndex)
 	{
 		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
 		TranslucencyProjectionParameters.Set(RHICmdList, this);
-		TranslucentInjectParameters.Set(RHICmdList, GetPixelShader(), this, View, LightSceneInfo, ShadowMap, VolumeCascadeIndexValue, true);
+		TranslucentInjectParameters.Set(RHICmdList, GetPixelShader(), this, View, LightSceneInfo, ShadowMap, VolumeCascadeIndex, true);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -856,7 +856,7 @@ public:
 			FShadowCascadeSettings ShadowCascadeSettings;
 
 			// todo: optimize, not all computed data is needed
-			InnerBounds = LightSceneInfo->Proxy->GetShadowSplitBounds(View, InnerSplitIndex, &ShadowCascadeSettings);
+			InnerBounds = LightSceneInfo->Proxy->GetShadowSplitBounds(View, (uint32)InnerSplitIndex, &ShadowCascadeSettings);
 
 			// near cascade plane
 			{
@@ -864,7 +864,7 @@ public:
 				Planes[0] = FVector4((FVector)(ShadowCascadeSettings.NearFrustumPlane),  -ShadowCascadeSettings.NearFrustumPlane.W);
 			}
 
-			int32 CascadeCount = LightSceneInfo->Proxy->GetNumViewDependentWholeSceneShadows(View);
+			uint32 CascadeCount = LightSceneInfo->Proxy->GetNumViewDependentWholeSceneShadows(View);
 
 			// far cascade plane
 			if(InnerSplitIndex != CascadeCount - 1)
@@ -1233,7 +1233,7 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumePerObjectShadowing(FRH
 }
 
 /** Calculates volume texture bounds for the given light in the given translucent lighting volume cascade. */
-FVolumeBounds CalculateLightVolumeBounds(const FSphere& LightBounds, const FViewInfo& View, int32 VolumeCascadeIndex, bool bDirectionalLight)
+FVolumeBounds CalculateLightVolumeBounds(const FSphere& LightBounds, const FViewInfo& View, uint32 VolumeCascadeIndex, bool bDirectionalLight)
 {
 	FVolumeBounds VolumeBounds;
 
@@ -1283,7 +1283,7 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(F
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
 		// Inject into each volume cascade
-		for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
+		for (uint32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
 		{
 			//@todo - support multiple views
 			const FViewInfo& View = Views[0];
@@ -1494,7 +1494,7 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 
 	// Inject into each volume cascade
 	// Operate on one cascade at a time to reduce render target switches
-	for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
+	for (uint32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
 	{
 		const IPooledRenderTarget* RT0 = GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
 		const IPooledRenderTarget* RT1 = GSceneRenderTargets.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];
