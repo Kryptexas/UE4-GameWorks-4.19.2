@@ -17,6 +17,7 @@
 #include "BehaviorTreeDelegates.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/Channel.h"
 
 #if WITH_EDITOR
