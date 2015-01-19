@@ -218,7 +218,16 @@ void UProceduralFoliageComponent::SpawnTiles()
 void UProceduralFoliageComponent::SpawnProceduralContent()
 {
 #if WITH_EDITOR
+	RemoveProceduralContent();
+	SpawnTiles();
+#endif
+}
+
+void UProceduralFoliageComponent::RemoveProceduralContent()
+{
+#if WITH_EDITOR
 	UWorld* World = GetWorld();
+
 	for (ULevel* Level : World->GetLevels())
 	{
 		if (Level)
@@ -227,8 +236,6 @@ void UProceduralFoliageComponent::SpawnProceduralContent()
 			IFA->DeleteInstancesForProceduralFoliageComponent(this);
 		}
 	}
-	
-	SpawnTiles();
 #endif
 }
 

@@ -33,6 +33,7 @@ class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
 	UProceduralFoliage* ProceduralFoliage;
 
 	void SpawnProceduralContent();
+	void RemoveProceduralContent();
 	const FGuid& GetProceduralGuid() const { return ProceduralGuid;  }
 
 private:
