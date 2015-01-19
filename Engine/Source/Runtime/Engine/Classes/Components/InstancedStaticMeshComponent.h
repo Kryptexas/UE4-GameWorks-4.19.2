@@ -11,6 +11,7 @@ DECLARE_STATS_GROUP(TEXT("Foliage"), STATGROUP_Foliage, STATCAT_Advanced);
 class FStaticLightingTextureMapping_InstancedStaticMesh;
 class FInstancedLightMap2D;
 class FInstancedShadowMap2D;
+struct FPerInstanceRenderData;
 
 USTRUCT()
 struct FInstancedStaticMeshInstanceData
@@ -128,6 +129,11 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	virtual bool ShouldCreatePhysicsState() const override;
 
 public:
+	/** Render data will be initialized once we create scene proxy for this component
+	 *  Released on the rendering thread
+	 */
+	TSharedPtr<FPerInstanceRenderData, ESPMode::ThreadSafe> PerInstanceRenderData;
+		
 #if WITH_EDITOR
 	/** One bit per instance if the instance is selected. */
 	TBitArray<> SelectedInstances;
@@ -170,6 +176,7 @@ public:
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	void BeginDestroy() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	virtual void PostEditUndo() override;
@@ -182,6 +189,12 @@ public:
 	/** Select/deselect an instance or group of instances */
 	void SelectInstance(bool bInSelected, int32 InInstanceIndex, int32 InInstanceCount = 1);
 
+	/** 
+	 * Transfers ownership of instance render data to a render thread 
+	 * instance render data will be released in scene proxy dtor or on render thread task
+	 */
+	void ReleasePerInstanceRenderData();
+
 private:
 	/** Creates body instances for all instances owned by this component */
 	void CreateAllInstanceBodies();
@@ -191,7 +204,7 @@ private:
 
 	/** Sets up new instance data to sensible defaults, creates physics counterparts if possible */
 	void SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform);
-
+	
 protected:
 	/** Request to navigation system to update only part of navmesh occupied by specified instance */
 	virtual void PartialNavigationUpdate(int32 InstanceIdx);

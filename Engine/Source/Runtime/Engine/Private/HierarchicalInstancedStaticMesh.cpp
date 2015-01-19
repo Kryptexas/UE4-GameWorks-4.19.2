@@ -1409,6 +1409,7 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 		}
 	}
 
+	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 	
 	return true;
@@ -1740,6 +1741,7 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 			FlushAccumulatedNavigationUpdates();
 		}
 
+		ReleasePerInstanceRenderData();
 	    MarkRenderStateDirty();
 	}
 }

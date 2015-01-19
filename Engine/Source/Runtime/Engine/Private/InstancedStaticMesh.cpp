@@ -456,12 +456,14 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 
 		if (bInstanced)
 		{
+			const FStaticMeshInstanceBuffer& InstanceBuffer = InstancedRenderData->PerInstanceRenderData->InstanceBuffer;
+			
 			// Shadow map bias (and random instance ID)
 			int32 CurInstanceBufferOffset = 0;
 			Data.InstancedShadowMapBiasComponent = FVertexStreamComponent(
-				&InstancedRenderData->InstanceBuffer,
+				&InstanceBuffer,
 				CurInstanceBufferOffset, 
-				InstancedRenderData->InstanceBuffer.GetStride(),
+				InstanceBuffer.GetStride(),
 				VET_Float4,
 				true
 				);
@@ -470,9 +472,9 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 			for (int32 MatrixRow = 0; MatrixRow < 3; MatrixRow++)
 			{
 				Data.InstancedTransformComponent[MatrixRow] = FVertexStreamComponent(
-					&InstancedRenderData->InstanceBuffer,
+					&InstanceBuffer,
 					CurInstanceBufferOffset, 
-					InstancedRenderData->InstanceBuffer.GetStride(),
+					InstanceBuffer.GetStride(),
 					VET_Float4,
 					true
 					);
@@ -480,9 +482,9 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 			}
 
 			Data.InstancedLightmapUVBiasComponent = FVertexStreamComponent(
-				&InstancedRenderData->InstanceBuffer,
+				&InstanceBuffer,
 				CurInstanceBufferOffset, 
-				InstancedRenderData->InstanceBuffer.GetStride(),
+				InstanceBuffer.GetStride(),
 				VET_Float4,
 				true
 				);
@@ -568,7 +570,7 @@ int32 FInstancedStaticMeshSceneProxy::GetNumMeshBatches() const
 	}
 	else
 	{
-		const uint32 NumInstances = InstancedRenderData.InstanceBuffer.GetNumInstances();
+		const uint32 NumInstances = InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 		const uint32 MaxInstancesPerBatch = FInstancedStaticMeshVertexFactory::NumBitsForVisibilityMask();
 		const uint32 NumBatches = FMath::DivideAndRoundUp(NumInstances, MaxInstancesPerBatch);
 		return NumBatches;
@@ -579,7 +581,7 @@ void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, int
 {
 	const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(InstancedRenderData.FeatureLevel));
 	OutMeshBatch.VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
-	const uint32 NumInstances = InstancedRenderData.InstanceBuffer.GetNumInstances();
+	const uint32 NumInstances = InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 	FMeshBatchElement& BatchElement0 = OutMeshBatch.Elements[0];
 	BatchElement0.UserData = (void*)&UserData_AllInstances;
 	BatchElement0.InstancedLODIndex = LODIndex;
@@ -656,10 +658,11 @@ void FInstancedStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolume
 
 	ObjectLocalToWorldTransforms.Reset();
 
-	const FInstancingUserData::FInstanceStream* InstanceStream = ((const FInstancingUserData::FInstanceStream*)InstancedRenderData.InstanceBuffer.GetRawData());
+	const FInstancingUserData::FInstanceStream* InstanceStream = ((const FInstancingUserData::FInstanceStream*)InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetRawData());
 	FVector4 FourthVector(0, 0, 0, 1);
 
-	for (uint32 InstanceIndex = 0; InstanceIndex < InstancedRenderData.InstanceBuffer.GetNumInstances(); InstanceIndex++)
+	const uint32 NumInstances = InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetNumInstances();
+	for (uint32 InstanceIndex = 0; InstanceIndex < NumInstances; InstanceIndex++)
 	{
 		const FMatrix TransposedInstanceToLocal(
 			(const FPlane&)InstanceStream[InstanceIndex].InstanceTransform[0], 
@@ -815,7 +818,8 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanc
 	}
 
 	SelectedInstances = InstancedMeshData->SelectedInstances;
-
+	
+	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 #endif
 }
@@ -1144,6 +1148,25 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 }
 #endif
 
+void UInstancedStaticMeshComponent::ReleasePerInstanceRenderData()
+{
+	if (PerInstanceRenderData.IsValid())
+	{
+		if (SceneProxy == nullptr)
+		{
+			typedef TSharedPtr<FPerInstanceRenderData, ESPMode::ThreadSafe> FPerInstanceRenderDataPtr;
+			// Release PerInstanceRenderData on a render thread
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+				FReleasePerInstanceRenderData,
+				FPerInstanceRenderDataPtr,InPerInstanceRenderData,PerInstanceRenderData,
+			{
+				InPerInstanceRenderData.Reset();
+			});
+		}
+		// Will be released by scene proxy or render thread command
+		PerInstanceRenderData.Reset();
+	}
+}
 
 void UInstancedStaticMeshComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const
 {
@@ -1185,6 +1208,7 @@ int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTrans
 	}
 #endif
 
+	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 
 	PartialNavigationUpdate(InstanceIdx);
@@ -1229,6 +1253,7 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 	}
 
 	// Indicate we need to update render state to reflect changes
+	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 
 	return true;
@@ -1283,6 +1308,7 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 	// Request navigation update
 	PartialNavigationUpdate(InstanceIndex);
 
+	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 
 	return true;
@@ -1307,6 +1333,7 @@ void UInstancedStaticMeshComponent::ClearInstances()
 
 	// Indicate we need to update render state to reflect changes
 	bNeverNeedsRenderUpdate = false;
+	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 
 	UNavigationSystem::UpdateNavOctree(this);
@@ -1451,6 +1478,12 @@ SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type M
 	return ResSize;
 }
 
+void UInstancedStaticMeshComponent::BeginDestroy()
+{
+	Super::BeginDestroy();
+	ReleasePerInstanceRenderData();
+}
+
 #if WITH_EDITOR
 void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
@@ -1465,7 +1498,8 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 			// added via the property editor, so we will want to interactively work with instances
 			bHasPerInstanceHitProxies = true;
 		}
-
+		
+		ReleasePerInstanceRenderData();
 		MarkRenderStateDirty();
 	}
 
@@ -1507,6 +1541,8 @@ void UInstancedStaticMeshComponent::SelectInstance(bool bInSelected, int32 InIns
 	{
 		SelectedInstances[InstanceIndex] = bInSelected;
 	}
+
+	ReleasePerInstanceRenderData();
 #endif
 }
 
@@ -1645,7 +1681,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 		if (CPUInstanceShadowMapBias.IsBound())
 		{
 			auto* InstancingData = (const FInstancingUserData*)BatchElement.UserData;
-			auto* InstanceStream = ((const FInstancingUserData::FInstanceStream*)InstancingData->RenderData->InstanceBuffer.GetRawData()) + BatchElement.UserIndex;
+			auto* InstanceStream = ((const FInstancingUserData::FInstanceStream*)InstancingData->RenderData->PerInstanceRenderData->InstanceBuffer.GetRawData()) + BatchElement.UserIndex;
 			SetShaderValue(RHICmdList, VS, CPUInstanceShadowMapBias, InstanceStream->InstanceShadowmapUVBias);
 			SetShaderValueArray(RHICmdList, VS, CPUInstanceTransform, InstanceStream->InstanceTransform, 3);
 			SetShaderValue(RHICmdList, VS, CPUInstanceLightmapUVBias, InstanceStream->InstanceLightmapUVBias);

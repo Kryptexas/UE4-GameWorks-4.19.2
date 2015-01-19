@@ -290,6 +290,51 @@ private:
 };
 
 /*-----------------------------------------------------------------------------
+	FPerInstanceRenderData
+	Holds render data that can persist between scene proxy reconstruction
+-----------------------------------------------------------------------------*/
+struct FPerInstanceRenderData
+{
+	// Should be always constructed on main thread
+	FPerInstanceRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeaureLevel)
+		: InstanceBuffer(InFeaureLevel)
+	{
+		// Create hit proxies for each instance if the component wants
+		if (GIsEditor && InComponent->bHasPerInstanceHitProxies)
+		{
+			HitProxies.Empty(InComponent->PerInstanceSMData.Num());
+			for (int32 InstanceIdx=0; InstanceIdx < InComponent->PerInstanceSMData.Num(); InstanceIdx++)
+			{
+				HitProxies.Add(new HInstancedStaticMeshInstance(InComponent, InstanceIdx));
+			}
+		}
+			
+		// initialize the instance buffer from the component's instances
+		InstanceBuffer.Init(InComponent, HitProxies);
+		BeginInitResource(&InstanceBuffer);
+	}
+
+	FPerInstanceRenderData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other, ERHIFeatureLevel::Type InFeaureLevel)
+		: InstanceBuffer(InFeaureLevel)
+	{
+		InstanceBuffer.InitFromPreallocatedData(InComponent, Other);
+		BeginInitResource(&InstanceBuffer);
+	}
+	
+	// Should be always destructed on render thread
+	~FPerInstanceRenderData()
+	{
+		InstanceBuffer.ReleaseResource();
+	}
+		
+	/** Instance buffer */
+	FStaticMeshInstanceBuffer			InstanceBuffer;
+	/** Hit proxies for the instances */
+	TArray<TRefCountPtr<HHitProxy>>		HitProxies;
+};
+
+
+/*-----------------------------------------------------------------------------
 	FInstancedStaticMeshRenderData
 -----------------------------------------------------------------------------*/
 
@@ -299,39 +344,33 @@ public:
 
 	FInstancedStaticMeshRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel)
 	  : Component(InComponent)
-	  , InstanceBuffer(InFeatureLevel)
+	  , PerInstanceRenderData(InComponent->PerInstanceRenderData)
 	  , LODModels(Component->StaticMesh->RenderData->LODResources)
 	  , FeatureLevel(InFeatureLevel)
 	{
 		// Allocate the vertex factories for each LOD
 		InitVertexFactories();
-
-		// Create hit proxies for each instance if the component wants
-		if( GIsEditor && InComponent->bHasPerInstanceHitProxies )
+		
+		if (!PerInstanceRenderData.IsValid())
 		{
-			HitProxies.Empty(Component->PerInstanceSMData.Num());
-			for( int32 InstanceIdx=0;InstanceIdx<Component->PerInstanceSMData.Num();InstanceIdx++ )
-			{
-				HitProxies.Add(new HInstancedStaticMeshInstance(InComponent, InstanceIdx));
-			}
+			// initialize the instance buffer from the component's instances
+			PerInstanceRenderData = InComponent->PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(InComponent, InFeatureLevel));
+			InComponent->PerInstanceRenderData = PerInstanceRenderData;
 		}
 
-		// initialize the instance buffer from the component's instances
-		InstanceBuffer.Init(Component, HitProxies);
-		NumInstances = InstanceBuffer.GetNumInstances();
+		NumInstances = PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 		InitResources();
 	}
 
 	FInstancedStaticMeshRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
 		: Component(InComponent)
-		, InstanceBuffer(InFeatureLevel)
 		, LODModels(Component->StaticMesh->RenderData->LODResources)
 		, FeatureLevel(InFeatureLevel)
 	{
 		InitVertexFactories();
 		// initialize the instance buffer from the component's instances
-		InstanceBuffer.InitFromPreallocatedData(Component, Other);
-		NumInstances = InstanceBuffer.GetNumInstances();
+		PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(InComponent, Other, InFeatureLevel));
+		NumInstances = PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 		InitResources();
 	}
 
@@ -341,8 +380,6 @@ public:
 
 	void InitResources()
 	{
-		BeginInitResource(&InstanceBuffer);
-
 		// Initialize the static mesh's vertex factory.
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			CallInitStaticMeshVertexFactory,
@@ -379,7 +416,6 @@ public:
 			}
 		}
 
-		InstanceBuffer.ReleaseResource();
 		for( int32 LODIndex=0;LODIndex<VertexFactories.Num();LODIndex++ )
 		{
 			VertexFactories[LODIndex].ReleaseResource();
@@ -394,22 +430,19 @@ public:
 	/** Source component */
 	UInstancedStaticMeshComponent* Component;
 
-	/** Instance buffer */
-	FStaticMeshInstanceBuffer InstanceBuffer;
+	/** Per instance render data, could be shared with component */
+	TSharedPtr<FPerInstanceRenderData, ESPMode::ThreadSafe> PerInstanceRenderData;
 
 	/** Vertex factory */
 	TArray<FInstancedStaticMeshVertexFactory> VertexFactories;
 
 	/** LOD render data from the static mesh. */
 	TIndirectArray<FStaticMeshLODResources>& LODModels;
-
-	/** Hit proxies for the instances */
-	TArray<TRefCountPtr<HHitProxy> > HitProxies;
-
+	
 	/** Feature level used when creating instance data */
 	ERHIFeatureLevel::Type FeatureLevel;
 
-	/** Feature level used when creating instance data */
+	/** Number of instances */
 	int32 NumInstances;
 
 private:
@@ -503,10 +536,10 @@ public:
 	 */
 	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component,TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override
 	{
-		if( InstancedRenderData.HitProxies.Num() )
+		if( InstancedRenderData.PerInstanceRenderData->HitProxies.Num() )
 		{
 			// Add any per-instance hit proxies.
-			OutHitProxies += InstancedRenderData.HitProxies;
+			OutHitProxies += InstancedRenderData.PerInstanceRenderData->HitProxies;
 
 			// No default hit proxy.
 			return NULL;
@@ -566,7 +599,7 @@ private:
 			}
 		}
 
-		check(InstancedRenderData.InstanceBuffer.GetStride() == sizeof(FInstancingUserData::FInstanceStream));
+		check(InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetStride() == sizeof(FInstancingUserData::FInstanceStream));
 
 		const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(InstancedRenderData.FeatureLevel));
 
