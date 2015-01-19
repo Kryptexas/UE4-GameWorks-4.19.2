@@ -14,6 +14,7 @@ class UFoliageType;
 struct FFoliageInstancePlacementInfo;
 struct FFoliageMeshInfo;
 class UFoliageType_InstancedStaticMesh;
+class UProceduralFoliageComponent;
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor
@@ -94,8 +95,8 @@ public:
 	// Deletes the instances attached to a component
 	FOLIAGE_API void DeleteInstancesForComponent(UActorComponent* InComponent);
 
-	// Deletes the instances spawned by a component
-	FOLIAGE_API void DeleteInstancesForSpawner(UActorComponent* InComponent);
+	// Deletes the instances spawned by a procedural component
+	void DeleteInstancesForProceduralFoliageComponent(const UProceduralFoliageComponent* ProceduralComponent);
 
 	// Finds a mesh entry or adds it if it doesn't already exist
 	FOLIAGE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);

@@ -12,6 +12,7 @@
 #include "Components/ModelComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Serialization/CustomVersion.h"
+#include "ProceduralFoliageComponent.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 
@@ -35,6 +36,8 @@ struct FFoliageCustomVersion
 		HierarchicalISMCNonTransactional = 2,
 		// Added FoliageTypeUpdateGuid
 		AddedFoliageTypeUpdateGuid = 3,
+		// Use a GUID to determine whic procedural actor spawned us
+		ProceduralGuid = 4,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -83,6 +86,13 @@ FArchive& operator<<(FArchive& Ar, FFoliageInstance& Instance)
 	}
 	
 	Ar << Instance.ZOffset;
+
+#if WITH_EDITORONLY_DATA
+	if (!Ar.ArIsFilterEditorOnly && Ar.CustomVer(FFoliageCustomVersion::GUID) >= FFoliageCustomVersion::ProceduralGuid)
+	{
+		Ar << Instance.ProceduralGuid;
+	}
+#endif
 
 	return Ar;
 }
@@ -961,15 +971,16 @@ void AInstancedFoliageActor::DeleteInstancesForComponent(UActorComponent* InComp
 	}
 }
 
-void AInstancedFoliageActor::DeleteInstancesForSpawner(UActorComponent* InComponent)
+void AInstancedFoliageActor::DeleteInstancesForProceduralFoliageComponent(const UProceduralFoliageComponent* ProceduralFoliageComponent)
 {
+	const FGuid& ProceduralGuid = ProceduralFoliageComponent->GetProceduralGuid();
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 		TArray<int32> InstancesToRemove;
 		for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
 		{
-			if (MeshInfo.Instances[InstanceIdx].Spawner == InComponent)
+			if (MeshInfo.Instances[InstanceIdx].ProceduralGuid == ProceduralGuid)
 			{
 				InstancesToRemove.Add(InstanceIdx);
 			}

@@ -2,11 +2,11 @@
 
 #include "FoliagePrivate.h"
 #include "ProceduralFoliageComponent.h"
-#include "ProceduralFoliageInstance.h"
 #include "ProceduralFoliageTile.h"
 #include "InstancedFoliage.h"
 #include "InstancedFoliageActor.h"
 #include "ProceduralFoliage.h"
+
 #include "Async/Async.h"
 
 #define LOCTEXT_NAMESPACE "ProceduralFoliage"
@@ -18,11 +18,14 @@ UProceduralFoliageComponent::UProceduralFoliageComponent(const FObjectInitialize
 	TilesY = 1;
 	Overlap = 0.f;
 	HalfHeight = 10000.f;
+	ProceduralGuid = FGuid::NewGuid();
 }
 
-void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageInstances, UWorld* World, UActorComponent* BaseComponent)
+void UProceduralFoliageComponent::SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageInstances)
 {
 #if WITH_EDITOR
+	UWorld* World = GetWorld();
+
 	FFoliageInstance Inst;
 	
 	for (const FProceduralFoliageInstance& EcoInst : ProceduralFoliageInstances)
@@ -57,9 +60,8 @@ void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageI
 
 
 					Inst.Base = EcoInst.BaseComponent;
-					Inst.Spawner = BaseComponent;
-
-
+					Inst.ProceduralGuid = ProceduralGuid;
+					
 					MeshInfo->AddInstance(IFA, Settings, Inst);
 				}
 			}
@@ -204,7 +206,7 @@ void UProceduralFoliageComponent::SpawnTiles()
 			for (int Y = 0; Y < TilesY; ++Y)
 			{
 				TArray<FProceduralFoliageInstance>* ProceduralFoliageInstances = Futures[FutureIdx++].Get();
-				SpawnInstances(*ProceduralFoliageInstances, World, this);
+				SpawnInstances(*ProceduralFoliageInstances);
 				delete ProceduralFoliageInstances;
 				SlowTask.EnterProgressFrame(1);
 			}
@@ -222,7 +224,7 @@ void UProceduralFoliageComponent::SpawnProceduralContent()
 		if (Level)
 		{
 			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
-			IFA->DeleteInstancesForSpawner(this);
+			IFA->DeleteInstancesForProceduralFoliageComponent(this);
 		}
 	}
 	

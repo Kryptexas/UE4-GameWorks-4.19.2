@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "ProceduralFoliageInstance.h"
 #include "ProceduralFoliageComponent.generated.h"
 
 class UProceduralFoliage;
+class AProceduralFoliageLevelInfo;
 
 UCLASS(BlueprintType)
 class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
@@ -31,7 +33,13 @@ class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
 	UProceduralFoliage* ProceduralFoliage;
 
 	void SpawnProceduralContent();
+	const FGuid& GetProceduralGuid() const { return ProceduralGuid;  }
 
 private:
 	void SpawnTiles();
+	void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageInstances);
+
+private:
+	UPROPERTY()
+	FGuid ProceduralGuid;
 };
