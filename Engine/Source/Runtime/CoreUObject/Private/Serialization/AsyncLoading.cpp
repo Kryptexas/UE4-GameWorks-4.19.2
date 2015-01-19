@@ -454,8 +454,10 @@ EAsyncPackageState::Type FAsyncPackage::FinishLinker()
 		LastObjectWorkWasPerformedOn	= Linker->LinkerRoot;
 		LastTypeOfWorkPerformed			= TEXT("ticking linker");
 	
+		const float RemainingTimeLimit = TimeLimit - (float)(FPlatformTime::Seconds() - TickStartTime);
+
 		// Operation still pending if Tick returns false
-		if (Linker->Tick(TimeLimit, bUseTimeLimit, bUseFullTimeLimit) != ULinkerLoad::LINKER_Loaded)
+		if (Linker->Tick(RemainingTimeLimit, bUseTimeLimit, bUseFullTimeLimit) != ULinkerLoad::LINKER_Loaded)
 		{
 			// Give up remainder of timeslice if there is one to give up.
 			GiveUpTimeSlice();
