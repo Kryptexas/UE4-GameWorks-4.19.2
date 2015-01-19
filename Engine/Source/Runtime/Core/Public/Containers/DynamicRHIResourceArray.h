@@ -1,10 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DynamicRHIResourceArray.h: Resource array definitions for dynamically bound RHIs.
-=============================================================================*/
-
 #pragma once
+
 
 /** alignment for supported resource types */
 enum EResourceAlignment

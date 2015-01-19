@@ -1,11 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	BitArray.h: Bit array definition.
-=============================================================================*/
-
 #pragma once
+
 #include "Math/UnrealMathUtility.h"
+
 
 // Functions for manipulating bit sets.
 struct FBitSet
@@ -20,6 +18,7 @@ struct FBitSet
 	}
 };
 
+
 // Forward declaration.
 template<typename Allocator = FDefaultBitArrayAllocator>
 class TBitArray;
@@ -29,6 +28,7 @@ class TConstSetBitIterator;
 
 template<typename Allocator = FDefaultBitArrayAllocator,typename OtherAllocator = FDefaultBitArrayAllocator>
 class TConstDualSetBitIterator;
+
 
 /**
  * Serializer (predefined for no friend injection in gcc 411)
@@ -106,6 +106,7 @@ private:
 	uint32 Mask;
 };
 
+
 /** Used to read a bit in the array as a bool. */
 class FConstBitReference
 {
@@ -125,6 +126,7 @@ private:
 	const uint32& Data;
 	uint32 Mask;
 };
+
 
 /** Used to reference a bit in an unspecified bit array. */
 class FRelativeBitReference
@@ -146,6 +148,7 @@ protected:
 	int32 DWORDIndex;
 	uint32 Mask;
 };
+
 
 /**
  * A dynamically sized bit array.
@@ -653,6 +656,7 @@ private:
 	}
 };
 
+
 template<typename Allocator>
 struct TContainerTraits<TBitArray<Allocator> > : public TContainerTraitsBase<TBitArray<Allocator> >
 {
@@ -660,6 +664,7 @@ struct TContainerTraits<TBitArray<Allocator> > : public TContainerTraitsBase<TBi
 		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
 		TAllocatorTraits<Allocator>::SupportsMove };
 };
+
 
 /** An iterator which only iterates over set bits. */
 template<typename Allocator>
@@ -764,6 +769,7 @@ private:
 		CurrentBitIndex = BaseBitIndex + NumBitsPerDWORD - 1 - FMath::CountLeadingZeros(this->Mask);
 	}
 };
+
 
 /** An iterator which only iterates over the bits which are set in both of two bit-arrays. */
 template<typename Allocator,typename OtherAllocator>
@@ -874,10 +880,10 @@ private:
 	}
 };
 
+
 /** A specialization of the exchange macro that avoids reallocating when exchanging two bit arrays. */
 template<typename Allocator>
 FORCEINLINE void Exchange(TBitArray<Allocator>& A,TBitArray<Allocator>& B)
 {
 	FMemory::Memswap(&A,&B,sizeof(TBitArray<Allocator>));
 }
-

@@ -1,18 +1,17 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealString.h: Dynamic string definitions.  This needed to be 
-		UnrealString.h to avoid conflicting with the Windows platform 
-		SDK string.h
-=============================================================================*/
+// This needed to be UnrealString.h to avoid conflicting with
+// the Windows platform SDK string.h
 
 #pragma once
+
 #include "Containers/Array.h"
 #include "Math/NumericLimits.h"
 #include "Math/UnrealMathUtility.h"
 #include "Misc/Crc.h"
 #include "Misc/CString.h"
 #include "Templates/MemoryOps.h"
+
 
 /** Determines case sensitivity options for string comparisons. */
 namespace ESearchCase
@@ -121,7 +120,7 @@ public:
 	 * @param In array of TCHAR
 	 */
 	template <typename CharType>
-	FORCEINLINE FString(const CharType* Src, typename TEnableIf<TIsCharType<CharType>::Value>::Type* Dummy = NULL) // This TEnableIf is to ensure we don't instantiate this constructor for non-char types, like id* in Obj-C
+	FORCEINLINE FString(const CharType* Src, typename TEnableIf<TIsCharType<CharType>::Value>::Type* Dummy = nullptr) // This TEnableIf is to ensure we don't instantiate this constructor for non-char types, like id* in Obj-C
 	{
 		if (Src && *Src)
 		{
@@ -166,7 +165,7 @@ public:
 #else
 			FMemory::Memcpy(Data.GetData(), [In cStringUsingEncoding:NSUTF16StringEncoding], Len * sizeof(TCHAR));
 #endif
-			// for non-UTF-8 encodings this may not be terminated with a NULL!
+			// for non-UTF-8 encodings this may not be terminated with a nullptr!
 			Data[Len-1] = '\0';
 		}
 	}
@@ -1192,7 +1191,7 @@ public:
 	/**
 	 * Returns a copy of this string with wrapping quotation marks removed.
 	 */
-	FString TrimQuotes( bool* bQuotesRemoved=NULL ) const;
+	FString TrimQuotes( bool* bQuotesRemoved = nullptr ) const;
 
 	/**
 	 * Breaks up a delimited string into elements of a string array.
@@ -1215,7 +1214,7 @@ public:
 	 *
 	 * @return	The number of elements in InArray
 	 */
-	int32 ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtraDelim = NULL ) const;
+	int32 ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtraDelim = nullptr ) const;
 
 	/**
 	* Breaks up a delimited string into elements of a string array, using line ending characters
@@ -1292,14 +1291,14 @@ public:
 	 *
 	 * @return	a string with all control characters replaced by the escaped version.
 	 */
-	FString ReplaceCharWithEscapedChar( const TArray<TCHAR>* Chars=NULL ) const;
+	FString ReplaceCharWithEscapedChar( const TArray<TCHAR>* Chars = nullptr ) const;
 
 	/**
 	 * Removes the escape backslash for all supported characters, replacing the escape and character with the non-escaped version.  (i.e.
 	 * replaces "\\n" with "\n".  Counterpart to ReplaceCharWithEscapedChar().
 	 * @return copy of this string with replacement made
 	 */
-	FString ReplaceEscapedCharWithChar( const TArray<TCHAR>* Chars=NULL ) const;
+	FString ReplaceEscapedCharWithChar( const TArray<TCHAR>* Chars = nullptr ) const;
 
 	/** 
 	 * Replaces all instances of '\t' with TabWidth number of spaces
@@ -1586,7 +1585,7 @@ namespace LexicalConversion
 	inline void FromString(uint8& OutValue,		const TCHAR* Buffer)	{	OutValue = FCString::Atoi(Buffer);		}
 	inline void FromString(uint16& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Atoi(Buffer);		}
 	inline void FromString(uint32& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Atoi64(Buffer);	}	//64 because this unsigned and so Atoi might overflow
-	inline void FromString(uint64& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Strtoui64(Buffer, NULL, 0); }
+	inline void FromString(uint64& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Strtoui64(Buffer, nullptr, 0); }
 	inline void FromString(float& OutValue,		const TCHAR* Buffer)	{	OutValue = FCString::Atof(Buffer);		}
 	inline void FromString(double& OutValue, 	const TCHAR* Buffer)	{	OutValue = FCString::Atod(Buffer);		}
 	inline void FromString(bool& OutValue, 		const TCHAR* Buffer)	{	OutValue = FCString::ToBool(Buffer);	}

@@ -1,9 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Containers/Array.h"
 #include "Containers/Set.h"
 #include "Containers/UnrealString.h"
+
 
 #define ExchangeB(A,B) {bool T=A; A=B; B=T;}
 
@@ -367,7 +369,7 @@ public:
 	/**
 	 * Returns the key associated with the specified value.  The time taken is O(N) in the number of pairs.
 	 * @param	Value - The value to search for
-	 * @return	A pointer to the key associated with the specified value, or NULL if the value isn't contained in this map.  The pointer
+	 * @return	A pointer to the key associated with the specified value, or nullptr if the value isn't contained in this map.  The pointer
 	 *			is only valid until the next change to any key in the map.
 	 */
 	const KeyType* FindKey(ValueInitType Value) const
@@ -379,13 +381,13 @@ public:
 				return &PairIt->Key;
 			}
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	/**
 	 * Returns the value associated with a specified key.
 	 * @param	Key - The key to search for.
-	 * @return	A pointer to the value associated with the specified key, or NULL if the key isn't contained in this map.  The pointer
+	 * @return	A pointer to the value associated with the specified key, or nullptr if the key isn't contained in this map.  The pointer
 	 *			is only valid until the next change to any key in the map.
 	 */
 	FORCEINLINE ValueType* Find(KeyConstPointerType Key)
@@ -395,7 +397,7 @@ public:
 			return &Pair->Value;
 		}
 
-		return NULL;
+		return nullptr;
 	}
 	FORCEINLINE const ValueType* Find(KeyConstPointerType Key) const
 	{
@@ -456,7 +458,7 @@ public:
 	FORCEINLINE const ValueType& FindChecked(KeyConstPointerType Key) const
 	{
 		const auto* Pair = Pairs.Find(Key);
-		check( Pair != NULL );
+		check( Pair != nullptr );
 		return Pair->Value;
 	}
 
@@ -468,7 +470,7 @@ public:
 	FORCEINLINE ValueType& FindChecked(KeyConstPointerType Key)
 	{
 		auto* Pair = Pairs.Find(Key);
-		check( Pair != NULL );
+		check( Pair != nullptr );
 		return Pair->Value;
 	}
 
@@ -1162,7 +1164,7 @@ public:
 	 * Finds an association between a specified key and value. (const)
 	 * @param Key - The key to find.
 	 * @param Value - The value to find.
-	 * @return If the map contains a matching association, a pointer to the value in the map is returned.  Otherwise NULL is returned.
+	 * @return If the map contains a matching association, a pointer to the value in the map is returned.  Otherwise nullptr is returned.
 	 *			The pointer is only valid as long as the map isn't changed.
 	 */
 	FORCEINLINE const ValueType* FindPair(KeyInitType Key,ValueInitType Value) const
@@ -1174,7 +1176,7 @@ public:
 	 * Finds an association between a specified key and value.
 	 * @param Key - The key to find.
 	 * @param Value - The value to find.
-	 * @return If the map contains a matching association, a pointer to the value in the map is returned.  Otherwise NULL is returned.
+	 * @return If the map contains a matching association, a pointer to the value in the map is returned.  Otherwise nullptr is returned.
 	 *			The pointer is only valid as long as the map isn't changed.
 	 */
 	ValueType* FindPair(KeyInitType Key,ValueInitType Value)
@@ -1189,7 +1191,7 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	/** Returns the number of values within this map associated with the specified key */

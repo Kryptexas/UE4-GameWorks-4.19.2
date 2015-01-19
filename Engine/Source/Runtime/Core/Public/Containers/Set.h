@@ -5,6 +5,7 @@
 #include "Containers/SparseArray.h"
 #include "Templates/Sorting.h"
 
+
 /**
  * The base KeyFuncs type with some useful definitions for all KeyFuncs; meant to be derived from instead of used directly.
  * bInAllowDuplicateKeys=true is slightly faster because it allows the TSet to skip validating that
@@ -1158,4 +1159,3 @@ FORCEINLINE void Exchange(TSet<InElementType,KeyFuncs,Allocator>& A,TSet<InEleme
 {
 	FMemory::Memswap(&A,&B,sizeof(TSet<InElementType,KeyFuncs,Allocator>));
 }
-

@@ -1,10 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Array.h: Dynamic array definitions.
-=============================================================================*/
-
 #pragma once
+
 #include "Containers/ContainerAllocationPolicies.h"
 #include "HAL/Platform.h"
 #include "Serialization/ArchiveBase.h"
@@ -12,7 +9,9 @@
 #include "Templates/Sorting.h"
 #include "Templates/UnrealTemplate.h"
 
+
 #define DEBUG_HEAP 0
+
 
 /**
  * Generic iterator which can operate on types that expose the following:
@@ -333,14 +332,14 @@ public:
 
 	FORCEINLINE bool operator()( ElementType* A, ElementType* B ) const 
 	{
-		check( A != NULL );
-		check( B != NULL );
+		check( A != nullptr );
+		check( B != nullptr );
 		return Predicate( *B, *A ); 
 	}
 	FORCEINLINE bool operator()( const ElementType* A, const ElementType* B ) const 
 	{
-		check( A != NULL );
-		check( B != NULL );
+		check( A != nullptr );
+		check( B != nullptr );
 		return Predicate( *B, *A ); 
 	}
 };
@@ -587,7 +586,7 @@ public:
 	/**
 	 * Helper function for returning a typed pointer to the first array entry.
 	 *
-	 * @returns Pointer to first array entry or NULL if ArrayMax == 0.
+	 * @returns Pointer to first array entry or nullptr if ArrayMax == 0.
 	 */
 	DEPRECATED(4.6, "This function is deprecated as it does the same as GetData(). Please use GetData() instead.")
 	FORCEINLINE ElementType* GetTypedData()
@@ -598,7 +597,7 @@ public:
 	/**
 	 * Helper function for returning a typed pointer to the first array entry.
 	 *
-	 * @returns Pointer to first array entry or NULL if ArrayMax == 0.
+	 * @returns Pointer to first array entry or nullptr if ArrayMax == 0.
 	 */
 	FORCEINLINE ElementType* GetData()
 	{
@@ -608,7 +607,7 @@ public:
 	/**
 	 * Helper function for returning a typed pointer to the first array entry.
 	 *
-	 * @returns Pointer to first array entry or NULL if ArrayMax == 0.
+	 * @returns Pointer to first array entry or nullptr if ArrayMax == 0.
 	 */
 	DEPRECATED(4.6, "This function is deprecated as it does the same as GetData(). Please use GetData() instead.")
 	FORCEINLINE const ElementType* GetTypedData() const
@@ -619,7 +618,7 @@ public:
 	/**
 	 * Helper function for returning a typed pointer to the first array entry.
 	 *
-	 * @returns Pointer to first array entry or NULL if ArrayMax == 0.
+	 * @returns Pointer to first array entry or nullptr if ArrayMax == 0.
 	 */
 	FORCEINLINE const ElementType* GetData() const
 	{
@@ -989,7 +988,7 @@ public:
 	 *
 	 * @param Key The key to search by.
 	 *
-	 * @returns Pointer to the first matching element, or NULL if none is found.
+	 * @returns Pointer to the first matching element, or nullptr if none is found.
 	 */
 	template <typename KeyType>
 	FORCEINLINE const ElementType* FindByKey(const KeyType& Key) const
@@ -1003,7 +1002,7 @@ public:
 	 *
 	 * @param Key The key to search by.
 	 *
-	 * @returns Pointer to the first matching element, or NULL if none is found.
+	 * @returns Pointer to the first matching element, or nullptr if none is found.
 	 */
 	template <typename KeyType>
 	ElementType* FindByKey(const KeyType& Key)
@@ -1016,7 +1015,7 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	/**
@@ -1025,7 +1024,7 @@ public:
 	 * @param Pred The functor to apply to each element.
 	 *
 	 * @returns Pointer to the first element for which the predicate returns
-	 *          true, or NULL if none is found.
+	 *          true, or nullptr if none is found.
 	 */
 	template <typename Predicate>
 	FORCEINLINE const ElementType* FindByPredicate(Predicate Pred) const
@@ -1039,7 +1038,7 @@ public:
 	 * @param Pred The functor to apply to each element.
 	 *
 	 * @return Pointer to the first element for which the predicate returns
-	 *         true, or NULL if none is found.
+	 *         true, or nullptr if none is found.
 	 */
 	template <typename Predicate>
 	ElementType* FindByPredicate(Predicate Pred)
@@ -1052,7 +1051,7 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	/**
@@ -1104,7 +1103,7 @@ public:
 	template <typename Predicate>
 	FORCEINLINE bool ContainsByPredicate(Predicate Pred) const
 	{
-		return FindByPredicate(Pred) != NULL;
+		return FindByPredicate(Pred) != nullptr;
 	}
 
 	/**
@@ -1354,7 +1353,7 @@ public:
 	 */
 	int32 Insert(const ElementType* Ptr, int32 Count, int32 Index)
 	{
-		check(Ptr != NULL);
+		check(Ptr != nullptr);
 
 		InsertUninitialized(Index, Count);
 		ConstructItems<ElementType>(GetData() + Index, Ptr, Count);
@@ -1653,7 +1652,7 @@ public:
 	 */
 	void Append(const ElementType* Ptr, int32 Count)
 	{
-		check(Ptr != NULL);
+		check(Ptr != nullptr);
 
 		int32 Pos = AddUninitialized(Count);
 		ConstructItems<ElementType>(GetData() + Pos, Ptr, Count);
@@ -2079,18 +2078,18 @@ public:
 	 * @returns True if element was found. False otherwise.
 	 */
 	template<typename SearchType>
-	bool FindItemByClass(SearchType **Item = NULL, int32 *ItemIndex = NULL, int32 StartIndex = 0) const
+	bool FindItemByClass(SearchType **Item = nullptr, int32 *ItemIndex = nullptr, int32 StartIndex = 0) const
 	{
 		UClass* SearchClass = SearchType::StaticClass();
 		for (int32 Idx = StartIndex; Idx < ArrayNum; Idx++)
 		{
-			if ((*this)[Idx] != NULL && (*this)[Idx]->IsA(SearchClass))
+			if ((*this)[Idx] != nullptr && (*this)[Idx]->IsA(SearchClass))
 			{
-				if (Item != NULL)
+				if (Item != nullptr)
 				{
 					*Item = (SearchType*)((*this)[Idx]);
 				}
-				if (ItemIndex != NULL)
+				if (ItemIndex != nullptr)
 				{
 					*ItemIndex = Idx;
 				}
@@ -2880,7 +2879,7 @@ public:
 	/**
 	 * Helper function for returning a typed pointer to the first array entry.
 	 *
-	 * @returns Pointer to first array entry or NULL if this->ArrayMax == 0.
+	 * @returns Pointer to first array entry or nullptr if this->ArrayMax == 0.
 	 */
 	DEPRECATED(4.6, "This function is deprecated as it does the same as GetData(). Please use GetData() instead.")
 	FORCEINLINE T** GetTypedData()
@@ -2891,7 +2890,7 @@ public:
 	/**
 	 * Helper function for returning a typed pointer to the first array entry.
 	 *
-	 * @returns Pointer to first array entry or NULL if this->ArrayMax == 0.
+	 * @returns Pointer to first array entry or nullptr if this->ArrayMax == 0.
 	 */
 	FORCEINLINE T** GetData()
 	{
@@ -2901,7 +2900,7 @@ public:
 	/**
 	 * Helper function for returning a typed pointer to the first array entry.
 	 *
-	 * @returns Pointer to first array entry or NULL if this->ArrayMax == 0.
+	 * @returns Pointer to first array entry or nullptr if this->ArrayMax == 0.
 	 */
 	DEPRECATED(4.6, "This function is deprecated as it does the same as GetData(). Please use GetData() instead.")
 	FORCEINLINE const T** GetTypedData() const
@@ -2912,7 +2911,7 @@ public:
 	/**
 	 * Helper function for returning a typed pointer to the first array entry.
 	 *
-	 * @returns Pointer to first array entry or NULL if this->ArrayMax == 0.
+	 * @returns Pointer to first array entry or nullptr if this->ArrayMax == 0.
 	 */
 	FORCEINLINE const T** GetData() const
 	{

@@ -22,7 +22,7 @@ void FString::TrimToNullTerminator()
 
 int32 FString::Find( const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDir::Type SearchDir, int32 StartPosition ) const
 {
-	if ( SubStr == NULL )
+	if ( SubStr == nullptr )
 	{
 		return INDEX_NONE;
 	}
@@ -215,7 +215,7 @@ FString FString::TrimQuotes( bool* bQuotesRemoved ) const
 		}
 	}
 
-	if ( bQuotesRemoved != NULL )
+	if ( bQuotesRemoved != nullptr )
 	{
 		*bQuotesRemoved = bQuotesWereRemoved;
 	}
@@ -795,7 +795,7 @@ int32 FString::ParseIntoArray(TArray<FString>* InArray, const TCHAR** DelimArray
 
 FString FString::Replace(const TCHAR* From, const TCHAR* To, ESearchCase::Type SearchCase) const
 {
-	// Previous code used to accidentally accept a NULL replacement string - this is no longer accepted.
+	// Previous code used to accidentally accept a nullptr replacement string - this is no longer accepted.
 	check(To);
 
 	if (IsEmpty() || !From || !*From)
@@ -838,8 +838,8 @@ int32 FString::ReplaceInline( const TCHAR* SearchText, const TCHAR* ReplacementT
 	int32 ReplacementCount = 0;
 
 	if (Len() > 0
-	&&	SearchText != NULL && *SearchText != 0
-	&&	ReplacementText != NULL && (SearchCase == ESearchCase::IgnoreCase || FCString::Strcmp(SearchText, ReplacementText) != 0) )
+	&&	SearchText != nullptr && *SearchText != 0
+	&&	ReplacementText != nullptr && (SearchCase == ESearchCase::IgnoreCase || FCString::Strcmp(SearchText, ReplacementText) != 0) )
 	{
 		const int32 NumCharsToReplace=FCString::Strlen(SearchText);
 		const int32 NumCharsToInsert=FCString::Strlen(ReplacementText);
@@ -847,7 +847,7 @@ int32 FString::ReplaceInline( const TCHAR* SearchText, const TCHAR* ReplacementT
 		if ( NumCharsToInsert == NumCharsToReplace )
 		{
 			TCHAR* Pos = SearchCase == ESearchCase::IgnoreCase ? FCString::Stristr(&(*this)[0], SearchText) : FCString::Strstr(&(*this)[0], SearchText);
-			while ( Pos != NULL )
+			while ( Pos != nullptr )
 			{
 				ReplacementCount++;
 
@@ -876,7 +876,7 @@ int32 FString::ReplaceInline( const TCHAR* SearchText, const TCHAR* ReplacementT
 			TCHAR* WritePosition = (TCHAR*)Copy.Data.GetData();
 			// look for From in the remaining string
 			TCHAR* SearchPosition = SearchCase == ESearchCase::IgnoreCase ? FCString::Stristr(WritePosition, SearchText) : FCString::Strstr(WritePosition, SearchText);
-			while ( SearchPosition != NULL )
+			while ( SearchPosition != nullptr )
 			{
 				ReplacementCount++;
 
@@ -962,14 +962,14 @@ static const uint32 MaxSupportedEscapeChars = ARRAY_COUNT(CharToEscapeSeqMap);
  *
  * @return	a string with all control characters replaced by the escaped version.
  */
-FString FString::ReplaceCharWithEscapedChar( const TArray<TCHAR>* Chars/*=NULL*/ ) const
+FString FString::ReplaceCharWithEscapedChar( const TArray<TCHAR>* Chars/*=nullptr*/ ) const
 {
-	if ( Len() > 0 && (Chars == NULL || Chars->Num() > 0) )
+	if ( Len() > 0 && (Chars == nullptr || Chars->Num() > 0) )
 	{
 		FString Result(*this);
 		for ( int32 ChIdx = 0; ChIdx < MaxSupportedEscapeChars; ChIdx++ )
 		{
-			if ( Chars == NULL || Chars->Contains(*(CharToEscapeSeqMap[ChIdx][0])) )
+			if ( Chars == nullptr || Chars->Contains(*(CharToEscapeSeqMap[ChIdx][0])) )
 			{
 				// use ReplaceInline as that won't create a copy of the string if the character isn't found
 				Result.ReplaceInline(CharToEscapeSeqMap[ChIdx][0], CharToEscapeSeqMap[ChIdx][1]);
@@ -984,15 +984,15 @@ FString FString::ReplaceCharWithEscapedChar( const TArray<TCHAR>* Chars/*=NULL*/
  * Removes the escape backslash for all supported characters, replacing the escape and character with the non-escaped version.  (i.e.
  * replaces "\\n" with "\n".  Counterpart to ReplaceCharWithEscapedChar().
  */
-FString FString::ReplaceEscapedCharWithChar( const TArray<TCHAR>* Chars/*=NULL*/ ) const
+FString FString::ReplaceEscapedCharWithChar( const TArray<TCHAR>* Chars/*=nullptr*/ ) const
 {
-	if ( Len() > 0 && (Chars == NULL || Chars->Num() > 0) )
+	if ( Len() > 0 && (Chars == nullptr || Chars->Num() > 0) )
 	{
 		FString Result(*this);
 		// Spin CharToEscapeSeqMap backwards to ensure we're doing the inverse of ReplaceCharWithEscapedChar
 		for ( int32 ChIdx = MaxSupportedEscapeChars - 1; ChIdx >= 0; ChIdx-- )
 		{
-			if ( Chars == NULL || Chars->Contains(*(CharToEscapeSeqMap[ChIdx][0])) )
+			if ( Chars == nullptr || Chars->Contains(*(CharToEscapeSeqMap[ChIdx][0])) )
 			{
 				// use ReplaceInline as that won't create a copy of the string if the character isn't found
 				Result.ReplaceInline( CharToEscapeSeqMap[ChIdx][1], CharToEscapeSeqMap[ChIdx][0] );
@@ -1056,7 +1056,7 @@ VARARG_BODY( FString, FString::Printf, const TCHAR*, VARARG_NONE )
 	// If that fails, start allocating regular memory
 	if( Result == -1 )
 	{
-		Buffer = NULL;
+		Buffer = nullptr;
 		while(Result == -1)
 		{
 			BufferSize *= 2;

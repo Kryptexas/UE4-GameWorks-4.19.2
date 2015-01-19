@@ -24,13 +24,12 @@ public:
 
 	FTicker()
 		: CurrentTime(0.0)
-	{
-	}
+	{ }
 
 	/**
 	 * Add a new ticker with a given delay / interval
-	 * @param InDelegate	delegate to fire after the delay
-	 * @param InDelay		Delay until next fire; 0 means "next frame"
+	 * @param InDelegate Delegate to fire after the delay
+	 * @param InDelay Delay until next fire; 0 means "next frame"
 	 */
 	FDelegateHandle AddTicker(const FTickerDelegate& InDelegate, float InDelay = 0.0f)
 	{
@@ -42,7 +41,7 @@ public:
 	/**
 	 * Removes a previously added ticker delegate.
 	 *
-	 * @param Handle - The handle of the ticker to remove.
+	 * @param Handle The handle of the ticker to remove.
 	 */
 	void RemoveTicker(FDelegateHandle Handle)
 	{
@@ -52,7 +51,7 @@ public:
 	/**
 	 * Removes a previously added ticker delegate.
 	 *
-	 * @param Delegate - The delegate to remove.
+	 * @param Delegate The delegate to remove.
 	 */
 	DELEGATE_DEPRECATED("This RemoveTicker overload is deprecated - please remove tickers using the FDelegateHandle returned by the AddTicker function.")
 	void RemoveTicker(const FTickerDelegate& Delegate)
@@ -137,6 +136,7 @@ private:
 	TArray<FElement> PriorityQueue;
 };
 
+
 /**
  * Base class for ticker objects
  */
@@ -156,9 +156,7 @@ public:
 		TickHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, InDelay);
 	}
 
-	/**
-	 * Destructor
-	 */
+	/** Virtual destructor. */
 	virtual ~FTickerObjectBase()
 	{
 		// Unregister ticker delegate
