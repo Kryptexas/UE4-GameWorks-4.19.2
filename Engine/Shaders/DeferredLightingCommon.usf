@@ -100,7 +100,10 @@ float3 StandardShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeE
 	float Vis = Vis_SmithJointApprox( LobeRoughness[1], NoV, NoL );
 	float3 F = F_Schlick( GBuffer.SpecularColor, VoH );
 
-	return Diffuse_Lambert(GBuffer.DiffuseColor) * (LobeEnergy[2] * DiffSpecMask.r) + (D * Vis * DiffSpecMask.g) * F;
+	//float3 Diffuse = Diffuse_Lambert( GBuffer.DiffuseColor );
+	float3 Diffuse = Diffuse_Burley( GBuffer.DiffuseColor, LobeRoughness[1], NoV, NoL, VoH );
+	
+	return Diffuse * (LobeEnergy[2] * DiffSpecMask.r) + (D * Vis * DiffSpecMask.g) * F;
 }
 
 float3 SimpleShading( FGBufferData GBuffer, float Roughness, float3 L, float3 V, half3 N )
@@ -150,7 +153,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 	//float3 F2 = F_Schlick( GBuffer.SpecularColor, VoH );
 	float3 F2 = saturate( 50.0 * GBuffer.SpecularColor.g ) * Fc + (1 - Fc) * GBuffer.SpecularColor;
 
-	float3 Fr2 = Diffuse_Lambert( GBuffer.DiffuseColor ) * LobeEnergy[2] + (D2 * Vis2) * F2;
+	float3 Fr2 = Diffuse_Burley( GBuffer.DiffuseColor, LobeRoughness[1], NoV, NoL, VoH ) * LobeEnergy[2] + (D2 * Vis2) * F2;
 	
 	return Fr1 + Fr2 * LayerAttenuation;
 #else
