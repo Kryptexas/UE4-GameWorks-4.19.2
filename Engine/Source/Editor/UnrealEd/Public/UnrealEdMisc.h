@@ -276,6 +276,9 @@ private:
 	/** Called when the heartbeat event should be sent to engine analytics */
 	void EditorAnalyticsHeartbeat();
 
+	/** Handles "Enable World Composition" option in WorldSettings */
+	bool EnableWorldComposition(UWorld* InWorld, bool bEnable);
+
 private:
 
 	/** The current state of the autosave */
