@@ -569,13 +569,13 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		GenerateAssetRegistry(Platforms);
 
 		// new cook is better 
-		if ( Switches.Contains(TEXT("NEWCOOK")))
+		if ( Switches.Contains(TEXT("OLDCOOK")))
 		{
-			NewCook(Platforms, FilesInPath );
+			Cook(Platforms, FilesInPath);	
 		}
 		else
 		{
-			Cook(Platforms, FilesInPath);
+			NewCook(Platforms, FilesInPath );
 		}
 	}
 	
