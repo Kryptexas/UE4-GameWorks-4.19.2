@@ -138,8 +138,6 @@ const TCHAR* FWinRTProcess::BaseDir()
 
 #include "HideWinRTPlatformTypes.h"
 
-DECLARE_CYCLE_STAT(TEXT("CPU Stall - Sleep"),STAT_Sleep,STATGROUP_CPUStalls);
-
 void FWinRTProcess::Sleep( float Seconds )
 {
 	SCOPE_CYCLE_COUNTER(STAT_Sleep);

@@ -964,13 +964,16 @@ bool FWindowsPlatformProcess::ResolveNetworkPath( FString InUNCPath, FString& Ou
 	return false;
 }
 
-DECLARE_CYCLE_STAT(TEXT("CPU Stall - Sleep"),STAT_Sleep,STATGROUP_CPUStalls);
-
 void FWindowsPlatformProcess::Sleep( float Seconds )
 {
 	SCOPE_CYCLE_COUNTER(STAT_Sleep);
 	FThreadIdleStats::FScopeIdle Scope;
-	::Sleep( (uint32)(Seconds * 1000.0) );
+	SleepNoStats(Seconds);
+}
+
+void FWindowsPlatformProcess::SleepNoStats(float Seconds)
+{
+	::Sleep((uint32)(Seconds * 1000.0));
 }
 
 void FWindowsPlatformProcess::SleepInfinite()

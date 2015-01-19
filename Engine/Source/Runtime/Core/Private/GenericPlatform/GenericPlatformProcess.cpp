@@ -3,6 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "EventPool.h"
 #include "Public/Modules/ModuleVersion.h"
+#include "Templates/Function.h"
 
 
 #if PLATFORM_HAS_BSD_TIME 
@@ -10,6 +11,7 @@
 	#include <sched.h>  // for sched_yield
 #endif
 
+DEFINE_STAT(STAT_Sleep);
 
 void* FGenericPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -252,12 +254,16 @@ void FGenericPlatformProcess::ExploreFolder( const TCHAR* FilePath )
 
 
 #if PLATFORM_HAS_BSD_TIME
-DECLARE_CYCLE_STAT(TEXT("CPU Stall - Sleep"),STAT_Sleep,STATGROUP_CPUStalls);
 
 void FGenericPlatformProcess::Sleep( float Seconds )
 {
 	SCOPE_CYCLE_COUNTER(STAT_Sleep);
 	FThreadIdleStats::FScopeIdle Scope;
+	SleepNoStats(Seconds);
+}
+
+void FGenericPlatformProcess::SleepNoStats( float Seconds )
+{
 	const int32 usec = FPlatformMath::TruncToInt(Seconds * 1000000.0f);
 	if (usec > 0)
 	{
@@ -276,6 +282,21 @@ void FGenericPlatformProcess::SleepInfinite()
 }
 
 #endif // PLATFORM_HAS_BSD_TIME 
+
+void FGenericPlatformProcess::ConditionalSleep(const TFunction<bool()>& Condition)
+{
+	if (Condition())
+	{
+		return;
+	}
+
+	SCOPE_CYCLE_COUNTER(STAT_Sleep);
+	FThreadIdleStats::FScopeIdle Scope;
+	do
+	{
+		FPlatformProcess::SleepNoStats(0.0f);
+	} while (!Condition());
+}
 
 #if PLATFORM_USE_PTHREADS
 

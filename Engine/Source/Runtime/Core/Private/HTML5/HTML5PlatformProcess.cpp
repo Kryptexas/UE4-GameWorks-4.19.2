@@ -55,6 +55,13 @@ void FHTML5PlatformProcess::Sleep( float Seconds )
 {
 	SCOPE_CYCLE_COUNTER(STAT_HTML5Sleep);
 	FThreadIdleStats::FScopeIdle Scope;
+
+	SleepNoStats(Seconds);
+	// @todo html5 threading: actually put the thread to sleep for awhile (UE3 did nothing, we do the same now)
+}
+
+void FHTML5PlatformProcess::SleepNoStats(float Seconds)
+{
 	// @todo html5 threading: actually put the thread to sleep for awhile (UE3 did nothing, we do the same now)
 }
 

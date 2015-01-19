@@ -8,7 +8,7 @@
 
 
 class FString;
-
+template <typename FuncType> class TFunction;
 
 namespace EProcessResource
 {
@@ -413,12 +413,21 @@ struct CORE_API FGenericPlatformProcess
 
 #if PLATFORM_HAS_BSD_TIME 
 
-	/** Sleep this thread for Seconds.  0.0 means release the current time slice to let other threads get some attention. */
+	/** Sleep this thread for Seconds.  0.0 means release the current time slice to let other threads get some attention. Uses stats.*/
 	static void Sleep( float Seconds );
+	/** Sleep this thread for Seconds.  0.0 means release the current time slice to let other threads get some attention. */
+	static void SleepNoStats( float Seconds );
 	/** Sleep this thread infinitely. */
 	static void SleepInfinite();
 
 #endif // PLATFORM_HAS_BSD_TIME
+
+	/**
+	* Sleep thread until condition is satisfied.
+	*
+	* @param	Condition	Condition to evaluate.
+	*/
+	static void ConditionalSleep(const TFunction<bool()>& Condition);
 
 	/**
 	 * Creates a new event.
