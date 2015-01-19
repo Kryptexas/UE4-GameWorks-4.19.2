@@ -95,8 +95,7 @@ static bool IsPropertyVisible( const FPropertyAndParent& PropertyAndParent )
 void SComponentsTree::Construct(const FArguments& InArgs, TSharedPtr<class IDetailsView> InPropertyView )
 {
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true );
-	DetailsViewArgs.bHideActorNameArea = true;
+	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, FDetailsViewArgs::HideNameArea, /*bHideSelectionTip=*/ true );
 
 	bSelectionGuard = false;
 	USelection::SelectionChangedEvent.AddRaw(this, &SComponentsTree::OnEditorSelectionChanged);

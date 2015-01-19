@@ -524,7 +524,7 @@ public:
 		FDetailsViewArgs DetailsViewArgs;
 		DetailsViewArgs.bUpdatesFromSelection = true;
 		DetailsViewArgs.bLockable = true;
-		DetailsViewArgs.bObjectsUseNameArea = false;
+		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::ComponentsAndActorsUseNameArea;
 		DetailsViewArgs.NotifyHook = GUnrealEd;
 		DetailsViewArgs.ViewIdentifier = TabIdentifier;
 		DetailsViewArgs.bCustomNameAreaLocation = true;
@@ -958,7 +958,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 	else if ( TabIdentifier == "WorldSettingsTab" )
 	{
 		FPropertyEditorModule& PropPlugin = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		FDetailsViewArgs DetailsViewArgs( false, false, true, false, false, GUnrealEd );
+		FDetailsViewArgs DetailsViewArgs( false, false, true, FDetailsViewArgs::HideNameArea, false, GUnrealEd );
 		DetailsViewArgs.bShowActorLabel = false;
 
 		WorldSettingsView = PropPlugin.CreateDetailView( DetailsViewArgs );

@@ -185,9 +185,10 @@ void SSocketManager::Construct(const FArguments& InArgs)
 	FDetailsViewArgs Args;
 	Args.bHideSelectionTip = true;
 	Args.bLockable = false;
-	Args.bAllowSearch = true;
+	Args.bAllowSearch = false;
+	Args.bShowOptions = false;
 	Args.NotifyHook = this;
-	Args.bObjectsUseNameArea = true;
+	Args.NameAreaSettings = FDetailsViewArgs::HideNameArea;
 
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	SocketDetailsView = PropertyModule.CreateDetailView(Args);

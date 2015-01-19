@@ -599,7 +599,7 @@ void FMaterialEditor::CreateInternalWidgets()
 	// Manually set zoom level to avoid deferred zooming
 	GraphEditor->SetViewLocation(FVector2D::ZeroVector, 1);
 
-	const FDetailsViewArgs DetailsViewArgs( false, false, true, false, true, this );
+	const FDetailsViewArgs DetailsViewArgs( false, false, true, FDetailsViewArgs::HideNameArea, true, this );
 	MaterialDetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
 
 	FOnGetDetailCustomizationInstance LayoutExpressionParameterDetails = FOnGetDetailCustomizationInstance::CreateStatic(
