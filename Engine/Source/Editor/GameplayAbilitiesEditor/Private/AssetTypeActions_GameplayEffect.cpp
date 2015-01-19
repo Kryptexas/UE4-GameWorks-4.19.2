@@ -24,7 +24,6 @@ void CopyInfoFromDataGE(const UGameplayEffect& InGE, UGameplayEffect& OutGE)
 	}
 
 	OutGE.ChanceToApplyToTarget = InGE.ChanceToApplyToTarget;
-	OutGE.ChanceToExecuteOnGameplayEffect = InGE.ChanceToExecuteOnGameplayEffect;
 
 	// Don't copy over TargetEffects. These will need to get fixed up later
 	// TArray<UDataGameplayEffect*> TargetEffects;

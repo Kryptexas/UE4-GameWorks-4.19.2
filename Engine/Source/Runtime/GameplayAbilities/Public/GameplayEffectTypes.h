@@ -46,6 +46,30 @@ namespace EGameplayModOp
 	};
 }
 
+namespace GameplayEffectUtilities
+{
+	/**
+	 * Helper function to retrieve the modifier bias based upon modifier operation
+	 * 
+	 * @param ModOp	Modifier operation to retrieve the modifier bias for
+	 * 
+	 * @return Modifier bias for the specified operation
+	 */
+	GAMEPLAYABILITIES_API float GetModifierBiasByModifierOp(EGameplayModOp::Type ModOp);
+
+	/**
+	 * Helper function to compute the stacked modifier magnitude from a base magnitude, given a stack count and modifier operation
+	 * 
+	 * @param BaseComputedMagnitude	Base magnitude to compute from
+	 * @param StackCount			Stack count to use for the calculation
+	 * @param ModOp					Modifier operation to use
+	 * 
+	 * @return Computed modifier magnitude with stack count factored in
+	 */
+	GAMEPLAYABILITIES_API float ComputeStackedModifierMagnitude(float BaseComputedMagnitude, int32 StackCount, EGameplayModOp::Type ModOp);
+}
+
+
 /** Enumeration for options of where to capture gameplay attributes from for gameplay effects */
 UENUM()
 enum class EGameplayEffectAttributeCaptureSource : uint8

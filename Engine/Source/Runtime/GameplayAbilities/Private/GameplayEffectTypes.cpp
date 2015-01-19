@@ -6,6 +6,34 @@
 #include "GameplayEffectTypes.h"
 #include "AbilitySystemComponent.h"
 
+float GameplayEffectUtilities::GetModifierBiasByModifierOp(EGameplayModOp::Type ModOp)
+{
+	static const float ModifierOpBiases[EGameplayModOp::Max] = {0.f, 1.f, 1.f, 0.f};
+	check(ModOp >= 0 && ModOp < EGameplayModOp::Max);
+
+	return ModifierOpBiases[ModOp];
+}
+
+float GameplayEffectUtilities::ComputeStackedModifierMagnitude(float BaseComputedMagnitude, int32 StackCount, EGameplayModOp::Type ModOp)
+{
+	const float OperationBias = GameplayEffectUtilities::GetModifierBiasByModifierOp(ModOp);
+
+	StackCount = FMath::Clamp<int32>(StackCount, 0, StackCount);
+
+	float StackMag = BaseComputedMagnitude;
+	
+	// Override modifiers don't care about stack count at all. All other modifier ops need to subtract out their bias value in order to handle
+	// stacking correctly
+	if (ModOp != EGameplayModOp::Override)
+	{
+		StackMag -= OperationBias;
+		StackMag *= StackCount;
+		StackMag += OperationBias;
+	}
+
+	return StackMag;
+}
+
 bool FGameplayEffectAttributeCaptureDefinition::operator==(const FGameplayEffectAttributeCaptureDefinition& Other) const
 {
 	return ((AttributeToCapture == Other.AttributeToCapture) && (AttributeSource == Other.AttributeSource) && (bSnapshot == Other.bSnapshot));

@@ -409,7 +409,7 @@ FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AssignSetByCallerMagni
 	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
 	if (Spec)
 	{
-		Spec->SetMagnitude(DataName, Magnitude);
+		Spec->SetSetByCallerMagnitude(DataName, Magnitude);
 	}
 	else
 	{

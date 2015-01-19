@@ -562,10 +562,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Application, meta=(GameplayAttribute="True"))
 	FScalableFloat	ChanceToApplyToTarget;
 
-	/** Probability that this gameplay effect will execute on another GE after it has been successfully applied to the target actor (0.0 for never, 1.0 for always) */
-	UPROPERTY(EditDefaultsOnly, Category = Application, meta = (GameplayAttribute = "True"))
-	FScalableFloat	ChanceToExecuteOnGameplayEffect;
-
 	/** other gameplay effects that will be applied to the target of this effect if this effect applies */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect,meta = (DisplayName = "Linked Gameplay Effects"))
 	TArray<TSubclassOf<UGameplayEffect>> TargetEffectClasses;
@@ -911,7 +907,6 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 		, Duration(UGameplayEffect::INSTANT_APPLICATION)
 		, Period(UGameplayEffect::NO_PERIOD)
 		, ChanceToApplyToTarget(1.f)
-		, ChanceToExecuteOnGameplayEffect(1.f)
 		, StackCount(1)
 		, bCompletedSourceAttributeCapture(false)
 		, bCompletedTargetAttributeCapture(false)
@@ -967,8 +962,6 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	float GetDuration() const;
 	float GetPeriod() const;
 	float GetChanceToApplyToTarget() const;
-	float GetChanceToExecuteOnGameplayEffect() const;
-	float GetMagnitude(const FGameplayAttribute &Attribute) const;
 
 	/** other effects that need to be applied to the target if this effect is successful */
 	TArray< FGameplayEffectSpecHandle > TargetEffectSpecs;
@@ -984,10 +977,10 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	void GetAllGrantedTags(OUT FGameplayTagContainer& Container) const;
 
 	/** Sets the magnitude of a SetByCaller modifier */
-	void SetMagnitude(FName DataName, float Magnitude);
+	void SetSetByCallerMagnitude(FName DataName, float Magnitude);
 
 	/** Returns the magnitude of a SetByCaller modifier. Will return 0.f and Warn if the magnitude has not been set. */
-	float GetMagnitude(FName DataName) const;
+	float GetSetByCallerMagnitude(FName DataName) const;
 
 	// The duration in seconds of this effect
 	// instantaneous effects should have a duration of UGameplayEffect::INSTANT_APPLICATION
@@ -1003,9 +996,6 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	// The chance, in a 0.0-1.0 range, that this GameplayEffect will be applied to the target Attribute or GameplayEffect.
 	UPROPERTY()
 	float ChanceToApplyToTarget;
-
-	UPROPERTY()
-	float ChanceToExecuteOnGameplayEffect;
 
 	// Captured Source Tags on GameplayEffectSpec creation.	
 	UPROPERTY(NotReplicated)
@@ -1037,6 +1027,16 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	UPROPERTY(NotReplicated)
 	uint32 bDurationLocked : 1;
 	
+	/**
+	 * Get the computed magnitude of the modifier on the spec with the specified index
+	 * 
+	 * @param ModifierIndx			Modifier to get
+	 * @param bFactorInStackCount	If true, the calculation will include the stack count
+	 * 
+	 * @return Computed magnitude
+	 */
+	float GetModifierMagnitude(int32 ModifierIdx, bool bFactorInStackCount) const;
+
 	void CalculateModifierMagnitudes();
 
 	void SetLevel(float InLevel);
@@ -1413,6 +1413,8 @@ private:
 	void OnMagnitudeDependencyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAgg);
 
 	void OnStackCountChange(FActiveGameplayEffect& ActiveEffect);
+
+	void UpdateAllAggregatorModMagnitudes(FActiveGameplayEffect& ActiveEffect);
 
 	void UpdateAggregatorModMagnitudes(const TSet<FGameplayAttribute>& AttributesToUpdate, FActiveGameplayEffect& ActiveEffect);
 

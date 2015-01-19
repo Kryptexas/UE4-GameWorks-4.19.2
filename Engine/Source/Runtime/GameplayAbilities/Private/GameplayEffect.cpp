@@ -29,7 +29,6 @@ UGameplayEffect::UGameplayEffect(const FObjectInitializer& ObjectInitializer)
 	DurationPolicy = EGameplayEffectDurationType::Instant;
 	bExecutePeriodicEffectOnApplication = true;
 	ChanceToApplyToTarget.SetValue(1.f);
-	ChanceToExecuteOnGameplayEffect.SetValue(1.f);
 	StackingType = EGameplayEffectStackingType::None;
 	StackLimitCount = 0;
 	StackDurationRefreshPolicy = EGameplayEffectStackingDurationPolicy::RefreshOnSuccessfulApplication;
@@ -262,7 +261,7 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 			break;
 
 			case EGameplayEffectMagnitudeCalculation::SetByCaller:
-				OutCalculatedMagnitude = InRelevantSpec.GetMagnitude(SetByCallerMagnitude.DataName);
+				OutCalculatedMagnitude = InRelevantSpec.GetSetByCallerMagnitude(SetByCallerMagnitude.DataName);
 				break;
 			default:
 				ABILITY_LOG(Error, TEXT("Unknown MagnitudeCalculationType %d in AttemptCalculateMagnitude"), (int32)MagnitudeCalculationType);
@@ -525,7 +524,6 @@ void FGameplayEffectSpec::SetLevel(float InLevel)
 		
 		Period = Def->Period.GetValueAtLevel(InLevel);
 		ChanceToApplyToTarget = Def->ChanceToApplyToTarget.GetValueAtLevel(InLevel);
-		ChanceToExecuteOnGameplayEffect = Def->ChanceToExecuteOnGameplayEffect.GetValueAtLevel(InLevel);
 	}
 }
 
@@ -564,9 +562,19 @@ float FGameplayEffectSpec::GetChanceToApplyToTarget() const
 	return ChanceToApplyToTarget;
 }
 
-float FGameplayEffectSpec::GetChanceToExecuteOnGameplayEffect() const
+float FGameplayEffectSpec::GetModifierMagnitude(int32 ModifierIdx, bool bFactorInStackCount) const
 {
-	return ChanceToExecuteOnGameplayEffect;
+	check(Modifiers.IsValidIndex(ModifierIdx) && Def && Def->Modifiers.IsValidIndex(ModifierIdx));
+
+	const float SingleEvaluatedMagnitude = Modifiers[ModifierIdx].GetEvaluatedMagnitude();
+
+	float ModMagnitude = SingleEvaluatedMagnitude;
+	if (bFactorInStackCount)
+	{
+		ModMagnitude = GameplayEffectUtilities::ComputeStackedModifierMagnitude(SingleEvaluatedMagnitude, StackCount, Def->Modifiers[ModifierIdx].ModifierOp);
+	}
+
+	return ModMagnitude;
 }
 
 void FGameplayEffectSpec::CalculateModifierMagnitudes()
@@ -582,24 +590,6 @@ void FGameplayEffectSpec::CalculateModifierMagnitudes()
 			ABILITY_LOG(Warning, TEXT("Modifier on spec: %s was asked to CalculateMagnitude and failed, falling back to 0."), *ToSimpleString());
 		}
 	}
-}
-
-float FGameplayEffectSpec::GetMagnitude(const FGameplayAttribute &Attribute) const
-{
-	for (int32 ModIdx = 0; ModIdx < Modifiers.Num(); ++ModIdx)
-	{
-		const FGameplayModifierInfo& ModDef = Def->Modifiers[ModIdx];
-		const FModifierSpec& ModSpec = Modifiers[ModIdx];
-	
-		if (ModDef.Attribute != Attribute)
-		{
-			continue;
-		}
-
-		return ModSpec.EvaluatedMagnitude;
-	}
-
-	return 0.f;
 }
 
 bool FGameplayEffectSpec::HasValidCapturedAttributes(const TArray<FGameplayEffectAttributeCaptureDefinition>& InCaptureDefsToCheck) const
@@ -676,7 +666,7 @@ void FGameplayEffectSpec::GetAllGrantedTags(OUT FGameplayTagContainer& Container
 	Container.AppendTags(Def->InheritableOwnedTagsContainer.CombinedTags);
 }
 
-void FGameplayEffectSpec::SetMagnitude(FName DataName, float Magnitude)
+void FGameplayEffectSpec::SetSetByCallerMagnitude(FName DataName, float Magnitude)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	const float* CurrentValue = SetByCallerMagnitudes.Find(DataName);
@@ -689,7 +679,7 @@ void FGameplayEffectSpec::SetMagnitude(FName DataName, float Magnitude)
 	SetByCallerMagnitudes.Add(DataName) = Magnitude;
 }
 
-float FGameplayEffectSpec::GetMagnitude(FName DataName) const
+float FGameplayEffectSpec::GetSetByCallerMagnitude(FName DataName) const
 {
 	float Magnitude = 0.f;
 	const float* Ptr = SetByCallerMagnitudes.Find(DataName);
@@ -1038,6 +1028,9 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 		StartWorldTime = InArray.GetWorldTime() - static_cast<float>(InArray.GetGameStateTime() - StartGameStateTime);
 		CachedStartGameStateTime = StartGameStateTime;
 	}
+
+	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
+	const_cast<FActiveGameplayEffectsContainer&>(InArray).UpdateAllAggregatorModMagnitudes(*this);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1073,8 +1066,6 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	
 	FGameplayEffectSpec& SpecToUse = Spec;
 
-	float ChanceToExecute = SpecToUse.GetChanceToExecuteOnGameplayEffect();		// Not implemented? Should we just remove ChanceToExecute?
-
 	// Capture our own tags.
 	// TODO: We should only capture them if we need to. We may have snapshotted target tags (?) (in the case of dots with exotic setups?)
 
@@ -1091,9 +1082,8 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	for (int32 ModIdx = 0; ModIdx < SpecToUse.Modifiers.Num(); ++ModIdx)
 	{
 		const FGameplayModifierInfo& ModDef = SpecToUse.Def->Modifiers[ModIdx];
-		const FModifierSpec& ModSpec = SpecToUse.Modifiers[ModIdx];
-
-		FGameplayModifierEvaluatedData EvalData(ModDef.Attribute, ModDef.ModifierOp, ModSpec.GetEvaluatedMagnitude());
+		
+		FGameplayModifierEvaluatedData EvalData(ModDef.Attribute, ModDef.ModifierOp, SpecToUse.GetModifierMagnitude(ModIdx, true));
 		InvokeGameplayCueExecute |= InternalExecuteMod(SpecToUse, EvalData);
 	}
 
@@ -1140,7 +1130,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 				// If the execution didn't manually handle the stack count, automatically apply it here
 				if (bApplyStackCountToEmittedMods && SpecStackCount > 1)
 				{
-					CurExecMod.Magnitude *= SpecStackCount;
+					CurExecMod.Magnitude = GameplayEffectUtilities::ComputeStackedModifierMagnitude(CurExecMod.Magnitude, SpecStackCount, CurExecMod.ModifierOp);
 				}
 				InvokeGameplayCueExecute |= InternalExecuteMod(SpecToUse, CurExecMod);
 			}
@@ -1330,9 +1320,14 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependencyChange(FActiveGamepla
 
 void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& ActiveEffect)
 {
+	UpdateAllAggregatorModMagnitudes(ActiveEffect);
+}
+
+void FActiveGameplayEffectsContainer::UpdateAllAggregatorModMagnitudes(FActiveGameplayEffect& ActiveEffect)
+{
 	const FGameplayEffectSpec& Spec = ActiveEffect.Spec;
 	TSet<FGameplayAttribute> AttributesToUpdate;
-	
+
 	for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 	{
 		const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
@@ -1354,15 +1349,14 @@ void FActiveGameplayEffectsContainer::UpdateAggregatorModMagnitudes(const TSet<F
 		// Todo: it would be nice to have a better way of updating this. Some ideas: instead of remove, call an 'invalidate' to NAN out all floats for a given handle, then call an 'update' to set real values.
 		Aggregator->RemoveAggregatorMod(ActiveEffect.Handle);
 
-		// Now readd ALL of our mods
+		// Now re-add ALL of our mods
 		for(int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 		{
 			const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
-			const FModifierSpec& ModSpec = Spec.Modifiers[ModIdx];
 
 			if (ModDef.Attribute == Attribute)
 			{
-				Aggregator->AddAggregatorMod(ModSpec.GetEvaluatedMagnitude() * static_cast<float>(Spec.StackCount), ModDef.ModifierOp, &ModDef.SourceTags, &ModDef.TargetTags, ActiveEffect.PredictionKey.WasLocallyGenerated(), ActiveEffect.Handle);
+				Aggregator->AddAggregatorMod(Spec.GetModifierMagnitude(ModIdx, true), ModDef.ModifierOp, &ModDef.SourceTags, &ModDef.TargetTags, ActiveEffect.PredictionKey.WasLocallyGenerated(), ActiveEffect.Handle);
 			}
 		}
 	}
@@ -1891,14 +1885,13 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 	{
 		for (int32 ModIdx = 0; ModIdx < Effect.Spec.Modifiers.Num(); ++ModIdx)
 		{
-			const FModifierSpec &Mod = Effect.Spec.Modifiers[ModIdx];
 			const FGameplayModifierInfo &ModInfo = Effect.Spec.Def->Modifiers[ModIdx];
 
 			// Note we assume the EvaluatedMagnitude is up to do. There is no case currently where we should recalculate magnitude based on
 			// Ongoing tags being met. We either calculate magnitude one time, or its done via OnDirty calls (or potentially a frequency timer one day)
 					
 			FAggregator* Aggregator = FindOrCreateAttributeAggregator(Effect.Spec.Def->Modifiers[ModIdx].Attribute).Get();
-			Aggregator->AddAggregatorMod(Mod.GetEvaluatedMagnitude() * static_cast<float>(Effect.Spec.StackCount), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.PredictionKey.WasLocallyGenerated(), Effect.Handle);
+			Aggregator->AddAggregatorMod(Effect.Spec.GetModifierMagnitude(ModIdx, true), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.PredictionKey.WasLocallyGenerated(), Effect.Handle);
 		}
 	}
 
