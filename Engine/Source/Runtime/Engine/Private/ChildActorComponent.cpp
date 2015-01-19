@@ -40,11 +40,11 @@ void UChildActorComponent::OnComponentDestroyed()
 	DestroyChildActor();
 }
 
-class FChildActorComponentInstanceData : public FComponentInstanceDataBase
+class FChildActorComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FChildActorComponentInstanceData(const UChildActorComponent* Component)
-		: FComponentInstanceDataBase(Component)
+		: FSceneComponentInstanceData(Component)
 		, ChildActorName(Component->ChildActorName)
 	{
 		if (Component->ChildActor)
@@ -108,6 +108,8 @@ FComponentInstanceDataBase* UChildActorComponent::GetComponentInstanceData() con
 
 void UChildActorComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
+	Super::ApplyComponentInstanceData(ComponentInstanceData);
+
 	check(ComponentInstanceData);
 	FChildActorComponentInstanceData* ChildActorInstanceData  = static_cast<FChildActorComponentInstanceData*>(ComponentInstanceData);
 	ChildActorName = ChildActorInstanceData->ChildActorName;

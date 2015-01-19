@@ -325,11 +325,11 @@ bool USkyLightComponent::IsReadyForFinishDestroy()
 }
 
 /** Used to store lightmap data during RerunConstructionScripts */
-class FPrecomputedSkyLightInstanceData : public FComponentInstanceDataBase
+class FPrecomputedSkyLightInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FPrecomputedSkyLightInstanceData(const USkyLightComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 	{}
 
 	FGuid LightGuid;
@@ -359,6 +359,9 @@ FComponentInstanceDataBase* USkyLightComponent::GetComponentInstanceData() const
 
 void USkyLightComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
+	//Skip ULightComponent implementationn
+	USceneComponent::ApplyComponentInstanceData(ComponentInstanceData);
+
 	check(ComponentInstanceData);
 	FPrecomputedSkyLightInstanceData* LightMapData  = static_cast<FPrecomputedSkyLightInstanceData*>(ComponentInstanceData);
 

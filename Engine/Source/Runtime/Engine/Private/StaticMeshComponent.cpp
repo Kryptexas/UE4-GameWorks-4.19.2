@@ -23,11 +23,11 @@
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
-class FStaticMeshComponentInstanceData : public FComponentInstanceDataBase
+class FStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FStaticMeshComponentInstanceData(const UStaticMeshComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 		, StaticMesh(SourceComponent->StaticMesh)
 		, bHasCachedStaticLighting(false)
 	{
@@ -1569,6 +1569,8 @@ FComponentInstanceDataBase* UStaticMeshComponent::GetComponentInstanceData() con
 
 void UStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
+	Super::ApplyComponentInstanceData(ComponentInstanceData);
+
 	check(ComponentInstanceData);
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component

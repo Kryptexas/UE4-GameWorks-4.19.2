@@ -1007,6 +1007,51 @@ bool USceneComponent::IsAttachedTo(class USceneComponent* TestComp) const
 	return false;
 }
 
+FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* SourceComponent)
+	: FComponentInstanceDataBase(SourceComponent)
+{
+	for (USceneComponent* SceneComponent : SourceComponent->AttachChildren)
+	{
+		if (SceneComponent && !SceneComponent->bCreatedByConstructionScript)
+		{
+			AttachedInstanceComponents.Add(SceneComponent);
+		}
+	}
+}
+
+FComponentInstanceDataBase* USceneComponent::GetComponentInstanceData() const
+{
+	FComponentInstanceDataBase* InstanceData = nullptr;
+
+	for (USceneComponent* Child : AttachChildren)
+	{
+		if (!Child->bCreatedByConstructionScript)
+		{
+			InstanceData = new FSceneComponentInstanceData(this);
+			break;
+		}
+	}
+
+	return InstanceData;
+}
+
+FName USceneComponent::GetComponentInstanceDataType() const
+{
+	static const FName SceneComponentInstanceDataTypeName(TEXT("SceneComponentInstanceData"));
+	return SceneComponentInstanceDataTypeName;
+}
+
+void USceneComponent::ApplyComponentInstanceData(class FComponentInstanceDataBase* ComponentInstanceData )
+{
+	check(ComponentInstanceData);
+	FSceneComponentInstanceData* SceneComponentInstanceData  = static_cast<FSceneComponentInstanceData*>(ComponentInstanceData);
+
+	for (USceneComponent* ChildComponent : SceneComponentInstanceData->AttachedInstanceComponents)
+	{
+		ChildComponent->AttachTo(this);
+	}
+}
+
 void USceneComponent::UpdateChildTransforms()
 {
 	for(int32 i=0; i<AttachChildren.Num(); i++)

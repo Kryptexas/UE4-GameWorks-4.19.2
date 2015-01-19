@@ -563,11 +563,11 @@ void USplineComponent::RefreshSplineInputs()
 
 
 /** Used to store spline data during RerunConstructionScripts */
-class FSplineInstanceData : public FComponentInstanceDataBase
+class FSplineInstanceData : public FSceneComponentInstanceData
 {
 public:
 	explicit FSplineInstanceData(const USplineComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 	{
 	}
 
@@ -595,6 +595,8 @@ FComponentInstanceDataBase* USplineComponent::GetComponentInstanceData() const
 
 void USplineComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
+	Super::ApplyComponentInstanceData(ComponentInstanceData);
+
 	if (ComponentInstanceData)
 	{
 		FSplineInstanceData* SplineInstanceData  = static_cast<FSplineInstanceData*>(ComponentInstanceData);

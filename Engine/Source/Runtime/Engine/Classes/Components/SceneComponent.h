@@ -501,6 +501,9 @@ public:
 	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
 	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
+	virtual class FComponentInstanceDataBase* GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(class FComponentInstanceDataBase* ComponentInstanceData ) override;
 	// End ActorComponent interface
 
 	// Begin UObject Interface
@@ -785,6 +788,20 @@ protected:
 	virtual void UpdateNavigationData();
 };
 
+/** 
+ *  Component instance cached data base class for scene components. 
+ *  Stores a list of instance components attached to the 
+ */
+class ENGINE_API FSceneComponentInstanceData : public FComponentInstanceDataBase
+{
+public:
+	FSceneComponentInstanceData(const USceneComponent* SourceComponent);
+			
+	virtual ~FSceneComponentInstanceData()
+	{}
+
+	TArray<USceneComponent*> AttachedInstanceComponents;
+};
 
 
 /**
