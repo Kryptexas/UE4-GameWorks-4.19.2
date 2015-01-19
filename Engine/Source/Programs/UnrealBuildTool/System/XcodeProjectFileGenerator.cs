@@ -1084,7 +1084,7 @@ namespace UnrealBuildTool
 
 					if (IsEngineTarget)
 					{
-						if (!bAlwaysIncludeEngineModules)
+						if (!IncludeEngineSource)
 						{
 							// We were asked to exclude engine modules from the generated projects
 							WantProjectFileForTarget = false;

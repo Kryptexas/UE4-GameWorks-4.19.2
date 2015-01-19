@@ -940,7 +940,8 @@ namespace UnrealBuildTool
 					bShouldCompileMonolithic |= TargetRulesObject.ShouldCompileMonolithic(Platform, Configuration);
 
 					// Get the output directory
-					string RootDirectory = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath);
+					string EngineRootDirectory = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath);
+					string RootDirectory = EngineRootDirectory;
                     if ((TargetRules.IsAGame(TargetRulesObject.Type) || TargetRulesObject.Type == TargetRules.TargetType.Server) && bShouldCompileMonolithic && !TargetRulesObject.bOutputToEngineBinaries)
 					{
 						if (UnrealBuildTool.HasUProjectFile() && Utils.IsFileUnderDirectory(TargetFilePath, UnrealBuildTool.GetUProjectPath()))
@@ -1012,39 +1013,50 @@ namespace UnrealBuildTool
 						UEPlatformProjectGenerator.GenerateGamePlatformSpecificProperties(Platform, Configuration, TargetRulesObject.Type, VCProjectFileContent, RootDirectory, TargetFilePath);
 					}
 
-					// This is the standard UE4 based project NMake build line:
-					//	..\..\Build\BatchFiles\Build.bat <TARGETNAME> <PLATFORM> <CONFIGURATION>
-					//	ie ..\..\Build\BatchFiles\Build.bat BlankProgram Win64 Debug
-
-					string ProjectPlatformConfiguration = " " + TargetName + " " + UBTPlatformName + " " + UBTConfigurationName;
-					string BatchFilesDirectoryName = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Build", "BatchFiles");
-
-					// NMake Build command line
-					VCProjectFileContent.Append("		<NMakeBuildCommandLine>");
-					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Build.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (IsForeignProject)
+					if(UnrealBuildTool.RunningRocket() && Utils.IsFileUnderDirectory(TargetFilePath, EngineRootDirectory))
 					{
-						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
+						// Don't build any engine targets for Rocket. We can still start the program through the debugger though...
+						VCProjectFileContent.AppendFormat("\t\t<NMakeBuildCommandLine>@echo {0} is up to date.</NMakeBuildCommandLine>" + ProjectFileGenerator.NewLine, TargetName);
+						VCProjectFileContent.AppendFormat("\t\t<NMakeReBuildCommandLine>@echo {0} is up to date.</NMakeReBuildCommandLine>" + ProjectFileGenerator.NewLine, TargetName);
+						VCProjectFileContent.AppendFormat("\t\t<NMakeCleanCommandLine>@echo Ignoring clean for {0}.</NMakeCleanCommandLine>" + ProjectFileGenerator.NewLine, TargetName);
 					}
-					VCProjectFileContent.Append("</NMakeBuildCommandLine>" + ProjectFileGenerator.NewLine);
-
-					// NMake ReBuild command line
-					VCProjectFileContent.Append("		<NMakeReBuildCommandLine>");
-					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Rebuild.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (IsForeignProject)
+					else
 					{
-						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
-					}
-					VCProjectFileContent.Append("</NMakeReBuildCommandLine>" + ProjectFileGenerator.NewLine);
+						// This is the standard UE4 based project NMake build line:
+						//	..\..\Build\BatchFiles\Build.bat <TARGETNAME> <PLATFORM> <CONFIGURATION>
+						//	ie ..\..\Build\BatchFiles\Build.bat BlankProgram Win64 Debug
 
-					// NMake Clean command line
-					VCProjectFileContent.Append("		<NMakeCleanCommandLine>");
-					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Clean.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (IsForeignProject)
-					{
-						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
+						string ProjectPlatformConfiguration = " " + TargetName + " " + UBTPlatformName + " " + UBTConfigurationName;
+						string BatchFilesDirectoryName = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Build", "BatchFiles");
+
+						// NMake Build command line
+						VCProjectFileContent.Append("		<NMakeBuildCommandLine>");
+						VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Build.bat"))) + ProjectPlatformConfiguration.ToString());
+						if (IsForeignProject)
+						{
+							VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
+						}
+						VCProjectFileContent.Append("</NMakeBuildCommandLine>" + ProjectFileGenerator.NewLine);
+
+						// NMake ReBuild command line
+						VCProjectFileContent.Append("		<NMakeReBuildCommandLine>");
+						VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Rebuild.bat"))) + ProjectPlatformConfiguration.ToString());
+						if (IsForeignProject)
+						{
+							VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
+						}
+						VCProjectFileContent.Append("</NMakeReBuildCommandLine>" + ProjectFileGenerator.NewLine);
+
+						// NMake Clean command line
+						VCProjectFileContent.Append("		<NMakeCleanCommandLine>");
+						VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Clean.bat"))) + ProjectPlatformConfiguration.ToString());
+						if (IsForeignProject)
+						{
+							VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
+						}
+						VCProjectFileContent.Append("</NMakeCleanCommandLine>" + ProjectFileGenerator.NewLine);
 					}
-					VCProjectFileContent.Append("</NMakeCleanCommandLine>" + ProjectFileGenerator.NewLine);
+
 					VCProjectFileContent.Append("		<NMakeOutput>");
 					VCProjectFileContent.Append(NormalizeProjectPath(NMakePath));
 					VCProjectFileContent.Append("</NMakeOutput>" + ProjectFileGenerator.NewLine);
