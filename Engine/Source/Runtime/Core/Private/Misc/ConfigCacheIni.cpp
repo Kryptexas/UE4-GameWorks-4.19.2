@@ -552,8 +552,8 @@ void FConfigFile::Read( const FString& Filename )
 bool FConfigFile::ShouldExportQuotedString(const FString& PropertyValue) const
 {
 	// The value should be exported as quoted string if it begins with a space (which is stripped on import) or
-	// when it contains ' //' (interpreted as a comment when importing) or starts with '//'
-	return **PropertyValue == TEXT(' ') || FCString::Strstr(*PropertyValue, TEXT(" //")) != NULL || PropertyValue.StartsWith(TEXT("//"));
+	// when it contains '//' (interpreted as a comment when importing).
+	return **PropertyValue == TEXT(' ') || FCString::Strstr(*PropertyValue, TEXT("//")) != NULL;
 }
 
 
