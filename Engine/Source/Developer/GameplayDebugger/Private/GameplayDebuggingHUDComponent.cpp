@@ -251,17 +251,19 @@ void AGameplayDebuggingHUDComponent::DrawPath(APlayerController* MyPC, class UGa
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static const FColor Grey(100,100,100);
+	static const FColor PathColor(0, 255, 255);
+
 	const int32 NumPathVerts = DebugComponent->PathPoints.Num();
 	UWorld* World = GetWorld();
 
 		for (int32 VertIdx=0; VertIdx < NumPathVerts-1; ++VertIdx)
 		{
 			FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffset;
-			DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, Grey, false);
+			DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, VertIdx < int32(DebugComponent->NextPathPointIndex) ? Grey : PathColor, false);
 
 			// draw line to next loc
 			FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffset;
-			DrawDebugLine(World, VertLoc, NextVertLoc, Grey, false
+			DrawDebugLine(World, VertLoc, NextVertLoc, VertIdx < int32(DebugComponent->NextPathPointIndex) ? Grey : PathColor, false
 				, -1.f, 0
 				, NavigationDebugDrawing::PathLineThickness);
 		}
@@ -329,7 +331,6 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 
 	if (EngineShowFlags.DebugAI)
 	{
-		PrintString(OverHeadContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
 		DrawPath(PC, DebugComponent);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -345,10 +346,34 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 	PrintString(DefaultContext, FString::Printf(TEXT("Controller Name: {yellow}%s\n"), *DebugComponent->ControllerName));
 	DefaultContext.Font = OldFont;
 
-	PrintString(DefaultContext, FString::Printf(TEXT("Pawn Name: {yellow}%s, {white}Pawn Class: {yellow}%s\n"), *DebugComponent->PawnName, *DebugComponent->PawnClass));
-	if (DebugComponent->PathErrorString.Len() > 0)
+	PrintString(DefaultContext, FString::Printf(TEXT("Pawn Name: {yellow}%s{white}, Pawn Class: {yellow}%s\n"), *DebugComponent->PawnName, *DebugComponent->PawnClass));
+
+	// movement
+	if (DebugComponent->bIsUsingCharacter)
 	{
-		PrintString(DefaultContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
+		PrintString(DefaultContext, FString::Printf(TEXT("Movement Mode: {yellow}%s{white}, Base: {yellow}%s\n"), *DebugComponent->MovementModeInfo, *DebugComponent->MovementBaseInfo));
+		PrintString(DefaultContext, FString::Printf(TEXT("NavData: {yellow}%s{white}, Path following: {yellow}%s\n"), *DebugComponent->NavDataInfo, *DebugComponent->PathFollowingInfo));
+	}
+
+	// logic
+	if (DebugComponent->bIsUsingBehaviorTree)
+	{
+		PrintString(DefaultContext, FString::Printf(TEXT("Behavior: {yellow}%s{white}, Tree: {yellow}%s\n"), *DebugComponent->CurrentAIState, *DebugComponent->CurrentAIAssets));
+		PrintString(DefaultContext, FString::Printf(TEXT("Active task: {yellow}%s\n"), *DebugComponent->CurrentAITask));
+	}
+
+	// ability + animation
+	if (DebugComponent->bIsUsingAbilities && DebugComponent->bIsUsingCharacter)
+	{
+		PrintString(DefaultContext, FString::Printf(TEXT("Ability: {yellow}%s{white}, Montage: {yellow}%s\n"), *DebugComponent->AbilityInfo, *DebugComponent->MontageInfo));
+	}
+	else if (DebugComponent->bIsUsingCharacter)
+	{
+		PrintString(DefaultContext, FString::Printf(TEXT("Montage: {yellow}%s\n"), *DebugComponent->MontageInfo));
+	}
+	else if (DebugComponent->bIsUsingAbilities)
+	{
+		PrintString(DefaultContext, FString::Printf(TEXT("Ability: {yellow}%s\n"), *DebugComponent->AbilityInfo));
 	}
 
 	DrawPath(PC, DebugComponent);

@@ -62,6 +62,33 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	FString DebugIcon;
 
 	UPROPERTY(Replicated)
+	FString MovementBaseInfo;
+
+	UPROPERTY(Replicated)
+	FString MovementModeInfo;
+
+	UPROPERTY(Replicated)
+	FString PathFollowingInfo;
+
+	UPROPERTY(Replicated)
+	FString CurrentAITask;
+
+	UPROPERTY(Replicated)
+	FString CurrentAIState;
+
+	UPROPERTY(Replicated)
+	FString CurrentAIAssets;
+
+	UPROPERTY(Replicated)
+	FString NavDataInfo;
+
+	UPROPERTY(Replicated)
+	FString AbilityInfo;
+
+	UPROPERTY(Replicated)
+	FString MontageInfo;
+
+	UPROPERTY(Replicated)
 	FString BrainComponentName;
 
 	UPROPERTY(Replicated)
@@ -76,14 +103,10 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(Replicated)
 	TArray<FVector> PathPoints;
 
-	/** Begin path replication data */
 	UPROPERTY(ReplicatedUsing = OnRep_PathCorridorData)
 	TArray<uint8> PathCorridorData;
 	
 	TArray<TArray<FVector> > PathCorridorPolygons;
-
-	UPROPERTY(Replicated)
-	FString PathErrorString;
 	/** End path replication data*/
 	
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateNavmesh)
@@ -102,6 +125,21 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 
 	UPROPERTY(Replicated)
 	FVector SensingComponentLocation;
+
+	UPROPERTY(Replicated)
+	int32 NextPathPointIndex;
+
+	UPROPERTY(Replicated)
+	uint32 bIsUsingPathFollowing : 1;
+
+	UPROPERTY(Replicated)
+	uint32 bIsUsingCharacter : 1;
+
+	UPROPERTY(Replicated)
+	uint32 bIsUsingBehaviorTree : 1;
+
+	UPROPERTY(Replicated)
+	uint32 bIsUsingAbilities : 1;
 
 	uint32 bDrawEQSLabels:1;
 	uint32 bDrawEQSFailedItems : 1;
@@ -200,6 +238,12 @@ protected:
 	virtual void CollectPathData();
 	virtual void CollectBasicData();
 	virtual void CollectBehaviorTreeData();
+
+	virtual void CollectBasicMovementData(APawn* MyPawn);
+	virtual void CollectBasicPathData(APawn* MyPawn);
+	virtual void CollectBasicBehaviorData(APawn* MyPawn);
+	virtual void CollectBasicAbilityData(APawn* MyPawn);
+	virtual void CollectBasicAnimationData(APawn* MyPawn);
 
 	FNavPathWeakPtr CurrentPath;
 

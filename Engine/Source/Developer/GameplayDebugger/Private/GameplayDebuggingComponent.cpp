@@ -10,7 +10,8 @@
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "BehaviorTree/BlackboardComponent.h"
-
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "BehaviorTreeDelegates.h"
@@ -184,29 +185,55 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	DOREPLIFETIME( UGameplayDebuggingComponent, ReplicateViewDataCounters );
-	DOREPLIFETIME( UGameplayDebuggingComponent, ShowExtendedInformatiomCounter );
-	DOREPLIFETIME( UGameplayDebuggingComponent, ControllerName )
-	DOREPLIFETIME( UGameplayDebuggingComponent, PawnName );
-	DOREPLIFETIME( UGameplayDebuggingComponent, DebugIcon );
-	DOREPLIFETIME( UGameplayDebuggingComponent, PawnClass );
+	DOREPLIFETIME(UGameplayDebuggingComponent, ReplicateViewDataCounters);
+	DOREPLIFETIME(UGameplayDebuggingComponent, ShowExtendedInformatiomCounter);
+	DOREPLIFETIME(UGameplayDebuggingComponent, ControllerName)
+	DOREPLIFETIME(UGameplayDebuggingComponent, PawnName);
+	DOREPLIFETIME(UGameplayDebuggingComponent, DebugIcon);
+	DOREPLIFETIME(UGameplayDebuggingComponent, PawnClass);
+
+	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingCharacter);
+	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingPathFollowing);
+	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingBehaviorTree);
+	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingAbilities);
+
+	if (bIsUsingCharacter)
+	{
+		DOREPLIFETIME(UGameplayDebuggingComponent, MovementBaseInfo);
+		DOREPLIFETIME(UGameplayDebuggingComponent, MovementModeInfo);
+		DOREPLIFETIME(UGameplayDebuggingComponent, MontageInfo);
+	}
+
+	if (bIsUsingPathFollowing)
+	{
+		DOREPLIFETIME(UGameplayDebuggingComponent, PathFollowingInfo);
+		DOREPLIFETIME(UGameplayDebuggingComponent, NavDataInfo);
+		DOREPLIFETIME(UGameplayDebuggingComponent, PathPoints);
+		DOREPLIFETIME(UGameplayDebuggingComponent, PathCorridorData);
+		DOREPLIFETIME(UGameplayDebuggingComponent, NextPathPointIndex);
+	}
+
+	if (bIsUsingBehaviorTree)
+	{
+		DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAITask);
+		DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIState);
+		DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIAssets);
+	}
+
+	if (bIsUsingAbilities)
+	{
+		DOREPLIFETIME(UGameplayDebuggingComponent, AbilityInfo);
+	}
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, BrainComponentName);
 	DOREPLIFETIME(UGameplayDebuggingComponent, BrainComponentString);
 	DOREPLIFETIME(UGameplayDebuggingComponent, BlackboardRepData);
 
-	DOREPLIFETIME( UGameplayDebuggingComponent, PathPoints );
-	DOREPLIFETIME( UGameplayDebuggingComponent, PathErrorString );
-
-	DOREPLIFETIME( UGameplayDebuggingComponent, NavmeshRepData );
-
-	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
-
+	DOREPLIFETIME(UGameplayDebuggingComponent, NavmeshRepData);
+	DOREPLIFETIME(UGameplayDebuggingComponent, TargetActor);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, SensingComponentLocation);
-
-	DOREPLIFETIME(UGameplayDebuggingComponent, PathCorridorData);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -383,17 +410,28 @@ void UGameplayDebuggingComponent::CollectDataToReplicate(bool bCollectExtendedDa
 void UGameplayDebuggingComponent::CollectBasicData()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	const APawn* MyPawn = Cast<APawn>(GetSelectedActor());
+	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 	PawnName = MyPawn->GetHumanReadableName();
 	PawnClass = MyPawn->GetClass()->GetName();
-	const AAIController* MyController = Cast<const AAIController>(MyPawn->Controller);
+	AAIController* MyController = Cast<AAIController>(MyPawn->Controller);
 
-	if (MyController != NULL)
+	bIsUsingCharacter = MyPawn->IsA(ACharacter::StaticClass());
+	bIsUsingPathFollowing = false;
+	bIsUsingBehaviorTree = false;
+	bIsUsingAbilities = false;
+
+	if (MyController)
 	{
 		if (MyController->IsPendingKill() == false)
 		{
 			ControllerName = MyController->GetName();
 			DebugIcon = MyController->GetDebugIcon();
+
+			CollectBasicMovementData(MyPawn);
+			CollectBasicPathData(MyPawn);
+			CollectBasicBehaviorData(MyPawn);
+			CollectBasicAbilityData(MyPawn);
+			CollectBasicAnimationData(MyPawn);
 		}
 		else
 		{
@@ -405,6 +443,141 @@ void UGameplayDebuggingComponent::CollectBasicData()
 		ControllerName = TEXT("No Controller");
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+void UGameplayDebuggingComponent::CollectBasicMovementData(APawn* MyPawn)
+{
+	UCharacterMovementComponent* CharMovement = Cast<UCharacterMovementComponent>(MyPawn->GetMovementComponent());
+	if (CharMovement)
+	{
+		UPrimitiveComponent* FloorComponent = MyPawn->GetMovementBase();
+		AActor* FloorActor = FloorComponent ? FloorComponent->GetOwner() : nullptr;
+		MovementBaseInfo = FloorComponent ? FString::Printf(TEXT("%s.%s"), *GetNameSafe(FloorActor), *FloorComponent->GetName()) : TEXT("None");
+
+		MovementModeInfo = CharMovement->GetMovementName();
+	}
+	else
+	{
+		MovementBaseInfo = TEXT("");
+		MovementModeInfo = TEXT("");
+	}
+}
+
+void UGameplayDebuggingComponent::CollectBasicPathData(APawn* MyPawn)
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyPawn->GetWorld());
+	AAIController* MyAIController = Cast<AAIController>(MyPawn->GetController());
+
+	const ANavigationData* NavData = NavSys->GetNavDataForProps(MyAIController->GetNavAgentPropertiesRef());
+	NavDataInfo = NavData->NavDataConfig.Name.ToString();
+
+	UPathFollowingComponent* PFC = MyAIController->GetPathFollowingComponent();
+	bIsUsingPathFollowing = (PFC != nullptr);
+
+	if (PFC)
+	{
+		TArray<FString> Tokens;
+		TArray<EPathFollowingDebugTokens::Type> Flags;
+		if (PFC)
+		{
+			PFC->GetDebugStringTokens(Tokens, Flags);
+		}
+
+		PathFollowingInfo = FString();
+		for (int32 Idx = 0; Idx < Tokens.Num(); Idx++)
+		{
+			switch (Flags[Idx])
+			{
+			case EPathFollowingDebugTokens::Description:
+				PathFollowingInfo += Tokens[Idx];
+				break;
+
+			case EPathFollowingDebugTokens::ParamName:
+				PathFollowingInfo += TEXT(", {yellow}");
+				PathFollowingInfo += Tokens[Idx];
+				PathFollowingInfo += TEXT(":");
+				break;
+
+			case EPathFollowingDebugTokens::PassedValue:
+				PathFollowingInfo += TEXT("{yellow}");
+				PathFollowingInfo += Tokens[Idx];
+				break;
+
+			case EPathFollowingDebugTokens::FailedValue:
+				PathFollowingInfo += TEXT("{orange}");
+				PathFollowingInfo += Tokens[Idx];
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+	else
+	{
+		PathFollowingInfo = TEXT("");
+	}
+}
+
+void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
+{
+	AAIController* MyAIController = Cast<AAIController>(MyPawn->GetController());
+	UBehaviorTreeComponent* BTC = MyAIController ? Cast<UBehaviorTreeComponent>(MyAIController->BrainComponent) : nullptr;
+	bIsUsingBehaviorTree = (BTC != nullptr);
+
+	if (BTC)
+	{
+		CurrentAITask = BTC->DescribeActiveTasks();
+		CurrentAIState = BTC->IsRunning() ? TEXT("Running") : BTC->IsPaused() ? TEXT("Paused") : TEXT("Inactive");
+		CurrentAIAssets = BTC->DescribeActiveTrees();
+	}
+	else
+	{
+		CurrentAITask = TEXT("");
+		CurrentAIState = TEXT("");
+		CurrentAIAssets = TEXT("");
+	}
+}
+
+void UGameplayDebuggingComponent::CollectBasicAbilityData(APawn* MyPawn)
+{
+	UAbilitySystemComponent* AbilityComp = MyPawn->FindComponentByClass<UAbilitySystemComponent>();
+	bIsUsingAbilities = (AbilityComp != nullptr);
+
+	int32 NumActive = 0;
+	if (AbilityComp)
+	{
+		AbilityInfo = TEXT("");
+
+		for (const FGameplayAbilitySpec& AbilitySpec : AbilityComp->GetActivatableAbilities())
+		{
+			if (AbilitySpec.Ability && AbilitySpec.IsActive())
+			{
+				if (NumActive)
+				{
+					AbilityInfo += TEXT(", ");
+				}
+
+				UClass* AbilityClass = AbilitySpec.Ability->GetClass();
+				FString AbClassName = GetNameSafe(AbilityClass);
+				AbClassName.RemoveFromEnd(TEXT("_c"));
+
+				AbilityInfo += AbClassName;
+				NumActive++;
+			}
+		}
+	}
+
+	if (NumActive == 0)
+	{
+		AbilityInfo = TEXT("None");
+	}
+}
+
+void UGameplayDebuggingComponent::CollectBasicAnimationData(APawn* MyPawn)
+{
+	ACharacter* MyChar = Cast<ACharacter>(MyPawn);
+	MontageInfo = MyChar ? GetNameSafe(MyChar->GetCurrentMontage()) : TEXT("");
 }
 
 void UGameplayDebuggingComponent::CollectBehaviorTreeData()
@@ -478,13 +651,14 @@ void UGameplayDebuggingComponent::CollectPathData()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
-	PathErrorString.Empty();
 
 	bool bRefreshRendering = false;
 	if (AAIController *MyController = Cast<AAIController>(MyPawn->Controller))
 	{
 		if (MyController->PathFollowingComponent && MyController->PathFollowingComponent->GetPath().IsValid())
 		{
+			NextPathPointIndex = MyController->PathFollowingComponent->GetNextPathIndex();
+
 			const FNavPathSharedPtr& NewPath = MyController->PathFollowingComponent->GetPath();
 			if (!CurrentPath.HasSameObject(NewPath.Get()))
 			{
@@ -528,6 +702,7 @@ void UGameplayDebuggingComponent::CollectPathData()
 		}
 		else
 		{
+			NextPathPointIndex = INDEX_NONE;
 			CurrentPath = NULL;
 			PathPoints.Reset();
 			PathCorridorPolygons.Reset();
