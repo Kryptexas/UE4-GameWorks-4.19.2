@@ -198,6 +198,7 @@ namespace AutomationTool
             this.CulturesToCook = InParams.CulturesToCook;
             this.BasedOnReleaseVersion = InParams.BasedOnReleaseVersion;
             this.CreateReleaseVersion = InParams.CreateReleaseVersion;
+            this.DLCName = InParams.DLCName;
             this.NewCook = InParams.NewCook;
             this.AdditionalCookerOptions = InParams.AdditionalCookerOptions;
 			this.ClientCookedTargets = InParams.ClientCookedTargets;
@@ -332,6 +333,7 @@ namespace AutomationTool
             string AdditionalCookerOptions = null,
             string BasedOnReleaseVersion = null,
             string CreateReleaseVersion = null,
+            string DLCName = null,
             bool? NewCook = null,
 			bool? CrashReporter = null,
 			bool? DedicatedServer = null,
@@ -435,6 +437,7 @@ namespace AutomationTool
             this.CreateReleaseVersion = ParseParamValueIfNotSpecified(Command, CreateReleaseVersion, "createreleaseversion", String.Empty);
             this.BasedOnReleaseVersion = ParseParamValueIfNotSpecified(Command, BasedOnReleaseVersion, "basedonreleaseversion", String.Empty);
             this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
+            this.DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
 			this.SkipCook = GetParamValueIfNotSpecified(Command, SkipCook, this.SkipCook, "skipcook");
 			if (this.SkipCook)
 			{
@@ -773,7 +776,16 @@ namespace AutomationTool
 		{
 			get
 			{
-				return Path.GetFullPath(String.IsNullOrEmpty(StageDirectoryParam) ? CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Saved", "StagedBuilds") : StageDirectoryParam);
+                if( !String.IsNullOrEmpty(StageDirectoryParam ) )
+                {
+                    return Path.GetFullPath( StageDirectoryParam );
+                }
+                if ( HasDLCName )
+                {
+                     return Path.GetFullPath( CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Plugins", DLCName, "Saved", "StagedBuilds" ) );
+                }
+                // default return the project saved\stagedbuilds directory
+                return Path.GetFullPath( CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Saved", "StagedBuilds") );
 			}
 		}
 
@@ -945,6 +957,11 @@ namespace AutomationTool
         /// Cook: Base this cook of a already released version of the cooked data
         /// </summary>
         public string BasedOnReleaseVersion;
+
+        /// <summary>
+        /// Name of dlc to cook and package (if this paramter is supplied cooks the dlc and packages it into the dlc directory)
+        /// </summary>
+        public string DLCName;
 
         /// <summary>
         /// Cook: Additional cooker options to include on the cooker commandline
@@ -1530,6 +1547,11 @@ namespace AutomationTool
             get { return !String.IsNullOrEmpty(AdditionalCookerOptions); }
         }
 
+        public bool HasDLCName
+        {
+            get { return !String.IsNullOrEmpty(DLCName); }
+        }
+
         public bool HasCreateReleaseVersion
         {
             get { return !String.IsNullOrEmpty(CreateReleaseVersion); }
@@ -1824,6 +1846,7 @@ namespace AutomationTool
                 CommandUtils.Log("CookOnTheFlyStreaming={0}", CookOnTheFlyStreaming);
                 CommandUtils.Log("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.Log("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
+                CommandUtils.Log("DLCName={0}", DLCName);
                 CommandUtils.Log("AdditionalCookerOptions={0}", AdditionalCookerOptions);
 				CommandUtils.Log("DedicatedServer={0}", DedicatedServer);
 				CommandUtils.Log("DirectoriesToCook={0}", DirectoriesToCook.ToString());
