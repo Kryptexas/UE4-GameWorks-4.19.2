@@ -35,8 +35,6 @@ struct FFoliageCustomVersion
 		HierarchicalISMCNonTransactional = 2,
 		// Added FoliageTypeUpdateGuid
 		AddedFoliageTypeUpdateGuid = 3,
-		// Spawning actor that allows to delete foliage
-		SpawnerActor = 4,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -85,13 +83,6 @@ FArchive& operator<<(FArchive& Ar, FFoliageInstance& Instance)
 	}
 	
 	Ar << Instance.ZOffset;
-
-#if WITH_EDITORONLY_DATA
-	if (!Ar.ArIsFilterEditorOnly && Ar.CustomVer(FFoliageCustomVersion::GUID) >= FFoliageCustomVersion::SpawnerActor)
-	{
-		Ar << Instance.Spawner;
-	}
-#endif
 
 	return Ar;
 }
@@ -970,7 +961,7 @@ void AInstancedFoliageActor::DeleteInstancesForComponent(UActorComponent* InComp
 	}
 }
 
-void AInstancedFoliageActor::DeleteInstancesForSpawner(AActor* InSpawner)
+void AInstancedFoliageActor::DeleteInstancesForSpawner(UActorComponent* InComponent)
 {
 	for (auto& MeshPair : FoliageMeshes)
 	{
@@ -978,7 +969,7 @@ void AInstancedFoliageActor::DeleteInstancesForSpawner(AActor* InSpawner)
 		TArray<int32> InstancesToRemove;
 		for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
 		{
-			if (MeshInfo.Instances[InstanceIdx].Spawner == InSpawner)
+			if (MeshInfo.Instances[InstanceIdx].Spawner == InComponent)
 			{
 				InstancesToRemove.Add(InstanceIdx);
 			}

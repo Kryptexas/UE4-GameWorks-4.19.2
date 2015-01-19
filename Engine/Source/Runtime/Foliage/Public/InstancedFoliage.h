@@ -55,15 +55,11 @@ struct FFoliageInstance : public FFoliageInstancePlacementInfo
 {
 	UActorComponent* Base;
 
-#if WITH_EDITORONLY_DATA
-	AActor* Spawner;
-#endif
+	UActorComponent* Spawner;
 
 	FFoliageInstance()
 	: Base(NULL)
-#if WITH_EDITORONLY_DATA
 	, Spawner(NULL)
-#endif
 	{}
 
 

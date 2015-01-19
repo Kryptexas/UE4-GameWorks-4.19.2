@@ -5,7 +5,6 @@
 #include "ProceduralFoliageComponent.generated.h"
 
 class UProceduralFoliage;
-class AProceduralFoliageLevelInfo;
 
 UCLASS(BlueprintType)
 class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
@@ -35,10 +34,4 @@ class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
 
 private:
 	void SpawnTiles();
-	void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageInstances);
-
-private:
-	TMap<ULevel*, AProceduralFoliageLevelInfo*> SublevelInfos;
-	UPROPERTY()
-	FGuid ContentGuid;
 };
