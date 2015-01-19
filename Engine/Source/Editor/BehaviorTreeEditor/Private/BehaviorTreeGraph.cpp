@@ -2,6 +2,7 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTreeEditorModule.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
+#include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
 #include "BehaviorTree/BTDecorator.h"
 #include "BehaviorTree/BTService.h"
 #include "BehaviorTree/BehaviorTree.h"
