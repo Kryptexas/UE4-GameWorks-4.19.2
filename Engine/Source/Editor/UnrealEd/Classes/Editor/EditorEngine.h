@@ -1474,6 +1474,11 @@ public:
 	virtual bool CanCookByTheBookInEditor() const { return false; }
 
 	/**
+	 * Can the editor act as a cook on the fly server
+	 */
+	virtual bool CanCookOnTheFlyInEditor() const { return false; }
+
+	/**
 	 * Start cook by the book in the editor process space
 	 */
 	virtual void StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections ) { }

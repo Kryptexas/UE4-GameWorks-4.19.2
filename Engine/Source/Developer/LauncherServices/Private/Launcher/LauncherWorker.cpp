@@ -355,11 +355,6 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 			UATCommand += MapList;
 
-			if (InProfile->IsCookingIncrementally())
-			{
-				UATCommand += TEXT(" -iterativecooking");
-			}
-
 			if (InProfile->IsCookingUnversioned())
 			{
 				UATCommand += TEXT(" -Unversioned");
@@ -411,15 +406,22 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			}
 		}
 		break;
+	case ELauncherProfileCookModes::OnTheFlyInEditor:
+		UATCommand += MapList;
+		UATCommand += " -skipcook -cookonthefly";
+		break;
 	case ELauncherProfileCookModes::ByTheBookInEditor:
 		UATCommand += MapList;
-		if (InProfile->IsCookingIncrementally())
-		{
-			UATCommand += TEXT(" -iterativecooking");
-		}
+		UATCommand += TEXT(" -skipcook"); // don't cook anything the editor is doing it ;)
+		break;
 	case ELauncherProfileCookModes::DoNotCook:
 		UATCommand += TEXT(" -skipcook");
 		break;
+	}
+
+	if (InProfile->IsCookingIncrementally())
+	{
+		UATCommand += TEXT(" -iterativecooking");
 	}
 
 	// stage/package/deploy
@@ -583,6 +585,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 #if !WITH_EDITOR
 	// can't cook by the book in the editor if we are not in the editor...
 	check( InProfile->GetCookMode() != ELauncherProfileCookModes::ByTheBookInEditor );
+	check( InProfile->GetCookMode() != ELauncherProfileCookModes::OnTheFlyInEditor );
 #endif
 
 	TSharedPtr<FLauncherTask> NextTask = TaskChain;

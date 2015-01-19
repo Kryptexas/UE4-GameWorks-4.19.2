@@ -549,7 +549,12 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	/**
 	 * Can the editor do cook by the book in the editor process space
 	 */
-	virtual bool CanCookByTheBookInEditor() const;
+	virtual bool CanCookByTheBookInEditor() const override;
+
+	/**
+	 * Can the editor act as a cook on the fly server
+	 */
+	virtual bool CanCookOnTheFlyInEditor() const override;
 
 	/**
 	 * Start cook by the book in the editor process space
