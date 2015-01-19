@@ -319,9 +319,6 @@ private:
 
 public:
 
-	/** Called when the Newer Graph is modified*/
-	void OnGraphChanged(const FEdGraphEditAction& Action);
-
 	/** Generate list of differences*/
 	TSharedRef<SWidget> GenerateDiffListWidget();
 
@@ -340,9 +337,6 @@ private:
 
 	/** ListView of differences */
 	TSharedPtr<SListViewType> DiffList;
-
-	/** Handle to the registered OnGraphChanged delegate. */
-	FDelegateHandle OnGraphChangedDelegateHandle;
 };
 
 TSharedRef<SWidget>	FDiffResultItem::GenerateWidget() const
@@ -366,21 +360,11 @@ FListItemGraphToDiff::FListItemGraphToDiff( class SBlueprintDiff* InDiff, class 
 {
 	check(InGraphOld || InGraphNew); //one of them needs to exist
 
-	//need to know when it is modified
-	if(InGraphNew)
-	{
-		OnGraphChangedDelegateHandle = InGraphNew->AddOnGraphChangedHandler( FOnGraphChanged::FDelegate::CreateRaw(this, &FListItemGraphToDiff::OnGraphChanged));
-	}
-
 	BuildDiffSourceArray();
 }
 
 FListItemGraphToDiff::~FListItemGraphToDiff()
 {
-	if(GraphNew)
-	{
-		GraphNew->RemoveOnGraphChangedHandler( OnGraphChangedDelegateHandle);
-	}
 }
 
 TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget() 
@@ -540,11 +524,6 @@ int32 FListItemGraphToDiff::GetCurrentDiffIndex() const
 		}
 	}
 	return -1;
-}
-
-void FListItemGraphToDiff::OnGraphChanged( const FEdGraphEditAction& Action )
-{
-	Diff->OnGraphChanged(this);
 }
 
 FDiffPanel::FDiffPanel()
@@ -881,14 +860,6 @@ void SBlueprintDiff::OnSelectionChanged( FGraphToDiff Item, ESelectInfo::Type Se
 
 	FocusOnGraphRevisions(Item.Get());
 
-}
-
-void SBlueprintDiff::OnGraphChanged(FListItemGraphToDiff* Diff)
-{
-	if(PanelNew.GraphEditor.IsValid() && PanelNew.GraphEditor.Pin()->GetCurrentGraph() == Diff->GetGraphNew())
-	{
-		FocusOnGraphRevisions(Diff);
-	}
 }
 
 TSharedRef<SWidget> SBlueprintDiff::DefaultEmptyPanel()

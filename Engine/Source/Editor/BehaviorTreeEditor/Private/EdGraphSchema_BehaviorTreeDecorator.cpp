@@ -36,8 +36,6 @@ UEdGraphNode* FDecoratorSchemaAction_NewNode::PerformAction(class UEdGraph* Pare
 		// set outer to be the graph so it doesn't go away
 		NodeTemplate->Rename(NULL, ParentGraph, REN_NonTransactional);
 
-		ParentGraph->AddNode(NodeTemplate, true);
-
 		NodeTemplate->CreateNewGuid();
 		NodeTemplate->PostPlacedNewNode();
 		NodeTemplate->AllocateDefaultPins();
@@ -62,6 +60,8 @@ UEdGraphNode* FDecoratorSchemaAction_NewNode::PerformAction(class UEdGraph* Pare
 		NodeTemplate->NodePosX = XLocation;
 		NodeTemplate->NodePosY = Location.Y;
 		NodeTemplate->SnapToGrid(SNAP_GRID);
+
+		ParentGraph->AddNode(NodeTemplate, true);
 
 		ResultNode = NodeTemplate;
 	}

@@ -139,7 +139,7 @@ public:
 	 * @param  NodeSelection	The group of nodes you want selected
 	 * @param  bFromUI			True if the node was added as the result of a direct user action.
 	 */
-	void SelectNodeSet(TSet<const UEdGraphNode*> NodeSelection, bool bFromUI = false);
+	void SelectNodeSet(TSet<UEdGraphNode*> NodeSelection, bool bFromUI = false);
 
 	/** Remove a node from this graph */
 	bool RemoveNode( UEdGraphNode* NodeToRemove );

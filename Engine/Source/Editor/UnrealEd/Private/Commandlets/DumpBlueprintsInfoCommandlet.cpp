@@ -928,11 +928,12 @@ static NodeType* DumpBlueprintInfoUtils::AddNodeToGraph(UEdGraph* Graph)
 {
 	check(Graph != nullptr);
 	NodeType* NewNode = NewObject<NodeType>(Graph);
-	Graph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
-
+	
 	NewNode->CreateNewGuid();
 	NewNode->PostPlacedNewNode();
 	NewNode->AllocateDefaultPins();
+	Graph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
+
 	return NewNode;
 }
 

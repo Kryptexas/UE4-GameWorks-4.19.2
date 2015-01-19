@@ -136,7 +136,6 @@ void UDEPRECATED_K2Node_LocalVariable::ReconstructNode()
 				{
 					UK2Node_VariableSet* SetNode = NewObject<UK2Node_VariableSet>(Graph);
 					SetNode->VariableReference.SetLocalMember(NewVar.VarName, TopLevelGraph->GetName(), NewVar.VarGuid);
-					Graph->AddNode(SetNode, false, false);
 					SetNode->CreateNewGuid();
 					SetNode->PostPlacedNewNode();
 
@@ -155,6 +154,8 @@ void UDEPRECATED_K2Node_LocalVariable::ReconstructNode()
 					SetNode->NodePosX = AssignementNode->NodePosX;
 					SetNode->NodePosY = AssignementNode->NodePosY;
 
+					Graph->AddNode(SetNode, false, false);
+
 					// Destroy the assignment node
 					AssignementNode->DestroyNode();
 				}
@@ -167,7 +168,6 @@ void UDEPRECATED_K2Node_LocalVariable::ReconstructNode()
 			// Only the local variable node needs to be re-constructed as a VariableGet node, there are no other nodes representing this local variable
 			UK2Node_VariableGet* GetNode = NewObject<UK2Node_VariableGet>(Graph);
 			GetNode->VariableReference.SetLocalMember(NewVar.VarName, TopLevelGraph->GetName(), NewVar.VarGuid);
-			Graph->AddNode(GetNode, false, false);
 			GetNode->CreateNewGuid();
 			GetNode->PostPlacedNewNode();
 
@@ -182,6 +182,8 @@ void UDEPRECATED_K2Node_LocalVariable::ReconstructNode()
 
 			// Move the pin links over to the new node
 			K2Schema->MovePinLinks(*GetVariablePin(), *GetNode->GetValuePin());
+		
+			Graph->AddNode(GetNode, false, false);
 		}
 	}
 

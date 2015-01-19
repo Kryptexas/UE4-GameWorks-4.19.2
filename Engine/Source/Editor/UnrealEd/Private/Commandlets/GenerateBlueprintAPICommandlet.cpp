@@ -462,11 +462,12 @@ static NodeType* GenerateBlueprintAPIUtils::AddNodeToGraph(UEdGraph* Graph)
 {
 	check(Graph != nullptr);
 	NodeType* NewNode = NewObject<NodeType>(Graph);
-	Graph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
 
 	NewNode->CreateNewGuid();
 	NewNode->PostPlacedNewNode();
 	NewNode->AllocateDefaultPins();
+
+	Graph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
 	return NewNode;
 }
 
@@ -827,8 +828,8 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 	if (NodeTemplate != nullptr)
 	{
 		UK2Node* Node = DuplicateObject<UK2Node>(NodeTemplate,ActionList.OwnerOfTemporaries);
-		ActionList.OwnerOfTemporaries->AddNode(Node);
 		Node->AllocateDefaultPins();
+		ActionList.OwnerOfTemporaries->AddNode(Node);
 
 		if (Node->ShouldDrawCompact())
 		{

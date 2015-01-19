@@ -151,7 +151,7 @@ void UEdGraph::AddNode( UEdGraphNode* NodeToAdd, bool bFromUI/* = false*/, bool 
 	NotifyGraphChanged( Action );
 }
 
-void UEdGraph::SelectNodeSet(TSet<const UEdGraphNode*> NodeSelection, bool bFromUI/*= false*/) 
+void UEdGraph::SelectNodeSet(TSet<UEdGraphNode*> NodeSelection, bool bFromUI/*= false*/) 
 {
 	FEdGraphEditAction SelectionAction;
 
@@ -175,8 +175,11 @@ bool UEdGraph::RemoveNode( UEdGraphNode* NodeToRemove )
 #if WITH_EDITOR
 	NodeToRemove->BreakAllNodeLinks();
 #endif	//#if WITH_EDITOR
-
-	NotifyGraphChanged();
+	FEdGraphEditAction RemovalAction;
+	RemovalAction.Graph = this;
+	RemovalAction.Action = GRAPHACTION_RemoveNode;
+	RemovalAction.Nodes.Add(NodeToRemove);
+	NotifyGraphChanged(RemovalAction);
 
 	return NumTimesNodeRemoved > 0;
 }

@@ -5,6 +5,7 @@
 #include "GraphEditAction.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam( FOnGraphChanged, const FEdGraphEditAction& );
+DECLARE_MULTICAST_DELEGATE_OneParam( FSingleNodeNotification, class UEdGraphNode*);
 DECLARE_DELEGATE_OneParam( FSingleNodeEvent, class UEdGraphNode* );
 DECLARE_DELEGATE_OneParam( FEdGraphEvent, class UEdGraph* );
 /** Delegate for notification when property changed */

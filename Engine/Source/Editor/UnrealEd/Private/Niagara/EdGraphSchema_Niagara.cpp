@@ -33,8 +33,7 @@ UEdGraphNode* FNiagaraSchemaAction_NewNode::PerformAction(class UEdGraph* Parent
 
 		// set outer to be the graph so it doesn't go away
 		NodeTemplate->Rename(NULL, ParentGraph, REN_NonTransactional);
-		ParentGraph->AddNode(NodeTemplate, true, bSelectNewNode);
-
+		
 		NodeTemplate->CreateNewGuid();
 		NodeTemplate->PostPlacedNewNode();
 		NodeTemplate->AllocateDefaultPins();
@@ -59,6 +58,8 @@ UEdGraphNode* FNiagaraSchemaAction_NewNode::PerformAction(class UEdGraph* Parent
 		NodeTemplate->NodePosX = XLocation;
 		NodeTemplate->NodePosY = Location.Y;
 		NodeTemplate->SnapToGrid(SNAP_GRID);
+
+		ParentGraph->AddNode(NodeTemplate, true, bSelectNewNode);
 
 		ResultNode = NodeTemplate;
 	}

@@ -4476,12 +4476,12 @@ struct FBackwardCompatibilityConversionHelper
 		{
 			// CREATE NEW NODE
 			NewNode->SetFlags(RF_Transactional);
-			Graph->AddNode(NewNode, false, false);
 			NewNode->CreateNewGuid();
 			NewNode->PostPlacedNewNode();
 			NewNode->AllocateDefaultPins();
 			NewNode->NodePosX = OldNode->NodePosX;
 			NewNode->NodePosY = OldNode->NodePosY;
+			Graph->AddNode(NewNode, false, false);
 
 			const auto ClassPin = NewNode->FindPin(ClassPinName);
 			if (!ClassPin)
@@ -4528,13 +4528,13 @@ struct FBackwardCompatibilityConversionHelper
 				auto CastNode = NewObject<UK2Node_ClassDynamicCast>(Graph);
 				CastNode->SetFlags(RF_Transactional);
 				CastNode->TargetType = TargetClass;
-				Graph->AddNode(CastNode, false, false);
 				CastNode->CreateNewGuid();
 				CastNode->PostPlacedNewNode();
 				CastNode->AllocateDefaultPins();
 				const int32 OffsetOnGraph = 200;
 				CastNode->NodePosX = OldNode->NodePosX - OffsetOnGraph;
 				CastNode->NodePosY = OldNode->NodePosY;
+				Graph->AddNode(CastNode, false, false);
 
 				auto ExecPin = OldNode->GetExecPin();
 				auto ExecCastPin = CastNode->GetExecPin();
@@ -4763,13 +4763,13 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 					UK2Node_CallFunction* CallFunctionNode = NewObject<UK2Node_CallFunction>(Graph);
 					check(CallFunctionNode);
 					CallFunctionNode->SetFlags(RF_Transactional);
-					Graph->AddNode(CallFunctionNode, false, false);
 					CallFunctionNode->SetFromFunction(MakeNodeFunction);
 					CallFunctionNode->CreateNewGuid();
 					CallFunctionNode->PostPlacedNewNode();
 					CallFunctionNode->AllocateDefaultPins();
 					CallFunctionNode->NodePosX = OldMakeStructNode->NodePosX;
 					CallFunctionNode->NodePosY = OldMakeStructNode->NodePosY;
+					Graph->AddNode(CallFunctionNode, false, false);
 
 					for(int32 PinIdx = 0; PinIdx < OldMakeStructNode->Pins.Num(); ++PinIdx)
 					{
@@ -4844,13 +4844,13 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 					UK2Node_CallFunction* CallFunctionNode = NewObject<UK2Node_CallFunction>(Graph);
 					check(CallFunctionNode);
 					CallFunctionNode->SetFlags(RF_Transactional);
-					Graph->AddNode(CallFunctionNode, false, false);
 					CallFunctionNode->SetFromFunction(BreakNodeFunction);
 					CallFunctionNode->CreateNewGuid();
 					CallFunctionNode->PostPlacedNewNode();
 					CallFunctionNode->AllocateDefaultPins();
 					CallFunctionNode->NodePosX = OldBreakStructNode->NodePosX;
 					CallFunctionNode->NodePosY = OldBreakStructNode->NodePosY;
+					Graph->AddNode(CallFunctionNode, false, false);
 
 					for(int32 PinIdx = 0; PinIdx < OldBreakStructNode->Pins.Num(); ++PinIdx)
 					{

@@ -87,7 +87,14 @@ void SGraphEditorImpl::NotifyGraphChanged()
 
 void SGraphEditorImpl::OnGraphChanged(const FEdGraphEditAction& InAction)
 {
-	if ( !bIsActiveTimerRegistered )
+	// Actions with a specific purpose are handled by SGraphPanel::OnGraphChanged
+	if ( !bIsActiveTimerRegistered && 
+		 !( 
+			(InAction.Action & GRAPHACTION_AddNode) || 
+			(InAction.Action & GRAPHACTION_SelectNode)  ||
+			(InAction.Action & GRAPHACTION_RemoveNode) 
+		  ) 
+	   )
 	{
 		// Remove the old user interface nodes
 		GraphPanel->PurgeVisualRepresentation();
