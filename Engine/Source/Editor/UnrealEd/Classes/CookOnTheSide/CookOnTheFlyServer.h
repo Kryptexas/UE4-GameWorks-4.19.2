@@ -651,12 +651,14 @@ private:
 	FString GetCachedPackageFilename( const FName& PackageName ) const;
 	FString GetCachedStandardPackageFilename( const FName& PackageName ) const;
 	FName GetCachedStandardPackageFileFName( const FName& PackageName ) const;
-	FString GetCachedPackageFilename( UPackage* Package ) const;
-	FString GetCachedStandardPackageFilename( UPackage* Package ) const;
-	FName GetCachedStandardPackageFileFName( UPackage* Package ) const;
-	const FString& GetCachedSandboxFilename( UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile ) const;
+	FString GetCachedPackageFilename( const UPackage* Package ) const;
+	FString GetCachedStandardPackageFilename( const UPackage* Package ) const;
+	FName GetCachedStandardPackageFileFName( const UPackage* Package ) const;
+	const FString& GetCachedSandboxFilename( const UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile ) const;
 	const FCachedPackageFilename& Cache(const FName& PackageName) const;
 	void ClearPackageFilenameCache() const;
+	bool ClearPackageFilenameCacheForPackage( const UPackage* Package ) const;
+	bool ClearPackageFilenameCacheForPackage( const FName& PackageName ) const;
 
 	// declared mutable as it's used to cache package filename strings and I don't want to declare all functions using it as non const
 	// used by GetCached * Filename functions
@@ -789,7 +791,13 @@ public:
 
 	uint32 NumConnections() const;
 
-	
+	/**
+	 * Is this cooker running in the editor
+	 *
+	 * @return true if we are running in the editor
+	 */
+	bool IsCookingInEditor() const;
+
 	/**
 	 * Is this cooker running in real time mode (where it needs to respect the timeslice) 
 	 * 
