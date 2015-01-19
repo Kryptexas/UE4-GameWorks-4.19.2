@@ -111,18 +111,16 @@ const FString FFriendItem::GetClientName() const
 
 const FString FFriendItem::GetSessionId() const
 {
-	FString Result;
+	FString SessionId;
 	if (OnlineFriend.IsValid())
 	{
 		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
-		const FVariantData* SessionId = OnlinePresence.Status.Properties.Find(DefaultSessionIdKey);
-		if (SessionId != nullptr &&
-			SessionId->GetType() == EOnlineKeyValuePairDataType::String)
+		if (OnlinePresence.SessionId.IsValid())
 		{
-			SessionId->GetValue(Result);
+			SessionId = OnlinePresence.SessionId->ToString();
 		}
 	}
-	return Result;
+	return SessionId;
 }
 
 const bool FFriendItem::IsOnline() const
@@ -160,17 +158,16 @@ bool FFriendItem::IsGameJoinable() const
 
 FString FFriendItem::GetGameSessionId() const
 {
-	FString SessionIdStr;
+	FString SessionId;
 	if (OnlineFriend.IsValid())
 	{
 		const FOnlineUserPresence& FriendPresence = OnlineFriend->GetPresence();
-		const FVariantData* SessionId = FriendPresence.Status.Properties.Find(DefaultSessionIdKey);
-		if (SessionId != nullptr)
+		if (FriendPresence.SessionId.IsValid())
 		{
-			SessionId->GetValue(SessionIdStr);
-		}		
+			SessionId = FriendPresence.SessionId->ToString();
+		}
 	}
-	return SessionIdStr;
+	return SessionId;
 }
 
 const TSharedRef< FUniqueNetId > FFriendItem::GetUniqueID() const

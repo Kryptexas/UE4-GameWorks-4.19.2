@@ -1327,12 +1327,10 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 				const FOnlineUserPresence& OldPresence = *OldPresencePtr;
 				// Get the session id from the data blob
 				FString NewSessionId = PresenceFriend->GetSessionId();
-				FString OldSessionId = TEXT("");
-				const FVariantData* SessionId = OldPresence.Status.Properties.Find(DefaultSessionIdKey);
-				if (SessionId != nullptr &&
-					SessionId->GetType() == EOnlineKeyValuePairDataType::String)
+				FString OldSessionId;
+				if (OldPresence.SessionId.IsValid())
 				{
-					SessionId->GetValue(OldSessionId);
+					OldSessionId = OldPresence.SessionId->ToString();
 				}
 
 				if (OldPresence.bIsPlaying == false && NewPresence->bIsPlaying == true)
