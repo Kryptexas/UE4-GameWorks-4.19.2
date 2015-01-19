@@ -46,6 +46,7 @@ public:
 	void SetEventHandlerEvent(FEvent* InEventHandlerEvent);
 	void HandleWindowCreated(void* InWindow);
 	bool IsGamePaused();
+	void WaitForEventInQueue(EAppEventState InState);
 
 protected:
 	FAppEventManager();
