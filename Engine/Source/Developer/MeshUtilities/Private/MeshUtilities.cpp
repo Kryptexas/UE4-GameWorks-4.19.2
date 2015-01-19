@@ -842,7 +842,7 @@ static void BuildStaticAdjacencyIndexBuffer(
 	TArray<uint32>& OutPnAenIndices
 	)
 {
-	if ( Indices.Num() )
+	if ( Indices.Num() && Indices.Num() < 50000 * 3 )
 	{
 		FStaticMeshNvRenderBuffer StaticMeshRenderBuffer( PositionVertexBuffer, VertexBuffer, Indices );
 		nv::IndexBuffer* PnAENIndexBuffer = nv::tess::buildTessellationBuffer( &StaticMeshRenderBuffer, nv::DBM_PnAenDominantCorner, true );
@@ -2946,8 +2946,12 @@ bool FMeshUtilities::BuildStaticMesh(
 			float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[LODIndex]);
 			BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D );
 			check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
-			CacheOptimizeVertexAndIndexBuffer(Vertices, PerSectionIndices, WedgeMap);
-			check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
+
+			if( RawMesh.WedgeIndices.Num() < 50000 * 3 )
+			{
+				CacheOptimizeVertexAndIndexBuffer(Vertices, PerSectionIndices, WedgeMap);
+				check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
+			}
 		}
 
 		// Initialize the vertex buffer.
@@ -3013,7 +3017,12 @@ bool FMeshUtilities::BuildStaticMesh(
 				CombinedIndices,
 				LODModel.Sections
 				);
-			CacheOptimizeIndexBuffer(DepthOnlyIndices);
+
+			if( DepthOnlyIndices.Num() < 50000 * 3 )
+			{
+				CacheOptimizeIndexBuffer(DepthOnlyIndices);
+			}
+
 			LODModel.DepthOnlyIndexBuffer.SetIndices(DepthOnlyIndices, bNeeds32BitIndices ? EIndexBufferStride::Force32Bit : EIndexBufferStride::Force16Bit);
 		}
 
