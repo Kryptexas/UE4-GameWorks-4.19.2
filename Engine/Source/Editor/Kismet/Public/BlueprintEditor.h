@@ -10,6 +10,7 @@
 #include "GraphEditor.h"
 #include "EditorUndoClient.h"
 #include "Engine/UserDefinedEnum.h"
+#include "PreviewScene.h"
 #include "Developer/Merge/Public/Merge.h" // for FOnMergeResolved
 
 class USCS_Node;
@@ -50,6 +51,7 @@ public:
 	FSelectionDetailsSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+	virtual TSharedRef<SDockTab> SpawnTab(const FWorkflowTabSpawnInfo& Info) const override;
 
 	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
@@ -198,7 +200,32 @@ public:
 	TSharedRef<class SSCSEditor> GetSCSEditor() const {return SCSEditor.ToSharedRef();}
 	TSharedPtr<class SSCSEditorViewport> GetSCSViewport() const {return SCSViewport;}
 	TSharedPtr<class SMyBlueprint> GetMyBlueprintWidget() const {return MyBlueprintWidget;}
+
+	/**
+	 * Provides access to the preview actor.
+	 */
 	AActor* GetPreviewActor() const;
+
+	/**
+	 * Provides access to the preview scene.
+	 */
+	FPreviewScene* GetPreviewScene()
+	{
+		return &PreviewScene;
+	}
+
+	/**
+	* Creates/updates the preview actor for the given blueprint.
+	*
+	* @param InBlueprint			The Blueprint to create or update the preview for.
+	* @param bInForceFullUpdate	Force a full update to respawn actors.
+	*/
+	void UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForceFullUpdate = false);
+
+	/**
+	* Destroy the Blueprint preview.
+	*/
+	void DestroyPreview();
 
 	TSharedPtr<class FBlueprintEditorToolbar> GetToolbarBuilder() {return Toolbar;}
 
@@ -424,7 +451,8 @@ public:
 		NoSelection,
 		MyBlueprint,
 		GraphPanel,
-		BlueprintProps,
+		ClassSettings,
+		ClassDefaults,
 	};
 
 	/** Gets the UI selection state of this editor */
@@ -539,8 +567,11 @@ protected:
 	/** Called to start a quick find (focus the search box in the explorer tab) */
 	void FindInBlueprint_Clicked();
 
-	/** Edit Blueprint global options */
+	/** Edit the class settings aka Blueprint global options */
 	void EditGlobalOptions_Clicked();
+
+	/** Edit the class defaults */
+	void EditClassDefaults_Clicked();
 
 	/** Called to undo the last action */
 	void UndoGraphAction();
@@ -991,6 +1022,12 @@ protected:
 
 	/** Whether we are already in the process of closing this editor */
 	bool bEditorMarkedAsClosed;
+
+	/** Blueprint preview scene */
+	FPreviewScene PreviewScene;
+
+	/** The preview actor representing the current preview */
+	mutable TWeakObjectPtr<AActor> PreviewActorPtr;
 
 public:
 	// Tries to open the specified graph and bring it's document to the front (note: this can return NULL)

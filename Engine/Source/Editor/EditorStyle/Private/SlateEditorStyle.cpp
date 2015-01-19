@@ -318,6 +318,14 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetPressed(BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor_Pressed ))
 		);
 
+		//FSlateColorBrush(FLinearColor::White)
+
+		Set("RoundButton", FButtonStyle(Button)
+			.SetNormal(BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, FLinearColor(1, 1, 1, 0.1f)))
+			.SetHovered(BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, SelectionColor))
+			.SetPressed(BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, SelectionColor_Pressed))
+			);
+
 		/* Create a checkbox style for "ToggleButton" ... */
 		const FCheckBoxStyle ToggleButtonStyle = FCheckBoxStyle()
 			.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
@@ -718,11 +726,68 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetTopShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowTop", FVector2D(64,8) ) )
 			.SetBottomShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowBottom", FVector2D(64,8) ) )
 			);
-	}
+	}//
+
+
+	NormalTableRowStyle = FTableRowStyle()
+		.SetEvenRowBackgroundBrush(FSlateNoResource())
+		.SetEvenRowBackgroundHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, FLinearColor(1.0f, 1.0f, 1.0f, 0.1f)))
+		.SetOddRowBackgroundBrush(FSlateNoResource())
+		.SetOddRowBackgroundHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, FLinearColor(1.0f, 1.0f, 1.0f, 0.1f)))
+		.SetSelectorFocusedBrush(BORDER_BRUSH("Common/Selector", FMargin(4.f / 16.f), SelectorColor))
+		.SetActiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor))
+		.SetActiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor))
+		.SetInactiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
+		.SetInactiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
+		.SetTextColor(DefaultForeground)
+		.SetSelectedTextColor(InvertedForeground);
 
 	// Lists, Trees
 	{
 		Set( "TableView.Row", FTableRowStyle( NormalTableRowStyle) );
+		Set( "TableView.DarkRow",FTableRowStyle( NormalTableRowStyle)
+			.SetEvenRowBackgroundBrush(IMAGE_BRUSH("PropertyView/DetailCategoryMiddle", FVector2D(16, 16)))
+			.SetEvenRowBackgroundHoveredBrush(IMAGE_BRUSH("PropertyView/DetailCategoryMiddle_Hovered", FVector2D(16, 16)))
+			.SetOddRowBackgroundBrush(IMAGE_BRUSH("PropertyView/DetailCategoryMiddle", FVector2D(16, 16)))
+			.SetOddRowBackgroundHoveredBrush(IMAGE_BRUSH("PropertyView/DetailCategoryMiddle_Hovered", FVector2D(16, 16)))
+			.SetSelectorFocusedBrush(BORDER_BRUSH("Common/Selector", FMargin(4.f / 16.f), SelectorColor))
+			.SetActiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor))
+			.SetActiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor))
+			.SetInactiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
+			.SetInactiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
+		);
+
+		//Set("DetailsView.TreeView.TableRow", FTableRowStyle()
+		//	.SetEvenRowBackgroundBrush(FSlateNoResource())
+		//	.SetEvenRowBackgroundHoveredBrush(FSlateNoResource())
+		//	.SetOddRowBackgroundBrush(FSlateNoResource())
+		//	.SetOddRowBackgroundHoveredBrush(FSlateNoResource())
+		//	.SetSelectorFocusedBrush(FSlateNoResource())
+		//	.SetActiveBrush(FSlateNoResource())
+		//	.SetActiveHoveredBrush(FSlateNoResource())
+		//	.SetInactiveBrush(FSlateNoResource())
+		//	.SetInactiveHoveredBrush(FSlateNoResource())
+		//	.SetTextColor(DefaultForeground)
+		//	.SetSelectedTextColor(InvertedForeground)
+		//	);
+
+		//Set("DetailsView.CategoryMiddle", new IMAGE_BRUSH("PropertyView/DetailCategoryMiddle", FVector2D(16, 16)));
+		//Set("DetailsView.CategoryMiddle_Hovered", new IMAGE_BRUSH("PropertyView/DetailCategoryMiddle_Hovered", FVector2D(16, 16)));
+		//Set("DetailsView.CategoryMiddle_Highlighted", new BOX_BRUSH("Common/TextBox_Special_Active", FMargin(8.0f / 32.0f)));
+
+		//if ( IsHighlighted() )
+		//{
+		//	return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Highlighted");
+		//}
+		//else if ( IsHovered() )
+		//{
+		//	return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Hovered");
+		//}
+		//else
+		//{
+		//	return FEditorStyle::GetBrush("DetailsView.CategoryMiddle");
+		//}
+
 		Set( "TreeArrow_Collapsed", new IMAGE_BRUSH( "Common/TreeArrow_Collapsed", Icon10x10, DefaultForeground ) );
 		Set( "TreeArrow_Collapsed_Hovered", new IMAGE_BRUSH( "Common/TreeArrow_Collapsed_Hovered", Icon10x10, DefaultForeground ) );
 		Set( "TreeArrow_Expanded", new IMAGE_BRUSH( "Common/TreeArrow_Expanded", Icon10x10, DefaultForeground ) );
@@ -4517,6 +4582,9 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 
 		Set( "FullBlueprintEditor.EditGlobalOptions", new IMAGE_BRUSH( "Icons/icon_Blueprint_Options_40px", Icon40x40));
 		Set( "FullBlueprintEditor.EditGlobalOptions.Small", new IMAGE_BRUSH( "Icons/icon_Blueprint_Options_40px", Icon20x20));
+
+		Set("FullBlueprintEditor.EditClassDefaults", new IMAGE_BRUSH("Icons/icon_BlueprintEditor_Defaults_40x", Icon40x40));
+		Set("FullBlueprintEditor.EditClassDefaults.Small", new IMAGE_BRUSH("Icons/icon_BlueprintEditor_Defaults_40x", Icon20x20));
 
 		Set( "BlueprintEditor.Details.DeleteButton", new IMAGE_BRUSH( "/Icons/GenericDelete_Black", Icon16x16 ) );
 

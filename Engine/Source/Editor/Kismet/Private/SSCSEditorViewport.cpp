@@ -225,6 +225,8 @@ EVisibility SSCSEditorViewport::GetWidgetVisibility() const
 
 TSharedRef<FEditorViewportClient> SSCSEditorViewport::MakeEditorViewportClient()
 {
+	FPreviewScene* PreviewScene = BlueprintEditorPtr.Pin()->GetPreviewScene();
+
 	// Construct a new viewport client instance.
 	ViewportClient = MakeShareable(new FSCSEditorViewportClient(BlueprintEditorPtr, PreviewScene));
 	ViewportClient->SetRealtime(true);
@@ -351,7 +353,7 @@ void SSCSEditorViewport::Tick(const FGeometry& AllottedGeometry, const double In
 	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	// If the preview scene is no longer valid (i.e. all actors have destroyed themselves), then attempt to recreate the scene. This way we can "loop" certain "finite" Blueprints that might destroy themselves.
-	if(ViewportClient.IsValid() && (bPreviewNeedsUpdating || !ViewportClient->IsPreviewSceneValid()))
+	if(ViewportClient.IsValid() && bPreviewNeedsUpdating)
 	{
 		ViewportClient->InvalidatePreview(bResetCameraOnNextPreviewUpdate);
 
@@ -359,9 +361,4 @@ void SSCSEditorViewport::Tick(const FGeometry& AllottedGeometry, const double In
 		bPreviewNeedsUpdating = false;
 		bResetCameraOnNextPreviewUpdate = false;
 	}
-}
-
-AActor* SSCSEditorViewport::GetPreviewActor() const
-{
-	return ViewportClient->GetPreviewActor();
 }

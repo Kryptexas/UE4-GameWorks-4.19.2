@@ -78,6 +78,8 @@
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 #include "Developer/HotReload/Public/IHotReload.h"
 
+#include "AudioDevice.h"
+
 // Blueprint merging
 #include "Merge.h"
 #include "SHyperlink.h"
@@ -108,6 +110,16 @@ TSharedRef<SWidget> FSelectionDetailsSummoner::CreateTabBody(const FWorkflowTabS
 	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
 	return BlueprintEditorPtr->GetInspector();
+}
+
+TSharedRef<SDockTab> FSelectionDetailsSummoner::SpawnTab(const FWorkflowTabSpawnInfo& Info) const
+{
+	TSharedRef<SDockTab> Tab = FWorkflowTabFactory::SpawnTab(Info);
+
+	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
+	BlueprintEditorPtr->GetInspector()->SetOwnerTab(Tab);
+
+	return Tab;
 }
 
 /////////////////////////////////////////////////////
@@ -1839,6 +1851,9 @@ void FBlueprintEditor::SetupViewForBlueprintEditingMode()
 
 FBlueprintEditor::~FBlueprintEditor()
 {
+	// Clean up the preview
+	DestroyPreview();
+
 	// NOTE: Any tabs that we still have hanging out when destroyed will be cleaned up by FBaseToolkit's destructor
 	UEditorEngine* Editor = (UEditorEngine*)GEngine;
 	if (Editor)
@@ -1895,17 +1910,24 @@ FBlueprintEditor::~FBlueprintEditor()
 
 void FBlueprintEditor::FocusInspectorOnGraphSelection(const FGraphPanelSelectionSet& NewSelection, bool bForceRefresh)
 {
-	if (NewSelection.Array().Num())
+	if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
 	{
-		SKismetInspector::FShowDetailsOptions ShowDetailsOptions;
-		ShowDetailsOptions.bForceRefresh = bForceRefresh;
-
-		Inspector->ShowDetailsForObjects(NewSelection.Array(), ShowDetailsOptions);
+		//TODO UNIFIEDBP Do something smart here, like keep selection if it comes from the my blueprint view, or the components view, but not if it's from a graph view.
 	}
 	else
 	{
-		// Clear the Inspector if nothing is selected, the MyBlueprints window will set the selection if it means to, but we need to make sure invalid nodes aren't still appearing
-		Inspector->ShowDetailsForSingleObject(nullptr);
+		if ( NewSelection.Array().Num() )
+		{
+			SKismetInspector::FShowDetailsOptions ShowDetailsOptions;
+			ShowDetailsOptions.bForceRefresh = bForceRefresh;
+
+			Inspector->ShowDetailsForObjects(NewSelection.Array(), ShowDetailsOptions);
+		}
+		else
+		{
+			// Clear the Inspector if nothing is selected, the MyBlueprints window will set the selection if it means to, but we need to make sure invalid nodes aren't still appearing
+			Inspector->ShowDetailsForSingleObject(nullptr);
+		}
 	}
 }
 
@@ -2068,6 +2090,11 @@ void FBlueprintEditor::CreateDefaultCommands()
 	ToolkitCommands->MapAction(
 		FFullBlueprintEditorCommands::Get().EditGlobalOptions,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::EditGlobalOptions_Clicked),
+		FCanExecuteAction());
+
+	ToolkitCommands->MapAction(
+		FFullBlueprintEditorCommands::Get().EditClassDefaults,
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::EditClassDefaults_Clicked),
 		FCanExecuteAction());
 
 	// Edit menu actions
@@ -2389,23 +2416,83 @@ bool FBlueprintEditor::ReparentBlueprint_IsVisible() const
 void FBlueprintEditor::EditGlobalOptions_Clicked()
 {
 	UBlueprint* Blueprint = GetBlueprintObj();
-	if(Blueprint != NULL)
+	if ( Blueprint != nullptr )
 	{
-		if (CurrentUISelection == FBlueprintEditor::GraphPanel)
+		if ( CurrentUISelection == FBlueprintEditor::GraphPanel )
 		{
 			ClearSelectionInAllEditors();
 		}
-		if (CurrentUISelection == FBlueprintEditor::MyBlueprint)
+		if ( CurrentUISelection == FBlueprintEditor::MyBlueprint )
 		{
-			if (MyBlueprintWidget.IsValid())
+			if ( MyBlueprintWidget.IsValid() )
 			{
 				MyBlueprintWidget->ClearGraphActionMenuSelection();
 			}
 		}
-		CurrentUISelection = FBlueprintEditor::BlueprintProps;
+		CurrentUISelection = FBlueprintEditor::ClassSettings;
 
 		// Show details for the Blueprint instance we're editing
 		Inspector->ShowDetailsForSingleObject(Blueprint);
+
+		TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+		if ( OwnerTab.IsValid() )
+		{
+			OwnerTab->ActivateInParent(ETabActivationCause::SetDirectly);
+			OwnerTab->FlashTab();
+		}
+	}
+}
+
+void FBlueprintEditor::EditClassDefaults_Clicked()
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+	if ( Blueprint != nullptr )
+	{
+		if ( CurrentUISelection == FBlueprintEditor::GraphPanel )
+		{
+			ClearSelectionInAllEditors();
+		}
+		else if ( CurrentUISelection == FBlueprintEditor::MyBlueprint )
+		{
+			if ( MyBlueprintWidget.IsValid() )
+			{
+				MyBlueprintWidget->ClearGraphActionMenuSelection();
+			}
+		}
+
+		CurrentUISelection = FBlueprintEditor::ClassDefaults;
+
+		const bool bForceRefresh = true;
+
+		if ( IsEditingSingleBlueprint() )
+		{
+			if ( GetBlueprintObj()->GeneratedClass != NULL )
+			{
+				Inspector->ShowDetailsForSingleObject(GetBlueprintObj()->GeneratedClass->GetDefaultObject(), SKismetInspector::FShowDetailsOptions(DefaultEditString(), bForceRefresh));
+				TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+				if ( OwnerTab.IsValid() )
+				{
+					OwnerTab->ActivateInParent(ETabActivationCause::SetDirectly);
+					OwnerTab->FlashTab();
+				}
+			}
+		}
+		else if ( GetEditingObjects().Num() > 0 )
+		{
+			TArray<UObject*> DefaultObjects;
+			for ( int32 i = 0; i < GetEditingObjects().Num(); ++i )
+			{
+				auto Blueprint = (UBlueprint*)( GetEditingObjects()[i] );
+				if ( Blueprint->GeneratedClass )
+				{
+					DefaultObjects.Add(Blueprint->GeneratedClass->GetDefaultObject());
+				}
+			}
+			if ( DefaultObjects.Num() )
+			{
+				DefaultEditor->ShowDetailsForObjects(DefaultObjects);
+			}
+		}
 	}
 }
 
@@ -5984,6 +6071,12 @@ void FBlueprintEditor::RequestSaveEditedObjectState()
 
 void FBlueprintEditor::Tick(float DeltaTime)
 {
+	// Create or update the Blueprint actor instance in the preview scene
+	if ( GetPreviewActor() == nullptr )
+	{
+		UpdatePreviewActor(GetBlueprintObj(), true);
+	}
+
 	if (bRequestedSavingOpenDocumentState)
 	{
 		bRequestedSavingOpenDocumentState = false;
@@ -6895,8 +6988,139 @@ void FBlueprintEditor::OnFindInstancesCustomEvent()
 
 AActor* FBlueprintEditor::GetPreviewActor() const
 {
-	return SCSViewport.IsValid() ? SCSViewport->GetPreviewActor() : nullptr;
+	//return SCSViewport.IsValid() ? SCSViewport->GetPreviewActor() : nullptr;
+
+	UBlueprint* PreviewBlueprint = GetBlueprintObj();
+
+	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we look to see if we can find the new instance in the preview world and then update the weak ptr.
+	if ( PreviewActorPtr.IsStale(true) && PreviewBlueprint )
+	{
+		UWorld* PreviewWorld = PreviewScene.GetWorld();
+		for ( TActorIterator<AActor> It(PreviewWorld); It; ++It )
+		{
+			AActor* Actor = *It;
+			if ( !Actor->IsPendingKillPending()
+				&& Actor->GetClass()->ClassGeneratedBy == PreviewBlueprint )
+			{
+				PreviewActorPtr = Actor;
+				break;
+			}
+		}
+	}
+
+	return PreviewActorPtr.Get();
 }
+
+void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForceFullUpdate/* = false*/)
+{
+	AActor* PreviewActor = GetPreviewActor();
+
+	// Signal that we're going to be constructing editor components
+	if ( InBlueprint != NULL && InBlueprint->SimpleConstructionScript != NULL )
+	{
+		InBlueprint->SimpleConstructionScript->BeginEditorComponentConstruction();
+	}
+
+	UBlueprint* PreviewBlueprint = GetBlueprintObj();
+
+	// If the Blueprint is changing
+	if ( InBlueprint != PreviewBlueprint || bInForceFullUpdate )
+	{
+		// Destroy the previous actor instance
+		DestroyPreview();
+
+		// Save the Blueprint we're creating a preview for
+		PreviewBlueprint = InBlueprint;
+
+		// Spawn a new preview actor based on the Blueprint's generated class if it's Actor-based
+		if ( PreviewBlueprint && PreviewBlueprint->GeneratedClass && PreviewBlueprint->GeneratedClass->IsChildOf(AActor::StaticClass()) )
+		{
+			FVector SpawnLocation = FVector::ZeroVector;
+			FRotator SpawnRotation = FRotator::ZeroRotator;
+
+			// Spawn an Actor based on the Blueprint's generated class
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.bNoFail = true;
+			SpawnInfo.ObjectFlags = RF_Transient;
+
+			// Temporarily remove the deprecated flag so we can respawn the Blueprint in the viewport
+			bool bIsClassDeprecated = PreviewBlueprint->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated);
+			PreviewBlueprint->GeneratedClass->ClassFlags &= ~CLASS_Deprecated;
+
+			PreviewActorPtr = PreviewActor = PreviewScene.GetWorld()->SpawnActor(PreviewBlueprint->GeneratedClass, &SpawnLocation, &SpawnRotation, SpawnInfo);
+
+			// Reassign the deprecated flag if it was previously assigned
+			if ( bIsClassDeprecated )
+			{
+				PreviewBlueprint->GeneratedClass->ClassFlags |= CLASS_Deprecated;
+			}
+
+			check(PreviewActor);
+
+			// Ensure that the actor is visible
+			if ( PreviewActor->bHidden )
+			{
+				PreviewActor->bHidden = false;
+				PreviewActor->MarkComponentsRenderStateDirty();
+				PreviewScene.GetWorld()->SendAllEndOfFrameUpdates();
+			}
+
+			// Prevent any audio from playing as a result of spawning
+			if ( GEngine->AudioDevice )
+			{
+				GEngine->AudioDevice->Flush(PreviewScene.GetWorld());
+			}
+
+			// Set the reference to the preview actor for component editing purposes
+			if ( PreviewBlueprint->SimpleConstructionScript != nullptr )
+			{
+				PreviewBlueprint->SimpleConstructionScript->SetComponentEditorActorInstance(PreviewActor);
+			}
+
+			// Run the construction scripts again, otherwise the actor will appear as though it's had a script pass first, rather than the default properties as shown in the details panel
+			PreviewActor->RerunConstructionScripts();
+		}
+	}
+	else if ( PreviewActor )
+	{
+		PreviewActor->RerunConstructionScripts();
+	}
+
+	// Signal that we're done constructing editor components
+	if ( InBlueprint != nullptr && InBlueprint->SimpleConstructionScript != nullptr )
+	{
+		InBlueprint->SimpleConstructionScript->EndEditorComponentConstruction();
+	}
+}
+
+void FBlueprintEditor::DestroyPreview()
+{
+	AActor* PreviewActor = GetPreviewActor();
+	if ( PreviewActor != nullptr )
+	{
+		check(PreviewScene.GetWorld());
+		PreviewScene.GetWorld()->EditorDestroyActor(PreviewActor, false);
+	}
+
+	UBlueprint* PreviewBlueprint = GetBlueprintObj();
+
+	if ( PreviewBlueprint != nullptr )
+	{
+		if ( PreviewBlueprint->SimpleConstructionScript != nullptr
+			&& PreviewActor == PreviewBlueprint->SimpleConstructionScript->GetComponentEditorActorInstance() )
+		{
+			// Ensure that all editable component references are cleared
+			PreviewBlueprint->SimpleConstructionScript->ClearEditorComponentReferences();
+
+			// Clear the reference to the preview actor instance
+			PreviewBlueprint->SimpleConstructionScript->SetComponentEditorActorInstance(nullptr);
+		}
+
+		PreviewBlueprint = nullptr;
+	}
+}
+
 
 FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, const FVector2D& InPosition, UEdGraph* InGraph)
 {

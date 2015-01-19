@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "PreviewScene.h"
 #include "SEditorViewport.h"
 
 /**
@@ -75,19 +74,6 @@ public:
 	 */
 	bool GetIsSimulateEnabled();
 
-	/** 
-	 * Provides access to the preview scene.
-	 */
-	const FPreviewScene& GetPreviewScene() const
-	{
-		return PreviewScene;
-	}
-
-	/**
-	 * Gets the current preview actor instance.
-	 */
-	AActor* GetPreviewActor() const;
-
 protected:
 	/**
 	 * Determines if the viewport widget is visible.
@@ -107,9 +93,6 @@ protected:
 private:
 	/** Pointer back to editor tool (owner) */
 	TWeakPtr<class FBlueprintEditor> BlueprintEditorPtr;
-
-	/** Blueprint preview scene */
-	FPreviewScene PreviewScene;
 
 	/** Viewport client */
 	TSharedPtr<class FSCSEditorViewportClient> ViewportClient;

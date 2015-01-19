@@ -63,6 +63,9 @@ public:
 
 	TSharedPtr<class IDetailsView> GetPropertyView() const { return PropertyView; }
 
+	void SetOwnerTab(TSharedRef<SDockTab> Tab);
+	TSharedPtr<SDockTab> GetOwnerTab() const;
+
 protected:
 	/** Update the inspector window to show information on the supplied objects */
 	void UpdateFromObjects(const TArray<UObject*>& PropertyObjects, struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options);
@@ -72,6 +75,9 @@ protected:
 
 	/** Pointer back to the kismet 2 tool that owns us */
 	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
+
+	/** The tab that owns this details view. */
+	TWeakPtr<SDockTab> OwnerTab;
 
 	/** String used as the title above the property window */
 	FText PropertyViewTitle;
