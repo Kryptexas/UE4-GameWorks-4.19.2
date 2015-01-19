@@ -131,6 +131,23 @@ public partial class Project : CommandUtils
 				{
 					CommandletParams += " -iterate";
 				}
+                if (Params.NewCook)
+                {
+                    CommandletParams += " -newcook";
+                } 
+                if (Params.HasCreateReleaseVersion)
+                {
+                    CommandletParams += " -createreleaseversion=" + Params.CreateReleaseVersion;
+                }
+                if (Params.HasBasedOnReleaseVersion)
+                {
+                    CommandletParams += " -basedonreleaseversion=" + Params.BasedOnReleaseVersion;
+                }
+                if (Params.HasAdditionalCookerOptions)
+                {
+                    string FormatedAdditionalCookerParams = Params.AdditionalCookerOptions.TrimStart(new char[] {'\"', ' ' } ).TrimEnd(new char[] {'\"', ' ' } );
+                    CommandletParams += FormatedAdditionalCookerParams;
+                }
                 CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, InternationalizationPreset, Cultures, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
 			}
 			catch (Exception Ex)
