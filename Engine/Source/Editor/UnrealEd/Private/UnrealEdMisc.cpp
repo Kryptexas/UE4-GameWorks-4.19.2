@@ -431,7 +431,7 @@ void FUnrealEdMisc::OnInit()
 	InitEngineAnalytics();
 	
 	// Setup a timer for a heartbeat event to track if users are actually using the editor or it is idle.
-	float Seconds = 60.0f;
+	float Seconds = (float)FTimespan::FromMinutes(5.0).GetTotalSeconds();
 	FTimerDelegate Delegate;
 	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
 
