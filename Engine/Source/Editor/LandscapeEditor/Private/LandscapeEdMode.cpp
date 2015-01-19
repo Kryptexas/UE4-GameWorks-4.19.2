@@ -2453,6 +2453,7 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 			else
 			{
 				// I would love to deprecate the raw/r8/r16 support for landscape, r16 doesn't even handle endianness issues...
+				RawData = &Data;
 			}
 
 			if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)
