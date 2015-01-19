@@ -238,7 +238,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		if( Track.CurveFloat != NULL )
 		{
 			// Do not duplicate external curves unless duplicating to a transient package
-			if(!Track.CurveFloat->GetOuter()->IsA(UPackage::StaticClass()) && bTransientPackage )
+			if(!Track.CurveFloat->GetOuter()->IsA(UPackage::StaticClass()) || bTransientPackage )
 			{
 				Track.CurveFloat = DuplicateObject<UCurveFloat>(Track.CurveFloat, NewCurveOuter, *MakeUniqueCurveName(Track.CurveFloat, NewCurveOuter));
 			}
@@ -255,7 +255,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		if( Track.CurveKeys != NULL )
 		{
 			// Do not duplicate external curves unless duplicating to a transient package
-			if(!Track.CurveKeys->GetOuter()->IsA(UPackage::StaticClass()) && bTransientPackage )
+			if(!Track.CurveKeys->GetOuter()->IsA(UPackage::StaticClass()) || bTransientPackage )
 			{
 				Track.CurveKeys = DuplicateObject<UCurveFloat>(Track.CurveKeys, NewCurveOuter, *MakeUniqueCurveName(Track.CurveKeys, NewCurveOuter));
 			}
@@ -272,7 +272,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		if( Track.CurveVector != NULL )
 		{
 			// Do not duplicate external curves unless duplicating to a transient package
-			if(!Track.CurveVector->GetOuter()->IsA(UPackage::StaticClass()) && bTransientPackage )
+			if(!Track.CurveVector->GetOuter()->IsA(UPackage::StaticClass()) || bTransientPackage )
 			{
 				Track.CurveVector = DuplicateObject<UCurveVector>(Track.CurveVector, NewCurveOuter, *MakeUniqueCurveName(Track.CurveVector, NewCurveOuter));
 			}
