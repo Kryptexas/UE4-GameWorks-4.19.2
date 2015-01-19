@@ -287,6 +287,8 @@ void FBehaviorTreeEditor::RestoreBehaviorTree()
 		// Initialize the behavior tree graph
 		const UEdGraphSchema* Schema = MyGraph->GetSchema();
 		Schema->CreateDefaultNodesForGraph(*MyGraph);
+
+		MyGraph->SpawnMissingNodes();
 	}
 	else
 	{
