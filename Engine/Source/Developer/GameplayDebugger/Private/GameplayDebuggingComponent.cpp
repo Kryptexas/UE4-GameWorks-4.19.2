@@ -19,6 +19,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/Channel.h"
+#include "Animation/AnimMontage.h"
 
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
