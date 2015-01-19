@@ -568,11 +568,11 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 #endif // !UE_SERVER
 }
 
-class FWidgetComponentInstanceData : public FComponentInstanceDataBase
+class FWidgetComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FWidgetComponentInstanceData( const UWidgetComponent* SourceComponent )
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 		, WidgetClass ( SourceComponent->GetWidgetClass() )
 		, RenderTarget( SourceComponent->GetRenderTarget() )
 	{}
@@ -595,6 +595,8 @@ FComponentInstanceDataBase* UWidgetComponent::GetComponentInstanceData() const
 
 void UWidgetComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
+	Super::ApplyComponentInstanceData(ComponentInstanceData);
+
 	check(ComponentInstanceData);
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component

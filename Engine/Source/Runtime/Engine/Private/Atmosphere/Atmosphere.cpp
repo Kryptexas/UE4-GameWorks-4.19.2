@@ -695,11 +695,11 @@ void UAtmosphericFogComponent::Serialize(FArchive& Ar)
 }
 
 /** Used to store lightmap data during RerunConstructionScripts */
-class FAtmospherePrecomputeInstanceData : public FComponentInstanceDataBase
+class FAtmospherePrecomputeInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FAtmospherePrecomputeInstanceData(const UAtmosphericFogComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 	{}
 
 	virtual ~FAtmospherePrecomputeInstanceData()
@@ -761,6 +761,8 @@ FComponentInstanceDataBase* UAtmosphericFogComponent::GetComponentInstanceData()
 // Restore the precomputed data after re-running Blueprint construction script
 void UAtmosphericFogComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
+	Super::ApplyComponentInstanceData(ComponentInstanceData);
+
 	check(ComponentInstanceData);
 	FAtmospherePrecomputeInstanceData* PrecomputedData = static_cast<FAtmospherePrecomputeInstanceData*>(const_cast<FComponentInstanceDataBase*>(ComponentInstanceData));
 

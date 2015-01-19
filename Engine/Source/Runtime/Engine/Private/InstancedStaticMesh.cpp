@@ -659,11 +659,11 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 
 #if WITH_EDITOR
 /** Helper class used to preserve lighting/selection state across blueprint reinstancing */
-class FInstancedStaticMeshComponentInstanceData : public FComponentInstanceDataBase
+class FInstancedStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FInstancedStaticMeshComponentInstanceData(const UInstancedStaticMeshComponent& InComponent)
-		: FComponentInstanceDataBase(&InComponent)
+		: FSceneComponentInstanceData(&InComponent)
 		, StaticMesh(InComponent.StaticMesh)
 		, bHasCachedStaticLighting(false)
 	{
@@ -745,6 +745,9 @@ FComponentInstanceDataBase* UInstancedStaticMeshComponent::GetComponentInstanceD
 
 void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
+	// Skip UStaticMeshComponent implementation
+	USceneComponent::ApplyComponentInstanceData(ComponentInstanceData);
+
 #if WITH_EDITOR
 	check(ComponentInstanceData);
 
