@@ -5,6 +5,7 @@
 #include "GameplayEffect.h"
 #include "GameplayPrediction.h"
 #include "AttributeSet.h"
+#include "GameFramework/MovementComponent.h"
 #include "GameplayAbilityTypes.generated.h"
 
 class UGameplayEffect;
