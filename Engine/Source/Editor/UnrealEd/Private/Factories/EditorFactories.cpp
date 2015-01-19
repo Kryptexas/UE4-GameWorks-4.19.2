@@ -103,6 +103,8 @@
 #include "Engine/DataTable.h"
 #include "DataTableEditorUtils.h"
 
+#include "Kismet2/BlueprintEditorUtils.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
 #define LOCTEXT_NAMESPACE "EditorFactories"
