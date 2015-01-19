@@ -482,13 +482,6 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 
 	bool bUseSuperSearch = true;
 
-	TSharedPtr<SWidget> StatusWidget = ISourceControlModule::Get().CreateStatusWidget();
-	// source control module can be compiled without UI support, provide a fallback
-	if (!StatusWidget.IsValid())
-	{
-		StatusWidget = SNew( SSpacer );
-	}
-	
 	// Invisible border, so that we can animate our box panel size
 	return SNew( SBorder )
 		.Visibility( EVisibility::SelfHitTestInvisible )
@@ -542,15 +535,6 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 						.ToolTipText(LOCTEXT("SearchEditor", "Search the Editor"))
 				]
 */
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding( 6.0f, 0.0f, 2.0f, 0.0f )
-				[
-					// STATUS BUTTON
-					StatusWidget.ToSharedRef()
-				]
-
 			// Editor live streaming toggle button
 			+SHorizontalBox::Slot()
 				.AutoWidth()

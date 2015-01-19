@@ -3,7 +3,6 @@
 #include "SourceControlPrivatePCH.h"
 #include "SSourceControlPicker.h"
 #include "SourceControlModule.h"
-#include "SSourceControlStatus.h"
 #include "SSourceControlLogin.h"
 
 #if SOURCE_CONTROL_WITH_SLATE
