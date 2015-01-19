@@ -71,7 +71,7 @@
 		<th style='width: 11em;'><%=Url.TableHeader( "Game", "GameName", Model )%></th> 
 		<th style='width: 11em;'><%=Url.TableHeader( "Mode", "EngineMode", Model )%></th> 
 		<th style='width: 16em;'><%=Url.TableHeader( "FixedCL#", "FixedChangeList", Model )%></th>
-		<th style='width: 9em;'><%=Url.TableHeader( "TTP", "TTPID", Model) %></th>
+		<th style='width: 9em;'><%=Url.TableHeader( "Bug", "TTPID", Model) %></th>
 		<th style='width: 9em;'><%=Url.TableHeader( "Branch", "Branch", Model) %></th>
 		<th>Description</th>
 		<th style='width: 15em'><%=Url.TableHeader( "Message", "Summary", Model )%></th>
