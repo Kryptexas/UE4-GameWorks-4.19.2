@@ -7,6 +7,7 @@
 #include "InstancedFoliage.h"
 #include "InstancedFoliageActor.h"
 #include "ProceduralFoliage.h"
+#include "ProceduralFoliageLevelInfo.h"
 #include "Async/Async.h"
 
 #define LOCTEXT_NAMESPACE "ProceduralFoliage"
@@ -18,11 +19,14 @@ UProceduralFoliageComponent::UProceduralFoliageComponent(const FObjectInitialize
 	TilesY = 1;
 	Overlap = 0.f;
 	HalfHeight = 10000.f;
+	ContentGuid = FGuid::NewGuid();
 }
 
-void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageInstances, UWorld* World, UActorComponent* BaseComponent)
+void UProceduralFoliageComponent::SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageInstances)
 {
 #if WITH_EDITOR
+	UWorld* World = GetWorld();
+
 	FFoliageInstance Inst;
 	
 	for (const FProceduralFoliageInstance& EcoInst : ProceduralFoliageInstances)
@@ -57,8 +61,18 @@ void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageI
 
 
 					Inst.Base = EcoInst.BaseComponent;
-					Inst.Spawner = BaseComponent;
-
+					ULevel* Level = EcoInst.BaseComponent->GetComponentLevel();
+					AProceduralFoliageLevelInfo*& LvlInfo = SublevelInfos.FindOrAdd(Level);
+					if (LvlInfo == nullptr)
+					{
+						//need to spawn an info actor for the level
+						FActorSpawnParameters SpawnParams;
+						SpawnParams.OverrideLevel = Level;
+						LvlInfo = World->SpawnActor<AProceduralFoliageLevelInfo>(SpawnParams);
+						LvlInfo->ProceduralContentGuid = ContentGuid;
+						SublevelInfos.Add(Level, LvlInfo);
+					}
+					Inst.Spawner = LvlInfo;
 
 					MeshInfo->AddInstance(IFA, Settings, Inst);
 				}
@@ -204,7 +218,7 @@ void UProceduralFoliageComponent::SpawnTiles()
 			for (int Y = 0; Y < TilesY; ++Y)
 			{
 				TArray<FProceduralFoliageInstance>* ProceduralFoliageInstances = Futures[FutureIdx++].Get();
-				SpawnInstances(*ProceduralFoliageInstances, World, this);
+				SpawnInstances(*ProceduralFoliageInstances);
 				delete ProceduralFoliageInstances;
 				SlowTask.EnterProgressFrame(1);
 			}
@@ -217,12 +231,19 @@ void UProceduralFoliageComponent::SpawnProceduralContent()
 {
 #if WITH_EDITOR
 	UWorld* World = GetWorld();
-	for (ULevel* Level : World->GetLevels())
+	for (TObjectIterator<AProceduralFoliageLevelInfo> It; It; ++It)
 	{
-		if (Level)
+		if (AProceduralFoliageLevelInfo* LvlInfo = *It)
 		{
-			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
-			IFA->DeleteInstancesForSpawner(this);
+			if (LvlInfo->ProceduralContentGuid == ContentGuid)
+			{
+				ULevel* Level = LvlInfo->GetLevel();
+				SublevelInfos.FindOrAdd(Level) = *It;	//update our map of sublevel infos
+
+				//clear the IFA for the sublevel
+				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+				IFA->DeleteInstancesForSpawner(LvlInfo);
+			}
 		}
 	}
 	

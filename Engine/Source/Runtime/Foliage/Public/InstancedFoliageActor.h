@@ -95,7 +95,7 @@ public:
 	FOLIAGE_API void DeleteInstancesForComponent(UActorComponent* InComponent);
 
 	// Deletes the instances spawned by a component
-	FOLIAGE_API void DeleteInstancesForSpawner(UActorComponent* InComponent);
+	FOLIAGE_API void DeleteInstancesForSpawner(AActor* InSpawner);
 
 	// Finds a mesh entry or adds it if it doesn't already exist
 	FOLIAGE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
