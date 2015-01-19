@@ -580,12 +580,7 @@ FFeedbackContext* FDesktopPlatformWindows::GetNativeFeedbackContext()
 
 FString FDesktopPlatformWindows::GetUserTempPath()
 {
-	TCHAR TempPath[MAX_PATH];
-	ZeroMemory(TempPath, sizeof(TCHAR) * MAX_PATH);
-
-	::GetTempPath(MAX_PATH, TempPath);
-
-	return FString(TempPath).Replace(TEXT("\\"), TEXT("/"));
+	return FString(FPlatformProcess::UserTempDir());
 }
 
 void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
