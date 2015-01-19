@@ -609,7 +609,7 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden)
 {
 	// Don't do any work if the component's selection state matches the target selection state
-	const bool bComponentSelected = Component->IsSelected();
+	const bool bComponentSelected = GetSelectedComponents()->IsSelected(Component);
 	if (( bComponentSelected && !bInSelected ) || ( !bComponentSelected && bInSelected ))
 	{
 		if (bInSelected)

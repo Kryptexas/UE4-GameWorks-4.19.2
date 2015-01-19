@@ -732,11 +732,12 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 
 	/** OnEditorModeChanged delegate which looks for Matinee editor closing */
 	void OnMatineeEditorClosed( class FEdMode* Mode, bool IsEntering );
+
+	bool IsComponentSelected(const UPrimitiveComponent* PrimComponent);
 	
 protected:
 	EWriteDisallowedWarningState GetWarningStateForWritePermission(const FString& PackageName) const;
-	bool IsComponentSelected(const UPrimitiveComponent* PrimComponent);
-
+	
 	/** The package auto-saver instance used by the editor */
 	TUniquePtr<IPackageAutoSaver> PackageAutoSaver;
 

@@ -621,32 +621,43 @@ private:
 	{
 		if (!bSelectionGuard && SCSEditor.IsValid())
 		{
+			// Enable the selection guard to prevent OnTreeSelectionChanged() from altering the editor's component selection
+			TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
+
+			auto& SCSTreeWidget = SCSEditor->SCSTreeWidget;
+
 			TArray<UObject*> DetailsObjects;
 			auto Selection = Cast<USelection>(Object);
-			if (Selection == GEditor->GetSelectedComponents())
+			if (Selection == GEditor->GetSelectedComponents()) // A component was selected
 			{
-				// Enable the selection guard to prevent OnTreeSelectionChanged() from altering the editor's component selection
-				TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
-
 				// Update the tree selection to match the level editor component selection
-				auto& SCSTreeWidget = SCSEditor->SCSTreeWidget;
 				SCSTreeWidget->ClearSelection();
 				for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
 				{
 					UActorComponent* Component = CastChecked<UActorComponent>(*It);
-					if (Component)
+
+					auto SCSTreeNode = SCSEditor->GetNodeFromActorComponent(Component);
+					if (SCSTreeNode.IsValid())
 					{
-						auto SCSTreeNode = SCSEditor->GetNodeFromActorComponent(Component);
-						if (SCSTreeNode.IsValid())
-						{
-							SCSTreeWidget->SetItemSelection(SCSTreeNode, true);
-							check(Component == SCSTreeNode->GetComponentTemplate());
-							DetailsObjects.Add(Component);
-						}
+						SCSTreeWidget->SetItemSelection(SCSTreeNode, true);
+						check(Component == SCSTreeNode->GetComponentTemplate());
+						DetailsObjects.Add(Component);
 					}
 				}
 
 				DetailsView->SetObjects(DetailsObjects);
+			}
+			else if (Selection == GEditor->GetSelectedActors() && GEditor->GetSelectedComponentCount() == 0) // An actor was selected
+			{
+				// Wipe the tree selection
+				SCSTreeWidget->ClearSelection();
+
+				// Ensure the components appear properly selected
+				for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+				{
+					auto Actor = CastChecked<AActor>(*It);
+					GUnrealEd->SetActorSelectionFlags(Actor);
+				}
 			}
 		}
 	}
@@ -667,10 +678,13 @@ private:
 				// Enable the selection guard to prevent OnEditorSelectionChanged() from altering the contents of the SCSTreeWidget
 				TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
 
+				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponentInTree", "Clicking on Component (tree view)"));
+
 				// Update the editor's component selection
 				TArray<UObject*> DetailsObjects;
 				USelection* SelectedComponents = GEditor->GetSelectedComponents();
 
+				SelectedComponents->Modify();
 				SelectedComponents->BeginBatchSelectOperation();
 				SelectedComponents->DeselectAll();
 
@@ -683,12 +697,20 @@ private:
 						{
 							DetailsObjects.Add(ComponentInstance);
 							SelectedComponents->Select(ComponentInstance);
+
+							// Ensure the selection override is bound for all the nodes (since it's possible we just added one)
+							auto PrimComponent = Cast<UPrimitiveComponent>(ComponentInstance);
+							if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
+							{
+								PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+							}
 						}
 					}
 				}
-				DetailsView->SetObjects(DetailsObjects);
 
 				SelectedComponents->EndBatchSelectOperation();
+
+				DetailsView->SetObjects(DetailsObjects);
 
 				GUnrealEd->SetActorSelectionFlags(Actor);
 				GUnrealEd->UpdatePivotLocationForSelection(true);

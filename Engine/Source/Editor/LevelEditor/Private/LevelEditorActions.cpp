@@ -1471,7 +1471,7 @@ void FLevelEditorActionCallbacks::OnSelectComponentOwnerActor()
 	auto ComponentOwner = Cast<AActor>(*GEditor->GetSelectedActorIterator());
 	check(ComponentOwner);
 
-	GEditor->SelectNone(false, true, false);
+	GEditor->SelectNone(true, true, false);
 	GEditor->SelectActor(ComponentOwner, true, true, true);
 }
 
