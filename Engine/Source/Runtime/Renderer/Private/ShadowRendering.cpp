@@ -611,7 +611,7 @@ bool FShadowProjectionVS::ShouldCache(EShaderPlatform Platform)
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 }
 
-void FShadowProjectionVS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const int32 ShadowSplitIndex)
+void FShadowProjectionVS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
 {
 	FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
 	
@@ -1073,12 +1073,12 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 		const EBlendMode BlendMode = Material->GetBlendMode();
 		const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
-		const bool bOnePassPointLightShadow = Context.ShadowInfo->bOnePassPointLightShadow;
-		const bool bReflectiveShadowmap = Context.ShadowInfo->bReflectiveShadowmap && !bOnePassPointLightShadow && Material->ShouldInjectEmissiveIntoLPV();
+		const bool bLocalOnePassPointLightShadow = Context.ShadowInfo->bOnePassPointLightShadow;
+		const bool bReflectiveShadowmap = Context.ShadowInfo->bReflectiveShadowmap && !bLocalOnePassPointLightShadow && Material->ShouldInjectEmissiveIntoLPV();
 
 		if ( (!IsTranslucentBlendMode(BlendMode) || bReflectiveShadowmap ) && ShadingModel != MSM_Unlit )
 		{
-			const bool bDirectionalLight = Context.ShadowInfo->bDirectionalLight;
+			const bool bLocalDirectionalLight = Context.ShadowInfo->bDirectionalLight;
 			const bool bPreShadow = Context.ShadowInfo->bPreShadow;
 			const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneProxy->CastsShadowAsTwoSided();
 			const FShadowDepthDrawingPolicyContext PolicyContext(Context.ShadowInfo);
@@ -1089,8 +1089,8 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 			{
 				FShadowDepthDrawingPolicy<true> DrawingPolicy(
 					MaterialRenderProxy->GetMaterial(FeatureLevel),
-					bDirectionalLight,
-					bOnePassPointLightShadow,
+					bLocalDirectionalLight,
+					bLocalOnePassPointLightShadow,
 					bPreShadow,
 					FeatureLevel,
 					Mesh.VertexFactory,
@@ -1111,8 +1111,8 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 			{
 				FShadowDepthDrawingPolicy<false> DrawingPolicy(
 					MaterialRenderProxy->GetMaterial(FeatureLevel),
-					bDirectionalLight,
-					bOnePassPointLightShadow,
+					bLocalDirectionalLight,
+					bLocalOnePassPointLightShadow,
 					bPreShadow,
 					FeatureLevel,
 					Mesh.VertexFactory,
@@ -1966,7 +1966,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 
-			checkSlow(SplitIndex >= 0);
+			checkSlow(ShadowSplitIndex >= 0);
 			checkSlow(bDirectionalLight);
 
 			// Draw 2 fullscreen planes, front facing one at the near subfrustum plane, and back facing one at the far.
@@ -2001,7 +2001,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			};
 
 			// Only draw the near plane if this is not the nearest split
-			DrawPrimitiveUP(RHICmdList, PT_TriangleList, (SplitIndex > 0) ? 4 : 2, Verts, sizeof(FVector4));
+			DrawPrimitiveUP(RHICmdList, PT_TriangleList, (ShadowSplitIndex > 0) ? 4 : 2, Verts, sizeof(FVector4));
 		}
 	}
 	// Not a preshadow, mask the projection to any pixels inside the frustum.
@@ -2111,12 +2111,10 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 		if (LocalQuality > 1)
 		{
-			if (IsWholeSceneDirectionalShadow() && SplitIndex > 0)
+			if (IsWholeSceneDirectionalShadow() && ShadowSplitIndex > 0)
 			{
 				// adjust kernel size so that the penumbra size of distant splits will better match up with the closer ones
-				const float SizeScale = SplitIndex / FMath::Max(0.001f, CVarCSMSplitPenumbraScale.GetValueOnRenderThread());
-
-		//test		LocalQuality = FMath::Clamp((int32)LocalQuality - SplitIndex, 2, 5);
+				const float SizeScale = ShadowSplitIndex / FMath::Max(0.001f, CVarCSMSplitPenumbraScale.GetValueOnRenderThread());
 			}
 			else if (LocalQuality > 2 && !bWholeSceneShadow)
 			{
@@ -2243,7 +2241,6 @@ void FProjectedShadowInfo::RenderOnePassPointLightProjection(FRHICommandListImme
 					++Reduce;
 				}
 			}
-	//test		LocalQuality = FMath::Clamp((int32)LocalQuality - Reduce, 2, 5);
 		}
 
 		switch(LocalQuality)
@@ -2279,7 +2276,7 @@ void FProjectedShadowInfo::RenderFrustumWireframe(FPrimitiveDrawInterface* PDI) 
 	if(IsWholeSceneDirectionalShadow())
 	{
 		Color = FColor::White;
-		switch(SplitIndex)
+		switch(ShadowSplitIndex)
 		{
 			case 0: Color = FColor::Red; break;
 			case 1: Color = FColor::Yellow; break;
@@ -2415,7 +2412,7 @@ void FProjectedShadowInfo::UpdateShaderDepthBias()
 	}
 	else if (IsWholeSceneDirectionalShadow())
 	{
-		check(SplitIndex >= 0);
+		check(ShadowSplitIndex >= 0);
 
 		// the z range is adjusted to we need to adjust here as well
 		DepthBias = CVarCSMShadowDepthBias.GetValueOnRenderThread() / (MaxSubjectZ - MinSubjectZ);
@@ -2471,7 +2468,7 @@ float FProjectedShadowInfo::ComputeTransitionSize() const
 	}
 	else if (IsWholeSceneDirectionalShadow())
 	{
-		check(SplitIndex >= 0);
+		check(ShadowSplitIndex >= 0);
 
 		// todo: remove GetShadowTransitionScale()
 		// make 1/ ShadowTransitionScale, SpotLightShadowTransitionScale
@@ -2527,9 +2524,9 @@ void FProjectedShadowInfo::GetShadowTypeNameForDrawEvent(FString& TypeName) cons
 
 		if (bWholeSceneShadow)
 		{
-			if (SplitIndex >= 0)
+			if (ShadowSplitIndex >= 0)
 			{
-				TypeName = FString(TEXT("WholeScene split ")) + FString::FromInt(SplitIndex);
+				TypeName = FString(TEXT("WholeScene split ")) + FString::FromInt(ShadowSplitIndex);
 			}
 			else
 			{
@@ -2732,7 +2729,7 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 			{
 				// Both A and B are CSMs
 				// Compare Split Indexes, to order them far to near.
-				return (B.SplitIndex < A.SplitIndex);
+				return (B.ShadowSplitIndex < A.ShadowSplitIndex);
 			}
 
 			// A is a CSM, B is per-object shadow etc.

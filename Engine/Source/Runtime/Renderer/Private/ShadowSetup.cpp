@@ -359,13 +359,13 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 	ResolutionY(0),
 	MaxScreenPercent(InMaxScreenPercent),
 	FadeAlphas(InFadeAlphas),
-	SplitIndex(INDEX_NONE),
+	ShadowSplitIndex(INDEX_NONE),
 	bAllocated(false),
 	bAllocatedInTranslucentLayout(false),
 	bRendered(false),
 	bAllocatedInPreshadowCache(false),
 	bDepthsCached(false),
-	bDirectionalLight(Initializer.bDirectionalLight),
+	bDirectionalLight(InLightSceneInfo->Proxy->GetLightType() == LightType_Directional),
 	bWholeSceneShadow(false),
 	bOnePassPointLightShadow(false),
 	bReflectiveShadowmap(false),
@@ -484,13 +484,13 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 ,	ResolutionX(InResolutionX)
 ,	ResolutionY(InResolutionY)
 ,	MaxScreenPercent(1.0f)
-,	SplitIndex(Initializer.SplitIndex)
+,	ShadowSplitIndex(Initializer.SplitIndex)
 ,	bAllocated(false)
 ,	bAllocatedInTranslucentLayout(false)
 ,	bRendered(false)
 ,	bAllocatedInPreshadowCache(false)
 ,	bDepthsCached(false)
-,	bDirectionalLight(Initializer.bDirectionalLight)
+,	bDirectionalLight(InLightSceneInfo->Proxy->GetLightType() == LightType_Directional)
 ,	bWholeSceneShadow(true)
 ,	bOnePassPointLightShadow(Initializer.bOnePassPointLightShadow)
 ,	bReflectiveShadowmap(bInReflectiveShadowMap) 
@@ -511,8 +511,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 	if(bInReflectiveShadowMap)
 	{
 		check(!bOnePassPointLightShadow);
-
-		SplitIndex = 0;
+		check(!ShadowSplitIndex);
 
 		// Quantise the RSM in shadow texel space
 		static bool bQuantize = true;
@@ -544,7 +543,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 	}
 	else
 	{
-		if(Initializer.bDirectionalLight)
+		if(bDirectionalLight)
 		{
 			// Limit how small the depth range can be for smaller cascades
 			// This is needed for shadow modes like subsurface shadows which need depth information outside of the smaller cascade depth range
@@ -573,10 +572,10 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 			PreShadowTranslation = -SnappedWorldPosition;
 		}
 
-		if (Initializer.SplitIndex >= 0 && Initializer.bDirectionalLight)
+		if (Initializer.SplitIndex >= 0 && bDirectionalLight)
 		{
 			checkSlow(InDependentView);
-			ShadowBounds = InLightSceneInfo->Proxy->GetShadowSplitBounds(*InDependentView, SplitIndex, 0);
+			ShadowBounds = InLightSceneInfo->Proxy->GetShadowSplitBounds(*InDependentView, ShadowSplitIndex, 0);
 		}
 		else
 		{
@@ -1543,7 +1542,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 		float MaxFadeAlpha = 0;
 		bool bStaticSceneOnly = false;
 
-		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		for(int32 ViewIndex = 0, ViewCount = Views.Num(); ViewIndex < ViewCount; ++ViewIndex)
 		{
 			const FViewInfo& View = Views[ViewIndex];
 
@@ -1581,7 +1580,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 
 		if (MaxFadeAlpha > 1.0f / 256.0f)
 		{
-			for (int32 ShadowIndex = 0; ShadowIndex < ProjectedShadowInitializers.Num(); ShadowIndex++)
+			for (int32 ShadowIndex = 0, ShadowCount = ProjectedShadowInitializers.Num(); ShadowIndex < ShadowCount; ShadowIndex++)
 			{
 				const FWholeSceneProjectedShadowInitializer& ProjectedShadowInitializer = ProjectedShadowInitializers[ShadowIndex];
 
@@ -1745,7 +1744,7 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 								ProjectedShadowInfo.ParentSceneInfo->PrimitiveComponentId :
 								FPrimitiveComponentId(),
 							ProjectedShadowInfo.LightSceneInfo->Proxy->GetLightComponent(),
-							ProjectedShadowInfo.SplitIndex,
+							ProjectedShadowInfo.ShadowSplitIndex,
 							ProjectedShadowInfo.bTranslucentShadow
 							);
 
@@ -1769,7 +1768,7 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 							{
 								// Get split color
 								FColor Color = FColor::White;
-								switch(ProjectedShadowInfo.SplitIndex)
+								switch(ProjectedShadowInfo.ShadowSplitIndex)
 								{
 									case 0: Color = FColor::Red; break;
 									case 1: Color = FColor::Yellow; break;
@@ -2111,6 +2110,9 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 
 					if (LightSceneInfo.Proxy->GetViewDependentRsmWholeSceneProjectedShadowInitializer(View, Lpv.GetBoundingBox(), ProjectedShadowInitializer))
 					{
+						// moved out from the FProjectedShadowInfo constructor
+						ProjectedShadowInitializer.SplitIndex = 0;
+
 						const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetReflectiveShadowMapTextureResolution();
 
 						// Create the projected shadow info.

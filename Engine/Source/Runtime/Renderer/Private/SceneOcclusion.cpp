@@ -468,14 +468,8 @@ static void IssueProjectedShadowOcclusionQuery(FRHICommandListImmediate& RHICmdL
 		// we just copy the indices right in
 		FMemory::Memcpy(Indices, GCubeIndices, sizeof(GCubeIndices));
 
-		FSceneViewState::FProjectedShadowKey Key(
-			ProjectedShadowInfo.ParentSceneInfo ? 
-				ProjectedShadowInfo.ParentSceneInfo->PrimitiveComponentId :
-				FPrimitiveComponentId(),
-			ProjectedShadowInfo.LightSceneInfo->Proxy->GetLightComponent(),
-			ProjectedShadowInfo.SplitIndex,
-			ProjectedShadowInfo.bTranslucentShadow
-			);
+		FSceneViewState::FProjectedShadowKey Key(ProjectedShadowInfo);
+
 		checkSlow(ShadowOcclusionQueryMap.Find(Key) == NULL);
 		ShadowOcclusionQueryMap.Add(Key, ShadowOcclusionQuery);
 
@@ -1135,14 +1129,8 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 								const FRenderQueryRHIRef ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
 								RHICmdList.BeginRenderQuery(ShadowOcclusionQuery);
 
-								FSceneViewState::FProjectedShadowKey Key(
-									ProjectedShadowInfo.ParentSceneInfo ? 
-										ProjectedShadowInfo.ParentSceneInfo->PrimitiveComponentId :
-										FPrimitiveComponentId(),
-									ProjectedShadowInfo.LightSceneInfo->Proxy->GetLightComponent(),
-									ProjectedShadowInfo.SplitIndex,
-									ProjectedShadowInfo.bTranslucentShadow
-									);
+								FSceneViewState::FProjectedShadowKey Key(ProjectedShadowInfo);
+
 								checkSlow(ShadowOcclusionQueryMap.Find(Key) == NULL);
 								ShadowOcclusionQueryMap.Add(Key, ShadowOcclusionQuery);
 

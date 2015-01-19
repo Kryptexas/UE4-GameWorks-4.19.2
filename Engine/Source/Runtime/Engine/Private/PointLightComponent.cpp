@@ -73,7 +73,6 @@ public:
 			&& GAllowPointLightCubemapShadows != 0)
 		{
 			FWholeSceneProjectedShadowInitializer& OutInitializer = *new(OutInitializers) FWholeSceneProjectedShadowInitializer;
-			OutInitializer.bDirectionalLight = false;
 			OutInitializer.bOnePassPointLightShadow = true;
 			OutInitializer.PreShadowTranslation = -GetLightToWorld().GetOrigin();
 			OutInitializer.WorldToLight = GetWorldToLight().RemoveTranslation();

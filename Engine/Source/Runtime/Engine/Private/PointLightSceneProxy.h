@@ -126,7 +126,6 @@ public:
 			SilhouetteRadius = 1.0f;
 		}
 
-		OutInitializer.bDirectionalLight = false;
 		OutInitializer.PreShadowTranslation = -LightPosition;
 		OutInitializer.WorldToLight = FInverseRotationMatrix((LightVector / LightDistance).Rotation());
 		OutInitializer.Scales = FVector(1.0f,1.0f / SilhouetteRadius,1.0f / SilhouetteRadius);

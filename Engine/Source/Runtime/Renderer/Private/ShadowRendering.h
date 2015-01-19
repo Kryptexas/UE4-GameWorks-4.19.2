@@ -566,7 +566,7 @@ public:
 	 * Index of the split if this is a whole scene shadow from a directional light, 
 	 * Or index of the direction if this is a whole scene shadow from a point light, otherwise INDEX_NONE. 
 	 */
-	int32 SplitIndex;
+	const int32 ShadowSplitIndex;
 
 	/** Whether the shadow has been allocated in the shadow depth buffer, and its X and Y properties have been initialized. */
 	uint32 bAllocated : 1;
@@ -586,13 +586,14 @@ public:
 	/** Whether the shadow is in the preshadow cache and its depths are up to date. */
 	uint32 bDepthsCached : 1;
 
-	uint32 bDirectionalLight : 1;
+	// redundant to LightSceneInfo->Proxy->GetLightType() == LightType_Directional, could be made ELightComponentType LightType
+	const uint32 bDirectionalLight : 1;
 
 	/** Whether this shadow affects the whole scene or only a group of objects. */
 	uint32 bWholeSceneShadow : 1;
 
 	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
-	uint32 bOnePassPointLightShadow : 1;
+	const uint32 bOnePassPointLightShadow : 1;
 
 	/** Whether the shadow needs to render reflective shadow maps. */ 
 	uint32 bReflectiveShadowmap : 1; 
@@ -753,7 +754,8 @@ public:
 
 	inline bool IsWholeSceneDirectionalShadow() const 
 	{ 
-		return bWholeSceneShadow && SplitIndex >= 0 && LightSceneInfo->Proxy->GetLightType() == LightType_Directional; 
+		check(bDirectionalLight == LightSceneInfo->Proxy->GetLightType() == LightType_Directional);
+		return bWholeSceneShadow && ShadowSplitIndex >= 0 && bDirectionalLight; 
 	}
 
 	inline bool IsWholeScenePointLightShadow() const
@@ -932,7 +934,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("USE_TRANSFORM"), (uint32)1);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, int32 ShadowSplitIndex = INDEX_NONE);
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo);
 
 	// Begin FShader interface
 	virtual bool Serialize(FArchive& Ar) override

@@ -550,12 +550,8 @@ public:
 	float MinLightW;
 	float MaxDistanceToCastInLightW;
 
-	/** Whether the shadow is for a directional light. */
-	bool bDirectionalLight;
-
 	/** Default constructor. */
 	FProjectedShadowInitializer()
-	:	bDirectionalLight(false)
 	{}
 };
 
