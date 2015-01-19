@@ -12,14 +12,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncTest, "Core.Async.Async", EAutomationTest
 
 bool FAsyncTest::RunTest(const FString& Parameters)
 {
-	auto Task = []()
+	TFunction<int()> Task = []()
 	{
 		return 123;
 	};
 
 	// task graph task
 	{
-		auto Future = Async<int>(EAsyncExecution::TaskGraph, Task);
+		auto Future = Async(EAsyncExecution::TaskGraph, Task);
 		int Result = Future.Get();
 
 		TestEqual(TEXT("Task graph task must return expected value"), Result, 123);
@@ -27,7 +27,7 @@ bool FAsyncTest::RunTest(const FString& Parameters)
 
 	// thread task
 	{
-		auto Future = Async<int>(EAsyncExecution::Thread, Task);
+		auto Future = Async(EAsyncExecution::Thread, Task);
 		int Result = Future.Get();
 
 		TestEqual(TEXT("Threaded task must return expected value"), Result, 123);
@@ -35,7 +35,7 @@ bool FAsyncTest::RunTest(const FString& Parameters)
 
 	// thread pool task
 	{
-		auto Future = Async<int>(EAsyncExecution::ThreadPool, Task);
+		auto Future = Async(EAsyncExecution::ThreadPool, Task);
 		int Result = Future.Get();
 
 		TestEqual(TEXT("Thread pool task must return expected value"), Result, 123);

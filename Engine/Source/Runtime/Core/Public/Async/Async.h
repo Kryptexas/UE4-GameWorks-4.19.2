@@ -23,10 +23,50 @@ enum class EAsyncExecution
 
 
 /**
+ * Base class for asynchronous functions that are executed in the Task Graph system.
+ */
+class FAsyncTaskBase
+{
+public:
+
+	/**
+	 * Returns the name of the thread that this task should run on.
+	 *
+	 * @return Always run on any thread.
+	 */
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	/**
+	 * Gets the task's stats tracking identifier.
+	 *
+	 * @return Stats identifier.
+	 */
+	TStatId GetStatId() const
+	{
+		return GET_STATID(STAT_TaskGraph_OtherTasks);
+	}
+
+	/**
+	 * Gets the mode for tracking subsequent tasks.
+	 *
+	 * @return Always track subsequent tasks.
+	 */
+	static ESubsequentsMode::Type GetSubsequentsMode()
+	{
+		return ESubsequentsMode::FireAndForget;
+	}
+};
+
+
+/**
  * Template for asynchronous functions that are executed in the Task Graph system.
  */
 template<typename ResultType>
 class TAsyncTask
+	: public FAsyncTaskBase
 {
 public:
 
@@ -55,16 +95,6 @@ public:
 	}
 
 	/**
-	 * Returns the name of the thread that this task should run on.
-	 *
-	 * @return Always run on any thread.
-	 */
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-
-	/**
 	 * Gets the future that will hold the asynchronous result.
 	 *
 	 * @return A TFuture object.
@@ -72,26 +102,6 @@ public:
 	TFuture<ResultType> GetFuture()
 	{
 		return Promise.GetFuture();
-	}
-
-	/**
-	 * Gets the task's stats tracking identifier.
-	 *
-	 * @return Stats identifier.
-	 */
-	TStatId GetStatId() const
-	{
-		return GET_STATID(STAT_TaskGraph_OtherTasks);
-	}
-
-	/**
-	 * Gets the mode for tracking subsequent tasks.
-	 *
-	 * @return Always track subsequent tasks.
-	 */
-	static ESubsequentsMode::Type GetSubsequentsMode()
-	{
-		return ESubsequentsMode::FireAndForget;
 	}
 
 private:
@@ -202,6 +212,37 @@ private:
 
 /**
  * Executes a given function asynchronously.
+ *
+ * While we still support VS2012, we need to help the compiler deduce the ResultType
+ * template argument for Async<T>(), which can be accomplished in two ways:
+ *
+ *	- call Async() with the template parameter, i.e. Async<int>(..)
+ *	- use a TFunction binding that explicitly specifies the type, i.e. TFunction<int()> F = []() { .. }
+ *
+ * Usage examples:
+ *
+ *	// using global function
+ *		int TestFunc()
+ *		{
+ *			return 123;
+ *		}
+ *
+ *		TFunction<int()> Task = TestFunc();
+ *		auto Result = Async(EAsyncExecution::Thread, Task);
+ *
+ *	// using lambda
+ *		TFunction<int()> Task = []()
+ *		{
+ *			return 123;
+ *		}
+ *
+ *		auto Result = Async(EAsyncExecution::Thread, Task);
+ *
+ *
+ *	// using inline lambda
+ *		auto Result = Async<int>(EAsyncExecution::Thread, []() {
+ *			return 123;
+ *		}
  *
  * @param Execution The execution method to use, i.e. on Task Graph or in a separate thread.
  * @param Function The function to execute.
