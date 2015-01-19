@@ -36,6 +36,7 @@
 #include "NavigationBuildingNotification.h"
 #include "HotReloadInterface.h"
 #include "PerformanceMonitor.h"
+#include "Engine/WorldComposition.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -438,6 +439,9 @@ void FUnrealEdMisc::OnInit()
 
 	// add handler to notify about navmesh building process
 	NavigationBuildingNotificationHandler = MakeShareable(new FNavigationBuildingNotificationImpl());
+
+	// Handles "Enable World Composition" option in WorldSettings
+	UWorldComposition::EnableWorldCompositionEvent.BindRaw(this, &FUnrealEdMisc::EnableWorldComposition);
 }
 
 void FUnrealEdMisc::InitEngineAnalytics()
@@ -613,6 +617,73 @@ void FUnrealEdMisc::TickAssetAnalytics()
 	}
 }
 
+bool FUnrealEdMisc::EnableWorldComposition(UWorld* InWorld, bool bEnable)
+{
+	if (InWorld == nullptr || InWorld->WorldType != EWorldType::Editor)
+	{
+		return false;
+	}
+			
+	if (!bEnable)
+	{
+		if (InWorld->WorldComposition != nullptr)
+		{
+			InWorld->FlushLevelStreaming();
+			InWorld->WorldComposition->MarkPendingKill();
+			InWorld->WorldComposition = nullptr;
+			UWorldComposition::WorldCompositionChangedEvent.Broadcast(InWorld);
+		}
+
+		return false;
+	}
+	
+	if (InWorld->WorldComposition == nullptr)
+	{
+		FString RootPackageName = InWorld->GetOutermost()->GetName();
+
+		// Map should be saved to disk
+		if (!FPackageName::DoesPackageExist(RootPackageName))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("EnableWorldCompositionNotSaved_Message", "Please save your level to disk before enabling World Composition"));
+			return false;
+		}
+			
+		// All existing sub-levels on this map should be removed
+		int32 NumExistingSublevels = InWorld->StreamingLevels.Num();
+		if (NumExistingSublevels > 0)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("EnableWorldCompositionExistingSublevels_Message", "World Composition cannot be enabled because there are already sub-levels manually added to the persistent level. World Composition uses auto-discovery so you must first remove any manually added sub-levels from the Levels window"));
+			return false;
+		}
+			
+		UWorldComposition* WorldCompostion = ConstructObject<UWorldComposition>(UWorldComposition::StaticClass(), InWorld);
+		// All map files found in the same and folder and all sub-folders will be added ass sub-levels to this map
+		// Make sure user understands this
+		int32 NumFoundSublevels = WorldCompostion->GetTilesList().Num();
+		if (NumFoundSublevels)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("NumSubLevels"), NumFoundSublevels);
+			Arguments.Add(TEXT("FolderLocation"), FText::FromString(FPackageName::GetLongPackagePath(RootPackageName)));
+			const FText Message = FText::Format(LOCTEXT("EnableWorldCompositionPrompt_Message", "World Composition auto-discovers sub-levels by scanning the folder the level is saved in, and all sub-folders. {NumSubLevels} level files were found in {FolderLocation} and will be added as sub-levels. Do you want to continue?"), Arguments);
+			
+			auto AppResult = FMessageDialog::Open(EAppMsgType::OkCancel, Message);
+			if (AppResult != EAppReturnType::Ok)
+			{
+				WorldCompostion->MarkPendingKill();
+				return false;
+			}
+		}
+			
+		// 
+		InWorld->WorldComposition = WorldCompostion;
+		UWorldComposition::WorldCompositionChangedEvent.Broadcast(InWorld);
+	}
+	
+	return true;
+}
+
+
 /** Build and return the path to the current project (used for relaunching the editor.)	 */
 FString CreateProjectPath()
 {
@@ -720,7 +791,8 @@ void FUnrealEdMisc::OnExit()
 
 	ISourceControlModule::Get().GetProvider().Close();
 
-
+	UWorldComposition::EnableWorldCompositionEvent.Unbind();
+	
 	UnloadFBxLibraries();
 
 	const TMap<FString, FString>& IniRestoreFiles = GetConfigRestoreFilenames();

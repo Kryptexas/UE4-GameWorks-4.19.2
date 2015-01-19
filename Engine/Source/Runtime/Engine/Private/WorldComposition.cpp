@@ -12,6 +12,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogWorldComposition, Log, All);
 
 #if WITH_EDITOR
 UWorldComposition::FEnableWorldCompositionEvent UWorldComposition::EnableWorldCompositionEvent;
+UWorldComposition::FWorldCompositionChangedEvent UWorldComposition::WorldCompositionChangedEvent;
 #endif // WITH_EDITOR
 
 UWorldComposition::UWorldComposition(const FObjectInitializer& ObjectInitializer)
