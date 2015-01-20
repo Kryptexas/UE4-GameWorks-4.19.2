@@ -3277,9 +3277,10 @@ void FKismetCompilerContext::Compile()
 
 	if (CompileOptions.CompileType == EKismetCompileType::Full)
 	{
-		if (Blueprint->InheritableComponentHandler)
+		auto InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
+		if (InheritableComponentHandler)
 		{
-			Blueprint->InheritableComponentHandler->RemoveInvalidAndUnnecessaryTemplates();
+			InheritableComponentHandler->RemoveInvalidAndUnnecessaryTemplates();
 		}
 	}
 

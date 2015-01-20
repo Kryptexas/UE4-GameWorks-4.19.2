@@ -218,6 +218,19 @@ UActorComponent* UInheritableComponentHandler::FindBestArchetype(FComponentKey K
 	return ClosestArchetype;
 }
 
+bool UInheritableComponentHandler::RenameTemplate(FComponentKey OldKey, FName NewName)
+{
+	for (auto& Record : Records)
+	{
+		if (Record.ComponentKey.Match(OldKey))
+		{
+			Record.ComponentKey.VariableName = NewName;
+			return true;
+		}
+	}
+	return false;
+}
+
 #endif
 
 UActorComponent* UInheritableComponentHandler::GetOverridenComponentTemplate(FComponentKey Key) const
@@ -226,7 +239,7 @@ UActorComponent* UInheritableComponentHandler::GetOverridenComponentTemplate(FCo
 	return Record ? Record->ComponentTemplate : nullptr;
 }
 
-const FComponentOverrideRecord* UInheritableComponentHandler::FindRecord(FComponentKey Key) const
+const FComponentOverrideRecord* UInheritableComponentHandler::FindRecord(const FComponentKey Key) const
 {
 	for (auto& Record : Records)
 	{
@@ -242,12 +255,31 @@ const FComponentOverrideRecord* UInheritableComponentHandler::FindRecord(FCompon
 
 FComponentKey::FComponentKey(USCS_Node* ParentNode) : OwnerClass(nullptr)
 {
+	VariableName = ParentNode ? ParentNode->GetVariableName() : NAME_None;
+	if (VariableName == NAME_None)
+	{
+		return;
+	}
+
+	//Find original blueprint where the component is declared
 	auto ParentSCS = ParentNode ? ParentNode->GetSCS() : nullptr;
 	OwnerClass = ParentSCS ? Cast<UBlueprintGeneratedClass>(ParentSCS->GetOwnerClass()) : nullptr;
-	VariableName = (ParentNode && OwnerClass) ? ParentNode->GetVariableName() : NAME_None;
+	for (auto SuperOwnerClass = OwnerClass ? Cast<UBlueprintGeneratedClass>(OwnerClass->GetSuperClass()) : nullptr; 
+		SuperOwnerClass;
+		SuperOwnerClass = Cast<UBlueprintGeneratedClass>(SuperOwnerClass->GetSuperClass()))
+	{
+		if (SuperOwnerClass->SimpleConstructionScript && SuperOwnerClass->SimpleConstructionScript->FindSCSNode(VariableName))
+		{
+			OwnerClass = SuperOwnerClass;
+		}
+		else
+		{
+			break;
+		}
+	}
 }
 
-bool FComponentKey::Match(FComponentKey OtherKey) const
+bool FComponentKey::Match(const FComponentKey OtherKey) const
 {
 	return (OwnerClass == OtherKey.OwnerClass) && (VariableName == OtherKey.VariableName);
 }
