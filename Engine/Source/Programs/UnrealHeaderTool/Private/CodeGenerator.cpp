@@ -4968,6 +4968,12 @@ UClass* ProcessParsedClass(bool bClassIsAnInterface, TArray<FHeaderProvider> &De
 {
 	FString ClassNameStripped = GetClassNameWithPrefixRemoved(*ClassName);
 
+	// All classes must start with a valid unreal prefix
+	if (!FHeaderParser::ClassNameHasValidPrefix(ClassName, ClassNameStripped))
+	{
+		FError::Throwf(TEXT("Invalid class name '%s'. The class name must have an appropriate prefix added (A for Actors, U for other classes)."), *ClassName);
+	}
+
 	// Ensure the base class has any valid prefix and exists as a valid class. Checking for the 'correct' prefix will occur during compilation
 	FString BaseClassNameStripped;
 	if (!BaseClassName.IsEmpty())

@@ -169,7 +169,11 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 	FName ObjectName(*InName, FNAME_Add, true);
 	MatchingObject = StaticFindObjectFast( ObjectClass, ObjectPackage, ObjectName, ExactClass, bAnyPackage );
 
+	// This is another look-up for native enums, structs or delegate signatures, cause they're path changed
+	// and old packages can have invalid ones. The path now does not have a UCLASS as an outer. All mentioned
+	// types are just children of package of the file there were defined in.
 	if (!MatchingObject && ObjectPackage != nullptr &&
+		!FPlatformProperties::RequiresCookedData() && // Cooked platforms will have all paths resolved.
 			(
 				ObjectClass == UEnum::StaticClass()	// Enums
 				|| ObjectClass == UScriptStruct::StaticClass() // Structs
