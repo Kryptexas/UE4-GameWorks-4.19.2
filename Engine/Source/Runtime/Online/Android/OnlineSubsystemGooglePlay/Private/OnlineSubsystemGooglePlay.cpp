@@ -104,6 +104,9 @@ IOnlineAchievementsPtr FOnlineSubsystemGooglePlay::GetAchievementsInterface() co
 	return AchievementsInterface;
 }
 
+static bool WaitForLostFocus = false;
+static bool WaitingForLogin = false;
+
 bool FOnlineSubsystemGooglePlay::Init() 
 {
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemAndroid::Init"));
@@ -134,6 +137,8 @@ bool FOnlineSubsystemGooglePlay::Init()
 	CurrentLoginTask = new FOnlineAsyncTaskGooglePlayLogin(this, 0);
 	QueueAsyncTask(CurrentLoginTask);
 
+	WaitingForLogin = true;
+
 	// Create() returns a std::unqiue_ptr, but we convert it to a TUniquePtr.
 	GameServicesPtr.Reset( GameServices::Builder()
 		.SetDefaultOnLog(LogLevel::VERBOSE)
@@ -142,8 +147,28 @@ bool FOnlineSubsystemGooglePlay::Init()
 		})
 		.SetOnAuthActionFinished([this](AuthOperation Op, AuthStatus Status) {
 			OnAuthActionFinished(Op, Status);
+
+			if (Op == AuthOperation::SIGN_IN)
+			{
+				if (Status != AuthStatus::VALID)
+				{
+					WaitForLostFocus = true;
+				}
+				WaitingForLogin = false;
+			}
 		})
 		.Create(PlatformConfiguration).release() );
+
+	// Wait for GooglePlay to complete login task
+	while (WaitingForLogin)
+	{
+		FPlatformProcess::Sleep(0.01f);
+	}
+	if (WaitForLostFocus)
+	{
+		extern void WaitForAndroidLoseFocusEvent();
+		WaitForAndroidLoseFocusEvent();
+	}
 
 	return true;
 }

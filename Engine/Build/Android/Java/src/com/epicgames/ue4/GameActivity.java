@@ -186,12 +186,13 @@ public class GameActivity extends NativeActivity
 
 		_activity = this;
 		
+/*
 		// Turn on and unlock screen.. Assumption is that this
 		// will only really have an effect when for debug launching
 		// as otherwise the screen is already unlocked.
 		this.getWindow().addFlags(
 			WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
-			WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+//			WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
 			WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
 		// On some devices we can also unlock a key-locked screen by disabling the
 		// keylock guard. To be safe we only do this on < Android 3.2. As the API
@@ -202,6 +203,7 @@ public class GameActivity extends NativeActivity
 			android.app.KeyguardManager.KeyguardLock keylock = keyman.newKeyguardLock("Unlock");
 			keylock.disableKeyguard();
 		}
+*/
 
 		// tell Android that we want volume controls to change the media volume, aka music
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
