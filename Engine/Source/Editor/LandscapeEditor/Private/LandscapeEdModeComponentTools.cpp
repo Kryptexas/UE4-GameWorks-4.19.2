@@ -1809,6 +1809,17 @@ public:
 	virtual const TCHAR* GetToolName() override { return TEXT("CopyPaste"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Region", "Region Copy/Paste"); };
 
+	virtual void EnterTool()
+	{
+		// Make sure gizmo actor is selected
+		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
+		if (Gizmo)
+		{
+			GEditor->SelectNone(false, true);
+			GEditor->SelectActor(Gizmo, true, false, true);
+		}
+	}
+
 	// Copy tool doesn't use any view information, so just do it as one function
 	void Copy()
 	{
