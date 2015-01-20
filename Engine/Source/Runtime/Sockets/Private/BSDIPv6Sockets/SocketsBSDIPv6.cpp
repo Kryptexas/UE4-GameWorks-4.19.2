@@ -270,19 +270,20 @@ void FSocketBSDIPv6::GetAddress(FInternetAddr& OutAddr)
 	}
 }
 
-void FSocketBSDIPv6::GetPeerAddress(FInternetAddr& OutAddr)
+bool FSocketBSDIPv6::GetPeerAddress(FInternetAddr& OutAddr)
 {
 	FInternetAddrBSDIPv6& Addr = (FInternetAddrBSDIPv6&)OutAddr;
 	SOCKLEN Size = sizeof(sockaddr_in6);
 
 	// Figure out what ip/port we are bound to
-	bool bOk = getpeername(Socket, Addr, &Size) == 0;
+	int Result = getpeername(Socket, Addr, &Size);
 
-	if (bOk == false)
+	if (Result != 0)
 	{
 		check(SocketSubsystem);
-		UE_LOG(LogSockets, Error, TEXT("Failed to read address for socket (%s)"), SocketSubsystem->GetSocketError());
+		UE_LOG(LogSockets, Warning, TEXT("Failed to read address for socket (%s) with error %d"), SocketSubsystem->GetSocketError(), Result);
 	}
+	return Result == 0;
 }
 
 

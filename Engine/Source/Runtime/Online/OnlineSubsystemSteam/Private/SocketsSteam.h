@@ -194,7 +194,7 @@ public:
 	 * 
 	 * @param OutAddr address of the peer the socket is connected to
 	 */
-	virtual void GetPeerAddress(FInternetAddr& OutAddr) override;
+	virtual bool GetPeerAddress(FInternetAddr& OutAddr) override;
 
 	/**
 	 * Sets this socket into non-blocking mode

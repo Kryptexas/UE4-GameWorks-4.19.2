@@ -90,7 +90,7 @@ public:
 
 	virtual void GetAddress(FInternetAddr& OutAddr) override;
 
-	virtual void GetPeerAddress(FInternetAddr& OutAddr) override;
+	virtual bool GetPeerAddress(FInternetAddr& OutAddr) override;
 
 	virtual bool SetNonBlocking(bool bIsNonBlocking = true) override;
 

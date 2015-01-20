@@ -228,11 +228,10 @@ void FSocketSteam::GetAddress(FInternetAddr& OutAddr)
 	SteamAddr.SteamChannel = SteamChannel;
 }
 
-void FSocketSteam::GetPeerAddress(FInternetAddr& OutAddr)
+bool FSocketSteam::GetPeerAddress(FInternetAddr& OutAddr)
 {
-	// don't support this
-	FInternetAddrSteam& SteamAddr = (FInternetAddrSteam&)OutAddr;
-	new( &SteamAddr ) FInternetAddrSteam();
+	// don't support this	
+	return false;
 }
 
 /**

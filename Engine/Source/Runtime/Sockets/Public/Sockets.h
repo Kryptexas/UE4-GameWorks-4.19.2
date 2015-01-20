@@ -181,8 +181,9 @@ public:
 	 * Reads the address of the peer the socket is connected to
 	 *
 	 * @param OutAddr address of the peer the socket is connected to
+	 * @return return true if the address was retrieved correctly 
 	 */
-	virtual void GetPeerAddress(FInternetAddr& OutAddr) = 0;
+	virtual bool GetPeerAddress(FInternetAddr& OutAddr) = 0;
 
 	/**
 	 * Sets this socket into non-blocking mode
