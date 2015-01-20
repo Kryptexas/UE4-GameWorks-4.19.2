@@ -43,6 +43,8 @@ UEdGraphNode* FEdGraphSchemaAction_K2NewNode::CreateNode(class UEdGraph* ParentG
 	UEdGraphNode* ResultNode = DuplicateObject<UK2Node>(NodeTemplate, ParentGraph);
 	ResultNode->SetFlags(RF_Transactional);
 
+	ParentGraph->AddNode(ResultNode, true, bSelectNewNode);
+
 	ResultNode->CreateNewGuid();
 	ResultNode->PostPlacedNewNode();
 	ResultNode->AllocateDefaultPins();
@@ -69,8 +71,6 @@ UEdGraphNode* FEdGraphSchemaAction_K2NewNode::CreateNode(class UEdGraph* ParentG
 	// make sure to auto-wire after we position the new node (in case the 
 	// auto-wire creates a conversion node to put between them)
 	ResultNode->AutowireNewNode(FromPinPtr);
-
-	ParentGraph->AddNode(ResultNode, true, bSelectNewNode);
 
 	// Update Analytics for the new nodes
 	FBlueprintEditorUtils::AnalyticsTrackNewNode( ResultNode );
@@ -461,6 +461,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddCallOnActor::PerformAction(class UEdGrap
 		if(LevelActor != NULL)
 		{
 			UK2Node_Literal* LiteralNode =  NewObject<UK2Node_Literal>(ParentGraph);
+			ParentGraph->AddNode(LiteralNode, false, bSelectNewNode);
 			LiteralNode->SetFlags(RF_Transactional);
 
 			LiteralNode->SetObjectRef(LevelActor);
@@ -480,8 +481,6 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddCallOnActor::PerformAction(class UEdGrap
 			{
 				LiteralOutput->MakeLinkTo(CallSelfInput);
 			}
-
-			ParentGraph->AddNode(LiteralNode, false, bSelectNewNode);
 		}
 	}
 
@@ -530,6 +529,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddCallOnVariable::PerformAction(class UEdG
 	if(VariableName != NAME_None)
 	{
 		UK2Node_VariableGet* GetVarNode =  NewObject<UK2Node_VariableGet>(ParentGraph);
+		ParentGraph->AddNode(GetVarNode, false, bSelectNewNode);
 		GetVarNode->SetFlags(RF_Transactional);
 
 		GetVarNode->VariableReference.SetSelfMember(VariableName);
@@ -546,8 +546,6 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddCallOnVariable::PerformAction(class UEdG
 		{
 			LiteralOutput->MakeLinkTo(CallSelfInput);
 		}
-	
-		ParentGraph->AddNode(GetVarNode, false, bSelectNewNode);
 	}
 
 	return CallNode;

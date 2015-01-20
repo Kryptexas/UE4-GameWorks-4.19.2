@@ -16,7 +16,6 @@ enum EEdGraphActionType
 	GRAPHACTION_AddNodeUI = GRAPHACTION_AddNode | GRAPHACTION_UserInitiated,
 
 	GRAPHACTION_SelectNode = 0x1 << 2,
-	GRAPHACTION_RemoveNode = 0x1 << 3,
 };
 
 
@@ -28,7 +27,7 @@ struct FEdGraphEditAction
 	/** The graph the action occurred on */
 	class UEdGraph* Graph;
 	/** [Optional] The object the action occurred on */
-	TSet<class UEdGraphNode*> Nodes;
+	TSet<const class UEdGraphNode*> Nodes;
 
 	FEdGraphEditAction()
 		: Action(GRAPHACTION_Default)

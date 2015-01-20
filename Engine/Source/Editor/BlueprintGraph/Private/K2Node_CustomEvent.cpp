@@ -315,6 +315,7 @@ UK2Node_CustomEvent* UK2Node_CustomEvent::CreateFromFunction(FVector2D GraphPosi
 		CustomEventNode->CustomFunctionName = FName(*Name);
 		CustomEventNode->SetFlags(RF_Transactional);
 		ParentGraph->Modify();
+		ParentGraph->AddNode(CustomEventNode, true, bSelectNewNode);
 		CustomEventNode->CreateNewGuid();
 		CustomEventNode->PostPlacedNewNode();
 		CustomEventNode->AllocateDefaultPins();
@@ -334,8 +335,6 @@ UK2Node_CustomEvent* UK2Node_CustomEvent::CreateFromFunction(FVector2D GraphPosi
 		CustomEventNode->NodePosX = GraphPosition.X;
 		CustomEventNode->NodePosY = GraphPosition.Y;
 		CustomEventNode->SnapToGrid(SNAP_GRID);
-
-		ParentGraph->AddNode(CustomEventNode, true, bSelectNewNode);
 	}
 
 	return CustomEventNode;

@@ -133,7 +133,7 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 		FromPin->Modify();
 	}
 
-	TSet<UEdGraphNode*> NodesToFocus;
+	TSet<const UEdGraphNode*> NodesToFocus;
 	int32 const PreSpawnNodeCount = ParentGraph->Nodes.Num();
 
 	UEdGraphNode* LastSpawnedNode = nullptr;

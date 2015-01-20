@@ -946,12 +946,12 @@ const TSharedRef<SGraphNode> SGraphPanel::GetChild(int32 ChildIndex)
 	return StaticCastSharedRef<SGraphNode>(Children[ChildIndex]);
 }
 
-void SGraphPanel::AddNode(UEdGraphNode* Node, bool bIsUserAdded, bool bShouldBeSelected)
+void SGraphPanel::AddNode(UEdGraphNode* Node)
 {
 	TSharedPtr<SGraphNode> NewNode = FNodeFactory::CreateNodeWidget(Node);
 	check(NewNode.IsValid());
 
-	const bool bWasUserAdded = bIsUserAdded;
+	const bool bWasUserAdded = (UserAddedNodes.Find(Node) != nullptr);
 
 	NewNode->SetIsEditable(IsEditable);
 	NewNode->SetDoubleClickEvent(OnNodeDoubleClicked);
@@ -971,33 +971,6 @@ void SGraphPanel::AddNode(UEdGraphNode* Node, bool bIsUserAdded, bool bShouldBeS
 
 		NewNode->PlaySpawnEffect();
 		NewNode->RequestRenameOnSpawn();
-	}
-
-	if( bShouldBeSelected )
-	{
-		DeferredSelectionTargetObjects.Add(Node);
-	}
-}
-
-void SGraphPanel::RemoveNode(UEdGraphNode* Node)
-{
-	for (int32 Iter = 0; Iter != Children.Num(); ++Iter)
-	{
-		TSharedRef<SGraphNode> Child = GetChild(Iter);
-		if( Child->GetNodeObj() == Node )
-		{
-			Children.RemoveAt(Iter);
-			break;
-		}
-	}
-	for (int32 Iter = 0; Iter != Children.Num(); ++Iter)
-	{
-		TSharedRef<SGraphNode> Child = StaticCastSharedRef<SGraphNode>(VisibleChildren[Iter]);
-		if (Child->GetNodeObj() == Node)
-		{
-			VisibleChildren.RemoveAt(Iter);
-			break;
-		}
 	}
 }
 
@@ -1024,11 +997,29 @@ void SGraphPanel::Update()
 				UE_LOG(LogGraphPanel, Warning, TEXT("Found NULL Node in GraphObj array. A node type has been deleted without creating an ActiveClassRedictor to K2Node_DeadClass."));
 			}
 		}
+
+		// find the last selection action, and execute it
+		for (int32 ActionIndex = UserActions.Num() - 1; ActionIndex >= 0; --ActionIndex)
+		{
+			if (UserActions[ActionIndex].Action & GRAPHACTION_SelectNode)
+			{
+				DeferredSelectionTargetObjects.Empty();
+				for (const UEdGraphNode* Node : UserActions[ActionIndex].Nodes)
+				{
+					DeferredSelectionTargetObjects.Add(Node);
+				}
+				break;
+			}
+		}
 	}
 	else
 	{
 		RemoveAllNodes();
 	}
+
+	// Clean out set of added nodes
+	UserAddedNodes.Empty();
+	UserActions.Empty();
 
 	// Invoke any delegate methods
 	OnUpdateGraphPanel.ExecuteIfBound();
@@ -1126,34 +1117,20 @@ void SGraphPanel::OnEndPIE( const bool bIsSimulating )
 void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 {
 	if ((EditAction.Graph == GraphObj) &&
-		(EditAction.Nodes.Num() > 0))
+		(EditAction.Nodes.Num() > 0) &&
+		// We do not want to mark it as a UserAddedNode for graphs that do not currently have focus,
+		// this causes each one to want to do the effects and rename, which causes problems.
+		(HasKeyboardFocus() || HasFocusedDescendants()))
 	{
+		int32 ActionIndex = UserActions.Num();
 		if (EditAction.Action & GRAPHACTION_AddNode)
 		{
-			// if we're the focused graph, play spawn effects:
-			for (UEdGraphNode* Node : EditAction.Nodes)
-			{
-				AddNode(Node, HasKeyboardFocus() || HasFocusedDescendants());
-			}
-		}
-		if( ( EditAction.Action & GRAPHACTION_SelectNode ) &&
-			(HasKeyboardFocus() || HasFocusedDescendants() ) )
-		{
-			DeferredSelectionTargetObjects.Empty();
 			for (const UEdGraphNode* Node : EditAction.Nodes)
 			{
-				DeferredSelectionTargetObjects.Add(Node);
+				UserAddedNodes.Add(Node, ActionIndex);
 			}
 		}
-		if( EditAction.Action & GRAPHACTION_RemoveNode )
-		{
-			for (UEdGraphNode* Node : EditAction.Nodes)
-			{
-				RemoveNode(Node);
-			}
-		}
-
-		// adding logic to here? You also need to update SGraphEditorImpl::OnGraphChanged..
+		UserActions.Add(EditAction);
 	}
 }
 

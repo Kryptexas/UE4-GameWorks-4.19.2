@@ -30,7 +30,8 @@ UEdGraphNode* FEnvironmentQuerySchemaAction_NewNode::PerformAction(class UEdGrap
 
 		// set outer to be the graph so it doesn't go away
 		NodeTemplate->Rename(NULL, ParentGraph, REN_NonTransactional);
-		
+		ParentGraph->AddNode(NodeTemplate, true);
+
 		NodeTemplate->CreateNewGuid();
 		NodeTemplate->PostPlacedNewNode();
 		NodeTemplate->AllocateDefaultPins();
@@ -55,8 +56,6 @@ UEdGraphNode* FEnvironmentQuerySchemaAction_NewNode::PerformAction(class UEdGrap
 		NodeTemplate->NodePosX = XLocation;
 		NodeTemplate->NodePosY = Location.Y;
 		NodeTemplate->SnapToGrid(SNAP_GRID);
-
-		ParentGraph->AddNode(NodeTemplate, true);
 
 		ResultNode = NodeTemplate;
 	}

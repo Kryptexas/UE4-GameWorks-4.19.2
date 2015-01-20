@@ -53,7 +53,8 @@ UEdGraphNode* FBehaviorTreeSchemaAction_NewNode::PerformAction(class UEdGraph* P
 
 		// set outer to be the graph so it doesn't go away
 		NodeTemplate->Rename(NULL, ParentGraph, REN_NonTransactional);
-		
+		ParentGraph->AddNode(NodeTemplate, true);
+
 		NodeTemplate->CreateNewGuid();
 		NodeTemplate->PostPlacedNewNode();
 		NodeTemplate->AllocateDefaultPins();
@@ -80,8 +81,6 @@ UEdGraphNode* FBehaviorTreeSchemaAction_NewNode::PerformAction(class UEdGraph* P
 		NodeTemplate->SnapToGrid(SNAP_GRID);
 
 		ResultNode = NodeTemplate;
-
-		ParentGraph->AddNode(NodeTemplate, true);
 	}
 
 	return ResultNode;

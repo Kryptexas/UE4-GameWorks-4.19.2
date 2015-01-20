@@ -4830,9 +4830,9 @@ private:
 		NewNode->NodePosX = OldNode ? OldNode->NodePosX : NodePosX;
 		NewNode->NodePosY = OldNode ? OldNode->NodePosY : NodePosY;
 		NewNode->SetFlags(RF_Transactional);
+		Graph->AddNode(NewNode, false, false);
 		NewNode->PostPlacedNewNode();
 		NewNode->AllocateDefaultPins();
-		Graph->AddNode(NewNode, false, false);
 	}
 
 	bool Replace(UK2Node_Literal* OldTarget, UK2Node_CallFunctionOnMember* OldCall)
@@ -6948,7 +6948,7 @@ FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, con
 	FBlueprintPaletteListBuilder PaletteBuilder(GetBlueprintObj());
 	FBlueprintSpawnNodeCommands::Get().GetGraphActionByGesture(InGesture, PaletteBuilder, InGraph);
 
-	TSet<UEdGraphNode*> NodesToSelect;
+	TSet<const UEdGraphNode*> NodesToSelect;
 	FVector2D NodeSpawnPos = InPosition;
 
 	bool bPerformedAction = false;

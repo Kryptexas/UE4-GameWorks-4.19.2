@@ -111,6 +111,9 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
+	/** Called when a new Graph is clicked on by user */
+	void OnGraphChanged(struct FListItemGraphToDiff* Diff);
+
 	/** Helper function for generating an empty widget */
 	static TSharedRef<SWidget> DefaultEmptyPanel();
 

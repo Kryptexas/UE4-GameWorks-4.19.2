@@ -163,10 +163,7 @@ protected:
 	const TSharedRef<SGraphNode> GetChild(int32 ChildIndex);
 
 	/** Helper method to add a new node to the panel */
-	void AddNode(class UEdGraphNode* Node, bool bIsUserAdded = false, bool bShouldBeSelected = false);
-
-	/** Helper method to remove a node from the panel */
-	void RemoveNode(UEdGraphNode* Node);
+	void AddNode (class UEdGraphNode* Node);
 public:
 	/** Pin marked via shift-clicking */
 	TWeakPtr<SGraphPin> MarkedPin;
@@ -240,6 +237,12 @@ protected:
 	TAttribute<bool> ShowGraphStateOverlay;
 
 private:
+	/** Ordered list of user actions, as they came in */
+	TArray<FEdGraphEditAction> UserActions;
+
+	/** Map of recently added nodes for the panel (maps from added nodes to UserActions indices) */
+	TMap<const class UEdGraphNode*, int32> UserAddedNodes;
+
 	FOnGraphChanged::FDelegate MyRegisteredGraphChangedDelegate;
 	FDelegateHandle            MyRegisteredGraphChangedDelegateHandle;
 private:

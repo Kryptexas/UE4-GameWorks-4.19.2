@@ -283,10 +283,7 @@ UEdGraphNode* UBlueprintNodeSpawner::SpawnEdGraphNode(TSubclassOf<UEdGraphNode> 
 			NewNode->PostPlacedNewNode();
 
 			ParentGraph->Modify();
-			// the FBlueprintMenuActionItem should do the selecting because we may spawn multiple nodes, and if we
-			// tag them as selected here (via bSelectNewNode) only the last one spawned will be selected. If we exposed
-			// the FEdGraphEditAction's list of nodes we could do creation and selection with a single event, something
-			// to consider..
+			// the FBlueprintMenuActionItem should do the selecting
 			ParentGraph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
 		}
 

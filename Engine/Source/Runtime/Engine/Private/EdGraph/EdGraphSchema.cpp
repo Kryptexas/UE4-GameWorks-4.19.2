@@ -148,6 +148,8 @@ UEdGraphNode* FEdGraphSchemaAction_NewNode::CreateNode(class UEdGraph* ParentGra
 	ResultNode = DuplicateObject<UEdGraphNode>(NodeTemplate, ParentGraph);
 	ResultNode->SetFlags(RF_Transactional);
 
+	ParentGraph->AddNode(ResultNode, true);
+
 	ResultNode->CreateNewGuid();
 	ResultNode->PostPlacedNewNode();
 	ResultNode->AllocateDefaultPins();
@@ -172,8 +174,6 @@ UEdGraphNode* FEdGraphSchemaAction_NewNode::CreateNode(class UEdGraph* ParentGra
 	ResultNode->NodePosX = XLocation;
 	ResultNode->NodePosY = Location.Y;
 	ResultNode->SnapToGrid(SNAP_GRID);
-
-	ParentGraph->AddNode(ResultNode, true);
 #endif // WITH_EDITOR
 
 	return ResultNode;

@@ -55,7 +55,8 @@ UEdGraphNode* FEdGraphSchemaAction_NewStateNode::PerformAction(class UEdGraph* P
 
 		// set outer to be the graph so it doesn't go away
 		NodeTemplate->Rename(NULL, ParentGraph);
-		
+		ParentGraph->AddNode(NodeTemplate, false, bSelectNewNode);
+
 		NodeTemplate->CreateNewGuid();
 		NodeTemplate->PostPlacedNewNode();
 		NodeTemplate->AllocateDefaultPins();
@@ -69,8 +70,6 @@ UEdGraphNode* FEdGraphSchemaAction_NewStateNode::PerformAction(class UEdGraph* P
 
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-
-		ParentGraph->AddNode(NodeTemplate, false, bSelectNewNode);
 	}
 
 	return ResultNode;
