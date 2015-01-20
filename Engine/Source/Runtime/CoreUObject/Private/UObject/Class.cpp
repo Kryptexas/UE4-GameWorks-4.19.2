@@ -3829,8 +3829,24 @@ bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64
 	return !(IteratorB && (IteratorB->PropertyFlags & CPF_Parm));
 }
 
+UScriptStruct* GetBaseStructure(const TCHAR* Name)
+{
+	static auto* CoreUObjectPkg = FindObjectChecked<UPackage>(nullptr, TEXT("/Script/CoreUObject"));
+	return FindObjectChecked<UScriptStruct>(CoreUObjectPkg, Name);
+}
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UFunction, UStruct,
+	{
+	}
+);
+
+UDelegateFunction::UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+	: UFunction(ObjectInitializer, InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
+{
+
+}
+
+IMPLEMENT_CORE_INTRINSIC_CLASS(UDelegateFunction, UFunction,
 	{
 	}
 );

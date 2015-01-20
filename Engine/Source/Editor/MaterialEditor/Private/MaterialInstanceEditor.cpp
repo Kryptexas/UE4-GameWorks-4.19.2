@@ -733,7 +733,7 @@ void FMaterialInstanceEditor::DrawSamplerWarningStrings(FCanvas* Canvas, int32& 
 		{
 			UFont* FontToUse = GEngine->GetTinyFont();
 			const int32 SpacingBetweenLines = 13;
-			UEnum* SamplerTypeEnum = FindObject<UEnum>( NULL, TEXT("/Script/Engine.EngineTypes.EMaterialSamplerType") );
+			UEnum* SamplerTypeEnum = FindObject<UEnum>( NULL, TEXT("/Script/Engine.EMaterialSamplerType") );
 			check( SamplerTypeEnum );
 
 			const int32 GroupCount = MaterialEditorInstance->ParameterGroups.Num();

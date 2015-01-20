@@ -1154,6 +1154,11 @@ template< class T >
 inline T* GetMutableDefault(UClass *Class);
 
 /**
+ * Looks for delegate signature with given name.
+ */
+COREUOBJECT_API UFunction* FindDelegateSignature(FName DelegateSignatureName);
+
+/**
  * Determines whether the specified array contains objects of the specified class.
  *
  * @param	ObjectArray		the array to search - must be an array of pointers to instances of a UObject-derived class

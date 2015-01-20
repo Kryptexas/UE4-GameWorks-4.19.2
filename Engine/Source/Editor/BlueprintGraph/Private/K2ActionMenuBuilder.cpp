@@ -1024,19 +1024,19 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			TemporaryTypes.Add(FEdGraphPinType(K2Schema->PC_Text, TEXT(""), NULL, true, false));
 
 			FEdGraphPinType VectorPinType = FEdGraphPinType(K2Schema->PC_Struct, TEXT("Vector"), NULL, false, false);
-			VectorPinType.PinSubCategoryObject = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
+			VectorPinType.PinSubCategoryObject = GetBaseStructure(TEXT("Vector"));
 			TemporaryTypes.Add(VectorPinType);
 			VectorPinType.bIsArray = true;
 			TemporaryTypes.Add(VectorPinType);
 
 			FEdGraphPinType RotatorPinType = FEdGraphPinType(K2Schema->PC_Struct, TEXT("Rotator"), NULL, false, false);
-			RotatorPinType.PinSubCategoryObject = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
+			RotatorPinType.PinSubCategoryObject = GetBaseStructure(TEXT("Rotator"));
 			TemporaryTypes.Add(RotatorPinType);
 			RotatorPinType.bIsArray = true;
 			TemporaryTypes.Add(RotatorPinType);
 
 			FEdGraphPinType TransformPinType = FEdGraphPinType(K2Schema->PC_Struct, TEXT("Transform"), NULL, false, false);
-			TransformPinType.PinSubCategoryObject = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
+			TransformPinType.PinSubCategoryObject = GetBaseStructure(TEXT("Transform"));
 			TemporaryTypes.Add(TransformPinType);
 			TransformPinType.bIsArray = true;
 			TemporaryTypes.Add(TransformPinType);

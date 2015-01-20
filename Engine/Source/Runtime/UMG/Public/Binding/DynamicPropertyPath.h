@@ -97,7 +97,7 @@ inline bool IsConcreteTypeCompatibleWithReflectedType<FString>(UProperty* Proper
 template<>
 inline bool IsConcreteTypeCompatibleWithReflectedType<FLinearColor>(UProperty* Property)
 {
-	static const UScriptStruct* LinearColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
+	static const UScriptStruct* LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
 	
 	if ( UStructProperty* StructProperty = Cast<UStructProperty>(Property) )
 	{

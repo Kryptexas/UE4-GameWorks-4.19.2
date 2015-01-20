@@ -1743,7 +1743,7 @@ void FBlueprintEditor::OnEditParentClassNativeCodeClicked()
 FText FBlueprintEditor::GetTextForNativeParentClassHeaderLink() const
 {
 	// it could be done using FSourceCodeNavigation, but it could be slow
-	return FText::FromString(FString::Printf(TEXT("%s.h"), *GetParentClassNameText().ToString()));
+	return FText::FromString(*GetParentClassNameText().ToString());
 }
 
 FReply FBlueprintEditor::OnFindParentClassInContentBrowserClicked()

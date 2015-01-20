@@ -143,6 +143,12 @@ void UK2Node_FunctionEntry::AllocateDefaultPins()
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
 	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
+
+	if (Function == nullptr)
+	{
+		Function = FindDelegateSignature(SignatureName);
+	}
+
 	if (Function != NULL)
 	{
 		CreatePinsForFunctionEntryExit(Function, /*bIsFunctionEntry=*/ true);

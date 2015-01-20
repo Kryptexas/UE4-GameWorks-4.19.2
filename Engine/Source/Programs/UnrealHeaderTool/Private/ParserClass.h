@@ -48,8 +48,6 @@ public:
 	 */
 	FClass* GetClassWithin() const;
 
-	TArray<FName> GetDependentNames() const;
-
 	TArray<FClass*> GetInterfaceTypes() const;
 
 	void GetHideCategories(TArray<FString>& OutHideCategories) const;

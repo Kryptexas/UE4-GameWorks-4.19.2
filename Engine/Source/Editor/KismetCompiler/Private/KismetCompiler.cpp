@@ -74,11 +74,11 @@ FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompil
 
 	MacroSpawnX = MinimumSpawnX;
 	MacroSpawnY = -2000;
-
-	VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
-	RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
-	TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
-	LinearColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
+	
+	VectorStruct = GetBaseStructure(TEXT("Vector"));
+	RotatorStruct = GetBaseStructure(TEXT("Rotator"));
+	TransformStruct = GetBaseStructure(TEXT("Transform"));
+	LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
 }
 
 FKismetCompilerContext::~FKismetCompilerContext()

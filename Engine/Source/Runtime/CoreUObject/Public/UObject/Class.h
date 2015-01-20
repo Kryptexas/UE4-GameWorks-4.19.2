@@ -414,7 +414,7 @@ enum EStructFlags
 	
 	STRUCT_HasInstancedReference= 0x00000004,
 
-	// Unused entry				= 0x00000008,
+	STRUCT_NoExport				= 0x00000008,
 
 	/** Indicates that this struct should always be serialized as a single unit */
 	STRUCT_Atomic				= 0x00000010,
@@ -1287,6 +1287,14 @@ public:
 	 * @return	true if function signatures are compatible.
 	 */
 	bool IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const;
+};
+
+class COREUOBJECT_API UDelegateFunction : public UFunction
+{
+	DECLARE_CASTED_CLASS_INTRINSIC(UDelegateFunction, UFunction, 0, CoreUObject, CASTCLASS_UDelegateFunction)
+	DECLARE_WITHIN(UObject)
+public:
+	explicit UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
 };
 
 /*-----------------------------------------------------------------------------
@@ -2578,3 +2586,5 @@ inline T* GetMutableDefault(UClass *Class)
 	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (T*)Class->GetDefaultObject();
 }
+
+COREUOBJECT_API UScriptStruct* GetBaseStructure(const TCHAR* Name);

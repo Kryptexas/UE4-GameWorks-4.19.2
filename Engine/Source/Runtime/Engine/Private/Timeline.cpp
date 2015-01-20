@@ -736,7 +736,7 @@ ETimelineSigType UTimelineComponent::GetTimelineSignatureForFunction(const UFunc
 
 UFunction* UTimelineComponent::GetTimelineEventSignature()
 {
-	UFunction* TimelineEventSig = FindObject<UFunction>(UTimelineComponent::StaticClass(), TEXT("OnTimelineEvent__DelegateSignature"));
+	UFunction* TimelineEventSig = FindObject<UFunction>(FindPackage(nullptr, TEXT("/Script/Engine")), TEXT("OnTimelineEvent__DelegateSignature"));
 	check(TimelineEventSig != NULL);
 	return TimelineEventSig;
 }
@@ -744,7 +744,7 @@ UFunction* UTimelineComponent::GetTimelineEventSignature()
 
 UFunction* UTimelineComponent::GetTimelineFloatSignature()
 {
-	UFunction* TimelineFloatSig = FindObject<UFunction>(UTimelineComponent::StaticClass(), TEXT("OnTimelineFloat__DelegateSignature"));
+	UFunction* TimelineFloatSig = FindObject<UFunction>(FindPackage(nullptr, TEXT("/Script/Engine")), TEXT("OnTimelineFloat__DelegateSignature"));
 	check(TimelineFloatSig != NULL);
 	return TimelineFloatSig;
 }
@@ -752,7 +752,7 @@ UFunction* UTimelineComponent::GetTimelineFloatSignature()
 
 UFunction* UTimelineComponent::GetTimelineVectorSignature()
 {
-	UFunction* TimelineVectorSig = FindObject<UFunction>(UTimelineComponent::StaticClass(), TEXT("OnTimelineVector__DelegateSignature"));
+	UFunction* TimelineVectorSig = FindObject<UFunction>(FindPackage(nullptr, TEXT("/Script/Engine")), TEXT("OnTimelineVector__DelegateSignature"));
 	check(TimelineVectorSig != NULL);
 	return TimelineVectorSig;
 }
@@ -760,7 +760,7 @@ UFunction* UTimelineComponent::GetTimelineVectorSignature()
 
 UFunction* UTimelineComponent::GetTimelineLinearColorSignature()
 {
-	UFunction* TimelineVectorSig = FindObject<UFunction>(UTimelineComponent::StaticClass(), TEXT("OnTimelineLinearColor__DelegateSignature"));
+	UFunction* TimelineVectorSig = FindObject<UFunction>(FindPackage(nullptr, TEXT("/Script/Engine")), TEXT("OnTimelineLinearColor__DelegateSignature"));
 	check(TimelineVectorSig != NULL);
 	return TimelineVectorSig;
 }

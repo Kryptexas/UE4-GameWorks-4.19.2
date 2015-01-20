@@ -26,7 +26,7 @@ class FTransform
 #else
 	#define MAYBE_COREUOBJECT_API COREUOBJECT_API
 #endif
-	friend MAYBE_COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_UObject_FTransform();
+	friend MAYBE_COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_FTransform();
 
 protected:
 	/** Rotation of this transformation, as a quaternion. */

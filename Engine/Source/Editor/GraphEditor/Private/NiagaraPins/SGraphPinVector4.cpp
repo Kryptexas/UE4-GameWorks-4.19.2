@@ -181,7 +181,7 @@ void SGraphPinVector4::Construct(const FArguments& InArgs, UEdGraphPin* InGraphP
 
 TSharedRef<SWidget>	SGraphPinVector4::GetDefaultValueWidget()
 {
-	UScriptStruct* RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
+	UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
 
 	//Create widget
 	return	SNew(SVector4TextBox)

@@ -91,7 +91,7 @@ bool AFunctionalTest::StartTest(const TArray<FString>& Params)
 
 void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message)
 {
-	const static UEnum* FTestResultTypeEnum = FindObject<UEnum>( NULL, TEXT("FunctionalTesting.FunctionalTest.EFunctionalTestResult") );
+	const static UEnum* FTestResultTypeEnum = FindObject<UEnum>( NULL, TEXT("FunctionalTesting.EFunctionalTestResult") );
 	
 	if (bIsRunning == false)
 	{

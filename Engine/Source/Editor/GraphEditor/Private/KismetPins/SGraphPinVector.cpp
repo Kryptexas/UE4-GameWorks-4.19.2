@@ -151,7 +151,7 @@ void SGraphPinVector::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPi
 
 TSharedRef<SWidget>	SGraphPinVector::GetDefaultValueWidget()
 {
-	UScriptStruct* RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
+	UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
 	bIsRotator = (GraphPinObj->PinType.PinSubCategoryObject == RotatorStruct) ? true : false;
 	
 	//Create widget

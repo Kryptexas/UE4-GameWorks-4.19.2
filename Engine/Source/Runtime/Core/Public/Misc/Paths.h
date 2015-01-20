@@ -324,6 +324,16 @@ public:
 	/** Convert all / and \ to TEXT("/") */
 	static void NormalizeFilename(FString& InPath);
 
+	/**
+	 * Checks if two paths are the same.
+	 *
+	 * @param PathA First path to check.
+	 * @param PathB Second path to check.
+	 *
+	 * @returns True if both paths are the same. False otherwise.
+	 */
+	static bool IsSamePath(const FString& PathA, const FString& PathB);
+
 	/** Normalize all / and \ to TEXT("/") and remove any trailing TEXT("/") if the character before that is not a TEXT("/") or a colon */
 	static void NormalizeDirectoryName(FString& InPath);
 

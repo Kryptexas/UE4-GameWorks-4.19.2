@@ -45,10 +45,27 @@ namespace EDelegateSpecifierAction
 }
 
 /** Information for a particular nesting level. */
-struct FNestInfo
+class FNestInfo
 {
 	/** Link to the stack node. */
-	UStruct* Node;
+	FScope* Scope;
+
+public:
+	/**
+	 * Gets nesting scope.
+	 */
+	FScope* GetScope() const
+	{
+		return Scope;
+	}
+
+	/**
+	 * Sets nesting scope.
+	 */
+	void SetScope(FScope* Scope)
+	{
+		this->Scope = Scope;
+	}
 
 	/** Statement that caused the nesting. */
 	ENestType NestType;
@@ -83,7 +100,65 @@ struct ClassDefinitionRange
 	bool bHasGeneratedBody;
 };
 
-extern TMap<FClass*, ClassDefinitionRange> ClassDefinitionRanges;
+extern TMap<UClass*, ClassDefinitionRange> ClassDefinitionRanges;
+
+/**
+ * Simplified parsing information about UClasses.
+ */
+class FSimplifiedParsingClassInfo
+{
+public:
+	// Constructor.
+	FSimplifiedParsingClassInfo(FString ClassName, FString BaseClassName, int32 ClassDefLine, bool bClassIsAnInterface)
+		: ClassName(MoveTemp(ClassName)), BaseClassName(MoveTemp(BaseClassName)), ClassDefLine(ClassDefLine), bClassIsAnInterface(bClassIsAnInterface)
+	{}
+
+	/**
+	 * Gets class name.
+	 */
+	const FString& GetClassName() const
+	{
+		return ClassName;
+	}
+
+	/**
+	 * Gets base class name.
+	 */
+	const FString& GetBaseClassName() const
+	{
+		return BaseClassName;
+	}
+
+	/**
+	 * Gets class definition line number.
+	 */
+	int32 GetClassDefLine() const
+	{
+		return ClassDefLine;
+	}
+
+	/**
+	 * Tells if this class is an interface.
+	 */
+	bool IsInterface() const
+	{
+		return bClassIsAnInterface;
+	}
+
+private:
+	// Name.
+	FString ClassName;
+
+	// Super-class name.
+	FString BaseClassName;
+
+	// Class definition line.
+	int32 ClassDefLine;
+
+	// Is this an interface class?
+	bool bClassIsAnInterface;
+};
+
 /////////////////////////////////////////////////////
 // FHeaderParser
 
@@ -94,6 +169,9 @@ extern TMap<FClass*, ClassDefinitionRange> ClassDefinitionRanges;
 class FHeaderParser : public FBaseParser, public FContextSupplier
 {
 public:
+	// Compute the function parameter size and save the return offset
+	static void ComputeFunctionParametersSize(UClass* InClass);
+
 	// Parse all headers for classes that are inside LimitOuter.
 	static ECompilationResult::Type ParseAllHeadersInside(FClasses& ModuleClasses, FFeedbackContext* Warn, UPackage* LimitOuter, const FManifestModule& Module, TArray<class IScriptGeneratorPluginInterface*>& ScriptPlugins);
 
@@ -104,9 +182,9 @@ public:
 	//   
 	//  It also splits the buffer up into:
 	//   ScriptText (text outside of #if CPP and #if DEFAULTS blocks)
-	static void SimplifiedClassParse(const TCHAR* Buffer, bool& bIsInterface, TArray<FName>& DependentOn, FString& out_ClassName, FString& out_ParentClassName, int32& out_ClassDeclLine, FStringOutputDevice& ScriptText);
-	
-	/** 
+	static void SimplifiedClassParse(const TCHAR* Buffer, TArray<FSimplifiedParsingClassInfo>& OutParsedClassArray, TArray<FHeaderProvider>& DependentOn, FStringOutputDevice& ScriptText);
+
+	/**
 	 * Returns True if the given class name includes a valid Unreal prefix and matches up with the given original class Name.
 	 *
 	 * @param InNameToCheck - Name w/ potential prefix to check
@@ -124,17 +202,6 @@ public:
 	static bool DependentClassNameFromHeader(const TCHAR* HeaderFilename, FString& OutClassName);
 
 	/**
-	 * Generates temporary class name (without 'u' prefix) from header name (no path, no extension).
-	 *
-	 * @param HeaderName Header name without path nor extension.
-	 * @return Temporary class name.
-	 */
-	static FString GenerateTemporaryClassName(const TCHAR* HeaderName)
-	{
-		return FString(TEXT("TemporaryUHTHeader_")) + HeaderName;
-	}
-
-	/**
 	 * Transforms CPP-formated string containing default value, to inner formated string
 	 * If it cannot be transformed empty string is returned.
 	 *
@@ -145,14 +212,23 @@ public:
 	 */
 	static bool DefaultValueStringCppFormatToInnerFormat(const UProperty* Property, const FString& CppForm, FString &InnerForm);
 
+	/**
+	 * Parse Class's annotated headers and optionally its child classes.  Marks the class as CLASS_Parsed.
+	 *
+	 * @param	AllClasses			the class tree containing all classes in the current package
+	 * @param	HeaderParser		the header parser
+	 * @param	SourceFile			Source file info.
+	 * @param	bParseSubclasses	true if we should parse all child classes of Class
+	 *
+	 * @return	Result enumeration.
+	 */
+	static ECompilationResult::Type ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FUnrealSourceFile& SourceFile, bool bParseSubclasses);
+
 protected:
 	friend struct FScriptLocation;
 
 	// For compiling messages and errors.
 	FFeedbackContext* Warn;
-
-	// Class that is currently being parsed.
-	FClass* Class;
 
 	// Filename currently being parsed
 	FString Filename;
@@ -166,8 +242,80 @@ protected:
 	// Top nesting level.
 	FNestInfo* TopNest;
 
-	// Top stack node.
-	UStruct* TopNode;
+	/**
+	 * Gets current nesting scope.
+	 */
+	FScope* GetCurrentScope() const
+	{
+		return TopNest->GetScope();
+	}
+
+	/**
+	 * Gets current file scope.
+	 */
+	FFileScope* GetCurrentFileScope() const
+	{
+		int32 Index = 0;
+		while (TopNest[Index].NestType != NEST_GlobalScope)
+		{
+			--Index;
+		}
+
+		return (FFileScope*)TopNest[Index].GetScope();
+	}
+
+	/**
+	 * Gets current source file.
+	 */
+	FUnrealSourceFile* GetCurrentSourceFile() const
+	{
+		return GetCurrentFileScope()->GetSourceFile();
+	}
+
+	/**
+	 * Gets current class scope.
+	 */
+	FStructScope* GetCurrentClassScope() const
+	{
+		check(TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface);
+
+		return (FStructScope*)TopNest->GetScope();
+	}
+
+	/**
+	 * Tells if parser is currently in a class.
+	 */
+	bool IsInAClass() const
+	{
+		int32 Index = 0;
+		while (TopNest[Index].NestType != NEST_GlobalScope)
+		{
+			if (TopNest[Index].NestType == NEST_Class || TopNest->NestType == NEST_Interface)
+			{
+				return true;
+			}
+
+			--Index;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gets current class.
+	 */
+	UClass* GetCurrentClass() const
+	{
+		return (UClass*)GetCurrentClassScope()->GetStruct();
+	}
+
+	/**
+	 * Gets current class's metadata.
+	 */
+	FClassMetaData* GetCurrentClassData()
+	{
+		return GScriptHelper.FindClassData(GetCurrentClass());
+	}
 
 	// Information about all nesting levels.
 	FNestInfo Nest[MAX_NEST_LEVELS];
@@ -213,18 +361,6 @@ protected:
 	 * CLASS_RecompilerClear mask was applied) for the class currently being compiled
 	 */
 	uint32 PreviousClassFlags;
-
-	//
-	FClassMetaData* ClassData;
-
-	// Have seen the first of the two expected classes in the new style .h files?
-	bool bHaveSeenFirstInterfaceClass;
-
-	// Have seen the second of the two expected classes in the new style .h files?
-	bool bHaveSeenSecondInterfaceClass;
-
-	// Indicates that both interface classes have been parsed.
-	bool bFinishedParsingInterfaceClasses;
 
 	// For new-style classes, used to keep track of an unmatched {} pair
 	bool bEncounteredNewStyleClass_UnmatchedBrackets;
@@ -287,16 +423,15 @@ protected:
 	FString RequireExactlyOneSpecifierValue(const FPropertySpecifier& Specifier);
 
 	/**
-	 * Parse Class's annotated headers and optionally its child classes.  Marks the class as CLASS_Parsed.
+	 * Parse rest of the module's source files.
 	 *
 	 * @param	AllClasses			the class tree containing all classes in the current package
+	 * @param	ModulePackage		current package
 	 * @param	HeaderParser		the header parser
-	 * @param	Class				the class to parse
-	 * @param	bParseSubclasses	true if we should parse all child classes of Class
 	 *
 	 * @return	Result enumeration.
 	 */
-	static ECompilationResult::Type ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FClass* Class, bool bParseSubclasses);
+	static ECompilationResult::Type ParseRestOfModulesSourceFiles(FClasses& AllClasses, UPackage* ModulePackage, FHeaderParser& HeaderParser);
 
 	//@TODO: Remove this method
 	static void ParseClassName(const TCHAR* Temp, FString& ClassName);
@@ -320,19 +455,27 @@ protected:
 	// End of FContextSupplier interface.
 
 	// High-level compiling functions.
-	ECompilationResult::Type ParseHeaderForOneClass(FClasses& AllClasses, FClass* InClass);
-	void CompileDirective(UClass* Class);
+	/**
+	 * Parses given source file.
+	 *
+	 * @param AllClasses The class tree for current package.
+	 * @param SourceFile Source file to parse.
+	 *
+	 * @returns Compilation result enum.
+	 */
+	ECompilationResult::Type ParseHeader(FClasses& AllClasses, FUnrealSourceFile& SourceFile);
+	void CompileDirective(FClasses& AllClasses, FUnrealSourceFile& SourceFile);
 	void FinalizeScriptExposedFunctions(UClass* Class);
-	UEnum* CompileEnum(UClass* Owner);
-	UScriptStruct* CompileStructDeclaration(FClasses& AllClasses, FClass* Owner);
-	bool CompileDeclaration(FClasses& AllClasses, FToken& Token);
+	UEnum* CompileEnum(FUnrealSourceFile& SourceFile);
+	UScriptStruct* CompileStructDeclaration(FClasses& AllClasses, FUnrealSourceFile& SourceFile);
+	bool CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& SourceFile, FToken& Token);
 
 	/** Skip C++ (noexport) declaration. */
 	bool SkipDeclaration(FToken& Token);
 	/** Similar to MatchSymbol() but will return to the exact location as on entry if the symbol was not found. */
 	bool SafeMatchSymbol(const TCHAR* Match);
-	void HandleOneInheritedClass(FClasses& AllClasses, FString InterfaceName);
-	void ParseClassNameDeclaration(FClasses& AllClasses, FString& DeclaredClassName, FString& RequiredAPIMacroIfPresent);
+	void HandleOneInheritedClass(FClasses& AllClasses, UClass* Class, FString InterfaceName);
+	FClass* ParseClassNameDeclaration(FClasses& AllClasses, FString& DeclaredClassName, FString& RequiredAPIMacroIfPresent);
 
 	/** The property style of a variable declaration being parsed */
 	struct EPropertyDeclarationStyle
@@ -344,19 +487,31 @@ protected:
 		};
 	};
 
-	void CompileClassDeclaration    (FClasses& AllClasses);
-	void CompileDelegateDeclaration (FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction = EDelegateSpecifierAction::DontParse);
-	void CompileFunctionDeclaration (FClasses& AllClasses);
+	/**
+	 * Resets current class data back to its defaults.
+	 */
+	void ResetClassData();
+
+	/**
+	 * Create new function object based on given info structure.
+	 */
+	UFunction* CreateFunction(const FFuncInfo &FuncInfo) const;
+
+	/**
+	 * Create new delegate function object based on given info structure.
+	 */
+	UDelegateFunction* CreateDelegateFunction(const FFuncInfo &FuncInfo) const;
+
+	void CompileClassDeclaration(FClasses& AllClasses);
+	void CompileDelegateDeclaration(FUnrealSourceFile& SourceFile, FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction = EDelegateSpecifierAction::DontParse);
+	void CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FClasses& AllClasses);
 	void CompileVariableDeclaration (FClasses& AllClasses, UStruct* Struct, EPropertyDeclarationStyle::Type PropertyDeclarationStyle);
 	void CompileInterfaceDeclaration(FClasses& AllClasses);
 
-	void ParseInterfaceNameDeclaration(FClasses& AllClasses, FString& DeclaredInterfaceName, FString& RequiredAPIMacroIfPresent);
-	void ParseSecondInterfaceClass(FClasses& AllClasses);
+	FClass* ParseInterfaceNameDeclaration(FClasses& AllClasses, FString& DeclaredInterfaceName, FString& RequiredAPIMacroIfPresent);
+	bool TryParseIInterfaceClass(FClasses& AllClasses);
 
-	bool CompileStatement(FClasses& AllClasses);
-
-	// Compute the function parameter size and save the return offset
-	static void ComputeFunctionParametersSize( UClass* InClass );
+	bool CompileStatement(FClasses& AllClasses, FUnrealSourceFile& SourceFile);
 
 	// Checks to see if a particular kind of command is allowed on this nesting level.
 	bool IsAllowedInThisNesting(uint32 AllowFlags);
@@ -365,8 +520,6 @@ protected:
 	// If it's not, issues a compiler error referring to the token and the current
 	// nesting level.
 	void CheckAllow(const TCHAR* Thing, uint32 AllowFlags);
-
-	void CheckInScope( UObject* Obj );
 
 	UStruct* GetSuperScope( UStruct* CurrentScope, const FName& SearchName );
 
@@ -416,7 +569,7 @@ protected:
 	 */
 	bool GetVarType(
 		FClasses&                       AllClasses,
-		UStruct*                        Scope,
+		FScope*							Scope,
 		FPropertyBase&                  VarProperty,
 		EObjectFlags&                   ObjectFlags,
 		uint64                          Disallow,
@@ -449,9 +602,15 @@ protected:
 		const TCHAR* HardcodedName,
 		const TCHAR* Thing);
 	
-	void CheckObscures(UStruct* Scope, const FString& ScriptName, const FString& FieldName);
-	
-	bool AllowReferenceToClass( UClass* CheckClass ) const;
+	/**
+	 * Returns whether the specified class can be referenced from the class currently being compiled.
+	 *
+	 * @param	Scope		The scope we are currently parsing.
+	 * @param	CheckClass	The class we want to reference.
+	 *
+	 * @return	true if the specified class is an intrinsic type or if the class has successfully been parsed
+	 */
+	bool AllowReferenceToClass(UStruct* Scope, UClass* CheckClass) const;
 
 	/**
 	 * @return	true if Scope has UProperty objects in its list of fields
@@ -501,9 +660,42 @@ protected:
 
 	FClass* GetQualifiedClass(const FClasses& AllClasses, const TCHAR* Thing);
 
-	// Nest management functions.
-	void PushNest( ENestType NestType, FName ThisName, UStruct* InNode );
-	void PopNest ( FClasses& AllClasses, ENestType NestType, const TCHAR* Descr );
+	/**
+	 * Increase the nesting level, setting the new top nesting level to
+	 * the one specified.  If pushing a function or state and it overrides a similar
+	 * thing declared on a lower nesting level, verifies that the override is legal.
+	 *
+	 * @param	NestType	the new nesting type
+	 * @param	InNode		@todo
+	 */
+	void PushNest(ENestType NestType, UStruct* InNode, FUnrealSourceFile* SourceFile = nullptr);
+	void PopNest(ENestType NestType, const TCHAR* Descr);
+
+	/**
+	 * Tasks that need to be done after popping function declaration
+	 * from parsing stack.
+	 *
+	 * @param AllClasses The class tree for current package.
+	 * @param PoppedFunction Function that have just been popped.
+	 */
+	void PostPopFunctionDeclaration(FClasses& AllClasses, UFunction* PoppedFunction);
+
+	/**
+	 * Tasks that need to be done after popping interface definition
+	 * from parsing stack.
+	 *
+	 * @param AllClasses The class tree for current package.
+	 * @param CurrentInterface Interface that have just been popped.
+	 */
+	void PostPopNestInterface(FClasses& AllClasses, UClass* CurrentInterface);
+
+	/**
+	 * Tasks that need to be done after popping class definition
+	 * from parsing stack.
+	 *
+	 * @param CurrentClass Class that have just been popped.
+	 */
+	void PostPopNestClass(UClass* CurrentClass);
 
 	/**
 	 * Binds all delegate properties declared in ValidationScope the delegate functions specified in the variable declaration, verifying that the function is a valid delegate
@@ -512,11 +704,11 @@ protected:
 	 * @todo: this function will no longer be required once the post-parse fixup phase is added (TTPRO #13256)
 	 *
 	 * @param	AllClasses			the class tree for CurrentPackage
-	 * @param	ValidationScope		the scope to validate delegate properties for
-	 * @param	OwnerClass			the class currently being compiled.
+	 * @param	Struct				the struct to validate delegate properties for
+	 * @param	Scope				the current scope
 	 * @param	DelegateCache		cached map of delegates that have already been found; used for faster lookup.
 	 */
-	void FixupDelegateProperties( FClasses& AllClasses, UStruct* ValidationScope, UClass* OwnerClass, TMap<FName, UFunction*>& DelegateCache );
+	void FixupDelegateProperties(FClasses& AllClasses, UStruct* ValidationScope, FScope& Scope, TMap<FName, UFunction*>& DelegateCache);
 
 	/**
 	 * Verifies that all specified class's UProperties with CFG_RepNotify have valid callback targets with no parameters nor return values
@@ -582,5 +774,5 @@ public:
 	{
 	}
 
-	void ParseClassDeclaration(const TCHAR* InputText, int32 InLineNumber, const TCHAR* StartingMatchID, FString& out_ClassName, FString& out_BaseClassName, TArray<FName>& inout_ClassNames);
+	void ParseClassDeclaration(const TCHAR* InputText, int32 InLineNumber, const TCHAR* StartingMatchID, FString& out_ClassName, FString& out_BaseClassName, TArray<FHeaderProvider>& out_ClassNames);
 };

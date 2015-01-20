@@ -965,3 +965,18 @@ void FPaths::CombineInternal(FString& OutPath, const TCHAR** Pathes, int32 NumPa
 	}
 }
 
+bool FPaths::IsSamePath(const FString& PathA, const FString& PathB)
+{
+	FString TmpA = PathA;
+	FString TmpB = PathB;
+
+	MakeStandardFilename(TmpA);
+	MakeStandardFilename(TmpB);
+
+#if defined(PLATFORM_WINDOWS) || defined(PLATFORM_XBOXONE)
+	return FCString::Stricmp(*TmpA, *TmpB) == 0;
+#else
+	return FCString::Strcmp(*TmpA, *TmpB) == 0;
+#endif
+}
+

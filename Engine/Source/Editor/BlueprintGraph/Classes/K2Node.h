@@ -688,6 +688,16 @@ public:
 					}
 				}
 			}
+			else
+			{
+				// Native delegate signatures can have null target scope.
+                // Needed because Blueprint pin types are referencing delegate signatures as
+                // class members, which doesn't have to be true.
+				if (TFieldType::StaticClass() == UFunction::StaticClass())
+				{
+					ReturnField = (TFieldType*)FindDelegateSignature(MemberName);
+				}
+			}
 		}
 
 		// Check to see if the member has been deprecated

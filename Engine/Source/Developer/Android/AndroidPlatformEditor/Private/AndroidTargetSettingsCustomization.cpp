@@ -313,9 +313,9 @@ void FAndroidTargetSettingsCustomization::OnOrientationModified()
 
 FString FAndroidTargetSettingsCustomization::OrientationToString(const EAndroidScreenOrientation::Type Orientation)
 {
-	extern ANDROIDRUNTIMESETTINGS_API class UEnum* Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidScreenOrientation();
+	extern ANDROIDRUNTIMESETTINGS_API class UEnum* Z_Construct_UEnum_AndroidRuntimeSettings_EAndroidScreenOrientation();
 	
-	UEnum* Enum = Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidScreenOrientation();
+	UEnum* Enum = Z_Construct_UEnum_AndroidRuntimeSettings_EAndroidScreenOrientation();
 	check(Enum != nullptr);
 	
 	return Enum->GetMetaData(TEXT("ManifestValue"), (int32)Orientation);
@@ -349,9 +349,9 @@ void FAndroidTargetSettingsCustomization::OnDepthBufferPreferenceModified()
 
 FString FAndroidTargetSettingsCustomization::DepthBufferPreferenceToString(const EAndroidDepthBufferPreference::Type DepthBufferPreference)
 {
-	extern ANDROIDRUNTIMESETTINGS_API class UEnum* Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidDepthBufferPreference();
+	extern ANDROIDRUNTIMESETTINGS_API class UEnum* Z_Construct_UEnum_AndroidRuntimeSettings_EAndroidDepthBufferPreference();
 
-	UEnum* Enum = Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidDepthBufferPreference();
+	UEnum* Enum = Z_Construct_UEnum_AndroidRuntimeSettings_EAndroidDepthBufferPreference();
 	check(Enum != nullptr);
 
 	return Enum->GetMetaData(TEXT("ManifestValue"), (int32)DepthBufferPreference);

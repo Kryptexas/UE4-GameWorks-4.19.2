@@ -235,6 +235,11 @@ UFunction* UK2Node_Event::FindEventSignatureFunction()
 		}
 	}
 
+	if (Function == nullptr)
+	{
+		Function = FindDelegateSignature(EventSignatureName);
+	}
+
 	return Function;
 }
 

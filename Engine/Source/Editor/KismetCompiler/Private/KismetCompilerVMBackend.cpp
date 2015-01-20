@@ -318,9 +318,9 @@ public:
 		, bIsUbergraph(bInIsUbergraph)
 		, ReturnStatement(InReturnStatement)
 	{
-		VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
-		RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
-		TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
+		VectorStruct = GetBaseStructure(TEXT("Vector"));
+		RotatorStruct = GetBaseStructure(TEXT("Rotator"));
+		TransformStruct = GetBaseStructure(TEXT("Transform"));
 		LatentInfoStruct = FLatentActionInfo::StaticStruct();
 	}
 

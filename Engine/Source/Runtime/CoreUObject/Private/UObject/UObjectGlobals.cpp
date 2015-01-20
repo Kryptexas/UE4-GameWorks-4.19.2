@@ -169,6 +169,17 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 	FName ObjectName(*InName, FNAME_Add, true);
 	MatchingObject = StaticFindObjectFast( ObjectClass, ObjectPackage, ObjectName, ExactClass, bAnyPackage );
 
+	if (!MatchingObject && ObjectPackage != nullptr &&
+			(
+				ObjectClass == UEnum::StaticClass()	// Enums
+				|| ObjectClass == UScriptStruct::StaticClass() // Structs
+				|| (ObjectClass == UFunction::StaticClass() && FString(OrigInName).EndsWith(HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX)) // Delegates
+			)
+		)
+	{
+		MatchingObject = StaticFindObject(ObjectClass, ObjectPackage->GetOutermost(), *ObjectName.ToString(), ExactClass);
+	}
+
 	return MatchingObject;
 }
 
@@ -2592,7 +2603,7 @@ FArchive& FScriptInterface::Serialize(FArchive& Ar, UClass* InterfaceType)
 /** A struct used as stub for deleted ones. */
 UScriptStruct* GetFallbackStruct()
 {
-	static UScriptStruct* FallbackStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("FallbackStruct"));
+	static UScriptStruct* FallbackStruct = GetBaseStructure(TEXT("FallbackStruct"));
 	return FallbackStruct;
 }
 
@@ -2652,5 +2663,17 @@ UObject* FObjectInitializer::CreateEditorOnlyDefaultSubobject(UObject* Outer, FN
 		return EditorSubobject;
 	}
 #endif
+	return nullptr;
+}
+
+COREUOBJECT_API UFunction* FindDelegateSignature(FName DelegateSignatureName)
+{
+	FString StringName = DelegateSignatureName.ToString();
+
+	if (StringName.EndsWith(HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX))
+	{
+		return FindObject<UFunction>(ANY_PACKAGE, *StringName);
+	}
+
 	return nullptr;
 }

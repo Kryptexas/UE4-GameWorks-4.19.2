@@ -62,18 +62,6 @@ FClass* FClass::GetClassWithin() const
 	return (FClass*)ClassWithin;
 }
 
-TArray<FName> FClass::GetDependentNames() const
-{
-	TArray<FName> Result;
-
-	for (auto Name : *GClassDependentOnMap.FindOrAdd(const_cast<FClass*>(this)))
-	{
-		Result.Add(Name);
-	}
-
-	return Result;
-}
-
 TArray<FClass*> FClass::GetInterfaceTypes() const
 {
 	TArray<FClass*> Result;

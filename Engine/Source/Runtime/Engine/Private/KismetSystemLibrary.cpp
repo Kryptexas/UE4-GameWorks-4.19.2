@@ -667,7 +667,7 @@ void UKismetSystemLibrary::SetVectorPropertyByName(UObject* Object, FName Proper
 {
 	if(Object != NULL)
 	{
-		UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
+		UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
 		UStructProperty* VectorProp = FindField<UStructProperty>(Object->GetClass(), PropertyName);
 		if(VectorProp != NULL && VectorProp->Struct == VectorStruct)
 		{
@@ -680,7 +680,7 @@ void UKismetSystemLibrary::SetRotatorPropertyByName(UObject* Object, FName Prope
 {
 	if(Object != NULL)
 	{
-		UScriptStruct* RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
+		UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
 		UStructProperty* RotatorProp = FindField<UStructProperty>(Object->GetClass(), PropertyName);
 		if(RotatorProp != NULL && RotatorProp->Struct == RotatorStruct)
 		{
@@ -693,7 +693,7 @@ void UKismetSystemLibrary::SetLinearColorPropertyByName(UObject* Object, FName P
 {
 	if(Object != NULL)
 	{
-		UScriptStruct* ColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
+		UScriptStruct* ColorStruct = GetBaseStructure(TEXT("LinearColor"));
 		UStructProperty* ColorProp = FindField<UStructProperty>(Object->GetClass(), PropertyName);
 		if(ColorProp != NULL && ColorProp->Struct == ColorStruct)
 		{
@@ -706,7 +706,7 @@ void UKismetSystemLibrary::SetTransformPropertyByName(UObject* Object, FName Pro
 {
 	if(Object != NULL)
 	{
-		UScriptStruct* TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
+		UScriptStruct* TransformStruct = GetBaseStructure(TEXT("Transform"));
 		UStructProperty* TransformProp = FindField<UStructProperty>(Object->GetClass(), PropertyName);
 		if(TransformProp != NULL && TransformProp->Struct == TransformStruct)
 		{

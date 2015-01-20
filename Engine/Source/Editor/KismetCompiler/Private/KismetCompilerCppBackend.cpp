@@ -76,11 +76,11 @@ public:
 		, MessageLog(InContext.MessageLog)
 		, CompilerContext(InContext)
 	{
-		extern UScriptStruct* Z_Construct_UScriptStruct_UObject_FVector();
-		VectorStruct = Z_Construct_UScriptStruct_UObject_FVector();
-		RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
-		TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
-		LinearColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
+		extern UScriptStruct* Z_Construct_UScriptStruct_FVector();
+		VectorStruct = Z_Construct_UScriptStruct_FVector();
+		RotatorStruct = GetBaseStructure(TEXT("Rotator"));
+		TransformStruct = GetBaseStructure(TEXT("Transform"));
+		LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
 		LatentInfoStruct = FLatentActionInfo::StaticStruct();
 	}
 
