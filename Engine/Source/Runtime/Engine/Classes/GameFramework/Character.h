@@ -253,10 +253,12 @@ protected:
 	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedBasedMovement)
 	struct FBasedMovementInfo ReplicatedBasedMovement;
 
+public:
 	/** Rep notify for ReplicatedBasedMovement */
 	UFUNCTION()
 	virtual void OnRep_ReplicatedBasedMovement();
 
+protected:
 	/** Desired translation offset of mesh. */
 	UPROPERTY()
 	FVector BaseTranslationOffset;

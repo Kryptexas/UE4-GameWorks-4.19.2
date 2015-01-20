@@ -1043,6 +1043,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			{
 				CharacterOwner->RootMotionRepMoves.Empty();
 				CharacterOwner->OnRep_ReplicatedMovement();
+				CharacterOwner->OnRep_ReplicatedBasedMovement();
 			}
 		}
 
