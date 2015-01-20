@@ -867,13 +867,6 @@ UActorComponent* FSCSEditorTreeNode::GetOverridenComponentTemplate(UBlueprint* B
 	UActorComponent* OverridenComponent = NULL;
 
 	FComponentKey Key(GetSCSNode());
-	if (!Key.IsValid())
-	{
-		UActorComponent* ComponentTemplate = GetComponentTemplate();
-		auto OriginalComponentOwner = ComponentTemplate ? ComponentTemplate->GetOwner() : nullptr;
-		auto ComponentOwnerBPGC = OriginalComponentOwner ? Cast<UBlueprintGeneratedClass>(OriginalComponentOwner->GetClass()) : nullptr;
-		Key = FComponentKey(ComponentOwnerBPGC, GetVariableName());
-	}
 
 	const bool BlueprintCanOverrideComponentFormKey = Key.IsValid() 
 		&& Blueprint 

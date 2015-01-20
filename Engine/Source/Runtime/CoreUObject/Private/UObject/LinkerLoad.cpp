@@ -3213,7 +3213,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		}
 
 		// Find the Archetype object for the one we are loading.
-		UObject* Template = GetArchetypeFromRequiredInfo(LoadClass, ThisParent, Export.ObjectName, !!(Export.ObjectFlags&RF_ClassDefaultObject));
+		UObject* Template = GetArchetypeFromRequiredInfo(LoadClass, ThisParent, Export.ObjectName, Export.ObjectFlags);
 
 		check(Template);
 		checkfSlow(((Export.ObjectFlags&RF_ClassDefaultObject)!=0 || Template->IsA(LoadClass)), TEXT("Mismatch between template %s and load class %s.  If this is a legacy blueprint or map, it may need to be resaved with bRecompileOnLoad turned off."), *Template->GetPathName(), *LoadClass->GetPathName());

@@ -401,13 +401,14 @@ enum EObjectFlags
 	RF_WasLoaded				=0x00080000,	///< Flagged on UObjects that were loaded
 	RF_TextExportTransient		=0x00100000,	///< Do not export object to text form (e.g. copy/paste). Generally used for sub-objects that can be regenerated from data in their parent object.
 	RF_LoadCompleted			=0x00200000,	///< Object has been completely serialized by linkerload at least once. DO NOT USE THIS FLAG, It should be replaced with RF_WasLoaded.
+	RF_InheritableComponentTemplate = 0x00400000, ///< Archetype of the object can be in its super class
 
 	// Special all and none masks
-	RF_AllFlags					=0x003fffff,	///< All flags, used mainly for error checking
+	RF_AllFlags					=0x00ffffff,	///< All flags, used mainly for error checking
 	RF_NoFlags					=0x00000000,	///< No flags, used to avoid a cast
 
 	// Predefined groups of the above
-	RF_Load						= RF_Public | RF_Standalone | RF_Native | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient, // Flags to load from Unrealfiles.
+	RF_Load						= RF_Public | RF_Standalone | RF_Native | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate, // Flags to load from Unrealfiles.
 	RF_PropagateToSubObjects	= RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient,		// Sub-objects will inherit these flags from their SuperObject.
 
 	

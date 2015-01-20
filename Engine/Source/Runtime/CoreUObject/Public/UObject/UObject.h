@@ -777,7 +777,7 @@ public:
 	 * 
 	 * @return the archetype for this object
 	 */
-	static UObject* GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FName Name, bool bIsCDO);
+	static UObject* GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FName Name, EObjectFlags ObjectFlags);
 
 	/**
 	 * Return the template this object is based on. 
@@ -786,7 +786,7 @@ public:
 	 */
 	UObject* GetArchetype() const
 	{
-		return GetArchetypeFromRequiredInfo(GetClass(), GetOuter(), GetFName(), HasAnyFlags(RF_ClassDefaultObject));
+		return GetArchetypeFromRequiredInfo(GetClass(), GetOuter(), GetFName(), GetFlags());
 	}
 
 	/**

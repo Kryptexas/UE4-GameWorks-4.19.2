@@ -24,14 +24,9 @@ struct ENGINE_API FComponentKey
 		: OwnerClass(nullptr)
 	{}
 
-	FComponentKey(UBlueprintGeneratedClass* InOwnerClass, FName InVariableNam)
-		: OwnerClass(nullptr)
-		, VariableName(InVariableNam)
-	{}
-
 	FComponentKey(USCS_Node* ParentNode);
 
-	bool Match(FComponentKey OtherKey) const;
+	bool Match(const FComponentKey OtherKey) const;
 
 	bool IsValid() const
 	{
@@ -69,7 +64,6 @@ private:
 
 public:
 	UActorComponent* CreateOverridenComponentTemplate(FComponentKey Key);
-	void UpdateOverridenComponentTemplate(FComponentKey Key);
 	void UpdateOwnerClass(UBlueprintGeneratedClass* OwnerClass);
 	void RemoveInvalidAndUnnecessaryTemplates();
 	bool IsValid() const;
@@ -90,13 +84,15 @@ public:
 
 	void PreloadAllTempates();
 
+	bool RenameTemplate(FComponentKey OldKey, FName NewName);
+
 #endif
 
 public:
 	UActorComponent* GetOverridenComponentTemplate(FComponentKey Key) const;
 
 private:
-	const FComponentOverrideRecord* FindRecord(FComponentKey Key) const;
+	const FComponentOverrideRecord* FindRecord(const FComponentKey Key) const;
 	
 	UPROPERTY()
 	TArray<FComponentOverrideRecord> Records;

@@ -2196,7 +2196,7 @@ UObject* StaticConstructObject
 	const bool bIsNativeFromCDO = InClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic) && 
 		(
 			!InTemplate || 
-			(InName != NAME_None && InTemplate == UObject::GetArchetypeFromRequiredInfo(InClass, InOuter, InName, !!(InFlags & RF_ClassDefaultObject)))
+			(InName != NAME_None && InTemplate == UObject::GetArchetypeFromRequiredInfo(InClass, InOuter, InName, InFlags))
 		);
 	bool bRecycledSubobject = false;
 	Result = StaticAllocateObject(InClass, InOuter, InName, InFlags, bIsNativeFromCDO, &bRecycledSubobject);

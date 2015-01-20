@@ -2414,9 +2414,13 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 		return false;
 	}
 
-	if (Blueprint->InheritableComponentHandler && !Blueprint->InheritableComponentHandler->IsEmpty())
+	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
+	if (EnableInheritableComponents)
 	{
-		return false;
+		if (Blueprint->InheritableComponentHandler && !Blueprint->InheritableComponentHandler->IsEmpty())
+		{
+			return false;
+		}
 	}
 
 	return true;
@@ -3502,7 +3506,24 @@ void FBlueprintEditorUtils::RenameComponentMemberVariable(UBlueprint* Blueprint,
 	if (!NewName.IsEqual(Node->VariableName, ENameCase::CaseSensitive))
 	{
 		Blueprint->Modify();
-		
+
+		// Rename Inheritable Component Templates
+		{
+			const FComponentKey Key(Node);
+			TArray<UBlueprint*> Dependents;
+			GetDependentBlueprints(Blueprint, Dependents);
+			for (auto DepBP : Dependents)
+			{
+				auto InheritableComponentHandler = DepBP ? DepBP->GetInheritableComponentHandler(false) : nullptr;
+				if (InheritableComponentHandler && InheritableComponentHandler->GetOverridenComponentTemplate(Key))
+				{
+					InheritableComponentHandler->Modify();
+					InheritableComponentHandler->RenameTemplate(Key, NewName);
+					InheritableComponentHandler->MarkPackageDirty();
+				}
+			}
+		}
+
 		// Update the name
 		const FName OldName = Node->VariableName;
 		Node->Modify();
