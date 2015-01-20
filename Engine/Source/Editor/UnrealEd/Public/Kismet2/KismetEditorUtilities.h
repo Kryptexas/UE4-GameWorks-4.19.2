@@ -86,6 +86,9 @@ public:
 	/** @return true is it's possible to create a blueprint from the specified class */
 	static bool CanCreateBlueprintOfClass(const UClass* Class);
 
+	/** Take a list of components that belong to a single Actor and add them to a blueprint as SCSNodes */
+	static void AddComponentsToBlueprint(UBlueprint* Blueprint, const TArray<UActorComponent*>& Components);
+
 	/** 
 	 * Take an Actor and generate a blueprint based on it. Uses the Actors type as the parent class. 
 	 * @param Path					The path to use when creating the package for the new blueprint
