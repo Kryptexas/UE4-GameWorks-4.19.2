@@ -467,11 +467,11 @@ public:
 	UActorComponent* AddNewNode(USCS_Node* NewNode, UObject* Asset, bool bMarkBlueprintModified, bool bSetFocusToNewItem = true);
 
 	/** Adds a new component instance node to the component Table
-		@param NewNode	(In) The component instance node to add
+		@param NewInstanceComponent	(In) The component being added to the actor instance
 		@param Asset	(In) Optional asset to assign to the component
 		@param bSetFocusToNewItem (In) Select the new item and activate the inline rename widget (default is true)
 		@return The reference of the newly created ActorComponent */
-	UActorComponent* AddNewNode(UActorComponent* NewNode, UObject* Asset, bool bSetFocusToNewItem = true);
+	UActorComponent* AddNewNode(UActorComponent* NewInstanceComponent, UObject* Asset, bool bSetFocusToNewItem = true);
 	
 	/** Returns true if the specified component is currently selected */
 	bool IsComponentSelected(const UPrimitiveComponent* PrimComponent) const;

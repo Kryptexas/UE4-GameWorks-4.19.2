@@ -235,6 +235,14 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(UActorComponent* InComponentTemplate)
 	{
 		bIsInstanced = true;
 		bWasInstancedFromNativeClass = false;
+
+		// Make sure the component has a valid name
+		if (!FComponentEditorUtils::IsValidVariableNameString(InComponentTemplate, InComponentTemplate->GetName()))
+		{
+			ERenameFlags RenameFlags = REN_DontCreateRedirectors | REN_NonTransactional;
+			InComponentTemplate->Rename(*InComponentTemplate->GetName().Replace(TEXT("Component_"), TEXT("")), nullptr, RenameFlags);
+		}
+		
 		InstancedComponentName = InComponentTemplate->GetFName();
 
 		ComponentTemplatePtr.Reset();
@@ -988,7 +996,12 @@ void SSCS_RowWidget::Construct( const FArguments& InArgs, TSharedPtr<SSCSEditor>
 	SCSEditor = InSCSEditor;
 	NodePtr = InNodePtr;
 
-	SMultiColumnTableRow<FSCSEditorTreeNodePtrType>::Construct( FSuperRowType::FArguments().Padding(FMargin(0.f, 0.f, 0.f, 4.f)), InOwnerTableView.ToSharedRef() );
+	
+	auto Args = FSuperRowType::FArguments()
+		.Style(&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("SceneOutliner.TableViewRow")) //@todo create editor style for the SCS tree
+		.Padding(FMargin(0.f, 0.f, 0.f, 4.f));
+
+	SMultiColumnTableRow<FSCSEditorTreeNodePtrType>::Construct( Args, InOwnerTableView.ToSharedRef() );
 }
 
 SSCS_RowWidget::~SSCS_RowWidget()
@@ -3021,12 +3034,12 @@ FText SSCSEditor::GetActorDisplayText() const
 		if (Blueprint != nullptr)
 		{
 			Blueprint->GetName(Name);
-			return FText::Format(LOCTEXT("DefaultActor_Name", "{0} (self)"), FText::FromString(Name));
+			return FText::Format(LOCTEXT("DefaultActor_Name", "{0} (Self)"), FText::FromString(Name));
 		}
 		else
 		{
 			Name = DefaultActor->GetActorLabel();
-			return FText::Format(LOCTEXT("DefaultActor_Name", "{0}"), FText::FromString(Name));
+			return FText::Format(LOCTEXT("DefaultActor_Name", "{0} (Instance)"), FText::FromString(Name));
 		}
 	}
 	return FText::GetEmpty();	
@@ -3554,28 +3567,28 @@ UActorComponent* SSCSEditor::AddNewNode(USCS_Node* NewNode,  UObject* Asset, boo
 	return NewNode->ComponentTemplate;
 }
 
-UActorComponent* SSCSEditor::AddNewNode(UActorComponent* NewNode,  UObject* Asset, bool bSetFocusToNewItem)
+UActorComponent* SSCSEditor::AddNewNode(UActorComponent* NewInstanceComponent,  UObject* Asset, bool bSetFocusToNewItem)
 {
-	check(NewNode != nullptr);
+	check(NewInstanceComponent != nullptr);
 
 	if(Asset)
 	{
-		FComponentAssetBrokerage::AssignAssetToComponent(NewNode, Asset);
+		FComponentAssetBrokerage::AssignAssetToComponent(NewInstanceComponent, Asset);
 	}
 
-	NewNode->RegisterComponent();
+	NewInstanceComponent->RegisterComponent();
 
 	FSCSEditorTreeNodePtrType NewNodePtr;
 
 	// Add the new node to the editor tree
-	USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewNode);
+	USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewInstanceComponent);
 	if(NewSceneComponent != nullptr)
 	{
 		NewNodePtr = AddTreeNode(NewSceneComponent);
 	}
 	else
 	{
-		NewNodePtr = MakeShareable(new FSCSEditorTreeNode(NewNode));
+		NewNodePtr = MakeShareable(new FSCSEditorTreeNode(NewInstanceComponent));
 
 		// Ensure that the root node ordering is what we assume it to be
 		check(!SceneRootNodePtr.IsValid() || (RootNodes.Num() > 0 && RootNodes[RootNodes.Num() - 1] == SceneRootNodePtr));
@@ -3600,7 +3613,7 @@ UActorComponent* SSCSEditor::AddNewNode(UActorComponent* NewNode,  UObject* Asse
 
 	UpdateTree();
 
-	return NewNode;
+	return NewInstanceComponent;
 }
 
 bool SSCSEditor::IsComponentSelected(const UPrimitiveComponent* PrimComponent) const
