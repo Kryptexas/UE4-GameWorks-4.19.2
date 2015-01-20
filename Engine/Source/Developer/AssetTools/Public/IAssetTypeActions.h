@@ -37,13 +37,13 @@ class IToolkitHost;
 /* Revision information for a single revision of a file in source control */
 struct FRevisionInfo
 {
-	int32		Revision;
+	FString		Revision;
 	int32		Changelist;
 	FDateTime	Date;	
 
 	static inline FRevisionInfo InvalidRevision()
 	{
-		static const FRevisionInfo Ret = { -1, -1, FDateTime() };
+		static const FRevisionInfo Ret = { TEXT(""), -1, FDateTime() };
 		return Ret;
 	}
 };

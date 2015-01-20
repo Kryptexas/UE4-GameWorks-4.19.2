@@ -491,9 +491,9 @@ FText FListItemGraphToDiff::GetToolTip()
 		const FRevisionInfo& Revision = GraphNew ? RevisionOld : RevisionNew;
 		FText RevisionText = LOCTEXT("CurrentRevision", "Current Revision");
 
-		if ( Revision.Revision >= 0 )
+		if ( !Revision.Revision.IsEmpty() )
 		{
-			RevisionText = FText::Format( LOCTEXT("Revision Number", "Revision {0}") , FText::AsNumber( Revision.Revision, NULL, FInternationalization::Get().GetInvariantCulture() ) );
+			RevisionText = FText::Format( LOCTEXT("Revision Number", "Revision {0}") , FText::FromString( Revision.Revision ) );
 		}
 
 		return FText::Format( LOCTEXT("MissingGraph", "Graph '{0}' missing from {1}"), FText::FromString( GoodGraph->GetName() ), RevisionText );

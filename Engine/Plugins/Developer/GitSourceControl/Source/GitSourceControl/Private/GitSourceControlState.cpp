@@ -29,6 +29,19 @@ TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FGitSourceControlS
 	return NULL;
 }
 
+TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FGitSourceControlState::FindHistoryRevision(const FString& InRevision) const
+{
+	for(const auto& Revision : History)
+	{
+		if(Revision->GetRevision() == InRevision)
+		{
+			return Revision;
+		}
+	}
+
+	return NULL;
+}
+
 TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FGitSourceControlState::GetBaseRevForMerge() const
 {
 	// @todo get revision of the merge-base (https://www.kernel.org/pub/software/scm/git/docs/git-merge-base.html)

@@ -462,26 +462,42 @@ FText SBehaviorTreeDiff::FBehaviorTreeDiffPanel::GetTitle() const
 	FText Title = LOCTEXT("CurrentRevision", "Current Revision");
 
 	// if this isn't the current working version being displayed
-	if (RevisionInfo.Revision >= 0)
+	if (!RevisionInfo.Revision.IsEmpty())
 	{
 		// Don't use grouping on the revision or CL numbers to match how Perforce displays them
 		static const FNumberFormattingOptions RevisionFormatOptions = FNumberFormattingOptions()
 			.SetUseGrouping(false);
 
 		const FText DateText = FText::AsDate(RevisionInfo.Date, EDateTimeStyle::Short);
-		const FText RevisionText = FText::AsNumber(RevisionInfo.Revision, &RevisionFormatOptions);
+		const FText RevisionText = FText::FromString(RevisionInfo.Revision);
 		const FText ChangelistText = FText::AsNumber(RevisionInfo.Changelist, &RevisionFormatOptions);
 
 		if (bShowAssetName)
 		{
 			FString AssetName = BehaviorTree->GetName();
-			FText LocalizedFormat = LOCTEXT("NamedRevisionDiffFmt", "{0} - Revision {1}, CL {2}, {3}");
-			Title = FText::Format(LocalizedFormat, FText::FromString(AssetName), RevisionText, ChangelistText, DateText);
+			if(ISourceControlModule::Get().GetProvider().UsesChangelists())
+			{
+				FText LocalizedFormat = LOCTEXT("NamedRevisionDiffFmt", "{0} - Revision {1}, CL {2}, {3}");
+				Title = FText::Format(LocalizedFormat, FText::FromString(AssetName), RevisionText, ChangelistText, DateText);
+			}
+			else
+			{
+				FText LocalizedFormat = LOCTEXT("NamedRevisionDiffFmt", "{0} - Revision {1}, {2}");
+				Title = FText::Format(LocalizedFormat, FText::FromString(AssetName), RevisionText, DateText);
+			}
 		}
 		else
 		{
-			FText LocalizedFormat = LOCTEXT("PreviousRevisionDifFmt", "Revision {0}, CL {1}, {2}");
-			Title = FText::Format(LocalizedFormat, RevisionText, ChangelistText, DateText);
+			if(ISourceControlModule::Get().GetProvider().UsesChangelists())
+			{
+				FText LocalizedFormat = LOCTEXT("PreviousRevisionDifFmt", "Revision {0}, CL {1}, {2}");
+				Title = FText::Format(LocalizedFormat, RevisionText, ChangelistText, DateText);
+			}
+			else
+			{
+				FText LocalizedFormat = LOCTEXT("PreviousRevisionDifFmt", "Revision {0}, {2}");
+				Title = FText::Format(LocalizedFormat, RevisionText, DateText);
+			}
 		}
 	}
 	else if (bShowAssetName)

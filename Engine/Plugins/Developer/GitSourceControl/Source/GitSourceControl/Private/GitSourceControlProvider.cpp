@@ -182,6 +182,11 @@ bool FGitSourceControlProvider::UsesLocalReadOnlyState() const
 	return false;
 }
 
+bool FGitSourceControlProvider::UsesChangelists() const
+{
+	return false;
+}
+
 TSharedPtr<IGitSourceControlWorker, ESPMode::ThreadSafe> FGitSourceControlProvider::CreateWorker(const FName& InOperationName) const
 {
 	const FGetGitSourceControlWorker* Operation = WorkersMap.Find(InOperationName);
