@@ -960,3 +960,8 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInfor
 
 	FAndroidMisc::SetVersionInfo( UEAndroidVersion, UEPhoneMake, UEPhoneModel, UEOSLanguage );
 }
+
+void WaitForAndroidLoseFocusEvent()
+{
+	FAppEventManager::GetInstance()->WaitForEventInQueue(EAppEventState::APP_EVENT_STATE_WINDOW_LOST_FOCUS);
+}
