@@ -346,6 +346,12 @@ public class DeploymentContext //: ProjectParams
 				{
 					continue;
 				}
+
+                if (FileToCopy.Contains("NotForLicensees"))
+                {
+                    continue;
+                }
+
 				bool OtherPlatform = false;
 				foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
 				{
