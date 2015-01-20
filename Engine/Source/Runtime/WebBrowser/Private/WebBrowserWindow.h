@@ -32,8 +32,10 @@ public:
 	 * Default Constructor
 	 * 
 	 * @param InViewportSize Initial size of the browser window
+	 * @param InInitialURL The Initial URL that will be loaded
+	 * @param InContentsToLoad Optional string to load as a web page
 	 */
-	FWebBrowserWindow(FIntPoint InViewportSize);
+	FWebBrowserWindow(FIntPoint InViewportSize, FString InInitialURL, TOptional<FString> InContentsToLoad);
 	/**
 	 * Virtual Destructor
 	 */
@@ -41,6 +43,7 @@ public:
 
 	// IWebBrowserWindow Interface
 	virtual void LoadURL(FString NewURL) override;
+	virtual void LoadString(FString Contents, FString DummyURL) override;
 	virtual void SetViewportSize(FIntPoint WindowSize) override;
 	virtual FSlateShaderResource* GetTexture() override;
 	virtual bool IsValid() const override;
@@ -159,6 +162,10 @@ private:
 	bool							bIsClosing;
 	/** Whether this window has been painted at least once */
 	bool							bHasBeenPainted;
+	/** Initial URL that will be loaded (stored to pass on as the dummy for LoadString()) */
+	FString InitialURL;
+	/** Optional text to load as a web page */
+	TOptional<FString> ContentsToLoad;
 
 	// Allow the Handler to access functions only it needs
 	friend class FWebBrowserHandler;

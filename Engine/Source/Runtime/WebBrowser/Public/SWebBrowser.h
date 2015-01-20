@@ -23,6 +23,9 @@ public:
 		/** URL that the browser will initially navigate to */
 		SLATE_ARGUMENT(FString, InitialURL)
 
+		/** Optional string to load contents as a web page */
+		SLATE_ARGUMENT(TOptional<FString>, ContentsToLoad)
+
 		/** Whether to show standard controls like Back, Forward, Reload etc. */
 		SLATE_ARGUMENT(bool, ShowControls)
 
@@ -51,6 +54,14 @@ public:
 	 * @param NewURL New URL to load
 	 */
 	void LoadURL(FString NewURL);
+
+	/**
+	* Load a string as data to create a web page
+	*
+	* @param Contents String to load
+	* @param DummyURL Dummy URL for the page
+	*/
+	void LoadString(FString Contents, FString DummyURL);
 
 	/**
 	 * Get the current title of the web page

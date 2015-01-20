@@ -27,7 +27,8 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 	                                                                             InArgs._InitialURL,
 	                                                                             InArgs._ViewportSize.Get().X,
 	                                                                             InArgs._ViewportSize.Get().Y,
-	                                                                             InArgs._SupportsTransparency);
+	                                                                             InArgs._SupportsTransparency,
+	                                                                             InArgs._ContentsToLoad);
 
 	TSharedPtr<SViewport> ViewportWidget;
 
@@ -110,6 +111,14 @@ void SWebBrowser::LoadURL(FString NewURL)
 	if (BrowserWindow.IsValid())
 	{
 		BrowserWindow->LoadURL(NewURL);
+	}
+}
+
+void SWebBrowser::LoadString(FString Contents, FString DummyURL)
+{
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->LoadString(Contents, DummyURL);
 	}
 }
 

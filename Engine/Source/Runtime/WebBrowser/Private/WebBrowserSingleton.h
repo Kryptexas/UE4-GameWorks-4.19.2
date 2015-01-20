@@ -35,7 +35,7 @@ public:
 	virtual ~FWebBrowserSingleton();
 
 	// IWebBrowserSingleton Interface
-	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency) override;
+	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency, TOptional<FString> ContentsToLoad = TOptional<FString>()) override;
 
 	// FTickerObjectBase Interface
 	virtual bool Tick(float DeltaTime) override;

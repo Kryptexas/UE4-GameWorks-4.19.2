@@ -25,6 +25,14 @@ public:
 	virtual void LoadURL(FString NewURL) = 0;
 
 	/**
+	 * Load a string as data to create a web page
+	 *
+	 * @param Contents String to load
+	 * @param DummyURL Dummy URL for the page
+	 */
+	virtual void LoadString(FString Contents, FString DummyURL) = 0;
+
+	/**
 	 * Set the desired size of the web browser viewport
 	 * 
 	 * @param WindowSize Desired viewport size

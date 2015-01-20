@@ -7,11 +7,13 @@
 #include "RHI.h"
 
 #if WITH_CEF3
-FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize)
+FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InInitialURL, TOptional<FString> InContentsToLoad)
 	: UpdatableTexture(nullptr)
 	, ViewportSize(InViewportSize)
 	, bIsClosing(false)
 	, bHasBeenPainted(false)
+	, InitialURL(InInitialURL)
+	, ContentsToLoad(InContentsToLoad)
 {
 	TextureData.Reserve(ViewportSize.X * ViewportSize.Y * 4);
 	TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
@@ -42,6 +44,20 @@ void FWebBrowserWindow::LoadURL(FString NewURL)
 		{
 			CefString URL = *NewURL;
 			MainFrame->LoadURL(URL);
+		}
+	}
+}
+
+void FWebBrowserWindow::LoadString(FString Contents, FString DummyURL)
+{
+	if (IsValid())
+	{
+		CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
+		if (MainFrame.get() != nullptr)
+		{
+			CefString StringVal = *Contents;
+			CefString URL = *DummyURL;
+			MainFrame->LoadString(StringVal, URL);
 		}
 	}
 }
@@ -365,6 +381,11 @@ void FWebBrowserWindow::CloseBrowser()
 void FWebBrowserWindow::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
 {
 	InternalCefBrowser = Browser;
+	// Need to wait until this point if we want to start with a page loaded from a string
+	if (ContentsToLoad.IsSet())
+	{
+		LoadString(ContentsToLoad.GetValue(), InitialURL);
+	}
 }
 
 void FWebBrowserWindow::SetTitle(const CefString& InTitle)
