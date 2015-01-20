@@ -251,6 +251,7 @@ namespace AutomationTool
 			this.Deploy = InParams.Deploy;
 			this.IterativeDeploy = InParams.IterativeDeploy;
 			this.Device = InParams.Device;
+			this.DeviceName = InParams.DeviceName;
 			this.ServerDevice = InParams.ServerDevice;
             this.NullRHI = InParams.NullRHI;
             this.FakeClient = InParams.FakeClient;
@@ -517,6 +518,17 @@ namespace AutomationTool
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
 			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, "iterativedeploy", "iterate");
 			this.Device = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[] { '\"' });
+
+			// strip the platform prefix the specified device.
+			if (this.Device.Contains("@"))
+			{
+				this.DeviceName = this.Device.Substring(this.Device.IndexOf("@") + 1);
+			}
+			else
+			{
+				this.DeviceName = this.Device;
+			}
+
 			this.ServerDevice = ParseParamValueIfNotSpecified(Command, ServerDevice, "serverdevice", this.Device);
 			this.NullRHI = GetParamValueIfNotSpecified(Command, NullRHI, this.NullRHI, "nullrhi");
 			this.FakeClient = GetParamValueIfNotSpecified(Command, FakeClient, this.FakeClient, "fakeclient");
@@ -1120,10 +1132,16 @@ namespace AutomationTool
 		public string AdditionalServerMapParams;
 
 		/// <summary>
-		/// Run: The target device to run the game on
+		/// Run: The target device to run the game on.  Comes in the form platform@devicename.
 		/// </summary>
 		[Help("device", "Device to run the game on")]
 		public string Device;
+
+		/// <summary>
+		/// Run: The target device to run the game on.  No platform prefix.
+		/// </summary>
+		[Help("device", "Device name without the platform prefix to run the game on")]
+		public string DeviceName;
 
 		/// <summary>
 		/// Run: the target device to run the server on

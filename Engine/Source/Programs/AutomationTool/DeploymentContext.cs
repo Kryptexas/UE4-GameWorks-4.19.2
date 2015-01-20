@@ -160,6 +160,20 @@ public class DeploymentContext //: ProjectParams
 	/// </summary>
 	public string ArchiveDirectory;
 
+	/// <summary>
+	/// Filename for the manifest of file changes for iterative deployment.
+	/// </summary>
+	static public readonly string UFSDeployDeltaFileName			= "Manifest_DeltaUFSFiles.txt";	
+	static public readonly string NonUFSDeployDeltaFileName			= "Manifest_DeltaNonUFSFiles.txt";
+
+	/// <summary>
+	/// Filename for the manifest of files currently deployed on a device.
+	/// </summary>
+	static public readonly string UFSDeployedManifestFileName		= "Manifest_UFSFiles.txt";
+	static public readonly string NonUFSDeployedManifestFileName	= "Manifest_NonUFSFiles.txt";
+
+	
+
 
 	/// <summary>
 	/// The client connects to dedicated server to get data
@@ -534,5 +548,15 @@ public class DeploymentContext //: ProjectParams
 		}
 
 		return FilesAdded;
+	}
+
+	public String GetUFSDeploymentDeltaPath()
+	{
+		return Path.Combine(StageDirectory, UFSDeployDeltaFileName);
+	}
+
+	public String GetNonUFSDeploymentDeltaPath()
+	{
+		return Path.Combine(StageDirectory, NonUFSDeployDeltaFileName);
 	}
 }
