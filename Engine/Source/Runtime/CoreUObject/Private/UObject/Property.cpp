@@ -200,16 +200,6 @@ struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Guid);
 
 template<>
-struct TStructOpsTypeTraits<FNetworkGUID> : public TStructOpsTypeTraitsBase
-{
-	enum 
-	{
-		WithNetSerializer = true,
-	};
-};
-IMPLEMENT_STRUCT(NetworkGUID);
-
-template<>
 struct TStructOpsTypeTraits<FTransform> : public TStructOpsTypeTraitsBase
 {
 };

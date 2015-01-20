@@ -223,14 +223,6 @@ struct FGuid
 	int32 D;
 };
 
-// A unique identifier for networking objects
-USTRUCT(immutable, noexport)
-struct FNetworkGUID
-{
-	UPROPERTY(SaveGame)
-	uint32 Value;
-};
-
 /**
  * A point or direction FVector in 3d space.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Vector.h
