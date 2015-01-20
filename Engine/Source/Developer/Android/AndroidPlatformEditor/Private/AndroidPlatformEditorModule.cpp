@@ -2,6 +2,7 @@
 
 #include "AndroidPlatformEditorPrivatePCH.h"
 #include "AndroidTargetSettingsCustomization.h"
+#include "AndroidSDKSettingsCustomization.h"
 #include "ModuleInterface.h"
 #include "ISettingsModule.h"
 #include "ModuleManager.h"
@@ -27,6 +28,11 @@ class FAndroidPlatformEditorModule
 			FOnGetDetailCustomizationInstance::CreateStatic(&FAndroidTargetSettingsCustomization::MakeInstance)
 		);
 
+		PropertyModule.RegisterCustomClassLayout(
+			UAndroidSDKSettings::StaticClass()->GetFName(),
+			FOnGetDetailCustomizationInstance::CreateStatic(&FAndroidSDKSettingsCustomization::MakeInstance)
+			);
+
 		PropertyModule.NotifyCustomizationModuleChanged();
 
 		// register settings
@@ -39,7 +45,23 @@ class FAndroidPlatformEditorModule
 				LOCTEXT("RuntimeSettingsDescription", "Settings and resources for Android platforms"),
 				GetMutableDefault<UAndroidRuntimeSettings>()
 			);
+
+			// This will need to be added back in once we know where we are going to be setting the settings from
+// 			SettingsModule->RegisterSettings("Project", "User Settings", "Android",
+// 				LOCTEXT("RuntimeSettingsName", "Android"),
+// 				LOCTEXT("RuntimeSettingsDescription", "Settings for Android SDK"),
+// 				GetMutableDefault<UAndroidSDKSettings>()
+//			);
 		}
+
+		// Force the SDK settings into a sane state initially so we can make use of them
+		auto &TargetPlatformManagerModule = FModuleManager::LoadModuleChecked<ITargetPlatformManagerModule>("TargetPlatform");
+		UAndroidSDKSettings * settings = GetMutableDefault<UAndroidSDKSettings>();
+		settings->SetTargetModule(&TargetPlatformManagerModule);
+		auto &AndroidDeviceDetection = FModuleManager::LoadModuleChecked<IAndroidDeviceDetection>("AndroidDeviceDetection");
+		settings->SetDeviceDetection(&AndroidDeviceDetection);
+		settings->SetupInitialTargetPaths();
+
 	}
 
 	virtual void ShutdownModule() override
@@ -49,6 +71,7 @@ class FAndroidPlatformEditorModule
 		if (SettingsModule != nullptr)
 		{
 			SettingsModule->UnregisterSettings("Project", "Platforms", "Android");
+			// SettingsModule->UnregisterSettings("Project", "User Settings", "Android");
 		}
 	}
 };

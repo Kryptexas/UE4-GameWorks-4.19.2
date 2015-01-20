@@ -89,29 +89,13 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::IsRunningPlatform( ) co
 template<class TPlatformProperties>
 inline bool FAndroidTargetPlatform<TPlatformProperties>::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
 {
+
 	OutDocumentationPath = FString("Shared/Tutorials/SettingUpAndroidTutorial");
 
-	TCHAR ANDROID_HOME[MAX_PATH];
+#if PLATFORM_WINDOWS
 	TCHAR JAVA_HOME[MAX_PATH];
-	TCHAR ANT_HOME[MAX_PATH];
-	TCHAR NDKROOT[MAX_PATH];
-	FPlatformMisc::GetEnvironmentVariable(TEXT("ANDROID_HOME"), ANDROID_HOME, MAX_PATH);
 	FPlatformMisc::GetEnvironmentVariable(TEXT("JAVA_HOME"), JAVA_HOME, MAX_PATH);
-	FPlatformMisc::GetEnvironmentVariable(TEXT("ANT_HOME"), ANT_HOME, MAX_PATH);
-	FPlatformMisc::GetEnvironmentVariable(TEXT("NDKROOT"), NDKROOT, MAX_PATH);
 
-	// make sure ANDROID_HOME points to the right thing
-	if (ANDROID_HOME[0] == 0 ||
-#if PLATFORM_WINDOWS
-		IFileManager::Get().FileSize(*(FString(ANDROID_HOME) / TEXT("platform-tools/adb.exe"))) < 0)
-#else
-		IFileManager::Get().FileSize(*(FString(ANDROID_HOME) / TEXT("platform-tools/adb"))) < 0)
-#endif
-	{
-		return false;
-	}
-
-#if PLATFORM_WINDOWS
 	// make sure that JAVA_HOME points to the right thing
 	if (JAVA_HOME[0] == 0 ||
 		IFileManager::Get().FileSize(*(FString(JAVA_HOME) / TEXT("bin/javac.exe"))) < 0)
@@ -119,26 +103,6 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::IsSdkInstalled(bool bPr
 		return false;
 	}
 #endif
-
-	// now look for ANT_HOME, or the ADT workaround of looking for a plugin
-	if (ANT_HOME[0] == 0)
-	{
-		// look for plugins in eclipse (this is enough to assume we have an ant plugin)
-		if (!IFileManager::Get().DirectoryExists(*(FString(ANDROID_HOME) / TEXT("../eclipse/plugins"))))
-		{
-			return false;
-		}
-	}
-
-	// we need NDKROOT if the game has code
-	if (bProjectHasCode)
-	{
-		if (NDKROOT[0] == 0 ||
-			IFileManager::Get().FileSize(*(FString(NDKROOT) / TEXT("ndk-build.cmd"))) < 0)
-		{
-			return false;
-		}
-	}
 
 	return true;
 }

@@ -1622,6 +1622,17 @@ namespace AutomationTool
 			get { return ProjectUtils.GetShortProjectName(RawProjectPath); }
 		}
 
+        /// <summary>
+        /// Get a directory pre-fix for the game's deploy location. Defaults to UE4Game is not supplied
+        /// </summary>
+
+        public string ProjectDirPrefix
+        {
+            get { return String.IsNullOrEmpty(ProjectDirPrefixValue) ? "UE4Game" : ProjectDirPrefixValue;  }
+            set { ProjectDirPrefixValue = value; }
+        }
+        private string ProjectDirPrefixValue;
+
 		/// <summary>
 		/// True if this project contains source code.
 		/// </summary>	

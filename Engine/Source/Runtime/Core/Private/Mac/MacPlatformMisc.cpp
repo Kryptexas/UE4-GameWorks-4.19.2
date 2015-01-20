@@ -409,6 +409,21 @@ void FMacPlatformMisc::GetEnvironmentVariable(const TCHAR* InVariableName, TCHAR
 	}
 }
 
+void FMacPlatformMisc::SetEnvironmentVar(const TCHAR* InVariableName, const TCHAR* Value)
+{
+	FString VariableName = InVariableName;
+	VariableName.ReplaceInline(TEXT("-"), TEXT("_"));
+	if (Value == NULL || Value[0] == TEXT('\0'))
+	{
+		unsetenv(TCHAR_TO_ANSI(*VariableName));
+	}
+	else
+	{
+		setenv(TCHAR_TO_ANSI(*VariableName), TCHAR_TO_ANSI(Value), 1);
+	}
+}
+
+
 TArray<uint8> FMacPlatformMisc::GetMacAddress()
 {
 	TArray<uint8> Result;
