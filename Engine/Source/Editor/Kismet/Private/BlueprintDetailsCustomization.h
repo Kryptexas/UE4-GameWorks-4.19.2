@@ -120,6 +120,9 @@ private:
 	void OnExposedToMatineeChanged(ECheckBoxState InNewState);
 	EVisibility ExposeToMatineeVisibility() const;
 
+	ECheckBoxState OnGetConfigVariableCheckboxState() const;
+	void OnSetConfigVariableState(ECheckBoxState InNewState);
+
 	FText OnGetMetaKeyValue(FName Key) const;
 	void OnMetaKeyValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo, FName Key);
 	EVisibility RangeVisibility() const;

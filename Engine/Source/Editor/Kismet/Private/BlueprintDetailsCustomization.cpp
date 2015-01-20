@@ -223,6 +223,24 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip(ExposeToMatineeTooltip)
 	];
 
+	TSharedPtr<SToolTip> ExposeToConfigTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToConfig_Tooltip", "Allow this variable be set from the config?"), NULL, DocLink, TEXT("ExposeToConfig"));
+
+	Category.AddCustomRow( LOCTEXT("VariableExposeToConfig", "Config Variable") )
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.ToolTip( ExposeToConfigTooltip )
+		.Text( LOCTEXT("ExposeToConfigLabel", "Config Variable") )
+		.Font( DetailFontInfo )
+	]
+	.ValueContent()
+	[
+		SNew(SCheckBox)
+		.ToolTip( ExposeToConfigTooltip )
+		.IsChecked( this, &FBlueprintVarActionDetails::OnGetConfigVariableCheckboxState )
+		.OnCheckStateChanged( this, &FBlueprintVarActionDetails::OnSetConfigVariableState )
+	];
+
 	PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
 	TSharedPtr<SComboButton> NewComboButton;
 	TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
@@ -1405,6 +1423,48 @@ EVisibility FBlueprintVarActionDetails::ExposeToMatineeVisibility() const
 		}
 	}
 	return EVisibility::Collapsed;
+}
+
+ECheckBoxState FBlueprintVarActionDetails::OnGetConfigVariableCheckboxState() const
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+	const FName VarName = GetVariableName();
+	ECheckBoxState CheckboxValue = ECheckBoxState::Unchecked;
+
+	if( Blueprint && VarName != NAME_None )
+	{
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex( Blueprint, VarName );
+
+		if( VarIndex != INDEX_NONE && Blueprint->NewVariables[ VarIndex ].PropertyFlags & CPF_Config )
+		{
+			CheckboxValue = ECheckBoxState::Checked;
+		}
+	}
+	return CheckboxValue;
+}
+
+void FBlueprintVarActionDetails::OnSetConfigVariableState( ECheckBoxState InNewState )
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+	const FName VarName = GetVariableName();
+
+	if( Blueprint && VarName != NAME_None )
+	{
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex( Blueprint, VarName );
+
+		if( VarIndex != INDEX_NONE )
+		{
+			if( InNewState == ECheckBoxState::Checked )
+			{
+				Blueprint->NewVariables[ VarIndex ].PropertyFlags |= CPF_Config;
+			}
+			else
+			{
+				Blueprint->NewVariables[ VarIndex ].PropertyFlags &= ~CPF_Config;
+			}
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( Blueprint );
+		}
+	}
 }
 
 FText FBlueprintVarActionDetails::OnGetMetaKeyValue(FName Key) const

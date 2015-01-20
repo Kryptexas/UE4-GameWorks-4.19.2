@@ -1761,6 +1761,11 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 				Property->RepNotifyFunc = NAME_None;
 			}
 		}
+		if( Property->HasAnyPropertyFlags( CPF_Config ))
+		{
+			// If we have properties that are set from the config, then the class needs to also have CLASS_Config flags
+			Class->ClassFlags |= CLASS_Config;
+		}
 	}
 
 	// Set class metadata as needed
