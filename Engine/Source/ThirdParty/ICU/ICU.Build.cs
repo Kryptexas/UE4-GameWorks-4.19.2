@@ -235,6 +235,27 @@ public class ICU : ModuleRules
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
+		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			string LibraryNamePrefix = "sicu";
+			string[] LibraryNameStems =
+			{
+				"dt",	// Data
+				"uc",   // Unicode Common
+				"in",	// Internationalization
+				"le",   // Layout Engine
+				"lx",   // Layout Extensions
+				"io"	// Input/Output
+			};
+            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
+				"d" : string.Empty;
+			string LibraryExtension = "lib";
+			foreach (string Stem in LibraryNameStems)
+			{
+				string LibraryName = ICURootPath + "XboxOne/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+				PublicAdditionalLibraries.Add(LibraryName);
+			}
+		}
 
 		// common defines
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
@@ -244,6 +265,7 @@ public class ICU : ModuleRules
             (Target.Platform == UnrealTargetPlatform.Mac) ||
 			(Target.Platform == UnrealTargetPlatform.IOS) ||
 			(Target.Platform == UnrealTargetPlatform.PS4) ||
+            (Target.Platform == UnrealTargetPlatform.XboxOne) ||
             (Target.Platform == UnrealTargetPlatform.HTML5))
 		{
 			// Definitions
@@ -260,6 +282,13 @@ public class ICU : ModuleRules
 			// Definitions			
             Definitions.Add("ICU_NO_USER_DATA_OVERRIDE=1");
             Definitions.Add("U_PLATFORM=U_PF_ORBIS");
+		}
+
+        if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			// Definitions			
+            Definitions.Add("ICU_NO_USER_DATA_OVERRIDE=1");
+            Definitions.Add("U_PLATFORM=U_PF_DURANGO");
 		}
 	}
 }

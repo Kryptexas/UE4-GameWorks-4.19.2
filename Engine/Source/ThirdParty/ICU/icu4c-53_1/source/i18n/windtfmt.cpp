@@ -159,11 +159,23 @@ UnicodeString &Win32DateFormat::format(Calendar &cal, UnicodeString &appendTo, F
     uct = utmscale_fromInt64((int64_t) cal.getTime(status), UDTS_ICU4C_TIME, &status);
     uft = utmscale_toInt64(uct, UDTS_WINDOWS_FILE_TIME, &status);
 
+#if U_PLATFORM == U_PF_DURANGO
+	int32_t standard_offset;
+	int32_t daylight_offset;
+	tz.getOffset(cal.getTime(status), false, standard_offset, daylight_offset, status);
+	uft += standard_offset + daylight_offset;
+
+	ft.dwLowDateTime =  (DWORD) (uft & 0xFFFFFFFF);
+	ft.dwHighDateTime = (DWORD) ((uft >> 32) & 0xFFFFFFFF);
+
+	FileTimeToSystemTime(&ft, &st_local);
+#else
     ft.dwLowDateTime =  (DWORD) (uft & 0xFFFFFFFF);
     ft.dwHighDateTime = (DWORD) ((uft >> 32) & 0xFFFFFFFF);
 
-    FileTimeToSystemTime(&ft, &st_gmt);
+	FileTimeToSystemTime(&ft, &st_gmt);
     SystemTimeToTzSpecificLocalTime(&tzi, &st_gmt, &st_local);
+#endif
 
 
     if (fDateStyle != DateFormat::kNone && fTimeStyle != DateFormat::kNone) {
