@@ -265,6 +265,21 @@ void FSocketBSD::GetAddress(FInternetAddr& OutAddr)
 }
 
 
+void FSocketBSD::GetPeerAddress(FInternetAddr& OutAddr)
+{
+	FInternetAddrBSD& Addr = (FInternetAddrBSD&)OutAddr;
+	SOCKLEN Size = sizeof(sockaddr_in);
+
+	// Figure out what ip/port we are bound to
+	bool bOk = getpeername(Socket, Addr, &Size) == 0;
+
+	if (bOk == false)
+	{
+		check(SocketSubsystem);
+		UE_LOG(LogSockets, Error, TEXT("Failed to read address for socket (%s)"), SocketSubsystem->GetSocketError());
+	}
+}
+
 bool FSocketBSD::SetNonBlocking(bool bIsNonBlocking)
 {
 	u_long Value = bIsNonBlocking ? true : false;

@@ -178,6 +178,13 @@ public:
 	virtual void GetAddress(FInternetAddr& OutAddr) = 0;
 
 	/**
+	 * Reads the address of the peer the socket is connected to
+	 *
+	 * @param OutAddr address of the peer the socket is connected to
+	 */
+	virtual void GetPeerAddress(FInternetAddr& OutAddr) = 0;
+
+	/**
 	 * Sets this socket into non-blocking mode
 	 *
 	 * @param bIsNonBlocking whether to enable blocking or not
