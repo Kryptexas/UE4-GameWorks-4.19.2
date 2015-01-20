@@ -188,8 +188,8 @@ FReply STutorialButton::OnMouseButtonDown(const FGeometry& MyGeometry, const FPo
 		if(bTutorialAvailable)
 		{
 			MenuBuilder.AddMenuEntry(
-				FText::Format(LOCTEXT("LaunchTutorialPattern", "Open Tutorial: {0}"), TutorialTitle),
-				LOCTEXT("LaunchTutorialTooltip", "Launch this tutorial"),
+				FText::Format(LOCTEXT("LaunchTutorialPattern", "Start Tutorial: {0}"), TutorialTitle),
+				FText::Format(LOCTEXT("TutorialLaunchToolTip", "Click to begin the '{0}' tutorial"), TutorialTitle),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::LaunchTutorial))
 				);
@@ -268,7 +268,7 @@ FText STutorialButton::GetButtonToolTip() const
 	}
 	else if(bTutorialAvailable)
 	{
-		return FText::Format(LOCTEXT("TutorialLaunchToolTipPattern", "Open: {0}\nRight-Click for More Options"), TutorialTitle);
+		return FText::Format(LOCTEXT("TutorialLaunchToolTipPattern", "Click to begin the '{0}' tutorial, or right click for more options"), TutorialTitle);
 	}
 	
 	return LOCTEXT("TutorialToolTip", "Take Tutorial");
