@@ -846,11 +846,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewCrash.ChangeListVersion = NewCrashInfo.BuiltFromCL.ToString();
 			NewCrash.CommandLine = NewCrashInfo.CommandLine;
 			NewCrash.EngineMode = NewCrashInfo.EngineMode;
+		    NewCrash.ComputerName = NewCrashInfo.MachineGuid;
 
 			// Valid MachineID and UserName, updated crash from non-UE4 release
 			if( !string.IsNullOrEmpty(NewCrashInfo.MachineGuid) && !string.IsNullOrEmpty(NewCrashInfo.UserName) )
 			{
-				NewCrash.ComputerName = NewCrashInfo.MachineGuid;
 				NewCrash.UserNameId = CrashRepositoryDataContext.FindOrAddUser( NewCrashInfo.UserName );
 			}
 			// Valid MachineID and EpicAccountId, updated crash from UE4 release
