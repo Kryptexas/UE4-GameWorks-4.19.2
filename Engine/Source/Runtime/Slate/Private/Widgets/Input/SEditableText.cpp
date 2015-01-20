@@ -1641,12 +1641,6 @@ FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& I
 		Reply = FReply::Handled();
 	}
 
-	// Allow the base class to handle it to determine if navigation needs to be triggered.
-	if ( !Reply.IsEventHandled() )
-	{
-		Reply = SLeafWidget::OnKeyDown(MyGeometry, InKeyEvent);
-	}
-
 	return Reply;
 }
 
