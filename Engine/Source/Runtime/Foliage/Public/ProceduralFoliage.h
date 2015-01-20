@@ -37,6 +37,10 @@ class FOLIAGE_API UProceduralFoliage : public UObject
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
 	float TileSize;
 
+	/**Amount in Cm that the tile looks around to give a more natural looking tile seam*/
+	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
+	float Overlap;
+
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
 	int32 NumUniqueTiles;
 private:
@@ -68,12 +72,14 @@ public:
 
 	/** Creates a temporary empty tile with the appropriate settings created for it. */
 	UProceduralFoliageTile* CreateTempTile();
+
+	/** Whether simulation is needed */
+	bool AnyDirty() const;
+
 private:
 	void GenerateTile(const int32 NumSteps);
 
 	void CreateProceduralFoliageInstances();
-
-	bool AnyDirty() const;
 
 	void SetClean();
 private:

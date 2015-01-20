@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Async/Async.h"
 #include "ProceduralFoliageInstance.h"
 #include "ProceduralFoliageComponent.generated.h"
 
@@ -25,10 +26,6 @@ class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
 	float HalfHeight;
 
-	/** The overlap in Cms between two tiles. */
-	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
-	float Overlap;
-
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere, meta=(DisplayName="ProceduralFoliage Asset") )
 	UProceduralFoliage* ProceduralFoliage;
 
@@ -39,8 +36,14 @@ class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
 private:
 	void SpawnTiles();
 	void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageInstances);
+	void MergeTiles();
 
 private:
 	UPROPERTY()
 	FGuid ProceduralGuid;
+
+	UPROPERTY(transient)
+	TArray<UProceduralFoliageTile*> WorkTiles;
+
+	TArray<TSharedFuture<const UProceduralFoliageTile*> > MergedTiles;
 };

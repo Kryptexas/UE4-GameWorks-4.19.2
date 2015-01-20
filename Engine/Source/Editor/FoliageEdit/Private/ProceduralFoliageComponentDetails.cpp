@@ -69,7 +69,6 @@ FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 			if( !UniqueProceduralFoliages.Contains( Component->ProceduralFoliage ) )
 			{
 				UniqueProceduralFoliages.Add( Component->ProceduralFoliage );
-				Component->ProceduralFoliage->Simulate();
 			}
 
 			Component->SpawnProceduralContent();
