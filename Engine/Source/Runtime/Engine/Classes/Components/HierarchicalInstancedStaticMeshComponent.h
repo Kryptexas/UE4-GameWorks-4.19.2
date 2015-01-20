@@ -57,6 +57,8 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 {
 	GENERATED_UCLASS_BODY()
 
+	~UHierarchicalInstancedStaticMeshComponent();
+
 	TSharedPtr<TArray<FClusterNode>, ESPMode::ThreadSafe> ClusterTreePtr;
 
 	FStaticMeshInstanceData WriteOncePrebuiltInstanceBuffer;

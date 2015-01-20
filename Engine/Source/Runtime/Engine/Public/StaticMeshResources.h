@@ -896,31 +896,146 @@ protected:
 	FStaticMeshInstanceData
 -----------------------------------------------------------------------------*/
 
+struct FInstanceStream
+{
+	FVector4 InstanceOrigin;  // per-instance random in w 
+	FFloat16 InstanceTransform1[4];  // hitproxy.r + 256 * selected in .w
+	FFloat16 InstanceTransform2[4]; // hitproxy.g in .w
+	FFloat16 InstanceTransform3[4]; // hitproxy.b in .w
+	int16 InstanceLightmapAndShadowMapUVBias[4]; 
+
+	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID)
+	{
+		const FMatrix* RESTRICT rTransform = (const FMatrix* RESTRICT)&Transform;
+		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
+
+		Me->InstanceOrigin.X = rTransform->M[3][0];
+		Me->InstanceOrigin.Y = rTransform->M[3][1];
+		Me->InstanceOrigin.Z = rTransform->M[3][2];
+		Me->InstanceOrigin.W = RandomInstanceID;
+
+		Me->InstanceTransform1[0] = Transform.M[0][0];
+		Me->InstanceTransform1[1] = Transform.M[1][0];
+		Me->InstanceTransform1[2] = Transform.M[2][0];
+		Me->InstanceTransform1[3] = FFloat16();
+
+		Me->InstanceTransform2[0] = Transform.M[0][1];
+		Me->InstanceTransform2[1] = Transform.M[1][1];
+		Me->InstanceTransform2[2] = Transform.M[2][1];
+		Me->InstanceTransform2[3] = FFloat16();
+
+		Me->InstanceTransform3[0] = Transform.M[0][2];
+		Me->InstanceTransform3[1] = Transform.M[1][2];
+		Me->InstanceTransform3[2] = Transform.M[2][2];
+		Me->InstanceTransform3[3] = FFloat16();
+
+		Me->InstanceLightmapAndShadowMapUVBias[0] = 0;
+		Me->InstanceLightmapAndShadowMapUVBias[1] = 0;
+		Me->InstanceLightmapAndShadowMapUVBias[2] = 0;
+		Me->InstanceLightmapAndShadowMapUVBias[3] = 0;
+	}
+
+	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias, FColor HitProxyColor, bool bSelected)
+	{
+		const FMatrix* RESTRICT rTransform = (const FMatrix* RESTRICT)&Transform;
+		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
+		const FVector2D* RESTRICT rLightmapUVBias = (const FVector2D* RESTRICT)&LightmapUVBias;
+		const FVector2D* RESTRICT rShadowmapUVBias = (const FVector2D* RESTRICT)&ShadowmapUVBias;
+
+		Me->InstanceOrigin.X = rTransform->M[3][0];
+		Me->InstanceOrigin.Y = rTransform->M[3][1];
+		Me->InstanceOrigin.Z = rTransform->M[3][2];
+		Me->InstanceOrigin.W = RandomInstanceID;
+
+		Me->InstanceTransform1[0] = Transform.M[0][0];
+		Me->InstanceTransform1[1] = Transform.M[1][0];
+		Me->InstanceTransform1[2] = Transform.M[2][0];
+		Me->InstanceTransform1[3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
+
+		Me->InstanceTransform2[0] = Transform.M[0][1];
+		Me->InstanceTransform2[1] = Transform.M[1][1];
+		Me->InstanceTransform2[2] = Transform.M[2][1];
+		Me->InstanceTransform2[3] = (float)HitProxyColor.G;
+
+		Me->InstanceTransform3[0] = Transform.M[0][2];
+		Me->InstanceTransform3[1] = Transform.M[1][2];
+		Me->InstanceTransform3[2] = Transform.M[2][2];
+		Me->InstanceTransform3[3] = (float)HitProxyColor.B;
+
+		Me->InstanceLightmapAndShadowMapUVBias[0] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->X * 32767.5f),MIN_int16,MAX_int16);
+		Me->InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->Y * 32767.5f),MIN_int16,MAX_int16);
+		Me->InstanceLightmapAndShadowMapUVBias[2] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->X * 32767.5f),MIN_int16,MAX_int16);
+		Me->InstanceLightmapAndShadowMapUVBias[3] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->Y * 32767.5f),MIN_int16,MAX_int16);
+	}
+
+	FORCEINLINE void NullifyInstance()
+	{
+		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
+		Me->InstanceTransform1[0] = FFloat16();
+		Me->InstanceTransform1[1] = FFloat16();
+		Me->InstanceTransform1[2] = FFloat16();
+
+		Me->InstanceTransform2[0] = FFloat16();
+		Me->InstanceTransform2[1] = FFloat16();
+		Me->InstanceTransform2[2] = FFloat16();
+
+		Me->InstanceTransform3[0] = FFloat16();
+		Me->InstanceTransform3[1] = FFloat16();
+		Me->InstanceTransform3[2] = FFloat16();
+	}
+
+	friend FArchive& operator<<( FArchive& Ar, FInstanceStream& V )
+	{
+		return Ar 
+			<< V.InstanceOrigin.X 
+			<< V.InstanceOrigin.Y
+			<< V.InstanceOrigin.Z
+			<< V.InstanceOrigin.W
+
+			<< V.InstanceTransform1[0]
+			<< V.InstanceTransform1[1]
+			<< V.InstanceTransform1[2]
+			<< V.InstanceTransform1[3]
+
+			<< V.InstanceTransform2[0]
+			<< V.InstanceTransform2[1]
+			<< V.InstanceTransform2[2]
+			<< V.InstanceTransform2[3]
+
+			<< V.InstanceTransform3[0]
+			<< V.InstanceTransform3[1]
+			<< V.InstanceTransform3[2]
+			<< V.InstanceTransform3[3]
+
+			<< V.InstanceLightmapAndShadowMapUVBias[0]
+			<< V.InstanceLightmapAndShadowMapUVBias[1]
+			<< V.InstanceLightmapAndShadowMapUVBias[2]
+			<< V.InstanceLightmapAndShadowMapUVBias[3];
+	}
+};
+
+
 /** The implementation of the static mesh instance data storage type. */
 class FStaticMeshInstanceData :
 	public FStaticMeshVertexDataInterface,
-	public TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>
+	public TResourceArray<FInstanceStream, VERTEXBUFFER_ALIGNMENT>
 {
 public:
 
-	enum 
-	{
-		VectorsPerInstance = 5
-	};
-	typedef TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT> ArrayType;
+	typedef TResourceArray<FInstanceStream, VERTEXBUFFER_ALIGNMENT> ArrayType;
 
 	/**
 	 * Constructor
 	 * @param InNeedsCPUAccess - true if resource array data should be CPU accessible
 	 */
 	FStaticMeshInstanceData(bool InNeedsCPUAccess=false)
-		:	TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>(InNeedsCPUAccess)
+		:	TResourceArray<FInstanceStream, VERTEXBUFFER_ALIGNMENT>(InNeedsCPUAccess)
 	{
 	}
 
 	static uint32 StaticGetStride()
 	{
-		return sizeof(FVector4) * VectorsPerInstance;
+		return sizeof(FInstanceStream);
 	}
 
 	static SIZE_T GetResourceSize(uint32 NumInstances)
@@ -928,56 +1043,50 @@ public:
 		return SIZE_T(NumInstances) * SIZE_T(StaticGetStride());
 	}
 
-	int32 GetNumInstances()
-	{
-		check(Num() % VectorsPerInstance == 0);
-		return Num() / VectorsPerInstance;
-	}
-
 	/**
 	 * Resizes the vertex data buffer, discarding any data which no longer fits.
 	 * @param NumVertices - The number of vertices to allocate the buffer for.
 	 */
-	virtual void ResizeBuffer(uint32 NumInstances)
+	virtual void ResizeBuffer(uint32 NumInstances) override
 	{
 		checkf(0, TEXT("ArrayType::Add is not supported on all platforms"));
 	}
 
-	virtual uint32 GetStride() const
+	virtual uint32 GetStride() const override
 	{
 		return StaticGetStride();
 	}
-	virtual uint8* GetDataPointer()
+	virtual uint8* GetDataPointer() override
 	{
 		return (uint8*)&(*this)[0];
 	}
-	virtual FResourceArrayInterface* GetResourceArray()
+	virtual FResourceArrayInterface* GetResourceArray() override
 	{
 		return this;
 	}
-	virtual void Serialize(FArchive& Ar)
+	virtual void Serialize(FArchive& Ar) override
 	{
-		TResourceArray<FVector4,VERTEXBUFFER_ALIGNMENT>::BulkSerialize(Ar);
+		TResourceArray<FInstanceStream,VERTEXBUFFER_ALIGNMENT>::BulkSerialize(Ar);
 	}
 
-	void Set(const TArray<FVector4>& RawData)
+#if 0
+	void Set(const TArray<FInstanceStream>& RawData)
 	{
-		*((ArrayType*)this) = TArray<FVector4,TAlignedHeapAllocator<VERTEXBUFFER_ALIGNMENT> >(RawData);
+		*((ArrayType*)this) = TArray<FInstanceStream, TAlignedHeapAllocator<VERTEXBUFFER_ALIGNMENT> >(RawData);
 	}
+#endif
 
 	void AllocateInstances(int32 NumInstances)
 	{
 		// We cannot write directly to the data on all platforms,
 		// so we make a TArray of the right type, then assign it
-		check( GetStride() % sizeof(FVector4) == 0 );
-		Empty((NumInstances * GetStride()) / sizeof(FVector4));
-		AddUninitialized((NumInstances * GetStride()) / sizeof(FVector4));
+		Empty(NumInstances);
+		AddUninitialized(NumInstances);
 	}
-	FORCEINLINE FVector4* GetInstanceWriteAddress(int32 InstanceIndex)
+	FORCEINLINE FInstanceStream* GetInstanceWriteAddress(int32 InstanceIndex)
 	{
-		return GetData() + InstanceIndex * VectorsPerInstance;
+		return GetData() + InstanceIndex;
 	}
-
 };
 
 

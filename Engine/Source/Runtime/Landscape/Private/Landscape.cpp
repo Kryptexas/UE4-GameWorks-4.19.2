@@ -2514,10 +2514,6 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 			TotalInstances += NumKept;
 
 			{
-				// @todo: Make LD-customizable per component?
-				const float RandomInstanceIDBase = 0.0f;
-				const float RandomInstanceIDRange = 1.0f;
-
 				InstanceTime -= FPlatformTime::Seconds();
 				InstanceBuffer.AllocateInstances(NumKept);
 				int32 InstanceIndex = 0;
@@ -2559,18 +2555,8 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 								OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
 							}
 							InstanceTransforms[OutInstanceIndex] = OutXForm;
-							FVector4* RenderData = InstanceBuffer.GetInstanceWriteAddress(OutInstanceIndex++);
-
-							const float RandomInstanceID = RandomInstanceIDBase + RandomStream.GetFraction() * RandomInstanceIDRange;
-							RenderData[0] = FVector4(-1.0f, -1.0f, 0.0f, 0.0f);
-
-							// Instance -> local matrix.  Every mesh instance has it's own transformation into
-							// the actor's coordinate space.
-							RenderData[1] = FVector4(OutXForm.M[0][0], OutXForm.M[1][0], OutXForm.M[2][0], OutXForm.M[3][0]);
-							RenderData[2] = FVector4(OutXForm.M[0][1], OutXForm.M[1][1], OutXForm.M[2][1], OutXForm.M[3][1]);
-							RenderData[3] = FVector4(OutXForm.M[0][2], OutXForm.M[1][2], OutXForm.M[2][2], OutXForm.M[3][2]);
-
-							RenderData[4] = FVector4(-1.0f, -1.0f, RandomInstanceID, 0.0f);
+							FInstanceStream* RenderData = InstanceBuffer.GetInstanceWriteAddress(OutInstanceIndex++);
+							RenderData->SetInstance(OutXForm, RandomStream.GetFraction());
 						}
 						InstanceIndex++;
 					}
@@ -2584,18 +2570,17 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, FMath::Clamp<int32>(CVarMinInstancesPerLeaf.GetValueOnAnyThread(), 16, 256 * 128));
 
 				// in-place sort the instances
-				FVector4 SwapBuffer[FStaticMeshInstanceData::VectorsPerInstance];
+				FInstanceStream SwapBuffer;
 				int32 FirstUnfixedIndex = 0;
-				int32 Stride = FStaticMeshInstanceData::VectorsPerInstance * sizeof(FVector4);
 				for (int32 FirstUnfixedIndex = 0; FirstUnfixedIndex < NumKept; FirstUnfixedIndex++)
 				{
 					int32 LoadFrom = SortedInstances[FirstUnfixedIndex];
 					if (LoadFrom != FirstUnfixedIndex)
 					{
 						check(LoadFrom > FirstUnfixedIndex);
-						FMemory::Memcpy(SwapBuffer, InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), Stride);
-						FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceBuffer.GetInstanceWriteAddress(LoadFrom), Stride);
-						FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(LoadFrom), SwapBuffer, Stride);
+						FMemory::Memcpy(&SwapBuffer, InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), sizeof(FInstanceStream));
+						FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceBuffer.GetInstanceWriteAddress(LoadFrom), sizeof(FInstanceStream));
+						FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(LoadFrom), &SwapBuffer, sizeof(FInstanceStream));
 
 						int32 SwapGoesTo = InstanceReorderTable[FirstUnfixedIndex];
 						check(SwapGoesTo > FirstUnfixedIndex);

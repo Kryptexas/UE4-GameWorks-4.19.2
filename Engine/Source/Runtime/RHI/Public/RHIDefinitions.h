@@ -213,6 +213,7 @@ enum EVertexElementType
 	VET_Short2N,		// 16 bit word normalized to (value/32767.0,value/32767.0,0,0,1)
 	VET_Half2,			// 16 bit float using 1 bit sign, 5 bit exponent, 10 bit mantissa 
 	VET_Half4,
+	VET_Short4N,		// 4 X 16 bit word, normalized 
 	VET_MAX
 };
 

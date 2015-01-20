@@ -75,6 +75,7 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Mesh Batches"), STAT_FoliageMeshBatches, STATGR
 DECLARE_DWORD_COUNTER_STAT(TEXT("Triangles"), STAT_FoliageTriangles, STATGROUP_Foliage);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Instances"), STAT_FoliageInstances, STATGROUP_Foliage);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Traversals"),STAT_FoliageTraversals,STATGROUP_Foliage);
+DECLARE_MEMORY_STAT(TEXT("Instance Buffers"),STAT_FoliageInstanceBuffers,STATGROUP_Foliage);
 
 struct FClusterTree
 {
@@ -1340,6 +1341,17 @@ UHierarchicalInstancedStaticMeshComponent::UHierarchicalInstancedStaticMeshCompo
 {
 }
 
+UHierarchicalInstancedStaticMeshComponent::~UHierarchicalInstancedStaticMeshComponent()
+{
+	if (ProxySize)
+	{
+		DEC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
+	}
+	ProxySize = 0;
+}
+
+
+
 void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -1483,6 +1495,11 @@ void UHierarchicalInstancedStaticMeshComponent::ClearInstances()
 	SortedInstances.Empty();
 	UnbuiltInstanceBounds.Init();
 
+	if (ProxySize)
+	{
+		DEC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
+	}
+
 	Super::ClearInstances();
 }
 
@@ -1566,7 +1583,7 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(TArray<FClust
 {
 	// this is only for prebuild data, already in the correct order
 	check(!PerInstanceSMData.Num());
-	NumBuiltInstances = WriteOncePrebuiltInstanceBuffer.GetNumInstances();
+	NumBuiltInstances = WriteOncePrebuiltInstanceBuffer.Num();
 	check(NumBuiltInstances);
 	UnbuiltInstanceBounds.Init();
 	RemovedInstances.Empty();
@@ -1803,12 +1820,16 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_HierarchicalInstancedStaticMeshComponent_CreateSceneProxy);
 
+	if (ProxySize)
+	{
+		DEC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
+	}
 	ProxySize = 0;
 
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have instances
-		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.GetNumInstances() > 0)&&
+		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.Num() > 0)&&
 		// make sure we have an actual staticmesh
 		StaticMesh &&
 		StaticMesh->HasValidRenderData() &&
@@ -1826,15 +1847,17 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 			InstancingRandomSeed = FMath::Rand();
 		}
 
-		if (WriteOncePrebuiltInstanceBuffer.GetNumInstances() > 0)
+		if (WriteOncePrebuiltInstanceBuffer.Num() > 0)
 		{
-			ProxySize = FStaticMeshInstanceData::GetResourceSize(WriteOncePrebuiltInstanceBuffer.GetNumInstances());
+			ProxySize = FStaticMeshInstanceData::GetResourceSize(WriteOncePrebuiltInstanceBuffer.Num());
+			INC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
 
 			//@todo - this is sketchy, what you really want to do is flush the grass cache instead of doing a render thread update
 			bNeverNeedsRenderUpdate = true; // we can never update it because the data is gone
 			return ::new FHierarchicalStaticMeshSceneProxy(this, GetWorld()->FeatureLevel, WriteOncePrebuiltInstanceBuffer);
 		}
 		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num());
+		INC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
 		return ::new FHierarchicalStaticMeshSceneProxy(this, GetWorld()->FeatureLevel);
 	}
 	return NULL;
