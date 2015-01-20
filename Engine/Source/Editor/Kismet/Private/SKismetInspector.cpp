@@ -505,6 +505,7 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 	}
 
 	PropertyViewTitle = Options.ForcedTitle;
+	bShowComponents = Options.bShowComponents;
 
 	// Update our context-sensitive editing widget
 	ContextualEditingBorderWidget->SetContent( MakeContextualEditingWidget(SelectionInfo, Options) );
@@ -548,6 +549,13 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 	{
 		// Actor variables can't have default values (because Blueprint templates are library elements that can 
 		// bridge multiple levels and different levels might not have the actor that the default is referencing).
+		return false;
+	}
+
+	bool bIsComponent = (ObjectProperty != nullptr && ObjectProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass()));
+	if (!bShowComponents && bIsComponent)
+	{
+		// Don't show sub components properties, thats what selecting components in the component tree is for.
 		return false;
 	}
 

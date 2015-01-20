@@ -40,11 +40,13 @@ public:
 	{
 		FText ForcedTitle;
 		bool bForceRefresh;
+		bool bShowComponents;
 		bool bHideFilterArea;
 
 		FShowDetailsOptions(const FText& InForcedTitle = FText::GetEmpty(), bool bInForceRefresh = false)
 			:ForcedTitle(InForcedTitle)
 			,bForceRefresh(bInForceRefresh)
+			,bShowComponents(true)
 			,bHideFilterArea(false)
 		{}
 	};
@@ -84,6 +86,9 @@ protected:
 
 	/** Should we currently show the property view */
 	bool bShowInspectorPropertyView;
+
+	/** Should we currently show components */
+	bool bShowComponents;
 
 	/** State of CheckBox representing whether to show only the public variables*/
 	ECheckBoxState	PublicViewState;

@@ -125,12 +125,12 @@ FReply SSCSEditorDragDropTree::OnDrop( const FGeometry& MyGeometry, const FDragD
 //////////////////////////////////////////////////////////////////////////
 //
 
-class FSCSRowDragDropOp : public FDragDropOperation
+class FSCSRowDragDropOp : public FKismetVariableDragDropAction
 {
 public:
-	DRAG_DROP_OPERATOR_TYPE(FSCSRowDragDropOp, FDragDropOperation)
+	DRAG_DROP_OPERATOR_TYPE(FSCSRowDragDropOp, FKismetVariableDragDropAction)
 
-	/** Available drop actions */
+		/** Available drop actions */
 	enum EDropActionType
 	{
 		DropAction_None,
@@ -148,52 +148,60 @@ public:
 
 	/** The type of drop action that's pending while dragging */
 	EDropActionType PendingDropAction;
-	
+
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
-	{
-		return SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
-			[				
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(0,0,3,0)
-				[
-					SNew(SImage)
-					.Image(this, &FSCSRowDragDropOp::GetIcon)
-				]
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock) 
-					.Text(this, &FSCSRowDragDropOp::GetHoverText)
-				]
-			];
-	}
-
-	FText GetHoverText() const
-	{
-		return !CurrentHoverText.IsEmpty()
-			? CurrentHoverText
-			: LOCTEXT("DropActionToolTip_InvalidDropTarget", "Cannot drop here.");
-	}
-
-	const FSlateBrush* GetIcon() const
-	{
-		return PendingDropAction != DropAction_None
-			? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))
-			: FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-	}
-
-	static TSharedRef<FSCSRowDragDropOp> New()
-	{
-		TSharedPtr<FSCSRowDragDropOp> Operation = MakeShareable(new FSCSRowDragDropOp);
-		Operation->Construct();
-		return Operation.ToSharedRef();
-	}
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
+	FText GetHoverText() const;
+	const FSlateBrush* GetIcon() const;
+	static TSharedRef<FSCSRowDragDropOp> New(FName InVariableName, UStruct* InVariableSource, FNodeCreationAnalytic AnalyticCallback);
 };
+
+TSharedPtr<SWidget> FSCSRowDragDropOp::GetDefaultDecorator() const
+{
+	return SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0, 0, 3, 0)
+			[
+				SNew(SImage)
+				.Image(this, &FSCSRowDragDropOp::GetIcon)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(this, &FSCSRowDragDropOp::GetHoverText)
+			]
+		];
+}
+
+FText FSCSRowDragDropOp::GetHoverText() const
+{
+	return !CurrentHoverText.IsEmpty()
+		? CurrentHoverText
+		: LOCTEXT("DropActionToolTip_InvalidDropTarget", "Cannot drop here.");
+}
+
+const FSlateBrush* FSCSRowDragDropOp::GetIcon() const
+{
+	return PendingDropAction != DropAction_None
+		? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))
+		: FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
+}
+
+TSharedRef<FSCSRowDragDropOp> FSCSRowDragDropOp::New(FName InVariableName, UStruct* InVariableSource, FNodeCreationAnalytic AnalyticCallback)
+{
+	TSharedPtr<FSCSRowDragDropOp> Operation = MakeShareable(new FSCSRowDragDropOp);
+	Operation->VariableName = InVariableName;
+	Operation->VariableSource = InVariableSource;
+	Operation->AnalyticCallback = AnalyticCallback;
+	Operation->Construct();
+	return Operation.ToSharedRef();
+}
 
 //////////////////////////////////////////////////////////////////////////
 // FSCSEditorTreeNode
@@ -1005,7 +1013,7 @@ SSCS_RowWidget::~SSCS_RowWidget()
 	}
 }
 
-
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& ColumnName )
 {
 	if(ColumnName == SCS_ColumnName_ComponentClass)
@@ -1026,13 +1034,11 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 				.IsReadOnly( !NodePtr->CanRename() || (SCSEditor.IsValid() && !SCSEditor.Pin()->IsEditingAllowed()) );
 
 		NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
+		
+		TSharedRef<SToolTip> Tooltip = CreateToolTipWidget();
 
 		return	SNew(SHorizontalBox)
-				.ToolTip(IDocumentation::Get()->CreateToolTip(
-					TAttribute<FText>(this, &SSCS_RowWidget::GetTooltipText),
-					NULL,
-					GetDocumentationLink(),
-					GetDocumentationExcerptName()))
+				.ToolTip(Tooltip)
 				+SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
@@ -1073,7 +1079,7 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 				SNew(STextBlock)
 				.Visibility(this, &SSCS_RowWidget::GetAssetVisibility)
 				.Text(this, &SSCS_RowWidget::GetAssetName)
-				.ToolTipText(this, &SSCS_RowWidget::GetAssetNameTooltip)
+				.ToolTipText(this, &SSCS_RowWidget::GetAssetPath)
 			];
 	}
 	else if (ColumnName == SCS_ColumnName_Mobility)
@@ -1101,6 +1107,125 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 				.Text( LOCTEXT("UnknownColumn", "Unknown Column") );
 	}
 }
+
+void AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox, const FText& Key, TSharedRef<SWidget> ValueIcon, const TAttribute<FText>& Value, bool bImportant)
+{
+	FWidgetStyle ImportantStyle;
+	ImportantStyle.SetForegroundColor(FLinearColor(1, 0.5, 0, 1));
+
+	InfoBox->AddSlot()
+		.AutoHeight()
+		.Padding(0, 1)
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0, 0, 4, 0)
+			[
+				SNew(STextBlock).Text(FText::Format(LOCTEXT("AssetViewTooltipFormat", "{0}:"), Key))
+				.ColorAndOpacity(bImportant ? ImportantStyle.GetSubduedForegroundColor() : FSlateColor::UseSubduedForeground())
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				ValueIcon
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(STextBlock).Text(Value)
+				.ColorAndOpacity(bImportant ? ImportantStyle.GetForegroundColor() : FSlateColor::UseForeground())
+			]
+		];
+}
+
+TSharedRef<SToolTip> SSCS_RowWidget::CreateToolTipWidget() const
+{
+	bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
+	if (!bSingleLayoutBPEditor)
+	{
+		return IDocumentation::Get()->CreateToolTip(
+		TAttribute<FText>(this, &SSCS_RowWidget::GetTooltipText),
+		NULL,
+		GetDocumentationLink(),
+		GetDocumentationExcerptName());
+	}
+
+	// Create a box to hold every line of info in the body of the tooltip
+	TSharedRef<SVerticalBox> InfoBox = SNew(SVerticalBox);
+
+	// Add asset if applicable to this node
+	if (GetAssetVisibility() == EVisibility::Visible)
+	{
+		AddToToolTipInfoBox(InfoBox, LOCTEXT("TooltipAsset", "Asset"), SNullWidget::NullWidget, TAttribute<FText>(this, &SSCS_RowWidget::GetAssetName), false);
+	}
+
+	TWeakObjectPtr<USCS_Node> SCSNode(NodePtr->GetSCSNode());
+
+	// Add mobility
+	TSharedRef<SImage> MobilityIcon = SNew(SImage).Image(this, &SSCS_RowWidget::GetMobilityIconImage, SCSNode);
+	AddToToolTipInfoBox(InfoBox, LOCTEXT("TooltipMobility", "Mobility"), MobilityIcon, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSCS_RowWidget::GetMobilityToolTipText, SCSNode)), false);
+	
+	TSharedRef<SBorder> TooltipContent = SNew(SBorder)
+		.Padding(4)
+		.BorderImage(FEditorStyle::GetBrush("SCSEditor.TileViewTooltip.NonContentBorder"))
+		[
+			SNew(SVerticalBox)
+			
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 0, 0, 4)
+			[
+				SNew(SBorder)
+				.Padding(0)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(4)
+						[
+							SNew(STextBlock)
+							.Text(this, &SSCS_RowWidget::GetTooltipText)
+							.Font(FEditorStyle::GetFontStyle("ContentBrowser.TileViewTooltip.NameFont"))
+						]
+						/*
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock).Text(this, SSCS_RowWidget::GetTypeAsString())
+							.HighlightText(HighlightText)
+						]*/
+					]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SBorder)
+				.Padding(4)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					InfoBox
+				]
+			]
+		];
+
+	return IDocumentation::Get()->CreateToolTip(TAttribute<FText>(this, &SSCS_RowWidget::GetTooltipText), TooltipContent, InfoBox, GetDocumentationLink(), GetDocumentationExcerptName());
+}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FSlateBrush const* SSCS_RowWidget::GetMobilityIconImage(TWeakObjectPtr<USCS_Node> SCSNode) const
 {
@@ -1174,7 +1299,7 @@ FText SSCS_RowWidget::GetAssetName() const
 	return AssetName;
 }
 
-FText SSCS_RowWidget::GetAssetNameTooltip() const
+FText SSCS_RowWidget::GetAssetPath() const
 {
 	FText AssetName = LOCTEXT("None", "None");
 	if(NodePtr.IsValid() && NodePtr->GetComponentTemplate())
@@ -1233,11 +1358,17 @@ FSlateColor SSCS_RowWidget::GetColorTint() const
 		}
 	}
 
-	return FSlateColor::UseForeground();
+	return FLinearColor(1.0f, 1.0f, 1.0f);
 }
 
 EVisibility SSCS_RowWidget::GetRootLabelVisibility() const
 {
+	bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
+	if (bSingleLayoutBPEditor)
+	{
+		return EVisibility::Collapsed;
+	}
+
 	if(NodePtr.IsValid() && SCSEditor.IsValid() && NodePtr == SCSEditor.Pin()->SceneRootNodePtr)
 	{
 		return EVisibility::Visible;
@@ -1309,15 +1440,20 @@ FReply SSCS_RowWidget::OnDragDetected( const FGeometry& MyGeometry, const FPoint
 			&& SCSEditorPtr.IsValid()
 			&& SCSEditorPtr->IsEditingAllowed() ) //can only drag when editing
 	{
-		TSharedRef<FSCSRowDragDropOp> Operation = FSCSRowDragDropOp::New();
-		Operation->CurrentHoverText = FText::GetEmpty();
-		Operation->PendingDropAction = FSCSRowDragDropOp::DropAction_None;
-
 		TArray<TSharedPtr<FSCSEditorTreeNode>> SelectedNodePtrs = SCSEditorPtr->GetSelectedNodes();
 		if(SelectedNodePtrs.Num() == 0)
 		{
 			SelectedNodePtrs.Add(NodePtr);
 		}
+
+		TSharedPtr<FSCSEditorTreeNode> FirstNode = SelectedNodePtrs[0];
+		
+		TSharedRef<FSCSRowDragDropOp> Operation = FSCSRowDragDropOp::New(FirstNode->GetVariableName(), FirstNode->GetBlueprint()->SkeletonGeneratedClass, FNodeCreationAnalytic());
+		//Operation->SetAltDrag(MouseEvent.IsAltDown());
+		//Operation->SetCtrlDrag(MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown());
+		Operation->SetCtrlDrag(true); // Always put a getter
+		Operation->CurrentHoverText = FText::GetEmpty();
+		Operation->PendingDropAction = FSCSRowDragDropOp::DropAction_None;
 		
 		for(const auto& SelectedNodePtr : SelectedNodePtrs)
 		{
@@ -1353,11 +1489,9 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 		return;
 	}
 
-	if ( Operation->IsOfType<FSCSRowDragDropOp>() )
+	TSharedPtr<FSCSRowDragDropOp> DragRowOp = DragDropEvent.GetOperationAs<FSCSRowDragDropOp>();
+	if (DragRowOp.IsValid())
 	{
-		TSharedPtr<FSCSRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSCSRowDragDropOp>( Operation );
-		check(DragRowOp.IsValid());
-
 		// If the hover text is already set, skip everything below, because it means we already know we can't drag-and-drop one or more of the selected nodes.
 		if(!DragRowOp->CurrentHoverText.IsEmpty())
 		{
@@ -2199,15 +2333,15 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 //////////////////////////////////////////////////////////////////////////
 // SSCSEditor
 
-
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SSCSEditor::Construct( const FArguments& InArgs )
 {
 	EditorMode = InArgs._EditorMode;
 	ActorContext = InArgs._ActorContext;
 	AllowEditing = InArgs._AllowEditing;
 	PreviewActor = InArgs._PreviewActor;
-	OnTreeViewSelectionChanged = InArgs._OnTreeViewSelectionChanged;
-	OnUpdateSelectionFromNodes = InArgs._OnUpdateSelectionFromNodes;
+	OnRootSelected = InArgs._OnRootSelected;
+	OnSelectionUpdated = InArgs._OnSelectionUpdated;
 	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;
 
 	CommandList = MakeShareable( new FUICommandList );
@@ -2239,21 +2373,13 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		);
 
 	FSlateBrush const* MobilityHeaderBrush = FEditorStyle::GetBrush(TEXT("ClassIcon.ComponentMobilityHeaderIcon"));
-
-	SAssignNew(SCSTreeWidget, SSCSTreeType)
-		.ToolTipText(LOCTEXT("DropAssetToAddComponent", "Drop asset here to add component."))
-		.SCSEditor(this)
-		.TreeItemsSource(&RootNodes)
-		.SelectionMode(ESelectionMode::Multi)
-		.OnGenerateRow(this, &SSCSEditor::MakeTableRowWidget)
-		.OnGetChildren(this, &SSCSEditor::OnGetChildrenForTree)
-		.OnSelectionChanged(this, &SSCSEditor::OnTreeSelectionChanged)
-		.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu)
-		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
-		.ItemHeight(24)
-		.HeaderRow
-		(
-		SNew(SHeaderRow)
+	
+	TSharedPtr<SHeaderRow> HeaderRow;
+	
+	bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
+	if (bSingleLayoutBPEditor)
+	{
+		HeaderRow = SNew(SHeaderRow)
 
 		+ SHeaderRow::Column(SCS_ColumnName_Mobility)
 		.DefaultLabel(LOCTEXT("MobilityColumnLabel", "Mobility"))
@@ -2271,17 +2397,134 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 			]
 		]
 
-	+ SHeaderRow::Column(SCS_ColumnName_ComponentClass)
+		+ SHeaderRow::Column(SCS_ColumnName_ComponentClass)
+		.DefaultLabel(LOCTEXT("Class", "Class"))
+		.FillWidth(4);
+	}
+	else
+	{
+		HeaderRow = SNew(SHeaderRow)
+
+		+ SHeaderRow::Column(SCS_ColumnName_Mobility)
+		.DefaultLabel(LOCTEXT("MobilityColumnLabel", "Mobility"))
+		.FixedWidth(16.0f) // mobility icons are 16px (16 slate-units = 16px, when application scale == 1)
+		.HeaderContent()
+		[
+			SNew(SHorizontalBox)
+			.ToolTip(SNew(SToolTip).Text(LOCTEXT("MobilityColumnTooltip", "Mobility")))
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			[
+				SNew(SImage).Image(MobilityHeaderBrush)
+			]
+		]
+
+		+ SHeaderRow::Column(SCS_ColumnName_ComponentClass)
 		.DefaultLabel(LOCTEXT("Class", "Class"))
 		.FillWidth(4)
 
 		+ SHeaderRow::Column(SCS_ColumnName_Asset)
-		.DefaultLabel(LOCTEXT("Asset", "Asset"))
-		.FillWidth(3)
+		.DefaultLabel(LOCTEXT("Asset", "Asset"))\
+		.FillWidth(3);
+	}
+
+	SAssignNew(SCSTreeWidget, SSCSTreeType)
+		.ToolTipText(LOCTEXT("DropAssetToAddComponent", "Drop asset here to add component."))
+		.SCSEditor(this)
+		.TreeItemsSource(&RootNodes)
+		.SelectionMode(ESelectionMode::Multi)
+		.OnGenerateRow(this, &SSCSEditor::MakeTableRowWidget)
+		.OnGetChildren(this, &SSCSEditor::OnGetChildrenForTree)
+		.OnSelectionChanged(this, &SSCSEditor::OnTreeSelectionChanged)
+		.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu)
+		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
+		.ItemHeight(24)
+		.HeaderRow
+		(
+			HeaderRow
 		);
 
+	if (bSingleLayoutBPEditor)
+	{
+		SCSTreeWidget->GetHeaderRow()->SetVisibility(EVisibility::Collapsed);
+	}
+
+	TSharedRef<SToolTip> Tooltip = CreateToolTipWidget();
+
 	TSharedPtr<SWidget> Contents;
-	if( InArgs._HideComponentClassCombo.Get() )
+
+	if (bSingleLayoutBPEditor)
+	{
+		Contents = SNew(SVerticalBox)
+
+		// Root Actor
+		+ SVerticalBox::Slot()
+		.Padding(0.f)
+		.AutoHeight()
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
+			.Padding(2.0f, 2.0f)
+			[
+				SNew(SComponentClassCombo)
+				.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
+				.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Add a component."))
+			]
+
+			+ SVerticalBox::Slot()
+			.VAlign(VAlign_Fill)
+			.HAlign(HAlign_Fill)
+			.Padding(0.0f, 0.0f)
+			[
+				SNew(SCheckBox)
+				.Style(FCoreStyle::Get(), "ToggleButtonRowStyle")
+				.IsFocusable(true)
+				.OnCheckStateChanged(this, &SSCSEditor::OnActorSelected)
+				.IsChecked(this, &SSCSEditor::OnIsActorSelected)
+				.ToolTip(Tooltip)
+				.Padding(FMargin(2.0f))
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(0.f, 0.f, 6.f, 0.f))
+					[
+						SNew(SBox)
+						[
+							SNew(SImage)
+							.Image(this, &SSCSEditor::GetActorIcon)
+						]
+					]
+
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.Padding(0.0f, 0.0f)
+					[
+						SNew(STextBlock)
+						.Text(this, &SSCSEditor::GetActorDisplayText)
+						.ColorAndOpacity(FSlateColor::UseForeground())
+					]
+				]
+			]
+		]
+
+		// Tree
+		+ SVerticalBox::Slot()
+		.Padding(0.f, 0.f, 0.f, 2.f)
+		[
+			SCSTreeWidget.ToSharedRef()
+		];
+	}
+	else if( InArgs._HideComponentClassCombo.Get() )
 	{
 		Contents = SCSTreeWidget;
 	}
@@ -2329,7 +2572,93 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	{
 		SCSTreeWidget->SetItemExpansion(SceneRootNodePtr, true);
 	}
+
+	if (bSingleLayoutBPEditor)
+	{
+		// Select the root actor
+		OnActorSelected(ECheckBoxState::Checked);
+	}
 }
+TSharedRef<SToolTip> SSCSEditor::CreateToolTipWidget() const
+{
+	// Create a box to hold every line of info in the body of the tooltip
+	TSharedRef<SVerticalBox> InfoBox = SNew(SVerticalBox);
+
+	// Add class
+	AddToToolTipInfoBox(InfoBox, LOCTEXT("TooltipClass", "Class"), SNullWidget::NullWidget, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSCSEditor::GetActorClassNameText)), false);
+
+	// Add super class
+	AddToToolTipInfoBox(InfoBox, LOCTEXT("TooltipSuperClass", "Parent Class"), SNullWidget::NullWidget, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSCSEditor::GetActorSuperClassNameText)), false);
+
+	// Add mobility
+	AddToToolTipInfoBox(InfoBox, LOCTEXT("TooltipMobility", "Mobility"), SNullWidget::NullWidget, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSCSEditor::GetActorMobilityText)), false);
+
+	TSharedRef<SBorder> TooltipContent = SNew(SBorder)
+		.Padding(4)
+		.BorderImage(FEditorStyle::GetBrush("SCSEditor.TileViewTooltip.NonContentBorder"))
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 0, 0, 4)
+			[
+				SNew(SBorder)
+				.Padding(0)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(4)
+						[
+							SNew(STextBlock)
+							.Text(this, &SSCSEditor::GetActorDisplayText)
+							.Font(FEditorStyle::GetFontStyle("ContentBrowser.TileViewTooltip.NameFont"))
+						]
+					]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SBorder)
+				.Padding(4)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					InfoBox
+				]
+			]
+		];
+
+	return IDocumentation::Get()->CreateToolTip(TAttribute<FText>(this, &SSCSEditor::GetActorDisplayText), TooltipContent, InfoBox, TEXT(""), TEXT(""));
+}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+/*
+FString SSCSEditor::GetDocumentationLink() const
+{
+	if (NodePtr == SCSEditor.Pin()->SceneRootNodePtr
+		|| NodePtr->IsNative() || NodePtr->IsInherited())
+	{
+		return TEXT("Shared/Editors/BlueprintEditor/ComponentsMode");
+		FText ToolTipText;
+		if (ActorContext.IsSet())
+		{
+			AActor* DefaultActor = ActorContext.Get();
+			ToolTipText = FText::FromString(DefaultActor->GetClass()->GetSuperClass()->GetName());
+		}
+	}
+
+	return TEXT("");
+}*/
 
 UBlueprint* SSCSEditor::GetBlueprint() const
 {
@@ -2640,7 +2969,7 @@ void SSCSEditor::OnGetChildrenForTree( FSCSEditorTreeNodePtrType InNodePtr, TArr
 
 
 void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass)
-	{
+{
 	UClass* NewClass = ComponentClass;
 
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
@@ -2678,6 +3007,91 @@ void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClas
 		// As the SCS splits up the scene and actor components, can now add directly
 		AddNewComponent(ComponentClass, NULL);
 	}
+}
+
+const FSlateBrush* SSCSEditor::GetActorIcon() const
+{
+	if (ActorContext.IsSet())
+	{
+		return FClassIconFinder::FindIconForActor(ActorContext.Get());
+	}
+	return nullptr;
+}
+
+FText SSCSEditor::GetActorDisplayText() const
+{
+	if (ActorContext.IsSet())
+	{
+		FString Name;
+		AActor* DefaultActor = ActorContext.Get();
+		UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(DefaultActor->GetClass());
+		if (Blueprint != nullptr)
+		{
+			Blueprint->GetName(Name);
+			return FText::Format(LOCTEXT("DefaultActor_Name", "{0} (self)"), FText::FromString(Name));
+		}
+		else
+		{
+			DefaultActor->GetName(Name);
+			return FText::Format(LOCTEXT("DefaultActor_Name", "{0}"), FText::FromString(Name));
+		}
+	}
+	return FText::GetEmpty();	
+}
+
+FText SSCSEditor::GetActorClassNameText() const
+{
+	FText Text;
+	if (ActorContext.IsSet())
+	{
+		AActor* DefaultActor = ActorContext.Get();
+		Text = FText::FromString(DefaultActor->GetClass()->GetName());
+	}
+
+	return Text;
+}
+
+FText SSCSEditor::GetActorSuperClassNameText() const
+{
+	FText Text;
+	if (ActorContext.IsSet())
+	{
+		AActor* DefaultActor = ActorContext.Get();
+		Text = FText::FromString(DefaultActor->GetClass()->GetSuperClass()->GetName());
+	}
+
+	return Text;
+}
+
+FText SSCSEditor::GetActorMobilityText() const
+{
+	FText Text;
+	if (ActorContext.IsSet())
+	{
+		AActor* DefaultActor = ActorContext.Get();
+		USceneComponent* RootComponent = DefaultActor->GetRootComponent();
+		if (RootComponent)
+		{
+			if (RootComponent->Mobility == EComponentMobility::Static)
+			{
+				Text = LOCTEXT("ComponentMobility_Static", "Static");
+			}
+			else if (RootComponent->Mobility == EComponentMobility::Stationary)
+			{
+				Text = LOCTEXT("ComponentMobility_Stationary", "Stationary");
+			}
+			else if (RootComponent->Mobility == EComponentMobility::Movable)
+			{
+				Text = LOCTEXT("ComponentMobility_Movable", "Movable");
+			}
+		}
+		else
+		{
+			Text = LOCTEXT("ComponentMobility_NoRoot", "No root component, unknown mobility");
+		}
+	}
+
+	return Text;
 }
 
 TArray<FSCSEditorTreeNodePtrType>  SSCSEditor::GetSelectedNodes() const
@@ -3031,12 +3445,7 @@ void SSCSEditor::ClearSelection()
 {
 	check(SCSTreeWidget.IsValid());
 	SCSTreeWidget->ClearSelection();
-
-	// Invoke the selection changed delegate with an empty selection set
-	OnTreeViewSelectionChanged.ExecuteIfBound(TArray<FSCSEditorTreeNodePtrType>());
 }
-
-
 
 void SSCSEditor::SaveSCSCurrentState( USimpleConstructionScript* SCSObj )
 {
@@ -3082,7 +3491,8 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		Blueprint->Modify();
 		SaveSCSCurrentState(Blueprint->SimpleConstructionScript);
 
-		return AddNewNode(Blueprint->SimpleConstructionScript->CreateNode(NewComponentClass), Asset, true);
+		FName NewVariableName = Asset != nullptr ? Asset->GetFName() : NAME_None;
+		return AddNewNode(Blueprint->SimpleConstructionScript->CreateNode(NewComponentClass, NewVariableName), Asset, true);
 	}
 	else    // EEditorMode::ActorInstance
 	{
@@ -3588,10 +3998,10 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 	}
 }
 
-void SSCSEditor::UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType> &SelectedNodes )
+void SSCSEditor::UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType> &SelectedNodes)
 {
-	// Invoke the delegate to update any selection details
-	OnUpdateSelectionFromNodes.ExecuteIfBound(SelectedNodes);
+	// Notify that the selection has updated
+	OnSelectionUpdated.ExecuteIfBound(SelectedNodes);
 }
 
 void SSCSEditor::RefreshSelectionDetails()
@@ -3601,15 +4011,28 @@ void SSCSEditor::RefreshSelectionDetails()
 
 void SSCSEditor::OnTreeSelectionChanged(FSCSEditorTreeNodePtrType, ESelectInfo::Type /*SelectInfo*/)
 {
-	// Get the selected tree nodes
-	const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes = SCSTreeWidget->GetSelectedItems();
+	bIsActorSelected = false;
 
-	// Update the details view selection
-	UpdateSelectionFromNodes(SelectedNodes);
-
-	// Pass the tree selection change event along to the delegate
-	OnTreeViewSelectionChanged.ExecuteIfBound(SelectedNodes);
+	UpdateSelectionFromNodes(SCSTreeWidget->GetSelectedItems());
 }
+
+void SSCSEditor::OnActorSelected(const ECheckBoxState NewCheckedState)
+{
+	// Clear tree selection
+	SCSTreeWidget->ClearSelection();
+		
+	// Set the Actor selected, done after the Tree clear as it will deselect the actor.
+	bIsActorSelected = true;
+
+	// Notify that the root has been selected
+	OnRootSelected.ExecuteIfBound(ActorContext.Get(nullptr));
+}
+
+ECheckBoxState SSCSEditor::OnIsActorSelected() const
+{
+	return (bIsActorSelected) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
 
 bool SSCSEditor::IsNodeInSimpleConstructionScript( USCS_Node* Node ) const
 {
@@ -3689,7 +4112,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 
 			// Add it to the root set
 			NodeSCS->AddNode(InSCSNode);
-			RootNodes.Add(NewNodePtr);
+			RootNodes.Insert(NewNodePtr, 0);
 
 			// Make it the scene root node
 			SceneRootNodePtr = NewNodePtr;
@@ -3703,16 +4126,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 		// If the given SCS node does not contain a scene component template, we create a new root node
 		NewNodePtr = MakeShareable(new FSCSEditorTreeNode(InSCSNode, bIsInherited));
 
-		// Add it to the root set prior to the scene root node that represents the start of the scene hierarchy
-		int32 SceneRootNodeIndex = RootNodes.Find(SceneRootNodePtr);
-		if(SceneRootNodeIndex != INDEX_NONE)
-		{
-			RootNodes.Insert(NewNodePtr, SceneRootNodeIndex);
-		}
-		else
-		{
-			RootNodes.Add(NewNodePtr);
-		}
+		RootNodes.Add(NewNodePtr);
 
 		// If the SCS root node array does not already contain the given node, this will add it (this should only occur after node creation)
 		if(NodeSCS != NULL)
@@ -3763,7 +4177,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USceneComponent* InSceneCompon
 			NewNodePtr = MakeShareable(new FSCSEditorTreeNode(InSceneComponent));
 
 			// Add it to the root set
-			RootNodes.Add(NewNodePtr);
+			RootNodes.Insert(NewNodePtr, 0);
 
 			// Make it the scene root node
 			SceneRootNodePtr = NewNodePtr;

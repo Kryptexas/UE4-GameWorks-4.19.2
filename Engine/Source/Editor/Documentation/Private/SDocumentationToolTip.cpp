@@ -18,6 +18,8 @@ void SDocumentationToolTip::Construct( const FArguments& InArgs )
 	ColorAndOpacity = InArgs._ColorAndOpacity;
 	DocumentationLink = InArgs._DocumentationLink;
 	IsDisplayingDocumentationLink = false;
+	bAddDocumentation = InArgs._AddDocumentation;
+	DocumentationMargin = InArgs._DocumentationMargin;
 
 	if ( !DocumentationLink.IsEmpty() )
 	{
@@ -39,9 +41,7 @@ void SDocumentationToolTip::Construct( const FArguments& InArgs )
 
 	ChildSlot
 	[
-		SAssignNew( WidgetContent, SBorder )
-		.BorderImage( FEditorStyle::GetBrush( "NoBorder" ) )
-		.Padding( 0 )
+		SAssignNew(WidgetContent, SBox)
 		[
 			SimpleTipContent.ToSharedRef()
 		]
@@ -75,15 +75,19 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 			+SVerticalBox::Slot()
 			.FillHeight( 1.0f )
 			[
-				SNew( STextBlock )
-				.Text( TextContent )
-				.TextStyle( &StyleInfo )
-				.ColorAndOpacity( ColorAndOpacity )
-				.WrapTextAt_Static( &SToolTip::GetToolTipWrapWidth )
+				OverrideContent.ToSharedRef()
 			]
 		];
 	}
 
+	if (bAddDocumentation)
+	{
+		AddDocumentation(VerticalBox);
+	}
+}
+
+void SDocumentationToolTip::AddDocumentation(TSharedPtr< SVerticalBox > VerticalBox)
+{
 	if ( !DocumentationLink.IsEmpty() )
 	{
 		IsDisplayingDocumentationLink = GEditor->EditorUserSettings->bDisplayDocumentationLink;
@@ -259,12 +263,16 @@ void SDocumentationToolTip::ConstructFullTipContent()
 		{
 			TSharedPtr< SVerticalBox > Box;
 			FullTipContent = 
-				SAssignNew( Box, SVerticalBox )
-				+SVerticalBox::Slot()
-				.HAlign( HAlign_Center )
-				.AutoHeight()
+				SNew(SBox)
+				.Padding(DocumentationMargin)
 				[
-					Excerpts[ ExcerptIndex ].Content.ToSharedRef()
+					SAssignNew(Box, SVerticalBox)
+					+ SVerticalBox::Slot()
+					.HAlign(HAlign_Center)
+					.AutoHeight()
+					[
+						Excerpts[ExcerptIndex].Content.ToSharedRef()
+					]
 				];
 
 			FString* FullDocumentationLink = Excerpts[ ExcerptIndex ].Variables.Find( TEXT("ToolTipFullLink") );

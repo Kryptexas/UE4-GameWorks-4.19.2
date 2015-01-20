@@ -54,6 +54,7 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 			SNew(STextBlock)
 			.Text(LOCTEXT("AddComponentButtonLabel", "Add Component"))
 			.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+			.Visibility(InArgs._IncludeText.Get() ? EVisibility::Visible : EVisibility::Collapsed)
 		]
 	]
 	.MenuContent()
@@ -123,7 +124,7 @@ void SComponentClassCombo::GenerateFilteredComponentList(const FString& InSearch
 		{
 			FComponentClassComboEntryPtr& CurrentEntry = ComponentClassList[ComponentIndex];
 
-			if ( CurrentEntry->IsClass() )
+			if (CurrentEntry->IsClass() && CurrentEntry->IsIncludedInFilter())
 			{
 				FString FriendlyComponentName = GetSanitizedComponentName( CurrentEntry->GetComponentClass() );
 
@@ -375,18 +376,18 @@ void SComponentClassCombo::UpdateComponentClassList()
 			TArray<FString> ClassGroupNames;
 			Class->GetClassGroupNames( ClassGroupNames );
 
-			FString ClassGroup;
 			if (ClassGroupNames.Contains(SortComboEntry::CommonClassGroup))
 			{
-				ClassGroup = SortComboEntry::CommonClassGroup;
+				FString ClassGroup = SortComboEntry::CommonClassGroup;
+				FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup, Class, ClassGroupNames.Num() <= 1));
+				SortedClassList.Add(NewEntry);
 			}
-			else if (ClassGroupNames.Num())
+			if (ClassGroupNames.Num() && !ClassGroupNames[0].Equals(SortComboEntry::CommonClassGroup))
 			{
-				ClassGroup = ClassGroupNames[0];
+				FString ClassGroup = ClassGroupNames[0];
+				FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup, Class, true));
+				SortedClassList.Add(NewEntry);
 			}
-
-			FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup,	Class));
-			SortedClassList.Add(NewEntry);
 		}
 	}
 
@@ -422,9 +423,18 @@ void SComponentClassCombo::UpdateComponentClassList()
 
 FString SComponentClassCombo::GetSanitizedComponentName( UClass* ComponentClass )
 {
-	FString OriginalName = ComponentClass->GetName();
-	FString ComponentNameWithoutComponent = OriginalName.Replace( TEXT("Component"), TEXT(""), ESearchCase::IgnoreCase );
-	return FName::NameToDisplayString( ComponentNameWithoutComponent, false );
+	FString DisplayName;
+	if (ComponentClass->HasMetaData(TEXT("DisplayName")))
+	{
+		DisplayName = ComponentClass->GetMetaData(TEXT("DisplayName"));
+	}
+	else
+	{
+		FString OriginalName = ComponentClass->GetName();
+		DisplayName = OriginalName.Replace( TEXT("Component"), TEXT(""), ESearchCase::IgnoreCase );
+	}
+
+	return FName::NameToDisplayString(DisplayName, false);
 }
 
 #undef LOCTEXT_NAMESPACE
