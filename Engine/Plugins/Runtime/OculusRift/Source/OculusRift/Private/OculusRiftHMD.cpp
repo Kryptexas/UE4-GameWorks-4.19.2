@@ -1817,13 +1817,33 @@ void FOculusRiftHMD::Startup()
 	// Initializes LibOVR. This LogMask_All enables maximum logging.
 	// Custom allocator can also be specified here.
 	// Actually, most likely, the ovr_Initialize is already called from PreInit.
-	ovr_Initialize();
+	int8 bWasInitialized = ovr_Initialize();
 
 #if !UE_BUILD_SHIPPING
 	// Should be changed to CAPI when available.
 	static OculusLog OcLog;
 	OVR::Log::SetGlobalLog(&OcLog);
 #endif //#if !UE_BUILD_SHIPPING
+
+	if (GIsEditor)
+	{
+		Flags.bHeadTrackingEnforced = true;
+		//AlternateFrameRateDivider = 2;
+	}
+
+	bool bForced = FParse::Param(FCommandLine::Get(), TEXT("forcedrift"));
+	bool bInitialized = false;
+	if (!bForced)
+	{
+		bInitialized = InitDevice();
+	}
+
+	if (!bInitialized && !bForced)
+	{
+		ovr_Shutdown();
+		Flags.InitStatus = 0;
+		return;
+	}
 
 	// Uncap fps to enable FPS higher than 62
 	GEngine->bSmoothFrameRate = false;
@@ -1845,20 +1865,7 @@ void FOculusRiftHMD::Startup()
 #endif
 #endif // #ifdef OVR_SDK_RENDERING
 
-	if (GIsEditor)
-	{
-		Flags.bHeadTrackingEnforced = true;
-		//AlternateFrameRateDivider = 2;
-	}
-
-	bool forced = true;
-	if (!FParse::Param(FCommandLine::Get(), TEXT("forcedrift")))
-	{
-		InitDevice();
-		forced = false;
-	}
-
-	if (forced || Hmd)
+	if (bForced || Hmd)
 	{
 		Flags.InitStatus |= eInitialized;
 
@@ -1868,7 +1875,7 @@ void FOculusRiftHMD::Startup()
 
 void FOculusRiftHMD::Shutdown()
 {
-	if (!(Flags.InitStatus & eStartupExecuted))
+	if (!(Flags.InitStatus & eInitialized))
 	{
 		return;
 	}
@@ -1881,6 +1888,7 @@ void FOculusRiftHMD::Shutdown()
 	{
 		Plugin->ShutdownRendering();
 	});
+	FlushRenderingCommands();
 #endif // OVR_SDK_RENDERING
 	ReleaseDevice();
 	
