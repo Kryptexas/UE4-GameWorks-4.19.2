@@ -836,24 +836,6 @@ public:
 	 */
 	AActor* SelectNamedActor(const TCHAR *TargetActorName);
 
-	/**
-	 * Moves all viewport cameras to the target actor.
-	 * @param	Actor					Target actor.
-	 * @param	bActiveViewportOnly		If true, move/reorient only the active viewport.
-	 */
-	void MoveViewportCamerasToActor(AActor& Actor,  bool bActiveViewportOnly);
-
-	/** 
-	 * Snaps an actor in a direction.  Optionally will align with the trace normal.
-	 * @param InActor			Actor to move to the floor.
-	 * @param InAlign			sWhether or not to rotate the actor to align with the trace normal.
-	 * @param InUseLineTrace	Whether or not to only trace with a line through the world.
-	 * @param InUseBounds		Whether or not to base the line trace off of the bounds.
-	 * @param InUsePivot		Whether or not to use the pivot position.
-	 * @param InDestination		The destination actor we want to move this actor to, NULL assumes we just want to go towards the floor
-	 * @return					Whether or not the actor was moved.
-	 */
-	bool SnapActorTo( AActor* InActor, const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, const AActor* InDestination = NULL );
 
 	/**
 	 * Moves an actor in front of a camera specified by the camera's origin and direction.
@@ -867,11 +849,39 @@ public:
 	void MoveActorInFrontOfCamera( AActor& InActor, const FVector& InCameraOrigin, const FVector& InCameraDirection );
 
 	/**
+	 * Moves all viewport cameras to the target actor.
+	 * @param	Actor					Target actor.
+	 * @param	bActiveViewportOnly		If true, move/reorient only the active viewport.
+	 */
+	void MoveViewportCamerasToActor(AActor& Actor,  bool bActiveViewportOnly);
+
+	/**
 	* Moves all viewport cameras to focus on the provided array of actors.
 	* @param	Actors					Target actors.
+
 	* @param	bActiveViewportOnly		If true, move/reorient only the active viewport.
 	*/
 	void MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bool bActiveViewportOnly);
+
+	/**
+	* Moves all viewport cameras to focus on the provided array of actors.
+	* @param	Actors					Target actors.
+	* @param	Components				Target components (used of actors array is empty)
+	* @param	bActiveViewportOnly		If true, move/reorient only the active viewport.
+	*/
+	void MoveViewportCamerasToActor(const TArray<AActor*> &Actors, const TArray<UPrimitiveComponent*>& Components, bool bActiveViewportOnly);
+
+	/** 
+	 * Snaps an actor in a direction.  Optionally will align with the trace normal.
+	 * @param InActor			Actor to move to the floor.
+	 * @param InAlign			sWhether or not to rotate the actor to align with the trace normal.
+	 * @param InUseLineTrace	Whether or not to only trace with a line through the world.
+	 * @param InUseBounds		Whether or not to base the line trace off of the bounds.
+	 * @param InUsePivot		Whether or not to use the pivot position.
+	 * @param InDestination		The destination actor we want to move this actor to, NULL assumes we just want to go towards the floor
+	 * @return					Whether or not the actor was moved.
+	 */
+	bool SnapActorTo( AActor* InActor, const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, const AActor* InDestination = NULL );
 
 	/**
 	 * Snaps the view of the camera to that of the provided actor.
