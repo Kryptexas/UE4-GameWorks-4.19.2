@@ -166,4 +166,6 @@ public:
 	 *			EReimportResult::Cancelled if the handler was cancelled part-way through re-importing the provided object.
 	 */
 	virtual EReimportResult::Type Reimport( UObject* Obj ) = 0;
+
+	virtual int32 GetPriority() const = 0;
 };
