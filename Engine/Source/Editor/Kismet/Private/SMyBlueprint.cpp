@@ -41,6 +41,8 @@
 #include "Components/TimelineComponent.h"
 #include "Engine/TimelineTemplate.h"
 
+#include "BlueprintEditorSettings.h"
+
 #define LOCTEXT_NAMESPACE "MyBlueprint"
 
 //////////////////////////////////////////////////////////////////////////
