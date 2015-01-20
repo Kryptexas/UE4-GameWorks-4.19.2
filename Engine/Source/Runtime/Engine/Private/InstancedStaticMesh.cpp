@@ -665,6 +665,7 @@ void FInstancedStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolume
 
 UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bPerInstanceRenderDataWasPrebuilt(false)
 {
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;
@@ -1138,7 +1139,7 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 
 void UInstancedStaticMeshComponent::ReleasePerInstanceRenderData()
 {
-	if (PerInstanceRenderData.IsValid())
+	if (PerInstanceRenderData.IsValid() && !bPerInstanceRenderDataWasPrebuilt)
 	{
 		if (SceneProxy == nullptr)
 		{
@@ -1320,7 +1321,7 @@ void UInstancedStaticMeshComponent::ClearInstances()
 	ClearAllInstanceBodies();
 
 	// Indicate we need to update render state to reflect changes
-	bNeverNeedsRenderUpdate = false;
+	bPerInstanceRenderDataWasPrebuilt = false;
 	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 
@@ -1468,6 +1469,7 @@ SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type M
 
 void UInstancedStaticMeshComponent::BeginDestroy()
 {
+	bPerInstanceRenderDataWasPrebuilt = false;
 	Super::BeginDestroy();
 	ReleasePerInstanceRenderData();
 }

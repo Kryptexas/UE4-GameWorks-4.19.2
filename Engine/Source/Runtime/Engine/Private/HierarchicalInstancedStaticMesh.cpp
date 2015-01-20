@@ -1829,7 +1829,7 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have instances
-		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.Num() > 0)&&
+		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.Num() > 0 || bPerInstanceRenderDataWasPrebuilt) &&
 		// make sure we have an actual staticmesh
 		StaticMesh &&
 		StaticMesh->HasValidRenderData() &&
@@ -1847,13 +1847,11 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 			InstancingRandomSeed = FMath::Rand();
 		}
 
-		if (WriteOncePrebuiltInstanceBuffer.Num() > 0)
+		if (WriteOncePrebuiltInstanceBuffer.Num() > 0 || bPerInstanceRenderDataWasPrebuilt)
 		{
 			ProxySize = FStaticMeshInstanceData::GetResourceSize(WriteOncePrebuiltInstanceBuffer.Num());
 			INC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
 
-			//@todo - this is sketchy, what you really want to do is flush the grass cache instead of doing a render thread update
-			bNeverNeedsRenderUpdate = true; // we can never update it because the data is gone
 			return ::new FHierarchicalStaticMeshSceneProxy(this, GetWorld()->FeatureLevel, WriteOncePrebuiltInstanceBuffer);
 		}
 		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num());

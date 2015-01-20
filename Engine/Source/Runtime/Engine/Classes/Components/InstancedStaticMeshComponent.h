@@ -133,6 +133,8 @@ public:
 	 *  Released on the rendering thread
 	 */
 	TSharedPtr<FPerInstanceRenderData, ESPMode::ThreadSafe> PerInstanceRenderData;
+	/** This was prebuilt for grass, never destroy it. */
+	bool bPerInstanceRenderDataWasPrebuilt;
 		
 #if WITH_EDITOR
 	/** One bit per instance if the instance is selected. */

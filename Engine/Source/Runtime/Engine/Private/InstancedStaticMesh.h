@@ -352,8 +352,9 @@ public:
 		if (!PerInstanceRenderData.IsValid())
 		{
 			// initialize the instance buffer from the component's instances
-			PerInstanceRenderData = InComponent->PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(InComponent, InFeatureLevel));
-			InComponent->PerInstanceRenderData = PerInstanceRenderData;
+			InComponent->PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(InComponent, InFeatureLevel));
+			PerInstanceRenderData = InComponent->PerInstanceRenderData;
+			InComponent->bPerInstanceRenderDataWasPrebuilt = false;
 		}
 
 		NumInstances = PerInstanceRenderData->InstanceBuffer.GetNumInstances();
@@ -362,12 +363,18 @@ public:
 
 	FInstancedStaticMeshRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
 		: Component(InComponent)
+		, PerInstanceRenderData(InComponent->PerInstanceRenderData)
 		, LODModels(Component->StaticMesh->RenderData->LODResources)
 		, FeatureLevel(InFeatureLevel)
 	{
 		InitVertexFactories();
-		// initialize the instance buffer from the component's instances
-		PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(InComponent, Other, InFeatureLevel));
+		// initialize the instance buffer from the prebuilt instances
+		if (!PerInstanceRenderData.IsValid())
+		{
+			InComponent->PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(InComponent, Other, InFeatureLevel));
+			PerInstanceRenderData = InComponent->PerInstanceRenderData;
+			InComponent->bPerInstanceRenderDataWasPrebuilt = true;
+		}
 		NumInstances = PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 		InitResources();
 	}
