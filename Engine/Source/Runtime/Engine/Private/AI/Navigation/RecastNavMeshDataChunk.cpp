@@ -209,8 +209,9 @@ TArray<uint32> URecastNavMeshDataChunk::DetachTiles(FPImplRecastNavMesh* NavMesh
 		if (TileData.TileRef != 0)
 		{
 			// Detach tile cache layer and take ownership over compressed data
+			const dtMeshTile* MeshTile = NavMesh->getTileByRef(TileData.TileRef);
+			if (MeshTile)
 			{
-				const dtMeshTile* MeshTile = NavMesh->getTileByRef(TileData.TileRef);
 				FNavMeshTileData TileCacheData = NavMeshImpl->GetTileCacheLayer(MeshTile->header->x, MeshTile->header->y, MeshTile->header->layer);
 				if (TileCacheData.IsValid())
 				{

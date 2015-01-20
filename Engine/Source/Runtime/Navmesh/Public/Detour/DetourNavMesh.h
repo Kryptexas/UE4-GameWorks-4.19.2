@@ -736,9 +736,7 @@ public:
 	inline bool isEmpty() const
 	{
 		// has no tile grid set up
-		return (m_tileWidth > 0 && m_tileHeight > 0) == false
-			// or no actual tiles present (first free tile is the first one in tiles array)
-			|| (m_nextFree == m_tiles);
+		return (m_tileWidth > 0 && m_tileHeight > 0) == false;
 	}
 	//@UE4 END
 	
