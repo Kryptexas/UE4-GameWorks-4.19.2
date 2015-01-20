@@ -265,5 +265,6 @@ private:
 	friend UAIPerceptionSystem;
 
 	void StoreListenerId(FPerceptionListenerID InListenerId) { PerceptionListenerId = InListenerId; }
+	void SetMaxStimulusAge(int32 ConfigIndex, float MaxAge);
 };
 
