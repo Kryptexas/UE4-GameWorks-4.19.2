@@ -226,6 +226,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	TSharedPtr<SToolTip> ExposeToConfigTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToConfig_Tooltip", "Allow this variable be set from the config?"), NULL, DocLink, TEXT("ExposeToConfig"));
 
 	Category.AddCustomRow( LOCTEXT("VariableExposeToConfig", "Config Variable") )
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeConfigVisibility))
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1465,6 +1466,19 @@ void FBlueprintVarActionDetails::OnSetConfigVariableState( ECheckBoxState InNewS
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( Blueprint );
 		}
 	}
+}
+
+EVisibility FBlueprintVarActionDetails::ExposeConfigVisibility() const
+{
+	UProperty* Property = SelectionAsProperty();
+	if (Property)
+	{
+		if (IsABlueprintVariable(Property) && !IsAComponentVariable(Property))
+		{
+			return EVisibility::Visible;
+		}
+	}
+	return EVisibility::Collapsed;
 }
 
 FText FBlueprintVarActionDetails::OnGetMetaKeyValue(FName Key) const
