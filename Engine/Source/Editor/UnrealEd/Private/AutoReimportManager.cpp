@@ -19,7 +19,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportManager, Log, All);
 
 namespace
 {
-	static const FName ReimportPathName("ReimportPath");
 
 	/** Template helper function to count the number of elements in the specified array that pass a predicate */
 	template<typename T, typename P>
@@ -91,6 +90,7 @@ namespace
 	{
 		TArray<FAssetData> Assets, Result;
 		const FString LeafName = FPaths::GetCleanFilename(AbsoluteFilename);
+		const FName TagName = UObject::SourceFileTagName();
 
 		FARFilter Filter;
 		Filter.SourceFilenames.Add(*LeafName);
@@ -103,7 +103,7 @@ namespace
 			{
 				// We don't compare numbers on FNames for this check because the tag "ReimportPath" may exist multiple times
 				const bool bCompareNumber = false;
-				if (Pair.Key.IsEqual(ReimportPathName, ENameCase::IgnoreCase, bCompareNumber))
+				if (Pair.Key.IsEqual(TagName, ENameCase::IgnoreCase, bCompareNumber))
 				{
 					// Either relative to the asset itself, or relative to the base path, or absolute.
 					// Would ideally use FReimportManager::ResolveImportFilename here, but we don't want to ask the file system whether the file exists.
@@ -437,10 +437,12 @@ void UAutoReimportManager::OnAssetDeleted(UObject* Object)
 
 	TArray<FString> AbsoluteSourceFileNames;
 
+	const FName TagName = UObject::SourceFileTagName();
+
 	for (const auto& Tag : Tags)
 	{
 		// Don't compare the FName number suffix
-		if (Tag.Name.IsEqual(ReimportPathName, ENameCase::IgnoreCase, false))
+		if (Tag.Name.IsEqual(TagName, ENameCase::IgnoreCase, false))
 		{
 			const FString SourceFile = FReimportManager::ResolveImportFilename(Tag.Value, Object);
 			// Check there aren't any other assets referencing this thing

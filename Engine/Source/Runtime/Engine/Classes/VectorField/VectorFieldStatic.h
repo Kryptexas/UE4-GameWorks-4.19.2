@@ -35,7 +35,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Path to the resource used to construct this vector field. Relative to the object's package, BaseDir() or absolute. */
-	UPROPERTY(Category=SourceAsset, VisibleAnywhere, AssetRegistrySearchable, meta=(ReimportPath))
+	UPROPERTY(Category=SourceAsset, VisibleAnywhere)
 	FString SourceFilePath;
 
 	/** Date/Time-stamp of the file from the last import */
@@ -50,6 +50,9 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void Serialize(FArchive& Ar) override;
+#if WITH_EDITORONLY_DATA
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+#endif
 	// End UObject interface.
 
 	// Begin UVectorField Interface

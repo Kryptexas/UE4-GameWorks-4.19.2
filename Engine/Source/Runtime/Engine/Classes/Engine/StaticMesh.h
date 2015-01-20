@@ -376,7 +376,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UFoliageType_InstancedStaticMesh* FoliageDefaultSettings;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings, AssetRegistrySearchable)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this static mesh */

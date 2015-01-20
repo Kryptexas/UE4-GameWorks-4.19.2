@@ -211,7 +211,7 @@ class ENGINE_API USoundWave : public USoundBase
 
 #if WITH_EDITORONLY_DATA
 	/** Path to the resource used to construct this sound node wave. Relative to the object's package, BaseDir() or absolute. */
-	UPROPERTY(Category=Info, VisibleAnywhere, AssetRegistrySearchable, meta=(ReimportPath))
+	UPROPERTY(Category=Info, VisibleAnywhere)
 	FString SourceFilePath;
 
 	/** Date/Time-stamp of the file from the last import */

@@ -446,7 +446,7 @@ class ENGINE_API UCurveBase : public UObject, public FCurveOwnerInterface
 	GENERATED_UCLASS_BODY()
 
 	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
-	UPROPERTY(AssetRegistrySearchable, meta=(ReimportPath))
+	UPROPERTY()
 	FString ImportPath;
 
 	/** Get the time range across all curves */
@@ -494,6 +494,12 @@ public:
 
 	// End UCurveBase interface
 
+	// Begin UObject interface
+#if WITH_EDITORONLY_DATA
+	/** Override to ensure we write out the asset import data */
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+#endif
+	// End UObject interface
 };
 
 //////////////////////////////////////////////////////////////////////////

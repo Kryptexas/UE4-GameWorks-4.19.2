@@ -519,6 +519,9 @@ public:
 	};
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
 
+	/** Get the common tag name used for all asset source file import paths */
+	static const FName& SourceFileTagName();
+
 	/** Returns true if this object is considered an asset. */
 	virtual bool IsAsset() const;
 

@@ -34,7 +34,7 @@ class UDataTable : public UObject
 	UScriptStruct*			RowStruct;
 
 	/** The filename that was used to create this object. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY(AssetRegistrySearchable, meta=(ReimportPath))
+	UPROPERTY()
 	FString ImportPath;
 
 	/** Map of name of row to row data structure. */
@@ -44,6 +44,9 @@ class UDataTable : public UObject
 	virtual void FinishDestroy() override;
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+#if WITH_EDITORONLY_DATA
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+#endif
 	// End  UObject interface
 
 	// Begin UDataTable interface

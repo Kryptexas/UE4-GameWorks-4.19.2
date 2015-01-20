@@ -1181,6 +1181,12 @@ void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(this, OutTags);
 }
 
+const FName& UObject::SourceFileTagName()
+{
+	static const FName SourceFilePathName("SourceFile");
+	return SourceFilePathName;
+}
+
 bool UObject::IsAsset () const
 {
 	// Assets are not transient or CDOs. They must be public.

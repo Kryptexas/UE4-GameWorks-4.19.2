@@ -11,9 +11,6 @@
 
 DEFINE_LOG_CATEGORY(LogAssetRegistry);
 
-
-static const FName ReimportPathName("ReimportPath");
-
 /** Returns the appropriate ChunkProgressReportingType for the given Asset enum */
 EChunkProgressReportingType::Type GetChunkAvailabilityProgressType(EAssetAvailabilityProgressReportingType::Type ReportType)
 {
@@ -1650,7 +1647,7 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 
 #if WITH_EDITORONLY_DATA
 		// Don't check FName number so we still accumulate them even if there are multiple
-		if (GIsEditor && TagIt.Key().IsEqual(ReimportPathName, ENameCase::IgnoreCase, false))
+		if (GIsEditor && TagIt.Key().IsEqual(UObject::SourceFileTagName(), ENameCase::IgnoreCase, false))
 		{
 			auto& SourceFiles = CachedAssetsBySourceFileName.FindOrAdd(*FPaths::GetCleanFilename(TagIt.Value()));
 			SourceFiles.Add(AssetData);
@@ -1733,6 +1730,8 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	// Update Tags
 	if (bTagsChanged)
 	{
+		const FName& SourceFileTagName = UObject::SourceFileTagName();
+
 		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
@@ -1742,7 +1741,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 
 #if WITH_EDITORONLY_DATA
 			// Don't check FName number so we still remove them even if there are multiple
-			if (GIsEditor && TagIt.Key().IsEqual(ReimportPathName, ENameCase::IgnoreCase, false))
+			if (GIsEditor && TagIt.Key().IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
 			{
 				auto* SourceFiles = CachedAssetsBySourceFileName.Find(*FPaths::GetCleanFilename(TagIt.Value()));
 				SourceFiles->Remove(AssetData);
@@ -1759,7 +1758,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 
 #if WITH_EDITORONLY_DATA
 			// Don't check FName number so we still add them even if there are multiple
-			if (GIsEditor && TagIt.Key().IsEqual(ReimportPathName, ENameCase::IgnoreCase, false))
+			if (GIsEditor && TagIt.Key().IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
 			{
 				auto& SourceFiles = CachedAssetsBySourceFileName.FindOrAdd(*FPaths::GetCleanFilename(TagIt.Value()));
 				SourceFiles.Add(AssetData);
@@ -1823,6 +1822,7 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 		OldPathAssets->Remove(AssetData);
 		OldClassAssets->Remove(AssetData);
 
+		const FName& SourceFileTagName = UObject::SourceFileTagName();
 		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
 		{
 			auto OldTagAssets = CachedAssetsByTag.Find(TagIt.Key());
@@ -1831,7 +1831,7 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 
 #if WITH_EDITORONLY_DATA
 			// Don't check FName number so we still remove them even if there are multiple
-			if (GIsEditor && TagIt.Key().IsEqual(ReimportPathName, ENameCase::IgnoreCase, false))
+			if (GIsEditor && TagIt.Key().IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
 			{
 				auto* SourceFiles = CachedAssetsBySourceFileName.Find(*FPaths::GetCleanFilename(TagIt.Value()));
 				SourceFiles->Remove(AssetData);
