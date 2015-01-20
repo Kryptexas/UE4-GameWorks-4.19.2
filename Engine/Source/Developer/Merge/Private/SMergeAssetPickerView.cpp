@@ -313,9 +313,9 @@ FText SMergeAssetPickerPanel::GetRevisionTextValue() const
 	{
 		RevisionText = LOCTEXT("PickRevision", "Pick a Revision...");
 	}
-	else if (SelectedRevision.Revision > -1)
+	else if (!SelectedRevision.Revision.IsEmpty())
 	{
-		RevisionText = FText::Format(LOCTEXT("RevisionNum", "Revision {0}"), FText::AsNumber(SelectedRevision.Revision));
+		RevisionText = FText::Format(LOCTEXT("RevisionNum", "Revision {0}"), FText::FromString(SelectedRevision.Revision));
 	}
 	else if (!IsTempAssetSelected())
 	{

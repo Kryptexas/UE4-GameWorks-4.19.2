@@ -300,6 +300,11 @@ bool FPerforceSourceControlProvider::UsesLocalReadOnlyState() const
 	return true;
 }
 
+bool FPerforceSourceControlProvider::UsesChangelists() const
+{
+	return true;
+}
+
 void FPerforceSourceControlProvider::OutputCommandMessages(const FPerforceSourceControlCommand& InCommand) const
 {
 	FMessageLog SourceControlLog("SourceControl");

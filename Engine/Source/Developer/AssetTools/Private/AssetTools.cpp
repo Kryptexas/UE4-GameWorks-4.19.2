@@ -995,10 +995,10 @@ void FAssetTools::DiffAgainstDepot( UObject* InObject, const FString& InPackageP
 							FRevisionInfo OldRevision;
 							OldRevision.Changelist = Revision->GetCheckInIdentifier();
 							OldRevision.Date = Revision->GetDate();
-							OldRevision.Revision = Revision->GetRevisionNumber();
+							OldRevision.Revision = Revision->GetRevision();
 
 							FRevisionInfo NewRevision; 
-							NewRevision.Revision = -1;
+							NewRevision.Revision = TEXT("");
 							DiffAssets(OldObject, InObject, OldRevision, NewRevision);
 						}
 					}

@@ -239,7 +239,7 @@ static void OnDiffRevisionPicked(FRevisionInfo const& RevisionInfo, TWeakObjectP
 			{
 				TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryIndex);
 				check(Revision.IsValid());
-				if (Revision->GetRevisionNumber() == RevisionInfo.Revision)
+				if (Revision->GetRevision() == RevisionInfo.Revision)
 				{
 					// Get the revision of this package from source control
 					FString PreviousTempPkgName;
@@ -282,8 +282,8 @@ static void OnDiffRevisionPicked(FRevisionInfo const& RevisionInfo, TWeakObjectP
 							if (PreviousAsset != NULL)
 							{
 								FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-								FRevisionInfo OldRevision = { Revision->GetRevisionNumber(), Revision->GetCheckInIdentifier(), Revision->GetDate() };
-								FRevisionInfo CurrentRevision = { -1, Revision->GetCheckInIdentifier(), Revision->GetDate() };
+								FRevisionInfo OldRevision = { Revision->GetRevision(), Revision->GetCheckInIdentifier(), Revision->GetDate() };
+								FRevisionInfo CurrentRevision = { TEXT(""), Revision->GetCheckInIdentifier(), Revision->GetDate() };
 								AssetToolsModule.Get().DiffAssets(PreviousAsset, BlueprintObj.Get(), OldRevision, CurrentRevision);
 							}
 						}

@@ -268,6 +268,11 @@ public:
 	virtual bool UsesLocalReadOnlyState() const = 0;
 
 	/**
+	 * Whether the provider uses changelists to identify commits/revisions
+	 */
+	virtual bool UsesChangelists() const = 0;
+
+	/**
 	 * Called every update.
 	 */
 	virtual void Tick() = 0;

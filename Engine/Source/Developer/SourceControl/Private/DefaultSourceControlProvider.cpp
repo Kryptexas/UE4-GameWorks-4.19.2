@@ -84,6 +84,11 @@ bool FDefaultSourceControlProvider::UsesLocalReadOnlyState() const
 	return false;
 }
 
+bool FDefaultSourceControlProvider::UsesChangelists() const
+{
+	return false;
+}
+
 void FDefaultSourceControlProvider::Tick()
 {
 

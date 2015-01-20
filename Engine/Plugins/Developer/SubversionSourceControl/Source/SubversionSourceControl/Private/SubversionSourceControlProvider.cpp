@@ -186,6 +186,11 @@ bool FSubversionSourceControlProvider::UsesLocalReadOnlyState() const
 	return false;
 }
 
+bool FSubversionSourceControlProvider::UsesChangelists() const
+{
+	return false;
+}
+
 TSharedPtr<ISubversionSourceControlWorker, ESPMode::ThreadSafe> FSubversionSourceControlProvider::CreateWorker(const FName& InOperationName) const
 {
 	const FGetSubversionSourceControlWorker* Operation = WorkersMap.Find(InOperationName);

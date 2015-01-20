@@ -1147,7 +1147,7 @@ void FAssetContextMenu::ExecuteDiffSelected() const
 			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
 			FRevisionInfo CurrentRevision; 
-			CurrentRevision.Revision = -1;
+			CurrentRevision.Revision = TEXT("");
 
 			AssetToolsModule.Get().DiffAssets(FirstObjectSelected, SecondObjectSelected, CurrentRevision, CurrentRevision);
 		}
