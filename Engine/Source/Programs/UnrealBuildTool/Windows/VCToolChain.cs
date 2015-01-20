@@ -1531,6 +1531,15 @@ namespace UnrealBuildTool
 						ProducedItems.Add(PDBFile);
 					}
 
+					// Write a stripped PDB file for Rocket
+					if(UnrealBuildTool.BuildingRocket())
+					{
+						string StrippedPDBFilePath = Path.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + "-Stripped.pdb");
+						FileItem StrippedPDBFile = FileItem.GetItemByPath(StrippedPDBFilePath);
+						Arguments.AppendFormat(" /PDBSTRIPPED:\"{0}\"", StrippedPDBFilePath);
+						ProducedItems.Add(StrippedPDBFile);
+					}
+
 					// Write the MAP file to the output directory.			
 #if false					
 					if (true)

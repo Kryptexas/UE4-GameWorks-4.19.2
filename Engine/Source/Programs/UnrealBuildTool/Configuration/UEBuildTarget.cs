@@ -1349,6 +1349,16 @@ namespace UnrealBuildTool
 					Manifest.AddBuildProduct(OutputFilePath, DebugInfoExtension);
 				}
 
+				// Add all the stripped debug symbols
+				if(UnrealBuildTool.BuildingRocket() && (Platform == CPPTargetPlatform.Win32 || Platform == CPPTargetPlatform.Win64))
+				{
+					foreach(string OutputFilePath in Binary.Config.OutputFilePaths)
+					{
+						string StrippedPath = Path.Combine(Path.GetDirectoryName(OutputFilePath), Path.GetFileNameWithoutExtension(OutputFilePath) + "-Stripped" + DebugInfoExtension);
+						Manifest.AddBuildProduct(StrippedPath);
+					}
+				}
+
 				if (Binary.Config.Type == UEBuildBinaryType.Executable &&
 					  GlobalLinkEnvironment.Config.CanProduceAdditionalConsoleApp &&
 					  UEBuildConfiguration.bBuildEditor)
