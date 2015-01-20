@@ -18,7 +18,7 @@ class UCurveTable : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** The filename that was used to create this object. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY()
+	UPROPERTY(AssetRegistrySearchable, meta=(ReimportPath))
 	FString ImportPath;
 
 

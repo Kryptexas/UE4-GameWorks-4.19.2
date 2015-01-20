@@ -525,7 +525,7 @@ class UAnimSequence : public UAnimSequenceBase
 	uint32 bWasCompressedWithoutTranslations:1;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, Instanced, Category=Reimport)
+	UPROPERTY(EditAnywhere, Instanced, Category=Reimport, AssetRegistrySearchable)
 	class UAssetImportData* AssetImportData;
 
 	/***  for Reimport **/

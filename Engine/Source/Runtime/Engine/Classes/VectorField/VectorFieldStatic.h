@@ -35,7 +35,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Path to the resource used to construct this vector field. Relative to the object's package, BaseDir() or absolute. */
-	UPROPERTY(Category=SourceAsset, VisibleAnywhere)
+	UPROPERTY(Category=SourceAsset, VisibleAnywhere, AssetRegistrySearchable, meta=(ReimportPath))
 	FString SourceFilePath;
 
 	/** Date/Time-stamp of the file from the last import */

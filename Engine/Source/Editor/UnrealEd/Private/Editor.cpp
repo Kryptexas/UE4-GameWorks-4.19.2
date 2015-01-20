@@ -2525,6 +2525,7 @@ FReimportManager* FReimportManager::Instance()
 void FReimportManager::RegisterHandler( FReimportHandler& InHandler )
 {
 	Handlers.AddUnique( &InHandler );
+	bHandlersNeedSorting = true;
 }
 
 /**
@@ -2562,16 +2563,17 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 	bool bSuccess = false;
 	if ( Obj )
 	{
+		if (bHandlersNeedSorting)
+		{
+			// Use > operator because we want higher priorities earlier in the list
+			Handlers.Sort([](const FReimportHandler& A, const FReimportHandler& B) { return A.GetPriority() > B.GetPriority(); });
+			bHandlersNeedSorting = false;
+		}
+		
 		bool bShowNotification = true;
 		bool bValidSourceFilename = false;
 		TArray<FString> SourceFilenames;
-		
-		struct FCompareReimportHandlerPriority
-		{
-			// Use > operator because we want higher priorities earlier in the list
-			FORCEINLINE bool operator()(const FReimportHandler& A, const FReimportHandler& B) const { return A.GetPriority() > B.GetPriority(); }
-		};
-		Handlers.Sort(FCompareReimportHandlerPriority());
+
 		for( int32 HandlerIndex = 0; HandlerIndex < Handlers.Num(); ++HandlerIndex )
 		{
 			SourceFilenames.Empty();

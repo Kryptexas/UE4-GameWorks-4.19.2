@@ -90,6 +90,7 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 
 UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
+	, bMonitorContentDirectories(false)
 {
 	TextDiffToolPath.FilePath = TEXT("P4Merge.exe");
 }

@@ -12,7 +12,7 @@ class UAssetImportData : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** Path to the resource used to construct this static mesh. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY(EditAnywhere, Category=ImportSettings)
+	UPROPERTY(EditAnywhere, Category=ImportSettings, AssetRegistrySearchable, meta=(ReimportPath))
 	FString SourceFilePath;
 
 	/** Date/Time-stamp of the file from the last import */

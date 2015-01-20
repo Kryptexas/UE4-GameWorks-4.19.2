@@ -34,7 +34,7 @@ class UDataTable : public UObject
 	UScriptStruct*			RowStruct;
 
 	/** The filename that was used to create this object. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY()
+	UPROPERTY(AssetRegistrySearchable, meta=(ReimportPath))
 	FString ImportPath;
 
 	/** Map of name of row to row data structure. */

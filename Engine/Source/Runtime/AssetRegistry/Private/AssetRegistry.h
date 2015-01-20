@@ -181,6 +181,11 @@ private:
 	/** The map of asset tag to asset data for assets saved to disk */
 	TMap<FName, TArray<FAssetData*> > CachedAssetsByTag;
 
+#if WITH_EDITORONLY_DATA
+	/** A map of clean source file name (asset.ext) to assets saved to disk */
+	TMap<FName, TArray<FAssetData*>> CachedAssetsBySourceFileName;
+#endif
+
 	/** A map of object names to dependency data */
 	TMap<FName, FDependsNode*> CachedDependsNodes;
 

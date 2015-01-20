@@ -6,121 +6,373 @@
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 #include "Engine/CurveTable.h"
 #include "Engine/DataTable.h"
-
+#include "AutoReimport/AutoReimportManager.h"
+#include "PackageTools.h"
+#include "ObjectTools.h"
+#include "ARFilter.h"
+#include "ContentBrowserModule.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "AutoReimportManager"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportManager, Log, All);
 
+namespace
+{
+	static const FName ReimportPathName("ReimportPath");
+
+	/** Template helper function to count the number of elements in the specified array that pass a predicate */
+	template<typename T, typename P>
+	int32 CountIf(const TArray<T>& InArray, P Predicate)
+	{
+		int32 Count = 0;
+		for (const T& X : InArray)
+		{
+			if (Predicate(X))
+			{
+				++Count;
+			}
+		}
+		return Count;
+	}
+
+	/** Reduce the array to the specified accumulator */
+	template<typename T, typename P, typename A>
+	A&& Reduce(const TArray<T>& InArray, P Predicate, A&& Accumulator)
+	{
+		for (const T& X : InArray)
+		{
+			Predicate(X, Accumulator);
+		}
+		return MoveTemp(Accumulator);
+	}
+
+	/** Retrieve a semi-colon separated string of file extensions supported by all available editor import factories */
+	FString GetAllFactoryExtensions()
+	{
+		FString AllExtensions;
+
+		// Use a scratch buffer to avoid unnecessary re-allocation
+		FString Scratch;
+		Scratch.Reserve(32);
+
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass* Class = *ClassIt;
+			if (Class->IsChildOf(UFactory::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract))
+			{
+				UFactory* Factory = Cast<UFactory>(Class->GetDefaultObject());
+				if (Factory->bEditorImport)
+				{
+					for (const FString& Format : Factory->Formats)
+					{
+						int32 Index = INDEX_NONE;
+						if (Format.FindChar(';', Index) && Index > 0)
+						{
+							Scratch.GetCharArray().Reset();
+							// Include the ;
+							Scratch.AppendChars(*Format, Index + 1);
+
+							if (AllExtensions.Find(Scratch) == INDEX_NONE)
+							{
+								AllExtensions += Scratch;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return AllExtensions;
+	}
+
+	/** Find a list of assets that were last imported from the specified filename. */
+	TArray<FAssetData> FindAssetsPertainingToFile(const IAssetRegistry& Registry, const FString& AbsoluteFilename)
+	{
+		TArray<FAssetData> Assets, Result;
+		const FString LeafName = FPaths::GetCleanFilename(AbsoluteFilename);
+
+		FARFilter Filter;
+		Filter.SourceFilenames.Add(*LeafName);
+		Filter.bIncludeOnlyOnDiskAssets = true;
+		Registry.GetAssets(Filter, Assets);
+
+		for (const auto& Asset : Assets)
+		{
+			for (const auto& Pair : Asset.TagsAndValues)
+			{
+				// We don't compare numbers on FNames for this check because the tag "ReimportPath" may exist multiple times
+				const bool bCompareNumber = false;
+				if (Pair.Key.IsEqual(ReimportPathName, ENameCase::IgnoreCase, bCompareNumber))
+				{
+					// Either relative to the asset itself, or relative to the base path, or absolute.
+					// Would ideally use FReimportManager::ResolveImportFilename here, but we don't want to ask the file system whether the file exists.
+					if (AbsoluteFilename == FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(Asset.PackagePath.ToString()) / Pair.Value) ||
+						AbsoluteFilename == FPaths::ConvertRelativePathToFull(Pair.Value))
+					{
+						Result.Add(Asset);
+						break;
+					}
+				}
+			}
+		}
+
+		return Result;
+	}
+
+	/** Generate a config from the specified options, to pass to FFileCache on construction */
+	FFileCacheConfig GenerateFileCacheConfig(const FString& InPath, const FString& InSupportedExtensions, const FString& InMountedContentPath)
+	{
+		FFileCacheConfig Config;
+		Config.Directory = FPaths::ConvertRelativePathToFull(InPath);
+		Config.IncludeExtensions = InSupportedExtensions;
+
+		const FString& HashString = InMountedContentPath.IsEmpty() ? Config.Directory : InMountedContentPath;
+		const uint32 CRC = FCrc::MemCrc32(*HashString, HashString.Len()*sizeof(TCHAR));	
+
+		Config.CacheFile = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir()) / TEXT("ReimportCache") / FString::Printf(TEXT("%u.bin"), CRC);
+		return Config;
+	}
+
+	/** Choose a location to import the specified asset into */
+	TOptional<FString> ChooseAssetImportLocation(const FString& Filename)
+	{
+		FString DefaultPath = TEXT("/Game/");
+
+		FString NameSuggestion;
+		{
+			FString PackageName = DefaultPath / FPaths::GetBaseFilename(Filename);
+			FString Name;
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+			AssetToolsModule.Get().CreateUniqueAssetName(PackageName, TEXT(""), PackageName, Name);
+
+			NameSuggestion = FPaths::GetCleanFilename(PackageName);
+		}
+
+		FSaveAssetDialogConfig Config;
+		Config.DialogTitleOverride = LOCTEXT("ImportAssetDialogTitle", "Import asset to:");
+		Config.DefaultPath = DefaultPath;
+		Config.DefaultAssetName = NameSuggestion;
+		Config.ExistingAssetPolicy = ESaveAssetDialogExistingAssetPolicy::Disallow;
+
+		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+		FString SaveObjectPath = ContentBrowserModule.Get().CreateModalSaveAssetDialog(Config);
+		if ( !SaveObjectPath.IsEmpty() )
+		{
+			return SaveObjectPath;
+		}
+
+		return TOptional<FString>();
+	}
+}
+
+FContentDirectoryMonitor::FContentDirectoryMonitor(const FString& InDirectory, const FString& InSupportedExtensions, const FString& InMountedContentPath)
+	: Cache(GenerateFileCacheConfig(InDirectory, InSupportedExtensions, InMountedContentPath))
+	, MountedContentPath(InMountedContentPath)
+	, LastProcessTime(0)
+	, LastSaveTime(0)
+{
+	Cache.Scan();
+}
+
+void FContentDirectoryMonitor::Tick(const IAssetRegistry& Registry)
+{
+	const double Now = FPlatformTime::Seconds();
+
+	// Keep accumulating periodically 'til we have no more changes
+	auto NewChanges = Cache.GetOutstandingChanges();
+	if (NewChanges.Num() != 0)
+	{
+		// Check again for any more in 1 second
+		OutstandingChanges.Append(MoveTemp(NewChanges));
+		LastProcessTime = Now;
+	}
+	else if (Now - LastProcessTime > ReactionTimeS && OutstandingChanges.Num())
+	{
+		LastProcessTime = Now;
+		ProcessOutstandingChanges(Registry);
+	}
+
+	if (Now - LastSaveTime > ResaveIntervalS)
+	{
+		LastSaveTime = Now;
+		Cache.WriteCache();
+	}
+}
+
+void FContentDirectoryMonitor::ProcessOutstandingChanges(const IAssetRegistry& Registry)
+{
+	// Count the number of additions so we can apprximate the work load
+	const int32 NumAdditions = CountIf(OutstandingChanges, [](const FUpdateCacheTransaction& Change){ return Change.Action == FFileChangeData::FCA_Added; });
+
+	auto* ReimportManager = FReimportManager::Instance();
+
+	TArray<UObject*> AssetsToDelete;
+	{
+		bool bCreatedDialog = false;
+		FScopedSlowTask SlowTask(OutstandingChanges.Num() + NumAdditions, LOCTEXT("ProcessingChanges", "Processing source content changes"));
+		SlowTask.MakeDialog();
+
+		TArray<UPackage*> PackagesToSave;
+
+		for (auto& Change : OutstandingChanges)
+		{
+			const FString FullFilename = Cache.GetDirectory() + Change.Filename.Get();
+
+			if (!bCreatedDialog && FPlatformTime::Seconds() - SlowTask.StartTime > 2)
+			{
+				//SlowTask.MakeDialog();
+				bCreatedDialog = true;
+			}
+			
+			SlowTask.EnterProgressFrame();
+			switch(Change.Action)
+			{
+				case FFileChangeData::FCA_Modified:
+					// @todo: arodham: enable/disable specific extensions/asset types?
+					{
+						for (const auto& AssetData : FindAssetsPertainingToFile(Registry, FullFilename))
+						{
+							UObject* Asset = AssetData.GetAsset();
+							ReimportManager->Reimport(Asset);
+						}
+					}
+					break;
+
+				case FFileChangeData::FCA_Added:
+					{
+						FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+
+						TArray<FString> File;
+						File.Add(FullFilename);
+
+						FString ParentPackage;
+						if (MountedContentPath.IsEmpty())
+						{
+							// @todo: arodham: this is sketchy and needs revisiting. PromptUserForDirectory?
+							auto UserChosenPath = ChooseAssetImportLocation(FullFilename);
+							if (UserChosenPath.IsSet())
+							{
+								ParentPackage = UserChosenPath.GetValue();
+							}
+						}
+						else
+						{
+							ParentPackage = MountedContentPath / PackageTools::SanitizePackageName(FPaths::GetPath(Change.Filename.Get()));
+						}
+
+						if (!ParentPackage.IsEmpty())
+						{
+							auto NewAssets = AssetToolsModule.Get().ImportAssets(File, ParentPackage);
+
+							// @todo: arodham: Error reporting
+
+							for (auto* Asset : NewAssets)
+							{
+								UPackage* Package = Asset->GetOutermost();
+								if (Package)
+								{
+									PackagesToSave.Add(Package);
+								}
+							}
+						}
+					}
+					break;
+
+				case FFileChangeData::FCA_Removed:
+					for (const auto& AssetData : FindAssetsPertainingToFile(Registry, FullFilename))
+					{
+						AssetsToDelete.Add(AssetData.GetAsset());
+					}
+					break;
+
+				default:
+					break;
+			}
+
+			// Let the cache know that we've dealt with this change
+			Cache.CompleteTransaction(MoveTemp(Change));
+		}
+
+		SlowTask.EnterProgressFrame(NumAdditions);
+		if (PackagesToSave.Num() > 0)
+		{
+			const bool bAlreadyCheckedOut = false;
+			const bool bCheckDirty = false;
+			const bool bPromptToSave = false;
+			// @todo: arodham: Error reporting?
+			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave, nullptr, bAlreadyCheckedOut);
+		}
+	}
+
+	// Open a dialog to ask about deleted files
+	// @todo: this needs improvement
+
+	if (AssetsToDelete.Num() > 0)
+	{
+		ObjectTools::DeleteObjects(AssetsToDelete);
+	}
+
+	OutstandingChanges.Empty();
+}
 
 UAutoReimportManager::UAutoReimportManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bIsProcessingChanges(false)
 {
-	ReimportTime = 0.0f;
-}
 
-FDelegateHandle UAutoReimportManager::AddReimportDelegate( const FString& FileType, const FAutoReimportDelegate& Delegate )
-{
-	if(ReimportDelegates* Del = ExtensionToReimporter.Find(FileType))
-	{
-		Del->Add(Delegate);
-		return Del->Last().GetHandle();
-	}
-
-	ReimportDelegates Delegates;
-	Delegates.Add(Delegate);
-	return ExtensionToReimporter.Add(FileType, Delegates).Last().GetHandle();
-}
-
-void UAutoReimportManager::RemoveReimportDelegate( const FString& FileType, const FAutoReimportDelegate& InDelegate )
-{
-	if(ReimportDelegates* Del = ExtensionToReimporter.Find(FileType))
-	{
-		Del->RemoveAll([&](const FAutoReimportDelegate& Delegate){ return Delegate.DEPRECATED_Compare(InDelegate); });
-	}
-}
-
-void UAutoReimportManager::RemoveReimportDelegate( const FString& FileType, FDelegateHandle Handle )
-{
-	if(ReimportDelegates* Del = ExtensionToReimporter.Find(FileType))
-	{
-		Del->RemoveAll([=](const FAutoReimportDelegate& Delegate){ return Delegate.GetHandle() == Handle; });
-	}
 }
 
 void UAutoReimportManager::Initialize()
 {
-	//Add all auto reimport delegates
+	// @todo: arodham: update this when modules are reloaded or new factory types are available?
+	SupportedExtensions = GetAllFactoryExtensions();
 
-	//csv types
-	AddReimportDelegate("csv", FAutoReimportDelegate::CreateStatic(&UAutoReimportManager::AutoReimportCurve));
-	AddReimportDelegate("csv", FAutoReimportDelegate::CreateStatic(&UAutoReimportManager::AutoReimportCurveTable));
-	AddReimportDelegate("csv", FAutoReimportDelegate::CreateStatic(&UAutoReimportManager::AutoReimportDataTable));
-	
-	//textures
-	AddReimportDelegate( "tga", FAutoReimportDelegate::CreateStatic( &UAutoReimportManager::AutoReimportTexture ) );
-	AddReimportDelegate( "dds", FAutoReimportDelegate::CreateStatic( &UAutoReimportManager::AutoReimportTexture ) );
-	AddReimportDelegate( "png", FAutoReimportDelegate::CreateStatic( &UAutoReimportManager::AutoReimportTexture ) );
-	AddReimportDelegate( "jpg", FAutoReimportDelegate::CreateStatic( &UAutoReimportManager::AutoReimportTexture ) );
-	AddReimportDelegate( "jpeg", FAutoReimportDelegate::CreateStatic( &UAutoReimportManager::AutoReimportTexture ) );
-	AddReimportDelegate( "psd", FAutoReimportDelegate::CreateStatic( &UAutoReimportManager::AutoReimportTexture ) );
-	AddReimportDelegate( "bmp", FAutoReimportDelegate::CreateStatic( &UAutoReimportManager::AutoReimportTexture ) );
+	auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
+	Settings->OnSettingChanged().AddUObject(this, &UAutoReimportManager::HandleLoadingSavingSettingChanged);
 
-	//Want notification when files change in specific directories
-	GetMutableDefault<UEditorLoadingSavingSettings>()->OnSettingChanged().AddUObject(this, &UAutoReimportManager::HandleLoadingSavingSettingChanged);
+	FPackageName::OnContentPathMounted().AddUObject(this, &UAutoReimportManager::OnContentPathMounted);
+	FPackageName::OnContentPathDismounted().AddUObject(this, &UAutoReimportManager::OnContentPathDismounted);
 
-	AutoReimportDirectories = GetDefault<UEditorLoadingSavingSettings>()->AutoReimportDirectories;
-	for(auto It(AutoReimportDirectories.CreateIterator()); It; ++It)
+	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+	AssetRegistry.OnInMemoryAssetDeleted().AddUObject(this, &UAutoReimportManager::OnAssetDeleted);
+
+
+	// Only set this up for content directories if the user has this enabled
+	if (Settings->bMonitorContentDirectories)
 	{
-		//Fix up existing user paths
-		*It = FixUserPath(*It);
-
-		//watch it
-		WatchedDirectories.Add(this, *It);
+		SetUpMountedContentDirectories();
 	}
-	
+
+	// We always monitor user directories if they are set
+	SetUpUserDirectories();
 }
 
-FString UAutoReimportManager::FixUserPath(  FString File )
+void UAutoReimportManager::BeginDestroy() 
 {
-	FPaths::NormalizeFilename(File);
-	if(File.EndsWith(TEXT("/")) == false)
-	{
-		File += TEXT("/");
-	}
-	return File;
-}
+	// Force a save of all the caches
+	MountedDirectoryMonitors.Empty();
+	UserDirectoryMonitors.Empty();
 
-void UAutoReimportManager::BeginDestroy( void ) 
-{
-	for(auto It(AutoReimportDirectories.CreateIterator());It;++It)
-	{
-		FString Directory = *It;
-		WatchedDirectories.Remove(this, Directory);
-	}
 	Super::BeginDestroy();
 }
 
-void UAutoReimportManager::Tick( float DeltaTime ) 
+void UAutoReimportManager::Tick(float DeltaTime)
 {
-	ReimportTime += DeltaTime;
+	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
 
-	//we wait this amount of time after a modification to re-import, this is because some tools save the file multiple times
-	const double DeltaSinceModified = 1.0;
-
-	//last modification must have been prior to this time
-	const double CanImportTime = ReimportTime - DeltaSinceModified;
-
-	//Reimport files that have been modified
-	for (auto It(ModifiedFiles.CreateIterator());It;++It)
+	// We can't do this if the registry is loading assets as we won't necesssarily be able to action changes effectively
+	if (!Registry.IsLoadingAssets())
 	{
-		if(It.Value() < CanImportTime)
+		TGuardValue<bool> Guard(bIsProcessingChanges, true);
+
+		for (auto& Monitor : MountedDirectoryMonitors)
 		{
-			if(ReimportDelegates* Reimporters = ExtensionToReimporter.Find(FPaths::GetExtension(It.Key())))
-			{
-				OnFileModified(*Reimporters, It.Key());
-			}
-			It.RemoveCurrent();
+			Monitor.Tick(Registry);
+		}
+		for (auto& Monitor : UserDirectoryMonitors)
+		{
+			Monitor.Tick(Registry);
 		}
 	}
 }
@@ -130,270 +382,146 @@ TStatId UAutoReimportManager::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UAutoReimportManager, STATGROUP_Tickables);
 }
 
-bool UAutoReimportManager::ReimportFile(UObject* Obj, const FString File)
+void UAutoReimportManager::HandleLoadingSavingSettingChanged(FName PropertyName)
 {
-	UPackage* Package = Obj->GetOutermost();
-	check(Package);
-
-	//found a match, reimport!
-	if(FReimportManager::Instance()->Reimport( Obj ))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UEditorLoadingSavingSettings, AutoReimportDirectories))
 	{
-		return true;
+		SetUpUserDirectories();
 	}
-
-	return false;
-}
-
-void UAutoReimportManager::HandleLoadingSavingSettingChanged( FName PropertyName )
-{
-	if (PropertyName.ToString() == "AutoReimportDirectories")
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UEditorLoadingSavingSettings, bMonitorContentDirectories))
 	{
-		for (auto It(AutoReimportDirectories.CreateIterator()); It; ++It)
+		const auto* Settings = GetDefault<UEditorLoadingSavingSettings>();
+		if (Settings->bMonitorContentDirectories)
 		{
-			WatchedDirectories.Remove(this, *It);
+			// Should already be empty, but just to be sure
+			MountedDirectoryMonitors.Empty();
+			SetUpMountedContentDirectories();
 		}
-
-		//Fix up slash issues with whatever user entered
-		for (auto It(GetMutableDefault<UEditorLoadingSavingSettings>()->AutoReimportDirectories.CreateIterator()); It; ++It)
+		else
 		{
-			*It = FixUserPath(*It);
-		}
-
-		AutoReimportDirectories = GetDefault<UEditorLoadingSavingSettings>()->AutoReimportDirectories;
-		for (auto It(AutoReimportDirectories.CreateIterator()); It; ++It)
-		{
-			WatchedDirectories.Add(this, *It);
-		}
-	}
-}
-
-void UAutoReimportManager::OnDirectoryChanged( const TArray<struct FFileChangeData>& FileChanges )
-{
-	for (int32 FileIdx = 0; FileIdx < FileChanges.Num(); ++FileIdx)
-	{
-	    FString File = FileChanges[FileIdx].Filename;
-		FPaths::NormalizeFilename(File);
-		const FString FileExtension = FPaths::GetExtension(File);
-
-		if ((FileChanges[FileIdx].Action != FFileChangeData::FCA_Removed) && ExtensionToReimporter.Contains(FileExtension))
-		{
-			ModifiedFiles.Add(File,ReimportTime);//will overwrite with most recent modified time
-		} 	
-	}
-}
-
-bool UAutoReimportManager::OnFileModified(ReimportDelegates& Delegates,  const FString& File )
-{
-	for( TObjectIterator<UObject> ObjIt; ObjIt; ++ObjIt )
-	{
-		UObject* Object  = *ObjIt;
-		for( auto It = Delegates.CreateIterator();It;++It)
-		{
-			FAutoReimportDelegate& Delegate = *It;
-			if(Delegate.Execute(Object, File))
+			// Destroy all the existing montirs, including their file caches
+			for (auto& Monitor : MountedDirectoryMonitors)
 			{
-				return true;
+				Monitor.Destroy();
 			}
+			MountedDirectoryMonitors.Empty();
 		}
 	}
-	return false;
 }
 
-bool UAutoReimportManager::JustFileNameMatches(const FString& ObjectPath, const FString& FileName)
+void UAutoReimportManager::OnContentPathMounted(const FString& InAssetPath, const FString& FileSystemPath)
 {
-	return FPaths::GetCleanFilename(ObjectPath) == FPaths::GetCleanFilename(FileName);
+	MountedDirectoryMonitors.Emplace(FPaths::ConvertRelativePathToFull(FileSystemPath), SupportedExtensions, InAssetPath);
 }
 
-bool UAutoReimportManager::IsSamePath(const FString& ObjectPath, const FString& FileName)
+void UAutoReimportManager::OnContentPathDismounted(const FString& InAssetPath, const FString& FileSystemPath)
 {
-	if(ObjectPath.Len() == 0)
-	{
-		return false;
-	}
-
-	if(FPaths::GetBaseFilename(ObjectPath) != FPaths::GetBaseFilename(FileName))
-	{
-		return false;
-	}
-
-	FString NormalizedName = ObjectPath;
-	FPaths::NormalizeFilename(NormalizedName);
-
-	if(ObjectPath == FileName) 
-	{
-		return true;
-	}	
-
-	const bool ObjIsRelative = FPaths::IsRelative(NormalizedName);
-	const bool FileIsRelative = FPaths::IsRelative(FileName);
-
-	if(ObjIsRelative && !FileIsRelative)
-	{
-		return FPaths::ConvertRelativePathToFull(NormalizedName) == FileName;
-	}
-	else if(!ObjIsRelative && FileIsRelative)
-	{
-		return NormalizedName == FPaths::ConvertRelativePathToFull(FileName);
-	}
-
-	return false;
-
+	MountedDirectoryMonitors.RemoveAll([&](const FContentDirectoryMonitor& Monitor){
+		return Monitor.GetMountedContentPath() == InAssetPath;
+	});
 }
 
-void UAutoReimportManager::FDirectories::Add( UAutoReimportManager* AutoReimportManager, const FString&  FileName )
+void UAutoReimportManager::OnAssetDeleted(UObject* Object)
 {
-	bool bFound = false;
-	for(auto It(Paths.CreateIterator());It;++It)
+	if (bIsProcessingChanges)
 	{
-		FDirectory& Path = *It;	
-		if(Path.Path == FileName)
+		return;
+	}
+
+	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+
+	bool bCanDelete = true;
+
+	TArray<FAssetRegistryTag> Tags;
+	Object->GetAssetRegistryTags(Tags);
+
+	TArray<FString> AbsoluteSourceFileNames;
+
+	for (const auto& Tag : Tags)
+	{
+		// Don't compare the FName number suffix
+		if (Tag.Name.IsEqual(ReimportPathName, ENameCase::IgnoreCase, false))
 		{
-			Path.Count++;
-			bFound = true;
-			break;
-		}
-	}
-	if(!bFound)
-	{
-		Paths.Add(FDirectory(FileName));
-		AutoReimportManager->ActivateAutoReimport(FileName);
-	}
-}
-
-void UAutoReimportManager::FDirectories::Remove( UAutoReimportManager* AutoReimportManager,  const FString& FileName )
-{
-	bool bFound = false;
-	for(auto It(Paths.CreateIterator());It;++It)
-	{
-		FDirectory& Path = *It;	
-		if(Path.Path == FileName)
-		{
-			Path.Count--;
-			if(0 == Path.Count)
+			const FString SourceFile = FReimportManager::ResolveImportFilename(Tag.Value, Object);
+			// Check there aren't any other assets referencing this thing
+			if (FindAssetsPertainingToFile(Registry, SourceFile).Num() != 0)
 			{
-				Paths.RemoveAt(It.GetIndex());
-				AutoReimportManager->DeactivateAutoReimport(FileName);
+				bCanDelete = false;
+				break;
 			}
-			bFound = true;
-			break;
-		}
-	}
-
-	check(bFound);
-}
-
-void UAutoReimportManager::ActivateAutoReimport( const FString& Directory)
-{
-	// Register for notifications when files change in the content folders
-	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
-	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
-	if (DirectoryWatcher)
-	{
-		if(Directory.IsEmpty() == false)
-		{
-			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(Directory, IDirectoryWatcher::FDirectoryChanged::CreateUObject(this, &UAutoReimportManager::OnDirectoryChanged), OnDirectoryChangedDelegateHandle);
-		}
-	}
-}
-
-void UAutoReimportManager::DeactivateAutoReimport( const FString& Directory )
-{
-	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
-	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
-	if (DirectoryWatcher)
-	{
-		if(Directory.IsEmpty() == false)
-		{
-			DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(Directory, OnDirectoryChangedDelegateHandle);
-		}
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
-// Auto Reimport handlers
-
-bool UAutoReimportManager::AutoReimportCurve( UObject* Object, const FString& FileName )
-{
-	if (GetDefault<UEditorLoadingSavingSettings>()->bAutoReimportCSV)
-	{
-		if (UCurveBase* Curve = Cast<UCurveBase>(Object))
-		{
-			if (JustFileNameMatches(Curve->ImportPath, FileName))
+			else
 			{
-				Curve->ImportPath = FReimportManager::SanitizeImportFilename(FileName, Curve);
-				ReimportFile(Curve,FileName);
-
-				return true;
+				AbsoluteSourceFileNames.Add(MoveTemp(SourceFile));
 			}
 		}
 	}
 
-	return false;
-}
-
-bool UAutoReimportManager::AutoReimportCurveTable( UObject* Object, const FString& FileName )
-{
-	if (GetDefault<UEditorLoadingSavingSettings>()->bAutoReimportCSV)
+	if (bCanDelete)
 	{
-		if (UCurveTable* CurveTable = Cast<UCurveTable>(Object))
+		// Offer to delete the source file(s) as well
+		const FText MessageText = FText::Format(LOCTEXT("DeleteRelatedAssets", "The asset '{0}' has been deleted. Would you like to delete the source files it was imported from as well?"), FText::FromString(Object->GetName()) );
+		if (FMessageDialog::Open(EAppMsgType::YesNo, MessageText) == EAppReturnType::Yes)
 		{
-			if (JustFileNameMatches(CurveTable->ImportPath, FileName))
-			{
-				CurveTable->ImportPath = FReimportManager::SanitizeImportFilename(FileName, CurveTable);
-				ReimportFile(CurveTable, FileName);
+			auto& FileManager = IFileManager::Get();
 
-				return true;
+			for (auto& Filename : AbsoluteSourceFileNames)
+			{
+				FileManager.Delete(*Filename, false /* RequireExists */, true /* Even if read only */, true /* Quiet */);
 			}
 		}
 	}
-
-	return false;
 }
 
-bool UAutoReimportManager::AutoReimportDataTable( UObject* Object, const FString& FileName )
+void UAutoReimportManager::SetUpMountedContentDirectories()
 {
-	if (GetDefault<UEditorLoadingSavingSettings>()->bAutoReimportCSV)
+	TArray<FString> ContentPaths;
+	FPackageName::QueryRootContentPaths(ContentPaths);
+	for (const auto& ContentPath : ContentPaths)
 	{
-		if (UDataTable* DataTable = Cast<UDataTable>(Object))
-		{
-			if (JustFileNameMatches(DataTable->ImportPath, FileName))
-			{
-				DataTable->ImportPath = FReimportManager::SanitizeImportFilename(FileName, DataTable);
-				ReimportFile(DataTable, FileName);
+		const FString Directory = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(ContentPath));
+		MountedDirectoryMonitors.Emplace(Directory, SupportedExtensions, ContentPath);
+	}
+}
 
-				return true;
-			}
+void UAutoReimportManager::SetUpUserDirectories()
+{
+	TArray<bool> PersistedDirectories;
+	PersistedDirectories.AddZeroed(UserDirectoryMonitors.Num());
+
+	// Also set up user-specified directories
+	TArray<FString> NewDirectories = GetDefault<UEditorLoadingSavingSettings>()->AutoReimportDirectories;
+
+	for (int32 Index = 0; Index < NewDirectories.Num(); ++Index)
+	{
+		NewDirectories[Index] = FPaths::ConvertRelativePathToFull(NewDirectories[Index]);
+		const int32 Existing = UserDirectoryMonitors.IndexOfByPredicate([&](const FContentDirectoryMonitor& InMonitor){ return InMonitor.GetDirectory() == NewDirectories[Index]; });
+		if (Existing != INDEX_NONE)
+		{
+			PersistedDirectories[Existing] = true;
+		}
+		else
+		{
+			// Add a new one
+			UserDirectoryMonitors.Emplace(NewDirectories[Index], SupportedExtensions);
+			PersistedDirectories.Add(true);
 		}
 	}
 
-	return false;
-}
-
-bool UAutoReimportManager::AutoReimportTexture( UObject* Object, const FString& FileName )
-{
-	if (GetDefault<UEditorLoadingSavingSettings>()->bAutoReimportTextures)
+	// Delete anything that is no longer needed (we delete the cache file altogether)
+	for (int32 Index = PersistedDirectories.Num() - 1; Index >= 0; --Index)
 	{
-		if (UTexture* Texture = Cast<UTexture>(Object))
+		if (!PersistedDirectories[Index])
 		{
-			if (IsSamePath(FReimportManager::ResolveImportFilename(Texture->SourceFilePath, Texture), FileName))
-			{
-				// Prevent the texture from being compressed immediately, so the user can see the results
-				auto SavedCompressionSetting = Texture->DeferCompression;
-				Texture->DeferCompression = true;
-
-				if (ReimportFile(Texture, FileName))
-				{
-					return true;
-				}
-
-				Texture->DeferCompression  = SavedCompressionSetting;
-			}
+			UserDirectoryMonitors[Index].Destroy();
+			UserDirectoryMonitors.RemoveAt(Index, 1, false);
 		}
 	}
 
-	return false;
+	if (UserDirectoryMonitors.GetSlack() > UserDirectoryMonitors.Max() / 2)
+	{
+		UserDirectoryMonitors.Shrink();
+	}
 }
-
 
 #undef LOCTEXT_NAMESPACE
 
