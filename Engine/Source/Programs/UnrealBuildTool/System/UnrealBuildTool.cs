@@ -1231,7 +1231,9 @@ namespace UnrealBuildTool
             // Print some performance info
             Log.TraceVerbose("Execution time: {0}", (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds);
 
-            return (int) Result;
+            int RetVal = (Result == ECompilationResult.Succeeded || Result == ECompilationResult.UpToDate) ? 0 : (int)Result;
+
+            return RetVal; 
         }
 
 
