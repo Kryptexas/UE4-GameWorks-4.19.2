@@ -2755,29 +2755,32 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete );
 				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename );
 
-				// Collect the classes of all selected objects
-				TArray<UClass*> SelectionClasses;
-				for( auto NodeIter = SelectedNodes.CreateConstIterator(); NodeIter; ++NodeIter )
+				if(EditorMode.Get() == EEditorMode::BlueprintSCS)
 				{
-					auto TreeNode = *NodeIter;
-					if( TreeNode->GetComponentTemplate() )
+					// Collect the classes of all selected objects
+					TArray<UClass*> SelectionClasses;
+					for( auto NodeIter = SelectedNodes.CreateConstIterator(); NodeIter; ++NodeIter )
 					{
-						SelectionClasses.Add( TreeNode->GetComponentTemplate()->GetClass() );
+						auto TreeNode = *NodeIter;
+						if( TreeNode->GetComponentTemplate() )
+						{
+							SelectionClasses.Add( TreeNode->GetComponentTemplate()->GetClass() );
+						}
 					}
-				}
 
-				if ( SelectionClasses.Num() )
-				{
-					// Find the common base class of all selected classes
-					UClass* SelectedClass = UClass::FindCommonBase( SelectionClasses );
-					// Build an event submenu if we can generate events
-					if( FBlueprintEditorUtils::CanClassGenerateEvents( SelectedClass ))
+					if ( SelectionClasses.Num() )
 					{
-						MenuBuilder.AddSubMenu(	LOCTEXT("AddEventSubMenu", "Add Event"), 
-							LOCTEXT("ActtionsSubMenu_ToolTip", "Add Event"), 
-							FNewMenuDelegate::CreateStatic( &SSCSEditor::BuildMenuEventsSection,
+						// Find the common base class of all selected classes
+						UClass* SelectedClass = UClass::FindCommonBase( SelectionClasses );
+						// Build an event submenu if we can generate events
+						if( FBlueprintEditorUtils::CanClassGenerateEvents( SelectedClass ))
+						{
+							MenuBuilder.AddSubMenu(	LOCTEXT("AddEventSubMenu", "Add Event"), 
+								LOCTEXT("ActtionsSubMenu_ToolTip", "Add Event"), 
+								FNewMenuDelegate::CreateStatic( &SSCSEditor::BuildMenuEventsSection,
 								GetBlueprint(), SelectedClass, FCanExecuteAction::CreateSP(this, &SSCSEditor::IsEditingAllowed),
 								FGetSelectedObjectsDelegate::CreateSP(this, &SSCSEditor::GetSelectedItemsForContextMenu)));
+						}
 					}
 				}
 			}
