@@ -19,6 +19,7 @@ DECLARE_DELEGATE( FDeleteNotify )
 DECLARE_DELEGATE( FDeselectAllNotifies )
 DECLARE_DELEGATE( FCopyNotifies )
 DECLARE_DELEGATE_OneParam( FOnGetBlueprintNotifyData, TArray<FAssetData>& )
+DECLARE_DELEGATE_OneParam( FOnGetNativeNotifyClasses, TArray<UClass*>&)
 
 class SAnimNotifyNode;
 class SAnimNotifyTrack;
@@ -265,6 +266,14 @@ private:
 	 * @param InOutAllowedClassNames Classes to allow, this will be expanded to cover all derived classes of those originally present
 	 */
 	void OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyData, TArray<FString>* InOutAllowedClassNames);
+
+	/** Find classes that inherit from NotifyOutermost and add correctly formatted class name to OutAllowedBlueprintClassNames
+	 *  to allow us to find blueprints inherited from those types without loading the blueprints.
+	 *	@param OutClasses Array of classes that inherit from NotifyOutermost
+	 *	@param NotifyOutermost Outermost notify class to detect children of
+	 *	@param OutAllowedBlueprintClassNames list of class names to add the native class names to
+	 */
+	void OnGetNativeNotifyData(TArray<UClass*>& OutClasses, UClass* NotifyOutermost, TArray<FString>* OutAllowedBlueprintClassNames);
 
 	/** Persona reference **/
 	TWeakPtr<FPersona> PersonaPtr;
