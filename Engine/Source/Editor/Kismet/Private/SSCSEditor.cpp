@@ -3032,7 +3032,7 @@ FText SSCSEditor::GetActorDisplayText() const
 		}
 		else
 		{
-			DefaultActor->GetName(Name);
+			Name = DefaultActor->GetActorLabel();
 			return FText::Format(LOCTEXT("DefaultActor_Name", "{0}"), FText::FromString(Name));
 		}
 	}
