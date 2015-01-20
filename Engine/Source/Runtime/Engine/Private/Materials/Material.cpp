@@ -2278,9 +2278,6 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		}
 	}
 
-	// Check if the material is masked and uses a custom opacity (that's not 1.0f).
-	bIsMasked = (((EBlendMode(BlendMode) == BLEND_Masked) && (OpacityMask.Expression || (OpacityMask.UseConstant && OpacityMask.Constant < 0.999f))) || bUseMaterialAttributes);
-
 	bool bRequiresCompilation = true;
 	if( PropertyThatChanged ) 
 	{
@@ -3444,7 +3441,22 @@ float UMaterial::GetOpacityMaskClipValue(bool bIsInGameThread) const
 
 EBlendMode UMaterial::GetBlendMode(bool bIsInGameThread) const
 {
-	return BlendMode;
+	if (EBlendMode(BlendMode) == BLEND_Masked)
+	{
+		// Check if the material is masked and uses a custom opacity (that's not 1.0f).
+		if ((((OpacityMask.Expression || (OpacityMask.UseConstant && OpacityMask.Constant < 0.999f))) || bUseMaterialAttributes))
+		{
+			return BLEND_Masked;
+		}
+		else
+		{
+			return BLEND_Opaque;
+		}
+	}
+	else
+	{
+		return BlendMode;
+	}
 }
 
 EMaterialShadingModel UMaterial::GetShadingModel(bool bIsInGameThread) const
@@ -3473,7 +3485,7 @@ bool UMaterial::IsTwoSided(bool bIsInGameThread) const
 
 bool UMaterial::IsMasked(bool bIsInGameThread) const
 {
-	return bIsMasked != 0;
+	return GetBlendMode() == BLEND_Masked;
 }
 
 USubsurfaceProfile* UMaterial::GetSubsurfaceProfile_Internal() const

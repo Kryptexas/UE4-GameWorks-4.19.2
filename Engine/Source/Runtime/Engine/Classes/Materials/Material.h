@@ -644,9 +644,9 @@ public:
 	UPROPERTY()
 	TArray<struct FMaterialParameterCollectionInfo> MaterialParameterCollectionInfos;
 
-	/** true if Material is masked and uses custom opacity */
-	UPROPERTY()
-	uint32 bIsMasked:1;
+ 	/** true if Material is masked and uses custom opacity */
+ 	UPROPERTY()
+ 	uint32 bIsMasked_DEPRECATED:1;
 
 	/** true if Material is the preview material used in the material editor. */
 	UPROPERTY(transient, duplicatetransient)
