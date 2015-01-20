@@ -900,20 +900,8 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 	{
 		if (Outer)
 		{
-			UActorFactory* FactoryToUse = GEditor->FindActorFactoryForActorClass( Actor->GetClass() );
-
-			if( FactoryToUse != NULL )
-			{
-				// Create the blueprint
-				UObject* Asset = FactoryToUse->GetAssetFromActorInstance(Actor);
-				// For Actors that don't have an asset associated with them, Asset will be null
-				NewBlueprint = FactoryToUse->CreateBlueprint( Asset, Outer, BlueprintName, FName("CreateFromActor") );
-			}
-			else 
-			{
-				// We don't have a factory, but we can still try to create a blueprint for this actor class
-				NewBlueprint = FKismetEditorUtilities::CreateBlueprint( Actor->GetClass(), Outer, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("CreateFromActor") );
-			}
+			// We don't have a factory, but we can still try to create a blueprint for this actor class
+			NewBlueprint = FKismetEditorUtilities::CreateBlueprint( Actor->GetClass(), Outer, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("CreateFromActor") );
 		}
 
 		if(NewBlueprint)
@@ -923,6 +911,84 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 
 			// Mark the package dirty
 			Outer->MarkPackageDirty();
+
+			// If the source Actor has Instance Components we need to translate these in to SCS Nodes
+			if (Actor->InstanceComponents.Num() > 0)
+			{
+				USimpleConstructionScript* SCS = NewBlueprint->SimpleConstructionScript;
+
+				TArray<UBlueprint*> ParentBPStack;
+				UBlueprint::GetBlueprintHierarchyFromClass(NewBlueprint->GeneratedClass, ParentBPStack);
+
+				TMap<USceneComponent*, USCS_Node*> SceneComponentsToAdd;
+				TMap<USceneComponent*, USCS_Node*> InstanceComponentToNodeMap;
+
+				for (UActorComponent* ActorComponent : Actor->InstanceComponents)
+				{
+					USCS_Node* SCSNode = SCS->CreateNode(ActorComponent->GetClass());
+					UEditorEngine::CopyPropertiesForUnrelatedObjects(ActorComponent,SCSNode->ComponentTemplate);
+
+					// The easy part is non-scene component or the Root simply add it
+					if (!ActorComponent->IsA<USceneComponent>() || ActorComponent == Actor->GetRootComponent())
+					{
+						SCS->AddNode(SCSNode);
+					}
+					else
+					{
+						USceneComponent* SceneComponent = CastChecked<USceneComponent>(ActorComponent);
+						check(SceneComponent->AttachParent);
+
+						InstanceComponentToNodeMap.Add(SceneComponent,SCSNode);
+
+						// If we're attached to a blueprint component look it up as the variable name is the component name
+						if (SceneComponent->AttachParent->bCreatedByConstructionScript)
+						{
+							USCS_Node* ParentSCSNode = nullptr;
+							for (UBlueprint* Blueprint : ParentBPStack)
+							{
+								ParentSCSNode = Blueprint->SimpleConstructionScript->FindSCSNode(SceneComponent->AttachParent->GetFName());
+								if (ParentSCSNode)
+								{
+									break;
+								}
+							}
+							check(ParentSCSNode);
+
+							if (ParentSCSNode->GetSCS() != SCS)
+							{
+								SCS->AddNode(SCSNode);
+							}
+
+							SCSNode->SetParent(ParentSCSNode);
+						}
+						// If we're attached to a native component
+						else if (!Actor->InstanceComponents.Contains(SceneComponent->AttachParent))
+						{
+							SCS->AddNode(SCSNode);
+							SCSNode->SetParent(SceneComponent->AttachParent);
+						}
+						else
+						{
+							// Otherwise check if we've already created the parents' new SCS node and attach to that or cache it off to do next pass
+							USCS_Node** ParentSCSNode = InstanceComponentToNodeMap.Find(SceneComponent->AttachParent);
+							if (ParentSCSNode)
+							{
+								(*ParentSCSNode)->AddChildNode(SCSNode);
+							}
+							else
+							{
+								SceneComponentsToAdd.Add(SceneComponent, SCSNode);
+							}
+						}
+					}
+				}
+
+				// Hook up the remaining components nodes that the parent's node was missing when it was processed
+				for (auto ComponentIt = SceneComponentsToAdd.CreateConstIterator(); ComponentIt; ++ComponentIt)
+				{
+					InstanceComponentToNodeMap.FindChecked(ComponentIt.Key()->AttachParent)->AddChildNode(ComponentIt.Value());
+				}
+			}
 
 			if(NewBlueprint->GeneratedClass)
 			{
@@ -941,6 +1007,9 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 						// Ensure the light mass information is cleaned up
 						Scene->InvalidateLightingCache();
 					}
+
+					// Clear the instance properties array as we created SCS nodes for them
+					CDOAsActor->InstanceComponents.Empty();
 				}
 			}
 
