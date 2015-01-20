@@ -59,16 +59,16 @@ public:
 	 */
 	virtual void ShutdownModule() override
 	{
-#if WITH_EDITOR
-		UnsubscribeEvents();
-#endif
-
 		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Foliage);
 
 		if (!UObjectInitialized())
 		{
 			return;
 		}
+
+#if WITH_EDITOR
+		UnsubscribeEvents();
+#endif
 
 		// Unregister the details customization
 		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
