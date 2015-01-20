@@ -1812,7 +1812,7 @@ public:
 	virtual void EnterTool()
 	{
 		// Make sure gizmo actor is selected
-		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
+		ALandscapeGizmoActiveActor* Gizmo = this->EdMode->CurrentGizmoActor.Get();
 		if (Gizmo)
 		{
 			GEditor->SelectNone(false, true);
