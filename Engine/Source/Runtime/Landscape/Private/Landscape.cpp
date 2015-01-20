@@ -2971,19 +2971,21 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 				UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent = Inner.Foliage.Get();
 				if (HierarchicalInstancedStaticMeshComponent && StillUsed.Contains(HierarchicalInstancedStaticMeshComponent))
 				{
-					Exchange(HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, Inner.Builder->InstanceBuffer);
-					HierarchicalInstancedStaticMeshComponent->AcceptPrebuiltTree(Inner.Builder->ClusterTree);
-
-					if (bForceSync)
+					if (Inner.Builder->InstanceBuffer.Num())
 					{
-						HierarchicalInstancedStaticMeshComponent->RecreateRenderState_Concurrent();
+						Exchange(HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, Inner.Builder->InstanceBuffer);
+						HierarchicalInstancedStaticMeshComponent->AcceptPrebuiltTree(Inner.Builder->ClusterTree);
+						if (bForceSync)
+						{
+							HierarchicalInstancedStaticMeshComponent->RecreateRenderState_Concurrent();
+						}
 					}
-					FCachedLandscapeFoliage::FGrassComp* Existing = FoliageCache.CachedGrassComps.Find(Inner.Key);
-					if (Existing)
-					{
-						Existing->Pending = false;
-						Existing->Touch();
-					}
+				}
+				FCachedLandscapeFoliage::FGrassComp* Existing = FoliageCache.CachedGrassComps.Find(Inner.Key);
+				if (Existing)
+				{
+					Existing->Pending = false;
+					Existing->Touch();
 				}
 				delete Inner.Builder;
 				delete Task;
