@@ -40,6 +40,7 @@
 #include "Materials/MaterialExpressionDivide.h"
 #include "Materials/MaterialExpressionDotProduct.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
+#include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionEyeAdaptation.h"
 #include "Materials/MaterialExpressionFeatureLevelSwitch.h"
 #include "Materials/MaterialExpressionFloor.h"
@@ -8900,6 +8901,13 @@ bool UMaterialExpressionSpeedTree::CanEditChange(const UProperty* InProperty) co
 
 #endif
 
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionCustomOutput
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionCustomOutput::UMaterialExpressionCustomOutput(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionEyeAdaptation

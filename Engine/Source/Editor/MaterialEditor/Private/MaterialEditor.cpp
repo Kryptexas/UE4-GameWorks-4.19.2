@@ -1128,17 +1128,8 @@ void FMaterialEditor::RegenerateCodeView(bool bForce)
 		return;
 	}
 
-	TMap<FMaterialExpressionKey,int32> ExpressionCodeMap[MP_MAX][SF_NumFrequencies];
-	for (int32 PropertyIndex = 0; PropertyIndex < MP_MAX; PropertyIndex++)
-	{
-		for (int32 FrequencyIndex = 0; FrequencyIndex < SF_NumFrequencies; FrequencyIndex++)
-		{
-			ExpressionCodeMap[PropertyIndex][FrequencyIndex].Empty();
-		}
-	}
-
 	FString MarkupSource;
-	if (Material->GetMaterialResource(GMaxRHIFeatureLevel)->GetMaterialExpressionSource(MarkupSource, ExpressionCodeMap))
+	if (Material->GetMaterialResource(GMaxRHIFeatureLevel)->GetMaterialExpressionSource(MarkupSource))
 	{
 		// Remove line-feeds and leave just CRs so the character counts match the selection ranges.
 		MarkupSource.ReplaceInline(TEXT("\r"), TEXT(""));

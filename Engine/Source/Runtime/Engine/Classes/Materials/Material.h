@@ -944,6 +944,20 @@ public:
 		return Result;
 	}
 
+	/* Get all expressions of the requested type */
+	template<typename ExpressionType>
+	void GetAllExpressionsOfType(TArray<const ExpressionType*>& OutExpressions) const
+	{
+		for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
+		{
+			ExpressionType* ExpressionPtr = Cast<ExpressionType>(Expressions[ExpressionIndex]);
+			if (ExpressionPtr)
+			{
+				OutExpressions.Add(ExpressionPtr);
+			}
+		}
+	}
+
 	/** Determines whether each quality level has different nodes by inspecting the material's expressions. */
 	void GetQualityLevelNodeUsage(TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> >& QualityLevelsUsed);
 

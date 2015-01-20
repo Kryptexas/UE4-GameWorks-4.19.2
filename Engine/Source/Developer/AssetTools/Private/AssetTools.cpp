@@ -53,7 +53,8 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InstancedFoliageSettings) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InterpData) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_LandscapeLayer) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Material) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_LandscapeGrassType));
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Material));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialFunction) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialInstanceConstant) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialInterface) );

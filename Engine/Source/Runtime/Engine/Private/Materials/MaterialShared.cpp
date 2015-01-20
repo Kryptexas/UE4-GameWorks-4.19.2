@@ -1867,7 +1867,7 @@ void FMaterial::GetReferencedTexturesHash(FSHAHash& OutHash) const
  * @param OutHighlightMap - source code highlight list
  * @return - true on Success
  */
-bool FMaterial::GetMaterialExpressionSource( FString& OutSource, TMap<FMaterialExpressionKey,int32> OutExpressionCodeMap[][SF_NumFrequencies] )
+bool FMaterial::GetMaterialExpressionSource( FString& OutSource )
 {
 #if WITH_EDITORONLY_DATA
 	class FViewSourceMaterialTranslator : public FHLSLMaterialTranslator
@@ -1876,14 +1876,6 @@ bool FMaterial::GetMaterialExpressionSource( FString& OutSource, TMap<FMaterialE
 		FViewSourceMaterialTranslator(FMaterial* InMaterial,FMaterialCompilationOutput& InMaterialCompilationOutput,const FStaticParameterSet& StaticParameters,EShaderPlatform InPlatform,EMaterialQualityLevel::Type InQualityLevel,ERHIFeatureLevel::Type InFeatureLevel)
 		:	FHLSLMaterialTranslator(InMaterial,InMaterialCompilationOutput,StaticParameters,InPlatform,InQualityLevel,InFeatureLevel)
 		{}
-
-		void GetExpressionCodeMap(TMap<FMaterialExpressionKey,int32> OutExpressionCodeMap[][SF_NumFrequencies])
-		{
-			for (int32 PropertyIndex = 0; PropertyIndex < MP_MAX; PropertyIndex++)
-			{
-				OutExpressionCodeMap[PropertyIndex][GetMaterialPropertyShaderFrequency((EMaterialProperty)PropertyIndex)] = FunctionStack.Last().ExpressionCodeMap[PropertyIndex][GetMaterialPropertyShaderFrequency((EMaterialProperty)PropertyIndex)];
-			}
-		}
 	};
 
 	FMaterialCompilationOutput TempOutput;
@@ -1894,9 +1886,6 @@ bool FMaterial::GetMaterialExpressionSource( FString& OutSource, TMap<FMaterialE
 	{
 		// Generate the HLSL
 		OutSource = MaterialTranslator.GetMaterialShaderCode();
-
-		// Save the Expression Code map.
-		MaterialTranslator.GetExpressionCodeMap(OutExpressionCodeMap);
 	}
 	return bSuccess;
 #else
