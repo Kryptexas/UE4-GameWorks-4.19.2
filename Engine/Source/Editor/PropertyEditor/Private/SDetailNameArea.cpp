@@ -109,7 +109,7 @@ TSharedRef< SWidget > SDetailNameArea::BuildObjectNameArea( const TArray< TWeakO
 		.AutoWidth()
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Center)
-		.Padding(0,0,0,0)
+		.Padding(0,0,6,0)
 		[
 			SNew(SImage)
 			.Image(ActorIcon)
