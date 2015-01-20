@@ -1855,7 +1855,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenBlueprintMenuContent( TSh
 
 
 		/** Generates 'open blueprint' sub-menu */
-		static void MakeOpenClassBPMenu(FMenuBuilder& InMenuBuilder)
+		static void MakeOpenBPClassMenu(FMenuBuilder& InMenuBuilder)
 		{
 			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
@@ -1928,17 +1928,17 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenBlueprintMenuContent( TSh
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection(NAME_None, LOCTEXT("ClassBlueprints", "Class Blueprints"));
+	MenuBuilder.BeginSection(NAME_None, LOCTEXT("Blueprints Class", "Blueprints Class"));
 	{
-		// New Class Blueprint...
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().CreateClassBlueprint, NAME_None, LOCTEXT("NewClassBlueprint", "New Class Blueprint..."));
+		// New Blueprint Class...
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().CreateBlueprintClass, NAME_None, LOCTEXT("NewBlueprintClass", "New Blueprint Class..."));
 
-		// Open Class Blueprint...
+		// Open Blueprint Class...
 		FSlateIcon OpenBPIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.OpenClassBlueprint");
 		MenuBuilder.AddSubMenu(
-			LOCTEXT("OpenClassBlueprintSubMenu", "Open Class Blueprint..."),
-			LOCTEXT("OpenClassBlueprintSubMenu_ToolTip", "Open an existing Class Blueprint in this project"),
-			FNewMenuDelegate::CreateStatic(&FBlueprintMenus::MakeOpenClassBPMenu), 
+			LOCTEXT("OpenBlueprintClassSubMenu", "Open Blueprint Class..."),
+			LOCTEXT("OpenBlueprintClassSubMenu_ToolTip", "Open an existing Blueprint Class in this project"),
+			FNewMenuDelegate::CreateStatic(&FBlueprintMenus::MakeOpenBPClassMenu), 
 			false, 
 			OpenBPIcon );
 	}

@@ -512,7 +512,7 @@ public:
 	 */
 	TSharedPtr< FUICommandInfo > OpenLevelBlueprint;
 	TSharedPtr< FUICommandInfo > CheckOutProjectSettingsConfig;
-	TSharedPtr< FUICommandInfo > CreateClassBlueprint;
+	TSharedPtr< FUICommandInfo > CreateBlueprintClass;
 
 	/** Editor mode commands */
 	TArray< TSharedPtr< FUICommandInfo > > EditorModeCommands;
@@ -1078,8 +1078,8 @@ public:
 	/** Returns TRUE if the user can edit the game mode Blueprint, this requires the DefaultEngine config file to be writable */
 	static bool CanSelectGameModeBlueprint();
 
-	/** Helps the user create a class Blueprint */
-	static void CreateClassBlueprint();
+	/** Helps the user create a Blueprint class */
+	static void CreateBlueprintClass();
 
 	/** Shows only selected actors, hiding any unselected actors and unhiding any selected hidden actors. */
 	static void OnShowOnlySelectedActors();
