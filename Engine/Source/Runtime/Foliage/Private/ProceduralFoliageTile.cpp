@@ -378,9 +378,10 @@ void UProceduralFoliageTile::CreateInstancesToSpawn(TArray<FProceduralFoliageIns
 	}
 }
 
-void UProceduralFoliageTile::CleanSimulatedData()
+void UProceduralFoliageTile::Empty()
 {
 	Broadphase.Empty();
+	InstancesArray.Empty();
 	
 	for (FProceduralFoliageInstance* Inst : Instances)
 	{

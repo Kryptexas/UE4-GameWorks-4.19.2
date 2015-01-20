@@ -38,7 +38,7 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 	void InstancesToArray();
 
 	/** Empty arrays and sets */
-	void CleanSimulatedData();
+	void Empty();
 private:
 	
 	void StepSimulation();

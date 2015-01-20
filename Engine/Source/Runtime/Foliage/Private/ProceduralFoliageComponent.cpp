@@ -16,6 +16,7 @@ UProceduralFoliageComponent::UProceduralFoliageComponent(const FObjectInitialize
 {
 	TilesX = 1;
 	TilesY = 1;
+	Overlap = 0.f;
 	HalfHeight = 10000.f;
 	ProceduralGuid = FGuid::NewGuid();
 }
@@ -96,27 +97,38 @@ FBox2D GetTileRegion(const int32 X, const int32 Y, const int32 CountX, const int
 	return Region;
 }
 
-void UProceduralFoliageComponent::MergeTiles()
+FBox2D GetRightOverlap(const FBox2D& Region, const float InnerSize, const float Overlap)
+{
+	return Region + FVector2D(InnerSize + Overlap, 0.f);
+}
+
+FBox2D GetLeftOverlap(const FBox2D& Region, const float Overlap)
+{
+	return Region + FVector2D(-Overlap, 0.f);
+}
+
+FBox2D GetAboveOverlap(const FBox2D& Region, const float InnerSize, const float Overlap)
+{
+	return Region + FVector2D(0.f, InnerSize + Overlap);
+}
+
+FBox2D GetBelowOverlap(const FBox2D& Region, const float Overlap)
+{
+	return Region + FVector2D(0.f, -Overlap);
+}
+
+void UProceduralFoliageComponent::SpawnTiles()
 {
 #if WITH_EDITOR
-	const int32 NumTiles = TilesX*TilesY;
-	if (ProceduralFoliage->AnyDirty() == false && NumTiles == MergedTiles.Num())
-	{
-		return;
-	}
-
 	if (ProceduralFoliage)
 	{
 		/** Constants for laying out the overlapping tile grid*/
-		const float TileSize = ProceduralFoliage->TileSize;
-		const float Overlap = ProceduralFoliage->Overlap;
-		const float InnerTileSize = TileSize;
-		
+		const float InnerTileSize = ProceduralFoliage->TileSize;
 		const FVector2D InnerTileV(InnerTileSize, InnerTileSize);
 		const FVector2D InnerTileX(InnerTileSize, 0.f);
 		const FVector2D InnerTileY(0.f, InnerTileSize);
 
-		const float OuterTileSize = TileSize + Overlap;
+		const float OuterTileSize = ProceduralFoliage->TileSize + Overlap;
 		const FVector2D OuterTileV(OuterTileSize, OuterTileSize);
 		const FVector2D OuterTileX(OuterTileSize, 0.f);
 		const FVector2D OuterTileY(0.f, OuterTileSize);
@@ -124,20 +136,24 @@ void UProceduralFoliageComponent::MergeTiles()
 		const FVector2D OverlapX(Overlap, 0.f);
 		const FVector2D OverlapY(0.f, Overlap);
 
+		TArray<TFuture< TArray<FProceduralFoliageInstance>* >> Futures;
+		FScopedSlowTask SlowTask(TilesX * TilesY, LOCTEXT("PlaceProceduralFoliage", "Placing ProceduralFoliage..."));
+		SlowTask.MakeDialog();
+
 		for (int32 X = 0; X < TilesX; ++X)
 		{
 			for (int32 Y = 0; Y < TilesY; ++Y)
 			{
+				
 				//We have to get the tiles and create new one to build on main thread
 				const UProceduralFoliageTile* Tile = ProceduralFoliage->GetRandomTile(X, Y);
 				const UProceduralFoliageTile* RightTile = (X + 1 < TilesX) ? ProceduralFoliage->GetRandomTile(X + 1, Y) : nullptr;
-				const UProceduralFoliageTile* TopTile = (Y + 1 < TilesY) ? ProceduralFoliage->GetRandomTile(X, Y + 1) : nullptr;
-				const UProceduralFoliageTile* TopRightTile = (RightTile && TopTile) ? ProceduralFoliage->GetRandomTile(X + 1, Y + 1) : nullptr;
+				const UProceduralFoliageTile* TopTile = (Y + 1 < TilesY) ? ProceduralFoliage->GetRandomTile(X, Y+1) : nullptr;
+				const UProceduralFoliageTile* TopRightTile = (RightTile && TopTile) ? ProceduralFoliage->GetRandomTile(X + 1, Y+1) : nullptr;
 
 				UProceduralFoliageTile* JTile = ProceduralFoliage->CreateTempTile();
-				WorkTiles.Add(JTile);
 
-				TFuture<const UProceduralFoliageTile*> Future = Async<const UProceduralFoliageTile*>(EAsyncExecution::ThreadPool, [=]()
+				Futures.Add(Async<TArray<FProceduralFoliageInstance>*>(EAsyncExecution::ThreadPool, [=]()
 				{
 					FTransform TileTM = ComponentToWorld;
 					const FVector OrientedOffset = ComponentToWorld.TransformVectorNoScale(FVector(X, Y, 0.f) * FVector(InnerTileSize, InnerTileSize, 0.f));
@@ -172,45 +188,13 @@ void UProceduralFoliageComponent::MergeTiles()
 						CopyTileInstances(TopRightTile, JTile, TopRightBox, TopRightTM, Overlap);
 					}
 
-					JTile->InstancesToArray();
-					JTile->CleanSimulatedData();
-					return JTile;
-
-				});
-
-				MergedTiles.Add(Future.Share());
-			}
-		}
-	}
-#endif
-}
-
-void UProceduralFoliageComponent::SpawnTiles()
-{
-#if WITH_EDITOR
-	if (ProceduralFoliage)
-	{
-		TArray<TFuture< TArray<FProceduralFoliageInstance>* >> Futures;
-		FScopedSlowTask SlowTask(TilesX * TilesY, LOCTEXT("PlaceProceduralFoliage", "Placing ProceduralFoliage..."));
-		SlowTask.MakeDialog();
-
-		for (int32 X = 0; X < TilesX; ++X)
-		{
-			for (int32 Y = 0; Y < TilesY; ++Y)
-			{
-				TSharedFuture<const UProceduralFoliageTile*> FutureTile = MergedTiles[X + Y*TilesX];
-
-				Futures.Add(Async<TArray<FProceduralFoliageInstance>*>(EAsyncExecution::ThreadPool, [=]()
-				{
-					FTransform TileTM = ComponentToWorld;
-					const FVector OrientedOffset = ComponentToWorld.TransformVectorNoScale(FVector(X, Y, 0.f) * FVector(ProceduralFoliage->TileSize, ProceduralFoliage->TileSize, 0.f));
-					TileTM.AddToTranslation(OrientedOffset);
-
 					TArray<FProceduralFoliageInstance>* ProceduralFoliageInstances = new TArray<FProceduralFoliageInstance>();
-					const UProceduralFoliageTile* JTile = FutureTile.Get();
+					JTile->InstancesToArray();
 					JTile->CreateInstancesToSpawn(*ProceduralFoliageInstances, TileTM, World, HalfHeight);
+					JTile->Empty();
 
 					return ProceduralFoliageInstances;
+					
 				})
 				);
 			}
@@ -235,7 +219,6 @@ void UProceduralFoliageComponent::SpawnProceduralContent()
 {
 #if WITH_EDITOR
 	RemoveProceduralContent();
-	MergeTiles();
 	SpawnTiles();
 #endif
 }
