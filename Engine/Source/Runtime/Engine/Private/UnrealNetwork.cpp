@@ -6,6 +6,7 @@
 
 FNetworkVersion::FGetLocalNetworkVersionOverride FNetworkVersion::GetLocalNetworkVersionOverride;
 FNetworkVersion::FIsNetworkCompatibleOverride FNetworkVersion::IsNetworkCompatibleOverride;
+const uint32 FNetworkVersion::InternalProtocolVersion = 1;
 
 uint32 FNetworkVersion::GetLocalNetworkVersion()
 {
@@ -25,9 +26,12 @@ uint32 FNetworkVersion::GetLocalNetworkVersion()
 	const FString& ProjectVersion = Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->ProjectVersion;
 
 	// Start with engine version as seed, and then hash with project name + project version
-	const uint32 LocalNetworkVersion = FCrc::StrCrc32( *ProjectVersion, FCrc::StrCrc32( *ProjectName, GEngineNetVersion ) );
+	const uint32 VersionHash = FCrc::StrCrc32( *ProjectVersion, FCrc::StrCrc32( *ProjectName, GEngineNetVersion ) );
 
-	UE_LOG( LogNet, Log, TEXT( "GetLocalNetworkVersion: GEngineNetVersion: %i, ProjectName: %s, ProjectVersion: %s, LocalNetworkVersion: %i" ), GEngineNetVersion, *ProjectName, *ProjectVersion, LocalNetworkVersion );
+	// Hash with internal protocol version
+	const uint32 LocalNetworkVersion = FCrc::MemCrc32( &InternalProtocolVersion, sizeof( InternalProtocolVersion ), VersionHash );
+
+	UE_LOG( LogNet, Log, TEXT( "GetLocalNetworkVersion: GEngineNetVersion: %i, ProjectName: %s, ProjectVersion: %s, InternalProtocolVersion: %i, LocalNetworkVersion: %i" ), GEngineNetVersion, *ProjectName, *ProjectVersion, InternalProtocolVersion, LocalNetworkVersion );
 
 	return LocalNetworkVersion;
 }

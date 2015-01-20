@@ -63,6 +63,15 @@ struct ENGINE_API FNetworkVersion
 	 * @return true if the two instances can communicate, false otherwise
 	 */
 	static bool IsNetworkCompatible( const uint32 LocalNetworkVersion, const uint32 RemoteNetworkVersion );
+
+	/**
+	 * Internal network protocol version.
+	 * By default, this value is incorporated into the result of GetLocalNetworkVersion().
+	 * This value should be incremented manually along with any changes to the
+	 * internal network protocol, such as the bunch header format or
+	 * the RPC header format.
+	 */
+	static const uint32 InternalProtocolVersion;
 };
 
 /*-----------------------------------------------------------------------------
