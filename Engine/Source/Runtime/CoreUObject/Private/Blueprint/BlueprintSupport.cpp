@@ -237,6 +237,12 @@ bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObj
 		LoadClass->StaticLink(true);
 		Preload(CurrentCDO);
 
+		// Load the class config values
+		if( LoadClass->HasAnyClassFlags( CLASS_Config ))
+		{
+			CurrentCDO->LoadConfig( LoadClass );
+		}
+
 		// Make sure that we regenerate any parent classes first before attempting to build a child
 		TArray<UClass*> ClassChainOrdered;
 		{
