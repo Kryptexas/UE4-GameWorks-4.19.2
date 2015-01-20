@@ -589,7 +589,7 @@ private:
  * Gets branch detected for this app from current P4 environment state.
  *
  * @param Output Found branch prefix.
- * @parma Env Current P4 environment state.
+ * @param Env Current P4 environment state.
  *
  * @returns True if found, false otherwise.
  */
