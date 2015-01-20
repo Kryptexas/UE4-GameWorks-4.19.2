@@ -185,7 +185,7 @@ class UFoliageType : public UObject
 	uint32 ShowInstanceSettings:1;
 
 	/** Controls whether the foliage should take part in static lighting/shadowing. If false, mesh will not receive or cast static lighting or shadows, regardless of other settings. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
 	uint32 bEnableStaticLighting : 1;
 
 	/** Controls whether the foliage should cast a shadow or not. */
