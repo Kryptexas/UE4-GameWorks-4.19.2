@@ -8,6 +8,10 @@
 #include "GitSourceControlOperations.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "GitSourceControl"
 
 template<typename Type>
@@ -34,8 +38,13 @@ void FGitSourceControlModule::StartupModule()
 	// load our settings
 	GitSourceControlSettings.LoadSettings();
 
-	// Bind our source control provider to the editor
-	IModularFeatures::Get().RegisterModularFeature( "SourceControl", &GitSourceControlProvider );
+#if WITH_EDITOR
+	if(GetDefault<UEditorExperimentalSettings>()->bGitSourceControl)
+	{
+		// Bind our source control provider to the editor
+		IModularFeatures::Get().RegisterModularFeature( "SourceControl", &GitSourceControlProvider );
+	}
+#endif
 }
 
 void FGitSourceControlModule::ShutdownModule()
