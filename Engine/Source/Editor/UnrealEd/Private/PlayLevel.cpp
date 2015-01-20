@@ -154,10 +154,16 @@ void UEditorEngine::EndPlayMap()
 	for( FObjectIterator It; It; ++It )
 	{
 		UObject* Object = *It;
-		if( Object->HasAnyFlags(RF_Standalone) && (Object->GetOutermost()->PackageFlags & PKG_PlayInEditor)  )
+
+		if((Object->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
 		{
-			// Clear RF_Standalone flag from objects in the levels used for PIE so they get cleaned up.
-			Object->ClearFlags(RF_Standalone);
+			if(Object->HasAnyFlags(RF_Standalone))
+			{
+				// Clear RF_Standalone flag from objects in the levels used for PIE so they get cleaned up.
+				Object->ClearFlags(RF_Standalone);
+			}
+			// Close any asset editors that are currently editing this object
+			FAssetEditorManager::Get().CloseAllEditorsForAsset(Object);
 		}
 	}
 
