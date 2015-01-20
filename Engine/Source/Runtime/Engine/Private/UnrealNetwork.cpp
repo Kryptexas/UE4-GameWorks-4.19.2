@@ -6,7 +6,7 @@
 
 FNetworkVersion::FGetLocalNetworkVersionOverride FNetworkVersion::GetLocalNetworkVersionOverride;
 FNetworkVersion::FIsNetworkCompatibleOverride FNetworkVersion::IsNetworkCompatibleOverride;
-const uint32 FNetworkVersion::InternalProtocolVersion = 1;
+const uint32 FNetworkVersion::InternalProtocolVersion = 2;
 
 uint32 FNetworkVersion::GetLocalNetworkVersion()
 {
