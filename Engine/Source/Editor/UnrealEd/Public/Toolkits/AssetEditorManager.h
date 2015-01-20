@@ -64,6 +64,9 @@ public:
 	/** Returns all editors currently opened for the specified asset */
 	TArray<IAssetEditorInstance*> FindEditorsForAsset(UObject* Asset);
 
+	/** Close all active editors for the supplied asset */
+	void CloseAllEditorsForAsset(UObject* Asset);
+
 	/** Close any editor which is not this one */
 	void CloseOtherEditors(UObject* Asset, IAssetEditorInstance* OnlyEditor);
 
