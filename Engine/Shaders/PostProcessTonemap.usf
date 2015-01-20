@@ -264,7 +264,11 @@ void MainPS(
 			LinearColor.rgb *= GrainMul;
 		#endif
 
-		half3 FilmColor = FilmPostProcess(LinearColor.rgb);
+		#if USE_PHOTO
+			half3 FilmColor = FilmPostProcessPhoto(LinearColor.rgb);
+		#else
+			half3 FilmColor = FilmPostProcess(LinearColor.rgb);
+		#endif
 		
 		// Apply "gamma" curve adjustment.
 		FilmColor.rgb = pow(FilmColor.rgb, InverseGamma.y);

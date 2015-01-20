@@ -1985,6 +1985,13 @@ static TAutoConsoleVariable<int32> CVarTonemapperQuality(
 	TEXT("1: high (default, with high frequency pixel pattern to fight 8 bit color quantization)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarTonemapperPhoto(
+	TEXT("r.TonemapperPhoto"),
+	0,
+	TEXT("0: use old film post\n")
+	TEXT("1: use new photo post"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarDetailMode(
 	TEXT("r.DetailMode"),
 	2,

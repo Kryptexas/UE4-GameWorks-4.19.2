@@ -62,7 +62,6 @@ half3 FilmPostProcess(half3 LinearColor)
 	return CurveColor;
 }
 
-
 half3 TonemapAndGammaCorrect(half3 LinearColor)
 {
 	// Clamp input to be positive
@@ -86,4 +85,37 @@ half3 TonemapAndGammaCorrect(half3 LinearColor)
 	GammaColor = saturate(GammaColor);
 
 	return GammaColor;
+}
+
+//
+// Improved Film Post
+//
+
+half4 PhotoMatrixR_Lift;
+half4 PhotoMatrixG_LiftScale;
+half4 PhotoMatrixB_Gamma;
+half4 PhotoTint_Over;
+half4 PhotoOverTint;
+
+half3 FilmPostProcessPhoto(half3 LinearColor) 
+{
+	// Color and exposure control.
+	half3 PhotoColor = LinearColor;
+	// Apply color matrix.
+	PhotoColor.r=dot(LinearColor, PhotoMatrixR_Lift.rgb);
+	PhotoColor.g=dot(LinearColor, PhotoMatrixG_LiftScale.rgb);
+	PhotoColor.b=dot(LinearColor, PhotoMatrixB_Gamma.rgb);
+	// Lift, gamma, tint.
+	PhotoColor = pow(PhotoColor*PhotoMatrixG_LiftScale.a+PhotoMatrixR_Lift.a, PhotoMatrixB_Gamma.a)*PhotoTint_Over.rgb;
+	// Remove negatives.    
+	PhotoColor = max(PhotoColor, 1.0/32768.0);
+	// Move over pure hues towards "white" on over-exposure.
+	// This actually moves over to PhotoOverTint, 
+	// which can be a highly colored value, which later turns to white via highlight compression.
+	half OverLuma = dot(PhotoColor, half3(0.2126, 0.7152, 0.0722)); // BT.709 luma seems to work best.
+	half Over = (PhotoTint_Over.a*OverLuma) / ((1.0-0.18)+OverLuma);
+	PhotoColor = lerp(PhotoColor, PhotoOverTint.rgb*OverLuma, Over);
+	// Highlight compression without change of 18% mid-tone.
+	PhotoColor *= 1.0/((1.0-0.18)+PhotoColor);    
+	return PhotoColor;
 }

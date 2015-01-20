@@ -715,6 +715,18 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	LERP_PP(FilmShadowTintBlend);
 	LERP_PP(FilmShadowTintAmount);
 
+	LERP_PP(PhotoWhite);
+	LERP_PP(PhotoSaturation);
+	LERP_PP(PhotoChannelMixerRed);
+	LERP_PP(PhotoChannelMixerGreen);
+	LERP_PP(PhotoChannelMixerBlue);
+	LERP_PP(PhotoBlackIn);
+	LERP_PP(PhotoBlackOut);
+	LERP_PP(PhotoContrast);
+	LERP_PP(PhotoTint);
+	LERP_PP(PhotoOver);
+	LERP_PP(PhotoOverTint);
+
 	LERP_PP(SceneColorTint);
 	LERP_PP(SceneFringeIntensity);
 	LERP_PP(SceneFringeSaturation);
