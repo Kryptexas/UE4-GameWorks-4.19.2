@@ -202,7 +202,7 @@ void FEngineAnalytics::Initialize()
 				DefaultEngineAnalyticsConfig);
 			if (Analytics.IsValid())
 			{
-				Analytics->SetUserID(FPlatformMisc::GetUniqueDeviceId());
+				Analytics->SetUserID(FString::Printf(TEXT("%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId()));
 				Analytics->StartSession();
 			}
 		}
