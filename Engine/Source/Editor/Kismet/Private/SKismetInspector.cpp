@@ -371,6 +371,24 @@ void SKismetInspector::AddPropertiesRecursive(UProperty* Property)
 
 void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects, struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options)
 {
+	// If we're using the unified blueprint editor, there's not an explicit point where
+	// we ender a kind of component editing mode, so instead, just look at what we're selecting.
+	// If we select a component, then enable the customization.
+	if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
+	{
+		bool bEnableComponentCustomization = false;
+		for ( UObject* PropertyObject : PropertyObjects )
+		{
+			if ( PropertyObject->IsA<UActorComponent>() )
+			{
+				bEnableComponentCustomization = true;
+				break;
+			}
+		}
+
+		EnableComponentDetailsCustomization(bEnableComponentCustomization);
+	}
+
 	PropertyView->OnFinishedChangingProperties().Clear();
 	PropertyView->OnFinishedChangingProperties().Add( UserOnFinishedChangingProperties );
 
