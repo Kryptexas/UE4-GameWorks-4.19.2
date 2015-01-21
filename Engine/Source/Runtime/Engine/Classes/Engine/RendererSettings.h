@@ -234,6 +234,11 @@ class ENGINE_API URendererSettings
 		ToolTip="Control how the scene is cleared before rendering"))
 	TEnumAsByte<EClearSceneOptions::Type> ClearSceneMethod;
 
+	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
+		ConsoleVariable="r.BasePassOutputsVelocity", DisplayName="WPO materials output velocity",
+		ToolTip="Enables materials with time-based World Position Offset attributes to render their velocities for motion blur in the base rendering pass."))
+	uint32 bBasePassOutputsVelocity:1;
+
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))

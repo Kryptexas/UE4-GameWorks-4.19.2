@@ -8,6 +8,15 @@
 #include "../../Engine/Private/SkeletalRenderGPUSkin.h"		// GPrevPerBoneMotionBlur
 #include "SceneUtils.h"
 
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocity(
+	TEXT("r.BasePassOutputsVelocity"),
+	0,
+	TEXT("Enables rendering WPO velocities on the base pass.\n") \
+	TEXT("0 - Renders in a separate pass/rendertarget, all movable static meshes + dynamic.\n") \
+	TEXT("1 - Renders during the regular base pass adding an extra GBuffer, but allowing motion blur on materials with Time-based WPO.\n"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 //=============================================================================
 /** Encapsulates the Velocity vertex shader. */
 class FVelocityVS : public FMeshMaterialShader
@@ -354,8 +363,8 @@ void FVelocityDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* St
 	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
 	const FMaterial* Material = MaterialRenderProxy->GetMaterial(FeatureLevel);
 
-	// Velocity only needs to be directly rendered for movable meshes, or those that modify WPO
-	if (StaticMesh->PrimitiveSceneInfo->Proxy->IsMovable() || Material->MaterialModifiesMeshPosition_RenderThread())
+	// Velocity only needs to be directly rendered for movable meshes
+	if (StaticMesh->PrimitiveSceneInfo->Proxy->IsMovable())
 	{
 	    EBlendMode BlendMode = Material->GetBlendMode();
 	    if(BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
@@ -633,6 +642,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 		bNeedsVelocity |= bMotionBlur || bTemporalAA;
 	}
+
 	if( !bNeedsVelocity || !GPixelFormats[PF_G16R16].Supported )
 	{
 		return;
@@ -643,10 +653,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 	SCOPED_DRAW_EVENT(RHICmdList, RenderVelocities);
 
-	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
-	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
-
-	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(VelocityBufferSize, PF_G16R16, TexCreate_None, TexCreate_RenderTargetable, false));
+	FPooledRenderTargetDesc Desc = FVelocityRendering::GetRenderTargetDesc();
 	GRenderTargetPool.FindFreeElement(Desc, VelocityRT, TEXT("Velocity"));
 
 	GPrevPerBoneMotionBlur.LockData();
@@ -675,4 +682,16 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 	// to be able to observe results with VisualizeTexture
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, VelocityRT);
+}
+
+FPooledRenderTargetDesc FVelocityRendering::GetRenderTargetDesc()
+{
+	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
+	return FPooledRenderTargetDesc(FPooledRenderTargetDesc::Create2DDesc(VelocityBufferSize, PF_G16R16, TexCreate_None, TexCreate_RenderTargetable, false));
+}
+
+bool FVelocityRendering::OutputsToGBuffer()
+{
+	return CVarBasePassOutputsVelocity.GetValueOnAnyThread() == 1;
 }

@@ -189,8 +189,9 @@ void MainPS(
 		// static lighting isn't updated by decals so we don't need to update that render target
 		float4 OutTarget4 = 0;
 		float4 OutTarget5 = 0;
+		float4 OutTarget6 = 0;
 
-		EncodeGBuffer(Data, OutTarget1, OutTarget2, OutTarget3, OutTarget4, OutTarget5);
+		EncodeGBuffer(Data, OutTarget1, OutTarget2, OutTarget3, OutTarget4, OutTarget5, OutTarget6);
 
 		#if DECAL_BLEND_MODE == 1
 			// Stain

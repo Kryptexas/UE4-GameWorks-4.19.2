@@ -15,6 +15,7 @@
 #include "Random.usf"
 #include "LightAccumulator.usf"
 #include "DeferredShadingCommon.usf"
+#include "VelocityCommon.usf"
 
 #define PREV_FRAME_COLOR	1
 #include "ScreenSpaceRayCast.usf"
@@ -586,6 +587,9 @@ void Main(
 	#if ALLOW_STATIC_LIGHTING
 		,out float4 OutGBufferE : SV_Target5
 	#endif
+	#if OUTPUT_GBUFFER_VELOCITY
+		, out float4 OutGBufferVelocity : SV_Target6
+	#endif
 #endif
 
 #if EDITOR_ALPHA2COVERAGE != 0
@@ -846,8 +850,24 @@ void Main(
 			float4 OutGBufferE = 0;
 		#endif
 
+		#if OUTPUT_GBUFFER_VELOCITY
+			{
+				float2 ScreenPosition = BasePassInterpolants.ScreenPosition.xy / BasePassInterpolants.ScreenPosition.w - View.PrevProjection[2].xy;
+				float2 PrevScreenPosition = BasePassInterpolants.PrevScreenPosition.xy / BasePassInterpolants.PrevScreenPosition.w - View.PrevProjection[2].xy;
+
+				// 2d velocity, includes camera an object motion
+				float2 Velocity = ScreenPosition - PrevScreenPosition;
+
+				// Make sure not to touch 0,0 which is clear color
+				GBuffer.Velocity = float4(EncodeVelocityToTexture(Velocity), 0, 0) * BasePassInterpolants.PrevScreenPosition.z;
+			}
+		#else
+			GBuffer.Velocity = 0;
+			float4 OutGBufferVelocity = 0;
+		#endif
+
 		float QuantizationBias = PseudoRandom( MaterialParameters.SVPosition.xy ) * 0.5 - 0.5;
-		EncodeGBuffer(GBuffer, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD, OutGBufferE, QuantizationBias);
+		EncodeGBuffer(GBuffer, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD, OutGBufferE, OutGBufferVelocity, QuantizationBias);
 	#endif 
 	
 

@@ -302,23 +302,31 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 	// Set the scene color surface as the render target, and the scene depth surface as the depth-stencil target.
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
-		FRHIRenderTargetView RenderTargets[6];
+		const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
+		FRHIRenderTargetView RenderTargets[7];
 		RenderTargets[0] = FRHIRenderTargetView(GetSceneColorSurface(), 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 		RenderTargets[1] = FRHIRenderTargetView(GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 		RenderTargets[2] = FRHIRenderTargetView(GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 		RenderTargets[3] = FRHIRenderTargetView(GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 		RenderTargets[4] = FRHIRenderTargetView(GSceneRenderTargets.GBufferD->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
+		int32 MRTCount = 5;	// Derived from previously used RenderTargets[]; would have been nice to keep a pointer while filling it but it's more confusing to use
 
-		uint32 MRTCount = ARRAY_COUNT(RenderTargets);
+		int32 VelocityRTIndex = -1;
 
 		if (bAllowStaticLighting)
 		{
-			RenderTargets[5] = FRHIRenderTargetView(GSceneRenderTargets.GBufferE->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
+			RenderTargets[MRTCount] = FRHIRenderTargetView(GSceneRenderTargets.GBufferE->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
+			++MRTCount;
 		}
-		else
+
+		if (bUseVelocityGBuffer)
 		{
-			MRTCount--;
+			VelocityRTIndex = MRTCount;
+			++MRTCount;
+			RenderTargets[VelocityRTIndex] = FRHIRenderTargetView(GSceneRenderTargets.GBufferVelocity->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 		}
+
+		check(MRTCount <= ARRAY_COUNT(RenderTargets));
 
 		FRHIDepthRenderTargetView DepthView(GetSceneDepthSurface(), DepthLoadAction, ERenderTargetStoreAction::EStore);
 		FRHISetRenderTargetsInfo Info(MRTCount, RenderTargets, DepthView);
@@ -328,6 +336,11 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 			Info.ClearColors[1] = Info.ClearColors[2] = Info.ClearColors[3] = FLinearColor::Transparent;
 			Info.ClearColors[4] = FLinearColor(0, 1, 1, 1);
 			Info.ClearColors[5] = FLinearColor(1, 1, 1, 1);
+
+			if (bUseVelocityGBuffer)
+			{
+				Info.ClearColors[VelocityRTIndex] = FLinearColor(0, 0, 0, 0);
+			}
 		}
 		Info.DepthClearValue = 0.0f;
 
@@ -343,6 +356,11 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4 && !IsSimpleDynamicLightingEnabled())
 	{
 		NumGBufferTargets = bAllowStaticLighting ? 6 : 5;
+
+		if (FVelocityRendering::OutputsToGBuffer())
+		{
+			++NumGBufferTargets;
+		}
 	}
 	return NumGBufferTargets;
 }
@@ -437,6 +455,7 @@ void FSceneRenderTargets::ReleaseGBufferTargets()
 	GBufferC.SafeRelease();
 	GBufferD.SafeRelease();
 	GBufferE.SafeRelease();
+	GBufferVelocity.SafeRelease();
 }
 
 void FSceneRenderTargets::AllocGBufferTargets()
@@ -504,6 +523,13 @@ void FSceneRenderTargets::AllocGBufferTargets()
 		GRenderTargetPool.FindFreeElement(Desc, GBufferE, TEXT("GBufferE"));
 	}
 
+	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
+	if (bUseVelocityGBuffer)
+	{
+		FPooledRenderTargetDesc VelocityRTDesc = FVelocityRendering::GetRenderTargetDesc();
+		GRenderTargetPool.FindFreeElement(VelocityRTDesc, GBufferVelocity, TEXT("GBufferVelocity"));
+	}
+
 	// otherwise we have a severe problem
 	check(GBufferA);
 
@@ -517,6 +543,7 @@ void FSceneRenderTargets::AllocGBufferTargets()
 		const FSceneRenderTargetItem& GBufferC = this->GBufferC ? this->GBufferC->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
 		const FSceneRenderTargetItem& GBufferD = this->GBufferD ? this->GBufferD->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
 		const FSceneRenderTargetItem& GBufferE = this->GBufferE ? this->GBufferE->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferVelocity = this->GBufferVelocity ? this->GBufferVelocity->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
 
 		FGBufferResourceStruct GBufferResourceStruct;
 
@@ -525,24 +552,28 @@ void FSceneRenderTargets::AllocGBufferTargets()
 		GBufferResourceStruct.GBufferCTexture = GBufferC.ShaderResourceTexture;
 		GBufferResourceStruct.GBufferDTexture = GBufferD.ShaderResourceTexture;
 		GBufferResourceStruct.GBufferETexture = GBufferE.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferVelocityTexture = GBufferVelocity.ShaderResourceTexture;
 
 		GBufferResourceStruct.GBufferATextureNonMS = GBufferA.ShaderResourceTexture;
 		GBufferResourceStruct.GBufferBTextureNonMS = GBufferB.ShaderResourceTexture;
 		GBufferResourceStruct.GBufferCTextureNonMS = GBufferC.ShaderResourceTexture;
 		GBufferResourceStruct.GBufferDTextureNonMS = GBufferD.ShaderResourceTexture;
 		GBufferResourceStruct.GBufferETextureNonMS = GBufferE.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferVelocityTextureNonMS = GBufferVelocity.ShaderResourceTexture;
 
 		GBufferResourceStruct.GBufferATextureMS = GBufferA.TargetableTexture;
 		GBufferResourceStruct.GBufferBTextureMS = GBufferB.TargetableTexture;
 		GBufferResourceStruct.GBufferCTextureMS = GBufferC.TargetableTexture;
 		GBufferResourceStruct.GBufferDTextureMS = GBufferD.TargetableTexture;
 		GBufferResourceStruct.GBufferETextureMS = GBufferE.TargetableTexture;
+		GBufferResourceStruct.GBufferVelocityTextureMS = GBufferVelocity.TargetableTexture;
 
 		GBufferResourceStruct.GBufferATextureSampler = TStaticSamplerState<>::GetRHI();
 		GBufferResourceStruct.GBufferBTextureSampler = TStaticSamplerState<>::GetRHI();
 		GBufferResourceStruct.GBufferCTextureSampler = TStaticSamplerState<>::GetRHI();
 		GBufferResourceStruct.GBufferDTextureSampler = TStaticSamplerState<>::GetRHI();
 		GBufferResourceStruct.GBufferETextureSampler = TStaticSamplerState<>::GetRHI();
+		GBufferResourceStruct.GBufferVelocityTextureSampler = TStaticSamplerState<>::GetRHI();
 
 		GBufferResourcesUniformBuffer = FGBufferResourceStruct::CreateUniformBuffer(GBufferResourceStruct, UniformBuffer_SingleFrame);
 	}
@@ -780,6 +811,11 @@ void FSceneRenderTargets::ResolveGBufferSurfaces(FRHICommandList& RHICmdList, co
 		if (bAllowStaticLighting)
 		{
 			RHICmdList.CopyToResolveTarget(GSceneRenderTargets.GBufferE->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GBufferE->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
+		}
+
+		if (FVelocityRendering::OutputsToGBuffer())
+		{
+			RHICmdList.CopyToResolveTarget(GSceneRenderTargets.GBufferVelocity->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GBufferVelocity->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
 		}
 	}
 }
@@ -1369,6 +1405,12 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 			}
 		}
 	}
+
+	if (FVelocityRendering::OutputsToGBuffer())
+	{
+		FPooledRenderTargetDesc VelocityRTDesc = FVelocityRendering::GetRenderTargetDesc();
+		GRenderTargetPool.FindFreeElement(VelocityRTDesc, GBufferVelocity, TEXT("GBufferVelocity"));
+	}
 }
 
 EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
@@ -1547,6 +1589,16 @@ const FTextureRHIRef& FSceneRenderTargets::GetSceneColorTexture() const
 	}
 
 	return (const FTextureRHIRef&)GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture; 
+}
+
+IPooledRenderTarget* FSceneRenderTargets::GetGBufferVelocityRT()
+{
+	if (!FVelocityRendering::OutputsToGBuffer())
+	{
+		return nullptr;
+	}
+	
+	return GBufferVelocity;
 }
 
 IPooledRenderTarget* FSceneRenderTargets::RequestCustomDepth(bool bPrimitives)

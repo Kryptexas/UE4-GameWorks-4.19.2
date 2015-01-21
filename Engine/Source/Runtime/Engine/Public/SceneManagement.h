@@ -1485,6 +1485,7 @@ public:
 	 *	@return	bool				true if the primitive info was found and set
 	 */
 	bool GetPrimitiveMotionBlurInfo(const FPrimitiveSceneInfo* PrimitiveSceneInfo, FMatrix& OutPreviousLocalToWorld);
+	bool GetPrimitiveMotionBlurInfo(const FPrimitiveSceneInfo* PrimitiveSceneInfo, FMatrix& OutPreviousLocalToWorld) const;
 
 	/** Request to clear all stored motion blur data for this scene. */
 	void SetClearMotionBlurInfo();
@@ -1505,6 +1506,7 @@ private:
 	 * @return 0 if not found, otherwise pointer into MotionBlurInfos, don't store for longer
 	 */
 	FMotionBlurInfo* FindMBInfoIndex(FPrimitiveComponentId ComponentId);
+	const FMotionBlurInfo* FindMBInfoIndex(FPrimitiveComponentId ComponentId) const;
 };
 
 

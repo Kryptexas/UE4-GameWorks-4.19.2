@@ -278,6 +278,8 @@ struct FGBufferData
 	// in unreal units (linear), can be used to reconstruct world position,
 	// only valid when decoding the GBuffer as the value gets reconstructed from the Z buffer
 	float Depth;
+	// Velocity for motion blur (only used when OUTPUT_GBUFFER_VELOCITY is enabled)
+	float4 Velocity;
 };
 
 
@@ -316,6 +318,7 @@ void EncodeGBuffer(
 	out float4 OutGBufferC,
 	out float4 OutGBufferD,
 	out float4 OutGBufferE,
+	out float4 OutGBufferVelocity,
 	float QuantizationBias = 0		// -0.5 to 0.5 random float. Used to bias quantization.
 	)
 {
@@ -347,6 +350,12 @@ void EncodeGBuffer(
 	}
 
 	OutGBufferE = GBuffer.PrecomputedShadowFactors;
+
+#if OUTPUT_GBUFFER_VELOCITY
+	OutGBufferVelocity = GBuffer.Velocity;
+#else
+	OutGBufferVelocity = 0;
+#endif
 }
 
 /** Populates FGBufferData */
@@ -356,6 +365,7 @@ FGBufferData DecodeGBufferData(
 	float4 InGBufferC,
 	float4 InGBufferD,
 	float4 InGBufferE,
+	float4 InGBufferVelocity,
 	float CustomNativeDepth,
 	float SceneDepth,
 	bool bGetNormalizedNormal)
@@ -401,6 +411,8 @@ FGBufferData DecodeGBufferData(
 		}
 		#endif //COMPILE_SHADERS_FOR_DEVELOPMENT == 1
 	}
+
+	GBuffer.Velocity = InGBufferVelocity;
 
 	return GBuffer;
 }
@@ -526,9 +538,15 @@ SamplerState CustomDepthTextureSampler;
 			float4 GBufferE = 1;
 		#endif
 
+		#if OUTPUT_GBUFFER_VELOCITY
+			float4 GBufferVelocity = GBuffers.GBufferVelocityTextureNonMS.Load(int3(PixelPos, 0));
+		#else
+			float4 GBufferVelocity = 0;
+		#endif
+
 		float SceneDepth = CalcSceneDepth(PixelPos);
 
-		return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
+		return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
 	}
 
 	FDBufferData GetDBufferData(uint2 PixelPos)
@@ -594,11 +612,17 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 	#else
 		float4 GBufferE = 1;
 	#endif
+
+	#if OUTPUT_GBUFFER_VELOCITY
+		float4 GBufferVelocity = Texture2DSampleLevel(GBuffers.GBufferVelocityTexture, GBuffers.GBufferVelocityTextureSampler, UV, 0);
+	#else
+		float4 GBufferVelocity = 0;
+	#endif
 #endif
 
 	float SceneDepth = CalcSceneDepth(UV);
 	
-	return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
+	return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
 }
 
 // Minimal path for just the lighting model, used to branch around unlit pixels (skybox)
@@ -657,7 +681,13 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 		float DeviceZ = SceneDepthSurface.Load(IntUV, SampleIndex);
 		float SceneDepth = ConvertFromDeviceZ(DeviceZ);
 
-		return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
+	#if OUTPUT_GBUFFER_VELOCITY
+		float4 GBufferVelocity = GBuffers.GBufferVelocityTextureMS.Load(IntUV, SampleIndex);
+	#else
+		float4 GBufferVelocity = 0;
+	#endif
+
+		return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
 	}
 
 	FGBufferData GetGBufferDataMS(float2 UV, uint SampleIndex, bool bGetNormalizedNormal = true)

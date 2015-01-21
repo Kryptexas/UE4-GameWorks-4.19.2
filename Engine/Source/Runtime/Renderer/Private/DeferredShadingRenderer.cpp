@@ -20,6 +20,7 @@
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "PostProcess/PostProcessing.h"
 #include "DistanceFieldAtlas.h"
+#include "../../Engine/Private/SkeletalRenderGPUSkin.h"		// GPrevPerBoneMotionBlur
 
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
@@ -996,10 +997,17 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 
-	// Render the velocities of movable objects
-	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Velocity));
-	RenderVelocities(RHICmdList, VelocityRT);
-	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterVelocity));
+	if (FVelocityRendering::OutputsToGBuffer())
+	{
+		VelocityRT = GSceneRenderTargets.GetGBufferVelocityRT();
+	}
+	else
+	{
+		// Render the velocities of movable objects
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Velocity));
+		RenderVelocities(RHICmdList, VelocityRT);
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterVelocity));
+	}
 
 	// Finish rendering for each view.
 	if(ViewFamily.bResolveScene)
@@ -1025,7 +1033,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	//grab the new transform out of the proxies for next frame
-	if(VelocityRT)
+	if (VelocityRT)
 	{
 		Scene->MotionBlurInfoData.UpdateMotionBlurCache(Scene);
 	}
@@ -1269,6 +1277,11 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 {
 	bool bDirty = false;
 
+	if (FVelocityRendering::OutputsToGBuffer())
+	{
+		GPrevPerBoneMotionBlur.LockData();
+	}
+
 	if(ViewFamily.EngineShowFlags.LightMapDensity && AllowDebugViewmodes())
 	{
 		// Override the base pass with the lightmap density pass if the viewmode is enabled.
@@ -1300,6 +1313,11 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 			}
 		}
 
+	}
+
+	if (FVelocityRendering::OutputsToGBuffer())
+	{
+		GPrevPerBoneMotionBlur.UnlockData();
 	}
 
 	return bDirty;

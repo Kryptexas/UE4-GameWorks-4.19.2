@@ -26,7 +26,12 @@ struct FSharedBasePassInterpolants
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 	float4 PixelPositionExcludingWPO : TEXCOORD9;
 	#endif
+#endif
 
+#if OUTPUT_GBUFFER_VELOCITY
+	// .xy is clip position, pre divide by w; .w is clip W; .z is 0 or 1 to mask out the velocity output
+	float4 PrevScreenPosition : TEXCOORD16;
+	float4 ScreenPosition : TEXCOORD17;
 #endif
 };
 

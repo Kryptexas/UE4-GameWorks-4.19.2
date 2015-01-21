@@ -7,6 +7,7 @@
 #pragma once
 
 #include "LightMapRendering.h"
+#include "VelocityRendering.h"
 #include "ShaderBaseClasses.h"
 #include "LightGrid.h"
 #include "EditorCompositeParams.h"
@@ -25,11 +26,18 @@ class TBasePassVertexShaderBaseType : public FMeshMaterialShader, public LightMa
 protected:
 	TBasePassVertexShaderBaseType() {}
 	TBasePassVertexShaderBaseType(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
-	FMeshMaterialShader(Initializer)
+		FMeshMaterialShader(Initializer)
 	{
 		LightMapPolicyType::VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
 		AtmosphericFogTextureParameters.Bind(Initializer.ParameterMap);
+		const bool bOutputsVelocityToGBuffer = FVelocityRendering::OutputsToGBuffer();
+		if (bOutputsVelocityToGBuffer)
+		{
+			PreviousLocalToWorldParameter.Bind(Initializer.ParameterMap, TEXT("PreviousLocalToWorld"));
+//@todo-rco: Move to pixel shader
+			SkipOutputVelocityParameter.Bind(Initializer.ParameterMap, TEXT("SkipOutputVelocity"));
+		}
 	}
 
 public:
@@ -42,6 +50,7 @@ public:
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("OUTPUT_GBUFFER_VELOCITY"), (uint32)(FVelocityRendering::OutputsToGBuffer() ? 1 : 0));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -50,6 +59,8 @@ public:
 		LightMapPolicyType::VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
 		Ar << AtmosphericFogTextureParameters;
+		Ar << PreviousLocalToWorldParameter;
+		Ar << SkipOutputVelocityParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -72,36 +83,36 @@ public:
 		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
-	{
-		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement);
-	}
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement);
 
 private:
 	
 	/** The parameters needed to calculate the fog contribution from height fog layers. */
 	FHeightFogShaderParameters HeightFogParameters;
 	FAtmosphereShaderTextureParameters AtmosphericFogTextureParameters;
+	// When outputting from base pass, the previous transform
+	FShaderParameter PreviousLocalToWorldParameter;
+	FShaderParameter SkipOutputVelocityParameter;
 };
 
 template<typename LightMapPolicyType, bool bEnableAtmosphericFog>
 class TBasePassVS : public TBasePassVertexShaderBaseType<LightMapPolicyType>
 {
 	DECLARE_SHADER_TYPE(TBasePassVS,MeshMaterial);
+	typedef TBasePassVertexShaderBaseType<LightMapPolicyType> Super;
 
 protected:
 
 	TBasePassVS() {}
 	TBasePassVS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
-		TBasePassVertexShaderBaseType<LightMapPolicyType>(Initializer)
+		Super(Initializer)
 	{
 	}
 
 public:
-
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		bool bShouldCache = TBasePassVertexShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
+		bool bShouldCache = Super::ShouldCache(Platform, Material, VertexFactoryType);
 		return bShouldCache 
 			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
 			&& (!bEnableAtmosphericFog || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4));
@@ -109,7 +120,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TBasePassVertexShaderBaseType<LightMapPolicyType>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("BASEPASS_ATMOSPHERIC_FOG"),(uint32)(bEnableAtmosphericFog ? 1 : 0));
 	}
 };
@@ -323,6 +334,13 @@ public:
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+
+		const bool bOutputVelocity = FVelocityRendering::OutputsToGBuffer();
+		OutEnvironment.SetDefine(TEXT("OUTPUT_GBUFFER_VELOCITY"), (uint32)(bOutputVelocity ? 1 : 0));
+		if (bOutputVelocity)
+		{
+			OutEnvironment.SetRenderTargetOutputFormat(6, PF_G16R16);
+		}
 	}
 
 	/** Initialization constructor. */
@@ -376,16 +394,7 @@ public:
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode)
-	{
-		if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4
-			&& IsTranslucentBlendMode(BlendMode))
-		{
-			TranslucentLightingParameters.SetMesh(RHICmdList, this, Proxy, View.GetFeatureLevel());
-		}
-
-		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement);
-	}
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode);
 
 	virtual bool Serialize(FArchive& Ar)
 	{
@@ -400,7 +409,7 @@ public:
 private:
 	FTranslucentLightingParameters TranslucentLightingParameters;
 	FEditorCompositingParameters EditorCompositeParams;
-	FShaderResourceParameter LightGrid; 
+	FShaderResourceParameter LightGrid;
 };
 
 /** The concrete base pass pixel shader type. */

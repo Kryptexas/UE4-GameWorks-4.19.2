@@ -80,3 +80,11 @@ int32 GetMotionBlurQualityFromCVar();
 
 /** If this view need motion blur processing */
 bool IsMotionBlurEnabled(const FViewInfo& View);
+
+// Group Velocity Rendering accessors, types, etc.
+struct FVelocityRendering
+{
+	static FPooledRenderTargetDesc GetRenderTargetDesc();
+
+	static bool OutputsToGBuffer();
+};

@@ -1635,4 +1635,6 @@ private:
 	ERHIFeatureLevel::Type FeatureLevel;
 };
 
+#include "BasePassRendering.inl"
+
 #endif // __SCENEPRIVATE_H__

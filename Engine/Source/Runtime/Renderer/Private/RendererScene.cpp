@@ -2606,6 +2606,11 @@ void FMotionBlurInfoData::ApplyOffset(FVector InOffset)
 	}
 }
 
+const FMotionBlurInfo* FMotionBlurInfoData::FindMBInfoIndex(FPrimitiveComponentId ComponentId) const
+{
+	return MotionBlurInfos.Find(ComponentId);
+}
+
 FMotionBlurInfo* FMotionBlurInfoData::FindMBInfoIndex(FPrimitiveComponentId ComponentId)
 {
 	return MotionBlurInfos.Find(ComponentId);
@@ -2620,6 +2625,23 @@ bool FMotionBlurInfoData::GetPrimitiveMotionBlurInfo(const FPrimitiveSceneInfo* 
 		FMotionBlurInfo* MotionBlurInfo = FindMBInfoIndex(PrimitiveSceneInfo->PrimitiveComponentId);
 
 		if(MotionBlurInfo)
+		{
+			OutPreviousLocalToWorld = MotionBlurInfo->GetPreviousLocalToWorld();
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FMotionBlurInfoData::GetPrimitiveMotionBlurInfo(const FPrimitiveSceneInfo* PrimitiveSceneInfo, FMatrix& OutPreviousLocalToWorld) const
+{
+	check(IsInParallelRenderingThread());
+
+	if (PrimitiveSceneInfo && PrimitiveSceneInfo->PrimitiveComponentId.IsValid())
+	{
+		const FMotionBlurInfo* MotionBlurInfo = FindMBInfoIndex(PrimitiveSceneInfo->PrimitiveComponentId);
+
+		if (MotionBlurInfo)
 		{
 			OutPreviousLocalToWorld = MotionBlurInfo->GetPreviousLocalToWorld();
 			return true;

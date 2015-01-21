@@ -6,6 +6,11 @@
 
 #include "BasePassVertexCommon.usf"
 
+#if OUTPUT_GBUFFER_VELOCITY
+//@todo-rco: Move to pixel shader
+float SkipOutputVelocity;
+#endif
+
 /** Entry point for the base pass vertex shader. */
 void Main(
 	FVertexFactoryInput Input,
@@ -53,11 +58,24 @@ void Main(
 
 // Calculate the fog needed for translucency
 #if NEEDS_BASEPASS_FOGGING
-#if BASEPASS_ATMOSPHERIC_FOG
+	#if BASEPASS_ATMOSPHERIC_FOG
 	Output.BasePassInterpolants.VertexFog = CalculateVertexAtmosphericFog(WorldPosition.xyz, View.TranslatedViewOrigin.xyz);
-#else
+	#else
 	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz, View.TranslatedViewOrigin);
+	#endif
 #endif
+
+#if OUTPUT_GBUFFER_VELOCITY
+	{
+		float4 PrevTranslatedWorldPosition = VertexFactoryGetPreviousWorldPosition( Input, VFIntermediates );	
+		VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, PrevTranslatedWorldPosition.xyz, TangentToLocal);
+		PrevTranslatedWorldPosition.xyz += GetMaterialPreviousWorldPositionOffset(VertexParameters);
+
+		// compute the old screen pos with the old world position and the old camera matrix
+		Output.BasePassInterpolants.PrevScreenPosition = mul(float4(PrevTranslatedWorldPosition.xyz, 1), View.PrevTranslatedWorldToClip);		
+		Output.BasePassInterpolants.PrevScreenPosition.z = 1 - SkipOutputVelocity;
+		Output.BasePassInterpolants.ScreenPosition = mul(float4(WorldPosition.xyz, 1), View.TranslatedWorldToClip);
+	}
 #endif
 
 	OutputVertexID( Output );
