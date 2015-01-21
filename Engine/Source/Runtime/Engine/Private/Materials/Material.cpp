@@ -1737,6 +1737,20 @@ void UMaterial::Serialize(FArchive& Ar)
 	DoMaterialAttributeReorder(&SubsurfaceColor,		Ar.UE4Ver());
 	DoMaterialAttributeReorder(&AmbientOcclusion,		Ar.UE4Ver());
 	DoMaterialAttributeReorder(&Refraction,				Ar.UE4Ver());
+
+	if (Ar.UE4Ver() < VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY)
+	{
+		//Set based on old value. Real check may not be possible here in cooked builds?
+		//Cached using acutal check in PostEditChangProperty().
+		if (BlendMode == BLEND_Masked && !bIsMasked_DEPRECATED)
+		{
+			bCanMaskedBeAssumedOpaque = true;
+		}
+		else
+		{
+			bCanMaskedBeAssumedOpaque = false;
+		}
+	}
 }
 
 void UMaterial::PostDuplicate(bool bDuplicateForPIE)
@@ -2276,6 +2290,9 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 			}
 		}
 	}
+
+	//If we can be sure this material would be the same opaque as it is masked then allow it to be assumed opaque.
+	bCanMaskedBeAssumedOpaque = !OpacityMask.Expression && !(OpacityMask.UseConstant && OpacityMask.Constant < 0.999f) && !bUseMaterialAttributes;
 
 	bool bRequiresCompilation = true;
 	if( PropertyThatChanged ) 
@@ -3442,14 +3459,13 @@ EBlendMode UMaterial::GetBlendMode(bool bIsInGameThread) const
 {
 	if (EBlendMode(BlendMode) == BLEND_Masked)
 	{
-		// Check if the material is masked and uses a custom opacity (that's not 1.0f).
-		if ((((OpacityMask.Expression || (OpacityMask.UseConstant && OpacityMask.Constant < 0.999f))) || bUseMaterialAttributes))
+		if (bCanMaskedBeAssumedOpaque)
 		{
-			return BLEND_Masked;
+			return BLEND_Opaque;
 		}
 		else
 		{
-			return BLEND_Opaque;
+			return BLEND_Masked;
 		}
 	}
 	else
