@@ -452,6 +452,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FIX_SKEL_VERT_ORIENT_MESH_PARTICLES,
 	// Do not change landscape section offset on load under world composition
 	VER_UE4_LANDSCAPE_STATIC_SECTION_OFFSET,
+	// New options for navigation data runtime generation (static, modifiers only, dynamic)
+	VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

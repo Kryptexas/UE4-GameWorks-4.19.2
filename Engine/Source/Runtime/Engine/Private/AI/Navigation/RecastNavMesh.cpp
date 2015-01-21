@@ -682,7 +682,8 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 
 	if (Ar.IsLoading())
 	{
-		if (NavMeshVersion < NAVMESHVER_MIN_COMPATIBLE)
+		// VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION was integrated from main to 4.7 without support for reading the data. Discard it.
+		if (NavMeshVersion < NAVMESHVER_MIN_COMPATIBLE || Ar.UE4Ver() <= VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION)
 		{
 			// incompatible, just skip over this data.  navmesh needs rebuilt.
 			Ar.Seek( RecastNavMeshSizePos + RecastNavMeshSizeBytes );
