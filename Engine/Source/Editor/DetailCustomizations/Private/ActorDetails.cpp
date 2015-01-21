@@ -1348,11 +1348,18 @@ bool FActorDetails::ResetToBlueprintDefaults_IsEnabled( TWeakObjectPtr<UBlueprin
 			&& Blueprint != NULL
 			&& Actor->GetClass()->ClassGeneratedBy == Blueprint)
 		{
-			AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
-			if(BlueprintCDO != NULL)
+			if (Actor->InstanceComponents.Num() > 0)
 			{
-				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
-				bIsEnabled = EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions) > 0;
+				bIsEnabled = true;
+			}
+			else
+			{
+				AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
+				if(BlueprintCDO != NULL)
+				{
+					const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
+					bIsEnabled = EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions) > 0;
+				}
 			}
 		}
 	}
@@ -1378,6 +1385,7 @@ FText FActorDetails::ResetToBlueprintDefaults_ToolTipText( TWeakObjectPtr<UBluep
 				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
 				NumChangedProperties += EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
 			}
+			NumChangedProperties += Actor->InstanceComponents.Num();
 		}
 	}
 
@@ -1415,6 +1423,15 @@ FReply FActorDetails::ResetToBlueprintDefaults_OnClicked( TWeakObjectPtr<UBluepr
 			{
 				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties|EditorUtilities::ECopyOptions::CallPostEditChangeProperty);
 				NumChangedProperties = EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
+			}
+			if (Actor->InstanceComponents.Num() > 0)
+			{
+				TArray<UActorComponent*> InstanceComponents = Actor->InstanceComponents;
+				NumChangedProperties += InstanceComponents.Num();
+				for (UActorComponent* ActorComponent : InstanceComponents)
+				{
+					ActorComponent->DestroyComponent();
+				}
 			}
 		}
 
