@@ -152,12 +152,20 @@ void FEdModeTileMap::ActorSelectionChangeNotify()
 
 bool FEdModeTileMap::MouseEnter(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y)
 {
+	if (ViewportClient->EngineShowFlags.ModeWidgets)
+	{
+		const FViewportCursorLocation Ray = CalculateViewRay(ViewportClient, Viewport);
+		UpdatePreviewCursor(Ray);
+	}
+
 	RefreshBrushSize();
+
 	return FEdMode::MouseEnter(ViewportClient, Viewport, x, y);
 }
 
 bool FEdModeTileMap::MouseLeave(FEditorViewportClient* ViewportClient, FViewport* Viewport)
 {
+	DrawPreviewDimensionsLS = FVector::ZeroVector;
 	CursorPreviewComponent->SetVisibility(false);
 	return FEdMode::MouseLeave(ViewportClient, Viewport);
 }
@@ -322,6 +330,37 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 
 	FCanvasTextItem Msg(FVector2D(10, 30), FText::FromString(InkInfo), GEngine->GetMediumFont(), FLinearColor::White);
 	Canvas->DrawItem(Msg);
+
+
+	bool bDrawToolDescription = false;
+	FText ToolDescription = LOCTEXT("NoTool", "No tool selected");
+	switch (ActiveTool)
+	{
+	case ETileMapEditorTool::Eraser:
+		ToolDescription = LOCTEXT("EraserTool", "Eraser");
+		bDrawToolDescription = true;
+		break;
+	case ETileMapEditorTool::Paintbrush:
+		break;
+	case ETileMapEditorTool::PaintBucket:
+		ToolDescription = LOCTEXT("PaintBucketTool", "Fill");
+		bDrawToolDescription = true;
+		break;
+	}
+
+	if (bDrawToolDescription && !DrawPreviewDimensionsLS.IsNearlyZero())
+	{
+		const FString ToolDescriptionString = ToolDescription.ToString();
+
+		FVector2D ScreenSpacePreviewLocation;
+		if (View->WorldToPixel(DrawPreviewTopLeft, /*out*/ ScreenSpacePreviewLocation))
+		{
+			int32 XL;
+			int32 YL;
+			StringSize(GEngine->GetLargeFont(), XL, YL, *ToolDescriptionString);
+			Canvas->DrawShadowedString(ScreenSpacePreviewLocation.X, ScreenSpacePreviewLocation.Y - YL, *ToolDescriptionString, GEngine->GetLargeFont(), FLinearColor::White);
+		}
+	}
 }
 
 bool FEdModeTileMap::AllowWidgetMove()
@@ -835,7 +874,8 @@ void FEdModeTileMap::UpdatePreviewCursor(const FViewportCursorLocation& Ray)
 			int32 LayerIndex;
 			ensure(TileMap->TileLayers.Find(TileLayer, LayerIndex));
 
-			const FVector WorldPosition = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX0, LocalTileY0, LayerIndex));
+			DrawPreviewTopLeft = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX0, LocalTileY0, LayerIndex));
+			const FVector WorldPosition = DrawPreviewTopLeft;
 			const FVector WorldPositionBR = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX1, LocalTileY1, LayerIndex));
 
 			DrawPreviewSpace = ComponentToWorld;
@@ -892,6 +932,7 @@ void FEdModeTileMap::RefreshBrushSize()
 	BrushHeight = 1;
 	CursorWidth = 1;
 	CursorHeight = 1;
+	const bool bShowPreviewDesired = !DrawPreviewDimensionsLS.IsNearlyZero();
 	
 	if (GetActiveLayerPaintingMode() != ETileMapLayerPaintingMode::CollisionLayers)
 	{
@@ -902,7 +943,7 @@ void FEdModeTileMap::RefreshBrushSize()
 			BrushHeight = PaintSourceDimensions.Y;
 			CursorWidth = FMath::Max(1, PaintSourceDimensions.X);
 			CursorHeight = FMath::Max(1, PaintSourceDimensions.Y);
-			CursorPreviewComponent->SetVisibility(true);
+			CursorPreviewComponent->SetVisibility(bShowPreviewDesired);
 			break;
 		case ETileMapEditorTool::Eraser:
 			BrushWidth = EraseBrushSize;
