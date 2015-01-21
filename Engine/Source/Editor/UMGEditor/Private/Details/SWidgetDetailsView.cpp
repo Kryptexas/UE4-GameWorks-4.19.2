@@ -292,8 +292,12 @@ void SWidgetDetailsView::HandleCategoryTextCommitted(const FText& Text, ETextCom
 			UUserWidget* WidgetCDO = Widget->GetClass()->GetDefaultObject<UUserWidget>();
 			WidgetCDO->PaletteCategory = Text;
 
+			// Set the new category on the widget blueprint as well so that it's available when the blueprint isn't loaded.
+			UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
+			Blueprint->PaletteCategory = Text.ToString();
+
 			// Immediately force a rebuild so that all palettes update to show it in a new category.
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintEditor.Pin()->GetBlueprintObj());
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 		}
 	}
 }

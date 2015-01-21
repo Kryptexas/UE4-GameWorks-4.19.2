@@ -194,6 +194,14 @@ public:
 	UPROPERTY()
 	TArray<UWidgetAnimation*> Animations;
 
+	/**
+	 * Don't directly modify this property to change the palette category.  The actual value is stored 
+	 * in the CDO of the UUserWidget, but a copy is stored here so that it's available in the serialized 
+	 * Tag data in the asset header for access in the FAssetData.
+	 */
+	UPROPERTY(AssetRegistrySearchable)
+	FString PaletteCategory;
+
 public:
 
 	/** UObject interface */
