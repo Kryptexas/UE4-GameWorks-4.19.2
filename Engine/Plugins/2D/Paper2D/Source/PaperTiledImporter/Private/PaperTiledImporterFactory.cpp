@@ -91,19 +91,16 @@ FText UPaperTiledImporterFactory::GetToolTip() const
 
 bool UPaperTiledImporterFactory::FactoryCanImport(const FString& Filename)
 {
-	if (GetDefault<UPaperRuntimeSettings>()->bEnableTileMapEditing)
+	FString FileContent;
+	if (FFileHelper::LoadFileToString(/*out*/ FileContent, *Filename))
 	{
-		FString FileContent;
-		if (FFileHelper::LoadFileToString(/*out*/ FileContent, *Filename))
+		TSharedPtr<FJsonObject> DescriptorObject = ParseJSON(FileContent, FString(), /*bSilent=*/ true);
+		if (DescriptorObject.IsValid())
 		{
-			TSharedPtr<FJsonObject> DescriptorObject = ParseJSON(FileContent, FString(), /*bSilent=*/ true);
-			if (DescriptorObject.IsValid())
-			{
-				FTileMapFromTiled GlobalInfo;
-				ParseGlobalInfoFromJSON(DescriptorObject, /*out*/ GlobalInfo, FString(), /*bSilent=*/ true);
+			FTileMapFromTiled GlobalInfo;
+			ParseGlobalInfoFromJSON(DescriptorObject, /*out*/ GlobalInfo, FString(), /*bSilent=*/ true);
 
-				return GlobalInfo.IsValid();
-			}
+			return GlobalInfo.IsValid();
 		}
 	}
 
