@@ -107,15 +107,17 @@ bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InC
 	return bIsValid;
 }
 
-FString FComponentEditorUtils::GenerateValidVariableName(const UActorComponent* InComponent)
+FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorComponent> ComponentClass, AActor* ComponentOwner)
 {
+	check(ComponentOwner);
+
 	int32 Counter = 1;
-	FString ComponentTypeName = *InComponent->GetClass()->GetName().Replace(TEXT("Component"), TEXT(""));
+	FString ComponentTypeName = *ComponentClass->GetName().Replace(TEXT("Component"), TEXT(""));
 	FString ComponentInstanceName;
 
-	// Make sure that none of the current components have the same name
+	// Make sure that none of the components currently on the actor have the same name
 	TInlineComponentArray<UActorComponent*> Components;
-	InComponent->GetOwner()->GetComponents(Components);
+	ComponentOwner->GetComponents(Components);
 
 	bool bNameIsValid = false;
 	while (!bNameIsValid)

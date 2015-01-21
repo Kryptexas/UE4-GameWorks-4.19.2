@@ -617,7 +617,7 @@ public:
 		}
 	}
 
-	virtual void PostRedo(bool bSuccess)
+	virtual void PostUndo(bool bSuccess)
 	{
 		// Enable the selection guard to prevent OnTreeSelectionChanged() from altering the editor's component selection
 		TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
@@ -625,6 +625,11 @@ public:
 		// Refresh the tree and update the selection to match the world
 		SCSEditor->UpdateTree();
 		UpdateComponentTreeFromEditorSelection();
+	}
+
+	virtual void PostRedo(bool bSuccess)
+	{
+		PostUndo(bSuccess);
 	}
 
 private:
@@ -738,11 +743,27 @@ private:
 								DetailsObjects.Add(ComponentInstance);
 								SelectedComponents->Select(ComponentInstance);
 
-								// Ensure the selection override is bound for all the nodes (since it's possible we just added one)
+								// Ensure the selection override is bound for this component (including any attached editor-only children)
 								auto PrimComponent = Cast<UPrimitiveComponent>(ComponentInstance);
 								if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
 								{
 									PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+								}
+								else
+								{
+									//@todo move the selection override binding check to FComponentEditorUtils
+									auto SceneComponent = Cast<USceneComponent>(ComponentInstance);
+									if (SceneComponent)
+									{
+										for (auto Component : SceneComponent->AttachChildren)
+										{
+											PrimComponent = Cast<UPrimitiveComponent>(Component);
+											if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
+											{
+												PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+											}
+										}
+									}
 								}
 							}
 						}

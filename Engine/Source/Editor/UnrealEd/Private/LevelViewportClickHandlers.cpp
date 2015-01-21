@@ -284,12 +284,18 @@ namespace ClickHandlers
 				break;
 			}
 		}
+
+		//If the component selected is editor-only, we want to select the non-editor-only component it's attached to
+		while (Component != nullptr && Component->IsEditorOnly())
+		{
+			Component = Component->AttachParent;
+		}
 		
-		if (!Component)
+		if (!ensure(Component != nullptr))
 		{
 			return false;
 		}
-		
+
 		// Pivot snapping
 		if (Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown())
 		{

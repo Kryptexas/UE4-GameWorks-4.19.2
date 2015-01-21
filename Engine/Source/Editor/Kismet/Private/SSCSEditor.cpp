@@ -240,7 +240,7 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(UActorComponent* InComponentTemplate)
 		if (!FComponentEditorUtils::IsValidVariableNameString(InComponentTemplate, InComponentTemplate->GetName()))
 		{
 			ERenameFlags RenameFlags = REN_DontCreateRedirectors | REN_NonTransactional;
-			FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(InComponentTemplate);
+			FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(InComponentTemplate->GetClass(), InComponentTemplate->GetOwner());
 
 			InComponentTemplate->Rename(*NewComponentName, nullptr, RenameFlags);
 		}
@@ -3514,7 +3514,9 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		ActorInstance->Modify();
 
 		// Create new component
-		UActorComponent* NewComponentInstance = ConstructObject<UActorComponent>(NewComponentClass, ActorInstance, NAME_None, RF_Transactional);
+		FName NewComponentName(*FComponentEditorUtils::GenerateValidVariableName(NewComponentClass, ActorInstance));
+
+		UActorComponent* NewComponentInstance = ConstructObject<UActorComponent>(NewComponentClass, ActorInstance, NewComponentName, RF_Transactional);
 		check(NewComponentInstance != nullptr);
 
 		// Add to SerializedComponents array so it gets saved
@@ -3822,7 +3824,8 @@ void SSCSEditor::PasteNodes()
 		else
 		{
 			// Relocate the instance from the transient package to the Actor and assign it a unique object name
-			NewActorComponent->Rename(NULL, ActorInstance, REN_DontCreateRedirectors|REN_DoNotDirty);
+			FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(NewActorComponent->GetClass(), ActorInstance);
+			NewActorComponent->Rename(*NewComponentName, ActorInstance, REN_DontCreateRedirectors | REN_DoNotDirty);
 
 			// Add to SerializedComponents array so it gets saved
 			ActorInstance->InstanceComponents.Add(NewActorComponent);
