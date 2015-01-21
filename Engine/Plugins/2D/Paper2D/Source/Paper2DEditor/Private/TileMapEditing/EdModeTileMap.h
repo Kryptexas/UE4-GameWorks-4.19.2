@@ -45,6 +45,8 @@ public:
 	//virtual bool BoxSelect(FBox& InBox, bool bInSelect) override;
 
 	//	virtual void PostUndo() override;
+	virtual bool MouseEnter(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
+	virtual bool MouseLeave(FEditorViewportClient* ViewportClient, FViewport* Viewport) override;
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
 	virtual bool CapturedMouseMove(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) override;
 	virtual bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
@@ -83,7 +85,7 @@ protected:
 
 	// Returns the selected layer under the cursor, and the intersection tile coordinates
 	// Note: The tile coordinates can be negative if the brush is off the top or left of the tile map, but still overlaps the map!!!
-	UPaperTileLayer* GetSelectedLayerUnderCursor(const FViewportCursorLocation& Ray, int32& OutTileX, int32& OutTileY) const;
+	UPaperTileLayer* GetSelectedLayerUnderCursor(const FViewportCursorLocation& Ray, int32& OutTileX, int32& OutTileY, bool bAllowOutOfBounds = false) const;
 
 	// Compute a world space ray from the screen space mouse coordinates
 	FViewportCursorLocation CalculateViewRay(FEditorViewportClient* InViewportClient, FViewport* InViewport);
@@ -93,16 +95,20 @@ protected:
 	void EnableTileMapEditMode();
 	bool IsTileMapEditModeActive() const;
 
+	void SynchronizePreviewWithTileMap(UPaperTileMap* NewTileMap);
 public:
 	UPaperTileMapComponent* FindSelectedComponent() const;
 
 protected:
 	bool bIsPainting;
+
+	// Ink source
 	TWeakObjectPtr<UPaperTileSet> PaintSourceTileSet;
 
 	FIntPoint PaintSourceTopLeft;
 	FIntPoint PaintSourceDimensions;
-
+	
+	//
 	FTransform DrawPreviewSpace;
 	FVector DrawPreviewLocation;
 	FVector DrawPreviewDimensionsLS;
@@ -113,6 +119,8 @@ protected:
 	int32 CursorHeight;
 	int32 BrushWidth;
 	int32 BrushHeight;
+
+	UPaperTileMapComponent* CursorPreviewComponent;
 
 	ETileMapEditorTool::Type ActiveTool;
 	ETileMapLayerPaintingMode::Type LayerPaintingMode;

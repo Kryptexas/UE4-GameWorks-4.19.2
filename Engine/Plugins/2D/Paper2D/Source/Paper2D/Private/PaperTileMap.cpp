@@ -149,7 +149,7 @@ void UPaperTileMap::UpdateBodySetup()
 	}
 }
 
-FVector UPaperTileMap::GetTilePositionInLocalSpace(int32 TileX, int32 TileY, int32 LayerIndex) const
+FVector UPaperTileMap::GetTilePositionInLocalSpace(float TileX, float TileY, int32 LayerIndex) const
 {
 	//@TODO: Tile pivot issue
 	const FVector PartialX = PaperAxisX * (TileX - 0.5f) * TileWidth;
