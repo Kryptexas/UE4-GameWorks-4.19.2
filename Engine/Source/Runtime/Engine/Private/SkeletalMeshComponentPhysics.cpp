@@ -3108,7 +3108,7 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	// if skeletal mesh has clothing assets, call TickClothing
 	if (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
 	{
-		TickClothing(DeltaTime + SkippedTickDeltaTime);
+		TickClothing(DeltaTime);
 	}
 #endif
 }
