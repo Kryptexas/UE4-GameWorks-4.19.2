@@ -8,6 +8,7 @@
 #include "Engine/Selection.h"
 
 #include "LandscapeProxy.h"
+#include "LandscapeComponent.h"
 
 uint32			EngineThreadId;
 const TCHAR*	GItem;
