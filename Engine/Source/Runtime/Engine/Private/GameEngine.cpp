@@ -380,7 +380,7 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	SelectionHighlightIntensityBillboards = 0.25f;
 
 	bUseSound = true;
-	bEditorAnalyticsEnabled = true;
+
 	bHardwareSurveyEnabled = true;
 	bPendingHardwareSurveyResults = false;
 	bIsInitialized = false;

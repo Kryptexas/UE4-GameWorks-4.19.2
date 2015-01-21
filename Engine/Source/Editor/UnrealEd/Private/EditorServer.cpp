@@ -1081,6 +1081,11 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
 }
 
+bool UEditorEngine::AreEditorAnalyticsEnabled() const 
+{
+	return GetGameAgnosticSettings().bEditorAnalyticsEnabled;
+}
+
 UTransactor* UEditorEngine::CreateTrans()
 {
 	int32 UndoBufferSize;

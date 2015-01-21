@@ -127,7 +127,7 @@ void FEngineAnalytics::Initialize()
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
-		bShouldSendUsageEvents = GEngine->bEditorAnalyticsEnabled;
+		bShouldSendUsageEvents = GEngine->AreEditorAnalyticsEnabled();
 	}
 	else
 #endif
