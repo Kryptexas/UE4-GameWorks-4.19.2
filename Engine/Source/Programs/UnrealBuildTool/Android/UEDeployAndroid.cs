@@ -630,7 +630,7 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
-		private string GenerateManifest(bool bIsForDistribution)
+		private string GenerateManifest(string ProjectName, bool bIsForDistribution)
 		{
 			// ini file to get settings from
 			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
@@ -654,6 +654,9 @@ namespace UnrealBuildTool.Android
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraApplicationSettings", out ExtraApplicationSettings);
 			List<string> ExtraPermissions;
 			Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraPermissions", out ExtraPermissions);
+
+			// replace some variables
+			PackageName = PackageName.Replace("{PROJECT_NAME}", ProjectName);
 
 			StringBuilder Text = new StringBuilder();
 			Text.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -765,7 +768,7 @@ namespace UnrealBuildTool.Android
 			bool bBuildSettingsMatch = false;
 
 			string ManifestFile = Path.Combine(UE4BuildPath, "AndroidManifest.xml");
-			string NewManifest = GenerateManifest(bForDistribution);
+			string NewManifest = GenerateManifest(ProjectName, bForDistribution);
 			string OldManifest = File.Exists(ManifestFile) ? File.ReadAllText(ManifestFile) : "";
 			if (NewManifest == OldManifest) 
 			{
