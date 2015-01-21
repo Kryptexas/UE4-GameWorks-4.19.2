@@ -44,6 +44,7 @@ ENGINE_API void DrawDebugSolidBox(const UWorld* InWorld, FVector const& Center, 
 ENGINE_API void DrawDebugSolidBox(const UWorld* InWorld, FVector const& Center, FVector const& Extent, FQuat const& Rotation, FColor const& Color, bool bPersistent=false, float LifeTime=-1.f, uint8 DepthPriority = 0);
 ENGINE_API void DrawDebugMesh(const UWorld* InWorld, TArray<FVector> const& Verts, TArray<int32> const& Indices, FColor const& Color, bool bPersistent=false, float LifeTime=-1.f, uint8 DepthPriority = 0);
 ENGINE_API void DrawDebugSolidPlane(const UWorld* InWorld, FPlane const& P, FVector const& Loc, float Size, FColor const& Color, bool bPersistent=false, float LifeTime=-1, uint8 DepthPriority = 0);
+ENGINE_API void DrawDebugSolidPlane(const UWorld* InWorld, FPlane const& P, FVector const& Loc, FVector2D const& Extents, FColor const& Color, bool bPersistent=false, float LifeTime=-1, uint8 DepthPriority = 0);
 
 /* Draws a 2D Histogram of size 'DrawSize' based FDebugFloatHistory struct, using DrawTransform for the position in the world. */
 ENGINE_API void DrawDebugFloatHistory(UWorld const & WorldRef, FDebugFloatHistory const & FloatHistory, FTransform const & DrawTransform, FVector2D const & DrawSize, FColor const & DrawColor, bool const & bPersistent = false, float const & LifeTime = -1.f, uint8 const & DepthPriority = 0);
