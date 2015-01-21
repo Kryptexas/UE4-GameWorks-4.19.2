@@ -45,6 +45,11 @@ void FKismetVariableDragDropAction::GetLinksThatWillBreak(	UEdGraphNode* Node, U
 void FKismetVariableDragDropAction::HoverTargetChanged()
 {
 	UProperty* VariableProperty = GetVariableProperty();
+	if (VariableProperty == nullptr)
+	{
+		return;
+	}
+
 	FString VariableString = VariableName.ToString();
 
 	// Icon/text to draw on tooltip

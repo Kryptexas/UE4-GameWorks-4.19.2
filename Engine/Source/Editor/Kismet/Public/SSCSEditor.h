@@ -74,7 +74,7 @@ public:
 	 * @return The Blueprint to which this node belongs.
 	 */
 	UBlueprint* GetBlueprint() const;
-	/** 
+	/**
 	 * @return Whether or not this object represents a root component.
 	 */
 	bool IsRoot() const;
@@ -325,10 +325,6 @@ protected:
 	/** Pointer to node we represent */
 	FSCSEditorTreeNodePtrType NodePtr;
 };
-
-
-
-
 
 //////////////////////////////////////////////////////////////////////////
 // SSCSEditorDragDropTree - implements STreeView for our specific node type and adds drag/drop functionality
@@ -586,6 +582,9 @@ public:
 	/** Provides access to the Blueprint context that's being edited */
 	class UBlueprint* GetBlueprint() const;
 
+	/** Returns the set of root nodes */
+	const TArray<FSCSEditorTreeNodePtrType>& GetRootComponentNodes();
+
 protected:
 	FString GetSelectedClassText() const;
 
@@ -671,12 +670,10 @@ protected:
 
 	/** Returns the set of expandable nodes that are currently collapsed in the UI */
 	void GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, TSet<FSCSEditorTreeNodePtrType>& OutCollapsedNodes) const;
+
 public:
 	/** Tree widget */
 	TSharedPtr<SSCSTreeType> SCSTreeWidget;
-
-	/** Root set of tree */
-	TArray<FSCSEditorTreeNodePtrType> RootNodes;
 
 	/** The node that represents the root component in the scene hierarchy */
 	FSCSEditorTreeNodePtrType SceneRootNodePtr;
@@ -711,6 +708,9 @@ public:
 	/** Delegate to invoke when the given property should be highlighted in the details view (e.g. diff). */
 	FOnHighlightPropertyInDetailsView OnHighlightPropertyInDetailsView;
 private:
+
+	/** Root set of tree */
+	TArray<FSCSEditorTreeNodePtrType> RootNodes;
 
 	/** Flag to enable/disable component editing */
 	bool	bEnableComponentEditing;

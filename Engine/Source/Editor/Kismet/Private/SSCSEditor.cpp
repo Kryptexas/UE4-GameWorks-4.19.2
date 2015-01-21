@@ -1073,6 +1073,7 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 					]
 				+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
+					.Padding(2, 0, 0, 0)
 					[
 						InlineWidget.ToSharedRef()
 					];
@@ -1456,8 +1457,9 @@ FReply SSCS_RowWidget::OnDragDetected( const FGeometry& MyGeometry, const FPoint
 		}
 
 		TSharedPtr<FSCSEditorTreeNode> FirstNode = SelectedNodePtrs[0];
+		UBlueprint* Blueprint = FirstNode->GetBlueprint();
 		
-		TSharedRef<FSCSRowDragDropOp> Operation = FSCSRowDragDropOp::New(FirstNode->GetVariableName(), FirstNode->GetBlueprint()->SkeletonGeneratedClass, FNodeCreationAnalytic());
+		TSharedRef<FSCSRowDragDropOp> Operation = FSCSRowDragDropOp::New(FirstNode->GetVariableName(), Blueprint != nullptr ? Blueprint->SkeletonGeneratedClass : nullptr, FNodeCreationAnalytic());
 		//Operation->SetAltDrag(MouseEvent.IsAltDown());
 		//Operation->SetCtrlDrag(MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown());
 		Operation->SetCtrlDrag(true); // Always put a getter
@@ -2390,22 +2392,6 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	{
 		HeaderRow = SNew(SHeaderRow)
 
-		+ SHeaderRow::Column(SCS_ColumnName_Mobility)
-		.DefaultLabel(LOCTEXT("MobilityColumnLabel", "Mobility"))
-		.FixedWidth(16.0f) // mobility icons are 16px (16 slate-units = 16px, when application scale == 1)
-		.HeaderContent()
-		[
-			SNew(SHorizontalBox)
-			.ToolTip(SNew(SToolTip).Text(LOCTEXT("MobilityColumnTooltip", "Mobility")))
-			+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			[
-				SNew(SImage).Image(MobilityHeaderBrush)
-			]
-		]
-
 		+ SHeaderRow::Column(SCS_ColumnName_ComponentClass)
 		.DefaultLabel(LOCTEXT("Class", "Class"))
 		.FillWidth(4);
@@ -2467,110 +2453,136 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	if (bSingleLayoutBPEditor)
 	{
 		Contents = SNew(SVerticalBox)
-
-		// Root Actor
+		
 		+ SVerticalBox::Slot()
-		.Padding(0.f)
-		.AutoHeight()
+		.Padding(0.0f)
 		[
 			SNew(SVerticalBox)
 
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Left)
-			.Padding(2.0f, 2.0f)
+			.VAlign(VAlign_Top)
+			.Padding(0.0f, 2.0f)
 			[
-				SNew(SComponentClassCombo)
-				.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
-				.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Add a component."))
-			]
-
-			+ SVerticalBox::Slot()
-			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill)
-			.Padding(0.0f, 0.0f)
-			[
-				SNew(SCheckBox)
-				.Style(FCoreStyle::Get(), "ToggleButtonRowStyle")
-				.IsFocusable(true)
-				.OnCheckStateChanged(this, &SSCSEditor::OnActorSelected)
-				.IsChecked(this, &SSCSEditor::OnIsActorSelected)
-				.ToolTip(Tooltip)
-				.Padding(FMargin(2.0f))
+				SNew(SBorder)
+				.Padding(2.0f)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
 				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(FMargin(0.f, 0.f, 6.f, 0.f))
-					[
-						SNew(SBox)
-						[
-							SNew(SImage)
-							.Image(this, &SSCSEditor::GetActorIcon)
-						]
-					]
-
-					+ SHorizontalBox::Slot()
+					SNew(SBox)
 					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.Padding(0.0f, 0.0f)
 					[
-						SNew(STextBlock)
-						.Text(this, &SSCSEditor::GetActorDisplayText)
-						.ColorAndOpacity(FSlateColor::UseForeground())
+						SNew(SComponentClassCombo)
+						.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
+						.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Add a component."))
 					]
 				]
 			]
-		]
 
-		// Tree
-		+ SVerticalBox::Slot()
-		.Padding(0.f, 0.f, 0.f, 2.f)
-		[
-			SCSTreeWidget.ToSharedRef()
+			+ SVerticalBox::Slot()
+			.Padding(0.0f, 0.0f)
+			[
+				SNew(SBorder)
+				.Padding(2.0f)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
+				
+				[
+					SNew(SVerticalBox)
+
+					// Root Actor
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0.0f, 0.0f)
+					[
+						SNew(SCheckBox)
+						.Style(FCoreStyle::Get(), "ToggleButtonRowStyle")
+						.IsFocusable(true)
+						.OnCheckStateChanged(this, &SSCSEditor::OnActorSelected)
+						.IsChecked(this, &SSCSEditor::OnIsActorSelected)
+						.ToolTip(Tooltip)
+						.Padding(FMargin(2.0f))
+						[
+							SNew(SHorizontalBox)
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.VAlign(VAlign_Center)
+							.Padding(FMargin(0.f, 0.f, 6.f, 0.f))
+							[
+								SNew(SImage)
+								.Image(this, &SSCSEditor::GetActorIcon)
+							]
+
+							+ SHorizontalBox::Slot()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							.Padding(0.0f, 0.0f)
+							[
+								SNew(STextBlock)
+								.Text(this, &SSCSEditor::GetActorDisplayText)
+								.ColorAndOpacity(FSlateColor::UseForeground())
+							]
+						]
+					]
+
+					// Tree
+					+ SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(0.f, 0.f, 0.f, 2.f)
+					[
+						SCSTreeWidget.ToSharedRef()
+					]
+				]
+			]
 		];
 	}
 	else if( InArgs._HideComponentClassCombo.Get() )
 	{
-		Contents = SCSTreeWidget;
+		Contents = SNew(SBorder)
+
+		.Padding(2.0f)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
+		[
+			SCSTreeWidget.ToSharedRef()
+		];
 	}
 	else
 	{
-		Contents = SNew(SVerticalBox)
+		Contents = SNew(SBorder)
 
-		// Component picker
-		+ SVerticalBox::Slot()
-		.Padding(1.f)
-		.AutoHeight()
+		.Padding(2.0f)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
+			SNew(SVerticalBox)
+
+			// Component picker
+			+ SVerticalBox::Slot()
+			.Padding(1.f)
+			.AutoHeight()
 			[
-				SNew(SComponentClassCombo)
-				.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SComponentClassCombo)
+					.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
+				]
 			]
-		]
-		// Tree
-		+ SVerticalBox::Slot()
-		.Padding(0.f, 0.f, 0.f, 2.f)
-		[
-			SCSTreeWidget.ToSharedRef()
+			// Tree
+			+ SVerticalBox::Slot()
+			.Padding(0.f, 0.f, 0.f, 2.f)
+			[
+				SCSTreeWidget.ToSharedRef()
+			]
 		];
 	}
 
 	this->ChildSlot
 	[
-		SNew(SBorder)
-		.Padding(2.0f)
-		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
-		[
-			Contents.ToSharedRef()
-		]
+		Contents.ToSharedRef()
 	];
 
 	// Refresh the tree widget
@@ -4387,6 +4399,11 @@ void SSCSEditor::GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, T
 			}
 		}
 	}
+}
+
+const TArray<FSCSEditorTreeNodePtrType>& SSCSEditor::GetRootComponentNodes()
+{
+	return RootNodes;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -86,7 +86,7 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 		]
 	]
 	.IsFocusable(true)
-	.ContentPadding(FMargin(2))
+	.ContentPadding(FMargin(0))
 	.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.NewAsset.Style")
 	.ForegroundColor(FLinearColor::White)
 	.OnComboBoxOpened(this, &SComponentClassCombo::ClearSelection);
@@ -244,50 +244,6 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 	}
 	else
 	{
-		// Get a user friendly string from the component name
-		FString FriendlyComponentName = GetSanitizedComponentName( Entry->GetComponentClass() );
-
-		// Search the selected assets and look for any that can be used as a source asset for this type of component
-		// If there is one we append the asset name to the component name, if there are many we append "Multiple Assets"
-		FString AssetName;
-		UObject* PreviousMatchingAsset = NULL;
-
-		FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-		USelection* Selection = GEditor->GetSelectedObjects();
-		for ( FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter )
-		{
-			UObject* Object = *ObjectIter;
-			UClass* Class = Object->GetClass();
-
-			TArray<TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);
-			for ( int32 ComponentIndex = 0; ComponentIndex < ComponentClasses.Num(); ComponentIndex++ )
-			{
-				if ( ComponentClasses[ComponentIndex]->IsChildOf( Entry->GetComponentClass() ) )
-				{
-					if ( AssetName.IsEmpty() )
-					{
-						// If there is no previous asset then we just accept the name
-						AssetName = Object->GetName();
-						PreviousMatchingAsset = Object;
-					}
-					else
-					{
-						// if there is a previous asset then check that we didn't just find multiple appropriate components
-						// in a single asset - if the asset differs then we don't display the name, just "Multiple Assets"
-						if ( PreviousMatchingAsset != Object )
-						{
-							AssetName = LOCTEXT("MultipleAssetsForComponentAnnotation", "Multiple Assets").ToString();
-							PreviousMatchingAsset = Object;
-						}
-					}
-				}
-			}
-		}
-
-		if ( !AssetName.IsEmpty() )
-		{
-			FriendlyComponentName += FString(" (") + AssetName + FString(")");
-		}
 
 		return
 			SNew( SComboRow< TSharedPtr<FString> >, OwnerTable )
@@ -321,7 +277,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 				[
 					SNew(STextBlock)
 					.HighlightText(this, &SComponentClassCombo::GetCurrentSearchString)
-					.Text( FText::FromString(FriendlyComponentName) )
+					.Text(this, &SComponentClassCombo::GetFriendlyComponentName, Entry)
 				]
 			];
 	}
@@ -419,6 +375,61 @@ void SComponentClassCombo::UpdateComponentClassList()
 			ComponentClassList.Add( CurrentEntry );
 		}
 	}
+}
+
+FReply SComponentClassCombo::OnButtonClicked()
+{
+	SearchBox->SetText(FText::GetEmpty());
+	return SComboButton::OnButtonClicked();
+}
+
+FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const
+{
+	// Get a user friendly string from the component name
+	FString FriendlyComponentName = GetSanitizedComponentName(Entry->GetComponentClass());
+
+	// Search the selected assets and look for any that can be used as a source asset for this type of component
+	// If there is one we append the asset name to the component name, if there are many we append "Multiple Assets"
+	FString AssetName;
+	UObject* PreviousMatchingAsset = NULL;
+
+	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
+	USelection* Selection = GEditor->GetSelectedObjects();
+	for (FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
+	{
+		UObject* Object = *ObjectIter;
+		UClass* Class = Object->GetClass();
+
+		TArray<TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);
+		for (int32 ComponentIndex = 0; ComponentIndex < ComponentClasses.Num(); ComponentIndex++)
+		{
+			if (ComponentClasses[ComponentIndex]->IsChildOf(Entry->GetComponentClass()))
+			{
+				if (AssetName.IsEmpty())
+				{
+					// If there is no previous asset then we just accept the name
+					AssetName = Object->GetName();
+					PreviousMatchingAsset = Object;
+				}
+				else
+				{
+					// if there is a previous asset then check that we didn't just find multiple appropriate components
+					// in a single asset - if the asset differs then we don't display the name, just "Multiple Assets"
+					if (PreviousMatchingAsset != Object)
+					{
+						AssetName = LOCTEXT("MultipleAssetsForComponentAnnotation", "Multiple Assets").ToString();
+						PreviousMatchingAsset = Object;
+					}
+				}
+			}
+		}
+	}
+
+	if (!AssetName.IsEmpty())
+	{
+		FriendlyComponentName += FString(" (") + AssetName + FString(")");
+	}
+	return FText::FromString(FriendlyComponentName);
 }
 
 FString SComponentClassCombo::GetSanitizedComponentName( UClass* ComponentClass )
