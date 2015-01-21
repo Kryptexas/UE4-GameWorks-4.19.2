@@ -180,6 +180,16 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 #endif
 		]
 
+#if PLATFORM_MAC
+		// Without the in-window menu bar, we need some space between the tab bar and tab contents
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( SBox )
+			.HeightOverride( 1.0f )
+		]
+#endif
+
 		+SVerticalBox::Slot()
 		.FillHeight( 1.0f )
 		[
