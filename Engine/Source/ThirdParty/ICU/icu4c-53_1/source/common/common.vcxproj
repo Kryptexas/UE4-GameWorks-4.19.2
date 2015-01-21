@@ -302,7 +302,7 @@
     </Midl>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>U_HAVE_NL_LANGINFO_CODESET=0;U_ENABLE_DYLOAD=0;ICU_NO_USER_DATA_OVERRIDE=1;U_PLATFORM=U_PF_DURANGO;_LIB;UNISTR_FROM_CHAR_EXPLICIT=explicit;UNISTR_FROM_STRING_EXPLICIT=explicit;U_USING_ICU_NAMESPACE=0;U_STATIC_IMPLEMENTATION;U_ATTRIBUTE_DEPRECATED=;WIN64;WIN32;NDEBUG;U_COMMON_IMPLEMENTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>U_STATIC_IMPLEMENTATION;U_ENABLE_DYLOAD=0;U_PLATFORM=U_PF_DURANGO;_LIB;NDEBUG;U_COMMON_IMPLEMENTATION;U_USING_ICU_NAMESPACE=0;UCONFIG_NO_TRANSLITERATION=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalUsingDirectories>$(Console_SdkPackagesRoot);$(Console_SdkWindowsMetadataPath);%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
@@ -428,7 +428,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>U_HAVE_NL_LANGINFO_CODESET=0;U_ENABLE_DYLOAD=0;ICU_NO_USER_DATA_OVERRIDE=1;U_PLATFORM=U_PF_DURANGO;_LIB;UNISTR_FROM_CHAR_EXPLICIT=explicit;UNISTR_FROM_STRING_EXPLICIT=explicit;U_USING_ICU_NAMESPACE=0;UCONFIG_NO_TRANSLITERATION=1;U_STATIC_IMPLEMENTATION;U_ATTRIBUTE_DEPRECATED=;WIN64;WIN32;_DEBUG;_CRT_SECURE_NO_DEPRECATE;U_COMMON_IMPLEMENTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>U_STATIC_IMPLEMENTATION;U_ENABLE_DYLOAD=0;U_PLATFORM=U_PF_DURANGO;_LIB;_DEBUG;U_COMMON_IMPLEMENTATION;U_USING_ICU_NAMESPACE=0;UCONFIG_NO_TRANSLITERATION=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MinimalRebuild>false</MinimalRebuild>
