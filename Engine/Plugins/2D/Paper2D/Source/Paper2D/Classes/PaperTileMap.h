@@ -13,71 +13,73 @@ namespace ETileMapProjectionMode
 {
 	enum Type
 	{
-		// 
+		// Square tile layout
 		Orthogonal,
 
-		//
+		// Isometric tile layout (shaped like a diamond)
 		IsometricDiamond,
 
-		//
+		// Isometric tile layout (roughly in a square with alternating rows staggered)
 		IsometricStaggered
 	};
 }
 
-
+// A tile map is a 2D grid with a defined width and height (in tiles).  There can be multiple layers, each of which can specify which tile should appear in each cell of the map for that layer.
 UCLASS()
 class PAPER2D_API UPaperTileMap : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 	// Width of map (in tiles)
-	UPROPERTY(Category=Setup, EditAnywhere, meta=(UIMin=1, ClampMin=1))
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1))
 	int32 MapWidth;
 
 	// Height of map (in tiles)
-	UPROPERTY(Category=Setup, EditAnywhere, meta=(UIMin=1, ClampMin=1))
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1))
 	int32 MapHeight;
 
 	// Width of one tile (in pixels)
-	UPROPERTY(Category=Setup, EditAnywhere, meta=(UIMin=1, ClampMin=1))
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1))
 	int32 TileWidth;
 
 	// Height of one tile (in pixels)
-	UPROPERTY(Category=Setup, EditAnywhere, meta=(UIMin=1, ClampMin=1))
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1))
 	int32 TileHeight;
 
-	// Pixels per Unreal Unit (pixels per cm)
+	// Pixels per Unreal Unit (pixels per cm) - Note: Currently unused!
 	UPROPERTY(Category=Setup, EditAnywhere)
 	float PixelsPerUnit;
 
-	// 
-	UPROPERTY(Category = Setup, EditAnywhere)
+	// The Z-separation incurred as you travel in X (not strictly applied, batched tiles will be put at the same Z level) 
+	UPROPERTY(Category=Setup, EditAnywhere, AdvancedDisplay)
 	float SeparationPerTileX;
 
-	UPROPERTY(Category = Setup, EditAnywhere)
+	// The Z-separation incurred as you travel in Y (not strictly applied, batched tiles will be put at the same Z level) 
+	UPROPERTY(Category=Setup, EditAnywhere, AdvancedDisplay)
 	float SeparationPerTileY;
 	
-	UPROPERTY(Category=Setup, EditAnywhere)
+	// The Z-separation between each layer of the tile map
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
 	float SeparationPerLayer;
 
 	// Last tile set that was selected when editing the tile map
 	UPROPERTY()
 	TAssetPtr<class UPaperTileSet> SelectedTileSet;
 
-	// Test material
+	// The material to use on a tile map instance if not overridden
 	UPROPERTY(Category=Setup, EditAnywhere)
 	UMaterialInterface* Material;
 
 	// The list of layers
-	UPROPERTY(Instanced)
+	UPROPERTY(Instanced, Category=Sprite, BlueprintReadOnly)
 	TArray<class UPaperTileLayer*> TileLayers;
 
 	// Collision domain (no collision, 2D, or 3D)
-	UPROPERTY(Category=Collision, EditAnywhere)
+	UPROPERTY(Category=Collision, EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
 
 	// Tile map type
-	UPROPERTY(Category = Setup, EditAnywhere)
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<ETileMapProjectionMode::Type> ProjectionMode;
 
 	// Baked physics data.
