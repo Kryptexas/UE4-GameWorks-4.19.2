@@ -152,6 +152,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static FVector GetOrigin(FGameplayCueParameters Parameters);
 
+	/** Gets the best end location and normal for this gameplay cue. If there is hit result data, it will return this. Otherwise it will return the target actor's location/rotation. If none of this is available, it will return false. */
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
+	static bool GetGameplayCueEndLocationAndNormal(AActor* TargetActor, FGameplayCueParameters Parameters, FVector& Location, FVector& Normal);
+
 
 	// -------------------------------------------------------------------------------
 	//		GameplayEffectSpec

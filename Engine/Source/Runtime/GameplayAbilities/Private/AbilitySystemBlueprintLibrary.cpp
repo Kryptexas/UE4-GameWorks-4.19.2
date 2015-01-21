@@ -402,6 +402,26 @@ FVector UAbilitySystemBlueprintLibrary::GetOrigin(FGameplayCueParameters Paramet
 	return FVector::ZeroVector;
 }
 
+bool UAbilitySystemBlueprintLibrary::GetGameplayCueEndLocationAndNormal(AActor* TargetActor, FGameplayCueParameters Parameters, FVector& Location, FVector& Normal)
+{
+	FGameplayEffectContext* Data = Parameters.EffectContext.Get();
+	if (Data && Data->GetHitResult())
+	{
+		
+		Location = Data->GetHitResult()->Location;
+		Normal = Data->GetHitResult()->Normal;
+		return true;
+	}
+	else if(TargetActor)
+	{
+		Location = TargetActor->GetActorLocation();
+		Normal = TargetActor->GetActorRotation().Vector();
+		return true;
+	}
+
+	return false;
+}
+
 // ---------------------------------------------------------------------------------------
 
 FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AssignSetByCallerMagnitude(FGameplayEffectSpecHandle SpecHandle, FName DataName, float Magnitude)
