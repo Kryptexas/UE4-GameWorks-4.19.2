@@ -12,14 +12,6 @@ namespace UnrealBuildTool
 {
 	class AndroidPlatform : UEBuildPlatform
 	{
-		/// <summary>
-		/// Android settings.
-		/// </summary>
-		[XmlConfig]
-		public static string AndroidNdkApiTarget = "android-19";
-		[XmlConfig]
-		public static string AndroidSdkApiTarget = "latest";
-
 		// The current architecture - affects everything about how UBT operates on Android
 		public override string GetActiveArchitecture()
 		{
