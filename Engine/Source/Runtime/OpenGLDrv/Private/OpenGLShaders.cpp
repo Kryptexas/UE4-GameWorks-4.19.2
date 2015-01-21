@@ -386,6 +386,23 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 #endif
 
 #if PLATFORM_ANDROID 
+		// Temporary patch to remove #extension GL_OES_standard_derivaties if not supported
+		if (!FOpenGL::SupportsStandardDerivativesExtension())
+		{
+			const ANSICHAR * FoundPointer = FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "#extension GL_OES_standard_derivatives");
+			if (FoundPointer != nullptr)
+			{
+				// Replace the extension enable with dFdx, dFdy, and fwidth definitions so shader will compile.
+				// Currently SimpleElementPixelShader.usf is the most likely place this will come from for mobile
+				// as it is used for distance field text rendering (GammaDistanceFieldMain) so use a constant
+				// for the texture step rate of 1/512.  This will not work for other use cases.
+				ReplaceCString(GlslCodeOriginal, "#extension GL_OES_standard_derivatives : enable",
+					"#define dFdx(a) (0.001953125)\n"
+					"#define dFdy(a) (0.001953125)\n"
+					"#define fwidth(a) (0.00390625)\n");
+			}
+		}
+
 		if (IsES2Platform(GMaxRHIShaderPlatform))
 		{
 			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)
