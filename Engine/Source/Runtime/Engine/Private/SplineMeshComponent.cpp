@@ -223,6 +223,8 @@ USplineMeshComponent::USplineMeshComponent(const FObjectInitializer& ObjectIniti
 	Mobility = EComponentMobility::Static;
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	bAllowSplineEditingPerInstance = false;
+	bSmoothInterpRollScale = false;
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 
 	SplineUpDir.Z = 1.0f;
@@ -786,6 +788,58 @@ void USplineMeshComponent::RecreateCollision()
 	}
 }
 #endif
+
+/** Used to store spline mesh data during RerunConstructionScripts */
+class FSplineMeshInstanceData : public FComponentInstanceDataBase
+{
+public:
+	explicit FSplineMeshInstanceData(const USplineMeshComponent* SourceComponent)
+		: FComponentInstanceDataBase(SourceComponent)
+	{
+	}
+
+	FVector StartPos;
+	FVector EndPos;
+	FVector StartTangent;
+	FVector EndTangent;
+};
+
+FName USplineMeshComponent::GetComponentInstanceDataType() const
+{
+	static const FName SplineMeshInstanceDataTypeName(TEXT("SplineMeshInstanceData"));
+	return SplineMeshInstanceDataTypeName;
+}
+
+FComponentInstanceDataBase* USplineMeshComponent::GetComponentInstanceData() const
+{
+	FSplineMeshInstanceData* SplineMeshInstanceData = nullptr;
+	if (bAllowSplineEditingPerInstance)
+	{
+		SplineMeshInstanceData = new FSplineMeshInstanceData(this);
+		SplineMeshInstanceData->StartPos = SplineParams.StartPos;
+		SplineMeshInstanceData->EndPos = SplineParams.EndPos;
+		SplineMeshInstanceData->StartTangent = SplineParams.StartTangent;
+		SplineMeshInstanceData->EndTangent = SplineParams.EndTangent;
+	}
+	return SplineMeshInstanceData;
+}
+
+void USplineMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+{
+	if (ComponentInstanceData)
+	{
+		FSplineMeshInstanceData* SplineMeshInstanceData = static_cast<FSplineMeshInstanceData*>(ComponentInstanceData);
+		if (bAllowSplineEditingPerInstance)
+		{
+			SplineParams.StartPos = SplineMeshInstanceData->StartPos;
+			SplineParams.EndPos = SplineMeshInstanceData->EndPos;
+			SplineParams.StartTangent = SplineMeshInstanceData->StartTangent;
+			SplineParams.EndTangent = SplineMeshInstanceData->EndTangent;
+			MarkSplineParamsDirty();
+		}
+	}
+}
+
 
 #include "StaticMeshLight.h"
 /** */

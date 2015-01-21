@@ -101,6 +101,10 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector SplineUpDir;
 
+	/** If true, spline keys may be edited per instance in the level viewport. Otherwise, the spline should be initialized in the construction script. */
+	UPROPERTY(EditDefaultsOnly, Category = Spline)
+	uint32 bAllowSplineEditingPerInstance:1;
+
 	/** If true, will use smooth interpolation (ease in/out) for Scale, Roll, and Offset along this section of spline. If false, uses linear */
 	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	uint32 bSmoothInterpRollScale:1;
@@ -126,6 +130,12 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	virtual void Serialize(FArchive& Ar) override;
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	//End UObject Interface
+
+	// Begin UActorComponent interface.
+	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
+	// End UActorComponent interface.
 
 	//Begin USceneComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
