@@ -290,7 +290,7 @@ namespace UnrealBuildTool
 
 		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
 		{
-			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
 			{
 				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
 				if (!UEBuildConfiguration.bBuildRequiresCookedData)
