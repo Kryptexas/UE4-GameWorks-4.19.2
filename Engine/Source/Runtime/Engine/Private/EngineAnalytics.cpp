@@ -6,7 +6,6 @@
 #include "Runtime/Analytics/Analytics/Public/Analytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
-
 bool FEngineAnalytics::bIsInitialized;
 TSharedPtr<IAnalyticsProvider> FEngineAnalytics::Analytics;
 bool FEngineAnalytics::bShouldSendUsageEvents;
@@ -205,7 +204,11 @@ void FEngineAnalytics::Initialize()
 			if (Analytics.IsValid())
 			{
 				Analytics->SetUserID(FString::Printf(TEXT("%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId()));
-				Analytics->StartSession();
+
+				TArray<FAnalyticsEventAttribute> StartSessionAttributes;
+				GEngine->CreateStartupAnalyticsAttributes( StartSessionAttributes );
+
+				Analytics->StartSession( StartSessionAttributes );
 			}
 		}
 #endif

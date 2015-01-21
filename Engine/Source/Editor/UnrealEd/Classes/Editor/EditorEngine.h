@@ -2579,7 +2579,7 @@ private:
 
 	/** UEngine interface */
 	virtual bool AreEditorAnalyticsEnabled() const override;
-
+	virtual void CreateStartupAnalyticsAttributes( TArray<FAnalyticsEventAttribute>& StartSessionAttributes ) const override;
 private:
 
 	/** Delegate broadcast just before a blueprint is compiled */
