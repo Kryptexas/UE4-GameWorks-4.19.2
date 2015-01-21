@@ -34,6 +34,8 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 	bManipulationDirtiedSomething = false;
 	ScopedTransaction = nullptr;
 
+	DrawHelper.bDrawGrid = false;
+	DrawHelper.bDrawPivot = false;
 	bShowPivot = true;
 
 	bDeferZoomToTileMap = true;
