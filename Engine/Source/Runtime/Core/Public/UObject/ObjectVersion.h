@@ -456,8 +456,10 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION,
 	// Tidied up material's handling of masked blend mode.
 	VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY,
-	// After merging VER_UE4_LANDSCAPE_GRASS_COOKING-VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY to the 4.7 branch to enable reading earlier assets without writing them
-	VER_UE4_POST_4_7_OBJECTVERSION_MERGE,
+	// Merged VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION into 4.7 branch. 
+	VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7,
+	// After adding VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7 into 4.7 branch. 
+	VER_UE4_AFTER_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
