@@ -113,6 +113,14 @@ public:
 	 */
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) { }
 
+	/**
+	 *	This is called just before any modification happens to an attribute's base value when an attribute aggregator exists.
+	 *	This function should enforce clamping (presuming you wish to clamp the base value along with the final value in PreAttributeChange)
+	 *	This function should NOT invoke gameplay related events or callbacks. Do those in PreAttributeChange() which will be called prior to the
+	 *	final value of the attribute actually changing.
+	 */
+	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const { }
+
 	/** This signifies the attribute set can be ID'd by name over the network. */
 	void SetNetAddressable();
 

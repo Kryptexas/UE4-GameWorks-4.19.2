@@ -1564,6 +1564,11 @@ void FActiveGameplayEffectsContainer::SetAttributeBaseValue(FGameplayAttribute A
 	{
 		// There is an aggregator for this attribute, so set the base value. The dirty callback chain
 		// will update the actual AttributeSet property value for us.
+		
+		const UAttributeSet* Set = Owner->GetAttributeSubobject( Attribute.GetAttributeSetClass() );
+		check(Set);
+
+		Set->PreAttributeBaseChange(Attribute, NewBaseValue);
 		RefPtr->Get()->SetBaseValue(NewBaseValue);
 	}
 	else
@@ -1640,7 +1645,18 @@ void FActiveGameplayEffectsContainer::ApplyModToAttribute(const FGameplayAttribu
 	if (RefPtr)
 	{
 		ABILITY_LOG(Log, TEXT("Property %s has active mods. Adding to Aggregator."), *Attribute.GetName());
-		RefPtr->Get()->ExecModOnBaseValue(ModifierOp, ModifierMagnitude);
+		FAggregator* Agg = RefPtr->Get();
+		
+		// We must give the attribute set a change to clamp to base value. Otherwise we may haver aggregator base values get 
+		// way out of sync with the final uproperty value.
+		float NewBase = Agg->GetBaseValue();
+		NewBase = FAggregator::StaticExecModOnBaseValue(NewBase, ModifierOp, ModifierMagnitude);
+		
+		const UAttributeSet* Set = Owner->GetAttributeSubobject( Attribute.GetAttributeSetClass() );
+		check(Set);
+
+		Set->PreAttributeBaseChange(Attribute, NewBase);
+		Agg->SetBaseValue(NewBase);
 	}
 	else
 	{
