@@ -321,6 +321,10 @@ void Main(
 
 	// Editor primitive depth testing
 	#if EDITOR_PRIMITIVE_MATERIAL && (ES2_EMULATION)
+		#if MATERIALBLENDING_MASKED
+			// some material might have a opacity value
+			OutColor.a = GetMaterialMaskInputRaw(MaterialParameters);
+		#endif
 		// we output premultiplied alpha to we have to darken all 4 channels
 		OutColor *= ClipForEditorPrimitives(MaterialParameters);
 		clip(OutColor.a - GetMaterialOpacityMaskClipValue());
