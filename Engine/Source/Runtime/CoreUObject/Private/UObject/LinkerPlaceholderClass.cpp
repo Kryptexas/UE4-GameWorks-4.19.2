@@ -111,6 +111,12 @@ int32 ULinkerPlaceholderClass::GetRefCount() const
 }
 
 //------------------------------------------------------------------------------
+bool ULinkerPlaceholderClass::HasBeenResolved() const
+{
+	return !HasReferences() && bResolvedReferences;
+}
+
+//------------------------------------------------------------------------------
 void ULinkerPlaceholderClass::RemoveTrackedReference(UProperty* ReferencingProperty)
 {
 	//if (ReferencingProperty->IsValidLowLevel())
@@ -120,8 +126,10 @@ void ULinkerPlaceholderClass::RemoveTrackedReference(UProperty* ReferencingPrope
 }
 
 //------------------------------------------------------------------------------
-void ULinkerPlaceholderClass::ReplaceTrackedReferences(UClass* ReplacementClass)
+int32 ULinkerPlaceholderClass::ReplaceTrackedReferences(UClass* ReplacementClass)
 {
+	int32 ReplacementCount = 0;
+
 	for (UProperty* Property : ReferencingProperties)
 	{
 		if (UObjectPropertyBase* ObjProperty = Cast<UObjectPropertyBase>(Property))
@@ -129,12 +137,14 @@ void ULinkerPlaceholderClass::ReplaceTrackedReferences(UClass* ReplacementClass)
 			if (ObjProperty->PropertyClass == this)
 			{
 				ObjProperty->PropertyClass = ReplacementClass;
+				++ReplacementCount;
 			}
 
 			UClassProperty* ClassProperty = Cast<UClassProperty>(ObjProperty);
 			if ((ClassProperty != nullptr) && (ClassProperty->MetaClass == this))
 			{
 				ClassProperty->MetaClass = ReplacementClass;
+				++ReplacementCount;
 			}
 		}	
 		else if (UInterfaceProperty* InterfaceProp = Cast<UInterfaceProperty>(Property))
@@ -142,12 +152,12 @@ void ULinkerPlaceholderClass::ReplaceTrackedReferences(UClass* ReplacementClass)
 			if (InterfaceProp->InterfaceClass == this)
 			{
 				InterfaceProp->InterfaceClass = ReplacementClass;
+				++ReplacementCount;
 			}
 		}
 	}
 	ReferencingProperties.Empty();
-
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 	bResolvedReferences = true;
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+
+	return ReplacementCount;
 }

@@ -59,6 +59,15 @@ public:
 	int32 GetRefCount() const;
 
 	/**
+	 * Checks to see if 1) this placeholder has had RemoveTrackedReference() 
+	 * called on it, and 2) it doesn't have any more references that have since 
+	 * been added.
+	 * 
+	 * @return True if ReplaceTrackedReferences() has been ran, and no KNOWN references have been added.
+	 */
+	bool HasBeenResolved() const;
+
+	/**
 	 * Removes the specified property from this class's internal tracking list 
 	 * (which aims to keep track of properties utilizing this class).
 	 * 
@@ -71,15 +80,18 @@ public:
 	 * references to this class with a new (hopefully proper) class.
 	 * 
 	 * @param  ReplacementClass    The class that you want all references to this class replaced with.
+	 * @return The number of references that were successfully replaced.
 	 */
-	void ReplaceTrackedReferences(UClass* ReplacementClass);
+	int32 ReplaceTrackedReferences(UClass* ReplacementClass);
+
+public:
+	/** Set by the ULinkerLoad that created this instance, tracks what import this was used in place of. */
+	int32 ImportIndex;
 
 private:
 	/** Links to UProperties that are currently using this class */
 	TSet<UProperty*> ReferencingProperties;
 
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 	/** Used to catch references that are added after we've already resolved all references */
 	bool bResolvedReferences;
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 }; 

@@ -1844,6 +1844,27 @@ private:
 	void ResolveDeferredDependencies(UClass* LoadClass);
 
 	/**
+	 * Loads the import that the Placeholder was initially stubbed in for (NOTE:
+	 * this could cause recursive behavior), and then replaces all known 
+	 * placeholder references with the proper class.
+	 * 
+	 * @param  Placeholder		A ULinkerPlaceholderClass that was substituted in place of a deferred dependency.
+	 * @param  ReferencingClass	The (Blueprint) class that was loading, while we deferred dependencies (now referencing the placeholder).
+	 * @return The number of placeholder references replaced (could be none, if this was recursively resolved).
+	 */
+	int32 ResolveDependencyPlaceholder(UClass* Placeholder, UClass* ReferencingClass = nullptr);
+
+	/**
+	 * Query method to help catch recursive behavior. When this returns true, a 
+	 * dependency placeholder is in the middle of being resolved by 
+	 * ResolveDependencyPlaceholder(). Used so a nested call would know to 
+	 * complete that placeholder before continuing.
+	 * 
+	 * @return True if ResolveDependencyPlaceholder() is being ran on a placeholder that has yet to be resolved. 
+	 */
+	bool IsActivelyResolvingDeferredDependency() const;
+
+	/**
 	 * Takes the supplied serialized class and serializes in its CDO, then 
 	 * regenerates both.
 	 * 
@@ -1851,14 +1872,33 @@ private:
 	 */
 	void FinalizeBlueprint(UClass* LoadClass);
 
+	/**
+	 * Query method to help handle recursive behavior. When this returns true, 
+	 * this linker is in the middle of, or is about to call FinalizeBlueprint()
+	 * (for a blueprint class somewhere in the current callstack). Needed when 
+	 * we get to finalizing a sub-class before we've finished finalizing its 
+	 * super (so we know we need to finish finalizing the super first).
+	 * 
+	 * @return True if FinalizeBlueprint() is currently being ran (or about to be ran) for an export (Blueprint) class.
+	 */
+	bool IsBlueprintFinalizationPending() const;
+
 #if	USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	/** 
 	 * For deferring dependency loads, we block CDO serialization until the 
-	 * class if complete. If we attempt to serialize the CDO whil that is 
+	 * class if complete. If we attempt to serialize the CDO while that is 
 	 * happening, we instead defer it and record the export's index here (so we 
 	 * can return to it later).
 	 */
 	int32 DeferredExportIndex;
+
+	/** 
+	 * Used to track dependency placeholders currently being resolved inside of 
+	 * ResolveDependencyPlaceholder()... utilized for nested reentrant behavior, 
+	 * to make sure this placeholder is completely resolved before continuing on 
+	 * to the next.
+	 */
+	UClass* ResolvingDeferredPlaceholder;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 
