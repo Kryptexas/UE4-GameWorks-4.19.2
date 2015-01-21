@@ -42,6 +42,7 @@ class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void NodeConnectionListChanged() override;
 	virtual void PinTypeChanged(UEdGraphPin* Pin) override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	virtual void PostPasteNode() override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Select_16x"); }
 	// End UEdGraphNode interface
