@@ -2717,8 +2717,21 @@ void SSCSEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 			return bFoundInvalidNode;
 		};
 
+		const AActor* ActorInstance = ActorContext.Get();
+		check(ActorInstance);
+
+		int32 NumComponentInstances = 0;
+		for(auto CompIt = ActorInstance->GetComponents().CreateConstIterator(); CompIt; ++CompIt)
+		{
+			// Don't count editor-only components, because we don't show them
+			if(!(*CompIt)->IsEditorOnly())
+			{
+				++NumComponentInstances;
+			}
+		}
+
 		int32 NumComponentNodes = 0;
-		if(AreAnyNodesInvalidLambda(RootNodes, NumComponentNodes) || NumComponentNodes != ActorContext.Get()->GetComponents().Num())
+		if(AreAnyNodesInvalidLambda(RootNodes, NumComponentNodes) || NumComponentNodes != NumComponentInstances)
 		{
 			UE_LOG(LogSCSEditor, Log, TEXT("Calling UpdateTree() from Tick()."));
 
