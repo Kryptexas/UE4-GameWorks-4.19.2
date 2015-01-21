@@ -200,6 +200,13 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 				Ar << PlatformData;
 			}
 		}
+		if (Ar.UE4Ver() >= VER_UE4_LANDSCAPE_GRASS_COOKING)
+		{
+			// Integrated from main into 4.7 branch; just leave as empty in 4.7.
+			int32 NumChannels = 0;
+			Ar << NumChannels;
+			check(NumChannels == 0);
+		}
 	}
 #endif
 }
