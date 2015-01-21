@@ -824,14 +824,16 @@ public:
 	static FGuid GetMachineId();
 
 	/**
-	 * Get the Epic account ID for the user who last used the Launcher
+	 * Get the Epic account ID for the user who last used the Launcher.
+	 * @return an empty string if the account ID was not present or it failed to read it for any reason.
 	 */
 	static FString GetEpicAccountId();
 
 	/**
 	 * Set the Epic account ID for the user who last used the Launcher
+	 * @return true if the account ID was set successfully, false if something failed and it was not set.
 	 */
-	static void SetEpicAccountId( const FString& AccountId );
+	static bool SetEpicAccountId( const FString& AccountId );
 
 	/** 
 	 * Get a string description of the mode the engine was running in.
