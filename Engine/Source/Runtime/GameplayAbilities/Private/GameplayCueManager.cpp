@@ -345,7 +345,7 @@ void UGameplayCueManager::BuildAccelerationMap_Internal()
 		}
 	}
 
-	PrintGameplayCueNotifyMap();
+	// PrintGameplayCueNotifyMap();
 }
 
 int32 UGameplayCueManager::FinishLoadingGameplayCueNotifies()

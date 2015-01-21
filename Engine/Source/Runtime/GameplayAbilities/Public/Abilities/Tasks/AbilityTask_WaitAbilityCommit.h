@@ -7,6 +7,8 @@
 
 class AActor;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitAbilityCommitDelegate, UGameplayAbility*, ActivatedAbility);
+
 /**
  *	Waits for the actor to activate another ability
  */
@@ -14,8 +16,6 @@ UCLASS(MinimalAPI)
 class UAbilityTask_WaitAbilityCommit : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitAbilityCommitDelegate, UGameplayAbility*, ActivatedAbility);
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitAbilityCommitDelegate	OnCommit;

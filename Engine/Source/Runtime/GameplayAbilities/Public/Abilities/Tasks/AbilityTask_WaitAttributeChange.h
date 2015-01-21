@@ -5,9 +5,6 @@
 #include "AttributeSet.h"
 #include "AbilityTask_WaitAttributeChange.generated.h"
 
-
-
-
 struct FGameplayEffectModCallbackData;
 
 UENUM()
@@ -26,6 +23,8 @@ namespace EWaitAttributeChangeComparison
 	};
 }
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitAttributeChangeDelegate);
+
 /**
  *	Waits for the actor to activate another ability
  */
@@ -33,8 +32,6 @@ UCLASS(MinimalAPI)
 class UAbilityTask_WaitAttributeChange : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitAttributeChangeDelegate);
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitAttributeChangeDelegate	OnChange;

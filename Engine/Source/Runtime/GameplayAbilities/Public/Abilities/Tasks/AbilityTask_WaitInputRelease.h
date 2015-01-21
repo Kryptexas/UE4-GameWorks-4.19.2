@@ -5,6 +5,8 @@
 #include "AbilitySystemComponent.h"
 #include "AbilityTask_WaitInputRelease.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInputReleaseDelegate, float, TimeHeld);
+
 /**
  *	Waits until the input is released from activating an ability. Clients will replicate a 'release input' event to the server, but not the exact time it was held locally.
  *	We expect server to execute this task in parrallel and keep its own time.
@@ -13,8 +15,6 @@ UCLASS(MinimalAPI)
 class UAbilityTask_WaitInputRelease : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInputReleaseDelegate, float, TimeHeld);
 
 	UPROPERTY(BlueprintAssignable)
 	FInputReleaseDelegate	OnRelease;

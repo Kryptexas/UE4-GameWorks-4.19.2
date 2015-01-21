@@ -5,16 +5,16 @@
 #include "AbilitySystemComponent.h"
 #include "AbilityTask_WaitInputPress.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInputPressDelegate, float, TimeWaited);
+
 /**
-*	Waits until the input is pressed from activating an ability. This should be true immediately upon starting the ability, since the key was pressed to activate it.
-*	We expect server to execute this task in parrallel and keep its own time. We do not keep track of 
-*/
+ *	Waits until the input is pressed from activating an ability. This should be true immediately upon starting the ability, since the key was pressed to activate it.
+ *	We expect server to execute this task in parrallel and keep its own time. We do not keep track of 
+ */
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitInputPress : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInputPressDelegate, float, TimeWaited);
 
 	UPROPERTY(BlueprintAssignable)
 	FInputPressDelegate		OnPress;

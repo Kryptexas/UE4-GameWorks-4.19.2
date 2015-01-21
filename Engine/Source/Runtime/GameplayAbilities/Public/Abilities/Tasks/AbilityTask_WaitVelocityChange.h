@@ -4,13 +4,12 @@
 #include "AbilityTask.h"
 #include "AbilityTask_WaitVelocityChange.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitVelocityChangeDelegate);
 
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitVelocityChange: public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitVelocityChangeDelegate);
 
 	/** Delegate called when velocity requirements are met */
 	UPROPERTY(BlueprintAssignable)
