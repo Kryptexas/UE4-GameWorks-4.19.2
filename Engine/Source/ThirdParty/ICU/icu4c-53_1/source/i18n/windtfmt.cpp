@@ -251,14 +251,28 @@ void Win32DateFormat::formatDate(const SYSTEMTIME *st, UnicodeString &appendTo) 
     UChar stackBuffer[STACK_BUFFER_SIZE];
     UChar *buffer = stackBuffer;
 
+#if U_PLATFORM == U_PF_DURANGO
+	UChar LocaleName[LOCALE_NAME_MAX_LENGTH];
+	mbstowcs(LocaleName, fLocale.getName(), LOCALE_NAME_MAX_LENGTH);
+	result = GetDateFormatEx(LocaleName, dfFlags[fDateStyle - kDateOffset], st, NULL, buffer, STACK_BUFFER_SIZE, NULL);
+#else
     result = GetDateFormatW(fLCID, dfFlags[fDateStyle - kDateOffset], st, NULL, buffer, STACK_BUFFER_SIZE);
+#endif
 
     if (result == 0) {
         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+#if U_PLATFORM == U_PF_DURANGO
+			int newLength = GetDateFormatEx(LocaleName, dfFlags[fDateStyle - kDateOffset], st, NULL, NULL, 0, NULL);
+#else
             int newLength = GetDateFormatW(fLCID, dfFlags[fDateStyle - kDateOffset], st, NULL, NULL, 0);
+#endif
 
             buffer = NEW_ARRAY(UChar, newLength);
+#if U_PLATFORM == U_PF_DURANGO
+			GetDateFormatEx(LocaleName, dfFlags[fDateStyle - kDateOffset], st, NULL, NULL, newLength, NULL);
+#else
             GetDateFormatW(fLCID, dfFlags[fDateStyle - kDateOffset], st, NULL, buffer, newLength);
+#endif
         }
     }
 
@@ -277,14 +291,28 @@ void Win32DateFormat::formatTime(const SYSTEMTIME *st, UnicodeString &appendTo) 
     UChar stackBuffer[STACK_BUFFER_SIZE];
     UChar *buffer = stackBuffer;
 
+#if U_PLATFORM == U_PF_DURANGO
+	UChar LocaleName[LOCALE_NAME_MAX_LENGTH];
+	mbstowcs(LocaleName, fLocale.getName(), LOCALE_NAME_MAX_LENGTH);
+	result = GetTimeFormatEx(LocaleName, tfFlags[fTimeStyle], st, NULL, buffer, STACK_BUFFER_SIZE);
+#else
     result = GetTimeFormatW(fLCID, tfFlags[fTimeStyle], st, NULL, buffer, STACK_BUFFER_SIZE);
+#endif
 
     if (result == 0) {
         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+#if U_PLATFORM == U_PF_DURANGO
+			int newLength = GetTimeFormatEx(LocaleName, tfFlags[fTimeStyle], st, NULL, NULL, 0);
+#else
             int newLength = GetTimeFormatW(fLCID, tfFlags[fTimeStyle], st, NULL, NULL, 0);
+#endif
 
             buffer = NEW_ARRAY(UChar, newLength);
-            GetDateFormatW(fLCID, tfFlags[fTimeStyle], st, NULL, buffer, newLength);
+#if U_PLATFORM == U_PF_DURANGO
+			GetTimeFormatEx(LocaleName, tfFlags[fTimeStyle], st, NULL, buffer, newLength);
+#else
+            GetTimeFormatW(fLCID, tfFlags[fTimeStyle], st, NULL, buffer, newLength);
+#endif
         }
     }
 
