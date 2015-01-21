@@ -740,7 +740,7 @@ protected:
 	void RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList);
 
 	/** Perform upscaling when post process is not used. */
-	void SimpleUpscale(FRHICommandListImmediate& RHICmdList, FViewInfo &View);
+	void BasicPostProcess(FRHICommandListImmediate& RHICmdList, FViewInfo &View, bool bDoUpscale, bool bDoEditorPrimitives);
 
 	/**
 	  * Used by RenderShadowDepthMaps to render shadowmap for the given light.
