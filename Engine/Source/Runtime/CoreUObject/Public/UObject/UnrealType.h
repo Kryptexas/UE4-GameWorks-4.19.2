@@ -1710,6 +1710,21 @@ public:
 		SetObjectPropertyValue(ContainerPtrToValuePtr<void>(PropertyValueAddress, ArrayIndex), Value);
 	}
 
+	/**
+	 * Setter function for this property's PropertyClass member. Favor this 
+	 * function whilst loading (since, to handle circular dependencies, we defer 
+	 * some class loads and use a placeholder class instead). It properly 
+	 * handles deferred loading placeholder classes (so they can properly be 
+	 * replaced later).
+	 *  
+	 * @param  NewPropertyClass    The PropertyClass you want this property set with.
+	 */
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	void SetPropertyClass(UClass* NewPropertyClass);
+#else
+	FORCEINLINE void SetPropertyClass(UClass* NewPropertyClass) { PropertyClass = NewPropertyClass; }
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 protected:
 	virtual bool AllowCrossLevel() const
 	{
@@ -1937,6 +1952,21 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
+	/**
+	 * Setter function for this property's MetaClass member. Favor this function 
+	 * whilst loading (since, to handle circular dependencies, we defer some 
+	 * class loads and use a placeholder class instead). It properly handles 
+	 * deferred loading placeholder classes (so they can properly be replaced 
+	 * later).
+	 * 
+	 * @param  NewMetaClass    The MetaClass you want this property set with.
+	 */
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	void SetMetaClass(UClass* NewMetaClass);
+#else
+	FORCEINLINE void SetMetaClass(UClass* NewMetaClass) { MetaClass = NewMetaClass; }
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 protected:
 	virtual void CheckValidObject(void* Value) const override;
 };
@@ -2026,6 +2056,21 @@ public:
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
 	// End of UObject interface
+
+	/**
+	 * Setter function for this property's InterfaceClass member. Favor this 
+	 * function whilst loading (since, to handle circular dependencies, we defer 
+	 * some class loads and use a placeholder class instead). It properly 
+	 * handles deferred loading placeholder classes (so they can properly be 
+	 * replaced later).
+	 *  
+	 * @param  NewInterfaceClass    The InterfaceClass you want this property set with.
+	 */
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	void SetInterfaceClass(UClass* NewInterfaceClass);
+#else
+	FORCEINLINE void SetInterfaceClass(UClass* NewInterfaceClass) { InterfaceClass = NewInterfaceClass; }
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 };
 
 /*-----------------------------------------------------------------------------

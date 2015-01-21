@@ -7,6 +7,9 @@
 //------------------------------------------------------------------------------
 ULinkerPlaceholderClass::ULinkerPlaceholderClass(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	, bResolvedReferences(false)
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 {
 }
 
@@ -68,6 +71,30 @@ void ULinkerPlaceholderClass::Bind()
 //------------------------------------------------------------------------------
 void ULinkerPlaceholderClass::AddTrackedReference(UProperty* ReferencingProperty)
 {
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
+	if (!bCircumventValidationChecks)
+	{
+		FObjectImport* PlaceholderImport = nullptr;
+		if (ULinkerLoad* PropertyLinker = ReferencingProperty->GetLinker())
+		{
+			for (FObjectImport& Import : PropertyLinker->ImportMap)
+			{
+				if (Import.XObject == this)
+				{
+					PlaceholderImport = &Import;
+					break;
+				}
+			}
+			check(GetOuter() == PropertyLinker->LinkerRoot);
+			check(PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads);
+		}
+		// if this check hits, then we're adding dependencies after we've 
+		// already resolved the placeholder (it won't be resolved again)
+		check(!bResolvedReferences); 
+	}	
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+
 	ReferencingProperties.Add(ReferencingProperty);
 }
 
@@ -75,6 +102,12 @@ void ULinkerPlaceholderClass::AddTrackedReference(UProperty* ReferencingProperty
 bool ULinkerPlaceholderClass::HasReferences() const
 {
 	return (ReferencingProperties.Num() > 0);
+}
+
+//------------------------------------------------------------------------------
+int32 ULinkerPlaceholderClass::GetRefCount() const
+{
+	return ReferencingProperties.Num();
 }
 
 //------------------------------------------------------------------------------
@@ -113,4 +146,8 @@ void ULinkerPlaceholderClass::ReplaceTrackedReferences(UClass* ReplacementClass)
 		}
 	}
 	ReferencingProperties.Empty();
+
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	bResolvedReferences = true;
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 }

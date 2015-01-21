@@ -2879,7 +2879,7 @@ void ULinkerLoad::Preload( UObject* Object )
 					SCOPE_CYCLE_COUNTER(STAT_LinkerLoadDeferred);
 					if ((LoadFlags & LOAD_DeferDependencyLoads) != (*LoadFlagsGuard & LOAD_DeferDependencyLoads))
 					{
-						ResolveDeferredDependencies();
+						ResolveDeferredDependencies(ObjectAsClass);
 						FinalizeBlueprint(ObjectAsClass);
 					}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

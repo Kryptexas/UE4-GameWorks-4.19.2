@@ -348,8 +348,9 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-void ULinkerLoad::ResolveDeferredDependencies()
+void ULinkerLoad::ResolveDeferredDependencies(UClass* LoadClass)
 {
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	//--------------------------------------
 	// Phase 2: Resolve Dependency Stubs
 	//--------------------------------------
@@ -364,19 +365,46 @@ void ULinkerLoad::ResolveDeferredDependencies()
 			Import.XObject = nullptr;
 			UClass* RealClassObj = CastChecked<UClass>(CreateImport(ImportIndex), ECastCheckedType::NullAllowed);
 
+			bool bUsedPlaceholderInterface = false;
+			if (LoadClass != nullptr)
+			{
+				for (FImplementedInterface& Interface : LoadClass->Interfaces)
+				{
+					if (Interface.Class == PlaceholderClass)
+					{
+						bUsedPlaceholderInterface = true;
+						Interface.Class = RealClassObj;
+					}
+				}
+			}
+
 #if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 			bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
+			checkSlow(bCircumventValidationChecks || (PlaceholderClass->GetOuter() == LinkerRoot));
 			// make sure that we know what utilized this placeholder class... 
 			// right now we only expect UObjectProperties/UClassProperties/
-			// UInterfaceProperties to, but something else could have requested 
-			// the class without logging itself with the placeholder... if  
-			// ReferencingProperties is empty, then there is something out there 
-			// still using a placeholder class
-			checkSlow(bCircumventValidationChecks || PlaceholderClass->HasReferences());
+			// UInterfaceProperties/FImplementedInterfaces to, but something 
+			// else could have requested the class without logging itself with 
+			// the placeholder... if ReferencingProperties is empty, then there 
+			// is something out there still using a placeholder class
+			checkSlow(bCircumventValidationChecks || bUsedPlaceholderInterface || PlaceholderClass->HasReferences());
+
+			UObject* PlaceholderObj = PlaceholderClass;
+			// 
+			FReferencerInformationList RemainingRefs;
+			//checkSlow(bCircumventValidationChecks || PlaceholderClass->HasReferences() == IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &RemainingRefs));
+			//checkSlow(bCircumventValidationChecks || RemainingRefs.ExternalReferences.Num() == PlaceholderClass->GetRefCount());
 #endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 
 			PlaceholderClass->ReplaceTrackedReferences(RealClassObj);
 			PlaceholderClass->MarkPendingKill(); // @TODO: ensure these are properly GC'd
+		
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+			// there should not be any references left to this placeholder class 
+			// (if there is, then we didn't log that referencer with the placeholder)
+			FReferencerInformationList DanglingReferences;
+			checkSlow(bCircumventValidationChecks || !IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &DanglingReferences));
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 		}
 		else if (UScriptStruct* StructObj = Cast<UScriptStruct>(Import.XObject))
 		{
@@ -386,14 +414,16 @@ void ULinkerLoad::ResolveDeferredDependencies()
 			// @TODO: could this result in an endless ResolveDeferredDependencies() loop? 
 			if (Import.SourceLinker != nullptr)
 			{
-				Import.SourceLinker->ResolveDeferredDependencies();
+				Import.SourceLinker->ResolveDeferredDependencies(/*LoadClass =*/nullptr);
 			}
 		}
 	}
 
 	// @TODO: don't know if we need this, but could be good to have (as class 
-	//        regeneration is about to force load a lot of this).
-	LoadAllObjects();
+	//        regeneration is about to force load a lot of this), BUT! this 
+	//        doesn't work for map packages (because this would load the level's
+	//        ALevelScriptActor instance BEFORE the class has been regenerated)
+	//LoadAllObjects();
 
 #if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
@@ -408,6 +438,7 @@ void ULinkerLoad::ResolveDeferredDependencies()
 		}
 	}
 #endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
 void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)

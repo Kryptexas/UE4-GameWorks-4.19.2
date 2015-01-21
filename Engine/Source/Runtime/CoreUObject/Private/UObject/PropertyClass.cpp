@@ -27,7 +27,7 @@ void UClassProperty::Serialize( FArchive& Ar )
 	Ar << MetaClass;
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	if (Ar.IsLoading())
+	if (Ar.IsLoading() || Ar.IsObjectReferenceCollector())
 	{
 		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(MetaClass))
 		{
@@ -48,12 +48,30 @@ void UClassProperty::Serialize( FArchive& Ar )
 		}
 	}
 }
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+void UClassProperty::SetMetaClass(UClass* NewMetaClass)
+{
+	if (ULinkerPlaceholderClass* NewPlaceholderClass = Cast<ULinkerPlaceholderClass>(NewMetaClass))
+	{
+		NewPlaceholderClass->AddTrackedReference(this);
+	}
+
+	if (ULinkerPlaceholderClass* OldPlaceholderClass = Cast<ULinkerPlaceholderClass>(NewMetaClass))
+	{
+		OldPlaceholderClass->RemoveTrackedReference(this);
+	}
+	MetaClass = NewMetaClass;
+}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 void UClassProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UClassProperty* This = CastChecked<UClassProperty>(InThis);
 	Collector.AddReferencedObject( This->MetaClass, This );
 	Super::AddReferencedObjects( This, Collector );
 }
+
 const TCHAR* UClassProperty::ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
 	const TCHAR* Result = UObjectProperty::ImportText_Internal( Buffer, Data, PortFlags, Parent, ErrorText );

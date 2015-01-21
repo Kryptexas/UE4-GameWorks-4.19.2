@@ -51,6 +51,14 @@ public:
 	bool HasReferences() const;
 
 	/**
+	 * Query method that retrieves the current number of KNOWN references to 
+	 * this placeholder class.
+	 * 
+	 * @return The number of references that this class is currently tracking.
+	 */
+	int32 GetRefCount() const;
+
+	/**
 	 * Removes the specified property from this class's internal tracking list 
 	 * (which aims to keep track of properties utilizing this class).
 	 * 
@@ -69,4 +77,9 @@ public:
 private:
 	/** Links to UProperties that are currently using this class */
 	TSet<UProperty*> ReferencingProperties;
+
+#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	/** Used to catch references that are added after we've already resolved all references */
+	bool bResolvedReferences;
+#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 }; 
