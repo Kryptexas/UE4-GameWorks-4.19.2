@@ -337,7 +337,7 @@ void FAnalyticsProviderET::FlushEvents()
 		}
 		else
 		{
-			UE_LOG(LogAnalytics, Log, TEXT("AnalyticsET Payload:%s"), *Payload);
+			UE_LOG(LogAnalytics, Display, TEXT("AnalyticsET Payload:%s"), *Payload);
 		}
 
 		// Create/send Http request for an event
