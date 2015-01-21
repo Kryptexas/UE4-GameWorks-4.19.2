@@ -10,6 +10,7 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "Components/ModelComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 FModelElement::FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial):
 	Component(InComponent),
@@ -528,6 +529,8 @@ void UModelComponent::InvalidateCollisionData()
 bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData)
 {
 	check(Model);
+	int32 nBadArea = 0;
+	const float AreaThreshold = UPhysicsSettings::Get()->TriangleMeshTriangleMinAreaThreshold;
 
 	const int32 NumVerts = Model->VertexBuffer.Vertices.Num();
 	CollisionData->Vertices.AddUninitialized(NumVerts);
@@ -549,9 +552,31 @@ bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* Collis
 			Triangle.v1 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx*3) + 1];
 			Triangle.v2 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx*3) + 2];
 
+			if (AreaThreshold >= 0.f)
+			{
+				const FVector V0 = Model->VertexBuffer.Vertices[Triangle.v0].Position;
+				const FVector V1 = Model->VertexBuffer.Vertices[Triangle.v1].Position;
+				const FVector V2 = Model->VertexBuffer.Vertices[Triangle.v2].Position;
+
+				const FVector V01 = (V1 - V0);
+				const FVector V02 = (V2 - V0);
+				const FVector Cross = FVector::CrossProduct(V01, V02);
+				const float Area = Cross.Size() * 0.5f;
+				if (Area <= AreaThreshold)
+				{
+					nBadArea++;
+					continue;
+				}
+			}
+
 			CollisionData->Indices.Add(Triangle);
 			CollisionData->MaterialIndices.Add(ElementIndex);
 		}
+	}
+
+	if (nBadArea > 0)
+	{
+		UE_LOG(LogPhysics, Log, TEXT("Cooking removed %d triangle%s with area <= %f (%s)"), nBadArea, (nBadArea > 1 ? TEXT("s") : TEXT("")), AreaThreshold, *GetPathName(GetOuter()));
 	}
 
 	CollisionData->bFlipNormals = true;
