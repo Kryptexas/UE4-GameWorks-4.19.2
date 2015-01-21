@@ -36,6 +36,8 @@
 
 #include "Engine/InheritableComponentHandler.h"
 
+#include "BPVariableDragDropAction.h"
+
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
 static const FName SCS_ColumnName_ComponentClass( "ComponentClass" );

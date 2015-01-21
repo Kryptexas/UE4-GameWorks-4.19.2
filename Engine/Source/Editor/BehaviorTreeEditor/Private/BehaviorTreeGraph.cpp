@@ -5,6 +5,7 @@
 #include "BehaviorTree/BTDecorator.h"
 #include "BehaviorTree/BTService.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
 
 //////////////////////////////////////////////////////////////////////////
 // BehaviorTreeGraph
