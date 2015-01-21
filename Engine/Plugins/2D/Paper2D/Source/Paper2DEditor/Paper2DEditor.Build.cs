@@ -21,10 +21,8 @@ public class Paper2DEditor : ModuleRules
 				"SlateCore",
 				"Engine",
                 "InputCore",
-				"AssetTools",
 				"UnrealEd", // for FAssetEditorManager
 				"KismetWidgets",
-				"EditorWidgets", // for SCreateNewAssetFromFactory
 				"GraphEditor",
 				"Kismet",  // for FWorkflowCentricApplication
 				"PropertyEditor",
@@ -40,8 +38,16 @@ public class Paper2DEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
-				"IntroTutorials"
+				"IntroTutorials",
+                "AssetTools"
 			}
 		);
+
+        DynamicallyLoadedModuleNames.AddRange(
+            new string[] {
+                "AssetTools"
+            }
+        );
+
 	}
 }

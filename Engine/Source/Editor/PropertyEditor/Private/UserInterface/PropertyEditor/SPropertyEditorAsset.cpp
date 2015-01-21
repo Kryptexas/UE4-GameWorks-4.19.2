@@ -2,7 +2,6 @@
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyEditorAsset.h"
-#include "SCreateNewAssetFromFactory.h"
 #include "PropertyNode.h"
 #include "PropertyEditor.h"
 #include "AssetThumbnail.h"
