@@ -47,6 +47,10 @@ public:
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 	// End of FViewportClient interface
 
+	// FEditorViewportClient interface
+	virtual FLinearColor GetBackgroundColor() const override;
+	// End of FEditorViewportClient interface
+
 	// FSerializableObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FSerializableObject interface

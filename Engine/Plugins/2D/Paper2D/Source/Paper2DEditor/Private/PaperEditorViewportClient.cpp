@@ -95,9 +95,15 @@ FPaperEditorViewportClient::~FPaperEditorViewportClient()
 {
 }
 
+FLinearColor FPaperEditorViewportClient::GetBackgroundColor() const
+{
+	//@TODO: Make adjustable - TextureEditorPtr.Pin()->GetBackgroundColor());
+	return FLinearColor(0, 0, 127, 0);
+}
+
 void FPaperEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
-	Canvas->Clear(FColor(0, 0, 127, 0));//@TODO: Make adjustable - TextureEditorPtr.Pin()->GetBackgroundColor());
+	Canvas->Clear(GetBackgroundColor());
 }
 
 void FPaperEditorViewportClient::DrawSelectionRectangles(FViewport* Viewport, FCanvas* Canvas)
