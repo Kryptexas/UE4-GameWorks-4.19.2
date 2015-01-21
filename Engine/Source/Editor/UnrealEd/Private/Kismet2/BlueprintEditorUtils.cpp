@@ -435,6 +435,19 @@ void FBlueprintEditorUtils::PreloadConstructionScript(UBlueprint* Blueprint)
 			RootNodes[NodeIndex]->PreloadChain();
 		}
 	}
+
+	auto SimpleConstructionScript = Blueprint ? Blueprint->SimpleConstructionScript : nullptr;
+	if (SimpleConstructionScript)
+	{
+		auto AllNodes = SimpleConstructionScript->GetAllNodes();
+		for (auto SCSNode : AllNodes)
+		{
+			if (SCSNode)
+			{
+				SCSNode->ValidateGuid();
+			}
+		}
+	}
 }
 
 void FBlueprintEditorUtils::PatchNewCDOIntoLinker(UObject* CDO, ULinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded)

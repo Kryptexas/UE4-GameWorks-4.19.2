@@ -93,6 +93,9 @@ class USCS_Node : public UObject
 
 	/** The scene component constructed for component editing in the SCS editor */
 	class USceneComponent* EditorComponentInstance;
+
+	/** Make sure, the guid is proper - backward compatibility */
+	ENGINE_API void ValidateGuid();
 #endif
 
 	/**
