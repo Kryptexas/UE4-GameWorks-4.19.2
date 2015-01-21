@@ -3021,7 +3021,7 @@ static void FlushFoliage(const TArray<FString>& Args)
 	for( TObjectIterator<ALandscapeProxy> It; It; ++It )
 	{
 		ALandscapeProxy* Landscape = *It;
-		if( Landscape && !Landscape->IsTemplate())
+		if( Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
 		{
 			Landscape->FlushFoliageComponents();
 		}
