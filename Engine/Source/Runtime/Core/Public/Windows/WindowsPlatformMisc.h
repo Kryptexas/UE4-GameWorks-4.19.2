@@ -213,6 +213,12 @@ struct CORE_API FWindowsPlatformMisc
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();
+
+	/**
+	 * Gets a globally unique ID the represents a particular operating system install.
+	 */
+	static FString GetOperatingSystemId();
+
 };
 
 

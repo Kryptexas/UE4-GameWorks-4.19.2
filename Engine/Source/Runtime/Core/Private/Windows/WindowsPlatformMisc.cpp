@@ -2322,3 +2322,11 @@ bool FWindowsPlatformMisc::IsRunningOnBattery()
 
 	return false;
 }
+
+FString FWindowsPlatformMisc::GetOperatingSystemId()
+{
+	FString Result;
+	// more info on this key can be found here: http://stackoverflow.com/questions/99880/generating-a-unique-machine-id
+	QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("Software\\Microsoft\\Cryptography"), TEXT("MachineGuid"), Result);
+	return Result;
+}

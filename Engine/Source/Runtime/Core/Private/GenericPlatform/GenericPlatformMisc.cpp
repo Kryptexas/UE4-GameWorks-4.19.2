@@ -865,3 +865,9 @@ void FGenericPlatformMisc::PlatformPreInit()
 {
 	FGenericCrashContext::Initialize();
 }
+
+FString FGenericPlatformMisc::GetOperatingSystemId()
+{
+	// not implemented by default.
+	return FString();
+}
