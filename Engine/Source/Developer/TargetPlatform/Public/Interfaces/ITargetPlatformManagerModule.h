@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "TargetDeviceID.h"
+#include "TargetDeviceId.h"
 #include "ITargetDevice.h"
 
 /**
