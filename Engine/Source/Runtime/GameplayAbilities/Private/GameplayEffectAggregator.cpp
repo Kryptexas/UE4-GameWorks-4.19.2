@@ -324,11 +324,12 @@ void FScopedAggregatorOnDirtyBatch::EndLock()
 	GlobalBatchCount--;
 	if (GlobalBatchCount == 0)
 	{
-		for (FAggregator* Agg : DirtyAggregators)
+		TSet<FAggregator*> LocalSet(MoveTemp(DirtyAggregators));
+		for (FAggregator* Agg : LocalSet)
 		{
 			Agg->BroadcastOnDirty();
 		}
-		DirtyAggregators.Empty();
+		LocalSet.Empty();
 	}
 }
 
