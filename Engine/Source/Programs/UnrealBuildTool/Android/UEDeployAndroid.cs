@@ -486,9 +486,9 @@ namespace UnrealBuildTool.Android
 				}
 			}
 
+			Section = Ini.FindSection("/Script/AndroidPlatformEditor.AndroidSDKSettings");
 			if (Section != null)
 			{
-				Section = Ini.FindSection("/Script/AndroidPlatformEditor.AndroidSDKSettings");
 				foreach (string Key in Section.Keys)
 				{
 					List<string> Values = Section[Key];
