@@ -669,28 +669,6 @@ private:
 		{
 			GEditor->SelectNone(true, true, false);
 			GEditor->SelectActor(Actor, true, true, true);
-		//	auto Actor = GetSelectedActor();
-		//	if (Actor)
-		//	{
-		//		// Enable the selection guard to prevent OnEditorSelectionChanged() from altering the contents of the SCSTreeWidget
-		//		TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
-
-		//		// Update the editor's component selection
-		//		TArray<UObject*> DetailsObjects;
-		//		USelection* SelectedComponents = GEditor->GetSelectedComponents();
-		//		DetailsObjects.Add(Actor);
-
-		//		SelectedComponents->BeginBatchSelectOperation();
-		//		SelectedComponents->DeselectAll();
-
-		//		DetailsView->SetObjects(DetailsObjects, false);
-
-		//		SelectedComponents->EndBatchSelectOperation();
-
-		//		GUnrealEd->SetActorSelectionFlags(Actor);
-		//		GUnrealEd->UpdatePivotLocationForSelection(true);
-		//		GEditor->RedrawLevelEditingViewports();
-		//	}
 		}
 	}
 
@@ -798,6 +776,7 @@ private:
 			auto SCSTreeNode = SCSEditor->GetNodeFromActorComponent(Component, false);
 			if (SCSTreeNode.IsValid() && SCSTreeNode->GetComponentTemplate())
 			{
+				SCSTreeWidget->RequestScrollIntoView(SCSTreeNode);
 				SCSTreeWidget->SetItemSelection(SCSTreeNode, true);
 
 				auto ComponentTemplate = SCSTreeNode->GetComponentTemplate();
