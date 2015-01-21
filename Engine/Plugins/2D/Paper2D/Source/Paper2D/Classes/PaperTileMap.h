@@ -93,6 +93,10 @@ public:
 	/** The currently selected layer index */
 	UPROPERTY()
 	int32 SelectedLayerIndex;
+
+	/** The background color displayed in the tile map editor */
+	UPROPERTY(Category=Setup, EditAnywhere)
+	FLinearColor BackgroundColor;
 #endif
 
 	/** The naming index to start at when trying to create a new layer */
