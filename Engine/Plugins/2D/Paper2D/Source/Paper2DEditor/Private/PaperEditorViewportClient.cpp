@@ -4,11 +4,13 @@
 #include "TileSetEditor.h"
 #include "PaperEditorViewportClient.h"
 #include "CanvasTypes.h"
+#include "PreviewScene.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAssetEditorModeTools
 
 FAssetEditorModeTools::FAssetEditorModeTools()
+	: PreviewScene(nullptr)
 {
 	ActorSet = NewObject<USelection>();
 	ActorSet->SetFlags(RF_Transactional);
@@ -35,6 +37,16 @@ USelection* FAssetEditorModeTools::GetSelectedActors() const
 USelection* FAssetEditorModeTools::GetSelectedObjects() const
 {
 	return ObjectSet;
+}
+
+UWorld* FAssetEditorModeTools::GetWorld() const
+{
+	return (PreviewScene != nullptr) ? PreviewScene->GetWorld() : GEditor->GetEditorWorldContext().World();
+}
+
+void FAssetEditorModeTools::SetPreviewScene(class FPreviewScene* NewPreviewScene)
+{
+	PreviewScene = NewPreviewScene;
 }
 
 //////////////////////////////////////////////////////////////////////////
