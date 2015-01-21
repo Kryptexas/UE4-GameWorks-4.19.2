@@ -1077,10 +1077,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Settings)
 	float NearClipPlane;
 
-	/** Can the editor report usage analytics (types of assets being spawned, etc...) back to Epic in order for us to improve the editor user experience?  Note: The editor must be restarted for changes to take effect. */
-	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
-	uint32 bEditorAnalyticsEnabled:1;
-
 	/** Can a runtime game/application report anonymous hardware survey statistics (such as display resolution and GPU model) back to Epic? */
 	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
 	uint32 bHardwareSurveyEnabled:1;
@@ -2448,6 +2444,8 @@ public:
 
 	UGameViewportClient* GameViewportForWorld(const UWorld *InWorld) const;
 
+	/** @return true if editor analytics are enabled */
+	virtual bool AreEditorAnalyticsEnabled() const { return false; }
 protected:
 
 	TIndirectArray<FWorldContext>	WorldList;

@@ -2579,6 +2579,9 @@ private:
 	/** Callback for finished undo transactions. */
 	void HandleTransactorUndo( FUndoSessionContext SessionContext, bool Succeeded );
 
+	/** UEngine interface */
+	virtual bool AreEditorAnalyticsEnabled() const override;
+
 private:
 
 	/** Delegate broadcast just before a blueprint is compiled */
