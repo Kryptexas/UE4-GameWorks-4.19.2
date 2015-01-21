@@ -214,7 +214,7 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
 	Ar << InterfaceClass;
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	if (Ar.IsLoading())
+	if (Ar.IsLoading() || Ar.IsObjectReferenceCollector())
 	{
 		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
 		{
@@ -238,6 +238,23 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
 		++a;
  	}
 }
+
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+void UInterfaceProperty::SetInterfaceClass(UClass* NewInterfaceClass)
+{
+	if (ULinkerPlaceholderClass* NewPlaceholderClass = Cast<ULinkerPlaceholderClass>(NewInterfaceClass))
+	{
+		NewPlaceholderClass->AddTrackedReference(this);
+	}
+
+	if (ULinkerPlaceholderClass* OldPlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
+	{
+		OldPlaceholderClass->RemoveTrackedReference(this);
+	}
+	InterfaceClass = NewInterfaceClass;
+}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 bool UInterfaceProperty::SameType(const UProperty* Other) const
 {

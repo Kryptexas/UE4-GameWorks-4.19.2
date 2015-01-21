@@ -1841,7 +1841,7 @@ private:
 	 * 
 	 * @param  LoadClass    The (Blueprint) class that was loading, while we deferred dependencies.
 	 */
-	void ResolveDeferredDependencies();
+	void ResolveDeferredDependencies(UClass* LoadClass);
 
 	/**
 	 * Takes the supplied serialized class and serializes in its CDO, then 
