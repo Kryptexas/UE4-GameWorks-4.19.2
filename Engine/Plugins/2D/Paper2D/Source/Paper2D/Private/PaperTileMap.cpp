@@ -19,7 +19,7 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 	PixelsPerUnit = 1.0f;
 	SeparationPerTileX = 0.0f;
 	SeparationPerTileY = 0.0f;
-	SeparationPerLayer = 64.0f;
+	SeparationPerLayer = 4.0f;
 	SpriteCollisionDomain = ESpriteCollisionMode::None;
 
 #if WITH_EDITORONLY_DATA
