@@ -18,21 +18,23 @@ struct ENGINE_API FComponentKey
 	UPROPERTY()
 	FName VariableName;
 
-	// TODO: a GUID should be added
+	UPROPERTY()
+	FGuid VariableGuid;
 
 	FComponentKey()
 		: OwnerClass(nullptr)
 	{}
 
-	FComponentKey(USCS_Node* ParentNode);
+	FComponentKey(USCS_Node* SCSNode);
 
 	bool Match(const FComponentKey OtherKey) const;
 
 	bool IsValid() const
 	{
-		return OwnerClass && (VariableName != NAME_None);
+		return OwnerClass && (VariableName != NAME_None) && VariableGuid.IsValid();
 	}
 
+	USCS_Node* FindSCSNode() const;
 	UActorComponent* GetOriginalTemplate() const;
 };
 
@@ -65,7 +67,7 @@ private:
 public:
 	UActorComponent* CreateOverridenComponentTemplate(FComponentKey Key);
 	void UpdateOwnerClass(UBlueprintGeneratedClass* OwnerClass);
-	void RemoveInvalidAndUnnecessaryTemplates();
+	void ValidateTemplates();
 	bool IsValid() const;
 	UActorComponent* FindBestArchetype(FComponentKey Key) const;
 

@@ -461,4 +461,14 @@ FName USCS_Node::GenerateNewComponentName( TArray<FName>& CurrentNames, FName De
 	return NewName;
 }
 
+void USCS_Node::PostLoad()
+{
+	Super::PostLoad();
+
+	if (!VariableGuid.IsValid())
+	{
+		VariableGuid = FGuid::NewGuid();
+	}
+}
+
 #endif
