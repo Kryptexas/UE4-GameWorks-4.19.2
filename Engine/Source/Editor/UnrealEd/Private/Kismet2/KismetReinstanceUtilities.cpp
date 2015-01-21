@@ -838,12 +838,14 @@ void FBlueprintCompileReinstancer::ReparentChild(UBlueprint* ChildBP)
 	UClass* SkeletonClass = ChildBP->SkeletonGeneratedClass;
 	UClass* GeneratedClass = ChildBP->GeneratedClass;
 
-	if( bIsReinstancingSkeleton && SkeletonClass )
+	const bool bReinstancingSkeleton = (UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses() && bIsReinstancingSkeleton) || !UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses();
+	if(  bReinstancingSkeleton && SkeletonClass )
 	{
 		ReparentChild(SkeletonClass);
 	}
 
-	if( !bIsReinstancingSkeleton && GeneratedClass )
+	const bool bReinstancingGenerated = (UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses() && !bIsReinstancingSkeleton) || !UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses();
+	if( bReinstancingGenerated && GeneratedClass )
 	{
 		ReparentChild(GeneratedClass);
 	}

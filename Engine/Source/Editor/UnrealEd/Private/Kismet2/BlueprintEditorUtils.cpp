@@ -3802,7 +3802,17 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 					Variable.VarType = NewPinType;
 
 					UClass* ParentClass = nullptr;
-					FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+					// When compiling so that skeleton classes inherit skeleton classes, marking the Blueprint structurally modified is enough
+					// when the children skeleton classes are rebuilt, they will receive the modified variables.
+					if(UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses())
+					{
+						FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+					}
+					else
+					{
+						// Compile the Blueprint even if no loaded BPs are using the variable, this ensures that BPs refresh correctly when they are loaded
+						FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
+					}
 
 					if(bBreakingVariableConnections)
 					{

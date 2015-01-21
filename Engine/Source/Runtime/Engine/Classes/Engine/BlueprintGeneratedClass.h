@@ -483,6 +483,8 @@ public:
 	static FName GetUberGraphFrameName();
 	static bool UsePersistentUberGraphFrame();
 
+	static bool CompileSkeletonClassesInheritSkeletonClasses();
+
 #if WITH_EDITORONLY_DATA
 	FBlueprintDebugData DebugData;
 

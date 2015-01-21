@@ -157,7 +157,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	
 	UClass* ParentClass = Blueprint->ParentClass;
 
-	if(FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToClean))
+	if(UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses() && FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToClean))
 	{
 		if(UBlueprint* BlueprintParent = Cast<UBlueprint>(Blueprint->ParentClass->ClassGeneratedBy))
 		{
@@ -3295,7 +3295,14 @@ void FKismetCompilerContext::Compile()
 	NewClass->ClassGeneratedBy = Blueprint;
 
 	UClass* ParentClass = nullptr;
-	ParentClass = NewClass->ClassWithin;
+	if(UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses())
+	{
+		ParentClass = NewClass->ClassWithin;
+	}
+	else
+	{
+		ParentClass = Blueprint->ParentClass;
+	}
 	NewClass->SetSuperStruct(ParentClass);
 	NewClass->ClassFlags |= (ParentClass->ClassFlags & CLASS_Inherit);
 	NewClass->ClassCastFlags |= ParentClass->ClassCastFlags;
