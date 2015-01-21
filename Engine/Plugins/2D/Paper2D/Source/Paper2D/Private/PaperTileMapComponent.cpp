@@ -144,34 +144,12 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 		return;
 	}
 
-
-	FVector WorldOffsetNoY;
-	FVector WorldOffsetYFactor = FVector::ZeroVector;
-	FVector WorldStepX;
-	FVector WorldStepY;
-
-	switch (TileMap->ProjectionMode)
-	{
-	case ETileMapProjectionMode::Orthogonal:
-	default:
-		WorldOffsetNoY = -(TileMap->TileWidth * PaperAxisX * 0.5f) - (TileMap->TileHeight * PaperAxisY * 0.5f);
-		WorldStepX = PaperAxisX * TileMap->TileWidth;
-		WorldStepY = -PaperAxisY * TileMap->TileHeight;
-		break;
-	case ETileMapProjectionMode::IsometricDiamond:
-		WorldOffsetNoY = (TileMap->MapWidth * TileMap->TileWidth * 0.5f * PaperAxisX);
-		WorldOffsetYFactor = -(TileMap->TileHeight * 0.5f * PaperAxisY);
-		WorldStepX = (TileMap->TileWidth * PaperAxisX * 0.5f) - (TileMap->TileHeight * PaperAxisY * 0.5f);
-		WorldStepY = (TileMap->TileWidth * PaperAxisX * -0.5f) - (TileMap->TileHeight * PaperAxisY * 0.5f);
-		break;
-	case ETileMapProjectionMode::IsometricStaggered:
-		WorldOffsetNoY = 0.5f * TileMap->TileHeight * PaperAxisY;
-		WorldOffsetYFactor = 0.5f * TileMap->TileWidth * PaperAxisX;
-		WorldStepX = PaperAxisX * TileMap->TileWidth;
-		WorldStepY = -PaperAxisY * TileMap->TileHeight;
-		break;
-	}
-
+	FVector CornerOffset;
+	FVector OffsetYFactor;
+	FVector StepPerTileX;
+	FVector StepPerTileY;
+	TileMap->GetTileToLocalParameters(/*out*/ CornerOffset, /*out*/ StepPerTileX, /*out*/ StepPerTileY, /*out*/ OffsetYFactor);
+	
 	UTexture2D* LastSourceTexture = nullptr;
 	FVector TileSetOffset = FVector::ZeroVector;
 	FVector2D InverseTextureSize(1.0f, 1.0f);
@@ -202,19 +180,19 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 		for (int32 Y = 0; Y < TileMap->MapHeight; ++Y)
 		{
 			// In pixels
-			FVector WorldOffset;
+			FVector EffectiveTopLeftCorner;
 
 			switch (TileMap->ProjectionMode)
 			{
 			case ETileMapProjectionMode::Orthogonal:
 			default:
-				WorldOffset = WorldOffsetNoY;
+				EffectiveTopLeftCorner = CornerOffset;
 				break;
 			case ETileMapProjectionMode::IsometricDiamond:
-				WorldOffset = WorldOffsetNoY + Y * WorldOffsetYFactor;
+				EffectiveTopLeftCorner = CornerOffset - StepPerTileX;
 				break;
 			case ETileMapProjectionMode::IsometricStaggered:
-				WorldOffset = WorldOffsetNoY + (Y & 1) * WorldOffsetYFactor;
+				EffectiveTopLeftCorner = CornerOffset + (Y & 1) * OffsetYFactor;
 				break;
 			}
 
@@ -224,8 +202,8 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 
 				// do stuff
 				const float TotalSeparation = (TileMap->SeparationPerLayer * Z) + (TileMap->SeparationPerTileX * X) + (TileMap->SeparationPerTileY * Y);
-				FVector WorldPos = (WorldStepX * X) + (WorldStepY * Y) + WorldOffset;
-				WorldPos += TotalSeparation * PaperAxisZ;
+				FVector TopLeftCornerOfTile = (StepPerTileX * X) + (StepPerTileY * Y) + EffectiveTopLeftCorner;
+				TopLeftCornerOfTile += TotalSeparation * PaperAxisZ;
 
 				const int32 TileWidth = TileMap->TileWidth;
 				const int32 TileHeight = TileMap->TileHeight;
@@ -267,7 +245,7 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 						CurrentBatch = (new (BatchedSprites) FSpriteDrawCallRecord());
 						CurrentBatch->Texture = SourceTexture;
 						CurrentBatch->Color = DrawColor;
-						CurrentBatch->Destination = WorldPos.ProjectOnTo(PaperAxisZ);
+						CurrentBatch->Destination = TopLeftCornerOfTile.ProjectOnTo(PaperAxisZ);
 					}
 
 					if (SourceTexture != LastSourceTexture)
@@ -288,20 +266,20 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 						}
 						LastSourceTexture = SourceTexture;
 					}
-					WorldPos += TileSetOffset;
+					TopLeftCornerOfTile += TileSetOffset;
 
 					SourceUV.X *= InverseTextureSize.X;
 					SourceUV.Y *= InverseTextureSize.Y;
 
 					FSpriteDrawCallRecord& NewTile = *CurrentBatch;
 
-					const float WX0 = FVector::DotProduct(WorldPos, PaperAxisX);
-					const float WY0 = FVector::DotProduct(WorldPos, PaperAxisY);
+					const float WX0 = FVector::DotProduct(TopLeftCornerOfTile, PaperAxisX);
+					const float WY0 = FVector::DotProduct(TopLeftCornerOfTile, PaperAxisY);
 
-					const FVector4 BottomLeft(WX0, WY0, SourceUV.X, SourceUV.Y + SourceDimensionsUV.Y);
-					const FVector4 BottomRight(WX0 + TileSizeXY.X, WY0, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y + SourceDimensionsUV.Y);
-					const FVector4 TopRight(WX0 + TileSizeXY.X, WY0 + TileSizeXY.Y, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y);
-					const FVector4 TopLeft(WX0, WY0 + TileSizeXY.Y, SourceUV.X, SourceUV.Y);
+					const FVector4 BottomLeft(WX0, WY0 - TileSizeXY.Y, SourceUV.X, SourceUV.Y + SourceDimensionsUV.Y);
+					const FVector4 BottomRight(WX0 + TileSizeXY.X, WY0 - TileSizeXY.Y, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y + SourceDimensionsUV.Y);
+					const FVector4 TopRight(WX0 + TileSizeXY.X, WY0, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y);
+					const FVector4 TopLeft(WX0, WY0, SourceUV.X, SourceUV.Y);
 
 					new (NewTile.RenderVerts) FVector4(BottomLeft);
 					new (NewTile.RenderVerts) FVector4(TopRight);
