@@ -59,6 +59,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "EditorUndoClient.h"
+#include "DesktopPlatformModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -1084,6 +1085,21 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 bool UEditorEngine::AreEditorAnalyticsEnabled() const 
 {
 	return GetGameAgnosticSettings().bEditorAnalyticsEnabled;
+}
+
+void UEditorEngine::CreateStartupAnalyticsAttributes( TArray<FAnalyticsEventAttribute>& StartSessionAttributes ) const
+{
+	Super::CreateStartupAnalyticsAttributes( StartSessionAttributes );
+
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if(DesktopPlatform != nullptr)
+	{
+		// If this is false, CanOpenLauncher will only return true if the launcher is already installed on the users machine
+		const bool bIncludeLauncherInstaller = false;
+
+		bool bIsLauncherInstalled = DesktopPlatform->CanOpenLauncher(bIncludeLauncherInstaller);
+		StartSessionAttributes.Add(FAnalyticsEventAttribute(TEXT("IsLauncherInstalled"), bIsLauncherInstalled));
+	}
 }
 
 UTransactor* UEditorEngine::CreateTrans()
