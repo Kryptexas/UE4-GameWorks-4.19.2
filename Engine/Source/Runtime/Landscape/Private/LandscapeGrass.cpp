@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
+#include "EngineUtils.h"
 #include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeGrassOutput.h"
 #include "EdGraph/EdGraphNode.h"
