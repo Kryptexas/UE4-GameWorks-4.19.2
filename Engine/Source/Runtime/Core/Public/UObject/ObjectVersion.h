@@ -456,7 +456,11 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION,
 	// Tidied up material's handling of masked blend mode.
 	VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY,
-	// Merged VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION into 4.7 branch
+	// Original version of VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7; renumbered to prevent blocking promotion in main.
+	VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7_DEPRECATED,
+	// Original version of VER_UE4_AFTER_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7; renumbered to prevent blocking promotion in main.
+	VER_UE4_AFTER_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7_DEPRECATED,
+	// After merging VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION into 4.7 branch
 	VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
