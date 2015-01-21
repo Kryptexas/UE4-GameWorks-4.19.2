@@ -45,9 +45,90 @@ namespace
 	}
 }
 
+FAsyncDirectoryReader::FAsyncDirectoryReader(const FString& InDirectory)
+{
+	PendingDirectories.Add(InDirectory);
+	State.Emplace();
+}
+
+TOptional<FDirectoryState> FAsyncDirectoryReader::GetFinalState()
+{
+	TOptional<FDirectoryState> OldState;
+	Swap(OldState, State);
+
+	return OldState;
+}
+
+bool FAsyncDirectoryReader::IsComplete() const
+{
+	return PendingFiles.Num() == 0 && PendingDirectories.Num() == 0;
+}
+
+EProgressResult FAsyncDirectoryReader::Tick(const FWorkLimiter& Limiter)
+{
+	auto& FileManager = IFileManager::Get();
+
+	for (int32 Index = 0; Index < PendingDirectories.Num(); ++Index)
+	{
+		ScanDirectory(PendingDirectories[Index]);
+		if (Limiter.ShouldLimit())
+		{
+			// We've spent too long, bail
+			PendingDirectories.RemoveAt(0, Index, false);
+			return EProgressResult::Pending;
+		}
+	}
+	PendingDirectories.Empty();
+
+	for (int32 Index = 0; Index < PendingFiles.Num(); ++Index)
+	{
+		const auto& File = PendingFiles[Index];
+		State->Files.Emplace(File, FileManager.GetTimeStamp(*File));
+
+		if (Index % 100 == 0 && Limiter.ShouldLimit())
+		{
+			// We've spent too long, bail
+			PendingFiles.RemoveAt(0, Index, false);
+			return EProgressResult::Pending;
+		}
+	}
+	PendingFiles.Empty();
+
+	return EProgressResult::Finished;
+}
+
+void FAsyncDirectoryReader::ScanDirectory(const FString& InDirectory)
+{
+	struct FVisitor : public IPlatformFile::FDirectoryVisitor
+	{
+		TArray<FString>* PendingFiles;
+		TArray<FString>* PendingDirectories;
+
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+		{
+			if (bIsDirectory)
+			{
+				PendingDirectories->Add(FString(FilenameOrDirectory));
+			}
+			else
+			{
+				PendingFiles->Add(FString(FilenameOrDirectory));
+			}
+			return true;
+		}
+	};
+
+	FVisitor Visitor;
+	Visitor.PendingFiles = &PendingFiles;
+	Visitor.PendingDirectories = &PendingDirectories;
+	IFileManager::Get().IterateDirectory(*InDirectory, Visitor);
+}
+
 FFileCache::FFileCache(const FFileCacheConfig& InConfig)
 	: Config(InConfig)
+	, DirectoryReader(InConfig.Directory)
 	, bSavedCacheDirty(false)
+	, LastChangeTimeS(0)
 {
 	// Ensure that the extension strings are of the form ;ext1;ext2;ext3;
 	if (!Config.IncludeExtensions.IsEmpty() && Config.IncludeExtensions[0] != ';')
@@ -86,6 +167,7 @@ void FFileCache::Destroy()
 	bSavedCacheDirty = false;
 	IFileManager::Get().Delete(*Config.CacheFile, false, true, true);
 
+	DirectoryReader = FAsyncDirectoryReader(Config.Directory);
 	OutstandingChanges.Empty();
 	CachedDirectoryState = FDirectoryState();
 
@@ -108,36 +190,6 @@ void FFileCache::UnbindWatcher()
 	}
 
 	WatcherDelegate = FDelegateHandle();
-}
-
-FDirectoryState FFileCache::WalkDirectory() const
-{
-	struct FDirectoryVisitor : public IPlatformFile::FDirectoryVisitor
-	{
-		FDirectoryState State;
-		int32 LeadingDirectoryLength;
-		IFileManager* FileManager;
-
-		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
-		{
-			if (!bIsDirectory)
-			{
-				State.Files.Emplace(FString(FilenameOrDirectory + LeadingDirectoryLength), FileManager->GetTimeStamp(FilenameOrDirectory));
-			}
-			return true;
-		}
-	};
-
-
-	auto& FileManager = IFileManager::Get();
-
-	// Iterate the directory
-	FDirectoryVisitor Visitor;
-	Visitor.LeadingDirectoryLength = Config.Directory.Len();
-	Visitor.FileManager = &FileManager;
-	FileManager.IterateDirectoryRecursively(*Config.Directory, Visitor);
-
-	return MoveTemp(Visitor.State);
 }
 
 TOptional<FDirectoryState> FFileCache::ReadCache() const
@@ -171,11 +223,7 @@ void FFileCache::WriteCache()
 		Ar->Close();
 		delete Ar;
 
-		// @todo: arodham: can't do this with maps
-		// if (CachedDirectoryState.Files.Num() < CachedDirectoryState.Files.Max() * 0.5f)
-		// {
-		// 	CachedDirectoryState.Files.Shrink();
-		// }
+		CachedDirectoryState.Files.Shrink();
 
 		bSavedCacheDirty = false;
 	}
@@ -183,9 +231,16 @@ void FFileCache::WriteCache()
 
 TArray<FUpdateCacheTransaction> FFileCache::GetOutstandingChanges()
 {
-	TArray<FUpdateCacheTransaction> Moved;
-	Swap(OutstandingChanges, Moved);
-	return Moved;
+	if (FPlatformTime::Seconds() - LastChangeTimeS >= Config.BatchDelayS)
+	{
+		TArray<FUpdateCacheTransaction> Moved;
+		Swap(OutstandingChanges, Moved);
+		return Moved;
+	}
+	else
+	{
+		return TArray<FUpdateCacheTransaction>();
+	}
 }
 
 void FFileCache::CompleteTransaction(FUpdateCacheTransaction&& Transaction)
@@ -228,21 +283,28 @@ void FFileCache::CompleteTransaction(FUpdateCacheTransaction&& Transaction)
 	}
 }
 
-void FFileCache::Scan()
+void FFileCache::Tick(const FWorkLimiter& Limiter)
 {
-	auto CurrentFileData = WalkDirectory();
+	if (DirectoryReader.IsComplete() || DirectoryReader.Tick(Limiter) == EProgressResult::Pending)
+	{
+		return;
+	}
 
+	// We should only ever get here once. The directory reader has finished scanning, and we can now diff the results with what we had saved in the cache file.
+	check(DirectoryReader.IsComplete());
+	
+	TOptional<FDirectoryState> CurrentFileData = DirectoryReader.GetFinalState();
 	if (CachedDirectoryState.Files.Num() == 0)
 	{
 		// If we don't have any cached data yet, just use the file data we just harvested
-		CachedDirectoryState = MoveTemp(CurrentFileData);
+		CachedDirectoryState = MoveTemp(CurrentFileData.GetValue());
 		bSavedCacheDirty = true;
 		return;
 	}
 
 	// We already have cached data so we need to compare it with the harvested data
 	// to detect additions, modifications, and removals
-	for (const auto& FilenameAndData : CurrentFileData.Files)
+	for (const auto& FilenameAndData : CurrentFileData->Files)
 	{
 		const FString& Filename = FilenameAndData.Key.Get();
 		if (!IsFileApplicable(Filename))
@@ -270,7 +332,7 @@ void FFileCache::Scan()
 	for (auto It = CachedDirectoryState.Files.CreateIterator(); It; ++It)
 	{
 		const FImmutableString& Filename = It.Key();
-		if (!CurrentFileData.Files.Contains(Filename) && IsFileApplicable(Filename.Get()))
+		if (!CurrentFileData->Files.Contains(Filename) && IsFileApplicable(Filename.Get()))
 		{
 			OutstandingChanges.Add(FUpdateCacheTransaction(Filename, FFileChangeData::FCA_Removed));
 		}
@@ -352,6 +414,8 @@ void FFileCache::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 	RemoveDuplicates(OutstandingChanges, [](const FUpdateCacheTransaction& A, const FUpdateCacheTransaction& B){
 		return A.Action == B.Action && A.Filename == B.Filename;
 	});
+
+	LastChangeTimeS = FPlatformTime::Seconds();
 }
 
 bool FFileCache::IsFileApplicable(const FString& Filename)

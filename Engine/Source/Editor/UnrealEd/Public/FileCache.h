@@ -152,14 +152,87 @@ private:
 	FUpdateCacheTransaction& operator=(const FUpdateCacheTransaction& In) = default;
 };
 
+/** Small utility for specifying when a call to do some work should bail out, if at all. */
+struct FWorkLimiter
+{
+	/** Constructor specifying that we should never bail out early */
+	FWorkLimiter() : StopAtTime(-1) {}
+
+	/** Constructor specifying not to run over the specified number of seconds */
+	FWorkLimiter(float NumSeconds) : StopAtTime(FPlatformTime::Seconds() + NumSeconds) {}
+
+	/** Check whether we have exceeded the stop time */
+	bool ShouldLimit() const { return StopAtTime != -1 && FPlatformTime::Seconds() >= StopAtTime; }
+
+private:
+
+	/** User specified time to stop processing */
+	double StopAtTime;
+};
+
+enum class EProgressResult
+{
+	Finished, Pending
+};
+
+/**
+ * Class responsible for 'asyncronously' scanning a folder for files and timestamps.
+ * Example usage:
+ *		FAsyncDirectoryReader Reader(TEXT("C:\\Path"));
+ *
+ *		while(!Reader.IsComplete())
+ *		{
+ *			FPlatformProcess::Sleep(1);
+ *			Reader.Tick(FWorkLimiter(1));	// Do 1 second of work
+ *		}
+ *		TOptional<FDirectoryState> State = Reader.GetFinalState();
+ */
+struct FAsyncDirectoryReader
+{
+	/** Constructor that sets up the directory reader to the specified directory */
+	FAsyncDirectoryReader(const FString& InDirectory);
+
+	/**
+	 * Get the state of the directory once finished. Relinquishes the currently stored directory state to the client.
+	 * Returns nothing if incomplete, or if GetFinalState() has already been called.
+	 */
+	TOptional<FDirectoryState> GetFinalState();
+
+	/** Returns true when this directory reader has finished scanning the directory */
+	bool IsComplete() const;
+
+	/** Tick this reader (discover new directories / files). Returns progress state. */
+	EProgressResult Tick(const FWorkLimiter& Limiter);
+
+private:
+	/** Non-recursively scan a single directory for its contents. Adds results to Pending arrays. */
+	void ScanDirectory(const FString& InDirectory);
+
+	/** The currently discovered state of the directory */
+	TOptional<FDirectoryState> State;
+
+	/** A list of directories we have recursively found on our travels */
+	TArray<FString> PendingDirectories;
+
+	/** A list of files we have recursively found on our travels */
+	TArray<FString> PendingFiles;
+};
+
 /** Configuration structure required to construct a FFileCache */
 struct FFileCacheConfig
 {
+	FFileCacheConfig(FString InDirectory, FString InCacheFile)
+		: Directory(InDirectory), CacheFile(InCacheFile), BatchDelayS(0.f)
+	{}
+
 	/** String specifying the directory on disk that the cache should reflect */
 	FString Directory;
 
 	/** String specifying the file that the cache should be saved to */
 	FString CacheFile;
+
+	/** Optionally specified delay that should be waited before reporting changes to the watched directory. Useful for batching together large or rapid changes. */
+	float BatchDelayS;
 
 	/**
 	 * Strings specifying extensions to include/exclude in the cache (or empty to include everything).
@@ -192,8 +265,8 @@ public:
 	/** Get the absolute path of the directory this cache reflects */
 	const FString& GetDirectory() const { return Config.Directory; }
 
-	/** Force a scan the directory to detect any changes in the cache. */
-	void Scan();
+	/** Tick this FileCache, optionally specifying a limiter to limit the amount of time spent in here */
+	void Tick(const FWorkLimiter& Limiter);
 
 	/** Write out the cached file, if we have any changes to write */
 	void WriteCache();
@@ -223,14 +296,17 @@ private:
 
 	/** Unbind the watcher from the directory. Called on destruction. */
 	void UnbindWatcher();
-	
-	/** Walk the directory and return all the file information we find pertaining to all applicable files */
-	FDirectoryState WalkDirectory() const;
 
 	/** Read the cache file data and return the contents */
 	TOptional<FDirectoryState> ReadCache() const;
 
 private:
+
+	/** Configuration settings applied on construction */
+	FFileCacheConfig Config;
+
+	/** 'Asynchronous' directory reader responsible for gathering all file/timestamp information recursively from our cache directory */
+	FAsyncDirectoryReader DirectoryReader;
 
 	/** Temporary array of transactions to be returned to the client through GetOutstandingChanges() */
 	TArray<FUpdateCacheTransaction> OutstandingChanges;
@@ -238,12 +314,12 @@ private:
 	/** Our in-memory view of the cached directory state. */
 	FDirectoryState CachedDirectoryState;
 
-	/** Configuration settings applied on construction */
-	FFileCacheConfig Config;
-
 	/** Handle to the directory watcher delegate so we can delete it properly */
 	FDelegateHandle WatcherDelegate;
 
 	/** True when the cached state we have in memory is more up to date than the serialized file. Enables WriteCache() when true. */
 	bool bSavedCacheDirty;
+
+	/** The time that a change to the file-system was last logged. */
+	double LastChangeTimeS;
 };
