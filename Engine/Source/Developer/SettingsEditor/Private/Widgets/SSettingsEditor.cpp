@@ -454,7 +454,7 @@ void SSettingsEditor::RecordPreferenceChangedAnalytics( ISettingsSectionPtr Sele
 {
 	UProperty* ChangedProperty = PropertyChangedEvent.MemberProperty;
 	// submit analytics data
-	if(FEngineAnalytics::IsAvailable() && ChangedProperty != nullptr)
+	if(FEngineAnalytics::IsAvailable() && ChangedProperty != nullptr && ChangedProperty->GetOwnerClass() != nullptr)
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertySection"), SelectedSection->GetDisplayName().ToString()));

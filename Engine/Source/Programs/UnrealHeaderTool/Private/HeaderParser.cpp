@@ -4327,6 +4327,11 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 			// Save object config only to Default INIs, never to local INIs.
 			Class->ClassFlags |= CLASS_DefaultConfig;
 		}
+		else if (Specifier == TEXT("globaluserconfig"))
+		{
+			// Save object config only to global user overrides, never to local INIs
+			Class->ClassFlags |= CLASS_GlobalUserConfig;
+		}
 		else if (Specifier == TEXT("showCategories"))
 		{
 			RequireSpecifierValue(PropSpecifier);

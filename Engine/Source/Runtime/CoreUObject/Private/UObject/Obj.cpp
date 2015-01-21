@@ -1774,27 +1774,41 @@ FString UObject::GetDefaultConfigFilename() const
 	return FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *GetClass()->ClassConfigName.ToString());
 }
 
+FString UObject::GetGlobalUserConfigFilename() const
+{
+	return FString::Printf(TEXT("%sUnreal Engine/Engine/Config/User%s.ini"), FPlatformProcess::UserSettingsDir(), *GetClass()->ClassConfigName.ToString());
+}
+
 // @todo ini: Verify per object config objects
-void UObject::UpdateDefaultConfigFile()
+void UObject::UpdateSingleSectionOfConfigFile(const FString& ConfigIniName)
 {
 	// create a sandbox FConfigCache
 	FConfigCacheIni Config;
 
 	// add an empty file to the config so it doesn't read in the original file (see FConfigCacheIni.Find())
-	FString DefaultIniName = GetDefaultConfigFilename();
-	FConfigFile& NewFile = Config.Add(DefaultIniName, FConfigFile());
+	FConfigFile& NewFile = Config.Add(ConfigIniName, FConfigFile());
 
 	// save the object properties to this file
-	SaveConfig(CPF_Config, *DefaultIniName, &Config);
+	SaveConfig(CPF_Config, *ConfigIniName, &Config);
 
 	ensureMsgf(Config.Num() == 1, TEXT("UObject::UpdateDefaultConfig() caused more files than expected in the Sandbox config cache!"));
 
 	// make sure SaveConfig wrote only to the file we expected
-	NewFile.UpdateSections(*DefaultIniName, *GetClass()->ClassConfigName.ToString());
+	NewFile.UpdateSections(*ConfigIniName, *GetClass()->ClassConfigName.ToString());
 
 	// reload the file, so that it refresh the cache internally.
 	FString FinalIniFileName;
 	GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, NULL, true);
+}
+
+void UObject::UpdateDefaultConfigFile()
+{
+	UpdateSingleSectionOfConfigFile(GetDefaultConfigFilename());
+}
+
+void UObject::UpdateGlobalUserConfigFile()
+{
+	UpdateSingleSectionOfConfigFile(GetGlobalUserConfigFilename());
 }
 
 

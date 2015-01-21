@@ -2163,6 +2163,10 @@ FString FNativeClassHeaderGenerator::GetClassFlagExportText( UClass* Class )
 	{
 		StaticClassFlagText += TEXT(" | CLASS_DefaultConfig");
 	}
+	if( Class->HasAnyClassFlags(CLASS_GlobalUserConfig) )
+	{
+		StaticClassFlagText += TEXT(" | CLASS_GlobalUserConfig");
+	}
 	if( Class->HasAnyClassFlags(CLASS_Config) )
 	{
 		StaticClassFlagText += TEXT(" | CLASS_Config");
