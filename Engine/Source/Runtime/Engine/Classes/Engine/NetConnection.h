@@ -165,8 +165,6 @@ class UNetConnection : public UPlayer
 
 public:
 	// Constants.
-	enum{ MAX_PROTOCOL_VERSION = 1     };	// Maximum protocol version supported.
-	enum{ MIN_PROTOCOL_VERSION = 1     };	// Minimum protocol version supported.
 	enum{ MAX_CHANNELS         = 10240 };	// Maximum channels. TODO: This needs to differ per game somehow but cannot with shared executable
 
 	// Connection information.
@@ -181,7 +179,6 @@ public:
 	TSharedPtr<class FUniqueNetId> PlayerId;
 
 	// Negotiated parameters.
-	int32			ProtocolVersion;		// Protocol version we're communicating with (<=PROTOCOL_VERSION).
 	int32			PacketOverhead;			// Bytes overhead per packet sent.
 	FString			Challenge;				// Server-generated challenge.
 	FString			ClientResponse;			// Client-generated response.

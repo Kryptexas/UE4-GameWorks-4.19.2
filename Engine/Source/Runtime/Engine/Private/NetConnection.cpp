@@ -28,7 +28,6 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	MaxPacket			( 0 )
 ,	InternalAck			( false )
 ,	State				( USOCK_Invalid )
-,	ProtocolVersion		( MIN_PROTOCOL_VERSION )
 ,	PacketOverhead		( 0 )
 ,	ResponseId			( 0 )
 
@@ -371,8 +370,6 @@ bool UNetConnection::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 void UNetConnection::AssertValid()
 {
 	// Make sure this connection is in a reasonable state.
-	check(ProtocolVersion>=MIN_PROTOCOL_VERSION);
-	check(ProtocolVersion<=MAX_PROTOCOL_VERSION);
 	check(State==USOCK_Closed || State==USOCK_Pending || State==USOCK_Open);
 
 }
