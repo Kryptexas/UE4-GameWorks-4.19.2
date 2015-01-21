@@ -7,10 +7,11 @@
 
 struct FPaperTerrainMaterialRule;
 
-struct FPaperTerrainMaterialPair
+struct FPaperTerrainSpriteGeometry
 {
 	TArray<FSpriteDrawCallRecord> Records;
 	UMaterialInterface* Material;
+	int32 DrawOrder;
 };
 
 struct FTerrainSpriteStamp
@@ -62,6 +63,10 @@ public:
 	/** Random seed used for choosing which spline meshes to use. */
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	int32 RandomSeed;
+
+	/** The overlap amount between segments */
+	UPROPERTY(Category=Sprite, EditAnywhere)
+	float SegmentOverlapAmount;
 
 protected:
 	/** The color of the terrain (passed to the sprite material as a vertex color) */
@@ -116,7 +121,7 @@ protected:
 	UPROPERTY(Transient, DuplicateTransient)
 	class UBodySetup* CachedBodySetup;
 
-	TArray<FPaperTerrainMaterialPair> GeneratedSpriteGeometry;
+	TArray<FPaperTerrainSpriteGeometry> GeneratedSpriteGeometry;
 	
 	FTransform GetTransformAtDistance(float InDistance) const;
 };
