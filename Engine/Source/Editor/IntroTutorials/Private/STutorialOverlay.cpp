@@ -264,7 +264,7 @@ void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &Wi
 			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(GraphNode, false);
 		}
 	}
-	else
+	else /*if ( WidgetContent.WidgetAnchor.WrapperIdentifier.IsValid() == true )*/
 	{
 		// if we didn't have a blueprint object to focus on, try it with a regular one
 		UObject* FocusObject = FindObject<UObject>(ANY_PACKAGE, *WidgetContent.WidgetAnchor.WrapperIdentifier.ToString());
