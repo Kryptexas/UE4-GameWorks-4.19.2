@@ -461,4 +461,27 @@ FName USCS_Node::GenerateNewComponentName( TArray<FName>& CurrentNames, FName De
 	return NewName;
 }
 
+void USCS_Node::PostLoad()
+{
+	Super::PostLoad();
+
+	ValidateGuid();
+}
+
+void USCS_Node::ValidateGuid()
+{
+	// Backward compatibility: node requires a guid. 
+	// The guid for the node should be always the same (event when it's not saved). The guid is created using persistent name.
+	if (!VariableGuid.IsValid())
+	{
+		const FName PersistentVariableName = GetVariableName();
+		if (PersistentVariableName != NAME_None)
+		{
+			const FString NameVariableString = PersistentVariableName.ToString();
+			const uint32 PersistentCrc = FCrc::StrCrc32(*NameVariableString);
+			VariableGuid = FGuid(PersistentCrc, 0, 0, 0);
+		}
+	}
+}
+
 #endif

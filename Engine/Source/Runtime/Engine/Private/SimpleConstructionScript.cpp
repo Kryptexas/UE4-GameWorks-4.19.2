@@ -616,6 +616,22 @@ USCS_Node* USimpleConstructionScript::FindSCSNode(FName InName)
 	return ReturnSCSNode;
 }
 
+USCS_Node* USimpleConstructionScript::FindSCSNodeByGuid(FGuid Guid)
+{
+	TArray<USCS_Node*> AllNodes = GetAllNodes();
+	USCS_Node* ReturnSCSNode = nullptr;
+
+	for (USCS_Node* SCSNode : AllNodes)
+	{
+		if (SCSNode->VariableGuid == Guid)
+		{
+			ReturnSCSNode = SCSNode;
+			break;
+		}
+	}
+	return ReturnSCSNode;
+}
+
 void USimpleConstructionScript::ValidateSceneRootNodes()
 {
 #if WITH_EDITOR
@@ -761,6 +777,8 @@ USCS_Node* USimpleConstructionScript::CreateNode(UActorComponent* NewComponentTe
 
 		// Note: This should match up with UEdGraphSchema_K2::VR_DefaultCategory
 		NewNode->CategoryName = TEXT("Default");
+
+		NewNode->VariableGuid = FGuid::NewGuid();
 
 		return NewNode;
 	}

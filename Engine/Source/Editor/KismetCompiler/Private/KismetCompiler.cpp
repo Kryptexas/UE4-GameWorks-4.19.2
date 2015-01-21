@@ -3284,7 +3284,7 @@ void FKismetCompilerContext::Compile()
 		auto InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
 		if (InheritableComponentHandler)
 		{
-			InheritableComponentHandler->RemoveInvalidAndUnnecessaryTemplates();
+			InheritableComponentHandler->ValidateTemplates();
 		}
 	}
 
