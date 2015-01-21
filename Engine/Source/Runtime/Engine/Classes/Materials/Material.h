@@ -644,6 +644,10 @@ public:
 	UPROPERTY()
 	TArray<struct FMaterialParameterCollectionInfo> MaterialParameterCollectionInfos;
 
+	/** true if this Material can be assumed Opaque when set to masked. */
+	UPROPERTY()
+	uint32 bCanMaskedBeAssumedOpaque : 1;
+
  	/** true if Material is masked and uses custom opacity */
  	UPROPERTY()
  	uint32 bIsMasked_DEPRECATED:1;

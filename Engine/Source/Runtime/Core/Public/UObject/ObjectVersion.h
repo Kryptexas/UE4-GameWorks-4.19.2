@@ -454,6 +454,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_LANDSCAPE_STATIC_SECTION_OFFSET,
 	// New options for navigation data runtime generation (static, modifiers only, dynamic)
 	VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION,
+	// Tidied up material's handling of masked blend mode.
+	VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
