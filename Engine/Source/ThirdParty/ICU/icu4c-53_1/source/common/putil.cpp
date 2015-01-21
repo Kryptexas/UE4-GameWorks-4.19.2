@@ -81,6 +81,9 @@
 #   define NOMCX
 #   include <windows.h>
 #   include "wintz.h"
+#	if U_PLATFORM == U_PF_DURANGO
+#		define ICU_NO_USER_DATA_OVERRIDE 1
+#	endif
 #elif U_PLATFORM == U_PF_OS400
 #   include <float.h>
 #   include <qusec.h>       /* error code structure */
