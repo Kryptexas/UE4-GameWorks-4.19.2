@@ -2,14 +2,13 @@
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyMenuAssetPicker.h"
-#include "SPropertyEditorNewAsset.h"
+#include "SCreateNewAssetFromFactory.h"
 #include "AssetRegistryModule.h"
 #include "DelegateFilter.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "PropertyEditorAssetConstants.h"
 #include "EditorStyleSet.h"
 #include "ClassIconFinder.h"
-#include "SPropertyEditorNewAsset.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -242,7 +241,7 @@ void SPropertyMenuAssetPicker::OnCreateNewAssetSelected(TWeakObjectPtr<UFactory>
 {
 	if (FactoryPtr.IsValid())
 	{
-		UObject* NewAsset = SPropertyEditorNewAsset::Create(FactoryPtr);
+		UObject* NewAsset = SCreateNewAssetFromFactory::Create(FactoryPtr);
 		if (NewAsset != nullptr)
 		{
 			SetValue(NewAsset);

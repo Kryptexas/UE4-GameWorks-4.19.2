@@ -2,11 +2,11 @@
 
 #pragma once
 
-
-class SPropertyEditorNewAsset : public SCompoundWidget
+ 
+class EDITORWIDGETS_API SCreateNewAssetFromFactory : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SPropertyEditorNewAsset)
+	SLATE_BEGIN_ARGS(SCreateNewAssetFromFactory)
 	{}
 
 	SLATE_END_ARGS()
