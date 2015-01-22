@@ -1178,11 +1178,16 @@ FText ContentBrowserUtils::GetRootDirDisplayName(const FString& FolderPath)
 	}
 	else if(CleanFolderPath == GameFolderName)
 	{
-		LocalizedFolderName = LOCTEXT("GameFolderName", "Game");
+		//LocalizedFolderName = LOCTEXT("GameFolderName", "Game");
 	}
 	else
 	{
 		LocalizedFolderName = FText::FromString(CleanFolderPath);
+	}
+
+	if(LocalizedFolderName.IsEmpty())
+	{
+		return (bIsClassDir) ? LOCTEXT("ClassesFolder", "C++ Classes") : LOCTEXT("ContentFolder", "Content");
 	}
 
 	return FText::Format((bIsClassDir) ? LOCTEXT("ClassesFolderFmt", "{0} C++ Classes") : LOCTEXT("ContentFolderFmt", "{0} Content"), LocalizedFolderName);
