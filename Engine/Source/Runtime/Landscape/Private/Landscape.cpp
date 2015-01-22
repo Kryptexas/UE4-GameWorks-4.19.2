@@ -393,6 +393,11 @@ void ULandscapeInfo::UpdateDebugColorMaterial()
 	//GWarn->EndSlowTask();
 }
 
+static TAutoConsoleVariable<int32> CVarPreloadGrassmapsInEditor(
+	TEXT("grass.PreloadGrassmapsInEditor"),
+	0,
+	TEXT("1: Load grass maps in editor at load time uses lots of memory; 0: Load grass maps on demand; hitchy"));
+
 void ULandscapeComponent::PostLoad()
 {
 	Super::PostLoad();
@@ -480,8 +485,10 @@ void ULandscapeComponent::PostLoad()
 		}
 	}
 #endif
-
-	GenerateGrassMap();
+	if (CVarPreloadGrassmapsInEditor.GetValueOnGameThread() > 0)
+	{
+		GenerateGrassMap();
+	}
 }
 
 #endif // WITH_EDITOR
@@ -2230,6 +2237,11 @@ static TAutoConsoleVariable<int32> CVarMaxInstancesPerComponent(
 	65536,
 	TEXT("Used to control the number of hierarchical components created. More can be more efficient, but can be hitchy as new components come into range"));
 
+static TAutoConsoleVariable<int32> CVarMaxAsyncTasks(
+	TEXT("grass.MaxAsyncTasks"),
+	4,
+	TEXT("Used to control the number of hierarchical components created at a time."));
+
 static TAutoConsoleVariable<int32> CVarGrassEnable(
 	TEXT("grass.Enable"),
 	1,
@@ -2657,7 +2669,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 
 void ALandscapeProxy::Tick(float DeltaSeconds)
 {
-	if (!IsPendingKillPending())
+	if (!IsPendingKillPending() && !HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_Unreachable | RF_PendingKill | RF_ClassDefaultObject | RF_AsyncLoading))
 	{
 		// this is NOT an actor tick, it is a FTickableGameObject tick
 		// the super tick is for an actor tick...
@@ -2718,187 +2730,192 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 		bool bCullSubsections = CVarCullSubsections.GetValueOnAnyThread() > 0;
 		bool bDisableGPUCull = CVarDisableGPUCull.GetValueOnAnyThread() > 0;
 		int32 MaxInstancesPerComponent = FMath::Max<int32>(1024, CVarMaxInstancesPerComponent.GetValueOnAnyThread());
+		int32 MaxTasks = CVarMaxAsyncTasks.GetValueOnAnyThread();
 
-		for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
+		if (GetWorld())
 		{
-			ULandscapeComponent* Component = LandscapeComponents[ComponentIndex];
-			if (OnlyComponent && OnlyComponent != Component)
+
+			for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
 			{
-				continue;
-			}
-
-			FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->ComponentToWorld);
-			float MinDistanceToComp = Cameras.Num() ? MAX_flt : 0.0f;
-
-			for (auto& Pos : Cameras)
-			{
-				MinDistanceToComp = FMath::Min<float>(MinDistanceToComp, WorldBounds.ComputeSquaredDistanceFromBoxToPoint(Pos));
-			}
-
-			MinDistanceToComp = FMath::Sqrt(MinDistanceToComp);
-
-			for (FWeightmapLayerAllocationInfo& LayerAlloc : Component->WeightmapLayerAllocations)
-			{
-				ULandscapeLayerInfoObject* LayerInfo = LayerAlloc.LayerInfo;
-
-				if (LayerInfo && LayerInfo->GrassMesh && LayerInfo->GrassDensity > 0.0f && LayerInfo->EndCullDistance > 0)
+				ULandscapeComponent* Component = LandscapeComponents[ComponentIndex];
+				if (OnlyComponent && OnlyComponent != Component)
 				{
-					bool bRandomRotation = LayerInfo->RandomRotation;
-					bool bAlign = LayerInfo->AlignToSurface;
-					float MustHaveDistance = GuardBand * (float)LayerInfo->EndCullDistance;
-					float DiscardDistance = DiscardGuardBand * (float)LayerInfo->EndCullDistance;
+					continue;
+				}
 
-					if (MinDistanceToComp > DiscardDistance)
+				FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->ComponentToWorld);
+				float MinDistanceToComp = Cameras.Num() ? MAX_flt : 0.0f;
+
+				for (auto& Pos : Cameras)
+				{
+					MinDistanceToComp = FMath::Min<float>(MinDistanceToComp, WorldBounds.ComputeSquaredDistanceFromBoxToPoint(Pos));
+				}
+
+				MinDistanceToComp = FMath::Sqrt(MinDistanceToComp);
+
+				for (FWeightmapLayerAllocationInfo& LayerAlloc : Component->WeightmapLayerAllocations)
+				{
+					ULandscapeLayerInfoObject* LayerInfo = LayerAlloc.LayerInfo;
+
+					if (LayerInfo && LayerInfo->GrassMesh && LayerInfo->GrassDensity > 0.0f && LayerInfo->EndCullDistance > 0)
 					{
-						continue;
-					}
+						bool bRandomRotation = LayerInfo->RandomRotation;
+						bool bAlign = LayerInfo->AlignToSurface;
+						float MustHaveDistance = GuardBand * (float)LayerInfo->EndCullDistance;
+						float DiscardDistance = DiscardGuardBand * (float)LayerInfo->EndCullDistance;
 
-					FGrassBuilderBase ForSubsectionMath(this, Component, LayerInfo);
-
-					int32 SqrtSubsections = 1;
-				
-					if (ForSubsectionMath.bHaveValidData && ForSubsectionMath.SqrtMaxInstances > 0)
-					{
-						SqrtSubsections = FMath::Clamp<int32>(FMath::CeilToInt(float(ForSubsectionMath.SqrtMaxInstances) / FMath::Sqrt((float)MaxInstancesPerComponent)), 1, 16);
-					}
-
-					int32 NumCompsCreated = 0;
-					FBox LocalBox = Component->CachedLocalBox;
-					FVector LocalExtentDiv = (LocalBox.Max - LocalBox.Min) * FVector(1.0f / float(SqrtSubsections), 1.0f / float(SqrtSubsections), 1.0f);
-					for (int32 SubX = 0; SubX < SqrtSubsections; SubX++)
-					{
-						for (int32 SubY = 0; SubY < SqrtSubsections; SubY++)
+						if (MinDistanceToComp > DiscardDistance)
 						{
-							float MinDistanceToSubComp = MinDistanceToComp;
+							continue;
+						}
 
-							if (bCullSubsections && SqrtSubsections > 1)
+						FGrassBuilderBase ForSubsectionMath(this, Component, LayerInfo);
+
+						int32 SqrtSubsections = 1;
+				
+						if (ForSubsectionMath.bHaveValidData && ForSubsectionMath.SqrtMaxInstances > 0)
+						{
+							SqrtSubsections = FMath::Clamp<int32>(FMath::CeilToInt(float(ForSubsectionMath.SqrtMaxInstances) / FMath::Sqrt((float)MaxInstancesPerComponent)), 1, 16);
+						}
+
+						int32 NumCompsCreated = 0;
+						FBox LocalBox = Component->CachedLocalBox;
+						FVector LocalExtentDiv = (LocalBox.Max - LocalBox.Min) * FVector(1.0f / float(SqrtSubsections), 1.0f / float(SqrtSubsections), 1.0f);
+						for (int32 SubX = 0; SubX < SqrtSubsections; SubX++)
+						{
+							for (int32 SubY = 0; SubY < SqrtSubsections; SubY++)
 							{
-								FVector BoxMin;
-								BoxMin.X = LocalBox.Min.X + LocalExtentDiv.X * float(SubX);
-								BoxMin.Y = LocalBox.Min.Y + LocalExtentDiv.Y * float(SubY);
-								BoxMin.Z = LocalBox.Min.Z;
+								float MinDistanceToSubComp = MinDistanceToComp;
 
-								FVector BoxMax;
-								BoxMax.X = LocalBox.Min.X + LocalExtentDiv.X * float(SubX + 1);
-								BoxMax.Y = LocalBox.Min.Y + LocalExtentDiv.Y * float(SubY + 1);
-								BoxMax.Z = LocalBox.Max.Z;
-
-								FBox LocalSubBox(BoxMin, BoxMax);
-								FBox WorldSubBox = LocalSubBox.TransformBy(Component->ComponentToWorld);
-
-								MinDistanceToSubComp = Cameras.Num() ? MAX_flt : 0.0f;
-								for (auto& Pos : Cameras)
+								if (bCullSubsections && SqrtSubsections > 1)
 								{
-									MinDistanceToSubComp = FMath::Min<float>(MinDistanceToSubComp, ComputeSquaredDistanceFromBoxToPoint(WorldSubBox.Min, WorldSubBox.Max, Pos));
-								}
-								MinDistanceToSubComp = FMath::Sqrt(MinDistanceToSubComp);
-							}
+									FVector BoxMin;
+									BoxMin.X = LocalBox.Min.X + LocalExtentDiv.X * float(SubX);
+									BoxMin.Y = LocalBox.Min.Y + LocalExtentDiv.Y * float(SubY);
+									BoxMin.Z = LocalBox.Min.Z;
 
-							if (MinDistanceToSubComp > DiscardDistance)
-							{
-								continue;
-							}
+									FVector BoxMax;
+									BoxMax.X = LocalBox.Min.X + LocalExtentDiv.X * float(SubX + 1);
+									BoxMax.Y = LocalBox.Min.Y + LocalExtentDiv.Y * float(SubY + 1);
+									BoxMax.Z = LocalBox.Max.Z;
 
-							FCachedLandscapeFoliage::FGrassComp NewComp;
-							NewComp.Key.BasedOn = Component;
-							NewComp.Key.Layer = LayerInfo;
-							NewComp.Key.SqrtSubsections = SqrtSubsections;
-							NewComp.Key.CachedMaxInstancesPerComponent = MaxInstancesPerComponent;
-							NewComp.Key.SubsectionX = SubX;
-							NewComp.Key.SubsectionY = SubY;
+									FBox LocalSubBox(BoxMin, BoxMax);
+									FBox WorldSubBox = LocalSubBox.TransformBy(Component->ComponentToWorld);
 
-							{
-								FCachedLandscapeFoliage::FGrassComp* Existing = FoliageCache.CachedGrassComps.Find(NewComp.Key);
-								if (Existing || MinDistanceToSubComp > MustHaveDistance)
-								{
-									if (Existing)
+									MinDistanceToSubComp = Cameras.Num() ? MAX_flt : 0.0f;
+									for (auto& Pos : Cameras)
 									{
-										Existing->Touch();
+										MinDistanceToSubComp = FMath::Min<float>(MinDistanceToSubComp, ComputeSquaredDistanceFromBoxToPoint(WorldSubBox.Min, WorldSubBox.Max, Pos));
 									}
+									MinDistanceToSubComp = FMath::Sqrt(MinDistanceToSubComp);
+								}
+
+								if (MinDistanceToSubComp > DiscardDistance)
+								{
 									continue;
 								}
-							}
 
-							if (NumCompsCreated)
-							{
-								continue; // one per frame, but we still want to touch the existing ones
-							}
-							NumCompsCreated++;
+								FCachedLandscapeFoliage::FGrassComp NewComp;
+								NewComp.Key.BasedOn = Component;
+								NewComp.Key.Layer = LayerInfo;
+								NewComp.Key.SqrtSubsections = SqrtSubsections;
+								NewComp.Key.CachedMaxInstancesPerComponent = MaxInstancesPerComponent;
+								NewComp.Key.SubsectionX = SubX;
+								NewComp.Key.SubsectionY = SubY;
 
-							SCOPE_CYCLE_COUNTER(STAT_FoliageGrassStartComp);
-							int32 FolSeed = FCrc::StrCrc32((LayerInfo->LayerName.ToString() + Component->GetName() + FString::Printf(TEXT("%d %d"), SubX, SubY)).GetCharArray().GetData());
-							if (FolSeed == 0)
-							{
-								FolSeed++;
-							}
+								{
+									FCachedLandscapeFoliage::FGrassComp* Existing = FoliageCache.CachedGrassComps.Find(NewComp.Key);
+									if (Existing || MinDistanceToSubComp > MustHaveDistance)
+									{
+										if (Existing)
+										{
+											Existing->Touch();
+										}
+										continue;
+									}
+								}
 
-							UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent;
-							{
-								QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateComp);
-								HierarchicalInstancedStaticMeshComponent = ConstructObject<UHierarchicalInstancedStaticMeshComponent>(UHierarchicalInstancedStaticMeshComponent::StaticClass(), this); //, NAME_None, RF_Transactional);
-							}
-							NewComp.Foliage = HierarchicalInstancedStaticMeshComponent;
-							FoliageCache.CachedGrassComps.Add(NewComp);
+								if (NumCompsCreated || (!bForceSync && AsyncFoliageTasks.Num() >= MaxTasks))
+								{
+									continue; // one per frame, but we still want to touch the existing ones
+								}
+								NumCompsCreated++;
 
-							HierarchicalInstancedStaticMeshComponent->Mobility = EComponentMobility::Static;
+								SCOPE_CYCLE_COUNTER(STAT_FoliageGrassStartComp);
+								int32 FolSeed = FCrc::StrCrc32((LayerInfo->LayerName.ToString() + Component->GetName() + FString::Printf(TEXT("%d %d"), SubX, SubY)).GetCharArray().GetData());
+								if (FolSeed == 0)
+								{
+									FolSeed++;
+								}
 
-							HierarchicalInstancedStaticMeshComponent->StaticMesh = LayerInfo->GrassMesh;
-							HierarchicalInstancedStaticMeshComponent->bSelectable = false;
-							HierarchicalInstancedStaticMeshComponent->bHasPerInstanceHitProxies = true;
-							static FName NoCollision(TEXT("NoCollision"));
-							HierarchicalInstancedStaticMeshComponent->SetCollisionProfileName(NoCollision);
-							HierarchicalInstancedStaticMeshComponent->bDisableCollision = true;
-							HierarchicalInstancedStaticMeshComponent->SetCanEverAffectNavigation(false);
-							HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed = FolSeed;
+								UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent;
+								{
+									QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateComp);
+									HierarchicalInstancedStaticMeshComponent = ConstructObject<UHierarchicalInstancedStaticMeshComponent>(UHierarchicalInstancedStaticMeshComponent::StaticClass(), this); //, NAME_None, RF_Transactional);
+								}
+								NewComp.Foliage = HierarchicalInstancedStaticMeshComponent;
+								FoliageCache.CachedGrassComps.Add(NewComp);
 
-							if (!Cameras.Num() || bDisableGPUCull)
-							{
-								// if we don't have any cameras, then we are rendering landscape LOD materials or somesuch and we want to disable culling
-								HierarchicalInstancedStaticMeshComponent->InstanceStartCullDistance = 0;
-								HierarchicalInstancedStaticMeshComponent->InstanceEndCullDistance = 0;
-							}
-							else
-							{
-								HierarchicalInstancedStaticMeshComponent->InstanceStartCullDistance = LayerInfo->StartCullDistance;
-								HierarchicalInstancedStaticMeshComponent->InstanceEndCullDistance = LayerInfo->EndCullDistance;
-							}
+								HierarchicalInstancedStaticMeshComponent->Mobility = EComponentMobility::Static;
 
-							//@todo - take the settings from a UFoliageType object.  For now, disable distance field lighting on grass so we don't hitch.
-							HierarchicalInstancedStaticMeshComponent->bAffectDistanceFieldLighting = false;
+								HierarchicalInstancedStaticMeshComponent->StaticMesh = LayerInfo->GrassMesh;
+								HierarchicalInstancedStaticMeshComponent->bSelectable = false;
+								HierarchicalInstancedStaticMeshComponent->bHasPerInstanceHitProxies = true;
+								static FName NoCollision(TEXT("NoCollision"));
+								HierarchicalInstancedStaticMeshComponent->SetCollisionProfileName(NoCollision);
+								HierarchicalInstancedStaticMeshComponent->bDisableCollision = true;
+								HierarchicalInstancedStaticMeshComponent->SetCanEverAffectNavigation(false);
+								HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed = FolSeed;
 
-							{
-								QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassAttachComp);
+								if (!Cameras.Num() || bDisableGPUCull)
+								{
+									// if we don't have any cameras, then we are rendering landscape LOD materials or somesuch and we want to disable culling
+									HierarchicalInstancedStaticMeshComponent->InstanceStartCullDistance = 0;
+									HierarchicalInstancedStaticMeshComponent->InstanceEndCullDistance = 0;
+								}
+								else
+								{
+									HierarchicalInstancedStaticMeshComponent->InstanceStartCullDistance = LayerInfo->StartCullDistance;
+									HierarchicalInstancedStaticMeshComponent->InstanceEndCullDistance = LayerInfo->EndCullDistance;
+								}
 
-								HierarchicalInstancedStaticMeshComponent->AttachTo(GetRootComponent());
-								FTransform DesiredTransform = GetRootComponent()->ComponentToWorld;
-								DesiredTransform.RemoveScaling();
-								HierarchicalInstancedStaticMeshComponent->SetWorldTransform(DesiredTransform);
+								//@todo - take the settings from a UFoliageType object.  For now, disable distance field lighting on grass so we don't hitch.
+								HierarchicalInstancedStaticMeshComponent->bAffectDistanceFieldLighting = false;
 
-								FoliageComponents.Add(HierarchicalInstancedStaticMeshComponent);
-							}
+								{
+									QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassAttachComp);
 
-							FAsyncGrassBuilder* Builder;
+									HierarchicalInstancedStaticMeshComponent->AttachTo(GetRootComponent());
+									FTransform DesiredTransform = GetRootComponent()->ComponentToWorld;
+									DesiredTransform.RemoveScaling();
+									HierarchicalInstancedStaticMeshComponent->SetWorldTransform(DesiredTransform);
 
-							{
-								QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateBuilder);
-								Builder = new FAsyncGrassBuilder(this, Component, LayerInfo, HierarchicalInstancedStaticMeshComponent, SqrtSubsections, SubX, SubY);
-							}
+									FoliageComponents.Add(HierarchicalInstancedStaticMeshComponent);
+								}
 
-							if (Builder->bHaveValidData)
-							{
-								FAsyncTask<FAsyncGrassTask>* Task = new FAsyncTask<FAsyncGrassTask>(Builder, NewComp.Key, HierarchicalInstancedStaticMeshComponent);
+								FAsyncGrassBuilder* Builder;
 
-								Task->StartBackgroundTask();
+								{
+									QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateBuilder);
+									Builder = new FAsyncGrassBuilder(this, Component, LayerInfo, HierarchicalInstancedStaticMeshComponent, SqrtSubsections, SubX, SubY);
+								}
 
-								AsyncFoliageTasks.Add(Task);
-							}
-							else
-							{
-								delete Builder;
-							}
-							{
-								QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassRegisterComp);
-								HierarchicalInstancedStaticMeshComponent->RegisterComponent();
+								if (Builder->bHaveValidData)
+								{
+									FAsyncTask<FAsyncGrassTask>* Task = new FAsyncTask<FAsyncGrassTask>(Builder, NewComp.Key, HierarchicalInstancedStaticMeshComponent);
+
+									Task->StartBackgroundTask();
+
+									AsyncFoliageTasks.Add(Task);
+								}
+								else
+								{
+									delete Builder;
+								}
+								{
+									QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassRegisterComp);
+									HierarchicalInstancedStaticMeshComponent->RegisterComponent();
+								}
 							}
 						}
 					}
@@ -2977,7 +2994,7 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 					{
 						Exchange(HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, Inner.Builder->InstanceBuffer);
 						HierarchicalInstancedStaticMeshComponent->AcceptPrebuiltTree(Inner.Builder->ClusterTree);
-						if (bForceSync)
+						if (bForceSync && GetWorld())
 						{
 							HierarchicalInstancedStaticMeshComponent->RecreateRenderState_Concurrent();
 						}

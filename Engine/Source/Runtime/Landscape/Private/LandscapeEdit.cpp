@@ -5226,7 +5226,7 @@ void ULandscapeComponent::GenerateGrassMap()
 			GrassMap = MakeShareable(new FGrassMap(NumChannels));
 			TArray<FColor> LocalHeightCache;
 			FLandscapeComponentDataInterface CDI(this);
-			CDI.GetHeightmapTextureData(LocalHeightCache);
+			CDI.GetHeightmapTextureData(LocalHeightCache, true);
 			if (LocalHeightCache.Num())
 			{
 				check(LocalHeightCache.Num() == Stride * Stride);

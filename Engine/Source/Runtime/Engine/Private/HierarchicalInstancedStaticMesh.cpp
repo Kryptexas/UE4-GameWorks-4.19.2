@@ -53,7 +53,7 @@ static TAutoConsoleVariable<float> CVarFoliageGuardband(
 
 TAutoConsoleVariable<float> CVarFoliageMinimumScreenSize(
 	TEXT("foliage.MinimumScreenSize"),
-	0.0f,
+	0.000005f,
 	TEXT("This controls the screen size at which we cull foliage instances entirely."));
 
 TAutoConsoleVariable<float> CVarFoliageLODDistanceScale(
