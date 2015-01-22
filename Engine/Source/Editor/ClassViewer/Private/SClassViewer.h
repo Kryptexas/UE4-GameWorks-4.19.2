@@ -42,6 +42,8 @@ public:
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
 	virtual bool SupportsKeyboardFocus() const override;
 
+	/** Destroys the internal Class Hierarchy database */
+	static void DestroyClassHierarchy();
 private:
 	/** Retrieves the children for the input node.
 	 *	@param InParent				The parent node to retrieve the children from.

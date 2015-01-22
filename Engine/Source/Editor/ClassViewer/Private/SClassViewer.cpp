@@ -576,6 +576,12 @@ namespace ClassViewer
 			}
 		}
 
+		/** Cleans up the Class Hierarchy */
+		static void DestroyClassHierachy()
+		{
+			ClassHierarchy.Reset();
+		}
+
 		/** Will populate the class hierarchy tree if previously requested. */
 		static void PopulateClassHierarchy()
 		{
@@ -2928,9 +2934,14 @@ FReply SClassViewer::OnFocusReceived( const FGeometry& MyGeometry, const FFocusE
 	return FReply::Unhandled();
 }
 
- bool SClassViewer::SupportsKeyboardFocus() const 
+bool SClassViewer::SupportsKeyboardFocus() const 
 {
 	return true;
+}
+
+void SClassViewer::DestroyClassHierarchy()
+{
+	ClassViewer::Helpers::DestroyClassHierachy();
 }
 
 TSharedPtr<FClassViewerNode> SClassViewer::CreateNoneOption()
