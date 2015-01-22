@@ -244,8 +244,7 @@ public:
 	void Start()
 	{
 		Thread = FRunnableThread::Create(this, TEXT("RHIThread"), 512 * 1024, TPri_Normal, 
-			//FPlatformAffinity::GetRHIThreadMask()
-			0xFFFFFFFFFFFFFFFF
+			FPlatformAffinity::GetRHIThreadMask()
 			);
 		check(Thread);
 	}
