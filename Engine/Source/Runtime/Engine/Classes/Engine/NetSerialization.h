@@ -374,13 +374,13 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 {
 	class UScriptStruct* InnerStruct = Type::StaticStruct();
 
-	if (Parms.OutBunch)
+	if (Parms.Writer)
 	{
 		//-----------------------------
 		// Saving
 		//-----------------------------	
 		check(Parms.Struct);
-		FBitWriter& OutBunch = *Parms.OutBunch;
+		FBitWriter& Writer = *Parms.Writer;
 
 		// Create a new map from the current state of the array		
 		FNetFastTArrayBaseState * NewState = new FNetFastTArrayBaseState();
@@ -485,10 +485,10 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		//----------------------
 
 		uint32 ElemNum = DeletedElements.Num();
-		OutBunch << ElemNum;
+		Writer << ElemNum;
 
 		ElemNum = ChangedElements.Num();
-		OutBunch << ElemNum;
+		Writer << ElemNum;
 
 		UE_LOG(LogNetSerialization, Log, TEXT("   Writing Bunch. NumChange: %d. NumDel: %d"), ChangedElements.Num(), DeletedElements.Num() );
 
@@ -496,7 +496,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		for (auto It = DeletedElements.CreateIterator(); It; ++It)
 		{
 			int32 ID = *It;
-			OutBunch << ID;
+			Writer << ID;
 			UE_LOG(LogNetSerialization, Log, TEXT("   Deleted ElementID: %d"), ID);
 		}
 
@@ -507,13 +507,13 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 
 			// Dont pack this, want property to be byte aligned
 			uint32 ID = It->ID;
-			OutBunch << ID;
+			Writer << ID;
 
 			UE_LOG(LogNetSerialization, Log, TEXT("   Changed ElementID: %d"), ID);
 
 			bool bHasUnmapped = false;
 
-			Parms.NetSerializeCB->NetSerializeStruct(InnerStruct, OutBunch, Parms.Map, ThisElement, bHasUnmapped);
+			Parms.NetSerializeCB->NetSerializeStruct(InnerStruct, Writer, Parms.Map, ThisElement, bHasUnmapped);
 
 			if (bHasUnmapped)
 			{
@@ -530,8 +530,8 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		//-----------------------------
 		// Loading
 		//-----------------------------	
-		check(Parms.InArchive);
-		FArchive &Ar = *Parms.InArchive;
+		check(Parms.Reader);
+		FBitReader& Reader = *Parms.Reader;
 
 		//---------------
 		// Build ItemMap if necessary. This maps ReplicationID to our local index into the Items array.
@@ -555,22 +555,22 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		// Read header
 		//---------------
 		uint32 NumDeletes;
-		Ar << NumDeletes;
+		Reader << NumDeletes;
 	
 		if ( NumDeletes > MAX_NUM_DELETED )
 		{
 			UE_LOG( LogNetSerialization, Warning, TEXT( "NumDeletes > MAX_NUM_DELETED: %d." ), NumDeletes );
-			Ar.SetError();
+			Reader.SetError();
 			return false;;
 		}
 
 		uint32 NumChanged;
-		Ar << NumChanged;
+		Reader << NumChanged;
 
 		if (NumChanged > MAX_NUM_CHANGED)
 		{
 			UE_LOG(LogNetSerialization, Warning, TEXT("NumChanged > MAX_NUM_CHANGED: %d."), NumChanged);
-			Ar.SetError();
+			Reader.SetError();
 			return false;;
 		}
 
@@ -586,7 +586,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			for (uint32 i = 0; i < NumDeletes; ++i)
 			{
 				int32 ElementID;
-				Ar << ElementID;
+				Reader << ElementID;
 
 				int32* ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
 				if (ElementIndexPtr)
@@ -613,7 +613,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		for(uint32 i=0; i < NumChanged; ++i)
 		{
 			int32 ElementID;
-			Ar << ElementID;
+			Reader << ElementID;
 
 			int32* ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
 			int32	ElementIndex = 0;
@@ -639,13 +639,13 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				ElementIndex = *ElementIndexPtr;
 				ThisElement = &Items[ElementIndex];
 			}
-			
-			bool bHasUnmapped = false;
-			Parms.NetSerializeCB->NetSerializeStruct( InnerStruct, Ar, Parms.Map, ThisElement, bHasUnmapped );
 
-			if ( Ar.IsError() )
+			bool bHasUnmapped = false;
+			Parms.NetSerializeCB->NetSerializeStruct( InnerStruct, Reader, Parms.Map, ThisElement, bHasUnmapped );
+
+			if ( Reader.IsError() )
 			{
-				UE_LOG( LogNetSerialization, Warning, TEXT( "Parms.NetSerializeCB->NetSerializeStruct: Ar.IsError() == true" ) );
+				UE_LOG( LogNetSerialization, Warning, TEXT( "Parms.NetSerializeCB->NetSerializeStruct: Reader.IsError() == true" ) );
 				return false;
 			}
 

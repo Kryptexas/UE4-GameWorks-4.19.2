@@ -79,7 +79,7 @@ bool FObjectReplicator::SerializeCustomDeltaProperty( UNetConnection * Connectio
 
 	FNetSerializeCB NetSerializeCB( Connection->Driver );
 
-	Parms.OutBunch			= &OutBunch;
+	Parms.Writer			= &OutBunch;
 	Parms.Map				= Connection->PackageMap;
 	Parms.OldState			= OldState.Get();
 	Parms.NewState			= &NewFullState;
@@ -542,7 +542,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 				Parms.DebugName			= StructProperty->GetName();
 				Parms.Struct			= InnerStruct;
 				Parms.Map				= PackageMap;
-				Parms.InArchive			= &Bunch;
+				Parms.Reader			= &Bunch;
 				Parms.NetSerializeCB	= &NetSerializeCB;
 
 				// Call the custom delta serialize function to handle it

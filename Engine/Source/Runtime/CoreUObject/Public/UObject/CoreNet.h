@@ -296,44 +296,37 @@ struct FNetDeltaSerializeInfo
 {
 	FNetDeltaSerializeInfo()
 	{
-		OutBunch = NULL;
-		NewState = NULL;
-		OldState = NULL;
-		Map = NULL;
-		Data = NULL;
+		Writer		= NULL;
+		Reader		= NULL;
 
-		Struct = NULL;
-		InArchive = NULL;
+		NewState	= NULL;
+		OldState	= NULL;
+		Map			= NULL;
+		Data		= NULL;
 
-		NumPotentialBits = 0;
-		NumBytesTouched = 0;
+		Struct		= NULL;
 
 		NetSerializeCB = NULL;
 	}
 
-	// Used for ggeneric TArray replication
-	FBitWriter * OutBunch;
-	
-	TSharedPtr<INetDeltaBaseState> *NewState;		// SharedPtr to new base state created by NetDeltaSerialize.
-	INetDeltaBaseState *  OldState;				// Pointer to the previous base state.
-	UPackageMap *	Map;
-	void* Data;
+	// Used when writing
+	FBitWriter*						Writer;
+
+	// Used for when reading
+	FBitReader*						Reader;
+
+	TSharedPtr<INetDeltaBaseState>*	NewState;		// SharedPtr to new base state created by NetDeltaSerialize.
+	INetDeltaBaseState*				OldState;				// Pointer to the previous base state.
+	UPackageMap*					Map;
+	void*							Data;
 
 	// Only used for fast TArray replication
-	UStruct *Struct;
+	UStruct*						Struct;
 
-	// Used for TArray replication reading
-	FArchive *InArchive;
-
-	// Number of bits touched during full state serialization
-	int32 NumPotentialBits;
-	// Number of bytes touched (will be larger usually due to forced byte alignment)
-	int32 NumBytesTouched;
-
-	INetSerializeCB * NetSerializeCB;
+	INetSerializeCB*				NetSerializeCB;
 
 	// Debugging variables
-	FString DebugName;
+	FString							DebugName;
 };
 
 /**
