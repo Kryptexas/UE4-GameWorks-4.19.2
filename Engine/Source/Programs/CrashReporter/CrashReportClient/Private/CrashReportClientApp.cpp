@@ -124,6 +124,9 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	// Find the report to upload in the command line arguments
 	ParseCommandLine(CommandLine);
 
+	// Increase the HttpSendTimeout to 5 minutes
+	GConfig->SetFloat(TEXT("HTTP"), TEXT("HttpSendTimeout"), 5*60.0f, GEngineIni);
+
 	FPlatformErrorReport::Init();
 	auto ErrorReport = LoadErrorReport();
 	
@@ -197,9 +200,8 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 	}
 
-	FPlatformProcess::Sleep( 2.0f );
-	GEngineLoop.AppExit();
 	FPlatformErrorReport::ShutDown();
+	GEngineLoop.AppExit();
 }
 
 void CrashReportClientCheck(bool bCondition, const TCHAR* Location)

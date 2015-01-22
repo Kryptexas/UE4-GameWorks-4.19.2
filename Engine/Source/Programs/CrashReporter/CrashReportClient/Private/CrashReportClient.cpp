@@ -8,7 +8,11 @@
 #include "CrashReportClient.h"
 #include "UniquePtr.h"
 
+#include "TaskGraphInterfaces.h"
+
 #define LOCTEXT_NAMESPACE "CrashReportClient"
+
+//#define DO_LOCAL_TESTING 1
 
 #if	DO_LOCAL_TESTING
 	const TCHAR* GServerIP = TEXT( "http://localhost:57005" );
@@ -31,15 +35,18 @@ FCrashDescription& GetCrashDescription()
 FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport)
 	: AppState(EApplicationState::Ready)
 	, SubmittedCountdown(-1)
-	, bDiagnosticFileSent(false)
+	, DiagnosticText( LOCTEXT("ProcessingReport", "Processing crash report ...") )
+	, DiagnoseReportTask(nullptr)
 	, ErrorReport( InErrorReport )
 	, Uploader(GServerIP)
 	, CancelButtonText(LOCTEXT("Cancel", "Don't Send"))
+	, bBeginUploadCalled(false)
 {
+
 	if (!ErrorReport.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
 	{
-		FDiagnoseReportWorker& Worker = DiagnoseReportTask.GetTask( &DiagnosticText, GetCrashDescription().MachineId, GetCrashDescription().EpicAccountId, GetCrashDescription().UserName, &ErrorReport );
-		DiagnoseReportTask.StartBackgroundTask();
+		DiagnoseReportTask = new FAsyncTask<FDiagnoseReportWorker>( this );
+		DiagnoseReportTask->StartBackgroundTask();
 	}
 	else if( !DiagnosticText.IsEmpty() )
 	{
@@ -90,8 +97,7 @@ FText FCrashReportClient::GetCancelButtonText() const
 
 FText FCrashReportClient::GetDiagnosticText() const
 {
-	static const FText ProcessingReportText = LOCTEXT("ProcessingReport", "Processing crash report ...");
-	return DiagnoseReportTask.IsDone() ? DiagnosticText : ProcessingReportText;
+	return DiagnosticText;
 }
 
 EVisibility FCrashReportClient::SubmitButtonVisibility() const
@@ -132,8 +138,6 @@ void FCrashReportClient::StoreCommentAndUpload()
 	// Call upload even if the report is empty: pending reports will be sent if any
 	ErrorReport.SetUserComment(UserComment);
 
-	Uploader.BeginUpload(ErrorReport);
-
 	SubmittedCountdown = 5;
 	AppState = EApplicationState::CountingDown;
 	// Change the submit button text immediately (also sends diagnostics file if complete)
@@ -152,14 +156,6 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 
 	static const FText CountdownTextFormat = LOCTEXT("CloseApplication", "Close ({0})");
 
-	if( !bDiagnosticFileSent && DiagnoseReportTask.IsDone() )
-	{
-		auto DiagnosticsFilePath = ErrorReport.GetReportDirectory() / GDiagnosticsFilename;
-
-		Uploader.LocalDiagnosisComplete(FPaths::FileExists(DiagnosticsFilePath) ? DiagnosticsFilePath : TEXT(""));
-		bDiagnosticFileSent = true;	
-	}
-
 	if (bCountingDown)
 	{
 		CancelButtonText = FText::Format(CountdownTextFormat, FText::AsNumber(SubmittedCountdown));
@@ -174,9 +170,21 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 		}
 	}
 
+	// We are waiting for diagnose report task to complete.
+	if( DiagnoseReportTask && !DiagnoseReportTask->IsWorkDone() )
+	{
+		return true;
+	}
+	else if( !bBeginUploadCalled )
+	{
+		// Can be called only when we have all files.
+		Uploader.BeginUpload(ErrorReport);
+		bBeginUploadCalled = true;
+	}
+
 	// IsWorkDone will always return true here (since uploader can't finish until the diagnosis has been sent), but it
 	//  has the side effect of joining the worker thread.
-	if( !Uploader.IsFinished() || !DiagnoseReportTask.IsDone() )
+	if( !Uploader.IsFinished() )
 	{
 		// More ticks, please
 		return true;
@@ -192,12 +200,35 @@ FString FCrashReportClient::GetCrashedAppName() const
 	return GetCrashDescription().GameName;
 }
 
+void FCrashReportClient::FinalizeDiagnoseReportWorker( FText InDiagnosticText )
+{
+	DiagnosticText = InDiagnosticText;
+
+	auto DiagnosticsFilePath = ErrorReport.GetReportDirectory() / GDiagnosticsFilename;
+	Uploader.LocalDiagnosisComplete(FPaths::FileExists(DiagnosticsFilePath) ? DiagnosticsFilePath : TEXT(""));
+}
+
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
+
+
+FDiagnoseReportWorker::FDiagnoseReportWorker( FCrashReportClient* InCrashReportClient ) 
+	: CrashReportClient( InCrashReportClient )		
+	, MachineId(GetCrashDescription().MachineId)
+	, EpicAccountId(GetCrashDescription().EpicAccountId)
+	, UserNameNoDot(GetCrashDescription().UserName)
+{}
 
 void FDiagnoseReportWorker::DoWork()
 {
-	const FText ReportText = ErrorReport.DiagnoseReport();
+	const FText ReportText = CrashReportClient->ErrorReport.DiagnoseReport();
 	DiagnosticText = FCrashReportUtil::FormatDiagnosticText( ReportText, MachineId, EpicAccountId, UserNameNoDot );
+
+	// Inform the game thread that we are done.
+	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+	(
+		FSimpleDelegateGraphTask::FDelegate::CreateRaw( CrashReportClient, &FCrashReportClient::FinalizeDiagnoseReportWorker, DiagnosticText ),
+		TStatId(), nullptr, ENamedThreads::GameThread
+	);
 }
 
 FText FCrashReportUtil::FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot )

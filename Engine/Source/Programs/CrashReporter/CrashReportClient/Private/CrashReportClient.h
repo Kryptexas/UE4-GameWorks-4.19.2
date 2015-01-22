@@ -6,17 +6,16 @@
 #include "PlatformErrorReport.h"
 #include "CrashReportUtil.h"
 
+class FCrashReportClient;
+
 /**
  * Helper task class to process a crash report in the background
  */
-class FDiagnoseReportWorker 
+class FDiagnoseReportWorker  : public FNonAbandonableTask
 {
 public:
-	/** Diagnostics from crash report text to fill in. */
-	FText& DiagnosticText;
-
-	/** Error report files to use. */
-	const FPlatformErrorReport& ErrorReport;
+	/** Pointer to the crash report client, used to store the results. */
+	FCrashReportClient* CrashReportClient;
 
 	/** Machine ID. */
 	const FString MachineId;
@@ -27,14 +26,11 @@ public:
 	/** User name without dot. */
 	const FString UserNameNoDot;
 
+	/** Diagnostic text. */
+	FText DiagnosticText;
+
 	/** Initialization constructor. */
-	FDiagnoseReportWorker( FText* InDiagnosticText, const FString InMachineId, const FString InEpicAccountId, const FString InUserNameNoDot, const FPlatformErrorReport* InErrorReport )
-		: DiagnosticText( *InDiagnosticText )		
-		, ErrorReport( *InErrorReport )
-		, MachineId(InMachineId)
-		, EpicAccountId(InEpicAccountId)
-		, UserNameNoDot(InUserNameNoDot)
-	{}
+	FDiagnoseReportWorker( FCrashReportClient* InCrashReportClient );
 
 	/**
 	 * Do platform-specific work to get information about the crash.
@@ -57,6 +53,8 @@ public:
  */
 class FCrashReportClient : public TSharedFromThis<FCrashReportClient>
 {
+	friend class FDiagnoseReportWorker;
+
 public:
 	/**
 	 * Constructor: sets up background diagnosis
@@ -149,6 +147,9 @@ private:
 	 */
 	void StartUIWillCloseTicker();
 
+	/** Enqueued from the diagnose report worker thread to be executed on the game thread. */
+	void FinalizeDiagnoseReportWorker( FText InDiagnosticText );
+
 	/** State enum to keep track of what the app is doing */
 	struct EApplicationState
 	{
@@ -172,11 +173,8 @@ private:
 	/** Exception and call-stack to show, valid once diagnosis task is complete */
 	FText DiagnosticText;
 
-	/** Flag to remember having told the crash uploader to send the diagnostic file */
-	bool bDiagnosticFileSent;
-
 	/** Background worker to get a callstack from the report */
-	TOneShotTaskUsingDedicatedThread<FDiagnoseReportWorker> DiagnoseReportTask;
+	FAsyncTask<FDiagnoseReportWorker>* DiagnoseReportTask;
 
 	/** Platform code for accessing the report */
 	FPlatformErrorReport ErrorReport;
@@ -186,6 +184,9 @@ private:
 
 	/** Text for Cancel/Close button, including count-down value */
 	FText CancelButtonText;
+
+	/** Wheter BeginUpload has been called. */
+	bool bBeginUploadCalled;
 };
 
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
