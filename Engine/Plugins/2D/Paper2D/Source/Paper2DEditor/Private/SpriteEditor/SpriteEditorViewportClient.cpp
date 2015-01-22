@@ -1392,6 +1392,11 @@ ECoordSystem FSpriteEditorViewportClient::GetWidgetCoordSystemSpace() const
 	return COORD_World;
 }
 
+FLinearColor FSpriteEditorViewportClient::GetBackgroundColor() const
+{
+	return FEditorViewportClient::GetBackgroundColor();
+}
+
 void FSpriteEditorViewportClient::BeginTransaction(const FText& SessionName)
 {
 	if (ScopedTransaction == nullptr)
