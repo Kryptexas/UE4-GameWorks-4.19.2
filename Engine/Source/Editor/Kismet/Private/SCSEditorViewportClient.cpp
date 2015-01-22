@@ -402,22 +402,9 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 							FRotator OldRelativeRotation = SelectedTemplate->RelativeRotation;
 							FVector OldRelativeScale3D = SelectedTemplate->RelativeScale3D;
 
-							USceneComponent* ParentSceneComp = SceneComp->GetAttachParent();
-							if( ParentSceneComp )
-							{
-								const FTransform ParentToWorldSpace = ParentSceneComp->GetSocketTransform(SceneComp->AttachSocketName);
-
-								if(!SceneComp->bAbsoluteLocation)
-								{
-									Drag = ParentToWorldSpace.Inverse().TransformVector(Drag);
-								}
-								
-								if(!SceneComp->bAbsoluteRotation)
-								{
-									Rot = (ParentToWorldSpace.Inverse().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
-								}
-							}
-
+							// Adjust the deltas as necessary
+							FComponentEditorUtils::AdjustComponentDelta(SceneComp, Drag, Rot);
+							
 							FComponentEditorUtils::FTransformData OldDefaultTransform(*SelectedTemplate);
 
 							TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(SceneComp);

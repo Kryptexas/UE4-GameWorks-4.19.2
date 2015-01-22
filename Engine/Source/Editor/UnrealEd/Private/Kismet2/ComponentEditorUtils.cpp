@@ -141,6 +141,25 @@ FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorCompo
 	return ComponentInstanceName;
 }
 
+void FComponentEditorUtils::AdjustComponentDelta(USceneComponent* Component, FVector& Drag, FRotator& Rotation)
+{
+	USceneComponent* ParentSceneComp = Component->GetAttachParent();
+	if (ParentSceneComp)
+	{
+		const FTransform ParentToWorldSpace = ParentSceneComp->GetSocketTransform(Component->AttachSocketName);
+
+		if (!Component->bAbsoluteLocation)
+		{
+			Drag = ParentToWorldSpace.Inverse().TransformVector(Drag);
+		}
+
+		if (!Component->bAbsoluteRotation)
+		{
+			Rotation = ( ParentToWorldSpace.Inverse().GetRotation() * Rotation.Quaternion() * ParentToWorldSpace.GetRotation() ).Rotator();
+		}
+	}
+}
+
 void FComponentEditorUtils::PropagateTransformPropertyChange(
 	class USceneComponent* InSceneComponentTemplate,
 	const FTransformData& OldDefaultTransform,

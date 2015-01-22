@@ -676,7 +676,7 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 		check(ParentInstance != nullptr);
 
 		// Handle attachment at the instance level
-		ChildInstance->AttachTo(ParentInstance);
+		ChildInstance->AttachTo(ParentInstance, NAME_None, EAttachLocation::KeepWorldPosition);
 	}
 }
 
@@ -829,7 +829,7 @@ void FSCSEditorTreeNode::RemoveChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 		check(ChildInstance != nullptr);
 
 		// Handle detachment at the instance level
-		ChildInstance->DetachFromParent();
+		ChildInstance->DetachFromParent(true);
 	}
 }
 
@@ -2439,6 +2439,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		.OnSelectionChanged(this, &SSCSEditor::OnTreeSelectionChanged)
 		.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu)
 		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
+		.ClearSelectionOnClick(InArgs._EditorMode == EEditorMode::BlueprintSCS ? true : false)
 		.ItemHeight(24)
 		.HeaderRow
 		(
