@@ -440,6 +440,10 @@ namespace UnrealBuildTool.IOS
 			File.WriteAllText(PListFile, Text.ToString());
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
+				if (!Directory.Exists(AppDirectory))
+				{
+					Directory.CreateDirectory(AppDirectory);
+				}
 				File.WriteAllText(AppDirectory + "/Info.plist", Text.ToString());
 			}
 
