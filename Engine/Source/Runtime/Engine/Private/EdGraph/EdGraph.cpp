@@ -135,13 +135,8 @@ void UEdGraph::AddNode( UEdGraphNode* NodeToAdd, bool bFromUI/* = false*/, bool 
 
 	// Create the graph
 	EEdGraphActionType AddNodeAction = GRAPHACTION_AddNode;
-	
-	if(bFromUI)
-	{
-		AddNodeAction = (EEdGraphActionType)( ((int32)AddNodeAction) | GRAPHACTION_UserInitiated );
-	}
 
-	if(bSelectNewNode)
+	if (bSelectNewNode)
 	{
 		AddNodeAction = (EEdGraphActionType)( ((int32)AddNodeAction) | GRAPHACTION_SelectNode );
 	}
@@ -156,10 +151,6 @@ void UEdGraph::SelectNodeSet(TSet<const UEdGraphNode*> NodeSelection, bool bFrom
 	FEdGraphEditAction SelectionAction;
 
 	SelectionAction.Action = GRAPHACTION_SelectNode;
-	if (bFromUI)
-	{
-		SelectionAction.Action = (EEdGraphActionType)(((int32)SelectionAction.Action) | GRAPHACTION_UserInitiated);
-	}
 
 	SelectionAction.Graph = this;
 	SelectionAction.Nodes = NodeSelection;

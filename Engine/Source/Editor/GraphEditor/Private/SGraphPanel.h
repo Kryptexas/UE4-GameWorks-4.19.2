@@ -162,8 +162,16 @@ protected:
 
 	const TSharedRef<SGraphNode> GetChild(int32 ChildIndex);
 
+	/** Flag to control AddNode, more readable than a bool:*/
+	enum AddNodeBehavior
+	{
+		CheckUserAddedNodesList,
+		WasUserAdded,
+		NotUserAdded
+	};
+
 	/** Helper method to add a new node to the panel */
-	void AddNode(class UEdGraphNode* Node);
+	void AddNode(class UEdGraphNode* Node, AddNodeBehavior Behavior);
 
 	/** Helper method to remove a node from the panel */
 	void RemoveNode(const UEdGraphNode* Node);

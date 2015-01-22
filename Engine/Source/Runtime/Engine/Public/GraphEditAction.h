@@ -7,18 +7,15 @@ enum EEdGraphActionType
 {
 	/** A default edit with no information occurred */
 	GRAPHACTION_Default = 0x0,
-	/** An action involving a user initiated action occurred on the graph */
-	GRAPHACTION_UserInitiated = 0x1 << 0,
 
 	/** A node was added to the graph */
-	GRAPHACTION_AddNode = 0x1 << 1,
-	/** A node was added to the graph at the user's request */
-	GRAPHACTION_AddNodeUI = GRAPHACTION_AddNode | GRAPHACTION_UserInitiated,
+	GRAPHACTION_AddNode = 0x1 << 0,
 
-	GRAPHACTION_SelectNode = 0x1 << 2,
+	/** A node was selected */
+	GRAPHACTION_SelectNode = 0x1 << 1,
 
 	/** A node was removed from the graph at the user's request */
-	GRAPHACTION_RemoveNode = 0x1 << 3,
+	GRAPHACTION_RemoveNode = 0x1 << 2,
 };
 
 
