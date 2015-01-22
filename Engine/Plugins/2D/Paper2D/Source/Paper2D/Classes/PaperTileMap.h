@@ -67,7 +67,7 @@ class PAPER2D_API UPaperTileMap : public UObject
 	TAssetPtr<class UPaperTileSet> SelectedTileSet;
 
 	// The material to use on a tile map instance if not overridden
-	UPROPERTY(Category=Setup, EditAnywhere)
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
 	UMaterialInterface* Material;
 
 	// The list of layers

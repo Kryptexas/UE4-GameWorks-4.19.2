@@ -22,6 +22,9 @@ UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectI
 
 	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/Paper2D/DefaultSpriteMaterial"));
 	Material_DEPRECATED = DefaultMaterial.Object;
+
+	CastShadow = false;
+	bUseAsOccluder = false;
 }
 
 FPrimitiveSceneProxy* UPaperTileMapComponent::CreateSceneProxy()
@@ -120,6 +123,50 @@ void UPaperTileMapComponent::PostLoad()
 UBodySetup* UPaperTileMapComponent::GetBodySetup()
 {
 	return (TileMap != nullptr) ? TileMap->BodySetup : nullptr;
+}
+
+void UPaperTileMapComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel)
+{
+	// Get the texture referenced by the tile maps
+	if (TileMap != nullptr)
+	{
+		for (UPaperTileLayer* Layer : TileMap->TileLayers)
+		{
+			for (int32 Y = 0; Y < TileMap->MapHeight; ++Y)
+			{
+				for (int32 X = 0; X < TileMap->MapWidth; ++X)
+				{
+					FPaperTileInfo TileInfo = Layer->GetCell(X, Y);
+					if (TileInfo.IsValid() && (TileInfo.TileSet != nullptr) && (TileInfo.TileSet->TileSheet != nullptr))
+					{
+						OutTextures.AddUnique(TileInfo.TileSet->TileSheet);
+					}
+				}
+			}
+		}
+	}
+		
+	// Get any textures referenced by our materials
+	Super::GetUsedTextures(OutTextures, QualityLevel);
+}
+
+UMaterialInterface* UPaperTileMapComponent::GetMaterial(int32 MaterialIndex) const
+{
+	if (OverrideMaterials.IsValidIndex(MaterialIndex) && (OverrideMaterials[MaterialIndex] != nullptr))
+	{
+		return OverrideMaterials[MaterialIndex];
+	}
+	else if (TileMap != nullptr)
+	{
+		return TileMap->Material;
+	}
+
+	return nullptr;
+}
+
+int32 UPaperTileMapComponent::GetNumMaterials() const
+{
+	return FMath::Max<int32>(OverrideMaterials.Num(), 1);
 }
 
 const UObject* UPaperTileMapComponent::AdditionalStatObject() const

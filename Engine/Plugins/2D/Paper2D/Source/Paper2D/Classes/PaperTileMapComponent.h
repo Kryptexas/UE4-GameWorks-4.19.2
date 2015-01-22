@@ -6,13 +6,23 @@
 
 #include "PaperTileMapComponent.generated.h"
 
+/**
+ * A component that handles rendering and collision for a single instance of a UPaperTileMap asset.
+ *
+ * This component is created when you drag a tile map asset from the content browser into a Blueprint, or
+ * contained inside of the actor created when you drag one into the level.
+ *
+ * NOTE: This is an experimental class and certain functionality is not properly supported yet (such as collision).  Use at your own risk!
+ *
+ * @see UPrimitiveComponent, UPaperTileMap
+ */
+
 UCLASS(hideCategories=Object, ClassGroup=Paper2D, Experimental, meta=(BlueprintSpawnableComponent))
-class PAPER2D_API UPaperTileMapComponent : public UPrimitiveComponent
+class PAPER2D_API UPaperTileMapComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
 
 private:
-	// Width of map (in tiles)
 	UPROPERTY()
 	int32 MapWidth_DEPRECATED;
 
@@ -25,15 +35,12 @@ private:
 	UPROPERTY()
 	int32 TileHeight_DEPRECATED;
 
-	// Default tile set to use for new layers
 	UPROPERTY()
 	UPaperTileSet* DefaultLayerTileSet_DEPRECATED;
 
-	// Test material
 	UPROPERTY()
 	UMaterialInterface* Material_DEPRECATED;
 
-	// The list of layers
 	UPROPERTY()
 	TArray<UPaperTileLayer*> TileLayers_DEPRECATED;
 
@@ -65,6 +72,9 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual class UBodySetup* GetBodySetup() override;
+	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel) override;
+	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
+	virtual int32 GetNumMaterials() const override;
 	// End of UPrimitiveComponent interface
 
 	// Creates a new tile map internally, replacing the TileMap reference (or dropping the previous owned one)
