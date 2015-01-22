@@ -10,7 +10,7 @@ class ENGINE_API UNavMeshRenderingComponent : public UPrimitiveComponent
 
 public:
 	// Begin UObject Interface
-	virtual bool NeedsLoadForServer() override;
+	virtual bool NeedsLoadForServer() const override;
 	// End UObject Interface
 	
 	// Begin UPrimitiveComponent Interface
