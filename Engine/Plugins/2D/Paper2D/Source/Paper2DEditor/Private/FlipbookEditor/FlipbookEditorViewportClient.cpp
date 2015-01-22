@@ -105,7 +105,6 @@ void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 	}
 }
 
-
 bool FFlipbookEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	bool bHandled = false;
@@ -118,6 +117,11 @@ bool FFlipbookEditorViewportClient::InputKey(FViewport* Viewport, int32 Controll
 
 	// Pass keys to standard controls, if we didn't consume input
 	return (bHandled) ? true : FEditorViewportClient::InputKey(Viewport,  ControllerId, Key, Event, AmountDepressed, bGamepad);
+}
+
+FLinearColor FFlipbookEditorViewportClient::GetBackgroundColor() const
+{
+	return FEditorViewportClient::GetBackgroundColor();
 }
 
 //////////////////////////////////////////////////////////////////////////
