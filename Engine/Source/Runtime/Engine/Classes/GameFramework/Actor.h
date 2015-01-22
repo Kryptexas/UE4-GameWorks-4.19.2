@@ -2242,7 +2242,7 @@ public:
 
 private:
 	/** Array of ActorComponents that have been added by the user on a per-instance basis. */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	TArray<UActorComponent*> InstanceComponents;
 
 public:
