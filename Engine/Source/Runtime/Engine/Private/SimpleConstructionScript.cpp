@@ -340,6 +340,13 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 				// Get all native scene components
 				TInlineComponentArray<USceneComponent*> Components;
 				Actor->GetComponents(Components);
+				for (int32 Index = Components.Num()-1; Index >= 0; --Index)
+				{
+					if (Components[Index]->bInstanceComponent)
+					{
+						Components.RemoveAt(Index);
+					}
+				}
 
 				// Get the native root component; if it's not set, the first native scene component will be used as root. This matches what's done in the SCS editor.
 				USceneComponent* RootComponent = Actor->GetRootComponent();
