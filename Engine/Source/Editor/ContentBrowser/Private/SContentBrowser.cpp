@@ -484,7 +484,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.ContentPadding(0)
 							.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
 							.OnGetMenuContent( this, &SContentBrowser::MakeAddFilterMenu )
-							.IsEnabled( this, &SContentBrowser::IsFilterMenuEnabled )
 							.HasDownArrow( true )
 							.ContentPadding( FMargin( 1, 0 ) )
 							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserFiltersCombo")))
@@ -1400,17 +1399,6 @@ FText SContentBrowser::GetAddNewToolTipText() const
 	}
 	
 	return LOCTEXT( "AddNewToolTip_NoPath", "No path is selected as an add target." );
-}
-
-bool SContentBrowser::IsFilterMenuEnabled() const
-{
-	const FSourcesData& SourcesData = AssetViewPtr->GetSourcesData();
-
-	int32 NumAssetPaths, NumClassPaths;
-	ContentBrowserUtils::CountPathTypes(SourcesData.PackagePaths, NumAssetPaths, NumClassPaths);
-
-	// We can only filter when have something other than class paths selected (or nothing selected, for collections)
-	return !(NumClassPaths > 0 && NumAssetPaths == 0) || SourcesData.PackagePaths.Num() == 0;
 }
 
 TSharedRef<SWidget> SContentBrowser::MakeAddFilterMenu()
