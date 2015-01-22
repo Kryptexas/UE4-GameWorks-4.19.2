@@ -1015,7 +1015,6 @@ FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* 
 		if (SceneComponent && !SceneComponent->bCreatedByConstructionScript)
 		{
 			AttachedInstanceComponents.Add(SceneComponent);
-			SceneComponent->DetachFromParent(true);
 		}
 	}
 }
