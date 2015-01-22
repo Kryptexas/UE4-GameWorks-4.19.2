@@ -656,7 +656,7 @@ namespace UnrealBuildTool.Android
 			Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraPermissions", out ExtraPermissions);
 
 			// replace some variables
-			PackageName = PackageName.Replace("{PROJECT_NAME}", ProjectName);
+			PackageName = PackageName.Replace("[PROJECT]", ProjectName);
 
 			StringBuilder Text = new StringBuilder();
 			Text.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
