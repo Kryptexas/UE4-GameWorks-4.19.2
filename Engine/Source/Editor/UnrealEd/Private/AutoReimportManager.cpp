@@ -494,7 +494,12 @@ void UAutoReimportManager::SetUpMountedContentDirectories()
 	for (const auto& ContentPath : ContentPaths)
 	{
 		const FString Directory = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(ContentPath));
-		MountedDirectoryMonitors.Emplace(Directory, SupportedExtensions, ContentPath);
+
+		// We ignore the engine content directory for now
+		if (Directory != FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir()))
+		{
+			MountedDirectoryMonitors.Emplace(Directory, SupportedExtensions, ContentPath);
+		}
 	}
 }
 
