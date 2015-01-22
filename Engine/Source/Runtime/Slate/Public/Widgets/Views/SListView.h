@@ -1002,6 +1002,11 @@ public:
 			return;
 		}
 
+		if ( SelectedItems.Num() == 0 )
+		{
+			return;
+		}
+
 		Private_ClearSelection();
 		Private_SignalSelectionChanged(ESelectInfo::Direct);
 	}
