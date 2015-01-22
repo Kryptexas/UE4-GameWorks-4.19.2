@@ -1900,11 +1900,19 @@ class RHI_API FRHICommandListImmediate : public FRHICommandList
 	{
 		check(!HasCommands());
 	}
+
+	static bool bFlushedGlobal;
+
 public:
 
 	inline void ImmediateFlush(EImmediateFlushType::Type FlushType);
 
 	void SetCurrentStat(TStatId Stat);
+
+	static bool IsFullyFlushed()
+	{
+		return bFlushedGlobal;
+	};
 
 	#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
 	#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
@@ -1934,7 +1942,9 @@ public:
 		{ \
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_##Name##_Flush); \
 			ImmediateFlush(EImmediateFlushType::FlushRHIThread); \
+			bFlushedGlobal = true;\
 			ReturnStatement Name##_Internal ParameterNames; \
+			bFlushedGlobal = false;\
 		}
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
