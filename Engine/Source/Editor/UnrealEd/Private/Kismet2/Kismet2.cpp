@@ -906,69 +906,72 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 
 	for (UActorComponent* ActorComponent : Components)
 	{
-		if (Actor)
+		if (ActorComponent)
 		{
-			check(Actor == ActorComponent->GetOwner());
-		}
-		else
-		{
-			Actor = ActorComponent->GetOwner();
-			check(Actor);
-		}
-
-		USCS_Node* SCSNode = SCS->CreateNode(ActorComponent->GetClass());
-		UEditorEngine::CopyPropertiesForUnrelatedObjects(ActorComponent,SCSNode->ComponentTemplate);
-
-		// The easy part is non-scene component or the Root simply add it
-		if (!ActorComponent->IsA<USceneComponent>() || ActorComponent == Actor->GetRootComponent())
-		{
-			SCS->AddNode(SCSNode);
-		}
-		else
-		{
-			USceneComponent* SceneComponent = CastChecked<USceneComponent>(ActorComponent);
-			check(SceneComponent->AttachParent);
-
-			InstanceComponentToNodeMap.Add(SceneComponent,SCSNode);
-
-			// If we're attached to a blueprint component look it up as the variable name is the component name
-			if (SceneComponent->AttachParent->bCreatedByConstructionScript)
+			if (Actor)
 			{
-				USCS_Node* ParentSCSNode = nullptr;
-				for (UBlueprint* Blueprint : ParentBPStack)
-				{
-					ParentSCSNode = Blueprint->SimpleConstructionScript->FindSCSNode(SceneComponent->AttachParent->GetFName());
-					if (ParentSCSNode)
-					{
-						break;
-					}
-				}
-				check(ParentSCSNode);
-
-				if (ParentSCSNode->GetSCS() != SCS)
-				{
-					SCS->AddNode(SCSNode);
-				}
-
-				SCSNode->SetParent(ParentSCSNode);
-			}
-			// If we're attached to a native component
-			else if (!Components.Contains(SceneComponent->AttachParent))
-			{
-				SCS->AddNode(SCSNode);
-				SCSNode->SetParent(SceneComponent->AttachParent);
+				check(Actor == ActorComponent->GetOwner());
 			}
 			else
 			{
-				// Otherwise check if we've already created the parents' new SCS node and attach to that or cache it off to do next pass
-				USCS_Node** ParentSCSNode = InstanceComponentToNodeMap.Find(SceneComponent->AttachParent);
-				if (ParentSCSNode)
+				Actor = ActorComponent->GetOwner();
+				check(Actor);
+			}
+
+			USCS_Node* SCSNode = SCS->CreateNode(ActorComponent->GetClass());
+			UEditorEngine::CopyPropertiesForUnrelatedObjects(ActorComponent,SCSNode->ComponentTemplate);
+
+			// The easy part is non-scene component or the Root simply add it
+			if (!ActorComponent->IsA<USceneComponent>() || ActorComponent == Actor->GetRootComponent())
+			{
+				SCS->AddNode(SCSNode);
+			}
+			else
+			{
+				USceneComponent* SceneComponent = CastChecked<USceneComponent>(ActorComponent);
+				check(SceneComponent->AttachParent);
+
+				InstanceComponentToNodeMap.Add(SceneComponent,SCSNode);
+
+				// If we're attached to a blueprint component look it up as the variable name is the component name
+				if (SceneComponent->AttachParent->bCreatedByConstructionScript)
 				{
-					(*ParentSCSNode)->AddChildNode(SCSNode);
+					USCS_Node* ParentSCSNode = nullptr;
+					for (UBlueprint* Blueprint : ParentBPStack)
+					{
+						ParentSCSNode = Blueprint->SimpleConstructionScript->FindSCSNode(SceneComponent->AttachParent->GetFName());
+						if (ParentSCSNode)
+						{
+							break;
+						}
+					}
+					check(ParentSCSNode);
+
+					if (ParentSCSNode->GetSCS() != SCS)
+					{
+						SCS->AddNode(SCSNode);
+					}
+
+					SCSNode->SetParent(ParentSCSNode);
+				}
+				// If we're attached to a native component
+				else if (!Components.Contains(SceneComponent->AttachParent))
+				{
+					SCS->AddNode(SCSNode);
+					SCSNode->SetParent(SceneComponent->AttachParent);
 				}
 				else
 				{
-					SceneComponentsToAdd.Add(SceneComponent, SCSNode);
+					// Otherwise check if we've already created the parents' new SCS node and attach to that or cache it off to do next pass
+					USCS_Node** ParentSCSNode = InstanceComponentToNodeMap.Find(SceneComponent->AttachParent);
+					if (ParentSCSNode)
+					{
+						(*ParentSCSNode)->AddChildNode(SCSNode);
+					}
+					else
+					{
+						SceneComponentsToAdd.Add(SceneComponent, SCSNode);
+					}
 				}
 			}
 		}
