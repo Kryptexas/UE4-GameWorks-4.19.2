@@ -1158,8 +1158,8 @@ AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, co
 
 		UBillboardComponent* BillboardComponent	= CreateEditorOnlyBillboardComponent(NewActor, RootComponent);
 
-	NewActor->InstanceComponents.Add(RootComponent);
-	NewActor->InstanceComponents.Add(BillboardComponent);
+	NewActor->AddInstanceComponent(RootComponent);
+	NewActor->AddInstanceComponent(BillboardComponent);
 
 	return NewActor;
 }

@@ -90,6 +90,10 @@ public:
 	UPROPERTY()
 	uint32 bCreatedByConstructionScript:1;
 
+	/** True if this component was created as an instance component */
+	UPROPERTY()
+	uint32 bInstanceComponent:1;
+
 	/** Whether to the component is activated at creation or must be explicitly activated. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Activation)
 	uint32 bAutoActivate:1;

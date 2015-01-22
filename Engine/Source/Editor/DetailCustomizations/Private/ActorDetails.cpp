@@ -1209,7 +1209,7 @@ bool FActorDetails::PushToBlueprintDefaults_IsEnabled( TWeakObjectPtr<UBlueprint
 			&& Blueprint != NULL
 			&& Actor->GetClass()->ClassGeneratedBy == Blueprint)
 		{
-			if (Actor->InstanceComponents.Num() > 0)
+			if (Actor->GetInstanceComponents().Num() > 0)
 			{
 				bIsEnabled = true;
 			}
@@ -1246,7 +1246,7 @@ FText FActorDetails::PushToBlueprintDefaults_ToolTipText( TWeakObjectPtr<UBluepr
 				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
 				NumChangedProperties += EditorUtilities::CopyActorProperties(Actor, BlueprintCDO, CopyOptions);
 			}
-			NumChangedProperties += Actor->InstanceComponents.Num();
+			NumChangedProperties += Actor->GetInstanceComponents().Num();
 		}
 	}
 
@@ -1284,11 +1284,11 @@ FReply FActorDetails::PushToBlueprintDefaults_OnClicked( TWeakObjectPtr<UBluepri
 			{
 				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties|EditorUtilities::ECopyOptions::PropagateChangesToArcheypeInstances);
 				NumChangedProperties = EditorUtilities::CopyActorProperties(Actor, BlueprintCDO, CopyOptions);
-				if (Actor->InstanceComponents.Num() > 0)
+				if (Actor->GetInstanceComponents().Num() > 0)
 				{
-					FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Actor->InstanceComponents);
-					NumChangedProperties += Actor->InstanceComponents.Num();
-					Actor->InstanceComponents.Empty();
+					FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Actor->GetInstanceComponents());
+					NumChangedProperties += Actor->GetInstanceComponents().Num();
+					Actor->ClearInstanceComponents();
 				}
 				if(NumChangedProperties > 0)
 				{
@@ -1348,7 +1348,7 @@ bool FActorDetails::ResetToBlueprintDefaults_IsEnabled( TWeakObjectPtr<UBlueprin
 			&& Blueprint != NULL
 			&& Actor->GetClass()->ClassGeneratedBy == Blueprint)
 		{
-			if (Actor->InstanceComponents.Num() > 0)
+			if (Actor->GetInstanceComponents().Num() > 0)
 			{
 				bIsEnabled = true;
 			}
@@ -1385,7 +1385,7 @@ FText FActorDetails::ResetToBlueprintDefaults_ToolTipText( TWeakObjectPtr<UBluep
 				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
 				NumChangedProperties += EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
 			}
-			NumChangedProperties += Actor->InstanceComponents.Num();
+			NumChangedProperties += Actor->GetInstanceComponents().Num();
 		}
 	}
 
@@ -1424,9 +1424,9 @@ FReply FActorDetails::ResetToBlueprintDefaults_OnClicked( TWeakObjectPtr<UBluepr
 				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties|EditorUtilities::ECopyOptions::CallPostEditChangeProperty);
 				NumChangedProperties = EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
 			}
-			if (Actor->InstanceComponents.Num() > 0)
+			if (Actor->GetInstanceComponents().Num() > 0)
 			{
-				TArray<UActorComponent*> InstanceComponents = Actor->InstanceComponents;
+				TArray<UActorComponent*> InstanceComponents = Actor->GetInstanceComponents();
 				NumChangedProperties += InstanceComponents.Num();
 				for (UActorComponent* ActorComponent : InstanceComponents)
 				{

@@ -3599,7 +3599,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		}
 
 		// Add to SerializedComponents array so it gets saved
-		ActorInstance->InstanceComponents.Add(NewComponentInstance);
+		ActorInstance->AddInstanceComponent(NewComponentInstance);
 
 		return AddNewNode(NewComponentInstance, Asset, true);
 	}
@@ -3907,7 +3907,7 @@ void SSCSEditor::PasteNodes()
 			NewActorComponent->Rename(*NewComponentName, ActorInstance, REN_DontCreateRedirectors | REN_DoNotDirty);
 
 			// Add to SerializedComponents array so it gets saved
-			ActorInstance->InstanceComponents.Add(NewActorComponent);
+			ActorInstance->AddInstanceComponent(NewActorComponent);
 
 			// Create a new node to contain the new component instance and add it to the tree
 			NewActorComponent = AddNewNode(NewActorComponent, NULL, false);

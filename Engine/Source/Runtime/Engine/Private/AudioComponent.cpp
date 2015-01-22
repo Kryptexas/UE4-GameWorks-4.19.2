@@ -60,6 +60,7 @@ void UAudioComponent::OnRegister()
 		SpriteComponent->SpriteInfo.Category = TEXT("Misc");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Misc", "Misc" );
 		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
+		SpriteComponent->bInstanceComponent = bInstanceComponent;
 		SpriteComponent->bIsScreenSizeScaled = true;
 		SpriteComponent->bUseInEditorScaling = true;
 
