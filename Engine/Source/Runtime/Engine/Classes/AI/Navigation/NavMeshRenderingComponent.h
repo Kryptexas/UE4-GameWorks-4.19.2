@@ -9,6 +9,10 @@ class ENGINE_API UNavMeshRenderingComponent : public UPrimitiveComponent
 	GENERATED_UCLASS_BODY()
 
 public:
+	// Begin UObject Interface
+	virtual void NeedsLoadForServer() override;
+	// End UObject Interface
+	
 	// Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void OnRegister()  override;

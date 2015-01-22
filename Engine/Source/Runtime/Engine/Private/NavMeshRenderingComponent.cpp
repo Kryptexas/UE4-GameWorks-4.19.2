@@ -28,15 +28,21 @@ UNavMeshRenderingComponent::UNavMeshRenderingComponent(const FObjectInitializer&
 	bCollectNavigationData = false;
 }
 
+bool UNavMeshRenderingComponent::NeedsLoadForServer() const
+{
+	// This rendering component is not needed in dedicated server builds
+	return false;
+}
+
 void UNavMeshRenderingComponent::TimerFunction()
 {
 	bool bShowNavigation = false;
 #if WITH_EDITOR
 	if (GEditor)
 	{
-		for (FEditorViewportClient* CurrentViewpoer : GEditor->AllViewportClients)
+		for (FEditorViewportClient* CurrentViewport : GEditor->AllViewportClients)
 		{
-			if (CurrentViewpoer->EngineShowFlags.Navigation)
+			if (CurrentViewport && CurrentViewport->EngineShowFlags.Navigation)
 			{
 				bShowNavigation = true;
 				break;
@@ -46,7 +52,9 @@ void UNavMeshRenderingComponent::TimerFunction()
 	else
 #endif //WITH_EDITOR
 	{
-		bShowNavigation = GetWorld()->GetGameViewport()->EngineShowFlags.Navigation;
+		UWorld* World = GetWorld();
+		UGameViewportClient* Viewport = World ? World->GetGameViewport() : nullptr;
+		bShowNavigation = Viewport ? Viewport->EngineShowFlags.Navigation : false;
 	}
 
 	if (bShowNavigation != !!bCollectNavigationData)
