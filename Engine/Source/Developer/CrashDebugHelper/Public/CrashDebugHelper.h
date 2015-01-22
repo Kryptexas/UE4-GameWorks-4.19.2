@@ -140,13 +140,16 @@ public:
 	FString ProductVersion;
 
 	/** CL built from. */
-	int32 ChangelistBuiltFrom;
+	int32 BuiltFromCL;
 
 	/** The label the describes the executables and symbols. */
 	FString LabelName;
 
 	/** The network path where the executables are stored. */
-	FString NetworkPath;
+	FString ExecutablesPath;
+
+	/** The network path where the symbols are stored. */
+	FString SymbolsPath;
 
 	FString SourceFile;
 	uint64 SourceLineNumber;
@@ -164,7 +167,7 @@ public:
 	FPDBCacheEntryPtr PDBCacheEntry;
 
 	FCrashInfo()
-		: ChangelistBuiltFrom( INVALID_CHANGELIST )
+		: BuiltFromCL( INVALID_CHANGELIST )
 		, SourceLineNumber( 0 )
 	{
 	}
@@ -560,9 +563,7 @@ public:
 	virtual bool SyncModules();
 
 	/**
-	 *	Sync a single source file to the requested label.
-	 *
-	 *	@return	bool		true if successful, false if not
+	 *	Sync a single source file to the requested CL.
 	 */
 	virtual bool SyncSourceFile();
 
@@ -587,13 +588,11 @@ protected:
 
 	/**
 	 *	Retrieve the build label and the network path for the given changelist number.
-	 *
-	 *	@param	InChangelistNumber	The changelist number to retrieve the label for
 	 */
-	void RetrieveBuildLabelAndNetworkPath( int32 InChangelistNumber );
+	void RetrieveBuildLabelAndNetworkPaths( int32 InChangelistNumber );
+
 
 	bool ReadSourceFile( const TCHAR* InFilename, TArray<FString>& OutStrings );
-
 public:
 	bool InitSourceControl(bool bShowLogin);
 	void ShutdownSourceControl();

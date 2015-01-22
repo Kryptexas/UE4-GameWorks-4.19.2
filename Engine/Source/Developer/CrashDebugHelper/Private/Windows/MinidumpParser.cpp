@@ -26,7 +26,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 	bool bAtLeastOneFunctionNameFoundInCallstack = false;
 	if( bReady && WindowsStackWalkExt.OpenDumpFile( InCrashDumpFilename ) )
 	{
-		if( CrashInfo.ChangelistBuiltFrom != FCrashInfo::INVALID_CHANGELIST )
+		if( CrashInfo.BuiltFromCL != FCrashInfo::INVALID_CHANGELIST )
 		{
 			// Get the build version from the crash info.
 			FCrashModuleInfo ExeFileVersion;
@@ -34,14 +34,19 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 
 			// @see AutomationTool.CommandUtils.EscapePath 
 			const FString CleanedDepotName = CrashInfo.DepotName.Replace( TEXT( ":" ), TEXT( "" ) ).Replace( TEXT( "/" ), TEXT( "+" ) ).Replace( TEXT( "\\" ), TEXT( "+" ) ).Replace( TEXT( " " ), TEXT( "+" ) );
-			const FEngineVersion EngineVersion( ExeFileVersion.Major, ExeFileVersion.Minor, ExeFileVersion.Patch, CrashInfo.ChangelistBuiltFrom, CleanedDepotName );
+			const FEngineVersion EngineVersion( ExeFileVersion.Major, ExeFileVersion.Minor, ExeFileVersion.Patch, CrashInfo.BuiltFromCL, CleanedDepotName );
 			CrashInfo.ProductVersion = EngineVersion.ToString();
 
 			// CrashInfo now contains a changelist to lookup a label for
 			if( bSyncSymbols )
 			{
-				RetrieveBuildLabelAndNetworkPath( CrashInfo.ChangelistBuiltFrom );
-				SyncModules();
+				RetrieveBuildLabelAndNetworkPaths( CrashInfo.BuiltFromCL );
+				const bool bSynced = SyncModules();
+				// Without symbols we can't decode the provided minidump.
+				if( !bSynced )
+				{
+					return 0;
+				}
 			}
 
 			// Initialise the symbol options
@@ -68,9 +73,9 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 			// Sync the source file where the crash occurred
 			if( CrashInfo.SourceFile.Len() > 0 )
 			{
-				if( bSyncSymbols )
+				if( bSyncSymbols && CrashInfo.BuiltFromCL > 0 )
 				{
-					CrashInfo.Log( FString::Printf( TEXT( " ... using label '%s' to sync crash source file" ), *CrashInfo.LabelName ) );
+					CrashInfo.Log( FString::Printf( TEXT( " ... using CL %i to sync crash source file" ), CrashInfo.BuiltFromCL ) );
 					SyncSourceFile();
 				}
 

@@ -536,7 +536,7 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 			
 			if(Result >= 4)
 			{
-				CrashInfo.ChangelistBuiltFrom = CLNumber;
+				CrashInfo.BuiltFromCL = CLNumber;
 			}
 			
 			if(Result == 5 && Branch.Len() > 0)
