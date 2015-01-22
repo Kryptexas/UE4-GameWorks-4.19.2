@@ -5,9 +5,6 @@
 
 #define LOCTEXT_NAMESPACE "SFriendsAndChatCombo"
 
-// Style values that shouldn't change
-#define DROPDOWN_MAX_HEIGHT 36
-
 class SFriendsAndChatComboButton : public SComboButton
 {
 
@@ -35,7 +32,8 @@ public:
 		, _IconBrush(nullptr)
 		, _bSetButtonTextToSelectedItem(false)
 		, _bAutoCloseWhenClicked(true)
-		, _ContentWidth(150)
+		, _ButtonSize(150, 36)
+		, _Placement(MenuPlacement_ComboBox)
 	{}
 
 		/** Text to display on main button. */
@@ -58,8 +56,11 @@ public:
 		/** Should the dropdown list be closed automatically when user clicks an item. */
 		SLATE_ARGUMENT(bool, bAutoCloseWhenClicked)
 
-		/** Width of the button content. Needs to be supplied manually, because dropdown must also be scaled manually. */
-		SLATE_ARGUMENT(int32, ContentWidth)
+		/** Size of the button content. Needs to be supplied manually, because dropdown must also be scaled manually. */
+		SLATE_ARGUMENT(FVector2D, ButtonSize)
+
+		/** Popup menu placement. */
+		SLATE_ATTRIBUTE(EMenuPlacement, Placement)
 
 		/** Called when user clicks an item from the dropdown. */
 		SLATE_EVENT(FOnDropdownItemClicked, OnDropdownItemClicked)
@@ -73,7 +74,7 @@ public:
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		bAutoCloseWhenClicked = InArgs._bAutoCloseWhenClicked;
-		ContentWidth = InArgs._ContentWidth;
+		ButtonSize = InArgs._ButtonSize;
 		DropdownItems = InArgs._DropdownItems;
 		OnItemClickedDelegate = InArgs._OnDropdownItemClicked;
 		ButtonText = InArgs._ButtonText;
@@ -92,7 +93,7 @@ public:
 		// Purposefully not calling SComboButton's constructor as we want to override more of the visuals
 
 		SMenuAnchor::Construct(SMenuAnchor::FArguments()
-			.Placement(MenuPlacement_ComboBox)
+			.Placement(InArgs._Placement)
 			.Method(EPopupMethod::UseCurrentWindow)
 			[
 				SAssignNew(DropdownButton, SCustomDropdownButton)
@@ -103,8 +104,8 @@ public:
 				.ForegroundColor(FLinearColor::White)
 				[
 					SNew(SBox)
-					.WidthOverride(ContentWidth)
-					.HeightOverride(DROPDOWN_MAX_HEIGHT)
+					.WidthOverride(ButtonSize.X)
+					.HeightOverride(ButtonSize.Y)
 					.Padding(FMargin(8, 0, 0, 0))
 					.VAlign(VAlign_Center)
 					[
@@ -124,6 +125,7 @@ public:
 						.Padding(FMargin(0, 2, 22, 0))
 						[
 							SNew(STextBlock)
+							.Visibility(this, &SFriendsAndChatComboButton::GetTextVisibility)
 							.Text(this, &SFriendsAndChatComboButton::GetButtonText)
 							.Font(FriendStyle.FriendsFontStyleBold)
 							.ShadowOffset(FVector2D(0, 1))
@@ -159,14 +161,9 @@ private:
 	/** Unlike generic ComboBox, SFriendsAndChatCombo has well defined content, created right here. */
 	TSharedRef<SWidget> GetMenuContent()
 	{
-		TSharedPtr<SVerticalBox> EntriesWidget;
-		const FSlateBrush* BackgroundLeftImage = &FriendStyle.FriendComboBackgroundLeftBrush;
-		const FSlateBrush* BackgroundRightImage = &FriendStyle.FriendComboBackgroundRightBrush;
-
-		SAssignNew(EntriesWidget, SVerticalBox);
+		TSharedPtr<SVerticalBox> EntriesWidget = SNew(SVerticalBox);
 
 		const SFriendsAndChatCombo::FItemsArray& DropdownItemsRef = DropdownItems.Get();
-
 		DropdownItemButtons.Empty();
 		DropdownItemButtons.AddZeroed(DropdownItemsRef.Num());
 
@@ -192,28 +189,55 @@ private:
 			];
 		}
 
+		TSharedPtr<SHorizontalBox> BackgroundBox = SNew(SHorizontalBox);
+
+		if (Placement.Get() == MenuPlacement_ComboBoxRight)
+		{
+
+			BackgroundBox->AddSlot()
+			[
+				SNew(SImage)
+				.Image(&FriendStyle.FriendComboBackgroundRightFlippedBrush)
+			];
+
+			BackgroundBox->AddSlot()
+			.AutoWidth()
+			[
+				SNew(SBox)
+				.WidthOverride(ButtonSize.X - 10)
+				[
+					SNew(SImage)
+					.Image(&FriendStyle.FriendComboBackgroundLeftFlippedBrush)
+				]
+			];
+		}
+		else
+		{
+			BackgroundBox->AddSlot()
+			.AutoWidth()
+			[
+				SNew(SBox)
+				.WidthOverride(ButtonSize.X - 30)
+				[
+					SNew(SImage)
+					.Image(&FriendStyle.FriendComboBackgroundLeftBrush)
+				]
+			];
+
+			BackgroundBox->AddSlot()
+			[
+				SNew(SImage)
+				.Image(&FriendStyle.FriendComboBackgroundRightBrush)
+			];
+		}
+
 		return
 		SNew(SOverlay)
 		+ SOverlay::Slot()
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Fill)
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SBox)
-				.WidthOverride(ContentWidth - 30)
-				[
-					SNew(SImage)
-					.Image(BackgroundLeftImage)
-				]
-			]
-			+ SHorizontalBox::Slot()
-			[
-				SNew(SImage)
-				.Image(BackgroundRightImage)
-			]
+			BackgroundBox.ToSharedRef()
 		]
 		+ SOverlay::Slot()
 		.HAlign(HAlign_Fill)
@@ -268,6 +292,11 @@ private:
 		return bShowIcon.Get() ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
+	EVisibility GetTextVisibility() const
+	{
+		return GetButtonText().IsEmptyOrWhitespace() ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+
 	const FSlateBrush* GetIconBrush() const
 	{
 		return IconBrush.Get();
@@ -303,18 +332,18 @@ private:
 	/** Should the dropdown list be closed automatically when user clicks an item. */
 	bool bAutoCloseWhenClicked;
 
-	/** Width of the button content. */
-	int32 ContentWidth;
+	/** Size of the button content. */
+	FVector2D ButtonSize;
 };
 
 class SFriendsAndChatComboImpl : public SFriendsAndChatCombo
 {
 public:
-	void Construct(const FArguments& InArgs)
+	virtual void Construct(const FArguments& InArgs)
 	{
 		SUserWidget::Construct(SUserWidget::FArguments()
 			[
-				SNew(SFriendsAndChatComboButton)
+				SAssignNew(Anchor, SFriendsAndChatComboButton)
 				.ButtonText(InArgs._ButtonText)
 				.bShowIcon(InArgs._bShowIcon)
 				.IconBrush(InArgs._IconBrush)
@@ -322,11 +351,20 @@ public:
 				.bSetButtonTextToSelectedItem(InArgs._bSetButtonTextToSelectedItem)
 				.DropdownItems(InArgs._DropdownItems)
 				.bAutoCloseWhenClicked(InArgs._bAutoCloseWhenClicked)
-				.ContentWidth(InArgs._ContentWidth)
+				.ButtonSize(InArgs._ButtonSize)
+				.Placement(InArgs._Placement)
 				.OnDropdownItemClicked(InArgs._OnDropdownItemClicked)
 				.OnDropdownOpened(InArgs._OnDropdownOpened)
 			]);
 	}
+
+	virtual bool IsOpen() const
+	{
+		return Anchor.IsValid() && Anchor->IsOpen();
+	}
+
+private:
+	TSharedPtr<SMenuAnchor> Anchor;
 };
 
 TSharedRef<SFriendsAndChatCombo> SFriendsAndChatCombo::New()

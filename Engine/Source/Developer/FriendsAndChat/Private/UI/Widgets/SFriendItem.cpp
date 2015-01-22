@@ -5,6 +5,7 @@
 #include "FriendViewModel.h"
 #include "SFriendsToolTip.h"
 #include "SFriendsList.h"
+#include "SFriendsAndChatCombo.h"
 
 #define LOCTEXT_NAMESPACE "SFriendItem"
 
@@ -82,17 +83,18 @@ public:
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Right)
 						[
-							SAssignNew(Anchor, SMenuAnchor)
-							.Method(InArgs._Method)
-							.OnGetMenuContent(this, &SFriendItemImpl::GetMenuContent)
-							.Placement(MenuPlacement_BelowAnchor)
+							SAssignNew(ActionMenuButton, SFriendsAndChatCombo)
+							.FriendStyle(&FriendStyle)
+							.ButtonText(FText::GetEmpty())
+							.bShowIcon(false)
+							.DropdownItems(this, &SFriendItemImpl::GetActionItems)
+							.bSetButtonTextToSelectedItem(false)
+							.bAutoCloseWhenClicked(true)
+							.ButtonSize(FriendStyle.ActionComboButtonSize)
+							.Placement(MenuPlacement_ComboBoxRight)
+							.OnDropdownItemClicked(this, &SFriendItemImpl::HandleItemClicked)
+							.OnDropdownOpened(this, &SFriendItemImpl::HandleActionMenuOpened)
 							.Visibility(this, &SFriendItemImpl::ActionMenuButtonVisibility)
-							.Content()
-							[
-								SNew(SButton)
-								.ButtonStyle(&FriendStyle.FriendActionDropdownButtonStyle)
-								.OnClicked(this, &SFriendItemImpl::HandleItemClicked)
-							]
 						]
 					]
 					+ SOverlay::Slot()
@@ -225,42 +227,36 @@ private:
 		};
 	}
 
-	TSharedRef<SWidget> GetMenuContent()
+	SFriendsAndChatCombo::FItemsArray GetActionItems() const
 	{
-		TSharedPtr<SVerticalBox> ActionListBox;
-		TSharedRef<SWidget> Contents =
-			SNew(SBorder)
-			.BorderImage(&FriendStyle.Background)
-			.Padding(FMargin(5, 5, 15, 15))
-			[
-				SAssignNew(ActionListBox, SVerticalBox)
-			];
-
 		TArray<EFriendActionType::Type> Actions;
-
 		ViewModel->EnumerateActions(Actions);
 
+		SFriendsAndChatCombo::FItemsArray ActionItems;
 		for (const auto& FriendAction : Actions)
 		{
-			ActionListBox->AddSlot()
-			[
-				SNew(SButton)
-				.ToolTip(FriendAction == EFriendActionType::JoinGame ? CreateJoingGameToolTip() : NULL)
-				.IsEnabled(this, &SFriendItemImpl::IsActionEnabled, FriendAction)
-				.OnClicked(this, &SFriendItemImpl::HandleActionClicked, FriendAction)
-				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
-				.ContentPadding(FMargin(1, 1, 15, 1))
-				[
-					SNew(STextBlock)
-					.ColorAndOpacity(FriendStyle.DefaultFontColor)
-					.Font(FriendStyle.FriendsFontStyle)
-					.Text(EFriendActionType::ToText(FriendAction))
-				]
-			];
+			ActionItems.AddItem(EFriendActionType::ToText(FriendAction), nullptr, FName(*EFriendActionType::ToText(FriendAction).ToString()), IsActionEnabled(FriendAction));
 		}
 
-		MenuContent = Contents;
-		return Contents;
+		return ActionItems;
+	}
+
+	FName ActionToItemTag(EFriendActionType::Type Action)
+	{
+		return FName(*EFriendActionType::ToText(Action).ToString());
+	}
+
+	EFriendActionType::Type ItemTagToAction(const FName& Tag)
+	{
+		for (int32 ActionIdx = 0; ActionIdx < EFriendActionType::MAX_None; ActionIdx++)
+		{
+			EFriendActionType::Type ActionAsEnum = (EFriendActionType::Type)ActionIdx;
+			if (Tag == ActionToItemTag(ActionAsEnum))
+			{
+				return ActionAsEnum;
+			}
+		}
+		return EFriendActionType::MAX_None;
 	}
 
 	EVisibility PendingActionVisibility(EFriendActionType::Type ActionType) const
@@ -273,22 +269,6 @@ private:
 		return ViewModel->CanPerformAction(FriendAction);
 	}
 
-	FReply HandleActionClicked(const EFriendActionType::Type FriendAction)
-	{
-		Anchor->SetIsOpen(false, false);
-
-		if (FriendAction == EFriendActionType::RemoveFriend || FriendAction == EFriendActionType::JoinGame)
-		{
-			PendingAction = FriendAction;
-			FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
-		}
-		else
-		{
-			ViewModel->PerformAction(FriendAction);
-		}
-		return FReply::Handled();
-	}
-
 	FReply HandlePendingActionClicked(bool bConfirm)
 	{
 		if (bConfirm)
@@ -299,16 +279,32 @@ private:
 		return FReply::Handled();
 	}
 
-	FReply HandleItemClicked()
+	void HandleItemClicked(FName ItemTag)
 	{
-		Anchor->SetIsOpen(true, false);
-		OpenTime = 0.2f;
-		return FReply::Handled();
+		if (ViewModel.IsValid())
+		{
+			EFriendActionType::Type FriendAction = ItemTagToAction(ItemTag);
+
+			if (FriendAction == EFriendActionType::RemoveFriend || FriendAction == EFriendActionType::JoinGame)
+			{
+				PendingAction = FriendAction;
+				FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
+			}
+			else
+			{
+				ViewModel->PerformAction(FriendAction);
+			}
+		}
+	}
+
+	void HandleActionMenuOpened() const
+	{
+		LastActionMenuOpened = ActionMenuButton;
 	}
 
 	EVisibility ActionMenuButtonVisibility() const
 	{
-		return (bIsHovered && PendingAction == EFriendActionType::MAX_None) || Anchor->IsOpen() ? EVisibility::Visible : EVisibility::Hidden;
+		return (bIsHovered && PendingAction == EFriendActionType::MAX_None && !IsAnyActionMenuOpen()) || ActionMenuButton->IsOpen() ? EVisibility::Visible : EVisibility::Hidden;
 	}
 
 	TSharedPtr<SToolTip> CreateJoingGameToolTip()
@@ -320,25 +316,6 @@ private:
 			.FriendStyle(&FriendStyle);
 		}
 		return nullptr;
-	}
-
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
-	{
-		if (Anchor.IsValid() && Anchor->IsOpen())
-		{
-			if (IsHovered() || Anchor->IsHovered() || (MenuContent.IsValid() && MenuContent->IsHovered()))
-			{
-				OpenTime = 0.2f;
-			}
-			else
-			{
-				OpenTime -= InDeltaTime;
-				if (OpenTime < 0 || MenuMethod != EPopupMethod::CreateNewWindow)
-				{
-					Anchor->SetIsOpen(false, false);
-				}
-			}
-		}
 	}
 
 	virtual bool SupportsKeyboardFocus() const override
@@ -354,6 +331,11 @@ private:
 		}
 	}
 
+	static bool IsAnyActionMenuOpen()
+	{
+		return LastActionMenuOpened.IsValid() && LastActionMenuOpened.Pin()->IsOpen();
+	}
+
 private:
 
 	TSharedPtr<FFriendViewModel> ViewModel;
@@ -361,7 +343,7 @@ private:
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
 
-	TSharedPtr<SMenuAnchor> Anchor;
+	TSharedPtr<SFriendsAndChatCombo> ActionMenuButton;
 
 	TSharedPtr<SWidget> MenuContent;
 
@@ -370,7 +352,17 @@ private:
 	float OpenTime;
 
 	EFriendActionType::Type PendingAction;
+
+	/**
+	 * Static ref to the last action menu combo that was opened
+	 * Used to allow a single item to open/show its menu at once
+	 * @todo: static isn't ideal but fine for now
+	 */
+	static TWeakPtr<SFriendsAndChatCombo> LastActionMenuOpened;
 };
+
+TWeakPtr<SFriendsAndChatCombo> SFriendItemImpl::LastActionMenuOpened;
+
 
 TSharedRef<SFriendItem> SFriendItem::New()
 {

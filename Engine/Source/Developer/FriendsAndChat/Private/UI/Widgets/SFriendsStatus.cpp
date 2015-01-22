@@ -41,7 +41,7 @@ public:
 			.DropdownItems(ComboMenuItems)
 			.bSetButtonTextToSelectedItem(false)
 			.bAutoCloseWhenClicked(true)
-			.ContentWidth(FriendStyle.StatusButtonSize.X)
+			.ButtonSize(FriendStyle.StatusButtonSize)
 			.OnDropdownItemClicked(this, &SFriendsStatusImpl::HandleStatusChanged)
 		]);
 	}

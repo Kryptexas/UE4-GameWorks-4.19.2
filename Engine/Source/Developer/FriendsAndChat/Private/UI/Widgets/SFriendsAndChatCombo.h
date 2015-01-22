@@ -60,7 +60,8 @@ public:
 		, _IconBrush(nullptr)
 		, _bSetButtonTextToSelectedItem(false)
 		, _bAutoCloseWhenClicked(true)
-		, _ContentWidth(150)
+		, _ButtonSize(150, 36)
+		, _Placement(MenuPlacement_ComboBox)
 	{}
 
 		/** Text to display on main button. */
@@ -83,8 +84,11 @@ public:
 		/** Should the dropdown list be closed automatically when user clicks an item. */
 		SLATE_ARGUMENT(bool, bAutoCloseWhenClicked)
 
-		/** Width of the button content. Needs to be supplied manually, because dropdown must also be scaled manually. */
-		SLATE_ARGUMENT(int32, ContentWidth)
+		/** Size of the button content. Needs to be supplied manually, because dropdown must also be scaled manually. */
+		SLATE_ARGUMENT(FVector2D, ButtonSize)
+
+		/** Popup menu placement. */
+		SLATE_ATTRIBUTE(EMenuPlacement, Placement)
 
 		/** Called when user clicks an item from the dropdown. */
 		SLATE_EVENT(FOnDropdownItemClicked, OnDropdownItemClicked)
@@ -95,4 +99,6 @@ public:
 	SLATE_END_ARGS()
 
 	virtual void Construct(const FArguments& InArgs){}
+
+	virtual bool IsOpen() const = 0;
 };

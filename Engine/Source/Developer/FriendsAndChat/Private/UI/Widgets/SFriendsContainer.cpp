@@ -63,58 +63,65 @@ public:
 						]
 						+ SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Fill)
-						.Padding(4, 0, 0, 0)
-						[
-							SNew(SBorder)
-							.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
-							.BorderImage(&FriendStyle.AddFriendEditBorder)
-							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Fill)
-							[
-								SAssignNew(FriendNameTextBox, SEditableTextBox)
-								.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
-								.Style(&FriendStyle.AddFriendEditableTextStyle)
-								.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
-							]
-						]
-						+SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Right)
-						.Padding(4, 0, 0, 0)
 						[
-							SNew(SButton)
-							.ToolTip(CreateAddFriendToolTip())
-							.ButtonStyle(&FriendStyle.AddFriendButtonStyle)
-							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
-							.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
-							.Cursor(EMouseCursor::Hand)
+							SNew(SBox)
+							.HeightOverride(FriendStyle.StatusButtonSize.Y)
 							[
-								SNew(SBox)
-								.HAlign(HAlign_Center)
-								.VAlign(VAlign_Center)
-								.WidthOverride(FriendStyle.StatusButtonSize.Y)
-								.HeightOverride(FriendStyle.StatusButtonSize.Y)
+								SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.Padding(4, 0, 0, 0)
 								[
-									SNew(SImage)
-									.Image(&FriendStyle.AddFriendButtonContentBrush)
+									SNew(SBorder)
+									.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
+									.BorderImage(&FriendStyle.AddFriendEditBorder)
+									.VAlign(VAlign_Center)
+									.HAlign(HAlign_Fill)
+									[
+										SAssignNew(FriendNameTextBox, SEditableTextBox)
+										.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
+										.Style(&FriendStyle.AddFriendEditableTextStyle)
+										.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
+									]
 								]
-							]
-						]
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Right)
-						.AutoWidth()
-						.Padding(4, 0, 0, 0)
-						[
-							SNew(SButton)
-							.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
-							.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
-							.Cursor(EMouseCursor::Hand)
-							[
-								SNew(SBox)
-								.WidthOverride(FriendStyle.StatusButtonSize.Y)
-								.HeightOverride(FriendStyle.StatusButtonSize.Y)
+								+ SHorizontalBox::Slot()
+								.Padding(4, 0, 0, 0)
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.ToolTip(CreateAddFriendToolTip())
+									.ButtonStyle(&FriendStyle.AddFriendButtonStyle)
+									.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+									.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
+									.ContentPadding(0)
+									.Cursor(EMouseCursor::Hand)
+									[
+										SNew(SBox)
+										.HAlign(HAlign_Center)
+										.VAlign(VAlign_Center)
+										.WidthOverride(FriendStyle.StatusButtonSize.Y)
+										.HeightOverride(FriendStyle.StatusButtonSize.Y)
+										[
+											SNew(SImage)
+											.Image(&FriendStyle.AddFriendButtonContentBrush)
+										]
+									]
+								]
+								+ SHorizontalBox::Slot()
+								.Padding(4, 0, 0, 0)
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
+									.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
+									.ContentPadding(0)
+									.Cursor(EMouseCursor::Hand)
+									[
+										SNew(SBox)
+										.WidthOverride(FriendStyle.StatusButtonSize.Y)
+										.HeightOverride(FriendStyle.StatusButtonSize.Y)
+									]
+								]
 							]
 						]
 					]
@@ -124,7 +131,7 @@ public:
 			[
 				SNew(SBorder)
 				.Padding(FriendStyle.BorderPadding)
-				.BorderImage(&FriendStyle.FriendContainerBackground)
+				.BorderImage(&FriendStyle.FriendsContainerBackground)
 				[
 					SNew(SScrollBox)
 					.ScrollBarStyle(&FriendStyle.ScrollBarStyle)

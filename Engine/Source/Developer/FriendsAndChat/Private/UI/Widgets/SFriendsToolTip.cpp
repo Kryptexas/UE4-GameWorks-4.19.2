@@ -10,7 +10,7 @@ void SFriendsToolTip::Construct(const FArguments& InArgs)
 		.BorderImage(FStyleDefaults::GetNoBrush())
 		[
 			SNew(SBorder)
-			.BorderImage(&FriendStyle.FriendContainerBackground)
+			.BorderImage(&FriendStyle.ChatContainerBackground)
 			.Padding(FMargin(8.0f))
 			[
 				SNew(STextBlock)

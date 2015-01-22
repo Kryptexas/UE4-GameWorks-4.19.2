@@ -45,11 +45,6 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle FriendListOpenButtonStyle;
 	FFriendsAndChatStyle& SetFriendsListOpenButtonStyle(const FButtonStyle& ButtonStyle);
 
-	/** Friends List Online Status Button style */
-	UPROPERTY()
-	FButtonStyle FriendListStatusButtonStyle;
-	FFriendsAndChatStyle& SetFriendsListStatusButtonStyle(const FButtonStyle& ButtonStyle);
-
 	/** Friends General Purpose Button style */
 	UPROPERTY()
 	FButtonStyle FriendGeneralButtonStyle;
@@ -98,11 +93,6 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle AddFriendButtonStyle;
 	FFriendsAndChatStyle& SetAddFriendButtonStyle(const FButtonStyle& ButtonStyle);
 
-	/** Friend action dropdown menu button style */
-	UPROPERTY()
-	FButtonStyle FriendActionDropdownButtonStyle;
-	FFriendsAndChatStyle& SetFriendActionDropdownButtonStyle(const FButtonStyle& ButtonStyle);
-
 	/** Friends List Combo Button menu background image (left) */
 	UPROPERTY()
 	FSlateBrush FriendComboBackgroundLeftBrush;
@@ -112,6 +102,16 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY()
 	FSlateBrush FriendComboBackgroundRightBrush;
 	FFriendsAndChatStyle& SetFriendComboBackgroundRightBrush(const FSlateBrush& BrushStyle);
+
+	/** Friends List Combo Button menu background image (left-flipped) - for MenuPlacement_ComboBoxRight menus */
+	UPROPERTY()
+	FSlateBrush FriendComboBackgroundLeftFlippedBrush;
+	FFriendsAndChatStyle& SetFriendComboBackgroundLeftFlippedBrush(const FSlateBrush& BrushStyle);
+
+	/** Friends List Combo Button menu background image (right-flipped) - for MenuPlacement_ComboBoxRight menus */
+	UPROPERTY()
+	FSlateBrush FriendComboBackgroundRightFlippedBrush;
+	FFriendsAndChatStyle& SetFriendComboBackgroundRightFlippedBrush(const FSlateBrush& BrushStyle);
 
 	/** Optional content for the Add Friend button */
 	UPROPERTY()
@@ -188,9 +188,14 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FSlateBrush FriendItemSelected;
 	FFriendsAndChatStyle& SetFriendItemSelected(const FSlateBrush& InFriendItemSelected);
 
-	/** Friend container background */
+	/** Chat window background */
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush FriendContainerBackground;
+	FSlateBrush ChatContainerBackground;
+	FFriendsAndChatStyle& SetChatContainerBackground(const FSlateBrush& InChatContainerBackground);
+
+	/** Friends window background */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendsContainerBackground;
 	FFriendsAndChatStyle& SetFriendContainerBackground(const FSlateBrush& InFriendContainerBackground);
 
 	/** Add Friend editable text border */
@@ -276,6 +281,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FVector2D StatusButtonSize;
 	FFriendsAndChatStyle& SetStatusButtonSize(const FVector2D& InStatusButtonSize);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FVector2D ActionComboButtonSize;
+	FFriendsAndChatStyle& SetActionComboButtonSize(const FVector2D& InActionComboButtonSize);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FMargin BorderPadding;

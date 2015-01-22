@@ -30,12 +30,6 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonStyle(const FButto
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendActionDropdownButtonStyle(const FButtonStyle& InButtonStyle)
-{
-	FriendActionDropdownButtonStyle = InButtonStyle;
-	return *this;
-}
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendComboBackgroundLeftBrush(const FSlateBrush& BrushStyle)
 {
 	FriendComboBackgroundLeftBrush = BrushStyle;
@@ -48,15 +42,21 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendComboBackgroundRightBrush(c
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonContentBrush(const FSlateBrush& BrushStyle)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendComboBackgroundLeftFlippedBrush(const FSlateBrush& BrushStyle)
 {
-	AddFriendButtonContentBrush = BrushStyle;
+	FriendComboBackgroundLeftFlippedBrush = BrushStyle;
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListStatusButtonStyle(const FButtonStyle& ButtonStyle)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendComboBackgroundRightFlippedBrush(const FSlateBrush& BrushStyle)
 {
-	FriendListStatusButtonStyle = ButtonStyle;
+	FriendComboBackgroundRightFlippedBrush = BrushStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonContentBrush(const FSlateBrush& BrushStyle)
+{
+	AddFriendButtonContentBrush = BrushStyle;
 	return *this;
 }
 
@@ -188,9 +188,15 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendItemSelected(const FSlateBr
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatContainerBackground(const FSlateBrush& InChatContainerBackground)
+{
+	ChatContainerBackground = InChatContainerBackground;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendContainerBackground(const FSlateBrush& InFriendContainerBackground)
 {
-	FriendContainerBackground = InFriendContainerBackground;
+	FriendsContainerBackground = InFriendContainerBackground;
 	return *this;
 }
 
@@ -305,6 +311,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendCheckboxStyle(const FCheckB
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetStatusButtonSize(const FVector2D& InStatusButtonSize)
 {
 	StatusButtonSize = InStatusButtonSize;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetActionComboButtonSize(const FVector2D& InActionComboButtonSize)
+{
+	ActionComboButtonSize = InActionComboButtonSize;
 	return *this;
 }
 

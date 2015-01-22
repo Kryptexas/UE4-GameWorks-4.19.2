@@ -105,7 +105,7 @@ public:
 							.AutoWidth()
 							[
 								SNew(SBorder)
-								.BorderImage(&FriendStyle.FriendContainerBackground)
+								.BorderImage(&FriendStyle.ChatContainerBackground)
 								.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
 								[
 									SNew(SHorizontalBox)
@@ -158,7 +158,7 @@ public:
 						[
 							SNew(SBorder)
 							.Visibility(this, &SChatWindowImpl::GetConfirmationVisibility)
-							.BorderImage(&FriendStyle.FriendContainerBackground)
+							.BorderImage(&FriendStyle.ChatContainerBackground)
 							.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
 							[
 								SNew(SHorizontalBox)
@@ -452,7 +452,7 @@ private:
 
 		TSharedRef<SWidget> Contents =
 			SNew(SBorder)
-			.BorderImage(&FriendStyle.FriendContainerBackground)
+			.BorderImage(&FriendStyle.ChatContainerBackground)
 			.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
 			.Padding(8.0f)
 			[
