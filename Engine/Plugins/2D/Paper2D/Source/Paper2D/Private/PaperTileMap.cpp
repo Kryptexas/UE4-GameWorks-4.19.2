@@ -86,15 +86,7 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapWidth)) || (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapHeight)))
 	{
-		MapWidth = FMath::Max(MapWidth, 1);
-		MapHeight = FMath::Max(MapHeight, 1);
-
-		// Resize all of the existing layers
-		for (int32 LayerIndex = 0; LayerIndex < TileLayers.Num(); ++LayerIndex)
-		{
-			UPaperTileLayer* TileLayer = TileLayers[LayerIndex];
-			TileLayer->ResizeMap(MapWidth, MapHeight);
-		}
+		ResizeMap(MapWidth, MapHeight, /*bForceResize=*/ true);
 	}
 
 	if (!IsTemplate())
@@ -366,6 +358,22 @@ FText UPaperTileMap::GenerateNewLayerName(UPaperTileMap* TileMap)
 	} while (ExistingNames.Contains(TestLayerName.ToString()));
 
 	return TestLayerName;
+}
+
+void UPaperTileMap::ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize)
+{
+	if (bForceResize || (NewWidth != MapWidth) || (NewHeight != MapHeight))
+	{
+		MapWidth = FMath::Max(NewWidth, 1);
+		MapHeight = FMath::Max(NewHeight, 1);
+
+		// Resize all of the existing layers
+		for (int32 LayerIndex = 0; LayerIndex < TileLayers.Num(); ++LayerIndex)
+		{
+			UPaperTileLayer* TileLayer = TileLayers[LayerIndex];
+			TileLayer->ResizeMap(MapWidth, MapHeight);
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

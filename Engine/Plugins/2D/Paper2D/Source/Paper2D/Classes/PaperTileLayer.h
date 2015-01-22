@@ -13,11 +13,11 @@ struct FPaperTileInfo
 	GENERATED_USTRUCT_BODY()
 
 	// The tile set that this tile comes from
-	UPROPERTY(BlueprintReadWrite, Category=Sprite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sprite)
 	UPaperTileSet* TileSet;
 
 	// This is the index of the current tile within the tile set
-	UPROPERTY(BlueprintReadWrite, Category=Sprite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sprite)
 	int32 PackedTileIndex;
 
 	FPaperTileInfo()

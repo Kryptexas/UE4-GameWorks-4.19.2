@@ -87,6 +87,22 @@ public:
 	/** Change the PaperTileMap used by this instance. */
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	virtual bool SetTileMap(class UPaperTileMap* NewTileMap);
+
+	// Returns the contents of a specified tile cell
+	UFUNCTION(BlueprintPure, Category="Sprite", meta=(Layer="0"))
+	FPaperTileInfo GetTile(int32 X, int32 Y, int32 Layer) const;
+
+	// Modifies the contents of a specified tile cell (Note: This will only work on components that own their own tile map (OwnsTileMap returns true), you cannot modify standalone tile map assets) 
+	UFUNCTION(BlueprintCallable, Category="Sprite", meta=(Layer="0"))
+	void SetTile(int32 X, int32 Y, int32 Layer, FPaperTileInfo NewValue);
+
+	// Resizes the tile map (Note: This will only work on components that own their own tile map (OwnsTileMap returns true), you cannot modify standalone tile map assets) 
+	UFUNCTION(BlueprintCallable, Category="Sprite")
+	void ResizeMap(int32 NewWidthInTiles, int32 NewHeightInTiles);
+
+	// Creates and adds a new layer to the tile map (Note: This will only work on components that own their own tile map(OwnsTileMap returns true), you cannot modify standalone tile map assets)
+	UFUNCTION(BlueprintCallable, Category="Sprite")
+	class UPaperTileLayer* AddNewLayer();
 };
 
 // Allow the old name to continue to work for one release

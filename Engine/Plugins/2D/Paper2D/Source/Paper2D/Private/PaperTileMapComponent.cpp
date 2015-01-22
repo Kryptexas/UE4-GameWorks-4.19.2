@@ -386,4 +386,60 @@ bool UPaperTileMapComponent::SetTileMap(class UPaperTileMap* NewTileMap)
 	return false;
 }
 
+FPaperTileInfo UPaperTileMapComponent::GetTile(int32 X, int32 Y, int32 Layer) const
+{
+	FPaperTileInfo Result;
+	if (TileMap != nullptr)
+	{
+		if (TileMap->TileLayers.IsValidIndex(Layer))
+		{
+			Result = TileMap->TileLayers[Layer]->GetCell(X, Y);
+		}
+	}
+
+	return Result;
+}
+
+void UPaperTileMapComponent::SetTile(int32 X, int32 Y, int32 Layer, FPaperTileInfo NewValue)
+{
+	if (OwnsTileMap())
+	{
+		if (TileMap->TileLayers.IsValidIndex(Layer))
+		{
+			TileMap->TileLayers[Layer]->SetCell(X, Y, NewValue);
+
+			MarkRenderStateDirty();
+		}
+	}
+}
+
+void UPaperTileMapComponent::ResizeMap(int32 NewWidthInTiles, int32 NewHeightInTiles)
+{
+	if (OwnsTileMap())
+	{
+		TileMap->ResizeMap(NewWidthInTiles, NewHeightInTiles);
+		
+		MarkRenderStateDirty();
+		RecreatePhysicsState();
+		UpdateBounds();
+	}
+}
+
+UPaperTileLayer* UPaperTileMapComponent::AddNewLayer()
+{
+	UPaperTileLayer* Result = nullptr;
+
+	if (OwnsTileMap())
+	{
+		Result = TileMap->AddNewLayer();
+
+		MarkRenderStateDirty();
+		RecreatePhysicsState();
+		UpdateBounds();
+	}
+
+	return Result;
+}
+
+
 #undef LOCTEXT_NAMESPACE
