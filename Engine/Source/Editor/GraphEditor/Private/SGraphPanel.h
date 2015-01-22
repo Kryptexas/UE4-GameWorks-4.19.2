@@ -163,7 +163,10 @@ protected:
 	const TSharedRef<SGraphNode> GetChild(int32 ChildIndex);
 
 	/** Helper method to add a new node to the panel */
-	void AddNode (class UEdGraphNode* Node);
+	void AddNode(class UEdGraphNode* Node);
+
+	/** Helper method to remove a node from the panel */
+	void RemoveNode(const UEdGraphNode* Node);
 public:
 	/** Pin marked via shift-clicking */
 	TWeakPtr<SGraphPin> MarkedPin;

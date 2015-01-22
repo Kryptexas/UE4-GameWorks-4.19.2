@@ -51,7 +51,8 @@ class UAnimationGraphSchema : public UEdGraphSchema_K2
 	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, FMenuBuilder* MenuBuilder, bool bIsDebugging) const override;
 	virtual FText GetPinDisplayName(const UEdGraphPin* Pin) const override;
 	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const override {	return false; }
-	virtual bool DoesSupportEventDispatcher() const	override {	return false; }
+	virtual bool DoesSupportEventDispatcher() const	override { return false; }
+	virtual bool ShouldAlwaysPurgeOnModification() const override { return true; }
 	// End UEdGraphSchema interface.
 
 	// Begin UEdGraphSchema_K2 interface

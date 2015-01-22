@@ -12,10 +12,13 @@ enum EEdGraphActionType
 
 	/** A node was added to the graph */
 	GRAPHACTION_AddNode = 0x1 << 1,
-	/** A node was added to the graph at the users' request */
+	/** A node was added to the graph at the user's request */
 	GRAPHACTION_AddNodeUI = GRAPHACTION_AddNode | GRAPHACTION_UserInitiated,
 
 	GRAPHACTION_SelectNode = 0x1 << 2,
+
+	/** A node was removed from the graph at the user's request */
+	GRAPHACTION_RemoveNode = 0x1 << 3,
 };
 
 

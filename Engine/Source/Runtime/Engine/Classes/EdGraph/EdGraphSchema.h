@@ -733,4 +733,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	virtual bool FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, const UEdGraphPin* Pin) const { return false; }
 
 	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const { }
+
+	/* When a node is removed, this method determines whether we should remove it immediately or use the old (slower) code path that results in all node being recreated: */
+	virtual bool ShouldAlwaysPurgeOnModification() const { return true; }
 };

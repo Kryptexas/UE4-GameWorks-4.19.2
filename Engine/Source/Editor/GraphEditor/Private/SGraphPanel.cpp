@@ -974,6 +974,28 @@ void SGraphPanel::AddNode(UEdGraphNode* Node)
 	}
 }
 
+void SGraphPanel::RemoveNode(const UEdGraphNode* Node)
+{
+	for (int32 Iter = 0; Iter != Children.Num(); ++Iter)
+	{
+		TSharedRef<SGraphNode> Child = GetChild(Iter);
+		if (Child->GetNodeObj() == Node)
+		{
+			Children.RemoveAt(Iter);
+			break;
+		}
+	}
+	for (int32 Iter = 0; Iter != Children.Num(); ++Iter)
+	{
+		TSharedRef<SGraphNode> Child = StaticCastSharedRef<SGraphNode>(VisibleChildren[Iter]);
+		if (Child->GetNodeObj() == Node)
+		{
+			VisibleChildren.RemoveAt(Iter);
+			break;
+		}
+	}
+}
+
 TSharedPtr<SGraphNode> SGraphPanel::GetNodeWidgetFromGuid(FGuid Guid) const
 {
 	return NodeGuidMap.FindRef(Guid).Pin();
@@ -1116,21 +1138,31 @@ void SGraphPanel::OnEndPIE( const bool bIsSimulating )
 
 void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 {
+	const bool bShouldRemoveImmediately = !GraphObj->GetSchema()->ShouldAlwaysPurgeOnModification();
 	if ((EditAction.Graph == GraphObj) &&
-		(EditAction.Nodes.Num() > 0) &&
-		// We do not want to mark it as a UserAddedNode for graphs that do not currently have focus,
-		// this causes each one to want to do the effects and rename, which causes problems.
-		(HasKeyboardFocus() || HasFocusedDescendants()))
+		(EditAction.Nodes.Num() > 0) )
 	{
-		int32 ActionIndex = UserActions.Num();
-		if (EditAction.Action & GRAPHACTION_AddNode)
+		if ((EditAction.Action ^ GRAPHACTION_RemoveNode) == 0 && bShouldRemoveImmediately)
 		{
 			for (const UEdGraphNode* Node : EditAction.Nodes)
 			{
-				UserAddedNodes.Add(Node, ActionIndex);
+				RemoveNode(Node);
 			}
 		}
-		UserActions.Add(EditAction);
+		// We do not want to mark it as a UserAddedNode for graphs that do not currently have focus,
+		// this causes each one to want to do the effects and rename, which causes problems.
+		else if (HasKeyboardFocus() || HasFocusedDescendants())
+		{
+			int32 ActionIndex = UserActions.Num();
+			if (EditAction.Action & GRAPHACTION_AddNode)
+			{
+				for (const UEdGraphNode* Node : EditAction.Nodes)
+				{
+					UserAddedNodes.Add(Node, ActionIndex);
+				}
+			}
+			UserActions.Add(EditAction);
+		}
 	}
 }
 

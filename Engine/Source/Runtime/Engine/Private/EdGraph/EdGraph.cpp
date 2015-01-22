@@ -176,7 +176,11 @@ bool UEdGraph::RemoveNode( UEdGraphNode* NodeToRemove )
 	NodeToRemove->BreakAllNodeLinks();
 #endif	//#if WITH_EDITOR
 
-	NotifyGraphChanged();
+	FEdGraphEditAction RemovalAction;
+	RemovalAction.Graph = this;
+	RemovalAction.Action = GRAPHACTION_RemoveNode;
+	RemovalAction.Nodes.Add(NodeToRemove);
+	NotifyGraphChanged(RemovalAction);
 
 	return NumTimesNodeRemoved > 0;
 }

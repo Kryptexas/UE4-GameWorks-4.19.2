@@ -90,11 +90,15 @@ void SGraphEditorImpl::OnGraphChanged(const FEdGraphEditAction& InAction)
 	if ( !bIsActiveTimerRegistered )
 	{
 		// Remove the old user interface nodes
-		GraphPanel->PurgeVisualRepresentation();
-
-		// Trigger the refresh
-		bIsActiveTimerRegistered = true;
-		RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SGraphEditorImpl::TriggerRefresh ) );
+		const UEdGraphSchema* Schema = EdGraphObj->GetSchema();
+		const bool bWasRemoveAction = (InAction.Action ^ GRAPHACTION_RemoveNode) == 0;
+		if (!bWasRemoveAction || (bWasRemoveAction && Schema->ShouldAlwaysPurgeOnModification()))
+		{
+			GraphPanel->PurgeVisualRepresentation();
+			// Trigger the refresh
+			bIsActiveTimerRegistered = true;
+			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SGraphEditorImpl::TriggerRefresh));
+		}
 	}
 }
 
