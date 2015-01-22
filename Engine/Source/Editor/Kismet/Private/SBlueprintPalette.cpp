@@ -400,6 +400,11 @@ static TSharedRef<IToolTip> ConstructToolTipWithActionPath(TSharedPtr<FEdGraphSc
 			.SetColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f));
 
 		NewToolTip = SNew(SToolTip)
+
+		// Emulate text-only tool-tip styling that SToolTip uses when no custom content is supplied.  We want node tool-tips to 
+		// be styled just like text-only tool-tips
+		.BorderImage( FCoreStyle::Get().GetBrush("ToolTip.BrightBackground") )
+		.TextMargin(FMargin(11.0f))
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
@@ -411,7 +416,7 @@ static TSharedRef<IToolTip> ConstructToolTipWithActionPath(TSharedPtr<FEdGraphSc
 			.HAlign(EHorizontalAlignment::HAlign_Right)
 			[
 				SNew(STextBlock)
-				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+				.TextStyle( FEditorStyle::Get(), "Documentation.SDocumentationTooltip")
 				.Text(FText::FromString(ActionItem.ToString()))
 				//.TextStyle(&PathStyle)
 			]
@@ -1505,6 +1510,11 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 
 			return 
 				SNew(SToolTip)
+
+				// Emulate text-only tool-tip styling that SToolTip uses when no custom content is supplied.  We want node tool-tips to 
+				// be styled just like text-only tool-tips
+				.BorderImage( FCoreStyle::Get().GetBrush("ToolTip.BrightBackground") )
+				.TextMargin(FMargin(11.0f))
 				[
 					SNew(SVerticalBox)
 					+SVerticalBox::Slot()
@@ -1517,9 +1527,8 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 					[
 
 						SNew( STextBlock )
-						.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
 						.Text( LOCTEXT( "NativeNodeName", "hold (Alt) for native node name" ) )
-						.TextStyle( &FEditorStyle::GetWidgetStyle<FTextBlockStyle>(TEXT("Documentation.SDocumentationTooltip")) )
+						.TextStyle( FEditorStyle::Get(), "Documentation.SDocumentationTooltipSubdued")
 						.Visibility_Static(&Local::GetNativeNodeNameVisibility)
 					]
 				];

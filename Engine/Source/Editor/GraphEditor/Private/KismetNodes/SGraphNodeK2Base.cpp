@@ -171,6 +171,11 @@ TSharedPtr<SToolTip> SGraphNodeK2Base::GetComplexTooltip()
 	SAssignNew(NodeToolTip, SToolTip)
 		.Visibility_Static(&LocalUtils::IsToolTipVisible, ThisRef)
 		.IsInteractive_Static(&LocalUtils::IsInteractive)
+
+		// Emulate text-only tool-tip styling that SToolTip uses when no custom content is supplied.  We want node tool-tips to 
+		// be styled just like text-only tool-tips
+		.BorderImage( FCoreStyle::Get().GetBrush("ToolTip.BrightBackground") )
+		.TextMargin(FMargin(11.0f))
 	[
 		SAssignNew(VerticalBoxWidget, SVerticalBox)
 		// heading container
@@ -182,8 +187,7 @@ TSharedPtr<SToolTip> SGraphNodeK2Base::GetComplexTooltip()
 				.AutoHeight()
 			[
 				SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle(TEXT("Kismet.Tooltip.SubtextFont")))
-					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+					.TextStyle( FEditorStyle::Get(), "Documentation.SDocumentationTooltipSubdued")
 					.Text(this, &SGraphNodeK2Base::GetToolTipHeading)
 			]
 			+SVerticalBox::Slot()
