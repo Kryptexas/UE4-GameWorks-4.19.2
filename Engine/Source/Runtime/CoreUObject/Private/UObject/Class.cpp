@@ -2801,6 +2801,25 @@ FString UClass::GetDesc()
 	return GetName();
 }
 
+void UClass::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	Super::GetAssetRegistryTags(OutTags);
+
+#if WITH_EDITOR
+	static const FName ParentClassFName = "ParentClass";
+	const UClass* const ParentClass = GetSuperClass();
+	OutTags.Add( FAssetRegistryTag(ParentClassFName, ((ParentClass) ? ParentClass->GetFName() : NAME_None).ToString(), FAssetRegistryTag::TT_Alphabetical) );
+
+	static const FName ModuleNameFName = "ModuleName";
+	const UPackage* const ClassPackage = GetOuterUPackage();
+	OutTags.Add( FAssetRegistryTag(ModuleNameFName, ((ClassPackage) ? FPackageName::GetShortFName(ClassPackage->GetFName()) : NAME_None).ToString(), FAssetRegistryTag::TT_Alphabetical) );
+
+	static const FName ModuleRelativePathFName = "ModuleRelativePath";
+	const FString& ClassModuleRelativeIncludePath = GetMetaData(ModuleRelativePathFName);
+	OutTags.Add( FAssetRegistryTag(ModuleRelativePathFName, ClassModuleRelativeIncludePath, FAssetRegistryTag::TT_Alphabetical) );
+#endif
+}
+
 void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
 	check(!bRelinkExistingProperties || !(ClassFlags & CLASS_Intrinsic));
