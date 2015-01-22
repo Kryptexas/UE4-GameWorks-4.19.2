@@ -103,15 +103,15 @@ FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelRemovedFromWorld;
 
 UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 :	UObject(ObjectInitializer)
+#if WITH_EDITOR
+,	HierarchicalLODBuilder(this)
+#endif
 ,	FeatureLevel(GMaxRHIFeatureLevel)
 ,	FXSystem(NULL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
 ,	FlushLevelStreamingType(EFlushLevelStreamingType::None)
 ,	NextTravelType(TRAVEL_Relative)
-#if WITH_EDITOR
-,	HierarchicalLODBuilder(this)
-#endif
 {
 	TimerManager = new FTimerManager();
 #if WITH_EDITOR
@@ -124,6 +124,9 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 
 UWorld::UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
 :	UObject(ObjectInitializer)
+#if WITH_EDITOR
+,	HierarchicalLODBuilder(this)
+#endif
 ,	FeatureLevel(GMaxRHIFeatureLevel)
 ,	URL(InURL)
 ,	FXSystem(NULL)
@@ -131,9 +134,6 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
 ,   bIsBuilt(false)
 ,	FlushLevelStreamingType(EFlushLevelStreamingType::None)
 ,	NextTravelType(TRAVEL_Relative)
-#if WITH_EDITOR
-,	HierarchicalLODBuilder(this)
-#endif
 {
 	SetFlags( RF_Transactional );
 	TimerManager = new FTimerManager();
