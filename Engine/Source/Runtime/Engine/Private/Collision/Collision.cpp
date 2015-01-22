@@ -89,7 +89,7 @@ bool FHitResult::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSu
 	Ar << Item;
 	Ar << PhysMaterial;
 	Ar << Actor;
-	// Skipping component on purpose
+	Ar << Component;
 	Ar << BoneName;
 	Ar << FaceIndex;
 

@@ -1522,7 +1522,7 @@ struct ENGINE_API FHitResult
 	TWeakObjectPtr<class AActor> Actor;
 
 	/** PrimitiveComponent hit by the trace. */
-	UPROPERTY(NotReplicated)
+	UPROPERTY()
 	TWeakObjectPtr<class UPrimitiveComponent> Component;
 
 	/** Name of bone we hit (for skeletal meshes). */
