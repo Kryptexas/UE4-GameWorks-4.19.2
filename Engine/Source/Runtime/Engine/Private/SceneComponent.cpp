@@ -1034,7 +1034,7 @@ FComponentInstanceDataBase* USceneComponent::GetComponentInstanceData() const
 
 	for (USceneComponent* Child : AttachChildren)
 	{
-		if (!Child->bCreatedByConstructionScript)
+		if (Child && !Child->bCreatedByConstructionScript)
 		{
 			InstanceData = new FSceneComponentInstanceData(this);
 			break;
