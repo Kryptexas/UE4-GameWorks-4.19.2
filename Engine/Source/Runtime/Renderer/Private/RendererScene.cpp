@@ -333,9 +333,9 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	NumUncachedStaticLightingInteractions(0)
 ,	UpperDynamicSkylightColor(FLinearColor::Black)
 ,	LowerDynamicSkylightColor(FLinearColor::Black)
+,	SceneLODHierarchy(this)
 ,	NumVisibleLights(0)
 ,	bHasSkyLight(false)
-,	SceneLODHierarchy(this)
 {
 	check(World);
 	World->Scene = this;
