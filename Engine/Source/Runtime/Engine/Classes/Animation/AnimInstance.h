@@ -575,6 +575,12 @@ public:
 	// Note: the node graph will not be evaluated if this function returns true
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output);
 
+	// Called back from the anim graph when a state is entered
+	virtual void NativeStateStart(const FName& MachineName, const FName& StateName);
+
+	// Called back from the anim graph when a state is exited
+	virtual void NativeStateEnd(const FName& MachineName, const FName& StateName);
+
 	// Debug output for this anim instance 
 	void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 public:

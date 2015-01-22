@@ -531,6 +531,14 @@ bool UAnimInstance::NativeEvaluateAnimation(FPoseContext& Output)
 	return false;
 }
 
+void UAnimInstance::NativeStateStart(const FName& MachineName, const FName& StateName)
+{
+}
+
+void UAnimInstance::NativeStateEnd(const FName& MachineName, const FName& StateName) 
+{
+}
+
 void OutputCurveMap(TMap<FName, float>& CurveMap, UCanvas* Canvas, UFont* RenderFont, float Indent, float& YPos, FFontRenderInfo RenderInfo, float& YL)
 {
 	TArray<FName> Names;

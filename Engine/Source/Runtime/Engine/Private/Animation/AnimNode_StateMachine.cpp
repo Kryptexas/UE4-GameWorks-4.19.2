@@ -317,19 +317,24 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 				Context.AnimInstance->AddAnimNotifyFromGeneratedClass(ActiveTransitionArray[ActiveTransitionArray.Num()-1].InterruptNotify);
 			}
 
-			const int32 PreviousState = CurrentState;
-			const int32 NextState = PotentialTransition.TargetState;
+			const int32 PreviousStateIndex = CurrentState;
+			const int32 NextStateIndex = PotentialTransition.TargetState;
 
 			// Fire off Notifies for state transition
-			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(GetStateInfo(PreviousState).EndNotify);
-			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(GetStateInfo(NextState).StartNotify);
+			const FBakedAnimationState& PreviousState = GetStateInfo(PreviousStateIndex);
+			Context.AnimInstance->NativeStateEnd(PRIVATE_MachineDescription->MachineName, PreviousState.StateName);
+			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(PreviousState.EndNotify);
+
+			const FBakedAnimationState& NextState = GetStateInfo(PreviousStateIndex);
+			Context.AnimInstance->NativeStateStart(PRIVATE_MachineDescription->MachineName, NextState.StateName);
+			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(NextState.StartNotify);
 			
 			// Get the current weight of the next state, which may be non-zero
-			const float ExistingWeightOfNextState = GetStateWeight(NextState);
+			const float ExistingWeightOfNextState = GetStateWeight(NextStateIndex);
 
 			// Push the transition onto the stack
 			const FAnimationTransitionBetweenStates& ReferenceTransition = GetTransitionInfo(PotentialTransition.TransitionRule->TransitionIndex);
-			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextState, ExistingWeightOfNextState, PreviousState, ReferenceTransition);
+			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextStateIndex, ExistingWeightOfNextState, PreviousStateIndex, ReferenceTransition);
 			NewTransition->InitializeCustomGraphLinks(Context, *(PotentialTransition.TransitionRule));
 
 #if WITH_EDITORONLY_DATA
@@ -338,7 +343,7 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 
 			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(NewTransition->StartNotify);
 			
-			SetState(Context, NextState);
+			SetState(Context, NextStateIndex);
 
 			TransitionCountThisFrame++;
 		}
