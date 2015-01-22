@@ -267,7 +267,7 @@ public class AndroidPlatform : Platform
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
                         "ADB=",
-						"if [ \"$ANDROID_HOME\" != \"\"]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "; fi",
+						"if [ \"$ANDROID_HOME\" != \"\" ]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "; fi",
 						"DEVICE=",
 						"if [ \"$1\" != \"\" ]; then DEVICE=\"-s $1\"; fi",
 						"$ADB $DEVICE uninstall " + PackageName,
