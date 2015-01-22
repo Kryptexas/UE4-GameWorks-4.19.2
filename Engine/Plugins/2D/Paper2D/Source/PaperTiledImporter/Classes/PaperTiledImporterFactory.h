@@ -13,7 +13,8 @@ namespace ETiledOrientation
 		Unknown,
 		Orthogonal,
 		Isometric,
-		Staggered
+		Staggered,
+		Hexagonal
 	};
 }
 
@@ -116,6 +117,8 @@ struct FTileMapFromTiled
 	int32 TileHeight;
 
 	ETiledOrientation::Type Orientation;
+
+	int32 HexSideLength;
 
 	TArray<FTileSetFromTiled> TileSets;
 	TArray<UPaperTileSet*> CreatedTileSetAssets;
