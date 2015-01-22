@@ -1020,7 +1020,20 @@ static void CheckTextureCubeLodSupport()
 			// we are done
 			return;
 		}
-		
+
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = true;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = true;
+
+		// try both hacks
+		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if (VerifyCompiledShader(PixelShader->Resource, TestFragmentProgram, false))
+		{
+			UE_LOG(LogRHI, Warning, TEXT("Enabling shader compiler hack to redefine textureCubeLodEXT to textureCubeLod and remove precision modifiers"));
+			// we are done
+			return;
+		}
+
 		UE_LOG(LogRHI, Warning, TEXT("Unable to find a test shader that compiles try running anyway"));
 	}
 #endif
