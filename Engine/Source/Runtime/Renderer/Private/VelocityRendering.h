@@ -47,7 +47,8 @@ public:
 	bool SupportsVelocity( ) const;
 
 	/** Determines whether this primitive has motionblur velocity to render */
-	static bool HasVelocity(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bHasWorldPositionOffset);
+	static bool HasVelocity(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
+	static bool HasVelocityOnBasePass(const FViewInfo& View,const FPrimitiveSceneProxy* Proxy, const FPrimitiveSceneInfo* PrimitiveSceneInfo, bool& bOutHasTransform, FMatrix& OutTransform);
 
 private:
 	class FVelocityVS* VertexShader;

@@ -282,12 +282,12 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, ElementData, PolicyContext);
 }
 
-bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bHasWorldPositionOffset)
+bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	checkSlow(IsInParallelRenderingThread());
 
 	// No velocity if motionblur is off, or if it's a non-moving object (treat as background in that case)
-	if (View.bCameraCut || (!PrimitiveSceneInfo->Proxy->IsMovable() && !bHasWorldPositionOffset))
+	if (View.bCameraCut || !PrimitiveSceneInfo->Proxy->IsMovable())
 	{
 		return false;
 	}
@@ -303,7 +303,6 @@ bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitive
 	}
 
 	// check if the primitive has moved
-	//if (!bHasWorldPositionOffset)
 	{
 		FMatrix PreviousLocalToWorld;
 
@@ -329,6 +328,47 @@ bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitive
 	}
 
 	return true;
+}
+
+bool FVelocityDrawingPolicy::HasVelocityOnBasePass(const FViewInfo& View,const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FPrimitiveSceneInfo* PrimitiveSceneInfo, bool& bOutHasTransform, FMatrix& OutTransform)
+{
+	checkSlow(IsInParallelRenderingThread());
+	// No velocity if motionblur is off, or if it's a non-moving object (treat as background in that case)
+	if (View.bCameraCut)
+	{
+		return false;
+	}
+
+	//@todo-rco: Where is this set?
+	if (PrimitiveSceneInfo->bVelocityIsSupressed)
+	{
+		return false;
+	}
+
+	// hack
+	FScene* Scene = PrimitiveSceneInfo->Scene;
+	if (Scene->MotionBlurInfoData.GetPrimitiveMotionBlurInfo(PrimitiveSceneInfo, OutTransform))
+	{
+		const FMatrix& LocalToWorld = PrimitiveSceneProxy->GetLocalToWorld();
+/*
+		// Hasn't moved (treat as background by not rendering any special velocities)?
+		if (LocalToWorld.Equals(OutTransform, 0.0001f))
+		{
+			return false;
+		}
+*/
+		bOutHasTransform = true;
+		return true;
+	}
+
+	bOutHasTransform = false;
+	if (PrimitiveSceneProxy->IsMovable())
+	{
+		return true;
+	}
+
+	//@todo-rco: Optimize finding WPO!
+	return View.PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()].bHasWorldPositionOffset;
 }
 
 FBoundShaderStateInput FVelocityDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)

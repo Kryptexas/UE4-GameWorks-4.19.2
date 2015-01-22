@@ -17,19 +17,25 @@ inline void TBasePassVertexShaderBaseType<LightMapPolicyType>::SetMesh(FRHIComma
 	{
 		check(SkipOutputVelocityParameter.IsBound());
 
-		// previous transform can be stored in the scene for each primitive
 		FMatrix PreviousLocalToWorld;
-		const auto& Scene = (const FScene&)Proxy->GetScene();
-		//@todo-rco: Move to InitViews
-		if (Scene.MotionBlurInfoData.GetPrimitiveMotionBlurInfo(Proxy->GetPrimitiveSceneInfo(), PreviousLocalToWorld))
+		bool bHasPreviousLocalToWorld = false;
+		const auto& ViewInfo = (const FViewInfo&)View;
+		if (FVelocityDrawingPolicy::HasVelocityOnBasePass(ViewInfo, Proxy, Proxy->GetPrimitiveSceneInfo(), 
+			bHasPreviousLocalToWorld, PreviousLocalToWorld))
 		{
-			const auto& ViewInfo = (const FViewInfo&)View;
-			SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, PreviousLocalToWorld.ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
+			if (bHasPreviousLocalToWorld)
+			{
+				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, PreviousLocalToWorld.ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
+			}
+			else
+			{
+				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Proxy->GetLocalToWorld().ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
+			}
+
 			SetShaderValue(RHICmdList, VertexShaderRHI, SkipOutputVelocityParameter, 0.0f);
 		}
 		else
 		{
-			SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Proxy->GetLocalToWorld());
 			SetShaderValue(RHICmdList, VertexShaderRHI, SkipOutputVelocityParameter, 1.0f);
 		}
 	}

@@ -478,7 +478,7 @@ bool FPrimitiveSceneInfo::ShouldRenderVelocity(const FViewInfo& View, bool bChec
 	}
 
 	// Only render primitives with velocity.
-	if (!FVelocityDrawingPolicy::HasVelocity(View, this, PrimitiveViewRelevance.bHasWorldPositionOffset))
+	if (!FVelocityDrawingPolicy::HasVelocity(View, this))
 	{
 		return false;
 	}
