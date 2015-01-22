@@ -181,7 +181,13 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 			)
 		)
 	{
-		MatchingObject = StaticFindObject(ObjectClass, ObjectPackage->GetOutermost(), *ObjectName.ToString(), ExactClass);
+		UPackage* SearchPackage = ObjectPackage->GetOutermost();
+		const FString SearchName = ObjectName.ToString();
+		const bool bIdenticalSearch = (SearchPackage == InObjectPackage) && (SearchName == FString(OrigInName));
+		if (!bIdenticalSearch)
+		{
+			MatchingObject = StaticFindObject(ObjectClass, SearchPackage, *SearchName, ExactClass);
+		}
 	}
 
 	return MatchingObject;
