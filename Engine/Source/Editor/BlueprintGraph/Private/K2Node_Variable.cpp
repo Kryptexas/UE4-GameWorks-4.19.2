@@ -290,7 +290,22 @@ UProperty* UK2Node_Variable::GetPropertyForVariable() const
 	const FName VarName = GetVarName();
 	UEdGraphPin* VariablePin = FindPin(GetVarNameString());
 
-	UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(this);
+	UProperty* VariableProperty = nullptr;
+
+	// Need to look at parent Blueprint's skeleton classes to see if the variable property can resolve there.
+	UClass* CurrentGeneratedClass = GetBlueprint()->GeneratedClass;
+	while(CurrentGeneratedClass && VariableProperty == nullptr)
+	{
+		if(UBlueprint* CurrentBlueprint = Cast<UBlueprint>(CurrentGeneratedClass->ClassGeneratedBy))
+		{
+			VariableProperty = VariableReference.ResolveMember<UProperty>(CurrentBlueprint->SkeletonGeneratedClass);
+			CurrentGeneratedClass = CurrentBlueprint->ParentClass;
+		}
+		else
+		{
+			break;
+		}
+	}
 
 	// if the variable has been deprecated, don't use it
 	if(VariableProperty != NULL)
@@ -570,9 +585,9 @@ void UK2Node_Variable::AutowireNewNode(UEdGraphPin* FromPin)
 		if(FromPin->Direction == EGPD_Output)
 		{
 			// If the source pin has a valid PinSubCategoryObject, we might be doing BP Comms, so check if it is a class
-			if(FromPin->PinType.PinSubCategoryObject.IsValid() && FromPin->PinType.PinSubCategoryObject->IsA(UClass::StaticClass()))
+			if ((FromPin->PinType.PinSubCategoryObject.IsValid() && FromPin->PinType.PinSubCategoryObject->IsA(UClass::StaticClass())) || FromPin->PinType.PinSubCategory == K2Schema->PSC_Self)
 			{
-				UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(this);
+				UProperty* VariableProperty = GetPropertyForVariable();
 				if(VariableProperty)
 				{
 					UClass* PropertyOwner = VariableProperty->GetOwnerClass();
@@ -581,8 +596,11 @@ void UK2Node_Variable::AutowireNewNode(UEdGraphPin* FromPin)
 						PropertyOwner = PropertyOwner->GetAuthoritativeClass();
 					}
 
+					// If the pin is a self reference, check if the UProperty is valid for the current Blueprint.
+					const bool bIsSelfReferenceValid = (FromPin->PinType.PinSubCategory == K2Schema->PSC_Self)? GetBlueprint()->GeneratedClass->IsChildOf(PropertyOwner) : false;
+
 					// BP Comms is highly likely at this point, if the source pin's type is a child of the variable's owner class, let's conform the "Target" pin
-					if(FromPin->PinType.PinSubCategoryObject == PropertyOwner || dynamic_cast<UClass*>(FromPin->PinType.PinSubCategoryObject.Get())->IsChildOf(PropertyOwner))
+					if(FromPin->PinType.PinSubCategoryObject == PropertyOwner || dynamic_cast<UClass*>(FromPin->PinType.PinSubCategoryObject.Get())->IsChildOf(PropertyOwner) || bIsSelfReferenceValid)
 					{
 						UEdGraphPin* TargetPin = FindPin(K2Schema->PN_Self);
 						TargetPin->PinType.PinSubCategoryObject = PropertyOwner;
