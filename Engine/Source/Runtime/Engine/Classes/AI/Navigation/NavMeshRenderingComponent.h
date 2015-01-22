@@ -8,8 +8,11 @@ class ENGINE_API UNavMeshRenderingComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
+public:
 	// Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual void OnRegister()  override;
+	virtual void OnUnregister()  override;
 	// End UPrimitiveComponent Interface
 
 	// Begin UActorComponent Interface
@@ -22,4 +25,11 @@ class ENGINE_API UNavMeshRenderingComponent : public UPrimitiveComponent
 	// End USceneComponent Interface
 
 	void GatherData(struct FNavMeshSceneProxyData*) const;
+
+protected:
+	void TimerFunction();
+
+protected:
+	int32 bCollectNavigationData : 1;
+	FTimerHandle TimerHandle;
 };
