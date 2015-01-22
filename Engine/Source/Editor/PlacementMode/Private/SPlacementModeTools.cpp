@@ -65,7 +65,6 @@ public:
 		const TAttribute< FLinearColor >& HintColorAndOpacity = FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f );
 		bool AllowHintText = true;
 		FName ClassThumbnailBrushOverride = NAME_None;
-		bool ShowBackground = false;
 
 		ChildSlot
 		[
@@ -76,8 +75,8 @@ public:
 			HighlightedText,
 			HintColorAndOpacity,
 			AllowHintText,
-			ClassThumbnailBrushOverride,
-			ShowBackground )
+			ClassThumbnailBrushOverride
+			)
 		];
 	}
 
