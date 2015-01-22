@@ -1460,16 +1460,17 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 	UBlueprint* CurrentBlueprint = Blueprint;
 	TSharedPtr<SKismetInspector> CurrentInspector = Inspector.Pin();
 
-	if( BlueprintEditorPtr.IsValid() )
+	TSharedPtr<FBlueprintEditor> BlueprintEditor = BlueprintEditorPtr.Pin();
+
+	if ( BlueprintEditor.IsValid() )
 	{
-		if (BlueprintEditorPtr.Pin()->GetUISelectionState() == FBlueprintEditor::GraphPanel)
+		if ( InAction.IsValid() )
 		{
-			// clear graph panel selection
-			BlueprintEditorPtr.Pin()->ClearSelectionInAllEditors();
+			BlueprintEditor->SetUISelectionState(FBlueprintEditor::SelectionState_MyBlueprint);
 		}
-		BlueprintEditorPtr.Pin()->GetUISelectionState() = InAction.IsValid() ? FBlueprintEditor::MyBlueprint : FBlueprintEditor::NoSelection;
-		CurrentBlueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
-		CurrentInspector = BlueprintEditorPtr.Pin()->GetInspector();
+
+		CurrentBlueprint = BlueprintEditor->GetBlueprintObj();
+		CurrentInspector = BlueprintEditor->GetInspector();
 	}
 
 	OnActionSelectedHelper( InAction, Blueprint, CurrentInspector.ToSharedRef() );

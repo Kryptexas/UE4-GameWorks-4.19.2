@@ -2180,11 +2180,11 @@ FText SSCS_RowWidget::GetTooltipText() const
 	{
 		if(NodePtr->IsInherited())
 		{
-			return LOCTEXT("InheritedDefaultSceneRootToolTip", "This is the default scene root component. It cannot be copied, renamed or deleted. It has been inherited from the parent class, so its properties cannot be edited here. New scene components will automatically be attached to it.");
+			return LOCTEXT("InheritedDefaultSceneRootToolTip", "This is the default scene root component. It cannot be copied, renamed or deleted.\nIt has been inherited from the parent class, so its properties cannot be edited here.\nNew scene components will automatically be attached to it.");
 		}
 		else
 		{
-			return LOCTEXT("DefaultSceneRootToolTip", "This is the default scene root component. It cannot be copied, renamed or deleted. Adding a new scene component will automatically replace it as the new root.");
+			return LOCTEXT("DefaultSceneRootToolTip", "This is the default scene root component. It cannot be copied, renamed or deleted.\nAdding a new scene component will automatically replace it as the new root.");
 		}
 	}
 	else
@@ -2357,7 +2357,9 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	PreviewActor = InArgs._PreviewActor;
 	OnRootSelected = InArgs._OnRootSelected;
 	OnSelectionUpdated = InArgs._OnSelectionUpdated;
+	OnItemDoubleClicked = InArgs._OnItemDoubleClicked;
 	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;
+	bUpdatingSelection = false;
 
 	CommandList = MakeShareable( new FUICommandList );
 	CommandList->MapAction( FGenericCommands::Get().Cut,
@@ -2439,6 +2441,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		.OnSelectionChanged(this, &SSCSEditor::OnTreeSelectionChanged)
 		.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu)
 		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
+		.OnMouseButtonDoubleClick(this, &SSCSEditor::HandleItemDoubleClicked)
 		.ClearSelectionOnClick(InArgs._EditorMode == EEditorMode::BlueprintSCS ? true : false)
 		.ItemHeight(24)
 		.HeaderRow
@@ -3513,8 +3516,13 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 
 void SSCSEditor::ClearSelection()
 {
-	check(SCSTreeWidget.IsValid());
-	SCSTreeWidget->ClearSelection();
+	if ( bUpdatingSelection == false )
+	{
+		bIsActorSelected = false;
+
+		check(SCSTreeWidget.IsValid());
+		SCSTreeWidget->ClearSelection();
+	}
 }
 
 void SSCSEditor::SaveSCSCurrentState( USimpleConstructionScript* SCSObj )
@@ -4102,8 +4110,12 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 
 void SSCSEditor::UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType> &SelectedNodes)
 {
+	bUpdatingSelection = true;
+
 	// Notify that the selection has updated
 	OnSelectionUpdated.ExecuteIfBound(SelectedNodes);
+
+	bUpdatingSelection = false;
 }
 
 void SSCSEditor::RefreshSelectionDetails()
@@ -4430,6 +4442,12 @@ void SSCSEditor::OnItemScrolledIntoView( FSCSEditorTreeNodePtrType InItem, const
 			InItem->OnRequestRename(bIsDeferredRenameRequestTransactional);
 		}
 	}
+}
+
+void SSCSEditor::HandleItemDoubleClicked(FSCSEditorTreeNodePtrType InItem)
+{
+	// Notify that the selection has updated
+	OnItemDoubleClicked.ExecuteIfBound(InItem);
 }
 
 void SSCSEditor::OnRenameComponent(bool bTransactional)

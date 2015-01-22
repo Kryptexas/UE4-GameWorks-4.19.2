@@ -198,6 +198,7 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 {
 	bShowInspectorPropertyView = true;
 	PublicViewState = ECheckBoxState::Unchecked;
+	bComponenetDetailsCustomizationEnabled = false;
 
 	Kismet2Ptr = InArgs._Kismet2;
 	bShowPublicView = InArgs._ShowPublicViewControl;
@@ -295,6 +296,8 @@ void SKismetInspector::EnableComponentDetailsCustomization(bool bEnable)
 			return MakeShareable(new FActorDetailsOverrideCustomization());
 		}
 	};
+
+	bComponenetDetailsCustomizationEnabled = bEnable;
 
 	if (bEnable)
 	{

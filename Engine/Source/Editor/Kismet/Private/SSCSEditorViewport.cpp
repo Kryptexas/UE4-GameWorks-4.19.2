@@ -12,6 +12,7 @@
 #include "EditorViewportCommands.h"
 #include "SEditorViewportToolBarMenu.h"
 #include "BlueprintEditorTabs.h"
+#include "BlueprintEditorSettings.h"
 
 /*-----------------------------------------------------------------------------
    SSCSEditorViewportToolBar
@@ -291,7 +292,10 @@ void SSCSEditorViewport::ToggleIsSimulateEnabled()
 		// Only trigger the switch if the simulation is starting.
 		if ( !ViewportClient->GetIsSimulateEnabled() )
 		{
-			BlueprintEditorPtr.Pin()->GetTabManager()->InvokeTab(FBlueprintEditorTabs::SCSViewportID);
+			if ( GetDefault<UBlueprintEditorSettings>()->bShowViewportOnSimulate )
+			{
+				BlueprintEditorPtr.Pin()->GetTabManager()->InvokeTab(FBlueprintEditorTabs::SCSViewportID);
+			}
 		}
 	}
 
