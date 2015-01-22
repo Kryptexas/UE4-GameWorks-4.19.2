@@ -1835,13 +1835,12 @@ private:
 	bool DeferPotentialCircularImport(const int32 ImportIndex);
 
 	/**
-	 * Combs the ImportMap for any imports that were deferred, and then loads 
-	 * them. After that, deferred CDOs are serialized in and the Blueprint class
-	 * is regenerated.
+	 * Combs the ImportMap for any imports that were deferred, and then creates 
+	 * them (via CreateImport).
 	 * 
-	 * @param  LoadClass    The (Blueprint) class that was loading, while we deferred dependencies.
+	 * @param  LoadStruct    The (Blueprint) class or struct that you want resolved (so that it no longer contains dependency placeholders).
 	 */
-	void ResolveDeferredDependencies(UClass* LoadClass);
+	void ResolveDeferredDependencies(UStruct* LoadStruct);
 
 	/**
 	 * Loads the import that the Placeholder was initially stubbed in for (NOTE:
@@ -1862,7 +1861,7 @@ private:
 	 * 
 	 * @return True if ResolveDependencyPlaceholder() is being ran on a placeholder that has yet to be resolved. 
 	 */
-	bool IsActivelyResolvingDeferredDependency() const;
+	bool HasUnresolvedDependencies() const;
 
 	/**
 	 * Takes the supplied serialized class and serializes in its CDO, then 
