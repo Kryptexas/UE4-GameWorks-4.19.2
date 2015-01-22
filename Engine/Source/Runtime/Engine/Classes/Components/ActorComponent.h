@@ -449,9 +449,6 @@ public:
 	/** The type of the component instance data that this component is interested in */
 	virtual FName GetComponentInstanceDataType() const { return NAME_None; }
 
-	/** Called after we create new components during RerunConstructionScripts, to optionally apply any data backed up during GetComponentInstanceData */
-	virtual void ApplyComponentInstanceData(class FComponentInstanceDataBase* ComponentInstanceData ) {}
-
 	// Begin UObject interface.
 	virtual void BeginDestroy() override;
 	virtual bool NeedsLoadForClient() const override;

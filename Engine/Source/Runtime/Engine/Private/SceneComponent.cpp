@@ -1009,12 +1009,23 @@ bool USceneComponent::IsAttachedTo(class USceneComponent* TestComp) const
 FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* SourceComponent)
 	: FComponentInstanceDataBase(SourceComponent)
 {
-	for (USceneComponent* SceneComponent : SourceComponent->AttachChildren)
+	for (int32 i = SourceComponent->AttachChildren.Num()-1; i >= 0; --i)
 	{
+		USceneComponent* SceneComponent = SourceComponent->AttachChildren[i];
 		if (SceneComponent && !SceneComponent->bCreatedByConstructionScript)
 		{
 			AttachedInstanceComponents.Add(SceneComponent);
+			SceneComponent->DetachFromParent(true);
 		}
+	}
+}
+
+void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component)
+{
+	USceneComponent* SceneComponent = CastChecked<USceneComponent>(Component);
+	for (USceneComponent* ChildComponent : AttachedInstanceComponents)
+	{
+		ChildComponent->AttachTo(SceneComponent);
 	}
 }
 
@@ -1038,17 +1049,6 @@ FName USceneComponent::GetComponentInstanceDataType() const
 {
 	static const FName SceneComponentInstanceDataTypeName(TEXT("SceneComponentInstanceData"));
 	return SceneComponentInstanceDataTypeName;
-}
-
-void USceneComponent::ApplyComponentInstanceData(class FComponentInstanceDataBase* ComponentInstanceData )
-{
-	check(ComponentInstanceData);
-	FSceneComponentInstanceData* SceneComponentInstanceData  = static_cast<FSceneComponentInstanceData*>(ComponentInstanceData);
-
-	for (USceneComponent* ChildComponent : SceneComponentInstanceData->AttachedInstanceComponents)
-	{
-		ChildComponent->AttachTo(this);
-	}
 }
 
 void USceneComponent::UpdateChildTransforms()

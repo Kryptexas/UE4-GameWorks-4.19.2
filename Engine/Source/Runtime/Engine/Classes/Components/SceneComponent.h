@@ -500,7 +500,6 @@ public:
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual class FComponentInstanceDataBase* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(class FComponentInstanceDataBase* ComponentInstanceData ) override;
 	// End ActorComponent interface
 
 	// Begin UObject Interface
@@ -796,6 +795,8 @@ public:
 			
 	virtual ~FSceneComponentInstanceData()
 	{}
+
+	virtual void ApplyToComponent(UActorComponent* Component) override;
 
 	TArray<USceneComponent*> AttachedInstanceComponents;
 };

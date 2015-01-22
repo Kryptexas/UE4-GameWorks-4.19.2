@@ -75,8 +75,9 @@ public:
 	// Begin UActorComponent interface.
 	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 	// End UActorComponent interface.
+
+	void ApplyComponentInstanceData(class FSplineInstanceData* ComponentInstanceData);
 
 	/** Update the spline tangents and SplineReparamTable */
 	void UpdateSpline();

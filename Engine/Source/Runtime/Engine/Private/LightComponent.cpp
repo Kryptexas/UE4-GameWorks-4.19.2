@@ -874,9 +874,12 @@ public:
 		, PreviewShadowMapChannel(SourceComponent->PreviewShadowMapChannel)
 		, bPrecomputedLightingIsValid(SourceComponent->bPrecomputedLightingIsValid)
 	{}
-			
-	virtual ~FPrecomputedLightInstanceData()
-	{}
+
+	virtual void ApplyToComponent(UActorComponent* Component) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component);
+		CastChecked<ULightComponent>(Component)->ApplyComponentInstanceData(this);
+	}
 
 	FTransform Transform;
 	FGuid LightGuid;
@@ -897,12 +900,9 @@ FComponentInstanceDataBase* ULightComponent::GetComponentInstanceData() const
 	return new FPrecomputedLightInstanceData(this);
 }
 
-void ULightComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void ULightComponent::ApplyComponentInstanceData(FPrecomputedLightInstanceData* LightMapData)
 {
-	Super::ApplyComponentInstanceData(ComponentInstanceData);
-
-	check(ComponentInstanceData);
-	FPrecomputedLightInstanceData* LightMapData  = static_cast<FPrecomputedLightInstanceData*>(ComponentInstanceData);
+	check(LightMapData);
 
 	if (!LightMapData->Transform.Equals(ComponentToWorld))
 	{

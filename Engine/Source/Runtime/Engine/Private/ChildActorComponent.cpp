@@ -71,6 +71,12 @@ public:
 		}
 	}
 
+	virtual void ApplyToComponent(UActorComponent* Component) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component);
+		CastChecked<UChildActorComponent>(Component)->ApplyComponentInstanceData(this);
+	}
+
 	FName ChildActorName;
 
 	struct FAttachedActorInfo
@@ -106,12 +112,10 @@ FComponentInstanceDataBase* UChildActorComponent::GetComponentInstanceData() con
 	return InstanceData;
 }
 
-void UChildActorComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstanceData* ChildActorInstanceData)
 {
-	Super::ApplyComponentInstanceData(ComponentInstanceData);
+	check(ChildActorInstanceData);
 
-	check(ComponentInstanceData);
-	FChildActorComponentInstanceData* ChildActorInstanceData  = static_cast<FChildActorComponentInstanceData*>(ComponentInstanceData);
 	ChildActorName = ChildActorInstanceData->ChildActorName;
 	if (ChildActor)
 	{

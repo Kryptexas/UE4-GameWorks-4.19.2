@@ -705,6 +705,12 @@ public:
 	virtual ~FAtmospherePrecomputeInstanceData()
 	{}
 
+	virtual void ApplyToComponent(UActorComponent* Component) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component);
+		CastChecked<UAtmosphericFogComponent>(Component)->ApplyComponentInstanceData(this);
+	}
+
 	struct FAtmospherePrecomputeParameters PrecomputeParameter;
 
 	FByteBulkData TransmittanceData;
@@ -721,12 +727,13 @@ FName UAtmosphericFogComponent::GetComponentInstanceDataType() const
 // Backup the precomputed data before re-running Blueprint construction script
 FComponentInstanceDataBase* UAtmosphericFogComponent::GetComponentInstanceData() const
 {
-	FAtmospherePrecomputeInstanceData* PrecomputedData = nullptr;
+	FComponentInstanceDataBase* InstanceData = nullptr;
 
 	if (TransmittanceData.GetElementCount() && IrradianceData.GetElementCount() && InscatterData.GetElementCount() && PrecomputeCounter.GetValue() == EValid)
 	{
 		// Allocate new struct for holding light map data
-		 PrecomputedData = new FAtmospherePrecomputeInstanceData(this);
+		 FAtmospherePrecomputeInstanceData* PrecomputedData = new FAtmospherePrecomputeInstanceData(this);
+		 InstanceData = PrecomputedData;
 
 		// Fill in info
 		PrecomputedData->PrecomputeParameter = PrecomputeParams;
@@ -754,17 +761,18 @@ FComponentInstanceDataBase* UAtmosphericFogComponent::GetComponentInstanceData()
 			PrecomputedData->InscatterData.Unlock();
 		}
 	}
+	else
+	{
+		InstanceData = Super::GetComponentInstanceData();
+	}
 
-	return PrecomputedData;
+	return InstanceData;
 }
 
 // Restore the precomputed data after re-running Blueprint construction script
-void UAtmosphericFogComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void UAtmosphericFogComponent::ApplyComponentInstanceData(FAtmospherePrecomputeInstanceData* PrecomputedData)
 {
-	Super::ApplyComponentInstanceData(ComponentInstanceData);
-
-	check(ComponentInstanceData);
-	FAtmospherePrecomputeInstanceData* PrecomputedData = static_cast<FAtmospherePrecomputeInstanceData*>(const_cast<FComponentInstanceDataBase*>(ComponentInstanceData));
+	check(PrecomputedData);
 
 	if (PrecomputedData->PrecomputeParameter != GetPrecomputeParameters())
 	{
