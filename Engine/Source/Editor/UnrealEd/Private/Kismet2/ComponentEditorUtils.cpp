@@ -107,6 +107,27 @@ bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InC
 	return bIsValid;
 }
 
+bool FComponentEditorUtils::IsComponentNameAvailable(const FString& InString, const AActor* ComponentOwner, const UActorComponent* ComponentToIgnore)
+{
+	check(ComponentOwner);
+
+	bool bNameIsAvailable = true;
+
+	TInlineComponentArray<UActorComponent*> Components;
+	ComponentOwner->GetComponents(Components);
+
+	for (auto Component : Components)
+	{
+		if (Component != ComponentToIgnore && Component->GetName() == InString)
+		{
+			bNameIsAvailable = false;
+			break;
+		}
+	}
+
+	return bNameIsAvailable;
+}
+
 FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorComponent> ComponentClass, AActor* ComponentOwner)
 {
 	check(ComponentOwner);
@@ -115,26 +136,17 @@ FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorCompo
 	FString ComponentTypeName = *ComponentClass->GetName().Replace(TEXT("Component"), TEXT(""));
 	FString ComponentInstanceName;
 
-	// Make sure that none of the components currently on the actor have the same name
-	TInlineComponentArray<UActorComponent*> Components;
-	ComponentOwner->GetComponents(Components);
-
 	bool bNameIsValid = false;
 	while (!bNameIsValid)
 	{
 		bNameIsValid = true;
 
-		// Try the name with the lowest possible number
+		// Assign the lowest possible numerical suffix
 		ComponentInstanceName = FString::Printf(TEXT("%s%d"), *ComponentTypeName, Counter++);
 
-		// The name is valid if no other components in the owning actor have the same name
-		for (auto Component : Components)
+		if (!IsComponentNameAvailable(ComponentInstanceName, ComponentOwner))
 		{
-			if (Component->GetName() == ComponentInstanceName)
-			{
-				bNameIsValid = false;
-				break;
-			}
+			bNameIsValid = false;
 		}
 	}
 
