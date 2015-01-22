@@ -270,6 +270,7 @@ namespace APIDocTool
 		public string FullDescription = "";
 		public string ReturnDescription = "";
 		public List<string> SeeAlso = new List<string>();
+		public List<string> SnippetText = null;
 
 		public APIEventParameters EventParameters;
 
@@ -379,6 +380,9 @@ namespace APIDocTool
 
 			// Get the @see directives
 			ParseSeeAlso(Node, SeeAlso);
+
+			string RealKeyName = (Entity.Parent != null) ? (Entity.Parent.Name + "::" + Entity.Name) : Entity.Name;
+			SnippetText = APISnippets.LoadSnippetTextForFunction(RealKeyName);
 
 			// Get the modifiers
 			IsVirtual = Node.Attributes.GetNamedItem("virt").InnerText == "virtual";
@@ -717,6 +721,9 @@ namespace APIDocTool
 
 				// Write the source
 				WriteSourceSection(Writer);
+
+				//Write code snippets
+				WriteSnippetSection(Writer, SnippetText);
 
 				// Write the @see directives
 				WriteSeeAlsoSection(Writer, SeeAlso);
