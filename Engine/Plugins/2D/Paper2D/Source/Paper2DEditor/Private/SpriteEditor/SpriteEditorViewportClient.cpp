@@ -90,6 +90,8 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 
 	bIsMarqueeTracking = false;
 
+	DrawHelper.bDrawGrid = false;
+
 	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.CompositeEditorPrimitives = true;
 
