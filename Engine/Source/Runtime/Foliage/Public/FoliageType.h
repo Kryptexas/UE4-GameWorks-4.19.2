@@ -68,6 +68,9 @@ class UFoliageType : public UObject
 	float GroundSlope;
 
 	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	float MinGroundSlope;
+
+	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
 	float HeightMin;
 
 	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
