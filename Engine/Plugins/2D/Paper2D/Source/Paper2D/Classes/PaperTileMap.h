@@ -142,6 +142,8 @@ public:
 	// Creates a reasonable new layer name
 	static FText GenerateNewLayerName(UPaperTileMap* TileMap);
 
+	// Resize the tile map and all layers
+	void ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize = true);
 protected:
 	virtual void UpdateBodySetup();
 };
