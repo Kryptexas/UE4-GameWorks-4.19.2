@@ -120,6 +120,8 @@ namespace
 		FFileCacheConfig Config(MoveTemp(Directory), MoveTemp(CacheFilename));
 		Config.BatchDelayS = 1;
 		Config.IncludeExtensions = InSupportedExtensions;
+		// We always store paths inside content folders relative to the folder
+		Config.PathType = EPathType::Relative;
 
 		return Config;
 	}
