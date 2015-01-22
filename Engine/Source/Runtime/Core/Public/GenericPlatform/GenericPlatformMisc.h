@@ -819,7 +819,9 @@ public:
 	static bool IsRunningOnBattery();
 
 	/**
-	 * Get (or create) the unique ID used to identify this computer
+	 * Get (or create) the unique ID used to identify this computer.
+	 * This is sort of a misnomer, as there will actually be one per user account on the operating system.
+	 * This is NOT based on a machine fingerprint.
 	 */
 	static FGuid GetMachineId();
 
@@ -834,6 +836,12 @@ public:
 	 * @return true if the account ID was set successfully, false if something failed and it was not set.
 	 */
 	static bool SetEpicAccountId( const FString& AccountId );
+
+	/**
+	 * Gets a globally unique ID the represents a particular operating system install.
+	 * @returns an opaque string representing the ID, or an empty string if the platform doesn't support one.
+	 */
+	static FString GetOperatingSystemId();
 
 	/** 
 	 * Get a string description of the mode the engine was running in.
