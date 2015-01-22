@@ -536,6 +536,7 @@ ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	MaxPaintedLayersPerComponent = 0;
 #endif
 
+#if WITH_EDITOR
 	if (VisibilityLayer == NULL)
 	{
 		// Structure to hold one-time initialization
@@ -557,6 +558,7 @@ ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 #endif
 		VisibilityLayer->AddToRoot();
 	}
+#endif
 }
 
 ALandscape* ALandscapeProxy::GetLandscapeActor()
