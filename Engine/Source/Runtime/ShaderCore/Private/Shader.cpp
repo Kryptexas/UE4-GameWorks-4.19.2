@@ -1141,6 +1141,14 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocity"));
+		if (CVar && CVar->GetValueOnGameThread() != 0)
+		{
+			KeyString += TEXT("_GV");
+		}
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
 		if(CVar ? CVar->GetValueOnGameThread() == 0 : false)
 		{

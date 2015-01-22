@@ -278,7 +278,7 @@ struct FGBufferData
 	// in unreal units (linear), can be used to reconstruct world position,
 	// only valid when decoding the GBuffer as the value gets reconstructed from the Z buffer
 	float Depth;
-	// Velocity for motion blur (only used when OUTPUT_GBUFFER_VELOCITY is enabled)
+	// Velocity for motion blur (only used when WRITES_VELOCITY_TO_GBUFFER is enabled)
 	float4 Velocity;
 };
 
@@ -351,7 +351,7 @@ void EncodeGBuffer(
 
 	OutGBufferE = GBuffer.PrecomputedShadowFactors;
 
-#if OUTPUT_GBUFFER_VELOCITY
+#if WRITES_VELOCITY_TO_GBUFFER
 	OutGBufferVelocity = GBuffer.Velocity;
 #else
 	OutGBufferVelocity = 0;
@@ -538,7 +538,7 @@ SamplerState CustomDepthTextureSampler;
 			float4 GBufferE = 1;
 		#endif
 
-		#if OUTPUT_GBUFFER_VELOCITY
+		#if WRITES_VELOCITY_TO_GBUFFER
 			float4 GBufferVelocity = GBuffers.GBufferVelocityTextureNonMS.Load(int3(PixelPos, 0));
 		#else
 			float4 GBufferVelocity = 0;
@@ -613,7 +613,7 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 		float4 GBufferE = 1;
 	#endif
 
-	#if OUTPUT_GBUFFER_VELOCITY
+	#if WRITES_VELOCITY_TO_GBUFFER
 		float4 GBufferVelocity = Texture2DSampleLevel(GBuffers.GBufferVelocityTexture, GBuffers.GBufferVelocityTextureSampler, UV, 0);
 	#else
 		float4 GBufferVelocity = 0;
@@ -681,7 +681,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 		float DeviceZ = SceneDepthSurface.Load(IntUV, SampleIndex);
 		float SceneDepth = ConvertFromDeviceZ(DeviceZ);
 
-	#if OUTPUT_GBUFFER_VELOCITY
+	#if WRITES_VELOCITY_TO_GBUFFER
 		float4 GBufferVelocity = GBuffers.GBufferVelocityTextureMS.Load(IntUV, SampleIndex);
 	#else
 		float4 GBufferVelocity = 0;

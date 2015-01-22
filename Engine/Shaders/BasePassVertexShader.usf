@@ -6,7 +6,7 @@
 
 #include "BasePassVertexCommon.usf"
 
-#if OUTPUT_GBUFFER_VELOCITY
+#if WRITES_VELOCITY_TO_GBUFFER
 //@todo-rco: Move to pixel shader
 float SkipOutputVelocity;
 #endif
@@ -65,7 +65,7 @@ void Main(
 	#endif
 #endif
 
-#if OUTPUT_GBUFFER_VELOCITY
+#if WRITES_VELOCITY_TO_GBUFFER
 	{
 		float4 PrevTranslatedWorldPosition = VertexFactoryGetPreviousWorldPosition( Input, VFIntermediates );	
 		VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, PrevTranslatedWorldPosition.xyz, TangentToLocal);

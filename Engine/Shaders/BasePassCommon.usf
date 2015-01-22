@@ -13,6 +13,8 @@
 #define NEEDS_BASEPASS_FOGGING			(ENABLE_TRANSLUCENCY_VERTEX_FOG && ((MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE) && !MATERIAL_USES_SCENE_COLOR_COPY))
 #define NEEDS_LIGHTMAP					(NEEDS_LIGHTMAP_COORDINATE)
 
+#define WRITES_VELOCITY_TO_GBUFFER		(OUTPUT_GBUFFER_VELOCITY && (MATERIALBLENDING_SOLID || MATERIAL_BLENDING_MASKED))
+
 struct FSharedBasePassInterpolants
 {
 	//for texture-lightmapped translucency we can pass the vertex fog in its own interpolator
@@ -28,7 +30,7 @@ struct FSharedBasePassInterpolants
 	#endif
 #endif
 
-#if OUTPUT_GBUFFER_VELOCITY
+#if WRITES_VELOCITY_TO_GBUFFER
 	// .xy is clip position, pre divide by w; .w is clip W; .z is 0 or 1 to mask out the velocity output
 	float4 PrevScreenPosition : TEXCOORD16;
 	float4 ScreenPosition : TEXCOORD17;

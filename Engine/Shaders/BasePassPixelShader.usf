@@ -587,7 +587,7 @@ void Main(
 	#if ALLOW_STATIC_LIGHTING
 		,out float4 OutGBufferE : SV_Target5
 	#endif
-	#if OUTPUT_GBUFFER_VELOCITY
+	#if WRITES_VELOCITY_TO_GBUFFER
 		, out float4 OutGBufferVelocity : SV_Target6
 	#endif
 #endif
@@ -850,13 +850,10 @@ void Main(
 			float4 OutGBufferE = 0;
 		#endif
 
-		#if OUTPUT_GBUFFER_VELOCITY
+		#if WRITES_VELOCITY_TO_GBUFFER
 			{
-				float2 ScreenPosition = BasePassInterpolants.ScreenPosition.xy / BasePassInterpolants.ScreenPosition.w - View.PrevProjection[2].xy;
-				float2 PrevScreenPosition = BasePassInterpolants.PrevScreenPosition.xy / BasePassInterpolants.PrevScreenPosition.w - View.PrevProjection[2].xy;
-
 				// 2d velocity, includes camera an object motion
-				float2 Velocity = ScreenPosition - PrevScreenPosition;
+				float2 Velocity = Calculate2DVelocity(BasePassInterpolants.ScreenPosition, BasePassInterpolants.PrevScreenPosition);
 
 				// Make sure not to touch 0,0 which is clear color
 				GBuffer.Velocity = float4(EncodeVelocityToTexture(Velocity), 0, 0) * BasePassInterpolants.PrevScreenPosition.z;
