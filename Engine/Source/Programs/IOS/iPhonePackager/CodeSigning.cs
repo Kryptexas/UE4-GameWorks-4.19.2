@@ -81,11 +81,11 @@ namespace iPhonePackager
 			string plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
 			if (!string.IsNullOrEmpty(Config.ProjectFile))
 			{
-				plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/Info.plist";
+				plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Intermediate/IOS/" + Path.GetFileNameWithoutExtension(Config.ProjectFile) + "-Info.plist";
+
 				if (!File.Exists(plistFile))
 				{
-					plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/" + Path.GetFileNameWithoutExtension(Config.ProjectFile) + "-Info.plist";
-
+					plistFile = Config.IntermediateDirectory + "/UE4Game-Info.plist";
 					if (!File.Exists(plistFile))
 					{
 						plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
@@ -725,7 +725,7 @@ namespace iPhonePackager
 				}
 				byte[] Data = OutputExeStream.ToArray();
 				Data.CopyTo(FinalExeData, (long)CurrentStreamOffset);
-				CurrentStreamOffset += DesiredExecutableLength;
+				CurrentStreamOffset += (ulong)Data.Length;
 
 				// increment the architecture index
 				ArchIndex++;

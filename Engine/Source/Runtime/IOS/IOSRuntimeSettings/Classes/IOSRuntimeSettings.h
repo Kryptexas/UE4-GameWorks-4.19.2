@@ -200,6 +200,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceUsage)
 	uint32 bSupportsIPhone : 1;
 
+	// extra data to be stored in the plist
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = ExtraData)
+	FString AdditionalPlistData;
+
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

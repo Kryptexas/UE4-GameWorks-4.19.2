@@ -608,16 +608,12 @@ namespace UnrealBuildTool
 			// This is needed for the target to pass the settings validation before code signing. UBT will overwrite this plist file later, with proper contents.
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
-				if (File.Exists(InfoPlistPath))
+				if (!File.Exists(InfoPlistPath))
 				{
 					File.Delete(InfoPlistPath);
-				}
-				else
-				{
 					Directory.CreateDirectory(Path.GetDirectoryName(InfoPlistPath));
+					IOS.UEDeployIOS.GeneratePList(bIsUE4Game ? EngineRelative + "Engine" : GamePath, bIsUE4Game, bIsUE4Game ? "UE4Game" : TargetName, TargetName, EngineRelative + "Engine", bIsUE4Game ? EngineRelative + "Engine/Binaries/IOS/Payload" : GamePath + "/Binaries/IOS/Payload");
 				}
-				string InfoPlistContents = File.ReadAllText(EngineRelative + "Engine/Build/IOS/UE4Game-Info.plist").Replace("${BUNDLE_IDENTIFIER}", TargetName).Replace("${EXECUTABLE_NAME}", TargetName);
-				File.WriteAllText(InfoPlistPath, InfoPlistContents);
 			}
 		}
 
