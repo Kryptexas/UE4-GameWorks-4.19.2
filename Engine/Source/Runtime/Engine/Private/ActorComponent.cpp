@@ -73,10 +73,10 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 	{
 		bool bShouldReregister=false;
 		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
-		if (PrimitiveComponent && PrimitiveComponent->ReplacementPrimitive.Get())
+		if (PrimitiveComponent && PrimitiveComponent->LODParentPrimitive.Get())
 		{
-			UPrimitiveComponent* ReplacementPrimitive = PrimitiveComponent->ReplacementPrimitive.Get();
-			AActor* ParentActor = Cast<AActor>(ReplacementPrimitive->GetOuter());
+			UPrimitiveComponent* LODParentPrimitive = PrimitiveComponent->LODParentPrimitive.Get();
+			AActor* ParentActor = Cast<AActor>(LODParentPrimitive->GetOuter());
 			if (ParentActor && InParentActors.Contains(ParentActor))
 			{
 				bShouldReregister = true;

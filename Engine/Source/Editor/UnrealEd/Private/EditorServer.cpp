@@ -4866,7 +4866,7 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 				FComponentReregisterContext ComponentReattch(PrimitiveComponent);
 
 				// set the replacement
-				PrimitiveComponent->ReplacementPrimitive = ReplacementComponent;
+				PrimitiveComponent->LODParentPrimitive = ReplacementComponent;
 
 				// makr the package as dirty now that we've modified it
 				Actor->MarkPackageDirty();
@@ -5770,7 +5770,7 @@ bool UEditorEngine::HandleSetReplacementCommand( const TCHAR* Str, FOutputDevice
 			// then set it's replacement component
 			if (ClassToReplace == NULL || PrimitiveComponent->IsA(ClassToReplace))
 			{
-				PrimitiveComponent->ReplacementPrimitive = ReplacementComponent;
+				PrimitiveComponent->SetLODParentPrimitive(ReplacementComponent);
 			}
 		}
 	}

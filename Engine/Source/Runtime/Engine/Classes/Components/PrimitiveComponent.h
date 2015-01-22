@@ -916,8 +916,12 @@ public:
 	// Scene data
 
 	/** Replacement primitive to draw instead of this one (multiple UPrim's will point to the same Replacement) */
-	UPROPERTY()
-	TLazyObjectPtr<class UPrimitiveComponent> ReplacementPrimitive;
+	UPROPERTY(duplicatetransient)
+	TLazyObjectPtr<class UPrimitiveComponent> LODParentPrimitive;
+
+public:
+	UFUNCTION(BlueprintCallable, Category="Rendering|LOD")
+	void SetLODParentPrimitive(UPrimitiveComponent * InLODParentPrimitive);
 
 #if WITH_EDITOR
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const; // recursive function

@@ -276,10 +276,20 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmd
 	// Note: must happen before AddToScene because AddToScene depends on LightingAttachmentRoot
 	PrimitiveSceneInfo->LinkAttachmentGroup();
 
+	// Set lod Parent information if valid
+	PrimitiveSceneInfo->LinkLODParentComponent();
+
 	// Add the primitive to the scene.
 	PrimitiveSceneInfo->AddToScene(RHICmdList, true);
 
 	DistanceFieldSceneData.AddPrimitive(PrimitiveSceneInfo);
+
+	// LOD Parent, if this is LOD parent, we should update Proxy Scene Info
+	// LOD parent gets removed WHEN no children is accessing
+	// LOD parent can be recreated as scene updates
+	// I update if the parent component ID is still valid
+	// @Todo : really remove it if you know this is being destroyed - should happen from game thread as streaming in/out
+	SceneLODHierarchy.UpdateNodeSceneInfo(PrimitiveSceneInfo->PrimitiveComponentId, PrimitiveSceneInfo);
 }
 
 /**
@@ -325,6 +335,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	LowerDynamicSkylightColor(FLinearColor::Black)
 ,	NumVisibleLights(0)
 ,	bHasSkyLight(false)
+,	SceneLODHierarchy(this)
 {
 	check(World);
 	World->Scene = this;
@@ -664,6 +675,9 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 {
 	SCOPE_CYCLE_COUNTER(STAT_RemoveScenePrimitiveTime);
 
+	// clear it up, parent is getting removed
+	SceneLODHierarchy.UpdateNodeSceneInfo(PrimitiveSceneInfo->PrimitiveComponentId, nullptr);
+
 	CheckPrimitiveArrays();
 
 	int32 PrimitiveIndex = PrimitiveSceneInfo->PackedIndex;
@@ -686,6 +700,9 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 
 	// Unlink the primitive from its shadow parent.
 	PrimitiveSceneInfo->UnlinkAttachmentGroup();
+
+	// Unlink the LOD parent info if valid
+	PrimitiveSceneInfo->UnlinkLODParentComponent();
 
 	// Remove the primitive from the scene.
 	PrimitiveSceneInfo->RemoveFromScene(true);

@@ -188,6 +188,42 @@ struct ENGINE_API FNetViewer
 	FNetViewer(UNetConnection* InConnection, float DeltaSeconds);
 };
 
+
+USTRUCT()
+struct ENGINE_API FHierarchicalSimplification
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** If this is true, it will simplify mesh. However it is slower. If false, it will just merge actors but not simplify */
+	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere)
+	bool bSimplifyMesh;
+
+	/** What are the draw distance for this LOD */
+	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
+	float DrawDistance;
+
+	/** Desired Bounding Box Size for clustering */
+	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
+	float DesiredBoundBoxSize;
+
+	/** Desired Filling Percentage for clustering */
+	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))
+	float DesiredFillingPercentage;
+
+	/** Simplification Setting if bSimplifyMesh is true */
+	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay, meta=(editcondition = "bSimplifyMesh"))
+	FMeshProxySettings Setting;
+
+	FHierarchicalSimplification()
+		: bSimplifyMesh(true)
+		, DrawDistance(5000)
+		, DesiredBoundBoxSize(10000)
+		, DesiredFillingPercentage(30)
+	{
+		Setting.ScreenSize = 300;
+	}
+};
+
 /**
  * Actor containing all script accessible world properties.
  */
@@ -206,6 +242,11 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, config, Category=World, AdvancedDisplay)
 	uint32 bEnableNavigationSystem:1;
 
+#if WITH_EDITORONLY_DATA
+	/** if set to true, hierarchical LODs will be built, which will create hierarchical LODActors*/
+	UPROPERTY(EditAnywhere, config, Category=World, AdvancedDisplay)
+	uint32 bEnableHierarchicalLODSystem:1;
+#endif
 	/** 
 	 * Enables tools for composing a tiled world. 
 	 * Level has to be saved and all sub-levels removed before enabling this option.
@@ -343,6 +384,11 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, Category=Audio)
 	class USoundMix* DefaultBaseSoundMix;
 
+#if WITH_EDITORONLY_DATA
+	/** Hierarchical LOD Setup */
+	UPROPERTY(EditAnywhere, Category=LODSystem, AdvancedDisplay, meta=(editcondition = "bEnableHierarchicalLODSystem"))
+	TArray<struct FHierarchicalSimplification>	HierarchicalLODSetup;
+#endif
 	/************************************/
 	/** DEFAULT SETTINGS **/
 

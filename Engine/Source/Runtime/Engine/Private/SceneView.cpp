@@ -1449,6 +1449,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	}
 
 	LandscapeLODOverride = -1;
+	HierarchicalLODOverride = -1;
 	bDrawBaseInfo = true;
 #endif
 

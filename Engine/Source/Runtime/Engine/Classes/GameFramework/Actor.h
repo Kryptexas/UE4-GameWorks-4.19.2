@@ -474,6 +474,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Actor)
 	uint32 bIgnoresOriginShifting:1;
 	
+	/** If true, and if World setting has bEnableHigerarhicalLOD is true, then it will generate LODActor from groups of clustered Actor */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Actor)
+	uint32 bEnableAutoLODGeneration:1;
+
 	/** Array of tags that can be used for grouping and categorizing. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Tags)
 	TArray<FName> Tags;
@@ -1325,6 +1329,9 @@ public:
 
 	/** Called by MirrorActors to perform a mirroring operation on the actor */
 	virtual void EditorApplyMirror(const FVector& MirrorScale, const FVector& PivotLocation);
+
+	/** Set LOD Parent Primitive*/
+	void SetLODParent(class UPrimitiveComponent* InLODParent, float InParentDrawDistance);
 
 	/**
 	 * Simple accessor to check if the actor is hidden upon editor startup

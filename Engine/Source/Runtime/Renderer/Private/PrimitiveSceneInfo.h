@@ -178,6 +178,11 @@ public:
 	 */
 	FPrimitiveComponentId LightingAttachmentRoot;
 
+	/** 
+	 * The component id of the LOD parent if valid.
+	 */
+	FPrimitiveComponentId LODParentComponentId;
+
 	/** The primitive's static meshes. */
 	TIndirectArray<class FStaticMesh> StaticMeshes;
 
@@ -263,6 +268,12 @@ public:
 
 	/** Removes the primitive's static meshes from the scene. */
 	void RemoveStaticMeshes();
+
+	/** Set LOD Parent primitive information to the scene. */
+	void LinkLODParentComponent();
+
+	/** clear LOD parent primitive information from the scene. */
+	void UnlinkLODParentComponent();
 
 	/** Adds the primitive to the scene's attachment groups. */
 	void LinkAttachmentGroup();

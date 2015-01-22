@@ -367,6 +367,9 @@ public:
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
+
+	void SetHierarchicalLOD_GameThread(const int32 InLODLevel);
+	void SetHierarchicalLOD_RenderThread(const int32 InLODLevel);
 #endif
 
 	inline FLinearColor GetWireframeColor() const { return WireframeColor; }
@@ -653,6 +656,9 @@ private:
 	*/
 	int32 NumUncachedStaticLightingInteractions;
 	friend class FLightPrimitiveInteraction;
+
+	/** this is used if world setting has EnableHierarchical LOD true */
+	int32 HierarchicalLODOverride;
 #endif
 
 	/** Updates the proxy's actor position, called from the game thread. */

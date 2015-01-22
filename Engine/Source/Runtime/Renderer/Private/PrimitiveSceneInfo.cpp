@@ -108,7 +108,7 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	{
 		LightingAttachmentRoot = SearchParentComponent->ComponentId;
 	}
-		
+
 	// Only create hit proxies in the Editor as that's where they are used.
 	if (GIsEditor)
 	{
@@ -118,6 +118,14 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 		{
 			DefaultDynamicHitProxyId = DefaultDynamicHitProxy->Id;
 		}
+	}
+
+	// set LOD parent info if exists
+	if (InComponent->LODParentPrimitive.IsValid())
+	{
+		// I think this should be checked in editor feature
+		check (InComponent->LODParentPrimitive.Get() != InComponent);
+		LODParentComponentId = InComponent->LODParentPrimitive.Get()->ComponentId;
 	}
 }
 
@@ -310,6 +318,24 @@ void FPrimitiveSceneInfo::BeginDeferredUpdateStaticMeshes()
 {
 	// Set a flag which causes InitViews to update the static meshes the next time the primitive is visible.
 	bNeedsStaticMeshUpdate = true;
+}
+
+void FPrimitiveSceneInfo::LinkLODParentComponent()
+{
+	if (LODParentComponentId.IsValid())
+	{
+		Scene->SceneLODHierarchy.AddChildNode(LODParentComponentId, this);
+	}
+}
+
+void FPrimitiveSceneInfo::UnlinkLODParentComponent()
+{
+	if(LODParentComponentId.IsValid())
+	{
+		Scene->SceneLODHierarchy.RemoveChildNode(LODParentComponentId, this);
+		// I don't think this will be reused but just in case
+		LODParentComponentId = FPrimitiveComponentId();
+	}
 }
 
 void FPrimitiveSceneInfo::LinkAttachmentGroup()

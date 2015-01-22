@@ -12,6 +12,11 @@
 #include "Engine/LatentActionManager.h"
 #include "Runtime/RHI/Public/RHIDefinitions.h"
 #include "GameFramework/Actor.h"
+
+#if WITH_EDITOR
+	#include "Editor/UnrealEd/Public/HierarchicalLOD.h"
+#endif // WITH_EDITOR
+
 #include "World.generated.h"
 
 class FPhysScene;
@@ -622,6 +627,11 @@ private:
 public:
 	/** Array of actors that are candidates for sending over the network */
 	TArray<class AActor*>						NetworkActors;
+
+#if WITH_EDITOR
+	/** Hierarchical LOD System. Used when WorldSetting.bEnableHierarchicalLODSystem is true */
+	FHierarchicalLODBuilder						HierarchicalLODBuilder;
+#endif // WITH_EDITOR
 
 private:
 

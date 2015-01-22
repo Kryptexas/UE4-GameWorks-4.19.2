@@ -33,6 +33,12 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	bEnableNavigationSystem = true;
 	bEnableWorldComposition = false;
 	bEnableWorldOriginRebasing = false;
+#if WITH_EDITORONLY_DATA	
+	bEnableHierarchicalLODSystem = false;
+
+ 	FHierarchicalSimplification LODBaseSetup;
+	HierarchicalLODSetup.Add(LODBaseSetup);
+#endif
 
 	KillZ = -HALF_WORLD_MAX1;
 	KillZDamageType = ConstructorStatics.DmgType_Environmental_Object.Object;

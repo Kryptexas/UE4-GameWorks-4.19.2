@@ -669,8 +669,9 @@ static void ComputeRelevanceForView(
 
 	for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 	{
-		FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[BitIt.GetIndex()];
-		FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[BitIt.GetIndex()];
+		const int32 BitIndex = BitIt.GetIndex();
+		FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[BitIndex];
+		FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[BitIndex];
 		ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(&View);
 		ViewRelevance.bInitializedThisFrame = true;
 
@@ -1975,6 +1976,24 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 			STAT(NumOccludedPrimitives += NumOccludedPrimitivesInView);
 		}
 
+		// visibility test is done, so now build the hidden flags based on visibility set up
+		bool bLODSceneTreeActive = Scene->SceneLODHierarchy.IsActive();
+		FSceneBitArray PrimitiveHiddenByLODMap;
+		if (bLODSceneTreeActive)
+		{
+			PrimitiveHiddenByLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+			Scene->SceneLODHierarchy.PopulateHiddenFlags(View, PrimitiveHiddenByLODMap);
+
+			// now iterate through turn off visibility if hidden by LOD
+			for(FSceneSetBitIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
+			{
+				if(PrimitiveHiddenByLODMap.AccessCorrespondingBit(BitIt))
+				{
+					View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
+				}
+			}
+		}
+
 		MarkAllPrimitivesForReflectionProxyUpdate(Scene);
 		Scene->ConditionalMarkStaticMeshElementsForUpdate();
 
@@ -1991,6 +2010,14 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 				FRelevantStaticPrimitives RelevantStaticPrimitives;
 				ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
 				MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
+			}
+
+			if (bLODSceneTreeActive)
+			{
+				for (FSceneBitArray::FIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
+				{
+					View.PrimitiveViewRelevanceMap[BitIt.GetIndex()].bInitializedThisFrame = true;
+				}
 			}
 		}
 
@@ -2196,3 +2223,128 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	OnStartFrame();
 }
 
+/*------------------------------------------------------------------------------
+	FLODSceneTree Implementation
+------------------------------------------------------------------------------*/
+void FLODSceneTree::AddChildNode(const FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* ChildSceneInfo)
+{
+	if (NodeId.IsValid() && ChildSceneInfo)
+	{
+		FLODSceneNode* Node = SceneNodes.Find(NodeId);
+
+		if(!Node)
+		{
+			Node = &SceneNodes.Add(NodeId, FLODSceneNode());
+
+			// scene info can be added later depending on order of adding to the scene
+			// but at least add componentId, that way when parent is added, it will add its info properly
+			int32 ParentIndex = Scene->PrimitiveComponentIds.Find(NodeId);
+			if(Scene->Primitives.IsValidIndex(ParentIndex))
+			{
+				Node->SceneInfo = Scene->Primitives[ParentIndex];
+			}
+		}
+
+		Node->AddChild(ChildSceneInfo);
+	}
+}
+
+void FLODSceneTree::RemoveChildNode(const FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* ChildSceneInfo)
+{
+	if(NodeId.IsValid() && ChildSceneInfo)
+	{
+		FLODSceneNode* Node = SceneNodes.Find(NodeId);
+		if (Node)
+		{
+			Node->RemoveChild(ChildSceneInfo);
+
+			// delete from scene if no children remains
+			if(Node->ChildrenSceneInfos.Num() == 0)
+			{
+				SceneNodes.Remove(NodeId);
+			}
+		}
+	}
+}
+
+void FLODSceneTree::UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* SceneInfo)
+{
+	FLODSceneNode* Node = SceneNodes.Find(NodeId);
+	if(Node)
+	{
+		Node->SceneInfo = SceneInfo;
+	}
+}
+
+void FLODSceneTree::PopulateHiddenFlagsToChildren(FSceneBitArray& HiddenFlags, FLODSceneNode& Node)
+{
+	// if already updated, no reason to do this
+	if(Node.LatestUpdateCount != UpdateCount)
+	{
+		Node.LatestUpdateCount = UpdateCount;
+		// if node doesn't have scene info, that means it doesn't to populate, children is disconnected, so don't bother
+		// in this case we still update children when this node is missing scene info
+		// because parent is showing, so you don't have to show anyway anybody below
+		// although this node might be MIA at this moment
+		for(const auto& Child : Node.ChildrenSceneInfos)
+		{
+			const int32 ChildIndex = Child->GetIndex();
+
+			// first update the flags
+			FRelativeBitReference BitRef(ChildIndex);
+			HiddenFlags.AccessCorrespondingBit(BitRef) = true;
+			// find the node for it
+			FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId);
+			// if you have child, populate it again, 
+			if (ChildNode)
+			{
+				PopulateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
+			}
+		}
+	}
+}
+
+void FLODSceneTree::PopulateHiddenFlags(FViewInfo& View, FSceneBitArray& HiddenFlags)
+{
+	++UpdateCount;
+
+	// @todo this is experimental code - hide the children if parent is showing
+	for(auto Iter = SceneNodes.CreateIterator(); Iter; ++Iter)
+	{
+		FLODSceneNode& Node = Iter.Value();
+		// if already updated, no reason to do this
+		if(Node.LatestUpdateCount != UpdateCount)
+		{
+			Node.LatestUpdateCount = UpdateCount;
+			// if node doesn't have scene info, that means it doesn't have any
+			if(Node.SceneInfo)
+			{
+				int32 NodeIndex = Node.SceneInfo->GetIndex();
+				// if this node is visible, children shouldn't show up
+				if(View.PrimitiveVisibilityMap[NodeIndex])
+				{
+					for(const auto& Child : Node.ChildrenSceneInfos)
+					{
+						const int32 ChildIndex = Child->GetIndex();
+
+						// first update the flags
+						FRelativeBitReference BitRef(ChildIndex);
+						HiddenFlags.AccessCorrespondingBit(BitRef) = true;
+
+						// find the node for it
+						FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId);
+						// if you have child, populate it again, 
+						if(ChildNode)
+						{
+							PopulateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
+						}
+					}
+				}
+				else
+				{
+					HiddenFlags.AccessCorrespondingBit(FRelativeBitReference(NodeIndex)) = true;
+				}
+			}
+		}
+	}
+}

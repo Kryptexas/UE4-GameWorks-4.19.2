@@ -1564,6 +1564,12 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateBuildMenuContent( TSharedRef<
 	}
 	MenuBuilder.EndSection();
 
+	MenuBuilder.BeginSection("LevelEditorLOD", LOCTEXT("LODHeading", "Hiearchical LOD"));
+	{
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().BuildLODsOnly);
+	}
+	MenuBuilder.EndSection();
+
 	MenuBuilder.BeginSection("LevelEditorAutomation", LOCTEXT( "AutomationHeading", "Automation" ) );
 	{
 		MenuBuilder.AddMenuEntry( 

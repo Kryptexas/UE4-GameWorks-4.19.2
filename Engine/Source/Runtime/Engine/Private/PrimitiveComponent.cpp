@@ -2588,6 +2588,12 @@ void UPrimitiveComponent::SetRenderInMainPass(bool bValue)
 	}
 }
 
+void UPrimitiveComponent::SetLODParentPrimitive(UPrimitiveComponent * InLODParentPrimitive)
+{
+	// @todo, what do we do with old parent. We can't just reset undo parent because the parent migh be used by other primitive
+	LODParentPrimitive = InLODParentPrimitive;
+	MarkRenderStateDirty();
+}
 #if WITH_EDITOR
 const int32 UPrimitiveComponent::GetNumUncachedStaticLightingInteractions() const
 {

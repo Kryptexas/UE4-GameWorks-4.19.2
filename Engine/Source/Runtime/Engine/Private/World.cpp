@@ -42,6 +42,7 @@
 #include "GameFramework/PlayerState.h"
 
 #include "Materials/MaterialParameterCollectionInstance.h"
+
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 	#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -108,6 +109,9 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 ,   bIsBuilt(false)
 ,	FlushLevelStreamingType(EFlushLevelStreamingType::None)
 ,	NextTravelType(TRAVEL_Relative)
+#if WITH_EDITOR
+,	HierarchicalLODBuilder(this)
+#endif
 {
 	TimerManager = new FTimerManager();
 #if WITH_EDITOR
@@ -127,6 +131,9 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
 ,   bIsBuilt(false)
 ,	FlushLevelStreamingType(EFlushLevelStreamingType::None)
 ,	NextTravelType(TRAVEL_Relative)
+#if WITH_EDITOR
+,	HierarchicalLODBuilder(this)
+#endif
 {
 	SetFlags( RF_Transactional );
 	TimerManager = new FTimerManager();

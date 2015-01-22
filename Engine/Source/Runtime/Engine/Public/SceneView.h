@@ -774,6 +774,9 @@ public:
 	// Override the LOD of landscape in this viewport
 	int8 LandscapeLODOverride;
 
+	// Override the LOD of landscape in this viewport
+	int8 HierarchicalLODOverride;
+
 	/** Indicates whether, of not, the base attachment volume should be drawn. */
 	bool bDrawBaseInfo;
 #endif

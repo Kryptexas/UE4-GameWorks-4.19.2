@@ -178,3 +178,27 @@ FBox FBox::TransformProjectBy(const FMatrix& ProjM) const
 
 	return NewBox;
 }
+
+FBox FBox::Overlap( const FBox& Other ) const
+{
+	if(Intersect(Other) == false)
+	{
+		static FBox EmptyBox(ForceInit);
+		return EmptyBox;
+	}
+
+	// otherwise they overlap
+	// so find overlapping box
+	FVector MinVector, MaxVector;
+
+	MinVector.X = FMath::Max(Min.X, Other.Min.X);
+	MaxVector.X = FMath::Min(Max.X, Other.Max.X);
+
+	MinVector.Y = FMath::Max(Min.Y, Other.Min.Y);
+	MaxVector.Y = FMath::Min(Max.Y, Other.Max.Y);
+
+	MinVector.Z = FMath::Max(Min.Z, Other.Min.Z);
+	MaxVector.Z = FMath::Min(Max.Z, Other.Max.Z);
+
+	return FBox(MinVector, MaxVector);
+}

@@ -1161,8 +1161,72 @@ public:
 	TArray<FPrimitiveSceneInfo*> Primitives;
 
 	FAttachmentGroupSceneInfo() :
-		ParentSceneInfo(NULL)
+		ParentSceneInfo(nullptr)
 	{}
+};
+
+class FLODSceneTree
+{
+public:
+	FLODSceneTree(FScene* InScene)
+		: Scene(InScene)
+		, UpdateCount(0)
+	{}
+
+	/** Information about the primitives that are attached together. */
+	struct FLODSceneNode
+	{
+		/** The primitive. */
+		FPrimitiveSceneInfo* SceneInfo;
+
+		/** Children scene infos. */
+		TArray<FPrimitiveSceneInfo*> ChildrenSceneInfos;
+
+		/** Last updated FrameCount */
+		int32 LatestUpdateCount;
+
+		FLODSceneNode() :
+			SceneInfo(nullptr), 
+			LatestUpdateCount(INDEX_NONE)
+		{}
+
+		void AddChild(FPrimitiveSceneInfo * NewChild)
+		{
+			if(NewChild && !ChildrenSceneInfos.Contains(NewChild))
+			{
+				ChildrenSceneInfos.Add(NewChild);
+			}
+		}
+
+		void RemoveChild(FPrimitiveSceneInfo * ChildToDelete)
+		{
+			if(ChildToDelete && ChildrenSceneInfos.Contains(ChildToDelete))
+			{
+				ChildrenSceneInfos.Remove(ChildToDelete);
+			}
+		}
+	};
+
+	void AddChildNode(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* ChildSceneInfo);
+	void RemoveChildNode(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* ChildSceneInfo);
+
+	void UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* SceneInfo);
+	void PopulateHiddenFlags(FViewInfo& View, FSceneBitArray& HiddenFlags);
+
+	bool IsActive() { return SceneNodes.Num() > 0; }
+
+private:
+	/** Scene this Tree belong to */
+	FScene* Scene;
+
+	/** The LOd groups in the scene.  The map key is the current primitive who has children. */
+	TMap<FPrimitiveComponentId, FLODSceneNode> SceneNodes;
+
+	/**  Update Count. This is used to skip Child node that has been updated */
+	int32 UpdateCount;
+
+	/** Populate Hidden Flags to the children **/
+	void PopulateHiddenFlagsToChildren(FSceneBitArray& HiddenFlags, FLODSceneNode& Node);
 };
 
 typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
@@ -1361,6 +1425,9 @@ public:
 
 	/** Uniform buffers for parameter collections with the corresponding Ids. */
 	TMap<FGuid, FUniformBufferRHIRef> ParameterCollections;
+
+	/** LOD Tree Holder for massive LOD system */
+	FLODSceneTree SceneLODHierarchy;
 
 	/** Initialization constructor. */
 	FScene(UWorld* InWorld, bool bInRequiresHitProxies,bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel);

@@ -214,6 +214,9 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 	case EBuildOptions::BuildSelectedAIPaths:
 		BuildType = SBuildProgressWidget::BUILDTYPE_Paths;
 		break;
+	case EBuildOptions::BuildHierarchicalLOD:
+		BuildType = SBuildProgressWidget::BUILDTYPE_LODs;
+		break;
 	default:
 		BuildType = SBuildProgressWidget::BUILDTYPE_Unknown;	
 		break;
@@ -286,6 +289,23 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 			break;
 		}
 
+	case EBuildOptions::BuildHierarchicalLOD:
+		{
+			bDoBuild = GEditor->WarnAboutHiddenLevels( InWorld, false );
+			if ( bDoBuild )
+			{
+				GEditor->ResetTransaction( NSLOCTEXT("UnrealEd", "RebuildLOD", "Rebuilding HierarchicalLOD") );
+
+				// We can't set the busy cursor for all windows, because lighting
+				// needs a cursor for the lighting options dialog.
+				const FScopedBusyCursor BusyCursor;
+
+				TriggerHierarchicalLODBuilder(InWorld, Id);
+			}
+
+			break;
+		}
+
 	case EBuildOptions::BuildAll:
 	case EBuildOptions::BuildAllSubmit:
 		{
@@ -298,6 +318,13 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 				const FScopedBusyCursor BusyCursor;
 
 				GUnrealEd->Exec( InWorld, TEXT("MAP REBUILD ALLVISIBLE") );
+
+				// disable this in build all path, it's very slow, it can be painful
+				// they don't have any collision, but make sure it's added first before doing anything
+ 				{
+ 					BuildProgressWidget.Pin()->SetBuildType(SBuildProgressWidget::BUILDTYPE_LODs);
+ 					TriggerHierarchicalLODBuilder(InWorld, Id);
+ 				}
 
 				{
 					BuildProgressWidget.Pin()->SetBuildType(SBuildProgressWidget::BUILDTYPE_Paths);
@@ -764,4 +791,9 @@ void FEditorBuildUtils::TriggerNavigationBuilder(UWorld* InWorld, EBuildOptions:
 	}
 }
 
+void FEditorBuildUtils::TriggerHierarchicalLODBuilder(UWorld* InWorld, EBuildOptions::Type Id)
+{
+	// Invoke navmesh generator
+	InWorld->HierarchicalLODBuilder.Build();
+}
 #undef LOCTEXT_NAMESPACE
