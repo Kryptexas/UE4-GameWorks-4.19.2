@@ -694,7 +694,10 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 
 	// This should only come from button presses/local instigation (AI, etc)
 	ENetRole NetMode = ActorInfo->AvatarActor->Role;
-	ensure(NetMode != ROLE_SimulatedProxy);
+	if (NetMode == ROLE_SimulatedProxy)
+	{
+		return false;
+	}
 
 	bool bIsLocal = AbilityActorInfo->IsLocallyControlled();
 
