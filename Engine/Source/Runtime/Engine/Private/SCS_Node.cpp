@@ -450,12 +450,12 @@ FName USCS_Node::GenerateNewComponentName( TArray<FName>& CurrentNames, FName De
 				ComponentName = ComponentTemplate->GetClass()->GetName().Replace(TEXT("Component"), TEXT(""));
 			}
 			
+			NewName = *ComponentName;
 			int32 Counter = 1;
-			do
+			while (CurrentNames.Contains(NewName))
 			{
 				NewName = FName(*( FString::Printf(TEXT("%s%d"), *ComponentName, Counter++) ));		
 			} 
-			while( CurrentNames.Contains(NewName) );
 		}
 	}
 	return NewName;
