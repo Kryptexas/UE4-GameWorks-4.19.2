@@ -18,9 +18,14 @@ public:
 	virtual ~FComponentInstanceDataBase()
 	{}
 
+	/** Determines whether this component instance data matches the component */
 	bool MatchesComponent(const UActorComponent* Component) const;
 
+	/** Applies this component instance data to the supplied component */
 	virtual void ApplyToComponent(UActorComponent* Component) = 0;
+
+	/** Replaces any references to old instances during Actor reinstancing */
+	virtual void FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap) { };
 
 protected:
 	/** The name of the source component */
@@ -45,8 +50,11 @@ public:
 
 	~FComponentInstanceDataCache();
 
-	/** Util to iterate over components and apply data to each */
+	/** Iterates over an Actor's components and applies the stored component instance data to each */
 	void ApplyToActor(AActor* Actor) const;
+
+	/** Iterates over components and replaces any object references with the reinstanced information */
+	void FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap) const;
 
 	bool HasInstanceData() const { return TypeToDataMap.Num() > 0; }
 

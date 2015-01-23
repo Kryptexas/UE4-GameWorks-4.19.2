@@ -36,7 +36,7 @@ struct FReplaceReferenceHelper
 		}
 	}
 
-	static void FindAndReplaceReferences(TArray<UObject*>& SourceObjects, TSet<UObject*>* ObjectsThatShouldUseOldStuff, TArray<UObject*> &ObjectsToReplace, TMap<UObject*, UObject*>& OldToNewInstanceMap, TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap)
+	static void FindAndReplaceReferences(const TArray<UObject*>& SourceObjects, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<UObject*, UObject*>& OldToNewInstanceMap, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap)
 	{
 		// Find everything that references these objects
 		TSet<UObject *> Targets;
@@ -419,7 +419,7 @@ struct FActorReplacementHelper
 	 * Runs construction scripts on the new actor and then finishes it off by
 	 * attaching it to the same attachments that its predecessor was set with. 
 	 */
-	void Finalize();
+	void Finalize(const TMap<UObject*, UObject*>& OldToNewInstanceMap);
 
 
 private:
@@ -475,7 +475,7 @@ private:
 	TSharedPtr<AActor::FActorTransactionAnnotation> CachedActorData;
 };
 
-void FActorReplacementHelper::Finalize()
+void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
 {
 	
 	// because this is an editor context it's important to use this execution guard
@@ -484,6 +484,7 @@ void FActorReplacementHelper::Finalize()
 	// run the construction script, which will use the properties we just copied over
 	if (CachedActorData.IsValid())
 	{
+		CachedActorData->ComponentInstanceData.FindAndReplaceInstances(OldToNewInstanceMap);
 		NewActor->ExecuteConstruction(TargetWorldTransform, &CachedActorData->ComponentInstanceData);
 	}
 	else
@@ -491,6 +492,24 @@ void FActorReplacementHelper::Finalize()
 		FComponentInstanceDataCache DummyComponentData;
 		NewActor->ExecuteConstruction(TargetWorldTransform, &DummyComponentData);
 	}	
+
+	if (TargetAttachParent)
+	{
+		UObject* const* NewTargetAttachParent = OldToNewInstanceMap.Find(TargetAttachParent);
+		if (NewTargetAttachParent)
+		{
+			TargetAttachParent = CastChecked<AActor>(*NewTargetAttachParent);
+		}
+	}
+	if (TargetParentComponent)
+	{
+		UObject* const* NewTargetParentComponent = OldToNewInstanceMap.Find(TargetParentComponent);
+		if (NewTargetParentComponent)
+		{
+			TargetParentComponent = CastChecked<USceneComponent>(*NewTargetParentComponent);
+		}
+	}
+
 	ApplyAttachments();
 
 	if (bSelectNewActor)
@@ -619,7 +638,20 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 	// Set global flag to let system know we are reconstructing blueprint instances
 	TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
 
+	struct FObjectRemappingHelper
+	{
+		void OnObjectsReplaced(const TMap<UObject*, UObject*>& InReplacedObjects)
+		{
+			ReplacedObjects.Append(InReplacedObjects);
+		}
+
+		TMap<UObject*, UObject*> ReplacedObjects;
+	} ObjectRemappingHelper;
+
+	FDelegateHandle OnObjectsReplacedHandle = GEditor->OnObjectsReplaced().AddRaw(&ObjectRemappingHelper,&FObjectRemappingHelper::OnObjectsReplaced);
+
 	{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_ReplaceInstancesOfClass);
+
 
 		const bool bIncludeDerivedClasses = false;
 		GetObjectsOfClass(OldClass, ObjectsToReplace, bIncludeDerivedClasses);
@@ -765,6 +797,8 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 		}
 	}
 
+	GEditor->OnObjectsReplaced().Remove(OnObjectsReplacedHandle);
+
 	// Now replace any pointers to the old archetypes/instances with pointers to the new one
 	TArray<UObject*> SourceObjects;
 	TArray<UObject*> DstObjects;
@@ -793,7 +827,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 		// FArchiveReplaceObjectRef to run construction-scripts).
 		for (FActorReplacementHelper& ReplacementActor : ReplacementActors)
 		{
-			ReplacementActor.Finalize();
+			ReplacementActor.Finalize(ObjectRemappingHelper.ReplacedObjects);
 		}
 	}
 
