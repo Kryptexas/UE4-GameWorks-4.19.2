@@ -95,7 +95,7 @@ half4 PhotoMatrixR_Lift;
 half4 PhotoMatrixG_LiftScale;
 half4 PhotoMatrixB_Gamma;
 half4 PhotoTint_Over;
-half4 PhotoOverTint;
+half4 PhotoOverTint_OneMinusMid;
 
 half3 FilmPostProcessPhoto(half3 LinearColor) 
 {
@@ -113,9 +113,9 @@ half3 FilmPostProcessPhoto(half3 LinearColor)
 	// This actually moves over to PhotoOverTint, 
 	// which can be a highly colored value, which later turns to white via highlight compression.
 	half OverLuma = dot(PhotoColor, half3(0.2126, 0.7152, 0.0722)); // BT.709 luma seems to work best.
-	half Over = (PhotoTint_Over.a*OverLuma) / ((1.0-0.18)+OverLuma);
-	PhotoColor = lerp(PhotoColor, PhotoOverTint.rgb*OverLuma, Over);
-	// Highlight compression without change of 18% mid-tone.
-	PhotoColor *= 1.0/((1.0-0.18)+PhotoColor);    
+	half Over = (PhotoTint_Over.a*OverLuma) / (PhotoOverTint_OneMinusMid.a+OverLuma);
+	PhotoColor = lerp(PhotoColor, PhotoOverTint_OneMinusMid.rgb*OverLuma, Over);
+	// Highlight compression without change of mid-tone.
+	PhotoColor *= 1.0/(PhotoOverTint_OneMinusMid.a+PhotoColor);    
 	return PhotoColor;
 }

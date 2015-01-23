@@ -946,6 +946,8 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 // Improved film post: setting of constants.
 void FilmPostSetConstantsPhoto(FVector4* RESTRICT const Constants, const FPostProcessSettings* RESTRICT const FinalPostProcessSettings)
 {
+	float PhotoExp = FMath::Pow(2.0f,FMath::Clamp(FinalPostProcessSettings->PhotoExposure, -64.0f, 64.0f));
+	float PhotoMid = 0.18f * FMath::Pow(2.0f,FMath::Clamp(FinalPostProcessSettings->PhotoMid, -64.0f, 64.0f));
 	FVector PhotoWhite(FinalPostProcessSettings->PhotoWhite);
 	float PhotoSat = FMath::Clamp(FinalPostProcessSettings->PhotoSaturation, 0.0f, 2.0f) - 1.0f;
 	FVector PhotoMixR(FinalPostProcessSettings->PhotoChannelMixerRed);
@@ -953,16 +955,11 @@ void FilmPostSetConstantsPhoto(FVector4* RESTRICT const Constants, const FPostPr
 	FVector PhotoMixB(FinalPostProcessSettings->PhotoChannelMixerBlue);
 	FVector PhotoOverTint(FinalPostProcessSettings->PhotoOverTint);
 	float PhotoGamma = FMath::Clamp(FinalPostProcessSettings->PhotoContrast, 0.0f, 4.0f);
-	float PhotoBlackOut = FMath::Clamp(FinalPostProcessSettings->PhotoBlackOut, 0.0f, 1.0f) * (1.0f/64.0f);
-	float PhotoBlackIn = FMath::Clamp(FinalPostProcessSettings->PhotoBlackIn, 0.0f, 1.0f) * (1.0f/64.0f);
+	float PhotoBlackIn = (PhotoMid*PhotoMid*PhotoMid);
+	float PhotoBlackOut = (PhotoMid*PhotoMid*PhotoMid)*FMath::Pow(2.0f,FMath::Clamp(FinalPostProcessSettings->PhotoBlackOut, -64.0f, 64.0f));
 	FVector PhotoTint(FinalPostProcessSettings->PhotoTint);
 	float PhotoOver = FMath::Clamp(FinalPostProcessSettings->PhotoOver, 0.0f, 1.0f);
 
-	// Place holder for eventual exposure adjustment.
-	float PhotoExp = 1.0;
-
-	// Constant, don't change...
-	float PhotoMid = 0.18f;
 	// Conversion from linear rgb to luma (using HDTV coef).
 	FVector LumaWeights = FVector(0.2126f, 0.7152f, 0.0722f);
 
@@ -1023,7 +1020,7 @@ void FilmPostSetConstantsPhoto(FVector4* RESTRICT const Constants, const FPostPr
 	Constants[1] = FVector4(OutMatrixG, OutLiftScale);
 	Constants[2] = FVector4(OutMatrixB, PhotoGamma); 
 	Constants[3] = FVector4(OutTint, PhotoOver*(1.0f/3.0f)); 
-	Constants[4] = FVector4(PhotoOverTint, 0.0f);
+	Constants[4] = FVector4(PhotoOverTint, 1.0f-PhotoMid);
 }
 
 
@@ -1105,7 +1102,7 @@ public:
 	FShaderParameter PhotoMatrixG_LiftScale;
 	FShaderParameter PhotoMatrixB_Gamma;
 	FShaderParameter PhotoTint_Over;
-	FShaderParameter PhotoOverTint;
+	FShaderParameter PhotoOverTint_OneMinusMid;
 
 	//@HACK
 	FShaderParameter OverlayColor;
@@ -1139,7 +1136,7 @@ public:
 		PhotoMatrixG_LiftScale.Bind(Initializer.ParameterMap, TEXT("PhotoMatrixG_LiftScale"));
 		PhotoMatrixB_Gamma.Bind(Initializer.ParameterMap, TEXT("PhotoMatrixB_Gamma"));
 		PhotoTint_Over.Bind(Initializer.ParameterMap, TEXT("PhotoTint_Over"));
-		PhotoOverTint.Bind(Initializer.ParameterMap, TEXT("PhotoOverTint"));
+		PhotoOverTint_OneMinusMid.Bind(Initializer.ParameterMap, TEXT("PhotoOverTint_OneMinusMid"));
 		
 		OverlayColor.Bind(Initializer.ParameterMap, TEXT("OverlayColor"));
 	}
@@ -1152,7 +1149,7 @@ public:
 			<< TexScale << VignetteColorIntensity << GrainScaleBiasJitter
 			<< ColorGradingLUT << ColorGradingLUTSampler
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
-			<< PhotoMatrixR_Lift << PhotoMatrixG_LiftScale << PhotoMatrixB_Gamma << PhotoTint_Over << PhotoOverTint
+			<< PhotoMatrixR_Lift << PhotoMatrixG_LiftScale << PhotoMatrixB_Gamma << PhotoTint_Over << PhotoOverTint_OneMinusMid
 			<< OverlayColor;
 		
 		return bShaderHasOutdatedParameters;
@@ -1280,7 +1277,7 @@ public:
 			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoMatrixG_LiftScale, Constants[1]);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoMatrixB_Gamma, Constants[2]); 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoTint_Over, Constants[3]); 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoOverTint, Constants[4]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoOverTint_OneMinusMid, Constants[4]);
 		}
 	}
 	
