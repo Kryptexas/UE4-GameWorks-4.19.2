@@ -635,6 +635,8 @@ public:
 
 	void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);
 
+	void TryActivateInputHeldAbilities();
+
 	/** Sent by abilities to tell server when activation input is pressed. (Sent by default in order not to short-circuit WaitInputPress/WaitInputRelease tasks) */
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerInputPress(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey ScopedPedictionKey);

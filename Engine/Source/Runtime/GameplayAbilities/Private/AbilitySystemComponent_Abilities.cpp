@@ -1553,6 +1553,22 @@ void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spe
 	}
 }
 
+void UAbilitySystemComponent::TryActivateInputHeldAbilities()
+{
+	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
+	{
+		if ((Spec.InputID == INDEX_NONE) || !Spec.InputPressed || Spec.IsActive() || !Spec.Ability)
+		{
+			continue;
+		}
+
+		if (Spec.Ability->bActivateOnInputHeld)
+		{
+			TryActivateAbility(Spec.Handle);
+		}
+	}
+}
+
 void UAbilitySystemComponent::InputConfirm()
 {
 	FScopedPredictionWindow ScopedPrediction(this, true);
