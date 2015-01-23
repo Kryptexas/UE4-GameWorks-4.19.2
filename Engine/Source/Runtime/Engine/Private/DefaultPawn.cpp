@@ -33,6 +33,7 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 	CollisionComponent->CanCharacterStepUpOn = ECB_No;
 	CollisionComponent->bShouldUpdatePhysicsVolume = true;
 	CollisionComponent->bCanEverAffectNavigation = false;
+	CollisionComponent->bDynamicObstacle = true;
 
 	RootComponent = CollisionComponent;
 

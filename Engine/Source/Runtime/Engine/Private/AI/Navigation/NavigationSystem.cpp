@@ -2164,11 +2164,6 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 	const FBox BBox = GeneratedData.Bounds.GetBox();
 	const bool bValidBBox = BBox.IsValid && !BBox.GetSize().IsNearlyZero();
 
-	if (BBox.GetExtent().X > 400000)
-	{
-		volatile int32 i = 0;
-	}
-
 	if (bValidBBox && !GeneratedData.IsEmpty())
 	{
 		const int32 DirtyFlag = DirtyElement.FlagsOverride ? DirtyElement.FlagsOverride : GeneratedData.Data.GetDirtyFlag();

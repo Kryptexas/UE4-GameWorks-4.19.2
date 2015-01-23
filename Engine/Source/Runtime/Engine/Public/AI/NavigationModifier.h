@@ -6,6 +6,7 @@
 
 class UNavArea;
 class UNavLinkDefinition;
+class UPrimitiveComponent;
 class UBrushComponent;
 
 struct ENGINE_API FNavigationModifier
@@ -237,6 +238,8 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 		bHasMetaAreas |= Modifiers.bHasMetaAreas; 
 		bAdjustHeight |= Modifiers.HasAgentHeightAdjust();
 	}
+
+	void CreateAreaModifiers(const UPrimitiveComponent* PrimComp, const TSubclassOf<UNavArea> AreaClass);
 
 	FORCEINLINE const TArray<FAreaNavModifier>& GetAreas() const { return Areas; }
 	FORCEINLINE const TArray<FSimpleLinkNavModifier>& GetSimpleLinks() const { return SimpleLinks; }

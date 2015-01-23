@@ -55,6 +55,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
 	CapsuleComponent->bCanEverAffectNavigation = false;
+	CapsuleComponent->bDynamicObstacle = true;
 	RootComponent = CapsuleComponent;
 
 	JumpKeyHoldTime = 0.0f;

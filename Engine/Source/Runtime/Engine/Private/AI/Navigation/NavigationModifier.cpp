@@ -11,6 +11,7 @@
 #include "AI/Navigation/NavLinkDefinition.h"
 #include "AI/Navigation/NavLinkTrivial.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/BrushComponent.h"
 
 // if square distance between two points is less than this the those points
@@ -576,6 +577,35 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 	}
 
 	return Result;
+}
+
+void FCompositeNavModifier::CreateAreaModifiers(const UPrimitiveComponent* PrimComp, const TSubclassOf<UNavArea> AreaClass)
+{
+	UBodySetup* BodySetup = PrimComp ? ((UPrimitiveComponent*)PrimComp)->GetBodySetup() : nullptr;
+	if (BodySetup == nullptr)
+	{
+		return;
+	}
+
+	for (int32 Idx = 0; Idx < BodySetup->AggGeom.BoxElems.Num(); Idx++)
+	{
+		const FKBoxElem& BoxElem = BodySetup->AggGeom.BoxElems[Idx];
+		const FBox BoxSize = BoxElem.CalcAABB(FTransform::Identity, 1.0f);
+
+		FAreaNavModifier AreaMod(BoxSize, PrimComp->ComponentToWorld, AreaClass);
+		Add(AreaMod);
+	}
+
+	for (int32 Idx = 0; Idx < BodySetup->AggGeom.SphylElems.Num(); Idx++)
+	{
+		const FKSphylElem& SphylElem = BodySetup->AggGeom.SphylElems[Idx];
+		const FTransform AreaOffset(FVector(0, 0, -SphylElem.Length));
+
+		FAreaNavModifier AreaMod(SphylElem.Radius, SphylElem.Length, AreaOffset * PrimComp->ComponentToWorld, AreaClass);
+		Add(AreaMod);
+	}
+
+	// convex elements support?
 }
 
 uint32 FCompositeNavModifier::GetAllocatedSize() const

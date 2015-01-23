@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "AI/Navigation/NavAreas/NavArea_Obstacle.h"
 
 UShapeComponent::UShapeComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -18,7 +19,11 @@ UShapeComponent::UShapeComponent(const FObjectInitializer& ObjectInitializer)
 	bCastDynamicShadow = false;
 	ShapeColor = FColor(223, 149, 157, 255);
 	bShouldCollideWhenPlacing = false;
+	
+	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 	bCanEverAffectNavigation = true;
+	bDynamicObstacle = false;
+	AreaClass = UNavArea_Obstacle::StaticClass();
 }
 
 FPrimitiveSceneProxy* UShapeComponent::CreateSceneProxy()
@@ -60,3 +65,16 @@ void UShapeComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif // WITH_EDITOR
+
+bool UShapeComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
+{
+	return !bDynamicObstacle;
+}
+
+void UShapeComponent::GetNavigationData(FNavigationRelevantData& Data) const
+{
+	if (bDynamicObstacle)
+	{
+		Data.Modifiers.CreateAreaModifiers(this, AreaClass);
+	}
+}
