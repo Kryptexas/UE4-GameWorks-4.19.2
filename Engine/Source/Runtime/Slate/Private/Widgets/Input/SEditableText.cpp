@@ -1504,8 +1504,8 @@ bool SEditableText::SupportsKeyboardFocus() const
 
 FReply SEditableText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
-	// Skip the rest of the focus received code if it's due to the context menu closing
-	if ( !ActiveContextMenu.IsValid() )
+	// Skip the focus received code if it's due to the context menu closing
+	if ( !ContextMenuWindow.IsValid() )
 	{
 		// Don't unselect text when focus is set because another widget lost focus, as that may be in response to a
 		// dismissed context menu where the user clicked an option to select text.
@@ -1569,7 +1569,7 @@ FReply SEditableText::OnFocusReceived( const FGeometry& MyGeometry, const FFocus
 void SEditableText::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	// Skip the focus lost code if it's due to the context menu opening
-	if ( !ActiveContextMenu.IsValid() )
+	if ( !ContextMenuWindow.IsValid() )
 	{
 		FSlateApplication& SlateApplication = FSlateApplication::Get();
 		if (FPlatformMisc::GetRequiresVirtualKeyboard())
@@ -1973,20 +1973,14 @@ void SEditableText::SummonContextMenu( const FVector2D& InLocation )
 
 #undef LOCTEXT_NAMESPACE
 
-	ActiveContextMenu.PrepareToSummon();
-
 	const bool bFocusImmediately = true;
-	TSharedPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), InLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ), bFocusImmediately );
-	
+	TSharedPtr< SWindow > ContextMenuWindowPinned = FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), InLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ), bFocusImmediately );
+	ContextMenuWindow = ContextMenuWindowPinned;
+
 	// Make sure the window is valid.  It's possible for the parent to already be in the destroy queue, for example if the editable text was configured to dismiss it's window during OnTextCommitted.
-	if( ContextMenuWindow.IsValid() )
+	if( ContextMenuWindowPinned.IsValid() )
 	{
-		ContextMenuWindow->SetOnWindowClosed( FOnWindowClosed::CreateSP( this, &SEditableText::OnWindowClosed ) );
-		ActiveContextMenu.SummonSucceeded( ContextMenuWindow.ToSharedRef() );
-	}
-	else
-	{
-		ActiveContextMenu.SummonFailed();
+		ContextMenuWindowPinned->SetOnWindowClosed( FOnWindowClosed::CreateSP( this, &SEditableText::OnWindowClosed ) );
 	}
 }
 
@@ -2052,11 +2046,6 @@ void SEditableText::SetCaretPosition( int32 Position )
 	LastCaretInteractionTime = FSlateApplication::Get().GetCurrentTime();
 }
 
-bool SEditableText::ShouldAppearFocused() const
-{
-	// We'll draw with the 'focused' look if we're either focused or we have a context menu summoned
-	return HasKeyboardFocus() || ContextMenuWindow.IsValid();
-}
 
 bool SEditableText::DoesClipboardHaveAnyText() const 
 {
@@ -2112,9 +2101,6 @@ void SEditableText::RestartSelectionTargetAnimation()
 
 void SEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
 {
-	// Note: We don't reset the ActiveContextMenu here, as Slate hasn't yet finished processing window focus events, and we need 
-	// to know that the window is still available for OnFocusReceived and OnFocusLost even though it's about to be destroyed
-
 	// Give this focus when the context menu has been dismissed
 	FSlateApplication::Get().SetKeyboardFocus( AsShared(), EFocusCause::OtherWidgetLostFocus );
 }

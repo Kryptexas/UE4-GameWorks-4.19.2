@@ -636,8 +636,8 @@ private:
 	/** Menu extender for right-click context menu */
 	TSharedPtr<FExtender> MenuExtender;
 
-	/** Information about any active context menu widgets */
-	FActiveTextEditContextMenu ActiveContextMenu;
+	/** Weak pointer to context menu window that's currently open, if there is one */
+	TWeakPtr< SWindow > ContextMenuWindow;
 
 	/** Implemented context object for text input method systems. */
 	TSharedPtr<FTextInputMethodContext> TextInputMethodContext;

@@ -586,8 +586,8 @@ private:
 	/** Undo state that will be pushed if text is actually changed between calls to StartChangingText() and FinishChangingText() */
 	FUndoState StateBeforeChangingText;
 
-	/** Information about any active context menu widgets */
-	FActiveTextEditContextMenu ActiveContextMenu;
+	/** Weak pointer to context menu window that's currently open, if there is one */
+	TWeakPtr< SWindow > ContextMenuWindow;
 
 	/** Prevents the editabletext from being smaller than desired in certain cases (e.g. when it is empty) */
 	TAttribute<float> MinDesiredWidth;
