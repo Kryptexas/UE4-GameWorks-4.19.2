@@ -2,6 +2,8 @@
 
 #include "SlateCorePrivatePCH.h"
 
+#include "SlateStats.h"
+
 #if SLATE_STATS
 
 SLATE_DECLARE_CYCLE_COUNTER(GSlateStatsOverhead, "Stats Overhead");
