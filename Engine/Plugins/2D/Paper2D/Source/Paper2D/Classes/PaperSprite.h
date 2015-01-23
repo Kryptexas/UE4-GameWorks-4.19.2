@@ -241,6 +241,12 @@ public:
 	void OnObjectReimported(UObject* InObject);
 #endif
 
+#if WITH_EDITOR
+	// Make sure all socket names are valid
+	// All duplicate / empty names will be made unique
+	void ValidateSocketNames();
+#endif
+
 	// Return the scaling factor between pixels and Unreal units (cm)
 	float GetPixelsPerUnrealUnit() const { return PixelsPerUnrealUnit; }
 

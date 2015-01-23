@@ -513,6 +513,12 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 		bBothModified = true;
 	}
 
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, Sockets) ||
+		(MemberPropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, Sockets) && PropertyName == GET_MEMBER_NAME_CHECKED(FPaperSpriteSocket, SocketName)))
+	{
+		ValidateSocketNames();
+	}
+
 	// The texture dimensions have changed
 	//if (NeedRescaleSpriteData())
 	//{
@@ -1767,6 +1773,52 @@ void UPaperSprite::QuerySupportedSockets(TArray<FComponentSocketDescription>& Ou
 		new (OutSockets) FComponentSocketDescription(Socket.SocketName, EComponentSocketType::Socket);
 	}
 }
+
+#if WITH_EDITOR
+void UPaperSprite::ValidateSocketNames()
+{
+	TSet<FName> SocketNames;
+	struct Local
+	{
+		static FName GetUniqueName(const TSet<FName>& SocketNames, FName Name)
+		{
+			int Counter = Name.GetNumber();
+			FName TestName;
+			do 
+			{
+				TestName = Name;
+				TestName.SetNumber(++Counter);
+			} while (SocketNames.Contains(TestName));
+
+			return TestName;
+		}
+	};
+
+	bool bHasChanged = false;
+	for (int32 SocketIndex = 0; SocketIndex < Sockets.Num(); ++SocketIndex)
+	{
+		FPaperSpriteSocket& Socket = Sockets[SocketIndex];
+		if (Socket.SocketName.IsNone())
+		{
+			Socket.SocketName = Local::GetUniqueName(SocketNames, FName(TEXT("Socket")));
+			bHasChanged = true;
+		}
+		else if (SocketNames.Contains(Socket.SocketName))
+		{
+			Socket.SocketName = Local::GetUniqueName(SocketNames, Socket.SocketName);
+			bHasChanged = true;
+		}
+
+		// Add the corrected name
+		SocketNames.Add(Socket.SocketName);
+	}
+
+	if (bHasChanged)
+	{
+		PostEditChange();
+	}
+}
+#endif
 
 #if WITH_EDITOR
 void UPaperSprite::Serialize(FArchive& Ar)
