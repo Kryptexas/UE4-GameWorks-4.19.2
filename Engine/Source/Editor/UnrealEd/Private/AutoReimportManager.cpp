@@ -12,6 +12,8 @@
 #include "ARFilter.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "AutoReimportManager"
 #define CONDITIONAL_YIELD if (TimeLimit.Exceeded()) { return; }

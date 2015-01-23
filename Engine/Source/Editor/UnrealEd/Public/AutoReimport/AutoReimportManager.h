@@ -8,6 +8,7 @@
 
 class IAssetRegistry;
 class IAssetTools;
+class SNotificationItem;
 
 /** Feedback context that overrides GWarn for import operations to prevent popup spam */
 struct FReimportFeedbackContext : public FFeedbackContext
