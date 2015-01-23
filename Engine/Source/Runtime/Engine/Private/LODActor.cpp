@@ -7,6 +7,8 @@
 #include "EnginePrivate.h"
 #include "Engine/LODActor.h"
 #include "MapErrors.h"
+#include "MessageLog.h"
+#include "UObjectToken.h"
 
 #define LOCTEXT_NAMESPACE "LODActor"
 
