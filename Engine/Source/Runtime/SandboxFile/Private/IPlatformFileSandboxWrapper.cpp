@@ -284,6 +284,20 @@ FString FSandboxPlatformFile::ConvertToAbsolutePathForExternalAppForWrite( const
 	return ConvertToSandboxPath( Filename );
 }
 
+const FString& FSandboxPlatformFile::GetAbsolutePathToGameDirectory()
+{
+	if (AbsoluteGameDirectory.IsEmpty())
+	{
+		AbsoluteGameDirectory = FPaths::GetProjectFilePath();
+		UE_CLOG(AbsoluteGameDirectory.IsEmpty(), SandboxFile, Fatal, TEXT("SandboxFileWrapper tried to access project path before it was set."));
+		AbsoluteGameDirectory = FPaths::ConvertRelativePathToFull(AbsoluteGameDirectory);
+		// Strip .uproject filename and game directory, keep just to path to the game directory which could simply be the root dir (but not always).
+		AbsoluteGameDirectory = FPaths::GetPath(FPaths::GetPath(AbsoluteGameDirectory));
+	}
+	return AbsoluteGameDirectory;
+}
+
+
 /**
  * Module for the sandbox file
  */
