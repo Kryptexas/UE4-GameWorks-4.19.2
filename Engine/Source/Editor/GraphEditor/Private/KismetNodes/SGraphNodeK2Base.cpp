@@ -33,7 +33,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	OutputPins.Empty();
 
 	// error handling set-up
-	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
+	SetupErrorReporting();
 
 	// Reset variables that are going to be exposed, in case we are refreshing an already setup node.
 	RightNodeBox.Reset();
@@ -69,7 +69,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 		.AutoHeight()
 		.Padding( FMargin(5.0f, 1.0f) )
 		[
-			ErrorText->AsShared()
+			ErrorReporting->AsWidget()
 		]
 		+SVerticalBox::Slot()
 		[

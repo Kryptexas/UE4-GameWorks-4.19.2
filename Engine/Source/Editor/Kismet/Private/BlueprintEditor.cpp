@@ -41,6 +41,7 @@
 #include "ClassIconFinder.h"
 
 // Core kismet tabs
+#include "SGraphNode.h"
 #include "SSCSEditor.h"
 #include "SSCSEditorViewport.h"
 #include "STimelineEditor.h"
@@ -604,14 +605,18 @@ void FBlueprintEditor::AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 
 	}
 }
 
-void FBlueprintEditor::RefreshEditors()
+void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason)
 {
-	DocumentManager->CleanInvalidTabs();
+	if( Reason != ERefreshBlueprintEditorReason::BlueprintCompiled )
+	{
+		DocumentManager->CleanInvalidTabs();
 
-	DocumentManager->RefreshAllTabs();
+		DocumentManager->RefreshAllTabs();
 
-	// The workflow manager only tracks document tabs.
-	FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
+		// The workflow manager only tracks document tabs.
+		FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
+	}
+
 	if (MyBlueprintWidget.IsValid())
 	{
 		MyBlueprintWidget->Refresh();
@@ -1390,6 +1395,7 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 
 		// When the blueprint that we are observing changes, it will notify this wrapper widget.
 		InitBlueprint->OnChanged().AddSP(this, &FBlueprintEditor::OnBlueprintChanged);
+		InitBlueprint->OnCompiled().AddSP(this, &FBlueprintEditor::OnBlueprintCompiled);
 	}
 
 	CreateDefaultCommands();
@@ -2834,12 +2840,13 @@ void FBlueprintEditor::OnSelectedNodesChanged(const FGraphPanelSelectionSet& New
 	Inspector->ShowDetailsForObjects(NewSelection.Array());
 }
 
-void FBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
+void FBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled )
 {
 	if (InBlueprint)
 	{
 		// Refresh the graphs
-		RefreshEditors();
+		ERefreshBlueprintEditorReason::Type Reason = bIsJustBeingCompiled ? ERefreshBlueprintEditorReason::BlueprintCompiled : ERefreshBlueprintEditorReason::UnknownReason;
+		RefreshEditors(Reason);
 
 		// Notify that the blueprint has been changed (update Content browser, etc)
 		InBlueprint->PostEditChange();
@@ -2853,6 +2860,34 @@ void FBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 			SaveEditedObjectState();
 		}
 	}
+}
+
+void FBlueprintEditor::OnBlueprintCompiled(UBlueprint* InBlueprint)
+{	
+	if( InBlueprint )
+	{
+		// This could be made more efficient by tracking which nodes change
+		// their bHasCompilerMessage flag, or immediately updating the error info
+		// when we assign the flag:
+		TArray<UEdGraph*> Graphs;
+		InBlueprint->GetAllGraphs(Graphs);
+		for (const auto Graph : Graphs)
+		{
+			for (const auto Node : Graph->Nodes)
+			{
+				if (Node)
+				{
+					auto Widget = Node->NodeWidget.Pin();
+					if (Widget.IsValid())
+					{
+						Widget->RefreshErrorInfo();
+					}
+				}
+			}
+		}
+	}
+
+	OnBlueprintChangedImpl( InBlueprint, true );
 }
 
 void FBlueprintEditor::OnBlueprintUnloaded(UBlueprint* InBlueprint)

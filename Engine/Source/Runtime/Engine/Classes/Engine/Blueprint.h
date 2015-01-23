@@ -430,7 +430,12 @@ public:
 	FChangedEvent& OnChanged() { return ChangedEvent; }
 
 	/**	This should NOT be public */
-	void BroadcastChanged() { ChangedEvent.Broadcast( this ); }
+	void BroadcastChanged() { ChangedEvent.Broadcast(this); }
+
+	/** Broadcasts a notification whenever the blueprint has changed. */
+	DECLARE_EVENT_OneParam(UBlueprint, FCompiledEvent, class UBlueprint*);
+	FCompiledEvent& OnCompiled() { return CompiledEvent; }
+	void BroadcastCompiled() { CompiledEvent.Broadcast(this); }
 
 #if WITH_EDITORONLY_DATA
 protected:
@@ -649,6 +654,9 @@ private:
 
 	/** Broadcasts a notification whenever the blueprint has changed. */
 	FChangedEvent ChangedEvent;
+
+	/** Broadcasts a notification whenever the blueprint is compiled. */
+	FCompiledEvent CompiledEvent;
 
 #if WITH_EDITOR
 public:

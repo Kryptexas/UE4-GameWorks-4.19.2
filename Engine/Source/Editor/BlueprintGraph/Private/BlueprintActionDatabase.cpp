@@ -906,7 +906,11 @@ static void BlueprintActionDatabaseImpl::OnWorldDestroyed(UWorld* DestroyedWorld
 static bool BlueprintActionDatabaseImpl::IsObjectValidForDatabase(UObject const* Object)
 {
 	bool bReturn = false;
-	if(Object->IsAsset())
+	if( Object == nullptr )
+	{
+		bReturn = false;
+	}
+	else if(Object->IsAsset())
 	{
 		bReturn = true;
 	}
@@ -1165,7 +1169,8 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 		// blueprint
 		if (!bHadExistingEntry)
 		{
-			OnBlueprintChangedDelegateHandle = BlueprintAsset->OnChanged().AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+			BlueprintAsset->OnChanged().AddRaw(this, &FBlueprintActionDatabase::OnBlueprintChanged);
+			BlueprintAsset->OnCompiled().AddRaw(this, &FBlueprintActionDatabase::OnBlueprintChanged);
 		}
 	}
 
@@ -1221,7 +1226,8 @@ void FBlueprintActionDatabase::ClearAssetActions(UObject* const AssetObject)
 
 	if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject))
 	{
-		BlueprintAsset->OnChanged().Remove(OnBlueprintChangedDelegateHandle);
+		BlueprintAsset->OnChanged().RemoveAll(this);
+		BlueprintAsset->OnCompiled().RemoveAll(this);
 	}
 
 	if (bHasEntry && (ActionList->Num() > 0) && !BlueprintActionDatabaseImpl::bIsInitializing)
@@ -1292,6 +1298,11 @@ void FBlueprintActionDatabase::RegisterAllNodeActions(FBlueprintActionDatabaseRe
 		TGuardValue< TSubclassOf<UEdGraphNode> > ScopedNodeClass(Registrar.GeneratingClass, NodeClass);
 		BlueprintActionDatabaseImpl::GetNodeSpecificActions(NodeClass, Registrar);
 	}
+}
+
+void FBlueprintActionDatabase::OnBlueprintChanged(UBlueprint* InBlueprint)
+{
+	BlueprintActionDatabaseImpl::OnBlueprintChanged(InBlueprint);
 }
 
 #undef LOCTEXT_NAMESPACE

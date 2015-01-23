@@ -32,25 +32,20 @@ static bool bDebugPropertyPropagation = false;
 
 //////////////////////////////////////////////////////////////////////////
 // Stats for this module
-
-
-DEFINE_STAT(EKismetCompilerStats_CompileTime);
-DEFINE_STAT(EKismetCompilerStats_CreateSchema);
-DEFINE_STAT(EKismetCompilerStats_CreateFunctionList);
-DEFINE_STAT(EKismetCompilerStats_Expansion);
-DEFINE_STAT(EKismetCompilerStats_ProcessUbergraph);
-DEFINE_STAT(EKismetCompilerStats_ProcessFunctionGraph);
-DEFINE_STAT(EKismetCompilerStats_PrecompileFunction);
-DEFINE_STAT(EKismetCompilerStats_CompileFunction);
-DEFINE_STAT(EKismetCompilerStats_PostcompileFunction);
-DEFINE_STAT(EKismetCompilerStats_FinalizationWork);
-DEFINE_STAT(EKismetCompilerStats_CodeGenerationTime);
-DEFINE_STAT(EKismetCompilerStats_ChooseTerminalScope);
-DEFINE_STAT(EKismetCompilerStats_CleanAndSanitizeClass);
-DEFINE_STAT(EKismetCompilerStats_CreateClassVariables);
-DEFINE_STAT(EKismetCompilerStats_BindAndLinkClass);
-DEFINE_STAT(EKismetCompilerStats_ChecksumCDO);
-DEFINE_STAT(EKismetCompilerStats_ResolveCompiledStatements);
+DECLARE_CYCLE_STAT(TEXT("Create Schema"), EKismetCompilerStats_CreateSchema, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Create Function List"), EKismetCompilerStats_CreateFunctionList, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Expansion"), EKismetCompilerStats_Expansion, STATGROUP_KismetCompiler )
+DECLARE_CYCLE_STAT(TEXT("Process uber"), EKismetCompilerStats_ProcessUbergraph, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Process func"), EKismetCompilerStats_ProcessFunctionGraph, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Precompile Function"), EKismetCompilerStats_PrecompileFunction, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Compile Function"), EKismetCompilerStats_CompileFunction, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Postcompile Function"), EKismetCompilerStats_PostcompileFunction, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Finalization"), EKismetCompilerStats_FinalizationWork, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Code Gen"), EKismetCompilerStats_CodeGenerationTime, STATGROUP_KismetCompiler);
+DECLARE_CYCLE_STAT(TEXT("Clean and Sanitize Class"), EKismetCompilerStats_CleanAndSanitizeClass, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Create Class Properties"), EKismetCompilerStats_CreateClassVariables, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Bind and Link Class"), EKismetCompilerStats_BindAndLinkClass, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Calculate checksum of CDO"), EKismetCompilerStats_ChecksumCDO, STATGROUP_KismetCompiler );
 		
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
