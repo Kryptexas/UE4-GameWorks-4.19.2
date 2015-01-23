@@ -544,30 +544,11 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	}
 	else
 	{
+		
 		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
 		const TArray<ITargetPlatform*>& Platforms = TPM.GetActiveTargetPlatforms();
-	
-		// Local sandbox file wrapper. This will be used to handle path conversions,
-		// but will not be used to actually write/read files so we can safely
-		// use [Platform] token in the sandbox directory name and then replace it
-		// with the actual platform name.
-		SandboxFile = new FSandboxPlatformFile(false);
-	
-		// Output directory override.	
-		FString OutputDirectory = GetOutputDirectoryOverride();
 
-		// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
-		SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *OutputDirectory));
-
-		CleanSandbox(Platforms);
-
-		// allow the game to fill out the asset registry, as well as get a list of objects to always cook
 		TArray<FString> FilesInPath;
-		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPath);
-
-		// always generate the asset registry before starting to cook, for either method
-		GenerateAssetRegistry(Platforms);
-
 		// new cook is better 
 		if ( Switches.Contains(TEXT("OLDCOOK")))
 		{
@@ -1038,8 +1019,34 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;
 	CookFlags |= bGenerateStreamingInstallManifests ? ECookInitializationFlags::GenerateStreamingInstallManifest : ECookInitializationFlags::None;
 
+	TArray<UClass*> FullGCAssetClasses;
+	if ( FullGCAssetClassNames.Num() )
+	{
+		for ( const auto& ClassName : FullGCAssetClassNames )
+		{
+			UClass* ClassToForceFullGC = FindObject<UClass>(nullptr, *ClassName);
+			if ( ClassToForceFullGC )
+			{
+				FullGCAssetClasses.Add(ClassToForceFullGC);
+			}
+			else
+			{
+				UE_LOG(LogCookCommandlet, Warning, TEXT("Configured to force full GC for assets of type (%s) but that class does not exist."), *ClassName);
+			}
+		}
+	}
+
 
 	CookOnTheFlyServer->Initialize( ECookMode::CookByTheBook, CookFlags );
+
+	// for backwards compat use the FullGCAssetClasses that we got from the cook commandlet ini section
+	if ( FullGCAssetClasses.Num() > 0 )
+	{
+		CookOnTheFlyServer->SetFullGCAssetClasses( FullGCAssetClasses );
+	}
+	
+
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// parse commandline options 
@@ -1183,14 +1190,12 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FDateTime LastConnectionTime = FDateTime::UtcNow();
 	bool bHadConnection = false;
 
-	bool bCookedAMapSinceLastGC = false;
 	while ( CookOnTheFlyServer->IsCookByTheBookRunning() )
 	{
 		uint32 TickResults = 0;
 		static const float CookOnTheSideTimeSlice = 10.0f;
 		TickResults = CookOnTheFlyServer->TickCookOnTheSide(CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC);
 
-		bCookedAMapSinceLastGC |= TickResults & UCookOnTheFlyServer::COSR_CookedMap;
 		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
 		{
 			LastCookActionTime = FPlatformTime::Seconds();
@@ -1206,17 +1211,11 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 				((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
 		}
 
-		// delay the gc until we process some unsolicited packages
-		if ( bCookedAMapSinceLastGC )
-		{
-			UE_LOG( LogCookCommandlet, Display, TEXT("Delaying map gc because we have unsolicited cook requests") );
-			bShouldGC |= bCookedAMapSinceLastGC;
-		}
+		bShouldGC |= (TickResults & UCookOnTheFlyServer::COSR_RequiresGC)!=0;
 
 		if (bShouldGC)
 		{
 			bShouldGC = false;
-			bCookedAMapSinceLastGC = false;
 			NonMapPackageCountSinceLastGC = 0;
 
 			UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
@@ -1263,6 +1262,27 @@ void UCookCommandlet::ProcessDeferredCommands()
 
 bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath)
 {
+	// Local sandbox file wrapper. This will be used to handle path conversions,
+	// but will not be used to actually write/read files so we can safely
+	// use [Platform] token in the sandbox directory name and then replace it
+	// with the actual platform name.
+	SandboxFile = new FSandboxPlatformFile(false);
+
+	// Output directory override.	
+	FString OutputDirectory = GetOutputDirectoryOverride();
+
+	// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
+	SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *OutputDirectory));
+
+	CleanSandbox(Platforms);
+
+	// allow the game to fill out the asset registry, as well as get a list of objects to always cook
+	FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPath);
+
+	// always generate the asset registry before starting to cook, for either method
+	GenerateAssetRegistry(Platforms);
+
+
 	// Subsets for parallel processing
 	uint32 SubsetMod = 0;
 	uint32 SubsetTarget = MAX_uint32;

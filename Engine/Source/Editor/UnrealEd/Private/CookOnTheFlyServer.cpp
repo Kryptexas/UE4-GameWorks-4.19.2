@@ -845,8 +845,12 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		const bool bIsRealtimeMode;
 		const double StartTime;
 		const float &TimeSlice;
-		FCookerTimer(const float &InTimeSlice, bool bInIsRealtimeMode ) : 
-			bIsRealtimeMode( bInIsRealtimeMode), StartTime(FPlatformTime::Seconds()), TimeSlice(InTimeSlice)
+		const int MaxNumPackagesToSave; // maximum packages to save before exiting tick (this should never really hit unless we are not using realtime mode)
+		int NumPackagesSaved;
+		
+		FCookerTimer(const float &InTimeSlice, bool bInIsRealtimeMode, int InMaxNumPackagesToSave = 30 ) : 
+			bIsRealtimeMode( bInIsRealtimeMode), StartTime(FPlatformTime::Seconds()), TimeSlice(InTimeSlice), 
+			MaxNumPackagesToSave(InMaxNumPackagesToSave), NumPackagesSaved(0)
 		{
 		}
 		double GetTimeTillNow()
@@ -855,7 +859,23 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 		bool IsTimeUp()
 		{
-			return (FPlatformTime::Seconds() - StartTime) > TimeSlice && bIsRealtimeMode;
+			if ( bIsRealtimeMode) 
+			{
+				if ((FPlatformTime::Seconds() - StartTime) > TimeSlice)
+				{
+					return true;
+				}
+			}
+			if ( NumPackagesSaved >= MaxNumPackagesToSave )
+			{
+				return true;
+			}
+			return false;
+		}
+
+		void SavedPackage()
+		{
+			++NumPackagesSaved;
 		}
 	};
 	FCookerTimer Timer(TimeSlice, IsRealtimeMode());
@@ -878,7 +898,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 	while (!GIsRequestingExit || CurrentCookMode == ECookMode::CookByTheBook)
 	{
 		// if we just cooked a map then don't process anything the rest of this tick
-		if ( Result & COSR_CookedMap )
+		if ( Result & COSR_RequiresGC )
 		{
 			break;
 		}
@@ -1199,9 +1219,17 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
 					ACCUMULATE_TIMER_STOP(PackageCast);
 
+					UObject* Object = ObjectsInOuter[Index];
+					if ( FullGCAssetClasses.Contains(Object->GetClass()) )
+					{
+						Result |= COSR_RequiresGC;
+					}
+
 					if (Package)
 					{
+						ACCUMULATE_TIMER_START(GetCachedName);
 						FName StandardPackageFName = GetCachedStandardPackageFileFName(Package);
+						ACCUMULATE_TIMER_STOP(GetCachedName);
 						if ( StandardPackageFName == NAME_None )
 							continue;
 
@@ -1231,14 +1259,11 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 							ACCUMULATE_TIMER_STOP(AddUnassignedPackageToManifest);
 						}
 
-						ACCUMULATE_TIMER_START(GetCachedName);
-						FName StandardFilename = GetCachedStandardPackageFileFName(Package);
-						if ( StandardFilename != NAME_None ) // if we have name none that means we are in core packages or something...
+						if ( StandardPackageFName != NAME_None ) // if we have name none that means we are in core packages or something...
 						{
 							// check if the package has already been saved
 							PackagesToSave.AddUnique( Package );
 						}
-						ACCUMULATE_TIMER_STOP(GetCachedName);
 					}
 				}
 			}
@@ -1328,7 +1353,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 						Result |= COSR_CookedPackage;
 					}
 				}
-
+				Timer.SavedPackage();
 
 				//@todo ResetLoaders outside of this (ie when Package is NULL) causes problems w/ default materials
 				if (Package->HasAnyFlags(RF_RootSet) == false && ((CurrentCookMode==ECookMode::CookOnTheFly)) )
@@ -1482,6 +1507,11 @@ void UCookOnTheFlyServer::EndNetworkFileServer()
 		NetworkFileServer = NULL;
 	}
 	NetworkFileServers.Empty();
+}
+
+void UCookOnTheFlyServer::SetFullGCAssetClasses( const TArray<UClass*>& InFullGCAssetClasses)
+{
+	FullGCAssetClasses = InFullGCAssetClasses;
 }
 
 void UCookOnTheFlyServer::BeginDestroy()
@@ -1747,7 +1777,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 				}
 
 				const FString FullFilename = FPaths::ConvertRelativePathToFull( PlatFilename );
-				if( FullFilename.Len() >= PLATFORM_MAX_FILEPATH_LENGTH )
+				if( FullFilename.Len() >= (PLATFORM_MAX_FILEPATH_LENGTH-32) ) // need to subtract 32 because the SavePackage code creates temporary files with longer file names then the one we provide
 				{
 					LogCookerMessage( FString::Printf(TEXT("Couldn't save package, filename is too long: %s"), *PlatFilename), EMessageSeverity::Error );
 					UE_LOG( LogCook, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
@@ -1798,6 +1828,26 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	OutputDirectoryOverride = InOutputDirectoryOverride;
 	CurrentCookMode = DesiredCookMode;
 	CookFlags = InCookFlags;
+
+	TArray<FString> FullGCAssetClassNames;
+	GConfig->GetArray( TEXT("CookSettings"), TEXT("FullGCAssetClassNames"), FullGCAssetClassNames, GEditorIni );
+	for ( const auto& FullGCAssetClassName : FullGCAssetClassNames )
+	{
+		UClass* FullGCAssetClass = FindObject<UClass>(ANY_PACKAGE, *FullGCAssetClassName, true);
+		if( FullGCAssetClass == NULL )
+		{
+			UE_LOG(LogCook, Warning, TEXT("Unable to find full gc asset class name %s may result in bad cook"), *FullGCAssetClassName);
+		}
+		else
+		{
+			FullGCAssetClasses.Add( FullGCAssetClass );
+		}
+	}
+	if ( FullGCAssetClasses.Num() == 0 )
+	{
+		// default to UWorld
+		FullGCAssetClasses.Add( UWorld::StaticClass() );
+	}
 	
 	if ( IsCookByTheBookMode() )
 	{
@@ -1807,6 +1857,12 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
 	const TArray<ITargetPlatform*>& Platforms = TPM.GetCookingTargetPlatforms();
+
+	if ( ((CookFlags & ECookInitializationFlags::Iterative) != ECookInitializationFlags::None) && 
+		((CookFlags & ECookInitializationFlags::Unversioned) != ECookInitializationFlags::None) )
+	{
+		UE_LOG(LogCook, Warning, TEXT("Iterative cooking is unstable when using unversioned cooked content, please disable one of these flags"));
+	}
 
 	// always generate the asset registry before starting to cook, for either method
 	GenerateAssetRegistry(Platforms);

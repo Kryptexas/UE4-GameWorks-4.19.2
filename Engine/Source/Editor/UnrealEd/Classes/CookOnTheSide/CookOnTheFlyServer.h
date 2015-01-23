@@ -619,6 +619,8 @@ private:
 
 	//////////////////////////////////////////////////////////////////////////
 	// General cook options
+	TArray<UClass*> FullGCAssetClasses;
+
 	ECookInitializationFlags CookFlags;
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
@@ -675,6 +677,7 @@ public:
 		COSR_CookedMap			= 0x00000001,
 		COSR_CookedPackage		= 0x00000002,
 		COSR_ErrorLoadingPackage= 0x00000004,
+		COSR_RequiresGC			= 0x00000008,
 	};
 
 
@@ -758,7 +761,6 @@ public:
 	 * @return returns ECookOnTheSideResult
 	 */
 	uint32 TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackagesCount );
-	
 
 	/**
 	 * Clear all the previously cooked data all cook requests from now on will be considered recook requests
@@ -787,7 +789,6 @@ public:
 	bool HasCookRequests() const { return CookRequests.HasItems(); }
 
 	bool HasRecompileShaderRequests() const { return RecompileRequests.HasItems(); }
-
 
 	uint32 NumConnections() const;
 
@@ -821,9 +822,12 @@ public:
 	
 
 	virtual void BeginDestroy() override;
-	
 
-
+	/**
+	 * SetFullGCAssetClasses FullGCAssetClasses is used to determine when TickCookOnTheSide returns RequiresGC
+	 *   When one of these classes is saved it will return COSR_RequiresGC
+	 */
+	void SetFullGCAssetClasses( const TArray<UClass*>& InFullGCAssetClasses );
 
 	/**
 	 * Callbacks from editor 
