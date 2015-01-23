@@ -411,9 +411,11 @@ public partial class Project : CommandUtils
 
 	public static void DumpTargetManifest(Dictionary<string, string> Mapping, string Filename, string StageDir, List<string> CRCFiles)
 	{
-        // const string Iso8601DateTimeFormat = "%Y-%m-%dT%H:%M:%S.%sZ";
-        // const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd HH':'mm':'ss'Z'";
-        const string Iso8601DateTimeFormat = "u"; // predefined universal Iso standard format
+        // const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ"; // probably should work
+		// const string Iso8601DateTimeFormat = "o"; // predefined universal Iso standard format (has too many millisecond spaces for our read code in FDateTime.ParseISO8601
+        const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffzzz";
+
+        
         if (Mapping.Count > 0)
 		{
 			var Lines = new List<string>();
