@@ -10,24 +10,20 @@
 /**
  * Implements the settings for the Android SDK setup.
  */
-//UCLASS(config=Engine, defaultconfig)
-UCLASS()
+UCLASS(config=Engine, globaluserconfig)
 class ANDROIDPLATFORMEDITOR_API UAndroidSDKSettings : public UObject
 {
 public:
 	GENERATED_UCLASS_BODY()
 
-//		UPROPERTY(GlobalConfig, EditDefaultsOnly, Category = SDKConfig)
-		UPROPERTY()
-		FDirectoryPath SDKPath;
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of Android SDK (the directory usually contains 'android-sdk-')"))
+	FDirectoryPath SDKPath;
 
-//	UPROPERTY(GlobalConfig, EditDefaultsOnly, Category = SDKConfig)
-	UPROPERTY()
-		FDirectoryPath NDKPath;
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of Android NDK (the directory usually contains 'android-ndk-')"))
+	FDirectoryPath NDKPath;
 
-//	UPROPERTY(GlobalConfig, EditDefaultsOnly, Category = SDKConfig)
-	UPROPERTY()
-		FDirectoryPath ANTPath;
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of ANT (the directory usually contains 'apache-ant-')"))
+	FDirectoryPath ANTPath;
 
 #if WITH_EDITOR
 	// UObject interface

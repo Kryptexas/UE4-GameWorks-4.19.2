@@ -32,9 +32,9 @@ struct FIniFilename
 	/** If true this ini file is required to generate the output ini. */
 	bool bRequired;
 	/** Used as ID for looking up an INI Hierarchy */
-	FName CacheKey;
+	FString CacheKey;
 
-	FIniFilename(const FString& InFilename, bool InIsRequired, FName InCacheKey=FName())
+	FIniFilename(const FString& InFilename, bool InIsRequired, FString InCacheKey=FString(TEXT("")))
 		: Filename(InFilename)
 		, bRequired(InIsRequired) 
 		, CacheKey(InCacheKey)
@@ -67,7 +67,7 @@ public:
 	FConfigFile* SourceConfigFile;
 
 	/** Key to the cache to speed up ini parsing */
-	FName CacheKey;
+	FString CacheKey;
 
 #if !UE_BUILD_SHIPPING
 	/** The collection of overrides which stemmed from the commandline */

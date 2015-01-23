@@ -34,12 +34,8 @@ FAndroidTargetSettingsCustomization::FAndroidTargetSettingsCustomization()
 	: AndroidRelativePath(TEXT(""))
 	, EngineAndroidPath(FPaths::EngineDir() + TEXT("Build/Android/Java"))
 	, GameAndroidPath(FPaths::GameDir() + TEXT("Build/Android"))
-	, EngineManifestPath(EngineAndroidPath / TEXT("AndroidManifest.xml"))
-	, GameManifestPath(GameAndroidPath / TEXT("AndroidManifest.xml"))
 	, EngineGooglePlayAppIDPath(EngineAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
 	, GameGooglePlayAppIDPath(GameAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
-	, EngineSigningConfigPath(EngineAndroidPath / TEXT("SigningConfig.xml"))
-	, GameSigningConfigPath(GameAndroidPath / TEXT("SigningConfig.xml"))
 	, EngineProguardPath(EngineAndroidPath / TEXT("proguard-project.txt"))
 	, GameProguardPath(GameAndroidPath / TEXT("proguard-project.txt"))
 	, EngineProjectPropertiesPath(EngineAndroidPath / TEXT("project.properties"))
@@ -63,34 +59,23 @@ void FAndroidTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder&
 void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutBuilder& DetailLayout)
 {
 	// Cache some categories
-	IDetailCategoryBuilder& AppManifestCategory = DetailLayout.EditCategory(TEXT("AppManifest"));
+	IDetailCategoryBuilder& APKPackagingCategory = DetailLayout.EditCategory(TEXT("APKPackaging"));
 	IDetailCategoryBuilder& BuildCategory = DetailLayout.EditCategory(TEXT("Build"));
+	IDetailCategoryBuilder& SigningCategory = DetailLayout.EditCategory(TEXT("DistributionSigning"));
 
-	TSharedRef<SPlatformSetupMessage> PlatformSetupMessage = SNew(SPlatformSetupMessage, GameManifestPath)
+	TSharedRef<SPlatformSetupMessage> PlatformSetupMessage = SNew(SPlatformSetupMessage, GameProjectPropertiesPath)
 		.PlatformName(LOCTEXT("AndroidPlatformName", "Android"))
 		.OnSetupClicked(this, &FAndroidTargetSettingsCustomization::CopySetupFilesIntoProject);
 
 	SetupForPlatformAttribute = PlatformSetupMessage->GetReadyToGoAttribute();
 
-	AppManifestCategory.AddCustomRow(LOCTEXT("Warning", "Warning"), false)
+	APKPackagingCategory.AddCustomRow(LOCTEXT("Warning", "Warning"), false)
 		.WholeRowWidget
 		[
 			PlatformSetupMessage
 		];
 
-	AppManifestCategory.AddCustomRow(LOCTEXT("AppManifestHyperlink", "App Manifest Hyperlink"), false)
-		.WholeRowWidget
-		[
-			SNew(SBox)
-			.HAlign(HAlign_Center)
-			[
-				SNew(SHyperlinkLaunchURL, TEXT("http://developer.android.com/guide/topics/manifest/manifest-intro.html"))
-				.Text(LOCTEXT("AndroidDeveloperManifestPage", "Android Developer Page on the App Manifest"))
-				.ToolTipText(LOCTEXT("AndroidDeveloperManifestPageTooltip", "Opens a page that discusses the App Manifest"))
-			]
-		];
-
-	AppManifestCategory.AddCustomRow(LOCTEXT("AppManifestLabel", "App Manifest"), false)
+	APKPackagingCategory.AddCustomRow(LOCTEXT("BuildFolderLabel", "Build Folder"), false)
 		.IsEnabled(SetupForPlatformAttribute)
 		.NameContent()
 		[
@@ -100,7 +85,7 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 			.FillWidth(1.0f)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("AppManifestLabel", "App Manifest"))
+				.Text(LOCTEXT("BuildFolderLabel", "Build Folder"))
 				.Font(DetailLayout.GetDetailFont())
 			]
 		]
@@ -111,22 +96,24 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 			.AutoWidth()
 			[
 				SNew(SButton)
-				.Text(LOCTEXT("OpenManifestFolderButton", "Open Manifest Folder"))
-				.ToolTipText(LOCTEXT("OpenManifestFolderButton_Tooltip", "Opens the folder containing the manifest (AndroidManifest.xml) in Explorer or Finder"))
-				.OnClicked(this, &FAndroidTargetSettingsCustomization::OpenManifestFolder)
+				.Text(LOCTEXT("OpenBuildFolderButton", "Open Build Folder"))
+				.ToolTipText(LOCTEXT("OpenManifestFolderButton_Tooltip", "Opens the folder containing the build files in Explorer or Finder (it's recommended you check these in to source control to share with your team)"))
+				.OnClicked(this, &FAndroidTargetSettingsCustomization::OpenBuildFolder)
 			]
 		];
 
-	// Show properties that are gated by the manifest file being present and writable
-	TSharedRef<IPropertyHandle> OrientationProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, Orientation));
-	OrientationProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FAndroidTargetSettingsCustomization::OnOrientationModified));
-	AppManifestCategory.AddProperty(OrientationProperty)
-		.EditCondition(SetupForPlatformAttribute, NULL);
-
-	TSharedRef<IPropertyHandle> DepthBufferPreferenceProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, DepthBufferPreference));
-	DepthBufferPreferenceProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FAndroidTargetSettingsCustomization::OnDepthBufferPreferenceModified));
-	AppManifestCategory.AddProperty(DepthBufferPreferenceProperty)
-		.EditCondition(SetupForPlatformAttribute, NULL);
+	// Signing category
+	SigningCategory.AddCustomRow(LOCTEXT("SigningHyperlink", "Signing Hyperlink"), false)
+		.WholeRowWidget
+		[
+			SNew(SBox)
+			.HAlign(HAlign_Center)
+			[
+				SNew(SHyperlinkLaunchURL, TEXT("http://developer.android.com/tools/publishing/app-signing.html#releasemode"))
+				.Text(LOCTEXT("AndroidDeveloperSigningPage", "Android Developer page on Signing for Distribution"))
+				.ToolTipText(LOCTEXT("AndroidDeveloperSigningPageTooltip", "Opens a page that discusses the signing using keytool"))
+			]
+		];
 
 	// Google Play category
 	IDetailCategoryBuilder& GooglePlayCategory = DetailLayout.EditCategory(TEXT("GooglePlayServices"));
@@ -242,10 +229,10 @@ void FAndroidTargetSettingsCustomization::BuildIconSection(IDetailLayoutBuilder&
 	}
 }
 
-FReply FAndroidTargetSettingsCustomization::OpenManifestFolder()
+FReply FAndroidTargetSettingsCustomization::OpenBuildFolder()
 {
-	const FString EditAppManifestFolder = FPaths::ConvertRelativePathToFull(FPaths::GetPath(GameManifestPath));
-	FPlatformProcess::ExploreFolder(*EditAppManifestFolder);
+	const FString BuildFolder = FPaths::ConvertRelativePathToFull(FPaths::GetPath(GameProjectPropertiesPath));
+	FPlatformProcess::ExploreFolder(*BuildFolder);
 
 	return FReply::Handled();
 }
@@ -254,7 +241,7 @@ void FAndroidTargetSettingsCustomization::CopySetupFilesIntoProject()
 {
 	// First copy the manifest, it must get copied
 	FText ErrorMessage;
-	if (!SourceControlHelpers::CopyFileUnderSourceControl(GameManifestPath, EngineManifestPath, LOCTEXT("AppManifest", "App Manifest"), /*out*/ ErrorMessage))
+	if (!SourceControlHelpers::CopyFileUnderSourceControl(GameProjectPropertiesPath, EngineProjectPropertiesPath, LOCTEXT("ProjectProperties", "Project Properties"), /*out*/ ErrorMessage))
 	{
 		FNotificationInfo Info(ErrorMessage);
 		Info.ExpireDuration = 3.0f;
@@ -275,9 +262,7 @@ void FAndroidTargetSettingsCustomization::CopySetupFilesIntoProject()
 		}
 
 		// and copy the other files (aren't required)
-		SourceControlHelpers::CopyFileUnderSourceControl(GameSigningConfigPath, EngineSigningConfigPath, LOCTEXT("SigningConfig", "Distribution Signing Config"), /*out*/ ErrorMessage);
 		SourceControlHelpers::CopyFileUnderSourceControl(GameProguardPath, EngineProguardPath, LOCTEXT("Proguard", "Proguard Settings"), /*out*/ ErrorMessage);
-		SourceControlHelpers::CopyFileUnderSourceControl(GameProjectPropertiesPath, EngineProjectPropertiesPath, LOCTEXT("ProjectProperties", "Project Properties"), /*out*/ ErrorMessage);
 	}
 
 	SavedLayoutBuilder->ForceRefreshDetails();
@@ -294,67 +279,6 @@ void FAndroidTargetSettingsCustomization::CopyGooglePlayAppIDFileIntoProject()
 	}
 
 	SavedLayoutBuilder->ForceRefreshDetails();
-}
-
-void FAndroidTargetSettingsCustomization::OnOrientationModified()
-{
-	check(SetupForPlatformAttribute.Get() == true);
-
-
-	FManifestUpdateHelper Updater(GameManifestPath);
-
-	const FString OrientationTag(TEXT("android:screenOrientation=\""));
-	const FString ClosingQuote(TEXT("\""));
-	const FString NewOrientationString = OrientationToString(GetDefault<UAndroidRuntimeSettings>()->Orientation);
-	Updater.ReplaceKey(OrientationTag, ClosingQuote, NewOrientationString);
-
-	Updater.Finalize(GameManifestPath);
-}
-
-FString FAndroidTargetSettingsCustomization::OrientationToString(const EAndroidScreenOrientation::Type Orientation)
-{
-	extern ANDROIDRUNTIMESETTINGS_API class UEnum* Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidScreenOrientation();
-	
-	UEnum* Enum = Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidScreenOrientation();
-	check(Enum != nullptr);
-	
-	return Enum->GetMetaData(TEXT("ManifestValue"), (int32)Orientation);
-}
-
-void FAndroidTargetSettingsCustomization::OnDepthBufferPreferenceModified()
-{
-	check(SetupForPlatformAttribute.Get() == true);
-
-
-	FManifestUpdateHelper Updater(GameManifestPath);
-
-	const FString PrefixTag(TEXT("meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\""));
-	const FString ClosingQuote(TEXT("\""));
-	const FString NewDepthBufferPreferenceString = DepthBufferPreferenceToString(GetDefault<UAndroidRuntimeSettings>()->DepthBufferPreference);
-
-	// First check if the key needs to be created
-	if (!Updater.HasKey(PrefixTag))
-	{
-		// Add the key for value replacement
-		const FString CloseActivityTag(TEXT("</activity"));
-		const FString CloseBracket(TEXT(">"));
-		const FString NewKeyString(TEXT(">\n\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\"0\"/"));
-		Updater.ReplaceKey(CloseActivityTag, CloseBracket, NewKeyString);
-	}
-
-	Updater.ReplaceKey(PrefixTag, ClosingQuote, NewDepthBufferPreferenceString);
-
-	Updater.Finalize(GameManifestPath);
-}
-
-FString FAndroidTargetSettingsCustomization::DepthBufferPreferenceToString(const EAndroidDepthBufferPreference::Type DepthBufferPreference)
-{
-	extern ANDROIDRUNTIMESETTINGS_API class UEnum* Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidDepthBufferPreference();
-
-	UEnum* Enum = Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidDepthBufferPreference();
-	check(Enum != nullptr);
-
-	return Enum->GetMetaData(TEXT("ManifestValue"), (int32)DepthBufferPreference);
 }
 
 void FAndroidTargetSettingsCustomization::OnAppIDModified()

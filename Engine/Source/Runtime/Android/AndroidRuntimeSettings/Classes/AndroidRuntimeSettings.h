@@ -7,6 +7,7 @@
 UENUM()
 namespace EAndroidScreenOrientation
 {
+	// IF THIS CHANGES, MAKE SURE TO UPDATE UEDeployAndroid.cs!
 	enum Type
 	{
 		// Portrait orientation (the display is taller than it is wide)
@@ -39,6 +40,7 @@ namespace EAndroidScreenOrientation
 UENUM()
 namespace EAndroidDepthBufferPreference
 {
+	// IF THIS CHANGES, MAKE SURE TO UPDATE UEDeployAndroid.cs!
 	enum Type
 	{
 		Default = 0 UMETA(DisplayName = "Default", ManifestValue = "0"),
@@ -102,13 +104,57 @@ class ANDROIDRUNTIMESETTINGS_API UAndroidRuntimeSettings : public UObject
 public:
 	GENERATED_UCLASS_BODY()
 
+	// The official name of the product (same as the name you use on the Play Store web site)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Android Package Name (usually in the 'com.Company.Project' format)"))
+	FString PackageName;
+
+	// The version number used to indicate newer versions in the Store
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Store Version (1-65535)", ClampMin="1", ClampMax="65535"))
+	int32 StoreVersion;
+
+	// The visual version displayed for end users
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Version Display Name (usually x.y)"))
+	FString VersionDisplayName;
+
+	// What OS version the app is allowed to be installed on
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Minimum SDK Version (9=Gingerbread, 14=Ice Cream Sandwich, 21=Lollipop)"))
+	int32 MinSDKVersion;
+	
 	// The permitted orientation or orientations of the application on the device
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = AppManifest)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
 	TEnumAsByte<EAndroidScreenOrientation::Type> Orientation;
 
 	// The preferred depth buffer bitcount for Android
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = AppManifest)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Preferred Depth Buffer format"))
 	TEnumAsByte<EAndroidDepthBufferPreference::Type> DepthBufferPreference;
+
+	// Any extra settings for the <application> section
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Extra Settings for <application> section (\\n to separate lines)"))
+	FString ExtraApplicationSettings;
+
+	// Any extra settings for the main <activity> section
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Extra Settings for <activity> section (\\n to separate lines)"))
+	FString ExtraActivitySettings;
+
+	// Any extra permissions your app needs
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Extra Permissions (e.g. 'android.permission.INTERNET')"))
+	TArray<FString> ExtraPermissions;
+	
+	// This is the file that keytool outputs, specified with the -keystore parameter (absolute path or relative to <Project>/Build/Android)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Store (output of keytool)"))
+	FString KeyStore;
+	
+	// This is the name of the key that you specified with the -alias parameter to keytool
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Alias (-alias parameter to keytool)"))
+	FString KeyAlias;
+	
+	// This is the password that you specified FOR THE KEYSTORE NOT THE KEY, when running keytool (either with -storepass or by typing it in).
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Store Password (-storepass parameter to keytool)"))
+	FString KeyStorePassword;
+	
+	// This is the password for the key that you may have specified with keytool, if it's different from the keystore password. Leave blank to use same as Keystore
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Password (leave blank to use Key Store Password)"))
+	FString KeyPassword;
 
 	// Enable ArmV7 support? (this will be used if all type are unchecked)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 [aka armeabi-v7a]"))
@@ -168,7 +214,8 @@ public:
 	/** Android Audio encoding options */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DataCooker, meta = (DisplayName = "Audio encoding"))
 	TEnumAsByte<EAndroidAudio::Type> AndroidAudio;
-
+	
+	
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

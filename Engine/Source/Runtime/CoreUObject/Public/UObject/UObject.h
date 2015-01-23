@@ -706,9 +706,26 @@ public:
 	void UpdateDefaultConfigFile();
 
 	/**
+	 * Saves just the section(s) for this class into the global user ini file for the class (with just the changes from base)
+	 */
+	void UpdateGlobalUserConfigFile();
+
+private:
+	/**
+	 * Saves just the section(s) for this class into the given ini file for the class (with just the changes from base)
+	 */
+	void UpdateSingleSectionOfConfigFile(const FString& ConfigIniName);
+public:
+	
+	/**
 	 * Get the default config filename for the specified UObject
 	 */
 	FString GetDefaultConfigFilename() const;
+
+	/**
+	 * Get the global user override config filename for the specified UObject
+	 */
+	FString GetGlobalUserConfigFilename() const;
 
 	/**
 	 * Imports property values from an .ini file.

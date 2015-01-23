@@ -42,16 +42,15 @@ class FAndroidPlatformEditorModule
 		{
 			SettingsModule->RegisterSettings("Project", "Platforms", "Android",
 				LOCTEXT("RuntimeSettingsName", "Android"),
-				LOCTEXT("RuntimeSettingsDescription", "Settings and resources for Android platforms"),
+				LOCTEXT("RuntimeSettingsDescription", "Project settings for Android apps"),
 				GetMutableDefault<UAndroidRuntimeSettings>()
 			);
 
-			// This will need to be added back in once we know where we are going to be setting the settings from
-// 			SettingsModule->RegisterSettings("Project", "User Settings", "Android",
-// 				LOCTEXT("RuntimeSettingsName", "Android"),
-// 				LOCTEXT("RuntimeSettingsDescription", "Settings for Android SDK"),
-// 				GetMutableDefault<UAndroidSDKSettings>()
-//			);
+ 			SettingsModule->RegisterSettings("Project", "Platforms", "AndroidSDK",
+ 				LOCTEXT("SDKSettingsName", "Android SDK"),
+ 				LOCTEXT("SDKSettingsDescription", "Settings for Android SDK (for all projects)"),
+ 				GetMutableDefault<UAndroidSDKSettings>()
+			);
 		}
 
 		// Force the SDK settings into a sane state initially so we can make use of them
@@ -71,7 +70,7 @@ class FAndroidPlatformEditorModule
 		if (SettingsModule != nullptr)
 		{
 			SettingsModule->UnregisterSettings("Project", "Platforms", "Android");
-			// SettingsModule->UnregisterSettings("Project", "User Settings", "Android");
+			SettingsModule->UnregisterSettings("Project", "Platforms", "AndroidSDK");
 		}
 	}
 };

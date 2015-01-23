@@ -37,14 +37,11 @@ void UAndroidSDKSettings::SetupInitialTargetPaths()
 	FString TempPath;
 	if (GConfig->GetString(TEXT("/Script/AndroidPlatformEditor.AndroidSDKSettings"), TEXT("SDKPath"), TempPath, UserIni))
 	{
-		UE_LOG(AndroidSDKSettings, Warning, TEXT("SDK Path = %s"), *TempPath);
-
 		if (TempPath.Contains(TEXT("Path=")))
 		{
 			SDKPath.Path = TempPath.Mid(7, TempPath.Len() - 9); // Pull the value from the string Path="<payload>"
 		}
 	}
-//	UE_LOG(AndroidSDKSettings, Warning, TEXT("SDK Path = %s"), *SDKPath.Path);
 
 	if (GConfig->GetString(TEXT("/Script/AndroidPlatformEditor.AndroidSDKSettings"), TEXT("NDKPath"), TempPath, UserIni))
 	{
@@ -73,7 +70,6 @@ void UAndroidSDKSettings::SetupInitialTargetPaths()
 			SDKPath.Path = AndroidSDKPath;
 		}
 	}
-	UE_LOG(AndroidSDKSettings, Warning, TEXT("SDK Path = %s"), *SDKPath.Path);
 
 	if (NDKPath.Path.IsEmpty())
 	{
@@ -149,7 +145,6 @@ void UAndroidSDKSettings::UpdateTargetModulePaths(bool bForceUpdate)
 	{
 		Keys.Add(TEXT("ANDROID_HOME"));
 		Values.Add(SDKPath.Path);
-		UE_LOG(AndroidSDKSettings, Log, TEXT("%s"), *SDKPath.Path);
 	}
 	
 	if (bForceUpdate || !NDKPath.Path.IsEmpty())
