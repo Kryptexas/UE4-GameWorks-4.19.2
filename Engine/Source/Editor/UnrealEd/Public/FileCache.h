@@ -146,28 +146,30 @@ private:
 	FUpdateCacheTransaction(FImmutableString InFilename, FFileChangeData::EFileChangeAction InAction, const FDateTime& InTimestamp = 0)
 		: Filename(MoveTemp(InFilename)), Timestamp(InTimestamp), Action(InAction)
 	{}
-
-	/** Copyable only by FFileCache*/
-	FUpdateCacheTransaction(const FUpdateCacheTransaction& In) = default;
-	FUpdateCacheTransaction& operator=(const FUpdateCacheTransaction& In) = default;
 };
 
-/** Small utility for specifying when a call to do some work should bail out, if at all. */
-struct FWorkLimiter
+/** A time limit that counts down from the time of construction, until it hits a given delay */
+struct FTimeLimit
 {
 	/** Constructor specifying that we should never bail out early */
-	FWorkLimiter() : StopAtTime(-1) {}
+	FTimeLimit() : Delay(-1) { Reset(); }
 
 	/** Constructor specifying not to run over the specified number of seconds */
-	FWorkLimiter(float NumSeconds) : StopAtTime(FPlatformTime::Seconds() + NumSeconds) {}
+	FTimeLimit(float NumSeconds) : Delay(NumSeconds) { Reset(); }
 
-	/** Check whether we have exceeded the stop time */
-	bool ShouldLimit() const { return StopAtTime != -1 && FPlatformTime::Seconds() >= StopAtTime; }
+	/** Check whether we have exceeded the time limit */
+	bool Exceeded() const { return Delay != -1 && FPlatformTime::Seconds() >= StartTime + Delay; }
+
+	/** Reset the time limit to start timing again from the current time */
+	void Reset() { StartTime = FPlatformTime::Seconds(); }
 
 private:
 
-	/** User specified time to stop processing */
-	double StopAtTime;
+	/** The delay specified by the user */
+	float Delay;
+
+	/** The time we started */
+	double StartTime;
 };
 
 /** Enum specifying whether a path should be relative or absolute */
@@ -188,7 +190,7 @@ enum EPathType
  *		while(!Reader.IsComplete())
  *		{
  *			FPlatformProcess::Sleep(1);
- *			Reader.Tick(FWorkLimiter(1));	// Do 1 second of work
+ *			Reader.Tick(FTimedSignal(1));	// Do 1 second of work
  *		}
  *		TOptional<FDirectoryState> State = Reader.GetFinalState();
  */
@@ -212,7 +214,7 @@ struct FAsyncDirectoryReader
 	bool IsComplete() const;
 
 	/** Tick this reader (discover new directories / files). Returns progress state. */
-	EProgressResult Tick(const FWorkLimiter& Limiter);
+	EProgressResult Tick(const FTimeLimit& Limit);
 
 private:
 	/** Non-recursively scan a single directory for its contents. Adds results to Pending arrays. */
@@ -238,7 +240,7 @@ private:
 struct FFileCacheConfig
 {
 	FFileCacheConfig(FString InDirectory, FString InCacheFile)
-		: Directory(InDirectory), CacheFile(InCacheFile), BatchDelayS(0.f), PathType(EPathType::Relative)
+		: Directory(InDirectory), CacheFile(InCacheFile), PathType(EPathType::Relative)
 	{}
 
 	/** String specifying the directory on disk that the cache should reflect */
@@ -252,9 +254,6 @@ struct FFileCacheConfig
 	 * Specified as a list of semi-colon separated extensions (eg "png;jpg;gif;").
 	 */
 	FString IncludeExtensions, ExcludeExtensions;
-
-	/** Optionally specified delay that should be waited before reporting changes to the watched directory. Useful for batching together large or rapid changes. */
-	float BatchDelayS;
 
 	/** Path type to return, relative to the directory or absolute. */
 	EPathType PathType;
@@ -285,7 +284,7 @@ public:
 	const FString& GetDirectory() const { return Config.Directory; }
 
 	/** Tick this FileCache, optionally specifying a limiter to limit the amount of time spent in here */
-	void Tick(const FWorkLimiter& Limiter);
+	void Tick(const FTimeLimit& Limit);
 
 	/** Write out the cached file, if we have any changes to write */
 	void WriteCache();
@@ -295,6 +294,9 @@ public:
 	 * described in the transaction, and mark the cache as needing to be saved.
 	 */
 	void CompleteTransaction(FUpdateCacheTransaction&& Transaction);
+
+	/** Get the number of pending changes to the cache. */
+	int32 GetNumOutstandingChanges() const { return OutstandingChanges.Num(); }
 
 	/** Get all pending changes to the cache. Transactions must be returned to CompleteTransaction to update the cache. */
 	TArray<FUpdateCacheTransaction> GetOutstandingChanges();
@@ -338,7 +340,4 @@ private:
 
 	/** True when the cached state we have in memory is more up to date than the serialized file. Enables WriteCache() when true. */
 	bool bSavedCacheDirty;
-
-	/** The time that a change to the file-system was last logged. */
-	double LastChangeTimeS;
 };

@@ -25,7 +25,6 @@ namespace
 			{
 				if (Predicate(Array[Read], Array[DuplRead]))
 				{
-					++Read;
 					goto next;
 				}
 			}
@@ -65,7 +64,7 @@ bool FAsyncDirectoryReader::IsComplete() const
 	return PendingFiles.Num() == 0 && PendingDirectories.Num() == 0;
 }
 
-FAsyncDirectoryReader::EProgressResult FAsyncDirectoryReader::Tick(const FWorkLimiter& Limiter)
+FAsyncDirectoryReader::EProgressResult FAsyncDirectoryReader::Tick(const FTimeLimit& TimeLimit)
 {
 	auto& FileManager = IFileManager::Get();
 	const int32 RootPathLen = RootPath.Len();
@@ -73,7 +72,7 @@ FAsyncDirectoryReader::EProgressResult FAsyncDirectoryReader::Tick(const FWorkLi
 	for (int32 Index = 0; Index < PendingDirectories.Num(); ++Index)
 	{
 		ScanDirectory(PendingDirectories[Index]);
-		if (Limiter.ShouldLimit())
+		if (TimeLimit.Exceeded())
 		{
 			// We've spent too long, bail
 			PendingDirectories.RemoveAt(0, Index, false);
@@ -90,7 +89,7 @@ FAsyncDirectoryReader::EProgressResult FAsyncDirectoryReader::Tick(const FWorkLi
 		FString Filename = (PathType == EPathType::Relative ? *File + RootPathLen : *File);
 		State->Files.Emplace(MoveTemp(Filename), FileManager.GetTimeStamp(*File));
 
-		if (Index % 100 == 0 && Limiter.ShouldLimit())
+		if (Index % 100 == 0 && TimeLimit.Exceeded())
 		{
 			// We've spent too long, bail
 			PendingFiles.RemoveAt(0, Index, false);
@@ -133,7 +132,6 @@ FFileCache::FFileCache(const FFileCacheConfig& InConfig)
 	: Config(InConfig)
 	, DirectoryReader(InConfig.Directory, Config.PathType)
 	, bSavedCacheDirty(false)
-	, LastChangeTimeS(0)
 {
 	// Ensure that the extension strings are of the form ;ext1;ext2;ext3;
 	if (!Config.IncludeExtensions.IsEmpty() && Config.IncludeExtensions[0] != ';')
@@ -236,16 +234,9 @@ void FFileCache::WriteCache()
 
 TArray<FUpdateCacheTransaction> FFileCache::GetOutstandingChanges()
 {
-	if (FPlatformTime::Seconds() - LastChangeTimeS >= Config.BatchDelayS)
-	{
-		TArray<FUpdateCacheTransaction> Moved;
-		Swap(OutstandingChanges, Moved);
-		return Moved;
-	}
-	else
-	{
-		return TArray<FUpdateCacheTransaction>();
-	}
+	TArray<FUpdateCacheTransaction> Moved;
+	Swap(OutstandingChanges, Moved);
+	return Moved;
 }
 
 void FFileCache::CompleteTransaction(FUpdateCacheTransaction&& Transaction)
@@ -288,9 +279,9 @@ void FFileCache::CompleteTransaction(FUpdateCacheTransaction&& Transaction)
 	}
 }
 
-void FFileCache::Tick(const FWorkLimiter& Limiter)
+void FFileCache::Tick(const FTimeLimit& Limit)
 {
-	if (DirectoryReader.IsComplete() || DirectoryReader.Tick(Limiter) == FAsyncDirectoryReader::EProgressResult::Pending)
+	if (DirectoryReader.IsComplete() || DirectoryReader.Tick(Limit) == FAsyncDirectoryReader::EProgressResult::Pending)
 	{
 		return;
 	}
@@ -426,8 +417,6 @@ void FFileCache::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 	RemoveDuplicates(OutstandingChanges, [](const FUpdateCacheTransaction& A, const FUpdateCacheTransaction& B){
 		return A.Action == B.Action && A.Filename == B.Filename;
 	});
-
-	LastChangeTimeS = FPlatformTime::Seconds();
 }
 
 bool FFileCache::IsFileApplicable(const FString& Filename)

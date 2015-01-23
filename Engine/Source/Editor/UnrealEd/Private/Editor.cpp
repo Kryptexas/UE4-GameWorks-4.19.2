@@ -2555,7 +2555,7 @@ bool FReimportManager::CanReimport( UObject* Obj ) const
 	return false;
 }
 
-bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
+bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification )
 {
 	// Warn that were about to reimport, so prep for it
 	PreReimport.Broadcast( Obj );
@@ -2570,7 +2570,6 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 			bHandlersNeedSorting = false;
 		}
 		
-		bool bShowNotification = true;
 		bool bValidSourceFilename = false;
 		TArray<FString> SourceFilenames;
 

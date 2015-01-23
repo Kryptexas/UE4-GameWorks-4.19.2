@@ -14,24 +14,21 @@
 #include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "AutoReimportManager"
+#define CONDITIONAL_YIELD if (TimeLimit.Exceeded()) { return; }
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportManager, Log, All);
 
 namespace
 {
-	/** Template helper function to count the number of elements in the specified array that pass a predicate */
-	template<typename T, typename P>
-	int32 CountIf(const TArray<T>& InArray, P Predicate)
+	/** Reduce the array to the specified accumulator */
+	template<typename T, typename P, typename A>
+	A Reduce(const TArray<T>& InArray, P Predicate, A Accumulator)
 	{
-		int32 Count = 0;
 		for (const T& X : InArray)
 		{
-			if (Predicate(X))
-			{
-				++Count;
-			}
+			Accumulator = Predicate(X, Accumulator);
 		}
-		return Count;
+		return Accumulator;
 	}
 
 	/** Retrieve a semi-colon separated string of file extensions supported by all available editor import factories */
@@ -118,7 +115,6 @@ namespace
 		FString CacheFilename = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir()) / TEXT("ReimportCache") / FString::Printf(TEXT("%u.bin"), CRC);
 
 		FFileCacheConfig Config(MoveTemp(Directory), MoveTemp(CacheFilename));
-		Config.BatchDelayS = 1;
 		Config.IncludeExtensions = InSupportedExtensions;
 		// We always store paths inside content folders relative to the folder
 		Config.PathType = EPathType::Relative;
@@ -158,6 +154,45 @@ namespace
 	}
 }
 
+FReimportFeedbackContext::FReimportFeedbackContext()
+{
+
+}
+
+FReimportFeedbackContext::~FReimportFeedbackContext()
+{
+	if (Notification.IsValid())
+	{
+		Notification->SetCompletionState(SNotificationItem::CS_Success);
+		Notification->ExpireAndFadeout();
+	}
+}
+
+void FReimportFeedbackContext::UpdateText(int32 Progress, int32 Total)
+{
+	FFormatOrderedArguments Args;
+	Args.Add(Progress);
+	Args.Add(Total);
+
+	const FText Message = FText::Format(LOCTEXT("ProcessingChanges", "Processing outstanding content changes ({0} of {1})"), Args);
+	if (Notification.IsValid())
+	{
+		Notification->SetText(Message);
+	}
+	else
+	{
+		FNotificationInfo Info(Message);
+		Info.ExpireDuration = 2.0f;
+		Info.bUseLargeFont = false;
+		Info.bFireAndForget = false;
+		Info.bUseSuccessFailIcons = false;
+		Info.Image = FEditorStyle::GetBrush("NoBrush");
+
+		Notification = FSlateNotificationManager::Get().AddNotification(Info);
+		Notification->SetCompletionState(SNotificationItem::CS_Pending);
+	}
+}
+
 FContentDirectoryMonitor::FContentDirectoryMonitor(const FString& InDirectory, const FString& InSupportedExtensions, const FString& InMountedContentPath)
 	: Cache(GenerateFileCacheConfig(InDirectory, InSupportedExtensions, InMountedContentPath))
 	, MountedContentPath(InMountedContentPath)
@@ -171,159 +206,180 @@ void FContentDirectoryMonitor::Destroy()
 	Cache.Destroy();
 }
 
-void FContentDirectoryMonitor::Tick(const IAssetRegistry& Registry, const FWorkLimiter& Limiter)
+void FContentDirectoryMonitor::Tick(const FTimeLimit& TimeLimit)
 {
-	Cache.Tick(Limiter);
+	Cache.Tick(TimeLimit);
 
-	if (Limiter.ShouldLimit())
+	const double Now = FPlatformTime::Seconds();
+	if (Now - LastSaveTime > ResaveIntervalS)
 	{
-		return;
-	}
-	// We can't do this if the registry is loading assets as we won't necesssarily be able to react to changes effectively
-	else if (!Registry.IsLoadingAssets())
-	{
-		OutstandingChanges = Cache.GetOutstandingChanges();
-		if (OutstandingChanges.Num() != 0)
-		{
-			ProcessOutstandingChanges(Registry, Limiter);
-		}
-	}
-	
-	if (Limiter.ShouldLimit())
-	{
-		return;
-	}
-	// Save out the cache file if we've got time to do so, and have not saved for a while
-	else
-	{
-		const double Now = FPlatformTime::Seconds();
-		if (Now - LastSaveTime > ResaveIntervalS)
-		{
-			LastSaveTime = Now;
-			Cache.WriteCache();
-		}
+		LastSaveTime = Now;
+		Cache.WriteCache();
 	}
 }
 
-void FContentDirectoryMonitor::ProcessOutstandingChanges(const IAssetRegistry& Registry, const FWorkLimiter& Limiter)
+void FContentDirectoryMonitor::StartProcessing()
 {
-	// Count the number of additions so we can apprximate the work load
-	const int32 NumAdditions = CountIf(OutstandingChanges, [](const FUpdateCacheTransaction& Change){ return Change.Action == FFileChangeData::FCA_Added; });
+	WorkProgress = TotalWork = 0;
 
+	auto OutstandingChanges = Cache.GetOutstandingChanges();
+	if (OutstandingChanges.Num() != 0)
+	{
+		for (auto& Transaction : OutstandingChanges)
+		{
+			switch(Transaction.Action)
+			{
+				case FFileChangeData::FCA_Added:		AddedFiles.Emplace(MoveTemp(Transaction));		break;
+				case FFileChangeData::FCA_Modified:		ModifiedFiles.Emplace(MoveTemp(Transaction));	break;
+				case FFileChangeData::FCA_Removed:		DeletedFiles.Emplace(MoveTemp(Transaction));	break;
+			}
+		}
+
+		TotalWork = AddedFiles.Num() + ModifiedFiles.Num() + DeletedFiles.Num();
+	}
+}
+
+void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesToSave, const FTimeLimit& TimeLimit, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension)
+{
+	if (MountedContentPath.IsEmpty())
+	{
+		// @todo: arodham: Prompt user for import location
+		return;
+	}
+	
+	for (int32 Index = 0; Index < AddedFiles.Num(); ++Index)
+	{
+		auto& Addition = AddedFiles[Index];
+
+		WorkProgress += 1;
+		const FString FullFilename = Cache.GetDirectory() + Addition.Filename.Get();
+
+		bool bImportSucceeded = false;
+		bool bImportWasCancelled = false;
+
+		FString NewAssetName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(FullFilename));
+		FString PackagePath= PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Addition.Filename.Get()) / NewAssetName);
+
+		// We can not create assets that share the name of a map file in the same location
+		if (FEditorFileUtils::IsMapPackageAsset(PackagePath))
+		{
+			// @todo: Error reporting
+			continue;
+		}
+
+		if (FindPackage(nullptr, *PackagePath))
+		{
+			// @todo: Error reporting
+			continue;	
+		}
+
+		UPackage* NewPackage = CreatePackage(nullptr, *PackagePath);
+		if ( !ensure(NewPackage) )
+		{
+			// @todo: Error reporting
+			continue;
+		}
+
+		// Make sure the destination package is loaded
+		NewPackage->FullyLoad();
+
+		bool bSuccess = false;
+		bool bCancelled = false;
+
+		UObject* NewAsset = nullptr;
+
+		const FString Ext = FPaths::GetExtension(Addition.Filename.Get(), false);
+		if (auto* Factories = InFactoriesByExtension.Find(Ext))
+		{
+			for (auto* Factory : *Factories)
+			{
+				NewAsset = UFactory::StaticImportObject(Factory->ResolveSupportedClass(), NewPackage, FName(*NewAssetName), RF_Public | RF_Standalone, bCancelled, *FullFilename, nullptr, Factory);
+				if (NewAsset || bCancelled)
+				{
+					break;
+				}
+			}
+		}
+		
+		if (!NewAsset || bCancelled)
+		{
+			// @todo: Error reporting
+			continue;
+		}
+
+		FAssetRegistryModule::AssetCreated(NewAsset);
+		GEditor->BroadcastObjectReimported(NewAsset);
+
+		OutPackagesToSave.Add(NewPackage);
+
+		// Refresh the supported class.  Some factories (e.g. FBX) only resolve their type after reading the file
+		// ImportAssetType = Factory->ResolveSupportedClass();
+		// @todo: analytics
+
+		// Let the cache know that we've dealt with this change (it will be imported immediately)
+		Cache.CompleteTransaction(MoveTemp(Addition));
+
+		if (TimeLimit.Exceeded())
+		{
+			AddedFiles.RemoveAt(0, Index + 1);
+			return;
+		}
+	}
+
+	AddedFiles.Empty();
+}
+
+void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, FReimportFeedbackContext& Context)
+{
 	auto* ReimportManager = FReimportManager::Instance();
 
-	TArray<UObject*> AssetsToDelete;
+	for (int32 Index = 0; Index < ModifiedFiles.Num(); ++Index)
 	{
-		bool bCreatedDialog = false;
-		FScopedSlowTask SlowTask(OutstandingChanges.Num() + NumAdditions, LOCTEXT("ProcessingChanges", "Processing source content changes"));
-		SlowTask.MakeDialog();
+		auto& Change = ModifiedFiles[Index];
 
-		TArray<UPackage*> PackagesToSave;
-
-		for (auto& Change : OutstandingChanges)
+		const FString FullFilename = Cache.GetDirectory() + Change.Filename.Get();
+		for (const auto& AssetData : FindAssetsPertainingToFile(Registry, FullFilename))
 		{
-			const FString FullFilename = Cache.GetDirectory() + Change.Filename.Get();
-
-			if (!bCreatedDialog && FPlatformTime::Seconds() - SlowTask.StartTime > 2)
-			{
-				//SlowTask.MakeDialog();
-				bCreatedDialog = true;
-			}
-			
-			SlowTask.EnterProgressFrame();
-			switch(Change.Action)
-			{
-				case FFileChangeData::FCA_Modified:
-					// @todo: arodham: enable/disable specific extensions/asset types?
-					{
-						for (const auto& AssetData : FindAssetsPertainingToFile(Registry, FullFilename))
-						{
-							UObject* Asset = AssetData.GetAsset();
-							ReimportManager->Reimport(Asset);
-						}
-					}
-					break;
-
-				case FFileChangeData::FCA_Added:
-					{
-						FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-
-						TArray<FString> File;
-						File.Add(FullFilename);
-
-						FString ParentPackage;
-						if (MountedContentPath.IsEmpty())
-						{
-							// @todo: arodham: this is sketchy and needs revisiting. PromptUserForDirectory?
-							auto UserChosenPath = ChooseAssetImportLocation(FullFilename);
-							if (UserChosenPath.IsSet())
-							{
-								ParentPackage = UserChosenPath.GetValue();
-							}
-						}
-						else
-						{
-							ParentPackage = MountedContentPath / PackageTools::SanitizePackageName(FPaths::GetPath(Change.Filename.Get()));
-						}
-
-						if (!ParentPackage.IsEmpty())
-						{
-							auto NewAssets = AssetToolsModule.Get().ImportAssets(File, ParentPackage);
-
-							// @todo: arodham: Error reporting
-
-							for (auto* Asset : NewAssets)
-							{
-								UPackage* Package = Asset->GetOutermost();
-								if (Package)
-								{
-									PackagesToSave.Add(Package);
-								}
-							}
-						}
-					}
-					break;
-
-				case FFileChangeData::FCA_Removed:
-					for (const auto& AssetData : FindAssetsPertainingToFile(Registry, FullFilename))
-					{
-						AssetsToDelete.Add(AssetData.GetAsset());
-					}
-					break;
-
-				default:
-					break;
-			}
-
-			// Let the cache know that we've dealt with this change
-			Cache.CompleteTransaction(MoveTemp(Change));
+			UObject* Asset = AssetData.GetAsset();
+			ReimportManager->Reimport(Asset, false /* Ask for new file */, false /* Show notification */);
 		}
 
-		SlowTask.EnterProgressFrame(NumAdditions);
-		if (PackagesToSave.Num() > 0)
+		// Let the cache know that we've dealt with this change
+		Cache.CompleteTransaction(MoveTemp(Change));
+		
+		WorkProgress += 1;
+		if (TimeLimit.Exceeded())
 		{
-			const bool bAlreadyCheckedOut = false;
-			const bool bCheckDirty = false;
-			const bool bPromptToSave = false;
-			// @todo: arodham: Error reporting?
-			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave, nullptr, bAlreadyCheckedOut);
+			ModifiedFiles.RemoveAt(0, Index + 1);
+			return;
 		}
 	}
 
-	// Open a dialog to ask about deleted files
-	// @todo: this needs improvement
+	ModifiedFiles.Empty();
+}
 
-	if (AssetsToDelete.Num() > 0)
+void FContentDirectoryMonitor::ExtractAssetsToDelete(const IAssetRegistry& Registry, TArray<FAssetData>& OutAssetsToDelete)
+{
+	for (auto& Deletion : DeletedFiles)
 	{
-		ObjectTools::DeleteObjects(AssetsToDelete);
+		for (const auto& AssetData : FindAssetsPertainingToFile(Registry, Cache.GetDirectory() + Deletion.Filename.Get()))
+		{
+			OutAssetsToDelete.Add(AssetData);
+		}
+
+		// Let the cache know that we've dealt with this change (it will be imported in due course)
+		Cache.CompleteTransaction(MoveTemp(Deletion));
 	}
 
-	OutstandingChanges.Empty();
+	WorkProgress += DeletedFiles.Num();
+	DeletedFiles.Empty();
 }
 
 UAutoReimportManager::UAutoReimportManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, CurrentState(ECurrentState::Idle)
 	, bIsProcessingChanges(false)
+	, StartProcessingDelay(1)
 {
 
 }
@@ -362,30 +418,236 @@ void UAutoReimportManager::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-void UAutoReimportManager::Tick(float DeltaTime)
+int32 UAutoReimportManager::GetNumUnprocessedChanges() const
 {
-	// Only spend half a frame on this, at most
-	const FWorkLimiter Limiter(1.0 / 120);
+	auto Pred = [](const FContentDirectoryMonitor& Monitor, int32 Total){ return Total + Monitor.GetNumUnprocessedChanges(); };
+	return Reduce(MountedDirectoryMonitors, Pred, 0) + Reduce(UserDirectoryMonitors, Pred, 0);
+}
 
-	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+int32 UAutoReimportManager::GetTotalWork() const
+{
+	auto Pred = [](const FContentDirectoryMonitor& Monitor, int32 Total){ return Total + Monitor.GetTotalWork(); };
+	return Reduce(MountedDirectoryMonitors, Pred, 0) + Reduce(UserDirectoryMonitors, Pred, 0);
+}
 
-	TGuardValue<bool> Guard(bIsProcessingChanges, true);
+int32 UAutoReimportManager::GetTotalProgress() const
+{
+	auto Pred = [](const FContentDirectoryMonitor& Monitor, int32 Total){ return Total + Monitor.GetWorkProgress(); };
+	return Reduce(MountedDirectoryMonitors, Pred, 0) + Reduce(UserDirectoryMonitors, Pred, 0);
+}
+
+void UAutoReimportManager::ProcessAdditions(const FTimeLimit& TimeLimit)
+{
+	TMap<FString, TArray<UFactory*>> Factories;
+
+	TArray<FString> FactoryExtensions;
+	FactoryExtensions.Reserve(16);
+
+	// Get the list of valid factories
+	for (TObjectIterator<UClass> It ; It ; ++It)
+	{
+		UClass* CurrentClass = (*It);
+
+		if (CurrentClass->IsChildOf(UFactory::StaticClass()) && !(CurrentClass->HasAnyClassFlags(CLASS_Abstract)))
+		{
+			UFactory* Factory = Cast<UFactory>(CurrentClass->GetDefaultObject());
+			if (Factory->bEditorImport && Factory->ImportPriority >= 0)
+			{
+				FactoryExtensions.Reset();
+				Factory->GetSupportedFileExtensions(FactoryExtensions);
+
+				for (const auto& Ext : FactoryExtensions)
+				{
+					auto& Array = Factories.FindOrAdd(Ext);
+					Array.Add(Factory);
+				}
+			}
+		}
+	}
+
+	for (auto& Pair : Factories)
+	{
+		Pair.Value.Sort([](const UFactory& A, const UFactory& B) { return A.ImportPriority > B.ImportPriority; });
+	}
 
 	for (auto& Monitor : MountedDirectoryMonitors)
 	{
-		Monitor.Tick(Registry, Limiter);
-		if (Limiter.ShouldLimit())
+		Monitor.ProcessAdditions(PackagesToSave, TimeLimit, Factories);
+	}
+
+	if (!TimeLimit.Exceeded())
+	{
+		for (auto& Monitor : UserDirectoryMonitors)
 		{
-			return;
+			Monitor.ProcessAdditions(PackagesToSave, TimeLimit, Factories);
 		}
+	}
+
+	CONDITIONAL_YIELD
+
+	CurrentState = ECurrentState::SavePackages;
+}
+
+void UAutoReimportManager::ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit)
+{
+	for (auto& Monitor : MountedDirectoryMonitors)
+	{
+		Monitor.ProcessModifications(Registry, TimeLimit, *FeedbackContextOverride);
+		CONDITIONAL_YIELD
 	}
 
 	for (auto& Monitor : UserDirectoryMonitors)
 	{
-		Monitor.Tick(Registry, Limiter);
-		if (Limiter.ShouldLimit())
+		Monitor.ProcessModifications(Registry, TimeLimit, *FeedbackContextOverride);
+		CONDITIONAL_YIELD
+	}
+
+	CurrentState = ECurrentState::ProcessDeletions;
+}
+
+void UAutoReimportManager::ProcessDeletions(const IAssetRegistry& Registry)
+{
+	TArray<FAssetData> AssetsToDelete;
+
+	for (auto& Monitor : MountedDirectoryMonitors)
+	{
+		Monitor.ExtractAssetsToDelete(Registry, AssetsToDelete);
+	}
+	for (auto& Monitor : UserDirectoryMonitors)
+	{
+		Monitor.ExtractAssetsToDelete(Registry, AssetsToDelete);
+	}
+
+	if (AssetsToDelete.Num() > 0)
+	{
+		ObjectTools::DeleteAssets(AssetsToDelete);
+	}
+
+	CurrentState = ECurrentState::Cleanup;
+}
+
+
+void UAutoReimportManager::Tick(float DeltaTime)
+{
+	// Never spend more than a 60fps frame doing this work (meaning we shouldn't drop below 30fps), we can do more if we're throttling CPU usage (ie editor running in background)
+	const FTimeLimit TimeLimit(GEditor->ShouldThrottleCPUUsage() ? 1 / 6.f : 1.f / 60.f);
+
+	if (CurrentState == ECurrentState::Idle)
+	{
+		for (auto& Monitor : MountedDirectoryMonitors)
 		{
-			return;
+			Monitor.Tick(TimeLimit);
+			CONDITIONAL_YIELD
+		}
+		for (auto& Monitor : UserDirectoryMonitors)
+		{
+			Monitor.Tick(TimeLimit);
+			CONDITIONAL_YIELD
+		}
+
+		const int32 NumUnprocessedChanges = GetNumUnprocessedChanges();
+		if (NumUnprocessedChanges > 0)
+		{
+			// Check if we have any more unprocessed changes. If we have, we wait a delay before processing them.
+			if (NumUnprocessedChanges != CachedNumUnprocessedChanges)
+			{
+				CachedNumUnprocessedChanges = NumUnprocessedChanges;
+				StartProcessingDelay.Reset();
+			}
+			else
+			{
+				if (StartProcessingDelay.Exceeded())
+				{
+					// We have some stuff to do, let's kick that off
+					CurrentState = ECurrentState::Initialize;
+					FeedbackContextOverride.Reset(new FReimportFeedbackContext);
+				}
+			}
+		}
+	}
+	else if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
+	{
+		TGuardValue<bool> GuardProcessingChanges(bIsProcessingChanges, true);
+		
+		FeedbackContextOverride->UpdateText(GetTotalProgress(), GetTotalWork());
+
+		if (CurrentState == ECurrentState::Initialize)
+		{
+			for (auto& Monitor : MountedDirectoryMonitors)
+			{
+				Monitor.StartProcessing();
+			}
+			for (auto& Monitor : UserDirectoryMonitors)
+			{
+				Monitor.StartProcessing();
+			}
+
+			CurrentState = ECurrentState::ProcessAdditions;
+
+			FeedbackContextOverride->UpdateText(GetTotalProgress(), GetTotalWork());
+			CONDITIONAL_YIELD
+		}
+
+		if (CurrentState == ECurrentState::ProcessAdditions)
+		{
+			// Override the global feedback context while we do this to avoid popping up dialogs
+			TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
+
+			ProcessAdditions(TimeLimit);
+
+			FeedbackContextOverride->UpdateText(GetTotalProgress(), GetTotalWork());
+			CONDITIONAL_YIELD
+		}
+
+		if (CurrentState == ECurrentState::SavePackages)
+		{
+			// Override the global feedback context while we do this to avoid popping up dialogs
+			TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
+
+			if (PackagesToSave.Num() > 0)
+			{
+				const bool bAlreadyCheckedOut = false;
+				const bool bCheckDirty = false;
+				const bool bPromptToSave = false;
+				// @todo: arodham: Error reporting?
+				FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave, nullptr, bAlreadyCheckedOut);
+
+				PackagesToSave.Empty();
+			}
+
+			CurrentState = ECurrentState::ProcessModifications;
+			CONDITIONAL_YIELD
+		}
+
+		const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+		if (CurrentState == ECurrentState::ProcessModifications)
+		{
+			// Override the global feedback context while we do this to avoid popping up dialogs
+			TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
+
+			ProcessModifications(Registry, TimeLimit);
+
+			FeedbackContextOverride->UpdateText(GetTotalProgress(), GetTotalWork());
+			CONDITIONAL_YIELD
+		}
+
+		if (CurrentState == ECurrentState::ProcessDeletions)
+		{
+			ProcessDeletions(Registry);
+
+			FeedbackContextOverride->UpdateText(GetTotalProgress(), GetTotalWork());
+			CONDITIONAL_YIELD
+		}
+
+		if (CurrentState == ECurrentState::Cleanup)
+		{
+			// Finished
+			FeedbackContextOverride->UpdateText(GetTotalWork(), GetTotalWork());
+
+			CachedNumUnprocessedChanges = 0;
+			FeedbackContextOverride.Reset();
+
+			CurrentState = ECurrentState::Idle;
 		}
 	}
 }
@@ -412,7 +674,7 @@ void UAutoReimportManager::HandleLoadingSavingSettingChanged(FName PropertyName)
 		}
 		else
 		{
-			// Destroy all the existing montirs, including their file caches
+			// Destroy all the existing monitors, including their file caches
 			for (auto& Monitor : MountedDirectoryMonitors)
 			{
 				Monitor.Destroy();
@@ -429,8 +691,10 @@ void UAutoReimportManager::OnContentPathMounted(const FString& InAssetPath, cons
 
 void UAutoReimportManager::OnContentPathDismounted(const FString& InAssetPath, const FString& FileSystemPath)
 {
+	const auto FullDismountedPath = FPaths::ConvertRelativePathToFull(FileSystemPath);
+
 	MountedDirectoryMonitors.RemoveAll([&](const FContentDirectoryMonitor& Monitor){
-		return Monitor.GetMountedContentPath() == InAssetPath;
+		return Monitor.GetDirectory() == FullDismountedPath;
 	});
 }
 
@@ -543,5 +807,6 @@ void UAutoReimportManager::SetUpUserDirectories()
 	}
 }
 
+#undef CONDITIONAL_YIELD
 #undef LOCTEXT_NAMESPACE
 
