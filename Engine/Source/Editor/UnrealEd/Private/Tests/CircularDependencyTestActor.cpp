@@ -2,7 +2,11 @@
 
 #include "UnrealEd.h"
 #include "Tests/CircularDependencyTestActor.h"
+#include "EdGraphSchema_K2.h"
+#include "EdGraph/EdGraph.h"
 #include "K2Node.h"
+#include "EdGraph/EdGraphPin.h"
+#include "TokenizedMessage.h"
 
 ACircularDependencyTestActor::ACircularDependencyTestActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -28,6 +32,11 @@ static bool IsPlaceholderClass(UClass* TestClass)
 	return TestClass->GetName().Contains(TEXT("PLACEHOLDER"));
 }
 
+static bool IsValidClass(UClass* ClassToVerify)
+{
+	return (ClassToVerify != nullptr) && !IsPlaceholderClass(ClassToVerify);
+};
+
 bool ACircularDependencyTestActor::TestVerifyClass(bool bCheckPropertyType)
 {
 	UClass* BPClass = GetClass();
@@ -50,6 +59,75 @@ bool ACircularDependencyTestActor::TestVerifyClass(bool bCheckPropertyType)
 			}
 		}
 	}
+	return true;
+}
+
+bool ACircularDependencyTestActor::TestVerifyBlueprint()
+{
+#if WITH_EDITOR
+	UClass* BPClass = GetClass();
+	if (UBlueprint* Blueprint = Cast<UBlueprint>(BPClass->ClassGeneratedBy))
+	{
+		TArray<UEdGraph*> BpGraphs;
+		Blueprint->GetAllGraphs(BpGraphs);
+
+		bool bAllValidNodes = true;
+		for (UEdGraph* Graph : BpGraphs)
+		{
+			TArray<UObject*> GraphObjects;
+			GetObjectsWithOuter(Graph, GraphObjects, /*bIncludeNestedObjects =*/true);
+
+			for (UObject* GraphObj : GraphObjects)
+			{
+				if (UProperty* GraphProperty = Cast<UProperty>(GraphObj))
+				{
+					// @TODO: do we even have graph owned properties? no?
+				}
+				else if (UEdGraphNode* EdNode = Cast<UEdGraphNode>(GraphObj))
+				{
+					if (EdNode->bHasCompilerMessage && EdNode->ErrorType >= EMessageSeverity::Warning)
+					{
+						SetTestState(ETestResult::Failed);
+						return false;
+					}
+				}
+				else if (UEdGraphPin* NodePin = Cast<UEdGraphPin>(GraphObj))
+				{
+					FEdGraphPinType& PinType = NodePin->PinType;
+					if (PinType.PinCategory == UEdGraphSchema_K2::PC_Class)
+					{
+						if (!IsValidClass(Cast<UClass>(PinType.PinSubCategoryObject.Get())) || 
+							(NodePin->DefaultObject && !IsValidClass(Cast<UClass>(NodePin->DefaultObject))) )
+						{
+							SetTestState(ETestResult::Failed);
+							return false;
+						}
+					}
+					else if (PinType.PinCategory == UEdGraphSchema_K2::PC_Object)
+					{
+						if ((PinType.PinSubCategory != UEdGraphSchema_K2::PSC_Self) &&
+							!IsValidClass(Cast<UClass>(PinType.PinSubCategoryObject.Get())) )
+						{
+							SetTestState(ETestResult::Failed);
+							return false;
+						}
+						else if ( NodePin->DefaultObject && !IsValidClass(NodePin->DefaultObject->GetClass()) )
+						{
+							SetTestState(ETestResult::Failed);
+							return false;
+						}
+					}
+					else if ( (PinType.PinCategory == UEdGraphSchema_K2::PC_Interface)
+						&& !IsValidClass(Cast<UClass>(PinType.PinSubCategoryObject.Get())) )
+					{
+						SetTestState(ETestResult::Failed);
+						return false;
+					}
+				}
+			}
+		}
+	}
+#endif // WITH_EDITOR
 	return true;
 }
 
@@ -120,16 +198,11 @@ bool ACircularDependencyTestActor::TestVerifyIsBlueprintTypeVar(FName VarName, b
 
 bool ACircularDependencyTestActor::RunVerificationTests_Implementation()
 {
-	return TestVerifyClass();
+	return TestVerifyClass() && TestVerifyBlueprint();
 }
 
 bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, uint8* Container, bool bCheckPropertyType)
 {
-	auto TestVerifyClass = [](UClass* ClassToVerify)->bool
-	{
-		return (ClassToVerify != nullptr) && !IsPlaceholderClass(ClassToVerify);
-	};
-
 	bool bBelongsToThisBlueprintClass = false;
 	if (UClass* OwnerClass = Property->GetOwnerClass())
 	{
@@ -144,7 +217,7 @@ bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, uint8
 	}
 	else if (UStruct* OwnerStruct = Property->GetOwnerStruct())
 	{
-
+		// @TODO
 	}
 
 	if (UObjectProperty* ObjProp = Cast<UObjectProperty>(Property))
@@ -155,7 +228,7 @@ bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, uint8
 			ClassToVerify = Cast<UClass>(ClassProp->GetPropertyValue_InContainer(Container));
 		}
 
-		if (!TestVerifyClass(ClassToVerify))
+		if (!IsValidClass(ClassToVerify))
 		{
 			return false;
 		}		
@@ -169,7 +242,7 @@ bool ACircularDependencyTestActor::TestVerifyProperty(UProperty* Property, uint8
 	}
 	else if (UInterfaceProperty* InterfaceProp = Cast<UInterfaceProperty>(Property))
 	{
-		if (!TestVerifyClass(InterfaceProp->InterfaceClass))
+		if (!IsValidClass(InterfaceProp->InterfaceClass))
 		{
 			return false;
 		}

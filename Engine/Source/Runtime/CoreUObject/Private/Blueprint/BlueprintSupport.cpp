@@ -50,31 +50,22 @@ bool FBlueprintSupport::UseDeferredDependencyLoading()
 #endif
 }
 
-bool FBlueprintSupport::UseDeferredCDOSerialization()
+
+bool FBlueprintSupport::IsResolvingDeferredDependenciesDisabled()
 {
-#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	static const FBoolConfigValueHelper DeferCDOSerializations(TEXT("Kismet"), TEXT("bDeferCDOLoadSerialization"), GEngineIni);
-	return UseDeferredDependencyLoading() && DeferCDOSerializations;
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	static const FBoolConfigValueHelper NoDeferredDependencyResolves(TEXT("Kismet"), TEXT("bForceDisableDeferredDependencyResolving"), GEngineIni);
+	return !UseDeferredDependencyLoading() || NoDeferredDependencyResolves;
 #else 
 	return false;
 #endif
 }
 
-bool FBlueprintSupport::UseDeferredLoadingForSubsequentLoads()
+bool FBlueprintSupport::IsDeferredCDOSerializationDisabled()
 {
-#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	static const FBoolConfigValueHelper PropagateDeferredFlagForStructs(TEXT("Kismet"), TEXT("bPropagateDeferredLoadsForStructs"), GEngineIni);
-	return UseDeferredDependencyLoading() && PropagateDeferredFlagForStructs;
-#else 
-	return false;
-#endif
-}
-
-bool FBlueprintSupport::UseDeferredDependencyVerificationChecks()
-{
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-	static const FBoolConfigValueHelper TestCheckDeferredDependencies(TEXT("Kismet"), TEXT("bCheckDeferredDependencies"), GEngineIni);
-	return UseDeferredDependencyLoading() && TestCheckDeferredDependencies;
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	static const FBoolConfigValueHelper NoDeferredCDOLoading(TEXT("Kismet"), TEXT("bForceDisableDeferredCDOLoading"), GEngineIni);
+	return !UseDeferredDependencyLoading() || NoDeferredCDOLoading;
 #else 
 	return false;
 #endif
@@ -142,6 +133,14 @@ TArray<UClass*> const& FScopedClassDependencyGather::GetCachedDependencies()
 /*******************************************************************************
  * ULinkerLoad
  ******************************************************************************/
+
+// rather than littering the code with USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+// checks, let's just define DEFERRED_DEPENDENCY_CHECK for the file
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+#define DEFERRED_DEPENDENCY_CHECK(CheckExpr) checkSlow(CheckExpr)
+#else  // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+#define DEFERRED_DEPENDENCY_CHECK(CheckExpr)
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
  
 struct FPreloadMembersHelper
 {
@@ -190,15 +189,6 @@ struct FPreloadMembersHelper
  */
 bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObject)
 {
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-	// @TODO: we can't rely on this check, because once we're in class 
-	//        regeneration, graphs/nodes are force loaded and that could cause
-	//        subsequent class regeneration (for other packages)
-	//static ULinkerLoad* RegeneratingLinker = nullptr;
-	//checkSlow(!FBlueprintSupport::UseDeferredDependencyVerificationChecks() || (RegeneratingLinker == nullptr) || (RegeneratingLinker == this));
-	//TGuardValue<ULinkerLoad*> ReentrantGuard(RegeneratingLinker, this);
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-
 	// determine if somewhere further down the callstack, we're already in this
 	// function for this class
 	bool const bAlreadyRegenerating = LoadClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated);
@@ -366,12 +356,7 @@ public:
 	FUnresolvedStructTracker(UStruct* LoadStruct)
 		: TrackedStruct(LoadStruct)
 	{
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-		bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
-		checkSlow(bCircumventValidationChecks || LoadStruct != nullptr);
-		checkSlow(bCircumventValidationChecks || LoadStruct->GetLinker() != nullptr);
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-
+		DEFERRED_DEPENDENCY_CHECK((LoadStruct != nullptr) && (LoadStruct->GetLinker() != nullptr));
 		UnresolvedStructs.Add(LoadStruct);
 	}
 
@@ -446,14 +431,13 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 	//--------------------------------------
 	TGuardValue<uint32> LoadFlagsGuard(LoadFlags, (LoadFlags & ~LOAD_DeferDependencyLoads));
 
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 	static int32 RecursiveDepth = 0;
 	int32 const MeasuredDepth = RecursiveDepth;
 	TGuardValue<int32> RecursiveDepthGuard(RecursiveDepth, RecursiveDepth + 1);
 
-	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
-	checkSlow( bCircumventValidationChecks || (LoadStruct && (LoadStruct->GetLinker() == this)) );
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	DEFERRED_DEPENDENCY_CHECK( (LoadStruct != nullptr) && (LoadStruct->GetLinker() == this) );
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	// scoped block to manage the lifetime of ScopedResolveTracker, so that 
 	// this resolve is only tracked for the duration of resolving all its 
@@ -482,9 +466,7 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 
 			if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(Import.XObject))
 			{
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-				checkSlow(bCircumventValidationChecks || PlaceholderClass->ImportIndex == ImportIndex);
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+				DEFERRED_DEPENDENCY_CHECK(PlaceholderClass->ImportIndex == ImportIndex);
 
 				// NOTE: we don't check that this resolve successfully replaced any
 				//       references (by the return value), because this resolve 
@@ -532,18 +514,18 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 	//        ALevelScriptActor instance BEFORE the class has been regenerated)
 	//LoadAllObjects();
 
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-	for (TObjectIterator<ULinkerPlaceholderClass> PlaceholderIt; PlaceholderIt; ++PlaceholderIt)
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	for (TObjectIterator<ULinkerPlaceholderClass> PlaceholderIt; PlaceholderIt && !FBlueprintSupport::IsResolvingDeferredDependenciesDisabled(); ++PlaceholderIt)
 	{
 		ULinkerPlaceholderClass* PlaceholderClass = *PlaceholderIt;
 		if (PlaceholderClass->GetOuter() == LinkerRoot)
 		{
 			// there shouldn't be any deferred dependencies (belonging to this 
 			// linker) that need to be resolved by this point
-			checkSlow( bCircumventValidationChecks || (!PlaceholderClass->HasReferences() && PlaceholderClass->IsPendingKill()) );
+			DEFERRED_DEPENDENCY_CHECK(!PlaceholderClass->HasReferences() && PlaceholderClass->IsPendingKill());
 		}
 	}
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
@@ -555,12 +537,9 @@ bool ULinkerLoad::HasUnresolvedDependencies() const
 	// struct, or super... see ULinkerLoad::ResolveDeferredDependencies)
 	bool bIsClassExportUnresolved = FUnresolvedStructTracker::IsAssociatedStructUnresolved(this);
 
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
 	// (ResolvingDeferredPlaceholder != nullptr) should imply 
 	// bIsClassExportUnresolved is true (but not the other way around)
-	checkSlow(bCircumventValidationChecks || (ResolvingDeferredPlaceholder == nullptr) || bIsClassExportUnresolved);
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	DEFERRED_DEPENDENCY_CHECK((ResolvingDeferredPlaceholder == nullptr) || bIsClassExportUnresolved);
 	
 	return bIsClassExportUnresolved;
 
@@ -572,23 +551,25 @@ bool ULinkerLoad::HasUnresolvedDependencies() const
 int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* ReferencingClass)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	if (FBlueprintSupport::IsResolvingDeferredDependenciesDisabled())
+	{
+		return 0;
+	}
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
 	TGuardValue<uint32>  LoadFlagsGuard(LoadFlags, (LoadFlags & ~LOAD_DeferDependencyLoads));
  	TGuardValue<UClass*> ResolvingClassGuard(ResolvingDeferredPlaceholder, PlaceholderIn);
 
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
- 	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
- 	checkSlow(bCircumventValidationChecks || Cast<ULinkerPlaceholderClass>(PlaceholderIn) != nullptr);
- 	checkSlow(bCircumventValidationChecks || PlaceholderIn->GetOuter() == LinkerRoot);
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	DEFERRED_DEPENDENCY_CHECK(Cast<ULinkerPlaceholderClass>(PlaceholderIn) != nullptr);
+	DEFERRED_DEPENDENCY_CHECK(PlaceholderIn->GetOuter() == LinkerRoot);
 
 	ULinkerPlaceholderClass* PlaceholderClass = (ULinkerPlaceholderClass*)PlaceholderIn;
 	
 	int32 const ImportIndex = PlaceholderClass->ImportIndex;
 	FObjectImport& Import = ImportMap[ImportIndex];
 
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-	checkSlow( bCircumventValidationChecks || (Import.XObject == PlaceholderClass) || (Import.XObject == nullptr) );
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	DEFERRED_DEPENDENCY_CHECK( (Import.XObject == PlaceholderClass) || (Import.XObject == nullptr) );
 	
 	// clear the placeholder from the import, so that a call to CreateImport()
 	// properly fills it in
@@ -612,7 +593,6 @@ int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* R
 		}
 	}
 
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 	// make sure that we know what utilized this placeholder class... right now
 	// we only expect UObjectProperties/UClassProperties/UInterfaceProperties/
 	// FImplementedInterfaces to, but something else could have requested the 
@@ -620,24 +600,19 @@ int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* R
 	// doesn't have any known references (and it hasn't already been resolved in
 	// some recursive call), then there is something out there still using this
 	// placeholder class
-	checkSlow(bCircumventValidationChecks || (ReplacementCount > 0) || PlaceholderClass->HasReferences() || PlaceholderClass->HasBeenResolved());
-
-	UObject* PlaceholderObj = PlaceholderClass;
-	// 
-	FReferencerInformationList RemainingRefs;
-	//checkSlow(bCircumventValidationChecks || PlaceholderClass->HasReferences() == IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &RemainingRefs));
-	//checkSlow(bCircumventValidationChecks || RemainingRefs.ExternalReferences.Num() == PlaceholderClass->GetRefCount());
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	DEFERRED_DEPENDENCY_CHECK( (ReplacementCount > 0) || PlaceholderClass->HasReferences() || PlaceholderClass->HasBeenResolved() );
 
 	ReplacementCount += PlaceholderClass->ReplaceTrackedReferences(RealClassObj);
 	PlaceholderClass->MarkPendingKill(); // @TODO: ensure these are properly GC'd
 
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	UObject* PlaceholderObj = PlaceholderClass;
 	// there should not be any references left to this placeholder class 
 	// (if there is, then we didn't log that referencer with the placeholder)
-	FReferencerInformationList DanglingReferences;
-	checkSlow(bCircumventValidationChecks || !IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &DanglingReferences));
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+	FReferencerInformationList UnresolvedReferences;
+	DEFERRED_DEPENDENCY_CHECK(!IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &UnresolvedReferences));
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
 
 	return ReplacementCount;
 #else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
@@ -717,12 +692,9 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		// we could end up with placeholder classes in our script-code)
 		if (FUnresolvedStructTracker::IsImportStructUnresolved(Import.XObject))
 		{
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-			bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
-			// because it is tracked by FUnresolvedStructTracker, it must be a class
-			checkSlow(bCircumventValidationChecks || Cast<UClass>(Import.XObject) != nullptr);
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-			Import.SourceLinker->ResolveDeferredDependencies((UClass*)Import.XObject);
+			// because it is tracked by FUnresolvedStructTracker, it must be a struct
+			DEFERRED_DEPENDENCY_CHECK(Cast<UStruct>(Import.XObject) != nullptr);
+			Import.SourceLinker->ResolveDeferredDependencies((UStruct*)Import.XObject);
 		}
 	}
 
@@ -732,11 +704,15 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	// get fully executed in some nested call
 	if (IsBlueprintFinalizationPending())
 	{
-		check(DeferredExportIndex != INDEX_NONE);
+		DEFERRED_DEPENDENCY_CHECK(DeferredExportIndex != INDEX_NONE);
 		FObjectExport& CDOExport = ExportMap[DeferredExportIndex];
 
 		UObject* CDO = CDOExport.Object;
-		if (FBlueprintSupport::UseDeferredCDOSerialization())
+		DEFERRED_DEPENDENCY_CHECK(CDO != nullptr);
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		if (!FBlueprintSupport::IsDeferredCDOSerializationDisabled())
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 		{
 			// have to prematurely set the CDO's linker so we can force a Preload()/
 			// Serialization of the CDO before we regenerate the Blueprint class
@@ -757,22 +733,22 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 			//       already been "finalized", then its RF_NeedLoad flag would 
 			//       have been cleared
 			Preload(CDO);
+
+			DEFERRED_DEPENDENCY_CHECK(CDO->HasAnyFlags(RF_LoadCompleted));
 		}
 
 		UClass* BlueprintClass = Cast<UClass>(IndexToObject(CDOExport.ClassIndex));
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-		bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
-		checkSlow(bCircumventValidationChecks || BlueprintClass == LoadClass);
-		checkSlow(bCircumventValidationChecks || CDO->HasAnyFlags(RF_LoadCompleted));
-		checkSlow(bCircumventValidationChecks || BlueprintClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
+		DEFERRED_DEPENDENCY_CHECK(BlueprintClass == LoadClass);
+		DEFERRED_DEPENDENCY_CHECK(BlueprintClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
 
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 		// at this point there should not be any instances of the Blueprint (else,
 		// we'd have to reinstance and that is too expensive an operation to 
 		// have at load time)
 		TArray<UObject*> ClassInstances;
 		GetObjectsOfClass(BlueprintClass, ClassInstances, /*bIncludeDerivedClasses =*/true);
-		checkSlow(bCircumventValidationChecks || ClassInstances.Num() == 0);
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+		DEFERRED_DEPENDENCY_CHECK(ClassInstances.Num() == 0);
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 		// clear this so IsBlueprintFinalizationPending() doesn't report true
 		DeferredExportIndex = INDEX_NONE;
@@ -801,6 +777,9 @@ bool ULinkerLoad::IsBlueprintFinalizationPending() const
 	return false;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
+
+// don't want other files ending up with this internal define
+#undef DEFERRED_DEPENDENCY_CHECK
 
 /*******************************************************************************
  * UObject

@@ -7,21 +7,16 @@
 //------------------------------------------------------------------------------
 ULinkerPlaceholderClass::ULinkerPlaceholderClass(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 	, bResolvedReferences(false)
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
 {
 }
 
 //------------------------------------------------------------------------------
 ULinkerPlaceholderClass::~ULinkerPlaceholderClass()
 {
-	// @TODO: should we assert when this happens, so we can figure out what 
-	//        placeholder references are still around?
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
-	checkSlow(bCircumventValidationChecks || !HasReferences());
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	checkSlow(!HasReferences());
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	// by this point, we really shouldn't have any properties left (they should 
 	// have all got replaced), but just in case (so things don't blow up with a
@@ -71,29 +66,25 @@ void ULinkerPlaceholderClass::Bind()
 //------------------------------------------------------------------------------
 void ULinkerPlaceholderClass::AddTrackedReference(UProperty* ReferencingProperty)
 {
-#if TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
-	bool const bCircumventValidationChecks = !FBlueprintSupport::UseDeferredDependencyVerificationChecks();
-	if (!bCircumventValidationChecks)
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	FObjectImport* PlaceholderImport = nullptr;
+	if (ULinkerLoad* PropertyLinker = ReferencingProperty->GetLinker())
 	{
-		FObjectImport* PlaceholderImport = nullptr;
-		if (ULinkerLoad* PropertyLinker = ReferencingProperty->GetLinker())
+		for (FObjectImport& Import : PropertyLinker->ImportMap)
 		{
-			for (FObjectImport& Import : PropertyLinker->ImportMap)
+			if (Import.XObject == this)
 			{
-				if (Import.XObject == this)
-				{
-					PlaceholderImport = &Import;
-					break;
-				}
+				PlaceholderImport = &Import;
+				break;
 			}
-			check(GetOuter() == PropertyLinker->LinkerRoot);
-			check(PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads);
 		}
-		// if this check hits, then we're adding dependencies after we've 
-		// already resolved the placeholder (it won't be resolved again)
-		check(!bResolvedReferences); 
-	}	
-#endif // TEST_CHECK_DEPENDENCY_LOAD_DEFERRING
+		check(GetOuter() == PropertyLinker->LinkerRoot);
+		check((PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads) || FBlueprintSupport::IsResolvingDeferredDependenciesDisabled());
+	}
+	// if this check hits, then we're adding dependencies after we've 
+	// already resolved the placeholder (it won't be resolved again)
+	check(!bResolvedReferences); 	
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	ReferencingProperties.Add(ReferencingProperty);
 }
@@ -119,10 +110,7 @@ bool ULinkerPlaceholderClass::HasBeenResolved() const
 //------------------------------------------------------------------------------
 void ULinkerPlaceholderClass::RemoveTrackedReference(UProperty* ReferencingProperty)
 {
-	//if (ReferencingProperty->IsValidLowLevel())
-	{
-		ReferencingProperties.Remove(ReferencingProperty);
-	}
+	ReferencingProperties.Remove(ReferencingProperty);
 }
 
 //------------------------------------------------------------------------------
