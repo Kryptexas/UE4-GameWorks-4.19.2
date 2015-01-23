@@ -9,10 +9,6 @@
 #include "SlateClasses.h"
 
 
-// Enables or disables more slate stats.  These stats are usually per widget and can be gathered hundreds or thousands of times per frame
-// enabling these constantly causes a bit of a performance drop due to stat gathering overhead so these should only be enabled for profiling
-#define SLATE_HD_STATS 0
-
 #define BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION PRAGMA_DISABLE_OPTIMIZATION
 #define END_SLATE_FUNCTION_BUILD_OPTIMIZATION   PRAGMA_ENABLE_OPTIMIZATION
 

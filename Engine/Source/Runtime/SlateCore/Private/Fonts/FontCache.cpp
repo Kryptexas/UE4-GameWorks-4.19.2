@@ -3,6 +3,9 @@
 #include "SlateCorePrivatePCH.h"
 #include "LegacySlateFontInfoCache.h"
 
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Font Atlases"), STAT_SlateNumFontAtlases, STATGROUP_SlateMemory);
+DECLARE_MEMORY_STAT(TEXT("Font Kerning Table Memory"), STAT_SlateFontKerningTableMemory, STATGROUP_SlateMemory);
+DEFINE_STAT(STAT_SlateFontMeasureCacheMemory);
 
 #ifndef WITH_FREETYPE
 	#define WITH_FREETYPE	0
@@ -904,18 +907,16 @@ int8 FKerningTable::GetKerning( const FFontData& InFontData, const int32 InSize,
 		{
 			OutKerning = FontCache.GetKerning( InFontData, InSize, FirstChar, SecondChar, InScale );
 
-#if STATS
-			const uint32 CurrentMemoryUsage = MappedKerningPairs.GetAllocatedSize();
-#endif
+			STAT(const uint32 CurrentMemoryUsage = MappedKerningPairs.GetAllocatedSize());
 			MappedKerningPairs.Add( KerningPair, OutKerning );
-		
-#if STATS
-			uint32 NewMemoryUsage = MappedKerningPairs.GetAllocatedSize();
-			if( NewMemoryUsage > CurrentMemoryUsage )
+			STAT(
 			{
-				INC_MEMORY_STAT_BY( STAT_SlateFontKerningTableMemory, NewMemoryUsage-CurrentMemoryUsage );
-			}
-#endif
+				uint32 NewMemoryUsage = MappedKerningPairs.GetAllocatedSize();
+				if (NewMemoryUsage > CurrentMemoryUsage)
+				{
+					INC_MEMORY_STAT_BY(STAT_SlateFontKerningTableMemory, NewMemoryUsage - CurrentMemoryUsage);
+				}
+			})
 		}
 	}
 
@@ -1040,8 +1041,6 @@ const FCharacterEntry& FCharacterList::GetCharacter( TCHAR Character )
 
 FCharacterEntry& FCharacterList::CacheCharacter( TCHAR Character )
 {
-	SCOPE_CYCLE_COUNTER( STAT_SlateFontCachingTime );
-
 	FCharacterEntry NewEntry;
 	bool bSuccess = FontCache.AddNewEntry( Character, FontKey, NewEntry );
 

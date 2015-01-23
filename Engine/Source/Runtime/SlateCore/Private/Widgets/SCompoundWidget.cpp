@@ -2,16 +2,11 @@
 
 #include "SlateCorePrivatePCH.h"
 
-DECLARE_CYCLE_STAT( TEXT("OnPaint SCompoundWidget"), STAT_SlateOnPaint_SCompoundWidget, STATGROUP_Slate );
-
 int32 SCompoundWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// A CompoundWidget just draws its children
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	{
-#if SLATE_HD_STATS
-		SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_SCompoundWidget );
-#endif
 		this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
 	}
 

@@ -4,8 +4,6 @@
 #include "TextEditHelper.h"
 #include "GenericCommands.h"
 
-DECLARE_CYCLE_STAT( TEXT("OnPaint SEditableText"), STAT_SlateOnPaint_SEditableText, STATGROUP_Slate );
-
 /** A pointer to the editable text currently under the mouse cursor. nullptr when there isn't one. */
 SEditableText* SEditableText::EditableTextUnderCursor = nullptr;
 
@@ -1245,9 +1243,6 @@ FVector2D SEditableText::ComputeDesiredSize(float LayoutScaleMultiplier) const
 
 int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-#if SLATE_HD_STATS
-	SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_SEditableText );
-#endif
 	// The text and some effects draws in front of the widget's background and selection.
 	const int32 SelectionLayer = 0;
 	const int32 TextLayer = 1;

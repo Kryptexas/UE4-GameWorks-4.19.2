@@ -1,8 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
+#include "SlateStats.h"
 
 #define USE_MEASURE_CACHING 1
+
+SLATE_DECLARE_CYCLE_COUNTER(GSlateMeasureStringTime, "Measure String");
 
 namespace FontMeasureConstants
 {
@@ -129,7 +132,7 @@ int32 FSlateFontMeasure::FindCharacterIndexAtOffset( const FString& Text, int32 
 
 FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 StartIndex, int32 EndIndex, const FSlateFontInfo& InFontInfo, bool IncludeKerningWithPrecedingChar, float FontScale, int32 StopAfterHorizontalOffset, ELastCharacterIndexFormat CharIndexFormat, int32& OutLastCharacterIndex ) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_SlateMeasureStringTime);
+	SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_HI, GSlateMeasureStringTime);
 	FCharacterList& CharacterList = FontCache->GetCharacterList( InFontInfo, FontScale );
 	const uint16 MaxHeight = CharacterList.GetMaxHeight();
 

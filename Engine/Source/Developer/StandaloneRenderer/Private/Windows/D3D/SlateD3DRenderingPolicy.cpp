@@ -7,6 +7,12 @@
 #include "Windows/D3D/SlateD3DRenderingPolicy.h"
 #include "Windows/D3D/SlateD3DTextureManager.h"
 #include "Windows/D3D/SlateD3DTextures.h"
+#include "SlateStats.h"
+
+SLATE_DECLARE_CYCLE_COUNTER(GSlateResizeRenderBuffers, "Resize Render Buffers");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateLockRenderBuffers, "Lock Render Buffers");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateMemCopyRenderBuffers, "Memcopy Render Buffers");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateUnlockRenderBuffers, "Unlock Render Buffers");
 
 /** Offset to apply to UVs to line up texels with pixels */
 const float PixelCenterOffsetD3D11 = 0.0f;
@@ -159,16 +165,27 @@ void FSlateD3D11RenderingPolicy::UpdateBuffers( const FSlateWindowElementList& I
 		// resize if needed
 		if( NumVertices*sizeof(FSlateVertex) > VertexBuffer.GetBufferSize() )
 		{
+			SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_FULL, GSlateResizeRenderBuffers);
 			uint32 NumBytesNeeded = NumVertices*sizeof(FSlateVertex);
 			// increase by a static size.
 			// @todo make this better
 			VertexBuffer.ResizeBuffer( NumBytesNeeded + 200*sizeof(FSlateVertex) );
 		}
 
-		void* VerticesPtr = VertexBuffer.Lock(0);
-		FMemory::Memcpy( VerticesPtr, Vertices.GetData(), sizeof(FSlateVertex)*NumVertices );
+		void* VerticesPtr = nullptr;
+		{
+			SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_FULL, GSlateLockRenderBuffers);
+			VerticesPtr = VertexBuffer.Lock(0);
+		}
+		{
+			SLATE_CYCLE_COUNTER_SCOPE(GSlateMemCopyRenderBuffers);
+			FMemory::Memcpy(VerticesPtr, Vertices.GetData(), sizeof(FSlateVertex)*NumVertices);
+		}
 
-		VertexBuffer.Unlock();
+		{
+			SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_FULL, GSlateUnlockRenderBuffers);
+			VertexBuffer.Unlock();
+		}
 	}
 
 	if( Indices.Num() )
@@ -178,15 +195,26 @@ void FSlateD3D11RenderingPolicy::UpdateBuffers( const FSlateWindowElementList& I
 		// resize if needed
 		if( NumIndices > IndexBuffer.GetMaxNumIndices() )
 		{
+			SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_FULL, GSlateResizeRenderBuffers);
 			// increase by a static size.
 			// @todo make this better
 			IndexBuffer.ResizeBuffer( NumIndices + 100 );
 		}
 
-		void* IndicesPtr = IndexBuffer.Lock(0);
-		FMemory::Memcpy( IndicesPtr, Indices.GetData(), sizeof(SlateIndex)*NumIndices );
+		void* IndicesPtr = nullptr;
+		{
+			SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_FULL, GSlateLockRenderBuffers);
+			IndicesPtr = IndexBuffer.Lock(0);
+		}
+		{
+			SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_FULL, GSlateMemCopyRenderBuffers);
+			FMemory::Memcpy(IndicesPtr, Indices.GetData(), sizeof(SlateIndex)*NumIndices);
+		}
 
-		IndexBuffer.Unlock();
+		{
+			SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_FULL, GSlateUnlockRenderBuffers);
+			IndexBuffer.Unlock();
+		}
 	}
 }
 

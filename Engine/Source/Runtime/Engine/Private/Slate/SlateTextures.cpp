@@ -6,7 +6,6 @@
 #include "RenderingCommon.h"
 #include "Slate/SlateTextures.h"
 
-
 FSlateTexture2DRHIRef::FSlateTexture2DRHIRef( FTexture2DRHIRef InRef, uint32 InWidth, uint32 InHeight )
 	: TSlateTexture( InRef )
 	, Width( InWidth )

@@ -2,7 +2,6 @@
 
 #include "SlateRHIRendererPrivatePCH.h"
 
-
 FSlateFontTextureRHI::FSlateFontTextureRHI( uint32 InWidth, uint32 InHeight )
 	: Width( InWidth )
 	, Height( InHeight )

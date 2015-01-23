@@ -8,6 +8,11 @@
 #include "Windows/D3D/SlateD3DRenderingPolicy.h"
 #include "ElementBatcher.h"
 #include "FontCache.h"
+#include "SlateStats.h"
+
+SLATE_DECLARE_CYCLE_COUNTER(GRendererDrawElementList, "Renderer DrawElementList");
+SLATE_DECLARE_CYCLE_COUNTER(GRendererUpdateBuffers, "Renderer UpdateBuffers");
+SLATE_DECLARE_CYCLE_COUNTER(GRendererDrawElements, "Renderer DrawElements");
 
 TRefCountPtr<ID3D11Device> GD3DDevice;
 TRefCountPtr<ID3D11DeviceContext> GD3DDeviceContext;
@@ -332,6 +337,7 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 	for( int32 ListIndex = 0; ListIndex < WindowElementLists.Num(); ++ListIndex )
 	{
 		FSlateWindowElementList& ElementList = WindowElementLists[ListIndex];
+		SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GRendererDrawElementList, ElementList.GetWindow()->GetCreatedInFileFName());
 
 		if ( ElementList.GetWindow().IsValid() )
 		{
@@ -351,7 +357,10 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 			FSlateD3DViewport* Viewport = WindowToViewportMap.Find( &WindowToDraw.Get() );
 			check(Viewport);
 
-			RenderingPolicy->UpdateBuffers( ElementList );
+			{
+				SLATE_CYCLE_COUNTER_SCOPE(GRendererUpdateBuffers);
+				RenderingPolicy->UpdateBuffers(ElementList);
+			}
 
 			check(Viewport);
 			GD3DDeviceContext->RSSetViewports(1, &Viewport->ViewportInfo );
@@ -367,7 +376,10 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 #endif
 			GD3DDeviceContext->OMSetRenderTargets( 1, &RTV, NULL );
 
-			RenderingPolicy->DrawElements( ViewMatrix*Viewport->ProjectionMatrix, ElementList.GetRenderBatches() );
+			{
+				SLATE_CYCLE_COUNTER_SCOPE(GRendererDrawElements);
+				RenderingPolicy->DrawElements(ViewMatrix*Viewport->ProjectionMatrix, ElementList.GetRenderBatches());
+			}
 
 			GD3DDeviceContext->OMSetRenderTargets(0, NULL, NULL);
 

@@ -4,6 +4,7 @@
 #include "SlatePrivatePCH.h"
 #include "SWindowTitleBar.h"
 #include "HittestGrid.h"
+#include "SlateStats.h"
 
 #include "IWidgetReflector.h"
 #include "GenericCommands.h"
@@ -268,11 +269,23 @@ DECLARE_CYCLE_STAT( TEXT("Message Tick Time"), STAT_SlateMessageTick, STATGROUP_
 DECLARE_CYCLE_STAT( TEXT("Update Tooltip Time"), STAT_SlateUpdateTooltip, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Tick Window And Children Time"), STAT_SlateTickWindowAndChildren, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Total Slate Tick Time"), STAT_SlateTickTime, STATGROUP_Slate );
-DECLARE_CYCLE_STAT( TEXT("SlatePrepass"), STAT_SlateCacheDesiredSize, STATGROUP_Slate );
+DECLARE_CYCLE_STAT( TEXT("SlatePrepass"), STAT_SlatePrepass, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("DrawWindows"), STAT_SlateDrawWindowTime, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("TickWidgets"), STAT_SlateTickWidgets, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("TickRegisteredWidgets"), STAT_SlateTickRegisteredWidgets, STATGROUP_Slate );
 
+SLATE_DECLARE_CYCLE_COUNTER(GSlateTotalTickTime, "Total Slate Tick Time");
+SLATE_DECLARE_CYCLE_COUNTER(GMessageTickTime, "Message Tick Time");
+SLATE_DECLARE_CYCLE_COUNTER(GUpdateTooltipTime, "Update Tooltip Time");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateSynthesizeMouseMove, "Synthesize Mouse Move");
+SLATE_DECLARE_CYCLE_COUNTER(GTickWindowAndChildrenTime, "Tick Window And Children Time");
+SLATE_DECLARE_CYCLE_COUNTER(GTickWidgets, "TickWidgets");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateTickNotificationManager, "NotificationManager Tick");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateDrawWindows, "DrawWindows");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateDrawWindowAndChildren, "Draw Window And Children");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateRendererDrawWindows, "Renderer DrawWindows");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateDrawPrepass, "DrawPrepass");
+SLATE_DECLARE_CYCLE_COUNTER(GSlatePrepassWindowAndChildren, "Prepass Window And Children");
 
 // Slate Event Logging is enabled to allow crash log dumping
 #define LOG_SLATE_EVENTS 0
@@ -873,6 +886,7 @@ bool FSlateApplication::IsWindowHousingInteractiveTooltip(const TSharedRef<const
 
 void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick )
 {
+	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM(GTickWindowAndChildrenTime, WindowToTick->GetCreatedInFileFName());
 	if ( WindowToTick->IsVisible() && !WindowToTick->IsWindowMinimized() )
 	{
 		// Switch to the appropriate world for ticking
@@ -883,7 +897,7 @@ void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick 
 		// the Tick() function.
 		
 		{
-			SCOPE_CYCLE_COUNTER( STAT_SlateCacheDesiredSize );
+			SCOPE_CYCLE_COUNTER( STAT_SlatePrepass );
 			WindowToTick->SlatePrepass(GetApplicationScale());
 		}
 
@@ -894,6 +908,7 @@ void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick 
 
 		{
 			SCOPE_CYCLE_COUNTER( STAT_SlateTickWidgets );
+			SLATE_CYCLE_COUNTER_SCOPE(GTickWidgets);
 			// Tick this window and all of the widgets in this window
 			WindowToTick->TickWidgetsRecursively( WindowToTick->GetWindowGeometryInScreen(), GetCurrentTime(), GetDeltaTime() );
 		}
@@ -909,6 +924,7 @@ void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick 
 
 void FSlateApplication::DrawWindows()
 {
+	SLATE_CYCLE_COUNTER_SCOPE(GSlateDrawWindows);
 	PrivateDrawWindows();
 }
 
@@ -927,6 +943,7 @@ struct FDrawWindowArgs
 
 void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& WindowToDraw, FDrawWindowArgs& DrawWindowArgs )
 {
+	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM(GSlateDrawWindowAndChildren, WindowToDraw->GetCreatedInFileFName());
 	// Only draw visible windows
 	if( WindowToDraw->IsVisible() && !WindowToDraw->IsWindowMinimized() )
 	{
@@ -1006,10 +1023,11 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 
 static void PrepassWindowAndChildren( TSharedRef<SWindow> WindowToPrepass )
 {
+	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM(GSlatePrepassWindowAndChildren, WindowToPrepass->GetCreatedInFileFName());
 	FScopedSwitchWorldHack SwitchWorld( WindowToPrepass );
 
 	{
-		SCOPE_CYCLE_COUNTER(STAT_SlateCacheDesiredSize);
+		SCOPE_CYCLE_COUNTER(STAT_SlatePrepass);
 		WindowToPrepass->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
 	}
 
@@ -1026,6 +1044,7 @@ static void PrepassWindowAndChildren( TSharedRef<SWindow> WindowToPrepass )
 
 void FSlateApplication::DrawPrepass( TSharedPtr<SWindow> DrawOnlyThisWindow )
 {
+	SLATE_CYCLE_COUNTER_SCOPE(GSlateDrawPrepass);
 	TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
 
 	if (ActiveModalWindow.IsValid())
@@ -1148,8 +1167,11 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 		TSharedPtr<SWindow> CandidateWindow = Candidate.GetWindow();
 		return !CandidateWindow.IsValid() || !AllWindows.Contains(CandidateWindow.ToSharedRef());
 	});
-	
-	Renderer->DrawWindows( DrawWindowArgs.OutDrawBuffer );
+
+	{	
+		SLATE_CYCLE_COUNTER_SCOPE(GSlateRendererDrawWindows);
+		Renderer->DrawWindows( DrawWindowArgs.OutDrawBuffer );
+	}
 }
 
 void FSlateApplication::PollGameDeviceState()
@@ -1224,7 +1246,9 @@ extern SLATECORE_API int32 bFoldTick;
 
 void FSlateApplication::Tick()
 {
+	{
 	SCOPE_CYCLE_COUNTER( STAT_SlateTickTime );
+	SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
 	
 	{
 		const float DeltaTime = GetDeltaTime();
@@ -1262,6 +1286,7 @@ void FSlateApplication::Tick()
 
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateUpdateTooltip );
+		SLATE_CYCLE_COUNTER_SCOPE(GUpdateTooltipTime);
 
 		// Update tool tip, if we have one
 		const bool AllowSpawningOfToolTips = false;
@@ -1336,51 +1361,57 @@ void FSlateApplication::Tick()
 	{
 		if (!bFoldTick)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_SlateTickWindowAndChildren);
+			SLATE_CYCLE_COUNTER_SCOPE(GTickWindowAndChildrenTime);
+
 			TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
 
+			if ( ActiveModalWindow.IsValid() )
 			{
-				SCOPE_CYCLE_COUNTER(STAT_SlateTickWindowAndChildren);
-
-				if ( ActiveModalWindow.IsValid() )
+				// There is a modal window, and we just need to tick it.
+				TickWindowAndChildren(ActiveModalWindow.ToSharedRef());
+				// And also tick any topmost windows (like tooltips, etc)
+				for ( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt )
 				{
-					// There is a modal window, and we just need to tick it.
-					TickWindowAndChildren(ActiveModalWindow.ToSharedRef());
-					// And also tick any topmost windows (like tooltips, etc)
-					for ( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt )
+					TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
+					if ( CurrentWindow->IsTopmostWindow() )
 					{
-						TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
-						if ( CurrentWindow->IsTopmostWindow() )
-						{
-							TickWindowAndChildren(CurrentWindow);
-						}
-					}
-					// also tick the notification manager's windows
-					TArray< TSharedRef<SWindow> > NotificationWindows;
-					FSlateNotificationManager::Get().GetWindows(NotificationWindows);
-					for ( auto CurrentWindowIt(NotificationWindows.CreateIterator()); CurrentWindowIt; ++CurrentWindowIt )
-					{
-						TickWindowAndChildren(*CurrentWindowIt);
-					}
-				}
-				else
-				{
-					// No modal window; tick all slate windows.
-					for ( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt )
-					{
-						TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
 						TickWindowAndChildren(CurrentWindow);
 					}
+				}
+				// also tick the notification manager's windows
+				TArray< TSharedRef<SWindow> > NotificationWindows;
+				FSlateNotificationManager::Get().GetWindows(NotificationWindows);
+				for ( auto CurrentWindowIt(NotificationWindows.CreateIterator()); CurrentWindowIt; ++CurrentWindowIt )
+				{
+					TickWindowAndChildren(*CurrentWindowIt);
+				}
+			}
+			else
+			{
+				// No modal window; tick all slate windows.
+				for ( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt )
+				{
+					TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
+					TickWindowAndChildren(CurrentWindow);
 				}
 			}
 		}
 
 		// Update any notifications - this needs to be done after windows have updated themselves 
 		// (so they know their size)
-		FSlateNotificationManager::Get().Tick();
+		{
+			SLATE_CYCLE_COUNTER_SCOPE(GSlateTickNotificationManager);
+			FSlateNotificationManager::Get().Tick();
+		}
 
 		// Draw all windows
 		DrawWindows();
 	}
+	}
+
+	// Update Slate Stats
+	SLATE_STATS_END_FRAME(GetCurrentTime());
 }
 
 
@@ -3066,6 +3097,7 @@ bool FSlateApplication::IsWindowInDestroyQueue(TSharedRef<SWindow> Window) const
 
 void FSlateApplication::SynthesizeMouseMove()
 {
+	SLATE_CYCLE_COUNTER_SCOPE(GSlateSynthesizeMouseMove);
 	if (PlatformApplication->Cursor.IsValid())
 	{
 		// Synthetic mouse events accomplish two goals:

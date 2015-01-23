@@ -4,9 +4,6 @@
 #include "PlainTextLayoutMarshaller.h"
 #include "TextBlockLayout.h"
 
-DECLARE_CYCLE_STAT( TEXT("STextBlock"), STAT_SlateComputeDesiredSize_STextBlock, STATGROUP_Slate );
-DECLARE_CYCLE_STAT( TEXT("OnPaint STextBlock"), STAT_SlateOnPaint_STextBlock, STATGROUP_Slate );
-
 void STextBlock::Construct( const FArguments& InArgs )
 {
 	TextStyle = InArgs._TextStyle;
@@ -98,10 +95,6 @@ void STextBlock::SetText( const FText& InText )
 
 int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-#if SLATE_HD_STATS
-	SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_STextBlock );
-#endif
-
 #if WITH_FANCY_TEXT
 
 	// OnPaint will also update the text layout cache if required
@@ -170,10 +163,6 @@ FReply STextBlock::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, cons
 
 FVector2D STextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
-#if SLATE_HD_STATS
-	SCOPE_CYCLE_COUNTER( STAT_SlateComputeDesiredSize_STextBlock );
-#endif
-
 #if WITH_FANCY_TEXT
 
 	// todo: jdale - The scale needs to be passed to ComputeDesiredSize

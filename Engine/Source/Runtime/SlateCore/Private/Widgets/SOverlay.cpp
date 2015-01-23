@@ -4,8 +4,6 @@
 
 #include "LayoutUtils.h"
 
-DECLARE_CYCLE_STAT( TEXT("OnPaint SOverlay"), STAT_SlateOnPaint_SOverlay, STATGROUP_Slate );
-
 SOverlay::SOverlay()
 : Children()
 {
@@ -82,9 +80,6 @@ int32 SOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 {
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	{
-#if SLATE_HD_STATS
-		SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_SOverlay );
-#endif
 		// The box panel has no visualization of its own; it just visualizes its children.
 		this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
 	}

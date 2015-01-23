@@ -6,6 +6,10 @@
 #include "SlateUTextureResource.h"
 #include "SlateMaterialResource.h"
 
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Texture Atlases"), STAT_SlateNumTextureAtlases, STATGROUP_SlateMemory);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Non-Atlased Textures"), STAT_SlateNumNonAtlasedTextures, STATGROUP_SlateMemory);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Dynamic Textures"), STAT_SlateNumDynamicTextures, STATGROUP_SlateMemory);
+
 TSharedPtr<FSlateDynamicTextureResource> FDynamicResourceMap::GetDynamicTextureResource( FName ResourceName ) const
 {
 	return NativeTextureMap.FindRef( ResourceName );
@@ -178,8 +182,6 @@ bool FSlateRHIResourceManager::IsAtlasPageResourceAlphaOnly() const
 
 void FSlateRHIResourceManager::CreateTextures( const TArray< const FSlateBrush* >& Resources )
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Slate Textures"), STAT_Slate, STATGROUP_LoadTime);
-
 	TMap<FName,FNewTextureInfo> TextureInfoMap;
 
 	const uint32 Stride = GPixelFormats[PF_R8G8B8A8].BlockBytes;
@@ -759,7 +761,7 @@ void FSlateRHIResourceManager::DeleteResources()
 	{
 		delete NonAtlasedTextures[ResourceIndex];
 	}
-	SET_DWORD_STAT(STAT_SlateNumNonAtlasedTextures, 0 );
+	SET_DWORD_STAT(STAT_SlateNumNonAtlasedTextures, 0);
 	SET_DWORD_STAT(STAT_SlateNumTextureAtlases, 0);
 	SET_DWORD_STAT(STAT_SlateNumDynamicTextures, 0);
 

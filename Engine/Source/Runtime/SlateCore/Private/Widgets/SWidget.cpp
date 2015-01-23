@@ -4,11 +4,18 @@
 #include "Widgets/SWidget.h"
 #include "Input/Events.h"
 #include "ActiveTimerHandle.h"
+#include "SlateStats.h"
 
-DECLARE_CYCLE_STAT(TEXT("OnPaint"), STAT_SlateOnPaint, STATGROUP_Slate);
-DECLARE_CYCLE_STAT(TEXT("ArrangeChildren"), STAT_SlateArrangeChildren, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Painted Widgets"), STAT_SlateNumPaintedWidgets, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Ticked Widgets"), STAT_SlateNumTickedWidgets, STATGROUP_Slate);
+
+SLATE_DECLARE_CYCLE_COUNTER(GSlateWidgetTick, "SWidget Tick");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateOnPaint, "OnPaint");
+SLATE_DECLARE_CYCLE_COUNTER(GSlatePrepass, "SlatePrepass");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateArrangeChildren, "ArrangeChildren");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateGetVisibility, "GetVisibility");
+
+TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 0, TEXT("Controls whether invisible widgets are ticked."));
 
 SWidget::SWidget()
 	: CreatedInFile( TEXT("") )
@@ -342,15 +349,16 @@ void SWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 {
 }
 
-TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 0, TEXT("Controls whether invisible widgets are ticked."));
-
 void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	INC_DWORD_STAT(STAT_SlateNumTickedWidgets);
 
 	// Execute any pending active timers for this widget, followed by the passive tick
 	ExecuteActiveTimers( InCurrentTime, InDeltaTime );
-	Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
+	{
+		SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlateWidgetTick, GetType());
+		Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	}
 
 	// Gather all children, whether they're visible or not.  We need to allow invisible widgets to
 	// consider whether they should still be invisible in their tick functions, as well as maintain
@@ -374,6 +382,7 @@ void SWidget::SlatePrepass()
 
 void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 {
+	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlatePrepass, GetType());
 	// Cache child desired sizes first. This widget's desired size is
 	// a function of its children's sizes.
 	FChildren* MyChildren = this->GetChildren();
@@ -553,6 +562,10 @@ FString SWidget::GetCreatedInFile() const
 	return this->CreatedInFileFullPath.ToString();
 }
 
+FName SWidget::GetCreatedInFileFName() const
+{
+	return this->CreatedInFile;
+}
 
 int32 SWidget::GetCreatedInLineNumber() const
 {
@@ -622,17 +635,19 @@ void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int3
 {
 	this->TypeOfWidget = InType;
 	this->CreatedInFileFullPath = FName( InFile );
+	this->CreatedInFileFullPath.SetNumber(OnLine);
 	this->CreatedInFile = FName( *FPaths::GetCleanFilename(InFile) );
+	this->CreatedInFile.SetNumber(OnLine);
 	this->CreatedOnLine = OnLine;
 }
 
-SLATECORE_API int32 bFoldTick = 1;
+SLATECORE_API int32 bFoldTick = 0;
 FAutoConsoleVariableRef FoldTick(TEXT("Slate.FoldTick"), bFoldTick, TEXT("When folding, call Tick as part of the paint pass instead of a separate tick pass."));
 
 int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_SlateOnPaint);
 	INC_DWORD_STAT(STAT_SlateNumPaintedWidgets);
+	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlateOnPaint, GetType());
 
 	if ( bFoldTick )
 	{
@@ -679,8 +694,14 @@ float SWidget::GetRelativeLayoutScale(const FSlotBase& Child) const
 
 void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_SlateArrangeChildren);
+	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlateArrangeChildren, GetType());
 	OnArrangeChildren(AllottedGeometry, ArrangedChildren);
+}
+
+EVisibility SWidget::GetVisibility() const
+{
+	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_HI,GSlateGetVisibility, GetType());
+	return Visibility.Get();
 }
 
 TSharedRef<FActiveTimerHandle> SWidget::RegisterActiveTimer(float TickPeriod, FWidgetActiveTimerDelegate TickFunction)

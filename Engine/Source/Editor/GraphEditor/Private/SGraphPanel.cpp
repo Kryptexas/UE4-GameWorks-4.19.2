@@ -30,8 +30,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
-DECLARE_CYCLE_STAT( TEXT("OnPaint SGraphPanel"), STAT_SlateOnPaint_SGraphPanel, STATGROUP_Slate );
-
 SGraphPanel::FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
 {
 	if (auto* Node = InPin->GetOwningNode())
@@ -116,10 +114,6 @@ SGraphPanel::~SGraphPanel()
 
 int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-#if SLATE_HD_STATS
-	SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_SGraphPanel );
-#endif
-
 	CachedAllottedGeometryScaledSize = AllottedGeometry.Size * AllottedGeometry.Scale;
 
 	//Style used for objects that are the same between revisions

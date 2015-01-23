@@ -159,6 +159,7 @@ public:
 		ET_Viewport,
 		ET_Border,
 		ET_Custom,
+		ET_Count,
 	};
 
 	enum ERotationSpace
