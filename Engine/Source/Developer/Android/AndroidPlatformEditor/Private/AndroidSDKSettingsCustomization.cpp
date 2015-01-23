@@ -62,8 +62,7 @@ void FAndroidSDKSettingsCustomization::SetupSDKPaths()
 			changed |= true;
 		}
 				
-	}
-	
+	}	
 
 	if (settings->NDKPath.Path.IsEmpty())
 	{
@@ -75,8 +74,7 @@ void FAndroidSDKSettingsCustomization::SetupSDKPaths()
 			changed |= true;
 		}
 		
-	}
-	
+	}	
 
 	if (settings->ANTPath.Path.IsEmpty())
 	{
@@ -88,6 +86,18 @@ void FAndroidSDKSettingsCustomization::SetupSDKPaths()
 			changed |= true;
 		}
 		
+	}
+
+	if (settings->JavaPath.Path.IsEmpty())
+	{
+		TCHAR AndroidJavaPath[256];
+		FPlatformMisc::GetEnvironmentVariable(TEXT("JAVA_HOME"), AndroidJavaPath, ARRAY_COUNT(AndroidJavaPath));
+		if (AndroidJavaPath[0])
+		{
+			settings->JavaPath.Path = AndroidJavaPath;
+			changed |= true;
+		}
+
 	}
 	
 	if (changed)

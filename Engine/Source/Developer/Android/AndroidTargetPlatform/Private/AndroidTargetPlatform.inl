@@ -91,19 +91,6 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::IsSdkInstalled(bool bPr
 {
 
 	OutDocumentationPath = FString("Shared/Tutorials/SettingUpAndroidTutorial");
-
-#if PLATFORM_WINDOWS
-	TCHAR JAVA_HOME[MAX_PATH];
-	FPlatformMisc::GetEnvironmentVariable(TEXT("JAVA_HOME"), JAVA_HOME, MAX_PATH);
-
-	// make sure that JAVA_HOME points to the right thing
-	if (JAVA_HOME[0] == 0 ||
-		IFileManager::Get().FileSize(*(FString(JAVA_HOME) / TEXT("bin/javac.exe"))) < 0)
-	{
-		return false;
-	}
-#endif
-
 	return true;
 }
 

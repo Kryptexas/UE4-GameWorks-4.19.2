@@ -32,34 +32,6 @@ void UAndroidSDKSettings::SetDeviceDetection(IAndroidDeviceDetection * AndroidDe
 
 void UAndroidSDKSettings::SetupInitialTargetPaths()
 {
-	// Temp code to pull directly from GConfig until the correct serialisation code exists
-	const FString UserIni = GEngineIni; //  (TEXT("DefaultUser"));
-	FString TempPath;
-	if (GConfig->GetString(TEXT("/Script/AndroidPlatformEditor.AndroidSDKSettings"), TEXT("SDKPath"), TempPath, UserIni))
-	{
-		if (TempPath.Contains(TEXT("Path=")))
-		{
-			SDKPath.Path = TempPath.Mid(7, TempPath.Len() - 9); // Pull the value from the string Path="<payload>"
-		}
-	}
-
-	if (GConfig->GetString(TEXT("/Script/AndroidPlatformEditor.AndroidSDKSettings"), TEXT("NDKPath"), TempPath, UserIni))
-	{
-		if (TempPath.Contains(TEXT("Path=")))
-		{
-			NDKPath.Path = TempPath.Mid(7, TempPath.Len() - 9); // Pull the value from the string Path="<payload>"
-		}
-	}
-
-	if (GConfig->GetString(TEXT("/Script/AndroidPlatformEditor.AndroidSDKSettings"), TEXT("ANTPath"), TempPath, UserIni))
-	{
-		if (TempPath.Contains(TEXT("Path=")))
-		{
-			ANTPath.Path = TempPath.Mid(7, TempPath.Len() - 9); // Pull the value from the string Path="<payload>"
-		}
-	}
-	// End Temp section - this will be removed asap
-
 	// Check each path, if we don't have it then try to look up the values from a known location instead
 	if (SDKPath.Path.IsEmpty())
 	{
@@ -88,6 +60,16 @@ void UAndroidSDKSettings::SetupInitialTargetPaths()
 		if (AndroidANTPath[0])
 		{
 			ANTPath.Path = AndroidANTPath;
+		}
+	}
+
+	if (JavaPath.Path.IsEmpty())
+	{
+		TCHAR AndroidJavaPath[256];
+		FPlatformMisc::GetEnvironmentVariable(TEXT("JAVA_HOME"), AndroidJavaPath, ARRAY_COUNT(AndroidJavaPath));
+		if (AndroidJavaPath[0])
+		{
+			JavaPath.Path = AndroidJavaPath;
 		}
 	}
 
@@ -157,6 +139,12 @@ void UAndroidSDKSettings::UpdateTargetModulePaths(bool bForceUpdate)
 	{
 		Keys.Add(TEXT("ANT_HOME"));
 		Values.Add(ANTPath.Path);
+	}
+
+	if (bForceUpdate || !JavaPath.Path.IsEmpty())
+	{
+		Keys.Add(TEXT("JAVA_HOME"));
+		Values.Add(JavaPath.Path);
 	}
 
 	SaveConfig();

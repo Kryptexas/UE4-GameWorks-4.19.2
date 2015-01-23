@@ -68,7 +68,8 @@ namespace UnrealBuildTool
                 Dictionary<string, string> EnvVarNames = new Dictionary<string,string> { 
                                                          {"ANDROID_HOME", "SDKPath"}, 
                                                          {"NDKROOT", "NDKPath"}, 
-                                                         {"ANT_HOME", "ANTPath"}
+                                                         {"ANT_HOME", "ANTPath"},
+                                                         {"JAVA_HOME", "JavaPath"}
                                                          };
 
                 string path;
