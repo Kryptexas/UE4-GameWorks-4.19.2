@@ -610,8 +610,8 @@ public:
 			DetailsView->SetObjects( InObjects );
 			
 			bool bShowingComponents = false;
-			
-			if( GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
+
+			if( InObjects.Num() == 1 && FKismetEditorUtilities::CanCreateBlueprintOfClass( InObjects[0]->GetClass() ) && GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
 			{
 				auto Actor = GetSelectedActor();
 				if (Actor)
