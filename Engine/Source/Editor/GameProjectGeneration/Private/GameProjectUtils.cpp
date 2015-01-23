@@ -246,8 +246,22 @@ FString GameProjectUtils::FNewClassInfo::GetHeaderTemplateFilename() const
 {
 	switch(ClassType)
 	{
-	case EClassType::UObject:
-		return TEXT("UObjectClass.h.template");
+		case EClassType::UObject:
+		{
+			if( BaseClass != nullptr && BaseClass->IsChildOf( UActorComponent::StaticClass() ) )
+			{
+				return TEXT( "ActorComponentClass.h.template" );
+			}
+			else if( BaseClass != nullptr && BaseClass->IsChildOf( AActor::StaticClass() ) )
+			{
+				return TEXT( "ActorClass.h.template" );
+			}
+			else
+			{
+				// Some other non-actor, non-component UObject class
+				return TEXT( "UObjectClass.h.template" );
+			}
+		}
 
 	case EClassType::EmptyCpp:
 		return TEXT("EmptyClass.h.template");
@@ -268,9 +282,21 @@ FString GameProjectUtils::FNewClassInfo::GetSourceTemplateFilename() const
 {
 	switch(ClassType)
 	{
-	case EClassType::UObject:
-		return TEXT("UObjectClass.cpp.template");
-
+		case EClassType::UObject:
+			if( BaseClass != nullptr && BaseClass->IsChildOf( UActorComponent::StaticClass() ) )
+			{
+				return TEXT( "ActorComponentClass.cpp.template" );
+			}
+			else if( BaseClass != nullptr && BaseClass->IsChildOf( AActor::StaticClass() ) )
+			{
+				return TEXT( "ActorClass.cpp.template" );
+			}
+			else
+			{
+				// Some other non-actor, non-component UObject class
+				return TEXT( "UObjectClass.cpp.template" );
+			}
+	
 	case EClassType::EmptyCpp:
 		return TEXT("EmptyClass.cpp.template");
 
