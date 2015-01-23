@@ -105,7 +105,7 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	// The official name of the product (same as the name you use on the Play Store web site)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Android Package Name (usually in the 'com.Company.Project' format)"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Android Package Name ('com.Company.Project', [PROJECT] is replaced with project name)"))
 	FString PackageName;
 
 	// The version number used to indicate newer versions in the Store
@@ -140,8 +140,8 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Extra Permissions (e.g. 'android.permission.INTERNET')"))
 	TArray<FString> ExtraPermissions;
 	
-	// This is the file that keytool outputs, specified with the -keystore parameter (absolute path or relative to <Project>/Build/Android)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Store (output of keytool)"))
+	// This is the file that keytool outputs, specified with the -keystore parameter (file should be in <Project>/Build/Android)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Store (output of keytool, placed in <Project>/Build/Android)"))
 	FString KeyStore;
 	
 	// This is the name of the key that you specified with the -alias parameter to keytool
