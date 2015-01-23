@@ -40,6 +40,11 @@ void UAbilityTask_WaitTargetData::Activate()
 
 			TargetClass = SpawnedActor->GetClass();
 
+			if (IsPendingKill())
+			{
+				return;
+			}
+
 			if (ShouldSpawnTargetActor())
 			{
 				InitializeTargetActor(SpawnedActor);
