@@ -1297,6 +1297,13 @@ namespace UnrealBuildTool
 				// Generate the stub
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
+					// ensure the plist, entitlements, and provision files are properly copied
+					var DeployHandler = UEBuildDeploy.GetBuildDeploy(Target.Platform);
+					if (DeployHandler != null)
+					{
+						DeployHandler.PrepTargetForDeployment(Target);
+					}
+
 					if (!bUseDangerouslyFastMode)
 					{
 						// generate the dummy project so signing works

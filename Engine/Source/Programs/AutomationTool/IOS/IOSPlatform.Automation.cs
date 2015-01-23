@@ -379,143 +379,6 @@ public class IOSPlatform : Platform
 			}
 		}
 
-		// copy the appropriate plist file over
-		string SourcePListFile = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "UE4Game-Info.plist");
-		if (File.Exists(ProjectRoot + "/Build/IOS/Info.plist"))
-		{
-			SourcePListFile = CombinePaths(ProjectRoot, "Build", "IOS", "Info.plist");
-		}
-		else if (File.Exists(ProjectRoot + "/Build/IOS/" + ShortProjectName + "-Info.plist"))
-		{
-			SourcePListFile = CombinePaths(ProjectRoot, "Build", "IOS", ShortProjectName + "-Info.plist");
-		}
-		else if (Directory.Exists(ProjectRoot + "/Build/IOS"))
-		{
-			// look for any plist file
-			string[] Plists = Directory.GetFiles(ProjectRoot + "/Build/IOS", "*.plist");
-			if (Plists.Length > 0)
-			{
-				SourcePListFile = Plists[0];
-			}
-		}
-
-		//@TODO: This is writing to the engine directory!
-		string SourcePath = CombinePaths((IsCodeBasedProject ? ProjectRoot : LocalRoot + "\\Engine"), "Intermediate", "IOS");
-		string TargetPListFile = Path.Combine(SourcePath, (IsCodeBasedProject ? ShortProjectName : "UE4Game") + "-Info.plist");
-
-		Dictionary<string, string> Replacements = new Dictionary<string, string>();
-		Replacements.Add("${EXECUTABLE_NAME}", (IsCodeBasedProject ? ShortProjectName : "UE4Game"));
-		Replacements.Add("${BUNDLE_IDENTIFIER}", ShortProjectName.Replace("_", ""));
-		CopyFileWithReplacements(SourcePListFile, TargetPListFile, Replacements);
-
-		// Now do the .mobileprovision
-		// install the provision
-		FileInfo DestFileInfo;
-		string InEngineDir = CombinePaths(LocalRoot, "Engine");
-		string ProvisionWithPrefix = CombinePaths(InEngineDir, "Build", "IOS","UE4Game.mobileprovision");
-		string BuildDirectory = CombinePaths(ProjectRoot, "Build", "IOS");
-		if (File.Exists(BuildDirectory + "/" + ShortProjectName + ".mobileprovision"))
-		{
-			ProvisionWithPrefix = BuildDirectory + "/" + ShortProjectName + ".mobileprovision";
-		}
-		else
-		{
-			if (File.Exists(BuildDirectory + "/NotForLicensees/" + ShortProjectName + ".mobileprovision"))
-			{
-				ProvisionWithPrefix = BuildDirectory + "/NotForLicensees/" + ShortProjectName + ".mobileprovision";
-			}
-			else if (!File.Exists(ProvisionWithPrefix))
-			{
-				ProvisionWithPrefix = InEngineDir + "/Build/IOS/NotForLicensees/UE4Game.mobileprovision";
-			}
-		}
-		if (File.Exists(ProvisionWithPrefix))
-		{
-			Directory.CreateDirectory(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/");
-			if (File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + ".mobileprovision"))
-			{
-				DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + ".mobileprovision");
-				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-			}
-			File.Copy(ProvisionWithPrefix, Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + ".mobileprovision", true);
-			DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + ".mobileprovision");
-			DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-		}
-		else
-		{
-			// copy all provisions from the game directory, the engine directory, and the notforlicensees directory
-			// copy all of the provisions from the game directory to the library
-			{
-				if (Directory.Exists(BuildDirectory))
-				{
-					foreach (string Provision in Directory.EnumerateFiles(BuildDirectory, "*.mobileprovision", SearchOption.AllDirectories))
-					{
-						if (!File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision)) || File.GetLastWriteTime(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision)) < File.GetLastWriteTime(Provision))
-						{
-							if (File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision)))
-							{
-								DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision));
-								DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-							}
-							File.Copy(Provision, Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision), true);
-							DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision));
-							DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-						}
-					}
-				}
-			}
-
-			// copy all of the provisions from the engine directory to the library
-			{
-				if (Directory.Exists(InEngineDir + "/Build/IOS"))
-				{
-					foreach (string Provision in Directory.EnumerateFiles(InEngineDir + "/Build/IOS", "*.mobileprovision", SearchOption.AllDirectories))
-					{
-						if (!File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision)) || File.GetLastWriteTime(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision)) < File.GetLastWriteTime(Provision))
-						{
-							if (File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision)))
-							{
-								DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision));
-								DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-							}
-							File.Copy(Provision, Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision), true);
-							DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Path.GetFileName(Provision));
-							DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-						}
-					}
-				}
-			}
-		}
-
-		// install the distribution provision
-		ProvisionWithPrefix = InEngineDir + "/Build/IOS/UE4Game_Distro.mobileprovision";
-		if (File.Exists(BuildDirectory + "/" + ShortProjectName + "_Distro.mobileprovision"))
-		{
-			ProvisionWithPrefix = BuildDirectory + "/" + ShortProjectName + "_Distro.mobileprovision";
-		}
-		else
-		{
-			if (File.Exists(BuildDirectory + "/NotForLicensees/" + ShortProjectName + "_Distro.mobileprovision"))
-			{
-				ProvisionWithPrefix = BuildDirectory + "/NotForLicensees/" + ShortProjectName + "_Distro.mobileprovision";
-			}
-			else if (!File.Exists(ProvisionWithPrefix))
-			{
-				ProvisionWithPrefix = InEngineDir + "/Build/IOS/NotForLicensees/UE4Game_Distro.mobileprovision";
-			}
-		}
-		if (File.Exists(ProvisionWithPrefix))
-		{
-			if (File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + "_Distro.mobileprovision"))
-			{
-				DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + "_Distro.mobileprovision");
-				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-			}
-			File.Copy(ProvisionWithPrefix, Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + "_Distro.mobileprovision", true);
-			DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + "_Distro.mobileprovision");
-			DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-		}
-
 		return XcodeProj;
 	}
 
@@ -524,6 +387,15 @@ public class IOSPlatform : Platform
 		// check for the proper xcodeproject
 		bool bWasGenerated = false;
 		string XcodeProj = EnsureXcodeProjectExists (RawProjectPath, LocalRoot, ProjectName, ProjectDirectory, IsCode, out bWasGenerated);
+
+		// ensure the correct data os acrpss
+		var DeployHandler = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.IOS);
+		DeployHandler.PrepForUATPackageOrDeploy(ProjectName,
+			Path.GetDirectoryName(RawProjectPath),
+			CombinePaths(BaseDirectory, GameName),
+			CombinePaths(LocalRoot, "Engine"),
+			Distribution, "");
+
 		string Arguments = "UBT_NO_POST_DEPLOY=true";
 		Arguments += " /usr/bin/xcrun xcodebuild build -project \"" + XcodeProj + "\"";
 		Arguments += " -scheme '";
@@ -668,53 +540,6 @@ public class IOSPlatform : Platform
 		}
 	}
 
-	private static void CopyFileWithReplacements(string SourceFilename, string DestFilename, Dictionary<string, string> Replacements)
-	{
-		Console.WriteLine("Copying {0} to {1} with replacements...", SourceFilename, DestFilename);
-
-		if (!File.Exists(SourceFilename))
-		{
-			return;
-		}
-
-		// make the dst filename with the same structure as it was in SourceDir
-		if (File.Exists(DestFilename))
-		{
-			File.Delete(DestFilename);
-		}
-
-		// make the subdirectory if needed
-		string DestSubdir = Path.GetDirectoryName(DestFilename);
-		if (!Directory.Exists(DestSubdir))
-		{
-			Directory.CreateDirectory(DestSubdir);
-		}
-
-		// some files are handled specially
-		string Ext = Path.GetExtension(SourceFilename);
-		if (Ext == ".plist")
-		{
-			string Contents = File.ReadAllText(SourceFilename);
-
-			// replace some varaibles
-			foreach (var Pair in Replacements)
-			{
-				Contents = Contents.Replace(Pair.Key, Pair.Value);
-			}
-
-			// write out file
-			File.WriteAllText(DestFilename, Contents);
-		}
-		else
-		{
-			File.Copy(SourceFilename, DestFilename);
-
-			// remove any read only flags
-			FileInfo DestFileInfo = new FileInfo(DestFilename);
-			DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-		}
-	}
-
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
 		//		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
@@ -743,33 +568,13 @@ public class IOSPlatform : Platform
 			// copy the plist (only if code signing, as it's protected by the code sign blob in the executable and can't be modified independently)
 			if (GetCodeSignDesirability(Params))
 			{
-				string SourcePListFile = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "UE4Game-Info.plist");
-				if (File.Exists(SC.ProjectRoot + "/Build/IOS/Info.plist"))
-				{
-					SourcePListFile = CombinePaths(SC.ProjectRoot, "Build", "IOS", "Info.plist");
-				}
-				else if (File.Exists(SC.ProjectRoot + "/Build/IOS/" + SC.ShortProjectName + "-Info.plist"))
-				{
-					SourcePListFile = CombinePaths(SC.ProjectRoot, "Build", "IOS", SC.ShortProjectName + "-Info.plist");
-				}
-				else if (Directory.Exists(SC.ProjectRoot + "/Build/IOS"))
-				{
-					// look for any plist file
-					string[] Plists = Directory.GetFiles(SC.ProjectRoot + "/Build/IOS", "*.plist");
-					if (Plists.Length > 0)
-					{
-						SourcePListFile = Plists[0];
-					}
-				}
-
-				//@TODO: This is writing to the engine directory!
 				string SourcePath = CombinePaths((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "\\Engine"), "Intermediate", "IOS");
 				string TargetPListFile = Path.Combine(SourcePath, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + "-Info.plist");
-
-				Dictionary<string, string> Replacements = new Dictionary<string, string>();
-				Replacements.Add("${EXECUTABLE_NAME}", (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"));
-				Replacements.Add("${BUNDLE_IDENTIFIER}", SC.ShortProjectName.Replace("_", ""));
-				CopyFileWithReplacements(SourcePListFile, TargetPListFile, Replacements);
+				if (!File.Exists(TargetPListFile))
+				{
+					// ensure the plist, entitlements, and provision files are properly copied
+					UnrealBuildTool.IOS.UEDeployIOS.GeneratePList((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "\\Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "\\Engine", "");
+				}
 
 				SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
 			}

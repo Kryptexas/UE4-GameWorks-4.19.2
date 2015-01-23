@@ -116,6 +116,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	IDetailCategoryBuilder& OSInfoCategory = DetailLayout.EditCategory(TEXT("OS Info"));
 	IDetailCategoryBuilder& DeviceCategory = DetailLayout.EditCategory(TEXT("Devices"));
 	IDetailCategoryBuilder& BuildCategory = DetailLayout.EditCategory(TEXT("Build"));
+	IDetailCategoryBuilder& ExtraCategory = DetailLayout.EditCategory(TEXT("Extra PList Data"));
 
 	TSharedRef<SPlatformSetupMessage> PlatformSetupMessage = SNew(SPlatformSetupMessage, GameInfoPath)
 		.PlatformName(LOCTEXT("iOSPlatformName", "iOS"))
@@ -316,6 +317,8 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 	SETUP_PLIST_PROP(MinimumiOSVersion, OSInfoCategory, LOCTEXT("MinimumiOSVersionToolTip", "Minimum iOS version this game supports"));
 
+	SETUP_PLIST_PROP(AdditionalPlistData, ExtraCategory, LOCTEXT("AdditionalPlistDataToolTip", "Any additional plist key/value data utilizing \\n for a new line"));
+
 	SETUP_NONROCKET_PROP(bDevForArmV7, BuildCategory, LOCTEXT("DevForArmV7ToolTip", "Enable ArmV7 support? (this will be used if all type are unchecked)"), FIOSTargetSettingsCustomizationConstants::DisabledTip);
 	SETUP_NONROCKET_PROP(bDevForArm64, BuildCategory, LOCTEXT("DevForArm64ToolTip", "Enable Arm64 support?"), FIOSTargetSettingsCustomizationConstants::DisabledTip);
 	SETUP_NONROCKET_PROP(bDevForArmV7S, BuildCategory, LOCTEXT("DevForArmV7SToolTip", "Enable ArmV7s support?"), FIOSTargetSettingsCustomizationConstants::DisabledTip);
@@ -448,8 +451,8 @@ void FIOSTargetSettingsCustomization::CopySetupFilesIntoProject()
 
 void FIOSTargetSettingsCustomization::OnPlistPropertyModified()
 {
-	check(SetupForPlatformAttribute.Get() == true);
-	const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
+// 	check(SetupForPlatformAttribute.Get() == true);
+/*	const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
 
 	FManifestUpdateHelper Updater(GameInfoPath);
 
@@ -537,8 +540,11 @@ void FIOSTargetSettingsCustomization::OnPlistPropertyModified()
 	}
 	Updater.ReplaceKey(MiniOSVersionKey, ClosingString, iOSVersionBody);
 
+	const FString ClosingDict(TEXT("</dict>"));
+	Updater.ReplaceKey(iOSVersionBody + ClosingString, ClosingDict, Settings.AdditionalPlistData.Replace(TEXT("\\n"), TEXT("\n")));
+
 	// Write out the updated .plist
-	Updater.Finalize(GameInfoPath, true, FFileHelper::EEncodingOptions::ForceUTF8);
+	Updater.Finalize(GameInfoPath, true, FFileHelper::EEncodingOptions::ForceUTF8);*/
 }
 
 void FIOSTargetSettingsCustomization::BuildImageRow(IDetailLayoutBuilder& DetailLayout, IDetailCategoryBuilder& Category, const FPlatformIconInfo& Info, const FVector2D& MaxDisplaySize)
