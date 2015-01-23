@@ -635,11 +635,13 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 			]
 	];
 
+#if SLATE_STATS			
 	if (StatsToolsBox.IsValid())
 	{
 		extern SLATECORE_API int32 GSlateStatsFlatEnable;
 		StatsToolsBox->SetVisibility(GSlateStatsFlatEnable != 0 ? EVisibility::Visible : EVisibility::Collapsed);
 	}
+#endif
 }
 
 /* SCompoundWidget overrides
