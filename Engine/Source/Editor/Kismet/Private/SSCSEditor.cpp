@@ -2520,12 +2520,13 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.VAlign(VAlign_Top)
-			.Padding(0.0f, 2.0f)
+			.Padding(0)
 			[
 				SNew(SBorder)
 				.Padding(2.0f)
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderImage(FEditorStyle::GetBrush("DetailsView.CategoryTop"))
 				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
+				.BorderBackgroundColor( FLinearColor( .6,.6,.6, 1.0f ) )
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
@@ -2613,7 +2614,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 			[
 				SNew(SBorder)
 				.Padding(2.0f)
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderImage(FEditorStyle::GetBrush("SCSEditor.TreePanel"))
 				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
 				
 				[

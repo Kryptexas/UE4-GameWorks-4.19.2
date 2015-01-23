@@ -36,7 +36,7 @@ public:
 			Content =
 				SNew( SBorder )
 				.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryMiddle") )
-				.Padding( FMargin( 0.0f, 3.0f, 0.0f, 0.0f ) )
+				.Padding( FMargin( 0.0f, 3.0f, SDetailTableRowBase::ScrollbarPaddingSize, 0.0f ) )
 				[
 					SNew( SImage )
 					.Image( FEditorStyle::GetBrush("DetailsView.AdvancedDropdownBorder.Open") )
@@ -47,7 +47,7 @@ public:
 			Content = 
 				SNew( SBorder )
 				.BorderImage( FEditorStyle::GetBrush("DetailsView.AdvancedDropdownBorder") )
-				.Padding( FMargin( 0.0f, 3.0f, 0.0f, 0.0f ) )
+				.Padding( FMargin( 0.0f, 3.0f, SDetailTableRowBase::ScrollbarPaddingSize, 0.0f ) )
 				[
 					SNew( SVerticalBox )
 					+SVerticalBox::Slot()
@@ -126,7 +126,7 @@ public:
 			Content =
 				SNew( SBorder )
 				.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryBottom") )
-				.Padding( FMargin( 0.0f, 0.0f, 0.0f, 2.0f ) )
+				.Padding( FMargin( 0.0f, 0.0f, SDetailTableRowBase::ScrollbarPaddingSize, 2.0f ) )
 				[
 					SplitterArea.ToSharedRef()	
 				];

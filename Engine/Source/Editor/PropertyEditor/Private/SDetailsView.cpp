@@ -209,13 +209,13 @@ void SDetailsView::Construct(const FArguments& InArgs)
 	.FillHeight(1)
 	.Padding(0)
 	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
+		SNew(SOverlay)
+		+ SOverlay::Slot()
 		[
 			ConstructTreeView(ExternalScrollbar)
 		]
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
+		+ SOverlay::Slot()
+		.HAlign(HAlign_Right)
 		[
 			SNew(SBox)
 			.WidthOverride(16.0f)
