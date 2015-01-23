@@ -3501,7 +3501,10 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		TArray<FSCSEditorTreeNodePtrType> SelectedTreeNodes = SCSTreeWidget->GetSelectedItems();
 
 		// Clear the current tree
-		SCSTreeWidget->ClearSelection();
+		if (SelectedTreeNodes.Num() != 0)
+		{
+			SCSTreeWidget->ClearSelection();
+		}
 		RootNodes.Empty();
 
 		// Reset the scene root node
