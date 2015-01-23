@@ -8,12 +8,12 @@ public class SteamController : ModuleRules
     {
         PrivateIncludePathModuleNames.Add("TargetPlatform");
 
-        Definitions.Add("WITH_STEAMCONTROLLER=1");
         PrivateDependencyModuleNames.AddRange(new string[]
         {
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"InputDevice",
 		});
 
         AddThirdPartyPrivateStaticDependencies(Target,
