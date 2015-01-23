@@ -83,6 +83,8 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	bGenerateOverlapEvents = false;
 	CastShadow = true;
+	// by default we want to see the Landscape shadows even in the far shadow cascades
+	bCastFarShadow = true;
 	bUseAsOccluder = true;
 	bAllowCullDistanceVolume = false;
 	CollisionMipLevel = 0;
@@ -516,6 +518,8 @@ ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	bHidden = false;
 	bReplicateMovement = false;
 	bCanBeDamaged = false;
+	// by default we want to see the Landscape shadows even in the far shadow cascades
+	bCastFarShadow = true;
 
 	USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = SceneComponent;

@@ -521,6 +521,9 @@ public:
 	FPlane NearFrustumPlane;
 	FPlane FarFrustumPlane;
 
+	/** When enabled, the cascade only renders objects marked with bCastFarShadows enabled (e.g. Landscape). */
+	bool bFarShadowCascade;
+
 	FShadowCascadeSettings()
 		: SplitNear(0.0f)
 		, SplitFar(WORLD_MAX)
@@ -528,6 +531,7 @@ public:
 		, SplitFarFadeRegion(0.0f)
 		, FadePlaneOffset(SplitFar)
 		, FadePlaneLength(SplitFar - FadePlaneOffset)
+		, bFarShadowCascade(false)
 	{
 	}
 };
@@ -688,15 +692,17 @@ public:
 	/** Whether this light should create per object shadows for dynamic objects. */
 	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const;
 
+	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
 	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View) const { return 0; }
 
 	/**
 	 * Sets up a projected shadow initializer that's dependent on the current view for shadows from the entire scene.
+	 * @param InCascadeIndex cascade index or INDEX_NONE for the distance field cascade
 	 * @return True if the whole-scene projected shadow should be used.
 	 */
 	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(
 		const class FSceneView& View, 
-		uint32 InShadowSplitIndex,
+		int32 InCascadeIndex,
 		class FWholeSceneProjectedShadowInitializer& OutInitializer) const
 	{
 		return false;
@@ -725,8 +731,9 @@ public:
 		return false;
 	}
 
+	// @param InCascadeIndex cascade index or INDEX_NONE for the distance field cascade
 	// @param OutCascadeSettings can be 0
-	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, uint32 InShadowSplitIndex, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
+	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, int32 InCascadeIndex, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 
 	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View) const
@@ -738,6 +745,8 @@ public:
 	virtual void SetScissorRect(FRHICommandList& RHICmdList, const FSceneView& View) const
 	{
 	}
+
+	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type Type) const { return false; }
 
 	// Accessors.
 	float GetUserShadowBias() const { return ShadowBias; }
@@ -899,6 +908,12 @@ protected:
 
 	/** Used for dynamic stats */
 	TStatId StatId;
+
+	/** Only for whole scene directional lights, if FarShadowCascadeCount > 0 and FarShadowDistance >= WholeSceneDynamicShadowRadius, where far shadow cascade should end. */
+	float FarShadowDistance;
+
+	/** Only for whole scene directional lights, 0: no FarShadowCascades, otherwise the count of cascades between WholeSceneDynamicShadowRadius and FarShadowDistance that are covered by distant shadow cascades. */
+	uint32 FarShadowCascadeCount;
 
 	/**
 	 * Updates the light proxy's cached transforms.

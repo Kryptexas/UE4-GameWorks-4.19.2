@@ -286,6 +286,12 @@ public:
 	uint32 bSelfShadowOnly:1;
 
 	/** 
+	 * When enabled, the component will be rendering into the far shadow cascades (only for directional lights).
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Far Shadow"))
+	uint32 bCastFarShadow:1;
+
+	/** 
 	 * Whether this component should create a per-object shadow that gives higher effective shadow resolution. 
 	 * Useful for cinematic character shadowing. Assumed to be enabled if bSelfShadowOnly is enabled.
 	 */

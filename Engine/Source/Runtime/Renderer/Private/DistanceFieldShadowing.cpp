@@ -822,7 +822,9 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 					
 				if (bDirectionalLight)
 				{
-					check(CascadeSettings.FadePlaneLength == 0);
+					// todo: when using far shadows we need to fix the shader to get a soft transition
+//					check(CascadeSettings.FadePlaneLength == 0);
+
 					// first cascade rendered or old method doesn't require fading (CO_Min is needed to combine multiple shadow passes)
 					// The ray traced cascade should always be first
 					RHICmdList.SetBlendState(TStaticBlendState<CW_RG, BO_Min, BF_One, BF_One>::GetRHI());

@@ -3702,7 +3702,11 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	{
 		RecreateCollisionComponents();
 	}
-	else if (PropertyName == FName(TEXT("bCastStaticShadow")) || PropertyName == FName(TEXT("bCastShadowAsTwoSided")))
+	else 
+		if(PropertyName == FName(TEXT("bCastStaticShadow"))
+		|| PropertyName == FName(TEXT("bCastShadowAsTwoSided"))
+		|| PropertyName == FName(TEXT("bCastFarShadow"))
+		)
 	{
 		// Replicate shared properties to all components.
 		for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
@@ -3712,6 +3716,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			{
 				Comp->bCastStaticShadow = bCastStaticShadow;
 				Comp->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
+				Comp->bCastFarShadow = bCastFarShadow;
 			}
 		}
 	}

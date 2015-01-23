@@ -591,10 +591,10 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 			PreShadowTranslation = -SnappedWorldPosition;
 		}
 
-		if (Initializer.InitShadowSplitIndex >= 0 && bDirectionalLight)
+		if (ShadowSplitIndex >= 0 && bDirectionalLight)
 		{
 			checkSlow(InDependentView);
-			ShadowBounds = InLightSceneInfo->Proxy->GetShadowSplitBounds(*InDependentView, ShadowSplitIndex, 0);
+			ShadowBounds = InLightSceneInfo->Proxy->GetShadowSplitBounds(*InDependentView, bRayTracedDistanceFieldShadow ? INDEX_NONE : ShadowSplitIndex, 0);
 		}
 		else
 		{
@@ -731,6 +731,21 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 				for (int32 ViewIndex = 0, ViewCount = Views.Num(); ViewIndex < ViewCount; ViewIndex++)
 				{
 					FViewInfo& CurrentView = *Views[ViewIndex];
+
+					// 	in a far shadow cascade we only render objects marked with bCastFarShadows enabled (e.g. Landscape).
+					if(CascadeSettings.bFarShadowCascade)
+					{
+						if(!Proxy->CastsFarShadow())
+						{
+							// cull objects that are not supposed to be in the far shadow cascades
+							continue;
+						}
+						if(bRayTracedDistanceFieldShadow && Proxy->AffectsDistanceFieldLighting())
+						{
+							// cull objects that already have been handles by the ray traced distance field ones
+							continue;
+						}
+					}
 
 					const float DistanceSquared = ( Bounds.Origin - CurrentView.ShadowViewMatrices.ViewOrigin ).SizeSquared();
 					const bool bDrawShadowDepth = FMath::Square( Bounds.SphereRadius ) > FMath::Square( GMinScreenRadiusForShadowCaster ) * DistanceSquared;
@@ -1807,14 +1822,14 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 								float Far = ProjectedShadowInfo.CascadeSettings.SplitFar;
 
 								// Camera Subfrustum
-								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Near, Mid)).InverseFast(), Color, 0);
-								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Mid, Far)).InverseFast(), FColor::White, 0);
+								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Near, Mid)).Inverse(), Color, 0);
+								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Mid, Far)).Inverse(), FColor::White, 0);
 
 								// Subfrustum Sphere Bounds
 								DrawWireSphere(&ShadowFrustumPDI, FTransform(ProjectedShadowInfo.ShadowBounds.Center), Color, ProjectedShadowInfo.ShadowBounds.W, 40, 0);
 
 								// Shadow Map Projection Bounds
-								DrawFrustumWireframe(&ShadowFrustumPDI, ProjectedShadowInfo.SubjectAndReceiverMatrix.InverseFast() * FTranslationMatrix(-ProjectedShadowInfo.PreShadowTranslation), Color, 0);
+								DrawFrustumWireframe(&ShadowFrustumPDI, ProjectedShadowInfo.SubjectAndReceiverMatrix.Inverse() * FTranslationMatrix(-ProjectedShadowInfo.PreShadowTranslation), Color, 0);
 							}
 							else
 							{
@@ -1854,14 +1869,24 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 
 					if(VisibleLightViewInfo.bInViewFrustum)
 					{
-						UE_LOG(LogRenderer, Display, TEXT("   Shadow %d/%d: %d"),  ShadowIndex, ShadowCount, ProjectedShadowInfo.ShadowId);
+						UE_LOG(LogRenderer, Display, TEXT("   Shadow %d/%d: ShadowId=%d"),  ShadowIndex, ShadowCount, ProjectedShadowInfo.ShadowId);
 						UE_LOG(LogRenderer, Display, TEXT("    WholeSceneDir=%d SplitIndex=%d near=%f far=%f"),
 							ProjectedShadowInfo.IsWholeSceneDirectionalShadow(),
 							ProjectedShadowInfo.ShadowSplitIndex,
 							ProjectedShadowInfo.CascadeSettings.SplitNear,
 							ProjectedShadowInfo.CascadeSettings.SplitFar);
-						UE_LOG(LogRenderer, Display, TEXT("    bDistField=%d"),
-							ProjectedShadowInfo.bRayTracedDistanceFieldShadow);
+						UE_LOG(LogRenderer, Display, TEXT("    bDistField=%d bFarShadows=%d Bounds=%f,%f,%f,%f"),
+							ProjectedShadowInfo.bRayTracedDistanceFieldShadow,
+							ProjectedShadowInfo.CascadeSettings.bFarShadowCascade,
+							ProjectedShadowInfo.ShadowBounds.Center.X,
+							ProjectedShadowInfo.ShadowBounds.Center.Y,
+							ProjectedShadowInfo.ShadowBounds.Center.Z,
+							ProjectedShadowInfo.ShadowBounds.W);
+						UE_LOG(LogRenderer, Display, TEXT("    SplitFadeRegion=%f .. %f FadePlaneOffset=%f FadePlaneLength=%f"),
+							ProjectedShadowInfo.CascadeSettings.SplitNearFadeRegion,
+							ProjectedShadowInfo.CascadeSettings.SplitFarFadeRegion,
+							ProjectedShadowInfo.CascadeSettings.FadePlaneOffset,
+							ProjectedShadowInfo.CascadeSettings.FadePlaneLength);			
 					}
 				}
 			}
@@ -2125,12 +2150,26 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 		// If rendering in stereo mode we render shadow depths only for the left eye, but project for both eyes!
 		if (View.StereoPass != eSSP_RIGHT_EYE)
 		{
-			const uint32 NumSplits = LightSceneInfo.Proxy->GetNumViewDependentWholeSceneShadows(View);
-			for (uint32 LocalShadowSplitIndex = 0; LocalShadowSplitIndex < NumSplits; LocalShadowSplitIndex++)
+			const bool bExtraDistanceFieldCascade = LightSceneInfo.Proxy->ShouldCreateRayTracedCascade(View.GetFeatureLevel());
+
+			const int32 ProjectionCount = LightSceneInfo.Proxy->GetNumViewDependentWholeSceneShadows(View) + (bExtraDistanceFieldCascade?1:0);
+
+			checkSlow(INDEX_NONE == -1);
+
+			// todo: this code can be simplified by computing all the distances in one place - avoiding some redundant work and complexity
+			for (int32 Index = 0; Index < ProjectionCount; Index++)
 			{
 				FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;
 
-				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, LocalShadowSplitIndex, ProjectedShadowInitializer))
+				int32 LocalIndex = Index;
+
+				// Indexing like this puts the raytraced shadow cascade last (might not be needed)
+				if(bExtraDistanceFieldCascade && LocalIndex + 1 == ProjectionCount)
+				{
+					LocalIndex = INDEX_NONE;
+				}
+
+				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, LocalIndex, ProjectedShadowInitializer))
 				{
 					const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetShadowDepthTextureResolution();
 					// Create the projected shadow info.

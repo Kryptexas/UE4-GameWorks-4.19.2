@@ -391,6 +391,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting, meta=(DisplayName = "Shadow Two Sided"))
 	uint32 bCastShadowAsTwoSided:1;
 
+	/** Whether this primitive should cast shadows in the far shadow cascades. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting, meta=(DisplayName = "Far Shadow"))
+	uint32 bCastFarShadow:1;
+
 	UPROPERTY()
 	uint32 bIsProxy:1;
 
