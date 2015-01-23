@@ -18,24 +18,6 @@ public class AndroidPlatform : Platform
 	public AndroidPlatform()
 		: base(UnrealTargetPlatform.Android)
 	{
-		bool bNeedsAndroidHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANDROID_HOME"));
-		if (Utils.IsRunningOnMono && bNeedsAndroidHome)
-		{
-			// Try reading env variable we need from .bash_profile
-			string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
-			if(File.Exists(BashProfilePath))
-			{
-				string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
-				foreach (string Line in BashProfileContents)
-				{
-					if (Line.StartsWith("export ANDROID_HOME="))
-					{
-						string PathVar = Line.Split('=')[1].Replace("\"", "");
-						Environment.SetEnvironmentVariable("ANDROID_HOME", PathVar);
-					}
-				}
-			}
-		}
 	}
 
 	private static string GetSONameWithoutArchitecture(ProjectParams Params, string DecoratedExeName)
@@ -106,8 +88,8 @@ public class AndroidPlatform : Platform
 
 	private static string GetDeviceObbName(string ApkName)
 	{
-		string ObbName = GetFinalObbName(ApkName);
-		string PackageName = GetPackageInfo(ApkName, false);
+        string ObbName = GetFinalObbName(ApkName);
+        string PackageName = GetPackageInfo(ApkName, false);
 		return "obb/" + PackageName + "/" + Path.GetFileName(ObbName);
 	}
 
@@ -127,6 +109,80 @@ public class AndroidPlatform : Platform
 	{
 		return Path.Combine(Path.GetDirectoryName(ApkName), "Install_" + Params.ShortProjectName + "_" + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + (Utils.IsRunningOnMono ? ".command" : ".bat"));
 	}
+
+//     public static Dictionary<string, string> SetupEnv(string ProjectPath)
+//     {
+//         if(configCacheIni == null)
+//         {
+//             CommandUtils.LogWarning(Path.GetDirectoryName(ProjectPath));
+//             configCacheIni = new UnrealBuildTool.ConfigCacheIni("Engine", Path.GetDirectoryName(ProjectPath));
+// 
+//             string[] EnvVarNames = {"ANDROID_HOME", "NDKHOME", "ANT_HOME"};
+// 
+//             string path;
+//             if(configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", "SDKPath", out path))
+//             {
+//                 AndroidEnv.Add("ANDROID_HOME", path);
+//             }
+//             else // if we fail then try and get it from the real environment
+//             {
+//                 AndroidEnv.Add("ANDROID_HOME", Environment.GetEnvironmentVariable("ANDROID_HOME"));
+//             }
+// 
+//             if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", "NDKPath", out path))
+//             {
+//                 AndroidEnv.Add("NDKHOME", path);
+//             }
+//             else // if we fail then try and get it from the real environment
+//             {
+//                 AndroidEnv.Add("NDKHOME", Environment.GetEnvironmentVariable("NDKHOME"));
+//             }
+// 
+//             if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", "ANTPath", out path))
+//             {
+//                 AndroidEnv.Add("ANT_HOME", path);
+//             }
+//             else // if we fail then try and get it from the real environment
+//             {
+//                 AndroidEnv.Add("ANT_HOME", Environment.GetEnvironmentVariable("ANT_HOME"));
+//             }
+// 
+//             // If we are on Mono and we are still missing a key then go and find it from the .bash_profile
+//             if (Utils.IsRunningOnMono && EnvVarNames.All( s => AndroidEnv.ContainsKey(s)))
+//             {
+//                 string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
+//                 if (File.Exists(BashProfilePath))
+//                 {
+//                     string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
+//                     foreach (string Line in BashProfileContents)
+//                     {
+//                         foreach (var key in EnvVarNames)
+//                         {
+//                             if (AndroidEnv.ContainsKey(key))
+//                             {
+//                                 continue;
+//                             }
+//                             
+//                             if (Line.StartsWith("export " + key + "="))
+//                             {
+//                                 string PathVar = Line.Split('=')[1].Replace("\"", "");
+//                                 AndroidEnv.Add(key, PathVar);
+//                             }
+//                         }
+//                     }
+//                 }                    
+//             }
+// 
+//             // Set for the process
+//             foreach(var kvp in AndroidEnv)
+//             {
+//                 Environment.SetEnvironmentVariable(kvp.Key, kvp.Value);
+//             }
+// 
+//         }
+// 
+//         return AndroidEnv;
+//     }
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
@@ -189,19 +245,19 @@ public class AndroidPlatform : Platform
 					Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
 				}
 
-				// Create APK specific OBB in case we have a detached OBB.
-				string DeviceObbName = "";
-				string ObbName = "";
-				if (!Params.OBBinAPK)
-				{
-					DeviceObbName = GetDeviceObbName(ApkName);
-					ObbName = GetFinalObbName(ApkName);
-					CopyFile(LocalObbName, ObbName);
-				}
+			    // Create APK specific OBB in case we have a detached OBB.
+			    string DeviceObbName = "";
+			    string ObbName = "";
+			    if (!Params.OBBinAPK)
+			    {
+				    DeviceObbName = GetDeviceObbName(ApkName);
+				    ObbName = GetFinalObbName(ApkName);
+				    CopyFile(LocalObbName, ObbName);
+			    }
 
 				// Write install batch file(s).
 
-				string PackageName = GetPackageInfo(ApkName, false);
+                string PackageName = GetPackageInfo(ApkName, false);
 				// make a batch file that can be used to install the .apk and .obb files
 				string[] BatchLines;
 				if (Utils.IsRunningOnMono)
@@ -210,7 +266,8 @@ public class AndroidPlatform : Platform
 					BatchLines = new string[] {
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
-						"ADB=$ANDROID_HOME/platform-tools/adb",
+                        "ADB=",
+						"if [ \"$ANDROID_HOME\" != \"\"]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "; fi",
 						"DEVICE=",
 						"if [ \"$1\" != \"\" ]; then DEVICE=\"-s $1\"; fi",
 						"$ADB $DEVICE uninstall " + PackageName,
@@ -241,10 +298,12 @@ public class AndroidPlatform : Platform
 					Log("Writing bat for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
 					BatchLines = new string[] {
 						"setlocal",
-						"set ADB=%ANDROID_HOME%\\platform-tools\\adb.exe",
+                        "set ANDROIDHOME=%ANDROID_HOME%",
+                        "if \"%ANDROIDHOME%\"==\"\" set ANDROIDHOME="+Environment.GetEnvironmentVariable("ANDROID_HOME"),
+						"set ADB=%ANDROIDHOME%\\platform-tools\\adb.exe",
 						"set DEVICE=",
-						"if not \"%1\"==\"\" set DEVICE=-s %1",
-						"for /f \"delims=\" %%A in ('%ADB% %DEVICE% " + GetStorageQueryCommand() + "') do @set STORAGE=%%A",
+                        "if not \"%1\"==\"\" set DEVICE=-s %1",
+                        "for /f \"delims=\" %%A in ('%ADB% %DEVICE% " + GetStorageQueryCommand() +"') do @set STORAGE=%%A",
 						"%ADB% %DEVICE% uninstall " + PackageName,
 						"%ADB% %DEVICE% install " + Path.GetFileName(ApkName),
 						"@if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
@@ -491,8 +550,8 @@ public class AndroidPlatform : Platform
 		{
 			// cache some strings
 			string BaseCommandline = "push";
-			string RemoteDir = StorageLocation + "/" + Params.ShortProjectName;
-            string UE4GameRemoteDir = StorageLocation + "/" + Params.ShortProjectName;
+			string RemoteDir = StorageLocation + "/" /*+ Params.ProjectDirPrefix + "/"*/ + Params.ShortProjectName;
+            string UE4GameRemoteDir = StorageLocation + "/" /*+ Params.ProjectDirPrefix + "/"*/ + Params.ShortProjectName;
 
 			// make sure device is at a clean state
 			RunAdbCommand(Params, "shell rm -r " + RemoteDir);
@@ -618,7 +677,7 @@ public class AndroidPlatform : Platform
 		{
 			// cache some strings
 			string BaseCommandline = "push";
-            string RemoteDir = StorageLocation + "/" + Params.ShortProjectName;
+            string RemoteDir = StorageLocation + "/" /*+ Params.ProjectDirPrefix + "/"*/ + Params.ShortProjectName;
 
 			string FinalRemoteDir = RemoteDir;
 			/*
@@ -695,12 +754,13 @@ public class AndroidPlatform : Platform
 	private static string GetAaptPath()
 	{
 		// there is a numbered directory in here, hunt it down
-		string[] Subdirs = Directory.GetDirectories(Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/build-tools/"));
-		if (Subdirs.Length == 0)
-		{
+        string path = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/build-tools/");
+		string[] Subdirs = Directory.GetDirectories(path);
+        if (Subdirs.Length == 0)
+        {
             ErrorReporter.Error("Failed to find %ANDROID_HOME%/build-tools subdirectory", (int)ErrorCodes.Error_AndroidBuildToolsPathNotFound);
-			throw new AutomationException("Failed to find %ANDROID_HOME%/build-tools subdirectory");
-		}
+            throw new AutomationException("Failed to find %ANDROID_HOME%/build-tools subdirectory");
+        }
 		// we expect there to be one, so use the first one
 		return Path.Combine(Subdirs[0], Utils.IsRunningOnMono ? "aapt" : "aapt.exe");
 	}

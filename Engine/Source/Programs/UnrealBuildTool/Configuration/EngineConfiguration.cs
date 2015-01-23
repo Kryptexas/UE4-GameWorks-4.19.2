@@ -268,6 +268,39 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
+        private static bool ExtractPath(string Source, out string Path)
+        {
+            int start = Source.IndexOf('"');
+            int end = Source.LastIndexOf('"');    
+            if(start != 1 && end != -1 && start < end)
+            {
+                ++start;
+                Path = Source.Substring(start, end - start);
+                return true;
+            }
+            else
+            {
+                Path = "";
+            }
+
+            return false;
+        }
+
+        public bool GetPath(string SectionName, string Key, out string Value)
+        {
+            string temp;
+            if(GetString(SectionName, Key, out temp))
+            {
+                return ExtractPath(temp, out Value);
+            }
+            else
+            {
+                Value = "";
+            }
+
+            return false;
+        }
+
 		/// <summary>
 		/// List of actions that can be performed on a single line from ini file
 		/// </summary>
@@ -492,7 +525,10 @@ namespace UnrealBuildTool
 			yield return Path.Combine(EngineDirectory, "Config", "Base" + BaseIniName + ".ini");
 
 			// Game/Config/Default* ini
-			yield return Path.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
+            if(!String.IsNullOrEmpty(ProjectDirectory))
+			{
+                yield return Path.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
+            }
 			
 			string UserSettingsFolder = null; // Match FPlatformProcess::UserSettingsDir()
 			string PersonalFolder = null; // Match FPlatformProcess::UserDir()
@@ -518,7 +554,10 @@ namespace UnrealBuildTool
 			yield return Path.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
 			
 			// Game/Config/User* ini
-			yield return Path.Combine(ProjectDirectory, "Config", "User" + BaseIniName + ".ini");
+            if (!String.IsNullOrEmpty(ProjectDirectory))
+            {
+                yield return Path.Combine(ProjectDirectory, "Config", "User" + BaseIniName + ".ini");
+            }
 		}
 
 		/// <summary>
@@ -532,7 +571,10 @@ namespace UnrealBuildTool
 			yield return Path.Combine(EngineDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
 
 			// Game/Config/Platform/Platform* ini
-			yield return Path.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
+            if (!String.IsNullOrEmpty(ProjectDirectory))
+            {
+                yield return Path.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
+            }
 		}		
 
 		/// <summary>

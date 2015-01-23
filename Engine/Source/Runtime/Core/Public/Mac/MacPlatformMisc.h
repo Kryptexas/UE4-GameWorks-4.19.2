@@ -20,7 +20,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void PlatformPostInit(bool ShowSplashScreen = false);
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
-
+	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
 	static const TCHAR* GetPathVarDelimiter()
 	{
 		return TEXT(":");

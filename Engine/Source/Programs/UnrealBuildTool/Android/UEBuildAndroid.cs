@@ -6,6 +6,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 using System.Xml;
+using System.Linq;
 
 namespace UnrealBuildTool
 {
@@ -67,35 +68,69 @@ namespace UnrealBuildTool
 			bool bNeedsNDKPath = string.IsNullOrEmpty(NDKPath);
 			bool bNeedsAndroidHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANDROID_HOME"));
 			bool bNeedsAntHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANT_HOME"));
+            if((bNeedsNDKPath || bNeedsAndroidHome || bNeedsAntHome))
+            {
+                var configCacheIni = new ConfigCacheIni("Engine", null);
+                var AndroidEnv = new Dictionary<string, string>();
 
-			if (Utils.IsRunningOnMono && (bNeedsNDKPath || bNeedsAndroidHome || bNeedsAntHome))
-			{
-				// Try reading env variables we need from .bash_profile
-				string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
-				if(File.Exists(BashProfilePath))
-				{
-					string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
-					foreach (string Line in BashProfileContents)
-					{
-						if (bNeedsAndroidHome && Line.StartsWith("export ANDROID_HOME="))
-						{
-							string PathVar = Line.Split('=')[1].Replace("\"", "");
-							Environment.SetEnvironmentVariable("ANDROID_HOME", PathVar);
-						}
-						else if (bNeedsNDKPath && Line.StartsWith("export NDKROOT="))
-						{
-							string PathVar = Line.Split('=')[1].Replace("\"", "");
-							Environment.SetEnvironmentVariable("NDKROOT", PathVar);
-							NDKPath = PathVar;
-						}
-						else if (bNeedsAntHome && Line.StartsWith("export ANT_HOME="))
-						{
-							string PathVar = Line.Split('=')[1].Replace("\"", "");
-							Environment.SetEnvironmentVariable("ANT_HOME", PathVar);
-						}
-					}
-				}
-			}
+                Dictionary<string, string> EnvVarNames = new Dictionary<string,string> { 
+                                                         {"ANDROID_HOME", "SDKPath"}, 
+                                                         {"NDKROOT", "NDKPath"}, 
+                                                         {"ANT_HOME", "ANTPath"}
+                                                         };
+
+                string path;
+                foreach(var kvp in EnvVarNames)
+                {
+                    if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path))
+                    {
+                        AndroidEnv.Add(kvp.Key, path);
+                    }
+                    else
+                    {
+                        var envValue = Environment.GetEnvironmentVariable(kvp.Key);
+                        if(!String.IsNullOrEmpty(envValue))
+                        {
+                            AndroidEnv.Add(kvp.Key, envValue);
+                        }
+                    }
+                }
+
+                // If we are on Mono and we are still missing a key then go and find it from the .bash_profile
+                if (Utils.IsRunningOnMono && !EnvVarNames.All(s => AndroidEnv.ContainsKey(s.Key)))
+                {
+                    string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
+                    if (File.Exists(BashProfilePath))
+                    {
+                        string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
+                        foreach (string Line in BashProfileContents)
+                        {
+                            foreach (var kvp in EnvVarNames)
+                            {
+                                if (AndroidEnv.ContainsKey(kvp.Key))
+                                {
+                                    continue;
+                                }
+
+                                if (Line.StartsWith("export " + kvp.Key + "="))
+                                {
+                                    string PathVar = Line.Split('=')[1].Replace("\"", "");
+                                    AndroidEnv.Add(kvp.Key, PathVar);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Set for the process
+                foreach (var kvp in AndroidEnv)
+                {
+                    Environment.SetEnvironmentVariable(kvp.Key, kvp.Value);
+                }
+
+                // See if we have an NDK path now...
+                AndroidEnv.TryGetValue("NDKROOT", out NDKPath);
+            }
 
             // we don't have an NDKROOT specified
             if (String.IsNullOrEmpty(NDKPath))
