@@ -3,7 +3,8 @@
 
 #include "UnrealEd.h"
 #include "FileCache.h"
-#include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
+#include "IDirectoryWatcher.h"
+#include "DirectoryWatcherModule.h"
 
 const FGuid FFileCacheCustomVersion::Key(0x8E7DDCB3, 0x80DA47BB, 0x9FD346A2, 0x93984DF6);
 FCustomVersionRegistration GRegisterFileCacheVersion(FFileCacheCustomVersion::Key, FFileCacheCustomVersion::Latest, TEXT("FileCacheVersion"));
@@ -33,13 +34,17 @@ namespace
 			{
 				Swap(Array[Write++], Array[Read]);
 			}
+			else
+			{
+				Write++;
+			}
 	next:
 			;
 		}
-		const int32 NumDuplicates = NumElements - (Write + 1);
+		const int32 NumDuplicates = NumElements - Write;
 		if (NumDuplicates != 0)
 		{
-			Array.RemoveAt(Write + 1, NumDuplicates, false);
+			Array.RemoveAt(Write, NumDuplicates, false);
 		}
 	}
 }
