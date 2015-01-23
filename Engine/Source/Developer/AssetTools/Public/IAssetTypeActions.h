@@ -100,6 +100,9 @@ public:
 	/** Returns the thumbnail info for the specified asset, if it has one. */
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const = 0;
 
+	/** Optionally returns a custom widget to overlay on top of this assets' thumbnail */
+	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const class FAssetData& AssetData) const = 0;
+
 	/** Returns additional tooltip information for the specified asset, if it has any (otherwise return the null widget) */
 	virtual FText GetAssetDescription(const class FAssetData& AssetData) const = 0;
 

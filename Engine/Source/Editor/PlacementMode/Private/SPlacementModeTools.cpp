@@ -58,25 +58,9 @@ public:
 
 		Thumbnail = MakeShareable( new FAssetThumbnail( Asset, InArgs._Width, InArgs._Height, ThumbnailPool ) );
 
-		bool bAllowFadeIn = false;
-		bool bForceGenericThumbnail = false;
-		EThumbnailLabel::Type ThumbnailLabel = EThumbnailLabel::ClassName;
-		const TAttribute< FText >& HighlightedText = TAttribute< FText >( FText::GetEmpty() );
-		const TAttribute< FLinearColor >& HintColorAndOpacity = FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-		bool AllowHintText = true;
-		FName ClassThumbnailBrushOverride = NAME_None;
-
 		ChildSlot
 		[
-			Thumbnail->MakeThumbnailWidget(
-			bAllowFadeIn,
-			bForceGenericThumbnail,
-			ThumbnailLabel,
-			HighlightedText,
-			HintColorAndOpacity,
-			AllowHintText,
-			ClassThumbnailBrushOverride
-			)
+			Thumbnail->MakeThumbnailWidget()
 		];
 	}
 
