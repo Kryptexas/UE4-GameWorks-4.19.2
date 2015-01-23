@@ -11,8 +11,12 @@
 
 #define LOCTEXT_NAMESPACE "CreateBlueprintFromActorDialog"
 
-void FCreateBlueprintFromActorDialog::OpenDialog(bool bInHarvest)
+TWeakObjectPtr<AActor> FCreateBlueprintFromActorDialog::ActorOverride;
+
+void FCreateBlueprintFromActorDialog::OpenDialog(bool bInHarvest, AActor* InActorOverride )
 {
+	ActorOverride = InActorOverride;
+
 	TSharedPtr<SWindow> PickBlueprintPathWidget;
 	SAssignNew(PickBlueprintPathWidget, SWindow)
 		.Title(LOCTEXT("SelectPath", "Select Path"))
@@ -21,13 +25,13 @@ void FCreateBlueprintFromActorDialog::OpenDialog(bool bInHarvest)
 
 	TSharedPtr<SCreateAssetFromActor> CreateBlueprintFromActorDialog;
 	PickBlueprintPathWidget->SetContent
-		(
+	(
 		SAssignNew(CreateBlueprintFromActorDialog, SCreateAssetFromActor, PickBlueprintPathWidget)
 		.AssetFilenameSuffix(TEXT("Blueprint"))
 		.HeadingText(LOCTEXT("CreateBlueprintFromActor_Heading", "Blueprint Name"))
 		.CreateButtonText(LOCTEXT("CreateBlueprintFromActor_ButtonLabel", "Create Blueprint"))
 		.OnCreateAssetAction(FOnPathChosen::CreateStatic(FCreateBlueprintFromActorDialog::OnCreateBlueprint, bInHarvest))
-		);
+	);
 
 	TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
 	if (RootWindow.IsValid())
@@ -62,10 +66,18 @@ void FCreateBlueprintFromActorDialog::OnCreateBlueprint(const FString& InAssetPa
 	}
 	else
 	{
-		TArray< UObject* > SelectedActors;
-		GEditor->GetSelectedActors()->GetSelectedObjects(AActor::StaticClass(), SelectedActors);
-		check(SelectedActors.Num());
-		Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(InAssetPath, (AActor*)SelectedActors[0], true);
+		AActor* ActorToUse = ActorOverride.Get();
+
+		if( !ActorToUse )
+		{
+			TArray< UObject* > SelectedActors;
+			GEditor->GetSelectedActors()->GetSelectedObjects(AActor::StaticClass(), SelectedActors);
+			check(SelectedActors.Num());
+			ActorToUse =  Cast<AActor>(SelectedActors[0]);
+		}
+
+		const bool bReplaceActor = true;
+		Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(InAssetPath, ActorToUse, bReplaceActor);
 	}
 
 	if(Blueprint)
