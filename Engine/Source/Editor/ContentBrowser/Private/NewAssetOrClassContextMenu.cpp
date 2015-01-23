@@ -204,10 +204,11 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 	};
 	const FCanExecuteAction CanExecuteAssetActionsDelegate = FCanExecuteAction::CreateLambda(CanExecuteAssetActions);
 
-	auto CanExecuteClassActions = [NumAssetPaths, NumClassPaths, bIsValidNewClassPath]() -> bool
+	auto CanExecuteClassActions = [NumAssetPaths, NumClassPaths]() -> bool
 	{
-		// We can execute class actions when we only have a single class path selected, and that path is a valid path for creating a class
-		return NumClassPaths == 1 && NumAssetPaths == 0 && bIsValidNewClassPath;
+		// We can execute class actions when we only have a single path selected
+		// This menu always lets you create classes, but uses your default project source folder if the selected path is invalid for creating classes
+		return (NumAssetPaths + NumClassPaths) == 1;
 	};
 	const FCanExecuteAction CanExecuteClassActionsDelegate = FCanExecuteAction::CreateLambda(CanExecuteClassActions);
 
@@ -267,16 +268,18 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 	// Add Class
 	if(InOnNewClassRequested.IsBound())
 	{
+		FString ClassCreationPath = FirstSelectedPath;
 		FText NewClassToolTip;
 		if(bHasSinglePathSelected)
 		{
 			if(bIsValidNewClassPath)
 			{
-				NewClassToolTip = FText::Format(LOCTEXT("NewClassTooltip_CreateIn", "Create a new class in {0}."), FText::FromString(FirstSelectedPath));
+				NewClassToolTip = FText::Format(LOCTEXT("NewClassTooltip_CreateIn", "Create a new class in {0}."), FText::FromString(ClassCreationPath));
 			}
 			else
 			{
-				NewClassToolTip = FText::Format(LOCTEXT("NewClassTooltip_InvalidPath", "Cannot create new classes in {0}."), FText::FromString(FirstSelectedPath));
+				NewClassToolTip = LOCTEXT("NewClassTooltip_CreateInDefault", "Create a new class in your project's source folder.");
+				ClassCreationPath.Empty(); // An empty path override will cause the class wizard to use the default project path
 			}
 		}
 		else
@@ -284,14 +287,14 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 			NewClassToolTip = LOCTEXT("NewClassTooltip_InvalidNumberOfPaths", "Can only create classes when there is a single path selected.");
 		}
 
-		MenuBuilder.BeginSection("ContentBrowserNewClass", LOCTEXT("ClassMenuHeading", "Class") );
+		MenuBuilder.BeginSection("ContentBrowserNewClass", LOCTEXT("ClassMenuHeading", "C++ Class") );
 		{
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("NewClassLabel", "New Class"),
 				NewClassToolTip,
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.AddCodeToProject"),
 				FUIAction(
-					FExecuteAction::CreateStatic(&FNewAssetOrClassContextMenu::ExecuteNewClass, FirstSelectedPath, InOnNewClassRequested),
+					FExecuteAction::CreateStatic(&FNewAssetOrClassContextMenu::ExecuteNewClass, ClassCreationPath, InOnNewClassRequested),
 					CanExecuteClassActionsDelegate
 					)
 				);
@@ -426,10 +429,8 @@ void FNewAssetOrClassContextMenu::ExecuteNewAsset(FString InPath, TWeakObjectPtr
 
 void FNewAssetOrClassContextMenu::ExecuteNewClass(FString InPath, FOnNewClassRequested InOnNewClassRequested)
 {
-	if(ensure(!InPath.IsEmpty()))
-	{
-		InOnNewClassRequested.ExecuteIfBound(InPath);
-	}
+	// An empty path override will cause the class wizard to use the default project path
+	InOnNewClassRequested.ExecuteIfBound(InPath);
 }
 
 void FNewAssetOrClassContextMenu::ExecuteNewFolder(FString InPath, FOnNewFolderRequested InOnNewFolderRequested)
