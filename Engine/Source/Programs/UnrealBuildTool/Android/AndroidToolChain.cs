@@ -128,10 +128,12 @@ namespace UnrealBuildTool
 
 		static public string GetNdkApiLevel()
 		{
-			// default to looking on disk for latest API level
-			string Target = AndroidPlatform.AndroidNdkApiTarget;
+			// ask the .ini system for what version to use
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+			string NDKLevel;
+			Ini.GetString("/Script/AndroidPlatformEditor.AndroidSDKSettings", "NDKAPILevel", out NDKLevel);
 
-			if (Target == "latest")
+			if (NDKLevel == "latest")
 			{
 				// get a list of NDK platforms
 				string PlatformsDir = Environment.ExpandEnvironmentVariables("%NDKROOT%/platforms");
@@ -141,10 +143,10 @@ namespace UnrealBuildTool
 				}
 
 				// return the largest of them
-				Target = GetLargestApiLevel(Directory.GetDirectories(PlatformsDir));
+				NDKLevel = GetLargestApiLevel(Directory.GetDirectories(PlatformsDir));
 			}
 
-			return Target;
+			return NDKLevel;
 		}
 
 		static public string GetLargestApiLevel(string[] ApiLevels)

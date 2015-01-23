@@ -59,17 +59,19 @@ namespace UnrealBuildTool.Android
 		{
 			if (CachedSDKLevel == null)
 			{
-				// default to looking on disk for latest API level
-				string Target = AndroidPlatform.AndroidSdkApiTarget;
+				// ask the .ini system for what version to use
+				ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+				string SDKLevel;
+				Ini.GetString("/Script/AndroidPlatformEditor.AndroidSDKSettings", "SDKAPILevel", out SDKLevel);
 
 				// if we want to use whatever version the ndk uses, then use that
-				if (Target == "matchndk")
+				if (SDKLevel == "matchndk")
 				{
-					Target = AndroidToolChain.GetNdkApiLevel();
+					SDKLevel = AndroidToolChain.GetNdkApiLevel();
 				}
 
 				// run a command and capture output
-				if (Target == "latest")
+				if (SDKLevel == "latest")
 				{
 					// we expect there to be one, so use the first one
 					string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
@@ -87,16 +89,16 @@ namespace UnrealBuildTool.Android
 
 					if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
 					{
-						Target = AndroidToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
+						SDKLevel = AndroidToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
 					}
 					else
 					{
-						throw new BuildException("Can't make an APK an API installed (see \"android.bat list targets\")");
+						throw new BuildException("Can't make an APK without an API installed (see \"android.bat list targets\")");
 					}
 				}
 
-				Console.WriteLine("Building Java with SDK API '{0}'", Target);
-				CachedSDKLevel = Target;
+				Console.WriteLine("Building Java with SDK API level '{0}'", SDKLevel);
+				CachedSDKLevel = SDKLevel;
 			}
 
 			return CachedSDKLevel;
@@ -780,12 +782,9 @@ namespace UnrealBuildTool.Android
 				if (File.Exists(BuildSettingsCacheFile))
 				{
 					string PreviousBuildSettings = File.ReadAllText(BuildSettingsCacheFile);
-					if (PreviousBuildSettings == CurrentBuildSettings)
+					if (PreviousBuildSettings != CurrentBuildSettings)
 					{
-						bBuildSettingsMatch = true;
-					}
-					else
-					{
+						bBuildSettingsMatch = false;
 						Log.TraceInformation("Previous .apk file(s) were made with different build settings, forcing repackage.");
 					}
 				}
