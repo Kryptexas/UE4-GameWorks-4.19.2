@@ -6,6 +6,8 @@
 #include "PlatformErrorReport.h"
 #include "CrashReportUtil.h"
 
+#if !CRASH_REPORT_UNATTENDED_ONLY
+
 class FCrashReportClient;
 
 /**
@@ -16,18 +18,6 @@ class FDiagnoseReportWorker  : public FNonAbandonableTask
 public:
 	/** Pointer to the crash report client, used to store the results. */
 	FCrashReportClient* CrashReportClient;
-
-	/** Machine ID. */
-	const FString MachineId;
-
-	/** Epic Account ID. */
-	const FString EpicAccountId;
-
-	/** User name without dot. */
-	const FString UserNameNoDot;
-
-	/** Diagnostic text. */
-	FText DiagnosticText;
 
 	/** Initialization constructor. */
 	FDiagnoseReportWorker( FCrashReportClient* InCrashReportClient );
@@ -45,8 +35,6 @@ public:
 		return TEXT( "FDiagnoseCrashWorker" );
 	}
 };
-
-#if !CRASH_REPORT_UNATTENDED_ONLY
 
 /**
  * Main implementation of the crash report client application
@@ -148,7 +136,7 @@ private:
 	void StartUIWillCloseTicker();
 
 	/** Enqueued from the diagnose report worker thread to be executed on the game thread. */
-	void FinalizeDiagnoseReportWorker( FText InDiagnosticText );
+	void FinalizeDiagnoseReportWorker( FText ReportText );
 
 	/** State enum to keep track of what the app is doing */
 	struct EApplicationState

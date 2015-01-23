@@ -200,36 +200,30 @@ FString FCrashReportClient::GetCrashedAppName() const
 	return GetCrashDescription().GameName;
 }
 
-void FCrashReportClient::FinalizeDiagnoseReportWorker( FText InDiagnosticText )
+void FCrashReportClient::FinalizeDiagnoseReportWorker( FText ReportText )
 {
-	DiagnosticText = InDiagnosticText;
+	DiagnosticText = FCrashReportUtil::FormatDiagnosticText( ReportText, GetCrashDescription().MachineId, GetCrashDescription().EpicAccountId, GetCrashDescription().UserName );
 
 	auto DiagnosticsFilePath = ErrorReport.GetReportDirectory() / GDiagnosticsFilename;
 	Uploader.LocalDiagnosisComplete(FPaths::FileExists(DiagnosticsFilePath) ? DiagnosticsFilePath : TEXT(""));
 }
 
-#endif // !CRASH_REPORT_UNATTENDED_ONLY
-
-
 FDiagnoseReportWorker::FDiagnoseReportWorker( FCrashReportClient* InCrashReportClient ) 
-	: CrashReportClient( InCrashReportClient )		
-	, MachineId(GetCrashDescription().MachineId)
-	, EpicAccountId(GetCrashDescription().EpicAccountId)
-	, UserNameNoDot(GetCrashDescription().UserName)
+	: CrashReportClient( InCrashReportClient )
 {}
 
 void FDiagnoseReportWorker::DoWork()
 {
 	const FText ReportText = CrashReportClient->ErrorReport.DiagnoseReport();
-	DiagnosticText = FCrashReportUtil::FormatDiagnosticText( ReportText, MachineId, EpicAccountId, UserNameNoDot );
-
 	// Inform the game thread that we are done.
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 	(
-		FSimpleDelegateGraphTask::FDelegate::CreateRaw( CrashReportClient, &FCrashReportClient::FinalizeDiagnoseReportWorker, DiagnosticText ),
+		FSimpleDelegateGraphTask::FDelegate::CreateRaw( CrashReportClient, &FCrashReportClient::FinalizeDiagnoseReportWorker, ReportText ),
 		TStatId(), nullptr, ENamedThreads::GameThread
 	);
 }
+
+#endif // !CRASH_REPORT_UNATTENDED_ONLY
 
 FText FCrashReportUtil::FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot )
 {
