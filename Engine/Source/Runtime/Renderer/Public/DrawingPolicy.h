@@ -23,7 +23,7 @@
  * May be used either simply as a helper to render a dynamic mesh, or as a static instance shared between
  * similar meshs.
  */
-class FMeshDrawingPolicy
+class RENDERER_API FMeshDrawingPolicy
 {
 public:
 	/** Per-element data required by the drawing policy that static mesh draw lists will cache. */

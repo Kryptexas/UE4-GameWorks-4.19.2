@@ -5,6 +5,7 @@
 #include "SceneTypes.h"
 #include "StaticLighting.h"
 #include "Components/PrimitiveComponent.h"
+#include "LandscapeGrassType.h"
 
 #include "LandscapeComponent.generated.h"
 
@@ -104,17 +105,23 @@ struct FWeightmapLayerAllocationInfo
 	FName GetLayerName() const;
 };
 
-struct FGrassMap
+struct FLandscapeComponentGrassData
 {
-	/** Total number of channels; at least 3 since we have at least the height (two bytes) and at least one layer channel **/
-	int32 ElementStride;
-	TArray<uint8> Data;
-	FGrassMap(int32 InElementStride)
-		: ElementStride(InElementStride)
-	{
-	}
-};
+	TArray<uint16> HeightData;
+	TMap<ULandscapeGrassType*, TArray<uint8>> WeightData;
 
+	bool HasData()
+	{
+		return HeightData.Num() > 0;
+	}
+
+	SIZE_T GetAllocatedSize() const
+	{
+		return sizeof(*this) + HeightData.GetAllocatedSize() + WeightData.GetAllocatedSize();
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data);
+};
 
 UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), showcategories=("Rendering|Material"), MinimalAPI)
 class ULandscapeComponent : public UPrimitiveComponent
@@ -251,7 +258,7 @@ public:
 	FLandscapeComponentDerivedData PlatformData;
 
 	/** Grass data for generation **/
-	TSharedPtr<FGrassMap, ESPMode::ThreadSafe> GrassMap;
+	TSharedRef<FLandscapeComponentGrassData, ESPMode::ThreadSafe> GrassData;
 
 	virtual ~ULandscapeComponent();
 
@@ -315,8 +322,8 @@ public:
 	void GeneratePlatformVertexData();
 	UMaterialInstance* GeneratePlatformPixelData(TArray<class UTexture2D*>& WeightmapTextures, bool bIsCooking);
 
-	/** Creates and destroys grass data for cooked platforms, used temporarily when cooking */
-	void GenerateGrassMap();
+	/** Creates and destroys cooked grass data stored in the map */
+	void RenderGrassMap();
 	void RemoveGrassMap();
 
 #endif

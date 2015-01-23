@@ -1026,10 +1026,15 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	int32 FirstLOD = (ForcedLOD >= 0) ? FMath::Min<int32>(ForcedLOD, MaxLOD) : FMath::Max<int32>(LODBias, 0);
 	int32 LastLOD = (ForcedLOD >= 0) ? FirstLOD : FMath::Min<int32>(MaxLOD, MaxLOD + LODBias);
 
-	StaticBatchParamArray.Empty((1 + LastLOD - FirstLOD) * (FMath::Square(NumSubsections) + 1));
+	int32 NumBatches = (1 + LastLOD - FirstLOD) * (FMath::Square(NumSubsections) + 1);
+	if (SharedBuffers->GrassIndexBuffer)
+	{
+		NumBatches++;
+	}
+	StaticBatchParamArray.Empty(NumBatches);
 
 	FMeshBatch MeshBatch;
-	MeshBatch.Elements.Empty((1 + LastLOD - FirstLOD) * (FMath::Square(NumSubsections) + 1));
+	MeshBatch.Elements.Empty(NumBatches);
 
 	FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
 
@@ -1044,6 +1049,26 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	MeshBatch.Type = bCurrentRequiresAdjacencyInformation ? PT_12_ControlPointPatchList : PT_TriangleList;
 	MeshBatch.DepthPriorityGroup = SDPG_World;
 
+	if (SharedBuffers->GrassIndexBuffer)
+	{
+		// Combined grass rendering batch element
+		FMeshBatchElement* BatchElement = new(MeshBatch.Elements) FMeshBatchElement;
+		FLandscapeBatchElementParams* BatchElementParams = new(StaticBatchParamArray)FLandscapeBatchElementParams;
+		BatchElementParams->LocalToWorldNoScalingPtr = &LocalToWorldNoScaling;
+		BatchElement->UserData = BatchElementParams;
+		BatchElement->PrimitiveUniformBufferResource = &GetUniformBuffer();
+		BatchElementParams->LandscapeUniformShaderParametersResource = &LandscapeUniformShaderParameters;
+		BatchElementParams->SceneProxy = this;
+		BatchElementParams->SubX = -1;
+		BatchElementParams->SubY = -1;
+		BatchElementParams->CurrentLOD = 0;
+		BatchElement->IndexBuffer = SharedBuffers->GrassIndexBuffer;
+		BatchElement->NumPrimitives = (FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeQuads) + 2 * NumSubsections * SubsectionSizeQuads + 1) * 2;
+		BatchElement->FirstIndex = 0;
+		BatchElement->MinVertexIndex = 0;
+		BatchElement->MaxVertexIndex = SharedBuffers->NumVertices-1;
+	}
+	
 	for (int32 LOD = FirstLOD; LOD <= LastLOD; LOD++)
 	{
 		int32 LodSubsectionSizeVerts = SubsectionSizeVerts >> LOD;
@@ -1117,12 +1142,13 @@ uint64 FLandscapeVertexFactory::GetStaticBatchElementVisibility(const class FSce
 uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch) const
 {
 	uint64 BatchesToRenderMask = 0;
+	int32 GrassBatchOffset = SharedBuffers->GrassIndexBuffer ? 1 : 0;
 
 	SCOPE_CYCLE_COUNTER(STAT_LandscapeStaticDrawLODTime);
 	if (ForcedLOD >= 0)
 	{
 		// When forcing LOD we only create one Batch Element, so not sure this loop is necessary?
-		for (int32 BatchElementIndex = 0; BatchElementIndex < Batch->Elements.Num(); BatchElementIndex++)
+		for (int32 BatchElementIndex = GrassBatchOffset; BatchElementIndex < Batch->Elements.Num(); BatchElementIndex++)
 		{
 			BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
 			INC_DWORD_STAT(STAT_LandscapeDrawCalls);
@@ -1164,7 +1190,7 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 		if (bAllSameLOD && NumSubsections > 1 && !GLandscapeDebugOptions.bDisableCombine)
 		{
 			// choose the combined batch element
-			int32 BatchElementIndex = (CombinedLOD + 1)*BatchesPerLOD - 1;
+			int32 BatchElementIndex = GrassBatchOffset + (CombinedLOD + 1)*BatchesPerLOD - 1;
 			BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
 			INC_DWORD_STAT(STAT_LandscapeDrawCalls);
 			INC_DWORD_STAT_BY(STAT_LandscapeTriangles, Batch->Elements[BatchElementIndex].NumPrimitives);
@@ -1175,7 +1201,7 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 			{
 				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 				{
-					int32 BatchElementIndex = CalculatedLods[SubX][SubY] * BatchesPerLOD + SubY*NumSubsections + SubX;
+					int32 BatchElementIndex = GrassBatchOffset + CalculatedLods[SubX][SubY] * BatchesPerLOD + SubY*NumSubsections + SubX;
 					BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
 					INC_DWORD_STAT(STAT_LandscapeDrawCalls);
 					INC_DWORD_STAT_BY(STAT_LandscapeTriangles, Batch->Elements[BatchElementIndex].NumPrimitives);
@@ -1656,27 +1682,30 @@ void FLandscapeVertexBuffer::InitRHI()
 {
 	// create a static vertex buffer
 	FRHIResourceCreateInfo CreateInfo;
-	VertexBufferRHI = RHICreateVertexBuffer(FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections) * sizeof(FLandscapeVertex), BUF_Static, CreateInfo);
-	FLandscapeVertex* Vertex = (FLandscapeVertex*)RHILockVertexBuffer(VertexBufferRHI, 0, FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections) * sizeof(FLandscapeVertex), RLM_WriteOnly);
-
+	VertexBufferRHI = RHICreateVertexBuffer(NumVertices * sizeof(FLandscapeVertex), BUF_Static, CreateInfo);
+	FLandscapeVertex* Vertex = (FLandscapeVertex*)RHILockVertexBuffer(VertexBufferRHI, 0, NumVertices * sizeof(FLandscapeVertex), RLM_WriteOnly);
+	int32 VertexIndex = 0;
 	for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 	{
 		for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 		{
-			for (int32 y = 0; y < SubsectionSizeVerts; y++)
+			int32 Cols = SubX == NumSubsections - 1 && FeatureLevel > ERHIFeatureLevel::ES3_1 ? SubsectionSizeVerts + 1 : SubsectionSizeVerts;
+			int32 Rows = SubY == NumSubsections - 1 && FeatureLevel > ERHIFeatureLevel::ES3_1 ? SubsectionSizeVerts + 1 : SubsectionSizeVerts;
+			for (int32 y = 0; y < Rows; y++)
 			{
-				for (int32 x = 0; x < SubsectionSizeVerts; x++)
+				for (int32 x = 0; x < Cols; x++)
 				{
 					Vertex->VertexX = x;
 					Vertex->VertexY = y;
 					Vertex->SubX = SubX;
 					Vertex->SubY = SubY;
 					Vertex++;
+					VertexIndex++;
 				}
 			}
 		}
 	}
-
+	check(NumVertices == VertexIndex);
 	RHIUnlockVertexBuffer(VertexBufferRHI);
 }
 
@@ -1832,25 +1861,26 @@ void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatur
 		else
 		{
 			// non-ES2 version
+			int SubOffset = 0;
 			for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 			{
 				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 				{
-					int32 SubOffset = (SubX + SubY * NumSubsections) * FMath::Square(SubsectionSizeVerts);
-
 					int32& MaxIndex = IndexRanges[Mip].MaxIndex[SubX][SubY];
 					int32& MinIndex = IndexRanges[Mip].MinIndex[SubX][SubY];
 					MaxIndex = 0;
 					MinIndex = MAX_int32;
 
+					int32 StrideX = SubX == NumSubsections - 1 ? SubsectionSizeVerts + 1 : SubsectionSizeVerts;
+					int32 StrideY = SubY == NumSubsections - 1 ? SubsectionSizeVerts + 1 : SubsectionSizeVerts;
 					for (int32 y = 0; y < LodSubsectionSizeQuads; y++)
 					{
 						for (int32 x = 0; x < LodSubsectionSizeQuads; x++)
 						{
-							INDEX_TYPE i00 = (x + 0) + (y + 0) * SubsectionSizeVerts + SubOffset;
-							INDEX_TYPE i10 = (x + 1) + (y + 0) * SubsectionSizeVerts + SubOffset;
-							INDEX_TYPE i11 = (x + 1) + (y + 1) * SubsectionSizeVerts + SubOffset;
-							INDEX_TYPE i01 = (x + 0) + (y + 1) * SubsectionSizeVerts + SubOffset;
+							INDEX_TYPE i00 = (x + 0) + (y + 0) * StrideX + SubOffset;
+							INDEX_TYPE i10 = (x + 1) + (y + 0) * StrideX + SubOffset;
+							INDEX_TYPE i11 = (x + 1) + (y + 1) * StrideX + SubOffset;
+							INDEX_TYPE i01 = (x + 0) + (y + 1) * StrideX + SubOffset;
 
 							NewIndices.Add(i00);
 							NewIndices.Add(i11);
@@ -1875,6 +1905,8 @@ void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatur
 					// update min/max for full subsection
 					MaxIndexFull = FMath::Max<int32>(MaxIndexFull, MaxIndex);
 					MinIndexFull = FMath::Min<int32>(MinIndexFull, MinIndex);
+
+					SubOffset += StrideX * StrideY;
 				}
 			}
 
@@ -1900,6 +1932,56 @@ void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatur
 	}
 }
 
+template <typename INDEX_TYPE>
+void FLandscapeSharedBuffers::CreateGrassIndexBuffer()
+{
+	int32 SubsectionSizeQuads = SubsectionSizeVerts - 1;
+
+	TArray<INDEX_TYPE> NewIndices;
+	int32 ExpectedNumIndices = (FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeQuads) + 2 * NumSubsections * SubsectionSizeQuads + 1) * 6;
+	NewIndices.Empty(ExpectedNumIndices);
+
+	int32 SubOffset = 0;
+	for (int32 SubY = 0; SubY < NumSubsections; SubY++)
+	{
+		for (int32 SubX = 0; SubX < NumSubsections; SubX++)
+		{
+			int32 Cols = SubX == NumSubsections - 1 ? SubsectionSizeQuads + 1 : SubsectionSizeQuads;
+			int32 Rows = SubY == NumSubsections - 1 ? SubsectionSizeQuads + 1 : SubsectionSizeQuads;
+			int32 StrideX = SubX == NumSubsections - 1 ? SubsectionSizeVerts + 1 : SubsectionSizeVerts;
+			int32 StrideY = SubY == NumSubsections - 1 ? SubsectionSizeVerts + 1 : SubsectionSizeVerts;
+			for (int32 y = 0; y < Rows; y++)
+			{
+				for (int32 x = 0; x < Cols; x++)
+				{
+					INDEX_TYPE i00 = (x + 0) + (y + 0) * StrideX + SubOffset;
+					INDEX_TYPE i10 = (x + 1) + (y + 0) * StrideX + SubOffset;
+					INDEX_TYPE i11 = (x + 1) + (y + 1) * StrideX + SubOffset;
+					INDEX_TYPE i01 = (x + 0) + (y + 1) * StrideX + SubOffset;
+
+					NewIndices.Add(i00);
+					NewIndices.Add(i11);
+					NewIndices.Add(i10);
+
+					NewIndices.Add(i00);
+					NewIndices.Add(i01);
+					NewIndices.Add(i11);
+				}
+			}
+
+			SubOffset += StrideX * StrideY;
+		}
+	}
+
+	check(NewIndices.Num() == ExpectedNumIndices);
+
+	// Create and init new index buffer with index data
+	FRawStaticIndexBuffer16or32<INDEX_TYPE>* IndexBuffer = new FRawStaticIndexBuffer16or32<INDEX_TYPE>(false);
+	IndexBuffer->AssignNewBuffer(NewIndices);
+	IndexBuffer->InitResource();
+	GrassIndexBuffer = IndexBuffer;
+}
+
 FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32 InSubsectionSizeQuads, int32 InNumSubsections, ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation)
 	: SharedBuffersKey(InSharedBuffersKey)
 	, NumIndexBuffers(FMath::CeilLogTwo(InSubsectionSizeQuads + 1))
@@ -1909,25 +1991,36 @@ FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32
 	, VertexBuffer(nullptr)
 	, AdjacencyIndexBuffers(nullptr)
 	, bUse32BitIndices(false)
+	, GrassIndexBuffer(nullptr)
 {
+	NumVertices = FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections);
 	if (InFeatureLevel > ERHIFeatureLevel::ES3_1)
 	{
+		NumVertices += 2 * NumSubsections * SubsectionSizeVerts + 1;
 		// Vertex Buffer cannot be shared
-		VertexBuffer = new FLandscapeVertexBuffer(SubsectionSizeVerts, NumSubsections);
+		VertexBuffer = new FLandscapeVertexBuffer(InFeatureLevel, NumVertices, SubsectionSizeVerts, NumSubsections);
 	}
 	IndexBuffers = new FIndexBuffer*[NumIndexBuffers];
 	FMemory::Memzero(IndexBuffers, sizeof(FIndexBuffer*)* NumIndexBuffers);
 	IndexRanges = new FLandscapeIndexRanges[NumIndexBuffers]();
 
 	// See if we need to use 16 or 32-bit index buffers
-	if (FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections) > 65535)
+	if (NumVertices > 65535)
 	{
 		bUse32BitIndices = true;
 		CreateIndexBuffers<uint32>(InFeatureLevel, bRequiresAdjacencyInformation);
+		if (InFeatureLevel > ERHIFeatureLevel::ES3_1)
+		{
+			CreateGrassIndexBuffer<uint32>();
+		}
 	}
 	else
 	{
 		CreateIndexBuffers<uint16>(InFeatureLevel, bRequiresAdjacencyInformation);
+		if (InFeatureLevel > ERHIFeatureLevel::ES3_1)
+		{
+			CreateGrassIndexBuffer<uint16>();
+		}
 	}
 }
 
@@ -1942,6 +2035,12 @@ FLandscapeSharedBuffers::~FLandscapeSharedBuffers()
 	}
 	delete[] IndexBuffers;
 	delete[] IndexRanges;
+
+	if (GrassIndexBuffer)
+	{
+		GrassIndexBuffer->ReleaseResource();
+		delete GrassIndexBuffer;
+	}
 
 	if (AdjacencyIndexBuffers)
 	{
@@ -2000,7 +2099,7 @@ FLandscapeSharedAdjacencyIndexBuffer::FLandscapeSharedAdjacencyIndexBuffer(FLand
 	// Currently only support PN-AEN-Dominant Corner, which is the only mode for UE4 for now
 	IndexBuffers.Empty(Buffers->NumIndexBuffers);
 
-	bool b32BitIndex = FMath::Square(Buffers->SubsectionSizeVerts) * FMath::Square(Buffers->NumSubsections) > 65535;
+	bool b32BitIndex = Buffers->NumVertices > 65535;
 	for (int32 i = 0; i < Buffers->NumIndexBuffers; ++i)
 	{
 		if (b32BitIndex)

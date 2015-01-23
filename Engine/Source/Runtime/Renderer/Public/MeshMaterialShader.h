@@ -10,7 +10,7 @@
 #include "MeshMaterialShaderType.h"
 
 /** Base class of all shaders that need material and vertex factory parameters. */
-class FMeshMaterialShader : public FMaterialShader
+class RENDERER_API FMeshMaterialShader : public FMaterialShader
 {
 public:
 	FMeshMaterialShader() {}

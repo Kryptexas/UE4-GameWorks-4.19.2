@@ -614,6 +614,34 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	return Intermediates;
 }
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && VERTEXSHADER
+float2 LandscapeVertexFactorySampleHeight(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
+{
+	/*
+	FLandscapeTexCoords TexCoords = GetLandscapeTexCoords(Input, Intermediates);
+
+	float4 SampleValue = Texture2DSampleLevel(HeightmapTexture, HeightmapTextureSampler, TexCoords.HeightMapTexCoord, 0);
+	return SampleValue.xy;
+	*/
+
+	float2 xy = Intermediates.InputPosition.xy * LodValues.w;
+	float LODCalculated = CalcLOD(xy, Intermediates.InputPosition.zw);
+	float LodValue = floor(LODCalculated);
+
+	// Base to Actual LOD, Base to Next LOD
+	float2 CoordTranslate = float2( LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue) - 1, max(LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue-1), 2) - 1 ) * LandscapeParameters.SubsectionSizeVertsLayerUVPan.y;
+
+	// InputPositionLODAdjusted : Position for actual LOD in base LOD units
+	float2 ActualLODCoordsInt = floor(Intermediates.InputPosition.xy * pow(2, -(LodValue - LodValues.x)));
+
+	float2 InputPositionLODAdjusted = ActualLODCoordsInt / CoordTranslate.x;
+	float2 SampleCoords = InputPositionLODAdjusted * LandscapeParameters.HeightmapUVScaleBias.xy + LandscapeParameters.HeightmapUVScaleBias.zw + 0.5*LandscapeParameters.HeightmapUVScaleBias.xy + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.xy;
+	float4 SampleValue = Texture2DSampleLevel(HeightmapTexture, HeightmapTextureSampler, SampleCoords, LodValue-LodBias.z);
+	return SampleValue.rg;
+}
+#endif
+
+
 /**
 * Get the 3x3 tangent basis vectors for this vertex factory
 * this vertex factory will calculate the binormal on-the-fly

@@ -1,0 +1,77 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	LandscapeGrassWeightVertexShader.usf: Vertex shader to dump the weight map for Landscape Grass
+=============================================================================*/
+
+#include "Common.usf"
+#include "Material.usf"
+#include "VertexFactory.usf"
+
+struct FLandscapeGrassWeightInterpolantsVSToPS
+{
+	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
+	float4 PixelPosition	: TEXCOORD8; // xyz = world position, w = clip z
+	float2 Height			: TEXCOORD9;
+	float4 Position : SV_POSITION;
+};
+
+#if VERTEXSHADER
+
+/** Vertex Shader */
+void VSMain(
+	FVertexFactoryInput Input,
+	out FLandscapeGrassWeightInterpolantsVSToPS Output
+	)
+{
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+	float4 WorldPosition = WorldPositionExcludingWPO;
+
+	half3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);	
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
+
+	half3 WorldPositionOffset = GetMaterialWorldPositionOffset(VertexParameters);
+	
+	WorldPosition.xyz += WorldPositionOffset;
+	float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
+	Output.PixelPosition = WorldPosition;
+	Output.Position = mul(RasterizedWorldPosition, View.TranslatedWorldToClip);
+	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
+
+	Output.Height = LandscapeVertexFactorySampleHeight(Input, VFIntermediates);
+
+	Output.PixelPosition.w = Output.Position.w;
+}
+
+#elif PIXELSHADER
+
+// Pixel Shader
+void PSMain( 
+	FVertexFactoryInterpolantsVSToPS Interpolants,
+	FLandscapeGrassWeightInterpolantsVSToPS GrassWeightInterpolants,
+	in float4 SvPosition : SV_Position,
+	OPTIONAL_IsFrontFace,
+	out half4 OutColor	: SV_Target0
+	)
+{
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, GrassWeightInterpolants.PixelPosition);
+
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, GrassWeightInterpolants.PixelPosition); 
+	OutColor.xy = GrassWeightInterpolants.Height;
+
+	#if NUM_MATERIAL_OUTPUTS_GETGRASSWEIGHT > 0
+		OutColor.z = GetGrassWeight0(MaterialParameters);
+		#if NUM_MATERIAL_OUTPUTS_GETGRASSWEIGHT > 1
+			OutColor.w = GetGrassWeight1(MaterialParameters);
+		#else
+			OutColor.w = 0;
+		#endif
+	#else
+		OutColor.z = 0;
+		OutColor.w = 0;
+	#endif
+
+}
+
+#endif

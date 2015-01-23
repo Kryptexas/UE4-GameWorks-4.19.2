@@ -18,33 +18,6 @@ class ULandscapeLayerInfoObject : public UObject
 	UPROPERTY(EditAnywhere, Category=LandscapeLayerInfoObject)
 	float Hardness;
 
-	UPROPERTY(EditAnywhere, Category=Grass)
-	class UStaticMesh* GrassMesh;
-
-	/* Instances per 10 square meters. */
-	UPROPERTY(EditAnywhere, Category=Grass)
-	float GrassDensity;
-
-	UPROPERTY(EditAnywhere, Category=Grass)
-	float PlacementJitter;
-
-	/* The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables. */
-	UPROPERTY(EditAnywhere, Category=Grass)
-	int32 StartCullDistance;
-
-	/**
-	 * The distance where instances will have completely faded out when using a PerInstanceFadeAmount material node. 0 disables. 
-	 * When the entire cluster is beyond this distance, the cluster is completely culled and not rendered at all.
-	 */
-	UPROPERTY(EditAnywhere, Category = Grass)
-	int32 EndCullDistance;
-
-	UPROPERTY(EditAnywhere, Category = Grass)
-	bool RandomRotation;
-
-	UPROPERTY(EditAnywhere, Category = Grass)
-	bool AlignToSurface;
-
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category=LandscapeLayerInfoObject)
 	uint32 bNoWeightBlend:1;

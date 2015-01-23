@@ -419,7 +419,7 @@ void FMeshMaterialShader::SetMesh(
 }
 
 #define IMPLEMENT_MESH_MATERIAL_SHADER_SetMesh( ShaderRHIParamRef ) \
-	template void FMeshMaterialShader::SetMesh< ShaderRHIParamRef >( \
+	template RENDERER_API void FMeshMaterialShader::SetMesh< ShaderRHIParamRef >( \
 		FRHICommandList& RHICmdList,			\
 		const ShaderRHIParamRef ShaderRHI,		\
 		const FVertexFactory* VertexFactory,	\
