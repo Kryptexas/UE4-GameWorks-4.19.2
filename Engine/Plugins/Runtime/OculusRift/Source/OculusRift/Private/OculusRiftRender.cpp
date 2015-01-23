@@ -269,8 +269,7 @@ void FOculusRiftHMD::CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOut
 
 	if (Flags.bScreenPercentageEnabled)
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-		float value = CVar->GetValueOnGameThread();
+		float value = GetScreenPercentage();
 		if (value > 0.0f)
 		{
 			InOutSizeX = FMath::CeilToInt(InOutSizeX * value / 100.f);
@@ -486,8 +485,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 
 		Y += RowHeight;
-		static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-		int32 sp = (int32)CScrPercVar->GetFloat();
+		int32 sp = (int32)GetScreenPercentage();
 		Str = FString::Printf(TEXT("SP: %d"), sp);
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 

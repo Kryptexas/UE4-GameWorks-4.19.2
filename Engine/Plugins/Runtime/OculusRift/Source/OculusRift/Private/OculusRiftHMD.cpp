@@ -1405,7 +1405,7 @@ void FOculusRiftHMD::UpdatePostProcessSettings(FPostProcessSettings* Settings)
 {
 	if (Flags.bScreenPercentageEnabled)
 	{
-		Settings->ScreenPercentage = Flags.bOverrideScreenPercentage ? ScreenPercentage : IdealScreenPercentage;
+		Settings->ScreenPercentage = GetScreenPercentage();
 	}
 }
 

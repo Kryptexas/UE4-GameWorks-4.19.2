@@ -173,6 +173,8 @@ public:
 	void GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition);
 	void BeginRendering_RenderThread();
 
+	float GetScreenPercentage() const { return Flags.bOverrideScreenPercentage ? ScreenPercentage : IdealScreenPercentage; }
+
 #ifdef OVR_SDK_RENDERING
 	class BridgeBaseImpl : public FRHICustomPresent
 	{
