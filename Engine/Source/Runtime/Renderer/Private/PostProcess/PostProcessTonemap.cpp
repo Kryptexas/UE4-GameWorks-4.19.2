@@ -38,6 +38,7 @@ typedef enum {
 	TonemapperColorGrading      = (1<<14),
 	TonemapperMsaa              = (1<<15),
 	TonemapperPhoto             = (1<<16),
+	Tonemapper709               = (1<<17),
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -61,6 +62,7 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperColorGrading
 	1, //TonemapperMsaa
 	1, //TonemapperPhoto
+	1, //Tonemapper709
 };
 
 // Edit the following to add and remove configurations.
@@ -183,29 +185,35 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 	0,
 
 	TonemapperBloom +
-	TonemapperVignette +
+	TonemapperGrainJitter +
+	TonemapperGrainIntensity +
 	TonemapperGrainQuantization +
+	TonemapperVignette +
+	TonemapperVignetteColor +
 	TonemapperColorFringe +
 	TonemapperPhoto +
+	Tonemapper709 +
 	0,
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperGrainQuantization +
-	TonemapperPhoto +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainQuantization +
-	TonemapperPhoto +
-	0,
-
-
-	// same without TonemapperGrainQuantization
 
 	TonemapperBloom +
 	TonemapperGrainJitter +
 	TonemapperGrainIntensity +
+	TonemapperGrainQuantization +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	TonemapperPhoto +
+	Tonemapper709 +
+	0,
+
+	TonemapperBloom +
+	TonemapperGrainQuantization +
+	TonemapperPhoto +
+	0,
+
+
+	// similar without TonemapperGrain
+
+	TonemapperBloom +
 	TonemapperVignette +
 	TonemapperVignetteColor +
 	TonemapperColorFringe +
@@ -213,8 +221,6 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 	0,
 
 	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
 	TonemapperVignette +
 	TonemapperVignetteColor +
 	TonemapperPhoto +
@@ -222,13 +228,17 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 
 	TonemapperBloom +
 	TonemapperVignette +
+	TonemapperVignetteColor +
 	TonemapperColorFringe +
 	TonemapperPhoto +
+	Tonemapper709 +
 	0,
 
 	TonemapperBloom +
 	TonemapperVignette +
+	TonemapperVignetteColor +
 	TonemapperPhoto +
+	Tonemapper709 +
 	0,
 
 	TonemapperBloom +
@@ -692,6 +702,18 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 	}
 
 	{
+		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
+		int32 Value = CVar->GetValueOnRenderThread();
+
+		if(Value > 0)
+		{
+			// Remove settings not compatible.
+			Bitmask &= ~(TonemapperColorMatrix|TonemapperShadowTint|TonemapperContrast|TonemapperColorGrading|TonemapperMsaa);
+			Bitmask |= TonemapperPhoto | Tonemapper709;
+		}
+	}
+
+	{
 		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperPhoto"));
 		int32 Value = CVar->GetValueOnRenderThread();
 
@@ -1065,6 +1087,7 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && Platform != EShaderPlatform::SP_OPENGL_SM4_MAC));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_GRADING"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorGrading));
 		OutEnvironment.SetDefine(TEXT("USE_PHOTO"),              TonemapperIsDefined(ConfigBitmask, TonemapperPhoto));
+		OutEnvironment.SetDefine(TEXT("USE_709"),                TonemapperIsDefined(ConfigBitmask, Tonemapper709));
 
 		if( !IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM5) )
 		{

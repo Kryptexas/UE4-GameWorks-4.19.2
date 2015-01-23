@@ -34,6 +34,12 @@ half GrainFromUV(float2 GrainUV)
 	return Grain;
 }
 
+half3 LinearTo709Branchless(half3 lin) 
+{
+	lin = max(6.10352e-5, lin); // minimum positive non-denormal (fixes black problem on DX11 AMD and NV)
+	return min(lin * 4.5, pow(max(lin, 0.018), 0.45) * 1.099 - 0.099);
+}
+
 half3 LinearToSrgbBranchless(half3 lin) 
 {
 	lin = max(6.10352e-5, lin); // minimum positive non-denormal (fixes black problem on DX11 AMD and NV)
@@ -277,9 +283,14 @@ void MainPS(
 			// Note, MacOSX native output is raw gamma 2.2 not sRGB!
 			half3 TonemappedColor = pow(FilmColor.rgb, 1.0/2.2);
 		#else
-			// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-			// Branching is faster than branchless on AMD on PC.
-			half3 TonemappedColor = LinearToSrgbBranching(FilmColor);
+			#if USE_709
+				// Didn't profile yet if the branching version would be faster (different linear segment).
+				half3 TonemappedColor = LinearTo709Branchless(FilmColor);
+			#else
+				// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
+				// Branching is faster than branchless on AMD on PC.
+				half3 TonemappedColor = LinearToSrgbBranching(FilmColor);
+			#endif
 		#endif
 
 		//TonemappedColor = rsqrt( ( 0.8 + 0.8 * LinearColor ) / LinearColor );		// 1 vmad, 3 rcp, 1 vmul, 3 rsqrt

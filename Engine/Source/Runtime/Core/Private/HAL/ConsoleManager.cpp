@@ -1992,6 +1992,14 @@ static TAutoConsoleVariable<int32> CVarTonemapperPhoto(
 	TEXT("1: use new photo post"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarTonemapper709(
+	TEXT("r.Tonemapper709"),
+	0,
+	TEXT("0: use sRGB on PC monitor output\n")
+	TEXT("1: use Rec.709 for HDTV/projector output (requires r.TonemapperPhoto 1)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+
 static TAutoConsoleVariable<int32> CVarDetailMode(
 	TEXT("r.DetailMode"),
 	2,
