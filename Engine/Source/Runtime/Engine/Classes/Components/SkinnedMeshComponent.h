@@ -909,16 +909,16 @@ private:
 	// Animation update rate control.
 public:
 	/** Animation Update Rate optimization parameters. */
-	UPROPERTY(Transient)
-	struct FAnimUpdateRateParameters AnimUpdateRateParams;
+	struct FAnimUpdateRateParameters* AnimUpdateRateParams;
 
 	/** Aimation Update Rate Tick. */
-	void AnimUpdateRateTick();
+	void AnimUpdateRateTick(uint8 UpdateRateShift);
 
 	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
+	* 
 	* @param bRecentlyRendered : true if at least one SkinnedMeshComponent on this Actor has been rendered in the last second.
 	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
-	void AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion);
+	void AnimUpdateRateSetParams(uint8 UpdateRateShift, const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion);
 
 	virtual bool IsPlayingRootMotion(){ return false; }
 };

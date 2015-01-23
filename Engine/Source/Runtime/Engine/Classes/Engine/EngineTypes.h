@@ -1764,12 +1764,12 @@ public:
 	{ }
 
 	/** Set parameters and verify inputs.
-	 * @param : Owner Actor owner calling this.
+	 * @param : UpdateShiftRate. Shift our update frames so that updates across all skinned components are staggered
 	 * @param : NewUpdateRate. How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc.
 	 * @param : NewEvaluationRate. How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
 	 * @param : bNewInterpSkippedFrames. When skipping a frame, should it be interpolated or frozen?
 	 */
-	void Set(class AActor& Owner, const int32& NewUpdateRate, const int32& NewEvaluationRate, const bool & bNewInterpSkippedFrames);
+	void Set(uint8 UpdateRateShift, const int32& NewUpdateRate, const int32& NewEvaluationRate, const bool & bNewInterpSkippedFrames);
 
 	/* Getter for UpdateRate */
 	int32 GetUpdateRate() const

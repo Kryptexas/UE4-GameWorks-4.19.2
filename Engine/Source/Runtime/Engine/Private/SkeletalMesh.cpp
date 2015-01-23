@@ -4541,6 +4541,7 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 
 USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, AnimUpdateRateParams(NULL)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;

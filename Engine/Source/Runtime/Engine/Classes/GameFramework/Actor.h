@@ -338,19 +338,6 @@ public:
 	/** Array of Actors whose Owner is this actor */
 	UPROPERTY(transient)
 	TArray<AActor*> Children;
-	
-	// Animation update rate control.
-protected:
-	/** Unique Tag assigned to spread updates of SkinnedMeshes over time. */
-	UPROPERTY(Transient)
-	uint32 AnimUpdateRateShiftTag;
-public:
-	/** Frame counter to call AnimUpdateRateTick() just once per frame. */
-	UPROPERTY(Transient)
-	uint32 AnimUpdateRateFrameCount;
-
-	/** Get a unique ID to share with all SkinnedMeshComponents in this actor. */
-	uint32 GetAnimUpdateRateShiftTag();
 
 protected:
 	/**

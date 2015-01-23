@@ -83,22 +83,6 @@ AActor::AActor(const FObjectInitializer& ObjectInitializer)
 	bPendingKillPending = false;
 	bFindCameraComponentWhenViewTarget = true;
 	bAllowReceiveTickEventOnDedicatedServer = true;
-	AnimUpdateRateShiftTag = 0;
-	AnimUpdateRateFrameCount = 0;
-}
-
-// Global counter to spread SkinnedMeshComponent tick updates.
-static uint32 SkinnedMeshUpdateRateGroupCount = 0;
-
-uint32 AActor::GetAnimUpdateRateShiftTag()
-{
-	// If hasn't been initialized yet, pick a unique ID, to spread population over frames.
-	if (AnimUpdateRateShiftTag == 0)
-	{
-		AnimUpdateRateShiftTag = ++SkinnedMeshUpdateRateGroupCount;
-	}
-
-	return AnimUpdateRateShiftTag;
 }
 
 void FActorTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
