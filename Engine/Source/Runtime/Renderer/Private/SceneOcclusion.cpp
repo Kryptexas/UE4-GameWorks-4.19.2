@@ -1116,7 +1116,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 							continue;
 						}
 
-						if (ProjectedShadowInfo.bOnePassPointLightShadow)
+						if (ProjectedShadowInfo.CascadeSettings.bOnePassPointLightShadow)
 						{
 							FLightSceneProxy* Proxy = ProjectedShadowInfo.LightSceneInfo->Proxy;
 

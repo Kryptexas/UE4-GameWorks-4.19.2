@@ -73,7 +73,6 @@ public:
 			&& GAllowPointLightCubemapShadows != 0)
 		{
 			FWholeSceneProjectedShadowInitializer& OutInitializer = *new(OutInitializers) FWholeSceneProjectedShadowInitializer;
-			OutInitializer.bOnePassPointLightShadow = true;
 			OutInitializer.PreShadowTranslation = -GetLightToWorld().GetOrigin();
 			OutInitializer.WorldToLight = GetWorldToLight().RemoveTranslation();
 			OutInitializer.Scales = FVector(1, 1, 1);
@@ -82,9 +81,8 @@ public:
 			OutInitializer.WAxis = FVector4(0,0,1,0);
 			OutInitializer.MinLightW = 0.1f;
 			OutInitializer.MaxDistanceToCastInLightW = Radius;
-			OutInitializer.InitShadowSplitIndex = INDEX_NONE;
-			OutInitializer.bRayTracedDistanceFieldShadow = UseRayTracedDistanceFieldShadows() && DoesPlatformSupportDistanceFieldShadowing(ViewFamily.GetShaderPlatform());
-		
+			OutInitializer.CascadeSettings.bOnePassPointLightShadow = true;
+			OutInitializer.CascadeSettings.bRayTracedDistanceField = UseRayTracedDistanceFieldShadows() && DoesPlatformSupportDistanceFieldShadowing(ViewFamily.GetShaderPlatform());
 			return true;
 		}
 		

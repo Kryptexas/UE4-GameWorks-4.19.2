@@ -1073,7 +1073,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 		const EBlendMode BlendMode = Material->GetBlendMode();
 		const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
-		const bool bLocalOnePassPointLightShadow = Context.ShadowInfo->bOnePassPointLightShadow;
+		const bool bLocalOnePassPointLightShadow = Context.ShadowInfo->CascadeSettings.bOnePassPointLightShadow;
 		const bool bReflectiveShadowmap = Context.ShadowInfo->bReflectiveShadowmap && !bLocalOnePassPointLightShadow && Material->ShouldInjectEmissiveIntoLPV();
 
 		if ( (!IsTranslucentBlendMode(BlendMode) || bReflectiveShadowmap ) && ShadingModel != MSM_Unlit )
@@ -1153,7 +1153,7 @@ static void CheckShadowDepthMaterials(const FMaterialRenderProxy* InRenderProxy,
 
 void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer)
 {
-	if (bOnePassPointLightShadow)
+	if (CascadeSettings.bOnePassPointLightShadow)
 	{
 		// Set the viewport to the whole render target since it's a cube map, don't leave any border space
 		RHICmdList.SetViewport(
@@ -1259,7 +1259,7 @@ void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, 
 	FShadowDepthDrawingPolicy<bReflectiveShadowmap> SharedDrawingPolicy(
 		FirstMaterialResource,
 		ShadowInfo.bDirectionalLight,
-		ShadowInfo.bOnePassPointLightShadow,
+		ShadowInfo.CascadeSettings.bOnePassPointLightShadow,
 		ShadowInfo.bPreShadow,
 		FeatureLevel);
 
@@ -1404,7 +1404,7 @@ void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList)
 {
 	check(bAllocated);
 
-	if (bOnePassPointLightShadow)
+	if (CascadeSettings.bOnePassPointLightShadow)
 	{
 		// Set the viewport to the whole render target since it's a cube map, don't leave any border space
 		RHICmdList.SetViewport(
@@ -1443,7 +1443,7 @@ void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList)
 		}
 	}
 
-	if (bReflectiveShadowmap && !bOnePassPointLightShadow)
+	if (bReflectiveShadowmap && !CascadeSettings.bOnePassPointLightShadow)
 	{
 		// Enable color writes to the reflective shadow map targets with opaque blending
 		RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA>::GetRHI());
@@ -1523,7 +1523,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawShadowMeshElementsThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-					.ConstructAndDispatchWhenReady(*this, *CmdList, *FoundView, bReflectiveShadowmap && !bOnePassPointLightShadow);
+					.ConstructAndDispatchWhenReady(*this, *CmdList, *FoundView, bReflectiveShadowmap && !CascadeSettings.bOnePassPointLightShadow);
 
 				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 			}
@@ -1562,7 +1562,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 		{
 			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticShadowDepthsTime);
 
-			if (bReflectiveShadowmap && !bOnePassPointLightShadow)
+			if (bReflectiveShadowmap && !CascadeSettings.bOnePassPointLightShadow)
 			{
 				// reflective shadow map
 				DrawShadowMeshElements<true>(RHICmdList, *FoundView, *this);
@@ -1782,7 +1782,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		return;
 	}
 
-	if (bRayTracedDistanceFieldShadow)
+	if (CascadeSettings.bRayTracedDistanceField)
 	{
 		RenderRayTracedDistanceFieldProjection(RHICmdList, *View);
 		return;
@@ -1966,7 +1966,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 
-			checkSlow(ShadowSplitIndex >= 0);
+			checkSlow(CascadeSettings.ShadowSplitIndex >= 0);
 			checkSlow(bDirectionalLight);
 
 			// Draw 2 fullscreen planes, front facing one at the near subfrustum plane, and back facing one at the far.
@@ -2001,7 +2001,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			};
 
 			// Only draw the near plane if this is not the nearest split
-			DrawPrimitiveUP(RHICmdList, PT_TriangleList, (ShadowSplitIndex > 0) ? 4 : 2, Verts, sizeof(FVector4));
+			DrawPrimitiveUP(RHICmdList, PT_TriangleList, (CascadeSettings.ShadowSplitIndex > 0) ? 4 : 2, Verts, sizeof(FVector4));
 		}
 	}
 	// Not a preshadow, mask the projection to any pixels inside the frustum.
@@ -2111,10 +2111,10 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 		if (LocalQuality > 1)
 		{
-			if (IsWholeSceneDirectionalShadow() && ShadowSplitIndex > 0)
+			if (IsWholeSceneDirectionalShadow() && CascadeSettings.ShadowSplitIndex > 0)
 			{
 				// adjust kernel size so that the penumbra size of distant splits will better match up with the closer ones
-				const float SizeScale = ShadowSplitIndex / FMath::Max(0.001f, CVarCSMSplitPenumbraScale.GetValueOnRenderThread());
+				const float SizeScale = CascadeSettings.ShadowSplitIndex / FMath::Max(0.001f, CVarCSMSplitPenumbraScale.GetValueOnRenderThread());
 			}
 			else if (LocalQuality > 2 && !bWholeSceneShadow)
 			{
@@ -2200,7 +2200,7 @@ void FProjectedShadowInfo::RenderOnePassPointLightProjection(FRHICommandListImme
 {
 	SCOPE_CYCLE_COUNTER(STAT_RenderWholeSceneShadowProjectionsTime);
 
-	checkSlow(bOnePassPointLightShadow);
+	checkSlow(CascadeSettings.bOnePassPointLightShadow);
 	
 	const FSphere LightBounds = LightSceneInfo->Proxy->GetBoundingSphere();
 
@@ -2276,7 +2276,7 @@ void FProjectedShadowInfo::RenderFrustumWireframe(FPrimitiveDrawInterface* PDI) 
 	if(IsWholeSceneDirectionalShadow())
 	{
 		Color = FColor::White;
-		switch(ShadowSplitIndex)
+		switch(CascadeSettings.ShadowSplitIndex)
 		{
 			case 0: Color = FColor::Red; break;
 			case 1: Color = FColor::Yellow; break;
@@ -2412,7 +2412,7 @@ void FProjectedShadowInfo::UpdateShaderDepthBias()
 	}
 	else if (IsWholeSceneDirectionalShadow())
 	{
-		check(ShadowSplitIndex >= 0);
+		check(CascadeSettings.ShadowSplitIndex >= 0);
 
 		// the z range is adjusted to we need to adjust here as well
 		DepthBias = CVarCSMShadowDepthBias.GetValueOnRenderThread() / (MaxSubjectZ - MinSubjectZ);
@@ -2468,7 +2468,7 @@ float FProjectedShadowInfo::ComputeTransitionSize() const
 	}
 	else if (IsWholeSceneDirectionalShadow())
 	{
-		check(ShadowSplitIndex >= 0);
+		check(CascadeSettings.ShadowSplitIndex >= 0);
 
 		// todo: remove GetShadowTransitionScale()
 		// make 1/ ShadowTransitionScale, SpotLightShadowTransitionScale
@@ -2524,9 +2524,9 @@ void FProjectedShadowInfo::GetShadowTypeNameForDrawEvent(FString& TypeName) cons
 
 		if (bWholeSceneShadow)
 		{
-			if (ShadowSplitIndex >= 0)
+			if (CascadeSettings.ShadowSplitIndex >= 0)
 			{
-				TypeName = FString(TEXT("WholeScene split ")) + FString::FromInt(ShadowSplitIndex);
+				TypeName = FString(TEXT("WholeScene split ")) + FString::FromInt(CascadeSettings.ShadowSplitIndex);
 			}
 			else
 			{
@@ -2603,11 +2603,11 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 			bShadowIsVisible |= (ViewRelevance.bOpaqueRelevance	&& VisibleLightViewInfo.ProjectedShadowVisibilityMap[ShadowIndex]);
 		}
 
-		if (bShadowIsVisible && ProjectedShadowInfo->bOnePassPointLightShadow)
+		if (bShadowIsVisible && ProjectedShadowInfo->CascadeSettings.bOnePassPointLightShadow)
 		{
 			INC_DWORD_STAT(STAT_WholeSceneShadows);
 
-			if (!ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
+			if (!ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaquePointLight);
 				auto SetShadowRenderTargets = [ProjectedShadowInfo](FRHICommandList& RHICmdList)
@@ -2637,7 +2637,7 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 					// Set the device viewport for the view.
 					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 					
-					if (ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
+					if (ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
 					{
 						ProjectedShadowInfo->RenderRayTracedDistanceFieldProjection(RHICmdList, View);
 					}
@@ -2650,7 +2650,7 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 
 			// Don't inject shadowed lighting with whole scene shadows used for previewing a light with static shadows,
 			// Since that would cause a mismatch with the built lighting
-			if (!LightSceneInfo->Proxy->HasStaticShadowing() && !ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
+			if (!LightSceneInfo->Proxy->HasStaticShadowing() && !ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
 			{
 				bInjectedTranslucentVolume = true;
 				SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume);
@@ -2731,7 +2731,7 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 			{
 				// Both A and B are CSMs
 				// Compare Split Indexes, to order them far to near.
-				return (B.ShadowSplitIndex < A.ShadowSplitIndex);
+				return (B.CascadeSettings.ShadowSplitIndex < A.CascadeSettings.ShadowSplitIndex);
 			}
 
 			// A is a CSM, B is per-object shadow etc.
@@ -2784,7 +2784,7 @@ bool FDeferredShadingSceneRenderer::RenderTranslucentProjectedShadows(FRHIComman
 		}
 
 		// Skip shadows which will be handled in RenderOnePassPointLightShadows
-		if (ProjectedShadowInfo->bOnePassPointLightShadow)
+		if (ProjectedShadowInfo->CascadeSettings.bOnePassPointLightShadow)
 		{
 			bShadowIsVisible = false;
 		}
@@ -3120,7 +3120,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 		}
 
 		// Skip shadows which will be handled in RenderOnePassPointLightShadows or RenderReflectiveShadowmaps
-		if (ProjectedShadowInfo->bOnePassPointLightShadow || ProjectedShadowInfo->bReflectiveShadowmap)
+		if (ProjectedShadowInfo->CascadeSettings.bOnePassPointLightShadow || ProjectedShadowInfo->bReflectiveShadowmap)
 		{
 			bShadowIsVisible = false;
 		}
@@ -3212,7 +3212,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
 			{
 				FProjectedShadowInfo* ProjectedShadowInfo = Shadows[ShadowIndex];
-				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow && !ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
+				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow && !ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
 				{
 					ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets);
 				}
@@ -3235,7 +3235,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 				if (ProjectedShadowInfo->bAllocated
 					&& ProjectedShadowInfo->bWholeSceneShadow
 					// Not supported on translucency yet
-					&& !ProjectedShadowInfo->bRayTracedDistanceFieldShadow
+					&& !ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField
 					// Don't inject shadowed lighting with whole scene shadows used for previewing a light with static shadows,
 					// Since that would cause a mismatch with the built lighting
 					// However, stationary directional lights allow whole scene shadows that blend with precomputed shadowing
@@ -3422,7 +3422,7 @@ bool FForwardShadingSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate
 		}
 
 		// Skip shadows which will be handled in RenderOnePassPointLightShadows or RenderReflectiveShadowmaps
-		if (ProjectedShadowInfo->bOnePassPointLightShadow || ProjectedShadowInfo->bReflectiveShadowmap)
+		if (ProjectedShadowInfo->CascadeSettings.bOnePassPointLightShadow || ProjectedShadowInfo->bReflectiveShadowmap)
 		{
 			bShadowIsVisible = false;
 		}

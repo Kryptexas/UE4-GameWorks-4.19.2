@@ -524,6 +524,18 @@ public:
 	/** When enabled, the cascade only renders objects marked with bCastFarShadows enabled (e.g. Landscape). */
 	bool bFarShadowCascade;
 
+	/** Whether the shadow will be computed by ray tracing the distance field. */
+	bool bRayTracedDistanceField;
+
+	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
+	bool bOnePassPointLightShadow;
+
+	/** 
+	 * Index of the split if this is a whole scene shadow from a directional light, 
+	 * Or index of the direction if this is a whole scene shadow from a point light, otherwise INDEX_NONE. 
+	 */
+	int32 ShadowSplitIndex;
+	
 	FShadowCascadeSettings()
 		: SplitNear(0.0f)
 		, SplitFar(WORLD_MAX)
@@ -532,6 +544,9 @@ public:
 		, FadePlaneOffset(SplitFar)
 		, FadePlaneLength(SplitFar - FadePlaneOffset)
 		, bFarShadowCascade(false)
+		, bRayTracedDistanceField(false)
+		, bOnePassPointLightShadow(false)
+		, ShadowSplitIndex(INDEX_NONE)
 	{
 	}
 };
@@ -570,21 +585,7 @@ public:
 class ENGINE_API FWholeSceneProjectedShadowInitializer : public FProjectedShadowInitializer
 {
 public:
-	int32 InitShadowSplitIndex;
-	
 	FShadowCascadeSettings CascadeSettings;
-
-	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
-	bool bOnePassPointLightShadow;
-
-	/** Whether the shadow will be computed by ray tracing the distance field. */
-	bool bRayTracedDistanceFieldShadow;
-
-	FWholeSceneProjectedShadowInitializer()
-		: InitShadowSplitIndex(INDEX_NONE)
-		, bOnePassPointLightShadow(false)
-		, bRayTracedDistanceFieldShadow(false)
-	{}	
 };
 
 inline bool DoesPlatformSupportDistanceFieldShadowing(EShaderPlatform Platform)

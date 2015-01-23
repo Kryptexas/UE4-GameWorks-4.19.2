@@ -220,19 +220,17 @@ public:
 	{
 		const FMatrix& WorldToLight = GetWorldToLight();
 
-		const bool bRaytracedCascade = (InCascadeIndex == INDEX_NONE);
-
-		FShadowCascadeSettings CascadeSettings;
+		const bool bRayTracedCascade = (InCascadeIndex == INDEX_NONE);
 
 		FSphere Bounds = FDirectionalLightSceneProxy::GetShadowSplitBounds(View, InCascadeIndex, &OutInitializer.CascadeSettings);
 
 		uint32 NumNearCascades = GetNumShadowMappedCascades(View.MaxShadowCascades);
 
-		const uint32 ShadowSplitIndex = bRaytracedCascade ? NumNearCascades : InCascadeIndex;
+		// Last cascade is the ray traced shadow, if enabled
+		OutInitializer.CascadeSettings.ShadowSplitIndex = bRayTracedCascade ? NumNearCascades : InCascadeIndex;
 
 		const float ShadowExtent = Bounds.W / FMath::Sqrt(3.0f);
 		const FBoxSphereBounds SubjectBounds(Bounds.Center, FVector(ShadowExtent, ShadowExtent, ShadowExtent), Bounds.W);
-		OutInitializer.bOnePassPointLightShadow = false;
 		OutInitializer.PreShadowTranslation = -Bounds.Center;
 		OutInitializer.WorldToLight = FInverseRotationMatrix(FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]).GetSafeNormal().Rotation());
 		OutInitializer.Scales = FVector(1.0f,1.0f / Bounds.W,1.0f / Bounds.W);
@@ -243,10 +241,8 @@ public:
 		// Reduce casting distance on a directional light
 		// This is necessary to improve floating point precision in several places, especially when deriving frustum verts from InvReceiverMatrix
 		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 32.0f;
-		// Last cascade is the ray traced shadow, if enabled
-		OutInitializer.InitShadowSplitIndex = ShadowSplitIndex;
-		OutInitializer.bRayTracedDistanceFieldShadow = bRaytracedCascade;
-		OutInitializer.CascadeSettings.bFarShadowCascade = !bRaytracedCascade && ShadowSplitIndex >= NumNearCascades;
+		OutInitializer.CascadeSettings.bRayTracedDistanceField = bRayTracedCascade;
+		OutInitializer.CascadeSettings.bFarShadowCascade = !bRayTracedCascade && OutInitializer.CascadeSettings.ShadowSplitIndex >= (int32)NumNearCascades;
 		return true;
 	}
 

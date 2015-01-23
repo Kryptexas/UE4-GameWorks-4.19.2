@@ -373,22 +373,22 @@ public:
 
 		FORCEINLINE bool operator == (const FProjectedShadowKey &Other) const
 		{
-			return (PrimitiveId == Other.PrimitiveId && Light == Other.Light && SplitIndex == Other.SplitIndex && bTranslucentShadow == Other.bTranslucentShadow);
+			return (PrimitiveId == Other.PrimitiveId && Light == Other.Light && ShadowSplitIndex == Other.ShadowSplitIndex && bTranslucentShadow == Other.bTranslucentShadow);
 		}
 
 		FProjectedShadowKey(const FProjectedShadowInfo& ProjectedShadowInfo)
 			: PrimitiveId(ProjectedShadowInfo.ParentSceneInfo ? ProjectedShadowInfo.ParentSceneInfo->PrimitiveComponentId : FPrimitiveComponentId())
 			, Light(ProjectedShadowInfo.LightSceneInfo->Proxy->GetLightComponent())
-			, SplitIndex(ProjectedShadowInfo.ShadowSplitIndex)
+			, ShadowSplitIndex(ProjectedShadowInfo.CascadeSettings.ShadowSplitIndex)
 			, bTranslucentShadow(ProjectedShadowInfo.bTranslucentShadow)
 		{
 		}
 
-		FProjectedShadowKey(FPrimitiveComponentId InPrimitiveId, const ULightComponent* InLight, int32 InSplitIndex, bool bInTranslucentShadow):
-			PrimitiveId(InPrimitiveId),
-			Light(InLight),
-			SplitIndex(InSplitIndex),
-			bTranslucentShadow(bInTranslucentShadow)
+		FProjectedShadowKey(FPrimitiveComponentId InPrimitiveId, const ULightComponent* InLight, int32 InSplitIndex, bool bInTranslucentShadow)
+			: PrimitiveId(InPrimitiveId)
+			, Light(InLight)
+			, ShadowSplitIndex(InSplitIndex)
+			, bTranslucentShadow(bInTranslucentShadow)
 		{
 		}
 
@@ -400,7 +400,7 @@ public:
 	private:
 		FPrimitiveComponentId PrimitiveId;
 		const ULightComponent* Light;
-		int32 SplitIndex;
+		int32 ShadowSplitIndex;
 		bool bTranslucentShadow;
 	};
 

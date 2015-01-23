@@ -1535,12 +1535,16 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 					if (InjectionData.ProjectedShadowInfo)
 					{
 						// shadows, restricting light contribution to the cascade bounds (except last cascade far to get light functions and no shadows there)
-						SetInjectionShader<LightType_Directional, true>(RHICmdList, View, InjectionData.LightFunctionMaterialProxy, LightSceneInfo, InjectionData.ProjectedShadowInfo, InjectionData.ProjectedShadowInfo->ShadowSplitIndex, VolumeCascadeIndex, *VertexShader, *GeometryShader, InjectionData.bApplyLightFunction, false);
+						SetInjectionShader<LightType_Directional, true>(RHICmdList, View, InjectionData.LightFunctionMaterialProxy, LightSceneInfo,
+							InjectionData.ProjectedShadowInfo, InjectionData.ProjectedShadowInfo->CascadeSettings.ShadowSplitIndex, VolumeCascadeIndex,
+							*VertexShader, *GeometryShader, InjectionData.bApplyLightFunction, false);
 					}
 					else
 					{
 						// no shadows
-						SetInjectionShader<LightType_Directional, false>(RHICmdList, View, InjectionData.LightFunctionMaterialProxy, LightSceneInfo, InjectionData.ProjectedShadowInfo, -1, VolumeCascadeIndex, *VertexShader, *GeometryShader, InjectionData.bApplyLightFunction, false);
+						SetInjectionShader<LightType_Directional, false>(RHICmdList, View, InjectionData.LightFunctionMaterialProxy, LightSceneInfo,
+							InjectionData.ProjectedShadowInfo, -1, VolumeCascadeIndex,
+							*VertexShader, *GeometryShader, InjectionData.bApplyLightFunction, false);
 					}
 				}
 				else
@@ -1552,11 +1556,15 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 
 					if (InjectionData.ProjectedShadowInfo)
 					{
-						SetInjectionShader<LightType_Point, true>(RHICmdList, View, InjectionData.LightFunctionMaterialProxy, LightSceneInfo, InjectionData.ProjectedShadowInfo, -1, VolumeCascadeIndex, *VertexShader, *GeometryShader, InjectionData.bApplyLightFunction, bInverseSquared);
+						SetInjectionShader<LightType_Point, true>(RHICmdList, View, InjectionData.LightFunctionMaterialProxy, LightSceneInfo,
+							InjectionData.ProjectedShadowInfo, -1, VolumeCascadeIndex,
+							*VertexShader, *GeometryShader, InjectionData.bApplyLightFunction, bInverseSquared);
 					}
 					else
 					{
-						SetInjectionShader<LightType_Point, false>(RHICmdList, View, InjectionData.LightFunctionMaterialProxy, LightSceneInfo, InjectionData.ProjectedShadowInfo, -1, VolumeCascadeIndex, *VertexShader, *GeometryShader, InjectionData.bApplyLightFunction, bInverseSquared);
+						SetInjectionShader<LightType_Point, false>(RHICmdList, View, InjectionData.LightFunctionMaterialProxy, LightSceneInfo,
+							InjectionData.ProjectedShadowInfo, -1, VolumeCascadeIndex,
+							*VertexShader, *GeometryShader, InjectionData.bApplyLightFunction, bInverseSquared);
 					}
 				}
 

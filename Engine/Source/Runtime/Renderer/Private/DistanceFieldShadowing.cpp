@@ -696,7 +696,7 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldShadows() const
 			{
 				const FProjectedShadowInfo* ProjectedShadowInfo = VisibleLightInfo.AllProjectedShadows[ShadowIndex];
 
-				if (ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
+				if (ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
 				{
 					bSceneHasRayTracedDFShadows = true;
 					break;
@@ -735,7 +735,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 				NumPlanes = CascadeSettings.ShadowBoundsAccurate.Planes.Num();
 				PlaneData = CascadeSettings.ShadowBoundsAccurate.Planes.GetData();
 			}
-			else if (bOnePassPointLightShadow)
+			else if (CascadeSettings.bOnePassPointLightShadow)
 			{
 				ShadowBoundingSphereValue = FVector4(ShadowBounds.Center.X, ShadowBounds.Center.Y, ShadowBounds.Center.Z, ShadowBounds.W);
 			}

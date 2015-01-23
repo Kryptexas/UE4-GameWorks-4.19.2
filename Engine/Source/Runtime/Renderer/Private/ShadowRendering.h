@@ -491,15 +491,6 @@ public:
 class FProjectedShadowInfo : public FRefCountedObject
 {
 public:
-
-	friend class FShadowDepthVS;
-	//	friend class FShadowDepthPS;
-	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;
-
-	friend class FShadowProjectionVS;
-	friend class FShadowProjectionPS;
-	friend class FShadowDepthDrawingPolicyFactory;
-
 	typedef TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> PrimitiveArrayType;
 
 	const FLightSceneInfo* const LightSceneInfo;
@@ -562,12 +553,6 @@ public:
 	/** Fade Alpha per view. */
 	TArray<float, TInlineAllocator<2> > FadeAlphas;
 
-	/** 
-	 * Index of the split if this is a whole scene shadow from a directional light, 
-	 * Or index of the direction if this is a whole scene shadow from a point light, otherwise INDEX_NONE. 
-	 */
-	const int32 ShadowSplitIndex;
-
 	/** Whether the shadow has been allocated in the shadow depth buffer, and its X and Y properties have been initialized. */
 	uint32 bAllocated : 1;
 
@@ -592,9 +577,6 @@ public:
 	/** Whether this shadow affects the whole scene or only a group of objects. */
 	uint32 bWholeSceneShadow : 1;
 
-	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
-	const uint32 bOnePassPointLightShadow : 1;
-
 	/** Whether the shadow needs to render reflective shadow maps. */ 
 	uint32 bReflectiveShadowmap : 1; 
 
@@ -607,9 +589,6 @@ public:
 	/** To not cast a shadow on the ground outside the object and having higher quality (useful for first person weapon). */
 	uint32 bSelfShadowOnly : 1;
 
-	/** Whether the shadow is a directional light cascade that should be computed by ray tracing mesh distance fields. */
-	uint32 bRayTracedDistanceFieldShadow : 1;
-
 	uint32 bValidTransform : 1;
 
 	TBitArray<SceneRenderingBitArrayAllocator> StaticMeshWholeSceneShadowDepthMap;
@@ -620,31 +599,6 @@ public:
 
 	/** Frustums for each cubemap face, used for object culling one pass point light shadows. */
 	TArray<FConvexVolume> OnePassShadowFrustums;
-
-private:
-
-	/** dynamic shadow casting elements */
-	PrimitiveArrayType SubjectPrimitives;
-	/** For preshadows, this contains the receiver primitives to mask the projection to. */
-	PrimitiveArrayType ReceiverPrimitives;
-	/** Subject primitives with translucent relevance. */
-	PrimitiveArrayType SubjectTranslucentPrimitives;
-
-	/** Static shadow casting elements. */
-	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> SubjectMeshElements;
-
-	/** Dynamic mesh elements for subject primitives. */
-	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectMeshElements;
-	/** Dynamic mesh elements for receiver primitives. */
-	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicReceiverMeshElements;
-	/** Dynamic mesh elements for translucent subject primitives. */
-	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectTranslucentMeshElements;
-
-	/**
-	 * Bias during in shadowmap rendering, stored redundantly for better performance 
-	 * Set by UpdateShaderDepthBias(), get with GetShaderDepthBias(), -1 if not set
-	 */
-	float ShaderDepthBias;
 
 public:
 
@@ -754,8 +708,7 @@ public:
 
 	inline bool IsWholeSceneDirectionalShadow() const 
 	{ 
-		check(bDirectionalLight == LightSceneInfo->Proxy->GetLightType() == LightType_Directional);
-		return bWholeSceneShadow && ShadowSplitIndex >= 0 && bDirectionalLight; 
+		return bWholeSceneShadow && CascadeSettings.ShadowSplitIndex >= 0 && bDirectionalLight; 
 	}
 
 	inline bool IsWholeScenePointLightShadow() const
@@ -767,6 +720,28 @@ public:
 	void SortSubjectMeshElements();
 
 private:
+	/** dynamic shadow casting elements */
+	PrimitiveArrayType SubjectPrimitives;
+	/** For preshadows, this contains the receiver primitives to mask the projection to. */
+	PrimitiveArrayType ReceiverPrimitives;
+	/** Subject primitives with translucent relevance. */
+	PrimitiveArrayType SubjectTranslucentPrimitives;
+
+	/** Static shadow casting elements. */
+	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> SubjectMeshElements;
+
+	/** Dynamic mesh elements for subject primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectMeshElements;
+	/** Dynamic mesh elements for receiver primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicReceiverMeshElements;
+	/** Dynamic mesh elements for translucent subject primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectTranslucentMeshElements;
+
+	/**
+	 * Bias during in shadowmap rendering, stored redundantly for better performance 
+	 * Set by UpdateShaderDepthBias(), get with GetShaderDepthBias(), -1 if not set
+	 */
+	float ShaderDepthBias;
 
 	/**
 	* Renders the shadow subject depth, to a particular hacked view
@@ -793,6 +768,12 @@ private:
 		PrimitiveArrayType& PrimitiveArray, 
 		TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& OutDynamicMeshElements, 
 		TArray<const FSceneView*>& ReusedViewsArray);
+
+	friend class FShadowDepthVS;
+	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;
+	friend class FShadowProjectionVS;
+	friend class FShadowProjectionPS;
+	friend class FShadowDepthDrawingPolicyFactory;
 };
 
 /** Shader parameters for rendering the depth of a mesh for shadowing. */
