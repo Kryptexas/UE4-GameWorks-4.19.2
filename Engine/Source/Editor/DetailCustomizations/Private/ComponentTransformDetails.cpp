@@ -1415,7 +1415,7 @@ void FComponentTransformDetails::ScaleObject( float NewValue, int32 Axis, bool b
 
 					if (!bPreserveScaleRatio)
 					{
-						UStruct* VectorStruct = FindObjectChecked<UStruct>(UObject::StaticClass(), TEXT("Vector"), false);
+						UStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass()->GetOutermost(), TEXT("Vector"), false);
 
 						UProperty* VectorValueProperty = NULL;
 						switch( Axis )
