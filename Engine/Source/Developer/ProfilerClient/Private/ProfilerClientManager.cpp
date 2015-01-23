@@ -1064,8 +1064,6 @@ void FServiceConnection::GenerateCycleGraphs(const FRawStatStackNode& Root, TMap
 
 bool FServiceConnection::ReadAndConvertStatMessages( FArchive& Reader, bool bUseInAsync )
 {
-	uint64 ReadMessages = 0;
-
 	// Buffer used to store the compressed and decompressed data.
 	TArray<uint8> SrcData;
 	TArray<uint8> DestData;
@@ -1120,19 +1118,21 @@ bool FServiceConnection::ReadAndConvertStatMessages( FArchive& Reader, bool bUse
 								}
 							}
 						}
+
+
 					}
 
-					new (Messages)FStatMessage( Message );
+					new (Messages)FStatMessage( Message );			
 				}
 				else
 				{
 					break;
-				}
+				}	
+			}
 
-				if( !bUseInAsync && DataFrames.Num() < FProfilerClientManager::MaxFramesPerTick )
-				{
-					return false;
-				}
+			if( !bUseInAsync && DataFrames.Num() < FProfilerClientManager::MaxFramesPerTick )
+			{
+				return false;
 			}
 		}
 	}

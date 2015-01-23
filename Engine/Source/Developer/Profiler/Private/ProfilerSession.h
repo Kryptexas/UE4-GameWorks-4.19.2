@@ -392,42 +392,7 @@ protected:
 	 * @param StatMetaData - the stat metadata received from the connected profiler client
 	 *
 	 */
-	void Update( const FStatMetaData& ClientStatMetaData )
-	{
-		PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerStatMetaData.Update" ), );
-
-		FStatMetaData LocalCopy;
-		{
-			FScopeLock Lock( ClientStatMetaData.CriticalSection );
-			LocalCopy = ClientStatMetaData;
-		}
-
-		// Iterate through all thread descriptions.
-		ThreadDescriptions.Append( LocalCopy.ThreadDescriptions );
-
-		// Initialize fake stat for Self.
-		const uint32 NoGroupID = 0;
-
-		InitializeGroup( NoGroupID, "NoGroup" );
-		InitializeStat( 0, NoGroupID, TEXT( "Self" ), STATTYPE_CycleCounter );
-		InitializeStat( 1, NoGroupID, FStatConstants::NAME_ThreadRoot.GetPlainNameString(), STATTYPE_CycleCounter, FStatConstants::NAME_ThreadRoot );
-
-		// Iterate through all stat group descriptions.
-		for( auto It = LocalCopy.GroupDescriptions.CreateConstIterator(); It; ++It )
-		{
-			const FStatGroupDescription& GroupDesc = It.Value();
-			InitializeGroup( GroupDesc.ID, GroupDesc.Name );
-		}
-
-		// Iterate through all stat descriptions.
-		for( auto It = LocalCopy.StatDescriptions.CreateConstIterator(); It; ++It )
-		{
-			const FStatDescription& StatDesc = It.Value();
-			InitializeStat( StatDesc.ID, StatDesc.GroupID, StatDesc.Name, (EStatType)StatDesc.StatType );
-		}
-
-		SecondsPerCycle = LocalCopy.SecondsPerCycle;
-	}
+	void Update( const FStatMetaData& ClientStatMetaData );
 
 public:
 	/**
@@ -1149,24 +1114,10 @@ protected:
 	);
 
 	/** Called when this profiler session receives a new profiler data. */
-	void UpdateProfilerData( const FProfilerDataFrame& Content )
-	{
-		FrameToProfilerDataMapping.FindOrAdd( Content.Frame ) = Content;
-		FrameToProcess.Add( Content.Frame );
-	}
+	void UpdateProfilerData( const FProfilerDataFrame& Content );
 
 	/** Called when this profiler session receives information that the meta data has been updated. @see FProfilerMetaDataUpdateDelegate and IProfilerClient */
-	void UpdateMetadata( const FStatMetaData& InClientStatMetaData )
-	{
-		const uint32 CurrentStatMetaDataSize = InClientStatMetaData.GetMetaDataSize();
-		if( CurrentStatMetaDataSize != StatMetaDataSize )
-		{
-			ClientStatMetadata = &InClientStatMetaData;
-			bRequestStatMetadataUpdate = true;
-
-			StatMetaDataSize = CurrentStatMetaDataSize;
-		}	
-	}
+	void UpdateMetadata( const FStatMetaData& InClientStatMetaData );
 
 	/**
 	 * Updates aggregated stats.
@@ -1189,7 +1140,7 @@ protected:
 	void EventGraphCombineAndAdd( const FEventGraphDataRef Current, const uint32 NumFrames );
 
 	/** Called when the capture file has been fully loaded. */
-	void LoadComplete() { bHasAllProfilerData = true; }
+	void LoadComplete();
 
 protected:
 	/** All aggregated stats, stored as StatID -> FProfilerAggregatedStat. */

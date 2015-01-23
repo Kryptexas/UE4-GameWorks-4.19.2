@@ -336,6 +336,7 @@ void FProfilerManager::ProfilerClient_OnLoadCompleted( const FGuid& InstanceID )
 	const FProfilerSessionRef* ProfilerSession = FindSessionInstance( InstanceID );
 	if( ProfilerSession && GetProfilerWindow().IsValid())
 	{
+		RequestFilterAndPresetsUpdateEvent.Broadcast();
 		(*ProfilerSession)->LoadComplete();
 
 		// Update the notification that a file has been loaded, to be precise it should be loaded on the next tick...

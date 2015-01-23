@@ -11,6 +11,7 @@ struct FServiceConnection
 {
 	FServiceConnection()
 		: DataLoadingProgress( 0.0f )
+		, ReadMessages(0)
 	{
 		MetaData.CriticalSection = &CriticalSection;
 		CurrentFrame = 0;
@@ -69,6 +70,9 @@ struct FServiceConnection
 
 	/** Current frame of data to process */
 	int64 CurrentFrame;
+
+	/** Current number of read messages. */
+	uint64 ReadMessages;
 
 	/** Messages received and pending process, they are stored in a map as we can receive them out of order */
 	TMap<int64, TArray<uint8> > PendingMessages;

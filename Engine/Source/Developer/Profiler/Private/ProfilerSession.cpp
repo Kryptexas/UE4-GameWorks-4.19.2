@@ -444,6 +444,29 @@ void FProfilerSession::PopulateHierarchy_Recurrent
 	}
 }
 
+void FProfilerSession::LoadComplete()
+{
+	bHasAllProfilerData = true;
+}
+
+void FProfilerSession::UpdateProfilerData( const FProfilerDataFrame& Content )
+{
+	FrameToProfilerDataMapping.FindOrAdd( Content.Frame ) = Content;
+	FrameToProcess.Add( Content.Frame );
+}
+
+void FProfilerSession::UpdateMetadata( const FStatMetaData& InClientStatMetaData )
+{
+	const uint32 CurrentStatMetaDataSize = InClientStatMetaData.GetMetaDataSize();
+	if( CurrentStatMetaDataSize != StatMetaDataSize )
+	{
+		ClientStatMetadata = &InClientStatMetaData;
+		bRequestStatMetadataUpdate = true;
+
+		StatMetaDataSize = CurrentStatMetaDataSize;
+	}
+}
+
 /*-----------------------------------------------------------------------------
 	FRawProfilerSession
 -----------------------------------------------------------------------------*/
@@ -736,6 +759,45 @@ void FRawProfilerSession::PrepareLoading()
 	}
 #endif // 0
 }
+
+
+void FProfilerStatMetaData::Update( const FStatMetaData& ClientStatMetaData )
+{
+	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerStatMetaData.Update" ), );
+
+	FStatMetaData LocalCopy;
+	{
+		FScopeLock Lock( ClientStatMetaData.CriticalSection );
+		LocalCopy = ClientStatMetaData;
+	}
+
+	// Iterate through all thread descriptions.
+	ThreadDescriptions.Append( LocalCopy.ThreadDescriptions );
+
+	// Initialize fake stat for Self.
+	const uint32 NoGroupID = 0;
+
+	InitializeGroup( NoGroupID, "NoGroup" );
+	InitializeStat( 0, NoGroupID, TEXT( "Self" ), STATTYPE_CycleCounter );
+	InitializeStat( 1, NoGroupID, FStatConstants::NAME_ThreadRoot.GetPlainNameString(), STATTYPE_CycleCounter, FStatConstants::NAME_ThreadRoot );
+
+	// Iterate through all stat group descriptions.
+	for( auto It = LocalCopy.GroupDescriptions.CreateConstIterator(); It; ++It )
+	{
+		const FStatGroupDescription& GroupDesc = It.Value();
+		InitializeGroup( GroupDesc.ID, GroupDesc.Name );
+	}
+
+	// Iterate through all stat descriptions.
+	for( auto It = LocalCopy.StatDescriptions.CreateConstIterator(); It; ++It )
+	{
+		const FStatDescription& StatDesc = It.Value();
+		InitializeStat( StatDesc.ID, StatDesc.GroupID, StatDesc.Name, (EStatType)StatDesc.StatType );
+	}
+
+	SecondsPerCycle = LocalCopy.SecondsPerCycle;
+}
+
 
 void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& StatsThreadStats )
 {
