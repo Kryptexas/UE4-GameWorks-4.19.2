@@ -2104,6 +2104,32 @@ bool UAnimInstance::Montage_GetIsStopped(UAnimMontage* Montage)
 	return true;
 }
 
+float UAnimInstance::Montage_GetBlendTime(UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			return MontageInstance->BlendTime;
+		}
+	}
+	else
+	{
+		// If no Montage reference, use first active one found.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				return MontageInstance->BlendTime;
+			}
+		}
+	}
+
+	return 0.f;
+}
+
 float UAnimInstance::Montage_GetPlayRate(UAnimMontage* Montage)
 {
 	if (Montage)

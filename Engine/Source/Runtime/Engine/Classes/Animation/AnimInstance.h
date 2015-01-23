@@ -449,6 +449,10 @@ public:
 	/** return true if Montage is not currently active. (not valid or blending out) */
 	bool Montage_GetIsStopped(UAnimMontage* Montage);
 
+	/** Get the current blend time of the Montage.
+	If Montage reference is NULL, it will return the current blend time on the first active Montage found. */
+	float Montage_GetBlendTime(UAnimMontage* Montage);
+
 	/** Get PlayRate for Montage.
 	If Montage reference is NULL, PlayRate for any Active Montage will be returned.
 	If Montage is not playing, 0 is returned. */

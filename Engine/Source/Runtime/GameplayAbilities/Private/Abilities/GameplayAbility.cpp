@@ -738,7 +738,7 @@ void UGameplayAbility::MontageSetNextSectionName(FName FromSectionName, FName To
 	}
 }
 
-void UGameplayAbility::MontageStop()
+void UGameplayAbility::MontageStop(float OverrideBlendOutTime)
 {
 	check(CurrentActorInfo);
 
@@ -748,7 +748,7 @@ void UGameplayAbility::MontageStop()
 		// We should only stop the current montage if we are the animating ability
 		if (AbilitySystemComponent->IsAnimatingAbility(this))
 		{
-			AbilitySystemComponent->CurrentMontageStop();
+			AbilitySystemComponent->CurrentMontageStop(OverrideBlendOutTime);
 		}
 	}
 }

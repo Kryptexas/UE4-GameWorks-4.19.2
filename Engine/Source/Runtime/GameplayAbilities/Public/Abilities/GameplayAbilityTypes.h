@@ -411,6 +411,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
 	UPROPERTY()
 	float Position;
 
+	/** Montage current blend time */
+	UPROPERTY()
+	float BlendTime;
+
 	/** NextSectionID */
 	UPROPERTY()
 	uint8 NextSectionID;
@@ -427,6 +431,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
 		: AnimMontage(NULL),
 		PlayRate(0.f),
 		Position(0.f),
+		BlendTime(0.f),
 		NextSectionID(0),
 		IsStopped(true),
 		ForcePlayBit(0)

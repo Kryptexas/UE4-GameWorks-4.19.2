@@ -1862,6 +1862,7 @@ void UAbilitySystemComponent::AnimMontage_UpdateReplicatedData()
 		RepAnimMontageInfo.AnimMontage = LocalAnimMontageInfo.AnimMontage;
 		RepAnimMontageInfo.PlayRate = AnimInstance->Montage_GetPlayRate(LocalAnimMontageInfo.AnimMontage);
 		RepAnimMontageInfo.Position = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
+		RepAnimMontageInfo.BlendTime = AnimInstance->Montage_GetBlendTime(LocalAnimMontageInfo.AnimMontage);
 
 		// Compressed Flags
 		bool bIsStopped = AnimInstance->Montage_GetIsStopped(LocalAnimMontageInfo.AnimMontage);
@@ -1918,10 +1919,11 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 		if (DebugMontage)
 		{
 			ABILITY_LOG( Warning, TEXT("\n\nOnRep_ReplicatedAnimMontage, %s"), *GetNameSafe(this));
-			ABILITY_LOG( Warning, TEXT("\tAnimMontage: %s\n\tPlayRate: %f\n\tPosition: %f\n\tNextSectionID: %d\n\tIsStopped: %d\n\tForcePlayBit: %d"),
+			ABILITY_LOG( Warning, TEXT("\tAnimMontage: %s\n\tPlayRate: %f\n\tPosition: %f\n\tBlendTime: %f\n\tNextSectionID: %d\n\tIsStopped: %d\n\tForcePlayBit: %d"),
 				*GetNameSafe(RepAnimMontageInfo.AnimMontage), 
 				RepAnimMontageInfo.PlayRate, 
-				RepAnimMontageInfo.Position, 
+				RepAnimMontageInfo.Position,
+				RepAnimMontageInfo.BlendTime,
 				RepAnimMontageInfo.NextSectionID, 
 				RepAnimMontageInfo.IsStopped, 
 				RepAnimMontageInfo.ForcePlayBit);
@@ -1982,13 +1984,13 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			bool ReplicatedIsStopped = bool(RepAnimMontageInfo.IsStopped);
 			if( ReplicatedIsStopped && !bIsStopped )
 			{
-				CurrentMontageStop();
+				CurrentMontageStop(RepAnimMontageInfo.BlendTime);
 			}
 		}
 	}
 }
 
-void UAbilitySystemComponent::CurrentMontageStop()
+void UAbilitySystemComponent::CurrentMontageStop(float OverrideBlendOutTime)
 {
 	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
 	UAnimMontage* MontageToStop = LocalAnimMontageInfo.AnimMontage;
@@ -1996,7 +1998,9 @@ void UAbilitySystemComponent::CurrentMontageStop()
 
 	if (bShouldStopMontage)
 	{
-		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime);
+		const float BlendOutTime = (OverrideBlendOutTime >= 0.0f ? OverrideBlendOutTime : MontageToStop->BlendOutTime);
+
+		AnimInstance->Montage_Stop(BlendOutTime);
 
 		if (IsOwnerActorAuthoritative())
 		{
