@@ -50,7 +50,6 @@ public:
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("OUTPUT_GBUFFER_VELOCITY"), (uint32)(FVelocityRendering::OutputsToGBuffer() ? 1 : 0));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -336,7 +335,6 @@ public:
 		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 
 		const bool bOutputVelocity = FVelocityRendering::OutputsToGBuffer();
-		OutEnvironment.SetDefine(TEXT("OUTPUT_GBUFFER_VELOCITY"), (uint32)(bOutputVelocity ? 1 : 0));
 		if (bOutputVelocity)
 		{
 			OutEnvironment.SetRenderTargetOutputFormat(6, PF_G16R16);

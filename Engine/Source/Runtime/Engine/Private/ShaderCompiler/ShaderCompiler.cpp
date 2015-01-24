@@ -2175,6 +2175,11 @@ void GlobalBeginCompileShader(
 	}
 
 	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocity"));
+		Input.Environment.SetDefine(TEXT("OUTPUT_GBUFFER_VELOCITY"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
 		Input.Environment.SetDefine(TEXT("NO_GBUFFER"), CVar ? (CVar->GetValueOnGameThread() == 0) : 0);
 	}
