@@ -396,6 +396,7 @@ public:
 #if LOG_ANDROID_FILE_MANIFEST
 					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Read time stamp '%s' %s"), *Filename, *ModifiedDate.ToString());
 #endif
+					Filename.ReplaceInline( TEXT("\\"), TEXT("/") );
 					ManifestEntries.Emplace( MoveTemp(Filename), ModifiedDate );
 				}
 				else
@@ -1084,6 +1085,11 @@ public:
 				return Result;
 			}
 
+			if ( UFSManifest.GetFileTimeStamp( AssetPath, Result ) )
+			{
+				return Result;
+			}
+
 #if LOG_ANDROID_FILE_MANIFEST
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to find time stamp in NonUFSManifest for file '%s'"), Filename);
 #endif
@@ -1134,8 +1140,17 @@ public:
 			utime(TCHAR_TO_UTF8(*LocalPath), &Times);
 #else
 			// do something better as utime isn't supported on android very well...
-			NonUFSManifest.SetFileTimeStamp( AssetPath, DateTime );
-			NonUFSManifest.Write();
+			FDateTime TempDateTime;
+			if ( NonUFSManifest.GetFileTimeStamp( AssetPath, TempDateTime ) )
+			{
+				NonUFSManifest.SetFileTimeStamp( AssetPath, DateTime );
+				NonUFSManifest.Write();
+			}
+			else
+			{
+				UFSManifest.SetFileTimeStamp( AssetPath, DateTime );
+				UFSManifest.Write();
+			}
 #endif
 		}
 	}
