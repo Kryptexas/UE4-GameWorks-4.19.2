@@ -1365,6 +1365,14 @@ UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, 
 	{
 		Parameters.DestName = FName(DestName, FNAME_Add, true);
 	}
+	else if (SourceObject->GetOuter() != DestOuter)
+	{
+		// try to keep the object name consistent if possible
+		if (FindObjectFast<UObject>(DestOuter, SourceObject->GetFName()) == nullptr)
+		{
+			Parameters.DestName = SourceObject->GetFName();
+		}
+	}
 
 	if ( DestClass == NULL )
 	{
