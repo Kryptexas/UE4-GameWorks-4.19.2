@@ -37,6 +37,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Single Layout Blueprint Editor" ))
 	bool bUnifiedBlueprintEditor;
 
+	/** Ability to add C++ and blueprinted components to actors */
+	UPROPERTY(EditAnywhere, config, Category=Tools)
+	bool bScriptableComponentsOnActors;
+
 	/** The Messaging Debugger provides a visual utility for debugging the messaging system. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))
 	bool bMessagingDebugger;

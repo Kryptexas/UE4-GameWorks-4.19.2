@@ -11,6 +11,7 @@
 #include "EditorClassUtils.h"
 #include "SSearchBox.h"
 #include "Engine/Selection.h"
+#include "HotReloadInterface.h"
 
 #define LOCTEXT_NAMESPACE "ComponentClassCombo"
 
@@ -23,6 +24,9 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 	UpdateComponentClassList();
 	GenerateFilteredComponentList(FString());
 
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	HotReloadSupport.OnHotReload().AddSP( this, &SComponentClassCombo::OnProjectHotReloaded );
+	
 	SAssignNew(ComponentClassListView, SListView<FComponentClassComboEntryPtr>)
 		.ListItemsSource( &FilteredComponentClassList )
 		.OnSelectionChanged( this, &SComponentClassCombo::OnAddComponentSelectionChanged )
@@ -174,7 +178,7 @@ void SComponentClassCombo::OnAddComponentSelectionChanged( FComponentClassComboE
 
 		if ( InItem->IsClass() )
 		{
-			OnComponentClassSelected.ExecuteIfBound(InItem->GetComponentClass());
+			OnComponentClassSelected.ExecuteIfBound(InItem->GetComponentClass(), InItem->GetComponentCreateAction() );
 
 			// Neither do we want the combo dropdown staying open once the user has clicked on a valid option
 			SetIsOpen( false, false );
@@ -322,11 +326,21 @@ void SComponentClassCombo::UpdateComponentClassList()
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
+	if( GetDefault<UEditorExperimentalSettings>()->bScriptableComponentsOnActors )
+	{
+		// Add new C++ component class
+		FComponentClassComboEntryPtr NewClassHeader = MakeShareable(new FComponentClassComboEntry(LOCTEXT("ScriptingHeading", "Scripting").ToString()));
+		ComponentClassList.Add(NewClassHeader);
+
+		FComponentClassComboEntryPtr NewCPPClass = MakeShareable(new FComponentClassComboEntry(LOCTEXT("ScriptingHeading", "Scripting").ToString(), UActorComponent::StaticClass(), true, EComponentCreateAction::CreateNewCPPClass));
+		ComponentClassList.Add(NewCPPClass);
+	}
+	
 	TArray<FComponentClassComboEntryPtr> SortedClassList;
 	for (TObjectIterator<UClass> It; It; ++It)
 	{
 		UClass* Class = *It;
-		// If this is a subclass of SceneComponent, not abstract, and tagged as spawnable from Kismet
+		// If this is a subclass of Actor Component, not abstract, and tagged as spawnable from Kismet
 		if (Class->IsChildOf(UActorComponent::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent)) //@TODO: Fold this logic together with the one in UEdGraphSchema_K2::GetAddComponentClasses
 		{
 			TArray<FString> ClassGroupNames;
@@ -335,13 +349,15 @@ void SComponentClassCombo::UpdateComponentClassList()
 			if (ClassGroupNames.Contains(SortComboEntry::CommonClassGroup))
 			{
 				FString ClassGroup = SortComboEntry::CommonClassGroup;
-				FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup, Class, ClassGroupNames.Num() <= 1));
+				FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup, Class, ClassGroupNames.Num() <= 1, EComponentCreateAction::SpawnExistingClass));
 				SortedClassList.Add(NewEntry);
 			}
 			if (ClassGroupNames.Num() && !ClassGroupNames[0].Equals(SortComboEntry::CommonClassGroup))
 			{
+				const bool bIncludeInFilter = true;
+
 				FString ClassGroup = ClassGroupNames[0];
-				FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup, Class, true));
+				FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup, Class, bIncludeInFilter, EComponentCreateAction::SpawnExistingClass));
 				SortedClassList.Add(NewEntry);
 			}
 		}
@@ -383,51 +399,69 @@ FReply SComponentClassCombo::OnButtonClicked()
 	return SComboButton::OnButtonClicked();
 }
 
+void SComponentClassCombo::OnProjectHotReloaded( bool bWasTriggeredAutomatically )
+{
+	UpdateComponentClassList();
+
+	ComponentClassListView->RequestListRefresh();
+}
+
+
 FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const
 {
 	// Get a user friendly string from the component name
-	FString FriendlyComponentName = GetSanitizedComponentName(Entry->GetComponentClass());
+	FString FriendlyComponentName;
 
-	// Search the selected assets and look for any that can be used as a source asset for this type of component
-	// If there is one we append the asset name to the component name, if there are many we append "Multiple Assets"
-	FString AssetName;
-	UObject* PreviousMatchingAsset = NULL;
-
-	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-	USelection* Selection = GEditor->GetSelectedObjects();
-	for (FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
+	if( Entry->GetComponentCreateAction() == EComponentCreateAction::CreateNewCPPClass )
 	{
-		UObject* Object = *ObjectIter;
-		UClass* Class = Object->GetClass();
+		FriendlyComponentName = LOCTEXT("NewCPPBehaviorFriendlyName", "New C++ Behavior").ToString();
+	}
+	else
+	{
+		FriendlyComponentName = GetSanitizedComponentName(Entry->GetComponentClass());
 
-		TArray<TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);
-		for (int32 ComponentIndex = 0; ComponentIndex < ComponentClasses.Num(); ComponentIndex++)
+
+		// Search the selected assets and look for any that can be used as a source asset for this type of component
+		// If there is one we append the asset name to the component name, if there are many we append "Multiple Assets"
+		FString AssetName;
+		UObject* PreviousMatchingAsset = NULL;
+
+		FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
+		USelection* Selection = GEditor->GetSelectedObjects();
+		for(FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
 		{
-			if (ComponentClasses[ComponentIndex]->IsChildOf(Entry->GetComponentClass()))
+			UObject* Object = *ObjectIter;
+			UClass* Class = Object->GetClass();
+
+			TArray<TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);
+			for(int32 ComponentIndex = 0; ComponentIndex < ComponentClasses.Num(); ComponentIndex++)
 			{
-				if (AssetName.IsEmpty())
+				if(ComponentClasses[ComponentIndex]->IsChildOf(Entry->GetComponentClass()))
 				{
-					// If there is no previous asset then we just accept the name
-					AssetName = Object->GetName();
-					PreviousMatchingAsset = Object;
-				}
-				else
-				{
-					// if there is a previous asset then check that we didn't just find multiple appropriate components
-					// in a single asset - if the asset differs then we don't display the name, just "Multiple Assets"
-					if (PreviousMatchingAsset != Object)
+					if(AssetName.IsEmpty())
 					{
-						AssetName = LOCTEXT("MultipleAssetsForComponentAnnotation", "Multiple Assets").ToString();
+						// If there is no previous asset then we just accept the name
+						AssetName = Object->GetName();
 						PreviousMatchingAsset = Object;
+					}
+					else
+					{
+						// if there is a previous asset then check that we didn't just find multiple appropriate components
+						// in a single asset - if the asset differs then we don't display the name, just "Multiple Assets"
+						if(PreviousMatchingAsset != Object)
+						{
+							AssetName = LOCTEXT("MultipleAssetsForComponentAnnotation", "Multiple Assets").ToString();
+							PreviousMatchingAsset = Object;
+						}
 					}
 				}
 			}
 		}
-	}
 
-	if (!AssetName.IsEmpty())
-	{
-		FriendlyComponentName += FString(" (") + AssetName + FString(")");
+		if(!AssetName.IsEmpty())
+		{
+			FriendlyComponentName += FString(" (") + AssetName + FString(")");
+		}
 	}
 	return FText::FromString(FriendlyComponentName);
 }

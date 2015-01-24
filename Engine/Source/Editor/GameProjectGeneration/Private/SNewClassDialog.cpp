@@ -167,6 +167,8 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 
 	const float EditableTextHeight = 26.0f;
 
+	OnCodeAddedToProject = InArgs._OnCodeAddedToProject;
+
 	ChildSlot
 	[
 		SNew(SBorder)
@@ -999,6 +1001,8 @@ void SNewClassDialog::FinishClicked()
 	const TSet<FString>& DisallowedHeaderNames = FSourceCodeNavigation::GetSourceFileDatabase().GetDisallowedHeaderNames();
 	if (GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, *SelectedModuleInfo, ParentClassInfo, DisallowedHeaderNames, HeaderFilePath, CppFilePath, FailReason))
 	{
+		OnCodeAddedToProject.ExecuteIfBound( NewClassName, NewClassPath, SelectedModuleInfo->ModuleName );
+
 		// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
 		bPreventPeriodicValidityChecksUntilNextChange = true;
 

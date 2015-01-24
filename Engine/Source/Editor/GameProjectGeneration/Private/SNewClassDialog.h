@@ -20,6 +20,8 @@ public:
 	/** The initial path to use as the destination for the new class. If this is not specified, we will work out a suitable default from the available project modules */
 	SLATE_ARGUMENT(FString, InitialPath)
 
+	/** Event called when code is successfully added to the project */
+	SLATE_EVENT( FOnCodeAddedToProject, OnCodeAddedToProject )
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
@@ -219,4 +221,7 @@ private:
 
 	/** Information about the currently selected module; used for class validation */
 	TSharedPtr<FModuleContextInfo> SelectedModuleInfo;
+
+	/** Event called when code is succesfully added to the project */
+	FOnCodeAddedToProject OnCodeAddedToProject;
 };
