@@ -1995,6 +1995,9 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bGenerateDistanceFieldAsIfTwoSided;
 
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	class UStaticMesh* DistanceFieldReplacementMesh;
+
 	/** Default settings. */
 	FMeshBuildSettings()
 		: bUseMikkTSpace(true)
@@ -2010,6 +2013,7 @@ struct FMeshBuildSettings
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 		, DistanceFieldResolutionScale(1.0f)
 		, bGenerateDistanceFieldAsIfTwoSided(false)
+		, DistanceFieldReplacementMesh(NULL)
 	{ }
 
 	/** Equality operator. */
@@ -2026,7 +2030,8 @@ struct FMeshBuildSettings
 			&& DstLightmapIndex == Other.DstLightmapIndex
 			&& BuildScale3D == Other.BuildScale3D
 			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale
-			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided;
+			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided
+			&& DistanceFieldReplacementMesh == Other.DistanceFieldReplacementMesh;
 	}
 
 	/** Inequality. */

@@ -148,7 +148,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 
-	void CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh);
+	void CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, bool bGenerateDistanceFieldAsIfTwoSided);
 
 #endif
 
@@ -166,6 +166,9 @@ class FAsyncDistanceFieldTask
 public:
 	TArray<EBlendMode> MaterialBlendModes;
 	UStaticMesh* StaticMesh;
+	UStaticMesh* GenerateSource;
+	float DistanceFieldResolutionScale;
+	bool bGenerateDistanceFieldAsIfTwoSided;
 	FString DDCKey;
 	FDistanceFieldVolumeData* GeneratedVolumeData;
 };

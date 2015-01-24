@@ -171,6 +171,9 @@ private:
 
 	void OnDistanceFieldResolutionScaleChanged(float NewValue);
 	void OnDistanceFieldResolutionScaleCommitted(float NewValue, ETextCommit::Type TextCommitType);
+	FString GetCurrentDistanceFieldReplacementMeshPath() const;
+	void OnDistanceFieldReplacementMeshSelected(const FAssetData& AssetData);
+
 private:
 	TWeakPtr<FLevelOfDetailSettingsLayout> ParentLODSettings;
 	FMeshBuildSettings BuildSettings;

@@ -193,7 +193,7 @@ FDistanceFieldAsyncQueue* GDistanceFieldAsyncQueue = NULL;
 
 #if WITH_EDITORONLY_DATA
 
-void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh)
+void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, bool bGenerateDistanceFieldAsIfTwoSided)
 {
 	TArray<uint8> DerivedData;
 
@@ -207,6 +207,9 @@ void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStatic
 		FAsyncDistanceFieldTask* NewTask = new FAsyncDistanceFieldTask;
 		NewTask->DDCKey = InDDCKey;
 		NewTask->StaticMesh = Mesh;
+		NewTask->GenerateSource = GenerateSource;
+		NewTask->DistanceFieldResolutionScale = DistanceFieldResolutionScale;
+		NewTask->bGenerateDistanceFieldAsIfTwoSided = bGenerateDistanceFieldAsIfTwoSided;
 		NewTask->GeneratedVolumeData = new FDistanceFieldVolumeData();
 
 		for (int32 MaterialIndex = 0; MaterialIndex < Mesh->Materials.Num(); MaterialIndex++)
@@ -370,15 +373,15 @@ void FDistanceFieldAsyncQueue::AddTask(FAsyncDistanceFieldTask* Task)
 void FDistanceFieldAsyncQueue::Build(FAsyncDistanceFieldTask* Task, FQueuedThreadPool& ThreadPool)
 {
 #if WITH_EDITOR
-	const FStaticMeshLODResources& LODModel = Task->StaticMesh->RenderData->LODResources[0];
+	const FStaticMeshLODResources& LODModel = Task->GenerateSource->RenderData->LODResources[0];
 
 	MeshUtilities->GenerateSignedDistanceFieldVolumeData(
 		LODModel,
 		ThreadPool,
 		Task->MaterialBlendModes,
-		Task->StaticMesh->RenderData->Bounds,
-		Task->StaticMesh->SourceModels[0].BuildSettings.DistanceFieldResolutionScale,
-		Task->StaticMesh->SourceModels[0].BuildSettings.bGenerateDistanceFieldAsIfTwoSided,
+		Task->GenerateSource->RenderData->Bounds,
+		Task->DistanceFieldResolutionScale,
+		Task->bGenerateDistanceFieldAsIfTwoSided,
 		*Task->GeneratedVolumeData);
 
 	CompletedTasks.Push(Task);
@@ -391,6 +394,7 @@ void FDistanceFieldAsyncQueue::AddReferencedObjects(FReferenceCollector& Collect
 	{
 		// Make sure none of the UObjects referenced by the async tasks are GC'ed during the task
 		Collector.AddReferencedObject(ReferencedTasks[TaskIndex]->StaticMesh);
+		Collector.AddReferencedObject(ReferencedTasks[TaskIndex]->GenerateSource);
 	}
 }
 
