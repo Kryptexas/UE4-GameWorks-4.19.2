@@ -7,17 +7,16 @@
 	UInterfaceProperty.
 -----------------------------------------------------------------------------*/
 
-UInterfaceProperty::~UInterfaceProperty()
+void UInterfaceProperty::BeginDestroy()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	if (InterfaceClass->IsValidLowLevelFast(/*bRecursive =*/false))
+	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
 	{
-		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
-		{
-			PlaceholderClass->RemoveTrackedReference(this);
-		}
+		PlaceholderClass->RemoveTrackedReference(this);
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	Super::BeginDestroy();
 }
 
 /**

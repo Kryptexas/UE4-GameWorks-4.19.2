@@ -8,17 +8,16 @@
 	UClassProperty.
 -----------------------------------------------------------------------------*/
 
-UClassProperty::~UClassProperty()
+void UClassProperty::BeginDestroy()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	if (MetaClass->IsValidLowLevelFast(/*bRecursive =*/false))
+	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(MetaClass))
 	{
-		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(MetaClass))
-		{
-			PlaceholderClass->RemoveTrackedReference(this);
-		}
+		PlaceholderClass->RemoveTrackedReference(this);
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	Super::BeginDestroy();
 }
 
 void UClassProperty::Serialize( FArchive& Ar )

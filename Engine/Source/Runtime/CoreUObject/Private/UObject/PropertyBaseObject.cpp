@@ -8,17 +8,16 @@
 	UObjectPropertyBase.
 -----------------------------------------------------------------------------*/
 
-UObjectPropertyBase::~UObjectPropertyBase()
+void UObjectPropertyBase::BeginDestroy()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	if (PropertyClass->IsValidLowLevelFast(/*bRecursive =*/false))
+	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
 	{
-		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
-		{
-			PlaceholderClass->RemoveTrackedReference(this);
-		}
+		PlaceholderClass->RemoveTrackedReference(this);
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	Super::BeginDestroy();
 }
 
 void UObjectPropertyBase::InstanceSubobjects(void* Data, void const* DefaultData, UObject* Owner, FObjectInstancingGraph* InstanceGraph )
