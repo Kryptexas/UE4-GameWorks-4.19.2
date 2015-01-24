@@ -599,11 +599,11 @@ namespace UnrealBuildTool.IOS
 			}
 
 			// compile the launch .xib
-			string LaunchXib = InEngineDir + "/Build/IOS/Resources/Interface/LaunchScreen.xib";
-			if (File.Exists(BuildDirectory + "/Resources/Interface/LaunchScreen.xib"))
-			{
-				LaunchXib = BuildDirectory + "/Resources/Interface/LaunchScreen.xib";
-			}
+//			string LaunchXib = InEngineDir + "/Build/IOS/Resources/Interface/LaunchScreen.xib";
+//			if (File.Exists(BuildDirectory + "/Resources/Interface/LaunchScreen.xib"))
+//			{
+//				LaunchXib = BuildDirectory + "/Resources/Interface/LaunchScreen.xib";
+//			}
 
 			bool bSkipDefaultPNGs = GeneratePList(InProjectDirectory, bIsUE4Game, GameName, InProjectName, InEngineDir, AppDirectory);
 
