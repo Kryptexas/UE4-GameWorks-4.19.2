@@ -15,7 +15,7 @@ ULinkerPlaceholderClass::ULinkerPlaceholderClass(const FObjectInitializer& Objec
 ULinkerPlaceholderClass::~ULinkerPlaceholderClass()
 {
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	checkSlow(!HasReferences());
+	check(!HasReferences());
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	// by this point, we really shouldn't have any properties left (they should 

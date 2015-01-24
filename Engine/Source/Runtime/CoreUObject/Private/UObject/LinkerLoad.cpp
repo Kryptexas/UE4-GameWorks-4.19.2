@@ -2542,7 +2542,7 @@ void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 	// another external asset)... if this is hit, then we're most likely already
 	// in this function (for this linker) further up the load chain; it should 
 	// finish the loads there
-	checkSlow((LoadFlags & LOAD_DeferDependencyLoads) == 0);
+	check((LoadFlags & LOAD_DeferDependencyLoads) == 0);
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	if ( (LoadFlags&LOAD_SeekFree) != 0 )
@@ -2776,7 +2776,7 @@ void ULinkerLoad::Preload( UObject* Object )
 	// DeferDependencyLoads flag is set (some other blueprint class is already 
 	// being loaded further up the load chain, and this could introduce a 
 	// circular load)
-	checkSlow(!bIsBlueprintClass || !Object->HasAnyFlags(RF_NeedLoad) || !(LoadFlags & LOAD_DeferDependencyLoads));
+	check(!bIsBlueprintClass || !Object->HasAnyFlags(RF_NeedLoad) || !(LoadFlags & LOAD_DeferDependencyLoads));
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	
@@ -2840,7 +2840,7 @@ void ULinkerLoad::Preload( UObject* Object )
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 							if (!FBlueprintSupport::IsDeferredCDOSerializationDisabled())
 							{
-								checkSlow((DeferredExportIndex == INDEX_NONE) || (DeferredExportIndex == ExportIndex));
+								check((DeferredExportIndex == INDEX_NONE) || (DeferredExportIndex == ExportIndex));
 #else // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 							{
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -2887,7 +2887,7 @@ void ULinkerLoad::Preload( UObject* Object )
 						// ... FinalizeBlueprint() depends on this (and since 
 						// ResolveDeferredDependencies() can be recursive, we 
 						// check it out here, before it is called)
-						checkSlow((DeferredExportIndex != INDEX_NONE) || FBlueprintSupport::IsDeferredCDOSerializationDisabled());
+						check((DeferredExportIndex != INDEX_NONE) || FBlueprintSupport::IsDeferredCDOSerializationDisabled());
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 						ResolveDeferredDependencies(ObjectAsClass);
@@ -3408,7 +3408,15 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 				if( UClass* ClassObject = dynamic_cast<UClass*>(Export.Object) )
 				{
 #if WITH_EDITOR
-					// Before we serialize the class, begin a scoped class dependency gather to create a list of other classes that may need to be recompiled
+					// Before we serialize the class, begin a scoped class 
+					// dependency gather to create a list of other classes that 
+					// may need to be recompiled
+					//
+					// Even with "deferred dependency loading" turned on, we 
+					// still need this... one class/blueprint will always be 
+					// fully regenerated before another (there is no changing 
+					// that); so dependencies need to be recompiled later (with
+					// all the regenerated classes in place)
 					FScopedClassDependencyGather DependencyHelper(ClassObject);
 #endif //WITH_EDITOR
 
