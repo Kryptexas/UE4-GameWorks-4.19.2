@@ -13,6 +13,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Serialization/CustomVersion.h"
 #include "ProceduralFoliageComponent.h"
+#include "ProceduralFoliageBlockingVolume.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 
@@ -195,6 +196,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	ZOffsetMin = 0.0f;
 	ZOffsetMax = 0.0f;
 	LandscapeLayer = NAME_None;
+	MinimumLayerWeight = 0.5f;
 	DisplayOrder = 0;
 	IsSelected = false;
 	ShowNothing = false;
@@ -396,7 +398,7 @@ void FFoliageMeshInfo::CheckValid()
 #endif
 }
 
-void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const FFoliageInstance& InNewInstance)
+void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance)
 {
 	InIFA->Modify();
 
@@ -1816,6 +1818,189 @@ void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWor
 #endif
 		}
 	}
+}
+
+AInstancedFoliageActor* AInstancedFoliageActor::FoliageTrace(UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, const AInstancedFoliageActor* IgnoreIFA, FName InTraceTag, bool InbReturnFaceIndex)
+{
+	FCollisionQueryParams QueryParams(InTraceTag, true, IgnoreIFA);
+	QueryParams.bReturnFaceIndex = InbReturnFaceIndex;
+
+	FVector StartTrace = DesiredInstance.StartTrace;
+
+	TArray<FHitResult> Hits;
+	FCollisionShape SphereShape;
+	SphereShape.SetSphere(DesiredInstance.TraceRadius);
+
+	InWorld->SweepMulti(Hits, StartTrace, DesiredInstance.EndTrace, FQuat::Identity, SphereShape, QueryParams, FCollisionObjectQueryParams(ECC_WorldStatic));
+	for (const FHitResult& Hit : Hits)
+	{
+		if (DesiredInstance.PlacementMode == EFoliagePlacementMode::Procedural)
+		{
+			if (Hit.Actor.IsValid())	//if we hit the ProceduralFoliage blocking volume don't spawn instance
+			{
+				if (Cast<AProceduralFoliageBlockingVolume>(Hit.Actor.Get()) || Cast<AInstancedFoliageActor>(Hit.Actor.Get()))
+				{
+					return nullptr;
+				}
+			}
+		}
+			
+		// In the editor traces can hit "No Collision" type actors, so ugh.
+		FBodyInstance* BodyInstance = Hit.Component->GetBodyInstance();
+		if (BodyInstance->GetCollisionEnabled() != ECollisionEnabled::QueryAndPhysics || BodyInstance->GetResponseToChannel(ECC_WorldStatic) != ECR_Block)
+		{
+			continue;
+		}
+
+		if (Hit.Component.IsValid())
+		{
+			if (ULevel* OwningLevel = Hit.Component->GetComponentLevel())
+			{
+				OutHit = Hit;
+				return AInstancedFoliageActor::GetInstancedFoliageActorForLevel(OwningLevel);
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+bool AInstancedFoliageActor::CheckCollisionWithWorld(const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation)
+{
+	FMatrix InstTransform = Inst.GetInstanceWorldTransform().ToMatrixWithScale();
+	FVector LocalHit = InstTransform.InverseTransformPosition(HitLocation);
+
+	UWorld* World = GetWorld();
+
+	if (Settings->CollisionWithWorld)
+	{
+		// Check for overhanging ledge
+		{
+			FVector LocalSamplePos[4] = { FVector(Settings->LowBoundOriginRadius.Z, 0, 0),
+			FVector(-Settings->LowBoundOriginRadius.Z, 0, 0),
+			FVector(0, Settings->LowBoundOriginRadius.Z, 0),
+			FVector(0, -Settings->LowBoundOriginRadius.Z, 0)
+			};
+
+
+			for (uint32 i = 0; i < 4; ++i)
+			{
+				FHitResult Hit;
+				FVector SamplePos = InstTransform.TransformPosition(FVector(Settings->LowBoundOriginRadius.X, Settings->LowBoundOriginRadius.Y, 2.f) + LocalSamplePos[i]);
+				float WorldRadius = (Settings->LowBoundOriginRadius.Z + 2.f)*FMath::Max(Inst.DrawScale3D.X, Inst.DrawScale3D.Y);
+				FVector NormalVector = Settings->AlignToNormal ? HitNormal : FVector(0, 0, 1);
+				if (AInstancedFoliageActor::FoliageTrace(World, Hit, FDesiredFoliageInstance(SamplePos, SamplePos - NormalVector*WorldRadius), this))
+				{
+					if (LocalHit.Z - Inst.ZOffset < Settings->LowBoundOriginRadius.Z)
+					{
+						continue;
+					}
+				}
+				return false;
+			}
+		}
+
+		// Check collision with Bounding Box
+		{
+		FBox MeshBox = Settings->MeshBounds.GetBox();
+		MeshBox.Min.Z = FMath::Min(MeshBox.Max.Z, LocalHit.Z + Settings->MeshBounds.BoxExtent.Z * 0.05f);
+		FBoxSphereBounds ShrinkBound(MeshBox);
+		FBoxSphereBounds WorldBound = ShrinkBound.TransformBy(InstTransform);
+		//::DrawDebugBox(World, WorldBound.Origin, WorldBound.BoxExtent, FColor::Red, true, 10.f);
+		static FName NAME_FoliageCollisionWithWorld = FName(TEXT("FoliageCollisionWithWorld"));
+		if (World->OverlapTest(WorldBound.Origin, FQuat(Inst.Rotation), FCollisionShape::MakeBox(ShrinkBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale), FCollisionQueryParams(NAME_FoliageCollisionWithWorld, false), FCollisionObjectQueryParams(ECC_WorldStatic)))
+		{
+			return false;
+		}
+	}
+	}
+
+	return true;
+}
+
+FPotentialInstance::FPotentialInstance(FVector InHitLocation, FVector InHitNormal, UPrimitiveComponent* InHitComponent, float InHitWeight, FFoliageMeshInfo* InMeshInfo, AInstancedFoliageActor* InIFA, const FDesiredFoliageInstance& InDesiredInstance)
+: HitLocation(InHitLocation)
+, HitNormal(InHitNormal)
+, HitComponent(InHitComponent)
+, HitWeight(InHitWeight)
+, MeshInfo(InMeshInfo)
+, IFA(InIFA)
+, DesiredInstance(InDesiredInstance)
+{}
+
+bool FPotentialInstance::PlaceInstance(const UFoliageType* Settings, FFoliageInstance& Inst, bool bSkipCollision)
+{
+	if (DesiredInstance.PlacementMode != EFoliagePlacementMode::Procedural)
+	{
+		if (Settings->UniformScale)
+		{
+			float Scale = Settings->ScaleMinX + FMath::FRand() * (Settings->ScaleMaxX - Settings->ScaleMinX);
+			Inst.DrawScale3D = FVector(Scale, Scale, Scale);
+		}
+		else
+		{
+			float LockRand = FMath::FRand();
+			Inst.DrawScale3D.X = Settings->ScaleMinX + (Settings->LockScaleX ? LockRand : FMath::FRand()) * (Settings->ScaleMaxX - Settings->ScaleMinX);
+			Inst.DrawScale3D.Y = Settings->ScaleMinY + (Settings->LockScaleY ? LockRand : FMath::FRand()) * (Settings->ScaleMaxY - Settings->ScaleMinY);
+			Inst.DrawScale3D.Z = Settings->ScaleMinZ + (Settings->LockScaleZ ? LockRand : FMath::FRand()) * (Settings->ScaleMaxZ - Settings->ScaleMinZ);
+		}
+	}
+	else
+	{
+		//Procedural foliage uses age to get the scale
+		Inst.DrawScale3D = FVector(Settings->GetScaleForAge(DesiredInstance.Age));
+	}
+
+
+	Inst.ZOffset = Settings->ZOffsetMin + FMath::FRand() * (Settings->ZOffsetMax - Settings->ZOffsetMin);
+
+	Inst.Location = HitLocation;
+
+	if (DesiredInstance.PlacementMode != EFoliagePlacementMode::Procedural)
+	{
+		// Random yaw and optional random pitch up to the maximum
+		Inst.Rotation = FRotator(FMath::FRand() * Settings->RandomPitchAngle, 0.f, 0.f);
+
+		if (Settings->RandomYaw)
+		{
+			Inst.Rotation.Yaw = FMath::FRand() * 360.f;
+		}
+		else
+		{
+			Inst.Flags |= FOLIAGE_NoRandomYaw;
+		}
+	}
+	else
+	{
+		Inst.Rotation = DesiredInstance.Rotation.Rotator();
+		Inst.Flags |= FOLIAGE_NoRandomYaw;
+	}
+
+
+	if (Settings->AlignToNormal)
+	{
+		Inst.AlignToNormal(HitNormal, Settings->AlignMaxAngle);
+	}
+
+	// Apply the Z offset in local space
+	if (FMath::Abs(Inst.ZOffset) > KINDA_SMALL_NUMBER)
+	{
+		Inst.Location = Inst.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, Inst.ZOffset));
+	}
+
+	UModelComponent* ModelComponent = Cast<UModelComponent>(HitComponent);
+	if (ModelComponent)
+	{
+		ABrush* BrushActor = ModelComponent->GetModel()->FindBrush(HitLocation);
+		if (BrushActor)
+		{
+			HitComponent = BrushActor->GetBrushComponent();
+		}
+	}
+
+	Inst.Base = HitComponent;
+
+	return bSkipCollision || IFA->CheckCollisionWithWorld(Settings, Inst, HitNormal, HitLocation);
 }
 
 #undef LOCTEXT_NAMESPACE

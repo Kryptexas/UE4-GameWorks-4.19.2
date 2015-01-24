@@ -80,6 +80,9 @@ class UFoliageType : public UObject
 	FName LandscapeLayer;
 
 	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	float MinimumLayerWeight;
+
+	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
 	uint32 AlignToNormal:1;
 
 	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))

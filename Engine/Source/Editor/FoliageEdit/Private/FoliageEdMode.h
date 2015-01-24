@@ -146,6 +146,8 @@ public:
 	}
 };
 
+// Number of buckets for layer weight histogram distribution.
+#define NUM_INSTANCE_BUCKETS 10
 
 /**
  * Foliage editor mode
@@ -301,11 +303,21 @@ public:
 	 */
 	UFoliageType* SaveSettingsObject(const FText& InSettingsPackageName, UFoliageType* Settings);
 
+	/** Add desired instances. Uses foliage settings to determine location/scale/rotation and whether instances should be ignored */
+	static void AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances);
+
 	/** Apply paint bucket to actor */
 	void ApplyPaintBucket(AActor* Actor, bool bRemove);
 private:
+	typedef TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCacheData;
+
 	/** Add instances inside the brush to match DesiredInstanceCount */
 	void AddInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, const TArray<int32>& ExistingInstances, float Pressure);
+
+	/** Common code for adding instances to world based on settings */
+	static void AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const AInstancedFoliageActor* IgnoreIFA = nullptr, const TArray<int32>& ExistingInstances = TArray<int32>(), const float Pressure = 1.f, LandscapeLayerCacheData* LandscapeLayerCaches = nullptr);
+
+	static void CalculatePotentialInstances(UWorld* InWorld, const AInstancedFoliageActor* IFA, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], LandscapeLayerCacheData* LandscaleLayerCachesPtr);
 
 	/** Remove instances inside the brush to match DesiredInstanceCount. NOTE: PotentialInstancesToRemove array is modified by this function. */
 	void RemoveInstancesForBrush(AInstancedFoliageActor* IFA, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& PotentialInstancesToRemove, float Pressure);
@@ -314,7 +326,7 @@ private:
 	void ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, const TArray<int32>& ExistingInstances);
 
 	/** Lookup the vertex color corresponding to a location traced on a static mesh */
-	bool GetStaticMeshVertexColorForHit(UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor) const;
+	static bool GetStaticMeshVertexColorForHit(UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor);
 
 	bool bBrushTraceValid;
 	FVector BrushLocation;
@@ -322,7 +334,7 @@ private:
 	UStaticMeshComponent* SphereBrushComponent;
 
 	// Landscape layer cache data
-	TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCaches;
+	LandscapeLayerCacheData LandscapeLayerCaches;
 
 	// Placed level data
 	TArray<FFoliageMeshUIInfo> FoliageMeshList;

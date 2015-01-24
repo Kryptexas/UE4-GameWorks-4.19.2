@@ -7,6 +7,7 @@
 
 class UProceduralFoliage;
 class AProceduralFoliageLevelInfo;
+struct FDesiredFoliageInstance;
 
 UCLASS(BlueprintType)
 class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
@@ -32,13 +33,12 @@ class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere, meta=(DisplayName="ProceduralFoliage Asset") )
 	UProceduralFoliage* ProceduralFoliage;
 
-	void SpawnProceduralContent();
+	void SpawnProceduralContent(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
 	void RemoveProceduralContent();
 	const FGuid& GetProceduralGuid() const { return ProceduralGuid;  }
 
 private:
-	void SpawnTiles();
-	void SpawnInstances(const TArray<FProceduralFoliageInstance>& ProceduralFoliageInstances);
+	void SpawnTiles(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
 
 private:
 	UPROPERTY()

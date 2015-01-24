@@ -15,6 +15,9 @@ struct FFoliageInstancePlacementInfo;
 struct FFoliageMeshInfo;
 class UFoliageType_InstancedStaticMesh;
 class UProceduralFoliageComponent;
+struct FFoliageInstance;
+struct FHitResult;
+struct FDesiredFoliageInstance;
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor
@@ -72,6 +75,9 @@ public:
 	* returns								pointer to foliage object instance
 	*/
 	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
+
+	static FOLIAGE_API AInstancedFoliageActor* FoliageTrace(UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, const AInstancedFoliageActor* IgnoreIFA = nullptr, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false);
+	FOLIAGE_API bool CheckCollisionWithWorld(const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation);
 
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;

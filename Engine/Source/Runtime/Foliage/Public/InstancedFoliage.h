@@ -207,7 +207,7 @@ struct FFoliageMeshInfo
 	}
 
 #if WITH_EDITOR
-	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const FFoliageInstance& InNewInstance);
+	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance);
 	FOLIAGE_API void RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove);
 	FOLIAGE_API void PreMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToMove);
 	FOLIAGE_API void PostMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesMoved);
@@ -346,4 +346,70 @@ public:
 
 		return Ar;
 	}
+};
+
+
+/** This is kind of a hack, but is needed right now for backwards compat of code. We use it to describe the placement mode (procedural vs manual)*/
+namespace EFoliagePlacementMode
+{
+	enum Type
+	{
+		Manual = 0,
+		Procedural = 1,
+	};
+
+}
+
+/** Used to define a vector along which we'd like to spawn an instance. */
+struct FDesiredFoliageInstance
+{
+	FDesiredFoliageInstance()
+	: FoliageType(nullptr)
+	, MeshInfo(nullptr)
+	, StartTrace(ForceInit)
+	, EndTrace(ForceInit)
+	, Rotation(ForceInit)
+	, TraceRadius(0.f)
+	, Age(0.f)
+	, PlacementMode(EFoliagePlacementMode::Manual)
+	{
+
+	}
+
+	FDesiredFoliageInstance(const FVector& InStartTrace, const FVector& InEndTrace, const float InTraceRadius = 0.f)
+	: FoliageType(nullptr)
+	, MeshInfo(nullptr)
+	, StartTrace(InStartTrace)
+	, EndTrace(InEndTrace)
+	, Rotation(ForceInit)
+	, TraceRadius(InTraceRadius)
+	, Age(0.f)
+	, PlacementMode(EFoliagePlacementMode::Manual)
+	{
+	}
+
+	FGuid ProceduralGuid;
+	const UFoliageType* FoliageType;
+	FFoliageMeshInfo* MeshInfo;
+	FVector StartTrace;
+	FVector EndTrace;
+	FQuat Rotation;
+	float TraceRadius;
+	float Age;
+	EFoliagePlacementMode::Type PlacementMode;
+};
+
+// Struct to hold potential instances we've sampled
+struct FOLIAGE_API FPotentialInstance
+{
+	FVector HitLocation;
+	FVector HitNormal;
+	UPrimitiveComponent* HitComponent;
+	float HitWeight;
+	FFoliageMeshInfo* MeshInfo;
+	AInstancedFoliageActor* IFA;
+	FDesiredFoliageInstance DesiredInstance;
+
+	FPotentialInstance(FVector InHitLocation, FVector InHitNormal, UPrimitiveComponent* InHitComponent, float InHitWeight, FFoliageMeshInfo* MeshInfo = nullptr, AInstancedFoliageActor* InIFA = nullptr, const FDesiredFoliageInstance& InDesiredInstance = FDesiredFoliageInstance());
+	bool PlaceInstance(const UFoliageType* Settings, FFoliageInstance& Inst, bool bSkipCollision = false);
 };

@@ -5,6 +5,8 @@
 #include "ProceduralFoliageComponentDetails.h"
 #include "ProceduralFoliage.h"
 #include "ProceduralFoliageComponent.h"
+#include "InstancedFoliage.h"
+#include "FoliageEdMode.h"
 
 TSharedRef<IDetailCustomization> FProceduralFoliageComponentDetails::MakeInstance()
 {
@@ -72,7 +74,9 @@ FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 				Component->ProceduralFoliage->Simulate();
 			}
 
-			Component->SpawnProceduralContent();
+			TArray <FDesiredFoliageInstance> DesiredFoliageInstances;
+			Component->SpawnProceduralContent(DesiredFoliageInstances);
+			FEdModeFoliage::AddInstances(Component->GetWorld(), DesiredFoliageInstances);
 		}
 	}
 	return FReply::Handled();
