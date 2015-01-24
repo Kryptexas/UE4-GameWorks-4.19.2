@@ -686,9 +686,16 @@ void STutorialsBrowser::RebuildTutorials(TSharedPtr<FTutorialListEntry_Category>
 {
 	TArray<TSharedPtr<FTutorialListEntry_Tutorial>> Tutorials;
 
-	// rebuild tutorials
+	//Ensure that tutorials are loaded into the asset registry before making a list of them.
 	FAssetRegistryModule& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	bool IsStillLoading = AssetRegistry.Get().IsLoadingAssets();
+	if (IsStillLoading)
+	{
+		//This can happen if you close the editor with the tutorials browser open, then restart the editor so that the browser opens immediately.
+		return;
+	}
 
+	// rebuild tutorials
 	FARFilter Filter;
 	Filter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
 	Filter.bRecursiveClasses = true;

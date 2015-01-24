@@ -25,6 +25,9 @@ private:
 	/** Handle clicking the tutorial button */
 	FReply HandleButtonClicked();
 
+	/** After the initial click is processed, go here, wait for the asset registry to load, and complete the action once we're ready */
+	EActiveTimerReturnType HandleButtonClicked_AssetRegistryChecker(double InCurrentTime, float InDeltaTime);
+
 	/** Dismiss the pulsing alert */
 	void DismissAlert();
 
@@ -86,4 +89,7 @@ private:
 
 	/** Cached browser filter */
 	FString CachedBrowserFilter;
+
+	/** True if we're waiting for asset registry to load in response to a click */
+	bool bPendingClickAction;
 };
