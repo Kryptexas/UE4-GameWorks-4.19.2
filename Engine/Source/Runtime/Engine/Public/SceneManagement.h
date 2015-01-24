@@ -781,6 +781,7 @@ public:
 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
 	inline bool AffectsTranslucentLighting() const { return bAffectTranslucentLighting; }
 	inline bool UseRayTracedDistanceFieldShadows() const { return bUseRayTracedDistanceFieldShadows; }
+	inline float GetRayStartOffsetDepthScale() const { return RayStartOffsetDepthScale; }
 	inline uint8 GetLightType() const { return LightType; }
 	inline FName GetComponentName() const { return ComponentName; }
 	inline FName GetLevelName() const { return LevelName; }
@@ -897,6 +898,8 @@ protected:
 
 	/** Whether to use ray traced distance field area shadows. */
 	const uint32 bUseRayTracedDistanceFieldShadows : 1;
+
+	float RayStartOffsetDepthScale;
 
 	/** The light type (ELightComponentType) */
 	const uint8 LightType;

@@ -300,6 +300,7 @@ RWTexture2D<float2> RWShadowFactors;
 float3 LightDirection;
 float4 LightPositionAndInvRadius;
 float LightSourceRadius;
+float RayStartOffsetDepthScale;
 float2 TanLightAngleAndNormalThreshold;
 int4 ScissorRectMinAndSize;
 
@@ -511,15 +512,10 @@ void DistanceFieldShadowingCS(
 	if (bTileShouldComputeShadowing)
 	{
 		FGBufferData GBufferData = GetGBufferData(ScreenUV);
-		float3 WorldNormal = GBufferData.WorldNormal;
 
-#if !POINT_LIGHT
-		BRANCH
-		if (dot(WorldNormal, LightDirection) > TanLightAngleAndNormalThreshold.y)
-#endif
 		{
 			// World space offset along the start of the ray to avoid incorrect self-shadowing
-			float RayStartOffset = 2;
+			float RayStartOffset = 2 + RayStartOffsetDepthScale * SceneDepth;
 			// Keeps result from going all the way sharp
 			float MinSphereRadius = .4f;
 			// Maintain reasonable culling bounds
