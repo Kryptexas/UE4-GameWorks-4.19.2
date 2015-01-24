@@ -31,6 +31,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Development|Tests")
 	bool TestVerifyClass(bool bCheckPropertyType = true);
 
+	UFUNCTION(BlueprintCallable, Category = "Development|Tests")
+	bool TestVerifyBlueprint();
+
 	//UFUNCTION(BlueprintCallable, Category="Development|Tests")
 	bool TestVerifyStructMember(UScriptStruct* Struct, uint8* Container, bool bCheckPropertyType = true);
 
