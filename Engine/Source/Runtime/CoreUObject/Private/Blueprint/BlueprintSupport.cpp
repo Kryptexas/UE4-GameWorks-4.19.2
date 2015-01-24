@@ -137,9 +137,9 @@ TArray<UClass*> const& FScopedClassDependencyGather::GetCachedDependencies()
 // rather than littering the code with USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 // checks, let's just define DEFERRED_DEPENDENCY_CHECK for the file
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-#define DEFERRED_DEPENDENCY_CHECK(CheckExpr) checkSlow(CheckExpr)
+	#define DEFERRED_DEPENDENCY_CHECK(CheckExpr) check(CheckExpr)
 #else  // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-#define DEFERRED_DEPENDENCY_CHECK(CheckExpr)
+	#define DEFERRED_DEPENDENCY_CHECK(CheckExpr)
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
  
 struct FPreloadMembersHelper
@@ -607,10 +607,24 @@ int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* R
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 	UObject* PlaceholderObj = PlaceholderClass;
+	// @TODO: not an actual method, but would be nice to circumvent the need for bIsAsyncLoadRef below
+	//FAsyncObjectsReferencer::Get().RemoveObject(PlaceholderObj);
+
 	// there should not be any references left to this placeholder class 
 	// (if there is, then we didn't log that referencer with the placeholder)
 	FReferencerInformationList UnresolvedReferences;
-	DEFERRED_DEPENDENCY_CHECK(!IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &UnresolvedReferences));
+	bool const bIsReferenced = IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &UnresolvedReferences);
+
+	// when we're running with async loading there may be an acceptable 
+	// reference left in FAsyncObjectsReferencer (which reports its refs  
+	// through FGCObject::GGCObjectReferencer)... since garbage collection can  
+	// be ran during async loading, FAsyncObjectsReferencer is in charge of  
+	// holding onto objects that are spawned during the process (to ensure 
+	// they're not thrown away prematurely)
+	bool const bIsAsyncLoadRef = (UnresolvedReferences.ExternalReferences.Num() == 1) &&
+		PlaceholderObj->HasAnyFlags(RF_AsyncLoading) && (UnresolvedReferences.ExternalReferences[0].Referencer == FGCObject::GGCObjectReferencer);
+
+	DEFERRED_DEPENDENCY_CHECK(!bIsReferenced || bIsAsyncLoadRef);
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 
@@ -753,16 +767,21 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		// clear this so IsBlueprintFinalizationPending() doesn't report true
 		DeferredExportIndex = INDEX_NONE;
 
-		UObject* OldCDO = BlueprintClass->ClassDefaultObject;
-		if (RegenerateBlueprintClass(BlueprintClass, CDO))
+		// just in case we choose to enable the deferred dependency loading for 
+		// cooked builds... we want to keep from regenerating in that scenario
+		if (!LoadClass->bCooked)
 		{
-			// emulate class CDO serialization (RegenerateBlueprintClass() could 
-			// have a side-effect where it overwrites the class's CDO; so we 
-			// want to make sure that we don't overwrite that new CDO with a 
-			// stale one)
-			if (OldCDO == BlueprintClass->ClassDefaultObject)
+			UObject* OldCDO = BlueprintClass->ClassDefaultObject;
+			if (RegenerateBlueprintClass(BlueprintClass, CDO))
 			{
-				BlueprintClass->ClassDefaultObject = CDOExport.Object;
+				// emulate class CDO serialization (RegenerateBlueprintClass() could 
+				// have a side-effect where it overwrites the class's CDO; so we 
+				// want to make sure that we don't overwrite that new CDO with a 
+				// stale one)
+				if (OldCDO == BlueprintClass->ClassDefaultObject)
+				{
+					BlueprintClass->ClassDefaultObject = CDOExport.Object;
+				}
 			}
 		}
 	}
