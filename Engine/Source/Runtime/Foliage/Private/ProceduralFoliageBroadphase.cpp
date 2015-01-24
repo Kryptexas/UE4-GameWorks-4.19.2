@@ -12,7 +12,7 @@ FProceduralFoliageBroadphase::FProceduralFoliageBroadphase(float TileSize)
 FProceduralFoliageBroadphase::FProceduralFoliageBroadphase(const FProceduralFoliageBroadphase& OtherBroadphase)
 : QuadTree(FBox2D(FVector2D(0, 0), FVector2D(0, 0)))
 {
-	OtherBroadphase.QuadTree.Duplicate(&QuadTree);
+	OtherBroadphase.QuadTree.Duplicate(QuadTree);
 }
 
 void FProceduralFoliageBroadphase::Empty()
