@@ -560,7 +560,6 @@ public:
 			SAssignNew(SCSEditor, SSCSEditor)
 			.EditorMode(SSCSEditor::EEditorMode::ActorInstance)
 			.ActorContext(this, &SActorDetails::GetSelectedActor)												// Get the instance of the actor in the world
-			.OnRootSelected(this, &SActorDetails::OnSCSEditorRootSelected)										// A selection of the root has been made
 			.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)						// A selection has been made in the tree view, so inform the level editor
 			//.OnHighlightPropertyInDetailsView(this, &SLevelEditor::OnSCSEditorHighlightPropertyInDetailsView)	// Also unsure and don't think it's needed
 		);
@@ -692,10 +691,27 @@ private:
 			auto Actor = GetSelectedActor();
 			if (Actor)
 			{
+				TArray<UObject*> DetailsObjects;
+
+				bool bActorSelected = false;
+				for (auto& SelectedNode : SelectedNodes)
+				{
+					if (SelectedNode.IsValid() && SelectedNode->IsRootActor())
+					{
+						bActorSelected = true;
+						break;
+					}
+				}
+
+				if (bActorSelected)
+				{
+					DetailsObjects.Add(Actor);
+				}
+
 				USelection* SelectedComponents = GEditor->GetSelectedComponents();
 
 				// Don't bother doing anything if the node selection already matches the current world selection
-				bool bSelectionChanged = GEditor->GetSelectedComponentCount() != SelectedNodes.Num();
+				bool bSelectionChanged = GEditor->GetSelectedComponentCount() != SelectedNodes.Num() - (bActorSelected ? 1 : 1);
 				if (!bSelectionChanged)
 				{
 					// Check to see if any of the selected nodes aren't already selected in the world
@@ -711,13 +727,12 @@ private:
 					}
 				}
 				
-				if (bSelectionChanged)
+				if (bActorSelected || bSelectionChanged)
 				{
 					// Enable the selection guard to prevent OnEditorSelectionChanged() from altering the contents of the SCSTreeWidget
 					TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
 
 					// Update the editor's component selection to match the node selection
-					TArray<UObject*> DetailsObjects;
 					const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponentInTree", "Clicking on Component (tree view)"));
 
 					SelectedComponents->Modify();
@@ -804,7 +819,7 @@ private:
 		}
 		else
 		{
-			//@todo Make sure the actor "root" is selected
+			SCSEditor->SelectRoot();
 		}
 	}
 

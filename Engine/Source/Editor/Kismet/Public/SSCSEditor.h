@@ -75,9 +75,13 @@ public:
 	 */
 	UBlueprint* GetBlueprint() const;
 	/**
+	 * @return Whether or not this object represents a root actor.
+	 */
+	bool IsRootActor() const;
+	/**
 	 * @return Whether or not this object represents a root component.
 	 */
-	bool IsRoot() const;
+	bool IsRootComponent() const;
 	/**
 	 * @return Whether or not this node is a direct child of the given node.
 	 */
@@ -264,10 +268,7 @@ public:
 	EVisibility GetRootLabelVisibility() const;
 
 	/* Get the node used by the row Widget */
-	FSCSEditorTreeNodePtrType GetNode() const
-	{
-		return NodePtr;
-	}
+	virtual FSCSEditorTreeNodePtrType GetNode() const { return TreeNodePtr; };
 
 private:
 	/** Verifies the name of the component when changing it */
@@ -321,10 +322,34 @@ public:
 	/** Pointer back to owning SCSEditor 2 tool */
 	TWeakPtr<SSCSEditor> SCSEditor;
 
-protected:
+private:
 	/** Pointer to node we represent */
-	FSCSEditorTreeNodePtrType NodePtr;
+	FSCSEditorTreeNodePtrType TreeNodePtr;
 };
+
+class SSCS_RowWidget_ActorRoot : public SSCS_RowWidget
+{
+public:
+
+	// SMultiColumnTableRow<T> interface
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
+	// End of SMultiColumnTableRow<T>
+
+	/* Get the node used by the row Widget */
+	virtual FSCSEditorTreeNodePtrType GetNode() const override;
+
+private:
+	/** Creates a tooltip for this row */
+	TSharedRef<SToolTip> CreateToolTipWidget() const;
+
+	/** Data accessors */
+	const FSlateBrush* GetActorIcon() const;
+	FText GetActorDisplayText() const;
+	FText GetActorClassNameText() const;
+	FText GetActorSuperClassNameText() const;
+	FText GetActorMobilityText() const;
+};
+
 
 //////////////////////////////////////////////////////////////////////////
 // SSCSEditorDragDropTree - implements STreeView for our specific node type and adds drag/drop functionality
@@ -408,7 +433,6 @@ public:
 
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddNewComponent, class UClass*);
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddExistingComponent, class UActorComponent*);
-	DECLARE_DELEGATE_OneParam(FOnRootSelected, class AActor*);
 	DECLARE_DELEGATE_OneParam(FOnSelectionUpdated, const TArray<FSCSEditorTreeNodePtrType>&);
 	DECLARE_DELEGATE_OneParam(FOnItemDoubleClicked, const FSCSEditorTreeNodePtrType);
 	DECLARE_DELEGATE_OneParam(FOnHighlightPropertyInDetailsView, const class FPropertyPath&);
@@ -419,7 +443,6 @@ public:
 		,_PreviewActor(nullptr)
 		,_AllowEditing(true)
 		,_HideComponentClassCombo(false)
-		,_OnRootSelected()
 		,_OnSelectionUpdated()
 		,_OnHighlightPropertyInDetailsView()
 		{}
@@ -429,7 +452,6 @@ public:
 		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
 		SLATE_ATTRIBUTE(bool, AllowEditing)
 		SLATE_ATTRIBUTE(bool, HideComponentClassCombo)
-		SLATE_EVENT(FOnRootSelected, OnRootSelected)
 		SLATE_EVENT(FOnSelectionUpdated, OnSelectionUpdated)
 		SLATE_EVENT(FOnItemDoubleClicked, OnItemDoubleClicked)
 		SLATE_EVENT(FOnHighlightPropertyInDetailsView, OnHighlightPropertyInDetailsView)
@@ -540,6 +562,9 @@ public:
 	 */
 	FSCSEditorTreeNodePtrType GetNodeFromActorComponent(const UActorComponent* ActorComponent, bool bIncludeAttachedComponents = true) const;
 
+	/** Select the root of the tree */
+	void SelectRoot();
+
 	/** Select the given tree node */
 	void SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCntrlDown);
 
@@ -595,24 +620,6 @@ protected:
 
 	/** Add a component from the selection in the combo box */
 	void PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass);
-
-	/** Called to get an the actors icon */
-	const FSlateBrush* GetActorIcon() const;
-
-	/** Called to get an the actors display text */
-	FText GetActorDisplayText() const;
-
-	/** Called to get an the actors class name text */
-	FText GetActorClassNameText() const;
-
-	/** Called to get an the actors super class name text */
-	FText GetActorSuperClassNameText() const;
-
-	/** Called to get an the actors mobility text */
-	FText GetActorMobilityText() const;
-
-	/** Creates a tooltip for the root component*/
-	TSharedRef<SToolTip> CreateToolTipWidget() const;
 
 	/** Called to display context menu when right clicking on the widget */
 	TSharedPtr< SWidget > CreateContextMenu();
@@ -705,6 +712,13 @@ protected:
 
 	/** Called when the promote to blueprint button is clicked */
 	FReply OnPromoteToBlueprintClicked();
+
+	/** gets a root nodes of the tree */
+	const TArray<FSCSEditorTreeNodePtrType>& GetRootNodes() const;
+
+	/** Adds a root component tree node */
+	TSharedPtr<FSCSEditorTreeNode> AddRootComponentTreeNode(UActorComponent* ActorComp);
+
 public:
 	/** Tree widget */
 	TSharedPtr<SSCSTreeType> SCSTreeWidget;
@@ -730,9 +744,6 @@ public:
 	/** Attribute to indicate whether or not editing is allowed. */
 	TAttribute<bool> AllowEditing;
 
-	/** Delegate to invoke on selection of the root. */
-	FOnRootSelected OnRootSelected;
-
 	/** Delegate to invoke on selection update. */
 	FOnSelectionUpdated OnSelectionUpdated;
 
@@ -748,8 +759,14 @@ private:
 	/** Root set of tree */
 	TArray<FSCSEditorTreeNodePtrType> RootNodes;
 
+	/** Root set of components*/
+	TArray<FSCSEditorTreeNodePtrType> RootComponentNodes;
+
+	/* Root Tree Node*/
+	TSharedPtr<FSCSEditorTreeNode> RootTreeNode;
+
 	/** Flag to enable/disable component editing */
-	bool	bEnableComponentEditing;
+	bool bEnableComponentEditing;
 
 	/** Gate to prevent changing the selection while selection change is being broadcast. */
 	bool bUpdatingSelection;

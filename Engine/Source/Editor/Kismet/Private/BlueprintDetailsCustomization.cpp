@@ -4739,7 +4739,7 @@ bool FBlueprintComponentDetails::IsNodeAttachable() const
 
 	// See if node is an attachable type
 	bool bCanAttach = false;	
-	if (!CachedNodePtr->IsRoot())
+	if (!CachedNodePtr->IsRootComponent())
 	{
 		// check component is the correct type
 		if (USceneComponent* SceneComponent = Cast<USceneComponent>(CachedNodePtr->GetComponentTemplate()))

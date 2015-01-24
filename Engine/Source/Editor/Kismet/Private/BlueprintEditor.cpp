@@ -717,26 +717,6 @@ AActor* FBlueprintEditor::GetSCSEditorActorContext() const
 	return nullptr;
 }
 
-void FBlueprintEditor::OnRootSelected(AActor* DefaultActor)
-{
-	if (Inspector.IsValid())
-	{	
-		// Clear the my blueprints selection
-		SetUISelectionState(FBlueprintEditor::SelectionState_Components);
-
-		// Build an object list
-		TArray<UObject*> InspectorObjects;
-		InspectorObjects.Add(DefaultActor);
-		
-		// Update the details panel
-		FString Title;
-		DefaultActor->GetName(Title);
-		SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), true);
-		Options.bShowComponents = false;
-		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
-	}
-}
-
 void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
 {
 	if (SCSViewport.IsValid())
@@ -772,32 +752,47 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 		// Convert the selection set to an array of UObject* pointers
 		FText InspectorTitle = FText::GetEmpty();
 		TArray<UObject*> InspectorObjects;
+		bool bShowComponents = true;
 		InspectorObjects.Empty(SelectedNodes.Num());
 		for (auto NodeIt = SelectedNodes.CreateConstIterator(); NodeIt; ++NodeIt)
 		{
 			auto NodePtr = *NodeIt;
 			if (NodePtr.IsValid())
 			{
-				UActorComponent* EditableComponent = nullptr;
-				if (NodePtr->CanEditDefaults())
+				if (NodePtr->IsRootActor())
 				{
-					EditableComponent = NodePtr->GetComponentTemplate();
+					AActor* DefaultActor = GetSCSEditorActorContext();
+					InspectorObjects.Add(DefaultActor);
+					
+					FString Title; 
+					DefaultActor->GetName(Title);
+					InspectorTitle = FText::FromString(Title);
+					bShowComponents = false;
 				}
-				else if (!NodePtr->IsNative() && NodePtr->IsInherited())
+				else
 				{
-					EditableComponent = NodePtr->GetOverridenComponentTemplate(GetBlueprintObj(), true);
-				}
+					UActorComponent* EditableComponent = nullptr;
+					if (NodePtr->CanEditDefaults())
+					{
+						EditableComponent = NodePtr->GetComponentTemplate();
+					}
+					else if (!NodePtr->IsNative() && NodePtr->IsInherited())
+					{
+						EditableComponent = NodePtr->GetOverridenComponentTemplate(GetBlueprintObj(), true);
+					}
 
-				if (EditableComponent)
-				{
-					InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
-					InspectorObjects.Add(EditableComponent);
+					if (EditableComponent)
+					{
+						InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
+						InspectorObjects.Add(EditableComponent);
+					}
 				}
 			}
 		}
 
 		// Update the details panel
 		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+		Options.bShowComponents = bShowComponents;
 		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
 	}
 }
@@ -2087,7 +2082,6 @@ void FBlueprintEditor::CreateSCSEditors()
 		.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
 		.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
 		.AllowEditing(this, &FBlueprintEditor::InEditingMode)
-		.OnRootSelected(this, &FBlueprintEditor::OnRootSelected)
 		.OnSelectionUpdated(this, &FBlueprintEditor::OnSelectionUpdated)
 		.OnItemDoubleClicked(this, &FBlueprintEditor::OnComponentDoubleClicked);
 
