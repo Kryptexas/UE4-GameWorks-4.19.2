@@ -3,7 +3,7 @@
 #pragma once
 
 /** Set to zero to disable the slate stats system completely, meaning all stats-related structures and code are compiled out. */
-#define SLATE_STATS !UE_BUILD_SHIPPING || WITH_EDITOR
+#define SLATE_STATS (!UE_BUILD_SHIPPING || WITH_EDITOR)
 
 /** 
  * Predefined detail levels to make choosing level slightly easier.
