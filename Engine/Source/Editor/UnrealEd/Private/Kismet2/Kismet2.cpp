@@ -933,7 +933,7 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 			UEditorEngine::CopyPropertiesForUnrelatedObjects(ActorComponent,SCSNode->ComponentTemplate);
 
 			// Clear the instance component flag
-			SCSNode->ComponentTemplate->bInstanceComponent = false;
+			SCSNode->ComponentTemplate->CreationMethod = EComponentCreationMethod::Native;
 
 			USceneComponent* SceneComponent = Cast<USceneComponent>(ActorComponent);
 
@@ -951,7 +951,7 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 					SCS->AddNode(SCSNode);
 				}
 				// If we're attached to a blueprint component look it up as the variable name is the component name
-				else if (SceneComponent->AttachParent->bCreatedByConstructionScript)
+				else if (SceneComponent->AttachParent->CreationMethod == EComponentCreationMethod::ConstructionScript)
 				{
 					USCS_Node* ParentSCSNode = nullptr;
 					for (UBlueprint* Blueprint : ParentBPStack)

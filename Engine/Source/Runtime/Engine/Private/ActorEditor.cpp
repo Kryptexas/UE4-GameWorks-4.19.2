@@ -119,7 +119,7 @@ void AActor::PostEditMove(bool bFinished)
 	}
 
 	// If the root component was not just recreated by the construction script - call PostEditComponentMove on it
-	if(RootComponent != NULL && !RootComponent->bCreatedByConstructionScript)
+	if(RootComponent != NULL && RootComponent->CreationMethod != EComponentCreationMethod::ConstructionScript)
 	{
 		// @TODO Should we call on ALL components?
 		RootComponent->PostEditComponentMove(bFinished);
@@ -240,7 +240,7 @@ AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* A
 	: ComponentInstanceData(Actor)
 {
 	USceneComponent* RootComponent = Actor->GetRootComponent();
-	if (RootComponent && RootComponent->bCreatedByConstructionScript)
+	if (RootComponent && RootComponent->CreationMethod == EComponentCreationMethod::ConstructionScript)
 	{
 		bRootComponentDataCached = true;
 		RootComponentData.Transform = RootComponent->ComponentToWorld;

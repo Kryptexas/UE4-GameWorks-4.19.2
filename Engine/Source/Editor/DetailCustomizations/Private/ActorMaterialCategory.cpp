@@ -70,7 +70,7 @@ public:
 						UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>( CurComponent );
 						UDecalComponent* DecalComponent = (PrimitiveComp ? NULL : Cast<UDecalComponent>( CurComponent ));
 
-						if( !CurComponent->bCreatedByConstructionScript )
+						if( CurComponent->CreationMethod != EComponentCreationMethod::ConstructionScript)
 						{
 							if( PrimitiveComp )
 							{

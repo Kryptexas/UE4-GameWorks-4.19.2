@@ -8,6 +8,14 @@
 
 struct FReplicationFlags;
 
+UENUM()
+enum class EComponentCreationMethod : uint8
+{
+	Native,
+	ConstructionScript,
+	Instance,
+};
+
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
  * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
@@ -88,11 +96,11 @@ public:
 
 	/** True if this component was created by a construction script, and will be destroyed by DestroyConstructedComponents */
 	UPROPERTY()
-	uint32 bCreatedByConstructionScript:1;
+	uint32 bCreatedByConstructionScript_DEPRECATED:1;
 
 	/** True if this component was created as an instance component */
 	UPROPERTY()
-	uint32 bInstanceComponent:1;
+	uint32 bInstanceComponent_DEPRECATED:1;
 
 	/** Whether to the component is activated at creation or must be explicitly activated. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Activation)
@@ -110,6 +118,9 @@ public:
 
 	/** Indicates that InitializeComponent has been called, but UninitializeComponent has not yet */
 	uint32 bHasBeenInitialized:1;
+
+	UPROPERTY()
+	EComponentCreationMethod CreationMethod;
 
 	UFUNCTION()
 	void OnRep_IsActive();
@@ -460,6 +471,7 @@ public:
 	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) override;
 	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) override;
 	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
 	virtual void PostRename(UObject* OldOuter, const FName OldName) override;
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;

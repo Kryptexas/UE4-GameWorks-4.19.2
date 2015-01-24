@@ -7388,7 +7388,7 @@ namespace EditorUtilities
 											{
 												// Ensure that this instance will be included in any undo/redo operations, and record it into the transaction buffer.
 												// Note: We don't do this for components that originate from script, because they will be re-instanced from the template after an undo, so there is no need to record them.
-												if(!ComponentArchetypeInstance->bCreatedByConstructionScript)
+												if(ComponentArchetypeInstance->CreationMethod != EComponentCreationMethod::ConstructionScript)
 												{
 													ComponentArchetypeInstance->SetFlags(RF_Transactional);
 													ComponentArchetypeInstance->Modify();

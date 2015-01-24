@@ -527,7 +527,7 @@ bool FSCSEditorTreeNode::IsUserInstanced() const
 	if(bIsInstanced && !bWasInstancedFromNativeClass)
 	{
 		UActorComponent* ComponentInstance = GetComponentTemplate();
-		return ComponentInstance != nullptr && !ComponentInstance->bCreatedByConstructionScript;
+		return ComponentInstance != nullptr && ComponentInstance->CreationMethod != EComponentCreationMethod::ConstructionScript;
 	}
 
 	return false;
@@ -547,7 +547,7 @@ bool FSCSEditorTreeNode::CanEditDefaults() const
 	else if(bIsInstanced)
 	{
 		// Evaluate to TRUE for all instanced components except for those instanced from the Blueprint-generated class (i.e. during SCS or UCS)
-		bCanEdit = !ComponentTemplate->bCreatedByConstructionScript;
+		bCanEdit = (ComponentTemplate->CreationMethod != EComponentCreationMethod::ConstructionScript);
 	}
 	else if(ComponentTemplate != NULL)
 	{
@@ -1382,7 +1382,7 @@ FSlateColor SSCS_RowWidget::GetColorTint() const
 			UActorComponent* InstancedComponent = NodePtr->GetComponentTemplate();
 			check(InstancedComponent != nullptr);
 
-			if(InstancedComponent->bCreatedByConstructionScript)
+			if(InstancedComponent->CreationMethod == EComponentCreationMethod::ConstructionScript)
 			{
 				return FLinearColor(0.08f,0.35f,0.6f);
 			}
@@ -3403,7 +3403,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 				UClass* OwnerClass = ActorComponent->GetOwner()->GetActorClass();
 
 				// If the given component is one that's created during Blueprint construction
-				if (ActorComponent->bCreatedByConstructionScript)
+				if (ActorComponent->CreationMethod == EComponentCreationMethod::ConstructionScript)
 				{
 					// Get the Blueprint object associated with the owner's class
 					UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(OwnerClass);

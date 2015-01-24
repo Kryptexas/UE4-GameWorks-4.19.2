@@ -338,7 +338,7 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 				Actor->GetComponents(Components);
 				for (int32 Index = Components.Num()-1; Index >= 0; --Index)
 				{
-					if (Components[Index]->bInstanceComponent)
+					if (Components[Index]->CreationMethod == EComponentCreationMethod::Instance)
 					{
 						Components.RemoveAt(Index);
 					}
@@ -404,7 +404,7 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 	{
 		USceneComponent* SceneComp = NewObject<USceneComponent>(Actor);
 		SceneComp->SetFlags(RF_Transactional);
-		SceneComp->bCreatedByConstructionScript = true;
+		SceneComp->CreationMethod = EComponentCreationMethod::ConstructionScript;
 		SceneComp->SetWorldTransform(RootTransform);
 		Actor->SetRootComponent(SceneComp);
 		SceneComp->RegisterComponent();

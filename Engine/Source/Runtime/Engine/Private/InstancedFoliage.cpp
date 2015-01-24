@@ -1460,7 +1460,7 @@ void AInstancedFoliageActor::PostLoad()
 				// Clear out the Base for any instances based on blueprint-created components,
 				// as those components will be destroyed when the construction scripts are
 				// re-run, leaving dangling references and causing crashes (woo!)
-				if (Instance.Base && Instance.Base->bCreatedByConstructionScript)
+				if (Instance.Base && Instance.Base->CreationMethod == EComponentCreationMethod::ConstructionScript)
 				{
 					Instance.Base = NULL;
 				}
