@@ -1591,11 +1591,10 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	,	PropertyClass( InClass )
 	{}
 
-	virtual ~UObjectPropertyBase();
-
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 	// UProperty interface
@@ -1934,11 +1933,10 @@ public:
 	{
 	}
 
-	virtual ~UClassProperty();
-
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 	// UHT interface
@@ -2033,8 +2031,6 @@ public:
 	{
 	}
 
-	virtual ~UInterfaceProperty();
-
 	// UHT interface
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
 	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
@@ -2055,6 +2051,7 @@ public:
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 	/**
