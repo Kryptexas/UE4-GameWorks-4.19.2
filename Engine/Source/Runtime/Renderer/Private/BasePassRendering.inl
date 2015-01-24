@@ -8,7 +8,7 @@
 #pragma once
 
 template<typename LightMapPolicyType>
-inline void TBasePassVertexShaderBaseType<LightMapPolicyType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
+inline void TBasePassVertexShaderBaseType<LightMapPolicyType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement)
 {
 	FVertexShaderRHIParamRef VertexShaderRHI = GetVertexShader();
 	FMeshMaterialShader::SetMesh(RHICmdList, VertexShaderRHI, VertexFactory, View, Proxy, BatchElement);
@@ -20,17 +20,11 @@ inline void TBasePassVertexShaderBaseType<LightMapPolicyType>::SetMesh(FRHIComma
 		FMatrix PreviousLocalToWorld;
 		bool bHasPreviousLocalToWorld = false;
 		const auto& ViewInfo = (const FViewInfo&)View;
-		if (FVelocityDrawingPolicy::HasVelocityOnBasePass(ViewInfo, Proxy, Proxy->GetPrimitiveSceneInfo(), 
+		if (FVelocityDrawingPolicy::HasVelocityOnBasePass(ViewInfo, Proxy, Proxy->GetPrimitiveSceneInfo(), Mesh,
 			bHasPreviousLocalToWorld, PreviousLocalToWorld))
 		{
-			if (bHasPreviousLocalToWorld)
-			{
-				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, PreviousLocalToWorld.ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
-			}
-			else
-			{
-				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Proxy->GetLocalToWorld().ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
-			}
+			const FMatrix& Transform = bHasPreviousLocalToWorld ? PreviousLocalToWorld : Proxy->GetLocalToWorld();
+			SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Transform.ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
 
 			SetShaderValue(RHICmdList, VertexShaderRHI, SkipOutputVelocityParameter, 0.0f);
 		}
