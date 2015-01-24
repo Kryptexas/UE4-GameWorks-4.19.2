@@ -4960,7 +4960,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 				{
 					FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Actor->GetInstanceComponents());
 					NumChangedProperties += Actor->GetInstanceComponents().Num();
-					Actor->ClearInstanceComponents();
+					Actor->ClearInstanceComponents(true);
 				}
 				if (NumChangedProperties > 0)
 				{
@@ -5025,18 +5025,8 @@ void SSCSEditor::OnResetToBlueprintDefaults() const
 				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::CallPostEditChangeProperty);
 				NumChangedProperties = EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
 			}
-			if (Actor->GetInstanceComponents().Num() > 0)
-			{
-				TArray<UActorComponent*> InstanceComponents = Actor->GetInstanceComponents();
-				NumChangedProperties += InstanceComponents.Num();
-				for (UActorComponent* ActorComponent : InstanceComponents)
-				{
-					if (ActorComponent)
-					{
-						ActorComponent->DestroyComponent();
-					}
-				}
-			}
+			NumChangedProperties += Actor->GetInstanceComponents().Num();
+			Actor->ClearInstanceComponents(true);
 		}
 
 		// Set up a notification record to indicate success/failure

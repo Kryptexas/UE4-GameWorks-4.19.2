@@ -2254,7 +2254,7 @@ public:
 	void RemoveInstanceComponent(UActorComponent* Component);
 
 	/** Clears the instance components array */
-	void ClearInstanceComponents();
+	void ClearInstanceComponents(bool bDestroyComponents);
 
 	/** Returns the instance components array */
 	const TArray<UActorComponent*>& GetInstanceComponents() const;
