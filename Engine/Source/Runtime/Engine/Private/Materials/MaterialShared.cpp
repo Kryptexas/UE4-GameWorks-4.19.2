@@ -781,6 +781,11 @@ bool FMaterialResource::IsFullyRough() const
 	return Material->bFullyRough;
 }
 
+bool FMaterialResource::HasSkipVelocityOnBasePass() const
+{
+	return Material->bSkipVelocityOnBasePass;
+}
+
 bool FMaterialResource::IsNonmetal() const
 {
 	return !Material->Metallic.IsConnected() && !Material->Specular.IsConnected();

@@ -454,7 +454,7 @@ bool FPrimitiveSceneInfo::ShouldRenderVelocity(const FViewInfo& View, bool bChec
 
 	const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
-	if (!Proxy->IsMovable() && !PrimitiveViewRelevance.bHasWorldPositionOffset)
+	if (!Proxy->IsMovable())
 	{
 		return false;
 	}

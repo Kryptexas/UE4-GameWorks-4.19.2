@@ -349,15 +349,15 @@ bool FVelocityDrawingPolicy::HasVelocityOnBasePass(const FViewInfo& View,const F
 	FScene* Scene = PrimitiveSceneInfo->Scene;
 	if (Scene->MotionBlurInfoData.GetPrimitiveMotionBlurInfo(PrimitiveSceneInfo, OutTransform))
 	{
-		const FMatrix& LocalToWorld = PrimitiveSceneProxy->GetLocalToWorld();
+		bOutHasTransform = true;
 /*
+		const FMatrix& LocalToWorld = PrimitiveSceneProxy->GetLocalToWorld();
 		// Hasn't moved (treat as background by not rendering any special velocities)?
 		if (LocalToWorld.Equals(OutTransform, 0.0001f))
 		{
 			return false;
 		}
 */
-		bOutHasTransform = true;
 		return true;
 	}
 
@@ -368,7 +368,8 @@ bool FVelocityDrawingPolicy::HasVelocityOnBasePass(const FViewInfo& View,const F
 	}
 
 	//@todo-rco: Optimize finding WPO!
-	return View.PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()].bHasWorldPositionOffset;
+	auto* Material = Mesh.MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
+	return Material->MaterialModifiesMeshPosition_RenderThread() && !Material->HasSkipVelocityOnBasePass();
 }
 
 FBoundShaderStateInput FVelocityDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
