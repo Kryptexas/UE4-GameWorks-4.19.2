@@ -8,6 +8,7 @@
 #include "EngineBuildSettings.h"
 #include "AssetRegistryModule.h"
 #include "LevelEditor.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "STutorialButton"
 
