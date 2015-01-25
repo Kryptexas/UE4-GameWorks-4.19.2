@@ -253,6 +253,15 @@ static FRenderingCompositeOutputRef AddPostProcessEyeAdaptation(FPostprocessCont
 	return FRenderingCompositeOutputRef(Node);
 }
 
+static void AddVisualizeBloomSetup(FPostprocessContext& Context)
+{
+	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeBloomSetup());
+
+	Node->SetInput(ePId_Input0, Context.FinalOutput);
+
+	Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+}
+
 static void AddPostProcessDepthOfFieldBokeh(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucency)
 {
 	// downsample, mask out the in focus part, depth in alpha
@@ -887,6 +896,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		}
 
 		bool bVisualizeHDR = View.Family->EngineShowFlags.VisualizeHDR && FeatureLevel >= ERHIFeatureLevel::SM5;
+		bool bVisualizeBloom = View.Family->EngineShowFlags.VisualizeBloom && FeatureLevel >= ERHIFeatureLevel::SM4;
 
 		if(bVisualizeHDR)
 		{
@@ -1031,6 +1041,11 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 				MotionBlurRecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
 				MotionBlurRecombinePass->SetInput(ePId_Input1, FRenderingCompositeOutputRef(MotionBlurPass));
 				Context.FinalOutput = FRenderingCompositeOutputRef(MotionBlurRecombinePass);
+			}
+
+			if(bVisualizeBloom)
+			{
+				AddVisualizeBloomSetup(Context);
 			}
 
 			// down sample Scene color from full to half res
@@ -1257,14 +1272,18 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 		// Show the selection outline if it is in the editor and we arent in wireframe 
 		// If the engine is in demo mode and game view is on we also do not show the selection outline
-		if ( GIsEditor && View.Family->EngineShowFlags.SelectionOutline && !(View.Family->EngineShowFlags.Wireframe) && ( !GIsDemoMode || ( GIsDemoMode && !View.Family->EngineShowFlags.Game ) ) )
+		if ( GIsEditor
+			&& View.Family->EngineShowFlags.SelectionOutline
+			&& !(View.Family->EngineShowFlags.Wireframe)
+			&& ( !GIsDemoMode || ( GIsDemoMode && !View.Family->EngineShowFlags.Game ) ) 
+			&& !bVisualizeBloom)
 		{
 			// Selection outline is after bloom, but before AA
 			AddSelectionOutline(Context);
 		}
 
 		// Composite editor primitives if we had any to draw and compositing is enabled
-		if (FSceneRenderer::ShouldCompositeEditorPrimitives(View))
+		if (FSceneRenderer::ShouldCompositeEditorPrimitives(View) && !bVisualizeBloom)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(true));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));

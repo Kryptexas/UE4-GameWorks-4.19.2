@@ -212,6 +212,7 @@ struct FEngineShowFlags
 		SetVisualizeSSR(false);
 		SetForceGBuffer(false);
 		SetVisualizeSSS(false);
+		SetVisualizeBloom(false);
 	}
 
 	static bool CanBeToggledInEditor(const TCHAR* Name)

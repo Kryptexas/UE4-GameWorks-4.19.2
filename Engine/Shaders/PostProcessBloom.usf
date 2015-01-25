@@ -19,6 +19,26 @@ void MainPostprocessCommonVS(
 	OutTexCoord.zw =  OutPosition.xy;
 }
 
+void VisualizeBloomSetupPS(
+	  float4 UVAndScreenPos : TEXCOORD0
+	, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+
+	OutColor = 0;
+
+	int2 PixelPos = (int2)ComputePixelPosCenter(UVAndScreenPos.zw, true);
+
+	int2 ViewportCenter = (int2)(ViewportRect + ViewportSize / 2);
+
+	bool bCross = ViewportCenter.x == PixelPos.x || ViewportCenter.y == PixelPos.y;
+
+	if(bCross)
+	{
+		OutColor = 20;
+	}
+}
+
 // vertex shader entry point
 void MainVS(
 	in float4 InPosition : ATTRIBUTE0,
