@@ -7,6 +7,7 @@
 #include "TutorialMetaData.h"
 #include "EngineBuildSettings.h"
 #include "AssetRegistryModule.h"
+#include "LevelEditor.h"
 
 #define LOCTEXT_NAMESPACE "STutorialButton"
 
