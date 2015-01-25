@@ -255,9 +255,20 @@ static FRenderingCompositeOutputRef AddPostProcessEyeAdaptation(FPostprocessCont
 
 static void AddVisualizeBloomSetup(FPostprocessContext& Context)
 {
-	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeBloomSetup());
+	auto Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeBloomSetup());
 
 	Node->SetInput(ePId_Input0, Context.FinalOutput);
+
+	Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+}
+
+static void AddVisualizeBloomOverlay(FPostprocessContext& Context, FRenderingCompositeOutputRef& HDRColor, FRenderingCompositeOutputRef& BloomOutputCombined)
+{
+	auto Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeBloomOverlay());
+
+	Node->SetInput(ePId_Input0, Context.FinalOutput);
+	Node->SetInput(ePId_Input1, HDRColor);
+	Node->SetInput(ePId_Input2, BloomOutputCombined);
 
 	Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 }
@@ -876,6 +887,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		FRenderingCompositeOutputRef EyeAdaptation;
 		// not always valid
 		FRenderingCompositeOutputRef SeparateTranslucency;
+		// optional
+		FRenderingCompositeOutputRef BloomOutputCombined;
 
 		bool bAllowTonemapper = true;
 		EStereoscopicPass StereoPass = View.StereoPass;
@@ -1101,9 +1114,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 				EyeAdaptation = AddPostProcessEyeAdaptation(Context, Histogram);
 			}
 
-			// optional
-			FRenderingCompositeOutputRef BloomOutputCombined;
-
 			if(View.Family->EngineShowFlags.Bloom)
 			{
 				if (CVarUseMobileBloom.GetValueOnRenderThread() == 0)
@@ -1301,6 +1311,11 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		}
 		
 		AddPostProcessMaterial(Context, BL_AfterTonemapping, SeparateTranslucency);
+
+		if(bVisualizeBloom)
+		{
+			AddVisualizeBloomOverlay(Context, HDRColor, BloomOutputCombined);
+		}
 
 		if (View.Family->EngineShowFlags.VisualizeSSS)
 		{

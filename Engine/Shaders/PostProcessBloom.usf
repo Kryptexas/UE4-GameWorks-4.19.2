@@ -7,6 +7,10 @@
 #include "Common.usf"
 #include "PostProcessCommon.usf"
 
+// for VisualizeBloomOverlayPS
+// xyz:Bloom1Tint.rgb, w:unused
+float4 ColorScale1;
+
 // vertex shader entry point
 void MainPostprocessCommonVS(
 	in float4 InPosition : ATTRIBUTE0,
@@ -29,14 +33,68 @@ void VisualizeBloomSetupPS(
 
 	int2 PixelPos = (int2)ComputePixelPosCenter(UVAndScreenPos.zw, true);
 
-	int2 ViewportCenter = (int2)(ViewportRect + ViewportSize / 2);
+	int2 ViewportCenter = (int2)(ViewportRect.xy + ViewportSize / 2);
 
-	bool bCross = ViewportCenter.x == PixelPos.x || ViewportCenter.y == PixelPos.y;
+	// cross in x and y
+//	bool bMask = ViewportCenter.x == PixelPos.x || ViewportCenter.y == PixelPos.y;
+	// vertical line at viewport center
+	bool bMask = ViewportCenter.x == PixelPos.x;
 
-	if(bCross)
+	if(bMask)
 	{
 		OutColor = 20;
 	}
+}
+
+void VisualizeBloomOverlayPS(
+	  float4 UVAndScreenPos : TEXCOORD0
+	, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+	
+	float3 LDRColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).rgb;
+	
+	int2 ViewportCenter = (int2)(ViewportRect + ViewportSize / 2);
+
+	float2 UVLinePos = float2(UV.x, ViewportCenter.y * PostprocessInput0Size.w);
+
+	float3 NonBloomColor = Texture2DSampleLevel(PostprocessInput1, PostprocessInput1Sampler, UVLinePos, 0).rgb;
+
+	float3 BloomColor;
+	{
+		float4 CombinedBloom = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UVLinePos);
+		float3 BloomDirtMaskColor = 0;
+		BloomColor = CombinedBloom.rgb * (ColorScale1.rgb + BloomDirtMaskColor); 
+	}
+
+	float NonBloomValue = Luminance(NonBloomColor);
+	float BloomValue = Luminance(BloomColor);
+
+	float CompareY = lerp(1.1f, -0.1f, UV.y);
+
+	bool bNonBloom = NonBloomValue > CompareY;
+	bool bBloom = BloomValue > CompareY;
+	bool bOutside = CompareY < 0 || CompareY > 1;
+
+	OutColor = 0.1f;
+
+	FLATTEN if(bNonBloom)
+	{
+		OutColor.rgb = 0.3f;
+	}
+
+	FLATTEN if(bBloom)
+	{
+		OutColor.rgb = float3(0, 1, 0);
+	}
+
+	FLATTEN if(bOutside)
+	{
+		OutColor.rgb = float3(0, 0, 0);
+	}
+	
+	// for debugging: show LDR scene color
+//	OutColor.rgb = LDRColor;
 }
 
 // vertex shader entry point
