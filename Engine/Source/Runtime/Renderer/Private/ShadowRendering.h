@@ -583,8 +583,6 @@ public:
 	/** To not cast a shadow on the ground outside the object and having higher quality (useful for first person weapon). */
 	uint32 bSelfShadowOnly : 1;
 
-	uint32 bValidTransform : 1;
-
 	TBitArray<SceneRenderingBitArrayAllocator> StaticMeshWholeSceneShadowDepthMap;
 	TArray<uint64,SceneRenderingAllocator> StaticMeshWholeSceneShadowBatchVisibility;
 
@@ -602,8 +600,9 @@ public:
 	/**
 	 * for a per-object shadow. e.g. translucent particle system or a dynamic object in a precomputed shadow situation
 	 * @param InParentSceneInfo must not be 0
+	 * @return success, if false the shadow project is invalid and the projection should nto be created
 	 */
-	void SetupPerObjectProjection(
+	bool SetupPerObjectProjection(
 		FLightSceneInfo* InLightSceneInfo,
 		const FPrimitiveSceneInfo* InParentSceneInfo,
 		const FPerObjectProjectedShadowInitializer& Initializer,
