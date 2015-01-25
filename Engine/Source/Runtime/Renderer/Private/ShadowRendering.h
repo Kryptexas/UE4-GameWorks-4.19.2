@@ -493,12 +493,6 @@ class FProjectedShadowInfo : public FRefCountedObject
 public:
 	typedef TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> PrimitiveArrayType;
 
-	const FLightSceneInfo* const LightSceneInfo;
-	const FLightSceneInfoCompact LightSceneInfoCompact;
-
-	/** Parent primitive of the shadow group that created this shadow, if not a bWholeSceneShadow. */
-	const FPrimitiveSceneInfo* const ParentSceneInfo;
-
 	/** The main view this shadow must be rendered in, or NULL for a view independent shadow. */
 	FViewInfo* DependentView;
 
@@ -572,7 +566,7 @@ public:
 	uint32 bDepthsCached : 1;
 
 	// redundant to LightSceneInfo->Proxy->GetLightType() == LightType_Directional, could be made ELightComponentType LightType
-	const uint32 bDirectionalLight : 1;
+	uint32 bDirectionalLight : 1;
 
 	/** Whether this shadow affects the whole scene or only a group of objects. */
 	uint32 bWholeSceneShadow : 1;
@@ -602,11 +596,14 @@ public:
 
 public:
 
+	// default constructor
+	FProjectedShadowInfo();
+
 	/**
-	 * Initialization constructor for a per-object shadow. e.g. translucent particle system
+	 * for a per-object shadow. e.g. translucent particle system or a dynamic object in a precomputed shadow situation
 	 * @param InParentSceneInfo must not be 0
 	 */
-	FProjectedShadowInfo(
+	void SetupPerObjectProjection(
 		FLightSceneInfo* InLightSceneInfo,
 		const FPrimitiveSceneInfo* InParentSceneInfo,
 		const FPerObjectProjectedShadowInitializer& Initializer,
@@ -614,12 +611,11 @@ public:
 		uint32 InResolutionX,
 		uint32 MaxShadowResolutionY,
 		float InMaxScreenPercent,
-		const TArray<float, TInlineAllocator<2> >& InFadeAlphas,
 		bool bInTranslucentShadow
 		);
 
-	/** Initialization constructor for a whole-scene shadow. */
-	FProjectedShadowInfo(
+	/** for a whole-scene shadow. */
+	void SetupWholeSceneProjection(
 		FLightSceneInfo* InLightSceneInfo,
 		FViewInfo* InDependentView,
 		const FWholeSceneProjectedShadowInitializer& Initializer,
@@ -719,7 +715,26 @@ public:
 	/** Sorts SubjectMeshElements based on state so that rendering the static elements will set as little state as possible. */
 	void SortSubjectMeshElements();
 
+	// 0 if Setup...() wasn't called yet
+	const FLightSceneInfo & GetLightSceneInfo() const { return *LightSceneInfo; }
+	const FLightSceneInfoCompact& GetLightSceneInfoCompact() const { return LightSceneInfoCompact; }
+	/**
+	 * Parent primitive of the shadow group that created this shadow, if not a bWholeSceneShadow.
+	 * 0 if Setup...() wasn't called yet
+	 */	
+	const FPrimitiveSceneInfo* GetParentSceneInfo() const { return ParentSceneInfo; }
+
 private:
+	// 0 if Setup...() wasn't called yet
+	const FLightSceneInfo* LightSceneInfo;
+	FLightSceneInfoCompact LightSceneInfoCompact;
+
+	/**
+	 * Parent primitive of the shadow group that created this shadow, if not a bWholeSceneShadow.
+	 * 0 if Setup...() wasn't called yet or for whole scene shadows
+	 */	
+	const FPrimitiveSceneInfo* ParentSceneInfo;
+
 	/** dynamic shadow casting elements */
 	PrimitiveArrayType SubjectPrimitives;
 	/** For preshadows, this contains the receiver primitives to mask the projection to. */
@@ -1155,12 +1170,14 @@ public:
 		const FProjectedShadowInfo* ShadowInfo
 		) override
 	{
+		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
+
 		FShadowProjectionPixelShaderInterface::SetParameters(RHICmdList, ViewIndex,View,ShadowInfo);
 
 		ProjectionParameters.Set(RHICmdList, this, View, ShadowInfo);
 
-		SetShaderValue(RHICmdList, GetPixelShader(), ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex] );
-		SetShaderValue(RHICmdList, GetPixelShader(), ShadowSharpen, ShadowInfo->LightSceneInfo->Proxy->GetShadowSharpen() * 7.0f + 1.0f );
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex] );
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowSharpen, ShadowInfo->GetLightSceneInfo().Proxy->GetShadowSharpen() * 7.0f + 1.0f );
 	}
 
 	/**
@@ -1397,10 +1414,12 @@ public:
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 		OnePassShadowParameters.Set(RHICmdList, ShaderRHI, ShadowInfo);
 
-		SetShaderValue(RHICmdList, ShaderRHI, LightPosition, FVector4(ShadowInfo->LightSceneInfo->Proxy->GetPosition(), 1.0f / ShadowInfo->LightSceneInfo->Proxy->GetRadius()));
+		const FLightSceneProxy& LightProxy = *(ShadowInfo->GetLightSceneInfo().Proxy);
+
+		SetShaderValue(RHICmdList, ShaderRHI, LightPosition, FVector4(LightProxy.GetPosition(), 1.0f / LightProxy.GetRadius()));
 
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex]);
-		SetShaderValue(RHICmdList, ShaderRHI, ShadowSharpen, ShadowInfo->LightSceneInfo->Proxy->GetShadowSharpen() * 7.0f + 1.0f);
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowSharpen, LightProxy.GetShadowSharpen() * 7.0f + 1.0f);
 		SetShaderValue(RHICmdList, ShaderRHI, PointLightDepthBiasParameters, FVector2D(ShadowInfo->GetShaderDepthBias(), 0.0f));
 	}
 
