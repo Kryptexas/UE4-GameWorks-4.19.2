@@ -9,6 +9,7 @@
 #include "EditorCategoryUtils.h"
 #include "SSearchBox.h"
 #include "SInlineEditableTextBlock.h"
+#include "Widgets/Views/STableRow.h"
 
 #define LOCTEXT_NAMESPACE "GraphActionMenu"
 
