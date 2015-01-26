@@ -244,7 +244,7 @@ public:
 
 	/** Returns the transform of this component relative to its parent */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	FTransform GetRelativeTransform();
+	FTransform GetRelativeTransform() const;
 
 	/** Set the transform of this component relative to its parent */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")

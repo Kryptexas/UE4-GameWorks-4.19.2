@@ -447,7 +447,7 @@ void USceneComponent::SetRelativeTransform(const FTransform& NewTransform, bool 
 	SetRelativeScale3D(NewTransform.GetScale3D());
 }
 
-FTransform USceneComponent::GetRelativeTransform()
+FTransform USceneComponent::GetRelativeTransform() const
 {
 	const FTransform RelativeTransform( RelativeRotation, RelativeLocation, RelativeScale3D );
 	return RelativeTransform;
