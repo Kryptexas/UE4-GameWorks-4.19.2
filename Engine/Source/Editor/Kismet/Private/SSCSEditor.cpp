@@ -3783,7 +3783,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USceneComponent* InSceneCompon
 			// Expand the scene root node by default
 			SCSTreeWidget->SetItemExpansion(SceneRootNodePtr, true);
 		}
-		else
+		else if (SceneRootNodePtr->GetComponentTemplate() != InSceneComponent)
 		{
 			NewNodePtr = SceneRootNodePtr->AddChild(InSceneComponent);
 		}
