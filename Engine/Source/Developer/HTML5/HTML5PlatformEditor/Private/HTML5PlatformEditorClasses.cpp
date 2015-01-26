@@ -4,7 +4,7 @@
 	HTML5TargetPlatformClasses.cpp: Implements the module's UClasses.
 =============================================================================*/
 
-#include "HTML5TargetPlatformPrivatePCH.h"
+#include "HTML5PlatformEditorPrivatePCH.h"
 
 
 

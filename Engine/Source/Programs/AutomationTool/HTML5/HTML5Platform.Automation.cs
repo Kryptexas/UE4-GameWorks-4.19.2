@@ -61,8 +61,12 @@ public class HTML5Platform : Platform
             ulong HeapSize;
             var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath), CombinePaths(CmdEnv.LocalRoot, "Engine"));
 
-            int ConfigHeapSize;
-            if (!ConfigCache.GetInt32("BuildSettings", "HeapSize" + Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize)) // in Megs.
+            int ConfigHeapSize = 0;
+			// Valuer set by Editor UI
+			var bGotHeapSize = ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "HeapSize" + Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize);
+
+			// Fallback if the previous method failed
+            if (!bGotHeapSize && !ConfigCache.GetInt32("BuildSettings", "HeapSize" + Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize)) // in Megs.
             {
                 // we couldn't find a per config heap size, look for a common one.
                 if (!ConfigCache.GetInt32("BuildSettings", "HeapSize", out ConfigHeapSize))
@@ -203,25 +207,46 @@ public class HTML5Platform : Platform
 	{
 		// look for browser
 		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath), CombinePaths(CmdEnv.LocalRoot, "Engine"));
-
-		string DeviceSection;
-
-		if ( Utils.IsRunningOnMono )
-		{
-			DeviceSection = "HTML5DevicesMac";
-		}
-		else
-		{
-			DeviceSection = "HTML5DevicesWindows";
-		}
-
-		string browserPath;
+		bool ok = false;
+		List<string> Devices;
+		string browserPath = "";
 		string DeviceName = Params.Device.Split('@')[1];
 		DeviceName = DeviceName.Substring(0, DeviceName.LastIndexOf(" on "));
-		bool ok = ConfigCache.GetString(DeviceSection, DeviceName, out browserPath);
+
+		if (ConfigCache.GetArray("/Script/HTML5PlatformEditor.HTML5SDKSettings", "DeviceMap", out Devices))
+		{
+			foreach (var Dev in Devices)
+			{
+				var Matched = Regex.Match(Dev, "\\(DeviceName=\"(.*)\",DevicePath=\\(FilePath=\"(.*)\"\\)\\)", RegexOptions.IgnoreCase);
+				if (Matched.Success && Matched.Groups[1].ToString() == DeviceName)
+				{
+					browserPath = Matched.Groups[2].ToString();
+					ok = true;
+					break;
+				}
+			}
+		}
+
+		if (!ok && HTML5SDKInfo.bAllowFallbackSDKSettings)
+		{
+			string DeviceSection;
+
+			if (Utils.IsRunningOnMono)
+			{
+				DeviceSection = "HTML5DevicesMac";
+			}
+			else
+			{
+				DeviceSection = "HTML5DevicesWindows";
+			}
+
+			ok = ConfigCache.GetString(DeviceSection, DeviceName, out browserPath);
+		}
 
 		if (!ok)
-			throw new System.Exception ("Incorrect browser configuration in HTML5Engine.ini ");
+		{
+			throw new System.Exception("Incorrect browser configuration in HTML5Engine.ini ");
+		}
 
 		// open the webpage
 		string directory = Path.GetDirectoryName(ClientApp);

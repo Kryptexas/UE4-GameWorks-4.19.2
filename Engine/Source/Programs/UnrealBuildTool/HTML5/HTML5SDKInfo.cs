@@ -13,6 +13,7 @@ namespace UnrealBuildTool
     {
         static string EmscriptenSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".emscripten");
 		static ConfigCacheIni ConfigCache = null;
+		public const bool bAllowFallbackSDKSettings = true;
 
         static Dictionary<string, string> ReadEmscriptenSettings()
         {
@@ -132,32 +133,39 @@ namespace UnrealBuildTool
 			EnsureConfigCacheIsReady();
 			// Search the ini file for Emscripten root first
 			string EMCCPath;
-			bool ok = ConfigCache.GetString("HTML5SDKPaths", "Emscripten", out EMCCPath);
-			if (ok && System.IO.Directory.Exists(EMCCPath))
-				return EMCCPath;
+			if (ConfigCache.GetPath("/Script/HTML5PlatformEditor.HTML5SDKSettings", "Emscripten", out EMCCPath) && System.IO.Directory.Exists(EMCCPath))
+ 				return EMCCPath;
 
-			// Older method used platform name
-            string PlatformName = "";
-            if (!Utils.IsRunningOnMono)
-            {
-                PlatformName = "Windows";
-            }
-            else
-            {
-                PlatformName = "Mac";
-            }
-            ok = ConfigCache.GetString("HTML5SDKPaths", PlatformName, out EMCCPath);
+			// Old Method
+			if (bAllowFallbackSDKSettings)
+			{
+				bool ok = ConfigCache.GetString("HTML5SDKPaths", "Emscripten", out EMCCPath);
+				if (ok && System.IO.Directory.Exists(EMCCPath))
+					return EMCCPath;
 
-            if (ok && System.IO.Directory.Exists(EMCCPath))
-                return EMCCPath;
+				// Older method used platform name
+				string PlatformName = "";
+				if (!Utils.IsRunningOnMono)
+				{
+					PlatformName = "Windows";
+				}
+				else
+				{
+					PlatformName = "Mac";
+				}
+				ok = ConfigCache.GetString("HTML5SDKPaths", PlatformName, out EMCCPath);
 
-            // try to find SDK Location from env.
-            if (Environment.GetEnvironmentVariable("EMSCRIPTEN") != null
-                && System.IO.Directory.Exists(Environment.GetEnvironmentVariable("EMSCRIPTEN"))
-                )
-            {
-                return Environment.GetEnvironmentVariable("EMSCRIPTEN");
-            }
+				if (ok && System.IO.Directory.Exists(EMCCPath))
+					return EMCCPath;
+
+				// try to find SDK Location from env.
+				if (Environment.GetEnvironmentVariable("EMSCRIPTEN") != null
+					&& System.IO.Directory.Exists(Environment.GetEnvironmentVariable("EMSCRIPTEN"))
+					)
+				{
+					return Environment.GetEnvironmentVariable("EMSCRIPTEN");
+				}
+			}
 
             return ""; 
         }
@@ -166,31 +174,37 @@ namespace UnrealBuildTool
         {
 			// find Python.
 			EnsureConfigCacheIsReady();
-			
-			// Check the ini first. Check for Python="path"
+
 			string PythonPath;
-			bool ok = ConfigCache.GetString("HTML5SDKPaths", "Python", out PythonPath);
-			if (ok && System.IO.File.Exists(PythonPath))
+			if (ConfigCache.GetPath("/Script/HTML5PlatformEditor.HTML5SDKSettings", "Python", out PythonPath) && System.IO.File.Exists(PythonPath))
 				return PythonPath;
-           
-            var EmscriptenSettings = ReadEmscriptenSettings();
 
-			// check emscripten generated config file. 
-            if (EmscriptenSettings.ContainsKey("PYTHON")
-                && System.IO.File.Exists(EmscriptenSettings["PYTHON"])
-                )
-            {
-                return EmscriptenSettings["PYTHON"];
-            }
+			if (bAllowFallbackSDKSettings)
+			{
+				// Check the ini first. Check for Python="path"
+				bool ok = ConfigCache.GetString("HTML5SDKPaths", "Python", out PythonPath);
+				if (ok && System.IO.File.Exists(PythonPath))
+					return PythonPath;
 
-            // It might be setup as a env variable. 
-            if (Environment.GetEnvironmentVariable("PYTHON") != null
-                &&
-                System.IO.File.Exists(Environment.GetEnvironmentVariable("PYTHON"))
-                )
-            {
-                return Environment.GetEnvironmentVariable("PYTHON");
-            }
+				var EmscriptenSettings = ReadEmscriptenSettings();
+
+				// check emscripten generated config file. 
+				if (EmscriptenSettings.ContainsKey("PYTHON")
+					&& System.IO.File.Exists(EmscriptenSettings["PYTHON"])
+					)
+				{
+					return EmscriptenSettings["PYTHON"];
+				}
+
+				// It might be setup as a env variable. 
+				if (Environment.GetEnvironmentVariable("PYTHON") != null
+					&&
+					System.IO.File.Exists(Environment.GetEnvironmentVariable("PYTHON"))
+					)
+				{
+					return Environment.GetEnvironmentVariable("PYTHON");
+				}
+			}
 
             // it might just be on path. 
             ProcessStartInfo startInfo = new ProcessStartInfo();

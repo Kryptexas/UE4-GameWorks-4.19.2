@@ -648,6 +648,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("ProjectSettingsViewer"),
 			TEXT("AndroidRuntimeSettings"),
 			TEXT("AndroidPlatformEditor"),
+			TEXT("HTML5PlatformEditor"),
 			TEXT("IOSRuntimeSettings"),
 			TEXT("IOSPlatformEditor"),
 			TEXT("Blutility"),

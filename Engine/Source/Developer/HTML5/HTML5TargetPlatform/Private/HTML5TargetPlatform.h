@@ -23,7 +23,7 @@ public:
 	 */
 	FHTML5TargetPlatform( );
 
-public:
+	void RefreshAvailableDevices();
 
 	// Begin ITargetPlatform interface
 

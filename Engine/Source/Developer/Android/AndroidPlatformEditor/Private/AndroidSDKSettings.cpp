@@ -125,24 +125,28 @@ void UAndroidSDKSettings::UpdateTargetModulePaths(bool bForceUpdate)
 	
 	if (bForceUpdate || !SDKPath.Path.IsEmpty())
 	{
+		FPaths::NormalizeFilename(SDKPath.Path);
 		Keys.Add(TEXT("ANDROID_HOME"));
 		Values.Add(SDKPath.Path);
 	}
 	
 	if (bForceUpdate || !NDKPath.Path.IsEmpty())
 	{
+		FPaths::NormalizeFilename(NDKPath.Path);
 		Keys.Add(TEXT("NDKROOT"));
 		Values.Add(NDKPath.Path);
 	}
 	
 	if (bForceUpdate || !ANTPath.Path.IsEmpty())
 	{
+		FPaths::NormalizeFilename(ANTPath.Path);
 		Keys.Add(TEXT("ANT_HOME"));
 		Values.Add(ANTPath.Path);
 	}
 
 	if (bForceUpdate || !JavaPath.Path.IsEmpty())
 	{
+		FPaths::NormalizeFilename(JavaPath.Path);
 		Keys.Add(TEXT("JAVA_HOME"));
 		Values.Add(JavaPath.Path);
 	}

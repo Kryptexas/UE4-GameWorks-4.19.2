@@ -1625,7 +1625,7 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 	// Determine whether the file we are writing is a default file config.
 	const bool bIsADefaultIniWrite = !Filename.Contains(FPaths::GameSavedDir())
 		&& !Filename.Contains(FPaths::EngineSavedDir())
-		&& FPaths::GetBaseFilename(Filename).StartsWith(TEXT("Default"));
+		&& (FPaths::GetBaseFilename(Filename).StartsWith(TEXT("Default")) || FPaths::GetBaseFilename(Filename).StartsWith(TEXT("User")));
 
 	const bool bPerObject = UsesPerObjectConfig(this);
 	FString Section;

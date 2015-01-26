@@ -191,6 +191,7 @@ public class UnrealEd : ModuleRules
 				"EditorLiveStreaming",
 				"HotReload",
                 "IOSPlatformEditor",
+				"HTML5PlatformEditor",
 			}
 		);
 

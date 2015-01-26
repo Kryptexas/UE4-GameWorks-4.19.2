@@ -13,11 +13,22 @@
  * Implements the settings for the HTML5 target platform.
  */
 UCLASS(config=Engine, defaultconfig)
-class HTML5TARGETPLATFORM_API UHTML5TargetSettings
+class HTML5PLATFORMEDITOR_API UHTML5TargetSettings
 	: public UObject
 {
 public:
 
 	GENERATED_UCLASS_BODY()
 
+ 	/**
+ 	 * Setting to control HTML5 Heap size (in Development)
+ 	 */
+ 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Memory, Meta = (DisplayName = "Development Heap Size (in MB)", ClampMin="1", ClampMax="4096"))
+ 	int32 HeapSizeDevelopment;
+
+	/**
+ 	 * Setting to control HTML5 Heap size
+ 	 */
+ 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Memory, Meta = (DisplayName = "Heap Size (in MB)", ClampMin="1", ClampMax="4096"))
+ 	int32 HeapSizeShipping;
 };
