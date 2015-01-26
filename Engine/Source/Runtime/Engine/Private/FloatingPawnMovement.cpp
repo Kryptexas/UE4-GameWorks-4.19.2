@@ -48,7 +48,6 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 		{
 			const FVector OldLocation = UpdatedComponent->GetComponentLocation();
 			const FRotator Rotation = UpdatedComponent->GetComponentRotation();
-			FVector TraceStart = OldLocation;
 
 			FHitResult Hit(1.f);
 			SafeMoveUpdatedComponent(Delta, Rotation, true, Hit);
