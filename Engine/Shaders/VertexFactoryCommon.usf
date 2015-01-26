@@ -14,3 +14,8 @@ float4 TransformLocalToTranslatedWorld(float3 LocalPosition)
 {
 	return float4(TransformLocalToWorld(LocalPosition) + View.PreViewTranslation.xyz,1);
 }
+
+float4 TransformLocalToPrevTranslatedWorld(float3 LocalPosition)
+{
+	return float4(TransformLocalToWorld(LocalPosition) + View.PrevPreViewTranslation.xyz,1);
+}
