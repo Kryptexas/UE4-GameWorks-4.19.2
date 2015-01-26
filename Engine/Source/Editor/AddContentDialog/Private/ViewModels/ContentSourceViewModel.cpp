@@ -60,13 +60,19 @@ TArray<TSharedPtr<FSlateBrush>>* FContentSourceViewModel::GetScreenshotBrushes()
 
 void FContentSourceViewModel::SetupBrushes()
 {
-	FString IconBrushName = GetName().ToString() + "_" + ContentSource->GetIconData()->GetName();
-	IconBrush = CreateBrushFromRawData(IconBrushName, *ContentSource->GetIconData()->GetData());
+	if (ContentSource->GetIconData().IsValid())
+	{
+		FString IconBrushName = GetName().ToString() + "_" + ContentSource->GetIconData()->GetName();
+		IconBrush = CreateBrushFromRawData(IconBrushName, *ContentSource->GetIconData()->GetData());
+	}
 
 	for (TSharedPtr<FImageData> ScreenshotData : ContentSource->GetScreenshotData())
 	{
-		FString ScreenshotBrushName = GetName().ToString() + "_" + ScreenshotData->GetName();
-		ScreenshotBrushes.Add(CreateBrushFromRawData(ScreenshotBrushName, *ScreenshotData->GetData()));
+		if (ScreenshotData.IsValid() == true)
+		{
+			FString ScreenshotBrushName = GetName().ToString() + "_" + ScreenshotData->GetName();
+			ScreenshotBrushes.Add(CreateBrushFromRawData(ScreenshotBrushName, *ScreenshotData->GetData()));
+		}
 	}
 }
 
@@ -82,7 +88,7 @@ TSharedPtr<FSlateDynamicImageBrush> FContentSourceViewModel::CreateBrushFromRawD
 	TArray<uint8> DecodedImage;
 	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(RawData.GetData(), RawData.Num()))
+	if (ImageWrapper.IsValid() && (RawData.Num() > 0) && ImageWrapper->SetCompressed(RawData.GetData(), RawData.Num()))
 	{
 		Width = ImageWrapper->GetWidth();
 		Height = ImageWrapper->GetHeight();
