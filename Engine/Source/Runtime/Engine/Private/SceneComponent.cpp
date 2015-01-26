@@ -23,8 +23,7 @@ FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 	OverlapInfo.Item = InBodyIndex;
 }
 
-USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+USceneComponent::USceneComponent()
 {
 	Mobility = EComponentMobility::Movable;
 	RelativeScale3D = FVector(1.0f,1.0f,1.0f);
@@ -34,6 +33,13 @@ USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer)
 	
 	NetUpdateTransform = false;
 }
+
+
+USceneComponent::USceneComponent( const FObjectInitializer& ObjectInitializer )
+	: USceneComponent()	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
+{
+}
+
 
 FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent) const
 {

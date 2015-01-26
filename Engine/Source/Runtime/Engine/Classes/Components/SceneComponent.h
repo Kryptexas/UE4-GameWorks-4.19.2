@@ -85,6 +85,11 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
+	USceneComponent();
+
+	/**
+	 * UObject constructor that takes an ObjectInitializer
+	 */
 	USceneComponent(const FObjectInitializer& ObjectInitializer);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
