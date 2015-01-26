@@ -573,7 +573,7 @@ FWidget::EWidgetMode FSCSEditorViewportClient::GetWidgetMode() const
 		if ( BluePrintEditor.IsValid() )
 		{
 			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BluePrintEditor->GetSelectedSCSEditorTreeNodes();
-			const TArray<FSCSEditorTreeNodePtrType>& RootNodes = BluePrintEditor->GetSCSEditor()->RootNodes;
+			const TArray<FSCSEditorTreeNodePtrType>& RootNodes = BluePrintEditor->GetSCSEditor()->GetRootComponentNodes();
 
 			// if the selected nodes array is empty, or only contains entries from the
 			// root nodes array, or isn't visible in the preview actor, then don't display a transform widget

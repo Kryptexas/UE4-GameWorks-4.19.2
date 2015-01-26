@@ -101,7 +101,12 @@ public:
 	/** Returns a component name without the substring "Component" and sanitized for display */
 	static FString GetSanitizedComponentName( UClass* ComponentClass );
 
+protected:
+	virtual FReply OnButtonClicked();
+
 private:
+
+	FText GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const;
 
 	FComponentClassSelected OnComponentClassSelected;
 
