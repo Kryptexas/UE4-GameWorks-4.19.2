@@ -124,6 +124,9 @@ public:
 	/** Returns true if the package is one of the pending deleted assets. */
 	bool IsAssetInPendingDeletes( const FName& PackageName ) const;
 
+	/** Deletes any source content files referenced by the assets */
+	void DeleteSourceContentFiles();
+
 	/** Returns true if it is valid to delete the current objects with no problems. */
 	bool CanDelete() const;
 

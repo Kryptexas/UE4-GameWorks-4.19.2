@@ -6,6 +6,7 @@
 #include "ObjectTools.h"
 #include "AssetRegistryModule.h"
 #include "AssetEditorManager.h"
+#include "AutoReimport/AutoReimportUtilities.h"
 
 #define LOCTEXT_NAMESPACE "FAssetDeleteModel"
 
@@ -114,6 +115,23 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 		break;
 	case Finished:
 		break;
+	}
+}
+
+void FAssetDeleteModel::DeleteSourceContentFiles()
+{
+	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+	
+	TArray<FString> FilesToDelete;
+	for ( const TSharedPtr< FPendingDelete >& PendingDelete : PendingDeletes )
+	{
+		Utils::ExtractSourceFilePaths(PendingDelete->GetObject(), FilesToDelete);
+	}
+
+	IFileManager& FileManager = IFileManager::Get();
+	for (const auto& Path : FilesToDelete)
+	{
+		FileManager.Delete(*Path, false /* RequireExists */, true /* Even if read only */, true /* Quiet */);
 	}
 }
 

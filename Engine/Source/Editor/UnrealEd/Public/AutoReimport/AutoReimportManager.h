@@ -22,5 +22,5 @@ private:
 	virtual void BeginDestroy() override;
 
 	/** Private implementation of the reimport manager */
-	TUniquePtr<class FAutoReimportManager> Implementation;
+	TSharedPtr<class FAutoReimportManager> Implementation;
 };

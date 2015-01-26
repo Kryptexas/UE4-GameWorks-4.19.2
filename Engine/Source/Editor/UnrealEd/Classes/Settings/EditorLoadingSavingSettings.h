@@ -35,6 +35,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=AutoReimport, meta=(DisplayName="Additional Directories to Monitor"))
 	TArray<FString> AutoReimportDirectories;
 
+	/** Internal setting to control whether we should ask the user whether we should automatically delete source files when their assets are deleted */
+	UPROPERTY(config)
+	bool bDeleteSourceFilesWithAssets;
+
 private:
 
 	/** Deprecated properties - we automatically monitor all source file types that are supported by in memory factories now */

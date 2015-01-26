@@ -97,6 +97,9 @@ namespace Utils
 		return Accumulator;
 	}
 
-	/** Find a list of assets that were last imported from the specified filename. */
+	/** Find a list of assets that were once imported from the specified filename */
 	TArray<FAssetData> FindAssetsPertainingToFile(const IAssetRegistry& Registry, const FString& AbsoluteFilename);
+
+	/** Extract any source file paths from the specified object */
+	void ExtractSourceFilePaths(UObject* Object, TArray<FString>& OutSourceFiles);
 }
