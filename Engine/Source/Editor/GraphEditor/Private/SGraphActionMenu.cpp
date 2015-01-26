@@ -26,7 +26,7 @@ public:
 
 	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
-		ChildSlot
+		STableRow<ItemType>::ChildSlot
 		.Padding(0.0f, 2.0f, 0.0f, 0.0f)
 		[
 			SAssignNew(ContentBorder, SBorder)
