@@ -88,7 +88,7 @@ void FAndroidSDKSettingsCustomization::SetupSDKPaths()
 		}
 		
 	}
-
+#if PLATFORM_MAC == 0
 	if (settings->JavaPath.Path.IsEmpty())
 	{
 		TCHAR AndroidJavaPath[256];
@@ -100,7 +100,7 @@ void FAndroidSDKSettingsCustomization::SetupSDKPaths()
 		}
 
 	}
-	
+#endif	
 	if (changed)
 	{
 		settings->Modify();

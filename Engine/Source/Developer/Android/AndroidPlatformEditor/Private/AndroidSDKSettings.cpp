@@ -63,6 +63,7 @@ void UAndroidSDKSettings::SetupInitialTargetPaths()
 		}
 	}
 
+#if PLATFORM_MAC == 0
 	if (JavaPath.Path.IsEmpty())
 	{
 		TCHAR AndroidJavaPath[256];
@@ -72,7 +73,7 @@ void UAndroidSDKSettings::SetupInitialTargetPaths()
 			JavaPath.Path = AndroidJavaPath;
 		}
 	}
-
+#endif
 
 #if PLATFORM_MAC
 	// On a Mac, if we still don't have the values then check the .bash_profile file for them
@@ -141,11 +142,13 @@ void UAndroidSDKSettings::UpdateTargetModulePaths(bool bForceUpdate)
 		Values.Add(ANTPath.Path);
 	}
 
+#if PLATFORM_MAC == 0
 	if (bForceUpdate || !JavaPath.Path.IsEmpty())
 	{
 		Keys.Add(TEXT("JAVA_HOME"));
 		Values.Add(JavaPath.Path);
 	}
+#endif
 
 	SaveConfig();
 	
