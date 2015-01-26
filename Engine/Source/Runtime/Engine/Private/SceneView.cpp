@@ -744,6 +744,8 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	LERP_PP(Bloom4Size);
 	LERP_PP(Bloom5Tint);
 	LERP_PP(Bloom5Size);
+	LERP_PP(Bloom6Tint);
+	LERP_PP(Bloom6Size);
 	LERP_PP(BloomDirtMaskIntensity);
 	LERP_PP(BloomDirtMaskTint);
 	LERP_PP(AmbientCubemapIntensity);

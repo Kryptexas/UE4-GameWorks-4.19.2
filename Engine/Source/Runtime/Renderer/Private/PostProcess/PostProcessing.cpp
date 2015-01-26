@@ -435,8 +435,8 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 		3,// Q1
 		3,// Q2
 		4,// Q3
-		4,// Q4
-		5,// Q5
+		5,// Q4
+		6,// Q5
 	};
 
 	int32 BloomQuality;
@@ -447,12 +447,12 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 	}
 
 	// Perform down sample. Used by both bloom and lens flares.
-	static const int32 DownSampleStages = 5;
+	static const int32 DownSampleStages = 6;
 	FRenderingCompositeOutputRef PostProcessDownsamples[DownSampleStages] = {PostProcessDownsample0};
 	for (int i = 1; i < DownSampleStages; i++)
 	{
 		static const TCHAR* PassLabels[] =
-			{NULL, TEXT("BloomDownsample1"), TEXT("BloomDownsample2"), TEXT("BloomDownsample3"), TEXT("BloomDownsample4")};
+			{NULL, TEXT("BloomDownsample1"), TEXT("BloomDownsample2"), TEXT("BloomDownsample3"), TEXT("BloomDownsample4"), TEXT("BloomDownsample5")};
 		static_assert(ARRAY_COUNT(PassLabels) == DownSampleStages, "PassLabel count must be equal to DownSampleStages.");
 		FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_Unknown, 1, PassLabels[i]));
 		Pass->SetInput(ePId_Input0, PostProcessDownsamples[i - 1]);
@@ -479,6 +479,7 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 
 		FBloomStage BloomStages[] =
 		{
+			{ Settings.Bloom6Size, &Settings.Bloom6Tint},
 			{ Settings.Bloom5Size, &Settings.Bloom5Tint},
 			{ Settings.Bloom4Size, &Settings.Bloom4Tint},
 			{ Settings.Bloom3Size, &Settings.Bloom3Tint},
