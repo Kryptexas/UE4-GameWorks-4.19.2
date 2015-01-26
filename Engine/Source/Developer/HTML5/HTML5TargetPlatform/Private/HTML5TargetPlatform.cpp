@@ -273,6 +273,8 @@ FName FHTML5TargetPlatform::GetWaveFormat( const USoundWave* Wave ) const
 	return NAME_OGG;
 }
 
+#endif // WITH_ENGINE
+
 void FHTML5TargetPlatform::RefreshAvailableDevices()
 {
 	//New style detection of devices
@@ -355,5 +357,3 @@ void FHTML5TargetPlatform::RefreshAvailableDevices()
 		}
 	}
 }
-
-#endif // WITH_ENGINE
