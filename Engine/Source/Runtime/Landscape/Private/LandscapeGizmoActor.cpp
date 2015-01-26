@@ -659,6 +659,16 @@ void ALandscapeGizmoActiveActor::ClearGizmoData()
 	DataType = LGT_None;
 	SelectedData.Empty();
 	LayerInfos.Empty();
+
+	// If the clipboard contains copied gizmo data, clear it also
+	FString ClipboardString;
+	FPlatformMisc::ClipboardPaste(ClipboardString);
+	const TCHAR* Str = *ClipboardString;
+	if (FParse::Command(&Str, TEXT("GizmoData=")))
+	{
+		FPlatformMisc::ClipboardCopy(TEXT(""));
+	}
+
 	ReregisterAllComponents();
 }
 
