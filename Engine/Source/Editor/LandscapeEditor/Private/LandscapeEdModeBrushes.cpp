@@ -1085,15 +1085,38 @@ public:
 			int32 SizeX = EdMode->UISettings->AlphaTextureSizeX;
 			int32 SizeY = EdMode->UISettings->AlphaTextureSizeY;
 
-			FLinearColor AlphaScaleBias(
-				1.0f / (EdMode->UISettings->AlphaBrushScale * SizeX),
-				1.0f / (EdMode->UISettings->AlphaBrushScale * SizeY),
-				EdMode->UISettings->AlphaBrushPanU,
-				EdMode->UISettings->AlphaBrushPanV
-				);
+			FLinearColor AlphaScaleBias;
+			float Angle;
+			if (EdMode->UISettings->bUseWorldSpacePatternBrush)
+			{
+				FVector2D LocalOrigin = -FVector2D(Proxy->LandscapeActorToWorld().InverseTransformPosition(FVector(EdMode->UISettings->WorldSpacePatternBrushSettings.Origin, 0.0f)));
+				const FVector2D Scale = FVector2D(
+					ScaleXY / (EdMode->UISettings->WorldSpacePatternBrushSettings.RepeatSize * ((float)SizeX / SizeY)),
+					ScaleXY / (EdMode->UISettings->WorldSpacePatternBrushSettings.RepeatSize));
+				LocalOrigin *= Scale;
+				Angle = FMath::DegreesToRadians(-EdMode->UISettings->WorldSpacePatternBrushSettings.Rotation);
+				if (EdMode->UISettings->WorldSpacePatternBrushSettings.bCenterTextureOnOrigin)
+				{
+					LocalOrigin += FVector2D(0.5f, 0.5f).GetRotated(-Angle);
+				}
+				AlphaScaleBias = FLinearColor(
+					Scale.X,
+					Scale.Y,
+					LocalOrigin.X,
+					LocalOrigin.Y);
+			}
+			else
+			{
+				AlphaScaleBias = FLinearColor(
+					1.0f / (EdMode->UISettings->AlphaBrushScale * SizeX),
+					1.0f / (EdMode->UISettings->AlphaBrushScale * SizeY),
+					EdMode->UISettings->AlphaBrushPanU,
+					EdMode->UISettings->AlphaBrushPanV);
+				Angle = FMath::DegreesToRadians(EdMode->UISettings->AlphaBrushRotation);
+			}
 
-			float Angle = FMath::DegreesToRadians(EdMode->UISettings->AlphaBrushRotation);
-			FLinearColor LandscapeLocation(Proxy->GetActorLocation().X, Proxy->GetActorLocation().Y, Proxy->GetActorLocation().Z, Angle);
+			FVector LandscapeLocation = Proxy->LandscapeActorToWorld().GetTranslation();
+			FLinearColor LandscapeLocationParam(LandscapeLocation.X, LandscapeLocation.Y, LandscapeLocation.Z, Angle);
 
 			int32 Channel = EdMode->UISettings->AlphaTextureChannel;
 			FLinearColor AlphaTextureMask(Channel == 0 ? 1 : 0, Channel == 1 ? 1 : 0, Channel == 2 ? 1 : 0, Channel == 3 ? 1 : 0);
@@ -1102,7 +1125,7 @@ public:
 			{
 				UMaterialInstanceDynamic* const MaterialInstance = BrushMaterialInstancePair.Value;
 				MaterialInstance->SetVectorParameterValue(FName(TEXT("AlphaScaleBias")),    AlphaScaleBias);
-				MaterialInstance->SetVectorParameterValue(FName(TEXT("LandscapeLocation")), LandscapeLocation);
+				MaterialInstance->SetVectorParameterValue(FName(TEXT("LandscapeLocation")), LandscapeLocationParam);
 				MaterialInstance->SetVectorParameterValue(FName(TEXT("AlphaTextureMask")),  AlphaTextureMask);
 				MaterialInstance->SetTextureParameterValue(FName(TEXT("AlphaTexture")),     EdMode->UISettings->AlphaTexture);
 			}

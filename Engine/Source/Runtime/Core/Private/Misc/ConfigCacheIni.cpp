@@ -2107,6 +2107,21 @@ bool FConfigCacheIni::GetColor
 	return false;
 }
 
+bool FConfigCacheIni::GetVector2D(
+	const TCHAR*   Section,
+	const TCHAR*   Key,
+	FVector2D&     Value,
+	const FString& Filename)
+{
+	FString Text;
+	if (GetString(Section, Key, Text, Filename))
+	{
+		return Value.InitFromString(Text);
+	}
+	return false;
+}
+
+
 bool FConfigCacheIni::GetVector
 (
  const TCHAR*		Section,
@@ -2260,6 +2275,15 @@ void FConfigCacheIni::SetColor
  )
 {
 	SetString( Section, Key, *Value.ToString(), Filename );
+}
+
+void FConfigCacheIni::SetVector2D(
+	const TCHAR*   Section,
+	const TCHAR*   Key,
+	FVector2D      Value,
+	const FString& Filename)
+{
+	SetString(Section, Key, *Value.ToString(), Filename);
 }
 
 void FConfigCacheIni::SetVector

@@ -368,6 +368,11 @@ public:
 		FColor&				Value,
 		const FString&	Filename
 	);
+	bool GetVector2D(
+		const TCHAR*   Section,
+		const TCHAR*   Key,
+		FVector2D&     Value,
+		const FString& Filename);
 	bool GetVector
 	(
 		const TCHAR*		Section,
@@ -445,6 +450,11 @@ public:
 		FColor				Value,
 		const FString&	Filename
 	);
+	void SetVector2D(
+		const TCHAR*   Section,
+		const TCHAR*   Key,
+		FVector2D      Value,
+		const FString& Filename);
 	void SetVector
 	(
 		const TCHAR*		Section,
