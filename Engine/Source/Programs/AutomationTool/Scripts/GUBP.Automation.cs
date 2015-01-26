@@ -4027,6 +4027,10 @@ public class GUBP : BuildCommand
             LastAgentGroup = GUBPNodes[NodeToDo].AgentSharingGroup;
 
             string Agent = GUBPNodes[NodeToDo].ECAgentString();
+			if(ParseParamValue("AgentOverride") != "" && !GUBPNodes[NodeToDo].GetFullName().Contains("Mac"))
+			{
+				Agent = ParseParamValue("AgentOverride");
+			}
             if (Agent != "")
             {
                 Agent = "[" + Agent + "]";
@@ -4940,7 +4944,7 @@ public class GUBP : BuildCommand
         bool bChanges = ParseParam("Changes") || ParseParam("AllChanges");
         bool bHistory = ParseParam("History") || bChanges;
         bool bListOnly = ParseParam("ListOnly") || bHistory;
-        bool bSkipTriggers = ParseParam("SkipTriggers");
+        bool bSkipTriggers = ParseParam("SkipTriggers");		
         bFake = ParseParam("fake");
         bool bFakeEC = ParseParam("FakeEC");
         TimeIndex = ParseParamInt("TimeIndex", 0);
