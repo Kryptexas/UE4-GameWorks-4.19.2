@@ -43,7 +43,7 @@
 #include "AnimationUtils.h"
 #include "AudioDecompress.h"
 #include "LevelEditor.h"
-#include "SCreateAssetFromActor.h"
+#include "SCreateAssetFromObject.h"
 
 #include "Editor/ActorPositioning.h"
 
