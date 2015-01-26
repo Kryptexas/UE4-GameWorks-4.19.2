@@ -3,6 +3,7 @@
 #pragma once
 
 #include "HAL/Platform.h"
+#include "CoreMiscDefines.h"
 #include "Optional.h"
 
 namespace ScopeExitSupport
@@ -57,11 +58,11 @@ namespace ScopeExitSupport
 
 #ifdef __COUNTER__
 	// Created a variable with a unique name
-	#define ANONYMOUS_VARIABLE( Name ) Name##__COUNTER__
+	#define ANONYMOUS_VARIABLE( Name ) PREPROCESSOR_JOIN(Name, __COUNTER__)
 #else
 	// Created a variable with a unique name.
 	// Less reliable than the __COUNTER__ version.
-	#define ANONYMOUS_VARIABLE( Name ) Name##__LINE__
+	#define ANONYMOUS_VARIABLE( Name ) PREPROCESSOR_JOIN(Name, __LINE__)
 #endif
 
 
