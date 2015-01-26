@@ -95,6 +95,9 @@ private:
 	/** Reimport handlers registered with this manager */
 	TArray<FReimportHandler*> Handlers;
 
+	/** True when the Handlers array has been modified such that it needs sorting */
+	bool bHandlersNeedSorting;
+
 	/** Delegate to call before the asset is reimported */
 	FPreReimportNotification PreReimport;
 

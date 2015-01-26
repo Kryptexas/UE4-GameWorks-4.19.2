@@ -92,7 +92,7 @@ class PAPER2D_API UPaperTileMap : public UObject
 public:
 #if WITH_EDITORONLY_DATA
 	/** Importing data and options used for this tile map */
-	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced)
+	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced, AssetRegistrySearchable)
 	class UAssetImportData* AssetImportData;
 
 	/** The currently selected layer index */

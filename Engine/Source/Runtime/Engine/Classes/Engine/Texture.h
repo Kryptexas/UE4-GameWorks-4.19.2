@@ -343,7 +343,7 @@ private:
 
 public:
 	/** Path to the resource used to construct this texture. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY(Category=Texture, VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category=Texture, VisibleAnywhere, BlueprintReadWrite, AssetRegistrySearchable, meta=(ReimportPath))
 	FString SourceFilePath;
 
 	/** Date/Time-stamp of the file from the last import. */

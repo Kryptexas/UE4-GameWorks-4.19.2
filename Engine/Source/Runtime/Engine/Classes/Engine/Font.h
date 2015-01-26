@@ -168,7 +168,7 @@ class UFont : public UObject, public IFontProviderInterface
 	FName LegacyFontName;
 
 	/** Embedded composite font data */
-	UPROPERTY()
+	UPROPERTY(AssetRegistrySearchable)
 	FCompositeFont CompositeFont;
 
 public:

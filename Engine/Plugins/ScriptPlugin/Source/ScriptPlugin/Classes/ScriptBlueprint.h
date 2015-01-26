@@ -17,7 +17,7 @@ class SCRIPTPLUGIN_API UScriptBlueprint : public UBlueprint
 public:
 
 	/** Path to the script text used to construct this asset. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY(Category = Script, VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = Script, VisibleAnywhere, BlueprintReadWrite, AssetRegistrySearchable, meta=(ReimportPath))
 	FString SourceFilePath;
 
 	/** Date/Time-stamp of the file from the last import. */

@@ -28,6 +28,7 @@
 #include "ComponentVisualizer.h"
 #include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
 #include "SourceCodeNavigation.h"
+#include "AutoReimport/AutoReimportManager.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 
@@ -481,16 +482,16 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 					// To get here, either "prompt for checkout on asset modification" is set, or "automatically checkout on asset modification"
 					// is set, but it failed.
 
-					// Allow packages that are not checked out to pass through.
-					// Allow packages that are not current or checked out by others pass through.  
-					// The user wont be able to checkout these packages but the checkout dialog will show up with a special icon 
-					// to let the user know they wont be able to checkout the package they are modifying.
+			// Allow packages that are not checked out to pass through.
+			// Allow packages that are not current or checked out by others pass through.  
+			// The user wont be able to checkout these packages but the checkout dialog will show up with a special icon 
+			// to let the user know they wont be able to checkout the package they are modifying.
 
 					PackageToNotifyState.Add(Package, SourceControlState->CanCheckout() ? NS_PendingPrompt : NS_PendingWarning);
-					// We need to prompt since a new package was added
-					bNeedToPromptForCheckout = true;
-				}
-			}
+			// We need to prompt since a new package was added
+			bNeedToPromptForCheckout = true;
+		}
+	}
 		}
 	}
 }
@@ -510,7 +511,7 @@ void UUnrealEdEngine::OnPackageCheckedOut(const FSourceControlOperationRef& Sour
 		if (ResultType == ECommandResult::Succeeded)
 		{
 			if (SourceControlState.IsValid() && SourceControlState->IsCheckedOut())
-			{
+	{
 				FNotificationInfo Notification(FText::Format(NSLOCTEXT("SourceControl", "AutoCheckOutNotification", "Package '{Package}' automatically checked out."), Arguments));
 				Notification.bFireAndForget = true;
 				Notification.ExpireDuration = 4.0f;

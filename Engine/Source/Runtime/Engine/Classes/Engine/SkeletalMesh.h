@@ -600,7 +600,7 @@ public:
 #if WITH_EDITORONLY_DATA
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, Instanced, Category = Reimport)
+	UPROPERTY(EditAnywhere, Instanced, Category = Reimport, AssetRegistrySearchable)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this skeletal mesh */

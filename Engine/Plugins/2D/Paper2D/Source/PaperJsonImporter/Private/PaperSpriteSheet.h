@@ -26,7 +26,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	// Import data for this 
-	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings, AssetRegistrySearchable)
 	class UAssetImportData* AssetImportData;
 #endif
 };
