@@ -474,6 +474,9 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 			const FLinearColor* Tint;
 		};
 		const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
+
+		bool bVisualizeBloom = Context.View.Family->EngineShowFlags.VisualizeBloom;
+
 		FBloomStage BloomStages[] =
 		{
 			{ Settings.Bloom5Size, &Settings.Bloom5Tint},
@@ -490,7 +493,20 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 		for (uint32 i = 0, SourceIndex = NumBloomStages - 1; i < BloomStageCount; i++, SourceIndex--)
 		{
 			FBloomStage& Op = BloomStages[i];
-			BloomOutput = RenderBloom(Context, PostProcessDownsamples[SourceIndex], Op.BloomSize, (*Op.Tint) * TintScale, BloomOutput);
+
+			FLinearColor Tint = (*Op.Tint) * TintScale;
+
+			if(bVisualizeBloom)
+			{
+				float LumScale = Tint.ComputeLuminance();
+
+				// R is used to pass down the reference, G is the emulated bloom
+				Tint.R = 0;
+				Tint.G = LumScale;
+				Tint.B = 0;
+			}
+
+			BloomOutput = RenderBloom(Context, PostProcessDownsamples[SourceIndex], Op.BloomSize * Settings.BloomSizeScale, Tint, BloomOutput);
 		}
 	}
 
@@ -1076,7 +1092,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 				if(View.Family->EngineShowFlags.EyeAdaptation
 					&& View.FinalPostProcessSettings.AutoExposureMinBrightness < View.FinalPostProcessSettings.AutoExposureMaxBrightness
-					&& !View.bIsSceneCapture) // Eye adaption is not available for scene captures.
+					&& !View.bIsSceneCapture // Eye adaption is not available for scene captures.
+					&& !bVisualizeBloom)
 				{
 					bHistogramNeeded = true;
 				}

@@ -263,13 +263,19 @@ void SetFilterShaders(
  */
 static float NormalDistributionUnscaled(float X,float Mean,float Variance, EFilterShape FilterShape, float CrossCenterWeight)
 {
-	float Ret = FMath::Exp(-FMath::Square(X - Mean) / (2.0f * Variance));
+	float dx = FMath::Abs(X - Mean);
 
-	// if center sample
-	if(X == 0.0f)
+	float Ret = FMath::Exp(-FMath::Square(dx) / (2.0f * Variance));
+
+	// tweak the gaussian shape e.g. "r.Bloom.Cross 3.5"
+	if(CrossCenterWeight > 1.0f)
 	{
-		// give it extra weight
-		Ret += CrossCenterWeight;
+		Ret = FMath::Max(0.0f, 1.0f - dx / Variance);
+		Ret = FMath::Pow(Ret, CrossCenterWeight);
+	}
+	else
+	{
+		Ret = FMath::Lerp(Ret, FMath::Max(0.0f, 1.0f - dx / Variance), CrossCenterWeight);
 	}
 
 	return Ret;
@@ -360,11 +366,11 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	FVector2D InvSrcSize(1.0f / SrcSize.X, 1.0f / SrcSize.Y);
-	int32 SrcSizeForThisAxis = (FilterShape == EFS_Horiz) ? SrcSize.X : SrcSize.Y;
-
-	// in texel (input resolution), *2 as we use the diameter
 	// we scale by width because FOV is defined horizontally
-	float EffectiveBlurRadius = SizeScale * SrcSizeForThisAxis  * 2 / 100.0f;
+	float SrcSizeForThisAxis = View.ViewRect.Width() / (float)SrcScaleFactor.X;
+
+	// in texel (input resolution), /2 as we use the diameter, 100 as we use percent
+	float EffectiveBlurRadius = SizeScale * SrcSizeForThisAxis  / 2 / 100.0f;
 
 	FVector2D BlurOffsets[MAX_FILTER_SAMPLES];
 	FLinearColor BlurWeights[MAX_FILTER_SAMPLES];

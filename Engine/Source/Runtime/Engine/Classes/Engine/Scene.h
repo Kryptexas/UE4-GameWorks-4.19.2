@@ -161,6 +161,9 @@ struct FPostProcessSettings
 	uint32 bOverride_Bloom5Size:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_BloomSizeScale:1;
+
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_BloomDirtMaskIntensity:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
@@ -450,6 +453,12 @@ struct FPostProcessSettings
 	 */
 	UPROPERTY(interp, BlueprintReadWrite, Category=Bloom, AdvancedDisplay, meta=(ClampMin = "-1.0", UIMin = "0.0", UIMax = "8.0", editcondition = "bOverride_BloomThreshold", DisplayName = "Threshold"))
 	float BloomThreshold;
+
+	/**
+	 * Scale for all bloom sizes
+	 */
+	UPROPERTY(interp, BlueprintReadWrite, Category=Bloom, AdvancedDisplay, meta=(ClampMin = "0.0", UIMax = "64.0", editcondition = "bOverride_BloomSizeScale", DisplayName = "Size scale"))
+	float BloomSizeScale;
 
 	/**
 	 * Diameter size for the Bloom1 in percent of the screen width
@@ -879,6 +888,8 @@ struct FPostProcessSettings
 		BloomIntensity = 1.0f;
 		BloomThreshold = 1.0f;
 		Bloom1Tint = FLinearColor(0.5f, 0.5f, 0.5f);
+		// default is 4 to maintain old settings after fixing something that caused a factor of 4
+		BloomSizeScale = 4.0;
 		Bloom1Size = 1.0f;
 		Bloom2Tint = FLinearColor(0.5f, 0.5f, 0.5f);
 		Bloom2Size = 4.0f;
