@@ -41,6 +41,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools)
 	bool bScriptableComponentsOnActors;
 
+	/** Enable being able to subclass components in blueprints */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Blueprintable Component"))
+	bool bBlueprintableComponents;
+
 	/** The Messaging Debugger provides a visual utility for debugging the messaging system. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))
 	bool bMessagingDebugger;

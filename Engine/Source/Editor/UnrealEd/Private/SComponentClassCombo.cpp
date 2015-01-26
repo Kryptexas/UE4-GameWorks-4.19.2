@@ -340,7 +340,7 @@ void SComponentClassCombo::UpdateComponentClassList()
 	{
 		UClass* Class = *It;
 		// If this is a subclass of Actor Component, not abstract, and tagged as spawnable from Kismet
-		if (Class->IsChildOf(UActorComponent::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent)) //@TODO: Fold this logic together with the one in UEdGraphSchema_K2::GetAddComponentClasses
+		if (Class->IsChildOf(UActorComponent::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class)) //@TODO: Fold this logic together with the one in UEdGraphSchema_K2::GetAddComponentClasses
 		{
 			TArray<FString> ClassGroupNames;
 			Class->GetClassGroupNames( ClassGroupNames );
@@ -478,8 +478,15 @@ FString SComponentClassCombo::GetSanitizedComponentName( UClass* ComponentClass 
 	}
 	else
 	{
-		FString OriginalName = ComponentClass->GetName();
-		DisplayName = OriginalName.Replace( TEXT("Component"), TEXT(""), ESearchCase::IgnoreCase );
+		DisplayName = ComponentClass->GetName();
+		DisplayName = DisplayName.Replace( TEXT("Component"), TEXT(""), ESearchCase::IgnoreCase );
+	}
+
+	// Purge the _C for BP Components
+	if (DisplayName.EndsWith(TEXT("_C")))
+	{
+		const int32 NewLen = DisplayName.Len() - 2;
+		DisplayName = DisplayName.Left(NewLen);
 	}
 
 	return FName::NameToDisplayString(DisplayName, false);
