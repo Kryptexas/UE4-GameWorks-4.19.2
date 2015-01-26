@@ -45,6 +45,8 @@
 
 #include "GameProjectGenerationModule.h"
 #include "HotReloadInterface.h"
+#include "AssetRegistryModule.h"
+#include "SCreateAssetFromActor.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
@@ -3359,23 +3361,13 @@ void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClas
 
 	if( ComponentCreateAction == EComponentCreateAction::CreateNewCPPClass )
 	{
-		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow( SharedThis(this) );
-
-		FString AddedClassName;
-		auto OnCodeAddedToProject = [&AddedClassName](const FString& ClassName, const FString& ClassPath, const FString& ModuleName )
-		{
-			if( !ClassName.IsEmpty() && !ClassPath.IsEmpty() )
-			{
-				AddedClassName = FString::Printf(TEXT("/Script/%s.%s"), *ModuleName, *ClassName);
-			}
-		};
-
-		const bool bModal = true;
-		FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog( ComponentClass, FString(), ParentWindow, bModal, FOnCodeAddedToProject::CreateLambda(OnCodeAddedToProject) );
-
-		NewClass = LoadClass<UActorComponent>(nullptr, *AddedClassName, nullptr, LOAD_None, nullptr );
+		NewClass = CreateNewCPPComponent( ComponentClass );
 	}
-	
+	else if( ComponentCreateAction == EComponentCreateAction::CreateNewBlueprintClass )
+	{
+		NewClass = CreateNewBPComponent( ComponentClass );
+	}
+
 	if( NewClass != nullptr )
 	{
 		FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
@@ -3826,6 +3818,80 @@ TSharedPtr<FSCSEditorTreeNode> SSCSEditor::AddRootComponentTreeNode(UActorCompon
 	RootComponentNodes.Add(NewTreeNode);
 
 	return NewTreeNode;
+}
+
+UClass* SSCSEditor::CreateNewCPPComponent( TSubclassOf<UActorComponent> ComponentClass )
+{
+	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(SharedThis(this));
+
+	FString AddedClassName;
+	auto OnCodeAddedToProject = [&AddedClassName](const FString& ClassName, const FString& ClassPath, const FString& ModuleName)
+	{
+		if(!ClassName.IsEmpty() && !ClassPath.IsEmpty())
+		{
+			AddedClassName = FString::Printf(TEXT("/Script/%s.%s"), *ModuleName, *ClassName);
+		}
+	};
+
+	const bool bModal = true;
+	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(ComponentClass, FString(), ParentWindow, bModal, FOnCodeAddedToProject::CreateLambda(OnCodeAddedToProject));
+
+	return LoadClass<UActorComponent>(nullptr, *AddedClassName, nullptr, LOAD_None, nullptr);
+}
+
+UClass* SSCSEditor::CreateNewBPComponent(TSubclassOf<UActorComponent> ComponentClass)
+{
+	UClass* NewClass = nullptr;
+
+	TSharedPtr<SWindow> PickBlueprintPathWidget;
+	SAssignNew(PickBlueprintPathWidget, SWindow)
+		.Title(LOCTEXT("SelectPath", "Select Path"))
+		.ToolTipText(LOCTEXT("SelectPathTooltip", "Select the path where the Blueprint will be created"))
+		.ClientSize(FVector2D(400, 400));
+
+
+	FString PackagePath;
+	FString AssetName;
+	auto OnPathPicked = [&PackagePath, &AssetName](const FString& Path)
+	{
+		PackagePath = Path;
+		AssetName = FPackageName::GetLongPackageAssetName(Path);
+	};
+
+	TSharedPtr<SCreateAssetFromObject> CreateBlueprintFromActorDialog;
+	PickBlueprintPathWidget->SetContent
+	(
+		SAssignNew(CreateBlueprintFromActorDialog, SCreateAssetFromObject, PickBlueprintPathWidget)
+		.HeadingText(LOCTEXT("CreateBlueprintFromActor_Heading", "Blueprint Name"))
+		.CreateButtonText(LOCTEXT("CreateBlueprintFromActor_ButtonLabel", "Create Blueprint"))
+		.DefaultNameOverride(FText::FromString(TEXT("BlueprintComponent")))
+		.OnCreateAssetAction(FOnPathChosen::CreateLambda(OnPathPicked))
+	);
+
+
+	FSlateApplication::Get().AddModalWindow(PickBlueprintPathWidget.ToSharedRef(), AsShared());
+
+	if(!PackagePath.IsEmpty() && !AssetName.IsEmpty())
+	{
+		UPackage* Package = CreatePackage(NULL, *PackagePath);
+
+		if(Package)
+		{
+			// Create and init a new Blueprint
+			if(UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(ComponentClass, Package, FName(*AssetName), BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass()))
+			{
+				// Notify the asset registry
+				FAssetRegistryModule::AssetCreated(NewBP);
+
+				// Mark the package dirty...
+				Package->MarkPackageDirty();
+
+				NewClass = NewBP->GeneratedClass;
+			}
+		}
+	}
+
+	return NewClass;
 }
 
 void SSCSEditor::ClearSelection()

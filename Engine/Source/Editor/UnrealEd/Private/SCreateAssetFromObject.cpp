@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "SCreateAssetFromActor.h"
+#include "SCreateAssetFromObject.h"
 #include "ContentBrowserModule.h"
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
@@ -10,7 +10,7 @@
 
 #define LOCTEXT_NAMESPACE "SCreateAssetFromActor"
 
-void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWindow> InParentWindow)
+void SCreateAssetFromObject::Construct(const FArguments& InArgs, TSharedPtr<SWindow> InParentWindow)
 {
 	AssetFilenameSuffix = InArgs._AssetFilenameSuffix;
 	HeadingText = InArgs._HeadingText;
@@ -21,9 +21,9 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 	AssetPath = FString("/Game");
 	FPathPickerConfig PathPickerConfig;
 	PathPickerConfig.DefaultPath = AssetPath;
-	PathPickerConfig.OnPathSelected = FOnPathSelected::CreateRaw(this, &SCreateAssetFromActor::OnSelectAssetPath);
+	PathPickerConfig.OnPathSelected = FOnPathSelected::CreateRaw(this, &SCreateAssetFromObject::OnSelectAssetPath);
 
-	USelection::SelectionChangedEvent.AddRaw(this, &SCreateAssetFromActor::OnLevelSelectionChanged);
+	USelection::SelectionChangedEvent.AddRaw(this, &SCreateAssetFromObject::OnLevelSelectionChanged);
 
 	// Set up PathPickerConfig.
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
@@ -33,16 +33,23 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 	FString PackageName;
 	ActorInstanceLabel.Empty();
 
-	USelection* SelectedActors = GEditor->GetSelectedActors();
-	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+	if( InArgs._DefaultNameOverride.IsEmpty() )
 	{
-		AActor* Actor = Cast<AActor>(*Iter);
-		if (Actor)
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		for(FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 		{
-			ActorInstanceLabel += Actor->GetActorLabel();
-			ActorInstanceLabel += TEXT("_");
-			break;
+			AActor* Actor = Cast<AActor>(*Iter);
+			if(Actor)
+			{
+				ActorInstanceLabel += Actor->GetActorLabel();
+				ActorInstanceLabel += TEXT("_");
+				break;
+			}
 		}
+	}
+	else
+	{
+		ActorInstanceLabel = InArgs._DefaultNameOverride.ToString();
 	}
 
 	ActorInstanceLabel = PackageTools::SanitizePackageName(ActorInstanceLabel + AssetFilenameSuffix);
@@ -76,7 +83,7 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 			[
 				SAssignNew(FileNameWidget, SEditableTextBox)
 				.Text(FText::FromString(AssetName))
-				.OnTextChanged(this, &SCreateAssetFromActor::OnFilenameChanged)
+				.OnTextChanged(this, &SCreateAssetFromObject::OnFilenameChanged)
 			]
 		]
 		+ SVerticalBox::Slot()
@@ -92,8 +99,8 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 				SNew(SButton)
 				.VAlign(VAlign_Bottom)
 				.ContentPadding(FMargin(8, 2, 8, 2))
-				.OnClicked(this, &SCreateAssetFromActor::OnCreateAssetFromActorClicked)
-				.IsEnabled(this, &SCreateAssetFromActor::IsCreateAssetFromActorEnabled)
+				.OnClicked(this, &SCreateAssetFromObject::OnCreateAssetFromActorClicked)
+				.IsEnabled(this, &SCreateAssetFromObject::IsCreateAssetFromActorEnabled)
 				[
 					SNew(STextBlock)
 					.Text(CreateButtonText)
@@ -106,7 +113,7 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 				SNew(SButton)
 				.VAlign(VAlign_Bottom)
 				.ContentPadding(FMargin(8, 2, 8, 2))
-				.OnClicked(this, &SCreateAssetFromActor::OnCancelCreateAssetFromActor)
+				.OnClicked(this, &SCreateAssetFromObject::OnCancelCreateAssetFromActor)
 				[
 					SNew(STextBlock)
 					.Text(LOCTEXT("CancelButtonText", "Cancel"))
@@ -118,32 +125,32 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 	OnFilenameChanged(FText::FromString(AssetName));
 }
 
-FReply SCreateAssetFromActor::OnCreateAssetFromActorClicked()
+FReply SCreateAssetFromObject::OnCreateAssetFromActorClicked()
 {
 	ParentWindow->RequestDestroyWindow();
 	OnCreateAssetAction.ExecuteIfBound(AssetPath / FileNameWidget->GetText().ToString());
 	return FReply::Handled();
 }
 
-FReply SCreateAssetFromActor::OnCancelCreateAssetFromActor()
+FReply SCreateAssetFromObject::OnCancelCreateAssetFromActor()
 {
 	ParentWindow->RequestDestroyWindow();
 	return FReply::Handled();
 }
 
-void SCreateAssetFromActor::OnSelectAssetPath(const FString& Path)
+void SCreateAssetFromObject::OnSelectAssetPath(const FString& Path)
 {
 	AssetPath = Path;
 	OnFilenameChanged(FileNameWidget->GetText());
 }
 
-void SCreateAssetFromActor::OnLevelSelectionChanged(UObject* InObjectSelected)
+void SCreateAssetFromObject::OnLevelSelectionChanged(UObject* InObjectSelected)
 {
 	// When actor selection changes, this window should be destroyed.
 	ParentWindow->RequestDestroyWindow();
 }
 
-void SCreateAssetFromActor::OnFilenameChanged(const FText& InNewName)
+void SCreateAssetFromObject::OnFilenameChanged(const FText& InNewName)
 {
 	TArray<FAssetData> AssetData;
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -174,7 +181,7 @@ void SCreateAssetFromActor::OnFilenameChanged(const FText& InNewName)
 	bIsReportingError = false;
 }
 
-bool SCreateAssetFromActor::IsCreateAssetFromActorEnabled() const
+bool SCreateAssetFromObject::IsCreateAssetFromActorEnabled() const
 {
 	return !bIsReportingError;
 }

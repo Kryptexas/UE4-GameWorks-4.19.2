@@ -726,6 +726,23 @@ protected:
 	/** Adds a root component tree node */
 	TSharedPtr<FSCSEditorTreeNode> AddRootComponentTreeNode(UActorComponent* ActorComp);
 
+	/**
+	 * Creates a new C++ component from the specified class type
+	 * The user will be prompted to pick a new subclass name and code will be recompiled
+	 *
+	 * @return The new class that was created
+	 */
+	UClass* CreateNewCPPComponent(TSubclassOf<UActorComponent> ComponentClass);
+
+	
+	/**
+	 * Creates a new Blueprint component from the specified class type
+	 * The user will be prompted to pick a new subclass name and a blueprint asset will be created
+	 *
+	 * @return The new class that was created
+	 */
+	UClass* CreateNewBPComponent(TSubclassOf<UActorComponent> ComponentClass);
+
 public:
 	/** Tree widget */
 	TSharedPtr<SSCSTreeType> SCSTreeWidget;

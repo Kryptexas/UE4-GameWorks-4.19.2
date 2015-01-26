@@ -97,6 +97,7 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 
 	SComboButton::Construct(Args);
 
+	ComponentClassListView->EnableToolTipForceField( true );
 	// The base class can automatically handle setting focus to a specified control when the combo button is opened
 	SetMenuContentWidgetToFocus( SearchBox );
 }
@@ -104,12 +105,6 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 void SComponentClassCombo::ClearSelection()
 {
 	PrevSelectedIndex = INDEX_NONE;
-
-	// Scroll to the first item if there is one, to reset the scroll position
-	if(FilteredComponentClassList.Num())
-	{
-		ComponentClassListView->RequestScrollIntoView(FilteredComponentClassList[0]);
-	}
 
 	// Clear the selection in such a way as to also clear the keyboard selector
 	ComponentClassListView->SetSelection(NULL, ESelectInfo::OnNavigation);
@@ -248,7 +243,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 	}
 	else
 	{
-
+		
 		return
 			SNew( SComboRow< TSharedPtr<FString> >, OwnerTable )
 			.ToolTip( FEditorClassUtils::GetTooltip(Entry->GetComponentClass()) )
@@ -328,12 +323,16 @@ void SComponentClassCombo::UpdateComponentClassList()
 
 	if( GetDefault<UEditorExperimentalSettings>()->bScriptableComponentsOnActors )
 	{
+		FString NewComponentsHeading = LOCTEXT("NewComponentsHeading", "Behavioral").ToString();
 		// Add new C++ component class
-		FComponentClassComboEntryPtr NewClassHeader = MakeShareable(new FComponentClassComboEntry(LOCTEXT("ScriptingHeading", "Scripting").ToString()));
+		FComponentClassComboEntryPtr NewClassHeader = MakeShareable(new FComponentClassComboEntry(NewComponentsHeading));
 		ComponentClassList.Add(NewClassHeader);
 
-		FComponentClassComboEntryPtr NewCPPClass = MakeShareable(new FComponentClassComboEntry(LOCTEXT("ScriptingHeading", "Scripting").ToString(), UActorComponent::StaticClass(), true, EComponentCreateAction::CreateNewCPPClass));
+		FComponentClassComboEntryPtr NewCPPClass = MakeShareable(new FComponentClassComboEntry(NewComponentsHeading, UActorComponent::StaticClass(), true, EComponentCreateAction::CreateNewCPPClass));
 		ComponentClassList.Add(NewCPPClass);
+
+		FComponentClassComboEntryPtr NewBPClass = MakeShareable(new FComponentClassComboEntry(NewComponentsHeading, UActorComponent::StaticClass(), true, EComponentCreateAction::CreateNewBlueprintClass));
+		ComponentClassList.Add(NewBPClass);
 	}
 	
 	TArray<FComponentClassComboEntryPtr> SortedClassList;
@@ -414,7 +413,11 @@ FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPt
 
 	if( Entry->GetComponentCreateAction() == EComponentCreateAction::CreateNewCPPClass )
 	{
-		FriendlyComponentName = LOCTEXT("NewCPPBehaviorFriendlyName", "New C++ Behavior").ToString();
+		FriendlyComponentName = LOCTEXT("NewCPPBehaviorFriendlyName", "New C++ Component").ToString();
+	}
+	else if (Entry->GetComponentCreateAction() == EComponentCreateAction::CreateNewBlueprintClass )
+	{
+		FriendlyComponentName = LOCTEXT("NewCPPBehaviorFriendlyName", "New Blueprint Component").ToString();
 	}
 	else
 	{
