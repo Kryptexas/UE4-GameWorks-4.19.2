@@ -99,10 +99,10 @@ public:
 	DECLARE_DELEGATE_RetVal_TwoParams( bool, FOnActionMatchesName, FEdGraphSchemaAction*, const FName& );
 
 	SLATE_BEGIN_ARGS(SGraphActionMenu)
-		: _UseSectionStyling(false)
-		, _AutoExpandActionMenu(false)
-		, _ShowFilterTextBox(true)
+		: _AutoExpandActionMenu(false)
 		, _AlphaSortItems(true)
+		, _ShowFilterTextBox(true)
+		, _UseSectionStyling(false)
 		{ }
 
 		SLATE_EVENT( FOnActionSelected, OnActionSelected )
