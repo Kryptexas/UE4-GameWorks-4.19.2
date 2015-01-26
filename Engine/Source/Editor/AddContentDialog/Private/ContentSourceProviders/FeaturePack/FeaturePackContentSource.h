@@ -14,6 +14,8 @@ public:
 	virtual TArray<FLocalizedText> GetLocalizedDescriptions() override;
 	
 	virtual EContentSourceCategory GetCategory() override;
+	virtual TArray<FLocalizedText> GetLocalizedAssetTypes() override;
+	virtual FString GetClassTypesUsed() override;
 
 	virtual TSharedPtr<FImageData> GetIconData() override;
 	virtual TArray<TSharedPtr<FImageData>> GetScreenshotData() override;
@@ -33,5 +35,7 @@ private:
 	EContentSourceCategory Category;
 	TSharedPtr<FImageData> IconData;
 	TArray<TSharedPtr<FImageData>> ScreenshotData;
+	TArray<FLocalizedText> LocalizedAssetTypesList;
+	FString ClassTypes;
 	bool bPackValid;
 };

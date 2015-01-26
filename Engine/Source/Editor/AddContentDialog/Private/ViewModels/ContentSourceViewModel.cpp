@@ -43,6 +43,22 @@ FText FContentSourceViewModel::GetDescription()
 	return DescriptionText.GetText();
 }
 
+FText FContentSourceViewModel::GetAssetTypes()
+{
+	FString CurrentLanguage = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
+	if (AssetTypeText.GetTwoLetterLanguage() != CurrentLanguage)
+	{
+		AssetTypeText = ChooseLocalizedText(ContentSource->GetLocalizedAssetTypes(), CurrentLanguage);
+	}
+	return AssetTypeText.GetText();
+
+}
+
+FString FContentSourceViewModel::GetClassTypes()
+{
+	return ContentSource->GetClassTypesUsed();
+}
+
 FCategoryViewModel FContentSourceViewModel::GetCategory()
 {
 	return Category;
