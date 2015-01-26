@@ -13,24 +13,35 @@ inline void TBasePassVertexShaderBaseType<LightMapPolicyType>::SetMesh(FRHIComma
 	FVertexShaderRHIParamRef VertexShaderRHI = GetVertexShader();
 	FMeshMaterialShader::SetMesh(RHICmdList, VertexShaderRHI, VertexFactory, View, Proxy, BatchElement);
 
-	if (PreviousLocalToWorldParameter.IsBound() && Proxy)
+	const bool bHasPreviousLocalToWorldParameter = PreviousLocalToWorldParameter.IsBound();
+	const bool bHasSkipOutputVelocityParameter = SkipOutputVelocityParameter.IsBound();
+	if ((bHasSkipOutputVelocityParameter || bHasPreviousLocalToWorldParameter) && Proxy)
 	{
-		check(SkipOutputVelocityParameter.IsBound());
+//		check(SkipOutputVelocityParameter.IsBound());
 
-		FMatrix PreviousLocalToWorld;
-		bool bHasPreviousLocalToWorld = false;
+		FMatrix PreviousLocalToWorldMatrix;
+		bool bHasPreviousLocalToWorldMatrix = false;
 		const auto& ViewInfo = (const FViewInfo&)View;
+		float SkipOutputVelocityValue;
 		if (FVelocityDrawingPolicy::HasVelocityOnBasePass(ViewInfo, Proxy, Proxy->GetPrimitiveSceneInfo(), Mesh,
-			bHasPreviousLocalToWorld, PreviousLocalToWorld))
+			bHasPreviousLocalToWorldMatrix, PreviousLocalToWorldMatrix))
 		{
-			const FMatrix& Transform = bHasPreviousLocalToWorld ? PreviousLocalToWorld : Proxy->GetLocalToWorld();
-			SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Transform.ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
+			if (bHasPreviousLocalToWorldParameter)
+			{
+				const FMatrix& Transform = bHasPreviousLocalToWorldMatrix ? PreviousLocalToWorldMatrix : Proxy->GetLocalToWorld();
+				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Transform.ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
+			}
 
-			SetShaderValue(RHICmdList, VertexShaderRHI, SkipOutputVelocityParameter, 0.0f);
+			SkipOutputVelocityValue = 0.0f;
 		}
 		else
 		{
-			SetShaderValue(RHICmdList, VertexShaderRHI, SkipOutputVelocityParameter, 1.0f);
+			SkipOutputVelocityValue = 1.0f;
+		}
+
+		if (bHasSkipOutputVelocityParameter)
+		{
+			SetShaderValue(RHICmdList, VertexShaderRHI, SkipOutputVelocityParameter, SkipOutputVelocityValue);
 		}
 	}
 }
