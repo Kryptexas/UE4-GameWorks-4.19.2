@@ -250,6 +250,9 @@ void FLevelEditorActionCallbacks::OpenFavoriteFile( int32 FavoriteFileIndex )
 		{
 			// Load the requested level.
 			FEditorFileUtils::LoadMap( FileName );
+
+			// Move the item to the head of the list
+			MRUFavoritesList->MoveFavoritesItemToHead( FileName );
 		}
 		else
 		{
@@ -2656,36 +2659,6 @@ void FLevelEditorCommands::RegisterCommands()
 			.UserInterfaceType( EUserInterfaceActionType::Button )
 			.DefaultGesture( FInputGesture() );
 		OpenRecentFileCommands.Add( OpenRecentFile );
-	}
-
-	for( int32 CurFavoriteIndex = 0; CurFavoriteIndex < FLevelEditorCommands::MaxFavoriteFiles; ++CurFavoriteIndex )
-	{
-		// NOTE: The actual label and tool-tip will be overridden at runtime when the command is bound to a menu item, however
-		// we still need to set one here so that the key bindings UI can function properly
-		TSharedRef< FUICommandInfo > OpenFavoriteFile =
-			FUICommandInfoDecl(
-				this->AsShared(),
-				FName( *FString::Printf( TEXT( "OpenFavoriteFile%i" ), CurFavoriteIndex ) ),
-				FText::Format( NSLOCTEXT( "LevelEditorCommands", "OpenFavoriteFile", "Open Favorite File {0}" ), FText::AsNumber( CurFavoriteIndex ) ),
-				NSLOCTEXT( "LevelEditorCommands", "OpenFavoriteFileTaggedToolTip", "Opens a file that was tagged as a favorite" ) )
-			.UserInterfaceType( EUserInterfaceActionType::Button )
-			.DefaultGesture( FInputGesture() );
-		OpenFavoriteFileCommands.Add( OpenFavoriteFile );
-	}
-
-	for( int32 CurFavoriteIndex = 0; CurFavoriteIndex < FLevelEditorCommands::MaxFavoriteFiles; ++CurFavoriteIndex )
-	{
-		// NOTE: The actual label and tool-tip will be overridden at runtime when the command is bound to a menu item, however
-		// we still need to set one here so that the key bindings UI can function properly
-		TSharedRef< FUICommandInfo > RemoveFavorite =
-			FUICommandInfoDecl(
-			this->AsShared(),
-			FName( *FString::Printf( TEXT( "RemoveFavorite%i" ), CurFavoriteIndex ) ),
-			FText::Format( NSLOCTEXT( "LevelEditorCommands", "RemoveFavorite", "Remove Favorite {0}" ), FText::AsNumber( CurFavoriteIndex ) ),
-			NSLOCTEXT( "LevelEditorCommands", "RemoveFavoriteToolTip", "Removes an entry from the favorites list" ) )
-			.UserInterfaceType( EUserInterfaceActionType::Button )
-			.DefaultGesture( FInputGesture() );
-		RemoveFavoriteCommands.Add( RemoveFavorite );
 	}
 
 	UI_COMMAND( Import, "Import...", "Imports objects and actors from a T3D format into the current level", EUserInterfaceActionType::Button, FInputGesture() );

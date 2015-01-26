@@ -46,7 +46,7 @@ void FMainMRUFavoritesList::AddFavoritesItem( const FString& Item )
 	const FString CleanedName = FPaths::ConvertRelativePathToFull(Item);
 	if ( !FavoriteItems.Contains( CleanedName ) )
 	{
-		FavoriteItems.Add( CleanedName );
+		FavoriteItems.Insert( CleanedName, 0 );
 		WriteToINI();
 	}
 }
@@ -63,6 +63,21 @@ void FMainMRUFavoritesList::RemoveFavoritesItem( const FString& Item )
 	if ( ItemIndex != INDEX_NONE )
 	{
 		FavoriteItems.RemoveAt( ItemIndex );
+		WriteToINI();
+	}
+}
+
+/**
+ * Moves the specified favorites item to the head of the list
+ *
+ * @param	Item	Filename of the item to move
+ */
+void FMainMRUFavoritesList::MoveFavoritesItemToHead(const FString& Item)
+{
+	const FString CleanedName = FPaths::ConvertRelativePathToFull(Item);
+	if ( FavoriteItems.RemoveSingle(Item) == 1 )
+	{
+		FavoriteItems.Insert( CleanedName, 0 );
 		WriteToINI();
 	}
 }
