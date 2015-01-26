@@ -9,8 +9,6 @@
 #include "DebugDisplayProperty.h"
 #include "TitleSafeZone.h"
 #include "GameViewportDelegates.h"
-#include "SlateBasics.h"
-
 #include "GameViewportClient.generated.h"
 
 
@@ -590,10 +588,7 @@ public:
 		return bHideCursorDuringCapture;
 	}
 
-	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override
-	{
-		return EPopupMethod::UseCurrentWindow;
-	}
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override;
 
 private:
 	/**

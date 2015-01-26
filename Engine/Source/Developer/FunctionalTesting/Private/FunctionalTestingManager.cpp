@@ -5,12 +5,10 @@
 
 //----------------------------------------------------------------------//
 // 6/25 @todo these will be removed once marge from main comes
-#include "Editor/UnrealEdTypes.h"
-#include "Editor/EditorEngine.h"
+#include "UnrealEd.h"
 class UFactory;
 //----------------------------------------------------------------------//
 
-#include "Editor.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"

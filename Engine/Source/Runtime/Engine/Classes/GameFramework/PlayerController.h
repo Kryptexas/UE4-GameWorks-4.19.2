@@ -12,8 +12,6 @@
 #include "GameFramework/Controller.h"
 #include "Engine/LatentActionManager.h"
 #include "GenericPlatform/IInputInterface.h"
-#include "SlateCore.h"
-
 #include "PlayerController.generated.h"
 
 
@@ -63,10 +61,10 @@ struct ENGINE_API FInputModeDataBase
 {
 protected:
 	/** Derived classes override this function to apply the necessary settings for the desired input mode */
-	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const = 0;
+	virtual void ApplyInputMode(class FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const = 0;
 
 	/** Utility functions for derived classes. */
-	void SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedRef<class SViewport> InViewportWidget) const;
+	void SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<class SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedRef<class SViewport> InViewportWidget) const;
 
 	friend class APlayerController;
 };
@@ -1527,9 +1525,6 @@ public:
 	UPROPERTY()
 	uint16		LastCompletedSeamlessTravelCount;
 
-	/** Stores the last input mode set */
-	//EInputMode  InputMode; right now we don't save this as it could be a half truth.
-
 	/** FReply used to defer some slate operations. */
-	FReply		SlateOperations;
+	TSharedPtr<class FReply> SlateOperations;
 };
