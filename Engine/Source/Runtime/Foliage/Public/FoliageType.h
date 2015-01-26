@@ -277,6 +277,14 @@ class UFoliageType : public UObject
 	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Clustering", ClampMin = "0", UIMin = "0"))
 	int32 SeedsPerStep;
 
+	/** The seed that determines placement of initial seeds. */
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Clustering"))
+	int32 DistributionSeed;
+
+	/** The seed that determines placement of initial seeds. */
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Clustering"))
+	float MaxInitialSeedOffset;
+
 	/** Whether the species can grow in shade. If this is true shade radius is ignored during overlap tests*/
 	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth"))
 	bool bGrowsInShade;
