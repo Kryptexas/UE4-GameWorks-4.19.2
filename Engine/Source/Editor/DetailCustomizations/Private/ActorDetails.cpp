@@ -816,22 +816,6 @@ void FActorDetails::AddSingleBlueprintRow( IDetailCategoryBuilder& BlueprintCate
 		Description = FText::FromString( InBlueprint->GetDesc() );
 	}
 
-	int NumBlueprintableActors = 0;
-	bool IsBlueprintBased = InBlueprint ? true : false;
-
-	if(!InBlueprint)
-	{
-		for ( TWeakObjectPtr<AActor>& Actor : SelectedActors )
-		{
-			if( FKismetEditorUtilities::CanCreateBlueprintOfClass(Actor->GetClass()))
-			{
-				NumBlueprintableActors++;
-			}
-		}
-	}
-
-	const bool bCanCreateActorBlueprint = ( !IsBlueprintBased && ( NumBlueprintableActors == 1 ) );
-
 	// Set up PathPickerConfig.
 	PathForActorBlueprint = FString("/Game/");
 	FPathPickerConfig PathPickerConfig;
@@ -839,20 +823,24 @@ void FActorDetails::AddSingleBlueprintRow( IDetailCategoryBuilder& BlueprintCate
 	PathPickerConfig.OnPathSelected = FOnPathSelected::CreateRaw(this, &FActorDetails::OnSelectBlueprintPath);
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
+	bool bCanCreateActorBlueprint = false;
+	FString SelectedActorClassName;
 	FText CreateBlueprintToolTip = LOCTEXT("CreateBlueprintSuccess_ToolTip", "Create a Blueprint based on this Actor");
-	if(IsBlueprintBased)
+	if (SelectedActors.Num() == 1)
 	{
-		CreateBlueprintToolTip = LOCTEXT("CreateBlueprintFail_ToolTip", "Cannot create Blueprint using this Actor class");
+		if (FKismetEditorUtilities::CanCreateBlueprintOfClass(SelectedActors[0]->GetClass()))
+		{
+			SelectedActorClassName = SelectedActors[0]->GetClass()->GetName();
+			bCanCreateActorBlueprint = true;
+		}
+		else
+		{
+			CreateBlueprintToolTip = LOCTEXT("CreateBlueprintFail_ToolTip", "Cannot create Blueprint using this Actor class");
+		}
 	}
-	else if(!IsBlueprintBased && NumBlueprintableActors > 1)
+	else
 	{
 		CreateBlueprintToolTip = LOCTEXT("CreateBlueprintFailTooMany_ToolTip", "Cannot create Blueprint, please select only one Actor");
-	}
-
-	FString SelectedActorClassName;
-	if(NumBlueprintableActors == 1)
-	{
-		SelectedActorClassName = SelectedActors[0]->GetClass()->GetName();
 	}
 	
 	FText CurrentBlueprintLong = FText::Format( FText::FromString( TEXT( "{0} {1}" ) ), Name, Description );
@@ -991,8 +979,6 @@ void FActorDetails::AddSingleBlueprintRow( IDetailCategoryBuilder& BlueprintCate
 		]
 	];
 
-	if(!InBlueprint)
-	{
 		BlueprintCategory.AddCustomRow( LOCTEXT("CreateBlueprintFilterString", "Create Blueprint"), true )
 		.WholeRowContent()
 		.MinDesiredWidth(200)
@@ -1036,7 +1022,6 @@ void FActorDetails::AddSingleBlueprintRow( IDetailCategoryBuilder& BlueprintCate
 			]
 		];
 	}
-}
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FReply FActorDetails::OnPickBlueprintPathClicked(bool bHarvest )
