@@ -1426,6 +1426,12 @@ namespace UnrealBuildTool
 				bool bIsHotReload = UEBuildConfiguration.bHotReloadFromIDE || ( TargetDescs.Count == 1 && TargetDescs[0].OnlyModules.Count > 0 );
 				TargetDescriptor HotReloadTargetDesc = bIsHotReload ? TargetDescs[0] : null;
 
+				if (ProjectFileGenerator.bGenerateProjectFiles)
+				{
+					// Create empty timestamp file to record when was the last time we regenerated projects.
+					File.Create(ProjectFileGenerator.ProjectTimestampFile).Dispose();
+				}
+
                 if( !ProjectFileGenerator.bGenerateProjectFiles )
                 {
 					if( BuildConfiguration.bUseUBTMakefiles )
@@ -2209,7 +2215,7 @@ namespace UnrealBuildTool
                 {
                     if( Directory.Exists( ProjectFileGenerator.IntermediateProjectFilesPath ) )
                     {
-                        var EngineProjectFilesLastUpdateTime = new DirectoryInfo( ProjectFileGenerator.IntermediateProjectFilesPath ).LastWriteTime;
+                        var EngineProjectFilesLastUpdateTime = new FileInfo(ProjectFileGenerator.ProjectTimestampFile).LastWriteTime;
 						if( UBTMakefileItem.LastWriteTime.CompareTo( EngineProjectFilesLastUpdateTime ) < 0 )
 						{
 							// Engine project files are newer than UBTMakefile

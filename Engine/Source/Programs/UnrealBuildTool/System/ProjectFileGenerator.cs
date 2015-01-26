@@ -182,6 +182,9 @@ namespace UnrealBuildTool
 		// @todo projectfiles: Ideally, projects for game modules/targets would be created in the game's Intermediate folder!
 		public static string IntermediateProjectFilesPath = Path.Combine( EngineRelativePath, "Intermediate", "ProjectFiles" );
 
+		/// Path to timestamp file, recording when was the last time projects were created.
+		public static string ProjectTimestampFile = Path.Combine(IntermediateProjectFilesPath, "Timestamp");
+
 		/// Global static new line string used by ProjectFileGenerator to generate project files.
 		public static readonly string NewLine = Environment.NewLine;
 
