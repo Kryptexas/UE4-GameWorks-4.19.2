@@ -23,7 +23,8 @@ public:
 	 */
 	static inline IIntroTutorials& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IIntroTutorials >( "IntroTutorials" );
+		static const FName ModuleName = "IntroTutorials";
+		return FModuleManager::LoadModuleChecked< IIntroTutorials >( ModuleName );
 	}
 
 	/**
@@ -33,7 +34,8 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "IntroTutorials" );
+		static const FName ModuleName = "IntroTutorials";
+		return FModuleManager::Get().IsModuleLoaded( ModuleName );
 	}
 
 	/**

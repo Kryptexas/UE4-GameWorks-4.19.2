@@ -12,6 +12,7 @@ DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnValidatePickingCandidate, TSharedRe
 class UEditorTutorial;
 struct FTutorialContent;
 class STutorialRoot;
+class IClassTypeActions;
 
 class FIntroTutorials : public IIntroTutorials
 {
@@ -128,4 +129,7 @@ private:
 
 	/** Curve asset for intros */
 	TWeakObjectPtr<UCurveFloat> ContentIntroCurve;
+
+	/** The collection of registered class type actions. */
+	TArray<TSharedRef<IClassTypeActions>> RegisteredClassTypeActions;
 };

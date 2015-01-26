@@ -34,6 +34,8 @@
 #include "SDockTab.h"
 #include "ModuleManager.h"
 #include "IntroTutorials.h"
+#include "IAssetTools.h"
+#include "ClassTypeActions_EditorTutorial.h"
 
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
@@ -113,6 +115,14 @@ void FIntroTutorials::StartupModule()
 		{
 			GetMutableDefault<UTutorialStateSettings>()->ClearProgress();
 		}
+
+		// register our class actions to show the "Play" button on editor tutorial Blueprint assets
+		{
+			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+			TSharedRef<IClassTypeActions> EditorTutorialClassActions = MakeShareable(new FClassTypeActions_EditorTutorial());
+			RegisteredClassTypeActions.Add(EditorTutorialClassActions);
+			AssetTools.RegisterClassTypeActions(EditorTutorialClassActions);
+		}
 	}
 
 	// Register to display our settings
@@ -155,6 +165,16 @@ void FIntroTutorials::ShutdownModule()
 	if (!bDisableTutorials && !IsRunningCommandlet())
 	{
 		FSourceCodeNavigation::AccessOnCompilerNotFound().RemoveAll( this );
+
+		FAssetToolsModule* AssetToolsModule = FModuleManager::GetModulePtr<FAssetToolsModule>("AssetTools");
+		if (AssetToolsModule)
+		{
+			IAssetTools& AssetTools = AssetToolsModule->Get();
+			for(const auto& RegisteredClassTypeAction : RegisteredClassTypeActions)
+			{
+				AssetTools.UnregisterClassTypeActions(RegisteredClassTypeAction);
+			}
+		}
 	}
 
 	if (BlueprintEditorExtender.IsValid() && FModuleManager::Get().IsModuleLoaded("Kismet"))
