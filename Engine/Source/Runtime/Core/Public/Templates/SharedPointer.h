@@ -133,7 +133,7 @@ template< class ObjectType, ESPMode Mode >
 class TSharedRef
 {
 	// TSharedRefs with UObjects are illegal.
-	static_assert((!CanConvertPointerFromTo<ObjectType, UObjectBase>::Result), "You cannot use TSharedRef with UObjects.");
+	static_assert(!TPointerIsConvertibleFromTo<ObjectType, const UObjectBase>::Value, "You cannot use TSharedRef with UObjects.");
 
 public:
 
@@ -425,7 +425,7 @@ template< class ObjectType, ESPMode Mode >
 class TSharedPtr
 {
 	// TSharedPtrs with UObjects are illegal.
-	static_assert((!CanConvertPointerFromTo<ObjectType, UObjectBase>::Result), "You cannot use TSharedPtr with UObjects.");
+	static_assert(!TPointerIsConvertibleFromTo<ObjectType, const UObjectBase>::Value, "You cannot use TSharedPtr with UObjects.");
 
 public:
 

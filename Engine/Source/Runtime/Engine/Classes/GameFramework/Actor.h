@@ -2111,7 +2111,7 @@ public:
 	template<class T>
 	T* FindComponentByClass() const
 	{
-		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to FindComponentByClass must be derived from UActorComponent");
+		static_assert(TPointerIsConvertibleFromTo<T, const UActorComponent>::Value, "'T' template parameter to FindComponentByClass must be derived from UActorComponent");
 
 		return (T*)FindComponentByClass(T::StaticClass());
 	}
@@ -2128,7 +2128,7 @@ public:
 	template<class T, class AllocatorType>
 	void GetComponents(TArray<T*, AllocatorType>& OutComponents) const
 	{
-		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to GetComponents must be derived from UActorComponent");
+		static_assert(TPointerIsConvertibleFromTo<T, const UActorComponent>::Value, "'T' template parameter to GetComponents must be derived from UActorComponent");
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
 
 		OutComponents.Reset(OwnedComponents.Num());

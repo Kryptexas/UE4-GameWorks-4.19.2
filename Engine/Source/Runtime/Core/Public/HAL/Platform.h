@@ -233,10 +233,6 @@
 	#define PLATFORM_SUPPORTS_DRAW_MESH_EVENTS	1
 #endif
 
-#ifndef PLATFORM_SUPPORTS_CanConvertPointerFromTo
-	#define PLATFORM_SUPPORTS_CanConvertPointerFromTo		1
-#endif
-
 #ifndef PLATFORM_USES_ES2
 	#define PLATFORM_USES_ES2					0
 #endif

@@ -13,7 +13,7 @@ COREUOBJECT_API void CastLogError(const TCHAR* FromType, const TCHAR* ToType);
  *
  * Otherwise, assume it's an IInterface.
  */
-template <typename T, bool bIsAUObject_IMPL = CanConvertPointerFromTo<T, UObject>::Result>
+template <typename T, bool bIsAUObject_IMPL = TPointerIsConvertibleFromTo<T, const volatile UObject>::Value>
 struct TIsIInterface
 {
 	enum { Value = false };
@@ -32,7 +32,7 @@ template <typename T>
 struct TIsCastable
 {
 	// It's from-castable if it's an interface or a UObject-derived type
-	enum { Value = TIsIInterface<T>::Value || CanConvertPointerFromTo<T, const volatile UObject>::Result };
+	enum { Value = TIsIInterface<T>::Value || TPointerIsConvertibleFromTo<T, const volatile UObject>::Value };
 };
 
 template <typename T>

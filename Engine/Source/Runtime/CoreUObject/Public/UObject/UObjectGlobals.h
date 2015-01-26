@@ -576,7 +576,7 @@ public:
 	TSubobjectPtrDeprecated(TSubobjectPtrDeprecated<DerivedSubobjectType>& Other)
 		: FSubobjectPtr(Other.Object)
 	{
-		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
+		static_assert(TPointerIsConvertibleFromTo<DerivedSubobjectType, const SubobjectType>::Value, "Subobject pointers must be compatible.");
 	}
 	/** Gets the sub-object pointer. */
 	FORCEINLINE SubobjectType* Get() const
