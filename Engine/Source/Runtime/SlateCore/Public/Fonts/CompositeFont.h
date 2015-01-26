@@ -42,7 +42,7 @@ struct SLATECORE_API FFontData
 	bool operator!=(const FFontData& Other) const;
 
 	/** The filename of the font to use - this may not always exist on disk, as we may have previously loaded and cached the font data inside an asset */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Font, AssetRegistrySearchable, meta=(ReimportPath))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Font)
 	FString FontFilename;
 
 	/** The data associated with the font */

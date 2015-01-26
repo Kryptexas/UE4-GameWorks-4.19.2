@@ -343,7 +343,7 @@ private:
 
 public:
 	/** Path to the resource used to construct this texture. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY(Category=Texture, VisibleAnywhere, BlueprintReadWrite, AssetRegistrySearchable, meta=(ReimportPath))
+	UPROPERTY(Category=Texture, VisibleAnywhere, BlueprintReadWrite)
 	FString SourceFilePath;
 
 	/** Date/Time-stamp of the file from the last import. */
@@ -653,6 +653,9 @@ public:
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void FinishDestroy() override;
+#if WITH_EDITORONLY_DATA
+	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+#endif
 	// End UObject interface.
 
 	/**

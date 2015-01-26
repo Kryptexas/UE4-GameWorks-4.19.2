@@ -122,6 +122,15 @@ SIZE_T UAnimSequence::GetResourceSize(EResourceSizeMode::Type Mode)
 	return ResourceSize;
 }
 
+void UAnimSequence::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+#if WITH_EDITORONLY_DATA
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+#endif
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+
 int32 UAnimSequence::GetApproxRawSize() const
 {
 	int32 Total = sizeof(FRawAnimSequenceTrack) * RawAnimationData.Num();

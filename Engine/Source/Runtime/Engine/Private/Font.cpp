@@ -92,6 +92,27 @@ void UFont::PostLoad()
 	}
 }
 
+#if WITH_EDITORONLY_DATA
+void UFont::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	// Add all the font filenames
+	for( const FTypefaceEntry& TypefaceEntry : CompositeFont.DefaultTypeface.Fonts )
+	{
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), TypefaceEntry.Font.FontFilename, FAssetRegistryTag::TT_Hidden) );
+	}
+
+	for( const FCompositeSubFont& SubFont : CompositeFont.SubTypefaces )
+	{
+		for( const FTypefaceEntry& TypefaceEntry : SubFont.Typeface.Fonts )
+		{
+			OutTags.Add( FAssetRegistryTag(SourceFileTagName(), TypefaceEntry.Font.FontFilename, FAssetRegistryTag::TT_Hidden) );
+		}
+	}
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+#endif
+
 void UFont::CacheCharacterCountAndMaxCharHeight()
 {
 	// Cache the number of characters in the font.  Obviously this is pretty simple, but note that it will be

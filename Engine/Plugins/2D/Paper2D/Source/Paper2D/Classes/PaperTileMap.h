@@ -92,7 +92,7 @@ class PAPER2D_API UPaperTileMap : public UObject
 public:
 #if WITH_EDITORONLY_DATA
 	/** Importing data and options used for this tile map */
-	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced, AssetRegistrySearchable)
+	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced)
 	class UAssetImportData* AssetImportData;
 
 	/** The currently selected layer index */
@@ -114,6 +114,9 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostLoad() override;
 	void ValidateSelectedLayerIndex();
+#endif
+#if WITH_EDITORONLY_DATA
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
 #endif
 	// End of UObject interface
 

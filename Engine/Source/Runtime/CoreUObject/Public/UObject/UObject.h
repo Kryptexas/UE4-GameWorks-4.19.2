@@ -519,6 +519,9 @@ public:
 	};
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
 
+	/** Get the common tag name used for all asset source file import paths */
+	static const FName& SourceFileTagName();
+
 #if WITH_EDITOR
 	/**
 	 * Additional data pertaining to asset registry tags used by the editor

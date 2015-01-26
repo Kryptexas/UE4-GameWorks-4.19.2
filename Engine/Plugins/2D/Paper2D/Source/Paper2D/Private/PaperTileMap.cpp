@@ -126,6 +126,17 @@ void UPaperTileMap::ValidateSelectedLayerIndex()
 
 #endif
 
+#if WITH_EDITORONLY_DATA
+void UPaperTileMap::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	if (AssetImportData)
+	{
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+	}
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+#endif
 
 void UPaperTileMap::UpdateBodySetup()
 {

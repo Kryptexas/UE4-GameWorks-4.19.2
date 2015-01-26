@@ -525,7 +525,7 @@ class UAnimSequence : public UAnimSequenceBase
 	uint32 bWasCompressedWithoutTranslations:1;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, Instanced, Category=Reimport, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, Instanced, Category=Reimport)
 	class UAssetImportData* AssetImportData;
 
 	/***  for Reimport **/
@@ -553,6 +553,7 @@ public:
 #endif // WITH_EDITOR
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
 	// End of UObject interface
 
 	// Begin UAnimationAsset interface
