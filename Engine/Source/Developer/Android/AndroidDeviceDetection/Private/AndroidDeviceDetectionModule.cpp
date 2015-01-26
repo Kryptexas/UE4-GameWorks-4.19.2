@@ -8,6 +8,7 @@
 
 #define LOCTEXT_NAMESPACE "FAndroidDeviceDetectionModule" 
 
+DEFINE_LOG_CATEGORY_STATIC(AndroidDeviceDetectionLog, Log, All);
 
 class FAndroidDeviceDetectionRunnable : public FRunnable
 {
@@ -17,7 +18,8 @@ public:
 		DeviceMap(InDeviceMap),
 		DeviceMapLock(InDeviceMapLock),
 		ADBPathCheckLock(InADBPathCheckLock),
-		HasADBPath(false)
+		HasADBPath(false),
+		ForceCheck(false)
 
 	{
 	}
@@ -46,7 +48,7 @@ public:
 		while (StopTaskCounter.GetValue() == 0)
 		{
 			// query every 10 seconds
-			if (LoopCount++ >= 10)
+			if (LoopCount++ >= 10 || ForceCheck)
 			{
 				// Make sure we have an ADB path before checking
 				FScopeLock PathLock(ADBPathCheckLock);
@@ -54,6 +56,7 @@ public:
 					QueryConnectedDevices();
 
 				LoopCount = 0;
+				ForceCheck = false;
 			}
 
 			FPlatformProcess::Sleep(1.0f);
@@ -66,6 +69,14 @@ public:
 	{
 		ADBPath = InADBPath;
 		HasADBPath = !ADBPath.IsEmpty();
+		// Force a check next time we go around otherwise it can take over 10sec to find devices
+		ForceCheck = HasADBPath;	
+
+		// If we have no path then clean the existing devices out
+		if (!HasADBPath && DeviceMap.Num() > 0)
+		{
+			DeviceMap.Reset();
+		}
 	}
 
 private:
@@ -256,6 +267,7 @@ private:
 
 	FCriticalSection* ADBPathCheckLock;
 	bool HasADBPath;
+	bool ForceCheck;
 };
 
 class FAndroidDeviceDetection : public IAndroidDeviceDetection
@@ -293,14 +305,14 @@ public:
 		return &DeviceMapLock;
 	}
 
-	virtual void UpdateADBPath()
+	virtual void UpdateADBPath() override
 	{
 		FScopeLock PathUpdateLock(&ADBPathCheckLock);
 		TCHAR AndroidDirectory[32768] = { 0 };
 		FPlatformMisc::GetEnvironmentVariable(TEXT("ANDROID_HOME"), AndroidDirectory, 32768);
 
 		FString ADBPath;
-
+		
 		if (AndroidDirectory[0] != 0)
 		{
 #if PLATFORM_WINDOWS

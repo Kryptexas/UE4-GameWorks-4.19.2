@@ -57,8 +57,8 @@ class FAndroidPlatformEditorModule
 		auto &TargetPlatformManagerModule = FModuleManager::LoadModuleChecked<ITargetPlatformManagerModule>("TargetPlatform");
 		UAndroidSDKSettings * settings = GetMutableDefault<UAndroidSDKSettings>();
 		settings->SetTargetModule(&TargetPlatformManagerModule);
-		auto &AndroidDeviceDetection = FModuleManager::LoadModuleChecked<IAndroidDeviceDetection>("AndroidDeviceDetection");
-		settings->SetDeviceDetection(&AndroidDeviceDetection);
+		auto &AndroidDeviceDetection = FModuleManager::LoadModuleChecked<IAndroidDeviceDetectionModule>("AndroidDeviceDetection");
+		settings->SetDeviceDetection(AndroidDeviceDetection.GetAndroidDeviceDetection());
 		settings->SetupInitialTargetPaths();
 
 	}
