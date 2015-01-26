@@ -1132,6 +1132,10 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 		IrrelevantLights = PossiblyIrrelevantLights.Array();
 
 		bHasCachedStaticLighting = true;
+
+		ReleasePerInstanceRenderData();
+		MarkRenderStateDirty();
+
 		MarkPackageDirty();
 	}
 }
@@ -1670,7 +1674,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 	{
 		if (CPUInstanceOrigin.IsBound())
 		{
-			const float ShortScale = 1.0f / 32767.5f;
+			const float ShortScale = 1.0f / 32767.0f;
 			auto* InstancingData = (const FInstancingUserData*)BatchElement.UserData;
 			const FInstanceStream* InstanceStream = InstancingData->RenderData->PerInstanceRenderData->InstanceBuffer.GetData() + BatchElement.UserIndex;
 

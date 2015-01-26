@@ -253,6 +253,9 @@ struct FLightMapAllocation
 			// TODO: We currently only support one LOD of static lighting in foliage
 			// Need to create per-LOD instance data to fix that
 			Component->PerInstanceSMData[InstanceIndex].LightmapUVBias = LightMap->GetCoordinateBias();
+
+			Component->ReleasePerInstanceRenderData();
+			Component->MarkRenderStateDirty();
 		}
 	}
 
