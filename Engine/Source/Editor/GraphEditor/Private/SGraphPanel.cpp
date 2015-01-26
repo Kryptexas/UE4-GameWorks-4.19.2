@@ -982,7 +982,7 @@ void SGraphPanel::RemoveNode(const UEdGraphNode* Node)
 			break;
 		}
 	}
-	for (int32 Iter = 0; Iter != Children.Num(); ++Iter)
+	for (int32 Iter = 0; Iter != VisibleChildren.Num(); ++Iter)
 	{
 		TSharedRef<SGraphNode> Child = StaticCastSharedRef<SGraphNode>(VisibleChildren[Iter]);
 		if (Child->GetNodeObj() == Node)
