@@ -7,6 +7,7 @@
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "GenericCommands.h"
+#include "ISourceControlModule.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeDiff"
 

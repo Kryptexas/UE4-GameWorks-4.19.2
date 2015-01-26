@@ -8,6 +8,7 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "IAssetTypeActions.h"
 #include "ObjectEditorUtils.h"
+#include "ISourceControlModule.h"
 
 static const UProperty* Resolve( const UStruct* Class, FName PropertyName )
 {
