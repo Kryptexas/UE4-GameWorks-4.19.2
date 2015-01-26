@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "AssetTypeActions_Base.h"
+#include "AssetTypeActions_ClassTypeBase.h"
 
-class FAssetTypeActions_Class : public FAssetTypeActions_Base
+class FAssetTypeActions_Class : public FAssetTypeActions_ClassTypeBase
 {
 public:
 	// IAssetTypeActions Implementation
@@ -19,4 +19,7 @@ public:
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override;
 
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
+
+	// FAssetTypeActions_ClassTypeBase Implementation
+	virtual TWeakPtr<IClassTypeActions> GetClassTypeActions(const FAssetData& AssetData) const override;
 };
