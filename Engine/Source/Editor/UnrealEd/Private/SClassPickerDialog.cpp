@@ -6,6 +6,7 @@
 #include "SClassPickerDialog.h"
 #include "EditorClassUtils.h"
 #include "SExpandableArea.h"
+#include "ClassIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "SClassPicker"
 
@@ -153,6 +154,7 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 {
 	FClassPickerDefaults* Obj = InItem.Get();
 	UClass* ItemClass = LoadClass<UObject>(NULL, *Obj->ClassName, NULL, LOAD_None, NULL);
+	const FSlateBrush* ItemBrush = FClassIconFinder::FindIconForClass(ItemClass);
 
 	return 
 	SNew(STableRow< TSharedPtr<FClassPickerDefaults> >, OwnerTable)
@@ -178,7 +180,7 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 					.FillWidth(0.12f)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush(Obj->Image))
+						.Image(ItemBrush)
 					]
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)

@@ -136,7 +136,7 @@ FName FClassIconFinder::FindIconNameImpl(const UClass* InClass, const FName& InD
 	{
 		// walk up class hierarchy until we find an icon
 		const UClass* CurrentClass = InClass;
-		while( Brush == NULL && CurrentClass && (CurrentClass != AActor::StaticClass()) )
+		while( Brush == NULL && CurrentClass )
 		{
 			BrushName = *FString::Printf( TEXT( "%s.%s" ), StyleRoot, *CurrentClass->GetName() );
 			Brush = FClassIconFinder::LookupBrush( BrushName );
