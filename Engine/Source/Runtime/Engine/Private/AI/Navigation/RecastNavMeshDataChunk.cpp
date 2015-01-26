@@ -117,7 +117,8 @@ void URecastNavMeshDataChunk::SerializeRecastData(FArchive& Ar)
 				// Load compressed tile cache layer
 				int32 TileCacheDataSize = 0;
 				uint8* TileCacheRawData = nullptr;
-				if (Ar.UE4Ver() >= VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION)
+				if (Ar.UE4Ver() >= VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION && 
+					Ar.UE4Ver() != VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7) // Merged package from 4.7 branch
 				{
 					FPImplRecastNavMesh::SerializeCompressedTileCacheData(Ar, TileCacheRawData, TileCacheDataSize);
 				}
