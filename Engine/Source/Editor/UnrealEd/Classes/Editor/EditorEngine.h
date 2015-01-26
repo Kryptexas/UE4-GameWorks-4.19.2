@@ -947,7 +947,7 @@ public:
 	 */
 	virtual void TakeHighResScreenShots(){}
 
-	virtual void NoteSelectionChange(bool bComponentSelectionChanged = false) { check(0); }
+	virtual void NoteSelectionChange() { check(0); }
 
 	/**
 	 * Adds an actor to the world at the specified location.

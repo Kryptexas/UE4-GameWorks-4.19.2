@@ -351,7 +351,7 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 
 
 
-void UUnrealEdEngine::NoteSelectionChange(bool bComponentSelectionChanged)
+void UUnrealEdEngine::NoteSelectionChange()
 {
 	// The selection changed, so make sure the pivot (widget) is located in the right place
 	UpdatePivotLocationForSelection( true );
@@ -366,9 +366,9 @@ void UUnrealEdEngine::NoteSelectionChange(bool bComponentSelectionChanged)
 		ActiveModes[ModeIndex]->ActorSelectionChangeNotify();
 	}
 
+	bool bComponentSelectionChanged = GetSelectedComponentCount() > 0;
 	USelection* Selection = bComponentSelectionChanged ? GetSelectedComponents() : GetSelectedActors();
 	USelection::SelectionChangedEvent.Broadcast(Selection);
-
 	
 	if (!bComponentSelectionChanged)
 	{
@@ -644,7 +644,7 @@ void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelect
 
 		if (bNotify)
 		{
-			NoteSelectionChange(true);
+			NoteSelectionChange();
 		}
 	}
 }
