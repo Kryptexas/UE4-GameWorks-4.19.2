@@ -1094,7 +1094,7 @@ namespace ClassViewer
 
 				MenuBuilder.AddMenuEntry(
 					TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&BlueprintNameEntry::MakeFullPathLabel)), 
-						LOCTEXT("PickNewBlueprintTooltip_Create", "Create new Class Blueprint"),
+						LOCTEXT("PickNewBlueprintTooltip_Create", "Create new Blueprint Class"),
 						FSlateIcon(), 
 						FUIAction(
 							FExecuteAction::CreateStatic( &BlueprintNameEntry::CreateBlueprintClicked, InCreationClass ),
@@ -1102,11 +1102,11 @@ namespace ClassViewer
 						)
 					);
 
-				MenuBuilder.BeginSection( NAME_None, LOCTEXT("PickNewBlueprintFilename", "Class Blueprint Filename") );
+				MenuBuilder.BeginSection( NAME_None, LOCTEXT("PickNewBlueprintFilename", "Blueprint Class Filename") );
 				MenuBuilder.AddWidget( BlueprintNameEntry::MakeBlueprintNameWidget(InCreationClass), FText::GetEmpty() );
 				MenuBuilder.EndSection();
 
-				MenuBuilder.BeginSection( NAME_None, LOCTEXT("PickNewBlueprintPath", "Class Blueprint Path") );
+				MenuBuilder.BeginSection( NAME_None, LOCTEXT("PickNewBlueprintPath", "Blueprint Class Path") );
 				MenuBuilder.AddWidget( BlueprintNameEntry::MakeBlueprintPathWidget(), FText::GetEmpty() );
 				MenuBuilder.EndSection();
 			}
@@ -1121,7 +1121,7 @@ namespace ClassViewer
 			}
 			else
 			{
-				return LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Class Blueprint using this class as a base.");
+				return LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint Class using this class as a base.");
 			}
 		}
 
@@ -1488,7 +1488,7 @@ private:
 						TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
 
 						MenuBuilder.AddSubMenu(
-							LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Class Blueprint"), 
+							LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint Class"), 
 							DynamicTooltipAttribute, 
 							FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, Class ),
 							FUIAction(
@@ -1507,7 +1507,7 @@ private:
 					MenuBuilder.BeginSection("ClassViewerDropDownHasBlueprint");
 					{
 						FUIAction Action( FExecuteAction::CreateStatic( &ClassViewer::Helpers::OpenBlueprintTool, ClassViewer::Helpers::GetBlueprint(Class) ) );
-						MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuEditBlueprint", "Edit Class Blueprint..."), LOCTEXT("ClassViewerMenuEditBlueprint_Tooltip", "Open the Class Blueprint in the editor."), FSlateIcon(), Action);
+						MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuEditBlueprint", "Edit Blueprint Class..."), LOCTEXT("ClassViewerMenuEditBlueprint_Tooltip", "Open the Blueprint Class in the editor."), FSlateIcon(), Action);
 					}
 					MenuBuilder.EndSection();
 
@@ -2402,7 +2402,7 @@ TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
 			TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
 
 			MenuBuilder.AddSubMenu(
-				LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Class Blueprint"), 
+				LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint Class"), 
 				DynamicTooltipAttribute, 
 				FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, RightClickClass ),
 				FUIAction(
@@ -2419,7 +2419,7 @@ TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
 			MenuBuilder.BeginSection("ClassViewerHasBlueprint");
 			{
 				FUIAction Action( FExecuteAction::CreateRaw( this, &SClassViewer::OnOpenBlueprintTool ) );
-				MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuEditBlueprint", "Edit Class Blueprint..."), LOCTEXT("ClassViewerMenuEditBlueprint_Tooltip", "Open the Class Blueprint in the editor."), FSlateIcon(), Action);
+				MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuEditBlueprint", "Edit Blueprint Class..."), LOCTEXT("ClassViewerMenuEditBlueprint_Tooltip", "Open the Blueprint Class in the editor."), FSlateIcon(), Action);
 			}
 			MenuBuilder.EndSection();
 
@@ -2705,7 +2705,7 @@ void SClassViewer::FillFilterEntries( FMenuBuilder& MenuBuilder )
 
 	MenuBuilder.BeginSection("ClassViewerFilterEntries2");
 	{
-		MenuBuilder.AddMenuEntry( LOCTEXT("BlueprintsOnly", "Class Blueprint Bases Only"), LOCTEXT( "BlueprinsOnly_Tooltip", "Filter the Class Viewer to show only base blueprint classes." ), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_Execute), FCanExecuteAction::CreateRaw(this, &SClassViewer::Menu_CanExecute), FIsActionChecked::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_IsChecked)), NAME_None, EUserInterfaceActionType::Check );
+		MenuBuilder.AddMenuEntry( LOCTEXT("BlueprintsOnly", "Blueprint Class Bases Only"), LOCTEXT( "BlueprinsOnly_Tooltip", "Filter the Class Viewer to show only base blueprint classes." ), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_Execute), FCanExecuteAction::CreateRaw(this, &SClassViewer::Menu_CanExecute), FIsActionChecked::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_IsChecked)), NAME_None, EUserInterfaceActionType::Check );
 	}
 	MenuBuilder.EndSection();
 }

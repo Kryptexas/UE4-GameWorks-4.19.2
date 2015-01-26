@@ -97,8 +97,8 @@ void SLevelEditor::BindCommands()
 		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenLevelBlueprint, SharedThis( this ) ) );
 	
 	LevelEditorCommands->MapAction(
-		Actions.CreateClassBlueprint,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CreateClassBlueprint ) );
+		Actions.CreateBlueprintClass,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CreateBlueprintClass ) );
 
 	LevelEditorCommands->MapAction(
 		Actions.OpenContentBrowser,

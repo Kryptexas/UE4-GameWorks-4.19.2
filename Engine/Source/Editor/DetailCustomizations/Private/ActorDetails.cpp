@@ -776,14 +776,14 @@ void FActorDetails::AddUtilityBlueprintRows( IDetailCategoryBuilder& BlueprintCa
 			.WidthOverride( 200 )
 			[
 				SNew( SButton )
-				.ToolTipText( LOCTEXT( "CreateHarvestBlueprint_ToolTip", "Copy the components from the selected actors and create a new Class Blueprint" ) )
+				.ToolTipText( LOCTEXT( "CreateHarvestBlueprint_ToolTip", "Copy the components from the selected actors and create a new Blueprint Class" ) )
 				.HAlign( HAlign_Fill )
 				//.ButtonColorAndOpacity( FLinearColor( 0.2f, 0.4f, 0.6f, 1.0f ) )
 				.OnClicked( FOnClicked::CreateRaw( this, &FActorDetails::OnPickBlueprintPathClicked, true ) )
 				.ContentPadding( 2 )
 				[
 					SNew( STextBlock )
-					.Text( LOCTEXT( "ReplaceWithAmalgamBlueprint", "Convert to Class Blueprint" ) )
+					.Text( LOCTEXT( "ReplaceWithAmalgamBlueprint", "Convert to Blueprint Class" ) )
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 			]
@@ -1019,7 +1019,7 @@ void FActorDetails::AddSingleBlueprintRow( IDetailCategoryBuilder& BlueprintCate
 						.AutoWidth()
 						[
 							SNew(STextBlock)
-							.Text( FText::Format( LOCTEXT("CreateBlueprintFromActor", "Create {0} Class Blueprint..."), FText::FromString( SelectedActorClassName ) ) )
+							.Text( FText::Format( LOCTEXT("CreateBlueprintFromActor", "Create {0} Blueprint Class..."), FText::FromString( SelectedActorClassName ) ) )
 							.Font(IDetailLayoutBuilder::GetDetailFont())
 						]
 
