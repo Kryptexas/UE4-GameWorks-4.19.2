@@ -105,7 +105,7 @@ public:
 	template<typename FunctorType, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateLambda(FunctorType&& InFunctor, VarTypes... Vars)
 	{
-		return TBaseFunctorDelegateInstance<TFuncType, typename TRemoveReference<FunctorType>::Type>::Create(Forward<FunctorType>(InFunctor), Vars...);
+		return TBaseFunctorDelegateInstance<TFuncType, typename TRemoveReference<FunctorType>::Type, VarTypes...>::Create(Forward<FunctorType>(InFunctor), Vars...);
 	}
 
 	/**
