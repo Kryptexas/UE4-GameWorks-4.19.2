@@ -275,6 +275,22 @@ UActorComponent* FSCSEditorTreeNode::GetComponentTemplate() const
 	return ComponentTemplatePtr.Get();
 }
 
+UActorComponent* FSCSEditorTreeNode::GetEditableComponentTemplate(UBlueprint* ActualEditedBlueprint)
+{
+	if (CanEditDefaults())
+	{
+		return GetComponentTemplate();
+	}
+	
+	auto SCSNode = GetSCSNode();
+	if (!IsNative() && IsInherited() && SCSNode && ActualEditedBlueprint)
+	{
+		return GetOverridenComponentTemplate(ActualEditedBlueprint, true);
+	}
+
+	return nullptr;
+}
+
 FName FSCSEditorTreeNode::GetVariableName() const
 {
 	FName VariableName = NAME_None;

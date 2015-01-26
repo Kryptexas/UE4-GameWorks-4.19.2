@@ -107,12 +107,12 @@ namespace
 
 FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& InBlueprintEditorPtr, FPreviewScene& InPreviewScene, const TSharedRef<SSCSEditorViewport>& InSCSEditorViewport)
 	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InSCSEditorViewport))
-	,BlueprintEditorPtr(InBlueprintEditorPtr)
-	,PreviewBlueprint(NULL)
-	,PreviewActorBounds(ForceInitToZero)
-	,bIsManipulating(false)
-	,ScopedTransaction(NULL)
-	,bIsSimulateEnabled(false)
+	, BlueprintEditorPtr(InBlueprintEditorPtr)
+	, PreviewBlueprint(NULL)
+	, PreviewActorBounds(ForceInitToZero)
+	, bIsManipulating(false)
+	, ScopedTransaction(NULL)
+	, bIsSimulateEnabled(false)
 {
 	WidgetMode = FWidget::WM_Translate;
 	WidgetCoordSystem = COORD_Local;
@@ -370,9 +370,10 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 	{
 		bHandled = true;
 		AActor* PreviewActor = GetPreviewActor();
-		if(PreviewActor)
+		auto BlueprintEditor = BlueprintEditorPtr.Pin();
+		if (PreviewActor && BlueprintEditor.IsValid())
 		{
-			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditorPtr.Pin()->GetSelectedSCSEditorTreeNodes();
+			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditor->GetSelectedSCSEditorTreeNodes();
 			if(SelectedNodes.Num() > 0)
 			{
 				FVector ModifiedScale = Scale;
@@ -387,13 +388,13 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 				{
 					FSCSEditorTreeNodePtrType SelectedNodePtr = *It;
 					// Don't allow editing of a root node, inherited SCS node or child node that also has a movable (non-root) parent node selected
-					const bool bCanEdit =  !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited()
+					const bool bCanEdit = !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited()
 						&& !IsMovableParentNodeSelected(SelectedNodePtr, SelectedNodes);
 
 					if(bCanEdit)
 					{
 						USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodePtr->FindComponentInstanceInActor(PreviewActor));
-						USceneComponent* SelectedTemplate = Cast<USceneComponent>(SelectedNodePtr->GetComponentTemplate());
+						USceneComponent* SelectedTemplate = Cast<USceneComponent>(SelectedNodePtr->GetEditableComponentTemplate(BlueprintEditor->GetBlueprintObj()));
 						if(SceneComp != NULL && SelectedTemplate != NULL)
 						{
 							// Cache the current default values for propagation
@@ -416,10 +417,10 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 									Rot = (ParentToWorldSpace.Inverse().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
 								}
 							}
-
+							
 							FComponentEditorUtils::FTransformData OldDefaultTransform(*SelectedTemplate);
 
-							TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(SceneComp);
+							TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditor->CustomizeSCSEditor(SceneComp);
 							if(Customization.IsValid() && Customization->HandleViewportDrag(SceneComp, SelectedTemplate, Drag, Rot, ModifiedScale, GetWidgetLocation()))
 							{
 								UpdatedComponents.Add(SceneComp);
@@ -566,7 +567,7 @@ FWidget::EWidgetMode FSCSEditorViewportClient::GetWidgetMode() const
 		const TSharedPtr<FBlueprintEditor> BluePrintEditor = BlueprintEditorPtr.Pin();
 		if ( BluePrintEditor.IsValid() )
 		{
-			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditorPtr.Pin()->GetSelectedSCSEditorTreeNodes();
+			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BluePrintEditor->GetSelectedSCSEditorTreeNodes();
 			const TArray<FSCSEditorTreeNodePtrType>& RootNodes = BluePrintEditor->GetSCSEditor()->RootNodes;
 
 			// if the selected nodes array is empty, or only contains entries from the
@@ -574,7 +575,9 @@ FWidget::EWidgetMode FSCSEditorViewportClient::GetWidgetMode() const
 			for ( int32 CurrentNodeIndex=0; CurrentNodeIndex < SelectedNodes.Num(); CurrentNodeIndex++ )
 			{
 				FSCSEditorTreeNodePtrType CurrentNodePtr = SelectedNodes[CurrentNodeIndex];
-				if ( CurrentNodePtr.IsValid() && !RootNodes.Contains( CurrentNodePtr ) && !CurrentNodePtr->IsRoot() && CurrentNodePtr->CanEditDefaults() && CurrentNodePtr->FindComponentInstanceInActor(PreviewActor))
+				if (CurrentNodePtr.IsValid() && !RootNodes.Contains(CurrentNodePtr) && !CurrentNodePtr->IsRoot() && 
+					CurrentNodePtr->GetEditableComponentTemplate(BluePrintEditor->GetBlueprintObj()) &&
+					CurrentNodePtr->FindComponentInstanceInActor(PreviewActor))
 				{
 					// a non-NULL, non-root item is selected, draw the widget
 					ReturnWidgetMode = WidgetMode;
@@ -675,7 +678,7 @@ void FSCSEditorViewportClient::InvalidatePreview(bool bResetCamera)
 	{
 		return;
 	}
-
+	
 	UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
 	check(Blueprint);
 
@@ -837,10 +840,10 @@ void FSCSEditorViewportClient::BeginTransaction(const FText& Description)
 			FBlueprintEditorUtils::MarkBlueprintAsModified(PreviewBlueprint);
 		}
 
-		AActor* PreviewActor = GetPreviewActor();
-		TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditorPtr.Pin()->GetSelectedSCSEditorTreeNodes();
-		if(SelectedNodes.Num() > 0)
+		auto BlueprintEditor = BlueprintEditorPtr.Pin();
+		if (BlueprintEditor.IsValid())
 		{
+			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditor->GetSelectedSCSEditorTreeNodes();
 			for(auto SelectedSCSNodeIter(SelectedNodes.CreateIterator()); SelectedSCSNodeIter; ++SelectedSCSNodeIter)
 			{
 				FSCSEditorTreeNodePtrType Node = *SelectedSCSNodeIter;
@@ -852,13 +855,14 @@ void FSCSEditorViewportClient::BeginTransaction(const FText& Description)
 					}
 
 					// Modify both the component template and the instance in the preview actor (provided there is one)
-					UActorComponent* ComponentTemplate = Node->GetComponentTemplate();
+					UActorComponent* ComponentTemplate = Node->GetEditableComponentTemplate(BlueprintEditor->GetBlueprintObj());
 					if (ComponentTemplate != nullptr)
 					{
 						ComponentTemplate->SetFlags(RF_Transactional);
 						ComponentTemplate->Modify();
 					}
 
+					AActor* PreviewActor = GetPreviewActor();
 					if (PreviewActor)
 					{
 						UActorComponent* ComponentPreviewInstance = Node->FindComponentInstanceInActor(PreviewActor);

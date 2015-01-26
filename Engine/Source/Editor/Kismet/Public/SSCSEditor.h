@@ -56,6 +56,12 @@ public:
 	 */
 	UActorComponent* GetComponentTemplate() const;
 	/**
+	 * @param ActualEditedBlueprint currently edited blueprint
+	 *
+	 * @return The component template that can be editable for actual class.
+	 */
+	UActorComponent* GetEditableComponentTemplate(UBlueprint* ActualEditedBlueprint);
+	/**
 	 * Finds the component instance represented by this node contained within a given Actor instance.
 	 *
 	 * @param InActor The Actor instance to use as the container object for finding the component instance.
