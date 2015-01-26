@@ -17,7 +17,7 @@ public:
 	static bool IsValidVariableNameString(const UActorComponent* InComponent, const FString& InString);
 
 	/** Generate a valid variable name string for the given component instance */
-	static FString GenerateValidVariableName(const UActorComponent* InComponent);
+	static FString GenerateValidVariableName(TSubclassOf<UActorComponent> InComponentClass, AActor* ComponentOwner);
 
 	struct FTransformData
 	{
