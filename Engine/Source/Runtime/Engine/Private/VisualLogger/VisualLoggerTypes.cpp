@@ -111,6 +111,11 @@ void FVisualLogEntry::AddText(const FString& TextLine, const FName& CategoryName
 	LogLines.Add(FVisualLogLine(CategoryName, Verbosity, TextLine));
 }
 
+void FVisualLogEntry::AddElement(FVisualLogShapeElement Element)
+{
+	ElementsToDraw.Emplace(Element);
+}
+
 void FVisualLogEntry::AddElement(const TArray<FVector>& Points, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color, const FString& Description, uint16 Thickness)
 {
 	FVisualLogShapeElement Element(Description, Color, Thickness, CategoryName);
