@@ -2439,12 +2439,23 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsLandscapeLayerReapplyChecked() con
 
 void SFoliageEditMeshDisplayItem::OnLandscapeLayerChanged(const FText& InValue)
 {
-	FoliageSettingsPtr->LandscapeLayer = FName(*InValue.ToString());
+	if (FoliageSettingsPtr->LandscapeLayers.Num() == 0)
+	{
+		FoliageSettingsPtr->LandscapeLayers.AddUninitialized(1);
+	}
+
+	FoliageSettingsPtr->LandscapeLayers[0] = FName(*InValue.ToString());
 }
 
 FText SFoliageEditMeshDisplayItem::GetLandscapeLayer() const
 {
-	return FText::FromName(FoliageSettingsPtr->LandscapeLayer);
+	FName LayerName = NAME_None;
+	if (FoliageSettingsPtr->LandscapeLayers.Num())
+	{
+		LayerName = FoliageSettingsPtr->LandscapeLayers[0];
+	}
+	
+	return FText::FromName(LayerName);
 }
 
 void SFoliageEditMeshDisplayItem::OnCollisionWithWorld(ECheckBoxState InState)

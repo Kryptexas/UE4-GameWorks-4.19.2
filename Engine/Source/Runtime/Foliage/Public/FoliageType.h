@@ -77,8 +77,11 @@ class UFoliageType : public UObject
 	float HeightMax;
 
 	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
-	FName LandscapeLayer;
+	TArray<FName> LandscapeLayers;
 
+	UPROPERTY()
+	FName LandscapeLayer_DEPRECATED;
+	
 	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
 	float MinimumLayerWeight;
 
@@ -307,6 +310,8 @@ class UFoliageType : public UObject
 	FOLIAGE_API float GetScaleForAge(const float Age) const;
 	FOLIAGE_API float GetInitAge(FRandomStream& RandomStream) const;
 	FOLIAGE_API float GetNextAge(const float CurrentAge, const int32 NumSteps) const;
+
+	virtual void Serialize(FArchive& Ar) override;
 
 private:
 

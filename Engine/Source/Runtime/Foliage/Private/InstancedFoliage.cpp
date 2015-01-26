@@ -195,7 +195,6 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	HeightMax = 262144.0f;
 	ZOffsetMin = 0.0f;
 	ZOffsetMax = 0.0f;
-	LandscapeLayer = NAME_None;
 	MinimumLayerWeight = 0.5f;
 	DisplayOrder = 0;
 	IsSelected = false;
@@ -244,6 +243,17 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	Curve->AddKey(1.f, 1.f);
 
 	UpdateGuid = FGuid::NewGuid();
+}
+
+void UFoliageType::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (LandscapeLayer_DEPRECATED != NAME_None && LandscapeLayers.Num() == 0)	//we now store an array of names so initialize the array with the old name
+	{
+		LandscapeLayers.Add(LandscapeLayer_DEPRECATED);
+		LandscapeLayer_DEPRECATED = NAME_None;
+	}
 }
 
 
