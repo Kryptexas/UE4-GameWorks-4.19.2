@@ -793,7 +793,7 @@ public:
 
 			// Generate widgets assuming scenario a.
 			bool bGeneratedEnoughForSmoothScrolling = false;
-			bool AtEndOfList = false;
+			bool bAtEndOfList = false;
 
 			const float LayoutScaleMultiplier = MyGeometry.GetAccumulatedLayoutTransform().GetScale();
 			for( int32 ItemIndex = StartIndex; !bGeneratedEnoughForSmoothScrolling && ItemIndex < SourceItems->Num(); ++ItemIndex )
@@ -802,20 +802,22 @@ public:
 
 				const float ItemHeight = GenerateWidgetForItem(CurItem, ItemIndex, StartIndex, LayoutScaleMultiplier);
 
-				const bool IsFirstItem = ItemIndex == StartIndex;
+				const bool bIsFirstItem = ItemIndex == StartIndex;
 
-				if (IsFirstItem)
+				if (bIsFirstItem)
 				{
 					FirstItemHeight = ItemHeight;
 				}
 
 				// Track the number of items in the view, including fractions.
-				if (IsFirstItem)
+				if (bIsFirstItem)
 				{
-					ItemsInView += 1.0f - FMath::Fractional(ScrollOffset);
+					// The first item may not be fully visible (but cannot exceed 1)
+					ItemsInView += 1.0f - FMath::Max(FMath::Fractional(ScrollOffset), 0.0f);
 				}
 				else if (ViewHeightUsedSoFar + ItemHeight > MyGeometry.Size.Y)
 				{
+					// The last item may not be fully visible either
 					ItemsInView += (MyGeometry.Size.Y - ViewHeightUsedSoFar) / ItemHeight;
 				}
 				else
@@ -825,13 +827,13 @@ public:
 
 				HeightGeneratedSoFar += ItemHeight;
 
-				ViewHeightUsedSoFar += (IsFirstItem)
-					? ItemHeight * (1.0f - FMath::Fractional(ScrollOffset))
+				ViewHeightUsedSoFar += (bIsFirstItem)
+					? ItemHeight * ItemsInView	// For the first item, ItemsInView <= 1.0f
 					: ItemHeight;
 
 				if (ItemIndex >= SourceItems->Num()-1)
 				{
-					AtEndOfList = true;
+					bAtEndOfList = true;
 				}
 
 				if (ViewHeightUsedSoFar > MyGeometry.Size.Y )
@@ -843,7 +845,7 @@ public:
 			// Handle scenario b.
 			// We may have stopped because we got to the end of the items.
 			// But we may still have space to fill!
-			if (AtEndOfList && ViewHeightUsedSoFar < MyGeometry.Size.Y)
+			if (bAtEndOfList && ViewHeightUsedSoFar < MyGeometry.Size.Y)
 			{
 				float NewScrollOffsetForBackfill = StartIndex + (HeightGeneratedSoFar - MyGeometry.Size.Y) / FirstItemHeight;
 
@@ -864,10 +866,10 @@ public:
 					HeightGeneratedSoFar += ItemHeight;
 				}
 
-				return FReGenerateResults(NewScrollOffsetForBackfill, HeightGeneratedSoFar, ItemsSource->Num() - NewScrollOffsetForBackfill, AtEndOfList);
+				return FReGenerateResults(NewScrollOffsetForBackfill, HeightGeneratedSoFar, ItemsSource->Num() - NewScrollOffsetForBackfill, bAtEndOfList);
 			}
 
-			return FReGenerateResults(ScrollOffset, HeightGeneratedSoFar, ItemsInView, AtEndOfList);
+			return FReGenerateResults(ScrollOffset, HeightGeneratedSoFar, ItemsInView, bAtEndOfList);
 		}
 
 		return FReGenerateResults(0.0f, 0.0f, 0.0f, false);
