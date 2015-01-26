@@ -15,6 +15,9 @@ void SDocumentationToolTip::Construct( const FArguments& InArgs )
 {
 	TextContent = InArgs._Text;
 	StyleInfo = FEditorStyle::GetWidgetStyle<FTextBlockStyle>(InArgs._Style);
+	SubduedStyleInfo = FEditorStyle::GetWidgetStyle<FTextBlockStyle>(InArgs._SubduedStyle);
+	HyperlinkTextStyleInfo = FEditorStyle::GetWidgetStyle<FTextBlockStyle>(InArgs._HyperlinkTextStyle);
+	HyperlinkButtonStyleInfo = FEditorStyle::GetWidgetStyle<FButtonStyle>(InArgs._HyperlinkButtonStyle);
 	ColorAndOpacity = InArgs._ColorAndOpacity;
 	DocumentationLink = InArgs._DocumentationLink;
 	IsDisplayingDocumentationLink = false;
@@ -102,12 +105,12 @@ void SDocumentationToolTip::AddDocumentation(TSharedPtr< SVerticalBox > Vertical
 
 			VerticalBox->AddSlot()
 			.AutoHeight()
-			.HAlign( HAlign_Right )
+			.Padding(0, 5, 0, 0)
+			.HAlign( HAlign_Center )
 			[
 				SNew( STextBlock )
-				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
 				.Text( FText::FromString(DocumentationLink + OptionalExcerptName) )
-				.TextStyle( &StyleInfo )
+				.TextStyle( &SubduedStyleInfo )
 			];
 		}
 
@@ -130,12 +133,12 @@ void SDocumentationToolTip::AddDocumentation(TSharedPtr< SVerticalBox > Vertical
 
 			VerticalBox->AddSlot()
 			.AutoHeight()
-			.HAlign( HAlign_Right )
+			.HAlign( HAlign_Center )
+			.Padding(0, 5, 0, 0)
 			[
 				SNew( STextBlock )
-				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
+				.TextStyle( &SubduedStyleInfo )
 				.Text( FText::Format( NSLOCTEXT( "SToolTip", "AdvancedToolTipMessage", "hold {0} for more" ), KeyboardShortcut) )
-				.TextStyle( &StyleInfo )
 			];
 		}
 		else
@@ -150,10 +153,13 @@ void SDocumentationToolTip::AddDocumentation(TSharedPtr< SVerticalBox > Vertical
 
 				VerticalBox->AddSlot()
 				.AutoHeight()
-				.HAlign( HAlign_Right )
+				.Padding(0, 5, 0, 0)
+				.HAlign( HAlign_Center )
 				[
 					SNew( SHyperlink )
 					.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Create", "create" ) )
+					.TextStyle( &HyperlinkTextStyleInfo )
+					.UnderlineStyle( &HyperlinkButtonStyleInfo )
 					.OnNavigate( this, &SDocumentationToolTip::CreateExcerpt, DocPath, ExcerptName )
 				];
 			}
@@ -296,6 +302,8 @@ void SDocumentationToolTip::ConstructFullTipContent()
 				[
 					SNew( SHyperlink )
 						.Text( NSLOCTEXT( "SToolTip", "GoToFullDocsLinkMessage", "see full documentation" ) )
+						.TextStyle( &HyperlinkTextStyleInfo )
+						.UnderlineStyle( &HyperlinkButtonStyleInfo )
 						.OnNavigate_Static( &Local::OpenLink, *FullDocumentationLink )
 				];
 			}
@@ -313,10 +321,12 @@ void SDocumentationToolTip::ConstructFullTipContent()
 
 				Box->AddSlot()
 				.AutoHeight()
-				.HAlign( HAlign_Right )
+				.HAlign( HAlign_Center )
 				[
 					SNew( SHyperlink )
 						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Edit", "edit" ) )
+						.TextStyle( &HyperlinkTextStyleInfo )
+						.UnderlineStyle( &HyperlinkButtonStyleInfo )
 						.OnNavigate_Static(&Local::EditSource, FPaths::ConvertRelativePathToFull(FDocumentationLink::ToSourcePath(DocumentationLink, FInternationalization::Get().GetCurrentCulture())), Excerpts[ExcerptIndex].LineNumber)
 				];
 			}

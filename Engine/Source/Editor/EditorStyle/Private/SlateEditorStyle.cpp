@@ -2535,27 +2535,47 @@ void FSlateEditorStyle::FStyle::SetupDockingStyles()
 void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 {
 	// Documentation tooltip defaults
+	const FSlateColor HyperlinkColor( FLinearColor( 0.1f, 0.1f, 0.5f ) );
 	{
-		const FTextBlockStyle DocumentationTooltipText = FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 8));
+		const FTextBlockStyle DocumentationTooltipText = FTextBlockStyle( NormalText )
+			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) )
+			.SetColorAndOpacity( FLinearColor::Black );
 		Set("Documentation.SDocumentationTooltip", FTextBlockStyle(DocumentationTooltipText));
+
+		const FTextBlockStyle DocumentationTooltipTextSubdued = FTextBlockStyle( NormalText )
+			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) )
+			.SetColorAndOpacity( FLinearColor( 0.3f, 0.3f, 0.3f ) );
+		Set("Documentation.SDocumentationTooltipSubdued", FTextBlockStyle(DocumentationTooltipTextSubdued));
+
+		const FTextBlockStyle DocumentationTooltipHyperlinkText = FTextBlockStyle( NormalText )
+			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) )
+			.SetColorAndOpacity( HyperlinkColor );
+		Set("Documentation.SDocumentationTooltipHyperlinkText", FTextBlockStyle(DocumentationTooltipHyperlinkText));
+
+		const FButtonStyle DocumentationTooltipHyperlinkButton = FButtonStyle()
+				.SetNormal(BORDER_BRUSH( "Old/HyperlinkDotted", FMargin(0,0,0,3/16.0f), HyperlinkColor ) )
+				.SetPressed(FSlateNoResource())
+				.SetHovered(BORDER_BRUSH( "Old/HyperlinkUnderline", FMargin(0,0,0,3/16.0f), HyperlinkColor ) );
+		Set("Documentation.SDocumentationTooltipHyperlinkButton", FButtonStyle(DocumentationTooltipHyperlinkButton));
 	}
 
 
 	// Documentation defaults
 	const FTextBlockStyle DocumentationText = FTextBlockStyle(NormalText)
+		.SetColorAndOpacity( FLinearColor::Black )
 		.SetFont(TTF_CORE_FONT( "Fonts/Roboto-Regular", 11 ));
 
 	const FTextBlockStyle DocumentationHyperlinkText = FTextBlockStyle(DocumentationText)
-		.SetColorAndOpacity(FLinearColor::Blue);
+		.SetColorAndOpacity( HyperlinkColor );
 
 	const FTextBlockStyle DocumentationHeaderText = FTextBlockStyle(NormalText)
+		.SetColorAndOpacity( FLinearColor::Black )
 		.SetFont(TTF_FONT("Fonts/Roboto-Black", 32));
 
 	const FButtonStyle DocumentationHyperlinkButton = FButtonStyle()
-			.SetNormal(BORDER_BRUSH( "Old/HyperlinkDotted", FMargin(0,0,0,3/16.0f), FSlateColor::UseForeground()))
+			.SetNormal(BORDER_BRUSH( "Old/HyperlinkDotted", FMargin(0,0,0,3/16.0f), HyperlinkColor ) )
 			.SetPressed(FSlateNoResource())
-			.SetHovered(BORDER_BRUSH( "Old/HyperlinkUnderline", FMargin(0,0,0,3/16.0f), FSlateColor::UseForeground()));
+			.SetHovered(BORDER_BRUSH( "Old/HyperlinkUnderline", FMargin(0,0,0,3/16.0f), HyperlinkColor ) );
 
 	// Documentation
 	{
