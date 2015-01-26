@@ -33,6 +33,11 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
+	UActorComponent();
+
+	/**
+	 * UObject constructor that takes an ObjectInitializer
+	 */
 	UActorComponent(const FObjectInitializer& ObjectInitializer);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

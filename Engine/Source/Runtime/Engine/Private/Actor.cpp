@@ -45,8 +45,7 @@ FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(
 FOnProcessEvent AActor::ProcessEventDelegate;
 #endif
 
-AActor::AActor(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+AActor::AActor()
 {
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
@@ -85,6 +84,13 @@ AActor::AActor(const FObjectInitializer& ObjectInitializer)
 	AnimUpdateRateShiftTag = 0;
 	AnimUpdateRateFrameCount = 0;
 }
+
+
+AActor::AActor(const FObjectInitializer& ObjectInitializer)
+	: AActor()	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
+{
+}
+
 
 // Global counter to spread SkinnedMeshComponent tick updates.
 static uint32 SkinnedMeshUpdateRateGroupCount = 0;
