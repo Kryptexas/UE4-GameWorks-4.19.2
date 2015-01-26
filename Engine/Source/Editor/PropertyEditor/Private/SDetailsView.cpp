@@ -257,7 +257,7 @@ FReply SDetailsView::OnOpenRawPropertyEditorClicked()
 
 EVisibility SDetailsView::GetActorNameAreaVisibility() const
 {
-	const bool bVisible = !DetailsViewArgs.NameAreaSettings == FDetailsViewArgs::HideNameArea && !bViewingClassDefaultObject;
+	const bool bVisible = DetailsViewArgs.NameAreaSettings != FDetailsViewArgs::HideNameArea && !bViewingClassDefaultObject;
 	return bVisible ? EVisibility::Visible : EVisibility::Collapsed; 
 }
 
