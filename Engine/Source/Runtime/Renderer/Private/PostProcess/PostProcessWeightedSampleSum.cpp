@@ -466,8 +466,8 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		bRequiresClear = false;
 	}
 
-	FIntRect SrcRect =  View.ViewRect / SrcScaleFactor;
-	FIntRect DestRect = View.ViewRect / DstScaleFactor;
+	FIntRect SrcRect =  FIntRect::DivideAndRoundUp(View.ViewRect, SrcScaleFactor);
+	FIntRect DestRect = FIntRect::DivideAndRoundUp(View.ViewRect, DstScaleFactor);
 
 	DrawQuad(Context.RHICmdList, bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
 

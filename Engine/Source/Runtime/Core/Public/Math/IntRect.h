@@ -276,6 +276,7 @@ public:
 	 * @return New divided rectangle.
 	 */
 	static FIntRect DivideAndRoundUp( FIntRect lhs, int32 Div );
+	static FIntRect DivideAndRoundUp( FIntRect lhs, FIntPoint Div );
 
 	/**
 	 * Gets number of points in the Rectangle.
@@ -456,9 +457,13 @@ FORCEINLINE bool FIntRect::Contains( FIntPoint P ) const
 
 FORCEINLINE FIntRect FIntRect::DivideAndRoundUp( FIntRect lhs, int32 Div )
 {
-	return FIntRect(lhs.Min / Div, FIntPoint::DivideAndRoundUp(lhs.Max, Div));
+	return DivideAndRoundUp(lhs, FIntPoint(Div, Div));
 }
 
+FORCEINLINE FIntRect FIntRect::DivideAndRoundUp( FIntRect lhs, FIntPoint Div )
+{
+	return FIntRect(lhs.Min / Div, FIntPoint::DivideAndRoundUp(lhs.Max, Div));
+}
 
 FORCEINLINE void FIntRect::GetCenterAndExtents( FIntPoint& OutCenter, FIntPoint& OutExtent ) const
 {
