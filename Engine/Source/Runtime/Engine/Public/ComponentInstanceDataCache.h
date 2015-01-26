@@ -54,11 +54,13 @@ public:
 	void ApplyToActor(AActor* Actor) const;
 
 	/** Iterates over components and replaces any object references with the reinstanced information */
-	void FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap) const;
+	void FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap);
 
 	bool HasInstanceData() const { return TypeToDataMap.Num() > 0; }
 
 private:
 	/** Map of data type name to data of that type */
 	TMultiMap< FName, FComponentInstanceDataBase* >	TypeToDataMap;
+
+	TMap< USceneComponent*, FTransform > InstanceComponentTransformToRootMap;
 };
