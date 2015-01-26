@@ -210,6 +210,13 @@ float USplineComponent::GetSegmentParamFromLength(const int32 Index, const float
 
 void USplineComponent::SetClosedLoop(bool bInClosedLoop)
 {
+	UpdateLoopEndpoint(bInClosedLoop);
+	UpdateSpline();
+}
+
+
+void USplineComponent::UpdateLoopEndpoint(bool bInClosedLoop)
+{
 	if (bClosedLoop != bInClosedLoop)
 	{
 		bClosedLoop = bInClosedLoop;
@@ -257,6 +264,22 @@ void USplineComponent::AddLoopEndpoint()
 }
 
 
+void USplineComponent::SetUnselectedSplineSegmentColor(const FLinearColor& Color)
+{
+#if WITH_EDITOR
+	EditorUnselectedSplineSegmentColor = Color;
+#endif
+}
+
+
+void USplineComponent::SetSelectedSplineSegmentColor(const FLinearColor& Color)
+{
+#if WITH_EDITOR
+	EditorSelectedSplineSegmentColor = Color;
+#endif
+}
+
+
 void USplineComponent::ClearSplinePoints()
 {
 	SplineInfo.Reset();
@@ -268,14 +291,14 @@ void USplineComponent::AddSplineWorldPoint(const FVector& Position)
 {
 	// If it's a closed loop, remove the endpoint before adding a new point
 	const bool bWasLoop = IsClosedLoop();
-	SetClosedLoop(false);
+	UpdateLoopEndpoint(false);
 
 	float InputKey = static_cast<float>(SplineInfo.Points.Num());
 	const int32 PointIndex = SplineInfo.AddPoint(InputKey, ComponentToWorld.InverseTransformPosition(Position));
 	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
 
 	// Then re-close the spline if required
-	SetClosedLoop(bWasLoop);
+	UpdateLoopEndpoint(bWasLoop);
 
 	UpdateSpline();
 }
@@ -285,14 +308,14 @@ void USplineComponent::AddSplineLocalPoint(const FVector& Position)
 {
 	// If it's a closed loop, remove the endpoint before adding a new point
 	const bool bWasLoop = IsClosedLoop();
-	SetClosedLoop(false);
+	UpdateLoopEndpoint(false);
 
 	float InputKey = static_cast<float>(SplineInfo.Points.Num());
 	const int32 PointIndex = SplineInfo.AddPoint(InputKey, Position);
 	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
 
 	// Then re-close the spline if required
-	SetClosedLoop(bWasLoop);
+	UpdateLoopEndpoint(bWasLoop);
 
 	UpdateSpline();
 }
@@ -302,7 +325,7 @@ void USplineComponent::SetSplineWorldPoints(const TArray<FVector>& Points)
 {
 	// If it's a closed loop, mark it as not closed before setting a new array of points
 	const bool bWasLoop = IsClosedLoop();
-	SetClosedLoop(false);
+	UpdateLoopEndpoint(false);
 
 	SplineInfo.Points.Reset(bWasLoop ? Points.Num() + 1 : Points.Num());
 	float InputKey = 0.0f;
@@ -313,7 +336,7 @@ void USplineComponent::SetSplineWorldPoints(const TArray<FVector>& Points)
 		InputKey += 1.0f;
 	}
 
-	SetClosedLoop(bWasLoop);
+	UpdateLoopEndpoint(bWasLoop);
 
 	UpdateSpline();
 }
@@ -322,7 +345,7 @@ void USplineComponent::SetSplineWorldPoints(const TArray<FVector>& Points)
 void USplineComponent::SetSplineLocalPoints(const TArray<FVector>& Points)
 {
 	const bool bWasLoop = IsClosedLoop();
-	SetClosedLoop(false);
+	UpdateLoopEndpoint(false);
 
 	SplineInfo.Points.Reset(bWasLoop ? Points.Num() + 1 : Points.Num());
 	float InputKey = 0.0f;
@@ -333,7 +356,7 @@ void USplineComponent::SetSplineLocalPoints(const TArray<FVector>& Points)
 		InputKey += 1.0f;
 	}
 
-	SetClosedLoop(bWasLoop);
+	UpdateLoopEndpoint(bWasLoop);
 
 	UpdateSpline();
 }
