@@ -342,6 +342,9 @@ public:
 	/** Scan the matinee data for camera cuts and sets up the CameraCut array. */
 	void SetupCameraCuts();
 
+	/** Used when setting up the camera cuts to make sure the parent is updated. */
+	void UpdateInterpForParentMovementTracks( float Time, UInterpGroupInst* ViewGroupInst );
+
 	/** Disable the radio filter effect if "Disable Radio Filter" is checked. */
 	void DisableRadioFilterIfNeeded();
 
