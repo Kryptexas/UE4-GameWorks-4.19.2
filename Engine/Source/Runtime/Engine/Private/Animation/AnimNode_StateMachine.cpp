@@ -8,21 +8,6 @@
 #include "AnimTree.h"
 
 //////////////////////////////////////////////////////////////////////////
-
-template<typename NodeType> 
-NodeType* GetNodeFromPropertyIndex(UAnimInstance* AnimInstance, const UAnimBlueprintGeneratedClass* AnimBlueprintClass, int32 PropertyIndex)
-{
-	if( PropertyIndex != INDEX_NONE )
-	{
-		UStructProperty* NodeProperty = AnimBlueprintClass->AnimNodeProperties[AnimBlueprintClass->AnimNodeProperties.Num() - 1 - PropertyIndex]; //@TODO: Crazysauce
-		check(NodeProperty->Struct == NodeType::StaticStruct());
-		return NodeProperty->ContainerPtrToValuePtr<NodeType>(AnimInstance);
-	}
-
-	return NULL;
-}
-
-//////////////////////////////////////////////////////////////////////////
 // FAnimationActiveTransitionEntry
 
 FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry()
@@ -317,24 +302,19 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 				Context.AnimInstance->AddAnimNotifyFromGeneratedClass(ActiveTransitionArray[ActiveTransitionArray.Num()-1].InterruptNotify);
 			}
 
-			const int32 PreviousStateIndex = CurrentState;
-			const int32 NextStateIndex = PotentialTransition.TargetState;
+			const int32 PreviousState = CurrentState;
+			const int32 NextState = PotentialTransition.TargetState;
 
 			// Fire off Notifies for state transition
-			const FBakedAnimationState& PreviousState = GetStateInfo(PreviousStateIndex);
-			Context.AnimInstance->NativeStateEnd(PRIVATE_MachineDescription->MachineName, PreviousState.StateName);
-			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(PreviousState.EndNotify);
-
-			const FBakedAnimationState& NextState = GetStateInfo(PreviousStateIndex);
-			Context.AnimInstance->NativeStateStart(PRIVATE_MachineDescription->MachineName, NextState.StateName);
-			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(NextState.StartNotify);
+			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(GetStateInfo(PreviousState).EndNotify);
+			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(GetStateInfo(NextState).StartNotify);
 			
 			// Get the current weight of the next state, which may be non-zero
-			const float ExistingWeightOfNextState = GetStateWeight(NextStateIndex);
+			const float ExistingWeightOfNextState = GetStateWeight(NextState);
 
 			// Push the transition onto the stack
 			const FAnimationTransitionBetweenStates& ReferenceTransition = GetTransitionInfo(PotentialTransition.TransitionRule->TransitionIndex);
-			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextStateIndex, ExistingWeightOfNextState, PreviousStateIndex, ReferenceTransition);
+			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextState, ExistingWeightOfNextState, PreviousState, ReferenceTransition);
 			NewTransition->InitializeCustomGraphLinks(Context, *(PotentialTransition.TransitionRule));
 
 #if WITH_EDITORONLY_DATA
@@ -343,7 +323,7 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 
 			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(NewTransition->StartNotify);
 			
-			SetState(Context, NextStateIndex);
+			SetState(Context, NextState);
 
 			TransitionCountThisFrame++;
 		}
@@ -446,8 +426,18 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 
 		FAnimNode_TransitionResult* ResultNode = GetNodeFromPropertyIndex<FAnimNode_TransitionResult>(Context.AnimInstance, AnimBlueprintClass, TransitionRule.CanTakeDelegateIndex);
 
+		// reset transition flag (this would be always set if we had a bound graph, but if we only have a delegate it will not)
+		ResultNode->bCanEnterTransition = false;
+
 		// Execute it and see if we can take this rule
 		ResultNode->EvaluateGraphExposedInputs.Execute(Context);
+
+		// attempt to evaluate native rule
+		if(ResultNode->NativeTransitionDelegate.IsBound())
+		{
+			ResultNode->bCanEnterTransition |= ResultNode->NativeTransitionDelegate.Execute();
+		}
+
 		if (ResultNode->bCanEnterTransition == TransitionRule.bDesiredTransitionReturnValue)
 		{
 			int32 NextState = GetTransitionInfo(TransitionRule.TransitionIndex).NextState;
@@ -747,6 +737,12 @@ void FAnimNode_StateMachine::SetState(const FAnimationBaseContext& Context, int3
 {
 	if (NewStateIndex != CurrentState)
 	{
+		const int32 PrevStateIndex = CurrentState;
+		if(CurrentState != INDEX_NONE && CurrentState < OnGraphStatesEntered.Num())
+		{
+			OnGraphStatesEntered[CurrentState].ExecuteIfBound(*this, CurrentState, NewStateIndex);
+		}
+
 		// Determine if the new state is active or not
 		const bool bAlreadyActive = GetStateWeight(NewStateIndex) > 0.0f;
 
@@ -761,6 +757,11 @@ void FAnimNode_StateMachine::SetState(const FAnimationBaseContext& Context, int3
 			// Also update BoneCaching.
 			FAnimationCacheBonesContext CacheBoneContext(Context.AnimInstance);
 			StatePoseLinks[NewStateIndex].CacheBones(CacheBoneContext);
+		}
+
+		if(CurrentState != INDEX_NONE && CurrentState < OnGraphStatesExited.Num())
+		{
+			OnGraphStatesExited[CurrentState].ExecuteIfBound(*this, PrevStateIndex, CurrentState);
 		}
 	}
 }

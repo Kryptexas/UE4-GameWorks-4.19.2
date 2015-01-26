@@ -6,6 +6,7 @@
 #include "AnimSequence.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SkinnedMeshComponent.h"
+#include "AnimStateMachineTypes.h"
 #include "AnimInstance.generated.h"
 
 struct FAnimMontageInstance;
@@ -45,6 +46,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageEndedMCDelegate, UAnimMon
 * bInterrupted = true if it was not property finished
 */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageBlendingOutStartedMCDelegate, UAnimMontage*, Montage, bool, bInterrupted);
+
+/** Delegate that native code can hook to to provide additional transition logic */
+DECLARE_DELEGATE_RetVal(bool, FCanTakeTransition);
+
+/** Delegate that native code can hook into to handle state entry/exit */
+DECLARE_DELEGATE_ThreeParams(FOnGraphStateChanged, const struct FAnimNode_StateMachine& /*Machine*/, int32 /*PrevStateIndex*/, int32 /*NextStateIndex*/);
 
 /** Enum for controlling which reference frame a controller is applied in. */
 UENUM()
@@ -247,6 +254,51 @@ struct FSlotEvaluationPose
 	{
 	}
 };
+
+/** Binding allowing native transition rule evaluation */
+struct FNativeTransitionBinding
+{
+	/** State machine to bind to */
+	FName MachineName;
+
+	/** Previous state the transition comes from */
+	FName PreviousStateName;
+
+	/** Next state the transition goes to */
+	FName NextStateName;
+
+	/** Delegate to use when checking transition */
+	FCanTakeTransition NativeTransitionDelegate;
+
+	FNativeTransitionBinding(const FName& InMachineName, const FName& InPreviousStateName, const FName& InNextStateName, const FCanTakeTransition& InNativeTransitionDelegate)
+		: MachineName(InMachineName)
+		, PreviousStateName(InPreviousStateName)
+		, NextStateName(InNextStateName)
+		, NativeTransitionDelegate(InNativeTransitionDelegate)
+	{
+	}
+};
+
+/** Binding allowing native notification of state changes */
+struct FNativeStateBinding
+{
+	/** State machine to bind to */
+	FName MachineName;
+
+	/** State to bind to */
+	FName StateName;
+
+	/** Delegate to use when checking transition */
+	FOnGraphStateChanged NativeStateDelegate;
+
+	FNativeStateBinding(const FName& InMachineName, const FName& InStateName, const FOnGraphStateChanged& InNativeStateDelegate)
+		: MachineName(InMachineName)
+		, StateName(InStateName)
+		, NativeStateDelegate(InNativeStateDelegate)
+	{
+	}
+};
+
 
 UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
@@ -579,11 +631,24 @@ public:
 	// Note: the node graph will not be evaluated if this function returns true
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output);
 
-	// Called back from the anim graph when a state is entered
-	virtual void NativeStateStart(const FName& MachineName, const FName& StateName);
+	// Sets up a native transition delegate between states with PrevStateName and NextStateName, in the state machine with name MachineName.
+	// Note that a transition already has to exist for this to succeed
+	void AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate);
 
-	// Called back from the anim graph when a state is exited
-	virtual void NativeStateEnd(const FName& MachineName, const FName& StateName);
+	// Check for whether a native rule is bound to the specified transition
+	bool HasNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, FName& OutBindingName);
+
+	// Sets up a native state entry delegate from state with StateName, in the state machine with name MachineName.
+	void AddNativeStateEntryBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeEnteredDelegate);
+	
+	// Check for whether a native entry delegate is bound to the specified state
+	bool HasNativeStateEntryBinding(const FName& MachineName, const FName& StateName, FName& OutBindingName);
+
+	// Sets up a native state exit delegate from state with StateName, in the state machine with name MachineName.
+	void AddNativeStateExitBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeExitedDelegate);
+
+	// Check for whether a native exit delegate is bound to the specified state
+	bool HasNativeStateExitBinding(const FName& MachineName, const FName& StateName, FName& OutBindingName);
 
 	// Debug output for this anim instance 
 	void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
@@ -684,5 +749,19 @@ private:
 
 	// Root motion extracted from animation since the last time ConsumeExtractedRootMotion was called
 	FRootMotionMovementParams ExtractedRootMotion;
+
+	// Native bindings
+private:
+	/** Bind any native delegates that we have set up */
+	void BindNativeDelegates();
+
+	/** Native transition rules */
+	TArray<FNativeTransitionBinding> NativeTransitionBindings;
+
+	/** Native state entry bindings */
+	TArray<FNativeStateBinding> NativeStateEntryBindings;
+
+	/** Native state exit bindings */
+	TArray<FNativeStateBinding> NativeStateExitBindings;
 };
 

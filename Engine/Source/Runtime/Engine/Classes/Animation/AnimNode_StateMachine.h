@@ -149,6 +149,12 @@ protected:
 	// Used during transitions to make sure we don't double tick a state if it appears multiple times
 	TArray<int32> StatesUpdated;
 
+	// Delegates that native code can hook into to handle state entry
+	TArray<FOnGraphStateChanged> OnGraphStatesEntered;
+
+	// Delegates that native code can hook into to handle state exits
+	TArray<FOnGraphStateChanged> OnGraphStatesExited;
+
 private:
 	// true if it is the first update.
 	bool bFirstUpdate;
@@ -206,4 +212,7 @@ protected:
 	// transition type evaluation functions
 	void EvaluateTransitionStandardBlend(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, bool bIntermediatePoseIsValid);
 	void EvaluateTransitionCustomBlend(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, bool bIntermediatePoseIsValid);
+
+public:
+	friend class UAnimInstance;
 };
