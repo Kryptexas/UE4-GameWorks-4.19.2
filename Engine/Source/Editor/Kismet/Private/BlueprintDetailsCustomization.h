@@ -351,10 +351,10 @@ private:
 
 private:
 	/** Determines if this pin should not be editable */
-	bool ShouldPinBeReadOnly() const;
+	bool ShouldPinBeReadOnly(bool bIsEditingPinType = false) const;
 	
 	/** Determines if editing the pins on the node should be read only */
-	bool IsPinEditingReadOnly() const;
+	bool IsPinEditingReadOnly(bool bIsEditingPinType = false) const;
 
 	/** Callbacks for all the functionality for modifying arguments */
 	void OnRemoveClicked();
