@@ -98,7 +98,7 @@ public:
 	UBlueprint* GetBlueprintObj() const {return Blueprint;}
 
 	/** Gets whether we are showing user variables only or not */
-	bool ShowUserVarsOnly() const {return bShowUserVarsOnly;}
+	bool ShowUserVarsOnly() const { return !IsShowingInheritedVariables(); }
 
 	/** Gets our parent blueprint editor */
 	TWeakPtr<FBlueprintEditor> GetBlueprintEditor() {return BlueprintEditorPtr;}
@@ -135,6 +135,7 @@ private:
 
 	/** Callback used to populate all actions list in SGraphActionMenu */
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
+	void CollectStaticSections(TArray<int32>& StaticSectionIDs);
 	void GetChildGraphs(UEdGraph* EdGraph, FGraphActionListBuilderBase& OutAllActions, FString ParentCategory = FString());
 	void GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions) const;
 	void GetLocalVariables(FGraphActionListBuilderBase& OutAllActions) const;
@@ -152,13 +153,23 @@ private:
 	void OnActionDoubleClicked(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	TSharedPtr<SWidget> OnContextMenuOpening();
 
+	TSharedRef<SWidget> CreateAddNewMenuWidget();
+	void BuildAddNewMenu(FMenuBuilder& MenuBuilder);
+
 	void OnCategoryNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit, TWeakPtr< struct FGraphActionNode > InAction );
 	bool CanRequestRenameOnActionNode(TWeakPtr<struct FGraphActionNode> InSelectedNode) const;
 	FText OnGetSectionTitle( int32 InSectionID );
+	TSharedRef<SWidget> OnGetSectionWidget( TSharedRef<SWidget> RowWidget, int32 InSectionID );
+	EVisibility OnGetSectionTextVisibility(TWeakPtr<SWidget> RowWidget) const;
+	FReply OnAddButtonClickedOnSection(int32 InSectionID);
 
 	/** Support functions for checkbox to manage displaying user variables only */
-	ECheckBoxState OnUserVarsCheckState() const;
-	void OnUserVarsCheckStateChanged(ECheckBoxState InNewState);
+	bool IsShowingInheritedVariables() const;
+	void OnToggleShowInheritedVariables();
+
+	/** Support functions for view options for Show Empty Sections */
+	void OnToggleShowEmptySections();
+	bool IsShowingEmptySections() const;
 	
 	/** Helper function to open the selected graph */
 	void OpenGraph(FDocumentTracker::EOpenDocumentCause InCause);
@@ -215,9 +226,6 @@ private:
 
 	/** Graph Action Menu for displaying all local variables */
 	TSharedPtr<class SGraphActionMenu> LocalGraphActionMenu;
-
-	/** Whether or not we're only showing user-created variables */
-	bool bShowUserVarsOnly;
 
 	/** The last pin type used (including the function editor last pin type) */
 	FEdGraphPinType LastPinType;

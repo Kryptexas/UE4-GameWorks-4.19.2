@@ -223,6 +223,8 @@ EVisibility SSCSEditorViewport::GetWidgetVisibility() const
 
 TSharedRef<FEditorViewportClient> SSCSEditorViewport::MakeEditorViewportClient()
 {
+	FPreviewScene* PreviewScene = BlueprintEditorPtr.Pin()->GetPreviewScene();
+
 	// Construct a new viewport client instance.
 	ViewportClient = MakeShareable(new FSCSEditorViewportClient(BlueprintEditorPtr, PreviewScene, SharedThis(this)));
 	ViewportClient->SetRealtime(true);
@@ -353,9 +355,4 @@ EActiveTimerReturnType SSCSEditorViewport::DeferredUpdatePreview(double InCurren
 
 	bIsActiveTimerRegistered = false;
 	return EActiveTimerReturnType::Stop;
-}
-
-AActor* SSCSEditorViewport::GetPreviewActor() const
-{
-	return ViewportClient->GetPreviewActor();
 }

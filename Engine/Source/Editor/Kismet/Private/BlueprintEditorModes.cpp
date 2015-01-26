@@ -43,7 +43,7 @@ const FName FBlueprintEditorApplicationModes::BlueprintMacroMode( TEXT("MacroNam
 
 TSharedPtr<FTabManager::FLayout> GetDefaltEditorLayout(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
 {
-	return FTabManager::NewLayout( "Standalone_BlueprintEditor_Layout_v5" )
+	return FTabManager::NewLayout( "Standalone_BlueprintEditor_Layout_v6" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)

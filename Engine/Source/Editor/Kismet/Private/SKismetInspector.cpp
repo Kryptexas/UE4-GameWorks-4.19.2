@@ -104,6 +104,16 @@ TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismet
 	return ContextualEditingWidget;
 }
 
+void SKismetInspector::SetOwnerTab(TSharedRef<SDockTab> Tab)
+{
+	OwnerTab = Tab;
+}
+
+TSharedPtr<SDockTab> SKismetInspector::GetOwnerTab() const
+{
+	return OwnerTab.Pin();
+}
+
 FText SKismetInspector::GetContextualEditingWidgetTitle() const
 {
 	FText Title = PropertyViewTitle;

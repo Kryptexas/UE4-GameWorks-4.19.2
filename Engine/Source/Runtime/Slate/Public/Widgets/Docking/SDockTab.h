@@ -96,7 +96,8 @@ public:
 
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 
-	void SetContent( TSharedRef<SWidget> InContent );
+	virtual void SetContent(TSharedRef<SWidget> InContent) override;
+
 	void SetLeftContent( TSharedRef<SWidget> InContent );
 	void SetRightContent( TSharedRef<SWidget> InContent );
 

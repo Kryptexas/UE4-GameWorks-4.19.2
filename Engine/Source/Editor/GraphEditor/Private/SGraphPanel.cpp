@@ -906,12 +906,7 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 
 		FActionMenuContent FocusedContent = OnGetContextMenuFor.Execute(SpawnInfo);
 
-		TSharedRef<SWidget> MenuContent =
-			SNew( SBorder )
-			.BorderImage( FEditorStyle::GetBrush("Menu.Background") )
-			[
-				FocusedContent.Content
-			];
+		TSharedRef<SWidget> MenuContent = FocusedContent.Content;
 		
 		FSlateApplication::Get().PushMenu(
 			AsShared(),

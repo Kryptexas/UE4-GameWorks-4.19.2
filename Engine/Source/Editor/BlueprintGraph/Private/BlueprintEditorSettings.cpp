@@ -18,6 +18,8 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	, bFavorPureCastNodes(false)
 	, bAutoCastObjectConnections(false)
 	, bUseLegacyMenuingSystem(false)
+	, bShowInheritedVariables(false)
+	, bShowEmptySections(true)
 	// Compiler Settings
 	, SaveOnCompile(SoC_Never)
 	, bJumpToNodeErrors(false)
