@@ -89,6 +89,11 @@ void FGraphEditorDragDropAction::Construct()
 	HoverTargetChanged();
 }
 
+bool FGraphEditorDragDropAction::HasFeedbackMessage()
+{
+	return CursorDecoratorWindow->GetContent() != SNullWidget::NullWidget;
+}
+
 void FGraphEditorDragDropAction::SetFeedbackMessage(const TSharedPtr<SWidget>& Message)
 {
 	if (Message.IsValid())
