@@ -218,7 +218,7 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 		MenuBuilder.BeginSection( "ContentBrowserGetContent", LOCTEXT( "GetContentMenuHeading", "Content" ) );
 		{
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT( "GetContentText", "Add feature or content pack..." ),
+				LOCTEXT( "GetContentText", "Add Feature or Content Pack..." ),
 				LOCTEXT( "GetContentTooltip", "Add features and content packs to the project." ),
 				FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.AddContent" ),
 				FUIAction(
