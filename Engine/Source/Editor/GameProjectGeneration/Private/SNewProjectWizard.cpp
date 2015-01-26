@@ -44,10 +44,9 @@ struct FTemplateItem
 
 	FString		ClassTypes;
 	FString		AssetTypes;
-	bool		bHasFeaturePack;
-	FTemplateItem(FText InName, FText InDescription, bool bInGenerateCode, FName InType, FString InSortKey, FString InProjectFile, TSharedPtr<FSlateBrush> InThumbnail, TSharedPtr<FSlateBrush> InPreviewImage,FString InClassTypes, FString InAssetTypes, bool InHasFeaturePack)
+	FTemplateItem(FText InName, FText InDescription, bool bInGenerateCode, FName InType, FString InSortKey, FString InProjectFile, TSharedPtr<FSlateBrush> InThumbnail, TSharedPtr<FSlateBrush> InPreviewImage,FString InClassTypes, FString InAssetTypes)
 		: Name(InName), Description(InDescription), bGenerateCode(bInGenerateCode), Type(InType), SortKey(MoveTemp(InSortKey)), ProjectFile(MoveTemp(InProjectFile)), Thumbnail(InThumbnail), PreviewImage(InPreviewImage)
-		, ClassTypes(InClassTypes), AssetTypes(InAssetTypes), bHasFeaturePack(InHasFeaturePack)
+		, ClassTypes(InClassTypes), AssetTypes(InAssetTypes)
 	{}
 };
 
@@ -1133,8 +1132,7 @@ void SNewProjectWizard::FindTemplateProjects()
 		MakeShareable( new FSlateBrush( *FEditorStyle::GetBrush("GameProjectDialog.BlankProjectThumbnail") ) ),
 		MakeShareable( new FSlateBrush( *FEditorStyle::GetBrush("GameProjectDialog.BlankProjectPreview") ) ),
 		TEXT(""),		// No class types
-		TEXT(""),		// No asset types,
-		false			// No equivalent feature pack
+		TEXT("")		// No asset types
 		)) );
 
 	Templates.FindOrAdd(FTemplateCategory::CodeCategoryName).Add(MakeShareable(new FTemplateItem(
@@ -1146,8 +1144,7 @@ void SNewProjectWizard::FindTemplateProjects()
 		MakeShareable( new FSlateBrush( *FEditorStyle::GetBrush("GameProjectDialog.BasicCodeThumbnail") ) ),
 		MakeShareable( new FSlateBrush( *FEditorStyle::GetBrush("GameProjectDialog.BlankProjectPreview") ) ),
 		TEXT(""),		// No class types
-		TEXT(""),		// No asset types
-		false			// No equivalent feature pack
+		TEXT("")		// No asset types
 		)) );
 
 	// Now discover and all data driven templates
@@ -1206,8 +1203,7 @@ void SNewProjectWizard::FindTemplateProjects()
 					FText TemplateDescription = TemplateDefs->GetLocalizedDescription();
 					FString ClassTypes = TemplateDefs->ClassTypes;
 					FString AssetTypes = TemplateDefs->AssetTypes;
-					bool bHasFeaturePack = TemplateDefs->bHasFeaturePack;
-
+					
 					// If no template name was specified for the current culture, just use the project name
 					if ( TemplateName.IsEmpty() )
 					{
@@ -1261,8 +1257,7 @@ void SNewProjectWizard::FindTemplateProjects()
 						ThumbnailBrush,
 						PreviewBrush,
 						ClassTypes,
-						AssetTypes,
-						bHasFeaturePack
+						AssetTypes
 					)));
 				}
 			}
