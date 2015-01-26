@@ -2883,11 +2883,24 @@ void ULinkerLoad::Preload( UObject* Object )
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 						// since class serialization reads in the class's CDO, 
 						// then we can be certain that the CDO export object 
-						// exists (and DeferredExportIndex should reference it)
-						// ... FinalizeBlueprint() depends on this (and since 
-						// ResolveDeferredDependencies() can be recursive, we 
-						// check it out here, before it is called)
-						check((DeferredExportIndex != INDEX_NONE) || FBlueprintSupport::IsDeferredCDOSerializationDisabled());
+						// exists (and DeferredExportIndex should reference it);
+						// FinalizeBlueprint() depends on this (and since 
+						// ResolveDeferredDependencies() can recurse into 
+						// FinalizeBlueprint(), we check it here, before the
+						// resolve is handled)
+						//
+						// however, sometimes DeferredExportIndex doesn't get
+						// set at all, and that happens when the class's 
+						// ClassGeneratedBy is serialized in null... this would 
+						// normally be a problem in the editor (we don't end up
+						// regenerating the class), but if we're running the 
+						// game (in PIE or elsewhere) it shouldn't be a concern 
+						// (if it makes you feel better: with the old way of 
+						// doing things, in CreateExport(), you can see that 
+						// the class wouldn't be regenerated there either)... in
+						// this scenario FinalizeBlueprint() essentially does nothing
+						// @TODO: maybe only allow a null ClassGeneratedBy when PIE'ing/running a game?
+						check((DeferredExportIndex != INDEX_NONE) || (ObjectAsClass->ClassGeneratedBy == nullptr) || FBlueprintSupport::IsDeferredCDOSerializationDisabled());
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 						ResolveDeferredDependencies(ObjectAsClass);
@@ -2903,7 +2916,7 @@ void ULinkerLoad::Preload( UObject* Object )
 					{
 						UE_LOG(LogLinker, Warning, TEXT("%s"), *FString::Printf( TEXT("%s: Serial size mismatch: Got %d, Expected %d"), *Object->GetFullName(), (int32)(Tell()-Export.SerialOffset), Export.SerialSize ) );
 					}
-					else //if (!Object->HasAnyFlags(RF_ClassDefaultObject) || (LoadFlags & LOAD_DeferDependencyLoads) == 0)
+					else
 					{
 						UE_LOG(LogLinker, Fatal, TEXT("%s"), *FString::Printf( TEXT("%s: Serial size mismatch: Got %d, Expected %d"), *Object->GetFullName(), (int32)(Tell()-Export.SerialOffset), Export.SerialSize ) );
 					}
@@ -3062,6 +3075,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		{
 			LoadClass = UClass::StaticClass();
 		}
+
 		UObjectRedirector* LoadClassRedirector = dynamic_cast<UObjectRedirector*>(LoadClass);
 		if( LoadClassRedirector)
 		{
