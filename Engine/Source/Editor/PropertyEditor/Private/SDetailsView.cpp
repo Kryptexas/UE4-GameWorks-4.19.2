@@ -257,7 +257,7 @@ FReply SDetailsView::OnOpenRawPropertyEditorClicked()
 
 EVisibility SDetailsView::GetActorNameAreaVisibility() const
 {
-	const bool bVisible = !DetailsViewArgs.bHideActorNameArea && !bViewingClassDefaultObject;
+	const bool bVisible = !DetailsViewArgs.NameAreaSettings == FDetailsViewArgs::HideNameArea && !bViewingClassDefaultObject;
 	return bVisible ? EVisibility::Visible : EVisibility::Collapsed; 
 }
 
@@ -420,13 +420,13 @@ void SDetailsView::SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject 
 	}
 
 	// Selection changed, refresh the detail area
-	if ( DetailsViewArgs.bObjectsUseNameArea )
+	if ( DetailsViewArgs.NameAreaSettings != FDetailsViewArgs::ActorsUseNameArea && DetailsViewArgs.NameAreaSettings != FDetailsViewArgs::ComponentsAndActorsUseNameArea )
 	{
 		NameArea->Refresh( SelectedObjects );
 	}
 	else
 	{
-		NameArea->Refresh( SelectedActors );
+		NameArea->Refresh( SelectedActors, SelectedObjects, DetailsViewArgs.NameAreaSettings );
 	}
 	
 	// When selection changes rebuild information about the selection

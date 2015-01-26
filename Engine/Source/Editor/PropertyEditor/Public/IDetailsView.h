@@ -9,22 +9,31 @@
  */
 struct FDetailsViewArgs
 {
+	enum ENameAreaSettings
+	{
+		/** The name area should never be displayed */
+		HideNameArea,
+		/** All object types use name area */
+		ObjectsUseNameArea,
+		/** Only Actors use name area */
+		ActorsUseNameArea,
+		/** Components and actors use the name area. Components will display their actor owner as the name */
+		ComponentsAndActorsUseNameArea,
+	};
 	/** Identifier for this details view; NAME_None if this view is anonymous */
 	FName ViewIdentifier;
 	/** Notify hook to call when properties are changed */
 	FNotifyHook* NotifyHook;
+	/** Settings for displaying the name area */
+	ENameAreaSettings NameAreaSettings;
 	/** True if the viewed objects updates from editor selection */
 	uint32 bUpdatesFromSelection : 1;
 	/** True if this property view can be locked */
 	uint32 bLockable : 1;
 	/** True if we allow searching */
 	uint32 bAllowSearch : 1;
-	/** True if object selection wants to use the name area */
-	uint32 bObjectsUseNameArea : 1;
 	/** True if you want to not show the tip when no objects are selected (should only be used if viewing actors properties or bObjectsUseNameArea is true ) */
 	uint32 bHideSelectionTip : 1;
-	/** True if you want to hide the object/objects selected info area */
-	uint32 bHideActorNameArea : 1;
 	/** True if you want the search box to have initial keyboard focus */
 	uint32 bSearchInitialKeyFocus : 1;
 	/** Allow options to be changed */
@@ -43,19 +52,18 @@ struct FDetailsViewArgs
 	FDetailsViewArgs( const bool InUpdateFromSelection = false
 					, const bool InLockable = false
 					, const bool InAllowSearch = true
-					, const bool InObjectsUseNameArea = false
+					, const ENameAreaSettings InNameAreaSettings = ActorsUseNameArea
 					, const bool InHideSelectionTip = false
 					, FNotifyHook* InNotifyHook = NULL
 					, const bool InSearchInitialKeyFocus = false
 					, FName InViewIdentifier = NAME_None )
 		: ViewIdentifier( InViewIdentifier )
-		, NotifyHook( InNotifyHook ) 
+		, NotifyHook( InNotifyHook )
+		, NameAreaSettings( InNameAreaSettings )
 		, bUpdatesFromSelection( InUpdateFromSelection )
 		, bLockable(InLockable)
 		, bAllowSearch( InAllowSearch )
-		, bObjectsUseNameArea( InObjectsUseNameArea )
 		, bHideSelectionTip( InHideSelectionTip )
-		, bHideActorNameArea( false )
 		, bSearchInitialKeyFocus( InSearchInitialKeyFocus )
 		, bShowOptions( true )
 		, bShowModifiedPropertiesOption(true)

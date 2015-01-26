@@ -62,7 +62,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	// Create the details panels for the clustering tab.
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	const FDetailsViewArgs DetailsViewArgs(false, false, true, false, true, this);
+	const FDetailsViewArgs DetailsViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true, this);
 	ClusterSettingsDetails = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
 	ClusterSettingsDetails->RegisterInstancedCustomPropertyLayout(UFoliageType::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&EmptyCustomization::MakeInstance));
 

@@ -16,7 +16,6 @@ void SDetailNameArea::Construct( const FArguments& InArgs, const TArray< TWeakOb
 	SelectionTip = InArgs._SelectionTip;
 	bShowLockButton = InArgs._ShowLockButton;
 	bShowActorLabel = InArgs._ShowActorLabel;
-	Refresh( *SelectedObjects );
 }
 
 void SDetailNameArea::Refresh( const TArray< TWeakObjectPtr<UObject> >& SelectedObjects )
@@ -27,17 +26,41 @@ void SDetailNameArea::Refresh( const TArray< TWeakObjectPtr<UObject> >& Selected
 	];
 }
 
-void SDetailNameArea::Refresh( const TArray< TWeakObjectPtr<AActor> >& SelectedActors )
+void SDetailNameArea::Refresh( const TArray< TWeakObjectPtr<AActor> >& SelectedActors, const TArray< TWeakObjectPtr<UObject> >& SelectedObjects, FDetailsViewArgs::ENameAreaSettings NameAreaSettings  )
 {
 	// Convert the actor array to base object type
-	TArray< TWeakObjectPtr<UObject> > SelectedObjects;
-	for( int32 ActorIndex = 0 ; ActorIndex < SelectedActors.Num() ; ++ActorIndex )
-	{
-		const TWeakObjectPtr<UObject> ObjectWeakPtr = SelectedActors[ActorIndex].Get();
-		SelectedObjects.Add( ObjectWeakPtr );
-	}
 
-	Refresh( SelectedObjects );
+	TArray< TWeakObjectPtr<UObject> > FinalSelectedObjects;
+	if(NameAreaSettings == FDetailsViewArgs::ActorsUseNameArea)
+	{
+		for(auto Actor : SelectedActors)
+		{
+			const TWeakObjectPtr<UObject> ObjectWeakPtr = Actor.Get();
+			FinalSelectedObjects.Add(ObjectWeakPtr);
+		}
+	}
+	else if( NameAreaSettings == FDetailsViewArgs::ComponentsAndActorsUseNameArea )
+	{
+		for(auto Actor : SelectedActors)
+		{
+			const TWeakObjectPtr<UObject> ObjectWeakPtr = Actor.Get();
+			FinalSelectedObjects.Add(ObjectWeakPtr);
+		}
+
+		// Note: assumes that actors and components are not selected together.
+		if( FinalSelectedObjects.Num() == 0 )
+		{
+			for(auto Object : SelectedObjects)
+			{
+				UActorComponent* ActorComp = Cast<UActorComponent>(Object.Get());
+				if(ActorComp && ActorComp->GetOwner())
+				{
+					FinalSelectedObjects.AddUnique(ActorComp->GetOwner());
+				}
+			}
+		}
+	}
+	Refresh( FinalSelectedObjects );
 }
 
 const FSlateBrush* SDetailNameArea::OnGetLockButtonImageResource() const
