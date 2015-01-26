@@ -876,6 +876,7 @@ void FSCSEditorTreeNode::OnCompleteRename(const FText& InNewName)
 		}
 
 		ComponentInstance->Rename(*InNewName.ToString(), nullptr, RenameFlags);
+		InstancedComponentName = *InNewName.ToString();
 	}
 	else
 	{
