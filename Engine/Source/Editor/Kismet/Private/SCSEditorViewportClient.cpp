@@ -186,7 +186,7 @@ void FSCSEditorViewportClient::Tick(float DeltaSeconds)
 
 	if ( PreviewActor != LastPreviewActor.Get() || PreviewActor == nullptr )
 	{
-		PreviewActor = PreviewActor;
+//		PreviewActor = PreviewActor;
 
 		Invalidate();
 		RefreshPreviewBounds();
