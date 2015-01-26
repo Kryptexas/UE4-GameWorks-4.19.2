@@ -24,7 +24,7 @@ void FCreateBlueprintFromActorDialog::OpenDialog(bool bInHarvest)
 		(
 		SAssignNew(CreateBlueprintFromActorDialog, SCreateAssetFromActor, PickBlueprintPathWidget)
 		.AssetFilenameSuffix(TEXT("Blueprint"))
-		.HeadingText(LOCTEXT("CreateBlueprintFromActor_Heading", "Blueprint Name:"))
+		.HeadingText(LOCTEXT("CreateBlueprintFromActor_Heading", "Blueprint Name"))
 		.CreateButtonText(LOCTEXT("CreateBlueprintFromActor_ButtonLabel", "Create Blueprint"))
 		.OnCreateAssetAction(FOnPathChosen::CreateStatic(FCreateBlueprintFromActorDialog::OnCreateBlueprint, bInHarvest))
 		);

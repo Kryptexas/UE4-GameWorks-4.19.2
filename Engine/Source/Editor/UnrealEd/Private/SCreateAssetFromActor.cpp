@@ -81,6 +81,7 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 		]
 		+ SVerticalBox::Slot()
 		.HAlign(HAlign_Right)
+		.Padding(0, 20, 0, 0)
 		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
@@ -89,8 +90,8 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 			.AutoWidth()
 			[
 				SNew(SButton)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Bottom)
+				.ContentPadding(FMargin(8, 2, 8, 2))
 				.OnClicked(this, &SCreateAssetFromActor::OnCreateAssetFromActorClicked)
 				.IsEnabled(this, &SCreateAssetFromActor::IsCreateAssetFromActorEnabled)
 				[
@@ -103,8 +104,7 @@ void SCreateAssetFromActor::Construct(const FArguments& InArgs, TSharedPtr<SWind
 			.AutoWidth()
 			[
 				SNew(SButton)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Bottom)
 				.ContentPadding(FMargin(8, 2, 8, 2))
 				.OnClicked(this, &SCreateAssetFromActor::OnCancelCreateAssetFromActor)
 				[
