@@ -281,6 +281,7 @@ namespace ClickHandlers
 			if (SceneComp == ActorHitProxy->PrimComponent)
 			{
 				Component = SceneComp;
+				break;
 			}
 		}
 		
