@@ -30,7 +30,7 @@ FSCSDiff::FSCSDiff(const UBlueprint* InBlueprint)
 				.ActorContext(InBlueprint->GeneratedClass->GetDefaultObject<AActor>())
 				.AllowEditing(false)
 				.HideComponentClassCombo(true)
-				.OnUpdateSelectionFromNodes(SSCSEditor::FOnUpdateSelectionFromNodes::CreateRaw(this, &FSCSDiff::OnSCSEditorUpdateSelectionFromNodes))
+				.OnSelectionUpdated(SSCSEditor::FOnSelectionUpdated::CreateRaw(this, &FSCSDiff::OnSCSEditorUpdateSelectionFromNodes))
 				.OnHighlightPropertyInDetailsView(SSCSEditor::FOnHighlightPropertyInDetailsView::CreateRaw(this, &FSCSDiff::OnSCSEditorHighlightPropertyInDetailsView))
 		]
 		+ SSplitter::Slot()

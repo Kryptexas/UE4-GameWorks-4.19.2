@@ -1481,7 +1481,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 				.BorderBackgroundColor(TAttribute<FSlateColor>(this, &SFoliageEditMeshDisplayItem::GetBorderColor))
 				[
 					SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolTip.Background"))
+					.BorderImage(FCoreStyle::Get().GetBrush("ToolTip.Background"))
 					.Padding(0.0f)
 					[
 						SNew(SCheckBox)

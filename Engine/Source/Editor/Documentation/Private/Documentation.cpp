@@ -194,7 +194,7 @@ bool FDocumentation::PageExists(const FString& Link, const FCultureRef& Culture)
 	return FPaths::FileExists(SourcePath);
 }
 
-TSharedRef< class SToolTip > FDocumentation::CreateToolTip( const TAttribute<FText>& Text, const TSharedPtr<SWidget>& OverrideContent, const FString& Link, const FString& ExcerptName ) const
+TSharedRef< class SToolTip > FDocumentation::CreateToolTip(const TAttribute<FText>& Text, const TSharedPtr<SWidget>& OverrideContent, const FString& Link, const FString& ExcerptName) const
 {
 	TSharedPtr< SDocumentationToolTip > DocToolTip;
 
@@ -224,6 +224,32 @@ TSharedRef< class SToolTip > FDocumentation::CreateToolTip( const TAttribute<FTe
 		.IsInteractive( DocToolTip.ToSharedRef(), &SDocumentationToolTip::IsInteractive )
 		[
 			DocToolTip.ToSharedRef()
+		];
+}
+
+TSharedRef< class SToolTip > FDocumentation::CreateToolTip(const TAttribute<FText>& Text, const TSharedRef<SWidget>& OverrideContent, const TSharedPtr<SVerticalBox>& DocVerticalBox, const FString& Link, const FString& ExcerptName) const
+{
+	TSharedRef<SDocumentationToolTip> DocToolTip =
+		SNew(SDocumentationToolTip)
+		.Text(Text)
+		.DocumentationLink(Link)
+		.ExcerptName(ExcerptName)
+		.AddDocumentation(false)
+		.DocumentationMargin(7)
+		[
+			OverrideContent
+		];
+
+	if (DocVerticalBox.IsValid())
+	{
+		DocToolTip->AddDocumentation(DocVerticalBox);
+	}
+
+	return SNew(SToolTip)
+		.TextMargin(1)
+		.IsInteractive(DocToolTip, &SDocumentationToolTip::IsInteractive)
+		[
+			DocToolTip
 		];
 }
 

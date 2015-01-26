@@ -689,7 +689,27 @@ AActor* FBlueprintEditor::GetSCSEditorActorContext() const
 	return nullptr;
 }
 
-void FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
+void FBlueprintEditor::OnRootSelected(AActor * DefaultActor)
+{
+	if (Inspector.IsValid())
+	{	
+		// Clear the my blueprints selection
+		MyBlueprintWidget->ClearGraphActionMenuSelection();
+
+		// Build an object list
+		TArray<UObject*> InspectorObjects;
+		InspectorObjects.Add(DefaultActor);
+		
+		// Update the details panel
+		FString Title;
+		DefaultActor->GetName(Title);
+		SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), true);
+		Options.bShowComponents = false;
+		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
+	}
+}
+
+void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
 {
 	if (SCSViewport.IsValid())
 	{
@@ -711,10 +731,16 @@ void FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEdit
 			PrimitiveComponents[Idx]->PushSelectionToProxy();
 		}
 	}
-}
 
-void FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
+	if (Inspector.IsValid())
 	{
+		// Clear the my blueprints selection
+		bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
+		if (bSingleLayoutBPEditor)
+		{
+			MyBlueprintWidget->ClearGraphActionMenuSelection();
+		}
+
 		// Convert the selection set to an array of UObject* pointers
 		FText InspectorTitle = FText::GetEmpty();
 		TArray<UObject*> InspectorObjects;
@@ -724,7 +750,16 @@ void FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes(const TArray<FSCSEdit
 			auto NodePtr = *NodeIt;
 			if (NodePtr.IsValid())
 			{
-				UActorComponent* EditableComponent = NodePtr->GetEditableComponentTemplate(GetBlueprintObj());
+				UActorComponent* EditableComponent = nullptr;
+				if (NodePtr->CanEditDefaults())
+				{
+					EditableComponent = NodePtr->GetComponentTemplate();
+				}
+				else if (!NodePtr->IsNative() && NodePtr->IsInherited())
+				{
+					EditableComponent = NodePtr->GetOverridenComponentTemplate(GetBlueprintObj(), true);
+				}
+
 				if (EditableComponent)
 				{
 					InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
@@ -733,9 +768,7 @@ void FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes(const TArray<FSCSEdit
 			}
 		}
 
-	// Update the details panel
-	if (Inspector.IsValid())
-	{
+		// Update the details panel
 		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
 		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
 	}
@@ -1207,8 +1240,8 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 				.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
 				.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
 				.AllowEditing(this, &FBlueprintEditor::InEditingMode)
-				.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
-				.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes);
+				.OnRootSelected(this, &FBlueprintEditor::OnRootSelected)
+				.OnSelectionUpdated(this, &FBlueprintEditor::OnSelectionUpdated);
 			SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
 				.BlueprintEditor(SharedThis(this));
 		}
@@ -1926,7 +1959,7 @@ void FBlueprintEditor::FocusInspectorOnGraphSelection(const FGraphPanelSelection
 		else
 		{
 			// Clear the Inspector if nothing is selected, the MyBlueprints window will set the selection if it means to, but we need to make sure invalid nodes aren't still appearing
-			Inspector->ShowDetailsForSingleObject(nullptr);
+			//Inspector->ShowDetailsForSingleObject(nullptr);
 		}
 	}
 }
@@ -1998,15 +2031,15 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		InBlueprint->ParentClass->IsChildOf(AActor::StaticClass()) && 
 		InBlueprint->SimpleConstructionScript )
 	{
-	SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
-		.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
-		.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
-		.AllowEditing(this, &FBlueprintEditor::InEditingMode)
-			.OnTreeViewSelectionChanged(this, &FBlueprintEditor::OnSCSEditorTreeViewSelectionChanged)
-			.OnUpdateSelectionFromNodes(this, &FBlueprintEditor::OnSCSEditorUpdateSelectionFromNodes);
-	SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
-		.BlueprintEditor(SharedThis(this));
-}
+		SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
+			.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
+			.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
+			.AllowEditing(this, &FBlueprintEditor::InEditingMode)
+			.OnRootSelected(this, &FBlueprintEditor::OnRootSelected)
+			.OnSelectionUpdated(this, &FBlueprintEditor::OnSelectionUpdated);
+		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
+			.BlueprintEditor(SharedThis(this));
+	}
 }
 
 void FBlueprintEditor::OnLogTokenClicked(const TSharedRef<IMessageToken>& Token)

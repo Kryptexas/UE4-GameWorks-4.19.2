@@ -264,7 +264,7 @@ public:
 	FString GetDocumentationExcerptName() const;
 	
 	FText GetAssetName() const;
-	FText GetAssetNameTooltip() const;
+	FText GetAssetPath() const;
 	EVisibility GetAssetVisibility() const;
 
 	EVisibility GetRootLabelVisibility() const;
@@ -284,6 +284,9 @@ private:
 
 	/** Builds a context menu popup for dropping a child node onto the scene root node */
 	TSharedPtr<SWidget> BuildSceneRootDropActionMenu(FSCSEditorTreeNodePtrType DroppedNodePtr);
+
+	/** Creates a tooltip for this row */
+	TSharedRef<SToolTip> CreateToolTipWidget() const;
 
 	/** Handler for attaching a single node to this node */
 	void OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodePtr)
@@ -415,8 +418,8 @@ public:
 
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddNewComponent, class UClass*);
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddExistingComponent, class UActorComponent*);
-	DECLARE_DELEGATE_OneParam(FOnTreeViewSelectionChanged, const TArray<FSCSEditorTreeNodePtrType>&);
-	DECLARE_DELEGATE_OneParam(FOnUpdateSelectionFromNodes, const TArray<FSCSEditorTreeNodePtrType>&);
+	DECLARE_DELEGATE_OneParam(FOnRootSelected, class AActor*);
+	DECLARE_DELEGATE_OneParam(FOnSelectionUpdated, const TArray<FSCSEditorTreeNodePtrType>&);
 	DECLARE_DELEGATE_OneParam(FOnHighlightPropertyInDetailsView, const class FPropertyPath&);
 
 	SLATE_BEGIN_ARGS( SSCSEditor )
@@ -425,8 +428,8 @@ public:
 		,_PreviewActor(nullptr)
 		,_AllowEditing(true)
 		,_HideComponentClassCombo(false)
-		,_OnTreeViewSelectionChanged()
-		,_OnUpdateSelectionFromNodes()
+		,_OnRootSelected()
+		,_OnSelectionUpdated()
 		,_OnHighlightPropertyInDetailsView()
 		{}
 
@@ -435,8 +438,8 @@ public:
 		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
 		SLATE_ATTRIBUTE(bool, AllowEditing)
 		SLATE_ATTRIBUTE(bool, HideComponentClassCombo)
-		SLATE_EVENT(FOnTreeViewSelectionChanged, OnTreeViewSelectionChanged)
-		SLATE_EVENT(FOnUpdateSelectionFromNodes, OnUpdateSelectionFromNodes)
+		SLATE_EVENT(FOnRootSelected, OnRootSelected)
+		SLATE_EVENT(FOnSelectionUpdated, OnSelectionUpdated)
 		SLATE_EVENT(FOnHighlightPropertyInDetailsView, OnHighlightPropertyInDetailsView)
 
 	SLATE_END_ARGS()
@@ -503,6 +506,12 @@ public:
 
 	/** Called when selection in the tree changes */
 	void OnTreeSelectionChanged(FSCSEditorTreeNodePtrType InSelectedNodePtr, ESelectInfo::Type SelectInfo);
+
+	/** Called when the Actor is selected. */
+	void OnActorSelected(const ECheckBoxState NewCheckedState);
+
+	/** Called to determine if actor is selected. */
+	ECheckBoxState OnIsActorSelected() const;
 
 	/** Update any associated selection (e.g. details view) from the passed in nodes */
 	void UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType> &SelectedNodes );
@@ -588,6 +597,24 @@ protected:
 
 	/** Add a component from the selection in the combo box */
 	void PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass);
+
+	/** Called to get an the actors icon */
+	const FSlateBrush* GetActorIcon() const;
+
+	/** Called to get an the actors display text */
+	FText GetActorDisplayText() const;
+
+	/** Called to get an the actors class name text */
+	FText GetActorClassNameText() const;
+
+	/** Called to get an the actors super class name text */
+	FText GetActorSuperClassNameText() const;
+
+	/** Called to get an the actors mobility text */
+	FText GetActorMobilityText() const;
+
+	/** Creates a tooltip for the root component*/
+	TSharedRef<SToolTip> CreateToolTipWidget() const;
 
 	/** Called to display context menu when right clicking on the widget */
 	TSharedPtr< SWidget > CreateContextMenu();
@@ -681,11 +708,11 @@ public:
 	/** Attribute to indicate whether or not editing is allowed. */
 	TAttribute<bool> AllowEditing;
 
-	/** Delegate to invoke on tree view selection change. */
-	FOnTreeViewSelectionChanged OnTreeViewSelectionChanged;
+	/** Delegate to invoke on selection of the root. */
+	FOnRootSelected OnRootSelected;
 
-	/** Delegate to invoke when details should be updated. */
-	FOnUpdateSelectionFromNodes OnUpdateSelectionFromNodes;
+	/** Delegate to invoke on selection update. */
+	FOnSelectionUpdated OnSelectionUpdated;
 
 	/** Delegate to invoke when the given property should be highlighted in the details view (e.g. diff). */
 	FOnHighlightPropertyInDetailsView OnHighlightPropertyInDetailsView;
@@ -693,4 +720,7 @@ private:
 
 	/** Flag to enable/disable component editing */
 	bool	bEnableComponentEditing;
+
+	/** Flag to track if we have the Actor selected curently */
+	bool bIsActorSelected;
 };

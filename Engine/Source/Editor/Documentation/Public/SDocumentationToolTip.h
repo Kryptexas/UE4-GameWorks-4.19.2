@@ -2,7 +2,7 @@
 #pragma once
 #include "IDocumentationPage.h"
 
-class SDocumentationToolTip : public SCompoundWidget
+class DOCUMENTATION_API SDocumentationToolTip : public SCompoundWidget
 {
 
 public:
@@ -11,6 +11,8 @@ public:
 		: _Text()
 		, _Style( TEXT("Documentation.SDocumentationTooltip") )
 		, _ColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 1.0f ) )
+		, _AddDocumentation( true )
+		, _DocumentationMargin(0)
 		, _Content()
 		{}
 
@@ -22,6 +24,11 @@ public:
 		
 		/** Font color and opacity */
 		SLATE_ATTRIBUTE( FSlateColor, ColorAndOpacity )
+
+		/**  */
+		SLATE_ARGUMENT( bool, AddDocumentation )
+
+		SLATE_ARGUMENT( FMargin, DocumentationMargin )
 
 		/**  */
 		SLATE_ARGUMENT( FString, DocumentationLink )
@@ -50,6 +57,14 @@ public:
 		return TextContent.Get();
 	}
 
+	/**
+	 * Adds slots to the provided Vertical Box containing the documentation information.
+	 * If you specify not to add it (AddDocumentation = false) you may call this externally to do custom tooltip layout
+	 *
+	 * @param	VerticalBox	The vertical box to add it to
+	 */
+	void AddDocumentation(TSharedPtr< SVerticalBox > VerticalBox);
+
 private:
 
 	void ConstructSimpleTipContent();
@@ -73,7 +88,7 @@ private:
 	FString ExcerptName;
 
 	/** Content widget */
-	TSharedPtr< SBorder > WidgetContent;
+	TSharedPtr< SBox > WidgetContent;
 
 	TSharedPtr< SWidget > SimpleTipContent;
 	bool IsDisplayingDocumentationLink;
@@ -82,4 +97,7 @@ private:
 
 	TSharedPtr< IDocumentationPage > DocumentationPage;
 	bool IsShowingFullTip;
+
+	bool bAddDocumentation;
+	FMargin DocumentationMargin;
 };

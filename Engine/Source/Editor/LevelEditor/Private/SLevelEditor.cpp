@@ -555,8 +555,8 @@ public:
 			SAssignNew(SCSEditor, SSCSEditor)
 			.EditorMode(SSCSEditor::EEditorMode::ActorInstance)
 			.ActorContext(this, &SActorDetails::GetSelectedActor)												// Get the instance of the actor in the world
-			.OnTreeViewSelectionChanged(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)				// A selection has been made in the tree view, so inform the level editor
-			//.OnUpdateSelectionFromNodes(this, &SLevelEditor::OnSCSEditorUpdateSelectionFromNodes)				// Unsure, don't think it's needed
+			.OnRootSelected(this, &SActorDetails::OnSCSEditorRootSelected)										// A selection of the root has been made
+			.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)						// A selection has been made in the tree view, so inform the level editor
 			//.OnHighlightPropertyInDetailsView(this, &SLevelEditor::OnSCSEditorHighlightPropertyInDetailsView)	// Also unsure and don't think it's needed
 		);
 
@@ -676,6 +676,35 @@ private:
 	{
 		//@todo this won't work w/ multi-select
 		return Cast<AActor>(*GEditor->GetSelectedActorIterator());
+	}
+
+	void OnSCSEditorRootSelected(AActor*)
+	{
+		if (!bSelectionGuard)
+		{
+			auto Actor = GetSelectedActor();
+			if (Actor)
+			{
+				// Enable the selection guard to prevent OnEditorSelectionChanged() from altering the contents of the SCSTreeWidget
+				TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
+
+				// Update the editor's component selection
+				TArray<UObject*> DetailsObjects;
+				USelection* SelectedComponents = GEditor->GetSelectedComponents();
+				DetailsObjects.Add(Actor);
+
+				SelectedComponents->BeginBatchSelectOperation();
+				SelectedComponents->DeselectAll();
+
+				DetailsView->SetObjects(DetailsObjects, false);
+
+				SelectedComponents->EndBatchSelectOperation();
+
+				GUnrealEd->SetActorSelectionFlags(Actor);
+				GUnrealEd->UpdatePivotLocationForSelection(true);
+				GEditor->RedrawLevelEditingViewports();
+			}
+		}
 	}
 
 	void OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
