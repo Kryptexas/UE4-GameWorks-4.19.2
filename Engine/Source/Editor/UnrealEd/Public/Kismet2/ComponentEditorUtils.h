@@ -16,6 +16,9 @@ public:
 	/** Test whether or not the given string is a valid variable name string for the given component instance */
 	static bool IsValidVariableNameString(const UActorComponent* InComponent, const FString& InString);
 
+	/** Generate a valid variable name string for the given component instance */
+	static FString GenerateValidVariableName(const UActorComponent* InComponent);
+
 	struct FTransformData
 	{
 		FTransformData(const class USceneComponent& Component)

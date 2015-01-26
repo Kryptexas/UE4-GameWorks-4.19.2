@@ -107,6 +107,38 @@ bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InC
 	return bIsValid;
 }
 
+FString FComponentEditorUtils::GenerateValidVariableName(const UActorComponent* InComponent)
+{
+	int32 Counter = 1;
+	FString ComponentTypeName = *InComponent->GetClass()->GetName().Replace(TEXT("Component"), TEXT(""));
+	FString ComponentInstanceName;
+
+	// Make sure that none of the current components have the same name
+	TInlineComponentArray<UActorComponent*> Components;
+	InComponent->GetOwner()->GetComponents(Components);
+
+	bool bNameIsValid = false;
+	while (!bNameIsValid)
+	{
+		bNameIsValid = true;
+
+		// Try the name with the lowest possible number
+		ComponentInstanceName = FString::Printf(TEXT("%s%d"), *ComponentTypeName, Counter++);
+
+		// The name is valid if no other components in the owning actor have the same name
+		for (auto Component : Components)
+		{
+			if (Component->GetName() == ComponentInstanceName)
+			{
+				bNameIsValid = false;
+				break;
+			}
+		}
+	}
+
+	return ComponentInstanceName;
+}
+
 void FComponentEditorUtils::PropagateTransformPropertyChange(
 	class USceneComponent* InSceneComponentTemplate,
 	const FTransformData& OldDefaultTransform,

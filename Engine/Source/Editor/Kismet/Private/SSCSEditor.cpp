@@ -240,7 +240,9 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(UActorComponent* InComponentTemplate)
 		if (!FComponentEditorUtils::IsValidVariableNameString(InComponentTemplate, InComponentTemplate->GetName()))
 		{
 			ERenameFlags RenameFlags = REN_DontCreateRedirectors | REN_NonTransactional;
-			InComponentTemplate->Rename(*InComponentTemplate->GetName().Replace(TEXT("Component_"), TEXT("")), nullptr, RenameFlags);
+			FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(InComponentTemplate);
+
+			InComponentTemplate->Rename(*NewComponentName, nullptr, RenameFlags);
 		}
 		
 		InstancedComponentName = InComponentTemplate->GetFName();
