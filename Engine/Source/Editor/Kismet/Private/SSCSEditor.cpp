@@ -3772,10 +3772,6 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				}
 			}
 		}
-		else if(SceneRootNodePtr.IsValid())
-		{
-			SCSTreeWidget->SetItemSelection(SceneRootNodePtr, true);
-		}
 
 		// If we have a pending deferred rename request, redirect it to the new tree node
 		if(DeferredRenameRequest != NAME_None)
