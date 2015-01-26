@@ -264,5 +264,16 @@ void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &Wi
 			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(GraphNode, false);
 		}
 	}
+	else
+	{
+		// if we didn't have a blueprint object to focus on, try it with a regular one
+		UObject* FocusObject = FindObject<UObject>(ANY_PACKAGE, *WidgetContent.WidgetAnchor.WrapperIdentifier.ToString());
+		if (FocusObject != nullptr)
+		{
+			TArray< UObject* > Objects;
+			Objects.Add(FocusObject);
+			GEditor->SyncBrowserToObjects(Objects);
+		}
+	}
 }
 
