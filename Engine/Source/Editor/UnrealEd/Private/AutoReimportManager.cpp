@@ -19,7 +19,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportManager, Log, All);
 
 namespace
 {
-
 	/** Template helper function to count the number of elements in the specified array that pass a predicate */
 	template<typename T, typename P>
 	int32 CountIf(const TArray<T>& InArray, P Predicate)
@@ -33,17 +32,6 @@ namespace
 			}
 		}
 		return Count;
-	}
-
-	/** Reduce the array to the specified accumulator */
-	template<typename T, typename P, typename A>
-	A&& Reduce(const TArray<T>& InArray, P Predicate, A&& Accumulator)
-	{
-		for (const T& X : InArray)
-		{
-			Predicate(X, Accumulator);
-		}
-		return MoveTemp(Accumulator);
 	}
 
 	/** Retrieve a semi-colon separated string of file extensions supported by all available editor import factories */
@@ -123,14 +111,16 @@ namespace
 	/** Generate a config from the specified options, to pass to FFileCache on construction */
 	FFileCacheConfig GenerateFileCacheConfig(const FString& InPath, const FString& InSupportedExtensions, const FString& InMountedContentPath)
 	{
-		FFileCacheConfig Config;
-		Config.Directory = FPaths::ConvertRelativePathToFull(InPath);
+		FString Directory = FPaths::ConvertRelativePathToFull(InPath);
+
+		const FString& HashString = InMountedContentPath.IsEmpty() ? Directory : InMountedContentPath;
+		const uint32 CRC = FCrc::MemCrc32(*HashString, HashString.Len()*sizeof(TCHAR));	
+		FString CacheFilename = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir()) / TEXT("ReimportCache") / FString::Printf(TEXT("%u.bin"), CRC);
+
+		FFileCacheConfig Config(MoveTemp(Directory), MoveTemp(CacheFilename));
+		Config.BatchDelayS = 1;
 		Config.IncludeExtensions = InSupportedExtensions;
 
-		const FString& HashString = InMountedContentPath.IsEmpty() ? Config.Directory : InMountedContentPath;
-		const uint32 CRC = FCrc::MemCrc32(*HashString, HashString.Len()*sizeof(TCHAR));	
-
-		Config.CacheFile = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir()) / TEXT("ReimportCache") / FString::Printf(TEXT("%u.bin"), CRC);
 		return Config;
 	}
 
@@ -169,38 +159,51 @@ namespace
 FContentDirectoryMonitor::FContentDirectoryMonitor(const FString& InDirectory, const FString& InSupportedExtensions, const FString& InMountedContentPath)
 	: Cache(GenerateFileCacheConfig(InDirectory, InSupportedExtensions, InMountedContentPath))
 	, MountedContentPath(InMountedContentPath)
-	, LastProcessTime(0)
 	, LastSaveTime(0)
 {
-	Cache.Scan();
+	
 }
 
-void FContentDirectoryMonitor::Tick(const IAssetRegistry& Registry)
+void FContentDirectoryMonitor::Destroy()
 {
-	const double Now = FPlatformTime::Seconds();
+	Cache.Destroy();
+}
 
-	// Keep accumulating periodically 'til we have no more changes
-	auto NewChanges = Cache.GetOutstandingChanges();
-	if (NewChanges.Num() != 0)
-	{
-		// Check again for any more in 1 second
-		OutstandingChanges.Append(MoveTemp(NewChanges));
-		LastProcessTime = Now;
-	}
-	else if (Now - LastProcessTime > ReactionTimeS && OutstandingChanges.Num())
-	{
-		LastProcessTime = Now;
-		ProcessOutstandingChanges(Registry);
-	}
+void FContentDirectoryMonitor::Tick(const IAssetRegistry& Registry, const FWorkLimiter& Limiter)
+{
+	Cache.Tick(Limiter);
 
-	if (Now - LastSaveTime > ResaveIntervalS)
+	if (Limiter.ShouldLimit())
 	{
-		LastSaveTime = Now;
-		Cache.WriteCache();
+		return;
+	}
+	// We can't do this if the registry is loading assets as we won't necesssarily be able to react to changes effectively
+	else if (!Registry.IsLoadingAssets())
+	{
+		OutstandingChanges = Cache.GetOutstandingChanges();
+		if (OutstandingChanges.Num() != 0)
+		{
+			ProcessOutstandingChanges(Registry, Limiter);
+		}
+	}
+	
+	if (Limiter.ShouldLimit())
+	{
+		return;
+	}
+	// Save out the cache file if we've got time to do so, and have not saved for a while
+	else
+	{
+		const double Now = FPlatformTime::Seconds();
+		if (Now - LastSaveTime > ResaveIntervalS)
+		{
+			LastSaveTime = Now;
+			Cache.WriteCache();
+		}
 	}
 }
 
-void FContentDirectoryMonitor::ProcessOutstandingChanges(const IAssetRegistry& Registry)
+void FContentDirectoryMonitor::ProcessOutstandingChanges(const IAssetRegistry& Registry, const FWorkLimiter& Limiter)
 {
 	// Count the number of additions so we can apprximate the work load
 	const int32 NumAdditions = CountIf(OutstandingChanges, [](const FUpdateCacheTransaction& Change){ return Change.Action == FFileChangeData::FCA_Added; });
@@ -359,20 +362,28 @@ void UAutoReimportManager::BeginDestroy()
 
 void UAutoReimportManager::Tick(float DeltaTime)
 {
+	// Only spend half a frame on this, at most
+	const FWorkLimiter Limiter(1.0 / 120);
+
 	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
 
-	// We can't do this if the registry is loading assets as we won't necesssarily be able to action changes effectively
-	if (!Registry.IsLoadingAssets())
-	{
-		TGuardValue<bool> Guard(bIsProcessingChanges, true);
+	TGuardValue<bool> Guard(bIsProcessingChanges, true);
 
-		for (auto& Monitor : MountedDirectoryMonitors)
+	for (auto& Monitor : MountedDirectoryMonitors)
+	{
+		Monitor.Tick(Registry, Limiter);
+		if (Limiter.ShouldLimit())
 		{
-			Monitor.Tick(Registry);
+			return;
 		}
-		for (auto& Monitor : UserDirectoryMonitors)
+	}
+
+	for (auto& Monitor : UserDirectoryMonitors)
+	{
+		Monitor.Tick(Registry, Limiter);
+		if (Limiter.ShouldLimit())
 		{
-			Monitor.Tick(Registry);
+			return;
 		}
 	}
 }

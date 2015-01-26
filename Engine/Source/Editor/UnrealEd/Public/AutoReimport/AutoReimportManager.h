@@ -22,10 +22,10 @@ public:
 	FContentDirectoryMonitor(const FString& InDirectory, const FString& InSupportedExtensions, const FString& InMountedContentPath = FString());
 
 	/** Tick this directory monitor. Will potentially process changed files */
-	void Tick(const IAssetRegistry& Registry);
+	void Tick(const IAssetRegistry& Registry, const FWorkLimiter& Limiter);
 
 	/** Destroy this monitor including its cache */
-	void Destroy() { return Cache.Destroy(); }
+	void Destroy();
 
 	/** Get the directory that this monitor applies to */
 	const FString& GetDirectory() const { return Cache.GetDirectory(); }
@@ -36,7 +36,7 @@ public:
 private:
 
 	/** Process the outstanding changes that we have cached */
-	void ProcessOutstandingChanges(const IAssetRegistry& Registry);
+	void ProcessOutstandingChanges(const IAssetRegistry& Registry, const FWorkLimiter& Limiter);
 
 private:
 
@@ -49,14 +49,8 @@ private:
 	/** A list of file system changes that are due to be processed */
 	TArray<FUpdateCacheTransaction> OutstandingChanges;
 
-	/** The time we last processed outstanding changes */
-	double LastProcessTime;
-
 	/** The last time we attempted to save the cache file */
 	double LastSaveTime;
-
-	/** The amount of time (in seconds) we must wait before reacting to changed files */
-	static const int32 ReactionTimeS = 1;
 
 	/** The interval between potential re-saves of the cache file */
 	static const int32 ResaveIntervalS = 60;
