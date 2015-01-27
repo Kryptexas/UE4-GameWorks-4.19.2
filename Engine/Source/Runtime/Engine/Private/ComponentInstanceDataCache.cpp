@@ -7,6 +7,7 @@ FComponentInstanceDataBase::FComponentInstanceDataBase(const UActorComponent* So
 {
 	check(SourceComponent);
 	SourceComponentName = SourceComponent->GetFName();
+	SourceComponentClass = SourceComponent->GetClass();
 	SourceComponentTypeSerializedIndex = -1;
 	
 	AActor* ComponentOwner = SourceComponent->GetOwner();
@@ -23,7 +24,7 @@ FComponentInstanceDataBase::FComponentInstanceDataBase(const UActorComponent* So
 					bFound = true;
 					break;
 				}
-				else if (BlueprintCreatedComponent->GetClass() == SourceComponent->GetClass())
+				else if (BlueprintCreatedComponent->GetClass() == SourceComponentClass)
 				{
 					++SourceComponentTypeSerializedIndex;
 				}
@@ -39,7 +40,7 @@ FComponentInstanceDataBase::FComponentInstanceDataBase(const UActorComponent* So
 bool FComponentInstanceDataBase::MatchesComponent(const UActorComponent* Component) const
 {
 	bool bMatches = false;
-	if (Component)
+	if (Component && Component->GetClass() == SourceComponentClass)
 	{
 		if (Component->GetFName() == SourceComponentName)
 		{
@@ -54,7 +55,7 @@ bool FComponentInstanceDataBase::MatchesComponent(const UActorComponent* Compone
 				for (const UActorComponent* BlueprintCreatedComponent : ComponentOwner->BlueprintCreatedComponents)
 				{
 					if (   BlueprintCreatedComponent
-						&& (BlueprintCreatedComponent->GetClass() == Component->GetClass())
+						&& (BlueprintCreatedComponent->GetClass() == SourceComponentClass)
 						&& (++FoundSerializedComponentsOfType == SourceComponentTypeSerializedIndex))
 					{
 						bMatches = (BlueprintCreatedComponent == Component);
