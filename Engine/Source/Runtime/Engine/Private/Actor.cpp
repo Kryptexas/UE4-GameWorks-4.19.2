@@ -797,7 +797,7 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 			if (!ObjProp->HasAllPropertyFlags(CPF_NonTransactional))
 			{
 				UActorComponent* ActorComponent = Cast<UActorComponent>(ObjProp->GetObjectPropertyValue(ObjProp->ContainerPtrToValuePtr<void>(this)));
-				if (ActorComponent && ActorComponent->bCreatedByConstructionScript)
+				if (ActorComponent && ActorComponent->CreationMethod == EComponentCreationMethod::ConstructionScript)
 				{
 					ObjProp->SetPropertyFlags(CPF_NonTransactional);
 					TemporarilyNonTransactionalProperties.Add(ObjProp);
@@ -814,7 +814,7 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 	}
 
 	// If the root component is blueprint constructed we don't save it to the transaction buffer
-	if( RootComponent && !RootComponent->bCreatedByConstructionScript )
+	if( RootComponent && RootComponent->CreationMethod != EComponentCreationMethod::ConstructionScript)
 	{
 		bSavedToTransactionBuffer = RootComponent->Modify( bAlwaysMarkDirty ) || bSavedToTransactionBuffer;
 	}
@@ -2051,7 +2051,7 @@ const TArray<UActorComponent*>& AActor::GetInstanceComponents() const
 
 void AActor::AddInstanceComponent(UActorComponent* Component)
 {
-	Component->bInstanceComponent = true;
+	Component->CreationMethod = EComponentCreationMethod::Instance;
 	InstanceComponents.Add(Component);
 }
 

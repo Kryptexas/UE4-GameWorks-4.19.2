@@ -245,8 +245,7 @@ void UPhysicsConstraintComponent::OnRegister()
 		SpriteComponent->AlwaysLoadOnServer = false;
 		SpriteComponent->SpriteInfo.Category = TEXT("Physics");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Physics", "Physics" );
-		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
-		SpriteComponent->bInstanceComponent = bInstanceComponent;
+		SpriteComponent->CreationMethod = CreationMethod;
 		SpriteComponent->bIsScreenSizeScaled = true;
 
 		SpriteComponent->RegisterComponent();

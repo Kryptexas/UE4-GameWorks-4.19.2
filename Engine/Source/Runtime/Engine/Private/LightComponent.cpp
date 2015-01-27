@@ -182,8 +182,7 @@ void ULightComponentBase::OnRegister()
 		SpriteComponent->AlwaysLoadOnServer = false;
 		SpriteComponent->SpriteInfo.Category = TEXT("Lighting");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Lighting", "Lighting");
-		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
-		SpriteComponent->bInstanceComponent = bInstanceComponent;
+		SpriteComponent->CreationMethod = CreationMethod;
 		SpriteComponent->bIsScreenSizeScaled = true;
 
 		SpriteComponent->RegisterComponent();

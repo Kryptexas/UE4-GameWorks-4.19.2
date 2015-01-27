@@ -1013,7 +1013,7 @@ FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* 
 	for (int32 i = SourceComponent->AttachChildren.Num()-1; i >= 0; --i)
 	{
 		USceneComponent* SceneComponent = SourceComponent->AttachChildren[i];
-		if (SceneComponent && !SceneComponent->bCreatedByConstructionScript)
+		if (SceneComponent && SceneComponent->CreationMethod != EComponentCreationMethod::ConstructionScript)
 		{
 			AttachedInstanceComponents.Add(SceneComponent);
 		}
@@ -1046,7 +1046,7 @@ FComponentInstanceDataBase* USceneComponent::GetComponentInstanceData() const
 
 	for (USceneComponent* Child : AttachChildren)
 	{
-		if (Child && !Child->bCreatedByConstructionScript)
+		if (Child && Child->CreationMethod != EComponentCreationMethod::ConstructionScript)
 		{
 			InstanceData = new FSceneComponentInstanceData(this);
 			break;

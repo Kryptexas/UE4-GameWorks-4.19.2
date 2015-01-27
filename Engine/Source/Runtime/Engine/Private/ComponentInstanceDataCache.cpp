@@ -77,7 +77,7 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 		// Grab per-instance data we want to persist
 		for (UActorComponent* Component : Components)
 		{
-			if(Component->bCreatedByConstructionScript) // Only cache data from 'created by construction script' components
+			if(Component->CreationMethod == EComponentCreationMethod::ConstructionScript) // Only cache data from 'created by construction script' components
 			{
 				FComponentInstanceDataBase* ComponentInstanceData = Component->GetComponentInstanceData();
 				if (ComponentInstanceData)
@@ -108,7 +108,7 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor) const
 		// Apply per-instance data.
 		for (UActorComponent* Component : Components)
 		{
-			if(Component->bCreatedByConstructionScript) // Only try and apply data to 'created by construction script' components
+			if(Component->CreationMethod == EComponentCreationMethod::ConstructionScript) // Only try and apply data to 'created by construction script' components
 			{
 				const FName ComponentInstanceDataType = Component->GetComponentInstanceDataType();
 

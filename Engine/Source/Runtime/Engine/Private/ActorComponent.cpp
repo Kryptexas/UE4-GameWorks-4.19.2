@@ -106,6 +106,8 @@ UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer)
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.bCanEverTick = false;
 
+	CreationMethod = EComponentCreationMethod::Native;
+
 	bAutoRegister = true;
 	bNetAddressable = false;
 }
@@ -118,6 +120,20 @@ void UActorComponent::PostInitProperties()
 	if (Owner)
 	{
 		Owner->AddOwnedComponent(this);
+	}
+}
+
+void UActorComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	if (bCreatedByConstructionScript_DEPRECATED)
+	{
+		CreationMethod = EComponentCreationMethod::ConstructionScript;
+	}
+	else if (bInstanceComponent_DEPRECATED)
+	{
+		CreationMethod = EComponentCreationMethod::Instance;
 	}
 }
 
@@ -628,7 +644,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	}
 
 	// If this is a blueprint created component and it has component children they can miss getting registered in some scenarios
-	if (bCreatedByConstructionScript)
+	if (CreationMethod == EComponentCreationMethod::ConstructionScript)
 	{
 		TArray<UObject*> Children;
 		GetObjectsWithOuter(this, Children, true, RF_PendingKill);
@@ -698,7 +714,7 @@ void UActorComponent::DestroyComponent()
 	AActor* Owner = GetOwner();
 	if(Owner != NULL)
 	{
-		if (bCreatedByConstructionScript)
+		if (CreationMethod == EComponentCreationMethod::ConstructionScript)
 		{
 			Owner->BlueprintCreatedComponents.Remove(this);
 		}

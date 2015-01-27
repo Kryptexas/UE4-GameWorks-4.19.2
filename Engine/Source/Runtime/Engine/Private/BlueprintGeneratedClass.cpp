@@ -308,7 +308,7 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 
 		FName NewName = *(FString::Printf(TEXT("TimelineComp__%d"), Actor->BlueprintCreatedComponents.Num() ) );
 		UTimelineComponent* NewTimeline = NewNamedObject<UTimelineComponent>(Actor, NewName);
-		NewTimeline->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
+		NewTimeline->CreationMethod = EComponentCreationMethod::ConstructionScript; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
 		Actor->BlueprintCreatedComponents.Add(NewTimeline); // Add to array so it gets saved
 		NewTimeline->SetNetAddressable();	// This component has a stable name that can be referenced for replication
 
