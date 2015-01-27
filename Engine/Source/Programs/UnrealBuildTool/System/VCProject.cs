@@ -1016,8 +1016,8 @@ namespace UnrealBuildTool
 					if(UnrealBuildTool.RunningRocket() && Utils.IsFileUnderDirectory(TargetFilePath, EngineRootDirectory))
 					{
 						// Don't build any engine targets for Rocket. We can still start the program through the debugger though...
-						VCProjectFileContent.AppendFormat("\t\t<NMakeBuildCommandLine>@echo {0} is up to date.</NMakeBuildCommandLine>" + ProjectFileGenerator.NewLine, TargetName);
-						VCProjectFileContent.AppendFormat("\t\t<NMakeReBuildCommandLine>@echo {0} is up to date.</NMakeReBuildCommandLine>" + ProjectFileGenerator.NewLine, TargetName);
+						VCProjectFileContent.AppendFormat("\t\t<NMakeBuildCommandLine>@echo Using installed engine. {0} is up to date.</NMakeBuildCommandLine>" + ProjectFileGenerator.NewLine, TargetName);
+						VCProjectFileContent.AppendFormat("\t\t<NMakeReBuildCommandLine>@echo Using installed engine. {0} is up to date.</NMakeReBuildCommandLine>" + ProjectFileGenerator.NewLine, TargetName);
 						VCProjectFileContent.AppendFormat("\t\t<NMakeCleanCommandLine>@echo Ignoring clean for {0}.</NMakeCleanCommandLine>" + ProjectFileGenerator.NewLine, TargetName);
 					}
 					else

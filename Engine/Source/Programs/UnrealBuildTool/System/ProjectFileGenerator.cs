@@ -738,23 +738,7 @@ namespace UnrealBuildTool
 			}
 
 
-			if( bGeneratingGameProjectFiles )
-			{
-				GameProjectName = Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile());
-				if (String.IsNullOrEmpty(GameProjectName))
-				{
-					throw new BuildException("A valid game project was not found in the specified location (" + UnrealBuildTool.GetUProjectPath() + ")");
-				}
-
-				IncludeEngineSource = bAlwaysIncludeEngineModules;
-				IncludeDocumentation = false;
-				IncludeBuildSystemFiles = false;
-				IncludeShaderSource = true;
-				IncludeTemplateFiles = false;
-				IncludeConfigFiles = true;
-				IncludeEnginePrograms = bAlwaysIncludeEngineModules;
-			}
-			else if( bGeneratingRocketProjectFiles )
+			if( bGeneratingRocketProjectFiles )
 			{
 				// We expected a project path to be passed in
 				if (!UnrealBuildTool.HasUProjectFile())
@@ -776,6 +760,22 @@ namespace UnrealBuildTool
 				IncludeTemplateFiles = false;
 				IncludeConfigFiles = true;
 				IncludeEnginePrograms = false;
+			}
+			else if( bGeneratingGameProjectFiles )
+			{
+				GameProjectName = Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile());
+				if (String.IsNullOrEmpty(GameProjectName))
+				{
+					throw new BuildException("A valid game project was not found in the specified location (" + UnrealBuildTool.GetUProjectPath() + ")");
+				}
+
+				IncludeEngineSource = bAlwaysIncludeEngineModules;
+				IncludeDocumentation = false;
+				IncludeBuildSystemFiles = false;
+				IncludeShaderSource = true;
+				IncludeTemplateFiles = false;
+				IncludeConfigFiles = true;
+				IncludeEnginePrograms = bAlwaysIncludeEngineModules;
 			}
 			else
 			{
