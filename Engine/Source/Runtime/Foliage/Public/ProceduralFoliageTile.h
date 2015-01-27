@@ -42,6 +42,7 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 	void Empty();
 private:
 	
+	void StartSimulation(const int32 MaxNumSteps, bool bShadeGrowth);
 	void StepSimulation();
 	void AddRandomSeeds(TArray<FProceduralFoliageInstance*>& OutInstances);
 
@@ -69,6 +70,7 @@ private:
 	FProceduralFoliageBroadphase Broadphase;	
 
 	FRandomStream RandomStream;
+	bool bSimulateShadeGrowth;
 
 private:
 	float GetRandomGaussian();
