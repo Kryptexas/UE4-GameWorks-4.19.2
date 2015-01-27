@@ -453,13 +453,33 @@ void UMaterialExpressionLandscapeGrassOutput::PostEditChangeProperty(FPropertyCh
 ULandscapeGrassType::ULandscapeGrassType(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	GrassDensity = 400;
-	StartCullDistance = 10000.0f;
-	EndCullDistance = 10000.0f;
-	PlacementJitter = 1.0f;
-	RandomRotation = true;
-	AlignToSurface = true;
+	GrassDensity_DEPRECATED = 400;
+	StartCullDistance_DEPRECATED = 10000.0f;
+	EndCullDistance_DEPRECATED = 10000.0f;
+	PlacementJitter_DEPRECATED = 1.0f;
+	RandomRotation_DEPRECATED = true;
+	AlignToSurface_DEPRECATED = true;
 }
+
+void ULandscapeGrassType::PostLoad()
+{
+	Super::PostLoad();
+	if (GrassMesh_DEPRECATED && !GrassVarieties.Num())
+	{
+		FGrassVariety Grass;
+		Grass.GrassMesh = GrassMesh_DEPRECATED;
+		Grass.GrassDensity = GrassDensity_DEPRECATED;
+		Grass.StartCullDistance = StartCullDistance_DEPRECATED;
+		Grass.EndCullDistance = EndCullDistance_DEPRECATED;
+		Grass.PlacementJitter = PlacementJitter_DEPRECATED;
+		Grass.RandomRotation = RandomRotation_DEPRECATED;
+		Grass.AlignToSurface = AlignToSurface_DEPRECATED;
+
+		GrassVarieties.Add(Grass);
+		GrassMesh_DEPRECATED = nullptr;
+	}
+}
+
 
 #if WITH_EDITOR
 void ULandscapeGrassType::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

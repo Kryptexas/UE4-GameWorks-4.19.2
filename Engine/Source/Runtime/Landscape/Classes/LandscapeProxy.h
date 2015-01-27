@@ -201,12 +201,16 @@ struct FCachedLandscapeFoliage
 		int32 CachedMaxInstancesPerComponent;
 		int32 SubsectionX;
 		int32 SubsectionY;
+		int32 NumVarieties;
+		int32 VarietyIndex;
 
 		FGrassCompKey()
 			: SqrtSubsections(0)
 			, CachedMaxInstancesPerComponent(0)
 			, SubsectionX(0)
 			, SubsectionY(0)
+			, NumVarieties(0)
+			, VarietyIndex(-1)
 		{
 		}
 		inline bool operator==(const FGrassCompKey& Other) const
@@ -217,12 +221,14 @@ struct FCachedLandscapeFoliage
 				SubsectionX == Other.SubsectionX &&
 				SubsectionY == Other.SubsectionY &&
 				BasedOn == Other.BasedOn &&
-				GrassType == Other.GrassType;
+				GrassType == Other.GrassType &&
+				NumVarieties == Other.NumVarieties &&
+				VarietyIndex == Other.VarietyIndex;
 		}
 
 		friend uint32 GetTypeHash(const FGrassCompKey& Key)
 		{
-			return GetTypeHash(Key.BasedOn) ^ GetTypeHash(Key.GrassType) ^ Key.SqrtSubsections ^ Key.CachedMaxInstancesPerComponent ^ (Key.SubsectionX >> 16) ^ (Key.SubsectionY >> 24);
+			return GetTypeHash(Key.BasedOn) ^ GetTypeHash(Key.GrassType) ^ Key.SqrtSubsections ^ Key.CachedMaxInstancesPerComponent ^ (Key.SubsectionX >> 16) ^ (Key.SubsectionY >> 24) ^ (Key.NumVarieties >> 3) ^ (Key.VarietyIndex >> 13);
 		}
 
 	};
