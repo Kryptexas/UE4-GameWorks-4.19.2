@@ -1098,6 +1098,24 @@ int32 FMacPlatformMisc::MacOSXVersionCompare(uint8 Major, uint8 Minor, uint8 Rev
 	return 0;
 }
 
+FString FMacPlatformMisc::GetOperatingSystemId()
+{
+	FString Result;
+	io_service_t Entry = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+	if (Entry)
+	{
+		CFTypeRef UUID = IORegistryEntryCreateCFProperty(Entry, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
+		Result = FString((__bridge NSString*)UUID);
+		IOObjectRelease(Entry);
+		CFRelease(UUID);
+	}
+	else
+	{
+		UE_LOG(LogMac, Warning, TEXT("GetOperatingSystemId() failed"));
+	}
+	return Result;
+}
+
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 FMacMallocCrashHandler* GCrashMalloc = nullptr;
