@@ -18,9 +18,10 @@ namespace ETextFlag
 {
 	enum Type
 	{
-		Transient = (1<<0),
-		CultureInvariant = (1<<1),
-		ConvertedProperty = (1<<2)
+		Transient = (1 << 0),
+		CultureInvariant = (1 << 1),
+		ConvertedProperty = (1 << 2),
+		Immutable = (1 << 3),
 	};
 }
 
@@ -381,6 +382,7 @@ public:
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
+	friend class FScopedTextIdentityPreserver;
 
 #if !UE_ENABLE_ICU
 	friend class FLegacyTextHelper;
@@ -424,6 +426,7 @@ public:
 	static const FString* GetKey(const FText& Text);
 	static const FString* GetSourceString(const FText& Text);
 	static const FString& GetDisplayString(const FText& Text);
+	static const TSharedRef<FString, ESPMode::ThreadSafe> GetSharedDisplayString(const FText& Text);
 	static int32 GetFlags(const FText& Text);
 };
 
@@ -561,6 +564,19 @@ public:
 private:
 	FString Report;
 	int32 IndentCount;
+};
+
+class CORE_API FScopedTextIdentityPreserver
+{
+public:
+	FScopedTextIdentityPreserver(FText& InTextToPersist);
+	~FScopedTextIdentityPreserver();
+
+private:
+	TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+	TSharedPtr< FString, ESPMode::ThreadSafe > Key;
+	int32 Flags;
+	FText& TextToPersist;
 };
 
 Expose_TNameOf(FText)

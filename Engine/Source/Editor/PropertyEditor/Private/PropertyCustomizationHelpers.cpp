@@ -1051,5 +1051,186 @@ void FMaterialList::AddMaterialItem( FDetailWidgetRow& Row, int32 CurrentSlot, c
 	];
 }
 
+
+TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(TSharedRef<IPropertyHandle> InPropertyHandle)
+{
+	struct Local
+	{
+		static void DirtyPropertyPackage(TSharedRef<IPropertyHandle> InPropertyHandle)
+		{
+			// dirty packages as they will need to be re-serialized with the correct key
+			TArray<UObject*> Objects;
+			InPropertyHandle->GetOuterObjects(Objects);
+			if (Objects.Num() > 0 && Objects[0]->GetOutermost() != nullptr)
+			{
+				Objects[0]->GetOutermost()->MarkPackageDirty();
+			}
+		}
+
+		static FReply HandleGenerateKeyClicked(TSharedRef<IPropertyHandle> InPropertyHandle)
+		{
+			FText DisplayText;
+			if (InPropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
+			{
+				TSharedRef< FString, ESPMode::ThreadSafe > DisplayString = FTextInspector::GetSharedDisplayString(DisplayText);
+				TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+				TSharedPtr< FString, ESPMode::ThreadSafe > Key;
+				FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(DisplayString, Namespace, Key);
+
+				if (Key.IsValid())
+				{
+					*Key.Get() = FGuid::NewGuid().ToString();
+					DirtyPropertyPackage(InPropertyHandle);
+				}
+			}
+
+			return FReply::Unhandled();
+		}
+
+		static void HandleKeyTextCommitted(const FText& InText, ETextCommit::Type InCommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
+		{
+			FText DisplayText;
+			if (InPropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
+			{
+				TSharedRef< FString, ESPMode::ThreadSafe > DisplayString = FTextInspector::GetSharedDisplayString(DisplayText);
+				TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+				TSharedPtr< FString, ESPMode::ThreadSafe > Key;
+				FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(DisplayString, Namespace, Key);
+
+				if (Key.IsValid())
+				{
+					*Key.Get() = InText.ToString();
+					DirtyPropertyPackage(InPropertyHandle);
+				}
+			}
+		}
+
+		static void HandleNamespaceTextCommitted(const FText& InText, ETextCommit::Type InCommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
+		{
+			FText DisplayText;
+			if (InPropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
+			{
+				TSharedRef< FString, ESPMode::ThreadSafe > DisplayString = FTextInspector::GetSharedDisplayString(DisplayText);
+				TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+				TSharedPtr< FString, ESPMode::ThreadSafe > Key;
+				FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(DisplayString, Namespace, Key);
+
+				if (Namespace.IsValid())
+				{
+					*Namespace.Get() = InText.ToString();
+					DirtyPropertyPackage(InPropertyHandle);
+				}
+			}
+		}
+
+		static TSharedRef<SWidget> GetLocalizationMenuContent(TSharedRef<IPropertyHandle> InPropertyHandle)
+		{
+			FMenuBuilder MenuContentBuilder(true, NULL);
+			{
+				FText DisplayText;
+				if (InPropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
+				{
+					TSharedRef< FString, ESPMode::ThreadSafe > DisplayString = FTextInspector::GetSharedDisplayString(DisplayText);
+					TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+					TSharedPtr< FString, ESPMode::ThreadSafe > Key;
+					FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(DisplayString, Namespace, Key);
+
+					MenuContentBuilder.BeginSection(TEXT("Localization"), LOCTEXT("LocalizationSectionHeading", "Localization"));
+					{
+						if (!Namespace.IsValid() && !Key.IsValid())
+						{
+							MenuContentBuilder.AddWidget(SNew(SSpacer), LOCTEXT("NoLocWarning", "No localization available"));
+						}
+						else
+						{
+							TSharedRef<SGridPanel> GridPanel = SNew(SGridPanel);
+
+							if (Key.IsValid())
+							{
+								GridPanel->AddSlot(0, 0)
+									.VAlign(VAlign_Center)
+									.Padding(1.0f)
+									[
+										SNew(STextBlock)
+										.Text(LOCTEXT("KeyLabel", "Key"))
+										.ToolTipText(LOCTEXT("KeyTooltip", "The localization key of the text property"))
+									];
+
+								auto KeyLambda = [=](){ return FText::FromString(*Key.Get()); };
+
+								GridPanel->AddSlot(1, 0)
+									.VAlign(VAlign_Center)
+									.Padding(1.0f)
+									[
+										SNew(SHorizontalBox)
+										+SHorizontalBox::Slot()
+										.FillWidth(1.0f)
+										[
+											SNew(SEditableTextBox)
+											.Text_Lambda(KeyLambda)
+											.OnTextCommitted(FOnTextCommitted::CreateStatic(&Local::HandleKeyTextCommitted, InPropertyHandle))
+										]
+										+ SHorizontalBox::Slot()
+										.AutoWidth()
+										.HAlign(HAlign_Center)
+										.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+										[
+											SNew(SButton)
+											.ToolTipText(LOCTEXT("RefreshKeyTooltip", "Generate a new random key"))
+											.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+											.OnClicked(FOnClicked::CreateStatic(&Local::HandleGenerateKeyClicked, InPropertyHandle))
+											.Content()
+											[
+												SNew(SImage)
+												.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Refresh"))
+											]
+										]
+									];
+							}
+
+							if (Namespace.IsValid())
+							{
+								auto NamespaceLambda = [=](){ return FText::FromString(*Namespace.Get()); };
+
+								GridPanel->AddSlot(0, 1)
+									.VAlign(VAlign_Center)
+									.Padding(1.0f, 1.0f, 5.0f, 1.0f)
+									[
+										SNew(STextBlock)
+										.Text(LOCTEXT("NamespaceLabel", "Namespace"))
+										.ToolTipText(LOCTEXT("NamespaceTooltip", "The localization namespace of the text property"))
+									];
+
+								GridPanel->AddSlot(1, 1)
+									.VAlign(VAlign_Center)
+									.Padding(1.0f)
+									[
+										SNew(SEditableTextBox)
+										.Text_Lambda(NamespaceLambda)
+										.OnTextCommitted(FOnTextCommitted::CreateStatic(&Local::HandleNamespaceTextCommitted, InPropertyHandle))
+									];
+							}
+
+							MenuContentBuilder.AddWidget(GridPanel, FText::GetEmpty());
+						}
+					}
+
+					MenuContentBuilder.EndSection();
+				}
+			}
+
+			return MenuContentBuilder.MakeWidget();
+		}
+	};
+
+	return SNew(SComboButton)
+		.ToolTipText(LOCTEXT("LocalizationUtilitiesTooltip", "Localization Utilities"))
+		.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+		.ContentPadding(2)
+		.ForegroundColor(FSlateColor::UseForeground())
+		.HasDownArrow(true)
+		.OnGetMenuContent(FOnGetContent::CreateStatic(&Local::GetLocalizationMenuContent, InPropertyHandle));
+}
+
 #undef LOCTEXT_NAMESPACE
 

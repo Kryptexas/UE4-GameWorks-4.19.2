@@ -469,7 +469,7 @@ void FTextLocalizationManager::UpdateLiveTable(const TArray<FLocalizationEntryTr
 						);
 					LiveKeyTable.Add( Key, NewLiveEntry );
 
-					ReverseLiveTable.Add(NewLiveEntry.String, FNamespaceKeyEntry( NamespaceName.IsEmpty()? nullptr : MakeShareable( new FString( NamespaceName ) ), Key.IsEmpty()? nullptr : MakeShareable( new FString( Key ) )));
+					ReverseLiveTable.Add(NewLiveEntry.String, FNamespaceKeyEntry( MakeShareable( new FString( NamespaceName ) ), MakeShareable( new FString( Key ) )));
 				}
 			}
 		}
@@ -640,7 +640,7 @@ TSharedRef<FString, ESPMode::ThreadSafe> FTextLocalizationManager::GetString(con
 
 			LiveKeyTable->Add( Key, NewEntry );
 
-			ReverseLiveTable.Add(NewEntry.String, FNamespaceKeyEntry( Namespace.IsEmpty()? nullptr : MakeShareable( new FString( Namespace ) ), Key.IsEmpty()? nullptr : MakeShareable( new FString( Key ) )));
+			ReverseLiveTable.Add(NewEntry.String, FNamespaceKeyEntry( MakeShareable( new FString( Namespace ) ), MakeShareable( new FString( Key ) )));
 
 		}
 
