@@ -98,23 +98,26 @@ int32 FVisualLogger::GetUniqueId(float Timestamp)
 
 void FVisualLogger::Redirect(UObject* FromObject, UObject* ToObject)
 {
-	if (FromObject == ToObject)
+	if (FromObject == ToObject || FromObject == nullptr || ToObject == nullptr)
 	{
 		return;
 	}
 
 	UObject* OldRedirection = FindRedirection(FromObject);
-	UObject* NewRedierection = FindRedirection(ToObject);
+	UObject* NewRedirection = FindRedirection(ToObject);
 
-	auto OldArray = RedirectionMap.Find(OldRedirection);
-	if (OldArray)
+	if (OldRedirection != NewRedirection)
 	{
-		OldArray->RemoveSingleSwap(FromObject);
+		auto OldArray = RedirectionMap.Find(OldRedirection);
+		if (OldArray)
+		{
+			OldArray->RemoveSingleSwap(FromObject);
+		}
+
+		RedirectionMap.FindOrAdd(NewRedirection).AddUnique(FromObject);
+
+		UE_CVLOG(FromObject != NULL, FromObject, LogVisual, Log, TEXT("Redirected '%s' to '%s'"), *FromObject->GetName(), *NewRedirection->GetName());
 	}
-
-	RedirectionMap.FindOrAdd(NewRedierection).AddUnique(FromObject);
-
-	UE_CVLOG(FromObject != NULL, FromObject, LogVisual, Log, TEXT("Redirected '%s' to '%s'"), *FromObject->GetName(), *NewRedierection->GetName());
 }
 
 class UObject* FVisualLogger::FindRedirection(const UObject* Object)

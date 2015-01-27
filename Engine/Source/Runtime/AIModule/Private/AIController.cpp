@@ -61,6 +61,15 @@ void AAIController::PostInitializeComponents()
 	{
 		InitPlayerState();
 	}
+
+#if ENABLE_VISUAL_LOG
+	TArray<UActorComponent*> ComponentSet;
+	GetComponents(ComponentSet);
+	for (auto Component : ComponentSet)
+	{
+		REDIRECT_OBJECT_TO_VLOG(Component, this);
+	}
+#endif // ENABLE_VISUAL_LOG
 }
 
 void AAIController::PostRegisterAllComponents()
