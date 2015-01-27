@@ -7,10 +7,10 @@
 
 DECLARE_DELEGATE_OneParam(FOnPathChosen, const FString&);
 
-class SCreateAssetFromActor : public SCompoundWidget
+class SCreateAssetFromObject : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SCreateAssetFromActor)
+	SLATE_BEGIN_ARGS(SCreateAssetFromObject)
 		: _AssetFilenameSuffix()
 		, _HeadingText()
 		, _CreateButtonText()
@@ -24,6 +24,8 @@ public:
 
 	/** The label for the create button */
 	SLATE_ARGUMENT(FText, CreateButtonText)
+
+	SLATE_ARGUMENT(FText, DefaultNameOverride)
 
 	/** Action to perform when create clicked */
 	SLATE_EVENT(FOnPathChosen, OnCreateAssetAction)

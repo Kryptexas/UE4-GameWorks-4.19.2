@@ -23,10 +23,10 @@ void FCreateBlueprintFromActorDialog::OpenDialog(bool bInHarvest, AActor* InActo
 		.ToolTipText(LOCTEXT("SelectPathTooltip", "Select the path where the Blueprint will be created at"))
 		.ClientSize(FVector2D(400, 400));
 
-	TSharedPtr<SCreateAssetFromActor> CreateBlueprintFromActorDialog;
+	TSharedPtr<SCreateAssetFromObject> CreateBlueprintFromActorDialog;
 	PickBlueprintPathWidget->SetContent
 	(
-		SAssignNew(CreateBlueprintFromActorDialog, SCreateAssetFromActor, PickBlueprintPathWidget)
+		SAssignNew(CreateBlueprintFromActorDialog, SCreateAssetFromObject, PickBlueprintPathWidget)
 		.AssetFilenameSuffix(TEXT("Blueprint"))
 		.HeadingText(LOCTEXT("CreateBlueprintFromActor_Heading", "Blueprint Name"))
 		.CreateButtonText(LOCTEXT("CreateBlueprintFromActor_ButtonLabel", "Create Blueprint"))
