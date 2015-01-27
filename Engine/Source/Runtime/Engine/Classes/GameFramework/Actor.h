@@ -2227,9 +2227,24 @@ public:
 	UPROPERTY(TextExportTransient, NonTransactional)
 	TArray<UActorComponent*> BlueprintCreatedComponents;
 
+private:
 	/** Array of ActorComponents that have been added by the user on a per-instance basis. */
 	UPROPERTY()
 	TArray<UActorComponent*> InstanceComponents;
+
+public:
+
+	/** Adds a component to the instance components array */
+	void AddInstanceComponent(UActorComponent* Component);
+
+	/** Removes a component from the instance components array */
+	void RemoveInstanceComponent(UActorComponent* Component);
+
+	/** Clears the instance components array */
+	void ClearInstanceComponents();
+
+	/** Returns the instance components array */
+	const TArray<UActorComponent*>& GetInstanceComponents() const;
 
 public:
 	//=============================================================================

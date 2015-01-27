@@ -253,7 +253,7 @@ void SComponentsTree::OnSelectedCompClass(TSubclassOf<UActorComponent> CompClass
 		check(NewComp);
 
 		// Add to InstanceComponents array so it gets saved
-		Actor->InstanceComponents.Add(NewComp);
+		Actor->AddInstanceComponent(NewComp);
 
 		// If a scene component, and actor has a root component, attach it to root
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComp);

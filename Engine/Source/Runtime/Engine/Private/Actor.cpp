@@ -2044,6 +2044,27 @@ void AActor::UpdateAllReplicatedComponents()
 	}
 }
 
+const TArray<UActorComponent*>& AActor::GetInstanceComponents() const
+{
+	return InstanceComponents;
+}
+
+void AActor::AddInstanceComponent(UActorComponent* Component)
+{
+	Component->bInstanceComponent = true;
+	InstanceComponents.Add(Component);
+}
+
+void AActor::RemoveInstanceComponent(UActorComponent* Component)
+{
+	InstanceComponents.Remove(Component);
+}
+
+void AActor::ClearInstanceComponents()
+{
+	InstanceComponents.Empty();
+}
+
 UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
 {
 	UActorComponent* FoundComponent = NULL;

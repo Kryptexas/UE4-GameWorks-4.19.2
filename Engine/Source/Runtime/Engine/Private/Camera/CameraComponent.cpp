@@ -52,6 +52,7 @@ void UCameraComponent::OnRegister()
 		ProxyMeshComponent->CastShadow = false;
 		ProxyMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
 		ProxyMeshComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
+		ProxyMeshComponent->bInstanceComponent = bInstanceComponent;
 		ProxyMeshComponent->RegisterComponentWithWorld(GetWorld());
 	}
 
@@ -62,6 +63,7 @@ void UCameraComponent::OnRegister()
 		DrawFrustum->AlwaysLoadOnClient = false;
 		DrawFrustum->AlwaysLoadOnServer = false;
 		DrawFrustum->bCreatedByConstructionScript = bCreatedByConstructionScript;
+		DrawFrustum->bInstanceComponent = bInstanceComponent;
 		DrawFrustum->RegisterComponentWithWorld(GetWorld());
 	}
 

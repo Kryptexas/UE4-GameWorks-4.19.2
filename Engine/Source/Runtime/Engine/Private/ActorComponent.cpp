@@ -704,7 +704,7 @@ void UActorComponent::DestroyComponent()
 		}
 		else
 		{
-			Owner->InstanceComponents.Remove(this);
+			Owner->RemoveInstanceComponent(this);
 		}
 		Owner->RemoveOwnedComponent(this);
 		if (Owner->GetRootComponent() == this)

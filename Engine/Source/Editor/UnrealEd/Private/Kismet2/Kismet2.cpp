@@ -937,6 +937,9 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 			USCS_Node* SCSNode = SCS->CreateNode(ActorComponent->GetClass());
 			UEditorEngine::CopyPropertiesForUnrelatedObjects(ActorComponent,SCSNode->ComponentTemplate);
 
+			// Clear the instance component flag
+			SCSNode->ComponentTemplate->bInstanceComponent = false;
+
 			USceneComponent* SceneComponent = Cast<USceneComponent>(ActorComponent);
 
 			// The easy part is non-scene component or the Root simply add it
@@ -1024,9 +1027,9 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 			Outer->MarkPackageDirty();
 
 			// If the source Actor has Instance Components we need to translate these in to SCS Nodes
-			if (Actor->InstanceComponents.Num() > 0)
+			if (Actor->GetInstanceComponents().Num() > 0)
 			{
-				AddComponentsToBlueprint(NewBlueprint, Actor->InstanceComponents);
+				AddComponentsToBlueprint(NewBlueprint, Actor->GetInstanceComponents());
 			}
 
 			if(NewBlueprint->GeneratedClass)
@@ -1048,7 +1051,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 					}
 
 					// Clear the instance properties array as we created SCS nodes for them
-					CDOAsActor->InstanceComponents.Empty();
+					CDOAsActor->ClearInstanceComponents();
 				}
 			}
 
