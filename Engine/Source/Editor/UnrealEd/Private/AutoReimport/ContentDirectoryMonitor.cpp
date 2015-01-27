@@ -60,13 +60,37 @@ void FContentDirectoryMonitor::StartProcessing()
 	auto OutstandingChanges = Cache.GetOutstandingChanges();
 	if (OutstandingChanges.Num() != 0)
 	{
+		const auto* Settings = GetDefault<UEditorLoadingSavingSettings>();
+
 		for (auto& Transaction : OutstandingChanges)
 		{
 			switch(Transaction.Action)
 			{
-				case FFileChangeData::FCA_Added:		AddedFiles.Emplace(MoveTemp(Transaction));		break;
-				case FFileChangeData::FCA_Modified:		ModifiedFiles.Emplace(MoveTemp(Transaction));	break;
-				case FFileChangeData::FCA_Removed:		DeletedFiles.Emplace(MoveTemp(Transaction));	break;
+				case FFileChangeData::FCA_Added:
+					if (Settings->bAutoCreateAssets)
+					{
+						AddedFiles.Emplace(MoveTemp(Transaction));
+					}
+					else
+					{
+						Cache.CompleteTransaction(MoveTemp(Transaction));
+					}
+					break;
+					
+				case FFileChangeData::FCA_Modified:
+					ModifiedFiles.Emplace(MoveTemp(Transaction));
+					break;
+
+				case FFileChangeData::FCA_Removed:
+					if (Settings->bAutoDeleteAssets)
+					{
+						DeletedFiles.Emplace(MoveTemp(Transaction));
+					}
+					else
+					{
+						Cache.CompleteTransaction(MoveTemp(Transaction));
+					}
+					break;
 			}
 		}
 

@@ -29,7 +29,8 @@ namespace Utils
 				{
 					// Either relative to the asset itself, or relative to the base path, or absolute.
 					// Would ideally use FReimportManager::ResolveImportFilename here, but we don't want to ask the file system whether the file exists.
-					if (AbsoluteFilename == FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(Asset.PackagePath.ToString()) / Pair.Value) ||
+					auto RelativeToPackagePath = FPackageName::LongPackageNameToFilename(Asset.PackagePath.ToString() / TEXT("")) / Pair.Value;
+					if (AbsoluteFilename == FPaths::ConvertRelativePathToFull(RelativeToPackagePath) ||
 						AbsoluteFilename == FPaths::ConvertRelativePathToFull(Pair.Value))
 					{
 						return false;
