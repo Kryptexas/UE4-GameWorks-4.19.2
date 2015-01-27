@@ -248,11 +248,11 @@ FString GameProjectUtils::FNewClassInfo::GetHeaderTemplateFilename() const
 	{
 		case EClassType::UObject:
 		{
-			if( BaseClass != nullptr && BaseClass->IsChildOf( UActorComponent::StaticClass() ) )
+			if( BaseClass != nullptr && ( BaseClass == UActorComponent::StaticClass() || BaseClass == USceneComponent::StaticClass() ) )
 			{
 				return TEXT( "ActorComponentClass.h.template" );
 			}
-			else if( BaseClass != nullptr && BaseClass->IsChildOf( AActor::StaticClass() ) )
+			else if( BaseClass != nullptr && BaseClass == AActor::StaticClass() )
 			{
 				return TEXT( "ActorClass.h.template" );
 			}
@@ -283,11 +283,11 @@ FString GameProjectUtils::FNewClassInfo::GetSourceTemplateFilename() const
 	switch(ClassType)
 	{
 		case EClassType::UObject:
-			if( BaseClass != nullptr && BaseClass->IsChildOf( UActorComponent::StaticClass() ) )
+			if( BaseClass != nullptr && ( BaseClass == UActorComponent::StaticClass() || BaseClass == USceneComponent::StaticClass() ) )
 			{
 				return TEXT( "ActorComponentClass.cpp.template" );
 			}
-			else if( BaseClass != nullptr && BaseClass->IsChildOf( AActor::StaticClass() ) )
+			else if( BaseClass != nullptr && BaseClass == AActor::StaticClass() )
 			{
 				return TEXT( "ActorClass.cpp.template" );
 			}
