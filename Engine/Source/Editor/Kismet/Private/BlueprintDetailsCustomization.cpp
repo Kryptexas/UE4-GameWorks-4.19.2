@@ -1864,7 +1864,8 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 				.Schema(K2Schema)
 				.bAllowExec(TargetNode->CanModifyExecutionWires())
 				.bAllowWildcard(ShouldAllowWildcard(TargetNode))
-				.IsEnabled(!ShouldPinBeReadOnly())
+				.bAllowArrays(!ShouldPinBeReadOnly())
+				.IsEnabled(!ShouldPinBeReadOnly(true))
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]
 		+SHorizontalBox::Slot()
@@ -2003,7 +2004,7 @@ FReply FBlueprintGraphArgumentLayout::OnArgMoveDown()
 	return FReply::Handled();
 }
 
-bool FBlueprintGraphArgumentLayout::ShouldPinBeReadOnly() const
+bool FBlueprintGraphArgumentLayout::ShouldPinBeReadOnly(bool bIsEditingPinType/* = false*/) const
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -2017,19 +2018,19 @@ bool FBlueprintGraphArgumentLayout::ShouldPinBeReadOnly() const
 		else
 		{
 			// Check if pin editing is read only
-			return IsPinEditingReadOnly();
+			return IsPinEditingReadOnly(bIsEditingPinType);
 		}
 	}
 	
 	return false;
 }
 
-bool FBlueprintGraphArgumentLayout::IsPinEditingReadOnly() const
+bool FBlueprintGraphArgumentLayout::IsPinEditingReadOnly(bool bIsEditingPinType/* = false*/) const
 {
 	if(UEdGraph* NodeGraph = TargetNode->GetGraph())
 	{
-		// Math expression should not be modified directly, do not let the user tweak the parameters
-		if ( Cast<UK2Node_MathExpression>(NodeGraph->GetOuter()) )
+		// Math expression should not be modified directly (except for the pin type), do not let the user tweak the parameters
+		if (!bIsEditingPinType && Cast<UK2Node_MathExpression>(NodeGraph->GetOuter()) )
 		{
 			return true;
 		}
@@ -2119,7 +2120,7 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 		if (GraphActionDetailsPtr.IsValid())
 		{
 			GraphActionDetailsPtr.Pin()->GetMyBlueprint().Pin()->GetLastFunctionPinTypeUsed() = PinType;
-			if( !ShouldPinBeReadOnly() )
+			if( !ShouldPinBeReadOnly(true) )
 			{
 				GraphActionDetailsPtr.Pin()->OnParamsChanged(TargetNode);
 			}
@@ -2129,7 +2130,7 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 
 void FBlueprintGraphArgumentLayout::OnPrePinInfoChange(const FEdGraphPinType& PinType)
 {
-	if( !ShouldPinBeReadOnly() && TargetNode )
+	if( !ShouldPinBeReadOnly(true) && TargetNode )
 	{
 		TargetNode->Modify();
 	}
