@@ -45,10 +45,11 @@ public:
 	 *
 	 * @param	Obj	Object to try reimporting
 	 * @param	bAskForNewFileIfMissing If the file is missing, open a dialog to ask for a new one
+	 * @param	bShowNotification True to show a notification when complete, false otherwise
 	 *
 	 * @return	true if the object was handled by one of the reimport handlers; false otherwise
 	 */
-	UNREALED_API virtual bool Reimport( UObject* Obj, bool bAskForNewFileIfMissing = false );
+	UNREALED_API virtual bool Reimport( UObject* Obj, bool bAskForNewFileIfMissing = false, bool bShowNotification = true );
 
 	/**
 	 * Convert a file path to be relative to the specified object, if it resides in the same package folder
