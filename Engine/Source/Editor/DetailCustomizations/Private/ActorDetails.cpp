@@ -1441,7 +1441,10 @@ FReply FActorDetails::ResetToBlueprintDefaults_OnClicked( TWeakObjectPtr<UBluepr
 				NumChangedProperties += InstanceComponents.Num();
 				for (UActorComponent* ActorComponent : InstanceComponents)
 				{
-					ActorComponent->DestroyComponent();
+					if (ActorComponent)
+					{
+						ActorComponent->DestroyComponent();
+					}
 				}
 			}
 		}
