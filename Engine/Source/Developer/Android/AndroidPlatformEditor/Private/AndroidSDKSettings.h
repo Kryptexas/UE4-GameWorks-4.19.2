@@ -36,8 +36,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "NDK API Level (specific version or 'latest' - see tooltip)"))
 	FString NDKAPILevel;
 
+#if PLATFORM_MAC == 0
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of JAVA (the directory usually contains 'jdk')"))
 	FDirectoryPath JavaPath;
+#endif
 
 #if WITH_EDITOR
 	// UObject interface
