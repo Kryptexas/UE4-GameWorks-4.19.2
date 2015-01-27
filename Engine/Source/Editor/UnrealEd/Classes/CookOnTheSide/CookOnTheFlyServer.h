@@ -1028,6 +1028,9 @@ private:
 	 */
 	bool GetPackageTimestamp( const FString& InFilename, FDateTime& OutDateTime );
 
+	/** If true, the maximum file length of a package being saved will be reduced by 32 to compensate for compressed package intermediate files */
+	bool ShouldConsiderCompressedPackageFileLengthRequirements() const;
+
 	/**
 	 *	Cook (save) the given package
 	 *

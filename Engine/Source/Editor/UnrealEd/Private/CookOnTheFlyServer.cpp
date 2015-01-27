@@ -1624,6 +1624,13 @@ bool UCookOnTheFlyServer::ShouldCook(const FString& InFileName, const FName &InP
 	return bDoCook;*/
 }
 
+bool UCookOnTheFlyServer::ShouldConsiderCompressedPackageFileLengthRequirements() const
+{
+	bool bConsiderCompressedPackageFileLengthRequirements = true;
+	GConfig->GetBool(TEXT("CookSettings"), TEXT("bConsiderCompressedPackageFileLengthRequirements"), bConsiderCompressedPackageFileLengthRequirements, GEditorIni);
+	return bConsiderCompressedPackageFileLengthRequirements;
+}
+
 bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames )
 {
 	bool bSavedCorrectly = true;
@@ -1776,8 +1783,12 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 					}
 				}
 
+				// need to subtract 32 because the SavePackage code creates temporary files with longer file names then the one we provide
+				// projects may ignore this restriction if desired
+				static bool bConsiderCompressedPackageFileLengthRequirements = ShouldConsiderCompressedPackageFileLengthRequirements();
+				const int32 CompressedPackageFileLengthRequirement = bConsiderCompressedPackageFileLengthRequirements ? 32 : 0;
 				const FString FullFilename = FPaths::ConvertRelativePathToFull( PlatFilename );
-				if( FullFilename.Len() >= (PLATFORM_MAX_FILEPATH_LENGTH-32) ) // need to subtract 32 because the SavePackage code creates temporary files with longer file names then the one we provide
+				if( FullFilename.Len() >= (PLATFORM_MAX_FILEPATH_LENGTH-CompressedPackageFileLengthRequirement) )
 				{
 					LogCookerMessage( FString::Printf(TEXT("Couldn't save package, filename is too long: %s"), *PlatFilename), EMessageSeverity::Error );
 					UE_LOG( LogCook, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
