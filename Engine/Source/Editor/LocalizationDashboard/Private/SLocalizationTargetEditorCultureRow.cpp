@@ -6,6 +6,8 @@
 #include "LocalizationConfigurationScript.h"
 #include "LocalizationCommandletTasks.h"
 
+#define LOCTEXT_NAMESPACE "LocalizationTargetEditorCultureRow"
+
 void SLocalizationTargetEditorCultureRow::Construct(const FTableRowArgs& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const TSharedRef<IPropertyUtilities>& InPropertyUtilities, const TSharedRef<IPropertyHandle>& InTargetSettingsPropertyHandle, const int32 InCultureIndex)
 {
 	PropertyUtilities = InPropertyUtilities;
@@ -80,7 +82,7 @@ TSharedRef<SWidget> SLocalizationTargetEditorCultureRow::GenerateWidgetForColumn
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText( NSLOCTEXT("LocalizationCultureActions", "EditButtonLabel", "Edit Translations") )
+				.ToolTipText( LOCTEXT("EditButtonLabel", "Edit Translations") )
 				.OnClicked(this, &SLocalizationTargetEditorCultureRow::Edit)
 				.Content()
 				[
@@ -97,7 +99,7 @@ TSharedRef<SWidget> SLocalizationTargetEditorCultureRow::GenerateWidgetForColumn
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText( NSLOCTEXT("LocalizationCultureActions", "ImportButtonLabel", "Import") )
+				.ToolTipText( LOCTEXT("ImportButtonLabel", "Import") )
 				.OnClicked(this, &SLocalizationTargetEditorCultureRow::Import)
 				.Content()
 				[
@@ -223,7 +225,7 @@ FText SLocalizationTargetEditorCultureRow::GetWordCountText() const
 	Arguments.Add(TEXT("TranslatedWordCount"), FText::AsNumber(GetWordCount()));
 	TOptional<float> Percentage = GetProgressPercentage();
 	Arguments.Add(TEXT("TranslatedPercentage"), FText::AsPercent(Percentage.IsSet() ? Percentage.GetValue() : 0.0f));
-	return FText::Format(NSLOCTEXT("LocalizationDashboard", "CultureWordCountProgressFormat", "{TranslatedWordCount} ({TranslatedPercentage})"), Arguments);
+	return FText::Format(LOCTEXT("CultureWordCountProgressFormat", "{TranslatedWordCount} ({TranslatedPercentage})"), Arguments);
 }
 
 TOptional<float> SLocalizationTargetEditorCultureRow::GetProgressPercentage() const
@@ -356,11 +358,11 @@ void SLocalizationTargetEditorCultureRow::Delete()
 			FText MessageText;
 
 			// Setup dialog for deleting supported culture.
-			const FText FormatPattern = NSLOCTEXT("LocalizationDashboard", "DeleteCultureConfirmationDialogMessage", "This action can not be undone and data will be permanently lost. Are you sure you would like to delete {CultureName}?");
+			const FText FormatPattern = LOCTEXT("DeleteCultureConfirmationDialogMessage", "This action can not be undone and data will be permanently lost. Are you sure you would like to delete {CultureName}?");
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("CultureName"), FText::FromString(Culture->GetDisplayName()));
 			MessageText = FText::Format(FormatPattern, Arguments);
-			TitleText = NSLOCTEXT("LocalizationDashboard", "DeleteCultureConfirmationDialogTitle", "Confirm Culture Deletion");
+			TitleText = LOCTEXT("DeleteCultureConfirmationDialogTitle", "Confirm Culture Deletion");
 
 			switch(FMessageDialog::Open(EAppMsgType::OkCancel, MessageText, &TitleText))
 			{
@@ -385,3 +387,5 @@ void SLocalizationTargetEditorCultureRow::Delete()
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

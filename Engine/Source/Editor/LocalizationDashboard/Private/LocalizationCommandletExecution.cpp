@@ -8,13 +8,16 @@
 #include "DesktopPlatformModule.h"
 #include "SThrobber.h"
 #include "Commandlets/CommandletHelpers.h"
+#include "EditorStyleSet.h"
+
+#define LOCTEXT_NAMESPACE "LocalizationCommandletExecutor"
 
 namespace
 {
 	class SLocalizationCommandletExecutor : public SWindow
 	{
 		SLATE_BEGIN_ARGS(SLocalizationCommandletExecutor)
-			: _Title( NSLOCTEXT("LocalizationDashboard", "LocalizationCommandletExecutorTitle", "Localization Commandlet") )
+			: _Title( LOCTEXT("WindowTitle", "Localization Commandlet") )
 		{}
 		SLATE_ATTRIBUTE(FText, Title)
 			SLATE_END_ARGS()
@@ -163,7 +166,7 @@ namespace
 							.DefaultLabel(FText::GetEmpty())
 							.FixedWidth(20.0)
 							+ SHeaderRow::Column("TaskName")
-							.DefaultLabel(NSLOCTEXT("LocalizationCommandletExecutor", "TaskListNameColumnLabel", "Task"))
+							.DefaultLabel(LOCTEXT("TaskListNameColumnLabel", "Task"))
 							.FillWidth(1.0)
 							)
 							.ListItemsSource(&TaskListModels)
@@ -220,8 +223,8 @@ namespace
 						[
 							SNew(SButton)
 							.ContentPadding(FMargin(6.0f, 2.0f))
-							.Text(NSLOCTEXT("LocalizationCommandletExecutor", "CopyLogButtonText", "Copy Log"))
-							.ToolTipText(NSLOCTEXT("LocalizationCommandletExecutor", "CopyLogButtonTooltip", "Copy the logged text to the clipboard."))
+							.Text(LOCTEXT("CopyLogButtonText", "Copy Log"))
+							.ToolTipText(LOCTEXT("CopyLogButtonTooltip", "Copy the logged text to the clipboard."))
 							.OnClicked(this, &SLocalizationCommandletExecutor::OnCopyLogClicked)
 						]
 						+ SHorizontalBox::Slot()
@@ -230,8 +233,8 @@ namespace
 								SNew(SButton)
 								.ContentPadding(FMargin(6.0f, 2.0f))
 								.IsEnabled(false)
-								.Text(NSLOCTEXT("LocalizationCommandletExecutor", "SaveLogButtonText", "Save Log..."))
-								.ToolTipText(NSLOCTEXT("LocalizationCommandletExecutor", "SaveLogButtonToolTip", "Save the logged text to a file."))
+								.Text(LOCTEXT("SaveLogButtonText", "Save Log..."))
+								.ToolTipText(LOCTEXT("SaveLogButtonToolTip", "Save the logged text to a file."))
 								.OnClicked(this, &SLocalizationCommandletExecutor::OnSaveLogClicked)
 							]
 						+ SHorizontalBox::Slot()
@@ -585,7 +588,7 @@ namespace
 
 	FReply SLocalizationCommandletExecutor::OnSaveLogClicked()
 	{
-		const FString TextFileDescription = NSLOCTEXT("LocalizationCommandletExecutor", "TextFileDescription", "Text File").ToString();
+		const FString TextFileDescription = LOCTEXT("TextFileDescription", "Text File").ToString();
 		const FString TextFileExtension = TEXT("txt");
 		const FString TextFileExtensionWildcard = FString::Printf(TEXT("*.%s"), *TextFileExtension);
 		const FString FileTypes = FString::Printf(TEXT("%s (%s)|%s"), *TextFileDescription, *TextFileExtensionWildcard, *TextFileExtensionWildcard);
@@ -608,7 +611,7 @@ namespace
 
 			if (DesktopPlatform->SaveFileDialog(
 				ParentWindowWindowHandle,
-				NSLOCTEXT("LocalizationDashboard", "SaveLogDialogTitle", "Save Log to File").ToString(),
+				LOCTEXT("SaveLogDialogTitle", "Save Log to File").ToString(),
 				DefaultPath,
 				DefaultFilename,
 				FileTypes,
@@ -626,7 +629,7 @@ namespace
 
 	FText SLocalizationCommandletExecutor::GetCloseButtonText() const
 	{
-		return HasCompleted() ? NSLOCTEXT("LocalizationDashboard", "OkayButtonText", "Okay") : NSLOCTEXT("LocalizationDashboard", "CancelButtonText", "Cancel");
+		return HasCompleted() ? LOCTEXT("OkayButtonText", "Okay") : LOCTEXT("CancelButtonText", "Cancel");
 	}
 
 	FReply SLocalizationCommandletExecutor::OnCloseButtonClicked()
@@ -693,3 +696,5 @@ FLocalizationCommandletProcess::~FLocalizationCommandletProcess()
 	}
 	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
 }
+
+#undef LOCTEXT_NAMESPACE

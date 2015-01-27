@@ -5,6 +5,8 @@
 #include "STableRow.h"
 #include "SSearchBox.h"
 
+#define LOCTEXT_NAMESPACE "CulturePicker"
+
 void SCulturePicker::Construct( const FArguments& InArgs )
 {
 	OnCultureSelectionChanged = InArgs._OnSelectionChanged;
@@ -37,7 +39,7 @@ void SCulturePicker::Construct( const FArguments& InArgs )
 			.AutoHeight()
 			[
 				SNew(SSearchBox)
-				.HintText( NSLOCTEXT("CulturePicker", "SearchHintText", "Name/Abbreviation") )
+				.HintText( LOCTEXT("SearchHintText", "Name/Abbreviation") )
 				.OnTextChanged(this, &SCulturePicker::OnFilterStringChanged)
 				.DelayChangeNotificationsWhileTyping(true)
 			]
@@ -269,3 +271,5 @@ void SCulturePicker::OnSelectionChanged(TSharedPtr<FCultureEntry> Entry, ESelect
 		OnCultureSelectionChanged.ExecuteIfBound( Entry->Culture, SelectInfo );
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

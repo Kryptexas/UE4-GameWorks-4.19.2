@@ -20,8 +20,9 @@
 #include "MultiBoxBuilder.h"
 #include "FeedbackContext.h"
 #include "LocalizationCommandletTasks.h"
+#include "FileHelpers.h"
 
-#define LOCTEXT_NAMSPACE "LocalizationDashboard"
+#define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
 const FName SLocalizationDashboard::TabName("LocalizationDashboard");
 
@@ -83,7 +84,6 @@ namespace
 		, DetailLayoutBuilder(nullptr)
 		, ServiceProviderCategoryBuilder(nullptr)
 		, NewEntryIndexToBeInitialized(INDEX_NONE)
-		, IDetailCustomization()
 	{
 		TArray<ILocalizationServiceProvider*> ActualProviders = ILocalizationDashboardModule::Get().GetLocalizationServiceProviders();
 		for (ILocalizationServiceProvider* ActualProvider : ActualProviders)
@@ -146,7 +146,7 @@ namespace
 				ServiceProviderPropertyHandle->MarkHiddenByCustomization();
 				//ServiceProviderCategoryBuilder = &( DetailBuilder.EditCategory( FName("LocalizationServiceProvider") ) );
 
-				//FDetailWidgetRow& ServiceProviderDetailWidgetRow = ServiceProviderCategoryBuilder->AddCustomRow( NSLOCTEXT("LocalizationDashboard", "LocalizationServiceProviderFilterString", "Localization Service Provider") );
+				//FDetailWidgetRow& ServiceProviderDetailWidgetRow = ServiceProviderCategoryBuilder->AddCustomRow( LOCTEXT("LocalizationServiceProviderFilterString", "Localization Service Provider") );
 				//ServiceProviderDetailWidgetRow.NameContent()
 				//	[
 				//		ServiceProviderPropertyHandle->CreatePropertyNameWidget()
@@ -199,7 +199,7 @@ namespace
 
 				BuildTargetsList();
 
-				DetailCategoryBuilder.AddCustomRow( NSLOCTEXT("LocalizationDashboard", "TargetsFilterString", "Targets") )
+				DetailCategoryBuilder.AddCustomRow( LOCTEXT("TargetsFilterString", "Targets") )
 					.WholeRowContent()
 					[
 						SNew(SVerticalBox)
@@ -219,27 +219,27 @@ namespace
 								(
 								SNew(SHeaderRow)
 								+SHeaderRow::Column("Target")
-								.DefaultLabel( NSLOCTEXT("LocalizationDashboard", "TargetColumnLabel", "Target"))
+								.DefaultLabel( LOCTEXT("TargetColumnLabel", "Target"))
 								.HAlignHeader(HAlign_Left)
 								.HAlignCell(HAlign_Left)
 								.VAlignCell(VAlign_Center)
 								+SHeaderRow::Column("Status")
-								.DefaultLabel( NSLOCTEXT("LocalizationDashboard", "StatusColumnLabel", "Status"))
+								.DefaultLabel( LOCTEXT("StatusColumnLabel", "Status"))
 								.HAlignHeader(HAlign_Center)
 								.HAlignCell(HAlign_Center)
 								.VAlignCell(VAlign_Center)
 								+SHeaderRow::Column("Cultures")
-								.DefaultLabel( NSLOCTEXT("LocalizationDashboard", "CulturesColumnLabel", "Cultures"))
+								.DefaultLabel( LOCTEXT("CulturesColumnLabel", "Cultures"))
 								.HAlignHeader(HAlign_Fill)
 								.HAlignCell(HAlign_Fill)
 								.VAlignCell(VAlign_Center)
 								+SHeaderRow::Column("WordCount")
-								.DefaultLabel( NSLOCTEXT("LocalizationDashboard", "WordCountColumnLabel", "Word Count"))
+								.DefaultLabel( LOCTEXT("WordCountColumnLabel", "Word Count"))
 								.HAlignHeader(HAlign_Center)
 								.HAlignCell(HAlign_Center)
 								.VAlignCell(VAlign_Center)
 								+SHeaderRow::Column("Actions")
-								.DefaultLabel( NSLOCTEXT("LocalizationDashboard", "ActionsColumnLabel", "Actions"))
+								.DefaultLabel( LOCTEXT("ActionsColumnLabel", "Actions"))
 								.HAlignHeader(HAlign_Center)
 								.HAlignCell(HAlign_Center)
 								.VAlignCell(VAlign_Center)
@@ -250,7 +250,7 @@ namespace
 							.VAlign(VAlign_Center)
 							[
 								SNew(SButton)
-								.Text(NSLOCTEXT("LocalizationDashboard", "AddNewTargetButtonLabel", "Add New Target"))
+								.Text(LOCTEXT("AddNewTargetButtonLabel", "Add New Target"))
 								.OnClicked(this, &FProjectLocalizationSettingsDetailsCustomization::OnNewTargetButtonClicked)
 							]
 					];
@@ -321,14 +321,14 @@ namespace
 	FText FProjectLocalizationSettingsDetailsCustomization::GetCurrentServiceProviderDisplayName() const
 	{
 		ILocalizationServiceProvider* const LSP = ILocalizationDashboardModule::Get().GetCurrentLocalizationServiceProvider();
-		return LSP ? LSP->GetDisplayName() : NSLOCTEXT("LocalizationDashboard", "NoServiceProviderName", "None");
+		return LSP ? LSP->GetDisplayName() : LOCTEXT("NoServiceProviderName", "None");
 	}
 
 	TSharedRef<SWidget> FProjectLocalizationSettingsDetailsCustomization::ServiceProviderComboBox_OnGenerateWidget(TSharedPtr<FLocalizationServiceProviderWrapper> LSPWrapper) const
 	{
 		ILocalizationServiceProvider* const LSP = LSPWrapper->Provider;
 		return	SNew(STextBlock)
-			.Text(LSP ? LSP->GetDisplayName() : NSLOCTEXT("LocalizationDashboard", "NoServiceProviderName", "None"));
+			.Text(LSP ? LSP->GetDisplayName() : LOCTEXT("NoServiceProviderName", "None"));
 	}
 
 	void FProjectLocalizationSettingsDetailsCustomization::ServiceProviderComboBox_OnSelectionChanged(TSharedPtr<FLocalizationServiceProviderWrapper> LSPWrapper, ESelectInfo::Type SelectInfo)

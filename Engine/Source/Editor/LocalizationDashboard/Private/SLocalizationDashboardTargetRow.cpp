@@ -9,6 +9,8 @@
 #include "LocalizationConfigurationScript.h"
 #include "LocalizationCommandletTasks.h"
 
+#define LOCTEXT_NAMESPACE "LocalizationDashboardTargetRow"
+
 TMap< TWeakObjectPtr<ULocalizationTarget>, TWeakPtr<SDockTab> > SLocalizationDashboardTargetRow::TargetToTabMap;
 
 void SLocalizationDashboardTargetRow::Construct(const FTableRowArgs& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const TSharedRef<IPropertyUtilities>& InPropertyUtilities, const TSharedRef<IPropertyHandle>& InTargetObjectPropertyHandle)
@@ -64,7 +66,7 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText( NSLOCTEXT("LocalizationTargetActions", "GatherButtonLabel", "Gather") )
+				.ToolTipText( LOCTEXT("GatherButtonLabel", "Gather") )
 				.OnClicked(this, &SLocalizationDashboardTargetRow::Gather)
 				.Content()
 				[
@@ -81,7 +83,7 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText(NSLOCTEXT("LocalizationTargetActions", "RefreshWordCountButtonLabel", "Refresh"))
+				.ToolTipText( LOCTEXT("RefreshWordCountButtonLabel", "Refresh") )
 				.OnClicked(this, &SLocalizationDashboardTargetRow::RefreshWordCount)
 				.Content()
 				[
@@ -98,7 +100,7 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText( NSLOCTEXT("LocalizationTargetActions", "ImportAllButtonLabel", "Import All") )
+				.ToolTipText( LOCTEXT("ImportAllButtonLabel", "Import All") )
 				.OnClicked(this, &SLocalizationDashboardTargetRow::ImportAll)
 				.Content()
 				[
@@ -115,7 +117,7 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText(NSLOCTEXT("LocalizationTargetActions", "ExportAllButtonLabel", "Export All"))
+				.ToolTipText(LOCTEXT("ExportAllButtonLabel", "Export All"))
 				.OnClicked(this, &SLocalizationDashboardTargetRow::ExportAll)
 				.Content()
 				[
@@ -132,7 +134,7 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText(NSLOCTEXT("LocalizationTargetActions", "DeleteButtonLabel", "Delete"))
+				.ToolTipText(LOCTEXT("DeleteButtonLabel", "Delete"))
 				.OnClicked(this, &SLocalizationDashboardTargetRow::EnqueueDeletion)
 				.Content()
 				[
@@ -448,3 +450,5 @@ void SLocalizationDashboardTargetRow::Delete()
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

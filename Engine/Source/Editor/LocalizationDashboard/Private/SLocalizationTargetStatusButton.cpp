@@ -4,6 +4,8 @@
 #include "SLocalizationTargetStatusButton.h"
 #include "LocalizationCommandletExecution.h"
 
+#define LOCTEXT_NAMESPACE "LocalizationTargetStatusButton"
+
 void SLocalizationTargetStatusButton::Construct(const FArguments& InArgs, ULocalizationTarget& InTarget)
 {
 	Target = &InTarget;
@@ -65,13 +67,13 @@ FText SLocalizationTargetStatusButton::GetToolTipText() const
 	{
 	default:
 	case ELocalizationTargetStatus::Unknown:
-		return NSLOCTEXT("LocalizationCulture", "StatusToolTip_Unknown", "Conflict report file not detected. Click to generate the conflict report.");
+		return LOCTEXT("StatusToolTip_Unknown", "Conflict report file not detected. Click to generate the conflict report.");
 		break;
 	case ELocalizationTargetStatus::Clear:
-		return NSLOCTEXT("LocalizationCulture", "StatusToolTip_Clear", "No conflicts detected.");
+		return LOCTEXT("StatusToolTip_Clear", "No conflicts detected.");
 		break;
 	case ELocalizationTargetStatus::ConflictsPresent:
-		return NSLOCTEXT("LocalizationCulture", "StatusToolTip_ConflictsPresent", "Conflicts detected. Click to open the conflict report.");
+		return LOCTEXT("StatusToolTip_ConflictsPresent", "Conflicts detected. Click to open the conflict report.");
 		break;
 	}
 }
@@ -122,3 +124,5 @@ FReply SLocalizationTargetStatusButton::OnClicked()
 
 	return FReply::Handled();
 }
+
+#undef LOCTEXT_NAMESPACE

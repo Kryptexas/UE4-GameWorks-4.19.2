@@ -8,6 +8,8 @@
 #include "Features/IModularFeatures.h"
 #include "ILocalizationServiceProvider.h"
 
+#define LOCTEXT_NAMESPACE "LocalizationDashboard"
+
 class FLocalizationDashboardModule
 	: public ILocalizationDashboardModule
 {
@@ -29,7 +31,7 @@ public:
 		const auto& SpawnMainTab = [this](const FSpawnTabArgs& Args) -> TSharedRef<SDockTab>
 		{
 			return SNew(SDockTab)
-				.Label(NSLOCTEXT("LocalizationDashboard", "MainTabTitle", "Localization Dashboard"))
+				.Label(LOCTEXT("MainTabTitle", "Localization Dashboard"))
 				.TabRole(ETabRole::MajorTab)
 				[
 					SNew(SLocalizationDashboard, Settings.Get())
@@ -37,7 +39,7 @@ public:
 		};
 
 		FGlobalTabmanager::Get()->RegisterTabSpawner(SLocalizationDashboard::TabName, FOnSpawnTab::CreateLambda( TFunction<TSharedRef<SDockTab> (const FSpawnTabArgs&)>(SpawnMainTab) ) )
-			.SetDisplayName(NSLOCTEXT("LocalizationDashboard", "MainTabTitle", "Localization Dashboard"))
+			.SetDisplayName(LOCTEXT("MainTabTitle", "Localization Dashboard"))
 			.SetMenuType(ETabSpawnerMenuType::Hidden);
 
 		ServiceProviders = IModularFeatures::Get().GetModularFeatureImplementations<ILocalizationServiceProvider>("LocalizationService");
@@ -81,3 +83,5 @@ private:
 };
 
 IMPLEMENT_MODULE(FLocalizationDashboardModule, "LocalizationDashboard");
+
+#undef LOCTEXT_NAMESPACE

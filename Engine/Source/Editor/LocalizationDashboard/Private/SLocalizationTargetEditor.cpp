@@ -19,7 +19,7 @@
 #include "SLocalizationTargetStatusButton.h"
 #include "LocalizationCommandletTasks.h"
 
-#define LOCTEXT_NAMSPACE "LocalizationCulture"
+#define LOCTEXT_NAMESPACE "LocalizationTargetEditor"
 
 namespace
 {
@@ -152,7 +152,7 @@ namespace
 			const TSharedPtr<IPropertyHandle> NamePropertyHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, Name));
 			if (NamePropertyHandle.IsValid() && NamePropertyHandle->IsValidHandle())
 			{
-				FDetailWidgetRow& DetailWidgetRow = DetailCategoryBuilder.AddCustomRow( NSLOCTEXT("LocalizationTargetEditor", "TargetNameFilterString", "Target Name") );
+				FDetailWidgetRow& DetailWidgetRow = DetailCategoryBuilder.AddCustomRow( LOCTEXT("TargetNameFilterString", "Target Name") );
 				DetailWidgetRow.NameContent()
 					[
 						NamePropertyHandle->CreatePropertyNameWidget()
@@ -172,7 +172,7 @@ namespace
 				StatusPropertyHandle->MarkHiddenByCustomization();
 				if (LocalizationTarget)
 				{
-					FDetailWidgetRow& StatusRow = DetailCategoryBuilder.AddCustomRow( NSLOCTEXT("LocalizationTargetEditor", "ConflictReportStatusFilterString", "Conflict Report Status") );
+					FDetailWidgetRow& StatusRow = DetailCategoryBuilder.AddCustomRow( LOCTEXT("ConflictReportStatusFilterString", "Conflict Report Status") );
 					StatusRow.NameContent()
 						[
 							StatusPropertyHandle->CreatePropertyNameWidget()
@@ -192,7 +192,7 @@ namespace
 				TargetDependenciesPropertyHandle->MarkHiddenByCustomization();
 				if (LocalizationTarget)
 				{
-					FDetailWidgetRow& TargetDependenciesRow = DetailCategoryBuilder.AddCustomRow( NSLOCTEXT("LocalizationTargetEditor", "ConflictReportStatusFilterString", "Conflict Report Status") );
+					FDetailWidgetRow& TargetDependenciesRow = DetailCategoryBuilder.AddCustomRow( LOCTEXT("ConflictReportStatusFilterString", "Conflict Report Status") );
 					TargetDependenciesRow.NameContent()
 						[
 							TargetDependenciesPropertyHandle->CreatePropertyNameWidget()
@@ -252,7 +252,7 @@ namespace
 				if (NativeCultureNamePropertyHandle.IsValid() && NativeCultureNamePropertyHandle->IsValidHandle())
 				{
 					NativeCultureNamePropertyHandle->MarkHiddenByCustomization();
-					FDetailWidgetRow& NativeCultureRow = DetailCategoryBuilder.AddCustomRow( NSLOCTEXT("LocalizationTargetEditor", "NativeCultureNameFilterString", "Native Culture Name") );
+					FDetailWidgetRow& NativeCultureRow = DetailCategoryBuilder.AddCustomRow( LOCTEXT("NativeCultureNameFilterString", "Native Culture Name") );
 
 					FString NativeCultureName;
 					NativeCultureNamePropertyHandle->GetValue(NativeCultureName);
@@ -260,7 +260,7 @@ namespace
 
 					NativeCultureRow.NameContent()
 						[
-							NativeCultureNamePropertyHandle->CreatePropertyNameWidget(NSLOCTEXT("LocalizationTargetEditor", "NativeCultureNameLabel", "Native Culture"))
+							NativeCultureNamePropertyHandle->CreatePropertyNameWidget(LOCTEXT("NativeCultureNameLabel", "Native Culture"))
 						];
 
 					NativeCultureRow.ValueContent()
@@ -313,7 +313,7 @@ namespace
 
 				BuildListedCulturesList();
 
-				DetailCategoryBuilder.AddCustomRow( NSLOCTEXT("LocalizationTargetEditor", "SupportedCultureNamesFilterString", "Supported Culture Names") )
+				DetailCategoryBuilder.AddCustomRow( LOCTEXT("SupportedCultureNamesFilterString", "Supported Culture Names") )
 					.WholeRowContent()
 					[
 						SNew(SVerticalBox)
@@ -426,7 +426,7 @@ namespace
 		// Target name must be unique.
 		if (!IsTargetNameUnique(NewName))
 		{
-			TargetNameEditableTextBox->SetError(NSLOCTEXT("LocalizationTargetEditor", "DuplicateTargetNameError", "Target name must be unique."));
+			TargetNameEditableTextBox->SetError(LOCTEXT("DuplicateTargetNameError", "Target name must be unique."));
 			return;
 		}
 
