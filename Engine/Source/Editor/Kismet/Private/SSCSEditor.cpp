@@ -701,7 +701,10 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 		check(ParentInstance != nullptr);
 
 		// Handle attachment at the instance level
-		ChildInstance->AttachTo(ParentInstance, NAME_None, EAttachLocation::KeepWorldPosition);
+		if (ChildInstance->AttachParent != ParentInstance)
+		{
+			ChildInstance->AttachTo(ParentInstance, NAME_None, EAttachLocation::KeepWorldPosition);
+		}
 	}
 }
 
