@@ -696,7 +696,7 @@ private:
 				bool bActorSelected = false;
 				for (auto& SelectedNode : SelectedNodes)
 				{
-					if (SelectedNode.IsValid() && SelectedNode->IsRootActor())
+					if (SelectedNode.IsValid() && SelectedNode->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
 					{
 						bActorSelected = true;
 						break;

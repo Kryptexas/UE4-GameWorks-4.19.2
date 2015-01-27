@@ -759,7 +759,7 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 			auto NodePtr = *NodeIt;
 			if (NodePtr.IsValid())
 			{
-				if (NodePtr->IsRootActor())
+				if (NodePtr->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
 				{
 					AActor* DefaultActor = GetSCSEditorActorContext();
 					InspectorObjects.Add(DefaultActor);

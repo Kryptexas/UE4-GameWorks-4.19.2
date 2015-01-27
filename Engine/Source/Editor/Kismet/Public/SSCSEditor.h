@@ -20,10 +20,18 @@ typedef TSharedPtr<class FSCSEditorTreeNode> FSCSEditorTreeNodePtrType;
 class KISMET_API FSCSEditorTreeNode : public TSharedFromThis<FSCSEditorTreeNode>
 {
 public:
+
+	enum ENodeType
+	{
+		ComponentNode,
+		RootActorNode,
+		SeparatorNode,
+	};
+
 	/** 
 	 * Constructs an empty tree node.
 	 */
-	FSCSEditorTreeNode();
+	FSCSEditorTreeNode(FSCSEditorTreeNode::ENodeType InNodeType);
 
 	/**
 	 * Constructs a wrapper around a component template contained within an SCS tree node.
@@ -48,6 +56,10 @@ public:
 	 * @return The string to be used in the tree display.
 	 */
 	FString GetDisplayString() const;
+	/**
+	* @return The name of this node in text.
+	*/
+	FText GetDisplayName() const;
 	/** 
      * @return The SCS node that is represented by this object, or NULL if there is no SCS node associated with the component template.
 	 */
@@ -82,9 +94,9 @@ public:
 	 */
 	UBlueprint* GetBlueprint() const;
 	/**
-	 * @return Whether or not this object represents a root actor.
+	 * @return Type of node
 	 */
-	bool IsRootActor() const;
+	ENodeType GetNodeType() const;
 	/**
 	 * @return Whether or not this object represents a root component.
 	 */
@@ -219,6 +231,7 @@ public:
 	UActorComponent* GetOverridenComponentTemplate(UBlueprint* Blueprint, bool bCreateIfNecessary) const;
 
 private:
+	ENodeType NodeType;
 	bool bIsInherited;
 	bool bIsInstanced;
 	TWeakObjectPtr<class USCS_Node> SCSNodePtr;
@@ -357,6 +370,17 @@ private:
 	FText GetActorMobilityText() const;
 };
 
+class SSCS_RowWidget_Separator : public SSCS_RowWidget
+{
+public:
+
+	// SMultiColumnTableRow<T> interface
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
+	// End of SMultiColumnTableRow<T>
+
+private:
+
+};
 
 //////////////////////////////////////////////////////////////////////////
 // SSCSEditorDragDropTree - implements STreeView for our specific node type and adds drag/drop functionality

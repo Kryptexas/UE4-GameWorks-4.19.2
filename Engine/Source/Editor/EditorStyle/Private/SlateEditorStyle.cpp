@@ -756,6 +756,12 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetInactiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
 			.SetInactiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
 		);
+		Set("TableView.NoHoverTableRow", FTableRowStyle(NormalTableRowStyle)
+			.SetEvenRowBackgroundHoveredBrush(FSlateNoResource())
+			.SetOddRowBackgroundHoveredBrush(FSlateNoResource())
+			.SetActiveHoveredBrush(FSlateNoResource())
+			.SetInactiveHoveredBrush(FSlateNoResource())
+			);
 
 		//Set("DetailsView.TreeView.TableRow", FTableRowStyle()
 		//	.SetEvenRowBackgroundBrush(FSlateNoResource())
