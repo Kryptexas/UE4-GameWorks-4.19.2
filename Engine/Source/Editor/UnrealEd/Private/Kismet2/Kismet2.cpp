@@ -1037,7 +1037,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 				// Since we already created SCS Nodes for the instance components, temporarily cache and clear the
 				// array to avoid creating duplicates in the new CDO
 				const TArray<UActorComponent*> TempInstanceComponents(Actor->GetInstanceComponents());
-				Actor->ClearInstanceComponents();
+				Actor->ClearInstanceComponents(false);
 
 				UObject* CDO = NewBlueprint->GeneratedClass->GetDefaultObject();
 				UEditorEngine::CopyPropertiesForUnrelatedObjects(Actor, CDO);
