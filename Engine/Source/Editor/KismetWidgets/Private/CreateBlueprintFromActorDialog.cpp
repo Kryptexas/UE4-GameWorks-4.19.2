@@ -2,7 +2,7 @@
 
 #include "KismetWidgetsPrivatePCH.h"
 #include "CreateBlueprintFromActorDialog.h"
-#include "SCreateAssetFromActor.h"
+#include "SCreateAssetFromObject.h"
 #include "UnrealEd.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "SNotificationList.h"

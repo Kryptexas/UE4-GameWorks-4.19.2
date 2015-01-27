@@ -46,7 +46,7 @@
 #include "GameProjectGenerationModule.h"
 #include "HotReloadInterface.h"
 #include "AssetRegistryModule.h"
-#include "SCreateAssetFromActor.h"
+#include "SCreateAssetFromObject.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
@@ -3936,7 +3936,7 @@ bool SSCSEditor::IsEditingAllowed() const
 UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset  )
 {
 	const FScopedTransaction Transaction( LOCTEXT("AddComponent", "Add Component") );
-
+	
 	if(EditorMode == EEditorMode::BlueprintSCS)
 	{
 		UBlueprint* Blueprint = GetBlueprint();
