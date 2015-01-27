@@ -207,7 +207,7 @@ void SActorDetails::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorT
 				// Check to see if any of the selected nodes aren't already selected in the world
 				for (auto& SelectedNode : SelectedNodes)
 				{
-					if (SelectedNode.IsValid() && !SelectedNode->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
+					if (SelectedNode.IsValid() && SelectedNode->GetNodeType() != FSCSEditorTreeNode::RootActorNode)
 					{
 						UActorComponent* ComponentInstance = SelectedNode->FindComponentInstanceInActor(Actor);
 						if (ComponentInstance && !SelectedComponents->IsSelected(ComponentInstance))
