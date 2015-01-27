@@ -459,6 +459,8 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 		PostProcessDownsamples[i] = FRenderingCompositeOutputRef(Pass);
 	}
 
+	const bool bVisualizeBloom = Context.View.Family->EngineShowFlags.VisualizeBloom;
+
 	FRenderingCompositeOutputRef BloomOutput;
 	if (BloomQuality == 0)
 	{
@@ -474,8 +476,6 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 			const FLinearColor* Tint;
 		};
 		const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
-
-		bool bVisualizeBloom = Context.View.Family->EngineShowFlags.VisualizeBloom;
 
 		FBloomStage BloomStages[] =
 		{
@@ -521,7 +521,7 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 		LensFlareQuality = FMath::Clamp(CVar->GetValueOnRenderThread(), 0, MaxLensFlareQuality);
 	}
 
-	if (!LensFlareHDRColor.IsAlmostBlack() && LensFlareQuality > 0)
+	if (!LensFlareHDRColor.IsAlmostBlack() && LensFlareQuality > 0 && !bVisualizeBloom)
 	{
 		float PercentKernelSize = Context.View.FinalPostProcessSettings.LensFlareBokehSize;
 
