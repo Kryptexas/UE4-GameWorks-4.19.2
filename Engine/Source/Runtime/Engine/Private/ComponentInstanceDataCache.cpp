@@ -172,7 +172,14 @@ void FComponentInstanceDataCache::FindAndReplaceInstances(const TMap<UObject*, U
 	{
 		if (UObject* const* NewSceneComponent = OldToNewInstanceMap.Find(SceneComponent))
 		{
-			InstanceComponentTransformToRootMap.Add(CastChecked<USceneComponent>(*NewSceneComponent), InstanceComponentTransformToRootMap.FindAndRemoveChecked(SceneComponent));
+			if (*NewSceneComponent)
+			{
+				InstanceComponentTransformToRootMap.Add(CastChecked<USceneComponent>(*NewSceneComponent), InstanceComponentTransformToRootMap.FindAndRemoveChecked(SceneComponent));
+			}
+			else
+			{
+				InstanceComponentTransformToRootMap.Remove(SceneComponent);
+			}
 		}
 	}
 }

@@ -1031,7 +1031,10 @@ void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component)
 	USceneComponent* SceneComponent = CastChecked<USceneComponent>(Component);
 	for (USceneComponent* ChildComponent : AttachedInstanceComponents)
 	{
-		ChildComponent->AttachTo(SceneComponent);
+		if (ChildComponent)
+		{
+			ChildComponent->AttachTo(SceneComponent);
+		}
 	}
 }
 
@@ -1041,7 +1044,7 @@ void FSceneComponentInstanceData::FindAndReplaceInstances(const TMap<UObject*, U
 	{
 		if (UObject* const* NewChildComponent = OldToNewInstanceMap.Find(ChildComponent))
 		{
-			ChildComponent = CastChecked<USceneComponent>(*NewChildComponent);
+			ChildComponent = CastChecked<USceneComponent>(*NewChildComponent, ECastCheckedType::NullAllowed);
 		}
 	}
 }
