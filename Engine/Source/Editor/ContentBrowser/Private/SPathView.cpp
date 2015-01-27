@@ -995,8 +995,6 @@ void SPathView::Populate()
 	}
 
 	SortRootItems();
-
-	bNeedsRepopulate = false;
 }
 
 void SPathView::SortRootItems()
