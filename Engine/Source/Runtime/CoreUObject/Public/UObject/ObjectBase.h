@@ -120,8 +120,8 @@ enum EClassFlags
 	CLASS_Transient			  = 0x00000008,
 	/** Successfully parsed. */
 	CLASS_Parsed              = 0x00000010,
-	/** Class contains localized text. */
-	CLASS_Localized           = 0x00000020,
+	/** */
+	//CLASS_                  = 0x00000020,
 	/** All the properties on the class are shown in the advanced section (which is hidden by default) unless SimpleDisplay is specified on the property */
 	CLASS_AdvancedDisplay	  = 0x00000040,
 	/** Class is a native class - native interfaces will have CLASS_Native set, but not RF_Native */
@@ -188,7 +188,7 @@ enum EClassFlags
 
 	/** @name Flags to inherit from base class */
 	//@{
-	CLASS_Inherit           = CLASS_Transient | CLASS_DefaultConfig | CLASS_Config | CLASS_Localized | CLASS_PerObjectConfig | CLASS_ConfigDoNotCheckDefaults | CLASS_NotPlaceable
+	CLASS_Inherit           = CLASS_Transient | CLASS_DefaultConfig | CLASS_Config | CLASS_PerObjectConfig | CLASS_ConfigDoNotCheckDefaults | CLASS_NotPlaceable
 							| CLASS_PointersDefaultToAutoWeak | CLASS_PointersDefaultToWeak | CLASS_Const
 							| CLASS_HasInstancedReference | CLASS_Deprecated | CLASS_DefaultToInstanced | CLASS_GlobalUserConfig,
 
@@ -209,7 +209,6 @@ enum EClassFlags
 		CLASS_GlobalUserConfig |
 		CLASS_Config |
 		CLASS_Transient |
-		CLASS_Localized |
 		CLASS_Native |
 		CLASS_NotPlaceable |
 		CLASS_PerObjectConfig |
@@ -309,7 +308,7 @@ typedef uint64 EClassCastFlags;
 //#define CPF_      						DECLARE_UINT64(0x0000000000001000)		// 
 #define CPF_Transient   					DECLARE_UINT64(0x0000000000002000)		// Property is transient: shouldn't be saved, zero-filled at load time.
 #define CPF_Config      					DECLARE_UINT64(0x0000000000004000)		// Property should be loaded/saved as permanent profile.
-#define CPF_Localized   					DECLARE_UINT64(0x0000000000008000)		// Property should be loaded as localizable text.
+//#define CPF_								DECLARE_UINT64(0x0000000000008000)		// 
 #define CPF_DisableEditOnInstance			DECLARE_UINT64(0x0000000000010000)		// Disable editing on an instance of this class
 #define CPF_EditConst   					DECLARE_UINT64(0x0000000000020000)		// Property is uneditable in the editor.
 #define CPF_GlobalConfig					DECLARE_UINT64(0x0000000000040000)		// Load config from base class, not subclass.
@@ -352,7 +351,7 @@ typedef uint64 EClassCastFlags;
 /** @name Combinations flags */
 //@{
 #define CPF_ParmFlags				(CPF_Parm | CPF_OutParm | CPF_ReturnParm | CPF_ReferenceParm | CPF_ConstParm)
-#define CPF_PropagateToArrayInner	(CPF_ExportObject | CPF_PersistentInstance | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_Localized | CPF_Config | CPF_EditConst | CPF_Deprecated | CPF_EditorOnly | CPF_AutoWeak )
+#define CPF_PropagateToArrayInner	(CPF_ExportObject | CPF_PersistentInstance | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_Config | CPF_EditConst | CPF_Deprecated | CPF_EditorOnly | CPF_AutoWeak )
 
 /** the flags that should never be set on interface properties */
 #define CPF_InterfaceClearMask		(CPF_ExportObject|CPF_InstancedReference|CPF_ContainsInstancedReference)

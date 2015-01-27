@@ -35,11 +35,9 @@ enum EPropertyPortFlags
 	
 	/** Indicates that importing values for config or localized properties is disallowed */
 	PPF_RestrictImportTypes			= 0x00000020,
-	
+
 	//								= 0x00000040,
-	
-	/** only include properties that have the CPF_Localized flag for ImportText/ExportText */
-	PPF_LocalizedOnly				= 0x00000080,
+	//								= 0x00000080,
 
 	/** only include properties which are marked CPF_InstancedReference */
 	PPF_SubobjectsOnly				= 0x00000100,
@@ -676,7 +674,6 @@ public:
 	bool ValidateImportFlags( uint32 PortFlags, FOutputDevice* ErrorText = NULL ) const;
 	bool ShouldPort( uint32 PortFlags=0 ) const;
 	virtual FName GetID() const;
-	virtual bool IsLocalized() const;
 
 	/**
 	 * Creates new copies of components
@@ -2185,7 +2182,6 @@ public:
 	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count  ) const override;
 	virtual void ClearValueInternal( void* Data ) const override;
 	virtual void DestroyValueInternal( void* Dest ) const override;
-	virtual bool IsLocalized() const override;
 	virtual bool PassCPPArgsByRef() const override;
 	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
 	virtual bool ContainsObjectReference() const override;
@@ -2552,7 +2548,6 @@ public:
 	virtual void ClearValueInternal( void* Data ) const override;
 	virtual void DestroyValueInternal( void* Dest ) const override;
 	virtual void InitializeValueInternal( void* Dest ) const override;
-	virtual bool IsLocalized() const override;
 	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
 	virtual int32 GetMinAlignment() const override;
 	virtual bool ContainsObjectReference() const override;

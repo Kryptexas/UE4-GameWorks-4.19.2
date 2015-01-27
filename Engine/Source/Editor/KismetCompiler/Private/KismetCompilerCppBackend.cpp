@@ -528,7 +528,6 @@ struct FEmitHelper
 		}
 
 		// OTHER
-		HANDLE_CPF_TAG(TEXT("Localized"), CPF_Localized | CPF_BlueprintReadOnly)
 		HANDLE_CPF_TAG(TEXT("Transient"), CPF_Transient)
 		HANDLE_CPF_TAG(TEXT("DuplicateTransient"), CPF_DuplicateTransient)
 		HANDLE_CPF_TAG(TEXT("TextExportTransient"), CPF_TextExportTransient)

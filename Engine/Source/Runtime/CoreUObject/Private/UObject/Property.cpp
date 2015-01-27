@@ -410,35 +410,27 @@ void UProperty::InitializeValueInternal( void* Dest ) const
  */
 bool UProperty::ValidateImportFlags( uint32 PortFlags, FOutputDevice* ErrorHandler ) const
 {
-	bool bResult = true;
-
 	// PPF_RestrictImportTypes is set when importing defaultproperties; it indicates that
 	// we should not allow config/localized properties to be imported here
-	if ( (PortFlags&PPF_RestrictImportTypes) != 0 &&
-		(PropertyFlags&(CPF_Localized|CPF_Config)) != 0 )
+	if ((PortFlags & PPF_RestrictImportTypes) && (PropertyFlags & CPF_Config))
 	{
-		FString PropertyType = (PropertyFlags&CPF_Config) != 0
-			? (PropertyFlags&CPF_Localized) != 0
-				? TEXT("config/localized")
-				: TEXT("config")
-			: TEXT("localized");
-
+		FString PropertyType = (PropertyFlags & CPF_Config) ? TEXT("config") : TEXT("localized");
 
 		FString ErrorMsg = FString::Printf(TEXT("Import failed for '%s': property is %s (Check to see if the property is listed in the DefaultProperties.  It should only be listed in the specific .ini/.int file)"), *GetName(), *PropertyType);
 
-		if( ErrorHandler != NULL )
+		if (ErrorHandler)
 		{
-			ErrorHandler->Logf( *ErrorMsg );
+			ErrorHandler->Logf(*ErrorMsg);
 		}
 		else
 		{
-			UE_LOG(LogProperty, Warning, TEXT("%s"), *ErrorMsg );
+			UE_LOG(LogProperty, Warning, TEXT("%s"), *ErrorMsg);
 		}
 
-		bResult = false;
+		return false;
 	}
 
-	return bResult;
+	return true;
 }
 
 FString UProperty::GetNameCPP() const
@@ -577,10 +569,6 @@ bool UProperty::ExportText_Direct
 	UObject*	ExportRootScope
 	) const
 {
-	if ( (PortFlags&PPF_LocalizedOnly) != 0 && !IsLocalized() )
-	{
-		return false;
-	}
 	if( Data==Delta || !Identical(Data,Delta,PortFlags) )
 	{
 		ExportTextItem
@@ -626,14 +614,6 @@ bool UProperty::NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TA
 {
 	SerializeItem( Ar, Data, NULL );
 	return 1;
-}
-
-//
-// Return whether the property should be exported to localization files.
-//
-bool UProperty::IsLocalized() const
-{
-	return (PropertyFlags & CPF_Localized) != 0;
 }
 
 //
@@ -781,7 +761,7 @@ static const int32 ReadArrayIndex(UStruct* ObjectStruct, const TCHAR*& Str, FOut
  * This normally only happens for empty strings or empty dynamic arrays, and the alternative
  * is for strings and dynamic arrays to always export blank delimiters, such as Array=() or String="", 
  * but this tends to cause problems with inherited property values being overwritten, especially in the localization 
- * import/export code, or when a property has both CPF_Localized & CPF_Config flags
+ * import/export code
 
  * The safest way is to interpret blank delimiters as an indication that the current value should be overwritten with an empty
  * value, while the lack of any value or delimiter as an indication to not import this property, thereby preventing any current

@@ -176,12 +176,6 @@ void UArrayProperty::ExportTextItem( FString& ValueStr, const void* PropertyValu
 		uint8* PropDefault = ( StructProperty != NULL ) ? StructDefaults :
 			( ( DefaultValue && DefaultArrayHelper.Num() > i ) ? DefaultArrayHelper.GetRawPtr(i) : NULL );
 
-		// Do not re-export duplicate data from superclass when exporting to .int file
-		if ( (PortFlags & PPF_LocalizedOnly) != 0 && Inner->Identical(PropData, PropDefault) )
-		{
-			continue;
-		}
-
 		Inner->ExportTextItem( ValueStr, PropData, PropDefault, Parent, PortFlags|PPF_Delimited, ExportRootScope );
 	}
 
@@ -215,11 +209,7 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 		return NULL;
 	}
 
-	// only clear the array if we're not importing localized text
-	if ( (PortFlags&PPF_LocalizedOnly) == 0 )
-	{
-		ArrayHelper.EmptyValues();
-	}
+	ArrayHelper.EmptyValues();
 
 	SkipWhitespace(Buffer);
 
@@ -323,10 +313,6 @@ void UArrayProperty::DestroyValueInternal( void* Dest ) const
 
 	//@todo UE4 potential double destroy later from this...would be ok for a script array, but still
 	((FScriptArray*)Dest)->~FScriptArray();
-}
-bool UArrayProperty::IsLocalized() const
-{
-	return Inner->IsLocalized() ? true : Super::IsLocalized();
 }
 bool UArrayProperty::PassCPPArgsByRef() const
 {

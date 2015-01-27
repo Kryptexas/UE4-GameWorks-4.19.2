@@ -654,8 +654,7 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 		}
 
 		// Link references to properties that require their values to be copied from CDO.
-		if ((Property->HasAnyPropertyFlags(CPF_Config) && Property->GetOwnerClass() && !Property->GetOwnerClass()->HasAnyClassFlags(CLASS_PerObjectConfig)) ||
-			 Property->HasAnyPropertyFlags(CPF_Localized))
+		if ((Property->HasAnyPropertyFlags(CPF_Config) && Property->GetOwnerClass() && !Property->GetOwnerClass()->HasAnyClassFlags(CLASS_PerObjectConfig)))
 		{
 			*PostConstructLinkPtr = Property;
 			PostConstructLinkPtr = &(*PostConstructLinkPtr)->PostConstructLinkNext;

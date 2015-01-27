@@ -136,15 +136,15 @@ class ENGINE_API USoundWave : public USoundBase
 	uint32 bDynamicResource:1;
 
 	/** If set to true if this sound is considered to contain mature/adult content. */
-	UPROPERTY(EditAnywhere, localized, Category=Subtitles, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, Category=Subtitles, AssetRegistrySearchable)
 	uint32 bMature:1;
 
 	/** If set to true will disable automatic generation of line breaks - use if the subtitles have been split manually. */
-	UPROPERTY(EditAnywhere, localized, Category=Subtitles )
+	UPROPERTY(EditAnywhere, Category=Subtitles )
 	uint32 bManualWordWrap:1;
 
 	/** If set to true the subtitles display as a sequence of single lines as opposed to multiline. */
-	UPROPERTY(EditAnywhere, localized, Category=Subtitles )
+	UPROPERTY(EditAnywhere, Category=Subtitles )
 	uint32 bSingleLine:1;
 
 	/** Whether this SoundWave was decompressed from OGG. */
@@ -193,12 +193,12 @@ class ENGINE_API USoundWave : public USoundBase
 	 * Subtitle cues.  If empty, use SpokenText as the subtitle.  Will often be empty,
 	 * as the contents of the subtitle is commonly identical to what is spoken.
 	 */
-	UPROPERTY(EditAnywhere, localized, Category=Subtitles)
+	UPROPERTY(EditAnywhere, Category=Subtitles)
 	TArray<struct FSubtitleCue> Subtitles;
 
 #if WITH_EDITORONLY_DATA
 	/** Provides contextual information for the sound to the translator. */
-	UPROPERTY(EditAnywhere, localized, Category=Subtitles )
+	UPROPERTY(EditAnywhere, Category=Subtitles )
 	FString Comment;
 
 #endif // WITH_EDITORONLY_DATA

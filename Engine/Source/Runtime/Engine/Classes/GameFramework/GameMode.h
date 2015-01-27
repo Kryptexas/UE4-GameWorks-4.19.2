@@ -199,7 +199,7 @@ public:
 	int32 CurrentID;    
 
 	/** The default player name assigned to players that join with no name specified. */
-	UPROPERTY(localized)
+	UPROPERTY()
 	FString DefaultPlayerName;
 
 	/** Array of available player starts. */

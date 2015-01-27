@@ -2156,7 +2156,7 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 			}
 			else
 			{
-				// Copy all properties that require additional initialization (CPF_Config, CPF_Localized).
+				// Copy all properties that require additional initialization (e.g. CPF_Config).
 				for (UProperty* P = Class->PostConstructLink; P; P = P->PostConstructLinkNext)
 				{
 					P->CopyCompleteValue_InContainer(Obj, DefaultData);

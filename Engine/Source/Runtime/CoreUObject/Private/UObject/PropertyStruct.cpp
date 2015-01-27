@@ -470,30 +470,6 @@ void UStructProperty::InstanceSubobjects( void* Data, void const* DefaultData, U
 	}
 }
 
-bool UStructProperty::IsLocalized() const
-{
-	// prevent recursion in the case of structs containing dynamic arrays of themselves
-	static TArray<const UStructProperty*> EncounteredStructProps;
-	if (EncounteredStructProps.Contains(this))
-	{
-		return Super::IsLocalized();
-	}
-	else
-	{
-		EncounteredStructProps.Add(this);
-		for ( TFieldIterator<UProperty> It(Struct); It; ++It )
-		{
-			if ( It->IsLocalized() )
-			{
-				EncounteredStructProps.RemoveSingleSwap(this);
-				return true;
-			}
-		}
-		EncounteredStructProps.RemoveSingleSwap(this);
-		return Super::IsLocalized();
-	}
-}
-
 bool UStructProperty::SameType(const UProperty* Other) const
 {
 	return Super::SameType(Other) && (Struct == ((UStructProperty*)Other)->Struct);

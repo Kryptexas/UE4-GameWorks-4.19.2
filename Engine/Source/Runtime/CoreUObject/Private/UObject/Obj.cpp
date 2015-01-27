@@ -2375,7 +2375,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("0x0000000000001000"),
 		TEXT("CPF_Transient"),
 		TEXT("CPF_Config"),
-		TEXT("CPF_Localized"),
+		TEXT("0x0000000000008000"),
 		TEXT("CPF_DisableEditOnInstance"),
 		TEXT("CPF_EditConst"),
 		TEXT("CPF_GlobalConfig"),

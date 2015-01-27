@@ -2299,7 +2299,7 @@ bool FHeaderParser::GetVarType
 			}
 			else if (Specifier == TEXT("Localized"))
 			{
-				Flags |= CPF_Localized | CPF_BlueprintReadOnly;
+				FError::Throwf(TEXT("The Localized specifier is deprecated"));
 			}
 			else if (Specifier == TEXT("Transient"))
 			{
@@ -4050,11 +4050,6 @@ void PostParsingClassSetup(UClass* Class)
 	// Set all optimization ClassFlags based on property types
 	for (TFieldIterator<UProperty> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 	{
-		if (It->IsLocalized())
-		{
-			Class->ClassFlags |= CLASS_Localized;
-		}
-
 		if ((It->PropertyFlags & CPF_Config) != 0)
 		{
 			Class->ClassFlags |= CLASS_Config;
