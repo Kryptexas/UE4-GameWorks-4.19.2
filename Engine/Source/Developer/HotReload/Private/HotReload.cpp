@@ -72,7 +72,7 @@ public:
 	virtual bool IsCurrentlyCompiling() const override { return ModuleCompileProcessHandle.IsValid(); }
 	virtual void RequestStopCompilation() override { bRequestCancelCompilation = true; }
 	virtual void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer) override;	
-	virtual void RebindPackages(TArray< UPackage* > Packages, TArray< FName > DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) override;
+	virtual ECompilationResult::Type RebindPackages(TArray< UPackage* > Packages, TArray< FName > DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) override;
 	virtual ECompilationResult::Type DoHotReloadFromEditor() override;
 	virtual FHotReloadEvent& OnHotReload() override { return HotReloadEvent; }	
 	virtual FModuleCompilerStartedEvent& OnModuleCompilerStarted() override { return ModuleCompilerStartedEvent; }
@@ -739,7 +739,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 	return Result;
 }
 
-void FHotReloadModule::RebindPackages(TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar)
+ECompilationResult::Type FHotReloadModule::RebindPackages(TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar)
 {
 	ECompilationResult::Type Result = ECompilationResult::Unknown;
 	double Duration = 0.0;
@@ -748,6 +748,8 @@ void FHotReloadModule::RebindPackages(TArray<UPackage*> InPackages, TArray<FName
 		Result = RebindPackagesInternal(InPackages, DependentModules, bWaitForCompletion, Ar);
 	}
 	RecordAnalyticsEvent(TEXT("Rebind"), Result, Duration, InPackages.Num(), DependentModules.Num());
+
+	return Result;
 }
 
 ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar)

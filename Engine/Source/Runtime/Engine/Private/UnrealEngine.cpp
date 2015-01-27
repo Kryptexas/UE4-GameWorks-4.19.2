@@ -2676,7 +2676,7 @@ bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		PackagesToRebind.Add( Package );
 		const bool bWaitForCompletion = true;	// Always wait when hotreload is initiated from the console
 		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-		HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar);
+		const ECompilationResult::Type CompilationResult = HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar);
 	}
 	return true;
 }
