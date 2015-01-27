@@ -93,7 +93,7 @@ public:
 	/**
 	 * Marks the beginning of a frame.
 	 */
-	void TrackFrameBegin();
+	ENGINE_API void TrackFrameBegin();
 	
 	/**
 	 * Tracks and RPC being sent.

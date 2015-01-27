@@ -11,6 +11,7 @@
 #include "Factories.h"
 #include "BSPOps.h"
 #include "EditorCommandLineUtils.h"
+#include "Net/NetworkProfiler.h"
 
 // needed for the RemotePropagator
 #include "SoundDefinitions.h"
@@ -902,6 +903,8 @@ void UEditorEngine::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 
 void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 {
+	NETWORK_PROFILER(GNetworkProfiler.TrackFrameBegin());
+
 	UWorld* CurrentGWorld = GWorld;
 	check( CurrentGWorld );
 	check( CurrentGWorld != PlayWorld || bIsSimulatingInEditor );
