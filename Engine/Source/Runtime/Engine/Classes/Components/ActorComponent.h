@@ -40,6 +40,11 @@ public:
 	 */
 	UActorComponent(const FObjectInitializer& ObjectInitializer);
 
+private:
+	/** Called from the constructor to initialize the object to its default settings */
+	void InitializeDefaults();
+
+public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Main tick function for the Actor */

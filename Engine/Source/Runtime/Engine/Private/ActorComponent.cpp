@@ -101,6 +101,18 @@ FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()
 
 UActorComponent::UActorComponent()
 {
+	InitializeDefaults();
+}
+
+
+UActorComponent::UActorComponent( const FObjectInitializer& ObjectInitializer )
+{
+	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
+	InitializeDefaults();
+}
+
+void UActorComponent::InitializeDefaults()
+{
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.bCanEverTick = false;
@@ -110,13 +122,6 @@ UActorComponent::UActorComponent()
 	bAutoRegister = true;
 	bNetAddressable = false;
 }
-
-
-UActorComponent::UActorComponent( const FObjectInitializer& ObjectInitializer )
-	: UActorComponent()	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
-{
-}
-
 
 void UActorComponent::PostInitProperties()
 {
