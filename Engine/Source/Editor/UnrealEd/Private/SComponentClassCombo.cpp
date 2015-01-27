@@ -12,6 +12,7 @@
 #include "SSearchBox.h"
 #include "Engine/Selection.h"
 #include "HotReloadInterface.h"
+#include "KismetEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "ComponentClassCombo"
 
