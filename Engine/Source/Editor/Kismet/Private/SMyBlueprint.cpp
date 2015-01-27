@@ -616,7 +616,6 @@ FReply SMyBlueprint::OnAddButtonClickedOnSection(int32 InSectionID)
 		BlueprintEditorPtr.Pin()->GetToolkitCommands()->ExecuteAction(FBlueprintEditorCommands::Get().AddNewEventGraph.ToSharedRef());
 		break;
 	case NodeSectionID::LOCAL_VARIABLE:
-		//BlueprintEditorPtr.Pin()->GetToolkitCommands()->ExecuteAction(FBlueprintEditorCommands::Get().AddNewLocalVariable.ToSharedRef());
 		OnAddNewLocalVariable();
 		break;
 	}
