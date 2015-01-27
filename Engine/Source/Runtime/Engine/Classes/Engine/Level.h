@@ -277,13 +277,14 @@ struct ENGINE_API FLevelSimplificationDetails
 
 //
 // The level object.  Contains the level's actor list, BSP information, and brush list.
+// Every Level has a World as its Outer and can be used as the PersistentLevel, however,
+// when a Level has been streamed in the OwningWorld represents the World that it is a part of.
 //
 
 
 /**
- * A Level contains actors, a blueprint representing the level logic, BSP information, and brushes.
- * Every Level has a World as its Outer and can be used as the PersistentLevel, however, 
- * when a Level has been streamed in the OwningWorld represents the World that it is a part of.
+ * A Level is a collection of Actors (lights, volumes, mesh instances etc.).
+ * Multiple Levels can be loaded and unloaded into the World to create a streaming experience.
  * 
  * @see https://docs.unrealengine.com/latest/INT/Engine/Levels
  * @see UActor
