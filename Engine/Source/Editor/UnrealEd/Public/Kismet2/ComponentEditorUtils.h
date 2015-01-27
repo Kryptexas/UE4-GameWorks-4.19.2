@@ -26,6 +26,9 @@ public:
 	/** Generate a valid variable name string for the given component instance */
 	static FString GenerateValidVariableName(TSubclassOf<UActorComponent> InComponentClass, AActor* ComponentOwner);
 
+	/** Generate a valid variable name string for the given component instance based on the name of the asset referenced by the component */
+	static FString GenerateValidVariableNameFromAsset(UObject* Asset, AActor* ComponentOwner);
+
 	struct FTransformData
 	{
 		FTransformData(const class USceneComponent& Component)

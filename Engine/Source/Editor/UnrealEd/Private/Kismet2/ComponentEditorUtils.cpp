@@ -135,20 +135,31 @@ FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorCompo
 
 	int32 Counter = 1;
 	FString ComponentTypeName = *ComponentClass->GetName().Replace(TEXT("Component"), TEXT(""));
-	FString ComponentInstanceName;
-
-	bool bNameIsValid = false;
-	while (!bNameIsValid)
+	
+	// Try to create a name without any numerical suffix first
+	FString ComponentInstanceName = ComponentTypeName;
+	while (!IsComponentNameAvailable(ComponentInstanceName, ComponentOwner))
 	{
-		bNameIsValid = true;
-
 		// Assign the lowest possible numerical suffix
 		ComponentInstanceName = FString::Printf(TEXT("%s%d"), *ComponentTypeName, Counter++);
+	}
 
-		if (!IsComponentNameAvailable(ComponentInstanceName, ComponentOwner))
-		{
-			bNameIsValid = false;
-		}
+	return ComponentInstanceName;
+}
+
+FString FComponentEditorUtils::GenerateValidVariableNameFromAsset(UObject* Asset, AActor* ComponentOwner)
+{
+	check(ComponentOwner);
+
+	int32 Counter = 1;
+	FString AssetName = Asset->GetName();
+
+	// Try to create a name without any numerical suffix first
+	FString ComponentInstanceName = AssetName;
+	while (!IsComponentNameAvailable(ComponentInstanceName, ComponentOwner))
+	{
+		// Assign the lowest possible numerical suffix
+		ComponentInstanceName = FString::Printf(TEXT("%s%d"), *AssetName, Counter++);
 	}
 
 	return ComponentInstanceName;
