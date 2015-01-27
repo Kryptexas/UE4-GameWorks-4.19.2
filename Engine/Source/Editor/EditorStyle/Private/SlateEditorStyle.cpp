@@ -4942,6 +4942,9 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			Set("ClassIcon.PaperSpriteAtlas", new IMAGE_BRUSH("Icons/AssetIcons/Paper2DSpriteAtlasGroup_16x", Icon16x16));
 			Set("ClassThumbnail.PaperSpriteAtlas", new IMAGE_BRUSH("Icons/AssetIcons/Paper2DSpriteAtlasGroup_64x", Icon64x64));
 
+			Set("ClassIcon.PaperCharacter", new IMAGE_BRUSH("Icons/AssetIcons/PaperCharacter_16x", Icon16x16));
+			Set("ClassThumbnail.PaperCharacter", new IMAGE_BRUSH("Icons/AssetIcons/PaperCharacter_64x", Icon64x64));
+
 			Set("ClassIcon.PaperTileMap", new IMAGE_BRUSH("Icons/AssetIcons/TileMap_16x", Icon16x16));
 			Set("ClassThumbnail.PaperTileMap", new IMAGE_BRUSH("Icons/AssetIcons/TileMap_64x", Icon64x64));
 
@@ -5037,8 +5040,6 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("Note"),
 			TEXT("ObjectLibrary"),
 			TEXT("PainCausingVolume"),
-			TEXT("PaperCharacter"),
-			TEXT("PaperTileMapComponent"),
 			TEXT("ParticleSystem"),
 			TEXT("Pawn"),
 			TEXT("PhysicalMaterial"),
