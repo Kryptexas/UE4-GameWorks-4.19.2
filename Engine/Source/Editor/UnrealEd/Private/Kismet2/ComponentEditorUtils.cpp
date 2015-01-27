@@ -109,19 +109,20 @@ bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InC
 
 bool FComponentEditorUtils::IsComponentNameAvailable(const FString& InString, const AActor* ComponentOwner, const UActorComponent* ComponentToIgnore)
 {
-	check(ComponentOwner);
-
 	bool bNameIsAvailable = true;
 
-	TInlineComponentArray<UActorComponent*> Components;
-	ComponentOwner->GetComponents(Components);
-
-	for (auto Component : Components)
+	if (ComponentOwner != nullptr)
 	{
-		if (Component != ComponentToIgnore && Component->GetName() == InString)
+		TInlineComponentArray<UActorComponent*> Components;
+		ComponentOwner->GetComponents(Components);
+
+		for (auto Component : Components)
 		{
-			bNameIsAvailable = false;
-			break;
+			if (Component != ComponentToIgnore && Component->GetName() == InString)
+			{
+				bNameIsAvailable = false;
+				break;
+			}
 		}
 	}
 
