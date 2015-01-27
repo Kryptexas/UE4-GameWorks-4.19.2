@@ -7,6 +7,9 @@
 #include "AssetRegistryModule.h"
 #include "PackageTools.h"
 #include "ObjectTools.h"
+#include "ReimportFeedbackContext.h"
+
+#define LOCTEXT_NAMESPACE "ContentDirectoryMonitor"
 
 /** Generate a config from the specified options, to pass to FFileCache on construction */
 FFileCacheConfig GenerateFileCacheConfig(const FString& InPath, const FString& InSupportedExtensions, const FString& InMountedContentPath)
@@ -71,7 +74,7 @@ void FContentDirectoryMonitor::StartProcessing()
 	}
 }
 
-void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesToSave, const FTimeLimit& TimeLimit, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension)
+void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesToSave, const FTimeLimit& TimeLimit, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context)
 {
 	if (MountedContentPath.IsEmpty())
 	{
@@ -79,80 +82,87 @@ void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesTo
 		return;
 	}
 	
+	bool bCancelled = false;
 	for (int32 Index = 0; Index < AddedFiles.Num(); ++Index)
 	{
 		auto& Addition = AddedFiles[Index];
 
 		WorkProgress += 1;
+
+		if (bCancelled)
+		{
+			// Just update the cache immediately if the user cancelled
+			Cache.CompleteTransaction(MoveTemp(Addition));
+			continue;
+		}
+
 		const FString FullFilename = Cache.GetDirectory() + Addition.Filename.Get();
 
-		bool bImportSucceeded = false;
-		bool bImportWasCancelled = false;
-
 		FString NewAssetName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(FullFilename));
-		FString PackagePath= PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Addition.Filename.Get()) / NewAssetName);
+		FString PackagePath = PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Addition.Filename.Get()) / NewAssetName);
 
-		// We can not create assets that share the name of a map file in the same location
 		if (FEditorFileUtils::IsMapPackageAsset(PackagePath))
 		{
-			// @todo: Error reporting
-			continue;
+			Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_ExistingMap", "Attempted to create asset with the same name as a map ({0})."), FText::FromString(PackagePath)));
 		}
-
-		if (FindPackage(nullptr, *PackagePath))
+		else if (FindPackage(nullptr, *PackagePath))
 		{
-			// @todo: Error reporting
-			continue;	
+			Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_ExistingAsset", "Attempted to create a new asset that already exists ({0})."), FText::FromString(PackagePath)));
 		}
-
-		UPackage* NewPackage = CreatePackage(nullptr, *PackagePath);
-		if ( !ensure(NewPackage) )
+		else
 		{
-			// @todo: Error reporting
-			continue;
-		}
-
-		// Make sure the destination package is loaded
-		NewPackage->FullyLoad();
-
-		bool bSuccess = false;
-		bool bCancelled = false;
-
-		UObject* NewAsset = nullptr;
-
-		const FString Ext = FPaths::GetExtension(Addition.Filename.Get(), false);
-		if (auto* Factories = InFactoriesByExtension.Find(Ext))
-		{
-			for (auto* Factory : *Factories)
+			UPackage* NewPackage = CreatePackage(nullptr, *PackagePath);
+			if ( !ensure(NewPackage) )
 			{
-				NewAsset = UFactory::StaticImportObject(Factory->ResolveSupportedClass(), NewPackage, FName(*NewAssetName), RF_Public | RF_Standalone, bCancelled, *FullFilename, nullptr, Factory);
-				if (NewAsset || bCancelled)
+				Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToCreateAsset", "Failed to create new asset ({0}) for file ({1})."), FText::FromString(NewAssetName), FText::FromString(FullFilename)));
+			}
+			else
+			{
+				// Make sure the destination package is loaded
+				NewPackage->FullyLoad();
+
+				bool bSuccess = false;
+				UObject* NewAsset = nullptr;
+
+				const FString Ext = FPaths::GetExtension(Addition.Filename.Get(), false);
+				if (auto* Factories = InFactoriesByExtension.Find(Ext))
 				{
-					break;
+					for (auto* Factory : *Factories)
+					{
+						NewAsset = UFactory::StaticImportObject(Factory->ResolveSupportedClass(), NewPackage, FName(*NewAssetName), RF_Public | RF_Standalone, bCancelled, *FullFilename, nullptr, Factory);
+						if (NewAsset || bCancelled)
+						{
+							break;
+						}
+					}
 				}
+				
+				if (!bCancelled)
+				{
+					if (!NewAsset)
+					{
+						Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToImportAsset", "Failed to import file {0}."), FText::FromString(FullFilename)));
+						continue;
+					}
+
+					FAssetRegistryModule::AssetCreated(NewAsset);
+					GEditor->BroadcastObjectReimported(NewAsset);
+
+					OutPackagesToSave.Add(NewPackage);
+				}
+
+				// Refresh the supported class.  Some factories (e.g. FBX) only resolve their type after reading the file
+				// ImportAssetType = Factory->ResolveSupportedClass();
+				// @todo: analytics
 			}
 		}
-		
-		if (!NewAsset || bCancelled)
-		{
-			// @todo: Error reporting
-			continue;
-		}
-
-		FAssetRegistryModule::AssetCreated(NewAsset);
-		GEditor->BroadcastObjectReimported(NewAsset);
-
-		OutPackagesToSave.Add(NewPackage);
-
-		// Refresh the supported class.  Some factories (e.g. FBX) only resolve their type after reading the file
-		// ImportAssetType = Factory->ResolveSupportedClass();
-		// @todo: analytics
 
 		// Let the cache know that we've dealt with this change (it will be imported immediately)
 		Cache.CompleteTransaction(MoveTemp(Addition));
 
-		if (TimeLimit.Exceeded())
+		if (!bCancelled && TimeLimit.Exceeded())
 		{
+			// Remove the ones we've processed
 			AddedFiles.RemoveAt(0, Index + 1);
 			return;
 		}
@@ -161,7 +171,7 @@ void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesTo
 	AddedFiles.Empty();
 }
 
-void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit)
+void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, FReimportFeedbackContext& Context)
 {
 	auto* ReimportManager = FReimportManager::Instance();
 
@@ -173,7 +183,10 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 		for (const auto& AssetData : Utils::FindAssetsPertainingToFile(Registry, FullFilename))
 		{
 			UObject* Asset = AssetData.GetAsset();
-			ReimportManager->Reimport(Asset, false /* Ask for new file */, false /* Show notification */);
+			if (!ReimportManager->Reimport(Asset, false /* Ask for new file */, false /* Show notification */))
+			{
+				Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToReimportAsset", "Failed to reimport asset {0}."), FText::FromString(Asset->GetName())));
+			}
 		}
 
 		// Let the cache know that we've dealt with this change
@@ -206,3 +219,5 @@ void FContentDirectoryMonitor::ExtractAssetsToDelete(const IAssetRegistry& Regis
 	WorkProgress += DeletedFiles.Num();
 	DeletedFiles.Empty();
 }
+
+#undef LOCTEXT_NAMESPACE

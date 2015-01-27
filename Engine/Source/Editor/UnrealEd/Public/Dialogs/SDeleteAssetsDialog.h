@@ -134,6 +134,7 @@ private:
 	TSharedPtr< SListView< TSharedPtr<FPendingDelete> > > ObjectsToDeleteList;
 	TSharedPtr< SBorder > AssetReferenceNameBorderWidget;
 	TSharedPtr< SComboButton > ConsolidationPickerComboButton;
+	TSharedPtr< SCheckBox > DeleteSourceFilesCheckbox;
 
 	/** The selected asset we're going to consolidate the would be deleted assets into. */
 	FAssetData ConsolidationAsset;

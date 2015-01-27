@@ -1,16 +1,15 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-
 #include "AutoReimportUtilities.h"
-#include "AssetRegistryModule.h"
+#include "EditorReimportHandler.h"
 
 namespace Utils
 {
-	/** Find a list of assets that were last imported from the specified filename. */
 	TArray<FAssetData> FindAssetsPertainingToFile(const IAssetRegistry& Registry, const FString& AbsoluteFilename)
 	{
-		TArray<FAssetData> Assets, Result;
+		TArray<FAssetData> Assets;
+
 		const FString LeafName = FPaths::GetCleanFilename(AbsoluteFilename);
 		const FName TagName = UObject::SourceFileTagName();
 
@@ -19,8 +18,7 @@ namespace Utils
 		Filter.bIncludeOnlyOnDiskAssets = true;
 		Registry.GetAssets(Filter, Assets);
 
-		for (const auto& Asset : Assets)
-		{
+		Assets.RemoveAll([&](const FAssetData& Asset){
 			for (const auto& Pair : Asset.TagsAndValues)
 			{
 				// We don't compare numbers on FNames for this check because the tag "ReimportPath" may exist multiple times
@@ -32,13 +30,30 @@ namespace Utils
 					if (AbsoluteFilename == FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(Asset.PackagePath.ToString()) / Pair.Value) ||
 						AbsoluteFilename == FPaths::ConvertRelativePathToFull(Pair.Value))
 					{
-						Result.Add(Asset);
-						break;
+						return false;
 					}
 				}
 			}
-		}
+			return true;
+		});
+		
+		return Assets;
+	}
 
-		return Result;
+	void ExtractSourceFilePaths(UObject* Object, TArray<FString>& OutSourceFiles)
+	{
+		TArray<UObject::FAssetRegistryTag> TagList;
+		Object->GetAssetRegistryTags(TagList);
+
+		const FName TagName = UObject::SourceFileTagName();
+		for (const auto& Tag : TagList)
+		{
+			// We don't compare numbers on FNames for this check because the tag "ReimportPath" may exist multiple times
+			const bool bCompareNumber = false;
+			if (Tag.Name.IsEqual(TagName, ENameCase::IgnoreCase, bCompareNumber))
+			{
+				OutSourceFiles.Add(FReimportManager::ResolveImportFilename(Tag.Value, Object));
+			}
+		}
 	}
 }
