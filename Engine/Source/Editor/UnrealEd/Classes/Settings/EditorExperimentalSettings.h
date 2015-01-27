@@ -21,6 +21,10 @@ class UNREALED_API UEditorExperimentalSettings
 
 public:
 
+	/** Allows usage of the Localization Dashboard */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Localization Dashboard"))
+	bool bEnableLocalizationDashboard;
+
 	/** Allows usage of the Translation Editor */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor"))
 	bool bEnableTranslationEditor;

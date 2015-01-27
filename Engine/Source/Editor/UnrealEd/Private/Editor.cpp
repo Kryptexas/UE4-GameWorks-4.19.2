@@ -661,7 +661,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("DeviceProfileEditor"),
 			TEXT("SourceCodeAccess"),
 			TEXT("BehaviorTreeEditor"),
-			TEXT("HardwareTargeting")
+			TEXT("HardwareTargeting"),
+			TEXT("LocalizationDashboard")
 		};
 
 		FScopedSlowTask SlowTask(ARRAY_COUNT(ModuleNames));

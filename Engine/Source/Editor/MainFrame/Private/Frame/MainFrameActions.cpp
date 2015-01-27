@@ -73,6 +73,9 @@ void FMainFrameCommands::RegisterCommands()
 	UI_COMMAND( PackagingSettings, "Packaging Settings...", "Opens the settings for project packaging", EUserInterfaceActionType::Button, FInputGesture() );
 	ActionList->MapAction( PackagingSettings, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::PackagingSettings ), DefaultExecuteAction );
 
+	//UI_COMMAND( LocalizeProject, "Localize Project...", "Opens the dashboard for managing project localization data.", EUserInterfaceActionType::Button, FInputGesture() );
+	//ActionList->MapAction( LocalizeProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::LocalizeProject ), DefaultExecuteAction );
+
 	const int32 MaxProjects = 20;
 	for( int32 CurProjectIndex = 0; CurProjectIndex < MaxProjects; ++CurProjectIndex )
 	{
@@ -639,6 +642,11 @@ void FMainFrameActionCallbacks::PackagingSettings()
 {
 	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Project", "Project", "Packaging");
 }
+
+//void FMainFrameActionCallbacks::LocalizeProject()
+//{
+//	FModuleManager::LoadModuleChecked<ILocalizationDashboardModule>("LocalizationDashboard").Show();
+//}
 
 void FMainFrameActionCallbacks::SwitchProjectByIndex( int32 ProjectIndex )
 {

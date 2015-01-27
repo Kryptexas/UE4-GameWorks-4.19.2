@@ -85,6 +85,15 @@ private:
 	}
 
 	/**
+	* Opens the experimental localization dashboard.
+	* Remove this when it is no longer experimental.
+	*/
+	static void OpenLocalizationDashboard()
+	{
+		FModuleManager::LoadModuleChecked<ILocalizationDashboardModule>("LocalizationDashboard").Show();
+	}
+
+	/**
 	* Opens the experimental blutility shelf tab.
 	* Remove this when it is no longer experimental.
 	*/

@@ -189,10 +189,11 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 		// When the feature becomes permanent and need not check a flag, register a nomad spawner for it in the proper WorkspaceMenu category
 		bool bMessagingDebugger = GetDefault<UEditorExperimentalSettings>()->bMessagingDebugger;
 		bool bBlutility = GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints;
+		bool bLocalizationDashboard = GetDefault<UEditorExperimentalSettings>()->bEnableLocalizationDashboard;
 		bool bTranslationEditor = GetDefault<UEditorExperimentalSettings>()->bEnableTranslationEditor;
 
 		// Make sure at least one is enabled before creating the section
-		if (bMessagingDebugger || bBlutility || bTranslationEditor)
+		if (bMessagingDebugger || bBlutility || bLocalizationDashboard || bTranslationEditor)
 		{
 			MenuBuilder.BeginSection("ExperimentalTabSpawners", LOCTEXT("ExperimentalTabSpawnersHeading", "Experimental"));
 			{
@@ -215,6 +216,17 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 						LOCTEXT("BlutilityShelfToolTip", "Open the blutility shelf."),
 						FSlateIcon(),
 						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenBlutilityShelf))
+						);
+				}
+
+				// Localization Dashboard
+				if (bLocalizationDashboard)
+				{
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("LocalizationDashboardLabel", "Localization Dashboard"),
+						LOCTEXT("BlutilityShelfToolTip", "Open the Localization Dashboard for this Project."),
+						FSlateIcon(),
+						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenLocalizationDashboard))
 						);
 				}
 
@@ -363,9 +375,15 @@ TSharedRef< SWidget > FMainMenu::MakeMainTabMenu( const TSharedPtr<FTabManager>&
 
 				MenuBuilder.AddSubMenu(
 					LOCTEXT("PackageProjectSubMenuLabel", "Package Project"),
-					LOCTEXT("PackageProjectSubMenuToolTip", "Compile, cook and package your project and its content for distribution"),
+					LOCTEXT("PackageProjectSubMenuToolTip", "Compile, cook and package your project and its content for distribution."),
 					FNewMenuDelegate::CreateStatic( &FPackageProjectMenu::MakeMenu ), false, FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.PackageProject")
 				);
+
+				MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().LocalizeProject,
+					NAME_None,
+					TAttribute<FText>(),
+					LOCTEXT("LocalizeProjectToolTip", "Gather text from your project and import/export translations.")
+					);
 
 				/*
 				MenuBuilder.AddSubMenu(
