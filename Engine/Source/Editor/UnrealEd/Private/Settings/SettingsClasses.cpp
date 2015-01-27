@@ -53,7 +53,9 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectI
 
 UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
+	, bInWorldBPEditing(true)
 	, bUnifiedBlueprintEditor(true)
+
 {
 }
 
