@@ -2427,10 +2427,10 @@ void FLevelEditorActionCallbacks::MoveActorTo_Clicked( const bool InAlign, const
 	GEditor->RebuildAlteredBSP(); // Update the Bsp of any levels containing a modified brush
 }
 
-void FLevelEditorActionCallbacks::SnapActorToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot )
+void FLevelEditorActionCallbacks::SnapToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot )
 {
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SnapActorsToFloor", "Snap Actors To Floor") );
-	SnapActorTo_Clicked( InAlign, InUseLineTrace, InUseBounds, InUsePivot );
+	SnapTo_Clicked( InAlign, InUseLineTrace, InUseBounds, InUsePivot );
 }
 
 void FLevelEditorActionCallbacks::SnapActorToActor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot )
@@ -2439,41 +2439,73 @@ void FLevelEditorActionCallbacks::SnapActorToActor_Clicked( bool InAlign, bool I
 	if( Actor )
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SnapActorsToActor", "Snap Actors To Actor") );
-		SnapActorTo_Clicked( InAlign, InUseLineTrace, InUseBounds, InUsePivot, Actor );
+		SnapTo_Clicked( InAlign, InUseLineTrace, InUseBounds, InUsePivot, Actor );
 	}
 }
 
-void FLevelEditorActionCallbacks::SnapActorTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, const AActor* InDestination/* = NULL*/ )
+void FLevelEditorActionCallbacks::SnapTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, AActor* InDestination )
 {
 	// Fires ULevel::LevelDirtiedEvent when falling out of scope.
 	FScopedLevelDirtied		LevelDirtyCallback;
 
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	bool bSnappedComponents = false;
+	if( GEditor->GetSelectedComponentCount() > 0 )
 	{
-		AActor* Actor = Cast<AActor>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
+		for(FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+		{
+			USceneComponent* SceneComponent = Cast<USceneComponent>(*It);
+			if(SceneComponent)
+			{
+				SceneComponent->Modify();
+				AActor* ActorOwner = SceneComponent->GetOwner();
+				bSnappedComponents = true;
+				if(ActorOwner)
+				{
+					ActorOwner->Modify();
+					GEditor->SnapObjectTo(FActorOrComponent(SceneComponent), InAlign, InUseLineTrace, InUseBounds, InUsePivot, FActorOrComponent(InDestination));
+					ActorOwner->InvalidateLightingCache();
+					ActorOwner->UpdateComponentTransforms();
 
-		Actor->Modify();
-		GEditor->SnapActorTo(Actor,InAlign,InUseLineTrace,InUseBounds,InUsePivot,InDestination);
-		Actor->InvalidateLightingCache();
-		Actor->UpdateComponentTransforms();
+					LevelDirtyCallback.Request();
+				}
+			}
+		}
 
-		Actor->MarkPackageDirty();
-		LevelDirtyCallback.Request();
+		USceneComponent* LastComp = GEditor->GetSelectedComponents()->GetBottom<USceneComponent>();
+
+		GEditor->SetPivot(LastComp->GetComponentLocation(), false, true);
 	}
 
-	AActor* Actor = GEditor->GetSelectedActors()->GetBottom<AActor>();
-	if( Actor )
+	if( !bSnappedComponents )
 	{
-		GEditor->SetPivot( Actor->GetActorLocation(), false, true );
-
-		if( GEditor->bGroupingActive ) 
+		for(FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 		{
-			// set group pivot for the root-most group
-			AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(Actor, true, true);
-			if(ActorGroupRoot)
+			AActor* Actor = Cast<AActor>(*It);
+			if(Actor)
 			{
-				ActorGroupRoot->CenterGroupLocation();
+				Actor->Modify();
+				GEditor->SnapObjectTo(FActorOrComponent(Actor), InAlign, InUseLineTrace, InUseBounds, InUsePivot, FActorOrComponent(InDestination));
+				Actor->InvalidateLightingCache();
+				Actor->UpdateComponentTransforms();
+
+				LevelDirtyCallback.Request();
+			}
+		}
+
+
+		AActor* Actor = GEditor->GetSelectedActors()->GetBottom<AActor>();
+		if(Actor)
+		{
+			GEditor->SetPivot(Actor->GetActorLocation(), false, true);
+
+			if(GEditor->bGroupingActive)
+			{
+				// set group pivot for the root-most group
+				AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(Actor, true, true);
+				if(ActorGroupRoot)
+				{
+					ActorGroupRoot->CenterGroupLocation();
+				}
 			}
 		}
 	}
@@ -2730,8 +2762,8 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SnapOriginToGrid, "Snap Origin to Grid", "Snaps the actor to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::End ) );
 	UI_COMMAND( SnapOriginToGridPerActor, "Snap Origin to Grid Per Actor", "Snaps each selected actor separately to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AlignOriginToGrid, "Align Origin to Grid", "Aligns the actor to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( SnapToFloor, "Snap to Floor", "Snaps the actor to the floor below it", EUserInterfaceActionType::Button, FInputGesture( EKeys::End ) );
-	UI_COMMAND( AlignToFloor, "Align to Floor", "Aligns the actor with the floor", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( SnapToFloor, "Snap to Floor", "Snaps the actor or component to the floor below it", EUserInterfaceActionType::Button, FInputGesture( EKeys::End ) );
+	UI_COMMAND( AlignToFloor, "Align to Floor", "Aligns the actor or component with the floor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SnapPivotToFloor, "Snap Pivot to Floor", "Snaps the actor to the floor at its pivot point", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Alt, EKeys::End ) );	
 	UI_COMMAND( AlignPivotToFloor, "Align Pivot to Floor", "Aligns the actor with the floor at its pivot point", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SnapBottomCenterBoundsToFloor, "Snap Bottom Center Bounds to Floor", "Snaps the actor to the floor at its bottom center bounds", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift, EKeys::End ) );
