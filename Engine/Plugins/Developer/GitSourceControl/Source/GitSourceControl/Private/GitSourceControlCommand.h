@@ -5,7 +5,7 @@
 /**
  * Used to execute Git commands multi-threaded.
  */
-class FGitSourceControlCommand : public FQueuedWork
+class FGitSourceControlCommand : public IQueuedWork
 {
 public:
 
