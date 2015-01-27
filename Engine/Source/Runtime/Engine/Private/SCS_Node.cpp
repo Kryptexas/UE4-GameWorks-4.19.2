@@ -447,7 +447,15 @@ FName USCS_Node::GenerateNewComponentName( TArray<FName>& CurrentNames, FName De
 			}
 			else
 			{
-				ComponentName = ComponentTemplate->GetClass()->GetName().Replace(TEXT("Component"), TEXT(""));
+				const UClass* ComponentClass = ComponentTemplate->GetClass();
+				ComponentName = ComponentClass->GetName().Replace(TEXT("Component"), TEXT(""));
+
+				// Trim the _C, if needed
+				if (ComponentClass->ClassGeneratedBy && ComponentName.EndsWith(TEXT("_C")))
+				{
+					const int32 NameLen = ComponentName.Len() - 1;
+					ComponentName = ComponentName.Left(NameLen);
+				}
 			}
 			
 			NewName = *ComponentName;

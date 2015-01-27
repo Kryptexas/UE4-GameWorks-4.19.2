@@ -3997,6 +3997,13 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		ActorInstance->Modify();
 
 		FName NewComponentName = NAME_None;
+		if (NewComponentClass->ClassGeneratedBy && NewComponentClass->GetName().EndsWith(TEXT("_C")))
+		{
+			const FString NewClassName = NewComponentClass->GetName();
+			const int32 NewStrLen = NewClassName.Len() - 2;
+			NewComponentName = MakeUniqueObjectName(ActorInstance, NewComponentClass, FName(*NewClassName.Left(NewStrLen)));
+		}
+
 		if (Asset != nullptr)
 		{
 			NewComponentName = *FComponentEditorUtils::GenerateValidVariableNameFromAsset(Asset, ActorInstance);

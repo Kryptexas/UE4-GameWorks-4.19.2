@@ -758,7 +758,16 @@ USCS_Node* USimpleConstructionScript::CreateNode(UClass* NewComponentClass, FNam
 	check(NewComponentClass->IsChildOf(UActorComponent::StaticClass()));
 
 	ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
-	UActorComponent* NewComponentTemplate = ConstructObject<UActorComponent>(NewComponentClass, Blueprint->GeneratedClass);
+
+	FName NewComponentName(NAME_None);
+	if (NewComponentClass->ClassGeneratedBy && NewComponentClass->GetName().EndsWith(TEXT("_C")))
+	{
+		const FString NewClassName = NewComponentClass->GetName();
+		const int32 NewStrLen = NewClassName.Len() - 2;
+		NewComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, NewComponentClass, FName(*NewClassName.Left(NewStrLen)));
+	}
+
+	UActorComponent* NewComponentTemplate = ConstructObject<UActorComponent>(NewComponentClass, Blueprint->GeneratedClass, NewComponentName);
 	NewComponentTemplate->SetFlags(RF_ArchetypeObject|RF_Transactional|RF_Public);
 
 	return CreateNode(NewComponentTemplate, NewComponentVariableName);
@@ -777,6 +786,13 @@ USCS_Node* USimpleConstructionScript::CreateNode(UActorComponent* NewComponentTe
 		// Get a list of names currently in use.
 		TArray<FName> CurrentNames;
 		NewNode->GenerateListOfExistingNames( CurrentNames );
+
+		if (NewComponentVariableName.ToString().EndsWith(TEXT("_C")))
+		{
+			const FString NameAsString = NewComponentVariableName.ToString();
+			const int32 NewStrLen = NameAsString.Len() - 2;
+			NewComponentVariableName = FName(*NameAsString.Left(NewStrLen));
+		}
 
 		// Now create a name for the new component.
 		NewNode->VariableName = NewNode->GenerateNewComponentName( CurrentNames, NewComponentVariableName );

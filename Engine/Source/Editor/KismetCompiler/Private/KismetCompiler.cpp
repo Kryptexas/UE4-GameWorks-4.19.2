@@ -1700,6 +1700,13 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		{
 			Class->SetMetaData(TEXT("AutoCollapseCategories"), *ParentClass->GetMetaData("AutoCollapseCategories"));
 		}
+		
+		// Blueprinted Components are always Blueprint Spawnable
+		if (ParentClass->IsChildOf(UActorComponent::StaticClass()))
+		{
+			Class->SetMetaData(TEXT("BlueprintSpawnableComponent"), TEXT("true"));
+		}
+
 
 		// Add a category if one has been specified
 		if(Blueprint->BlueprintCategory.Len() > 0)

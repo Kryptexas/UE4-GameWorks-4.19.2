@@ -866,6 +866,8 @@ bool FKismetEditorUtilities::CanCreateBlueprintOfClass(const UClass* Class)
 	bool bAllowDerivedBlueprints = false;
 	GConfig->GetBool(TEXT("Kismet"), TEXT("AllowDerivedBlueprints"), /*out*/ bAllowDerivedBlueprints, GEngineIni);
 
+	const bool bAllowBlueprintableComponents = GetDefault<UEditorExperimentalSettings>()->bBlueprintableComponents;
+	
 	const bool bCanCreateBlueprint =
 		!Class->HasAnyClassFlags(CLASS_Deprecated)
 		&& !Class->HasAnyClassFlags(CLASS_NewerVersionExists)
@@ -876,6 +878,7 @@ bool FKismetEditorUtilities::CanCreateBlueprintOfClass(const UClass* Class)
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	const bool bIsValidClass = Class->GetBoolMetaDataHierarchical(FBlueprintMetadata::MD_IsBlueprintBase)
 		|| (Class == UObject::StaticClass())
+		|| (Class == UActorComponent::StaticClass() && bAllowBlueprintableComponents)
 		|| bIsBPGC;  // BPs are always considered inheritable
 
 	return bCanCreateBlueprint && bIsValidClass;

@@ -324,7 +324,7 @@ static void GetAddComponentClasses(UBlueprint const* BlueprintIn, FGraphActionLi
 		UClass* Class = *It;
 
 		// If this is a subclass of ActorComponent, not abstract, and tagged as spawnable from Kismet
-		if (Class->IsChildOf(UActorComponent::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) )
+		if (Class->IsChildOf(UActorComponent::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
 		{
 			TSharedPtr<FEdGraphSchemaAction_K2AddComponent> NewAction = FK2ActionMenuBuilder::CreateAddComponentAction(ActionMenuBuilder.OwnerOfTemporaries, BlueprintIn, Class, /*Asset=*/ NULL);
 			ActionMenuBuilder.AddAction(NewAction);

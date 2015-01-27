@@ -2923,6 +2923,79 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			Ar.Logf(TEXT("Non-permanent: %d objects, %d edges, %d strongly connected components, %d objects are included in cycles."), IndexSet.TempObjects.Num(), IndexSet.Edges.Num(), TotalCnt, TotalNum);
 			return true;
 		}
+		else if (FParse::Command(&Str, TEXT("VERIFYCOMPONENTS")))
+		{
+			Ar.Logf(TEXT("------------------------------------------------------------------------------"));
+
+			for (FObjectIterator It; It; ++It)
+			{
+				UObject* Target = *It;
+
+				// Skip objects that are trashed
+				if ((Target->GetOutermost() == GetTransientPackage())
+					|| Target->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists)
+					|| Target->HasAnyFlags(RF_PendingKill))
+				{
+					continue;
+				}
+
+				TArray<UObject*> SubObjects;
+				GetObjectsWithOuter(Target, SubObjects);
+
+				TArray<FString> Errors;
+
+				for (auto SubObjIt : SubObjects)
+				{
+					const UObject* SubObj = SubObjIt;
+					const UClass* SubObjClass = SubObj->GetClass();
+					const FString SubObjName = SubObj->GetName();
+
+					if (SubObj->IsPendingKill())
+					{
+						continue;
+					}
+
+					if (SubObjClass->HasAnyClassFlags(CLASS_NewerVersionExists))
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s has a stale class"), *SubObjName));
+					}
+
+					if (SubObjClass->GetOutermost() == GetTransientPackage())
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s has a class in the transient package"), *SubObjName));
+					}
+
+					if (SubObj->GetOutermost() != Target->GetOutermost())
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s has a different outer than its parent"), *SubObjName));
+					}
+					
+					if (SubObj->GetName().Find(TEXT("TRASH_")) != INDEX_NONE)
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s is TRASH'd"), *SubObjName));
+					}
+
+					if (SubObj->GetName().Find(TEXT("REINST_")) != INDEX_NONE)
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s is a REINST"), *SubObjName));
+					}
+				}
+
+				if (Errors.Num() > 0)
+				{
+					const FString ErrorStr = FString::Printf(TEXT("Errors for %s"), *Target->GetName());
+					Ar.Logf(*ErrorStr);
+
+					for (auto ErrorStr : Errors)
+					{
+						Ar.Logf(*(FString(TEXT("  - ") + ErrorStr)));
+					}
+				}
+			}
+
+			Ar.Logf(TEXT("------------------------------------------------------------------------------"));
+			return true;
+		}
 		else if( FParse::Command(&Str,TEXT("TRANSACTIONAL")) )
 		{
 			int32 Num=0;

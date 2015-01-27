@@ -8,6 +8,7 @@
 #include "Layers/ILayers.h"
 #include "ComponentInstanceDataCache.h"
 #include "Engine/DynamicBlueprintBinding.h"
+#include "BlueprintEditor.h"
 
 DECLARE_CYCLE_STAT(TEXT("Replace Instances"), EKismetReinstancerStats_ReplaceInstancesOfClass, STATGROUP_KismetReinstancer );
 DECLARE_CYCLE_STAT(TEXT("Find Referencers"), EKismetReinstancerStats_FindReferencers, STATGROUP_KismetReinstancer );
@@ -305,9 +306,10 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 
 				const bool bIsActor = ClassToReinstance->IsChildOf<AActor>();
 				const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
+				const bool bIsComponent = ClassToReinstance->IsChildOf<UActorComponent>();
 				for (auto Obj : ObjectsToReplace)
 				{
-					if (!Obj->IsTemplate() && !Obj->IsPendingKill())
+					if ((!Obj->IsTemplate() || bIsComponent) && !Obj->IsPendingKill())
 					{
 						Obj->SetClass(ClassToReinstance);
 						if (bIsActor)
@@ -636,6 +638,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 	// actors being replace
 	TArray<FActorReplacementHelper> ReplacementActors;
 
+	// A list of objects (e.g. Blueprints) that potentially have editors open that we need to refresh
+	TArray<UObject*> PotentialEditorsForRefreshing;
+
 	// Set global flag to let system know we are reconstructing blueprint instances
 	TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
 
@@ -664,7 +669,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 		// Then fix 'real' (non archetype) instances of the class
 		for (UObject* OldObject : ObjectsToReplace)
 		{
-			if (OldObject->IsTemplate() || OldObject->IsPendingKill())
+			// Skip non-archetype instances, EXCEPT for component templates
+			const bool bIsComponent = NewClass->IsChildOf(UActorComponent::StaticClass());
+			if ((!bIsComponent && OldObject->IsTemplate()) || OldObject->IsPendingKill())
 			{
 				continue;
 			}
@@ -783,6 +790,22 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				OldObject->MarkPendingKill();
 
 				OldToNewInstanceMap.Add(OldObject, NewObject);
+
+				if (bIsComponent)
+				{
+					UActorComponent* Component = Cast<UActorComponent>(NewObject);
+					AActor* OwningActor = Component->GetOwner();
+					if (OwningActor)
+					{
+						OwningActor->ResetOwnedComponents();
+
+						// Check to see if they have an editor that potentially needs to be refreshed
+						if (OwningActor->GetClass()->ClassGeneratedBy)
+						{
+							PotentialEditorsForRefreshing.AddUnique(OwningActor->GetClass()->ClassGeneratedBy);
+						}
+					}
+				}
 			}
 
 			// If this original object came from a blueprint and it was in the selected debug set, change the debugging to the new object.
@@ -836,6 +859,19 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 	if (bSelectionChanged)
 	{
 		GEditor->NoteSelectionChange();
+	}
+
+	if (GEditor)
+	{
+		// Refresh any editors for objects that we've updated components for
+		for (auto BlueprintAsset : PotentialEditorsForRefreshing)
+		{
+			FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(FAssetEditorManager::Get().FindEditorForAsset(BlueprintAsset, /*bFocusIfOpen =*/false));
+			if (BlueprintEditor)
+			{
+				BlueprintEditor->RefreshEditors();
+			}
+		}
 	}
 }
 
