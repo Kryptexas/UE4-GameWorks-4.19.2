@@ -1121,8 +1121,15 @@ FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX,
 	UObject* AssetObj = AssetData.GetAsset();
 	UClass* ClassObj = Cast<UClass>( AssetObj );
 
-	if ( ClassObj != NULL )
+	if ( ClassObj )
 	{
+		if ( !ObjectTools::IsClassValidForPlacing(ClassObj) )
+		{
+			Result.bCanDrop = false;
+			Result.HintText = FText::Format(LOCTEXT("DragAndDrop_CannotDropAssetClassFmt", "The class '{0}' cannot be placed in a level"), FText::FromString(ClassObj->GetName()));
+			return Result;
+		}
+
 		AssetObj = ClassObj->GetDefaultObject();
 	}
 
