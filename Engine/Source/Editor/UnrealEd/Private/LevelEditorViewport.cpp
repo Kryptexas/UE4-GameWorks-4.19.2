@@ -48,6 +48,7 @@
 #include "Editor/ActorPositioning.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "ComponentEditorUtils.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -3045,11 +3046,15 @@ void FLevelEditorViewportClient::ApplyDeltaToComponent(USceneComponent* InCompon
 		ModifiedDeltaScale = FVector::ZeroVector;
 	}
 
+	FVector AdjustedDrag = InDeltaDrag;
+	FRotator AdjustedRot = InDeltaRot;
+	FComponentEditorUtils::AdjustComponentDelta(InComponent, AdjustedDrag, AdjustedRot);
+
 	GEditor->ApplyDeltaToComponent(
 		InComponent,
 		true,
-		&InDeltaDrag,
-		&InDeltaRot,
+		&AdjustedDrag,
+		&AdjustedRot,
 		&ModifiedDeltaScale,
 		InComponent->RelativeLocation);
 }

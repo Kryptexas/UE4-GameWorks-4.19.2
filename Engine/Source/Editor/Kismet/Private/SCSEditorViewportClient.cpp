@@ -393,7 +393,7 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 				{
 					FSCSEditorTreeNodePtrType SelectedNodePtr = *It;
 					// Don't allow editing of a root node, inherited SCS node or child node that also has a movable (non-root) parent node selected
-					const bool bCanEdit = !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited()
+					const bool bCanEdit =  !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited()
 						&& !IsMovableParentNodeSelected(SelectedNodePtr, SelectedNodes);
 
 					if(bCanEdit)
@@ -407,22 +407,9 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 							FRotator OldRelativeRotation = SelectedTemplate->RelativeRotation;
 							FVector OldRelativeScale3D = SelectedTemplate->RelativeScale3D;
 
-							USceneComponent* ParentSceneComp = SceneComp->GetAttachParent();
-							if( ParentSceneComp )
-							{
-								const FTransform ParentToWorldSpace = ParentSceneComp->GetSocketTransform(SceneComp->AttachSocketName);
+							// Adjust the deltas as necessary
+							FComponentEditorUtils::AdjustComponentDelta(SceneComp, Drag, Rot);
 
-								if(!SceneComp->bAbsoluteLocation)
-								{
-									Drag = ParentToWorldSpace.Inverse().TransformVector(Drag);
-								}
-								
-								if(!SceneComp->bAbsoluteRotation)
-								{
-									Rot = (ParentToWorldSpace.Inverse().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
-								}
-							}
-							
 							FComponentEditorUtils::FTransformData OldDefaultTransform(*SelectedTemplate);
 
 							TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditor->CustomizeSCSEditor(SceneComp);

@@ -32,6 +32,9 @@ public:
 		FVector Scale;
 	};
 
+	/** Potentially transforms the delta to be applied to a component into the appropriate space */
+	static void AdjustComponentDelta(USceneComponent* Component, FVector& Drag, FRotator& Rotation);
+
 	// Given a template, propagates a default transform change to all instances of the template
 	static void PropagateTransformPropertyChange(class USceneComponent* InSceneComponentTemplate, const FTransformData& OldDefaultTransform, const FTransformData& NewDefaultTransform, TSet<class USceneComponent*>& UpdatedComponents);
 
