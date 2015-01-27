@@ -2130,7 +2130,7 @@ void FEngineLoop::ProcessPlayerControllersSlateOperations() const
 					APlayerController* PlayerController = LocalPlayer->PlayerController;
 					if (PlayerController != nullptr)
 					{
-						FReply& TheReply = PlayerController->SlateOperations;
+						FReply& TheReply = *PlayerController->SlateOperations;
 
 						FWidgetPath PathToWidget;
 						SlateApp.GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), PathToWidget);

@@ -47,7 +47,7 @@ const float RetryServerCheckSpectatorThrottleTime = 0.25f;
 
 APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, SlateOperations(FReply::Unhandled())
+	, SlateOperations(new FReply( FReply::Unhandled() ))
 {
 	NetPriority = 3.0f;
 	CheatClass = UCheatManager::StaticClass();
@@ -4376,7 +4376,7 @@ void APlayerController::SetInputMode(const FInputModeDataBase& InData)
 	UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
 	if (GameViewportClient != nullptr)
 	{
-		InData.ApplyInputMode(SlateOperations, *GameViewportClient);
+		InData.ApplyInputMode(*SlateOperations, *GameViewportClient);
 	}
 }
 

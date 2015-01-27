@@ -94,3 +94,5 @@ EnginePrivate.h: Unreal engine private header file.
 #include "CanvasTypes.h"							// Canvas.
 #include "EngineUtils.h"
 #include "TimerManager.h"					// Game play timers
+#include "SlateCore.h"
+#include "SlateBasics.h"
