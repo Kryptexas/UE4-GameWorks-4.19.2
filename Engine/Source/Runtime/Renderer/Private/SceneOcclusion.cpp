@@ -1036,11 +1036,11 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 
 	if (bUseDownsampledDepth)
 	{
-		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSmallDepthSurface());
+		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSmallDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndReadOnlyDepth);
 	}
 	else
 	{
-		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface());
+		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndReadOnlyDepth);
 	}
 
 	// Perform occlusion queries for each view
@@ -1196,6 +1196,6 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 	if (bUseDownsampledDepth)
 	{
 		// Restore default render target
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 	}
 }

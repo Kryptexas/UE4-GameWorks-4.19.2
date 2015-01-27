@@ -75,6 +75,15 @@ FSceneRenderTargetItem& GetEffectiveSourceTexture(bool bDownsamplePass, int32 Ta
 	return GSceneRenderTargets.ReflectionColorScratchCubemap[ScratchTextureIndex]->GetRenderTargetItem();
 }
 
+void FullyResolveReflectionScratchCubes(FRHICommandListImmediate& RHICmdList)
+{
+	FTextureRHIRef& Scratch0 = GSceneRenderTargets.ReflectionColorScratchCubemap[0]->GetRenderTargetItem().TargetableTexture;
+	FTextureRHIRef& Scratch1 = GSceneRenderTargets.ReflectionColorScratchCubemap[1]->GetRenderTargetItem().TargetableTexture;
+	FResolveParams ResolveParams(FResolveRect(), CubeFace_PosX, -1, -1, -1);
+	RHICmdList.CopyToResolveTarget(Scratch0, Scratch0, true, ResolveParams);
+	RHICmdList.CopyToResolveTarget(Scratch1, Scratch1, true, ResolveParams);  
+}
+
 class FDownsamplePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FDownsamplePS,Global);
@@ -275,7 +284,8 @@ IMPLEMENT_SHADER_TYPE(,FComputeBrightnessPS,TEXT("ReflectionEnvironmentShaders")
 /** Computes the average brightness of the given reflection capture and stores it in the scene. */
 void ComputeAverageBrightness(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel)
 {
-	SetRenderTarget(RHICmdList, GSceneRenderTargets.GetReflectionBrightnessTarget()->GetRenderTargetItem().TargetableTexture, NULL);
+	FTextureRHIRef& BrightnessTarget = GSceneRenderTargets.GetReflectionBrightnessTarget()->GetRenderTargetItem().TargetableTexture;
+	SetRenderTarget(RHICmdList, BrightnessTarget, NULL);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -299,6 +309,8 @@ void ComputeAverageBrightness(FRHICommandList& RHICmdList, ERHIFeatureLevel::Typ
 		FIntPoint(1, 1),
 		FIntPoint(1, 1),
 		*VertexShader);
+
+	RHICmdList.CopyToResolveTarget(BrightnessTarget, BrightnessTarget, true, FResolveParams());
 }
 
 /** Generates mips for glossiness and filters the cubemap for a given reflection. */
@@ -312,6 +324,9 @@ void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, ERHIFeatu
 
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
 	bNormalize = bNormalize && CVar->GetInt() == 0;
+
+	// necessary to resolve the clears which touched all the mips.  scene rendering only resolves mip 0.
+	FullyResolveReflectionScratchCubes(RHICmdList);	
 
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 

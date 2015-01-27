@@ -512,7 +512,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 		RenderTarget = Viewport->GetBackBuffer();
 	}
 	FRHIRenderTargetView View(RenderTarget);
-	RHISetRenderTargets(1,&View,FTextureRHIRef(),0,NULL);
+	RHISetRenderTargets(1,&View,nullptr,0,NULL);
 
 	// Set an initially disabled scissor rect.
 	RHISetScissorRect(false,0,0,0,0);
@@ -587,6 +587,10 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 			GInputLatencyTimer.RenderThreadTrigger = false;
 		}
 	}
+
+#if CHECK_SRV_TRANSITIONS
+	UnresolvedTargets.Reset();
+#endif
 }
 
 /**

@@ -1151,56 +1151,104 @@ static void CheckShadowDepthMaterials(const FMaterialRenderProxy* InRenderProxy,
 	check(Material == InMaterial);
 }
 
-void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer)
+void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer, bool bPerformClear)
 {
+	uint32 ViewportMinX;
+	uint32 ViewportMinY;
+	float ViewportMinZ;
+	uint32 ViewportMaxX;
+	uint32 ViewportMaxY;
+	float ViewportMaxZ;
+
+	int32 NumClearColors;
+	bool bClearColor;
+	FLinearColor Colors[2];
+	bool bClearDepth;
+	float Depth;
+	bool bClearStencil;
+	uint32 Stencil;
+	FIntRect ExcludeRect;
+
 	if (CascadeSettings.bOnePassPointLightShadow)
 	{
 		// Set the viewport to the whole render target since it's a cube map, don't leave any border space
-		RHICmdList.SetViewport(
-			0,
-			0,
-			0.0f,
-			ResolutionX,
-			ResolutionY,
-			1.0f
-			);
-
+		ViewportMinX = 0;
+		ViewportMinY = 0;
+		ViewportMinZ = 0.0f;
+		ViewportMaxX = ResolutionX;
+		ViewportMaxY = ResolutionY;
+		ViewportMaxZ = 1.0f;
+		
+		
 		// Clear depth only.
-		RHICmdList.Clear(false, FColor::White, true, 1.0f, false, 0, FIntRect());
+		bClearColor = false;
+		Colors[0] = FLinearColor::White;
+		bClearDepth = true;
+		Depth = 1.0f;
+		bClearStencil = false;
+		Stencil = 0;
+		NumClearColors = 1;
 	}
 	else
 	{
 		if (bReflectiveShadowmap)
 		{
 			// Set the viewport for the shadow.
-			RHICmdList.SetViewport(
-				X,
-				Y,
-				0.0f,
-				X + ResolutionX, 
-				Y + ResolutionY,
-				1.0f
-				);
-
-			// Clear color and depth targets
-			FLinearColor ClearColors[2] = {FLinearColor(0,0,1,0), FLinearColor(0,0,0,0)};
-			RHICmdList.ClearMRT(true, 2, ClearColors, true, 1.0f, false, 0, FIntRect());
+			ViewportMinX = X;
+			ViewportMinY = Y;
+			ViewportMinZ = 0.0f;
+			ViewportMaxX = X + ResolutionX;
+			ViewportMaxY = Y + ResolutionY;
+			ViewportMaxZ = 1.0f;
+			
+			// Clear color and depth targets			
+			bClearColor = true;
+			Colors[0] = FLinearColor(0, 0, 1, 0);
+			Colors[1] = FLinearColor(0, 0, 0, 0);
+		
+			bClearDepth = true;
+			Depth = 1.0f;
+			bClearStencil = false;
+			Stencil = 0;
+			NumClearColors = 2;			
 		}
 		else
 		{
 			// Set the viewport for the shadow.
-			RHICmdList.SetViewport(
-				X,
-				Y,
-				0.0f,
-				X + SHADOW_BORDER*2 + ResolutionX,
-				Y + SHADOW_BORDER*2 + ResolutionY,
-				1.0f
-				);
+			ViewportMinX = X;
+			ViewportMinY = Y;
+			ViewportMinZ = 0.0f;
+			ViewportMaxX = X + SHADOW_BORDER * 2 + ResolutionX;
+			ViewportMaxY = Y + SHADOW_BORDER * 2 + ResolutionY;
+			ViewportMaxZ = 1.0f;
 
 			// Clear depth only.
-			RHICmdList.Clear(false, FColor::White, true, 1.0f, false, 0, FIntRect());
+			bClearColor = false;
+			Colors[0] = FLinearColor::White;
+			bClearDepth = true;
+			Depth = 1.0f;
+			bClearStencil = false;
+			Stencil = 0;
+			NumClearColors = 1;			
 		}
+	}
+
+	if (bPerformClear)
+	{
+		RHICmdList.SetViewport(
+			ViewportMinX,
+			ViewportMinY,
+			ViewportMinZ,
+			ViewportMaxX,
+			ViewportMaxY,
+			ViewportMaxZ
+			);
+		
+		RHICmdList.ClearMRT(bClearColor, NumClearColors, Colors, bClearDepth, Depth, bClearStencil, Stencil, FIntRect());
+	}
+	else
+	{
+		RHICmdList.BindClearMRTValues(bClearColor, NumClearColors, Colors, bClearDepth, Depth, bClearStencil, Stencil);
 	}
 }
 
@@ -1482,8 +1530,14 @@ public:
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}
-	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
+
+	virtual ~FShadowParallelCommandListSet()
 	{
+		Dispatch();
+	}
+
+	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
+	{	
 		SetShadowRenderTargets(CmdList);
 		ProjectedShadowInfo.SetStateForDepth(CmdList);
 	}
@@ -2610,14 +2664,17 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 			if (!ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaquePointLight);
-				auto SetShadowRenderTargets = [ProjectedShadowInfo](FRHICommandList& RHICmdList)
+
+				bool bPerformClear = true;
+				auto SetShadowRenderTargets = [this, &bPerformClear, ProjectedShadowInfo](FRHICommandList& RHICmdList)
 				{
 					GSceneRenderTargets.BeginRenderingCubeShadowDepth(RHICmdList, ProjectedShadowInfo->ResolutionX);
+					ProjectedShadowInfo->ClearDepth(RHICmdList, this, bPerformClear);
 				};
 
-				SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
 				ProjectedShadowInfo->bAllocated = true;
-				ProjectedShadowInfo->ClearDepth(RHICmdList, this);
+				SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists								
+				bPerformClear = false;
 
 				ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets);
 				GSceneRenderTargets.FinishRenderingCubeShadowDepth(RHICmdList, ProjectedShadowInfo->ResolutionX);
@@ -3022,19 +3079,18 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
 
 				check(LightPropagationVolume);
-				auto SetShadowRenderTargets = [LightPropagationVolume](FRHICommandList& RHICmdList)
+				auto SetShadowRenderTargets = [this, LightPropagationVolume, ProjectedShadowInfo](FRHICommandList& RHICmdList)
 				{
 					GSceneRenderTargets.BeginRenderingReflectiveShadowMap(RHICmdList, LightPropagationVolume);
+					ProjectedShadowInfo->ClearDepth(RHICmdList, this, false);
 				};
-
-				SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
-
+				SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists				
 
 				LightPropagationVolume->SetVplInjectionConstants( *ProjectedShadowInfo, LightSceneInfo->Proxy );
 
 				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow)
 				{
-					ProjectedShadowInfo->ClearDepth(RHICmdList, this);
+					ProjectedShadowInfo->ClearDepth(RHICmdList, this, true);
 					ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets);
 				}
 
@@ -3199,14 +3255,14 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 			// Render the shadow depths.
 			SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaqueProjected);
 
-			bool bFirst = true;
-			auto SetShadowRenderTargets = [&bFirst](FRHICommandList& RHICmdList)
+			bool bPerformClear = true;
+			auto SetShadowRenderTargets = [&bPerformClear](FRHICommandList& RHICmdList)
 			{
-				GSceneRenderTargets.BeginRenderingShadowDepth(RHICmdList, bFirst);
+				GSceneRenderTargets.BeginRenderingShadowDepth(RHICmdList, bPerformClear);
 			};
 
 			SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
-			bFirst = false;
+			bPerformClear = false;
 
 			// render depth for each shadow
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
@@ -3337,15 +3393,6 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 		{
 			SCOPED_DRAW_EVENTF(RHICmdList, EventShadowDepths, TEXT("Preshadow Cache Depths"));
 
-			auto SetShadowRenderTargets = [](FRHICommandList& RHICmdList)
-			{
-				SetRenderTarget(RHICmdList, FTextureRHIRef(), GSceneRenderTargets.PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture);
-			};
-
-			SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
-
-
-
 			// Render depth for each shadow
 			for (int32 ShadowIndex = 0; ShadowIndex < CachedPreshadows.Num(); ShadowIndex++)
 			{
@@ -3354,7 +3401,16 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 				if (!ProjectedShadowInfo->bDepthsCached)
 				{
 					check(ProjectedShadowInfo->bAllocated);
-					ProjectedShadowInfo->ClearDepth(RHICmdList, this);
+					
+					//
+					bool bPerformClear = true;;
+					auto SetShadowRenderTargets = [this, &bPerformClear, ProjectedShadowInfo](FRHICommandList& RHICmdList)
+					{
+						SetRenderTarget(RHICmdList, FTextureRHIRef(), GSceneRenderTargets.PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture);
+						ProjectedShadowInfo->ClearDepth(RHICmdList, this, bPerformClear);
+					};					
+					SetShadowRenderTargets(RHICmdList); // run it now, maybe run it later for parallel command lists
+					bPerformClear = false;
 
 					ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets);
 					ProjectedShadowInfo->bDepthsCached = true;

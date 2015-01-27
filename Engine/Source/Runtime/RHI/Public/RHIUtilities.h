@@ -123,19 +123,26 @@ struct FRWBufferByteAddress
  * Convert the ESimpleRenderTargetMode into usable values 
  * @todo: Can we easily put this into a .cpp somewhere?
  */
-inline void DecodeRenderTargetMode(ESimpleRenderTargetMode Mode, ERenderTargetLoadAction& ColorLoadAction, ERenderTargetStoreAction& ColorStoreAction, ERenderTargetLoadAction& DepthLoadAction, ERenderTargetStoreAction& DepthStoreAction, FLinearColor& ClearColor, float& ClearDepth)
+inline void DecodeRenderTargetMode(ESimpleRenderTargetMode Mode, ERenderTargetLoadAction& ColorLoadAction, ERenderTargetStoreAction& ColorStoreAction, ERenderTargetLoadAction& DepthLoadAction, ERenderTargetStoreAction& DepthStoreAction, FLinearColor& ClearColor, float& ClearDepth, bool& bReadOnlyDepth)
 {
 	// set defaults
 	ColorStoreAction = ERenderTargetStoreAction::EStore;
 	DepthStoreAction = ERenderTargetStoreAction::EStore;
 	ClearColor = FLinearColor(0, 0, 0, 0);
 	ClearDepth = 0.0f;
+	bReadOnlyDepth = false;
 
 	switch (Mode)
 	{
 	case ESimpleRenderTargetMode::EExistingColorAndDepth:
 		ColorLoadAction = ERenderTargetLoadAction::ELoad;
 		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		break;
+	case ESimpleRenderTargetMode::EExistingColorAndReadOnlyDepth:
+		ColorLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthStoreAction = ERenderTargetStoreAction::ENoAction;
+		bReadOnlyDepth = true;
 		break;
 	case ESimpleRenderTargetMode::EUninitializedColorAndDepth:
 		ColorLoadAction = ERenderTargetLoadAction::ENoAction;
@@ -144,6 +151,12 @@ inline void DecodeRenderTargetMode(ESimpleRenderTargetMode Mode, ERenderTargetLo
 	case ESimpleRenderTargetMode::EUninitializedColorExistingDepth:
 		ColorLoadAction = ERenderTargetLoadAction::ENoAction;
 		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		break;
+	case ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth:
+		ColorLoadAction = ERenderTargetLoadAction::ENoAction;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthStoreAction = ERenderTargetStoreAction::ENoAction;
+		bReadOnlyDepth = true;
 		break;
 	case ESimpleRenderTargetMode::EUninitializedColorClearDepth:
 		ColorLoadAction = ERenderTargetLoadAction::ENoAction;
@@ -158,15 +171,36 @@ inline void DecodeRenderTargetMode(ESimpleRenderTargetMode Mode, ERenderTargetLo
 		DepthLoadAction = ERenderTargetLoadAction::ELoad;
 		ClearColor = FLinearColor::Black;
 		break;
+	case ESimpleRenderTargetMode::EClearColorToBlackReadOnlyDepth:
+		ColorLoadAction = ERenderTargetLoadAction::EClear;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		ClearColor = FLinearColor::Black;
+		DepthStoreAction = ERenderTargetStoreAction::ENoAction;
+		bReadOnlyDepth = true;
+		break;
 	case ESimpleRenderTargetMode::EClearColorToBlackWithFullAlpha:
 		ColorLoadAction = ERenderTargetLoadAction::EClear;
 		DepthLoadAction = ERenderTargetLoadAction::ELoad;
 		ClearColor = FLinearColor(0, 0, 0, 1);
 		break;
+	case ESimpleRenderTargetMode::EClearColorToBlackWithFullAlphaReadOnlyDepth:
+		ColorLoadAction = ERenderTargetLoadAction::EClear;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		ClearColor = FLinearColor(0, 0, 0, 1);
+		DepthStoreAction = ERenderTargetStoreAction::ENoAction;
+		bReadOnlyDepth = true;
+		break;
 	case ESimpleRenderTargetMode::EClearColorToWhite:
 		ColorLoadAction = ERenderTargetLoadAction::EClear;
 		DepthLoadAction = ERenderTargetLoadAction::ELoad;
 		ClearColor = FLinearColor::White;
+		break;
+	case ESimpleRenderTargetMode::EClearColorToWhiteReadOnlyDepth:
+		ColorLoadAction = ERenderTargetLoadAction::EClear;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		ClearColor = FLinearColor::White;
+		DepthStoreAction = ERenderTargetStoreAction::ENoAction;
+		bReadOnlyDepth = true;
 		break;
 	case ESimpleRenderTargetMode::EClearDepthToOne:
 		ColorLoadAction = ERenderTargetLoadAction::ELoad;
@@ -187,7 +221,8 @@ inline void DecodeRenderTargetMode(ESimpleRenderTargetMode Mode, ERenderTargetLo
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget);
-	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	RHICmdList.SetRenderTargets(1, &RTV, &DepthRTV, 0, NULL);
 }
 
 /** Helper for the common case of using a single color and depth render target. */
@@ -197,11 +232,12 @@ inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef New
 	ERenderTargetStoreAction ColorStoreAction, DepthStoreAction;
 	FLinearColor ClearColor;
 	float ClearDepth;
-	DecodeRenderTargetMode(Mode, ColorLoadAction, ColorStoreAction, DepthLoadAction, DepthStoreAction, ClearColor, ClearDepth);
+	bool bReadOnlyDepth;
+	DecodeRenderTargetMode(Mode, ColorLoadAction, ColorStoreAction, DepthLoadAction, DepthStoreAction, ClearColor, ClearDepth, bReadOnlyDepth);
 
 	// now make the FRHISetRenderTargetsInfo that encapsulates all of the info
 	FRHIRenderTargetView ColorView(NewRenderTarget, 0, -1, ColorLoadAction, ColorStoreAction);
-	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(NewDepthStencilTarget, DepthLoadAction, DepthStoreAction));
+	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(NewDepthStencilTarget, DepthLoadAction, DepthStoreAction, bReadOnlyDepth));
 	Info.ClearColors[0] = ClearColor;
 	Info.DepthClearValue = ClearDepth;
 	RHICmdList.SetRenderTargetsAndClear(Info);
@@ -211,14 +247,16 @@ inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef New
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, -1);
-	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	RHICmdList.SetRenderTargets(1, &RTV, &DepthRTV, 0, nullptr);
 }
 
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, ArraySliceIndex);
-	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	RHICmdList.SetRenderTargets(1, &RTV, &DepthRTV, 0, nullptr);
 }
 
 /** Helper that converts FTextureRHIParamRef's into FRHIRenderTargetView's. */
@@ -238,7 +276,35 @@ inline void SetRenderTargets(
 		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index]);
 	}
 
-	RHICmdList.SetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, NewDepthStencilTargetRHI, NewNumUAVs, UAVs);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTargetRHI);
+	RHICmdList.SetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, &DepthRTV, NewNumUAVs, UAVs);
+}
+
+/** Helper that converts FTextureRHIParamRef's into FRHIRenderTargetView's. */
+inline void SetRenderTargets(
+	FRHICommandList& RHICmdList,
+	uint32 NewNumSimultaneousRenderTargets,
+	const FTextureRHIParamRef* NewRenderTargetsRHI,
+	FTextureRHIParamRef NewDepthStencilTargetRHI,
+	ESimpleRenderTargetMode Mode
+	)
+{
+	ERenderTargetLoadAction ColorLoadAction, DepthLoadAction;
+	ERenderTargetStoreAction ColorStoreAction, DepthStoreAction;
+	FLinearColor ClearColor;
+	float ClearDepth;
+	bool bReadOnlyDepth;
+	DecodeRenderTargetMode(Mode, ColorLoadAction, ColorStoreAction, DepthLoadAction, DepthStoreAction, ClearColor, ClearDepth, bReadOnlyDepth);
+
+	FRHIRenderTargetView RTVs[MaxSimultaneousRenderTargets];
+
+	for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
+	{
+		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index], 0, -1, ColorLoadAction, ColorStoreAction);
+	}
+
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTargetRHI, DepthLoadAction, DepthStoreAction, bReadOnlyDepth);
+	RHICmdList.SetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, &DepthRTV, 0, nullptr);
 }
 
 /**

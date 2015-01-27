@@ -482,6 +482,12 @@ public:
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}
+
+	virtual ~FBasePassParallelCommandListSet()
+	{
+		Dispatch();
+	}
+
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
 	{
 		GSceneRenderTargets.BeginRenderingGBuffer(CmdList, ERenderTargetLoadAction::ELoad, ERenderTargetLoadAction::ELoad);
@@ -817,6 +823,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 	GSceneRenderTargets.ResolveSceneDepthTexture(RHICmdList);
 	GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
+
+	GSceneRenderTargets.FinishRenderingGBuffer(RHICmdList);
 	
 	RenderCustomDepthPass(RHICmdList);
 
@@ -892,6 +900,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 		TRefCountPtr<IPooledRenderTarget> DynamicBentNormalAO;
 		RenderDynamicSkyLighting(RHICmdList, DynamicBentNormalAO);
+
+		//SSR and SSS need the SceneColor finalized as an SRV.
+		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, true);
 
 		// Render reflections that only operate on opaque pixels
 		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO);
@@ -1175,9 +1186,15 @@ public:
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}
+
+	virtual ~FPrePassParallelCommandListSet()
+	{
+		Dispatch();
+	}
+
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
 	{
-		GSceneRenderTargets.BeginRenderingPrePass(CmdList);
+		GSceneRenderTargets.BeginRenderingPrePass(CmdList, false);
 		SetupPrePassView(CmdList, View.ViewRect);
 	}
 };
@@ -1225,6 +1242,13 @@ void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& V
 	}
 }
 
+static TAutoConsoleVariable<int32> CVarParallelPrePass(
+	TEXT("r.ParallelPrePass"),
+	1,
+	TEXT("Toggles parallel zprepass rendering. Parallel rendering must be enabled for this to have an effect."),
+	ECVF_RenderThreadSafe
+	);
+
 /** Renders the scene's prepass and occlusion queries */
 bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList)
 {
@@ -1233,16 +1257,12 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 
 	bool bDirty = false;
 
-	GSceneRenderTargets.BeginRenderingPrePass(RHICmdList);
-
-	// Clear the depth buffer.
-	// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-	RHICmdList.Clear(false,FLinearColor::Black,true,0.0f,true,0, FIntRect());
+	GSceneRenderTargets.BeginRenderingPrePass(RHICmdList, true);
 
 	// Draw a depth pass to avoid overdraw in the other passes.
 	if(EarlyZPassMode != DDM_None)
 	{
-		if (GRHICommandList.UseParallelAlgorithms())
+		if (GRHICommandList.UseParallelAlgorithms() && CVarParallelPrePass.GetValueOnRenderThread())
 		{
 			FScopedCommandListWaitForTasks Flusher(RHICmdList);
 
@@ -1269,6 +1289,13 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 	return bDirty;
 }
 
+static TAutoConsoleVariable<int32> CVarParallelBasePass(
+	TEXT("r.ParallelBasePass"),
+	1,
+	TEXT("Toggles parallel base pass rendering. Parallel rendering must be enabled for this to have an effect."),
+	ECVF_RenderThreadSafe
+	);
+
 /**
  * Renders the scene's base pass 
  * @return true if anything was rendered
@@ -1292,7 +1319,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 		SCOPED_DRAW_EVENT(RHICmdList, BasePass);
 		SCOPE_CYCLE_COUNTER(STAT_BasePassDrawTime);
 
-		if (GRHICommandList.UseParallelAlgorithms())
+		if (GRHICommandList.UseParallelAlgorithms() && CVarParallelBasePass.GetValueOnRenderThread())
 		{
 			FScopedCommandListWaitForTasks Flusher(RHICmdList);
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)

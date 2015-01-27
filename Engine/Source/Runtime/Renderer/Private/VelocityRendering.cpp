@@ -560,10 +560,35 @@ public:
 	}
 };
 
+static void BeginVelocityRendering(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bPerformClear)
+{
+	FTextureRHIRef VelocityTexture = VelocityRT->GetRenderTargetItem().TargetableTexture;
+	FTexture2DRHIRef DepthTexture = GSceneRenderTargets.GetSceneDepthTexture();
+	FLinearColor VelocityClearColor = FLinearColor::Black;
+	if (bPerformClear)
+	{
+		// now make the FRHISetRenderTargetsInfo that encapsulates all of the info
+		FRHIRenderTargetView ColorView(VelocityTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+		FRHIDepthRenderTargetView DepthView(DepthTexture, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, true);
+
+		FRHISetRenderTargetsInfo Info(1, &ColorView, DepthView);
+		Info.ClearColors[0] = VelocityClearColor;
+
+		// Clear the velocity buffer (0.0f means "use static background velocity").
+		RHICmdList.SetRenderTargetsAndClear(Info);		
+	}
+	else
+	{
+		SetRenderTarget(RHICmdList, VelocityTexture, DepthTexture, ESimpleRenderTargetMode::EExistingColorAndReadOnlyDepth);
+
+		// some platforms need the clear color when rendertargets transition to SRVs.  We propagate here to allow parallel rendering to always
+		// have the proper mapping when the RT is transitioned.
+		RHICmdList.BindClearMRTValues(true, 1, &VelocityClearColor, false, 1.0f, false, 0);
+	}
+}
+
 static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
-	SetRenderTarget(RHICmdList, VelocityRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
-
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
 
@@ -590,8 +615,15 @@ public:
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}
+
+	virtual ~FVelocityPassParallelCommandListSet()
+	{
+		Dispatch();
+	}	
+
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
 	{
+		BeginVelocityRendering(CmdList, VelocityRT, false);
 		SetVelocitiesState(CmdList, View, VelocityRT);
 	}
 };
@@ -699,11 +731,8 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 	GPrevPerBoneMotionBlur.LockData();
 
-	SetRenderTarget(RHICmdList, VelocityRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
+	BeginVelocityRendering(RHICmdList, VelocityRT, true);
 	
-	// Clear the velocity buffer (0.0f means "use static background velocity").
-	RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
-
 	if (GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread())
 	{
 		RenderVelocitiesInnerParallel(RHICmdList, VelocityRT);

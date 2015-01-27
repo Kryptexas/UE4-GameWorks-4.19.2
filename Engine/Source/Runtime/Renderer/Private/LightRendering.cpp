@@ -425,14 +425,14 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			}
 			else if (SimpleLights.InstanceData.Num() > 0)
 			{
-				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 				RenderSimpleLightsStandardDeferred(RHICmdList, SimpleLights);
 			}
 
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredLighting);
 
-				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 
 				// Draw non-shadowed non-light function lights without changing render targets between them
 				for (int32 LightIndex = StandardDeferredStart; LightIndex < AttenuationLightStart; LightIndex++)
@@ -489,8 +489,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				INC_DWORD_STAT(STAT_NumShadowedLights);
 
 				// All shadows render with min blending
-				GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
-				RHICmdList.Clear(true, FLinearColor::White, false, 0, false, 0, FIntRect());
+				GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList, true);
 
 				bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
 				// Render non-modulated projected shadows to the attenuation buffer.
@@ -542,7 +541,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			}
 
 			GSceneRenderTargets.SetLightAttenuationMode(bUsedLightAttenuation);
-			GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+			GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 
 			// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
 			if(bDirectLighting)
@@ -630,7 +629,7 @@ void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList
 {
 	if (Scene->bIsEditorScene)
 	{
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 
 		// Clear to discard base pass values in scene color since we didn't skip that, to have valid scene depths
 		RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());

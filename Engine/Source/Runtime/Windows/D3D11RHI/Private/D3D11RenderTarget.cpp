@@ -322,10 +322,45 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 	FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(SourceTextureRHI->GetTextureCube());
 	FD3D11TextureCube* DestTextureCube = static_cast<FD3D11TextureCube*>(DestTextureRHI->GetTextureCube());
 
+	FD3D11Texture3D* SourceTexture3D = static_cast<FD3D11Texture3D*>(SourceTextureRHI->GetTexture3D());
+	FD3D11Texture3D* DestTexture3D = static_cast<FD3D11Texture3D*>(DestTextureRHI->GetTexture3D());
+
+#if CHECK_SRV_TRANSITIONS
+	//check first, as some of the resolve shaders could trigger the resource we're currently resolving.
+	ID3D11Resource* SourceResource = nullptr;
+	int32 ResolveSlice = -1;
+	if (SourceTexture2D)
+	{
+		SourceResource = SourceTexture2D->GetResource();
+	}
+	if (SourceTextureCube)
+	{
+		SourceResource = SourceTextureCube->GetResource();
+		ResolveSlice = ResolveParams.SourceArrayIndex * 6 + ResolveParams.CubeFace;
+	}
+	if (SourceTexture3D)
+	{
+		SourceResource = SourceTexture3D->GetResource();
+	}
+
+	if (SourceResource)
+	{
+		// if we don't have specific resolve data remove all references.
+		// this is helpful when you clear many mips/slices but only want to do one resolve.
+		if (ResolveParams.MipIndex == -1 && ResolveParams.SourceArrayIndex == -1)
+		{
+			UnresolvedTargets.Remove(SourceResource);
+		}
+		else
+		{
+			UnresolvedTargets.Remove(SourceResource, FUnresolvedRTInfo(SourceTextureRHI->GetName(), ResolveParams.MipIndex, 1, ResolveSlice, 1));
+		}
+	}
+#endif
+		
 	if(SourceTexture2D && DestTexture2D)
 	{
 		check(!SourceTextureCube && !DestTextureCube);
-
 		if(SourceTexture2D != DestTexture2D)
 		{
 			GPUProfilingData.RegisterGPUWork();
@@ -415,12 +450,12 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 	}
 	else if(SourceTextureCube && DestTextureCube)
 	{
-		check(!SourceTexture2D && !DestTexture2D);
-		
+		check(!SourceTexture2D && !DestTexture2D);			
+
 		if(SourceTextureCube != DestTextureCube)
 		{
 			GPUProfilingData.RegisterGPUWork();
-		
+
 			// Determine the cubemap face being resolved.
 			const uint32 D3DFace = GetD3D11CubeFace(ResolveParams.CubeFace);
 			const uint32 SourceSubresource = D3D11CalcSubresource(ResolveParams.MipIndex, ResolveParams.SourceArrayIndex * 6 + D3DFace, SourceTextureCube->GetNumMips());
@@ -450,6 +485,12 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 		const uint32 D3DFace = GetD3D11CubeFace(ResolveParams.CubeFace);
 		const uint32 Subresource = D3D11CalcSubresource(0, D3DFace, 1);
 		Direct3DDeviceIMContext->CopySubresourceRegion(DestTextureCube->GetResource(), Subresource, 0, 0, 0, SourceTexture2D->GetResource(), 0, NULL);
+	}
+	else if (SourceTexture3D && DestTexture3D)
+	{
+		// bit of a hack.  no one resolves slice by slice and 0 is the default value.  assume for the moment they are resolving the whole texture.
+		check(ResolveParams.SourceArrayIndex == 0);
+		check(SourceTexture3D == DestTexture3D);
 	}
 }
 

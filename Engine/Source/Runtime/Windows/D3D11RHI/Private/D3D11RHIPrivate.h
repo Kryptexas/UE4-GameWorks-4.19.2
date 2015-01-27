@@ -32,6 +32,12 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 #include "D3D11ConstantBuffer.h"
 #include "D3D11StateCache.h"
 
+#if UE_BUILD_SHIPPING || UE_BUILD_TEST
+#define CHECK_SRV_TRANSITIONS 0
+#else
+#define CHECK_SRV_TRANSITIONS 1
+#endif
+
 // DX11 doesn't support higher MSAA count
 #define DX_MAX_MSAA_COUNT 8
 
@@ -385,6 +391,8 @@ private:
 	template <EShaderFrequency ShaderFrequency>
 	void ClearAllShaderResourcesForFrequency();
 
+	void CheckIfSRVIsResolved(ID3D11ShaderResourceView* SRV);
+
 	template <EShaderFrequency ShaderFrequency>
 	void InternalSetShaderResourceView(FD3D11BaseShaderResource* Resource, ID3D11ShaderResourceView* SRV, int32 ResourceIndex, FD3D11StateCache::ESRV_Type SrvType = FD3D11StateCache::SRV_Unknown);
 
@@ -516,6 +524,39 @@ protected:
 	/** A history of the most recently used bound shader states, used to keep transient bound shader states from being recreated for each use. */
 	TGlobalResource< TBoundShaderStateHistory<10000> > BoundShaderStateHistory;
 	FComputeShaderRHIRef CurrentComputeShader;
+
+#if CHECK_SRV_TRANSITIONS
+	/*
+	 * Rendertargets must be explicitly 'resolved' to manage their transition to an SRV on some platforms and DX12
+	 * We keep track of targets that need 'resolving' to provide safety asserts at SRV binding time.
+	 */
+	struct FUnresolvedRTInfo
+	{
+		FUnresolvedRTInfo(FName InResourceName, int32 InMipLevel, int32 InNumMips, int32 InArraySlice, int32 InArraySize)
+		: ResourceName(InResourceName)
+		, MipLevel(InMipLevel)
+		, NumMips(InNumMips)
+		, ArraySlice(InArraySlice)  
+		, ArraySize(InArraySize)
+		{
+		}
+
+		bool operator==(const FUnresolvedRTInfo& Other) const
+		{
+			return MipLevel == Other.MipLevel &&
+				NumMips == Other.NumMips &&
+				ArraySlice == Other.ArraySlice &&
+				ArraySize == Other.ArraySize;
+		}
+
+		FName ResourceName;
+		int32 MipLevel;
+		int32 NumMips;
+		int32 ArraySlice;
+		int32 ArraySize;
+	};
+	TMultiMap<ID3D11Resource*, FUnresolvedRTInfo> UnresolvedTargets;
+#endif
 
 	FD3DGPUProfiler GPUProfilingData;
 	// >= 0, was computed before, unless hardware was changed during engine init it should be the same

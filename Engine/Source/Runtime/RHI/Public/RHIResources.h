@@ -354,6 +354,16 @@ public:
 		return &LastRenderTime;
 	}
 
+	void SetName(FName& InName)
+	{
+		TextureName = InName;
+	}
+
+	FName GetName() const
+	{
+		return TextureName;
+	}
+
 private:
 	uint32 NumMips;
 	uint32 NumSamples;
@@ -361,6 +371,7 @@ private:
 	uint32 Flags;
 	FLastRenderTimeContainer& LastRenderTime;
 	FLastRenderTimeContainer DefaultLastRenderTime;
+	FName TextureName;
 };
 
 class RHI_API FRHITexture2D : public FRHITexture
@@ -636,17 +647,19 @@ class FRHIDepthRenderTargetView
 public:
 	FTextureRHIParamRef Texture;
 
-	ERenderTargetLoadAction DepthLoadAction;
-	ERenderTargetStoreAction DepthStoreAction;
-	ERenderTargetLoadAction StencilLoadAction;
-	ERenderTargetStoreAction StencilStoreAction;
+	ERenderTargetLoadAction		DepthLoadAction;
+	ERenderTargetStoreAction	DepthStoreAction;
+	ERenderTargetLoadAction		StencilLoadAction;
+	ERenderTargetStoreAction	StencilStoreAction;
+	bool						bReadOnly; //target will not be written to.
 
 	FRHIDepthRenderTargetView() :
 		Texture(nullptr),
 		DepthLoadAction(ERenderTargetLoadAction::EClear),
 		DepthStoreAction(ERenderTargetStoreAction::EStore),
 		StencilLoadAction(ERenderTargetLoadAction::EClear),
-		StencilStoreAction(ERenderTargetStoreAction::EStore)
+		StencilStoreAction(ERenderTargetStoreAction::EStore),
+		bReadOnly(false)
 	{}
 
 	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture) :
@@ -654,7 +667,8 @@ public:
 		DepthLoadAction(ERenderTargetLoadAction::EClear),
 		DepthStoreAction(ERenderTargetStoreAction::EStore),
 		StencilLoadAction(ERenderTargetLoadAction::EClear),
-		StencilStoreAction(ERenderTargetStoreAction::EStore)
+		StencilStoreAction(ERenderTargetStoreAction::EStore),
+		bReadOnly(false)
 	{}
 
 	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
@@ -662,16 +676,40 @@ public:
 		DepthLoadAction(InLoadAction),
 		DepthStoreAction(InStoreAction),
 		StencilLoadAction(InLoadAction),
-		StencilStoreAction(InStoreAction)
+		StencilStoreAction(InStoreAction),
+		bReadOnly(false)
 	{}
+
+	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction, bool bInReadOnly) :
+		Texture(InTexture),
+		DepthLoadAction(InLoadAction),
+		DepthStoreAction(InStoreAction),
+		StencilLoadAction(InLoadAction),
+		StencilStoreAction(InStoreAction),
+		bReadOnly(bInReadOnly)
+	{
+		ensure(!bReadOnly || InStoreAction == ERenderTargetStoreAction::ENoAction);
+	}
 
 	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction) :
 		Texture(InTexture),
 		DepthLoadAction(InDepthLoadAction),
 		DepthStoreAction(InDepthStoreAction),
 		StencilLoadAction(InStencilLoadAction),
-		StencilStoreAction(InStencilStoreAction)
+		StencilStoreAction(InStencilStoreAction),
+		bReadOnly(false)
 	{}
+
+	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction, bool bInReadOnly) :
+		Texture(InTexture),
+		DepthLoadAction(InDepthLoadAction),
+		DepthStoreAction(InDepthStoreAction),
+		StencilLoadAction(InStencilLoadAction),
+		StencilStoreAction(InStencilStoreAction),
+		bReadOnly(bInReadOnly)
+	{
+		ensure(!bReadOnly || InDepthStoreAction == ERenderTargetStoreAction::ENoAction);
+	}
 
 	bool operator==(const FRHIDepthRenderTargetView& Other)
 	{
@@ -680,7 +718,8 @@ public:
 			DepthLoadAction == Other.DepthLoadAction &&
 			DepthStoreAction == Other.DepthStoreAction &&
 			StencilLoadAction == Other.StencilLoadAction &&
-			StencilStoreAction == Other.StencilStoreAction;
+			StencilStoreAction == Other.StencilStoreAction &&
+			bReadOnly == Other.bReadOnly;
 	}
 };
 
@@ -715,8 +754,8 @@ public:
 		DepthStencilRenderTarget(InDepthStencilRenderTarget),
 		DepthClearValue(0.0f),
 		StencilClearValue(0),
-		bClearDepth(InDepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear),
-		bClearStencil(InDepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear)
+		bClearDepth(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear),
+		bClearStencil(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear)
 	{
 		check(InNumColorRenderTargets <= 0 || InColorRenderTargets);
 		for (int32 Index = 0; Index < InNumColorRenderTargets; ++Index)

@@ -32,6 +32,18 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 	}
 }
 
+static void FinishTranslucentRenderTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bSeparateTranslucencyPass)
+{
+	if (bSeparateTranslucencyPass && GSceneRenderTargets.IsSeparateTranslucencyActive(View))
+	{
+		GSceneRenderTargets.FinishRenderingSeparateTranslucency(RHICmdList, View);
+	}
+	else
+	{
+		GSceneRenderTargets.FinishRenderingTranslucency(RHICmdList, View);
+	}
+}
+
 const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentShadowMap(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bSeparateTranslucencyPass)
 {
 	const FVisibleLightInfo* VisibleLightInfo = NULL;
@@ -870,6 +882,12 @@ public:
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}
+
+	virtual ~FTranslucencyPassParallelCommandListSet()
+	{
+		Dispatch();
+	}
+
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
 	{
 		SetTranslucentRenderTargetAndState(CmdList, View, bSeparateTranslucency, bFirstTimeThisFrame);
@@ -898,7 +916,8 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 		const FViewInfo& View = Views[ViewIndex];
 
 		{
-			FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, nullptr, CVarRHICmdTranslucencyPassDeferredContexts.GetValueOnRenderThread() > 0, false);
+			const bool bSeparateTranslucency = false;
+			FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, nullptr, CVarRHICmdTranslucencyPassDeferredContexts.GetValueOnRenderThread() > 0, bSeparateTranslucency);
 
 			{
 				int32 NumPrims = View.TranslucentPrimSet.NumPrims() - View.TranslucentPrimSet.NumSeparateTranslucencyPrims();
@@ -934,6 +953,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			// Draw the view's mesh elements with the translucent drawing policy.
 			DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(ThisContext, SDPG_Foreground, false, ParallelCommandListSet);
 
+			FinishTranslucentRenderTarget(RHICmdList, View, bSeparateTranslucency);
 		}
 
 #if 0 // unsupported visualization in the parallel case
@@ -1035,6 +1055,8 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 					LightPropagationVolume->Visualise(RHICmdList, View);
 				}
 			}
+
+			FinishTranslucentRenderTarget(RHICmdList, View, false);
 			
 			{
 				bool bRenderSeparateTranslucency = View.TranslucentPrimSet.NumSeparateTranslucencyPrims() > 0;

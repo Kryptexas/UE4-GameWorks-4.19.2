@@ -319,13 +319,16 @@ public:
 	TArray<FRHICommandList*,SceneRenderingAllocator> CommandLists;
 	TArray<FGraphEventRef,SceneRenderingAllocator> Events;
 protected:
+	//this must be called by deriving classes virtual destructor because it calls the virtual SetStateOnCommandList.
+	//C++ will not do dynamic dispatch of virtual calls from destructors so we can't call it in the base class.
+	void Dispatch();
 	FRHICommandList* AllocCommandList();
 	bool bParallelExecute;
 public:
 	FParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute);
-	~FParallelCommandListSet();
+	virtual ~FParallelCommandListSet();
 	FRHICommandList* NewParallelCommandList();
-	void AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent);
+	void AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent);	
 
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList)
 	{

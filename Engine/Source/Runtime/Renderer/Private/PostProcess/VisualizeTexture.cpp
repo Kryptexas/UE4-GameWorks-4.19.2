@@ -223,9 +223,10 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList
 
 void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)
 {
+	RHICmdList.CopyToResolveTarget(Data.RenderTargetItem.ShaderResourceTexture, Data.RenderTargetItem.ShaderResourceTexture, true, FResolveParams());
 	if(Data.Desc.Is2DTexture())
 	{
-		// 2D
+		// 2D		
 		if(Data.Desc.NumSamples > 1)
 		{
 			// MSAA
@@ -238,12 +239,11 @@ void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, ERHIFeatureLev
 		}
 	}
 	else if(Data.Desc.Is3DTexture())
-	{
-		// Volume
+	{		
 		VisualizeTextureForTextureType<3>(RHICmdList, FeatureLevel, Data);
 	}
 	else if(Data.Desc.IsCubemap())
-	{
+	{		
 		if(Data.Desc.IsArray())
 		{
 			// Cube[]

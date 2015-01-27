@@ -135,7 +135,7 @@ FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICo
 
 }
 
-FParallelCommandListSet::~FParallelCommandListSet()
+void FParallelCommandListSet::Dispatch()
 {
 	check(CommandLists.Num() == Events.Num());
 #if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
@@ -156,13 +156,15 @@ FParallelCommandListSet::~FParallelCommandListSet()
 	Events.Reset();
 }
 
+FParallelCommandListSet::~FParallelCommandListSet()
+{
+	checkf(CommandLists.Num() == 0, TEXT("Derived class of FParallelCommandListSet did not call Dispatch in virtual destructor"));
+}
+
 FRHICommandList* FParallelCommandListSet::NewParallelCommandList()
 {
 	FRHICommandList* Result = AllocCommandList();
-//	if (bParallelExecute)
-	{
-		SetStateOnCommandList(*Result); 
-	}
+	SetStateOnCommandList(*Result); 
 	return Result;
 }
 

@@ -508,19 +508,18 @@ struct FRHICommandSetRenderTargets : public FRHICommand<FRHICommandSetRenderTarg
 {
 	uint32 NewNumSimultaneousRenderTargets;
 	FRHIRenderTargetView NewRenderTargetsRHI[MaxSimultaneousRenderTargets];
-	FTextureRHIParamRef NewDepthStencilTargetRHI;
+	FRHIDepthRenderTargetView NewDepthStencilTarget;
 	uint32 NewNumUAVs;
 	FUnorderedAccessViewRHIParamRef UAVs[MaxSimultaneousUAVs];
 
 	FORCEINLINE_DEBUGGABLE FRHICommandSetRenderTargets(
 		uint32 InNewNumSimultaneousRenderTargets,
 		const FRHIRenderTargetView* InNewRenderTargetsRHI,
-		FTextureRHIParamRef InNewDepthStencilTargetRHI,
+		const FRHIDepthRenderTargetView* InNewDepthStencilTargetRHI,
 		uint32 InNewNumUAVs,
 		const FUnorderedAccessViewRHIParamRef* InUAVs
 		)
 		: NewNumSimultaneousRenderTargets(InNewNumSimultaneousRenderTargets)
-		, NewDepthStencilTargetRHI(InNewDepthStencilTargetRHI)
 		, NewNumUAVs(InNewNumUAVs)
 
 	{
@@ -533,6 +532,10 @@ struct FRHICommandSetRenderTargets : public FRHICommand<FRHICommandSetRenderTarg
 		{
 			UAVs[Index] = InUAVs[Index];
 		}
+		if (InNewDepthStencilTargetRHI)
+		{
+			NewDepthStencilTarget = *InNewDepthStencilTargetRHI;
+		}		
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
@@ -545,6 +548,42 @@ struct FRHICommandSetRenderTargetsAndClear : public FRHICommand<FRHICommandSetRe
 		RenderTargetsInfo(InRenderTargetsInfo)
 	{
 	}
+
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandBindClearMRTValues : public FRHICommand<FRHICommandBindClearMRTValues>
+{
+	FLinearColor ColorArray[MaxSimultaneousRenderTargets];	
+	float Depth;
+	uint32 Stencil;
+	int32 NumClearColors;
+	bool bClearColor;
+	bool bClearDepth;
+	bool bClearStencil;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandBindClearMRTValues(
+		bool InbClearColor,
+		int32 InNumClearColors,
+		const FLinearColor* InColorArray,
+		bool InbClearDepth,
+		float InDepth,
+		bool InbClearStencil,
+		uint32 InStencil		
+		) 
+		: Depth(InDepth)
+		, Stencil(InStencil)
+		, NumClearColors(InNumClearColors)
+		, bClearColor(InbClearColor)
+		, bClearDepth(InbClearDepth)
+		, bClearStencil(InbClearStencil)
+	{
+		check(InNumClearColors < MaxSimultaneousRenderTargets);
+		for (int32 Index = 0; Index < InNumClearColors; Index++)
+		{
+			ColorArray[Index] = InColorArray[Index];
+		}
+	}	
 
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
@@ -1509,7 +1548,7 @@ public:
 	FORCEINLINE_DEBUGGABLE void SetRenderTargets(
 		uint32 NewNumSimultaneousRenderTargets,
 		const FRHIRenderTargetView* NewRenderTargetsRHI,
-		FTextureRHIParamRef NewDepthStencilTargetRHI,
+		const FRHIDepthRenderTargetView* NewDepthStencilTargetRHI,
 		uint32 NewNumUAVs,
 		const FUnorderedAccessViewRHIParamRef* UAVs
 		)
@@ -1540,7 +1579,17 @@ public:
 			return;
 		}
 		new (AllocCommand<FRHICommandSetRenderTargetsAndClear>()) FRHICommandSetRenderTargetsAndClear(RenderTargetsInfo);
-	}
+	}	
+
+	FORCEINLINE_DEBUGGABLE void BindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(BindClearMRTValues)(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil);
+			return;
+		}
+		new (AllocCommand<FRHICommandBindClearMRTValues>()) FRHICommandBindClearMRTValues(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil);
+	}	
 
 	FORCEINLINE_DEBUGGABLE void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
 	{
@@ -1900,11 +1949,10 @@ class RHI_API FRHICommandListImmediate : public FRHICommandList
 	{
 		check(!HasCommands());
 	}
-
-	static bool bFlushedGlobal;
-
 public:
 
+	static bool bFlushedGlobal;	
+	
 	inline void ImmediateFlush(EImmediateFlushType::Type FlushType);
 
 	void SetCurrentStat(TStatId Stat);

@@ -648,7 +648,7 @@ IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<false>,TEXT("Refl
 
 void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList)
 {
-	GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+	GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState< FM_Solid, CM_None >::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState< CW_RGB, BO_Add, BF_One, BF_One >::GetRHI());
@@ -681,6 +681,8 @@ void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllV
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
+
+	GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList);
 }
 
 bool FDeferredShadingSceneRenderer::ShouldDoReflectionEnvironment() const
@@ -916,7 +918,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			// Apply reflections to screen
 			SCOPED_DRAW_EVENT(RHICmdList, ReflectionApply);
 
-			GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+			GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -973,6 +975,8 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 				FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 				GSceneRenderTargets.GetBufferSizeXY(),
 				*VertexShader);
+
+			GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList);
 		}
 	}
 }
@@ -1001,7 +1005,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 	{
 		const bool bReflectionEnvironment = ShouldDoReflectionEnvironment();
 		const bool bReflectionsWithCompute = (FeatureLevel >= ERHIFeatureLevel::SM5) && bReflectionEnvironment && Scene->ReflectionSceneData.CubemapArray.IsValid();
-
+		
 		if (bReflectionsWithCompute)
 		{
 			RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO);

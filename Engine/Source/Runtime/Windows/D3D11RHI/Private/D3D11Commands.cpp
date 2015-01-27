@@ -822,12 +822,20 @@ FRTVDesc GetRenderTargetViewDesc(ID3D11RenderTargetView* RenderTargetView)
 void FD3D11DynamicRHI::RHISetRenderTargets(
 	uint32 NewNumSimultaneousRenderTargets,
 	const FRHIRenderTargetView* NewRenderTargetsRHI,
-	FTextureRHIParamRef NewDepthStencilTargetRHI,
+	const FRHIDepthRenderTargetView* NewDepthStencilTargetRHI,
 	uint32 NewNumUAVs,
 	const FUnorderedAccessViewRHIParamRef* UAVs
 	)
 {
-	FD3D11TextureBase* NewDepthStencilTarget = GetD3D11TextureFromRHITexture(NewDepthStencilTargetRHI);
+	FD3D11TextureBase* NewDepthStencilTarget = GetD3D11TextureFromRHITexture(NewDepthStencilTargetRHI ? NewDepthStencilTargetRHI->Texture : nullptr);
+
+#if CHECK_SRV_TRANSITIONS
+	// if the depth buffer is writable then it counts as unresolved.
+	if (NewDepthStencilTargetRHI && !NewDepthStencilTargetRHI->bReadOnly && NewDepthStencilTarget)
+	{		
+		UnresolvedTargets.Add(NewDepthStencilTarget->GetResource(), FUnresolvedRTInfo(NewDepthStencilTargetRHI->Texture->GetName(), 0, 1, -1, 1));
+	}
+#endif
 
 	check(NewNumSimultaneousRenderTargets + NewNumUAVs <= MaxSimultaneousRenderTargets);
 
@@ -858,8 +866,18 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 		ID3D11RenderTargetView* RenderTargetView = NULL;
 		if(RenderTargetIndex < NewNumSimultaneousRenderTargets && IsValidRef(NewRenderTargetsRHI[RenderTargetIndex].Texture))
 		{
+			int32 RTMipIndex = NewRenderTargetsRHI[RenderTargetIndex].MipIndex;
+			int32 RTSliceIndex = NewRenderTargetsRHI[RenderTargetIndex].ArraySliceIndex;
 			FD3D11TextureBase* NewRenderTarget = GetD3D11TextureFromRHITexture(NewRenderTargetsRHI[RenderTargetIndex].Texture);
-			RenderTargetView = NewRenderTarget->GetRenderTargetView(NewRenderTargetsRHI[RenderTargetIndex].MipIndex, NewRenderTargetsRHI[RenderTargetIndex].ArraySliceIndex);
+			RenderTargetView = NewRenderTarget->GetRenderTargetView(RTMipIndex, RTSliceIndex);
+
+#if CHECK_SRV_TRANSITIONS
+			// remember this target as having been bound for write.
+			ID3D11Resource* RTVResource;
+			RenderTargetView->GetResource(&RTVResource);			
+			UnresolvedTargets.Add(RTVResource, FUnresolvedRTInfo(NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName(), RTMipIndex, 1, RTSliceIndex, 1));
+			RTVResource->Release();
+#endif
 			
 			// Unbind any shader views of the render target that are bound.
 			ConditionalClearShaderResource(NewRenderTarget);
@@ -965,7 +983,7 @@ void FD3D11DynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInf
 {
 	this->RHISetRenderTargets(RenderTargetsInfo.NumColorRenderTargets,
 		RenderTargetsInfo.ColorRenderTarget,
-		RenderTargetsInfo.DepthStencilRenderTarget.Texture,
+		&RenderTargetsInfo.DepthStencilRenderTarget,
 		0,
 		nullptr);
 	if (RenderTargetsInfo.bClearColor || RenderTargetsInfo.bClearStencil || RenderTargetsInfo.bClearDepth)
@@ -1895,6 +1913,12 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 
 	GPUProfilingData.RegisterGPUWork(0);
 }
+
+void FD3D11DynamicRHI::RHIBindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+{
+	// Not necessary for d3d.
+}
+
 
 // Functions to yield and regain rendering control from D3D
 

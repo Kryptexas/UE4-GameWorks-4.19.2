@@ -546,16 +546,21 @@ enum class ERenderTargetStoreAction
 enum class ESimpleRenderTargetMode
 {
 	// These will all store out color and depth
-	EExistingColorAndDepth,			// Color = Existing, Depth = Existing
-	EUninitializedColorAndDepth,	// Color = ????, Depth = ????
-	EUninitializedColorExistingDepth,// Color = ????, Depth = Existing
-	EUninitializedColorClearDepth,	// Color = ????, Depth = Default
-	EClearToDefault,				// Default Color = (0,0,0,0), Default Depth = 0.0f
-	EClearColorToBlack,				// Color = (0,0,0,0), Depth = Existing
-	EClearColorToBlackWithFullAlpha,// Color = (0,0,0,1), Depth = Existing
-	EClearColorToWhite,				// Color = (1,1,1,1), Depth = Existing
-	EClearDepthToOne,				// Color = Existing, Depth = 1.0
-	EExistingContents_NoDepthStore,	// Load existing contents, but don't store depth out
+	EExistingColorAndDepth,						// Color = Existing, Depth = Existing
+	EExistingColorAndReadOnlyDepth,					// Color = Existing, Depth = Existing. depth cannot be written.
+	EUninitializedColorAndDepth,					// Color = ????, Depth = ????
+	EUninitializedColorExistingDepth,				// Color = ????, Depth = Existing
+	EUninitializedColorExistingReadOnlyDepth,		// Color = ????, Depth = Existing. depth cannot be written.
+	EUninitializedColorClearDepth,					// Color = ????, Depth = Default
+	EClearToDefault,								// Default Color = (0,0,0,0), Default Depth = 0.0f
+	EClearColorToBlack,								// Color = (0,0,0,0), Depth = Existing
+	EClearColorToBlackReadOnlyDepth,				// Color = (0,0,0,0), Depth = Existing. depth cannot be written
+	EClearColorToBlackWithFullAlpha,				// Color = (0,0,0,1), Depth = Existing
+	EClearColorToBlackWithFullAlphaReadOnlyDepth,	// Color = (0,0,0,1), Depth = Existing. depth cannot be written
+	EClearColorToWhite,								// Color = (1,1,1,1), Depth = Existing
+	EClearColorToWhiteReadOnlyDepth,				// Color = (1,1,1,1), Depth = Existing. depth cannot be written
+	EClearDepthToOne,								// Color = Existing, Depth = 1.0
+	EExistingContents_NoDepthStore,					// Load existing contents, but don't store depth out.  depth can be written.
 
 	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!
 };

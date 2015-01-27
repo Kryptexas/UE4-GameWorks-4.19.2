@@ -163,7 +163,7 @@ void FRHICommandSetRenderTargets::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(SetRenderTargets)(
 		NewNumSimultaneousRenderTargets,
 		NewRenderTargetsRHI,
-		NewDepthStencilTargetRHI,
+		&NewDepthStencilTarget,
 		NewNumUAVs,
 		UAVs);
 }
@@ -172,6 +172,20 @@ void FRHICommandSetRenderTargetsAndClear::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(SetRenderTargetsAndClear);
 	INTERNAL_DECORATOR(SetRenderTargetsAndClear)(RenderTargetsInfo);
+}
+
+void FRHICommandBindClearMRTValues::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(BindClearMRTValues);
+	INTERNAL_DECORATOR(BindClearMRTValues)(
+		bClearColor,
+		NumClearColors,
+		ColorArray,
+		bClearDepth,
+		Depth,
+		bClearStencil,
+		Stencil	
+		);
 }
 
 void FRHICommandEndDrawPrimitiveUP::Execute(FRHICommandListBase& CmdList)

@@ -371,7 +371,7 @@ void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
 	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-	SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface());
+	SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 	// Write 1 to highest bit of stencil to areas that should not receive decals
@@ -875,6 +875,20 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		
 		RHICmdList.SetStreamSource(0, GUnitCubeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
 
+		enum EDecalResolveBufferIndex
+		{
+			SceneColorIndex,
+			GBufferAIndex,
+			GBufferBIndex,
+			GBufferCIndex,
+			DBufferAIndex,
+			DBufferBIndex,
+			DBufferCIndex,
+			ResolveBufferMax,
+		};
+
+		FTextureRHIParamRef TargetsToResolve[ResolveBufferMax] = { nullptr };
+
 		for (int32 DecalIndex = 0; DecalIndex < SortedDecals.Num(); DecalIndex++)
 		{
 			const FTransientDecalRenderData& DecalData = SortedDecals[DecalIndex];
@@ -918,31 +932,32 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 				switch(CurrentRenderTargetMode)
 				{
 					case RTM_SceneColorAndGBuffer:
-						{
-							FTextureRHIParamRef RenderTargets[4];
-							RenderTargets[0] = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
-							RenderTargets[1] = GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture;
-							RenderTargets[2] = GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture;
-							RenderTargets[3] = GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture;
-							SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), 0, NULL);
+						{							
+							TargetsToResolve[SceneColorIndex] = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[GBufferAIndex] = GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[GBufferBIndex] = GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[GBufferCIndex] = GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture;
+							
+							SetRenderTargets(RHICmdList, 4, TargetsToResolve, GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndReadOnlyDepth);
 						}
 						break;
 
 					case RTM_GBufferNormal:
-						SetRenderTarget(RHICmdList, GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
+						TargetsToResolve[GBufferAIndex] = GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture;
+						SetRenderTarget(RHICmdList, TargetsToResolve[GBufferAIndex], GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndReadOnlyDepth);
 						break;
 					
 					case RTM_SceneColor:
-						SetRenderTarget(RHICmdList, GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
+						TargetsToResolve[SceneColorIndex] = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
+						SetRenderTarget(RHICmdList, TargetsToResolve[SceneColorIndex], GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndReadOnlyDepth);
 						break;
 
 					case RTM_DBuffer:
-						{
-							FTextureRHIParamRef RenderTargets[3];
-							RenderTargets[0] = GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture;
-							RenderTargets[1] = GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture;
-							RenderTargets[2] = GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture;
-							SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), 0, NULL);
+						{							
+							TargetsToResolve[DBufferAIndex] = GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[DBufferBIndex] = GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[DBufferCIndex] = GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture;
+							SetRenderTargets(RHICmdList, 3, &TargetsToResolve[DBufferAIndex], GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndReadOnlyDepth);
 						}
 						break;
 
@@ -1049,12 +1064,19 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			}
 		}
 
-		// @todo resolve - need to remember the target(s) and resolve them
-
 		// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
-
 		// Clear stencil to 0, which is the assumed default by other passes
 		RHICmdList.Clear(false, FLinearColor::White, false, 0, true, 0, FIntRect());
+
+		// resolve the targets we wrote to.
+		FResolveParams ResolveParams;
+		for (int32 i = 0; i < ResolveBufferMax; ++i)
+		{
+			if (TargetsToResolve[i])
+			{
+				RHICmdList.CopyToResolveTarget(TargetsToResolve[i], TargetsToResolve[i], true, ResolveParams);
+			}
+		}		
 	}
 
 	if(RenderStage == 0)

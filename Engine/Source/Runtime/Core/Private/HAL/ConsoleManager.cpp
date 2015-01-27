@@ -2087,3 +2087,9 @@ static TAutoConsoleVariable<float> CVarEmitterSpawnRateScale(
 	1.0,
 	TEXT("A global scale upon the spawn rate of emitters. Emitters can choose to apply or ignore it via their bApplyGlobalSpawnRateScale property."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
+	TEXT("r.CheckSRVTransitions"),
+	0,
+	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
+	ECVF_RenderThreadSafe);  

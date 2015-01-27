@@ -1492,6 +1492,9 @@ void FD3D11DynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef TextureC
 
 void FD3D11DynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, const TCHAR* Name)
 {
+	//todo: require names at texture creation time.
+	FName DebugName(Name);
+	TextureRHI->SetName(DebugName);
 }
 
 void FD3D11DynamicRHI::RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef TextureRHI, uint32 FirstMip)

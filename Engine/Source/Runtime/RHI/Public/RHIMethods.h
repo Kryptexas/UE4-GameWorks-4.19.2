@@ -1897,11 +1897,12 @@ DEFINE_RHIMETHOD_CMDLIST_5(
 	void,SetRenderTargets,
 	uint32,NumSimultaneousRenderTargets,
 	const FRHIRenderTargetView*,NewRenderTargets,
-	FTextureRHIParamRef,NewDepthStencilTarget,
+	const FRHIDepthRenderTargetView*, NewDepthStencilTarget,
 	uint32,NumUAVs,
 	const FUnorderedAccessViewRHIParamRef*,UAVs,
 	,
 	);
+
 DEFINE_RHIMETHOD_3(
 	void,DiscardRenderTargets,
 	bool,Depth,
@@ -1912,6 +1913,21 @@ DEFINE_RHIMETHOD_3(
 DEFINE_RHIMETHOD_CMDLIST_1(
 	void,SetRenderTargetsAndClear,
 	const FRHISetRenderTargetsInfo&, RenderTargetsInfo,
+	,
+	);
+
+// Bind a clear values to currently bound rendertargets.  This is used by platforms which
+// need the color when transitioning a target that supports hardware clears from a rendertarget to a shader resource.
+// The explicit bind is needed to support parallel rendering.
+DEFINE_RHIMETHOD_CMDLIST_7(
+	void, BindClearMRTValues,
+	bool, bClearColor,
+	int32, NumClearColors,
+	const FLinearColor*, ColorArray,
+	bool, bClearDepth,
+	float, Depth,
+	bool, bClearStencil,
+	uint32, Stencil,	
 	,
 	);
 

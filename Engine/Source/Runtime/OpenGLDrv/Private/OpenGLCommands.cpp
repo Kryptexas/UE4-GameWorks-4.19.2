@@ -1581,7 +1581,7 @@ void FOpenGLDynamicRHI::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI,cons
 void FOpenGLDynamicRHI::RHISetRenderTargets(
 	uint32 NumSimultaneousRenderTargets,
 	const FRHIRenderTargetView* NewRenderTargetsRHI,
-	FTextureRHIParamRef NewDepthStencilTargetRHI,
+	const FRHIDepthRenderTargetView* NewDepthStencilTargetRHI,
 	uint32 NumUAVs,
 	const FUnorderedAccessViewRHIParamRef* UAVs
 	)
@@ -1607,7 +1607,7 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 		}
 	}
 
-	FOpenGLTextureBase* NewDepthStencilRT = GetOpenGLTextureFromRHITexture(NewDepthStencilTargetRHI);
+	FOpenGLTextureBase* NewDepthStencilRT = GetOpenGLTextureFromRHITexture(NewDepthStencilTargetRHI ? NewDepthStencilTargetRHI->Texture : nullptr);
 
 	if (IsES2Platform(GMaxRHIShaderPlatform) && !IsPCPlatform(GMaxRHIShaderPlatform))
 	{
@@ -1716,8 +1716,8 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 		// Set viewport size to new depth target size.
 		PendingState.Viewport.Min.X = 0;
 		PendingState.Viewport.Min.Y = 0;
-		PendingState.Viewport.Max.X = GetOpenGLTextureSizeXFromRHITexture(NewDepthStencilTargetRHI);
-		PendingState.Viewport.Max.Y = GetOpenGLTextureSizeYFromRHITexture(NewDepthStencilTargetRHI);
+		PendingState.Viewport.Max.X = GetOpenGLTextureSizeXFromRHITexture(NewDepthStencilTargetRHI->Texture);
+		PendingState.Viewport.Max.Y = GetOpenGLTextureSizeYFromRHITexture(NewDepthStencilTargetRHI->Texture);
 	}
 }
 
@@ -1760,7 +1760,7 @@ void FOpenGLDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsIn
 {
 	this->RHISetRenderTargets(RenderTargetsInfo.NumColorRenderTargets,
 		RenderTargetsInfo.ColorRenderTarget,
-		RenderTargetsInfo.DepthStencilRenderTarget.Texture,
+		&RenderTargetsInfo.DepthStencilRenderTarget,
 		0,
 		nullptr);
 	if (RenderTargetsInfo.bClearColor || RenderTargetsInfo.bClearStencil || RenderTargetsInfo.bClearDepth)
@@ -3211,6 +3211,11 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 		// Change it back
 		RHISetScissorRect(bPrevScissorEnabled,PrevScissor.Min.X, PrevScissor.Min.Y, PrevScissor.Max.X, PrevScissor.Max.Y);
 	}
+}
+
+void FOpenGLDynamicRHI::RHIBindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+{
+	// Not necessary for opengl.
 }
 
 // Functions to yield and regain rendering control from OpenGL

@@ -527,10 +527,12 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 		SCOPED_DRAW_EVENTF(RHICmdList, EventShadowDepthActor, *EventName);
 #endif
 
+		FTextureRHIParamRef ShadowTransmission0 = GSceneRenderTargets.TranslucencyShadowTransmission[0]->GetRenderTargetItem().TargetableTexture;
+		FTextureRHIParamRef ShadowTransmission1 = GSceneRenderTargets.TranslucencyShadowTransmission[1]->GetRenderTargetItem().TargetableTexture;
 		FTextureRHIParamRef RenderTargets[2] =
 		{
-			GSceneRenderTargets.TranslucencyShadowTransmission[0]->GetRenderTargetItem().TargetableTexture,
-			GSceneRenderTargets.TranslucencyShadowTransmission[1]->GetRenderTargetItem().TargetableTexture
+			ShadowTransmission0,
+			ShadowTransmission1
 		};
 		SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIParamRef(), 0, NULL);
 
@@ -598,7 +600,11 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 				}
 			}
 		}
-	}
+
+		FResolveParams ResolveParams;
+		RHICmdList.CopyToResolveTarget(ShadowTransmission0, ShadowTransmission0, true, ResolveParams);
+		RHICmdList.CopyToResolveTarget(ShadowTransmission1, ShadowTransmission0, true, ResolveParams);
+	}	
 
 	// Restore overridden properties
 	FoundView->bForceShowMaterials = false;
@@ -1765,6 +1771,17 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 {
 	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
+		// textures have to be finalized before reading.
+		for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
+		{
+			const IPooledRenderTarget* RT0 = GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
+			const IPooledRenderTarget* RT1 = GSceneRenderTargets.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];
+			FTextureRHIRef TargetTexture0 = RT0->GetRenderTargetItem().TargetableTexture;
+			FTextureRHIRef TargetTexture1 = RT1->GetRenderTargetItem().TargetableTexture;
+			RHICmdList.CopyToResolveTarget(TargetTexture0, TargetTexture0, true, FResolveParams());
+			RHICmdList.CopyToResolveTarget(TargetTexture1, TargetTexture1, true, FResolveParams());
+		}
+
 		if (GUseTranslucencyVolumeBlur)
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, FilterTranslucentVolume);

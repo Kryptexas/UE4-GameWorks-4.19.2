@@ -162,11 +162,15 @@ public:
 	 *
 	 */
 	void SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY);
+
+	void BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, const FLinearColor& ClearColor = FLinearColor(0, 0, 0, 1));
+	void FinishRenderingGBuffer(FRHICommandListImmediate& RHICmdList);
+
 	/**
 	 * Sets the scene color target and restores its contents if necessary
 	 */
 	void BeginRenderingSceneColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode=ESimpleRenderTargetMode::EUninitializedColorExistingDepth);
-	void BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, const FLinearColor& ClearColor=FLinearColor(0,0,0,1));
+	
 	/**
 	 * Called when finished rendering to the scene color surface
 	 * @param bKeepChanges - if true then the SceneColorSurface is resolved to the SceneColorTexture
@@ -201,9 +205,10 @@ public:
 	void FinishRenderingReflectiveShadowMap(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
 	/** Resolves the appropriate shadow depth cube map and restores default state. */
-	void FinishRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution, const FResolveParams& ResolveParams = FResolveParams());
+	void FinishRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution);
 	
 	void BeginRenderingTranslucency(FRHICommandList& RHICmdList, const class FViewInfo& View);
+	void FinishRenderingTranslucency(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View);
 
 	bool BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
 	void FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View);
@@ -212,7 +217,7 @@ public:
 	void ResolveSceneDepthTexture(FRHICommandList& RHICmdList);
 	void ResolveSceneDepthToAuxiliaryTexture(FRHICommandList& RHICmdList);
 
-	void BeginRenderingPrePass(FRHICommandList& RHICmdList);
+	void BeginRenderingPrePass(FRHICommandList& RHICmdList, bool bPerformClear);
 	void FinishRenderingPrePass(FRHICommandListImmediate& RHICmdList);
 
 	void BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
@@ -582,6 +587,10 @@ private:
 	/** Determine whether the render targets for any shading path have been allocated */
 	bool AreAnyShadingPathRenderTargetsAllocated() const { return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) || AreShadingPathRenderTargetsAllocated(EShadingPath::Forward); }
 
+	static const int32  MAX_CONCURRENT_GBUFFERS = 7;
+	/** Gets all GBuffers to use.  Returns the number actually used. */
+	int32 GetGBufferRenderTargets(FRHIRenderTargetView RenderTargets[MAX_CONCURRENT_GBUFFERS], ERenderTargetLoadAction ColorLoadAction, int32 & VelocityRTIndex);
+
 private:
 	/** Uniform buffer containing GBuffer resources. */
 	FUniformBufferRHIRef GBufferResourcesUniformBuffer;
@@ -615,6 +624,14 @@ private:
 	ERHIFeatureLevel::Type CurrentFeatureLevel;
 	/** Shading path that we are currently drawing through. Set when calling Allocate at the start of a scene render. */
 	EShadingPath CurrentShadingPath;
+
+	/** Helpers to track gbuffer state on platforms that need to propagate clear information across parallel rendering boundaries. */
+	bool bGBuffersCleared;
+	FLinearColor GBufferClearColor;
+
+	/** Helpers to track scenedepth state on platforms that need to propagate clear information across parallel rendering boundaries. */
+	bool bSceneDepthCleared;
+	float SceneDepthClearValue;
 };
 
 /** The global render targets used for scene rendering. */

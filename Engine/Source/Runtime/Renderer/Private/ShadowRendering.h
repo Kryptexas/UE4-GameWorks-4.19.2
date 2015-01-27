@@ -633,7 +633,7 @@ public:
 	/** Set state for depth rendering */
 	void SetStateForDepth(FRHICommandList& RHICmdList);
 
-	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
+	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, bool bPerformClear);
 
 	/** Renders shadow maps for translucent primitives. */
 	void RenderTranslucencyDepths(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
