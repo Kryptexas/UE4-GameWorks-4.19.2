@@ -412,12 +412,21 @@ public:
 	 * Called to login new players by creating a player controller, overridable by the game
 	 *
 	 * Sets up basic properties of the player (name, unique id, registers with backend, etc) and should not be used to do
-	 * more complicated game logic.  The player controller is not fully initialized within this function as far as networking is conecerned.
+	 * more complicated game logic.  The player controller is not fully initialized within this function as far as networking is concerned.
 	 * Save "game logic" for PostLogin which is called shortly afterward.
 	 *
+	 * @param NewPlayer pointer to the UPlayer object that represents this player (either local or remote)
+	 * @param RemoteRole the remote role this controller has
+	 * @param Portal desired portal location specified by the client
+	 * @param Options game options passed in by the client at login
+	 * @param UniqueId platform specific unique identifier for the logging in player
+	 * @param ErrorMessage [out] error message, if any, why this login will be failing
+	 *
 	 * If login is successful, returns a new PlayerController to associate with this player. Login fails if ErrorMessage string is set. 
+	 *
+	 * @return a new player controller for the logged in player, NULL if login failed for any reason
 	 */
-	virtual APlayerController* Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
+	virtual APlayerController* Login(class UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
 
 	/** Called after a successful login.  This is the first place it is safe to call replicated functions on the PlayerAController. */
 	virtual void PostLogin( APlayerController* NewPlayer );
@@ -426,8 +435,16 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category="Game", meta=(FriendlyName="PostLogin"))
 	virtual void K2_PostLogin( APlayerController* NewPlayer );
 
-	/** Spawns a PlayerController at the specified location; split out from Login()/HandleSeamlessTravelPlayer() for easier overriding */
-	virtual APlayerController* SpawnPlayerController(FVector const& SpawnLocation, FRotator const& SpawnRotation);
+	/** 
+	 * Spawns a PlayerController at the specified location; split out from Login()/HandleSeamlessTravelPlayer() for easier overriding 
+	 *
+	 * @param RemoteRole the role this controller will play remotely
+	 * @param SpawnLocation location in the world to spawn
+	 * @param SpawnRotation rotation to set relative to the world
+	 *
+	 * @return PlayerController for the player, NULL if there is any reason this player shouldn't exist or due to some error
+	 */
+	virtual APlayerController* SpawnPlayerController(ENetRole RemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation);
 
 	/** @Returns true if NewPlayerController may only join the server as a spectator. */
 	virtual bool MustSpectate(APlayerController* NewPlayerController) const;

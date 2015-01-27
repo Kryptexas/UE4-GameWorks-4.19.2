@@ -1509,9 +1509,18 @@ public:
 	 */
 	virtual void SendClientAdjustment();
 
+	/**
+	 * Designate this player controller as local (public for GameMode to use, not expected to be called anywhere else)
+	 */
+	void SetAsLocalPlayerController() { bIsLocalPlayerController = true; }
+
 private:
 	/** Used to delay calling ClientRestart() again when it hasn't been appropriately acknowledged. */
 	float		LastRetryPlayerTime;
+
+	/** Set during SpawnActor once and never again to indicate the intent of this controller instance (SERVER ONLY) */
+	UPROPERTY()
+	bool		bIsLocalPlayerController;
 
 public:
 	/** Counter for this players seamless travels (used along with the below value, to restrict ServerNotifyLoadedWorld) */

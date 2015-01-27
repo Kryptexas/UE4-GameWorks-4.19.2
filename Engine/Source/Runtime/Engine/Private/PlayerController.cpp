@@ -71,6 +71,8 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 
 	bAutoManageActiveCameraTarget = true;
 
+	bIsLocalPlayerController = false;
+
 	if (RootComponent)
 	{
 		// We want to drive rotation with ControlRotation regardless of attachment state.
@@ -106,20 +108,11 @@ UNetConnection* APlayerController::GetNetConnection()
 
 bool APlayerController::IsLocalController() const
 {
-	if (Player == NULL)
-	{
-		UE_LOG(LogPlayerController, Warning, TEXT("Calling IsLocalController() while Player is NULL is undefined!"));
-	}
-
 	ENetMode NetMode = GetNetMode();
 	if (NetMode == NM_DedicatedServer)
 	{
+		check(!bIsLocalPlayerController);
 		return false;
-	}
-
-	if (Super::IsLocalController())
-	{
-		return true;
 	}
 
 	if (NetMode == NM_Client)
@@ -128,7 +121,7 @@ bool APlayerController::IsLocalController() const
 		return true;
 	}
 
-	return false;
+	return bIsLocalPlayerController;
 }
 
 bool APlayerController::IsLocalPlayerController() const
