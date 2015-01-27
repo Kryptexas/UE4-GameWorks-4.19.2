@@ -187,7 +187,7 @@ namespace ELandscapeLODFalloff
 	};
 }
 
-UCLASS(NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
+UCLASS(NotPlaceable, NotBlueprintable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
 class ALandscapeProxy : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -442,6 +442,5 @@ public:
 	LANDSCAPE_API UTexture2D* CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter = nullptr) const;
 #endif
 };
-
 
 
