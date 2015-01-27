@@ -76,6 +76,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	void SetCrowdCollisionQueryRange(float Range, bool bUpdateAgent = true);
 	void SetCrowdPathOptimizationRange(float Range, bool bUpdateAgent = true);
 	void SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Type Quality, bool bUpdateAgent = true);
+	void SetCrowdAvoidanceRangeMultiplier(float Multipler, bool bUpdateAgent = true);
 
 	FORCEINLINE bool IsCrowdSimulationEnabled() const { return bEnableCrowdSimulation; }
 	FORCEINLINE bool IsCrowdSimulatioSuspended() const { return bSuspendCrowdSimulation; }
@@ -101,6 +102,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	FORCEINLINE float GetCrowdCollisionQueryRange() const { return CollisionQueryRange; }
 	FORCEINLINE float GetCrowdPathOptimizationRange() const { return PathOptimizationRange; }
 	FORCEINLINE ECrowdAvoidanceQuality::Type GetCrowdAvoidanceQuality() const { return AvoidanceQuality; }
+	FORCEINLINE float GetCrowdAvoidanceRangeMultiplier() const { return AvoidanceRangeMultiplier; }
 	FORCEINLINE int32 GetAvoidanceGroup() const { return AvoidanceGroup.Packed; }
 	FORCEINLINE int32 GetGroupsToAvoid() const { return GroupsToAvoid.Packed; }
 	FORCEINLINE int32 GetGroupsToIgnore() const { return GroupsToIgnore.Packed; }
@@ -159,6 +161,9 @@ protected:
 	float SeparationWeight;
 	float CollisionQueryRange;
 	float PathOptimizationRange;
+
+	/** multiplier for avoidance samples during detection, doesn't affect actual velocity */
+	float AvoidanceRangeMultiplier;
 
 	/** start index of current path part */
 	int32 PathStartIndex;

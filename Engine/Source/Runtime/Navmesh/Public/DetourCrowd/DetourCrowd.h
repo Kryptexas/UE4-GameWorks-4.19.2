@@ -94,6 +94,9 @@ struct dtCrowdAgentParams
 	/// How aggresive the agent manager should be at avoiding collisions with this agent. [Limit: >= 0]
 	float separationWeight;
 
+	/// [UE4] Mutliplier for avoidance velocities
+	float avoidanceQueryMultiplier;
+
 	/// [UE4] Groups flags attached to the agent
 	unsigned int avoidanceGroup;
 	/// [UE4] Avoid agents when they group is matching mask

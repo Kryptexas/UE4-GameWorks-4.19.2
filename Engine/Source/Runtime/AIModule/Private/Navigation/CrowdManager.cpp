@@ -692,6 +692,7 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAge
 		AgentParams.pathOptimizationRange = CrowdComponent->GetCrowdPathOptimizationRange();
 		AgentParams.separationWeight = CrowdComponent->GetCrowdSeparationWeight();
 		AgentParams.obstacleAvoidanceType = CrowdComponent->GetCrowdAvoidanceQuality();
+		AgentParams.avoidanceQueryMultiplier = CrowdComponent->GetCrowdAvoidanceRangeMultiplier();
 	
 		if (CrowdComponent->IsCrowdSimulationEnabled())
 		{
@@ -711,6 +712,7 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAge
 	}
 	else
 	{
+		AgentParams.avoidanceQueryMultiplier = 1.0f;
 		AgentParams.avoidanceGroup = 1;
 		AgentParams.groupsToAvoid = MAX_uint32;
 	}
@@ -957,13 +959,14 @@ void UCrowdManager::DrawDebugVelocityObstacles(const dtCrowdAgent* CrowdAgent) c
 	FVector Center = Recast2UnrealPoint(CrowdAgent->npos) + CrowdDebugDrawing::Offset;
 	DrawDebugCylinder(GetWorld(), Center - CrowdDebugDrawing::Offset, Center, CrowdAgent->params.maxSpeed, 32, CrowdDebugDrawing::AvoidanceRange);
 
+	const float InvQueryMultiplier = 1.0f / CrowdAgent->params.avoidanceQueryMultiplier;
 	float BestSampleScore = -1.0f;
 	FVector BestSampleLocation = FVector::ZeroVector;
 
 	for (int32 Idx = 0; Idx < DetourAvoidanceDebug->getSampleCount(); Idx++)
 	{
 		const float* p = DetourAvoidanceDebug->getSampleVelocity(Idx);
-		const float sr = DetourAvoidanceDebug->getSampleSize(Idx);
+		const float sr = DetourAvoidanceDebug->getSampleSize(Idx) * InvQueryMultiplier;
 		const float pen = DetourAvoidanceDebug->getSamplePenalty(Idx);
 		const float pen2 = DetourAvoidanceDebug->getSamplePreferredSidePenalty(Idx);
 

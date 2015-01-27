@@ -1559,8 +1559,8 @@ void dtCrowd::updateStepAvoidance(const float dt, dtCrowdAgentDebugInfo* debug)
 
 			// Sample new safe velocity.
 			const dtObstacleAvoidanceParams* params = &m_obstacleQueryParams[ag->params.obstacleAvoidanceType];
-			const int ns = m_obstacleQuery->sampleVelocity(
-					ag->npos, ag->params.radius, ag->desiredSpeed,
+			const int ns = m_obstacleQuery->sampleVelocity(ag->npos, ag->params.radius,
+					ag->desiredSpeed, ag->params.avoidanceQueryMultiplier,
 					ag->vel, ag->dvel, ag->nvel, params, vod);
 
 			m_velocitySampleCount += ns;

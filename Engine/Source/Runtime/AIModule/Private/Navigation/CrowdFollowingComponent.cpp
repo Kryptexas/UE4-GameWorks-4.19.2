@@ -29,6 +29,7 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& Obj
 	CollisionQueryRange = 400.0f;		// approx: radius * 12.0f
 	PathOptimizationRange = 1000.0f;	// approx: radius * 30.0f
 	AvoidanceQuality = ECrowdAvoidanceQuality::Low;
+	AvoidanceRangeMultiplier = 1.0f;
 
 	AvoidanceGroup.SetFlagsDirectly(1);
 	GroupsToAvoid.SetFlagsDirectly(MAX_uint32);
