@@ -40,6 +40,8 @@
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
+DEFINE_LOG_CATEGORY_STATIC(LogSCSEditor, Log, All);
+
 static const FName SCS_ColumnName_ComponentClass( "ComponentClass" );
 static const FName SCS_ColumnName_Asset( "Asset" );
 static const FName SCS_ColumnName_Mobility( "Mobility" );
@@ -2711,6 +2713,34 @@ UBlueprint* SSCSEditor::GetBlueprint() const
 	}
 
 	return nullptr;
+}
+
+void SSCSEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if(EditorMode.Get() == EEditorMode::ActorInstance)
+	{
+		TFunction<bool (const TArray<FSCSEditorTreeNodePtrType>&, int32&)> AreAnyNodesInvalidLambda = [&](const TArray<FSCSEditorTreeNodePtrType>& InNodes, int32& OutNumValidNodes) -> bool
+		{
+			bool bFoundInvalidNode = false;
+			for(auto NodeIt = InNodes.CreateConstIterator(); NodeIt && !bFoundInvalidNode; ++NodeIt)
+			{
+				const UActorComponent* InstancedComponent = (*NodeIt)->GetComponentTemplate();
+				bFoundInvalidNode = !InstancedComponent || InstancedComponent->IsPendingKill() || AreAnyNodesInvalidLambda((*NodeIt)->GetChildren(), ++OutNumValidNodes);
+			}
+
+			return bFoundInvalidNode;
+		};
+
+		int32 NumComponentNodes = 0;
+		if(AreAnyNodesInvalidLambda(RootNodes, NumComponentNodes) || NumComponentNodes != ActorContext.Get()->GetComponents().Num())
+		{
+			UE_LOG(LogSCSEditor, Log, TEXT("Calling UpdateTree() from Tick()."));
+
+			UpdateTree();
+		}
+	}
 }
 
 FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )

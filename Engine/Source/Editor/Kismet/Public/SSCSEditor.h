@@ -442,7 +442,8 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
-	/** Override OnKeyDown */
+	/** SWidget interface */
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
 	/** Used by tree control - make a widget for a table row from a node */
