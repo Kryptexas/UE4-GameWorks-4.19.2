@@ -3596,6 +3596,11 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		UActorComponent* NewComponentInstance = ConstructObject<UActorComponent>(NewComponentClass, ActorInstance, NewComponentName, RF_Transactional);
 		check(NewComponentInstance != nullptr);
 
+		if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewComponentInstance))
+		{
+			NewSceneComponent->AttachTo(ActorInstance->GetRootComponent());
+		}
+
 		// Add to SerializedComponents array so it gets saved
 		ActorInstance->InstanceComponents.Add(NewComponentInstance);
 
