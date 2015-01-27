@@ -6,6 +6,7 @@
 #include "NavigationOctree.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
 #include "AI/Navigation/NavRelevantComponent.h"
+#include "AI/Navigation/NavigationInvokerComponent.h"
 
 #if WITH_RECAST
 #include "RecastNavMeshGenerator.h"
@@ -108,6 +109,25 @@ namespace NavigationDebugDrawing
 	const float PathLineThickness = 3.f;
 	const FVector PathOffset(0,0,15);
 	const FVector PathNodeBoxExtent(16.f);
+}
+
+//----------------------------------------------------------------------//
+// FNavigationInvoker
+//----------------------------------------------------------------------//
+FNavigationInvoker::FNavigationInvoker()
+: Actor(nullptr)
+, GenerationRadius(0)
+, RemovalRadius(0)
+{
+
+}
+
+FNavigationInvoker::FNavigationInvoker(AActor& InActor, float InGenerationRadius, float InRemovalRadius)
+: Actor(&InActor)
+, GenerationRadius(InGenerationRadius)
+, RemovalRadius(InRemovalRadius)
+{
+
 }
 
 //----------------------------------------------------------------------//
@@ -221,6 +241,11 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 #if WITH_EDITOR
 	NavUpdateLockFlags = 0;
 #endif
+
+	// active tiles
+	NextInvokersUpdateTime = 0.f;
+	ActiveTilesUpdateInterval = 1.f;
+	bGenerateNavigationOnlyAroundNavigationInvokers = false;
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
@@ -437,6 +462,7 @@ void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 {
 	static const FName NAME_SupportedAgents = GET_MEMBER_NAME_CHECKED(UNavigationSystem, SupportedAgents);
 	static const FName NAME_NavigationDataClass = GET_MEMBER_NAME_CHECKED(FNavDataConfig, NavigationDataClass);
+	static const FName NAME_EnableActiveTiles = GET_MEMBER_NAME_CHECKED(UNavigationSystem, bGenerateNavigationOnlyAroundNavigationInvokers);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -451,6 +477,16 @@ void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 				// reflect the change to SupportedAgent's 
 				SetSupportedAgentsNavigationClass(SupportedAgentIndex, SupportedAgents[SupportedAgentIndex].NavigationDataClass);
 				SaveConfig();
+			}
+		}
+		else if (PropName == NAME_EnableActiveTiles)
+		{
+			for (auto NavData : NavDataSet)
+			{
+				if (NavData)
+				{
+					NavData->RestrictBuildingToActiveTiles(bGenerateNavigationOnlyAroundNavigationInvokers);
+				}
 			}
 		}
 	}
@@ -577,6 +613,19 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 			}
 		}
 	}
+
+	if (Mode == FNavigationSystem::EditorMode && bGenerateNavigationOnlyAroundNavigationInvokers)
+	{
+		UWorld* MyWorld = GetWorld();
+		// gather enforcers manually to be able to see the results in editor as well
+		for (TObjectIterator<UNavigationInvokerComponent> It; It; ++It)
+		{
+			if (MyWorld == It->GetWorld())
+			{
+				It->RegisterWithNavigationSystem(*this);
+			}
+		}
+	}
 }
 
 void UNavigationSystem::RegisterNavigationDataInstances()
@@ -655,7 +704,11 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		}
 		INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
 	}
-		
+	
+	{
+		UpdateInvokers();
+	}
+
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickMarkDirty);
 
@@ -1003,7 +1056,7 @@ bool UNavigationSystem::ProjectPointToNavigation(const FVector& Point, FNavLocat
 	}
 
 	return NavData != NULL && NavData->ProjectPoint(Point, OutLocation
-		, FNavigationSystem::IsValidExtent(Extent) ? Extent : NavData->NavDataConfig.DefaultQueryExtent
+		, FNavigationSystem::IsValidExtent(Extent) ? Extent : NavData->GetConfig().DefaultQueryExtent
 		, QueryFilter);
 }
 
@@ -1365,7 +1418,7 @@ bool UNavigationSystem::IsNavigationBuilt(const AWorldSettings* Settings) const
 		if (NavData != NULL && NavData->GetWorldSettings() == Settings)
 		{
 			FNavDataGenerator* Generator = NavData->GetGenerator();
-			if ((NavData->RuntimeGeneration != ERuntimeGenerationType::Static 
+			if ((NavData->GetRuntimeGenerationMode() != ERuntimeGenerationType::Static
 #if WITH_EDITOR
 				|| GEditor != NULL
 #endif // WITH_EDITOR
@@ -3265,9 +3318,9 @@ ERuntimeGenerationType UNavigationSystem::GetRuntimeGenerationType() const
 
 	for (ANavigationData* NavData : NavDataSet)
 	{
-		if (NavData && NavData->RuntimeGeneration > RuntimeGenerationType)
+		if (NavData && NavData->GetRuntimeGenerationMode() > RuntimeGenerationType)
 		{
-			RuntimeGenerationType = NavData->RuntimeGeneration;
+			RuntimeGenerationType = NavData->GetRuntimeGenerationMode();
 		}
 	}
 	
@@ -3495,6 +3548,145 @@ bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const 
 bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex)
 {
 	return Path != NULL && Path->DoesIntersectBox(Box, AgentLocation, StartingIndex);
+}
+
+//----------------------------------------------------------------------//
+// Active tiles
+//----------------------------------------------------------------------//
+
+void UNavigationSystem::RegisterNavigationInvoker(AActor& Invoker, float TileGenerationRadius, float TileRemovalRadius)
+{
+	UWorld* World = Invoker.GetWorld();
+
+	if (World && Cast<UNavigationSystem>(World->GetNavigationSystem()))
+	{
+		((UNavigationSystem*)(World->GetNavigationSystem()))->RegisterInvoker(Invoker, TileGenerationRadius, TileRemovalRadius);
+	}
+}
+
+void UNavigationSystem::UnregisterNavigationInvoker(AActor& Invoker)
+{
+	UWorld* World = Invoker.GetWorld();
+
+	if (World && Cast<UNavigationSystem>(World->GetNavigationSystem()))
+	{
+		((UNavigationSystem*)(World->GetNavigationSystem()))->UnregisterInvoker(Invoker);
+	}
+}
+
+void UNavigationSystem::RegisterInvoker(AActor& Invoker, float TileGenerationRadius, float TileRemovalRadius)
+{
+	UE_CVLOG(bGenerateNavigationOnlyAroundNavigationInvokers == false, this, LogNavigation, Warning
+		, TEXT("Trying to register %s as enforcer, but NavigationSystem is not set up for enforcer-centric generation. See GenerateNavigationOnlyAroundNavigationInvokers in NavigationSystem's properties")
+		, *Invoker.GetName());
+
+	TileGenerationRadius = FMath::Clamp(TileGenerationRadius, 0.f, BIG_NUMBER);
+	TileRemovalRadius = FMath::Clamp(TileRemovalRadius, TileGenerationRadius, BIG_NUMBER);
+
+	FNavigationInvoker& Data = Invokers.FindOrAdd(&Invoker);
+	Data.Actor = &Invoker;
+	Data.GenerationRadius = TileGenerationRadius;
+	Data.RemovalRadius = TileRemovalRadius;
+
+	UE_VLOG_CYLINDER(this, LogNavigation, Log, Invoker.GetActorLocation(), Invoker.GetActorLocation() + FVector(0, 0, 20), TileGenerationRadius, FColorList::LimeGreen
+		, TEXT("%s %.0f %.0f"), *Invoker.GetName(), TileGenerationRadius, TileRemovalRadius);
+	UE_VLOG_CYLINDER(this, LogNavigation, Log, Invoker.GetActorLocation(), Invoker.GetActorLocation() + FVector(0, 0, 20), TileRemovalRadius, FColorList::IndianRed, TEXT(""));
+}
+
+void UNavigationSystem::UnregisterInvoker(AActor& Invoker)
+{
+	UE_VLOG(this, LogNavigation, Log, TEXT("Removing %s from enforcers list"), *Invoker.GetName());
+	Invokers.Remove(&Invoker);
+}
+
+void UNavigationSystem::UpdateInvokers()
+{
+	UWorld* World = GetWorld();
+	const float CurrentTime = World->GetTimeSeconds();
+	if (CurrentTime >= NextInvokersUpdateTime)
+	{
+		if (Invokers.Num() > 0)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_NavSys_Clusterize);
+
+			const double StartTime = FPlatformTime::Seconds();
+
+			TArray<FNavigationInvokerRaw> InvokerLocations;
+			InvokerLocations.Reserve(Invokers.Num());
+
+			for (auto Item = Invokers.CreateConstIterator(); Item; ++Item)
+			{
+				AActor* Actor = Item->Value.Actor.Get();
+				if (Actor != nullptr
+#if WITH_EDITOR
+					//&& (GIsEditor == false || Item.Actor->HasAnyFlags(RF_Transactional | RF_PendingKill) == false)
+#endif //WITH_EDITOR
+					)
+				{
+					InvokerLocations.Add(FNavigationInvokerRaw(Actor->GetActorLocation(), Item->Value.GenerationRadius, Item->Value.RemovalRadius));
+				}
+			}
+
+#if ENABLE_VISUAL_LOG
+			//TArray<FNavigationInvokerRaw> LocationsCopy = InvokerLocations;
+			const double CachingFinishTime = FPlatformTime::Seconds();
+#endif //ENABLE_VISUAL_LOG
+			//InvokerLocations = KMedoidsClusterization::Clusterize(InvokerLocations, MaxClustersCount);
+
+#if ENABLE_VISUAL_LOG
+			//const double ClusterizationFinishTime = FPlatformTime::Seconds();
+
+			UE_VLOG(this, LogNavigation, Log, TEXT("Caching time %fms"), float((CachingFinishTime - StartTime) / 1000));
+			//UE_VLOG(this, LogNavigation, Log, TEXT("Clusterization time %fms for %d clusters"), float(ClusterizationFinishTime - CachingFinishTime) / 1000, MaxClustersCount);
+
+			FVisualLogger& Vlog = FVisualLogger::Get();
+			if (Vlog.IsRecording())
+			{
+				/*FVisualLogEntry* Entry = Vlog.GetEntryToWrite(this, GetWorld()->TimeSeconds);
+				check(Entry);
+
+				FVisualLogShapeElement LogElement(TEXT(""), FColorList::LightBlue, 30, LogNavigation.GetCategoryName());
+				LogElement.Points = LocationsCopy;
+				LogElement.Type = EVisualLoggerShapeElement::SinglePoint;
+				LogElement.Verbosity = ELogVerbosity::Log;
+
+				Entry->AddElement(LogElement);*/
+
+				for (const auto& InvokerData : InvokerLocations)
+				{
+					UE_VLOG_CYLINDER(this, LogNavigation, Log, InvokerData.Location, InvokerData.Location + FVector(0, 0, 20), InvokerData.RadiusMax, FColorList::Blue, TEXT(""));
+					UE_VLOG_CYLINDER(this, LogNavigation, Log, InvokerData.Location, InvokerData.Location + FVector(0, 0, 20), InvokerData.RadiusMin, FColorList::CadetBlue, TEXT(""));
+				}
+			}
+#endif // ENABLE_VISUAL_LOG
+
+			const double UpdateStartTime = FPlatformTime::Seconds();
+			for (TActorIterator<ARecastNavMesh> It(GetWorld()); It; ++It)
+			{
+				It->UpdateActiveTiles(InvokerLocations);
+			}
+			const double UpdateEndTime = FPlatformTime::Seconds();
+			UE_VLOG(this, LogNavigation, Log, TEXT("Marking tiles to update %fms"), float((UpdateStartTime - UpdateEndTime) / 1000));
+		}
+		// once per second
+		NextInvokersUpdateTime = CurrentTime + ActiveTilesUpdateInterval;
+	}
+}
+
+void UNavigationSystem::RegisterNavigationInvoker(AActor* Invoker, float TileGenerationRadius, float TileRemovalRadius)
+{
+	if (Invoker != nullptr)
+	{
+		RegisterInvoker(*Invoker, TileGenerationRadius, TileRemovalRadius);
+	}
+}
+
+void UNavigationSystem::UnregisterNavigationInvoker(AActor* Invoker)
+{
+	if (Invoker != nullptr)
+	{
+		UnregisterInvoker(*Invoker);
+	}
 }
 
 //----------------------------------------------------------------------//

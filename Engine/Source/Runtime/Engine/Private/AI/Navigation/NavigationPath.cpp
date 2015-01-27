@@ -26,6 +26,7 @@ FNavigationPath::FNavigationPath()
 	, bIsReady(false)
 	, bIsPartial(false)
 	, bReachedSearchLimit(false)
+	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
 {
 
@@ -37,6 +38,7 @@ FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 	, bIsReady(true)
 	, bIsPartial(false)
 	, bReachedSearchLimit(false)
+	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
 {
 	Base = InBase;

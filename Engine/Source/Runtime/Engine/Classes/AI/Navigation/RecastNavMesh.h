@@ -481,10 +481,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	float CellHeight;
 
 	/** Radius of smallest agent to traverse this navmesh */
-	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "0.0"))
 	float AgentRadius;
 
-	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "0.0"))
 	float AgentHeight;
 
 	/** Size of the tallest agent that will path with this navmesh. */
@@ -495,7 +495,7 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "0.0", ClampMax = "89.0", UIMin = "0.0", UIMax = "89.0" ))
 	float AgentMaxSlope;
 
-	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "0.0"))
 	float AgentMaxStepHeight;
 
 	/* The minimum dimension of area. Areas smaller than this will be discarded */
@@ -572,7 +572,7 @@ private:
 	/** indicates how often we will sort navigation tiles to mach players position */
 	UPROPERTY(config)
 	float TileSetUpdateInterval;
-
+	
 	/** contains last available dtPoly's flag bit set (8th bit at the moment of writing) */
 	static FNavPolyFlags NavLinkFlag;
 
@@ -678,6 +678,9 @@ public:
 protected:
 	/** Serialization helper. */
 	void SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh);
+
+	TArray<FIntPoint>& GetActiveTiles(); 
+	virtual void RestrictBuildingToActiveTiles(bool InRestrictBuildingToActiveTiles) override;
 
 public:
 	/** Whether NavMesh should adjust his tile pool size when NavBounds are changed */
@@ -882,6 +885,10 @@ public:
 	virtual bool SupportsRuntimeGeneration() const override;
 	virtual bool SupportsStreaming() const override;
 	virtual void ConditionalConstructGenerator() override;
+
+	void UpdateActiveTiles(const TArray<FNavigationInvokerRaw>& InvokerLocations);
+	void RemoveTiles(const TArray<FIntPoint>& Tiles);
+	void RebuildTile(const TArray<FIntPoint>& Tiles);
 
 protected:
 	// @todo docuement

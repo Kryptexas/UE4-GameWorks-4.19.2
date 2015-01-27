@@ -3,7 +3,7 @@
 
 #if WITH_RECAST
 
-#include "Recast.h"
+#include "Recast/Recast.h"
 #include "DetourNavMesh.h"
 #include "AI/NavDataGenerator.h"
 #include "AI/NavigationModifier.h"
@@ -269,6 +269,11 @@ struct FPendingTileElement
 	{
 	}
 
+	bool operator == (const FIntPoint& Location) const
+	{
+		return Coord == Location;
+	}
+
 	bool operator == (const FPendingTileElement& Other) const
 	{
 		return Coord == Other.Coord;
@@ -420,8 +425,16 @@ protected:
 	/** Adds generated tiles to NavMesh, replacing old ones */
 	TArray<uint32> AddGeneratedTiles(const FRecastTileGenerator& TileGenerator);
 
+public:
 	/** Removes all tiles at specified grid location */
 	TArray<uint32> RemoveTileLayers(const int32 TileX, const int32 TileY);
+
+	void RemoveTiles(const TArray<FIntPoint>& Tiles);
+	void ReAddTiles(const TArray<FIntPoint>& Tiles);
+
+protected:
+	bool IsInActiveSet(const FIntPoint& Tile) const;
+	void RestrictBuildingToActiveTiles(bool InRestrictBuildingToActiveTiles);
 	
 	/** Blocks until build for specified list of tiles is complete and discard results */
 	void DiscardCurrentBuildingTasks();
@@ -434,9 +447,11 @@ protected:
 	virtual uint32 LogMemUsed() const override;
 
 private:
+	friend ARecastNavMesh;
+
 	/** Parameters defining navmesh tiles */
 	struct dtNavMeshParams TiledMeshParams;
-	struct FRecastBuildConfig Config;
+	FRecastBuildConfig Config;
 	
 	int32 NumActiveTiles;
 	int32 MaxTileGeneratorTasks;
@@ -461,6 +476,8 @@ private:
 	/** List of tiles that were recently regenerated */
 	TNavStatArray<FTileTimestamp> RecentlyBuiltTiles;
 #endif// WITH_EDITOR
+	
+	TArray<FIntPoint> ActiveTiles;
 
 	/** */
 	FRecastNavMeshCachedData AdditionalCachedData;
@@ -469,6 +486,8 @@ private:
 	TMapBase<const AActor*, FBox, false> ActorToAreaMap;
 
 	uint32 bInitialized:1;
+
+	uint32 bRestrictBuildingToActiveTiles:1;
 
 	/** Runtime generator's version, increased every time all tile generators get invalidated
 	 *	like when navmesh size changes */

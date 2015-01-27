@@ -1536,7 +1536,7 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 {
 	const UNavigationSystem*	NavSys = UNavigationSystem::GetCurrent(ParentGenerator.GetWorld());
 	const FNavigationOctree*	NavOctree = NavSys ? NavSys->GetNavOctree() : nullptr;
-	const FNavDataConfig*		NavDataConfig = &ParentGenerator.GetOwner()->NavDataConfig;
+	const FNavDataConfig&		NavDataConfig = ParentGenerator.GetOwner()->GetConfig();
 
 	for (FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavOctree, ParentGenerator.GrowBoundingBox(TileBB, /*bIncludeAgentHeight*/ false));
 		It.HasPendingElements();
@@ -1580,7 +1580,7 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 				}
 			}
 
-			const FCompositeNavModifier ModifierInstance = Element.GetModifierForAgent(NavDataConfig);
+			const FCompositeNavModifier ModifierInstance = Element.GetModifierForAgent(&NavDataConfig);
 			AppendModifier(ModifierInstance, Element.Data.NavDataPerInstanceTransformDelegate);
 		}
 	}
@@ -2680,7 +2680,7 @@ static int32 CaclulateMaxTilesCount(const TNavStatArray<FBox>& NavigableAreas, f
 // Whether navmesh is static, does not support rebuild from geometry
 static bool IsGameStaticNavMesh(ARecastNavMesh* InNavMesh)
 {
-	return (InNavMesh->GetWorld()->IsGameWorld() && InNavMesh->RuntimeGeneration != ERuntimeGenerationType::Dynamic);
+	return (InNavMesh->GetWorld()->IsGameWorld() && InNavMesh->GetRuntimeGenerationMode() != ERuntimeGenerationType::Dynamic);
 }
 
 //----------------------------------------------------------------------//
@@ -2693,6 +2693,7 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 	, AvgLayersPerTile(8.0f)
 	, DestNavMesh(&InDestNavMesh)
 	, bInitialized(false)
+	, bRestrictBuildingToActiveTiles(false)
 	, Version(0)
 {
 	INC_DWORD_STAT_BY(STAT_NavigationMemory, sizeof(*this));
@@ -3093,6 +3094,127 @@ int32 FRecastNavMeshGenerator::FindInclusionBoundEncapsulatingBox(const FBox& Bo
 	return INDEX_NONE;
 }
 
+void FRecastNavMeshGenerator::RestrictBuildingToActiveTiles(bool InRestrictBuildingToActiveTiles) 
+{ 
+	if (bRestrictBuildingToActiveTiles != InRestrictBuildingToActiveTiles)
+	{
+		bRestrictBuildingToActiveTiles = InRestrictBuildingToActiveTiles;
+		if (InRestrictBuildingToActiveTiles)
+		{
+			// gather non-empty tiles and add them to ActiveTiles
+
+			const dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
+
+			if (DetourMesh != nullptr && DetourMesh->isEmpty() == false)
+			{
+				ActiveTiles.Reset();
+				int32 TileCount = DetourMesh->getMaxTiles();
+				for (int32 TileIndex = 0; TileIndex < TileCount; ++TileIndex)
+				{
+					const dtMeshTile* Tile = DetourMesh->getTile(TileIndex);
+					if (Tile != nullptr && Tile->header != nullptr && Tile->header->polyCount > 0)
+					{
+						ActiveTiles.AddUnique(FIntPoint(Tile->header->x, Tile->header->y));
+					}
+				}
+			}
+		}
+	}
+}
+
+bool FRecastNavMeshGenerator::IsInActiveSet(const FIntPoint& Tile) const
+{
+	// @TODO checking if given tile is in active tiles needs to be faster
+	return bRestrictBuildingToActiveTiles == false || ActiveTiles.Find(Tile) != INDEX_NONE;
+}
+
+void FRecastNavMeshGenerator::RemoveTiles(const TArray<FIntPoint>& Tiles)
+{
+	for (const FIntPoint& TileXY : Tiles)
+	{
+		RemoveTileLayers(TileXY.X, TileXY.Y);
+		if (PendingDirtyTiles.Num() > 0)
+		{
+			FPendingTileElement DirtyTile;
+			DirtyTile.Coord = TileXY;
+			PendingDirtyTiles.Remove(DirtyTile);
+		}
+	}
+}
+
+void FRecastNavMeshGenerator::ReAddTiles(const TArray<FIntPoint>& Tiles)
+{
+	static const FVector Expansion(1, 1, BIG_NUMBER);
+	// a little trick here - adding a dirty area so that navmesh building figures it out on its own
+	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
+	const dtNavMeshParams* SavedNavParams = DestNavMesh->GetRecastNavMeshImpl()->DetourNavMesh->getParams();
+	const float TileDim = Config.tileSize * Config.cs;
+
+	TSet<FPendingTileElement> DirtyTiles;
+
+	// @note we act on assumption all items in Tiles are unique
+	for (const FIntPoint& TileCoords : Tiles)
+	{
+		FPendingTileElement Element;
+		Element.Coord = TileCoords;
+		Element.bRebuildGeometry = true;
+		DirtyTiles.Add(Element);
+	}
+
+	int32 NumTilesMarked = DirtyTiles.Num();
+
+	// Merge all pending tiles into one container
+	for (const FPendingTileElement& Element : PendingDirtyTiles)
+	{
+		FPendingTileElement* ExistingElement = DirtyTiles.Find(Element);
+		if (ExistingElement)
+		{
+			ExistingElement->bRebuildGeometry |= Element.bRebuildGeometry;
+			// Append area bounds to existing list 
+			if (ExistingElement->bRebuildGeometry == false)
+			{
+				ExistingElement->DirtyAreas.Append(Element.DirtyAreas);
+			}
+			else
+			{
+				ExistingElement->DirtyAreas.Empty();
+			}
+		}
+		else
+		{
+			DirtyTiles.Add(Element);
+		}
+	}
+
+	// Dump results into array
+	PendingDirtyTiles.Empty(DirtyTiles.Num());
+	for (const FPendingTileElement& Element : DirtyTiles)
+	{
+		PendingDirtyTiles.Add(Element);
+	}
+
+	// Sort tiles by proximity to players 
+	if (NumTilesMarked > 0)
+	{
+		SortPendingBuildTiles();
+	}
+
+	/*TArray<FNavigationDirtyArea> DirtyAreasContainer;
+	DirtyAreasContainer.Reserve(Tiles.Num());
+
+	TSet<FPendingTileElement> DirtyTiles;
+
+	for (const FIntPoint& TileCoords : Tiles)
+	{
+		const FVector TileCenter = Recast2UnrealPoint(SavedNavParams->orig) + FVector(TileDim * float(TileCoords.X), TileDim * float(TileCoords.Y), 0);
+		
+		FNavigationDirtyArea DirtyArea(FBox(TileCenter - Expansion, TileCenter - 1), ENavigationDirtyFlag::All);
+		DirtyAreasContainer.Add(DirtyArea);
+	}
+
+	MarkDirtyTiles(DirtyAreasContainer);*/
+}
+
 TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, const int32 TileY)
 {
 	TArray<uint32> ResultTileIndices;
@@ -3144,9 +3266,10 @@ TArray<uint32> FRecastNavMeshGenerator::AddGeneratedTiles(const FRecastTileGener
 		// remove all layers
 		ResultTileIndices = RemoveTileLayers(TileX, TileY);
 	}
+
 	
 	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
-	if (DetourMesh != nullptr)
+	if (DetourMesh != nullptr && IsInActiveSet(FIntPoint(TileX, TileY)))
 	{
 		TArray<FNavMeshTileData> TileLayers = TileGenerator.GetNavigationData();
 		ResultTileIndices.Reserve(TileLayers.Num());
@@ -3276,8 +3399,7 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 	const float TileSizeInWorldUnits = Config.tileSize * Config.cs;
 	check(TileSizeInWorldUnits > 0);
 	const FVector NavMeshOrigin = FVector::ZeroVector;
-	int32 NumTilesMarked = 0;
-
+	
 	const bool bGameStaticNavMesh = IsGameStaticNavMesh(DestNavMesh);
 		
 	// find all tiles that need regeneration
@@ -3324,13 +3446,18 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 		const int32 YMin = FMath::FloorToInt((RcAreaBounds.Min.Z - NavMeshOrigin.Z) / TileSizeInWorldUnits);
 		const int32 YMax = FMath::FloorToInt((RcAreaBounds.Max.Z - NavMeshOrigin.Z) / TileSizeInWorldUnits);
 
-		for (int32 y = YMin; y <= YMax; ++y)
+		for (int32 TileY = YMin; TileY <= YMax; ++TileY)
 		{
-			for (int32 x = XMin; x <= XMax; ++x)
+			for (int32 TileX = XMin; TileX <= XMax; ++TileX)
 			{
+				if (IsInActiveSet(FIntPoint(TileX, TileY)) == false)
+				{
+					continue;
+				}
+
 				if (DirtyArea.HasFlag(ENavigationDirtyFlag::NavigationBounds) == false && bDoTileInclusionTest == true)
 				{
-					const FBox TileBox = CalculateTileBounds(x, y, NavMeshOrigin, TotalNavBounds, TileSizeInWorldUnits);
+					const FBox TileBox = CalculateTileBounds(TileX, TileY, NavMeshOrigin, TotalNavBounds, TileSizeInWorldUnits);
 
 					// do per tile check since we can have lots of tiles inbetween navigable bounds volumes
 					if (IntercestBounds(TileBox, InclusionBounds) == false)
@@ -3341,7 +3468,7 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 				}
 												
 				FPendingTileElement Element;
-				Element.Coord = FIntPoint(x, y);
+				Element.Coord = FIntPoint(TileX, TileY);
 				Element.bRebuildGeometry = DirtyArea.HasFlag(ENavigationDirtyFlag::Geometry) || DirtyArea.HasFlag(ENavigationDirtyFlag::NavigationBounds);
 				if (Element.bRebuildGeometry == false)
 				{
@@ -3370,7 +3497,7 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 		}
 	}
 	
-	NumTilesMarked = DirtyTiles.Num();
+	int32 NumTilesMarked = DirtyTiles.Num();
 
 	// Merge all pending tiles into one container
 	for (const FPendingTileElement& Element : PendingDirtyTiles)
@@ -3705,7 +3832,7 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 				It.Advance())
 			{
 				const FNavigationOctreeElement& Element = It.GetCurrentElement();
-				const bool bExportGeometry = Element.Data.HasGeometry() && Element.ShouldUseGeometry(&DestNavMesh->NavDataConfig);
+				const bool bExportGeometry = Element.Data.HasGeometry() && Element.ShouldUseGeometry(DestNavMesh->GetConfig());
 
 				if (bExportGeometry && Element.Data.CollisionData.Num())
 				{

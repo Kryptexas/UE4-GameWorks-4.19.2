@@ -175,6 +175,19 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bSkipAgentHeightCheckWhenPickingNavData:1;
 
+	/** If set to true navigation will be generated only around registered "navigation enforcers"
+	*	This has a range of consequences (including how navigation octree operates) so it needs to
+	*	be a conscious decision.
+	*	Once enabled results in whole world being navigable.
+	*	@see RegisterNavigationInvoker
+	*/
+	UPROPERTY(EditDefaultsOnly, Category = "Navigation", config)
+	uint32 bGenerateNavigationOnlyAroundNavigationInvokers : 1;
+
+	/** Minimal time between active tiles set update */
+	UPROPERTY(EditAnywhere, Category = "Navigation Enforcing", meta = (ClampMin = "0.1", UIMin = "0.1", EditCondition = "bGenerateNavigationOnlyAroundNavigationInvokers"), config)
+	float ActiveTilesUpdateInterval;
+
 	UPROPERTY(config, EditAnywhere, Category = Agents)
 	TArray<FNavDataConfig> SupportedAgents;
 	
@@ -201,12 +214,17 @@ public:
 	
 private:
 	TWeakObjectPtr<UCrowdManager> CrowdManager;
-
+	
 	/** set to true when navigation processing was blocked due to missing nav bounds */
-	uint32 bNavDataRemovedDueToMissingNavBounds:1;
-
+	uint32 bNavDataRemovedDueToMissingNavBounds : 1;
+	
 	/** All areas where we build/have navigation */
 	TSet<FNavigationBounds> RegisteredNavBounds;
+
+	TMap<AActor*, FNavigationInvoker> Invokers;
+
+	float NextInvokersUpdateTime;
+	void UpdateInvokers();
 
 public:
 	//----------------------------------------------------------------------//
@@ -260,6 +278,19 @@ public:
 	 *	@return true if line from RayStart to RayEnd was obstructed. Also, true when no navigation data present */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(WorldContext="WorldContext" ))
 	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, AController* Querier = NULL);
+
+	/** Registers given actor as a "navigation enforcer" which means navigation system will
+	 *	make sure navigation is being generated in specified radius around it.
+	 *	@note: you need NavigationSystem's GenerateNavigationOnlyAroundNavigationInvokers to be set to true
+	 *		to take advantage of this feature
+	 */
+	UFUNCTION(BlueprintCallable, Category = Navigation)
+	void RegisterNavigationInvoker(AActor* Invoker, float TileGenerationRadius = 3000, float TileRemovalRadius = 5000);
+
+	/** Removes given actor from the list of active navigation enforcers.
+	 *	@see RegisterNavigationInvoker for more details */
+	UFUNCTION(BlueprintCallable, Category = Navigation)
+	void UnregisterNavigationInvoker(AActor* Invoker);
 
 	/** delegate type for events that dirty the navigation data ( Params: const FBox& DirtyBounds ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavigationDirty, const FBox&);
@@ -448,6 +479,14 @@ public:
 	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex = 0);
 	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0);
 
+	//----------------------------------------------------------------------//
+	// Active tiles
+	//----------------------------------------------------------------------//
+	void RegisterInvoker(AActor& Invoker, float TileGenerationRadius, float TileRemovalRadius);
+	void UnregisterInvoker(AActor& Invoker);
+
+	static void RegisterNavigationInvoker(AActor& Invoker, float TileGenerationRadius, float TileRemovalRadius);
+	static void UnregisterNavigationInvoker(AActor& Invoker);
 
 	//----------------------------------------------------------------------//
 	// Bookkeeping 

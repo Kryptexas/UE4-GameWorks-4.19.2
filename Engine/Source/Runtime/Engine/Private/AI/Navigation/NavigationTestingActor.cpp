@@ -6,6 +6,7 @@
 #endif
 #include "AI/Navigation/NavigationTestingActor.h"
 #include "AI/Navigation/NavTestRenderingComponent.h"
+#include "AI/Navigation/NavigationInvokerComponent.h"
 #include "Components/CapsuleComponent.h"
 
 void FNavTestTickHelper::Tick(float DeltaTime)
@@ -59,6 +60,9 @@ ANavigationTestingActor::ANavigationTestingActor(const FObjectInitializer& Objec
 
 	RootComponent = CapsuleComponent;
 
+	InvokerComponent = CreateDefaultSubobject<UNavigationInvokerComponent>(TEXT("InvokerComponent"));
+	InvokerComponent->bAutoActivate = bActAsNavigationInvoker;
+
 	PathObserver = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &ANavigationTestingActor::OnPathEvent);
 }
 
@@ -104,6 +108,7 @@ void ANavigationTestingActor::PostEditChangeProperty(FPropertyChangedEvent& Prop
 	static const FName NAME_ShouldBeVisibleInGame = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, bShouldBeVisibleInGame);
 	static const FName NAME_OtherActor = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, OtherActor);
 	static const FName NAME_IsSearchStart = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, bSearchStart);
+	static const FName NAME_InvokerComponent = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, InvokerComponent);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -180,6 +185,10 @@ void ANavigationTestingActor::PostEditChangeProperty(FPropertyChangedEvent& Prop
 
 			UpdatePathfinding();
 		}
+		else if (NAME_InvokerComponent == ChangedPropName)
+		{
+			InvokerComponent->SetActive(bActAsNavigationInvoker);
+		}
 	}
 }
 
@@ -201,6 +210,8 @@ void ANavigationTestingActor::PostEditMove(bool bFinished)
 void ANavigationTestingActor::PostLoad()
 {
 	Super::PostLoad();
+
+	InvokerComponent->bAutoActivate = bActAsNavigationInvoker;
 
 #if WITH_RECAST && WITH_EDITORONLY_DATA
 	if (GIsEditor)
