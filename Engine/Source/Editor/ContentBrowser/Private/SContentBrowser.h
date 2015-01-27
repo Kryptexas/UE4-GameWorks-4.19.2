@@ -164,9 +164,6 @@ private:
 	/** Gets the tool tip for the "Add New" button */
 	FText GetAddNewToolTipText() const;
 
-	/** Called to work out whether the "Filters" combo should be enabled */
-	bool IsFilterMenuEnabled() const;
-
 	/** Makes the filters menu */
 	TSharedRef<SWidget> MakeAddFilterMenu();
 	

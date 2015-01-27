@@ -1321,6 +1321,9 @@ void SAssetView::RefreshSourceItems()
 		const bool bUsingFolders = IsShowingFolders();
 		FARFilter Filter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
 
+		// Add the backend filters from the filter list
+		Filter.Append(BackendFilter);
+
 		bWereItemsRecursivelyFiltered = bRecurse;
 
 		// Move any class paths into their own array
@@ -1333,35 +1336,42 @@ void SAssetView::RefreshSourceItems()
 			}
 			return false;
 		});
-		bShowClasses = ClassPathsToShow.Num() > 0;
+
+		// Only show classes if we have class paths, and the filter allows classes to be shown
+		const bool bFilterAllowsClasses = Filter.ClassNames.Num() == 0 || Filter.ClassNames.Contains(NAME_Class);
+		bShowClasses = ClassPathsToShow.Num() > 0 && bFilterAllowsClasses;
 
 		if ( SourcesData.Collections.Num() > 0 && Filter.ObjectPaths.Num() == 0 )
 		{
 			// This is an empty collection, no asset will pass the check
 		}
+		else if ( ClassPathsToShow.Num() > 0 && Filter.PackagePaths.Num() == 0 )
+		{
+			// Only class paths are selected, no asset will pass the check
+		}
 		else
 		{
-			// Add the backend filters from the filter list
-			Filter.Append(BackendFilter);
-
 			// Add assets found in the asset registry
 			AssetRegistryModule.Get().GetAssets(Filter, Items);
 		}
 
-		TArray< FName > ClassPaths;
-		FCollectionManagerModule& CollectionManagerModule = FModuleManager::GetModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
-		for (int Index = 0; Index < SourcesData.Collections.Num(); Index++)
+		if ( bFilterAllowsClasses )
 		{
-			CollectionManagerModule.Get().GetClassesInCollection( SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, ClassPaths );
-		}
-
-		for (int Index = 0; Index < ClassPaths.Num(); Index++)
-		{
-			UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassPaths[Index].ToString());
-
-			if ( Class != NULL )
+			TArray< FName > ClassPaths;
+			FCollectionManagerModule& CollectionManagerModule = FModuleManager::GetModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+			for (int32 Index = 0; Index < SourcesData.Collections.Num(); Index++)
 			{
-				Items.Add( Class );
+				CollectionManagerModule.Get().GetClassesInCollection( SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, ClassPaths );
+			}
+
+			for (int32 Index = 0; Index < ClassPaths.Num(); Index++)
+			{
+				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassPaths[Index].ToString());
+
+				if ( Class != NULL )
+				{
+					Items.Add( Class );
+				}
 			}
 		}
 	}
