@@ -414,11 +414,11 @@ FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPt
 
 	if( Entry->GetComponentCreateAction() == EComponentCreateAction::CreateNewCPPClass )
 	{
-		FriendlyComponentName = LOCTEXT("NewCPPBehaviorFriendlyName", "New C++ Component").ToString();
+		FriendlyComponentName = LOCTEXT("NewCPPComponentFriendlyName", "New C++ Component...").ToString();
 	}
 	else if (Entry->GetComponentCreateAction() == EComponentCreateAction::CreateNewBlueprintClass )
 	{
-		FriendlyComponentName = LOCTEXT("NewCPPBehaviorFriendlyName", "New Blueprint Component").ToString();
+		FriendlyComponentName = LOCTEXT("NewBlueprintComponentFriendlyName", "New Blueprint Component...").ToString();
 	}
 	else
 	{
