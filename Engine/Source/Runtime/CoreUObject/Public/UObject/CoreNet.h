@@ -307,6 +307,12 @@ struct FNetDeltaSerializeInfo
 		Struct		= NULL;
 
 		NetSerializeCB = NULL;
+
+		bUpdateUnmappedObjects		= false;
+		bOutSomeObjectsWereMapped	= false;
+		bCalledPreNetReceive		= false;
+		bOutHasMoreUnmapped			= false;
+		Object						= NULL;
 	}
 
 	// Used when writing
@@ -324,6 +330,12 @@ struct FNetDeltaSerializeInfo
 	UStruct*						Struct;
 
 	INetSerializeCB*				NetSerializeCB;
+
+	bool							bUpdateUnmappedObjects;		// If true, we are wanting to update unmapped objects
+	bool							bOutSomeObjectsWereMapped;
+	bool							bCalledPreNetReceive;
+	bool							bOutHasMoreUnmapped;
+	UObject*						Object;
 
 	// Debugging variables
 	FString							DebugName;

@@ -509,7 +509,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 				// Pointer to destination.
 				uint8* Data = ReplicatedProp->ContainerPtrToValuePtr<uint8>((uint8*)Object, Element);
 				TArray<uint8>	MetaData;
-				PTRINT Offset = 0;
+				const PTRINT DataOffset = Data - (uint8*)Object;
 
 				// Receive custom delta property.
 				UStructProperty * StructProperty = Cast< UStructProperty >( ReplicatedProp );
@@ -552,6 +552,11 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 				{
 					UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: NetDeltaSerialize - Bunch.IsError() == true: %s" ), *Object->GetFullName() );
 					return false;
+				}
+
+				if ( Parms.bOutHasMoreUnmapped )
+				{
+					UnmappedCustomProperties.Add( DataOffset, StructProperty );
 				}
 
 				// Successfully received it.
@@ -743,65 +748,8 @@ void FObjectReplicator::PostReceivedBunch()
 		return;
 	}
 
-	RepLayout->CallRepNotifies( RepState, Object );
-
 	// Call RepNotifies
-	if ( RepNotifies.Num() > 0 )
-	{
-		for (int32 RepNotifyIdx = 0; RepNotifyIdx < RepNotifies.Num(); RepNotifyIdx++)
-		{
-			//UE_LOG(LogNet, Log,  TEXT("Calling Object->%s with %s"), *RepNotifies(RepNotifyIdx)->RepNotifyFunc.ToString(), *RepNotifies(RepNotifyIdx)->GetName()); 						
-			UProperty* RepProperty = RepNotifies[RepNotifyIdx];
-			UFunction* RepNotifyFunc = Object->FindFunctionChecked(RepProperty->RepNotifyFunc);
-						
-			if (RepNotifyFunc->NumParms == 0)
-			{
-				Object->ProcessEvent(RepNotifyFunc, NULL);
-			}
-			else if (RepNotifyFunc->NumParms == 1)
-			{
-				Object->ProcessEvent(RepNotifyFunc, RepProperty->ContainerPtrToValuePtr<uint8>(RepState->StaticBuffer.GetData()) );
-			}
-			else if (RepNotifyFunc->NumParms == 2)
-			{
-				// Fixme: this isn't as safe as it could be. Right now we have two types of parameters: MetaData (a TArray<uint8>)
-				// and the last local value (pointer into the Recent[] array).
-				//
-				// Arrays always expect MetaData. Everything else, including structs, expect last value.
-				// This is enforced with UHT only. If a ::NetSerialize function ever starts producing a MetaData array thats not in UArrayProperty,
-				// we have no static way of catching this and the replication system could pass the wrong thing into ProcessEvent here.
-				//
-				// But this is all sort of an edge case feature anyways, so its not worth tearing things up too much over.
-
-				FMemMark Mark(FMemStack::Get());
-				uint8* Parms = new(FMemStack::Get(),MEM_Zeroed,RepNotifyFunc->ParmsSize)uint8;
-				
-				TFieldIterator<UProperty> Itr(RepNotifyFunc);
-				check(Itr);
-				
-				Itr->CopyCompleteValue( Itr->ContainerPtrToValuePtr<void>(Parms), RepProperty->ContainerPtrToValuePtr<uint8>(RepState->StaticBuffer.GetData()) );
-				++Itr;
-				check(Itr);
-
-				TArray<uint8> *NotifyMetaData = RepNotifyMetaData.Find(RepNotifies[RepNotifyIdx]);
-				check(NotifyMetaData);
-				Itr->CopyCompleteValue( Itr->ContainerPtrToValuePtr<void>(Parms), NotifyMetaData );
-				
-				Object->ProcessEvent(RepNotifyFunc, Parms );
-
-				Mark.Pop();
-			}
- 						
- 			if (Object == NULL || Object->IsPendingKill())
- 			{
- 				// script event destroyed Object
- 				break;
- 			}
-		}
-	}
-
-	RepNotifies.Reset();
-	RepNotifyMetaData.Empty();
+	CallRepNotifies();
 }
 
 static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetirement &	Retire, int32 OutAckPacketId )
@@ -1129,6 +1077,75 @@ void FObjectReplicator::StartBecomingDormant()
 	bLastUpdateEmpty = false; // Ensure we get one more attempt to update properties
 }
 
+void FObjectReplicator::CallRepNotifies()
+{
+	UObject* Object = GetObject();
+
+	if ( Object == NULL || Object->IsPendingKill() )
+	{
+		return;
+	}
+
+	RepLayout->CallRepNotifies( RepState, Object );
+
+	if ( RepNotifies.Num() > 0 )
+	{
+		for (int32 RepNotifyIdx = 0; RepNotifyIdx < RepNotifies.Num(); RepNotifyIdx++)
+		{
+			//UE_LOG(LogNet, Log,  TEXT("Calling Object->%s with %s"), *RepNotifies(RepNotifyIdx)->RepNotifyFunc.ToString(), *RepNotifies(RepNotifyIdx)->GetName()); 						
+			UProperty* RepProperty = RepNotifies[RepNotifyIdx];
+			UFunction* RepNotifyFunc = Object->FindFunctionChecked(RepProperty->RepNotifyFunc);
+
+			if (RepNotifyFunc->NumParms == 0)
+			{
+				Object->ProcessEvent(RepNotifyFunc, NULL);
+			}
+			else if (RepNotifyFunc->NumParms == 1)
+			{
+				Object->ProcessEvent(RepNotifyFunc, RepProperty->ContainerPtrToValuePtr<uint8>(RepState->StaticBuffer.GetData()) );
+			}
+			else if (RepNotifyFunc->NumParms == 2)
+			{
+				// Fixme: this isn't as safe as it could be. Right now we have two types of parameters: MetaData (a TArray<uint8>)
+				// and the last local value (pointer into the Recent[] array).
+				//
+				// Arrays always expect MetaData. Everything else, including structs, expect last value.
+				// This is enforced with UHT only. If a ::NetSerialize function ever starts producing a MetaData array thats not in UArrayProperty,
+				// we have no static way of catching this and the replication system could pass the wrong thing into ProcessEvent here.
+				//
+				// But this is all sort of an edge case feature anyways, so its not worth tearing things up too much over.
+
+				FMemMark Mark(FMemStack::Get());
+				uint8* Parms = new(FMemStack::Get(),MEM_Zeroed,RepNotifyFunc->ParmsSize)uint8;
+
+				TFieldIterator<UProperty> Itr(RepNotifyFunc);
+				check(Itr);
+
+				Itr->CopyCompleteValue( Itr->ContainerPtrToValuePtr<void>(Parms), RepProperty->ContainerPtrToValuePtr<uint8>(RepState->StaticBuffer.GetData()) );
+				++Itr;
+				check(Itr);
+
+				TArray<uint8> *NotifyMetaData = RepNotifyMetaData.Find(RepNotifies[RepNotifyIdx]);
+				check(NotifyMetaData);
+				Itr->CopyCompleteValue( Itr->ContainerPtrToValuePtr<void>(Parms), NotifyMetaData );
+
+				Object->ProcessEvent(RepNotifyFunc, Parms );
+
+				Mark.Pop();
+			}
+
+			if (Object == NULL || Object->IsPendingKill())
+			{
+				// script event destroyed Object
+				break;
+			}
+		}
+	}
+
+	RepNotifies.Reset();
+	RepNotifyMetaData.Empty();
+}
+
 void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 {
 	UObject* Object = GetObject();
@@ -1146,13 +1163,63 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 	}
 
 	check( RepState->RepNotifies.Num() == 0 );
+	check( RepNotifies.Num() == 0 );
 
 	bool bSomeObjectsWereMapped = false;
 
+	// Let the rep layout update any unmapped properties
 	RepLayout->UpdateUnmappedObjects( RepState, Connection->PackageMap, Object, bSomeObjectsWereMapped, bOutHasMoreUnmapped );
 
+	// Update unmapped objects for custom properties (currently just fast tarray)
+	for ( auto It = UnmappedCustomProperties.CreateIterator(); It; ++It )
+	{
+		const int32			Offset			= It.Key();
+		UStructProperty*	StructProperty	= It.Value();
+		UScriptStruct*		InnerStruct		= StructProperty->Struct;
+
+		check( InnerStruct->StructFlags & STRUCT_NetDeltaSerializeNative );
+
+		UScriptStruct::ICppStructOps* CppStructOps = InnerStruct->GetCppStructOps();
+
+		check( CppStructOps );
+		check( !InnerStruct->InheritedCppStructOps() );
+
+		FNetDeltaSerializeInfo Parms;
+
+		FNetSerializeCB NetSerializeCB( OwningChannel->Connection->Driver );
+
+		Parms.DebugName			= StructProperty->GetName();
+		Parms.Struct			= InnerStruct;
+		Parms.Map				= Connection->PackageMap;
+		Parms.NetSerializeCB	= &NetSerializeCB;
+
+		Parms.bUpdateUnmappedObjects	= true;
+		Parms.bCalledPreNetReceive		= bSomeObjectsWereMapped;	// RepLayout used this to flag whether PreNetReceive was called
+		Parms.Object					= Object;
+
+		// Call the custom delta serialize function to handle it
+		CppStructOps->NetDeltaSerialize( Parms, (uint8*)Object + Offset );
+
+		// Merge in results
+		bSomeObjectsWereMapped	|= Parms.bOutSomeObjectsWereMapped;
+		bOutHasMoreUnmapped		|= Parms.bOutHasMoreUnmapped;
+
+		if ( Parms.bOutSomeObjectsWereMapped )
+		{
+			// If we mapped a property, call the rep notify
+			TArray<uint8> MetaData;
+			QueuePropertyRepNotify( Object, StructProperty, 0, MetaData );
+		}
+
+		// If this property no longer has unmapped objects, we can stop checking it
+		if ( !Parms.bOutHasMoreUnmapped )
+		{
+			It.RemoveCurrent();
+		}
+	}
+
 	// Call any rep notifies that need to happen when object pointers change
-	RepLayout->CallRepNotifies( RepState, Object );
+	CallRepNotifies();
 
 	if ( bSomeObjectsWereMapped )
 	{

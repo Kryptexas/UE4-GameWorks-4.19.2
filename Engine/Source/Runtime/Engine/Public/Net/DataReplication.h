@@ -72,8 +72,10 @@ public:
 	UNetConnection *								Connection;					// Connection this replicator was created on
 	class UActorChannel	*							OwningChannel;
 
-	TArray< UProperty *,TInlineAllocator< 32 > >	RepNotifies;
-	TMap< UProperty *, TArray<uint8> >				RepNotifyMetaData;
+	TMap< int32, UStructProperty* >					UnmappedCustomProperties;
+
+	TArray< UProperty*,TInlineAllocator< 32 > >		RepNotifies;
+	TMap< UProperty*, TArray<uint8> >				RepNotifyMetaData;
 
 	TSharedPtr< FRepLayout >						RepLayout;
 	FRepState *										RepState;
@@ -124,6 +126,8 @@ public:
 	bool ReadyForDormancy(bool debug=false);
 
 	void StartBecomingDormant();
+
+	void CallRepNotifies();
 
 	void UpdateUnmappedObjects( bool & bOutHasMoreUnmapped );
 
