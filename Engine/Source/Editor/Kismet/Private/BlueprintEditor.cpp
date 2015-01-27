@@ -2161,12 +2161,14 @@ void FBlueprintEditor::CreateDefaultCommands()
 	ToolkitCommands->MapAction(
 		FFullBlueprintEditorCommands::Get().EditGlobalOptions,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::EditGlobalOptions_Clicked),
-		FCanExecuteAction());
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsDetailsPanelEditingGlobalOptions));
 
 	ToolkitCommands->MapAction(
 		FFullBlueprintEditorCommands::Get().EditClassDefaults,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::EditClassDefaults_Clicked),
-		FCanExecuteAction());
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsDetailsPanelEditingClassDefaults));
 
 	// Edit menu actions
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().FindInBlueprint,
@@ -2484,6 +2486,11 @@ bool FBlueprintEditor::ReparentBlueprint_IsVisible() const
 	}
 }
 
+bool FBlueprintEditor::IsDetailsPanelEditingGlobalOptions() const
+{
+	return CurrentUISelection == FBlueprintEditor::SelectionState_ClassSettings;
+}
+
 void FBlueprintEditor::EditGlobalOptions_Clicked()
 {
 	UBlueprint* Blueprint = GetBlueprintObj();
@@ -2501,6 +2508,11 @@ void FBlueprintEditor::EditGlobalOptions_Clicked()
 			OwnerTab->FlashTab();
 		}
 	}
+}
+
+bool FBlueprintEditor::IsDetailsPanelEditingClassDefaults() const
+{
+	return CurrentUISelection == FBlueprintEditor::SelectionState_ClassDefaults;
 }
 
 void FBlueprintEditor::EditClassDefaults_Clicked()
