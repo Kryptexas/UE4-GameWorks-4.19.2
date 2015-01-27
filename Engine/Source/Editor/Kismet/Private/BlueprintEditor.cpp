@@ -608,13 +608,13 @@ void FBlueprintEditor::AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 
 void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason)
 {
 	if( Reason != ERefreshBlueprintEditorReason::BlueprintCompiled )
-{
-	DocumentManager->CleanInvalidTabs();
+	{
+		DocumentManager->CleanInvalidTabs();
 
-	DocumentManager->RefreshAllTabs();
+		DocumentManager->RefreshAllTabs();
 
-	// The workflow manager only tracks document tabs.
-	FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
+		// The workflow manager only tracks document tabs.
+		FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
 	}
 
 	if (MyBlueprintWidget.IsValid())
@@ -654,24 +654,24 @@ void FBlueprintEditor::SetUISelectionState(FName SelectionOwner)
 void FBlueprintEditor::ClearSelectionStateFor(FName SelectionOwner)
 {
 	if ( SelectionOwner == SelectionState_Graph )
-{
-	TArray< TSharedPtr<SDockTab> > GraphEditorTabs;
-	DocumentManager->FindAllTabsForFactory(GraphEditorTabFactoryPtr, /*out*/ GraphEditorTabs);
-
-	for (auto GraphEditorTabIt = GraphEditorTabs.CreateIterator(); GraphEditorTabIt; ++GraphEditorTabIt)
 	{
-		TSharedRef<SGraphEditor> Editor = StaticCastSharedRef<SGraphEditor>((*GraphEditorTabIt)->GetContent());
+		TArray< TSharedPtr<SDockTab> > GraphEditorTabs;
+		DocumentManager->FindAllTabsForFactory(GraphEditorTabFactoryPtr, /*out*/ GraphEditorTabs);
 
-		Editor->ClearSelectionSet();
-	}
+		for ( auto GraphEditorTabIt = GraphEditorTabs.CreateIterator(); GraphEditorTabIt; ++GraphEditorTabIt )
+		{
+			TSharedRef<SGraphEditor> Editor = StaticCastSharedRef<SGraphEditor>(( *GraphEditorTabIt )->GetContent());
+
+			Editor->ClearSelectionSet();
+		}
 	}
 	else if ( SelectionOwner == SelectionState_Components )
 	{
-	if(SCSEditor.IsValid())
-	{
-		SCSEditor->ClearSelection();
+		if ( SCSEditor.IsValid() )
+		{
+			SCSEditor->ClearSelection();
+		}
 	}
-}
 	else if ( SelectionOwner == SelectionState_MyBlueprint )
 	{
 		if ( MyBlueprintWidget.IsValid() )
@@ -717,26 +717,6 @@ AActor* FBlueprintEditor::GetSCSEditorActorContext() const
 	return nullptr;
 }
 
-void FBlueprintEditor::OnRootSelected(AActor * DefaultActor)
-{
-	if (Inspector.IsValid())
-	{	
-		// Clear the my blueprints selection
-		SetUISelectionState(FBlueprintEditor::SelectionState_Components);
-
-		// Build an object list
-		TArray<UObject*> InspectorObjects;
-		InspectorObjects.Add(DefaultActor);
-		
-		// Update the details panel
-		FString Title;
-		DefaultActor->GetName(Title);
-		SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), true);
-		Options.bShowComponents = false;
-		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
-	}
-}
-
 void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
 {
 	if (SCSViewport.IsValid())
@@ -772,12 +752,25 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 		// Convert the selection set to an array of UObject* pointers
 		FText InspectorTitle = FText::GetEmpty();
 		TArray<UObject*> InspectorObjects;
+		bool bShowComponents = true;
 		InspectorObjects.Empty(SelectedNodes.Num());
 		for (auto NodeIt = SelectedNodes.CreateConstIterator(); NodeIt; ++NodeIt)
 		{
 			auto NodePtr = *NodeIt;
 			if (NodePtr.IsValid())
 			{
+				if (NodePtr->IsRootActor())
+				{
+					AActor* DefaultActor = GetSCSEditorActorContext();
+					InspectorObjects.Add(DefaultActor);
+					
+					FString Title; 
+					DefaultActor->GetName(Title);
+					InspectorTitle = FText::FromString(Title);
+					bShowComponents = false;
+				}
+				else
+				{
 				UActorComponent* EditableComponent = nullptr;
 				if (NodePtr->CanEditDefaults())
 				{
@@ -795,9 +788,11 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 				}
 			}
 		}
+		}
 
 		// Update the details panel
 		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+		Options.bShowComponents = bShowComponents;
 		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
 	}
 }
@@ -2003,14 +1998,14 @@ FBlueprintEditor::~FBlueprintEditor()
 void FBlueprintEditor::FocusInspectorOnGraphSelection(const FGraphPanelSelectionSet& NewSelection, bool bForceRefresh)
 {
 	if ( NewSelection.Array().Num() > 0 )
-		{
+	{
 		SetUISelectionState(FBlueprintEditor::SelectionState_Graph);
 
-			SKismetInspector::FShowDetailsOptions ShowDetailsOptions;
-			ShowDetailsOptions.bForceRefresh = bForceRefresh;
+		SKismetInspector::FShowDetailsOptions ShowDetailsOptions;
+		ShowDetailsOptions.bForceRefresh = bForceRefresh;
 
-			Inspector->ShowDetailsForObjects(NewSelection.Array(), ShowDetailsOptions);
-		}
+		Inspector->ShowDetailsForObjects(NewSelection.Array(), ShowDetailsOptions);
+	}
 }
 
 void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints)
@@ -2086,17 +2081,16 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 
 void FBlueprintEditor::CreateSCSEditors()
 {
-		SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
-			.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
-			.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
-			.AllowEditing(this, &FBlueprintEditor::InEditingMode)
-			.OnRootSelected(this, &FBlueprintEditor::OnRootSelected)
+	SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
+		.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
+		.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
+		.AllowEditing(this, &FBlueprintEditor::InEditingMode)
 		.OnSelectionUpdated(this, &FBlueprintEditor::OnSelectionUpdated)
 		.OnItemDoubleClicked(this, &FBlueprintEditor::OnComponentDoubleClicked);
 
-		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
-			.BlueprintEditor(SharedThis(this));
-	}
+	SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
+		.BlueprintEditor(SharedThis(this));
+}
 
 void FBlueprintEditor::OnLogTokenClicked(const TSharedRef<IMessageToken>& Token)
 {
@@ -2839,7 +2833,7 @@ void FBlueprintEditor::OnSelectedNodesChanged(const FGraphPanelSelectionSet& New
 	if ( NewSelection.Num() > 0 )
 	{
 		SetUISelectionState(FBlueprintEditor::SelectionState_Graph);
-		}
+	}
 
 	Inspector->ShowDetailsForObjects(NewSelection.Array());
 }

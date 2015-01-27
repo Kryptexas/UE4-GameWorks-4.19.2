@@ -388,16 +388,11 @@ public:
 	/** Delegate invoked when the SCS editor needs to obtain the Actor context for editing */
 	AActor* GetSCSEditorActorContext() const;
 
-	/** Delegate invoked when the root is selected in the SCS editor widget */
-	void OnRootSelected(class AActor * DefaultActor);
-
 	/** Delegate invoked when the selection is changed in the SCS editor widget */
 	void OnSelectionUpdated(const TArray<TSharedPtr<class FSCSEditorTreeNode>>& SelectedNodes);
 
 	/** Delegate invoked when an item is double clicked in the SCS editor widget */
 	void OnComponentDoubleClicked(TSharedPtr<class FSCSEditorTreeNode> Node);
-
-
 
 	/** Pin visibility accessors */
 	void SetPinVisibility(SGraphEditor::EPinVisibility Visibility);

@@ -83,7 +83,7 @@ namespace
 		{
 			// Check for a valid parent node
 			FSCSEditorTreeNodePtrType ParentNodePtr = NodePtr->GetParent();
-			if(ParentNodePtr.IsValid() && !ParentNodePtr->IsRoot())
+			if(ParentNodePtr.IsValid() && !ParentNodePtr->IsRootComponent())
 			{
 				if(SelectedNodes.Contains(ParentNodePtr))
 				{
@@ -393,7 +393,7 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 				{
 					FSCSEditorTreeNodePtrType SelectedNodePtr = *It;
 					// Don't allow editing of a root node, inherited SCS node or child node that also has a movable (non-root) parent node selected
-					const bool bCanEdit =  !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited()
+					const bool bCanEdit = !SelectedNodePtr->IsRootComponent() && !SelectedNodePtr->IsInherited()
 						&& !IsMovableParentNodeSelected(SelectedNodePtr, SelectedNodes);
 
 					if(bCanEdit)
@@ -409,7 +409,7 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 							// Adjust the deltas as necessary
 							FComponentEditorUtils::AdjustComponentDelta(SceneComp, Drag, Rot);
-
+							
 							FComponentEditorUtils::FTransformData OldDefaultTransform(*SelectedTemplate);
 
 							TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditor->CustomizeSCSEditor(SceneComp);
@@ -567,9 +567,7 @@ FWidget::EWidgetMode FSCSEditorViewportClient::GetWidgetMode() const
 			for ( int32 CurrentNodeIndex=0; CurrentNodeIndex < SelectedNodes.Num(); CurrentNodeIndex++ )
 			{
 				FSCSEditorTreeNodePtrType CurrentNodePtr = SelectedNodes[CurrentNodeIndex];
-				if (CurrentNodePtr.IsValid() && !RootNodes.Contains(CurrentNodePtr) && !CurrentNodePtr->IsRoot() && 
-					CurrentNodePtr->GetEditableComponentTemplate(BluePrintEditor->GetBlueprintObj()) &&
-					CurrentNodePtr->FindComponentInstanceInActor(PreviewActor))
+				if (CurrentNodePtr.IsValid() && !RootNodes.Contains(CurrentNodePtr) && !CurrentNodePtr->IsRootComponent() && CurrentNodePtr->CanEditDefaults() && CurrentNodePtr->FindComponentInstanceInActor(PreviewActor))
 				{
 					// a non-NULL, non-root item is selected, draw the widget
 					ReturnWidgetMode = WidgetMode;
