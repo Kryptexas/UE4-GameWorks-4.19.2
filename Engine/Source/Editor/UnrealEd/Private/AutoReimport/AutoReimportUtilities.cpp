@@ -3,6 +3,8 @@
 #include "UnrealEd.h"
 #include "AutoReimportUtilities.h"
 #include "EditorReimportHandler.h"
+#include "ARFilter.h"
+#include "IAssetRegistry.h"
 
 namespace Utils
 {

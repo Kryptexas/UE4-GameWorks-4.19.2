@@ -5,6 +5,8 @@
 #include "FeedbackContext.h"
 #include "SNotificationList.h"
 #include "INotificationWidget.h"
+#include "MessageLog.h"
+#include "AutoReimportUtilities.h"
 
 class SWidgetStack;
 
@@ -51,7 +53,7 @@ public:
 	/** Tick this context - potentially opening a new notification if the process has taken a while */
 	void Tick();
 
-	TSharedPtr<class SReimportFeedback> GetContent() { return NotificationContent; }
+	TSharedPtr<SReimportFeedback> GetContent() { return NotificationContent; }
 
 	/** Add a message to the context (and message log) */
 	void AddMessage(EMessageSeverity::Type Severity, const FText& Message);
@@ -79,5 +81,5 @@ private:
 	TSharedPtr<class SNotificationItem> Notification;
 
 	/** The notification content */
-	TSharedPtr<class SReimportFeedback> NotificationContent;
+	TSharedPtr<SReimportFeedback> NotificationContent;
 };
