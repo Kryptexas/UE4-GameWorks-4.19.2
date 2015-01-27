@@ -18,6 +18,7 @@ public:
 		, _AllowFadeIn(false)
 		, _ForceGenericThumbnail(false)
 		, _AllowHintText(true)
+		, _AllowAssetSpecificThumbnailOverlay(false)
 		, _Label(EThumbnailLabel::ClassName)
 		, _HighlightedText(FText::GetEmpty())
 		, _HintColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f))
@@ -30,6 +31,7 @@ public:
 		SLATE_ARGUMENT( bool, AllowFadeIn )
 		SLATE_ARGUMENT( bool, ForceGenericThumbnail )
 		SLATE_ARGUMENT( bool, AllowHintText )
+		SLATE_ARGUMENT( bool, AllowAssetSpecificThumbnailOverlay )
 		SLATE_ARGUMENT( EThumbnailLabel::Type, Label )
 		SLATE_ATTRIBUTE( FText, HighlightedText )
 		SLATE_ATTRIBUTE( FLinearColor, HintColorAndOpacity )
@@ -57,16 +59,16 @@ public:
 
 		UClass* Class = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
 		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-		TWeakPtr<IAssetTypeActions> AssetTypeActions;
+		TSharedPtr<IAssetTypeActions> AssetTypeActions;
 		if ( Class != NULL )
 		{
-			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Class);
+			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Class).Pin();
 		}
 
 		AssetColor = FLinearColor::White;
 		if ( AssetTypeActions.IsValid() )
 		{
-			AssetColor = AssetTypeActions.Pin()->GetTypeColor();
+			AssetColor = AssetTypeActions->GetTypeColor();
 		}
 
 		TSharedRef<SOverlay> OverlayWidget = SNew(SOverlay);
@@ -193,6 +195,19 @@ public:
 			.BorderBackgroundColor(AssetColor)
 			.Padding(this, &SAssetThumbnail::GetAssetColorStripPadding)
 		];
+
+		if( InArgs._AllowAssetSpecificThumbnailOverlay )
+		{
+			// Does the asset provide an additional thumbnail overlay?
+			TSharedPtr<SWidget> AssetSpecificThumbnailOverlay = AssetTypeActions->GetThumbnailOverlay(AssetData);
+			if( AssetSpecificThumbnailOverlay.IsValid() )
+			{
+				OverlayWidget->AddSlot()
+				[
+					AssetSpecificThumbnailOverlay.ToSharedRef()
+				];
+			}
+		}
 
 		ChildSlot
 		[
@@ -745,27 +760,20 @@ void FAssetThumbnail::SetAsset( const FAssetData& InAssetData )
 	AssetDataChangedEvent.Broadcast();
 }
 
-TSharedRef<SWidget> FAssetThumbnail::MakeThumbnailWidget(
-	bool bAllowFadeIn,
-	bool bForceGenericThumbnail,
-	EThumbnailLabel::Type ThumbnailLabel,
-	const TAttribute< FText >& HighlightedText,
-	const TAttribute< FLinearColor >& HintColorAndOpacity,
-	bool AllowHintText,
-	FName ClassThumbnailBrushOverride
-	)
+TSharedRef<SWidget> FAssetThumbnail::MakeThumbnailWidget( const FAssetThumbnailConfig& InConfig )
 {
 	return
 		SNew(SAssetThumbnail)
 		.AssetThumbnail( SharedThis(this) )
-		.ThumbnailPool(ThumbnailPool.Pin())
-		.AllowFadeIn(bAllowFadeIn)
-		.ForceGenericThumbnail(bForceGenericThumbnail)
-		.Label( ThumbnailLabel )
-		.HighlightedText( HighlightedText )
-		.HintColorAndOpacity( HintColorAndOpacity )
-		.AllowHintText( AllowHintText )
-		.ClassThumbnailBrushOverride( ClassThumbnailBrushOverride );
+		.ThumbnailPool( ThumbnailPool.Pin() )
+		.AllowFadeIn( InConfig.bAllowFadeIn )
+		.ForceGenericThumbnail( InConfig.bForceGenericThumbnail )
+		.Label( InConfig.ThumbnailLabel )
+		.HighlightedText( InConfig.HighlightedText )
+		.HintColorAndOpacity( InConfig.HintColorAndOpacity )
+		.AllowHintText( InConfig.bAllowHintText )
+		.ClassThumbnailBrushOverride( InConfig.ClassThumbnailBrushOverride )
+		.AllowAssetSpecificThumbnailOverlay( InConfig.bAllowAssetSpecificThumbnailOverlay );
 }
 
 void FAssetThumbnail::RefreshThumbnail()

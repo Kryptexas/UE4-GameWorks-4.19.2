@@ -983,9 +983,15 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 	TSharedPtr<SWidget> Thumbnail;
 	if ( AssetItem.IsValid() && AssetThumbnail.IsValid() )
 	{
-		const bool bForceGenericThumbnail = (AssetItem->GetType() == EAssetItemType::Creation);
-		const bool bAllowFadeIn = true;
-		Thumbnail = AssetThumbnail->MakeThumbnailWidget(bAllowFadeIn, bForceGenericThumbnail, InArgs._ThumbnailLabel, InArgs._HighlightText, InArgs._ThumbnailHintColorAndOpacity, InArgs._AllowThumbnailHintLabel );
+		FAssetThumbnailConfig ThumbnailConfig;
+		ThumbnailConfig.bAllowFadeIn = true;
+		ThumbnailConfig.bAllowHintText = InArgs._AllowThumbnailHintLabel;
+		ThumbnailConfig.bForceGenericThumbnail = (AssetItem->GetType() == EAssetItemType::Creation);
+		ThumbnailConfig.bAllowAssetSpecificThumbnailOverlay = (AssetItem->GetType() != EAssetItemType::Creation);
+		ThumbnailConfig.ThumbnailLabel = InArgs._ThumbnailLabel;
+		ThumbnailConfig.HighlightedText = InArgs._HighlightText;
+		ThumbnailConfig.HintColorAndOpacity = InArgs._ThumbnailHintColorAndOpacity;
+		Thumbnail = AssetThumbnail->MakeThumbnailWidget(ThumbnailConfig);
 	}
 	else
 	{
@@ -1187,9 +1193,15 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 	TSharedPtr<SWidget> Thumbnail;
 	if ( AssetItem.IsValid() && AssetThumbnail.IsValid() )
 	{
-		const bool bForceGenericThumbnail = (AssetItem->GetType() == EAssetItemType::Creation);
-		const bool bAllowFadeIn = true;
-		Thumbnail = AssetThumbnail->MakeThumbnailWidget(bAllowFadeIn, bForceGenericThumbnail, InArgs._ThumbnailLabel, InArgs._HighlightText, InArgs._ThumbnailHintColorAndOpacity, InArgs._AllowThumbnailHintLabel);
+		FAssetThumbnailConfig ThumbnailConfig;
+		ThumbnailConfig.bAllowFadeIn = true;
+		ThumbnailConfig.bAllowHintText = InArgs._AllowThumbnailHintLabel;
+		ThumbnailConfig.bForceGenericThumbnail = (AssetItem->GetType() == EAssetItemType::Creation);
+		ThumbnailConfig.bAllowAssetSpecificThumbnailOverlay = (AssetItem->GetType() != EAssetItemType::Creation);
+		ThumbnailConfig.ThumbnailLabel = InArgs._ThumbnailLabel;
+		ThumbnailConfig.HighlightedText = InArgs._HighlightText;
+		ThumbnailConfig.HintColorAndOpacity = InArgs._ThumbnailHintColorAndOpacity;
+		Thumbnail = AssetThumbnail->MakeThumbnailWidget(ThumbnailConfig);
 	}
 	else
 	{
