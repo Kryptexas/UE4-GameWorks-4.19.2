@@ -80,6 +80,11 @@ public:
 	 */
 	AActor(const FObjectInitializer& ObjectInitializer);
 
+private:
+	/** Called from the constructor to initialize the class to its default settings */
+	void InitializeDefaults();
+
+public:
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/**

@@ -47,6 +47,18 @@ FOnProcessEvent AActor::ProcessEventDelegate;
 
 AActor::AActor()
 {
+	InitializeDefaults();
+}
+
+
+AActor::AActor(const FObjectInitializer& ObjectInitializer)
+{
+	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
+	InitializeDefaults();
+}
+
+void AActor::InitializeDefaults()
+{
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
 	PrimaryActorTick.bCanEverTick = false;
@@ -84,13 +96,6 @@ AActor::AActor()
 	AnimUpdateRateShiftTag = 0;
 	AnimUpdateRateFrameCount = 0;
 }
-
-
-AActor::AActor(const FObjectInitializer& ObjectInitializer)
-	: AActor()	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
-{
-}
-
 
 // Global counter to spread SkinnedMeshComponent tick updates.
 static uint32 SkinnedMeshUpdateRateGroupCount = 0;

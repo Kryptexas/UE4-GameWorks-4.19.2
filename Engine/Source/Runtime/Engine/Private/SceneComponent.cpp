@@ -25,6 +25,17 @@ FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 
 USceneComponent::USceneComponent()
 {
+	InitializeDefaults();
+}
+
+USceneComponent::USceneComponent( const FObjectInitializer& ObjectInitializer )
+{
+	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
+	InitializeDefaults();
+}
+
+void USceneComponent::InitializeDefaults()
+{
 	Mobility = EComponentMobility::Movable;
 	RelativeScale3D = FVector(1.0f,1.0f,1.0f);
 	// default behavior is visible
@@ -33,13 +44,6 @@ USceneComponent::USceneComponent()
 	
 	NetUpdateTransform = false;
 }
-
-
-USceneComponent::USceneComponent( const FObjectInitializer& ObjectInitializer )
-	: USceneComponent()	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
-{
-}
-
 
 FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent) const
 {

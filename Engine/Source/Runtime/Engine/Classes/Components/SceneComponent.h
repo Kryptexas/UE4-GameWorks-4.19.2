@@ -92,6 +92,12 @@ public:
 	 */
 	USceneComponent(const FObjectInitializer& ObjectInitializer);
 
+private:
+	/** Initialize the component to its default settings */
+	void InitializeDefaults();
+
+public:
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Current transform of this component, relative to the world */
