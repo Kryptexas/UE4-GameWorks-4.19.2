@@ -34,6 +34,10 @@ public:
 
 	void SummonTutorialBrowser();
 
+	void AttachWidget(TSharedPtr<SWidget> Widget);
+
+	void DetachWidget();
+
 	static FString AnalyticsEventNameFromTutorial(UEditorTutorial* Tutorial);
 
 private:
@@ -98,6 +102,7 @@ public:
 	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr, FSimpleDelegate OnTutorialClosed = FSimpleDelegate(), FSimpleDelegate OnTutorialExited = FSimpleDelegate()) override;
 	virtual void CloseAllTutorialContent() override;
 	virtual TSharedRef<SWidget> CreateTutorialsWidget(FName InContext, TWeakPtr<SWindow> InContextWindow = nullptr) const override;
+	virtual TSharedPtr<SWidget> CreateTutorialsLoadingWidget(TWeakPtr<SWindow> InContextWindow = nullptr) const override;
 	// End of IIntroTutorials interface
 private:
 	/** The tab id of the tutorial tab */
