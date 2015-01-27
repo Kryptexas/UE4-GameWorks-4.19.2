@@ -607,9 +607,6 @@ protected:
 	/** Handles the unloading of Blueprints (by closing the editor, if it operating on the Blueprint being unloaded)*/
 	void OnBlueprintUnloaded(UBlueprint* InBlueprint);
 
-	/** Get title for Inspector 2 tab*/
-	virtual FText GetDefaultEditorTitle();
-
 	//@TODO: Should the breakpoint/watch modification operations be whole-blueprint, or current-graph?
 
 	/** Deletes all breakpoints for the blueprint being edited */

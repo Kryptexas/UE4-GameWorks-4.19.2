@@ -615,7 +615,7 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 	DetailBuilder.HideProperty( DetailBuilder.GetProperty( GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeRotation) ) );
 	DetailBuilder.HideProperty( DetailBuilder.GetProperty( GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeScale3D) ) );
 
-	// Determine whether or not we are editing Blueprint defaults through the CDO
+	// Determine whether or not we are editing Class Defaults through the CDO
 	bool bIsEditingBlueprintDefaults = false;
 	const TArray<TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetDetailsView().GetSelectedObjects();
 	for(int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex)
@@ -631,7 +631,7 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 		}
 	}
 
-	// If there are any actors selected and we're not editing Blueprint defaults, the transform section is shown as part of the actor customization
+	// If there are any actors selected and we're not editing Class Defaults, the transform section is shown as part of the actor customization
 	if( SelectedActors.Num() == 0 || bIsEditingBlueprintDefaults)
 	{
 		TArray< TWeakObjectPtr<UObject> > SceneComponentObjects;

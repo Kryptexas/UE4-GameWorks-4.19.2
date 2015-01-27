@@ -74,7 +74,7 @@ public:
 protected:
 	TWeakPtr<FBlueprintEditor> MyBlueprintEditor;
 
-	// Set of spawnable tabs in blueprint defaults mode
+	// Set of spawnable tabs in Class Defaults mode
 	FWorkflowAllowedTabSet BlueprintDefaultsTabFactories;
 };
 
