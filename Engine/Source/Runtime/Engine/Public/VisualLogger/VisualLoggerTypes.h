@@ -190,7 +190,7 @@ struct ENGINE_API FVisualLogEntry
 	// capsule
 	void AddElement(const FVector& Center, float HalfHeight, float Radius, const FQuat & Rotation, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color = FColor::White, const FString& Description = TEXT(""));
 	// custom element
-	void AddElement(FVisualLogShapeElement Element);
+	void AddElement(const FVisualLogShapeElement& Element);
 	// histogram sample
 	void AddHistogramData(const FVector2D& DataSample, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FName& GraphName, const FName& DataName);
 	// Custom data block
