@@ -16,7 +16,7 @@ void SDetailCategoryTableRow::Construct( const FArguments& InArgs, TSharedRef<ID
 	[	
 		SNew( SBorder )
 		.BorderImage( this, &SDetailCategoryTableRow::GetBackgroundImage )
-		.Padding( FMargin( 0.0f, 3.0f ) )
+		.Padding( FMargin( 0.0f, 3.0f, SDetailTableRowBase::ScrollbarPaddingSize, 3.0f ) )
 		.BorderBackgroundColor( FLinearColor( .6,.6,.6, 1.0f ) )
 		[
 			SAssignNew( MyContent, SHorizontalBox )

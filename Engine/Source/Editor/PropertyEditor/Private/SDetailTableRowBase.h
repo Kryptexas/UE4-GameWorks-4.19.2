@@ -75,5 +75,8 @@ private:
 		}
 	}
 protected:
+	static float ScrollbarPaddingSize;
 	TWeakPtr<IDetailTreeNode> OwnerTreeNode;
 };
+
+float SDetailTableRowBase::ScrollbarPaddingSize = 16.0f;

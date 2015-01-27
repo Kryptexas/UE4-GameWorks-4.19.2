@@ -38,9 +38,12 @@
 #include "NewsFeed.h"
 #include "TutorialMetaData.h"
 #include "SDockTab.h"
-#include "ComponentsTree.h"
+
+
+
 #include "SSCSEditor.h"
 #include "ComponentEditorUtils.h"
+#include "SExpandableArea.h"
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
 static const FName LevelEditorStatsViewerTab("LevelEditorStatsViewer");

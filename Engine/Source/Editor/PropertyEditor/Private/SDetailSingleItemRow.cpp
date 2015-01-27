@@ -198,7 +198,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	[	
 		SNew( SBorder )
 		.BorderImage( this, &SDetailSingleItemRow::GetBorderImage )
-		.Padding( 0.0f )
+		.Padding( FMargin( 0.0f, 0.0f, SDetailTableRowBase::ScrollbarPaddingSize, 0.0f ) )
 		[
 			Widget
 		]
