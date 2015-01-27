@@ -128,8 +128,12 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(TexturedLightProfiles, SFG_LightingFeatures, LOCTEXT(
 SHOWFLAG_ALWAYS_ACCESSIBLE(LightFunctions, SFG_LightingFeatures, LOCTEXT("LightFunctionsSF", "Light Functions"))
 /** Hardware Tessellation (DX11 feature) */
 SHOWFLAG_ALWAYS_ACCESSIBLE(Tessellation, SFG_Advanced, LOCTEXT("TessellationSF", "Tessellation"))
-/** Draws instanced static meshes such as foliage. */
+/** Draws instanced static meshes that are not foliage or grass. */
 SHOWFLAG_ALWAYS_ACCESSIBLE(InstancedStaticMeshes, SFG_Advanced, LOCTEXT("InstancedStaticMeshesSF", "Instanced Static Meshes"))
+/** Draws instanced foliage. */
+SHOWFLAG_ALWAYS_ACCESSIBLE(InstancedFoliage, SFG_Advanced, LOCTEXT("InstancedFoliageSF", "Foliage"))
+/** Draws instanced grass. */
+SHOWFLAG_ALWAYS_ACCESSIBLE(InstancedGrass, SFG_Advanced, LOCTEXT("InstancedGrassSF", "Grass"))
 /** non baked shadows */
 SHOWFLAG_ALWAYS_ACCESSIBLE(DynamicShadows, SFG_LightingComponents, LOCTEXT("DynamicShadowsSF", "Dynamic Shadows"))
 /** Particles */
