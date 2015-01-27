@@ -1034,11 +1034,6 @@ namespace APIDocTool
 						Entity.Module = Module;
 						Module.Entities.Add(Entity);
 					}
-					foreach (DoxygenSourceFile SourceFile in RootModule.SourceFiles)
-					{
-						DoxygenModule Module = Modules.Find(x => SourceFile.FileName.Replace('/', '\\').StartsWith(x.BaseSrcDir));
-						Module.SourceFiles.Add(SourceFile);
-					}
 
 					// Now filter all the entities in each module
 					if (Filters != null && Filters.Count > 0)

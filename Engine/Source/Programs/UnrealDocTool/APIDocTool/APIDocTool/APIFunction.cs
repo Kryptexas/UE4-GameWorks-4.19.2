@@ -566,61 +566,6 @@ namespace APIDocTool
 			WriteNestedSimpleCode(Writer, Lines);
 		}
 
-		private void WriteSourceSection(UdnWriter Writer)
-		{
-			if(Entity.BodyFile != null)
-			{
-				DoxygenSourceFile SourceFile = Entity.Module.FindSourceFile(Entity.BodyFile);
-				if(SourceFile != null)
-				{
-					int BodyStart = Math.Min(Math.Max(Entity.BodyStart - 1, 0), SourceFile.Lines.Count - 1);
-					int BodyEnd = Math.Min(Math.Max(Entity.BodyEnd, BodyStart), SourceFile.Lines.Count);
-					if(BodyEnd > BodyStart)
-					{
-						Writer.EnterSection("source", "Source");
-						Writer.EnterRegion("simplecode");
-
-						List<string> Lines = new List<string>();
-						int MinPrefix = int.MaxValue;
-
-						for (int LineIdx = BodyStart; LineIdx < BodyEnd; LineIdx++)
-						{
-							XmlNode Node = SourceFile.Lines[LineIdx];
-							string MarkdownLine = (Node == null)? "" : Markdown.ParseXmlCodeLine(Node, ResolveDoxygenLink);
-
-							int Prefix = 0;
-							while (Prefix < MarkdownLine.Length && MarkdownLine[Prefix] == ' ') Prefix++;
-
-							if(Prefix < MarkdownLine.Length && Prefix < MinPrefix)
-							{
-								MinPrefix = Prefix;
-							}
-
-							Lines.Add(MarkdownLine);
-						}
-
-						for (int Idx = 0; Idx < Lines.Count; Idx++)
-						{
-							int TextIdx = Math.Min(MinPrefix, Lines[Idx].Length);
-							if(TextIdx == Lines[Idx].Length)
-							{
-								Writer.Write("&nbsp;");
-							}
-							while(TextIdx < Lines[Idx].Length && Lines[Idx][TextIdx] == ' ')
-							{
-								Writer.Write("&nbsp;");
-								TextIdx++;
-							}
-							Writer.WriteLine(Lines[Idx].Substring(TextIdx) + "  ");
-						}
-
-						Writer.LeaveRegion();
-						Writer.LeaveSection();
-					}
-				}
-			}
-		}
-
 		private void WriteIcons(UdnWriter Writer)
 		{
 			Writer.WriteIcon(Icons.Function[(int)Protection]);
@@ -718,9 +663,6 @@ namespace APIDocTool
 					}
 					Writer.LeaveSection();
 				}
-
-				// Write the source
-				WriteSourceSection(Writer);
 
 				//Write code snippets
 				WriteSnippetSection(Writer, SnippetText);
