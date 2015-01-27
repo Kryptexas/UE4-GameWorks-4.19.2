@@ -246,6 +246,7 @@ protected:
 	virtual void CollectBasicAnimationData(APawn* MyPawn);
 
 	FNavPathWeakPtr CurrentPath;
+	float LastStoredPathTimeStamp;
 
 	uint32 bEnabledTargetSelection : 1;
 #if WITH_EDITOR

@@ -43,11 +43,15 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 
 	void Reset()
 	{
-		for (int32 Index=0; Index < RECAST_MAX_AREAS; Index++)
+		for (int32 Index = 0; Index < RECAST_MAX_AREAS; Index++)
+		{
 			NavMeshGeometry.AreaIndices[Index].Reset();
+		}
 		NavMeshGeometry.MeshVerts.Reset();
-		for (int32 Index=0; Index < RECAST_MAX_AREAS; Index++)
+		for (int32 Index = 0; Index < RECAST_MAX_AREAS; Index++)
+		{
 			NavMeshGeometry.AreaIndices[Index].Reset();
+		}
 		NavMeshGeometry.BuiltMeshIndices.Reset();
 		NavMeshGeometry.PolyEdges.Reset();
 		NavMeshGeometry.NavMeshEdges.Reset();
@@ -55,8 +59,10 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 		NavMeshGeometry.Clusters.Reset();
 		NavMeshGeometry.ClusterLinks.Reset();
 		NavMeshGeometry.OffMeshSegments.Reset();
-		for (int32 Index=0; Index < RECAST_MAX_AREAS; Index++)
+		for (int32 Index = 0; Index < RECAST_MAX_AREAS; Index++)
+		{
 			NavMeshGeometry.OffMeshSegmentAreas[Index].Reset();
+		}
 		TileEdgeLines.Reset();
 		NavMeshEdgeLines.Reset();
 		NavLinkLines.Reset();

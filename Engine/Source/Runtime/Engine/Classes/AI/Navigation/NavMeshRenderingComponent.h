@@ -3,6 +3,8 @@
 #pragma once
 #include "NavMeshRenderingComponent.generated.h"
 
+struct FNavMeshSceneProxyData;
+
 UCLASS(hidecategories=Object, editinlinenew)
 class ENGINE_API UNavMeshRenderingComponent : public UPrimitiveComponent
 {
@@ -28,7 +30,7 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
 	// End USceneComponent Interface
 
-	void GatherData(struct FNavMeshSceneProxyData*) const;
+	void GatherData(FNavMeshSceneProxyData& DebugDrawData) const;
 
 protected:
 	void TimerFunction();

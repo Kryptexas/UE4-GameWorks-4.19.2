@@ -50,6 +50,8 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 
 	bStopOnOverlap = true;
 	Status = EPathFollowingStatus::Idle;
+
+	PathObserver = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &UPathFollowingComponent::OnPathEvent);
 }
 
 void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalActor, const int32 CurrentPathPointGoal)
@@ -107,6 +109,25 @@ FString GetPathDescHelper(FNavPathSharedPtr Path)
 	return !Path.IsValid() ? TEXT("missing") :
 		!Path->IsValid() ? TEXT("invalid") :
 		FString::Printf(TEXT("%s:%d"), Path->IsPartial() ? TEXT("partial") : TEXT("complete"), Path->GetPathPoints().Num());
+}
+
+void UPathFollowingComponent::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event)
+{
+	if (InvalidatedPath == nullptr || Path.Get() != InvalidatedPath)
+	{
+		return;
+	}
+
+	switch (Event)
+	{
+		case ENavPathEvent::UpdatedDueToGoalMoved:
+		case ENavPathEvent::UpdatedDueToNavigationChanged:
+		{
+			UpdateMove(Path, GetCurrentRequestId());
+			OnPathUpdated();
+		}
+		break;
+	}
 }
 
 FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FRequestCompletedSignature OnComplete,
@@ -167,6 +188,9 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 
 		// store new data
 		Path = InPath;
+		Path->AddObserver(PathObserver);
+		check(MovementComp->GetOwner() != nullptr);
+		Path->SetSourceActor(*(MovementComp->GetOwner()));
 		OnPathUpdated();
 
 		AcceptanceRadius = InAcceptanceRadius;
@@ -743,6 +767,10 @@ void UPathFollowingComponent::UpdatePathSegment()
 				const FVector AgentLocation = DestinationAgent ? DestinationAgent->GetNavAgentLocation() : DestinationActor->GetActorLocation();
 				const FVector GoalLocation = FRotationTranslationMatrix(DestinationActor->GetActorRotation(), AgentLocation).TransformPosition(MoveOffset);
 				CurrentDestination.Set(NULL, GoalLocation);
+
+				UE_VLOG(this, LogPathFollowing, Log, TEXT("Moving directly to move goal rather than following last path segment"));
+				UE_VLOG_LOCATION(this, LogPathFollowing, VeryVerbose, GoalLocation, 30, FColor::Green, TEXT("Last-segment-to-actor"));
+				UE_VLOG_SEGMENT(this, LogPathFollowing, VeryVerbose, CurrentLocation, GoalLocation, FColor::Green, TEXT_EMPTY);
 			}
 
 			UpdateMoveFocus();

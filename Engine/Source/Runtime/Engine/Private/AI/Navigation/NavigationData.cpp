@@ -161,9 +161,9 @@ void ANavigationData::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	
-	UWorld* WorldOuter = GetWorld();
+	CachedWorld = GetWorld();
 
-	if (WorldOuter == NULL || WorldOuter->GetNavigationSystem() == NULL)
+	if (CachedWorld == NULL || CachedWorld->GetNavigationSystem() == NULL)
 	{
 		CleanUpAndMarkPendingKill();
 	}
@@ -171,7 +171,7 @@ void ANavigationData::PostInitializeComponents()
 	{
 		// note: this is not a final fix for world composition's issues with navmesh generation
 		// but it's good for now, and navmesh creation is going to get a face-lift soon anyway
-		bWantsUpdate |= WorldOuter->GetWorldSettings()->bEnableWorldComposition;
+		bWantsUpdate |= CachedWorld->GetWorldSettings()->bEnableWorldComposition;
 	}
 }
 
@@ -185,6 +185,8 @@ void ANavigationData::PostLoad()
 	}
 
 	InstantiateAndRegisterRenderingComponent();
+
+	CachedWorld = GetWorld();
 }
 
 void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
@@ -240,6 +242,8 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 
 	if (RepathRequests.Num() > 0)
 	{
+		const UWorld* World = GetCachedWorld();
+		float TimeStamp = World ? World->GetTimeSeconds() : 0.f;
 		TArray<FNavPathRecalculationRequest> PostponedRequests;
 
 		// @todo batch-process it!
@@ -256,6 +260,9 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 			FPathFindingQuery Query(RecalcRequest.Path);
 			// @todo consider supplying NavAgentPropertied from path's querier
 			const FPathFindingResult Result = FindPath(FNavAgentProperties(), Query.SetPathInstanceToUpdate(RecalcRequest.Path));
+
+			// update time stamp to give observers any means of telling if it has changed
+			RecalcRequest.Path->SetTimeStamp(TimeStamp);
 
 			// partial paths are still valid and can change to full path when moving goal gets back on navmesh
 			if (Result.IsSuccessful() || Result.IsPartial())

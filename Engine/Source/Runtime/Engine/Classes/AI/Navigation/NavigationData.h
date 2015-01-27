@@ -10,6 +10,7 @@
 class UNavigationQueryFilter;
 class FNavDataGenerator; 
 class INavLinkCustomInterface;
+class UPrimitiveComponent;
 
 USTRUCT()
 struct FSupportedAreaData
@@ -169,10 +170,14 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 		ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged);
 	}
 
+	FORCEINLINE float GetTimeStamp() const { return LastUpdateTimeStamp; }
+	FORCEINLINE void SetTimeStamp(float TimeStamp) { LastUpdateTimeStamp = TimeStamp; }
+
 	void Invalidate();
 	void RePathFailed();
 
 	virtual void DebugDraw(const ANavigationData* NavData, FColor PathColor, class UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const;
+	
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 	virtual FString GetDescription() const;
@@ -365,6 +370,9 @@ protected:
 	/** navigation data used to generate this path */
 	TWeakObjectPtr<ANavigationData> NavigationDataUsed;
 
+	/** gets set during path creation and on subsequent path's updates */
+	float LastUpdateTimeStamp;
+
 private:
 	/* if GoalActor is set this is the distance we'll try to keep GoalActor from end of path. If GoalActor
 	* moves more then this from the end of the path we'll recalculate the path */
@@ -398,10 +406,11 @@ UCLASS(config=Engine, defaultconfig, NotBlueprintable, abstract)
 class ENGINE_API ANavigationData : public AActor
 {
 	GENERATED_UCLASS_BODY()
-
+	
 	UPROPERTY(transient, duplicatetransient)
-	class UPrimitiveComponent* RenderingComp;
+	UPrimitiveComponent* RenderingComp;
 
+protected:
 	UPROPERTY()
 	FNavDataConfig NavDataConfig;
 
@@ -430,6 +439,10 @@ class ENGINE_API ANavigationData : public AActor
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
 	float ObservedPathsTickInterval;
 
+	UPROPERTY()
+	UWorld* CachedWorld;
+
+public:
 	//----------------------------------------------------------------------//
 	// Life cycle                                                                
 	//----------------------------------------------------------------------//
@@ -471,7 +484,8 @@ class ENGINE_API ANavigationData : public AActor
 	// Generation & data access                                                      
 	//----------------------------------------------------------------------//
 public:
-	const FNavDataConfig& GetConfig() const { return NavDataConfig; }
+	FORCEINLINE const FNavDataConfig& GetConfig() const { return NavDataConfig; }
+	FORCEINLINE ERuntimeGenerationType GetRuntimeGenerationMode() const { return RuntimeGeneration; }
 	virtual void SetConfig(const FNavDataConfig& Src) { NavDataConfig = Src; }
 
 	void SetSupportsDefaultAgent(bool bIsDefault) { bSupportsDefaultAgent = bIsDefault; SetNavRenderingEnabled(bIsDefault); }
@@ -480,6 +494,8 @@ public:
 	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const;
 
 	FORCEINLINE void MarkAsNeedingUpdate() { bWantsUpdate = true; }
+
+	virtual void RestrictBuildingToActiveTiles(bool InRestrictBuildingToActiveTiles) {}
 
 protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }
@@ -506,7 +522,7 @@ public:
 
 	/** Request navigation data update after changes in nav octree */
 	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas);
-
+	
 	/** releases navigation generator if any has been created */
 protected:
 	/** register self with navigation system as new NavAreaDefinition(s) observer */
@@ -523,6 +539,8 @@ public:
 		FNavPathSharedPtr SharedPath = MakeShareable(new PathType());
 		SharedPath->SetNavigationDataUsed(this);
 		SharedPath->SetQuerier(Querier);
+		const UWorld* World = GetCachedWorld();
+		SharedPath->SetTimeStamp(World ? World->GetTimeSeconds() : 0);
 
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Adding a path to ActivePaths"),
 			STAT_FSimpleDelegateGraphTask_AddingPathToActivePaths,
@@ -572,6 +590,8 @@ public:
 	// Debug                                                                
 	//----------------------------------------------------------------------//
 	void DrawDebugPath(FNavigationPath* Path, FColor PathColor = FColor::White, class UCanvas* Canvas = NULL, bool bPersistent = true, const uint32 NextPathPointIndex = 0) const;
+
+	FORCEINLINE bool IsDrawingEnabled() const { return bEnableDrawing; }
 
 	/** @return Total mem counted, including super calls. */
 	virtual uint32 LogMemUsed() const;
@@ -696,6 +716,7 @@ public:
 	 *	@NOTE potentially expensive, so use it with caution */
 	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const PURE_VIRTUAL(ANavigationData::CalcPathLength, return ENavigationQueryResult::Invalid;);
 
+	const UWorld* GetCachedWorld() const { return CachedWorld; }
 	//----------------------------------------------------------------------//
 	// Areas
 	//----------------------------------------------------------------------//

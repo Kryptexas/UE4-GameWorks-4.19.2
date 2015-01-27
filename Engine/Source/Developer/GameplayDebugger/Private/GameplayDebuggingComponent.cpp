@@ -136,6 +136,8 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 	bAutoActivate = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
+	LastStoredPathTimeStamp = -1.f;
+
 	ShowExtendedInformatiomCounter = 0;
 #if WITH_EDITOR
 	bWasSelectedInEditor = false;
@@ -472,7 +474,7 @@ void UGameplayDebuggingComponent::CollectBasicPathData(APawn* MyPawn)
 	AAIController* MyAIController = Cast<AAIController>(MyPawn->GetController());
 
 	const ANavigationData* NavData = NavSys->GetNavDataForProps(MyAIController->GetNavAgentPropertiesRef());
-	NavDataInfo = NavData->NavDataConfig.Name.ToString();
+	NavDataInfo = NavData->GetConfig().Name.ToString();
 
 	UPathFollowingComponent* PFC = MyAIController->GetPathFollowingComponent();
 	bIsUsingPathFollowing = (PFC != nullptr);
@@ -663,11 +665,13 @@ void UGameplayDebuggingComponent::CollectPathData()
 			NextPathPointIndex = MyController->PathFollowingComponent->GetNextPathIndex();
 
 			const FNavPathSharedPtr& NewPath = MyController->PathFollowingComponent->GetPath();
-			if (!CurrentPath.HasSameObject(NewPath.Get()))
+			if (CurrentPath.HasSameObject(NewPath.Get()) == false || NewPath->GetTimeStamp() > LastStoredPathTimeStamp)
 			{
+				LastStoredPathTimeStamp = NewPath->GetTimeStamp();
+
 				FVisualLogEntry Snapshot;
 				NewPath->DescribeSelfToVisLog(&Snapshot);
-				PathCorridorPolygons.Reserve(Snapshot.ElementsToDraw.Num());
+				PathCorridorPolygons.Reset(Snapshot.ElementsToDraw.Num());
 				for (auto& CurrentShape : Snapshot.ElementsToDraw)
 				{
 					if (CurrentShape.GetType() == EVisualLoggerShapeElement::Polygon)

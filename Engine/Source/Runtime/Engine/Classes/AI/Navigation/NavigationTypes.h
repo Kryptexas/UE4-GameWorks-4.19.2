@@ -633,3 +633,31 @@ struct TContainerTraits<TNavStatArray<InElementType> > : public TContainerTraits
 		TContainerTraits<typename TNavStatArray<InElementType>::Super>::MoveWillEmptyContainer
 	};
 };
+
+//----------------------------------------------------------------------//
+// Active tiles 
+//----------------------------------------------------------------------//
+struct FNavigationInvokerRaw
+{
+	FVector Location;
+	float RadiusMin;
+	float RadiusMax;
+
+	FNavigationInvokerRaw(const FVector& InLocation, float Min, float Max)
+		: Location(InLocation), RadiusMin(Min), RadiusMax(Max)
+	{}
+};
+
+struct FNavigationInvoker
+{
+	TWeakObjectPtr<AActor> Actor;
+
+	/** tiles GenerationRadius away or close will be generated if they're not already present */
+	float GenerationRadius;
+	/** tiles over RemovalRadius will get removed.
+	*	@Note needs to be >= GenerationRadius or will get clampped */
+	float RemovalRadius;
+
+	FNavigationInvoker();
+	FNavigationInvoker(AActor& InActor, float InGenerationRadius, float InRemovalRadius);
+};

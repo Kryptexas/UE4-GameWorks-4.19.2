@@ -273,6 +273,8 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	virtual bool IsResourceLocked() const override;
 	// IAIResourceInterface end
 
+	void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
+
 protected:
 
 	/** associated movement component */
@@ -291,6 +293,9 @@ protected:
 
 	/** requested path */
 	FNavPathSharedPtr Path;
+
+	/** responsible to handing path's events like "underlying navigation rebuilt" or "goal moved" */
+	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
 
 	/** value based on navigation agent's properties that's used for AcceptanceRadius when DefaultAcceptanceRadius is requested */
 	float MyDefaultAcceptanceRadius;

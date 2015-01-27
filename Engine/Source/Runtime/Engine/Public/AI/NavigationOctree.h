@@ -6,6 +6,7 @@
 
 class AActor;
 class UActorComponent;
+struct FNavDataConfig;
 
 struct ENGINE_API FNavigationOctreeFilter
 {
@@ -90,9 +91,9 @@ struct ENGINE_API FNavigationOctreeElement
 		return Data.Modifiers.HasMetaAreas() ? Data.Modifiers.GetInstantiatedMetaModifier(NavAgent, Owner) : Data.Modifiers;
 	}
 
-	FORCEINLINE bool ShouldUseGeometry(const struct FNavDataConfig* NavConfig) const
+	FORCEINLINE bool ShouldUseGeometry(const FNavDataConfig& NavConfig) const
 	{ 
-		return !Data.ShouldUseGeometryDelegate.IsBound() || Data.ShouldUseGeometryDelegate.Execute(NavConfig);
+		return !Data.ShouldUseGeometryDelegate.IsBound() || Data.ShouldUseGeometryDelegate.Execute(&NavConfig);
 	}
 
 	FORCEINLINE int32 GetAllocatedSize() const
