@@ -685,7 +685,7 @@ private:
 	// Delegate to use for deleting a friend
 	FOnDeleteFriendCompleteDelegate OnDeleteFriendCompleteDelegate;
 	// Delegate for querying user id from a name string
-	FOnQueryUserIdMappingCompleteDelegate OnQueryUserIdMappingCompleteDelegate;
+	IOnlineUser::FOnQueryUserMappingComplete OnQueryUserIdMappingCompleteDelegate;
 	// Delegate to use for querying user info list
 	FOnQueryUserInfoCompleteDelegate OnQueryUserInfoCompleteDelegate;
 	// Delegate to use for querying user presence
@@ -738,7 +738,7 @@ private:
 	// Holds the Friends Interface
 	IOnlineFriendsPtr FriendsInterface;
 	// Holds the Online Subsystem
-	FOnlineSubsystemMcp* OnlineSubMcp;
+	IOnlineSubsystem* OnlineSub;
 
 	/* Chat stuff
 	*****************************************************************************/
@@ -806,6 +806,5 @@ private:
 	FDelegateHandle OnPresenceReceivedCompleteDelegateHandle;
 	FDelegateHandle OnGameInviteReceivedDelegateHandle;
 	FDelegateHandle OnDestroySessionCompleteDelegateHandle;
-	FDelegateHandle OnQueryUserIdMappingCompleteDelegateHandle;
 	FDelegateHandle UpdateFriendsTickerDelegateHandle;
 };
