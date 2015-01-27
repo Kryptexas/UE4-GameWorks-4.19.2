@@ -563,8 +563,14 @@ protected:
 	/** Called to start a quick find (focus the search box in the explorer tab) */
 	void FindInBlueprint_Clicked();
 
+	// Is the main details panel currently showing 'Global options' (e.g., class metadata)?
+	bool IsDetailsPanelEditingGlobalOptions() const;
+
 	/** Edit the class settings aka Blueprint global options */
 	void EditGlobalOptions_Clicked();
+
+	// Is the main details panel currently showing 'Class defaults' (Note: Has nothing to do with the standalone class defaults panel)?
+	bool IsDetailsPanelEditingClassDefaults() const;
 
 	/** Edit the class defaults */
 	void EditClassDefaults_Clicked();
