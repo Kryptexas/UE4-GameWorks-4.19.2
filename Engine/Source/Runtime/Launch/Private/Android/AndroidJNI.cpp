@@ -20,6 +20,8 @@ extern FString GFilePathBase;
 extern FString GFontPathBase;
 extern bool GOBBinAPK;
 
+FOnActivityResult FJavaWrapper::OnActivityResultDelegate;
+
 //////////////////////////////////////////////////////////////////////////
 
 #if UE_BUILD_SHIPPING
@@ -561,4 +563,9 @@ extern "C" bool Java_com_epicgames_ue4_GameActivity_nativeIsShippingBuild(JNIEnv
 #else
 	return JNI_FALSE;
 #endif
+}
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeOnActivityResult(JNIEnv* jenv, jobject thiz, jobject activity, jint requestCode, jint resultCode, jobject data)
+{
+	FJavaWrapper::OnActivityResultDelegate.Broadcast(jenv, thiz, activity, requestCode, resultCode, data);
 }

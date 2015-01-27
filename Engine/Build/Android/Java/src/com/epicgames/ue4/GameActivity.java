@@ -898,6 +898,7 @@ public class GameActivity extends NativeActivity
 		{
 			super.onActivityResult(requestCode, resultCode, data);
 		}
+		nativeOnActivityResult(this, requestCode, resultCode, data);
 	}
 	
 	public boolean AndroidThunkJava_IapBeginPurchase(String ProductId, boolean bConsumable)
@@ -942,6 +943,8 @@ public class GameActivity extends NativeActivity
 	public native void nativeInitHMDs();
 
 	public native void nativeResumeMainInit();
+
+	public native void nativeOnActivityResult(GameActivity activity, int requestCode, int resultCode, Intent data);
 	
 	static
 	{
