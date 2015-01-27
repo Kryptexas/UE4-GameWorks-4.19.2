@@ -466,6 +466,7 @@ void FOpenGLDynamicRHI::InternalUpdateTextureBuffer( FOpenGLContextState& Contex
 				ContextState.ActiveTexture = TextureIndex;
 			}
 			
+			FOpenGL::TexBuffer(GL_TEXTURE_BUFFER, GLFormat.InternalFormat[0], 0);
 			FOpenGL::TexBuffer(GL_TEXTURE_BUFFER, GLFormat.InternalFormat[0], VB->Resource);
 			
 			SRV->ModificationVersion = VB->ModificationCount;
