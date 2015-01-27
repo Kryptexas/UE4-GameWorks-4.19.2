@@ -151,7 +151,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 
 				// New Class
 				MenuBuilder.AddMenuEntry(
-					LOCTEXT("NewClassLabel", "New Class"),
+					LOCTEXT("NewClassLabel", "New C++ Class..."),
 					NewClassToolTip,
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.AddCodeToProject"),
 					FUIAction(

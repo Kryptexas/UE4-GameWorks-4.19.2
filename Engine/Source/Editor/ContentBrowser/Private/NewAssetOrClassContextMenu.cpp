@@ -290,7 +290,7 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 		MenuBuilder.BeginSection("ContentBrowserNewClass", LOCTEXT("ClassMenuHeading", "C++ Class") );
 		{
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT("NewClassLabel", "New Class"),
+				LOCTEXT("NewClassLabel", "New C++ Class..."),
 				NewClassToolTip,
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.AddCodeToProject"),
 				FUIAction(
