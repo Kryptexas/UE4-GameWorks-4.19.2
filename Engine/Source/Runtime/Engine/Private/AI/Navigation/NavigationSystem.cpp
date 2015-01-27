@@ -4,6 +4,7 @@
 #include "MessageLog.h"
 #include "NavDataGenerator.h"
 #include "NavigationOctree.h"
+#include "VisualLogger.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
 #include "AI/Navigation/NavRelevantComponent.h"
 #include "AI/Navigation/NavigationInvokerComponent.h"
