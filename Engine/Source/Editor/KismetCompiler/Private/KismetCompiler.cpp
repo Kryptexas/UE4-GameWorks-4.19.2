@@ -1703,7 +1703,9 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		// Blueprinted Components are always Blueprint Spawnable
 		if (ParentClass->IsChildOf(UActorComponent::StaticClass()))
 		{
-			Class->SetMetaData(TEXT("BlueprintSpawnableComponent"), TEXT("true"));
+			static const FName NAME_ClassGroupNames(TEXT("ClassGroupNames"));
+			Class->SetMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent, TEXT("true"));
+			Class->SetMetaData(NAME_ClassGroupNames, *NSLOCTEXT("BlueprintableComponents", "CategoryName", "Custom").ToString());
 		}
 
 
