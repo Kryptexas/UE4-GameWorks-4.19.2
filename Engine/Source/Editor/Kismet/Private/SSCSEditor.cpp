@@ -36,7 +36,12 @@
 
 #include "Engine/InheritableComponentHandler.h"
 
+#include "CreateBlueprintFromActorDialog.h"
+
 #include "BPVariableDragDropAction.h"
+
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
@@ -1359,7 +1364,7 @@ EVisibility SSCS_RowWidget::GetAssetVisibility() const
 
 FSlateColor SSCS_RowWidget::GetColorTint() const
 {
-	if(SCSEditor.Pin()->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+	if(SCSEditor.Pin()->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS)
 	{
 		if(NodePtr->IsNative())
 		{
@@ -1421,7 +1426,7 @@ TSharedPtr<SWidget> SSCS_RowWidget::BuildSceneRootDropActionMenu(FSCSEditorTreeN
 
 		check(NodePtr.IsValid());
 		bool bDroppedInSameBlueprint = true;
-		if(SCSEditor.Pin()->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+		if(SCSEditor.Pin()->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS)
 		{
 			bDroppedInSameBlueprint = DroppedNodePtr->GetBlueprint() == GetBlueprint();
 		}
@@ -1614,7 +1619,7 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 					DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_AttachToOrMakeNewRoot", "Drop here to see available actions.");
 					DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_AttachToOrMakeNewRoot;
 				}
-				else if(SCSEditor.Pin()->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS && DraggedNodePtr->GetBlueprint() != GetBlueprint())
+				else if(SCSEditor.Pin()->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS && DraggedNodePtr->GetBlueprint() != GetBlueprint())
 				{
 					if(bCanMakeNewRoot)
 					{
@@ -1820,7 +1825,7 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 	bool bRegenerateTreeNodes = false;
 	const FScopedTransaction TransactionContext(DroppedNodePtrs.Num() > 1 ? LOCTEXT("AttachComponents", "Attach Components") : LOCTEXT("AttachComponent", "Attach Component"));
 
-	if(SCSEditorPtr->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+	if(SCSEditorPtr->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS)
 	{
 		// Get the current Blueprint context
 		UBlueprint* Blueprint = GetBlueprint();
@@ -1963,7 +1968,7 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 
 	const FScopedTransaction TransactionContext(DroppedNodePtrs.Num() > 1 ? LOCTEXT("DetachComponents", "Detach Components") : LOCTEXT("DetachComponent", "Detach Component"));
 
-	if(SCSEditorPtr->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+	if(SCSEditorPtr->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS)
 	{
 		// Get the current "preview" Actor instance
 		AActor* PreviewActor = SCSEditorPtr->PreviewActor.Get();
@@ -2069,7 +2074,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	// Create a transaction record
 	const FScopedTransaction TransactionContext(LOCTEXT("MakeNewSceneRoot", "Make New Scene Root"));
 
-	if(SCSEditorPtr->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+	if(SCSEditorPtr->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS)
 	{
 		// Get the current Blueprint context
 		UBlueprint* Blueprint = GetBlueprint();
@@ -2170,7 +2175,7 @@ void SSCS_RowWidget::PostDragDropAction(bool bRegenerateTreeNodes)
 
 		PinnedEditor->RefreshSelectionDetails();
 
-		if(PinnedEditor->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+		if(PinnedEditor->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS)
 		{
 			if(NodePtr.IsValid())
 			{
@@ -2258,7 +2263,7 @@ FString SSCS_RowWidget::GetDocumentationLink() const
 {
 	check(SCSEditor.IsValid());
 
-	if(SCSEditor.Pin()->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+	if(SCSEditor.Pin()->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS)
 	{
 		if( NodePtr == SCSEditor.Pin()->SceneRootNodePtr
 			|| NodePtr->IsNative() || NodePtr->IsInherited())
@@ -2278,7 +2283,7 @@ FString SSCS_RowWidget::GetDocumentationExcerptName() const
 {
 	check(SCSEditor.IsValid());
 
-	if(SCSEditor.Pin()->EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+	if(SCSEditor.Pin()->GetEditorMode() == SSCSEditor::EEditorMode::BlueprintSCS)
 	{
 		if( NodePtr == SCSEditor.Pin()->SceneRootNodePtr)
 		{
@@ -2363,7 +2368,7 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 	// No need to call UpdateTree() in SCS editor mode; it will already be called by MBASM internally
 	check(SCSEditor.IsValid());
 	TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();
-	if(PinnedEditor.IsValid() && PinnedEditor->EditorMode.Get() == SSCSEditor::EEditorMode::ActorInstance)
+	if(PinnedEditor.IsValid() && PinnedEditor->GetEditorMode() == SSCSEditor::EEditorMode::ActorInstance)
 	{
 		PinnedEditor->UpdateTree();
 	}
@@ -2372,7 +2377,6 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 //////////////////////////////////////////////////////////////////////////
 // SSCSEditor
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SSCSEditor::Construct( const FArguments& InArgs )
 {
 	EditorMode = InArgs._EditorMode;
@@ -2484,13 +2488,51 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 
 	if (bSingleLayoutBPEditor)
 	{
+		FMenuBuilder EditBlueprintMenuBuilder( true, NULL );
+
+		EditBlueprintMenuBuilder.BeginSection( NAME_None, LOCTEXT("EditBlueprintMenu_ExistingBlueprintHeader", "Existing Blueprint" ) );
+
+		EditBlueprintMenuBuilder.AddMenuEntry
+		(
+			LOCTEXT("OpenBlueprintEditor", "Open Blueprint Editor"),
+			LOCTEXT("OpenBlueprintEditor_ToolTip", "Opens the blueprint editor for this asset"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &SSCSEditor::OnOpenBlueprintEditor))
+		);
+
+
+		EditBlueprintMenuBuilder.AddMenuEntry
+		(
+			LOCTEXT("PushChangesToBlueprint", "Apply Instance Changes to Blueprint"),
+			TAttribute<FText>(this, &SSCSEditor::OnGetApplyChangesToBlueprintTooltip),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &SSCSEditor::OnApplyChangesToBlueprint))
+		);
+
+		EditBlueprintMenuBuilder.AddMenuEntry
+		(
+			LOCTEXT("ResetToDefault", "Reset Instance Changes to Blueprint Default"),
+			TAttribute<FText>(this, &SSCSEditor::OnGetResetToBlueprintDefaultsTooltip),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &SSCSEditor::OnResetToBlueprintDefaults))
+		);
+
+		EditBlueprintMenuBuilder.BeginSection( NAME_None, LOCTEXT("EditBlueprintMenu_NewHeader", "Create New" ) );
+		//EditBlueprintMenuBuilder.AddMenuSeparator();
+
+		EditBlueprintMenuBuilder.AddMenuEntry
+		(
+			LOCTEXT("PromoteToBlueprint", "Convert to Class Blueprint"),
+			LOCTEXT("PromoteToBluerprintTooltip","Converts the existing Blueprint into a new SubClass Blueprint" ),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &SSCSEditor::PromoteToBlueprint))
+		);
+
 		Contents = SNew(SVerticalBox)
-		
 		+ SVerticalBox::Slot()
 		.Padding(0.0f)
 		[
 			SNew(SVerticalBox)
-
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.VAlign(VAlign_Top)
@@ -2501,12 +2543,83 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
 				[
-					SNew(SBox)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
 					.HAlign(HAlign_Left)
+					.AutoWidth()
 					[
 						SNew(SComponentClassCombo)
 						.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
-						.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Add a component."))
+						.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Adds a new component to this actor"))
+					]
+					+ SHorizontalBox::Slot()
+					.Padding( 4.f, 0.0f )
+					.HAlign(HAlign_Right)
+					[
+						SNew( SButton )
+						.Visibility( this, &SSCSEditor::GetPromoteToBlueprintButtonVisibility )
+						.OnClicked( this, &SSCSEditor::OnPromoteToBlueprintClicked )
+						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+						.ContentPadding(0)
+						.ToolTip(IDocumentation::Get()->CreateToolTip(
+							LOCTEXT("PromoteToBluerprintTooltip","Converts this actor into a reusable Class Blueprint that can have script behavior" ),
+							NULL,
+							TEXT("Shared/LevelEditor"),
+							TEXT("ConvertToBlueprint")))
+						[
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							.Padding(2.f, 1.f)
+							[
+								SNew(SImage)
+								.Image( FEditorStyle::Get().GetBrush( "ClassIcon.BlueprintCore" ) )
+							]
+							+ SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.Padding(1.f)
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+								.Text( LOCTEXT("PromoteToBlueprint", "Convert to Class Blueprint") )
+							]
+						]
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(4.f, 0.0f)
+					.HAlign(HAlign_Right)
+					[
+						SNew(SComboButton)
+						.Visibility(this, &SSCSEditor::GetEditBlueprintButtonVisibility)
+						.ContentPadding(FMargin(0))
+						.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.NewAsset.Style")
+						.ForegroundColor(FLinearColor::White)
+						.ButtonContent()
+						[
+							SNew( SHorizontalBox )
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
+							.Padding( 2.0f, 0.0f )
+							[
+								SNew( SImage )
+								.Image( FEditorStyle::Get().GetBrush( "ClassIcon.BlueprintCore" ) )
+							]
+							.Padding( 2.0f, 0.0f )
+							+ SHorizontalBox::Slot()
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+								.Text(LOCTEXT("EditBlueprint", "Edit Blueprint"))
+							]
+
+						]
+						.MenuContent()
+						[
+							EditBlueprintMenuBuilder.MakeWidget()
+						]
 					]
 				]
 			]
@@ -2632,6 +2745,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		OnActorSelected(ECheckBoxState::Checked);
 	}
 }
+
 TSharedRef<SToolTip> SSCSEditor::CreateToolTipWidget() const
 {
 	// Create a box to hold every line of info in the body of the tooltip
@@ -2731,7 +2845,7 @@ void SSCSEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-	if(EditorMode.Get() == EEditorMode::ActorInstance)
+	if(EditorMode == EEditorMode::ActorInstance)
 	{
 		TFunction<bool (const TArray<FSCSEditorTreeNodePtrType>&, int32&)> AreAnyNodesInvalidLambda = [&](const TArray<FSCSEditorTreeNodePtrType>& InNodes, int32& OutNumValidNodes) -> bool
 		{
@@ -2840,7 +2954,7 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete );
 				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename );
 
-				if(EditorMode.Get() == EEditorMode::BlueprintSCS)
+				if(EditorMode == EEditorMode::BlueprintSCS)
 				{
 					// Collect the classes of all selected objects
 					TArray<UClass*> SelectionClasses;
@@ -3397,7 +3511,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		SceneRootNodePtr.Reset();
 
 		// Build the tree data source according to what mode we're in
-		if(EditorMode.Get() == EEditorMode::BlueprintSCS)
+		if(EditorMode == EEditorMode::BlueprintSCS)
 		{
 			// Get the class default object
 			AActor* CDO = NULL;
@@ -3588,7 +3702,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 {
 	const FScopedTransaction Transaction( LOCTEXT("AddComponent", "Add Component") );
 
-	if(EditorMode.Get() == EEditorMode::BlueprintSCS)
+	if(EditorMode == EEditorMode::BlueprintSCS)
 	{
 		UBlueprint* Blueprint = GetBlueprint();
 		check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
@@ -3887,7 +4001,7 @@ void SSCSEditor::PasteNodes()
 	// Get the object that's being edited
 	UBlueprint* Blueprint = nullptr;
 	AActor* ActorInstance = nullptr;
-	if(EditorMode.Get() == EEditorMode::BlueprintSCS)
+	if(EditorMode == EEditorMode::BlueprintSCS)
 	{
 		Blueprint = GetBlueprint();
 		check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
@@ -3996,7 +4110,7 @@ void SSCSEditor::OnDeleteNodes()
 {
 	const FScopedTransaction Transaction( LOCTEXT("RemoveComponent", "Remove Component") );
 
-	if(EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+	if(EditorMode == SSCSEditor::EEditorMode::BlueprintSCS)
 	{
 		// Remove node from SCS
 		UBlueprint* Blueprint = GetBlueprint();
@@ -4100,7 +4214,7 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 		SCSTreeWidget->ClearSelection();
 	}
 
-	if(EditorMode.Get() == SSCSEditor::EEditorMode::BlueprintSCS)
+	if(EditorMode == SSCSEditor::EEditorMode::BlueprintSCS)
 	{
 		USCS_Node* SCS_Node = InNodePtr->GetSCSNode();
 		if(SCS_Node != NULL)
@@ -4519,6 +4633,258 @@ void SSCSEditor::GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, T
 			}
 		}
 	}
+}
+
+EVisibility SSCSEditor::GetPromoteToBlueprintButtonVisibility() const
+{
+	EVisibility Visibility = EVisibility::Collapsed;
+	if( EditorMode == SSCSEditor::EEditorMode::ActorInstance )
+	{
+		AActor* Actor = ActorContext.Get();
+		if( Actor && Actor->GetClass()->ClassGeneratedBy == nullptr )
+		{
+			Visibility = EVisibility::Visible;
+		}
+	}
+
+	return Visibility;
+}
+
+EVisibility SSCSEditor::GetEditBlueprintButtonVisibility() const
+{
+	EVisibility Visibility = EVisibility::Collapsed;
+	if(EditorMode == SSCSEditor::EEditorMode::ActorInstance)
+	{
+		AActor* Actor = ActorContext.Get();
+		if(Actor && Actor->GetClass()->ClassGeneratedBy != nullptr )
+		{
+			Visibility = EVisibility::Visible;
+		}
+	}
+
+	return Visibility;
+}
+
+FText SSCSEditor::OnGetApplyChangesToBlueprintTooltip() const
+{
+	int32 NumChangedProperties = 0;
+
+	AActor* Actor = ActorContext.Get();
+	UBlueprint* Blueprint = ActorInstance ? Cast<UBlueprint>(Actor->GetClass()->ClassGeneratedBy) : nullptr;
+
+	if(Actor != NULL && Blueprint != NULL && Actor->GetClass()->ClassGeneratedBy == Blueprint)
+	{
+		AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
+		if(BlueprintCDO != NULL)
+		{
+			const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
+			NumChangedProperties += EditorUtilities::CopyActorProperties(Actor, BlueprintCDO, CopyOptions);
+		}
+		NumChangedProperties += Actor->GetInstanceComponents().Num();
+	}
+
+
+	if(NumChangedProperties == 0)
+	{
+		return LOCTEXT("DisabledPushToBlueprintDefaults_ToolTip", "Replaces the Blueprint's defaults with any altered property values.");
+	}
+	else if(NumChangedProperties > 1)
+	{
+		return FText::Format(LOCTEXT("PushToBlueprintDefaults_ToolTip", "Click to apply {0} changed properties to the Blueprint."), FText::AsNumber(NumChangedProperties));
+	}
+	else
+	{
+		return LOCTEXT("PushOneToBlueprintDefaults_ToolTip", "Click to apply 1 changed property to the Blueprint.");
+	}
+}
+
+FText SSCSEditor::OnGetResetToBlueprintDefaultsTooltip() const
+{
+	int32 NumChangedProperties = 0;
+
+	AActor* Actor = ActorContext.Get();
+	UBlueprint* Blueprint = ActorInstance ? Cast<UBlueprint>(Actor->GetClass()->ClassGeneratedBy) : nullptr;
+	if(Actor != NULL && Blueprint != NULL && Actor->GetClass()->ClassGeneratedBy == Blueprint)
+	{
+		AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
+		if(BlueprintCDO != NULL)
+		{
+			const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
+			NumChangedProperties += EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
+		}
+		NumChangedProperties += Actor->GetInstanceComponents().Num();
+	}
+
+	if(NumChangedProperties == 0)
+	{
+		return LOCTEXT("DisabledResetBlueprintDefaults_ToolTip", "Resets altered properties back to their Blueprint default values.");
+	}
+	else if(NumChangedProperties > 1)
+	{
+		return FText::Format(LOCTEXT("ResetToBlueprintDefaults_ToolTip", "Click to reset {0} changed properties to their Blueprint default values."), FText::AsNumber(NumChangedProperties));
+	}
+	else
+	{
+		return LOCTEXT("ResetOneToBlueprintDefaults_ToolTip", "Click to reset 1 changed property to its Blueprint default value.");
+	}
+}
+
+void SSCSEditor::OnOpenBlueprintEditor() const
+{
+	AActor* ActorInstance = ActorContext.Get();
+	UBlueprint* Blueprint = ActorInstance ? Cast<UBlueprint>( ActorInstance->GetClass()->ClassGeneratedBy ) : nullptr;
+
+	FAssetEditorManager::Get().OpenEditorForAsset(Blueprint);
+}
+
+void SSCSEditor::OnApplyChangesToBlueprint() const
+{
+	int32 NumChangedProperties = 0;
+
+	AActor* Actor = ActorContext.Get();
+	UBlueprint* Blueprint = Actor ? Cast<UBlueprint>(Actor->GetClass()->ClassGeneratedBy) : nullptr;
+
+	if (Actor != NULL && Blueprint != NULL && Actor->GetClass()->ClassGeneratedBy == Blueprint)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("PushToBlueprintDefaults_Transaction", "Apply Changes to Blueprint"));
+
+		// Perform the actual copy
+		{
+			AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
+			if (BlueprintCDO != NULL)
+			{
+				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::PropagateChangesToArcheypeInstances);
+				NumChangedProperties = EditorUtilities::CopyActorProperties(Actor, BlueprintCDO, CopyOptions);
+				if (Actor->GetInstanceComponents().Num() > 0)
+				{
+					FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Actor->GetInstanceComponents());
+					NumChangedProperties += Actor->GetInstanceComponents().Num();
+					Actor->ClearInstanceComponents();
+				}
+				if (NumChangedProperties > 0)
+				{
+					FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+					FKismetEditorUtilities::CompileBlueprint(Blueprint);
+				}
+			}
+		}
+
+		// Set up a notification record to indicate success/failure
+		FNotificationInfo NotificationInfo(FText::GetEmpty());
+		NotificationInfo.FadeInDuration = 1.0f;
+		NotificationInfo.FadeOutDuration = 2.0f;
+		NotificationInfo.bUseLargeFont = false;
+		SNotificationItem::ECompletionState CompletionState;
+		if (NumChangedProperties > 0)
+		{
+			if (NumChangedProperties > 1)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("BlueprintName"), FText::FromName(Blueprint->GetFName()));
+				Args.Add(TEXT("NumChangedProperties"), NumChangedProperties);
+				Args.Add(TEXT("ActorName"), FText::FromString(Actor->GetActorLabel()));
+				NotificationInfo.Text = FText::Format(LOCTEXT("PushToBlueprintDefaults_ApplySuccess", "Updated Blueprint {BlueprintName} ({NumChangedProperties} property changes applied from actor {ActorName})."), Args);
+			}
+			else
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("BlueprintName"), FText::FromName(Blueprint->GetFName()));
+				Args.Add(TEXT("ActorName"), FText::FromString(Actor->GetActorLabel()));
+				NotificationInfo.Text = FText::Format(LOCTEXT("PushOneToBlueprintDefaults_ApplySuccess", "Updated Blueprint {BlueprintName} (1 property change applied from actor {ActorName})."), Args);
+			}
+			CompletionState = SNotificationItem::CS_Success;
+		}
+		else
+		{
+			NotificationInfo.Text = LOCTEXT("PushToBlueprintDefaults_ApplyFailed", "No properties were copied");
+			CompletionState = SNotificationItem::CS_Fail;
+		}
+
+		// Add the notification to the queue
+		const auto Notification = FSlateNotificationManager::Get().AddNotification(NotificationInfo);
+		Notification->SetCompletionState(CompletionState);
+	}
+}
+
+void SSCSEditor::OnResetToBlueprintDefaults() const
+{
+	int32 NumChangedProperties = 0;
+
+	AActor* Actor = ActorContext.Get();
+	UBlueprint* Blueprint = Actor ? Cast<UBlueprint>(Actor->GetClass()->ClassGeneratedBy) : nullptr;
+
+	if (Actor != NULL && Blueprint != NULL && Actor->GetClass()->ClassGeneratedBy == Blueprint)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ResetToBlueprintDefaults_Transaction", "Reset to Blueprint Defaults"));
+
+		{
+			AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
+			if (BlueprintCDO != NULL)
+			{
+				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::CallPostEditChangeProperty);
+				NumChangedProperties = EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
+			}
+			if (Actor->GetInstanceComponents().Num() > 0)
+			{
+				TArray<UActorComponent*> InstanceComponents = Actor->GetInstanceComponents();
+				NumChangedProperties += InstanceComponents.Num();
+				for (UActorComponent* ActorComponent : InstanceComponents)
+				{
+					if (ActorComponent)
+					{
+						ActorComponent->DestroyComponent();
+					}
+				}
+			}
+		}
+
+		// Set up a notification record to indicate success/failure
+		FNotificationInfo NotificationInfo(FText::GetEmpty());
+		NotificationInfo.FadeInDuration = 1.0f;
+		NotificationInfo.FadeOutDuration = 2.0f;
+		NotificationInfo.bUseLargeFont = false;
+		SNotificationItem::ECompletionState CompletionState;
+		if (NumChangedProperties > 0)
+		{
+			if (NumChangedProperties > 1)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("BlueprintName"), FText::FromName(Blueprint->GetFName()));
+				Args.Add(TEXT("NumChangedProperties"), NumChangedProperties);
+				Args.Add(TEXT("ActorName"), FText::FromString(Actor->GetActorLabel()));
+				NotificationInfo.Text = FText::Format(LOCTEXT("ResetToBlueprintDefaults_ApplySuccess", "Reset {ActorName} ({NumChangedProperties} property changes applied from Blueprint {BlueprintName})."), Args);
+			}
+			else
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("BlueprintName"), FText::FromName(Blueprint->GetFName()));
+				Args.Add(TEXT("ActorName"), FText::FromString(Actor->GetActorLabel()));
+				NotificationInfo.Text = FText::Format(LOCTEXT("ResetOneToBlueprintDefaults_ApplySuccess", "Reset {ActorName} (1 property change applied from Blueprint {BlueprintName})."), Args);
+			}
+			CompletionState = SNotificationItem::CS_Success;
+		}
+		else
+		{
+			NotificationInfo.Text = LOCTEXT("ResetToBlueprintDefaults_Failed", "No properties were reset");
+			CompletionState = SNotificationItem::CS_Fail;
+		}
+
+		// Add the notification to the queue
+		const auto Notification = FSlateNotificationManager::Get().AddNotification(NotificationInfo);
+		Notification->SetCompletionState(CompletionState);
+	}
+}
+
+void SSCSEditor::PromoteToBlueprint() const
+{
+	bool bHarvest = false;
+	FCreateBlueprintFromActorDialog::OpenDialog(bHarvest, ActorContext.Get());
+}
+
+FReply SSCSEditor::OnPromoteToBlueprintClicked()
+{
+	PromoteToBlueprint();
+	return FReply::Handled();
 }
 
 const TArray<FSCSEditorTreeNodePtrType>& SSCSEditor::GetRootComponentNodes()

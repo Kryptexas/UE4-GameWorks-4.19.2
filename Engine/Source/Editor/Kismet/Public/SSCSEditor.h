@@ -430,7 +430,7 @@ public:
 		,_OnHighlightPropertyInDetailsView()
 		{}
 
-		SLATE_ATTRIBUTE(EEditorMode, EditorMode)
+		SLATE_ARGUMENT(EEditorMode, EditorMode)
 		SLATE_ATTRIBUTE(class AActor*, ActorContext)
 		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
 		SLATE_ATTRIBUTE(bool, AllowEditing)
@@ -594,6 +594,8 @@ public:
 	/** Returns the set of root nodes */
 	const TArray<FSCSEditorTreeNodePtrType>& GetRootComponentNodes();
 
+	/** @return The current editor mode (editing live actors or editing blueprints) */
+	EEditorMode GetEditorMode() const { return EditorMode; }
 protected:
 	FString GetSelectedClassText() const;
 
@@ -683,6 +685,32 @@ protected:
 	/** Returns the set of expandable nodes that are currently collapsed in the UI */
 	void GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, TSet<FSCSEditorTreeNodePtrType>& OutCollapsedNodes) const;
 
+	/** @return The visibility of the promote to blueprint button (only visible with an actor instance that is not created from a blueprint)*/
+	EVisibility GetPromoteToBlueprintButtonVisibility() const;
+
+	/** @return The visibility of the Edit Blueprint button (only visible with an actor instance that is created from a blueprint)*/
+	EVisibility GetEditBlueprintButtonVisibility() const;
+
+	/** @return the tooltip describing how many properties will be applied to the blueprint */
+	FText OnGetApplyChangesToBlueprintTooltip() const;
+
+	/** @return the tooltip describing how many properties will be reset to the blueprint default*/
+	FText OnGetResetToBlueprintDefaultsTooltip() const;
+
+	/** Opens the blueprint editor for the blueprint being viewed by the scseditor */
+	void OnOpenBlueprintEditor() const;
+
+	/** Propagates instance changes to the blueprint */
+	void OnApplyChangesToBlueprint() const;
+
+	/** Resets instance changes to the blueprint default */
+	void OnResetToBlueprintDefaults() const;
+
+	/** Converts the current actor instance to a blueprint */
+	void PromoteToBlueprint() const;
+
+	/** Called when the promote to blueprint button is clicked */
+	FReply OnPromoteToBlueprintClicked();
 public:
 	/** Tree widget */
 	TSharedPtr<SSCSTreeType> SCSTreeWidget;
@@ -698,9 +726,6 @@ public:
 
 	/** Whether or not the deferred rename request was flagged as transactional */
 	bool bIsDeferredRenameRequestTransactional;
-
-	/** Attribute to indicate which editor mode we're in. */
-	TAttribute<EEditorMode> EditorMode;
 
 	/** Attribute that provides access to the Actor context for which we are viewing/editing the SCS. */
 	TAttribute<class AActor*> ActorContext;
@@ -723,6 +748,8 @@ public:
 	/** Delegate to invoke when the given property should be highlighted in the details view (e.g. diff). */
 	FOnHighlightPropertyInDetailsView OnHighlightPropertyInDetailsView;
 private:
+	/** Indicates which editor mode we're in. */
+	EEditorMode EditorMode;
 
 	/** Root set of tree */
 	TArray<FSCSEditorTreeNodePtrType> RootNodes;

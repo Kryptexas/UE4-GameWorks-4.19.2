@@ -45,7 +45,7 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 		.Padding(2.f,1.f)
 		[
 			SNew(SImage)
-			.Image(FEditorStyle::GetBrush(TEXT("SCSEditor.NewComponentIcon")))
+			.Image(FEditorStyle::GetBrush(TEXT("Plus")))
 		]
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
