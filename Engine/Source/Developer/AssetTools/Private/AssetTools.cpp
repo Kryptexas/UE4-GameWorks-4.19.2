@@ -149,6 +149,45 @@ TWeakPtr<IAssetTypeActions> FAssetTools::GetAssetTypeActionsForClass( UClass* Cl
 	return MostDerivedAssetTypeActions;
 }
 
+void FAssetTools::RegisterClassTypeActions(const TSharedRef<IClassTypeActions>& NewActions)
+{
+	ClassTypeActionsList.Add(NewActions);
+}
+
+void FAssetTools::UnregisterClassTypeActions(const TSharedRef<IClassTypeActions>& ActionsToRemove)
+{
+	ClassTypeActionsList.Remove(ActionsToRemove);
+}
+
+void FAssetTools::GetClassTypeActionsList( TArray<TWeakPtr<IClassTypeActions>>& OutClassTypeActionsList ) const
+{
+	for (auto ActionsIt = ClassTypeActionsList.CreateConstIterator(); ActionsIt; ++ActionsIt)
+	{
+		OutClassTypeActionsList.Add(*ActionsIt);
+	}
+}
+
+TWeakPtr<IClassTypeActions> FAssetTools::GetClassTypeActionsForClass( UClass* Class ) const
+{
+	TSharedPtr<IClassTypeActions> MostDerivedClassTypeActions;
+
+	for (int32 TypeActionsIdx = 0; TypeActionsIdx < ClassTypeActionsList.Num(); ++TypeActionsIdx)
+	{
+		TSharedRef<IClassTypeActions> TypeActions = ClassTypeActionsList[TypeActionsIdx];
+		UClass* SupportedClass = TypeActions->GetSupportedClass();
+
+		if ( Class->IsChildOf(SupportedClass) )
+		{
+			if ( !MostDerivedClassTypeActions.IsValid() || SupportedClass->IsChildOf( MostDerivedClassTypeActions->GetSupportedClass() ) )
+			{
+				MostDerivedClassTypeActions = TypeActions;
+			}
+		}
+	}
+
+	return MostDerivedClassTypeActions;
+}
+
 bool FAssetTools::GetAssetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder, bool bIncludeHeading )
 {
 	bool bAddedActions = false;

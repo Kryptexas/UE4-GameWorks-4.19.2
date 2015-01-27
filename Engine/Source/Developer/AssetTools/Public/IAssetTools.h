@@ -3,6 +3,7 @@
 #pragma once
 
 class IAssetTypeActions;
+class IClassTypeActions;
 class FAssetData;
 class UFactory;
 
@@ -42,6 +43,18 @@ public:
 
 	/** Gets the appropriate AssetTypeActions for the supplied class */
 	virtual TWeakPtr<IAssetTypeActions> GetAssetTypeActionsForClass( UClass* Class ) const = 0;
+
+	/** Registers a class type actions object so it can provide information about and actions for class asset types. */
+	virtual void RegisterClassTypeActions(const TSharedRef<IClassTypeActions>& NewActions) = 0;
+
+	/** Unregisters a class type actions object. It will no longer provide information about or actions for class asset types. */
+	virtual void UnregisterClassTypeActions(const TSharedRef<IClassTypeActions>& ActionsToRemove) = 0;
+
+	/** Generates a list of currently registered ClassTypeActions */
+	virtual void GetClassTypeActionsList( TArray<TWeakPtr<IClassTypeActions>>& OutClassTypeActionsList ) const = 0;
+
+	/** Gets the appropriate ClassTypeActions for the supplied class */
+	virtual TWeakPtr<IClassTypeActions> GetClassTypeActionsForClass( UClass* Class ) const = 0;
 
 	/**
 	 * Fills out a menubuilder with a list of commands that can be applied to the specified objects.

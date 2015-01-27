@@ -294,4 +294,33 @@ FText FAssetTypeActions_Blueprint::GetAssetDescription(const FAssetData& AssetDa
 	return FText::GetEmpty();
 }
 
+TWeakPtr<IClassTypeActions> FAssetTypeActions_Blueprint::GetClassTypeActions(const FAssetData& AssetData) const
+{
+	static const FName NativeParentClassTag = "NativeParentClass";
+	static const FName ParentClassTag = "ParentClass";
+
+	// Blueprints get the class type actions for their parent native class - this avoids us having to load the blueprint
+	UClass* ParentClass = nullptr;
+	const FString* ParentClassNamePtr = AssetData.TagsAndValues.Find(NativeParentClassTag);
+	if(!ParentClassNamePtr)
+	{
+		ParentClassNamePtr = AssetData.TagsAndValues.Find(ParentClassTag);
+	}
+	if(ParentClassNamePtr && !ParentClassNamePtr->IsEmpty())
+	{
+		UObject* Outer = nullptr;
+		FString ParentClassName = *ParentClassNamePtr;
+		ResolveName(Outer, ParentClassName, false, false);
+		ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
+	}
+
+	if(ParentClass)
+	{
+		FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+		return AssetToolsModule.Get().GetClassTypeActionsForClass(ParentClass);
+	}
+
+	return nullptr;
+}
+
 #undef LOCTEXT_NAMESPACE
