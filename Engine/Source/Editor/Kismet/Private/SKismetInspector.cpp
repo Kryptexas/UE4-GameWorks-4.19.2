@@ -381,14 +381,18 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 	{
 		bool bEnableComponentCustomization = false;
 
-		if ( BlueprintEditorPtr.Pin()->CanAccessComponentsMode() )
+		TSharedPtr<FBlueprintEditor> BlueprintEditor = BlueprintEditorPtr.Pin();
+		if ( BlueprintEditor.IsValid() )
 		{
-			for ( UObject* PropertyObject : PropertyObjects )
+			if ( BlueprintEditor->CanAccessComponentsMode() )
 			{
-				if ( PropertyObject->IsA<UActorComponent>() )
+				for ( UObject* PropertyObject : PropertyObjects )
 				{
-					bEnableComponentCustomization = true;
-					break;
+					if ( PropertyObject->IsA<UActorComponent>() )
+					{
+						bEnableComponentCustomization = true;
+						break;
+					}
 				}
 			}
 		}
