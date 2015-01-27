@@ -708,7 +708,10 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		{
 			// because it is tracked by FUnresolvedStructTracker, it must be a struct
 			DEFERRED_DEPENDENCY_CHECK(Cast<UStruct>(Import.XObject) != nullptr);
-			Import.SourceLinker->ResolveDeferredDependencies((UStruct*)Import.XObject);
+			if (Import.SourceLinker)
+			{
+				Import.SourceLinker->ResolveDeferredDependencies((UStruct*)Import.XObject);
+			}
 		}
 	}
 
