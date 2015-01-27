@@ -56,6 +56,17 @@ void FAndroidTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder&
 	BuildIconSection(DetailLayout);
 }
 
+static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
+{
+	const FString* URL = Metadata.Find(TEXT("href"));
+	
+	if(URL)
+	{
+		FPlatformProcess::LaunchURL(**URL, nullptr, nullptr);
+	}
+}
+
+
 void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutBuilder& DetailLayout)
 {
 	// Cache some categories
@@ -75,6 +86,27 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 			PlatformSetupMessage
 		];
 
+	APKPackagingCategory.AddCustomRow(LOCTEXT("UpgradeInfo", "Upgrade Info"), false)
+		.WholeRowWidget
+		[
+			SNew(SBorder)
+			.Padding(1)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(10, 10, 10, 10))
+				.FillWidth(1.0f)
+				[
+					SNew(SRichTextBlock)
+					.Text(LOCTEXT("UpgradeInfoMessage", "<RichTextBlock.TextHighlight>Note to users from 4.6 or earlier</>: We now <RichTextBlock.TextHighlight>GENERATE</> an AndroidManifest.xml when building, so if you have customized your .xml file, you will need to put all of your changes into the below settings. Note that we don't touch your AndroidManifest.xml that is in your project directory.\nAdditionally, we no longer use SigningConfig.xml, the settings are now set in the Distribution Signing section.\n\nThere is currently no .obb file downloader support in the engine, so if you don't package your data into your .apk (see the below setting and its tooltip about 50MB limit), device is not guaranteed to have the .obb file downloaded in all cases. Until Unreal Engine v4.8, there won't be a way for your app to download the .obb file from the Google Play Store. See <a id=\"browser\" href=\"http://developer.android.com/google/play/expansion-files.html#Downloading\" style=\"HoverOnlyHyperlink\">http://developer.android.com/google/play/expansion-files.html</> for more information."))
+					.TextStyle(FEditorStyle::Get(), "MessageLog")
+					.DecoratorStyleSet(&FEditorStyle::Get())
+					.AutoWrapText(true)
+					+ SRichTextBlock::HyperlinkDecorator(TEXT("browser"), FSlateHyperlinkRun::FOnClick::CreateStatic(&OnBrowserLinkClicked))
+				]
+			]
+		];
+	
 	APKPackagingCategory.AddCustomRow(LOCTEXT("BuildFolderLabel", "Build Folder"), false)
 		.IsEnabled(SetupForPlatformAttribute)
 		.NameContent()
@@ -171,7 +203,8 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	SETUP_NONROCKET_PROP(bBuildForArmV7, BuildCategory, LOCTEXT("BuildForArmV7ToolTip", "Enable ArmV7 CPU architecture support? (this will be used if all CPU architecture types are unchecked)"));
 	SETUP_NONROCKET_PROP(bBuildForX86, BuildCategory, LOCTEXT("BuildForX86ToolTip", "Enable X86 CPU architecture support?"));
 	SETUP_NONROCKET_PROP(bBuildForES2, BuildCategory, LOCTEXT("BuildForES2ToolTip", "Enable OpenGL ES2 rendering support? (this will be used if rendering types are unchecked)"));
-	SETUP_NONROCKET_PROP(bBuildForES31, BuildCategory, LOCTEXT("BuildForES31ToolTip", "Enable OpenGL ES31 + AEP (Android Extension Pack) rendering support?"));
+	SETUP_NONROCKET_PROP(bBuildForES31, BuildCategory, LOCTEXT("BuildForES31ToolTip", "Enable OpenGL ES31 + AEP (Android Extension Pack) rendering support? Currently only Tegra K1 supports this, as it will force DXT textures (In 4.8 3.1+AEP will work with all texture formats).\nIf you use the Launch On feature (in the main toolbar), when you change this setting, you need to restart the editor to make sure it will launch with the proper 3.1+AEP support!"));
+	
 	// @todo android fat binary: Put back in when we expose those
 //	SETUP_NONROCKET_PROP(bSplitIntoSeparateApks, BuildCategory, LOCTEXT("SplitIntoSeparateAPKsToolTip", "If checked, CPU architectures and rendering types will be split into separate .apk files"));
 }
