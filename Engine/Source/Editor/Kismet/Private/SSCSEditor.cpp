@@ -3845,6 +3845,24 @@ TSharedPtr<FSCSEditorTreeNode> SSCSEditor::AddRootComponentTreeNode(UActorCompon
 	return NewTreeNode;
 }
 
+
+void SSCSEditor::MakeDefaultComponentPrefixAndName( TSubclassOf<UActorComponent> ComponentClass, FString& DefaultClassPrefix, FString& DefaultClassName ) const
+{
+	// If the class being created inherits directly from UActorComponent, we don't want the default new class name to
+	// be called "NewActorComponent", because this will shw up as "New Actor" in the SCS editor tree which doesn't make
+	// a whole lot of sense in the context of a list of components inside an actor.
+	DefaultClassName = ComponentClass->GetName();
+	if( ComponentClass == UActorComponent::StaticClass() )
+	{
+		// NOTE: This is intentionally not localized because it will become a C++ source file and class name
+		DefaultClassName = TEXT( "Component" );
+	}
+
+	// NOTE: This is intentionally not localized because it will become a C++ source file and class name
+	DefaultClassPrefix = TEXT( "New" );
+}
+
+
 UClass* SSCSEditor::CreateNewCPPComponent( TSubclassOf<UActorComponent> ComponentClass )
 {
 	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(SharedThis(this));
@@ -3859,7 +3877,11 @@ UClass* SSCSEditor::CreateNewCPPComponent( TSubclassOf<UActorComponent> Componen
 	};
 
 	const bool bModal = true;
-	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(ComponentClass, FString(), ParentWindow, bModal, FOnCodeAddedToProject::CreateLambda(OnCodeAddedToProject));
+
+	FString DefaultClassPrefix, DefaultClassName;
+	MakeDefaultComponentPrefixAndName( ComponentClass, DefaultClassPrefix, DefaultClassName );
+
+	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(ComponentClass, FString(), ParentWindow, bModal, FOnCodeAddedToProject::CreateLambda(OnCodeAddedToProject), DefaultClassPrefix, DefaultClassName);
 
 	return LoadClass<UActorComponent>(nullptr, *AddedClassName, nullptr, LOAD_None, nullptr);
 }
@@ -3883,13 +3905,16 @@ UClass* SSCSEditor::CreateNewBPComponent(TSubclassOf<UActorComponent> ComponentC
 		AssetName = FPackageName::GetLongPackageAssetName(Path);
 	};
 
+	FString DefaultClassPrefix, DefaultClassName;
+	MakeDefaultComponentPrefixAndName( ComponentClass, DefaultClassPrefix, DefaultClassName );
+
 	TSharedPtr<SCreateAssetFromObject> CreateBlueprintFromActorDialog;
 	PickBlueprintPathWidget->SetContent
 	(
 		SAssignNew(CreateBlueprintFromActorDialog, SCreateAssetFromObject, PickBlueprintPathWidget)
 		.HeadingText(LOCTEXT("CreateBlueprintFromActor_Heading", "Blueprint Name"))
 		.CreateButtonText(LOCTEXT("CreateBlueprintFromActor_ButtonLabel", "Create Blueprint"))
-		.DefaultNameOverride(FText::FromString(TEXT("BlueprintComponent")))
+		.DefaultNameOverride(FText::FromString(DefaultClassPrefix + DefaultClassName))
 		.OnCreateAssetAction(FOnPathChosen::CreateLambda(OnPathPicked))
 	);
 
@@ -4007,13 +4032,6 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			ActorInstance->Modify();
 
 			FName NewComponentName = NAME_None;
-			if (NewComponentClass->ClassGeneratedBy && NewComponentClass->GetName().EndsWith(TEXT("_C")))
-			{
-				const FString NewClassName = NewComponentClass->GetName();
-				const int32 NewStrLen = NewClassName.Len() - 2;
-				NewComponentName = MakeUniqueObjectName(ActorInstance, NewComponentClass, FName(*NewClassName.Left(NewStrLen)));
-			}
-
 			if (Asset != nullptr)
 			{
 				NewComponentName = *FComponentEditorUtils::GenerateValidVariableNameFromAsset(Asset, ActorInstance);
