@@ -1093,7 +1093,7 @@ bool UObject::CheckDefaultSubobjectsInternal()
 /**
  * Determines whether the specified object should load values using PerObjectConfig rules
  */
-static bool UsesPerObjectConfig( UObject* SourceObject )
+bool UsesPerObjectConfig( UObject* SourceObject )
 {
 	checkSlow(SourceObject);
 	return (SourceObject->GetClass()->HasAnyClassFlags(CLASS_PerObjectConfig) && !SourceObject->HasAnyFlags(RF_ClassDefaultObject));
@@ -1102,7 +1102,7 @@ static bool UsesPerObjectConfig( UObject* SourceObject )
 /**
  * Returns the file to load ini values from for the specified object, taking into account PerObjectConfig-ness
  */
-static FString GetConfigFilename( UObject* SourceObject )
+FString GetConfigFilename( UObject* SourceObject )
 {
 	checkSlow(SourceObject);
 
