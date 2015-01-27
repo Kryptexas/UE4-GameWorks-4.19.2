@@ -332,6 +332,12 @@ public:
 		: FSceneComponentInstanceData(SourceComponent)
 	{}
 
+	virtual void ApplyToComponent(UActorComponent* Component) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component);
+		CastChecked<USkyLightComponent>(Component)->ApplyComponentInstanceData(this);
+	}
+
 	FGuid LightGuid;
 	bool bPrecomputedLightingIsValid;
 	// This has to be refcounted to keep it alive during the handoff without doing a deep copy
@@ -357,13 +363,9 @@ FComponentInstanceDataBase* USkyLightComponent::GetComponentInstanceData() const
 	return InstanceData;
 }
 
-void USkyLightComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void USkyLightComponent::ApplyComponentInstanceData(FPrecomputedSkyLightInstanceData* LightMapData)
 {
-	//Skip ULightComponent implementationn
-	USceneComponent::ApplyComponentInstanceData(ComponentInstanceData);
-
-	check(ComponentInstanceData);
-	FPrecomputedSkyLightInstanceData* LightMapData  = static_cast<FPrecomputedSkyLightInstanceData*>(ComponentInstanceData);
+	check(LightMapData);
 
 	LightGuid = LightMapData->LightGuid;
 	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;

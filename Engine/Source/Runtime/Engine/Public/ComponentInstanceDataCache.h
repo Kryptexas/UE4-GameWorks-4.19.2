@@ -20,6 +20,8 @@ public:
 
 	bool MatchesComponent(const UActorComponent* Component) const;
 
+	virtual void ApplyToComponent(UActorComponent* Component) = 0;
+
 protected:
 	/** The name of the source component */
 	FName SourceComponentName;

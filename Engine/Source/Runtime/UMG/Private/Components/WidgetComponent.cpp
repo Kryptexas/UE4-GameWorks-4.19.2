@@ -577,6 +577,12 @@ public:
 		, RenderTarget( SourceComponent->GetRenderTarget() )
 	{}
 
+	virtual void ApplyToComponent(UActorComponent* Component) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component);
+		CastChecked<UWidgetComponent>(Component)->ApplyComponentInstanceData(this);
+	}
+
 public:
 	TSubclassOf<UUserWidget> WidgetClass;
 	UTextureRenderTarget2D* RenderTarget;
@@ -593,15 +599,12 @@ FComponentInstanceDataBase* UWidgetComponent::GetComponentInstanceData() const
 	return new FWidgetComponentInstanceData( this );
 }
 
-void UWidgetComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void UWidgetComponent::ApplyComponentInstanceData(FWidgetComponentInstanceData* WidgetInstanceData)
 {
-	Super::ApplyComponentInstanceData(ComponentInstanceData);
-
-	check(ComponentInstanceData);
+	check(WidgetInstanceData);
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component
 	// That means all component state that is modified here must be mirrored on the scene proxy, which will be recreated to receive the changes later due to MarkRenderStateDirty.
-	FWidgetComponentInstanceData* WidgetInstanceData  = static_cast<FWidgetComponentInstanceData*>(ComponentInstanceData);
 
 	if (GetWidgetClass() != WidgetClass)
 	{

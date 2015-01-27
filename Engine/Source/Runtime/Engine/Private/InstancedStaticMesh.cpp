@@ -683,6 +683,12 @@ public:
 	{
 	}
 
+	virtual void ApplyToComponent(UActorComponent* Component) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component);
+		CastChecked<UInstancedStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
+	}
+
 	/** Used to store lightmap data during RerunConstructionScripts */
 	struct FLightMapInstanceData
 	{
@@ -719,36 +725,37 @@ FName UInstancedStaticMeshComponent::GetComponentInstanceDataType() const
 FComponentInstanceDataBase* UInstancedStaticMeshComponent::GetComponentInstanceData() const
 {
 #if WITH_EDITOR
-	FInstancedStaticMeshComponentInstanceData* InstanceData = nullptr;
+	FComponentInstanceDataBase* InstanceData = nullptr;
+	FInstancedStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
 
 	// Don't back up static lighting if there isn't any
 	if (bHasCachedStaticLighting || SelectedInstances.Num() > 0)
 	{
-		InstanceData = new FInstancedStaticMeshComponentInstanceData(*this);
+		InstanceData = StaticMeshInstanceData = new FInstancedStaticMeshComponentInstanceData(*this);	
 	}
 
 	// Don't back up static lighting if there isn't any
 	if (bHasCachedStaticLighting)
 	{
 		// Fill in info (copied from UStaticMeshComponent::GetComponentInstanceData)
-		InstanceData->bHasCachedStaticLighting = true;
-		InstanceData->CachedStaticLighting.Transform = ComponentToWorld;
-		InstanceData->CachedStaticLighting.IrrelevantLights = IrrelevantLights;
-		InstanceData->CachedStaticLighting.LODDataLightMap.Empty(LODData.Num());
+		StaticMeshInstanceData->bHasCachedStaticLighting = true;
+		StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
+		StaticMeshInstanceData->CachedStaticLighting.IrrelevantLights = IrrelevantLights;
+		StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Empty(LODData.Num());
 		for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 		{
-			InstanceData->CachedStaticLighting.LODDataLightMap.Add(LODDataEntry.LightMap);
-			InstanceData->CachedStaticLighting.LODDataShadowMap.Add(LODDataEntry.ShadowMap);
+			StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Add(LODDataEntry.LightMap);
+			StaticMeshInstanceData->CachedStaticLighting.LODDataShadowMap.Add(LODDataEntry.ShadowMap);
 		}
 
 		// Back up per-instance lightmap/shadowmap info
-		InstanceData->PerInstanceSMData = PerInstanceSMData;
+		StaticMeshInstanceData->PerInstanceSMData = PerInstanceSMData;
 	}
 
 	// Back up instance selection
 	if (SelectedInstances.Num() > 0)
 	{
-		InstanceData->SelectedInstances = SelectedInstances;
+		StaticMeshInstanceData->SelectedInstances = SelectedInstances;
 	}
 
 	return InstanceData;
@@ -757,15 +764,10 @@ FComponentInstanceDataBase* UInstancedStaticMeshComponent::GetComponentInstanceD
 #endif
 }
 
-void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticMeshComponentInstanceData* InstancedMeshData)
 {
-	// Skip UStaticMeshComponent implementation
-	USceneComponent::ApplyComponentInstanceData(ComponentInstanceData);
-
 #if WITH_EDITOR
-	check(ComponentInstanceData);
-
-	FInstancedStaticMeshComponentInstanceData* InstancedMeshData  = static_cast<FInstancedStaticMeshComponentInstanceData*>(ComponentInstanceData);
+	check(InstancedMeshData);
 
 	if (StaticMesh != InstancedMeshData->StaticMesh)
 	{

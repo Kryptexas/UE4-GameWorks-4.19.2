@@ -121,7 +121,7 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor) const
 					{
 						if (ComponentInstanceData && ComponentInstanceData->MatchesComponent(Component))
 						{
-							Component->ApplyComponentInstanceData(ComponentInstanceData);
+							ComponentInstanceData->ApplyToComponent(Component);
 							break;
 						}
 					}

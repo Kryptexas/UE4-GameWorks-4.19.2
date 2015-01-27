@@ -258,10 +258,7 @@ public:
 #endif
 	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 	// End UActorComponent interface.
-
-
 
 	// Begin UPrimitiveComponent interface.
 	virtual int32 GetNumMaterials() const override;
@@ -450,6 +447,8 @@ public:
 
 	/** Get this components index in its parents blueprint created components array (used for matching instance data) */
 	int32 GetBlueprintCreatedComponentIndex() const;
+
+	void ApplyComponentInstanceData(class FStaticMeshComponentInstanceData* ComponentInstanceData);
 };
 
 

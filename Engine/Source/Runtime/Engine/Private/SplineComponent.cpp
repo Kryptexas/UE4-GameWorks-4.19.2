@@ -594,6 +594,12 @@ public:
 	{
 	}
 
+	virtual void ApplyToComponent(UActorComponent* Component) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component);
+		CastChecked<USplineComponent>(Component)->ApplyComponentInstanceData(this);
+	}
+
 	FInterpCurveVector SplineInfo;
 	bool bClosedLoop;
 };
@@ -606,23 +612,26 @@ FName USplineComponent::GetComponentInstanceDataType() const
 
 FComponentInstanceDataBase* USplineComponent::GetComponentInstanceData() const
 {
-	FSplineInstanceData* SplineInstanceData = nullptr;
+	FComponentInstanceDataBase* InstanceData = nullptr;
 	if (bAllowSplineEditingPerInstance)
 	{
-		SplineInstanceData = new FSplineInstanceData(this);
+		FSplineInstanceData* SplineInstanceData = new FSplineInstanceData(this);
 		SplineInstanceData->SplineInfo = SplineInfo;
 		SplineInstanceData->bClosedLoop = bClosedLoop;
+
+		InstanceData = SplineInstanceData;
 	}
-	return SplineInstanceData;
+	else
+	{
+		InstanceData = Super::GetComponentInstanceData();
+	}
+	return InstanceData;
 }
 
-void USplineComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void USplineComponent::ApplyComponentInstanceData(FSplineInstanceData* SplineInstanceData)
 {
-	Super::ApplyComponentInstanceData(ComponentInstanceData);
-
-	if (ComponentInstanceData)
+	if (SplineInstanceData)
 	{
-		FSplineInstanceData* SplineInstanceData  = static_cast<FSplineInstanceData*>(ComponentInstanceData);
 		if (bAllowSplineEditingPerInstance)
 		{
 			SplineInfo = SplineInstanceData->SplineInfo;
