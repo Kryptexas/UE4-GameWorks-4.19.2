@@ -244,15 +244,6 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(UActorComponent* InComponentTemplate)
 	{
 		bIsInstanced = true;
 		bWasInstancedFromNativeClass = false;
-
-		// Make sure the component has a valid name
-		if (!FComponentEditorUtils::IsValidVariableNameString(InComponentTemplate, InComponentTemplate->GetName()))
-		{
-			ERenameFlags RenameFlags = REN_DontCreateRedirectors | REN_NonTransactional;
-			FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(InComponentTemplate->GetClass(), InComponentTemplate->GetOwner());
-
-			InComponentTemplate->Rename(*NewComponentName, nullptr, RenameFlags);
-		}
 		
 		InstancedComponentName = InComponentTemplate->GetFName();
 
@@ -522,12 +513,20 @@ bool FSCSEditorTreeNode::IsAttachedTo(FSCSEditorTreeNodePtrType InNodePtr) const
 bool FSCSEditorTreeNode::IsDefaultSceneRoot() const
 {
 	USCS_Node* SCS_Node = GetSCSNode();
-	if(SCS_Node != NULL)
+	if(SCS_Node != nullptr)
 	{
 		USimpleConstructionScript* SCS = SCS_Node->GetSCS();
-		if(SCS != NULL)
+		if(SCS != nullptr)
 		{
 			return SCS_Node == SCS->GetDefaultSceneRootNode();
+		}
+	}
+	else if(IsUserInstanced())
+	{
+		USceneComponent* SceneComponent = Cast<USceneComponent>(GetComponentTemplate());
+		if(SceneComponent != nullptr)
+		{
+			return SceneComponent->GetFName() == FComponentEditorUtils::GetDefaultSceneRootVariableName();
 		}
 	}
 
@@ -2160,7 +2159,23 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	}
 	else    // SSCSEditor::EEditorMode::ActorInstance
 	{
+		if(DroppedNodePtr->GetParent().IsValid())
+		{
+			// Remove the dropped node from its existing parent
+			DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
+		}
 
+		check(SceneRootNodePtr->CanReparent());
+
+		// Save old root node
+		FSCSEditorTreeNodePtrType OldSceneRootNodePtr = SceneRootNodePtr;
+
+		// Set node we are dropping as new root
+		SceneRootNodePtr = DroppedNodePtr;
+
+		// Set old root as child of new root
+		check(OldSceneRootNodePtr.IsValid());
+		SceneRootNodePtr->AddChild(OldSceneRootNodePtr);
 	}
 
 	PostDragDropAction(true);
@@ -3721,7 +3736,6 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		
 		ActorInstance->Modify();
 
-		// Create new component
 		FName NewComponentName = NAME_None;
 		if (Asset != nullptr)
 		{
@@ -3731,19 +3745,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		{
 			NewComponentName = *FComponentEditorUtils::GenerateValidVariableName(NewComponentClass, ActorInstance);
 		}
-
-		UActorComponent* NewComponentInstance = ConstructObject<UActorComponent>(NewComponentClass, ActorInstance, NewComponentName, RF_Transactional);
-		check(NewComponentInstance != nullptr);
-
-		if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewComponentInstance))
-		{
-			NewSceneComponent->AttachTo(ActorInstance->GetRootComponent());
-		}
-
-		// Add to SerializedComponents array so it gets saved
-		ActorInstance->AddInstanceComponent(NewComponentInstance);
-
-		return AddNewNode(NewComponentInstance, Asset, true);
+		return AddNewNode(ConstructObject<UActorComponent>(NewComponentClass, ActorInstance, NewComponentName, RF_Transactional), Asset, true);
 	}
 }
 
@@ -3800,6 +3802,17 @@ UActorComponent* SSCSEditor::AddNewNode(UActorComponent* NewInstanceComponent,  
 {
 	check(NewInstanceComponent != nullptr);
 
+	AActor* ActorInstance = ActorContext.Get();
+	check(ActorInstance != nullptr);
+
+	if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewInstanceComponent))
+	{
+		NewSceneComponent->AttachTo(ActorInstance->GetRootComponent());
+	}
+
+	// Add to SerializedComponents array so it gets saved
+	ActorInstance->AddInstanceComponent(NewInstanceComponent);
+
 	if(Asset)
 	{
 		FComponentAssetBrokerage::AssignAssetToComponent(NewInstanceComponent, Asset);
@@ -3814,6 +3827,15 @@ UActorComponent* SSCSEditor::AddNewNode(UActorComponent* NewInstanceComponent,  
 	if(NewSceneComponent != nullptr)
 	{
 		NewNodePtr = AddTreeNode(NewSceneComponent);
+
+		// Remove the old scene root node if it's set to the default one
+		if(SceneRootNodePtr.IsValid() && SceneRootNodePtr->IsDefaultSceneRoot())
+		{
+			RemoveComponentNode(SceneRootNodePtr);
+			SceneRootNodePtr.Reset();
+
+			UpdateTree();
+		}
 	}
 	else
 	{
@@ -4048,9 +4070,6 @@ void SSCSEditor::PasteNodes()
 			FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(NewActorComponent->GetClass(), ActorInstance);
 			NewActorComponent->Rename(*NewComponentName, ActorInstance, REN_DontCreateRedirectors | REN_DoNotDirty);
 
-			// Add to SerializedComponents array so it gets saved
-			ActorInstance->AddInstanceComponent(NewActorComponent);
-
 			// Create a new node to contain the new component instance and add it to the tree
 			NewActorComponent = AddNewNode(NewActorComponent, NULL, false);
 		}
@@ -4253,6 +4272,91 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 		UActorComponent* ComponentInstance = InNodePtr->GetComponentTemplate();
 		check(ComponentInstance != nullptr);
 
+		ComponentInstance->Modify();
+
+		// Handle removal of a node within the scene component hierarchy
+		USceneComponent* SceneComponent = Cast<USceneComponent>(ComponentInstance);
+		if(SceneComponent != nullptr)
+		{
+			// Find an appropriate child node to promote to this node's position in the hierarchy
+			USceneComponent* ChildToPromote = nullptr;
+			if(SceneComponent->AttachChildren.Num() > 0)
+			{
+				// Start with the first child node
+				ChildToPromote = SceneComponent->AttachChildren[0];
+				check(ChildToPromote != nullptr);
+
+				// Always choose non editor-only child nodes over editor-only child nodes (since we don't want editor-only nodes to end up with non editor-only child nodes)
+				if(ChildToPromote->IsEditorOnly())
+				{
+					for(int32 ChildIndex = 1; ChildIndex < SceneComponent->AttachChildren.Num(); ++ChildIndex)
+					{
+						USceneComponent* Child = SceneComponent->AttachChildren[ChildIndex];
+						if (Child != nullptr && !Child->IsEditorOnly())
+						{
+							ChildToPromote = Child;
+							break;
+						}
+					}
+				}
+			}
+
+			// Handle removal of the root node
+			if(SceneComponent == ActorInstance->GetRootComponent())
+			{
+				// We only promote non editor-only components to root in instanced mode
+				if(ChildToPromote == nullptr || ChildToPromote->IsEditorOnly())
+				{
+					// Construct a new default root component
+					USceneComponent* NewRootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), ActorInstance, FComponentEditorUtils::GetDefaultSceneRootVariableName(), RF_Transactional);
+					NewRootComponent->Mobility = SceneComponent->Mobility;
+					NewRootComponent->SetWorldLocationAndRotation(SceneComponent->GetComponentLocation(), SceneComponent->GetComponentRotation());
+
+					// Designate the new default root as the child we're promoting
+					ChildToPromote = NewRootComponent;
+				}
+
+				ActorInstance->Modify();
+
+				// Set the selected child node as the new root
+				check(ChildToPromote != nullptr);
+				ActorInstance->SetRootComponent(ChildToPromote);
+			}
+			else    // ...not the root node, so we'll promote the selected child node to this position in its AttachParent's child array.
+			{
+				// Get the node's AttachParent
+				USceneComponent* AttachParent = SceneComponent->AttachParent;
+				check(AttachParent != nullptr);
+
+				// Find the node's position in its AttachParent's child array
+				int32 Index = AttachParent->AttachChildren.Find(SceneComponent);
+				check(Index != INDEX_NONE);
+
+				// Detach the node from its parent
+				SceneComponent->DetachFromParent();
+
+				// Attach the child node that we're promoting to the parent and move it to the same position as the old node was in the array
+				ChildToPromote->AttachTo(AttachParent, NAME_None, EAttachLocation::KeepWorldPosition);
+				AttachParent->AttachChildren.Remove(ChildToPromote);
+				AttachParent->AttachChildren.Insert(ChildToPromote, Index);
+			}
+
+			// Detach child nodes from the node that's being removed and re-attach them to the child that's being promoted
+			TArray<USceneComponent*> AttachChildrenLocalCopy(SceneComponent->AttachChildren);
+			for(auto ChildCompIt = AttachChildrenLocalCopy.CreateIterator(); ChildCompIt; ++ChildCompIt)
+			{
+				USceneComponent* Child = *ChildCompIt;
+				check(Child != nullptr);
+
+				// Note: This will internally call Modify(), so we don't need to call it here
+				Child->DetachFromParent(true);
+				if(Child != ChildToPromote)
+				{
+					Child->AttachTo(ChildToPromote, NAME_None, EAttachLocation::KeepWorldPosition);
+				}
+			}
+		}
+
 		// Destroy the component instance
 		ComponentInstance->DestroyComponent();
 	}
@@ -4414,8 +4518,9 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USceneComponent* InSceneCompon
 
 	check(InSceneComponent != NULL);
 
-	// If the given component has a parent
-	if(InSceneComponent->AttachParent != NULL)
+	// If the given component has a parent, and if we're not in "instance" mode OR the owner of the parent matches the Actor instance we're editing
+	if(InSceneComponent->AttachParent != NULL
+		&& (EditorMode != EEditorMode::ActorInstance || InSceneComponent->AttachParent->GetOwner() == ActorContext.Get()))
 	{
 		// Attempt to find the parent node in the current tree
 		FSCSEditorTreeNodePtrType ParentNodePtr = FindTreeNode(InSceneComponent->AttachParent);

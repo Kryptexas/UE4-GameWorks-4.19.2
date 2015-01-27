@@ -123,9 +123,6 @@ public:
 		return EditorActorInstancePtr.Get();
 	}
 
-	/** The name to use for the default scene root variable */
-	ENGINE_API static const FName DefaultSceneRootVariableName;
-
 private:
 	/** Actor instance used to host components in the SCS editor */
 	TWeakObjectPtr<class AActor> EditorActorInstancePtr;

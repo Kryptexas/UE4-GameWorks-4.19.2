@@ -14,10 +14,6 @@
 //////////////////////////////////////////////////////////////////////////
 // USimpleConstructionScript
 
-#if WITH_EDITOR
-const FName USimpleConstructionScript::DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
-#endif
-
 namespace
 {
 	// Helper method to register instanced components post-construction
@@ -651,7 +647,7 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 			&& FBlueprintEditorUtils::IsActorBased(Blueprint)
 			&& Blueprint->BlueprintType != BPTYPE_MacroLibrary)
 		{
-			DefaultSceneRootNode = CreateNode(USceneComponent::StaticClass(), DefaultSceneRootVariableName);
+			DefaultSceneRootNode = CreateNode(USceneComponent::StaticClass(), FComponentEditorUtils::GetDefaultSceneRootVariableName());
 		}
 	}
 
