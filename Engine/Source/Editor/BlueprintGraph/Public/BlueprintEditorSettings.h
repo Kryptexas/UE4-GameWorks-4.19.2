@@ -59,6 +59,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Workflow)
 	bool bUseLegacyMenuingSystem;
 
+	/** If true will show the viewport tab when simulate is clicked. */
+	UPROPERTY(EditAnywhere, config, Category=Workflow)
+	bool bShowViewportOnSimulate;
+
 	/** If set we'll show the inherited variables in the My Blueprint view. */
 	UPROPERTY(config)
 	bool bShowInheritedVariables;

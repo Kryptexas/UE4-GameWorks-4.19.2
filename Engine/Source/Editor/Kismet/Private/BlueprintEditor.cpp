@@ -387,6 +387,12 @@ static UEdGraphNode* BlueprintEditorImpl::FindNodeWithError(FCompilerResultsLog 
 }
 
 
+FName FBlueprintEditor::SelectionState_MyBlueprint(TEXT("MyBlueprint"));
+FName FBlueprintEditor::SelectionState_Components(TEXT("Components"));
+FName FBlueprintEditor::SelectionState_Graph(TEXT("Graph"));
+FName FBlueprintEditor::SelectionState_ClassSettings(TEXT("ClassSettings"));
+FName FBlueprintEditor::SelectionState_ClassDefaults(TEXT("ClassDefaults"));
+
 
 bool FBlueprintEditor::IsASubGraph( const UEdGraph* GraphPtr )
 {
@@ -602,13 +608,13 @@ void FBlueprintEditor::AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 
 void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason)
 {
 	if( Reason != ERefreshBlueprintEditorReason::BlueprintCompiled )
-	{
-		DocumentManager->CleanInvalidTabs();
+{
+	DocumentManager->CleanInvalidTabs();
 
-		DocumentManager->RefreshAllTabs();
+	DocumentManager->RefreshAllTabs();
 
-		// The workflow manager only tracks document tabs.
-		FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
+	// The workflow manager only tracks document tabs.
+	FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
 	}
 
 	if (MyBlueprintWidget.IsValid())
@@ -635,23 +641,45 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 	BroadcastRefresh();
 }
 
-void FBlueprintEditor::ClearSelectionInAllEditors()
+void FBlueprintEditor::SetUISelectionState(FName SelectionOwner)
+{
+	if ( SelectionOwner != CurrentUISelection )
 	{
-		TArray< TSharedPtr<SDockTab> > GraphEditorTabs;
-		DocumentManager->FindAllTabsForFactory(GraphEditorTabFactoryPtr, /*out*/ GraphEditorTabs);
+		ClearSelectionStateFor(CurrentUISelection);
 
-		for ( auto GraphEditorTabIt = GraphEditorTabs.CreateIterator(); GraphEditorTabIt; ++GraphEditorTabIt )
+		CurrentUISelection = SelectionOwner;
+	}
+}
+
+void FBlueprintEditor::ClearSelectionStateFor(FName SelectionOwner)
+{
+	if ( SelectionOwner == SelectionState_Graph )
+{
+	TArray< TSharedPtr<SDockTab> > GraphEditorTabs;
+	DocumentManager->FindAllTabsForFactory(GraphEditorTabFactoryPtr, /*out*/ GraphEditorTabs);
+
+	for (auto GraphEditorTabIt = GraphEditorTabs.CreateIterator(); GraphEditorTabIt; ++GraphEditorTabIt)
+	{
+		TSharedRef<SGraphEditor> Editor = StaticCastSharedRef<SGraphEditor>((*GraphEditorTabIt)->GetContent());
+
+		Editor->ClearSelectionSet();
+	}
+	}
+	else if ( SelectionOwner == SelectionState_Components )
+	{
+	if(SCSEditor.IsValid())
+	{
+		SCSEditor->ClearSelection();
+	}
+}
+	else if ( SelectionOwner == SelectionState_MyBlueprint )
+	{
+		if ( MyBlueprintWidget.IsValid() )
 		{
-			TSharedRef<SGraphEditor> Editor = StaticCastSharedRef<SGraphEditor>(( *GraphEditorTabIt )->GetContent());
-
-			Editor->ClearSelectionSet();
-		}
-
-		if ( SCSEditor.IsValid() )
-		{
-			SCSEditor->ClearSelection();
+			MyBlueprintWidget->ClearGraphActionMenuSelection();
 		}
 	}
+}
 
 void FBlueprintEditor::SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms, bool bSelectFirstResult)
 {
@@ -694,7 +722,7 @@ void FBlueprintEditor::OnRootSelected(AActor * DefaultActor)
 	if (Inspector.IsValid())
 	{	
 		// Clear the my blueprints selection
-		MyBlueprintWidget->ClearGraphActionMenuSelection();
+		SetUISelectionState(FBlueprintEditor::SelectionState_Components);
 
 		// Build an object list
 		TArray<UObject*> InspectorObjects;
@@ -736,9 +764,9 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 	{
 		// Clear the my blueprints selection
 		bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
-		if (bSingleLayoutBPEditor)
+		if ( bSingleLayoutBPEditor && SelectedNodes.Num() > 0 )
 		{
-			MyBlueprintWidget->ClearGraphActionMenuSelection();
+			SetUISelectionState(FBlueprintEditor::SelectionState_Components);
 		}
 
 		// Convert the selection set to an array of UObject* pointers
@@ -771,6 +799,15 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 		// Update the details panel
 		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
 		Inspector->ShowDetailsForObjects(InspectorObjects, Options);
+	}
+}
+
+void FBlueprintEditor::OnComponentDoubleClicked(TSharedPtr<class FSCSEditorTreeNode> Node)
+{
+	TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+	if ( OwnerTab.IsValid() )
+	{
+		GetTabManager()->InvokeTab(FBlueprintEditorTabs::SCSViewportID);
 	}
 }
 
@@ -1193,7 +1230,7 @@ FBlueprintEditor::FBlueprintEditor()
 	, bBlueprintModifiedOnOpen (false)
 	, PinVisibility(SGraphEditor::Pin_Show)
 	, bIsActionMenuContextSensitive(true)
-	, CurrentUISelection(FBlueprintEditor::NoSelection)
+	, CurrentUISelection(NAME_None)
 	, bEditorMarkedAsClosed(false)
 	, bCodeBasedProject(false)
 	, HasOpenActionMenu(nullptr)
@@ -1236,14 +1273,7 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 			BlueprintObj->SimpleConstructionScript->SetFlags(RF_Transactional);
 
 			// Recreate (or create) any widgets that depend on the SCS
-			SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
-				.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
-				.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
-				.AllowEditing(this, &FBlueprintEditor::InEditingMode)
-				.OnRootSelected(this, &FBlueprintEditor::OnRootSelected)
-				.OnSelectionUpdated(this, &FBlueprintEditor::OnSelectionUpdated);
-			SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
-				.BlueprintEditor(SharedThis(this));
+			CreateSCSEditors();
 		}
 
 		// If we should have a UCS but don't yet, make it
@@ -1518,7 +1548,7 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 	PostLayoutBlueprintEditorInitialization();
 
 	// Find and set any instances of this blueprint type if any exists and we are not already editing one
-	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();
+	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();	
 }
 
 void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated/* = false*/)
@@ -1547,11 +1577,11 @@ void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlu
 		}
 		else if ( SingleBP->BlueprintType == BPTYPE_FunctionLibrary )
 		{
-				AddApplicationMode(
-					FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-					MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
-				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
-			}
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
+			SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+		}
 		else
 		{
 			if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
@@ -1943,25 +1973,15 @@ FBlueprintEditor::~FBlueprintEditor()
 
 void FBlueprintEditor::FocusInspectorOnGraphSelection(const FGraphPanelSelectionSet& NewSelection, bool bForceRefresh)
 {
-	if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
-	{
-		//TODO UNIFIEDBP Do something smart here, like keep selection if it comes from the my blueprint view, or the components view, but not if it's from a graph view.
-	}
-	else
-	{
-		if ( NewSelection.Array().Num() )
+	if ( NewSelection.Array().Num() > 0 )
 		{
+		SetUISelectionState(FBlueprintEditor::SelectionState_Graph);
+
 			SKismetInspector::FShowDetailsOptions ShowDetailsOptions;
 			ShowDetailsOptions.bForceRefresh = bForceRefresh;
 
 			Inspector->ShowDetailsForObjects(NewSelection.Array(), ShowDetailsOptions);
 		}
-		else
-		{
-			// Clear the Inspector if nothing is selected, the MyBlueprints window will set the selection if it means to, but we need to make sure invalid nodes aren't still appearing
-			//Inspector->ShowDetailsForSingleObject(nullptr);
-		}
-	}
 }
 
 void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints)
@@ -2031,16 +2051,23 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		InBlueprint->ParentClass->IsChildOf(AActor::StaticClass()) && 
 		InBlueprint->SimpleConstructionScript )
 	{
+		CreateSCSEditors();
+	}
+}
+
+void FBlueprintEditor::CreateSCSEditors()
+{
 		SCSEditor = SAssignNew(SCSEditor, SSCSEditor)
 			.ActorContext(this, &FBlueprintEditor::GetSCSEditorActorContext)
 			.PreviewActor(this, &FBlueprintEditor::GetPreviewActor)
 			.AllowEditing(this, &FBlueprintEditor::InEditingMode)
 			.OnRootSelected(this, &FBlueprintEditor::OnRootSelected)
-			.OnSelectionUpdated(this, &FBlueprintEditor::OnSelectionUpdated);
+		.OnSelectionUpdated(this, &FBlueprintEditor::OnSelectionUpdated)
+		.OnItemDoubleClicked(this, &FBlueprintEditor::OnComponentDoubleClicked);
+
 		SCSViewport = SAssignNew(SCSViewport, SSCSEditorViewport)
 			.BlueprintEditor(SharedThis(this));
 	}
-}
 
 void FBlueprintEditor::OnLogTokenClicked(const TSharedRef<IMessageToken>& Token)
 {
@@ -2452,18 +2479,7 @@ void FBlueprintEditor::EditGlobalOptions_Clicked()
 	UBlueprint* Blueprint = GetBlueprintObj();
 	if ( Blueprint != nullptr )
 	{
-		if ( CurrentUISelection == FBlueprintEditor::GraphPanel )
-		{
-			ClearSelectionInAllEditors();
-		}
-		if ( CurrentUISelection == FBlueprintEditor::MyBlueprint )
-		{
-			if ( MyBlueprintWidget.IsValid() )
-			{
-				MyBlueprintWidget->ClearGraphActionMenuSelection();
-			}
-		}
-		CurrentUISelection = FBlueprintEditor::ClassSettings;
+		SetUISelectionState(FBlueprintEditor::SelectionState_ClassSettings);
 
 		// Show details for the Blueprint instance we're editing
 		Inspector->ShowDetailsForSingleObject(Blueprint);
@@ -2482,19 +2498,7 @@ void FBlueprintEditor::EditClassDefaults_Clicked()
 	UBlueprint* Blueprint = GetBlueprintObj();
 	if ( Blueprint != nullptr )
 	{
-		if ( CurrentUISelection == FBlueprintEditor::GraphPanel )
-		{
-			ClearSelectionInAllEditors();
-		}
-		else if ( CurrentUISelection == FBlueprintEditor::MyBlueprint )
-		{
-			if ( MyBlueprintWidget.IsValid() )
-			{
-				MyBlueprintWidget->ClearGraphActionMenuSelection();
-			}
-		}
-
-		CurrentUISelection = FBlueprintEditor::ClassDefaults;
+		SetUISelectionState(FBlueprintEditor::SelectionState_ClassDefaults);
 
 		const bool bForceRefresh = true;
 
@@ -2502,7 +2506,16 @@ void FBlueprintEditor::EditClassDefaults_Clicked()
 		{
 			if ( GetBlueprintObj()->GeneratedClass != NULL )
 			{
-				Inspector->ShowDetailsForSingleObject(GetBlueprintObj()->GeneratedClass->GetDefaultObject(), SKismetInspector::FShowDetailsOptions(DefaultEditString(), bForceRefresh));
+				UObject* DefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
+
+				// Update the details panel
+				FString Title;
+				DefaultObject->GetName(Title);
+				SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), true);
+				Options.bShowComponents = false;
+
+				Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
+
 				TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
 				if ( OwnerTab.IsValid() )
 				{
@@ -2610,7 +2623,7 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 	// Clear selection, to avoid holding refs to nodes that go away
 	if (bSuccess && GetBlueprintObj())
 	{
-		ClearSelectionInAllEditors();
+		SetUISelectionState(NAME_None);
 
 		// Will cause a call to RefreshEditors()
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
@@ -2652,7 +2665,7 @@ void FBlueprintEditor::RedoGraphAction()
 	// Clear selection, to avoid holding refs to nodes that go away
 	if (GetBlueprintObj())
 	{
-		ClearSelectionInAllEditors();
+		SetUISelectionState(NAME_None);
 
 		GEditor->RedoTransaction();
 
@@ -2669,10 +2682,9 @@ bool FBlueprintEditor::CanRedoGraphAction() const
 
 void FBlueprintEditor::OnActiveTabChanged( TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated )
 {
-	if (!NewlyActivated.IsValid())
+	if (NewlyActivated.IsValid() == false)
 	{
-		TArray<UObject*> ObjArray;
-		Inspector->ShowDetailsForObjects(ObjArray);
+		SetUISelectionState(NAME_None);
 		//UE_LOG(LogBlueprint, Log, TEXT("OnActiveTabChanged: NONE"));
 	}
 	else
@@ -2795,15 +2807,11 @@ void FBlueprintEditor::OnGraphActionMenuClosed(bool bActionExecuted, bool bConte
 
 void FBlueprintEditor::OnSelectedNodesChanged(const FGraphPanelSelectionSet& NewSelection)
 {
-	if (CurrentUISelection == FBlueprintEditor::MyBlueprint)
+	if ( NewSelection.Num() > 0 )
 	{
-		// clear MyBlueprint selection
-		if (MyBlueprintWidget.IsValid())
-	{
-			MyBlueprintWidget->ClearGraphActionMenuSelection();
+		SetUISelectionState(FBlueprintEditor::SelectionState_Graph);
 		}
-	}
-	CurrentUISelection = NewSelection.Num() > 0 ? FBlueprintEditor::GraphPanel : FBlueprintEditor::NoSelection;
+
 	Inspector->ShowDetailsForObjects(NewSelection.Array());
 }
 
@@ -4645,7 +4653,7 @@ void FBlueprintEditor::DeleteSelectedNodes()
 
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
 
-	ClearSelectionInAllEditors();
+	SetUISelectionState(NAME_None);
 
 	for (FGraphPanelSelectionSet::TConstIterator NodeIt( SelectedNodes ); NodeIt; ++NodeIt)
 	{
@@ -5018,7 +5026,7 @@ void FBlueprintEditor::PasteNodesHere(class UEdGraph* DestinationGraph, const FV
 	DestinationGraph->Modify();
 
 	// Clear the selection set (newly pasted stuff will be selected)
-	ClearSelectionInAllEditors();
+	SetUISelectionState(NAME_None);
 
 	// Grab the text to paste from the clipboard.
 	FString TextToImport;

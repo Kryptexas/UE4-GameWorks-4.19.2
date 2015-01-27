@@ -167,6 +167,7 @@ FSCSViewportSummoner::FSCSViewportSummoner(TSharedPtr<class FAssetEditorToolkit>
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
 
 	bIsSingleton = true;
+	TabRole = ETabRole::DocumentTab;
 
 	ViewMenuDescription = LOCTEXT("SCSViewportView", "Viewport");
 	ViewMenuTooltip = LOCTEXT("SCSViewportView_ToolTip", "Show the viewport view");

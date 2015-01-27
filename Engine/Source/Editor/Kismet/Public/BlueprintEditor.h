@@ -394,6 +394,9 @@ public:
 	/** Delegate invoked when the selection is changed in the SCS editor widget */
 	void OnSelectionUpdated(const TArray<TSharedPtr<class FSCSEditorTreeNode>>& SelectedNodes);
 
+	/** Delegate invoked when an item is double clicked in the SCS editor widget */
+	void OnComponentDoubleClicked(TSharedPtr<class FSCSEditorTreeNode> Node);
+
 
 
 	/** Pin visibility accessors */
@@ -440,25 +443,21 @@ public:
 	{
 		return NewDocument_IsVisibleForType(GraphType) ? EVisibility::Visible : EVisibility::Collapsed;
 	}
-	
-	/** Clear selection across all editors */
-	void ClearSelectionInAllEditors();
+
+	static FName SelectionState_MyBlueprint;
+	static FName SelectionState_Components;
+	static FName SelectionState_Graph;
+	static FName SelectionState_ClassSettings;
+	static FName SelectionState_ClassDefaults;
 	
 	/** Gets or sets the flag for context sensitivity in the graph action menu */
-	bool& GetIsContextSensitive() {return bIsActionMenuContextSensitive;}
-
-	/** Selection state, because all selection in this editor is mutually exclusive */
-	enum ESelectionState
-	{
-		NoSelection,
-		MyBlueprint,
-		GraphPanel,
-		ClassSettings,
-		ClassDefaults,
-	};
+	bool& GetIsContextSensitive() { return bIsActionMenuContextSensitive; }
 
 	/** Gets the UI selection state of this editor */
-	ESelectionState& GetUISelectionState() {return CurrentUISelection;}
+	FName GetUISelectionState() const { return CurrentUISelection; }
+	void SetUISelectionState(FName SelectionOwner);
+
+	virtual void ClearSelectionStateFor(FName SelectionOwner);
 
 	/** Find all instances of the selected custom event. */
 	void OnFindInstancesCustomEvent();
@@ -905,6 +904,9 @@ private:
 	/** Function to check whether the give graph is a subgraph */
 	static bool IsASubGraph( const class UEdGraph* GraphPtr );
 
+	/** Creates the SCSEditor tree component view and the SCS Viewport. */
+	void CreateSCSEditors();
+
 	/** Callback when a token is clicked on in the compiler results log */
 	void OnLogTokenClicked(const TSharedRef<class IMessageToken>& Token);
 
@@ -1025,7 +1027,7 @@ protected:
 	bool bIsActionMenuContextSensitive;
 	
 	/** The current UI selection state of this editor */
-	ESelectionState CurrentUISelection;
+	FName CurrentUISelection;
 
 	/** Whether we are already in the process of closing this editor */
 	bool bEditorMarkedAsClosed;

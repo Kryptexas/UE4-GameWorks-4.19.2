@@ -549,29 +549,13 @@ FBlueprintEditorUnifiedMode::FBlueprintEditorUnifiedMode(TSharedPtr<class FBluep
 
 	if ( bRegisterViewport )
 	{
-		TabLayout = FTabManager::NewLayout( "Standalone_BlueprintUnifiedEditor_Layout_v1_1" )
+		TabLayout = FTabManager::NewLayout( "Blueprints_Unified_Components_v1" )
 		->AddArea
 		(
-			FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
+			FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
 			->Split
 			(
-				FTabManager::NewSplitter() ->SetOrientation(Orient_Horizontal)
-				->Split
-				(
-					FTabManager::NewSplitter() ->SetOrientation( Orient_Vertical )
-					->SetSizeCoefficient(0.15f)
-					->Split
-					(
-						FTabManager::NewStack()
-						->SetSizeCoefficient(0.25f)
-						->AddTab( FBlueprintEditorTabs::ConstructionScriptEditorID, ETabState::OpenedTab )
-					)
-					->Split
-					(
-						FTabManager::NewStack()->SetSizeCoefficient(0.75f)
-						->AddTab( FBlueprintEditorTabs::MyBlueprintID, ETabState::OpenedTab )
-					)
-				)
+				FTabManager::NewSplitter()->SetOrientation(Orient_Horizontal)
 				->Split
 				(
 					FTabManager::NewSplitter()->SetOrientation( Orient_Vertical )
@@ -601,11 +585,25 @@ FBlueprintEditorUnifiedMode::FBlueprintEditorUnifiedMode(TSharedPtr<class FBluep
 				->Split
 				(
 					FTabManager::NewSplitter() ->SetOrientation( Orient_Vertical )
-					->SetSizeCoefficient(0.15f)
+					->SetSizeCoefficient(0.20f)
 					->Split
 					(
 						FTabManager::NewStack()
+						->SetSizeCoefficient(0.20f)
+						->AddTab( FBlueprintEditorTabs::ConstructionScriptEditorID, ETabState::OpenedTab )
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.30f)
+						->AddTab( FBlueprintEditorTabs::MyBlueprintID, ETabState::OpenedTab )
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.50f)
 						->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )
+						//->AddTab( FBlueprintEditorTabs::DefaultEditorID, ETabState::ClosedTab )
 					)
 				)
 			)
@@ -613,7 +611,58 @@ FBlueprintEditorUnifiedMode::FBlueprintEditorUnifiedMode(TSharedPtr<class FBluep
 	}
 	else
 	{
-		TabLayout = GetDefaltEditorLayout(InBlueprintEditor);
+		TabLayout = FTabManager::NewLayout( "Blueprints_Unified_v1" )
+		->AddArea
+		(
+			FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
+			->Split
+			(
+				FTabManager::NewSplitter() ->SetOrientation(Orient_Horizontal)
+				->Split
+				(
+					FTabManager::NewSplitter()->SetOrientation( Orient_Vertical )
+					->SetSizeCoefficient(0.70f)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.186721f)
+						->SetHideTabWell(true)
+						->AddTab(InBlueprintEditor->GetToolbarTabId(), ETabState::OpenedTab)
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient( 0.80f )
+						->AddTab( "Document", ETabState::ClosedTab )
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient( 0.20f )
+						->AddTab( FBlueprintEditorTabs::CompilerResultsID, ETabState::ClosedTab )
+						->AddTab( FBlueprintEditorTabs::FindResultsID, ETabState::ClosedTab )
+					)
+				)
+				->Split
+				(
+					FTabManager::NewSplitter() ->SetOrientation( Orient_Vertical )
+					->SetSizeCoefficient(0.20f)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.40f)
+						->AddTab( FBlueprintEditorTabs::MyBlueprintID, ETabState::OpenedTab )
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.60f)
+						->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )
+						//->AddTab( FBlueprintEditorTabs::DefaultEditorID, ETabState::ClosedTab )
+					)
+				)
+			)
+		);
 	}
 	
 	// setup toolbar

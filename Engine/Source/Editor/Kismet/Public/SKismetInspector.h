@@ -111,6 +111,9 @@ protected:
 	/** If true show the kismet inspector title widget */
 	bool bShowTitleArea;
 
+	/** Component details customization enabled. */
+	bool bComponenetDetailsCustomizationEnabled;
+
 	/** Set of object properties that should be visible */
 	TSet<TWeakObjectPtr<UProperty> > SelectedObjectProperties;
 	

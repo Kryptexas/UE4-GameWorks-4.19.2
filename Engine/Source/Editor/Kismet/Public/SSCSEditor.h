@@ -416,6 +416,7 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddExistingComponent, class UActorComponent*);
 	DECLARE_DELEGATE_OneParam(FOnRootSelected, class AActor*);
 	DECLARE_DELEGATE_OneParam(FOnSelectionUpdated, const TArray<FSCSEditorTreeNodePtrType>&);
+	DECLARE_DELEGATE_OneParam(FOnItemDoubleClicked, const FSCSEditorTreeNodePtrType);
 	DECLARE_DELEGATE_OneParam(FOnHighlightPropertyInDetailsView, const class FPropertyPath&);
 
 	SLATE_BEGIN_ARGS( SSCSEditor )
@@ -436,6 +437,7 @@ public:
 		SLATE_ATTRIBUTE(bool, HideComponentClassCombo)
 		SLATE_EVENT(FOnRootSelected, OnRootSelected)
 		SLATE_EVENT(FOnSelectionUpdated, OnSelectionUpdated)
+		SLATE_EVENT(FOnItemDoubleClicked, OnItemDoubleClicked)
 		SLATE_EVENT(FOnHighlightPropertyInDetailsView, OnHighlightPropertyInDetailsView)
 
 	SLATE_END_ARGS()
@@ -675,6 +677,9 @@ protected:
 	/** Callback when a component item is scrolled into view */
 	void OnItemScrolledIntoView( FSCSEditorTreeNodePtrType InItem, const TSharedPtr<ITableRow>& InWidget);
 
+	/** Callback when a component item is double clicked. */
+	void HandleItemDoubleClicked(FSCSEditorTreeNodePtrType InItem);
+
 	/** Returns the set of expandable nodes that are currently collapsed in the UI */
 	void GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, TSet<FSCSEditorTreeNodePtrType>& OutCollapsedNodes) const;
 
@@ -712,6 +717,9 @@ public:
 	/** Delegate to invoke on selection update. */
 	FOnSelectionUpdated OnSelectionUpdated;
 
+	/** Delegate to invoke when an item in the tree is double clicked. */
+	FOnItemDoubleClicked OnItemDoubleClicked;
+
 	/** Delegate to invoke when the given property should be highlighted in the details view (e.g. diff). */
 	FOnHighlightPropertyInDetailsView OnHighlightPropertyInDetailsView;
 private:
@@ -721,6 +729,9 @@ private:
 
 	/** Flag to enable/disable component editing */
 	bool	bEnableComponentEditing;
+
+	/** Gate to prevent changing the selection while selection change is being broadcast. */
+	bool bUpdatingSelection;
 
 	/** Flag to track if we have the Actor selected curently */
 	bool bIsActorSelected;
