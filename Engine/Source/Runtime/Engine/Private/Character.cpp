@@ -778,7 +778,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 			BaseString = FString::Printf(TEXT("Based On %s"), *BaseString);
 		}
 		
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("RelativeLoc: %s Rot: %s %s"), *BasedMovement.Location.ToString(), *BasedMovement.Rotation.ToString(), *BaseString), Indent, YPos);
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("RelativeLoc: %s Rot: %s %s"), *BasedMovement.Location.ToString(), *BasedMovement.Rotation.ToString(), *BaseString), Indent, YPos);
 		YPos += YL;
 
 		if ( CharacterMovement != NULL )
@@ -787,7 +787,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		}
 		const bool Crouched = CharacterMovement && CharacterMovement->IsCrouching();
 		FString T = FString::Printf(TEXT("Crouched %i"), Crouched);
-		Canvas->DrawText(RenderFont, T, Indent, YPos );
+		YL = Canvas->DrawText(RenderFont, T, Indent, YPos );
 		YPos += YL;
 	}
 }

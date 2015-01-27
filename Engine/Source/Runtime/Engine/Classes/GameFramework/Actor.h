@@ -2295,10 +2295,15 @@ public:
 	/**
 	 * Draw important Actor variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
 	 *
-	 * @param Canvas - Canvas to draw on
-	 * @param DebugDisplay - Contains information about what debug data to display
-	 * @param YL - Height of the current font
-	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
+	 * @param Canvas			Canvas to draw on
+	 *
+	 * @param DebugDisplay		Contains information about what debug data to display
+	 *
+	 * @param YL				[in]	Height of the previously drawn line.
+	 *							[out]	Height of the last line drawn by this function.
+	 *
+	 * @param YPos				[in]	Y position on Canvas for the previously drawn line. YPos += YL, gives position to draw text for next debug line.
+	 *							[out]	Y position on Canvas for the last line drawn by this function.
 	 */
 	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 

@@ -695,7 +695,7 @@ void OutputCurveMap(TMap<FName, float>& CurveMap, UCanvas* Canvas, UFont* Render
 	for (FName CurveName : Names)
 	{
 		FString CurveEntry = FString::Printf(TEXT("%s: %.3f"), *CurveName.ToString(), CurveMap[CurveName]);
-		Canvas->DrawText(RenderFont, CurveEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YL = Canvas->DrawText(RenderFont, CurveEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
 		YPos += YL;
 	}
 }
@@ -797,7 +797,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	Canvas->SetLinearDrawColor(TextYellow);
 
 	FString Heading = FString::Printf(TEXT("Animation: %s"), *GetName());
-	Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+	YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 	YPos += YL;
 	if (bShowSyncGroups)
 	{
@@ -805,7 +805,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 		//Display Sync Groups
 		Heading = FString::Printf(TEXT("SyncGroups: %i"), SyncGroups.Num());
-		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 		YPos += YL;
 
 		for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
@@ -816,7 +816,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			Canvas->SetLinearDrawColor(TextYellow);
 
 			FString GroupLabel = FString::Printf(TEXT("Group %i - Players %i"), GroupIndex, SyncGroup.ActivePlayers.Num());
-			Canvas->DrawText(RenderFont, GroupLabel, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YL = Canvas->DrawText(RenderFont, GroupLabel, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 
 			if (SyncGroup.ActivePlayers.Num() > 0)
@@ -829,7 +829,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		Canvas->SetLinearDrawColor(TextYellow);
 
 		Heading = FString::Printf(TEXT("Ungrouped: %i"), UngroupedActivePlayers.Num());
-		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 		YPos += YL;
 
 		Canvas->SetLinearDrawColor(TextWhite);
@@ -842,7 +842,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		Canvas->SetLinearDrawColor(TextYellow);
 
 		Heading = FString::Printf(TEXT("Montages: %i"), MontageInstances.Num());
-		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 		YPos += YL;
 
 		for (int32 MontageIndex = 0; MontageIndex < MontageInstances.Num(); ++MontageIndex)
@@ -854,7 +854,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			Canvas->SetLinearDrawColor((MontageInstance->IsActive()) ? ActiveColor : TextWhite);
 
 			FString MontageEntry = FString::Printf(TEXT("%i) %s CurrSec: %s NextSec: %s W:%.3f DW:%.3f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), *MontageInstance->GetNextSection().ToString(), MontageInstance->Weight, MontageInstance->DesiredWeight);
-			Canvas->DrawText(RenderFont, MontageEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YL = Canvas->DrawText(RenderFont, MontageEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 		}
 	}
@@ -864,7 +864,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		Canvas->SetLinearDrawColor(TextYellow);
 
 		Heading = FString::Printf(TEXT("Active Notify States: %i"), ActiveAnimNotifyState.Num());
-		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 		YPos += YL;
 
 		Canvas->SetLinearDrawColor(TextWhite);
@@ -876,7 +876,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			const FAnimNotifyEvent& NotifyState = ActiveAnimNotifyState[NotifyIndex];
 
 			FString NotifyEntry = FString::Printf(TEXT("%i) %s Class: %s Dur:%.3f"), NotifyIndex, *NotifyState.NotifyName.ToString(), *NotifyState.NotifyStateClass->GetName(), NotifyState.GetDuration());
-			Canvas->DrawText(RenderFont, NotifyEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YL = Canvas->DrawText(RenderFont, NotifyEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 		}
 	}
@@ -885,14 +885,14 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	{
 		Canvas->SetLinearDrawColor(TextYellow);
 
-		Canvas->DrawText(RenderFont, TEXT("Curves"), Indent, YPos, 1.f, 1.f, RenderInfo);
+		YL = Canvas->DrawText(RenderFont, TEXT("Curves"), Indent, YPos, 1.f, 1.f, RenderInfo);
 		YPos += YL;
 
 		{
 			FIndenter CurveIndent(Indent);
 
 			Heading = FString::Printf(TEXT("Morph Curves: %i"), MorphTargetCurves.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 
 			Canvas->SetLinearDrawColor(TextWhite);
@@ -905,7 +905,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			Canvas->SetLinearDrawColor(TextYellow);
 
 			Heading = FString::Printf(TEXT("Material Curves: %i"), MaterialParameterCurves.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 
 			Canvas->SetLinearDrawColor(TextWhite);
@@ -918,7 +918,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			Canvas->SetLinearDrawColor(TextYellow);
 
 			Heading = FString::Printf(TEXT("Event Curves: %i"), EventCurves.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 
 			Canvas->SetLinearDrawColor(TextWhite);
@@ -935,7 +935,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		Canvas->SetLinearDrawColor(TextYellow);
 
 		YPos += YL;
-		Canvas->DrawText(RenderFont, TEXT("Anim Node Tree"), Indent, YPos, 1.f, 1.f, RenderInfo);
+		YL = Canvas->DrawText(RenderFont, TEXT("Anim Node Tree"), Indent, YPos, 1.f, 1.f, RenderInfo);
 
 		const float NodeIndent = 8.f;
 		const float LineIndent = 4.f;
@@ -951,7 +951,6 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 		TArray<float> VerticalLineStarts; // Index represents indent level, track the current starting point for that 
 
-		int32 HalfStep = int32(YL / 2);
 		int32 PrevChainID = -1;
 
 		for (FNodeDebugData::FFlattenedDebugData& Line : FlattenedData)
@@ -965,6 +964,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 			if (PrevChainID != Line.ChainID)
 			{
+				const int32 HalfStep = int32(YL / 2);
 				YPos += HalfStep; // Extra spacing to delimit different chains, CurrLineYBase now 
 				// roughly represents middle of text line, so we can use it for line drawing
 
@@ -998,7 +998,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			PrevChainID = Line.ChainID;
 			FLinearColor ItemColor = Line.bPoseSource ? PoseSourceColor : ActiveColor;
 			Canvas->SetLinearDrawColor(Line.IsOnActiveBranch() ? ItemColor : InactiveColor);
-			Canvas->DrawText(RenderFont, Line.DebugLine, CurrIndent, YPos, 1.f, 1.f, RenderInfo);
+			YL = Canvas->DrawText(RenderFont, Line.DebugLine, CurrIndent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 		}
 	}

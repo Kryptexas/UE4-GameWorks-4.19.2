@@ -458,7 +458,7 @@ void AController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 	{
 		if (PlayerState == NULL)
 		{
-			Canvas->DrawText(RenderFont, TEXT("NO PlayerState"), 4.0f, YPos );
+			YL = Canvas->DrawText(RenderFont, TEXT("NO PlayerState"), 4.0f, YPos );
 		}
 		else
 		{
@@ -471,7 +471,7 @@ void AController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 	}
 
 	Canvas->SetDrawColor(255,0,0);
-	Canvas->DrawText(RenderFont, FString::Printf(TEXT("CONTROLLER %s Pawn %s"), *GetName(), *Pawn->GetName()), 4.0f, YPos );
+	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("CONTROLLER %s Pawn %s"), *GetName(), *Pawn->GetName()), 4.0f, YPos );
 	YPos += YL;
 }
 

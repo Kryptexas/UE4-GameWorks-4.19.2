@@ -5245,15 +5245,15 @@ void UCharacterMovementComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisp
 	Canvas->SetDrawColor(255,255,255);
 	UFont* RenderFont = GEngine->GetSmallFont();
 	FString T = FString::Printf(TEXT("CHARACTER MOVEMENT Floor %s Crouched %i"), *CurrentFloor.HitResult.ImpactNormal.ToString(), IsCrouching());
-	Canvas->DrawText(RenderFont, T, 4.0f, YPos );
+	YL = Canvas->DrawText(RenderFont, T, 4.0f, YPos );
 	YPos += YL;
 
 	T = FString::Printf(TEXT("Updated Component: %s"), *UpdatedComponent->GetName());
-	Canvas->DrawText(RenderFont, T, 4.0f, YPos );
+	YL = Canvas->DrawText(RenderFont, T, 4.0f, YPos );
 	YPos += YL;
 
 	T = FString::Printf(TEXT("bForceMaxAccel: %i"), bForceMaxAccel);
-	Canvas->DrawText(RenderFont, T, 4.0f, YPos );
+	YL = Canvas->DrawText(RenderFont, T, 4.0f, YPos );
 	YPos += YL;
 
 	APhysicsVolume * PhysicsVolume = GetPhysicsVolume();
@@ -5263,7 +5263,7 @@ void UCharacterMovementComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisp
 
 	T = FString::Printf(TEXT("%s In physicsvolume %s on base %s component %s gravity %f"), *GetMovementName(), (PhysicsVolume ? *PhysicsVolume->GetName() : TEXT("None")),
 		(BaseActor ? *BaseActor->GetName() : TEXT("None")), (BaseComponent ? *BaseComponent->GetName() : TEXT("None")), GetGravityZ());
-	Canvas->DrawText(RenderFont, T, 4.0f, YPos );
+	YL = Canvas->DrawText(RenderFont, T, 4.0f, YPos );
 	YPos += YL;
 }
 

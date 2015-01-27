@@ -1794,7 +1794,7 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 	UFont* RenderFont = GEngine->GetSmallFont();
 	if( T != "" )
 	{
-		Canvas->DrawText(RenderFont, T, 4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont, T, 4.0f, YPos);
 		YPos += YL;
 	}
 
@@ -1811,17 +1811,17 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 			{
 				T = T + FString(TEXT(" Tear Off"));
 			}
-			Canvas->DrawText(RenderFont, T, 4.0f, YPos);
+			YL = Canvas->DrawText(RenderFont, T, 4.0f, YPos);
 			YPos += YL;
 		}
 	}
 
-	Canvas->DrawText(RenderFont, FString::Printf(TEXT("Location: %s Rotation: %s"), *GetActorLocation().ToString(), *GetActorRotation().ToString()), 4.0f, YPos);
+	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("Location: %s Rotation: %s"), *GetActorLocation().ToString(), *GetActorRotation().ToString()), 4.0f, YPos);
 	YPos += YL;
 
 	if( DebugDisplay.IsDisplayOn(TEXT("physics")) )
 	{
-		Canvas->DrawText(RenderFont,FString::Printf(TEXT("Velocity: %s Speed: %f Speed2D: %f"), *GetVelocity().ToString(), GetVelocity().Size(), GetVelocity().Size2D()), 4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont,FString::Printf(TEXT("Velocity: %s Speed: %f Speed2D: %f"), *GetVelocity().ToString(), GetVelocity().Size(), GetVelocity().Size2D()), 4.0f, YPos);
 		YPos += YL;
 	}
 
@@ -1830,12 +1830,12 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 		Canvas->DrawColor.B = 0;
 		float MyRadius, MyHeight;
 		GetComponentsBoundingCylinder(MyRadius, MyHeight);
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Collision Radius: %f Height: %f"), MyRadius, MyHeight), 4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("Collision Radius: %f Height: %f"), MyRadius, MyHeight), 4.0f, YPos);
 		YPos += YL;
 
 		if ( RootComponent == NULL )
 		{
-			Canvas->DrawText(RenderFont, FString(TEXT("No RootComponent")), 4.0f, YPos );
+			YL = Canvas->DrawText(RenderFont, FString(TEXT("No RootComponent")), 4.0f, YPos );
 			YPos += YL;
 		}
 
@@ -1859,10 +1859,10 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 		{
 			T = TEXT("Overlapping nothing");
 		}
-		Canvas->DrawText(RenderFont,T, 4,YPos);
+		YL = Canvas->DrawText(RenderFont,T, 4,YPos);
 		YPos += YL;
 	}
-	Canvas->DrawText( RenderFont,FString::Printf(TEXT(" Instigator: %s Owner: %s"), (Instigator ? *Instigator->GetName() : TEXT("None")),
+	YL = Canvas->DrawText( RenderFont,FString::Printf(TEXT(" Instigator: %s Owner: %s"), (Instigator ? *Instigator->GetName() : TEXT("None")),
 		(Owner ? *Owner->GetName() : TEXT("None"))), 4,YPos);
 	YPos += YL;
 

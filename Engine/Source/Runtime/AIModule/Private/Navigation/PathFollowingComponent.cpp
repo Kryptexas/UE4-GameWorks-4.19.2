@@ -1306,7 +1306,7 @@ void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayI
 	Canvas->SetDrawColor(FColor::Blue);
 	UFont* RenderFont = GEngine->GetSmallFont();
 	FString StatusDesc = FString::Printf(TEXT("  Move status: %s"), *GetStatusDesc());
-	Canvas->DrawText(RenderFont, StatusDesc, 4.0f, YPos);
+	YL = Canvas->DrawText(RenderFont, StatusDesc, 4.0f, YPos);
 	YPos += YL;
 
 	if (Status == EPathFollowingStatus::Moving)
@@ -1315,7 +1315,7 @@ void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayI
 		FString TargetDesc = FString::Printf(TEXT("  Move target [%d/%d]: %s (%s)"),
 			MoveSegmentEndIndex, NumMoveSegments, *GetCurrentTargetLocation().ToString(), *GetNameSafe(DestinationActor.Get()));
 		
-		Canvas->DrawText(RenderFont, TargetDesc, 4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont, TargetDesc, 4.0f, YPos);
 		YPos += YL;
 	}
 }

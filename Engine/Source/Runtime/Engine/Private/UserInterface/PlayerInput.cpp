@@ -1203,7 +1203,7 @@ void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& 
 	{
 		Canvas->SetDrawColor(255,0,0);
 		UFont* RenderFont = GEngine->GetSmallFont();
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("INPUT %s"), *GetName()), 4.0f, YPos );
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("INPUT %s"), *GetName()), 4.0f, YPos );
 		YPos += YL;
 
 		UWorld* World = GetWorld();
@@ -1224,12 +1224,12 @@ void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& 
 					Str += FString::Printf(TEXT(" time: %.2f"), WorldRealTimeSeconds - KeyState->LastUpDownTransitionTime);
 				}
 				Canvas->SetDrawColor(180,255,180);
-				Canvas->DrawText(RenderFont, Str,4.0f, YPos);
+				YL = Canvas->DrawText(RenderFont, Str,4.0f, YPos);
 			}
 			else
 			{
 				Canvas->SetDrawColor(180,180,180);
-				Canvas->DrawText(RenderFont, Str,4.0f, YPos);
+				YL = Canvas->DrawText(RenderFont, Str,4.0f, YPos);
 			}
 			YPos += YL;
 		}
@@ -1237,11 +1237,11 @@ void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& 
 		float const DetectedMouseSampleHz = MouseSamples / MouseSamplingTotal;
 
 		Canvas->SetDrawColor(FColor::White);
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseSampleRate: %.2f"), DetectedMouseSampleHz),4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseSampleRate: %.2f"), DetectedMouseSampleHz),4.0f, YPos);
 		YPos += YL;
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseX ZeroTime: %.2f, Smoothed: %.2f"), ZeroTime[0], SmoothedMouse[0]),4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseX ZeroTime: %.2f, Smoothed: %.2f"), ZeroTime[0], SmoothedMouse[0]),4.0f, YPos);
 		YPos += YL;
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseY ZeroTime: %.2f, Smoothed: %.2f"), ZeroTime[1], SmoothedMouse[1]),4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseY ZeroTime: %.2f, Smoothed: %.2f"), ZeroTime[1], SmoothedMouse[1]),4.0f, YPos);
 		YPos += YL;
 
 		if ( (ZeroTime[0] > 2.f && ZeroTime[1] > 2.f) && GetDefault<UInputSettings>()->bEnableMouseSmoothing )

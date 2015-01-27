@@ -745,7 +745,7 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 // 		UPrimitiveComponent* const OtherComp = It.Value().Get();
 // 		AActor* OtherActor = OtherComp ? OtherComp->GetOwner() : NULL;
 // 
-// 		HUD->Canvas->DrawText(FString::Printf(TEXT("TOUCHING my %s to %s's %s"), *GetNameSafe(MyComp), *GetNameSafe(OtherActor), *GetNameSafe(OtherComp)));
+// 		YL = HUD->Canvas->DrawText(FString::Printf(TEXT("TOUCHING my %s to %s's %s"), *GetNameSafe(MyComp), *GetNameSafe(OtherActor), *GetNameSafe(OtherComp)));
 // 		YPos += YL;
 // 		HUD->Canvas->SetPos(4,YPos);
 // 	}
@@ -753,7 +753,7 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 	UFont* RenderFont = GEngine->GetSmallFont();
 	if ( PlayerState == NULL )
 	{
-		Canvas->DrawText(RenderFont, TEXT("NO PlayerState"), 4.0f, YPos );
+		YL = Canvas->DrawText(RenderFont, TEXT("NO PlayerState"), 4.0f, YPos );
 		YPos += YL;
 	}
 	else
@@ -768,7 +768,7 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 
 	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("BaseEyeHeight %f"), BaseEyeHeight), 4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("BaseEyeHeight %f"), BaseEyeHeight), 4.0f, YPos);
 		YPos += YL;
 	}
 
@@ -776,7 +776,7 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 	if ( Controller == NULL )
 	{
 		Canvas->SetDrawColor(255,0,0);
-		Canvas->DrawText(RenderFont, TEXT("NO Controller"), 4.0f, YPos);
+		YL = Canvas->DrawText(RenderFont, TEXT("NO Controller"), 4.0f, YPos);
 		YPos += YL;
 		//HUD->PlayerOwner->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 	}
