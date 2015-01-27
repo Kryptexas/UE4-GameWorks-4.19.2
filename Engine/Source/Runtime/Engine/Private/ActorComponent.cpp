@@ -99,8 +99,7 @@ FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()
 }
 
 
-UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+UActorComponent::UActorComponent()
 {
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
@@ -111,6 +110,13 @@ UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer)
 	bAutoRegister = true;
 	bNetAddressable = false;
 }
+
+
+UActorComponent::UActorComponent( const FObjectInitializer& ObjectInitializer )
+	: UActorComponent()	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
+{
+}
+
 
 void UActorComponent::PostInitProperties()
 {

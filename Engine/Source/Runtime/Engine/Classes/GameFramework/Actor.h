@@ -71,7 +71,12 @@ class ENGINE_API AActor : public UObject
 public:
 
 	/**
-	 * Default UObject constructor.
+	 * Default constructor for AActor
+	 */
+	AActor();
+
+	/**
+	 * Constructor for AActor that takes an ObjectInitializer
 	 */
 	AActor(const FObjectInitializer& ObjectInitializer);
 
