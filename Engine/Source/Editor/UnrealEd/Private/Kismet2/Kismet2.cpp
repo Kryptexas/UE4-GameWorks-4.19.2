@@ -972,12 +972,15 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 					if (ParentSCSNode->GetSCS() != SCS)
 					{
 						SCS->AddNode(SCSNode);
+						SCSNode->SetParent(ParentSCSNode);
 					}
-
-					SCSNode->SetParent(ParentSCSNode);
+					else
+					{
+						ParentSCSNode->AddChildNode(SCSNode);
+					}
 				}
 				// If we're attached to a native component
-				else if (!Components.Contains(SceneComponent->AttachParent))
+				else if (SceneComponent->AttachParent->CreationMethod == EComponentCreationMethod::Native)
 				{
 					SCS->AddNode(SCSNode);
 					SCSNode->SetParent(SceneComponent->AttachParent);
