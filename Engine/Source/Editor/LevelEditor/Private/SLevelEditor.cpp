@@ -1115,7 +1115,7 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 				->Split
 				(
 					FTabManager::NewStack()
-					->SetSizeCoefficient(.5)
+					->SetSizeCoefficient(.4)
 					->AddTab("ContentBrowserTab1", ETabState::OpenedTab)
 					->AddTab("OutputLog", ETabState::ClosedTab)
 				)
