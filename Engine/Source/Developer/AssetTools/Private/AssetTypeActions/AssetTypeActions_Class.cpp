@@ -43,7 +43,7 @@ void FAssetTypeActions_Class::GetActions(const TArray<UObject*>& InObjects, FMen
 	if(InObjects.Num() == 1)
 	{
 		const FText BaseClassName = FText::FromName(BaseClass->GetFName());
-		NewDerivedClassClassLabel = FText::Format(LOCTEXT("Class_NewDerivedClassLabel_CreateFrom", "New Class from {0}"), BaseClassName);
+		NewDerivedClassClassLabel = FText::Format(LOCTEXT("Class_NewDerivedClassLabel_CreateFrom", "Create class derived from {0}"), BaseClassName);
 		if(bIsValidBaseClass)
 		{
 			NewDerivedClassClassToolTip = FText::Format(LOCTEXT("Class_NewDerivedClassTooltip_CreateFrom", "Create a new class deriving from {0}."), BaseClassName);
@@ -55,7 +55,7 @@ void FAssetTypeActions_Class::GetActions(const TArray<UObject*>& InObjects, FMen
 	}
 	else
 	{
-		NewDerivedClassClassLabel = LOCTEXT("Class_NewDerivedClassLabel_InvalidNumberOfBases", "New Class from...");
+		NewDerivedClassClassLabel = LOCTEXT("Class_NewDerivedClassLabel_InvalidNumberOfBases", "New class derived from...");
 		NewDerivedClassClassToolTip = LOCTEXT("Class_NewDerivedClassTooltip_InvalidNumberOfBases", "Can only create a derived class when there is a single base class selected.");
 	}
 
@@ -68,6 +68,14 @@ void FAssetTypeActions_Class::GetActions(const TArray<UObject*>& InObjects, FMen
 			FCanExecuteAction::CreateLambda(CanCreateDerivedClass)
 			)
 		);
+}
+
+UThumbnailInfo* FAssetTypeActions_Class::GetThumbnailInfo(UObject* Asset) const
+{
+	// todo: jdale - CLASS - We need to generate and store proper thumbnail info for classes so that we can store their custom render transforms
+	// This can't be stored in the UClass instance (like we do for Blueprints), so we'll need another place to store it
+	// This will need to be accessible to FClassThumbnailScene::GetSceneThumbnailInfo
+	return nullptr;
 }
 
 void FAssetTypeActions_Class::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor )

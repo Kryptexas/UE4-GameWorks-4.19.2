@@ -82,8 +82,8 @@ public:
 		const TAttribute< FText >& HighlightedText = TAttribute< FText >( FText::GetEmpty() ),
 		const TAttribute< FLinearColor >& HintColorAndOpacity = FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f ),
 		bool AllowHintText = true,
-		FName ClassThumbnailBrushOverride = NAME_None,
-		bool ShowBackground = true);
+		FName ClassThumbnailBrushOverride = NAME_None
+		);
 
 	/** Re-renders this thumbnail */
 	UNREALED_API void RefreshThumbnail();
