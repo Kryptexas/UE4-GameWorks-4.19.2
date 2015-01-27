@@ -305,11 +305,12 @@ public:
 	void RegisterAllComponentTickFunctions(bool bRegister);
 
 	/**
-	 * Updates time dependent state for this component.
-	 * Requires component to be registered
+	 * Function called every frame on this ActorComponent. Override this function to implement custom logic to be executed every frame.
+	 * Only executes if the component is registered, and also PrimaryComponentTick.bCanEverTick must be set to true.
+	 *	
 	 * @param DeltaTime - The time since the last tick.
-	 * @param TickType - The kind of tick this is
-	 * @param ThisTickFunction - Tick function that caused this to run
+	 * @param TickType - The kind of tick this is, for example, are we paused, or 'simulating' in the editor
+	 * @param ThisTickFunction - Internal tick function struct that caused this to run
 	 */
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction);
 	/** 
