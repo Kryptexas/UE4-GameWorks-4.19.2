@@ -2309,10 +2309,18 @@ UBlueprint* SSCS_RowWidget::GetBlueprint() const
 
 bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage)
 {
-	if(!InNewText.IsEmpty() && !FComponentEditorUtils::IsValidVariableNameString(NodePtr->GetComponentTemplate(), InNewText.ToString()))
+	if(!InNewText.IsEmpty())
 	{
-		OutErrorMessage = LOCTEXT("RenameFailed_NotValid", "This name is reserved for engine use.");
-		return false;
+		if (!FComponentEditorUtils::IsValidVariableNameString(NodePtr->GetComponentTemplate(), InNewText.ToString()))
+		{
+			OutErrorMessage = LOCTEXT("RenameFailed_EngineReservedName", "This name is reserved for engine use.");
+			return false;
+		}
+		else if (!FComponentEditorUtils::IsComponentNameAvailable(InNewText.ToString(), NodePtr->GetComponentTemplate()->GetOwner(), NodePtr->GetComponentTemplate()))
+		{
+			OutErrorMessage = LOCTEXT("RenameFailed_ExistingName", "Another component already has the same name.");
+			return false;
+		}
 	}
 
 	UBlueprint* Blueprint = GetBlueprint();
