@@ -3,14 +3,15 @@
 	
 	"FriendlyName" : "Git",
 	"Version" : 12,
-	"VersionName" : "0.6.3",
-	"EngineVersion" : "4.8.0",
+	"VersionName" : "1.0",
+	"EngineVersion" : "4.7.0",
 	"Description" : "Git source control management",
 	"Category" : "Editor.Source Control",
-	"CreatedBy" : "SRombauts",
-	"CreatedByURL" : "http://srombauts.github.com",
+	"CreatedBy" : "SRombauts and Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
 	"CanContainContent" : false,
 	"IsBetaVersion" : true,
+	"EnabledByDefault" : true,
 	
 	"Modules" :
 	[

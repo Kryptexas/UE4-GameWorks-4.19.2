@@ -111,8 +111,15 @@ FText SSourceControlPicker::GetProviderText(const FName& InName) const
 {
 	if(InName == "None")
 	{
-		return LOCTEXT("NoProviderDescription", "None (Run Without Source Control)");
+		return LOCTEXT("NoProviderDescription", "None  (source control disabled)");
 	}
+
+	// @todo: Remove this block after the Git plugin has been exhaustively tested (also remember to change the Git plugin's "IsBetaVersion" setting to false.)
+	if(InName == "Git" )
+	{
+		return LOCTEXT( "GitBetaProviderName", "Git  (beta version)" );
+	}
+
 	return FText::FromName(InName);
 }
 #undef LOCTEXT_NAMESPACE
