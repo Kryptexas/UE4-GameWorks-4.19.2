@@ -75,8 +75,9 @@ namespace UnrealBuildTool
                 string path;
                 foreach(var kvp in EnvVarNames)
                 {
-                    if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path))
+                    if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path) && !string.IsNullOrEmpty(path))
                     {
+//                        Log.TraceWarning("Adding {0} from ini as {1} to {2}", kvp.Value, path, kvp.Key);
                         AndroidEnv.Add(kvp.Key, path);
                     }
                     else
@@ -84,6 +85,7 @@ namespace UnrealBuildTool
                         var envValue = Environment.GetEnvironmentVariable(kvp.Key);
                         if(!String.IsNullOrEmpty(envValue))
                         {
+//                            Log.TraceWarning("Adding {0} from env as {1}", kvp.Key, envValue);
                             AndroidEnv.Add(kvp.Key, envValue);
                         }
                     }

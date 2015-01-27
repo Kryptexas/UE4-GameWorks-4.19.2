@@ -43,7 +43,8 @@ void FAndroidSDKSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 void FAndroidSDKSettingsCustomization::BuildSDKPathSection(IDetailLayoutBuilder& DetailLayout)
 {
-	SetupSDKPaths();}
+	SetupSDKPaths();
+}
 
 
 void FAndroidSDKSettingsCustomization::SetupSDKPaths()
