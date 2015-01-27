@@ -4455,7 +4455,7 @@ void SSCSEditor::OnDeleteNodes()
 			{
 				// Default to the parent node
 				NewSelection = Node->GetParent();
-				if (NewSelection.IsValid() && !NewSelection->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
+				if (NewSelection.IsValid() && NewSelection->GetNodeType() != FSCSEditorTreeNode::RootActorNode)
 				{
 					// If we have sibling nodes, find the one that immediately precedes the one being removed
 					const TArray<FSCSEditorTreeNodePtrType>& ChildNodes = NewSelection->GetChildren();
