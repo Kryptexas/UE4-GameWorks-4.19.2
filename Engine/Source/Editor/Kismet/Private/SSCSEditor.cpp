@@ -43,6 +43,9 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 
+#include "GameProjectGenerationModule.h"
+#include "HotReloadInterface.h"
+
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSCSEditor, Log, All);
@@ -3344,44 +3347,66 @@ void SSCSEditor::OnGetChildrenForTree( FSCSEditorTreeNodePtrType InNodePtr, TArr
 }
 
 
-void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass)
+void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass, EComponentCreateAction::Type ComponentCreateAction )
 {
 	UClass* NewClass = ComponentClass;
 
-	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-	USelection* Selection =  GEditor->GetSelectedObjects();
-
-	bool bAddedComponent = false;
-
-	// This adds components according to the type selected in the drop down. If the user
-	// has the appropriate objects selected in the content browser then those are added,
-	// else we go down the previous route of adding components by type.
-	if ( Selection->Num() > 0 )
+	if( ComponentCreateAction == EComponentCreateAction::CreateNewCPPClass )
 	{
-		for(FSelectionIterator ObjectIter(*Selection);ObjectIter;++ObjectIter)
+		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow( SharedThis(this) );
+
+		FString AddedClassName;
+		auto OnCodeAddedToProject = [&AddedClassName](const FString& ClassName, const FString& ClassPath, const FString& ModuleName )
 		{
-			UObject* Object = *ObjectIter;
-			UClass*  Class	= Object->GetClass();
-
-			TArray< TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);
-
-			// if the selected asset supports the selected component type then go ahead and add it
-			for ( int32 ComponentIndex = 0; ComponentIndex < ComponentClasses.Num(); ComponentIndex++ )
+			if( !ClassName.IsEmpty() && !ClassPath.IsEmpty() )
 			{
-				if ( ComponentClasses[ComponentIndex]->IsChildOf( NewClass ) )
+				AddedClassName = FString::Printf(TEXT("/Script/%s.%s"), *ModuleName, *ClassName);
+			}
+		};
+
+		const bool bModal = true;
+		FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog( ComponentClass, FString(), ParentWindow, bModal, FOnCodeAddedToProject::CreateLambda(OnCodeAddedToProject) );
+
+		NewClass = LoadClass<UActorComponent>(nullptr, *AddedClassName, nullptr, LOAD_None, nullptr );
+	}
+	
+	if( NewClass != nullptr )
+	{
+		FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
+		USelection* Selection =  GEditor->GetSelectedObjects();
+
+		bool bAddedComponent = false;
+
+		// This adds components according to the type selected in the drop down. If the user
+		// has the appropriate objects selected in the content browser then those are added,
+		// else we go down the previous route of adding components by type.
+		if(Selection->Num() > 0)
+		{
+			for(FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
+			{
+				UObject* Object = *ObjectIter;
+				UClass*  Class	= Object->GetClass();
+
+				TArray< TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);
+
+				// if the selected asset supports the selected component type then go ahead and add it
+				for(int32 ComponentIndex = 0; ComponentIndex < ComponentClasses.Num(); ComponentIndex++)
 				{
-					AddNewComponent( NewClass, Object );
-					bAddedComponent = true;
-					break;
+					if(ComponentClasses[ComponentIndex]->IsChildOf(NewClass))
+					{
+						AddNewComponent(NewClass, Object);
+						bAddedComponent = true;
+						break;
+					}
 				}
 			}
 		}
-	}
 
-	if ( !bAddedComponent )
-	{
-		// As the SCS splits up the scene and actor components, can now add directly
-		AddNewComponent(ComponentClass, NULL);
+		if(!bAddedComponent)
+		{
+			// As the SCS splits up the scene and actor components, can now add directly
+			AddNewComponent(NewClass, NULL);
+		}
 	}
 }
 

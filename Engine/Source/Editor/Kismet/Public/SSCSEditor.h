@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintEditor.h"
+#include "SComponentClassCombo.h"
 
 class SSCSEditor;
 class USCS_Node;
@@ -625,7 +626,7 @@ protected:
 	FString GetSelectedClassText() const;
 
 	/** Add a component from the selection in the combo box */
-	void PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass);
+	void PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass, EComponentCreateAction::Type ComponentCreateAction );
 
 	/** Called to display context menu when right clicking on the widget */
 	TSharedPtr< SWidget > CreateContextMenu();

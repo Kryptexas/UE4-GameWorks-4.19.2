@@ -721,7 +721,7 @@ bool GameProjectUtils::UpdateGameProject(const FString& ProjectFile, const FStri
 	return UpdateGameProjectFile(ProjectFile, EngineIdentifier, NULL, OutFailReason);
 }
 
-void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow)
+void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal, FOnCodeAddedToProject OnCodeAddedToProject )
 {
 	// If we've been given a class then we only show the second page of the dialog, so we can make the window smaller as that page doesn't have as much content
 	const FVector2D WindowSize = (InClass) ? FVector2D(940, 380) : FVector2D(940, 540);
@@ -733,7 +733,13 @@ void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const F
 		.SizingRule( ESizingRule::FixedSize )
 		.SupportsMinimize(false) .SupportsMaximize(false);
 
-	AddCodeWindow->SetContent( SNew(SNewClassDialog).Class(InClass).InitialPath(InInitialPath) );
+	TSharedRef<SNewClassDialog> NewClassDialog = 
+		SNew(SNewClassDialog)
+		.Class(InClass)
+		.InitialPath(InInitialPath)
+		.OnCodeAddedToProject( OnCodeAddedToProject );
+
+	AddCodeWindow->SetContent( NewClassDialog );
 
 	TSharedPtr<SWindow> ParentWindow = InParentWindow;
 	if (!ParentWindow.IsValid())
@@ -745,11 +751,26 @@ void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const F
 
 	if (ParentWindow.IsValid())
 	{
-		FSlateApplication::Get().AddWindowAsNativeChild(AddCodeWindow, ParentWindow.ToSharedRef());
+		if( bModal )
+		{
+			FSlateApplication::Get().AddModalWindow(AddCodeWindow, ParentWindow);
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindowAsNativeChild(AddCodeWindow, ParentWindow.ToSharedRef());
+		}
 	}
 	else
 	{
-		FSlateApplication::Get().AddWindow(AddCodeWindow);
+		if(bModal)
+		{
+			FSlateApplication::Get().AddModalWindow(AddCodeWindow, nullptr);
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(AddCodeWindow);
+		}
+
 	}
 }
 

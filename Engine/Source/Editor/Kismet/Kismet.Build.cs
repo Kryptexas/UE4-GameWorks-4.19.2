@@ -44,7 +44,8 @@ public class Kismet : ModuleRules
                 "JsonUtilities",
                 "DerivedDataCache",
 				"DesktopPlatform",
-				"HotReload"
+				"HotReload",
+				"GameProjectGeneration",
 			}
 			);
 
