@@ -113,6 +113,9 @@ public:
 	void Populate();
 
 private:
+	/** Sort the root items into the correct order */
+	void SortRootItems();
+
 	/** Gets the content for a context menu */
 	TSharedPtr<SWidget> MakePathViewContextMenu();
 

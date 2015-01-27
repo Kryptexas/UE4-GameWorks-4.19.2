@@ -994,11 +994,66 @@ void SPathView::Populate()
 		}
 	}
 
-	// Sort the root tree items using their display names
+	SortRootItems();
+
+	bNeedsRepopulate = false;
+}
+
+void SPathView::SortRootItems()
+{
+	// First sort the root items by their display name, but also making sure that content to appears before classes
 	TreeRootItems.Sort([](const TSharedPtr<FTreeItem>& One, const TSharedPtr<FTreeItem>& Two) -> bool
 	{
+		static const FString ClassesPrefix = TEXT("Classes_");
+
+		FString OneModuleName = One->FolderName;
+		const bool bOneIsClass = OneModuleName.StartsWith(ClassesPrefix);
+		if(bOneIsClass)
+		{
+			OneModuleName = OneModuleName.Mid(ClassesPrefix.Len());
+		}
+
+		FString TwoModuleName = Two->FolderName;
+		const bool bTwoIsClass = TwoModuleName.StartsWith(ClassesPrefix);
+		if(bTwoIsClass)
+		{
+			TwoModuleName = TwoModuleName.Mid(ClassesPrefix.Len());
+		}
+
+		// We want to sort content before classes if both items belong to the same module
+		if(OneModuleName == TwoModuleName)
+		{
+			if(!bOneIsClass && bTwoIsClass)
+			{
+				return true;
+			}
+			return false;
+		}
+
 		return One->DisplayName.ToString() < Two->DisplayName.ToString();
 	});
+
+	// We have some manual sorting requirements that game must come before engine, and engine before everything else - we do that here after sorting everything by name
+	// The array below is in the inverse order as we iterate through and move each match to the beginning of the root items array
+	static const FString InverseSortOrder[] = {
+		TEXT("Classes_Engine"),
+		TEXT("Engine"),
+		TEXT("Classes_Game"),
+		TEXT("Game"),
+	};
+	for(const FString& SortItem : InverseSortOrder)
+	{
+		const int32 FoundItemIndex = TreeRootItems.IndexOfByPredicate([&SortItem](const TSharedPtr<FTreeItem>& TreeItem) -> bool
+		{
+			return TreeItem->FolderName == SortItem;
+		});
+		if(FoundItemIndex != INDEX_NONE)
+		{
+			TSharedPtr<FTreeItem> ItemToMove = TreeRootItems[FoundItemIndex];
+			TreeRootItems.RemoveAt(FoundItemIndex);
+			TreeRootItems.Insert(ItemToMove, 0);
+		}
+	}
 
 	TreeViewPtr->RequestTreeRefresh();
 }
