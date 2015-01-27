@@ -1029,6 +1029,17 @@ void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component)
 	}
 }
 
+void FSceneComponentInstanceData::FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
+{
+	for (USceneComponent*& ChildComponent : AttachedInstanceComponents)
+	{
+		if (UObject* const* NewChildComponent = OldToNewInstanceMap.Find(ChildComponent))
+		{
+			ChildComponent = CastChecked<USceneComponent>(*NewChildComponent);
+		}
+	}
+}
+
 FComponentInstanceDataBase* USceneComponent::GetComponentInstanceData() const
 {
 	FComponentInstanceDataBase* InstanceData = nullptr;

@@ -130,3 +130,14 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor) const
 		}
 	}
 }
+
+void FComponentInstanceDataCache::FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap) const
+{
+	for (auto ComponentInstanceDataPair : TypeToDataMap)
+	{
+		if (ComponentInstanceDataPair.Value)
+		{
+			ComponentInstanceDataPair.Value->FindAndReplaceInstances(OldToNewInstanceMap);
+		}
+	}
+}

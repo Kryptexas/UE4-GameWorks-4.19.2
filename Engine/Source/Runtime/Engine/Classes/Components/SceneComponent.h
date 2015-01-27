@@ -800,6 +800,7 @@ public:
 	{}
 
 	virtual void ApplyToComponent(UActorComponent* Component) override;
+	virtual void FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap) override;
 
 	TArray<USceneComponent*> AttachedInstanceComponents;
 };
