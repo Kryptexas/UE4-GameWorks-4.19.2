@@ -91,6 +91,13 @@ private:
 	EVisibility GetStaticTextVisibility() const;
 
 private:
+	enum class EFolderType : uint8
+	{
+		Normal,
+		Code,
+		Developer,
+	};
+
 	/** The data for this item */
 	TWeakPtr<FTreeItem> TreeItem;
 
@@ -121,13 +128,15 @@ private:
 	/** Brushes for the different folder states */
 	const FSlateBrush* FolderOpenBrush;
 	const FSlateBrush* FolderClosedBrush;
+	const FSlateBrush* FolderOpenCodeBrush;
+	const FSlateBrush* FolderClosedCodeBrush;
 	const FSlateBrush* FolderDeveloperBrush;
 
 	/** True when a drag is over this item with a valid operation for drop */
 	bool bDraggedOver;
 
-	/** True when this item represents a folder which is in the developer folder or is the developer folder itself */
-	bool bDeveloperFolder;
+	/** What type of stuff does this folder hold */
+	EFolderType FolderType;
 
 	/** Widget to display the name of the asset item and allows for renaming */
 	TSharedPtr< SInlineEditableTextBlock > InlineRenameWidget;

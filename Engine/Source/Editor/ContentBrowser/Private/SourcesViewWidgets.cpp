@@ -30,9 +30,19 @@ void SAssetTreeItem::Construct( const FArguments& InArgs )
 
 	FolderOpenBrush = FEditorStyle::GetBrush("ContentBrowser.AssetTreeFolderOpen");
 	FolderClosedBrush = FEditorStyle::GetBrush("ContentBrowser.AssetTreeFolderClosed");
+	FolderOpenCodeBrush = FEditorStyle::GetBrush("ContentBrowser.AssetTreeFolderOpenCode");
+	FolderClosedCodeBrush = FEditorStyle::GetBrush("ContentBrowser.AssetTreeFolderClosedCode");
 	FolderDeveloperBrush = FEditorStyle::GetBrush("ContentBrowser.AssetTreeFolderDeveloper");
 		
-	bDeveloperFolder = ContentBrowserUtils::IsDevelopersFolder(InArgs._TreeItem->FolderPath);
+	FolderType = EFolderType::Normal;
+	if( ContentBrowserUtils::IsDevelopersFolder(InArgs._TreeItem->FolderPath) )
+	{
+		FolderType = EFolderType::Developer;
+	}
+	else if( ContentBrowserUtils::IsClassPath/*IsClassRootDir*/(InArgs._TreeItem->FolderPath) )
+	{
+		FolderType = EFolderType::Code;
+	}
 
 	bool bIsRoot = !InArgs._TreeItem->Parent.IsValid();
 
@@ -326,17 +336,16 @@ bool SAssetTreeItem::IsValidAssetPath() const
 
 const FSlateBrush* SAssetTreeItem::GetFolderIcon() const
 {
-	if ( bDeveloperFolder )
+	switch( FolderType )
 	{
+	case EFolderType::Code:
+		return ( IsItemExpanded.Get() ) ? FolderOpenCodeBrush : FolderClosedCodeBrush;
+
+	case EFolderType::Developer:
 		return FolderDeveloperBrush;
-	}
-	else if ( IsItemExpanded.Get() )
-	{
-		return FolderOpenBrush;
-	}
-	else
-	{
-		return FolderClosedBrush;
+
+	default:
+		return ( IsItemExpanded.Get() ) ? FolderOpenBrush : FolderClosedBrush;
 	}
 }
 
