@@ -863,10 +863,6 @@ namespace UnrealBuildTool
                         {
                             //ConfigName = Arg;
                         }
-                        else if (LowercaseArg == "-obbinapk")
-                        {
-                            UEBuildConfiguration.bOBBinAPK = true;
-                        }
                         else if (LowercaseArg == "-modulewithsuffix")
                         {
                             bSpecificModulesOnly = true;

@@ -282,7 +282,6 @@ namespace AutomationTool
 			this.Distribution = InParams.Distribution;
 			this.Prereqs = InParams.Prereqs;
 			this.NoBootstrapExe = InParams.NoBootstrapExe;
-            this.OBBinAPK = InParams.OBBinAPK;
             this.Prebuilt = InParams.Prebuilt;
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
 		}
@@ -374,7 +373,6 @@ namespace AutomationTool
 			bool? ArchiveMetaData = null,
 			ParamList<string> ProgramTargets = null,
 			bool? Distribution = null,
-            bool? OBBinAPK = null,
             bool? Prebuilt = null,
             int? RunTimeoutSeconds = null,
 			string OverrideMinimumOS = null,
@@ -508,7 +506,6 @@ namespace AutomationTool
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
 			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
 			this.NoBootstrapExe = GetParamValueIfNotSpecified(Command, NoBootstrapExe, this.NoBootstrapExe, "nobootstrapexe");
-            this.OBBinAPK = GetParamValueIfNotSpecified(Command, OBBinAPK, this.OBBinAPK, "obbinapk");
             this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
             if (this.Prebuilt)
             {
@@ -1254,9 +1251,6 @@ namespace AutomationTool
 		[Help("prereqs", "stage prerequisites along with the project")]
 		public bool Prereqs { get; set; }
 
-		[Help("obbinapk", "package with OBB data in APK assets directory")]
-        public bool OBBinAPK {get; set; }
-
         [Help("Prebuilt", "this is a prebuilt cooked and packaged build")]
         public bool Prebuilt { get; private set; }
 
@@ -1928,7 +1922,6 @@ namespace AutomationTool
 				CommandUtils.Log("ProjectGameExeFilename={0}", ProjectGameExeFilename);
 				CommandUtils.Log("ProjectGameExePath={0}", ProjectGameExePath);
 				CommandUtils.Log("Distribution={0}", Distribution);
-                CommandUtils.Log("OBBinAPK={0}", OBBinAPK);
                 CommandUtils.Log("Prebuilt={0}", Prebuilt);
 				CommandUtils.Log("Prereqs={0}", Prereqs);
 				CommandUtils.Log("NoBootstrapExe={0}", NoBootstrapExe);

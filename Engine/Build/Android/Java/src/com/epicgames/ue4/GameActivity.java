@@ -65,7 +65,6 @@ import com.epicgames.ue4.GooglePlayLicensing;
 
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
-import com.epicgames.ue4.JavaBuildSettings;
 
 //Extending NativeActivity so that this Java class is instantiated
 //from the beginning of the program.  This will allow the user
@@ -95,6 +94,9 @@ public class GameActivity extends NativeActivity
 	AlertDialog virtualKeyboardAlert;
 	EditText virtualKeyboardInputBox;
 
+	// default the PackageDataInsideApk to an invalid value to make sure we don't get it too early
+	private static int PackageDataInsideApkValue = -1;
+	
 	/** AssetManger reference - populated on start up and used when the OBB is packed into the APK */
 	private AssetManager			AssetManagerReference;
 	
@@ -273,12 +275,29 @@ public class GameActivity extends NativeActivity
 			{
 				DepthBufferPreference = bundle.getInt("com.epicgames.ue4.GameActivity.DepthBufferPreference");
 				Log.debug( "Found DepthBufferPreference = " + DepthBufferPreference);
-			} else {
+			}
+			else
+			{
 				Log.debug( "Did not find DepthBufferPreference, using default.");
 			}
-		} catch (NameNotFoundException e) {
+
+			if (bundle.containsKey("com.epicgames.ue4.GameActivity.bPackageDataInsideApk"))
+			{
+				PackageDataInsideApkValue = bundle.getBoolean("com.epicgames.ue4.GameActivity.bPackageDataInsideApk") ? 1 : 0;
+				Log.debug( "Found bPackageDataInsideApk = " + PackageDataInsideApkValue);
+			}
+			else
+			{
+				PackageDataInsideApkValue = 0;
+				Log.debug( "Did not find bPackageDataInsideApk, using default.");
+			}
+		}
+		catch (NameNotFoundException e)
+		{
 			Log.debug( "Failed to load meta-data: NameNotFound: " + e.getMessage());
-		} catch (NullPointerException e) {
+		}
+		catch (NullPointerException e)
+		{
 			Log.debug( "Failed to load meta-data: NullPointer: " + e.getMessage());
 		}
 
@@ -761,7 +780,8 @@ public class GameActivity extends NativeActivity
 
 	public static boolean isOBBInAPK()
 	{
-		return JavaBuildSettings.PackageType.AMAZON == JavaBuildSettings.PACKAGING;
+		Log.debug("Asking if osOBBInAPK? " + (PackageDataInsideApkValue == 1));
+		return PackageDataInsideApkValue == 1;
 	}
 
 	public void AndroidThunkJava_Minimize()
