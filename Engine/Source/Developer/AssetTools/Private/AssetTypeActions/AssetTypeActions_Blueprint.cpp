@@ -154,7 +154,7 @@ void FAssetTypeActions_Blueprint::ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlu
 	}
 
 	// Report errors
-	EditorErrors.Notify(LOCTEXT("OpenDefaults_Failed", "Opening Blueprint Defaults Failed!"));
+	EditorErrors.Notify(LOCTEXT("OpenDefaults_Failed", "Opening Class Defaults Failed!"));
 }
 
 void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlueprint> InObject)

@@ -1653,11 +1653,6 @@ void FPersona::Compile()
 	}
 }
 
-FText FPersona::GetDefaultEditorTitle()
-{
-	return NSLOCTEXT("Kismet", "PreviewParamatersTabTitle", "Preview Parameters");
-}
-
 FName FPersona::GetToolkitContextFName() const
 {
 	return GetToolkitFName();

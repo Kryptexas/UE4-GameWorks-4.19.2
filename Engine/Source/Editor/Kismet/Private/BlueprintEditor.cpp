@@ -6598,7 +6598,7 @@ FText FBlueprintEditor::GetToolkitName() const
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("NumberOfObjects"), EditingObjects.Num() );
 	Args.Add( TEXT("ObjectName"), FText::FromString( SharedParentClass->GetName() ) );
-	return FText::Format( NSLOCTEXT("KismetEditor", "ToolkitTitle_UniqueLayerName", "{NumberOfObjects} {ClassName} - Blueprint Defaults"), Args );
+	return FText::Format( NSLOCTEXT("KismetEditor", "ToolkitTitle_UniqueLayerName", "{NumberOfObjects} {ClassName} - Class Defaults"), Args );
 }
 
 
@@ -6641,11 +6641,6 @@ void FBlueprintEditor::VariableListWasUpdated()
 FText FBlueprintEditor::DefaultEditString() 
 {
 	return LOCTEXT("BlueprintEditingDefaults", "Editing defaults");
-}
-
-FText FBlueprintEditor::GetDefaultEditorTitle()
-{
-	return LOCTEXT("BlueprintDefaultsTabTitle", "Blueprint Defaults");
 }
 
 bool FBlueprintEditor::GetBoundsForSelectedNodes(class FSlateRect& Rect, float Padding)

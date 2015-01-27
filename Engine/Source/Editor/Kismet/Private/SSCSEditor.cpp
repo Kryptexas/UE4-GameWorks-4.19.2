@@ -5203,7 +5203,7 @@ void SSCSEditor::OnResetToBlueprintDefaults() const
 
 	if (Actor != NULL && Blueprint != NULL && Actor->GetClass()->ClassGeneratedBy == Blueprint)
 	{
-		const FScopedTransaction Transaction(LOCTEXT("ResetToBlueprintDefaults_Transaction", "Reset to Blueprint Defaults"));
+		const FScopedTransaction Transaction(LOCTEXT("ResetToBlueprintDefaults_Transaction", "Reset to Class Defaults"));
 
 		{
 			AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
