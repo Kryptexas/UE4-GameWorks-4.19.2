@@ -563,6 +563,23 @@ void UAIPerceptionComponent::GetPerceivedHostileActors(TArray<AActor*>& OutActor
 	GetHostileActors(OutActors);
 }
 
+void UAIPerceptionComponent::GetPerceivedActors(TSubclassOf<UAISense> SenseToUse, TArray<AActor*>& OutActors) const
+{
+	const FAISenseID SenseID = UAISense::GetSenseID(SenseToUse);
+
+	OutActors.Reserve(PerceptualData.Num());
+	for (TActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
+	{
+		if (SenseToUse == nullptr || DataIt->Value.IsSenseRegistered(SenseID))
+		{
+			if (DataIt->Value.Target.IsValid())
+			{
+				OutActors.Add(DataIt->Value.Target.Get());
+			}
+		}
+	}
+}
+
 bool UAIPerceptionComponent::GetActorsPerception(AActor* Actor, FActorPerceptionBlueprintInfo& Info)
 {
 	bool bInfoFound = false;

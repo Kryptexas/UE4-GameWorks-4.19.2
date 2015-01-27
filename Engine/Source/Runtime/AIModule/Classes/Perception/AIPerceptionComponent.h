@@ -235,6 +235,10 @@ public:
 	//----------------------------------------------------------------------//
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	void GetPerceivedHostileActors(TArray<AActor*>& OutActors) const;
+
+	/** If SenseToUse is none all actors perceived in any way will get fetched */
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
+	void GetPerceivedActors(TSubclassOf<UAISense> SenseToUse, TArray<AActor*>& OutActors) const;
 	
 	/** Retrieves whatever has been sensed about given actor */
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
