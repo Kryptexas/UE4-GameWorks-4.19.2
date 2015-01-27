@@ -466,7 +466,7 @@ public:
 	uint32 bEnableAutoLODGeneration:1;
 
 	/** Array of tags that can be used for grouping and categorizing. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Tags)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=Actor)
 	TArray<FName> Tags;
 
 	/** Bitflag to represent which views this actor is hidden in, via per-view layer visibility. */
