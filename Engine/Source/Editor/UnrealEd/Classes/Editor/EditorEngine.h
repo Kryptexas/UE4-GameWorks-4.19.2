@@ -2507,6 +2507,8 @@ public:
 	 void FlagModifyAllSelectedSurfacesInLevels( UWorld* InWorld );
 	 
 private:
+	/** Checks for UWorld garbage collection leaks and reports any that are found */
+	void CheckForWorldGCLeaks( UWorld* NewWorld, UPackage* WorldPackage );
 
 	/**
 	 * This destroys the given world.
