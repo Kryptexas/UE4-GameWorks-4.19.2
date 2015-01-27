@@ -893,30 +893,33 @@ void AMatineeActor::TermInterp()
 void AMatineeActor::UpdateInterpForParentMovementTracks( float Time, UInterpGroupInst* ViewGroupInst )
 {
 	AActor* Actor = ViewGroupInst->GetGroupActor();
-	AActor* Parent = Actor->GetAttachParentActor();
-
-	UInterpGroupInst* ParentInst = FindGroupInst( Parent );
-	if(ParentInst)
+	if( Actor )
 	{
-		TArray<UInterpTrack*> FoundTracks;
+		AActor* Parent = Actor->GetAttachParentActor();
 
-		UInterpTrackInst* ParentTrackInst = nullptr;
-		for (UInterpTrackInst* Inst : ParentInst->TrackInst )
-		{
-			if( Inst->GetGroupActor() == Parent )
-			{
-				ParentTrackInst = Inst;
-				break;
-			}
-		}
-
-		if (ParentTrackInst)
+		UInterpGroupInst* ParentInst = FindGroupInst(Parent);
+		if(ParentInst)
 		{
 			TArray<UInterpTrack*> FoundTracks;
-			ParentInst->Group->FindTracksByClass( UInterpTrackMove::StaticClass(), FoundTracks );
-			//Just use the first one, multiple move tracks wouldnt work well anyway
-			UInterpTrackMove* MoveTrack = CastChecked<UInterpTrackMove>(FoundTracks[0]);
-			MoveTrack->ConditionalUpdateTrack(Time, ParentTrackInst, true);
+
+			UInterpTrackInst* ParentTrackInst = nullptr;
+			for(UInterpTrackInst* Inst : ParentInst->TrackInst)
+			{
+				if(Inst->GetGroupActor() == Parent)
+				{
+					ParentTrackInst = Inst;
+					break;
+				}
+			}
+
+			if(ParentTrackInst)
+			{
+				TArray<UInterpTrack*> FoundTracks;
+				ParentInst->Group->FindTracksByClass(UInterpTrackMove::StaticClass(), FoundTracks);
+				//Just use the first one, multiple move tracks wouldnt work well anyway
+				UInterpTrackMove* MoveTrack = CastChecked<UInterpTrackMove>(FoundTracks[0]);
+				MoveTrack->ConditionalUpdateTrack(Time, ParentTrackInst, true);
+			}
 		}
 	}
 }
