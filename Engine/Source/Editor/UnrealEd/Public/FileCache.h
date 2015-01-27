@@ -170,15 +170,20 @@ private:
 	double StopAtTime;
 };
 
-enum class EProgressResult
+/** Enum specifying whether a path should be relative or absolute */
+enum EPathType
 {
-	Finished, Pending
+	/** Paths should be cached relative to the root cache directory */
+	Relative,
+
+	/** Paths should be cached as absolute file system paths */
+	Absolute
 };
 
 /**
  * Class responsible for 'asyncronously' scanning a folder for files and timestamps.
  * Example usage:
- *		FAsyncDirectoryReader Reader(TEXT("C:\\Path"));
+ *		FAsyncDirectoryReader Reader(TEXT("C:\\Path"), EPathType::Relative);
  *
  *		while(!Reader.IsComplete())
  *		{
@@ -189,8 +194,13 @@ enum class EProgressResult
  */
 struct FAsyncDirectoryReader
 {
+	enum class EProgressResult
+	{
+		Finished, Pending
+	};
+
 	/** Constructor that sets up the directory reader to the specified directory */
-	FAsyncDirectoryReader(const FString& InDirectory);
+	FAsyncDirectoryReader(const FString& InDirectory, EPathType InPathType);
 
 	/**
 	 * Get the state of the directory once finished. Relinquishes the currently stored directory state to the client.
@@ -208,6 +218,12 @@ private:
 	/** Non-recursively scan a single directory for its contents. Adds results to Pending arrays. */
 	void ScanDirectory(const FString& InDirectory);
 
+	/** Path to the root directory we want to scan */
+	FString RootPath;
+
+	/** Whether we should return relative or absolute paths */
+	EPathType PathType;
+
 	/** The currently discovered state of the directory */
 	TOptional<FDirectoryState> State;
 
@@ -222,7 +238,7 @@ private:
 struct FFileCacheConfig
 {
 	FFileCacheConfig(FString InDirectory, FString InCacheFile)
-		: Directory(InDirectory), CacheFile(InCacheFile), BatchDelayS(0.f)
+		: Directory(InDirectory), CacheFile(InCacheFile), BatchDelayS(0.f), PathType(EPathType::Relative)
 	{}
 
 	/** String specifying the directory on disk that the cache should reflect */
@@ -231,14 +247,17 @@ struct FFileCacheConfig
 	/** String specifying the file that the cache should be saved to */
 	FString CacheFile;
 
-	/** Optionally specified delay that should be waited before reporting changes to the watched directory. Useful for batching together large or rapid changes. */
-	float BatchDelayS;
-
 	/**
 	 * Strings specifying extensions to include/exclude in the cache (or empty to include everything).
 	 * Specified as a list of semi-colon separated extensions (eg "png;jpg;gif;").
 	 */
 	FString IncludeExtensions, ExcludeExtensions;
+
+	/** Optionally specified delay that should be waited before reporting changes to the watched directory. Useful for batching together large or rapid changes. */
+	float BatchDelayS;
+
+	/** Path type to return, relative to the directory or absolute. */
+	EPathType PathType;
 };
 
 /**
