@@ -76,7 +76,7 @@ protected:
 	void AddPropertiesRecursive(UProperty* Property);
 
 	/** Pointer back to the kismet 2 tool that owns us */
-	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
+	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
 
 	/** The tab that owns this details view. */
 	TWeakPtr<SDockTab> OwnerTab;
