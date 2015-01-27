@@ -790,12 +790,18 @@ void USplineMeshComponent::RecreateCollision()
 #endif
 
 /** Used to store spline mesh data during RerunConstructionScripts */
-class FSplineMeshInstanceData : public FComponentInstanceDataBase
+class FSplineMeshInstanceData : public FSceneComponentInstanceData
 {
 public:
 	explicit FSplineMeshInstanceData(const USplineMeshComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 	{
+	}
+
+	virtual void ApplyToComponent(UActorComponent* Component) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component);
+		CastChecked<USplineMeshComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
 	FVector StartPos;
@@ -812,23 +818,27 @@ FName USplineMeshComponent::GetComponentInstanceDataType() const
 
 FComponentInstanceDataBase* USplineMeshComponent::GetComponentInstanceData() const
 {
-	FSplineMeshInstanceData* SplineMeshInstanceData = nullptr;
+	FComponentInstanceDataBase* InstanceData = nullptr;
 	if (bAllowSplineEditingPerInstance)
 	{
-		SplineMeshInstanceData = new FSplineMeshInstanceData(this);
+		FSplineMeshInstanceData *SplineMeshInstanceData = new FSplineMeshInstanceData(this);
 		SplineMeshInstanceData->StartPos = SplineParams.StartPos;
 		SplineMeshInstanceData->EndPos = SplineParams.EndPos;
 		SplineMeshInstanceData->StartTangent = SplineParams.StartTangent;
 		SplineMeshInstanceData->EndTangent = SplineParams.EndTangent;
+		InstanceData = SplineMeshInstanceData;
 	}
-	return SplineMeshInstanceData;
+	else
+	{
+		InstanceData = Super::GetComponentInstanceData();
+	}
+	return InstanceData;
 }
 
-void USplineMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void USplineMeshComponent::ApplyComponentInstanceData(FSplineMeshInstanceData* SplineMeshInstanceData)
 {
-	if (ComponentInstanceData)
+	if (SplineMeshInstanceData)
 	{
-		FSplineMeshInstanceData* SplineMeshInstanceData = static_cast<FSplineMeshInstanceData*>(ComponentInstanceData);
 		if (bAllowSplineEditingPerInstance)
 		{
 			SplineParams.StartPos = SplineMeshInstanceData->StartPos;
