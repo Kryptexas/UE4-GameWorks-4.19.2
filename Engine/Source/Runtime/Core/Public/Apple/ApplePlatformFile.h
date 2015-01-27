@@ -36,7 +36,8 @@ public:
 	virtual bool DirectoryExists(const TCHAR* Directory) override;
 	virtual bool CreateDirectory(const TCHAR* Directory) override;
 	virtual bool DeleteDirectory(const TCHAR* Directory) override;
-	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor);
+	virtual bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor);
+	virtual bool CopyFile(const TCHAR* To, const TCHAR* From);
 private:
-	int32 Stat(const TCHAR* Filename, struct stat* OutFileInfo, ANSICHAR* OutFixedPath = nullptr, SIZE_T FixedPathSize = 0);
+	int32 Stat(const TCHAR* Filename, struct stat* OutFileInfo);
 };
