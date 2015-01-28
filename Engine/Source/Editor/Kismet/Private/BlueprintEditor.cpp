@@ -4887,7 +4887,7 @@ struct FUpdatePastedNodes
 
 					const bool bCanCurrentBlueprintReplace = TargetClass
 						&& CurrentClass->IsChildOf(TargetClass) // If current class if of the same type, it has the called member
-						&& !CallOnMember->MemberVariableToCallOn.IsSelfContext()
+						&& (!CallOnMember->MemberVariableToCallOn.IsSelfContext() && (TargetClass != CurrentClass)) // Make sure the class isn't self, using a explicit check in case the class hasn't been compiled since the member was added
 						&& bTargetIsNullOrSingleLinked;
 
 					if (bCanCurrentBlueprintReplace) 
