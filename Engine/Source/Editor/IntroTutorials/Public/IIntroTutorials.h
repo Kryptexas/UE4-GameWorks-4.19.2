@@ -66,5 +66,12 @@ public:
 	 * @return a widget used to access context-sensitive tutorials
 	 */
 	virtual TSharedRef<SWidget> CreateTutorialsWidget(FName InContext, TWeakPtr<SWindow> InContextWindow = nullptr) const = 0;
+
+	/**
+	* Create a widget that shows a "loading" visual while waiting for tutorials to load.
+	* @param	InContextWindow		The window that the context is attached to (e.g. the main window, or an asset editor tab)
+	* @return a widget used to access context-sensitive tutorials
+	*/
+	virtual TSharedPtr<SWidget> CreateTutorialsLoadingWidget(TWeakPtr<SWindow> InContextWindow = nullptr) const = 0;
 };
 

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "STutorialLoading.h"
+
 class STutorialButton : public SCompoundWidget
 {
 	SLATE_BEGIN_ARGS(STutorialButton) {}
@@ -89,6 +91,8 @@ private:
 
 	/** Cached browser filter */
 	FString CachedBrowserFilter;
+
+	TSharedPtr<SWidget> LoadingWidget;
 
 	/** True if we're waiting for asset registry to load in response to a click */
 	bool bPendingClickAction;

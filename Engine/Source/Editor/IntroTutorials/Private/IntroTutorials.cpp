@@ -27,6 +27,7 @@
 #include "EditorTutorialDetailsCustomization.h"
 #include "STutorialRoot.h"
 #include "STutorialButton.h"
+#include "STutorialLoading.h"
 #include "ToolkitManager.h"
 #include "BlueprintEditor.h"
 #include "EngineBuildSettings.h"
@@ -407,6 +408,22 @@ void FIntroTutorials::SummonTutorialBrowser()
 	}
 }
 
+void FIntroTutorials::AttachWidget(TSharedPtr<SWidget> Widget)
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->AttachWidget(Widget);
+	}
+}
+
+void FIntroTutorials::DetachWidget()
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->DetachWidget();
+	}
+}
+
 void FIntroTutorials::LaunchTutorial(const FString& TutorialAssetName)
 {
 	LaunchTutorialByName(TutorialAssetName);
@@ -463,6 +480,12 @@ TSharedRef<SWidget> FIntroTutorials::CreateTutorialsWidget(FName InContext, TWea
 {
 	return SNew(STutorialButton)
 		.Context(InContext)
+		.ContextWindow(InContextWindow);
+}
+
+TSharedPtr<SWidget> FIntroTutorials::CreateTutorialsLoadingWidget(TWeakPtr<SWindow> InContextWindow) const
+{
+	return SNew(STutorialLoading)
 		.ContextWindow(InContextWindow);
 }
 

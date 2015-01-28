@@ -29,6 +29,18 @@ void STutorialRoot::Construct(const FArguments& InArgs)
 	];
 }
 
+void STutorialRoot::AttachWidget(TSharedPtr<SWidget> Widget)
+{
+	//This checkSlow is just here to ensure we know what we're doing
+	checkSlow(ChildSlot.GetWidget() == SNullWidget::NullWidget);
+	ChildSlot.AttachWidget(Widget.ToSharedRef());
+}
+
+void STutorialRoot::DetachWidget()
+{
+	ChildSlot.DetachWidget();
+}
+
 void STutorialRoot::MaybeAddOverlay(TSharedRef<SWindow> InWindow)
 {
 	if(InWindow->HasOverlay())

@@ -2,6 +2,7 @@
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "STutorialButton.h"
+#include "STutorialLoading.h"
 #include "EditorTutorialSettings.h"
 #include "TutorialStateSettings.h"
 #include "TutorialMetaData.h"
@@ -33,6 +34,21 @@ void STutorialButton::Construct(const FArguments& InArgs)
 	PulseAnimation.AddCurve(0.0f, TutorialButtonConstants::PulseAnimationLength, ECurveEaseFunction::Linear);
 	PulseAnimation.Play();
 
+	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
+	LoadingWidget = IntroTutorials.CreateTutorialsLoadingWidget(ContextWindow);
+	/*
+	//LoadingWidget->SetVisibility(EVisibility::Visible);
+
+	if (GEngine)
+	{
+		UGameViewportClient* GVC = GEngine->Viewport;
+		if (GVC)
+		{
+			GVC->AddViewportWidgetContent(LoadingWidgetRef, 100);
+		}
+	}
+	*/
+
 	ChildSlot
 	[
 		SNew(SButton)
@@ -47,6 +63,8 @@ void STutorialButton::Construct(const FArguments& InArgs)
 			.HeightOverride(16)
 		]
 	];
+
+	//ChildSlot.AttachWidget(LoadingWidgetRef);
 }
 
 void STutorialButton::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -157,6 +175,8 @@ FReply STutorialButton::HandleButtonClicked()
 
 	bPendingClickAction = true;
 	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &STutorialButton::HandleButtonClicked_AssetRegistryChecker));
+	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+	IntroTutorials.AttachWidget(LoadingWidget);
 	return FReply::Handled();
 }
 
@@ -181,6 +201,7 @@ EActiveTimerReturnType STutorialButton::HandleButtonClicked_AssetRegistryChecker
 
 	//Now we know the asset registry is loaded, the tutorial broswer is updated, and we are ready to complete the click and stop this active timer
 	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+	IntroTutorials.DetachWidget();
 	if (ShouldLaunchBrowser())
 	{
 		IntroTutorials.SummonTutorialBrowser();
