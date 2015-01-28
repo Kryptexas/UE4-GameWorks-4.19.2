@@ -39,20 +39,6 @@ static FString ReportDirectoryAbsolutePath;
 static FString GameNameFromCmd;
 
 /**
- * Upload the crash report with no user interaction
- */
-void RunCrashReportClientUnattended(FMainLoopTiming& MainLoop, const FPlatformErrorReport& ErrorReport)
-{
-	FCrashReportClientUnattended CrashReportClient( ErrorReport );
-
-	// loop until the app is ready to quit
-	while (!GIsRequestingExit)
-	{
-		MainLoop.Tick();
-	}
-}
-
-/**
  * Look for the report to upload, either in the command line or in the platform's report queue
  */
 void ParseCommandLine(const TCHAR* CommandLine)
@@ -140,7 +126,13 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	if (bUnattended)
 	{
 		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ) );
-		RunCrashReportClientUnattended(MainLoop, ErrorReport);
+		FCrashReportClientUnattended CrashReportClient( ErrorReport );
+
+		// loop until the app is ready to quit
+		while (!GIsRequestingExit)
+		{
+			MainLoop.Tick();
+		}
 	}
 	else
 	{

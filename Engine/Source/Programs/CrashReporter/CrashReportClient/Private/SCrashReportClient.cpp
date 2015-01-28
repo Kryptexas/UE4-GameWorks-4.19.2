@@ -92,24 +92,13 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 			.AutoHeight()
 			.Padding(10)
 			[
-				SNew(STextBlock)
-				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-				.AutoWrapText(true)
-				.TextStyle(FCrashReportClientStyle::Get(), "Status")
-				.Text(Client, &FCrashReportClient::GetStatusText)
-			]
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(10)
-			[
 				SNew(SHorizontalBox)
 
 				+SHorizontalBox::Slot()
 				.Padding(3)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("KeyboardShortcuts", "Shift+Enter: submit\nEscape: cancel"))
+					.Text(LOCTEXT("KeyboardShortcuts", "Shift+Enter: submit\n"))
 				]
 
 				+SHorizontalBox::Slot()
@@ -125,17 +114,8 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 					[
 						SNew(SButton)
 						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("Submit", "Submit Crash Report"))
+						.Text(LOCTEXT("Send", "Send"))
 						.OnClicked(Client, &FCrashReportClient::Submit)
-						.Visibility(Client, &FCrashReportClient::SubmitButtonVisibility)
-					]
-
-					+SUniformGridPanel::Slot(1, 0)
-					[
-						SNew(SButton)
-						.HAlign(HAlign_Center)
-						.Text(Client, &FCrashReportClient::GetCancelButtonText)
-						.OnClicked(Client, &FCrashReportClient::Cancel)
 					]
 				]
 			]
@@ -178,12 +158,7 @@ void SCrashReportClient::SetDefaultFocus()
 FReply SCrashReportClient::OnUnhandledKeyDown(const FKeyEvent& InKeyEvent)
 {
 	const FKey Key = InKeyEvent.GetKey();
-	if (Key == EKeys::Escape)
-	{
-		CrashReportClient->Cancel();
-		return FReply::Handled();
-	}
-	else if (Key == EKeys::Enter)
+	if (Key == EKeys::Enter)
 	{
 		if (InKeyEvent.IsShiftDown())
 		{

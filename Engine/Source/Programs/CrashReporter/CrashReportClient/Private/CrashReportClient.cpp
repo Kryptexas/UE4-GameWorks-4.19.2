@@ -33,14 +33,12 @@ FCrashDescription& GetCrashDescription()
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
 FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport)
-	: AppState(EApplicationState::Ready)
-	, SubmittedCountdown(-1)
-	, DiagnosticText( LOCTEXT("ProcessingReport", "Processing crash report ...") )
+	: DiagnosticText( LOCTEXT("ProcessingReport", "Processing crash report ...") )
 	, DiagnoseReportTask(nullptr)
 	, ErrorReport( InErrorReport )
 	, Uploader(GServerIP)
-	, CancelButtonText(LOCTEXT("Cancel", "Don't Send"))
 	, bBeginUploadCalled(false)
+	, bShouldWindowBeHidden(false)
 {
 
 	if (!ErrorReport.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
@@ -56,25 +54,8 @@ FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport
 
 FReply FCrashReportClient::Submit()
 {
-	if (AppState == EApplicationState::Ready)
-	{
-		StoreCommentAndUpload();
-	}
-
-	return FReply::Handled();
-}
-
-FReply FCrashReportClient::Cancel()
-{
-	// If the AppState is Ready, this performs a Cancel; otherwise the Cancel
-	// button has become the Close button and the ticker has already started.
-	if (AppState == EApplicationState::Ready)
-	{
-		Uploader.Cancel();
-		StartUIWillCloseTicker();
-	}
-	AppState = EApplicationState::Closing;
-
+	StoreCommentAndUpload();
+	bShouldWindowBeHidden = true;
 	return FReply::Handled();
 }
 
@@ -84,25 +65,9 @@ FReply FCrashReportClient::CopyCallstack()
 	return FReply::Handled();
 }
 
-FText FCrashReportClient::GetStatusText() const
-{
-	static const FText ClosingText = LOCTEXT("Closing", "Thank you for reporting this issue - closing automatically");
-	return AppState == EApplicationState::CountingDown ? ClosingText : Uploader.GetStatusText();
-}
-
-FText FCrashReportClient::GetCancelButtonText() const
-{
-	return CancelButtonText;
-}
-
 FText FCrashReportClient::GetDiagnosticText() const
 {
 	return DiagnosticText;
-}
-
-EVisibility FCrashReportClient::SubmitButtonVisibility() const
-{
-	return AppState == EApplicationState::Ready ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 void FCrashReportClient::UserCommentChanged(const FText& Comment, ETextCommit::Type CommitType)
@@ -110,66 +75,32 @@ void FCrashReportClient::UserCommentChanged(const FText& Comment, ETextCommit::T
 	UserComment = Comment;
 
 	// Implement Shift+Enter to commit shortcut
-	if (CommitType == ETextCommit::OnEnter &&
-		AppState == EApplicationState::Ready &&
-		FSlateApplication::Get().GetModifierKeys().IsShiftDown())
+	if (CommitType == ETextCommit::OnEnter && FSlateApplication::Get().GetModifierKeys().IsShiftDown())
 	{
 		Submit();
 	}
 }
 
-bool FCrashReportClient::ShouldWindowBeHidden() const
-{
-	return AppState == EApplicationState::Closing;
-}
-
 void FCrashReportClient::RequestCloseWindow(const TSharedRef<SWindow>& Window)
 {
-	Cancel();
+	// We may still processing minidump etc. so start the main ticker.
+	StartTicker();
 }
 
-void FCrashReportClient::StartUIWillCloseTicker()
+void FCrashReportClient::StartTicker()
 {
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FCrashReportClient::UIWillCloseTick), 1.f);
+	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateSP(this, &FCrashReportClient::Tick), 1.f);
 }
 
 void FCrashReportClient::StoreCommentAndUpload()
 {
 	// Call upload even if the report is empty: pending reports will be sent if any
 	ErrorReport.SetUserComment(UserComment);
-
-	SubmittedCountdown = 5;
-	AppState = EApplicationState::CountingDown;
-	// Change the submit button text immediately (also sends diagnostics file if complete)
-	UIWillCloseTick(0);
-	StartUIWillCloseTicker();
+	StartTicker();
 }
 
-bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
+bool FCrashReportClient::Tick(float UnusedDeltaTime)
 {
-	bool bCountingDown = AppState == EApplicationState::CountingDown;
-	if (!bCountingDown && AppState != EApplicationState::Closing)
-	{
-		CRASHREPORTCLIENT_CHECK(false);
-		return false;
-	}
-
-	static const FText CountdownTextFormat = LOCTEXT("CloseApplication", "Close ({0})");
-
-	if (bCountingDown)
-	{
-		CancelButtonText = FText::Format(CountdownTextFormat, FText::AsNumber(SubmittedCountdown));
-		if (SubmittedCountdown-- == 0)
-		{
-			AppState = EApplicationState::Closing;
-		}
-		else
-		{
-			// More ticks, please
-			return true;
-		}
-	}
-
 	// We are waiting for diagnose report task to complete.
 	if( DiagnoseReportTask && !DiagnoseReportTask->IsWorkDone() )
 	{
@@ -190,8 +121,7 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 		return true;
 	}
 
-	FPlatformMisc::RequestExit(false /* don't force */);
-	// No more ticks, thank you
+	FPlatformMisc::RequestExit(false);
 	return false;
 }
 

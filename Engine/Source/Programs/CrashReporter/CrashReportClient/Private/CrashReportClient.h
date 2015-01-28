@@ -57,40 +57,16 @@ public:
 	FReply Submit();
 
 	/**
-	 * Respond to the user pressing Cancel or Close
-	 * @return Whether the request was handled
-	 */
-	FReply Cancel();
-
-	/**
 	 * Respond to the user requesting the callstack to be copied to the clipboard
 	 * @return Whether the request was handled
 	 */
 	FReply CopyCallstack();
 
 	/**
-	 * Provide text to display at the bottom of the app
-	 * @return Localized text to display
-	 */
-	FText GetStatusText() const;
-
-	/**
-	 * Tell UI to display 'Cancel' or 'Close'
-	 * @return Localized text to display
-	 */
-	FText GetCancelButtonText() const;
-
-	/**
 	 * Pass on exception and callstack from the platform error report code
 	 * @return Localized text to display
 	 */
 	FText GetDiagnosticText() const;
-
-	/**
-	 * Indicate availability of Submit button
-	 * @return Whether button should be visible
-	 */
-	EVisibility SubmitButtonVisibility() const;
 
 	/**
 	 * Access to name (which usually includes the build config) of the app that crashed
@@ -106,16 +82,15 @@ public:
 	void UserCommentChanged(const FText& Comment, ETextCommit::Type CommitType);
 
 	/**
-	 * Indication of whether the app should be visible
-	 * @return Whether the main window should be hidden
-	 */
-	bool ShouldWindowBeHidden() const;
-
-	/**
-	 * Handle user closing the main window: same behaviour as Cancel
+	 * Handle user closing the main window
 	 * @param Window Main window
 	 */
 	void RequestCloseWindow(const TSharedRef<SWindow>& Window);
+
+	bool ShouldWindowBeHidden() const
+	{
+		return bShouldWindowBeHidden;
+	}
 
 private:
 	/**
@@ -128,32 +103,15 @@ private:
 	 * @param DeltaTime Time since last update, unused
 	 * @return Whether the updates should continue
 	 */
-	bool UIWillCloseTick(float DeltaTime);
+	bool Tick(float DeltaTime);
 
 	/**
-	 * Begin calling UIWillCloseTick once a second
+	 * Begin calling Tick once a second
 	 */
-	void StartUIWillCloseTicker();
+	void StartTicker();
 
 	/** Enqueued from the diagnose report worker thread to be executed on the game thread. */
 	void FinalizeDiagnoseReportWorker( FText ReportText );
-
-	/** State enum to keep track of what the app is doing */
-	struct EApplicationState
-	{
-		enum Type
-		{
-			Ready,				/** Waiting for user input */
-			CountingDown,		/** Submit pressed; counting down */
-			Closing				/** UI hidden, possibly waiting for tasks to finish */
-		};
-	};
-
-	/** What the app is currently doing */
-	EApplicationState::Type AppState;
-
-	/** Count-down until closing the app after user has pressed Submit */
-	int SubmittedCountdown;
 
 	/** Comment provided by the user */
 	FText UserComment;
@@ -170,11 +128,12 @@ private:
 	/** Object that uploads report files to the server */
 	FCrashUpload Uploader;
 
-	/** Text for Cancel/Close button, including count-down value */
-	FText CancelButtonText;
-
-	/** Wheter BeginUpload has been called. */
+	/** Whether BeginUpload has been called. */
 	bool bBeginUploadCalled;
+
+	/** Whether the main windows should be hidden. */
+	bool bShouldWindowBeHidden;
+
 };
 
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
