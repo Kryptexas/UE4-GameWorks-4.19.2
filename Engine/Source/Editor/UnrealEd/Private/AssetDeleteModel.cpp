@@ -537,6 +537,36 @@ void FPendingDelete::CheckForReferences()
 	const int32 NonUndoReferenceCount = MemoryReferences.ExternalReferences.Num() + MemoryReferences.InternalReferences.Num();
 
 	bIsReferencedInMemoryByUndo = TotalReferenceCount > NonUndoReferenceCount;
+
+	// If the object itself isn't in the transaction buffer, check to see if it's a Blueprint asset. We might have instances of the
+	// Blueprint in the transaction buffer, in which case we also want to both alert the user and clear it prior to deleting the asset.
+	if ( !bIsReferencedInMemoryByUndo )
+	{
+		UBlueprint* Blueprint = Cast<UBlueprint>( Object );
+		if ( Blueprint && Blueprint->GeneratedClass )
+		{
+			TArray<FReferencerInformation> ExternalMemoryReferences = MemoryReferences.ExternalReferences;
+			for ( auto RefIt = ExternalMemoryReferences.CreateIterator(); RefIt && !bIsReferencedInMemoryByUndo; ++RefIt )
+			{
+				FReferencerInformation& RefInfo = *RefIt;
+				if ( RefInfo.Referencer->IsA( Blueprint->GeneratedClass ) )
+				{
+					if ( IsReferenced( RefInfo.Referencer, GARBAGE_COLLECTION_KEEPFLAGS, true, &ReferencesIncludingUndo ) )
+					{
+						GEditor->Trans->DisableObjectSerialization();
+
+						FReferencerInformationList ReferencesExcludingUndo;
+						if ( IsReferenced( RefInfo.Referencer, GARBAGE_COLLECTION_KEEPFLAGS, true, &ReferencesExcludingUndo ) )
+						{
+							bIsReferencedInMemoryByUndo = ( ReferencesIncludingUndo.InternalReferences.Num() + ReferencesIncludingUndo.ExternalReferences.Num() ) > ( ReferencesExcludingUndo.InternalReferences.Num() + ReferencesExcludingUndo.ExternalReferences.Num() );
+						}
+
+						GEditor->Trans->EnableObjectSerialization();
+					}
+				}
+			}
+		}
+	}
 }
 
 bool FPendingDelete::operator == ( const FPendingDelete& Other ) const
