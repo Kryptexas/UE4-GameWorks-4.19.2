@@ -962,36 +962,40 @@ void UNetDriver::InternalProcessRemoteFunction
 	{
 		UE_LOG(LogNetTraffic, Log, TEXT("RPC bunch on closing channel") );
 	}
-	else if (QueueBunch)
-	{
-		// Unreliable multicast functions are queued and sent out during property replication
-		if (LogAsWarning)
-		{
-			UE_LOG(LogNetTraffic, Warning,	TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
-		}
-		else
-		{
-			UE_LOG(LogNetTraffic, Log,		TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
-		}
-
-		Ch->QueueRemoteFunctionBunch(TargetObj, Function, Bunch);
-	}
 	else
 	{
-		if (LogAsWarning)
-		{
-			UE_LOG(LogNetTraffic, Warning,	TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
-		}
-		else
-		{
-			UE_LOG(LogNetTraffic, Log,		TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
-		}
-
 		// Make sure we're tracking all the bits in the bunch
 		check(Bunch.GetNumBits() == HeaderBits + ParameterBits + FooterBits);
 
-		NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, FooterBits));
-		Ch->SendBunch( &Bunch, 1 );
+		if (QueueBunch)
+		{
+			// Unreliable multicast functions are queued and sent out during property replication
+			if (LogAsWarning)
+			{
+				UE_LOG(LogNetTraffic, Warning,	TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+			}
+			else
+			{
+				UE_LOG(LogNetTraffic, Log,		TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+			}
+
+			NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, FooterBits));
+			Ch->QueueRemoteFunctionBunch(TargetObj, Function, Bunch);
+		}
+		else
+		{
+			if (LogAsWarning)
+			{
+				UE_LOG(LogNetTraffic, Warning,	TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+			}
+			else
+			{
+				UE_LOG(LogNetTraffic, Log,		TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+			}
+
+			NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, FooterBits));
+			Ch->SendBunch( &Bunch, 1 );
+		}
 	}
 }
 
