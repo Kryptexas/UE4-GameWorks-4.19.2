@@ -44,6 +44,15 @@ void FAndroidSDKSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 void FAndroidSDKSettingsCustomization::BuildSDKPathSection(IDetailLayoutBuilder& DetailLayout)
 {
 	SetupSDKPaths();
+
+#if PLATFORM_MAC
+	IDetailCategoryBuilder& SDKConfigCategory = DetailLayout.EditCategory(TEXT("SDKConfig"));
+
+	// hide the property on Mac only
+	TSharedRef<IPropertyHandle> JavaPathProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidSDKSettings, JavaPath));
+	SDKConfigCategory.AddProperty(JavaPathProperty)
+		.Visibility(EVisibility::Hidden);
+#endif
 }
 
 

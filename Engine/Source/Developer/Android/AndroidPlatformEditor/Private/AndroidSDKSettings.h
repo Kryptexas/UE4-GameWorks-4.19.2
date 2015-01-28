@@ -16,18 +16,22 @@ class ANDROIDPLATFORMEDITOR_API UAndroidSDKSettings : public UObject
 public:
 	GENERATED_UCLASS_BODY()
 
-	// Location on disk to find the Android SDK (defaults to ANDROID_HOME environment variable if set)
+	// Location on disk of the Android SDK (defaults to ANDROID_HOME environment variable if set)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of Android SDK (the directory usually contains 'android-sdk-')"))
 	FDirectoryPath SDKPath;
 
-	// Location on disk to find the Android NDK (defaults to NDKROOT environment variable if set)
+	// Location on disk of the Android NDK (defaults to NDKROOT environment variable if set)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of Android NDK (the directory usually contains 'android-ndk-')"))
 	FDirectoryPath NDKPath;
 
-	// Location on disk to find the ANT tool
+	// Location on disk of the ANT tool
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of ANT (the directory usually contains 'apache-ant-')"))
 	FDirectoryPath ANTPath;
 
+	// Location on disk of Java (this it not required on the Mac)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of JAVA (the directory usually contains 'jdk')"))
+	FDirectoryPath JavaPath;
+	
 	// Which SDK to package and compile Java with (a specific version or (without quotes) 'latest' for latest version on disk, or 'matchndk' to match the NDK API Level)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "SDK API Level (specific version, 'latest', or 'matchndk' - see tooltip)"))
 	FString SDKAPILevel;
@@ -36,10 +40,6 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "NDK API Level (specific version or 'latest' - see tooltip)"))
 	FString NDKAPILevel;
 
-#if PLATFORM_MAC == 0
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of JAVA (the directory usually contains 'jdk')"))
-	FDirectoryPath JavaPath;
-#endif
 
 #if WITH_EDITOR
 	// UObject interface

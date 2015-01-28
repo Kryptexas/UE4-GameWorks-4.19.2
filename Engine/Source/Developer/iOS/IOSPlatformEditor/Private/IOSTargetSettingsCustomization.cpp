@@ -230,52 +230,27 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 						]
 					]
 			];
-
-	AppManifestCategory.AddCustomRow(LOCTEXT("Warning", "Warning"), false)
-		.WholeRowWidget
-		[
-			PlatformSetupMessage
-		];
-
-	AppManifestCategory.AddCustomRow(LOCTEXT("InfoPlistHyperlink", "Info.plist Hyperlink"), false)
-		.WholeRowWidget
-		[
-			SNew(SBox)
-			.HAlign(HAlign_Center)
-			[
-				SNew(SHyperlinkLaunchURL, TEXT("https://developer.apple.com/library/ios/documentation/general/Reference/InfoPlistKeyReference/Articles/AboutInformationPropertyListFiles.html"))
-				.Text(LOCTEXT("ApplePlistPage", "About Information Property List Files"))
-				.ToolTipText(LOCTEXT("ApplePlistPageTooltip", "Opens a page that discusses Info.plist"))
-			]
-		];
-
-
-	AppManifestCategory.AddCustomRow(LOCTEXT("InfoPlist", "Info.plist"), false)
-		.IsEnabled(SetupForPlatformAttribute)
-		.NameContent()
+	
+	BundleCategory.AddCustomRow(LOCTEXT("UpgradeInfo", "Upgrade Info"), false)
+	.WholeRowWidget
+	[
+		SNew(SBorder)
+		.Padding(1)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
-			.Padding(FMargin(0, 1, 0, 1))
+			.Padding(FMargin(10, 10, 10, 10))
 			.FillWidth(1.0f)
 			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("PlistLabel", "Info.plist"))
-				.Font(DetailLayout.GetDetailFont())
-			]
-		]
-		.ValueContent()
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.Text(LOCTEXT("OpenPlistFolderButton", "Open PList Folder"))
-				.ToolTipText(LOCTEXT("OpenPlistFolderButton_Tooltip", "Opens the folder containing the plist for the current project in Explorer or Finder"))
-				.OnClicked(this, &FIOSTargetSettingsCustomization::OpenPlistFolder)
-			]
-		];
+				SNew(SRichTextBlock)
+				.Text(LOCTEXT("IOSUpgradeInfoMessage", "<RichTextBlock.TextHighlight>Note to users from 4.6 or earlier</>: We now <RichTextBlock.TextHighlight>GENERATE</> an Info.plist when building, so if you have customized your .plist file, you will need to put all of your changes into the below settings. Note that we don't touch the .plist file that is in your project directory, so you can use it as reference."))
+				.TextStyle(FEditorStyle::Get(), "MessageLog")
+				.DecoratorStyleSet(&FEditorStyle::Get())
+				.AutoWrapText(true)
+				// + SRichTextBlock::HyperlinkDecorator(TEXT("browser"), FSlateHyperlinkRun::FOnClick::CreateStatic(&OnBrowserLinkClicked))
+			 ]
+		 ]
+	 ];
 
 	// Show properties that are gated by the plist being present and writable
 	FSimpleDelegate PlistModifiedDelegate = FSimpleDelegate::CreateRaw(this, &FIOSTargetSettingsCustomization::OnPlistPropertyModified);
