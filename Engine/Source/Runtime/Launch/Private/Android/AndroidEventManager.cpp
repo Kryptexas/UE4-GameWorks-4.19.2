@@ -325,9 +325,10 @@ bool FAppEventManager::IsGamePaused()
 	return !bRunning;
 }
 
-void FAppEventManager::WaitForEventInQueue(EAppEventState InState)
+bool FAppEventManager::WaitForEventInQueue(EAppEventState InState, double TimeoutSeconds)
 {
 	bool FoundEvent = false;
+	double StopTime = FPlatformTime::Seconds() + TimeoutSeconds;
 
 	TQueue<FAppEventData, EQueueMode::Spsc> HoldingQueue;
 	while (!FoundEvent)
@@ -350,6 +351,10 @@ void FAppEventManager::WaitForEventInQueue(EAppEventState InState)
 		if (FoundEvent)
 			break;
 
+		// Time expired?
+		if (FPlatformTime::Seconds() > StopTime)
+			break;
+
 		// Unlock for new events and wait a bit before trying again
 		rc = pthread_mutex_unlock(&QueueMutex);
 		check(rc == 0);
@@ -366,4 +371,6 @@ void FAppEventManager::WaitForEventInQueue(EAppEventState InState)
 
 	int rc = pthread_mutex_unlock(&QueueMutex);
 	check(rc == 0);
+
+	return FoundEvent;
 }
