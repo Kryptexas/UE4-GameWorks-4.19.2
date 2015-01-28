@@ -355,9 +355,6 @@ public:
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 	// End of SMultiColumnTableRow<T>
 
-	/* Get the node used by the row Widget */
-	virtual FSCSEditorTreeNodePtrType GetNode() const override;
-
 private:
 	/** Creates a tooltip for this row */
 	TSharedRef<SToolTip> CreateToolTipWidget() const;
