@@ -179,6 +179,8 @@ public:
 	// Returns the blend weight of the specified state, as calculated by the last call to Update()
 	float GetStateWeight(int32 StateIndex) const;
 
+	const FBakedAnimationState& GetStateInfo(int32 StateIndex) const;
+	const FAnimationTransitionBetweenStates& GetTransitionInfo(int32 TransIndex) const;
 	
 protected:
 	// Tries to get the instance information for the state machine
@@ -188,8 +190,6 @@ protected:
 	void SetStateInternal(int32 NewStateIndex);
 
 	const FBakedAnimationState& GetStateInfo() const;
-	const FBakedAnimationState& GetStateInfo(int32 StateIndex) const;
-	const FAnimationTransitionBetweenStates& GetTransitionInfo(int32 TransIndex) const;
 	const int32 GetStateIndex(const FBakedAnimationState& StateInfo) const;
 	
 	// finds the highest priority valid transition, information pass via the OutPotentialTransition variable.
