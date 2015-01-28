@@ -302,6 +302,15 @@ bool FMaterial::IsCompilationFinished()
 	return true;
 }
 
+bool FMaterial::HasValidGameThreadShaderMap()
+{
+	if(!GameThreadShaderMap || !GameThreadShaderMap->IsCompilationFinalized())
+	{
+		return false;
+	}
+	return true;
+}
+
 void FMaterial::CancelCompilation()
 {
 	TArray<int32> ShaderMapIdsToCancel;
@@ -1400,6 +1409,7 @@ bool FMaterial::BeginCompileShaderMap(
 		}
 		else
 		{
+			UE_LOG(LogMaterial, Display, TEXT("Add compile shader map id %d"), NewShaderMap->GetCompilingId());
 			OutstandingCompileShaderMapIds.Add( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.
 			OutShaderMap = NULL;

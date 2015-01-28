@@ -79,7 +79,7 @@ FAutoConsoleCommand CmdPrintNumLandscapeShadows(
 	);
 
 ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+: Super(ObjectInitializer)
 , GrassData(MakeShareable(new FLandscapeComponentGrassData()))
 {
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
@@ -109,15 +109,11 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 #endif
 
 	LpvBiasMultiplier = 0.0f; // Bias is 0 for landscape, since it's single sided
-
-	
 }
 
 ULandscapeComponent::~ULandscapeComponent()
 {
-
 }
-
 
 void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
@@ -216,12 +212,12 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 			}
 		}
 		if (Ar.UE4Ver() >= VER_UE4_LANDSCAPE_GRASS_COOKING && Ar.UE4Ver() < VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA)
-			{
+		{
 			// deal with previous cooked FGrassMap data
-				int32 NumChannels = 0;
-				Ar << NumChannels;
-				if (NumChannels)
-				{
+			int32 NumChannels = 0;
+			Ar << NumChannels;
+			if (NumChannels)
+			{
 				TArray<uint8> OldData;
 				OldData.BulkSerialize(Ar);
 			}
@@ -344,14 +340,14 @@ void ULandscapeComponent::GetLayerDebugColorKey(int32& R, int32& G, int32& B) co
 #endif	//WITH_EDITOR
 
 ULandscapeMeshCollisionComponent::ULandscapeMeshCollisionComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	// make landscape always create? 
 	bAlwaysCreatePhysicsState = true;
 }
 
 ULandscapeInfo::ULandscapeInfo(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+: Super(ObjectInitializer)
 {
 #if WITH_EDITOR
 	bIsValid = false;
@@ -473,7 +469,7 @@ void ULandscapeComponent::PostLoad()
 #endif // WITH_EDITOR
 
 ALandscape::ALandscape(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	bIsProxy = false;
 
@@ -488,7 +484,7 @@ ALandscape* ALandscape::GetLandscapeActor()
 }
 
 ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	bReplicates = false;
 	NetUpdateFrequency = 10.0f;
@@ -630,10 +626,10 @@ void ULandscapeComponent::GetGeneratedTexturesAndMaterialInstances(TArray<UObjec
 
 			auto* WeightmapPtr = LandscapeMIC->TextureParameterValues.FindByPredicate(
 				[](const FTextureParameterValue& ParamValue)
-				{
-					static const FName WeightmapParamName("Weightmap0");
-					return ParamValue.ParameterName == WeightmapParamName;
-				}
+			{
+				static const FName WeightmapParamName("Weightmap0");
+				return ParamValue.ParameterName == WeightmapParamName;
+			}
 			);
 
 			if (WeightmapPtr != nullptr &&
@@ -1283,12 +1279,12 @@ void ALandscapeProxy::PostLoad()
 		// Need to clean up invalid collision components
 		RecreateCollisionComponents();
 	}
-	
+
 	if (GetLinker() && GetLinker()->UE4Ver() < VER_UE4_LANDSCAPE_STATIC_SECTION_OFFSET)
 	{
 		bStaticSectionOffset = false;
 	}
-	
+
 	EditorLayerSettings.Remove(NULL);
 
 	if (EditorCachedLayerInfos_DEPRECATED.Num() > 0)
@@ -1591,10 +1587,10 @@ void ULandscapeInfo::RegisterActor(ALandscapeProxy* Proxy, bool bMapCheck)
 
 	if (!DrawScale.Equals(Proxy->GetRootComponent()->RelativeScale3D))
 	{
-		UE_LOG(LogLandscape, Warning, TEXT("Landscape proxy (%s) scale (%s) does not match to main actor scale (%s)."), 
+		UE_LOG(LogLandscape, Warning, TEXT("Landscape proxy (%s) scale (%s) does not match to main actor scale (%s)."),
 			*Proxy->GetName(), *Proxy->GetRootComponent()->RelativeScale3D.ToCompactString(), *DrawScale.ToCompactString());
 	}
-	
+
 	// register
 	ALandscape* Landscape = Cast<ALandscape>(Proxy);
 	if (Landscape)
@@ -1797,13 +1793,13 @@ void ULandscapeInfo::FixupProxiesWeightmaps()
 void AdjustLandscapeSectionOffsets(UWorld* InWorld, const TArray<ALandscapeProxy*> InLandscapeList)
 {
 	// We interested only in registered actors
-	TArray<ALandscapeProxy*> RegisteredLandscapeList = InLandscapeList.FilterByPredicate([](ALandscapeProxy* Proxy) { 
-		return Proxy->GetRootComponent()->IsRegistered(); 
+	TArray<ALandscapeProxy*> RegisteredLandscapeList = InLandscapeList.FilterByPredicate([](ALandscapeProxy* Proxy) {
+		return Proxy->GetRootComponent()->IsRegistered();
 	});
 
 	// Main Landscape actor should act as origin of global components grid
-	int32 LandcapeIndex = RegisteredLandscapeList.IndexOfByPredicate([](ALandscapeProxy* Proxy) { 
-		return Proxy->IsA<ALandscape>(); 
+	int32 LandcapeIndex = RegisteredLandscapeList.IndexOfByPredicate([](ALandscapeProxy* Proxy) {
+		return Proxy->IsA<ALandscape>();
 	});
 	ALandscapeProxy* StaticLandscape = RegisteredLandscapeList.IsValidIndex(LandcapeIndex) ? RegisteredLandscapeList[LandcapeIndex] : nullptr;
 
@@ -1811,19 +1807,19 @@ void AdjustLandscapeSectionOffsets(UWorld* InWorld, const TArray<ALandscapeProxy
 	{
 		StaticLandscape->SetAbsoluteSectionBase(FIntPoint::ZeroValue);
 	}
-	
+
 	// In case there is no main landscape actor loaded try use any landscape that already has static offsets
 	if (StaticLandscape == nullptr)
 	{
-		LandcapeIndex = RegisteredLandscapeList.IndexOfByPredicate([](ALandscapeProxy* Proxy) { 
-			return Proxy->bStaticSectionOffset; 
+		LandcapeIndex = RegisteredLandscapeList.IndexOfByPredicate([](ALandscapeProxy* Proxy) {
+			return Proxy->bStaticSectionOffset;
 		});
 		StaticLandscape = RegisteredLandscapeList.IsValidIndex(LandcapeIndex) ? RegisteredLandscapeList[LandcapeIndex] : nullptr;
 		// Otherwise offsets will stay variable
 	}
-		
+
 	ALandscapeProxy* OriginLandscape = StaticLandscape;
-		
+
 	for (ALandscapeProxy* Proxy : RegisteredLandscapeList)
 	{
 		if (OriginLandscape == nullptr)
@@ -2031,9 +2027,9 @@ void WorldDestroyEventFunction(UWorld* World)
 {
 	World->PerModuleDataObjects.RemoveAll(
 		[](UObject* Object)
-		{
-			return Object->IsA(ULandscapeInfoMap::StaticClass());
-		}
+	{
+		return Object->IsA(ULandscapeInfoMap::StaticClass());
+	}
 	);
 }
 
@@ -2107,11 +2103,11 @@ bool LandscapeMaterialsParameterSetUpdater(FStaticParameterSet &StaticParameterS
 }
 
 
-DECLARE_CYCLE_STAT(TEXT("Grass Async Build Time"),STAT_FoliageGrassAsyncBuildTime,STATGROUP_Foliage);
-DECLARE_CYCLE_STAT(TEXT("Grass Start Comp"),STAT_FoliageGrassStartComp,STATGROUP_Foliage);
-DECLARE_CYCLE_STAT(TEXT("Grass End Comp"),STAT_FoliageGrassEndComp,STATGROUP_Foliage);
-DECLARE_CYCLE_STAT(TEXT("Grass Destroy Comps"),STAT_FoliageGrassDestoryComp,STATGROUP_Foliage);
-DECLARE_CYCLE_STAT(TEXT("Grass Update"),STAT_GrassUpdate,STATGROUP_Foliage);
+DECLARE_CYCLE_STAT(TEXT("Grass Async Build Time"), STAT_FoliageGrassAsyncBuildTime, STATGROUP_Foliage);
+DECLARE_CYCLE_STAT(TEXT("Grass Start Comp"), STAT_FoliageGrassStartComp, STATGROUP_Foliage);
+DECLARE_CYCLE_STAT(TEXT("Grass End Comp"), STAT_FoliageGrassEndComp, STATGROUP_Foliage);
+DECLARE_CYCLE_STAT(TEXT("Grass Destroy Comps"), STAT_FoliageGrassDestoryComp, STATGROUP_Foliage);
+DECLARE_CYCLE_STAT(TEXT("Grass Update"), STAT_GrassUpdate, STATGROUP_Foliage);
 
 void ALandscapeProxy::FlushFoliageComponents(const TSet<ULandscapeComponent*>* OnlyForComponents)
 {
@@ -2133,16 +2129,16 @@ void ALandscapeProxy::FlushFoliageComponents(const TSet<ULandscapeComponent*>* O
 			if (Component == nullptr || OnlyForComponents->Contains(Component))
 			{
 				UHierarchicalInstancedStaticMeshComponent *Used = (*Iter).Foliage.Get();
-						if (Used)
-						{
-							SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
-							Used->ClearInstances();
-							Used->DestroyComponent();
-						}
-				Iter.RemoveCurrent();
-					}
+				if (Used)
+				{
+					SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
+					Used->ClearInstances();
+					Used->DestroyComponent();
 				}
+				Iter.RemoveCurrent();
 			}
+		}
+	}
 	else
 	{
 		// Clear old foliage component containers
@@ -2423,9 +2419,9 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				InstanceBuffer.AllocateInstances(NumKept);
 				int32 InstanceIndex = 0;
 				int32 OutInstanceIndex = 0;
-				for (int32 xStart = 0; xStart < SqrtMaxInstances; xStart++ )
+				for (int32 xStart = 0; xStart < SqrtMaxInstances; xStart++)
 				{
-					for (int32 yStart = 0; yStart < SqrtMaxInstances; yStart++ )
+					for (int32 yStart = 0; yStart < SqrtMaxInstances; yStart++)
 					{
 						const FInstanceLocal& Instance = Instances[InstanceIndex];
 						if (Instance.bKeep)
@@ -2444,7 +2440,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 									FVector NewZ = ((PosX1 - PosX2) ^ (PosY1 - PosY2)).GetSafeNormal();
 									NewZ *= FMath::Sign(NewZ.Z);
 
-									const FVector NewX = (FVector(0,-1,0) ^ NewZ).GetSafeNormal();
+									const FVector NewX = (FVector(0, -1, 0) ^ NewZ).GetSafeNormal();
 									const FVector NewY = NewZ ^ NewX;
 
 									FMatrix Align = FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -2654,6 +2650,12 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 					continue;
 				}
 
+				// Don't try to place foliage for this component if it doesn't have data and it can't currently render it.
+				if (!Component->GrassData->HasData() && !Component->CanRenderGrassMap())
+				{
+					continue;
+				}
+
 				FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->ComponentToWorld);
 				float MinDistanceToComp = Cameras.Num() ? MAX_flt : 0.0f;
 
@@ -2666,7 +2668,7 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 
 				for (auto GrassType : GrassTypes)
 				{
-					if (GrassType)					
+					if (GrassType)
 					{
 						int32 GrassVarietyIndex = -1;
 						for (auto& GrassVariety : GrassType->GrassVarieties)
@@ -2687,7 +2689,7 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 								FGrassBuilderBase ForSubsectionMath(this, Component, GrassVariety);
 
 								int32 SqrtSubsections = 1;
-				
+
 								if (ForSubsectionMath.bHaveValidData && ForSubsectionMath.SqrtMaxInstances > 0)
 								{
 									SqrtSubsections = FMath::Clamp<int32>(FMath::CeilToInt(float(ForSubsectionMath.SqrtMaxInstances) / FMath::Sqrt((float)MaxInstancesPerComponent)), 1, 16);
@@ -2809,14 +2811,14 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 											FoliageComponents.Add(HierarchicalInstancedStaticMeshComponent);
 										}
 
-			#if WITH_EDITOR
+#if WITH_EDITOR
 										// render grass data if we don't have any
 										if (!Component->GrassData->HasData())
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassRenderToTexture);
 											Component->RenderGrassMap();
 										}
-			#endif
+#endif
 
 										FAsyncGrassBuilder* Builder;
 
@@ -2861,13 +2863,13 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 		{
 			const FCachedLandscapeFoliage::FGrassComp& GrassItem = *Iter;
 			UHierarchicalInstancedStaticMeshComponent *Used = GrassItem.Foliage.Get();
-			bool bOld = 
+			bool bOld =
 				!GrassItem.Pending &&
 				(
-					!GrassItem.Key.BasedOn.Get() ||
-					!GrassItem.Key.GrassType.Get() ||
-					!Used ||
-					(GrassItem.LastUsedFrameNumber < OldestToKeepFrame && GrassItem.LastUsedTime < OldestToKeepTime)
+				!GrassItem.Key.BasedOn.Get() ||
+				!GrassItem.Key.GrassType.Get() ||
+				!Used ||
+				(GrassItem.LastUsedFrameNumber < OldestToKeepFrame && GrassItem.LastUsedTime < OldestToKeepTime)
 				);
 			if (bOld)
 			{
@@ -2964,10 +2966,10 @@ void FAsyncGrassTask::DoWork()
 
 static void FlushFoliage(const TArray<FString>& Args)
 {
-	for( TObjectIterator<ALandscapeProxy> It; It; ++It )
+	for (TObjectIterator<ALandscapeProxy> It; It; ++It)
 	{
 		ALandscapeProxy* Landscape = *It;
-		if( Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
+		if (Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
 		{
 			Landscape->FlushFoliageComponents();
 		}

@@ -478,8 +478,8 @@ public:
 	/** Call from the game thread to send a message to the rendering thread to being rendering this view family. */
 	virtual void BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily* ViewFamily) = 0;
 	
-	/** Call from the game thread to create and initalize a new FViewInfo with the specified options, and add it to the specified view family. */
-	virtual void CreateAndInitSingleView(class FSceneViewFamily* ViewFamily, const struct FSceneViewInitOptions* ViewInitOptions) = 0;
+	/** Call from the render thread to create and initalize a new FViewInfo with the specified options, and add it to the specified view family. */
+	virtual void CreateAndInitSingleView(FRHICommandListImmediate& RHICmdList, class FSceneViewFamily* ViewFamily, const struct FSceneViewInitOptions* ViewInitOptions) = 0;
 
 	/**
 	 * Allocates a new instance of the private FScene implementation for the given world.

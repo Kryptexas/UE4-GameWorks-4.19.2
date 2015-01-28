@@ -978,6 +978,14 @@ public:
 	 */
 	ENGINE_API bool IsCompilationFinished();
 
+	/**
+	* Checks if there is a valid GameThreadShaderMap, that is, the material can be rendered as intended.
+	*
+	* @return returns true if there is a GameThreadShaderMap.
+	*/
+	ENGINE_API bool HasValidGameThreadShaderMap();
+
+
 	EMaterialQualityLevel::Type GetQualityLevel() const 
 	{
 		return QualityLevel;
@@ -1040,7 +1048,7 @@ public:
 	void RemoveOutstandingCompileId(const int32 OldOutstandingCompileShaderMapId )
 	{
 		OutstandingCompileShaderMapIds.Remove( OldOutstandingCompileShaderMapId );
-		// UE_LOG(LogMaterial, Display, TEXT("Removing compile shader map id %d"), OldOutstandingCompileShaderMapId);
+		UE_LOG(LogMaterial, Display, TEXT("Removing compile shader map id %d"), OldOutstandingCompileShaderMapId);
 	}
 
 	void AddReferencedObjects(FReferenceCollector& Collector);

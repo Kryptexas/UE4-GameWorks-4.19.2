@@ -1332,21 +1332,14 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 #endif
 }
 
-void FRendererModule::CreateAndInitSingleView(class FSceneViewFamily* ViewFamily, const struct FSceneViewInitOptions* ViewInitOptions)
+void FRendererModule::CreateAndInitSingleView(FRHICommandListImmediate& RHICmdList, class FSceneViewFamily* ViewFamily, const struct FSceneViewInitOptions* ViewInitOptions)
 {
 	// Create and add the new view
 	FViewInfo* NewView = new FViewInfo(*ViewInitOptions);
 	ViewFamily->Views.Add(NewView);
-
-	// Ask the render thread to init its resources
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		InitSetViewCommand,
-		FSceneViewFamily*, ViewFamily, ViewFamily,
-		{
-			SetRenderTarget(RHICmdList, ViewFamily->RenderTarget->GetRenderTargetTexture(), nullptr, ESimpleRenderTargetMode::EClearColorToWhite);
-			FViewInfo* View = (FViewInfo*)ViewFamily->Views[0];
-			View->InitRHIResources(nullptr);
-		});
+	SetRenderTarget(RHICmdList, ViewFamily->RenderTarget->GetRenderTargetTexture(), nullptr, ESimpleRenderTargetMode::EClearColorToWhite);
+	FViewInfo* View = (FViewInfo*)ViewFamily->Views[0];
+	View->InitRHIResources(nullptr);
 }
 
 void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily* ViewFamily)

@@ -326,6 +326,9 @@ public:
 	void RenderGrassMap();
 	void RemoveGrassMap();
 
+	/* Can a valid grassmap currently be generated? */
+	bool CanRenderGrassMap();
+
 #endif
 
 	/** @todo document */
