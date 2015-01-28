@@ -591,10 +591,7 @@ void UActorComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 {
 	check(bRegistered);
 
-	if (!bIsActive)
-	{
-		SetComponentTickEnabled(false);
-	}
+	ReceiveTick(DeltaTime);
 }
 
 void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)

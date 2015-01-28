@@ -3537,7 +3537,7 @@ void FKismetCompilerContext::Compile()
 		}
 
 		CopyTermDefaultsToDefaultObject(NewCDO);
-		SetCanEverTickForActor();
+		SetCanEverTick();
 		FKismetCompilerUtilities::ValidateEnumProperties(NewCDO, MessageLog);
 	}
 
@@ -3710,48 +3710,56 @@ const UK2Node_FunctionEntry* FKismetCompilerContext::FindLocalEntryPoint(const U
 	return NULL;
 }
 
-void FKismetCompilerContext::SetCanEverTickForActor()
+void FKismetCompilerContext::SetCanEverTick()
 {
-	AActor* const CDActor = NewClass ? Cast<AActor>(NewClass->GetDefaultObject()) : NULL;
-	if(NULL == CDActor)
+	FTickFunction* TickFunction = nullptr;
+	FTickFunction* ParentTickFunction = nullptr;
+	
+	if (AActor* CDActor = Cast<AActor>(NewClass->GetDefaultObject()))
+	{
+		TickFunction = &CDActor->PrimaryActorTick;
+		ParentTickFunction = &NewClass->GetSuperClass()->GetDefaultObject<AActor>()->PrimaryActorTick;
+	}
+	else if (UActorComponent* CDComponent = Cast<UActorComponent>(NewClass->GetDefaultObject()))
+	{
+		TickFunction = &CDComponent->PrimaryComponentTick;
+		ParentTickFunction = &NewClass->GetSuperClass()->GetDefaultObject<UActorComponent>()->PrimaryComponentTick;
+	}
+
+	if (TickFunction == nullptr)
 	{
 		return;
 	}
 
-	const bool bOldFlag = CDActor->PrimaryActorTick.bCanEverTick;
+	const bool bOldFlag = TickFunction->bCanEverTick;
 	// RESET FLAG 
-	{
-		UClass* ParentClass = NewClass->GetSuperClass();
-		const AActor* ParentCDO = ParentClass ? Cast<AActor>(ParentClass->GetDefaultObject()) : NULL;
-		check(NULL != ParentCDO);
-		// Clear to handle case, when an event (that forced a flag) was removed, or class was re-parented
-		CDActor->PrimaryActorTick.bCanEverTick = ParentCDO->PrimaryActorTick.bCanEverTick;
-	}
+	TickFunction->bCanEverTick = ParentTickFunction->bCanEverTick;
 	
 	// RECEIVE TICK
 	static FName ReceiveTickName(GET_FUNCTION_NAME_CHECKED(AActor, ReceiveTick));
+	static FName ComponentReceiveTickName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveTick)); // Only doing this to ensure that both classes have the correct, same name
 	const UFunction* ReciveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveTickName, NewClass);
 	if (ReciveTickEvent)
 	{
 		static const FName ChildCanTickName = TEXT("ChildCanTick");
 		const UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(NewClass);
-		const bool bOverrideFlags = (AActor::StaticClass() == FirstNativeClass) || (FirstNativeClass && FirstNativeClass->HasMetaData(ChildCanTickName));
-		if(bOverrideFlags)
+		const bool bOverrideFlags = (AActor::StaticClass() == FirstNativeClass) || (UActorComponent::StaticClass() == FirstNativeClass) || (FirstNativeClass && FirstNativeClass->HasMetaData(ChildCanTickName));
+		if (bOverrideFlags)
 		{
-			CDActor->PrimaryActorTick.bCanEverTick = true;
+			TickFunction->bCanEverTick = true;
 		}
-		else if(!CDActor->PrimaryActorTick.bCanEverTick)
+		else if (!TickFunction->bCanEverTick)
 		{
 			const FString ReceivTickEventWarning = FString::Printf( 
-				*LOCTEXT("ReceiveTick_CanNeverTick", "Blueprint %s has the ReceiveTick @@ event, but it can never tick.  Please consider using a Timer instead of a tick, using Actor as the parent class, or you can enable Tick using code in one of the following ways: set ChildCanTick in the metadata on the parent class, or set bCanEverTick to true.").ToString(), *NewClass->GetName());
+				*LOCTEXT("ReceiveTick_CanNeverTick", "Blueprint %s has the ReceiveTick @@ event, but it can never tick.  Please consider using a Timer instead of a tick or you can enable Tick using code in one of the following ways: set ChildCanTick in the metadata on the parent class, or set bCanEverTick to true.").ToString(), *NewClass->GetName());
 			MessageLog.Warning( *ReceivTickEventWarning, FindLocalEntryPoint(ReciveTickEvent) );
 		}
 	}
 
-	if(CDActor->PrimaryActorTick.bCanEverTick != bOldFlag)
+	if(TickFunction->bCanEverTick != bOldFlag)
 	{
-		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flags for Actor class '%s': CanEverTick %s "), *NewClass->GetName(),
-			CDActor->PrimaryActorTick.bCanEverTick ? *(GTrue.ToString()) : *(GFalse.ToString()) );
+		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flags for class '%s': CanEverTick %s "), *NewClass->GetName(),
+			TickFunction->bCanEverTick ? *(GTrue.ToString()) : *(GFalse.ToString()) );
 	}
 }
 

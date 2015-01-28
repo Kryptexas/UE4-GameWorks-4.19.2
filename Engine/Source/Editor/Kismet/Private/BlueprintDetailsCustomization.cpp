@@ -4492,6 +4492,10 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 				]
 			];
 	}
+
+	// Don't show tick properties for components in the blueprint details
+	TSharedPtr<IPropertyHandle> PrimaryTickProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UActorComponent, PrimaryComponentTick));
+	PrimaryTickProperty->MarkHiddenByCustomization();
 }
 
 UClass* FBlueprintComponentDetails::FindCommonBaseClassFromSelected() const
