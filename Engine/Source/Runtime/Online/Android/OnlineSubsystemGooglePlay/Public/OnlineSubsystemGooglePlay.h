@@ -131,6 +131,9 @@ private:
 
 	/** Track the current login task (if any) so callbacks can notify it */
 	FOnlineAsyncTaskGooglePlayLogin* CurrentLoginTask;
+
+	/** Handle of registered delegate for onActivityResult */
+	FDelegateHandle OnActivityResultDelegateHandle;
 };
 
 typedef TSharedPtr<FOnlineSubsystemGooglePlay, ESPMode::ThreadSafe> FOnlineSubsystemGooglePlayPtr;

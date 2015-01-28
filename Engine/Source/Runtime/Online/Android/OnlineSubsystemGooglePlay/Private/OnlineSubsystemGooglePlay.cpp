@@ -137,7 +137,7 @@ bool FOnlineSubsystemGooglePlay::Init()
 	WaitingForLogin = true;
 	WaitForLostFocus = false;
 
-	FJavaWrapper::OnActivityResultDelegate.AddRaw(this, &FOnlineSubsystemGooglePlay::OnActivityResult);
+	OnActivityResultDelegateHandle = FJavaWrapper::OnActivityResultDelegate.AddRaw(this, &FOnlineSubsystemGooglePlay::OnActivityResult);
 
 	// Create() returns a std::unqiue_ptr, but we convert it to a TUniquePtr.
 	GameServicesPtr.Reset( GameServices::Builder()
@@ -192,7 +192,7 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 {
 	UE_LOG(LogOnline, Log, TEXT("FOnlineSubsystemAndroid::Shutdown()"));
 
-	FJavaWrapper::OnActivityResultDelegate.RemoveRaw(this, &FOnlineSubsystemGooglePlay::OnActivityResult);
+	FJavaWrapper::OnActivityResultDelegate.Remove(OnActivityResultDelegateHandle);
 
 #define DESTRUCT_INTERFACE(Interface) \
 	if (Interface.IsValid()) \
