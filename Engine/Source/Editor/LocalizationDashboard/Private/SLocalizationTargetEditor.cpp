@@ -555,7 +555,7 @@ namespace
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(OtherLocalizationTarget->Settings.Name)
+						.Text(FText::FromString(OtherLocalizationTarget->Settings.Name))
 					]
 			];
 	}

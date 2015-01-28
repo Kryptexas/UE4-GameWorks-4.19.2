@@ -493,7 +493,7 @@ class SPickLabel : public SCompoundWidget, public ILabelNameProvider
 {
 public:
 	SLATE_BEGIN_ARGS(SPickLabel) {}
-		SLATE_ATTRIBUTE(FString, Title)
+		SLATE_ATTRIBUTE(FText, Title)
 	SLATE_END_ARGS()
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -510,9 +510,9 @@ public:
 					SNew(STextBlock).Text(InArgs._Title)
 				]
 				+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
-					[
-						LabelsCombo.ToSharedRef()
-					]
+				[
+					LabelsCombo.ToSharedRef()
+				]
 			];
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -847,9 +847,9 @@ public:
 		RadioSelection = SNew(SRadioContentSelection);
 
 		AddToRadioSelection("Sync to the latest promoted", SNew(SLatestPromoted));
-		AddToRadioSelection("Sync to chosen promoted label", SNew(SPickPromoted).Title("Pick promoted label: "));
-		AddToRadioSelection("Sync to chosen promotable label since last promoted", SNew(SPickPromotable).Title("Pick promotable label: "));
-		AddToRadioSelection("Sync to any chosen label", SNew(SPickAny).Title("Pick label: "));
+		AddToRadioSelection("Sync to chosen promoted label", SNew(SPickPromoted).Title(FText::FromString("Pick promoted label: ")));
+		AddToRadioSelection("Sync to chosen promotable label since last promoted", SNew(SPickPromotable).Title(FText::FromString("Pick promotable label: ")));
+		AddToRadioSelection("Sync to any chosen label", SNew(SPickAny).Title(FText::FromString("Pick label: ")));
 
 		PickGameWidget = SNew(SPickGameWidget)
 			.OnGamePicked(this, &SMainTabWidget::OnCurrentGameChanged);

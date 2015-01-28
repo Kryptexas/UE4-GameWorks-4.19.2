@@ -211,7 +211,7 @@ FString SCSVImportOptions::GetImportTypeText(TSharedPtr<ECSVImportType> Type) co
 TSharedRef<SWidget> SCSVImportOptions::MakeImportTypeItemWidget(TSharedPtr<ECSVImportType> Type)
 {
 	return	SNew(STextBlock)
-			.Text(GetImportTypeText(Type));
+			.Text(FText::FromString(GetImportTypeText(Type)));
 }
 
 /** Called to create a widget for each struct */
@@ -219,7 +219,7 @@ TSharedRef<SWidget> SCSVImportOptions::MakeRowStructItemWidget(UScriptStruct* St
 {
 	check( Struct != NULL );
 	return	SNew(STextBlock)
-			.Text(Struct->GetName());
+			.Text(FText::FromString(Struct->GetName()));
 }
 
 FString SCSVImportOptions::GetCurveTypeText(CurveInterpModePtr InterpMode) const
@@ -247,7 +247,7 @@ FString SCSVImportOptions::GetCurveTypeText(CurveInterpModePtr InterpMode) const
 TSharedRef<SWidget> SCSVImportOptions::MakeCurveTypeWidget(CurveInterpModePtr InterpMode)
 {
 	FString Label = GetCurveTypeText(InterpMode);
-	return SNew(STextBlock) .Text( Label );
+	return SNew(STextBlock) .Text( FText::FromString(Label) );
 }
 
 /** Called when 'OK' button is pressed */
@@ -278,29 +278,29 @@ FReply SCSVImportOptions::OnCancel()
 	return FReply::Handled();
 }
 
-FString SCSVImportOptions::GetSelectedItemText() const
+FText SCSVImportOptions::GetSelectedItemText() const
 {
 	TSharedPtr<ECSVImportType> SelectedType = ImportTypeCombo->GetSelectedItem();
 
 	return (SelectedType.IsValid())
-		? GetImportTypeText(SelectedType)
-		: FString();
+		? FText::FromString(GetImportTypeText(SelectedType))
+		: FText::GetEmpty();
 }
 
-FString SCSVImportOptions::GetSelectedRowOptionText() const
+FText SCSVImportOptions::GetSelectedRowOptionText() const
 {
 	UScriptStruct* SelectedScript = RowStructCombo->GetSelectedItem();
 	return (SelectedScript)
-		? SelectedScript->GetName()
-		: FString();
+		? FText::FromString(SelectedScript->GetName())
+		: FText::GetEmpty();
 }
 
-FString SCSVImportOptions::GetSelectedCurveTypeText() const
+FText SCSVImportOptions::GetSelectedCurveTypeText() const
 {
 	CurveInterpModePtr CurveModePtr = CurveInterpCombo->GetSelectedItem();
 	return (CurveModePtr.IsValid())
-		? GetCurveTypeText(CurveModePtr)
-		: FString();
+		? FText::FromString(GetCurveTypeText(CurveModePtr))
+		: FText::GetEmpty();
 }
 
 #undef LOCTEXT_NAMESPACE

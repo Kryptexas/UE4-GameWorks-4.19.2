@@ -65,11 +65,11 @@ public:
 	/** Called when 'Cancel' button is pressed */
 	FReply OnCancel();
 
-	FString GetSelectedItemText() const;
+	FText GetSelectedItemText() const;
 
-	FString GetSelectedRowOptionText() const;
+	FText GetSelectedRowOptionText() const;
 
-	FString GetSelectedCurveTypeText() const;
+	FText GetSelectedCurveTypeText() const;
 
 private:
 	/** Whether we should go ahead with import */
