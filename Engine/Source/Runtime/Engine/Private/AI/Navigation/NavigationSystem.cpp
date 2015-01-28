@@ -706,6 +706,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
 	}
 	
+	if (bGenerateNavigationOnlyAroundNavigationInvokers)
 	{
 		UpdateInvokers();
 	}
@@ -3615,49 +3616,32 @@ void UNavigationSystem::UpdateInvokers()
 			TArray<FNavigationInvokerRaw> InvokerLocations;
 			InvokerLocations.Reserve(Invokers.Num());
 
-			for (auto Item = Invokers.CreateConstIterator(); Item; ++Item)
+			for (auto ItemIterator = Invokers.CreateIterator(); ItemIterator; ++ItemIterator)
 			{
-				AActor* Actor = Item->Value.Actor.Get();
+				AActor* Actor = ItemIterator->Value.Actor.Get();
 				if (Actor != nullptr
 #if WITH_EDITOR
+					// Would like to ignore objects in transactional buffer here, but there's no flag for it
 					//&& (GIsEditor == false || Item.Actor->HasAnyFlags(RF_Transactional | RF_PendingKill) == false)
 #endif //WITH_EDITOR
 					)
 				{
-					InvokerLocations.Add(FNavigationInvokerRaw(Actor->GetActorLocation(), Item->Value.GenerationRadius, Item->Value.RemovalRadius));
+					InvokerLocations.Add(FNavigationInvokerRaw(Actor->GetActorLocation(), ItemIterator->Value.GenerationRadius, ItemIterator->Value.RemovalRadius));
+				}
+				else
+				{
+					ItemIterator.RemoveCurrent();
 				}
 			}
 
 #if ENABLE_VISUAL_LOG
-			//TArray<FNavigationInvokerRaw> LocationsCopy = InvokerLocations;
 			const double CachingFinishTime = FPlatformTime::Seconds();
-#endif //ENABLE_VISUAL_LOG
-			//InvokerLocations = KMedoidsClusterization::Clusterize(InvokerLocations, MaxClustersCount);
-
-#if ENABLE_VISUAL_LOG
-			//const double ClusterizationFinishTime = FPlatformTime::Seconds();
-
 			UE_VLOG(this, LogNavigation, Log, TEXT("Caching time %fms"), float((CachingFinishTime - StartTime) / 1000));
-			//UE_VLOG(this, LogNavigation, Log, TEXT("Clusterization time %fms for %d clusters"), float(ClusterizationFinishTime - CachingFinishTime) / 1000, MaxClustersCount);
 
-			FVisualLogger& Vlog = FVisualLogger::Get();
-			if (Vlog.IsRecording())
+			for (const auto& InvokerData : InvokerLocations)
 			{
-				/*FVisualLogEntry* Entry = Vlog.GetEntryToWrite(this, GetWorld()->TimeSeconds);
-				check(Entry);
-
-				FVisualLogShapeElement LogElement(TEXT(""), FColorList::LightBlue, 30, LogNavigation.GetCategoryName());
-				LogElement.Points = LocationsCopy;
-				LogElement.Type = EVisualLoggerShapeElement::SinglePoint;
-				LogElement.Verbosity = ELogVerbosity::Log;
-
-				Entry->AddElement(LogElement);*/
-
-				for (const auto& InvokerData : InvokerLocations)
-				{
-					UE_VLOG_CYLINDER(this, LogNavigation, Log, InvokerData.Location, InvokerData.Location + FVector(0, 0, 20), InvokerData.RadiusMax, FColorList::Blue, TEXT(""));
-					UE_VLOG_CYLINDER(this, LogNavigation, Log, InvokerData.Location, InvokerData.Location + FVector(0, 0, 20), InvokerData.RadiusMin, FColorList::CadetBlue, TEXT(""));
-				}
+				UE_VLOG_CYLINDER(this, LogNavigation, Log, InvokerData.Location, InvokerData.Location + FVector(0, 0, 20), InvokerData.RadiusMax, FColorList::Blue, TEXT(""));
+				UE_VLOG_CYLINDER(this, LogNavigation, Log, InvokerData.Location, InvokerData.Location + FVector(0, 0, 20), InvokerData.RadiusMin, FColorList::CadetBlue, TEXT(""));
 			}
 #endif // ENABLE_VISUAL_LOG
 

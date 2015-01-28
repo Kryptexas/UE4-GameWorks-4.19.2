@@ -175,22 +175,24 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bSkipAgentHeightCheckWhenPickingNavData:1;
 
+protected:
 	/** If set to true navigation will be generated only around registered "navigation enforcers"
 	*	This has a range of consequences (including how navigation octree operates) so it needs to
 	*	be a conscious decision.
 	*	Once enabled results in whole world being navigable.
 	*	@see RegisterNavigationInvoker
 	*/
-	UPROPERTY(EditDefaultsOnly, Category = "Navigation", config)
+	UPROPERTY(EditDefaultsOnly, Category = "Navigation Enforcing", config)
 	uint32 bGenerateNavigationOnlyAroundNavigationInvokers : 1;
 
-	/** Minimal time between active tiles set update */
+	/** Minimal time, in seconds, between active tiles set update */
 	UPROPERTY(EditAnywhere, Category = "Navigation Enforcing", meta = (ClampMin = "0.1", UIMin = "0.1", EditCondition = "bGenerateNavigationOnlyAroundNavigationInvokers"), config)
 	float ActiveTilesUpdateInterval;
 
 	UPROPERTY(config, EditAnywhere, Category = Agents)
 	TArray<FNavDataConfig> SupportedAgents;
-	
+
+public:
 	/** update frequency for dirty areas on navmesh */
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	float DirtyAreasUpdateFreq;
@@ -292,6 +294,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Navigation)
 	void UnregisterNavigationInvoker(AActor* Invoker);
 
+	FORCEINLINE bool IsActiveTilesGenerationEnabled() const{ return bGenerateNavigationOnlyAroundNavigationInvokers; }
+	
 	/** delegate type for events that dirty the navigation data ( Params: const FBox& DirtyBounds ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavigationDirty, const FBox&);
 	/** called after navigation influencing event takes place*/
@@ -465,6 +469,7 @@ public:
 	FORCEINLINE static TSubclassOf<UNavArea> GetDefaultObstacleArea() { return DefaultObstacleArea; }
 
 	FORCEINLINE const FNavDataConfig& GetDefaultSupportedAgentConfig() const { check(SupportedAgents.Num() > 0);  return SupportedAgents[0]; }
+	FORCEINLINE const TArray<FNavDataConfig>& GetSupportedAgents() const { return SupportedAgents; }
 
 	void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift);
 

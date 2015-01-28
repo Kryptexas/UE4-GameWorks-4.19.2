@@ -316,7 +316,7 @@ ANavigationData* ARecastNavMesh::CreateNavigationInstances(UNavigationSystem* Na
 		return NULL;
 	}
 
-	const TArray<FNavDataConfig>* SupportedAgents = &NavSys->SupportedAgents;
+	const TArray<FNavDataConfig>* SupportedAgents = &NavSys->GetSupportedAgents();
 	const int SupportedAgentsCount = SupportedAgents->Num();
 
 	if (SupportedAgentsCount > 0)
@@ -1883,10 +1883,17 @@ void ARecastNavMesh::ConditionalConstructGenerator()
 {
 	NavDataGenerator.Reset();
 	
-	const bool bRequiresGenerator = SupportsRuntimeGeneration() || !GetWorld()->IsGameWorld();
+	UWorld* World = GetWorld();
+	check(World);
+	const bool bRequiresGenerator = SupportsRuntimeGeneration() || !World->IsGameWorld();
 	if (bRequiresGenerator)
 	{
 		NavDataGenerator.Reset(new FRecastNavMeshGenerator(*this));
+
+		if (World->GetNavigationSystem())
+		{
+			RestrictBuildingToActiveTiles(World->GetNavigationSystem()->IsActiveTilesGenerationEnabled());
+		}
 	}
 }
 
@@ -1937,6 +1944,11 @@ void ARecastNavMesh::UpdateActiveTiles(const TArray<FNavigationInvokerRaw>& Invo
 	}
 
 	FRecastNavMeshGenerator* MyGenerator = static_cast<FRecastNavMeshGenerator*>(GetGenerator());
+	if (MyGenerator == nullptr)
+	{
+		return;
+	}
+
 	const dtNavMeshParams* NavParams = GetRecastNavMeshImpl()->DetourNavMesh->getParams();
 	check(NavParams && MyGenerator);
 	const FRecastBuildConfig& Config = MyGenerator->GetConfig();
