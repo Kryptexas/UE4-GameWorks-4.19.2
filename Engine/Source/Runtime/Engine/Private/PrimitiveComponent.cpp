@@ -68,8 +68,18 @@ int32 UPrimitiveComponent::CurrentTag = 2147483647 / 4;
 // 0 is reserved to mean invalid
 uint64 UPrimitiveComponent::NextComponentId = 1;
 
+UPrimitiveComponent::UPrimitiveComponent()
+{
+	InitializePrimitiveComponentDefaults();
+}
+
 UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+{
+	InitializePrimitiveComponentDefaults();
+}
+
+void UPrimitiveComponent::InitializePrimitiveComponentDefaults()
 {
 	PostPhysicsComponentTick.bCanEverTick = false;
 	PostPhysicsComponentTick.bStartWithTickEnabled = true;

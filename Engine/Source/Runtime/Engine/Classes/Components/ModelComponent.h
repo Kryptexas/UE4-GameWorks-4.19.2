@@ -18,7 +18,7 @@ class FModelElement;
 UCLASS(MinimalAPI)
 class UModelComponent : public UPrimitiveComponent, public IInterface_CollisionDataProvider
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 private:
 	/** The BSP tree. */
@@ -42,11 +42,14 @@ private:
 
 public:
 
+	/** Default constructor */
+	UModelComponent();
+
 #if WITH_EDITOR
 	/**
 	 * Minimal initialization constructor.
 	 */
-	UModelComponent( const FObjectInitializer& ObjectInitializer,UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes );
+	UModelComponent( UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes );
 #endif // WITH_EDITOR
 
 	/**
