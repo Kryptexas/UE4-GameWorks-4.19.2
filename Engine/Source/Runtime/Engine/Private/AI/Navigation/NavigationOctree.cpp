@@ -11,6 +11,7 @@
 //----------------------------------------------------------------------//
 FNavigationOctree::FNavigationOctree(const FVector& Origin, float Radius)
 	: TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics>(Origin, Radius)
+	, bPerformGeometryGatheringLazily(false)
 	, bGatherGeometry(false)
 	, NodesMemory(0)
 {
@@ -23,37 +24,79 @@ FNavigationOctree::~FNavigationOctree()
 	DEC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, NodesMemory);
 }
 
+void FNavigationOctree::SetLazyGeometryGatheringEnabled(bool bInEnable)
+{
+	bPerformGeometryGatheringLazily = bInEnable;
+}
+
 void FNavigationOctree::SetNavigableGeometryStoringMode(ENavGeometryStoringMode NavGeometryMode)
 {
 	bGatherGeometry = (NavGeometryMode == FNavigationOctree::StoreNavGeometry);
 }
 
-void FNavigationOctree::AddNode(UObject* ElementOb, INavRelevantInterface* NavElement, const FBox& Bounds, FNavigationOctreeElement& Data)
+void FNavigationOctree::DemandGatheringGeometry(const FNavigationOctreeElement& Element) const
 {
-	Data.Owner = ElementOb;
-	Data.Bounds = Bounds;
-
-	UActorComponent* ActorComp = Cast<UActorComponent>(ElementOb);
-	if (bGatherGeometry && ActorComp)
+	UObject* ElementOb = Element.Owner.Get();
+	if (ElementOb == nullptr || bGatherGeometry == false)
 	{
-		ComponentExportDelegate.ExecuteIfBound(ActorComp, Data.Data);
+		return;
+	}
+		
+	UActorComponent* ActorComp = Cast<UActorComponent>(ElementOb);
+	if (ActorComp)
+	{
+		FNavigationOctreeElement* MutableElement = const_cast<FNavigationOctreeElement*>(&Element);
+
+		ComponentExportDelegate.ExecuteIfBound(ActorComp, MutableElement->Data);
+
+		// shrink arrays before counting memory
+		// it will be reallocated when adding to octree and RemoveNode will have different value returned by GetAllocatedSize()
+		MutableElement->Shrink();
+
+		// mark this element as no longer needing geometry gathering
+		MutableElement->Data.bPendingLazyGeometryGathering = false;
+
+		const int32 ElementMemory = MutableElement->Data.GetGeometryAllocatedSize();
+		const_cast<FNavigationOctree*>(this)->NodesMemory += ElementMemory;
+		INC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, ElementMemory);
+	}
+}
+
+void FNavigationOctree::AddNode(UObject* ElementOb, INavRelevantInterface* NavElement, const FBox& Bounds, FNavigationOctreeElement& Element)
+{
+	// we assume NavElement is ElementOb already cast
+	//check(ElementOb == NavElement);
+	Element.Owner = ElementOb;
+	Element.Bounds = Bounds;
+
+	if (bGatherGeometry)
+	{
+		UActorComponent* ActorComp = Cast<UActorComponent>(ElementOb);
+		if (ActorComp && (bPerformGeometryGatheringLazily == false))
+		{
+			ComponentExportDelegate.ExecuteIfBound(ActorComp, Element.Data);
+		}
+		else
+		{
+			Element.Data.bPendingLazyGeometryGathering = true;
+		}
 	}
 
 	if (NavElement)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_GatheringNavigationModifiersSync);
-		NavElement->GetNavigationData(Data.Data);
+		NavElement->GetNavigationData(Element.Data);
 	}
 
 	// shrink arrays before counting memory
 	// it will be reallocated when adding to octree and RemoveNode will have different value returned by GetAllocatedSize()
-	Data.Shrink();
+	Element.Shrink();
 
-	const int32 ElementMemory = Data.GetAllocatedSize();
+	const int32 ElementMemory = Element.GetAllocatedSize();
 	NodesMemory += ElementMemory;
 	INC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, ElementMemory);
 
-	AddElement(Data);
+	AddElement(Element);
 }
 
 void FNavigationOctree::AppendToNode(const FOctreeElementId& Id, INavRelevantInterface* NavElement, const FBox& Bounds, FNavigationOctreeElement& Data)

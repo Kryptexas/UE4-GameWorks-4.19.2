@@ -45,13 +45,23 @@ struct ENGINE_API FNavigationRelevantData
 	/** additional modifiers: areas and external links */
 	FCompositeNavModifier Modifiers;
 
+	/** get set to true when lazy navigation exporting is enabled and this navigation data has "potential" of 
+	 *	containing geometry data. First access will result in gathering the data and setting this flag back to false.
+	 *	Mind that this flag can go back to 'true' if related data gets cleared out. */
+	uint32 bPendingLazyGeometryGathering : 1;
+
 	// Gathers per instance data for navigation geometry in a specified area box
 	FNavDataPerInstanceTransformDelegate NavDataPerInstanceTransformDelegate;
 
+	FNavigationRelevantData() : bPendingLazyGeometryGathering(false)
+	{}
+
 	FORCEINLINE bool HasGeometry() const { return VoxelData.Num() || CollisionData.Num(); }
 	FORCEINLINE bool HasModifiers() const { return !Modifiers.IsEmpty(); }
+	FORCEINLINE bool IsPendingLazyGeometryGathering() const { return bPendingLazyGeometryGathering; }
 	FORCEINLINE bool IsEmpty() const { return !HasGeometry() && !HasModifiers(); }
 	FORCEINLINE uint32 GetAllocatedSize() const { return CollisionData.GetAllocatedSize() + VoxelData.GetAllocatedSize() + Modifiers.GetAllocatedSize(); }
+	FORCEINLINE uint32 GetGeometryAllocatedSize() const { return CollisionData.GetAllocatedSize() + VoxelData.GetAllocatedSize(); }
 	FORCEINLINE int32 GetDirtyFlag() const
 	{
 		return (HasGeometry() ? ENavigationDirtyFlag::Geometry : 0) |
@@ -167,8 +177,13 @@ public:
 		return bGatherGeometry ? StoreNavGeometry : SkipNavGeometry;
 	}
 
-protected:
+	void SetLazyGeometryGatheringEnabled(bool bInEnable);
 
+	// @hack! TO BE FIXED
+	void DemandGatheringGeometry(const FNavigationOctreeElement& Element) const;
+
+protected:
+	uint32 bPerformGeometryGatheringLazily : 1;
 	uint32 bGatherGeometry : 1;
 	uint32 NodesMemory;
 };

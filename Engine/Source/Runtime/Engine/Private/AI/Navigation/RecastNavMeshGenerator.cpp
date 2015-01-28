@@ -1536,6 +1536,7 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 {
 	const UNavigationSystem*	NavSys = UNavigationSystem::GetCurrent(ParentGenerator.GetWorld());
 	const FNavigationOctree*	NavOctree = NavSys ? NavSys->GetNavOctree() : nullptr;
+	check(NavOctree);
 	const FNavDataConfig&		NavDataConfig = ParentGenerator.GetOwner()->GetConfig();
 
 	for (FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavOctree, ParentGenerator.GrowBoundingBox(TileBB, /*bIncludeAgentHeight*/ false));
@@ -1546,6 +1547,11 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 		const bool bShouldUse = Element.ShouldUseGeometry(NavDataConfig);
 		if (bShouldUse)
 		{
+			if (Element.Data.IsPendingLazyGeometryGathering())
+			{
+				NavOctree->DemandGatheringGeometry(Element);
+			}
+
 			const bool bExportGeometry = bGeometryChanged && Element.Data.HasGeometry();
 			if (bExportGeometry)
 			{

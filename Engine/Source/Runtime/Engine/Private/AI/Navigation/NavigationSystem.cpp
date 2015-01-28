@@ -422,6 +422,7 @@ bool UNavigationSystem::ConditionalPopulateNavOctree()
 	if (bSupportRebuilding)
 	{
 		NavOctree = new FNavigationOctree(FVector(0,0,0), 64000);
+		NavOctree->SetLazyGeometryGatheringEnabled(bGenerateNavigationOnlyAroundNavigationInvokers);
 		
 		const ERuntimeGenerationType RuntimeGenerationType = GetRuntimeGenerationType();
 		const bool bStoreNavGeometry = (RuntimeGenerationType == ERuntimeGenerationType::Dynamic);
@@ -482,6 +483,11 @@ void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		}
 		else if (PropName == NAME_EnableActiveTiles)
 		{
+			if (NavOctree)
+			{
+				NavOctree->SetLazyGeometryGatheringEnabled(bGenerateNavigationOnlyAroundNavigationInvokers);
+			}
+
 			for (auto NavData : NavDataSet)
 			{
 				if (NavData)
@@ -3637,7 +3643,7 @@ void UNavigationSystem::UpdateInvokers()
 
 #if ENABLE_VISUAL_LOG
 			const double CachingFinishTime = FPlatformTime::Seconds();
-			UE_VLOG(this, LogNavigation, Log, TEXT("Caching time %fms"), float((CachingFinishTime - StartTime) / 1000));
+			UE_VLOG(this, LogNavigation, Log, TEXT("Caching time %fms"), (CachingFinishTime - StartTime) * 1000);
 
 			for (const auto& InvokerData : InvokerLocations)
 			{
@@ -3653,7 +3659,7 @@ void UNavigationSystem::UpdateInvokers()
 			It->UpdateActiveTiles(InvokerLocations);
 		}
 		const double UpdateEndTime = FPlatformTime::Seconds();
-		UE_VLOG(this, LogNavigation, Log, TEXT("Marking tiles to update %fms (%d invokers)"), float((UpdateStartTime - UpdateEndTime) / 1000), InvokerLocations.Num());
+		UE_VLOG(this, LogNavigation, Log, TEXT("Marking tiles to update %fms (%d invokers)"), (UpdateEndTime - UpdateStartTime) * 1000, InvokerLocations.Num());
 		
 		// once per second
 		NextInvokersUpdateTime = CurrentTime + ActiveTilesUpdateInterval;
