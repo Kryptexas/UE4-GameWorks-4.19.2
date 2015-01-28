@@ -176,13 +176,11 @@ FEvent* FWinRTProcess::CreateSynchEvent(bool bIsManualReset /*= false*/)
 	return Event;
 }
 
-DECLARE_CYCLE_STAT(TEXT("CPU Stall - Wait For Event"),STAT_EventWait,STATGROUP_CPUStalls);
-
 #include "AllowWinRTPlatformTypes.h"
 
 bool FEventWinRT::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
-	SCOPE_CYCLE_COUNTER(STAT_EventWait);
+	FScopeCycleCounter Counter(StatID);
 	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
 	check(Event);
 

@@ -37,7 +37,7 @@ public:
 //		Event = CreateEvent(NULL, bIsManualReset, 0, NULL);
 		Event = CreateEventEx(NULL, NULL, bIsManualReset ? CREATE_EVENT_MANUAL_RESET : 0, EVENT_ALL_ACCESS);
 		ManualReset = bIsManualReset;
-
+		StatID = FEventStats::CreateStatID();
 		return Event != NULL;
 	}
 
@@ -69,6 +69,9 @@ private:
 
 	/** Whether the signaled state of the event needs to be reset manually. */
 	bool ManualReset;
+
+	/** Stat ID of this event. */
+	TStatId StatID;
 };
 
 

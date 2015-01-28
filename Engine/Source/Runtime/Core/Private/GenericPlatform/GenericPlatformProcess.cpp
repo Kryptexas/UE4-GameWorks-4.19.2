@@ -306,7 +306,7 @@ DECLARE_CYCLE_STAT(TEXT("CPU Stall - Wait For Event"),STAT_EventWait,STATGROUP_C
 
 bool FPThreadEvent::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
-	SCOPE_CYCLE_COUNTER(STAT_EventWait);
+	FScopeCycleCounter Counter(StatID);
 	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
 
 	check(bInitialized);
@@ -417,6 +417,11 @@ FEvent* FGenericPlatformProcess::GetSynchEventFromPool(bool bIsManualReset)
 
 void FGenericPlatformProcess::ReturnSynchEventToPool(FEvent* Event)
 {
+	if( !Event )
+	{
+		return;
+	}
+
 	if (Event->IsManualReset())
 	{
 		FEventPool<EEventPoolTypes::ManualReset>::Get().ReturnToPool(Event);

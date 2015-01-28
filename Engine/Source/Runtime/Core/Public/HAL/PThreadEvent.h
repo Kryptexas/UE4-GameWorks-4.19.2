@@ -24,6 +24,9 @@ class FPThreadEvent
     pthread_mutex_t Mutex;
     pthread_cond_t Condition;
 
+	/** Stat ID of this event. */
+	TStatId StatID;
+
 	inline void LockEventMutex()
 	{
 		const int rc = pthread_mutex_lock(&Mutex);
@@ -93,8 +96,6 @@ public:
 		}
 	}
 
-public:
-
 	// FEvent interface
 
 	virtual bool Create( bool _bIsManualReset = false ) override
@@ -116,6 +117,7 @@ public:
 				pthread_mutex_destroy(&Mutex);
 			}
 		}
+		StatID = FEventStats::CreateStatID();
 		return RetVal;
 	}
 

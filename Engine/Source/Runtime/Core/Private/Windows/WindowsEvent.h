@@ -27,8 +27,6 @@ public:
 		}
 	}
 
-public:
-
 	// FEvent interface
 
 	virtual bool Create( bool bIsManualReset = false ) override
@@ -36,7 +34,7 @@ public:
 		// Create the event and default it to non-signaled
 		Event = CreateEvent(nullptr, bIsManualReset, 0, nullptr);
 		ManualReset = bIsManualReset;
-
+		StatID = FEventStats::CreateStatID();
 		return Event != nullptr;
 	}
 
@@ -68,6 +66,9 @@ private:
 
 	/** Whether the signaled state of the event needs to be reset manually. */
 	bool ManualReset;
+
+	/** Stat ID of this event. */
+	TStatId StatID;
 };
 
 

@@ -99,8 +99,6 @@ public:
 		return Wait(WaitTime.GetTotalMilliseconds(), bIgnoreThreadIdleStats);
 	}
 
-public:
-
 	/** Virtual destructor. */
 	virtual ~FEvent() { }
 };
