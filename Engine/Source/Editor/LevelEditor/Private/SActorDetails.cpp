@@ -232,7 +232,10 @@ void SActorDetails::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorT
 				TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
 
 				// Update the editor's component selection to match the node selection
-				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponentInTree", "Clicking on Component (tree view)"));
+
+				// Note: this transaction should not take place if we are in the middle of executing an undo or redo because it would clear the top of the transaction stack. 
+				const bool bShouldActuallyTransact = !GIsTransacting;
+				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponentInTree", "Clicking on Component (tree view)"), bShouldActuallyTransact );
 
 				SelectedComponents->Modify();
 				SelectedComponents->BeginBatchSelectOperation();
