@@ -1401,6 +1401,10 @@ public class GUBP : BuildCommand
                         {
                             continue;
                         }
+                        if (TargetPlatform == UnrealTargetPlatform.HTML5 && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+                        {
+                            continue;
+                        }
                         if (TargetPlatform == UnrealTargetPlatform.Linux && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
                         {
                             continue;
@@ -1487,6 +1491,10 @@ public class GUBP : BuildCommand
                                         continue;
                                     }
                                     if (TargetPlatform == UnrealTargetPlatform.Android && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+                                    {
+                                        continue;
+                                    }
+                                    if (TargetPlatform == UnrealTargetPlatform.HTML5 && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
                                     {
                                         continue;
                                     }
