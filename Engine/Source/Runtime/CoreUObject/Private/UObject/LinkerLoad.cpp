@@ -610,6 +610,14 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 			);
 	}
 
+#if WITH_EDITOR
+	if (Status == LINKER_Failed)
+	{
+		delete LoadProgressScope;
+		LoadProgressScope = nullptr;
+	}
+#endif
+
 	// Return whether we completed or not.
 	return Status;
 }
