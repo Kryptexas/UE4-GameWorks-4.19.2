@@ -29,19 +29,25 @@ public:
 	void VisualizeNewTestState(ETestResult::Type OldState, ETestResult::Type NewState);
 
 	UFUNCTION(BlueprintCallable, Category="Development|Tests")
-	bool TestVerifyClass(bool bCheckPropertyType = true);
+	bool TestVerifyClass(UClass* Class, bool bCheckPropertyType = true, bool bCheckPropertyVals = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Development|Tests")
-	bool TestVerifyBlueprint();
+	bool TestVerifyBlueprint(UClass* BPClass);
 
 	//UFUNCTION(BlueprintCallable, Category="Development|Tests")
-	bool TestVerifyStructMember(UScriptStruct* Struct, uint8* Container, bool bCheckPropertyType = true);
+	bool TestVerifyStructMember(UScriptStruct* Struct, UClass* AncestorClass, uint8* Container, bool bCheckPropertyType = true, bool bCheckPropertyVals = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Development|Tests")
+	bool TestVerifySubObjects(UObject* ObjInstace);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Development|Tests")
 	bool RunVerificationTests();
 
+	UFUNCTION(BlueprintCallable, Category = "Development|Tests")
+	bool TestObjectValidity(UObject* ObjInst, bool bCheckPropertyType = true, bool bCheckPropertyVals = true);
+
 	UFUNCTION(BlueprintCallable, Category="Development|Tests")
-	bool TestVerifyIsBlueprintTypeVar(FName VarName, bool bCheckPropertyType);
+	bool TestVerifyIsBlueprintTypeVar(FName VarName, UClass* ClassOuter, bool bCheckPropertyType, bool bCheckPropertyVal);
 
 	UFUNCTION(BlueprintCallable, Category="Development|Tests")
 	void ForceResetFailure();
@@ -54,5 +60,6 @@ protected:
 	TEnumAsByte<ETestResult::Type> TestState;
 
 private: 
-	bool TestVerifyProperty(UProperty* Property, uint8* Container, bool bCheckPropertyType);
+	bool TestVerifyClass(UClass* Class, UObject* ObjInst, bool bCheckPropertyType, bool bCheckPropertyVals);
+	bool TestVerifyProperty(UProperty* Property, UClass* PropOwner, uint8* Container, bool bCheckPropertyType, bool bCheckPropertyVal);
 };
