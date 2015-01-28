@@ -242,8 +242,7 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 
 	if (RepathRequests.Num() > 0)
 	{
-		const UWorld* World = GetCachedWorld();
-		float TimeStamp = World ? World->GetTimeSeconds() : 0.f;
+		float TimeStamp = GetWorldTimeStamp();
 		TArray<FNavPathRecalculationRequest> PostponedRequests;
 
 		// @todo batch-process it!
@@ -510,6 +509,17 @@ TArray<FBox> ANavigationData::GetNavigableBoundsInLevel(ULevel* InLevel) const
 void ANavigationData::DrawDebugPath(FNavigationPath* Path, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
 {
 	Path->DebugDraw(this, PathColor, Canvas, bPersistent, NextPathPointIndex);
+}
+
+const UWorld* ANavigationData::GetCachedWorld() const
+{
+	return CachedWorld;
+}
+
+float ANavigationData::GetWorldTimeStamp() const
+{
+	const UWorld* World = GetCachedWorld();
+	return World ? World->GetTimeSeconds() : 0.f;
 }
 
 void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex)

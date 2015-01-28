@@ -11,6 +11,7 @@ class UNavigationQueryFilter;
 class FNavDataGenerator; 
 class INavLinkCustomInterface;
 class UPrimitiveComponent;
+class UWorld;
 
 USTRUCT()
 struct FSupportedAreaData
@@ -539,8 +540,7 @@ public:
 		FNavPathSharedPtr SharedPath = MakeShareable(new PathType());
 		SharedPath->SetNavigationDataUsed(this);
 		SharedPath->SetQuerier(Querier);
-		const UWorld* World = GetCachedWorld();
-		SharedPath->SetTimeStamp(World ? World->GetTimeSeconds() : 0);
+		SharedPath->SetTimeStamp( GetWorldTimeStamp() );
 
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Adding a path to ActivePaths"),
 			STAT_FSimpleDelegateGraphTask_AddingPathToActivePaths,
@@ -716,7 +716,9 @@ public:
 	 *	@NOTE potentially expensive, so use it with caution */
 	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const PURE_VIRTUAL(ANavigationData::CalcPathLength, return ENavigationQueryResult::Invalid;);
 
-	const UWorld* GetCachedWorld() const { return CachedWorld; }
+	const UWorld* GetCachedWorld() const;
+	float GetWorldTimeStamp() const;
+
 	//----------------------------------------------------------------------//
 	// Areas
 	//----------------------------------------------------------------------//
