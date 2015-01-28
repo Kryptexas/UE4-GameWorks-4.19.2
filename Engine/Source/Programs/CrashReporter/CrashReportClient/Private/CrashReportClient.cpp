@@ -85,6 +85,7 @@ void FCrashReportClient::RequestCloseWindow(const TSharedRef<SWindow>& Window)
 {
 	// We may still processing minidump etc. so start the main ticker.
 	StartTicker();
+	bShouldWindowBeHidden = true;
 }
 
 void FCrashReportClient::StartTicker()
