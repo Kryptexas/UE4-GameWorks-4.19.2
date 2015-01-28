@@ -676,6 +676,15 @@ namespace UnrealBuildTool
             return false;
         }
 
+		///<summary>
+		///Returns true if XP monolithics are required for a game
+		/// </summary>
+		/// <returns>true if this target needs to be compiled for Windows XP</returns>
+		public virtual bool GUBP_BuildWindowsXPMonolithics()
+		{
+			return false;
+		}
+
         /// <summary>
         /// Return a list of target platforms for the monolithic
         /// </summary>
@@ -1742,7 +1751,7 @@ namespace UnrealBuildTool
 		/// <param name="Target">Information about the target associated with this target</param>
 		/// <returns>The build target object for the specified build rules source file</returns>
 		public static UEBuildTarget CreateTarget(string TargetName, TargetInfo Target,
-			List<string> InAdditionalDefinitions, string InRemoteRoot, List<OnlyModule> InOnlyModules, bool bInEditorRecompile, string InOverridenAppName)
+			List<string> InAdditionalDefinitions, string InRemoteRoot, List<OnlyModule> InOnlyModules, bool bInEditorRecompile)
 		{
 			var CreateTargetStartTime = DateTime.UtcNow;
 
@@ -1830,8 +1839,7 @@ namespace UnrealBuildTool
 							InAdditionalDefinitions:InAdditionalDefinitions, 
 							InRemoteRoot:InRemoteRoot, 
 							InOnlyModules:InOnlyModules,
-							bInEditorRecompile:bInEditorRecompile,
-							InOverridenAppName: InOverridenAppName);
+							bInEditorRecompile:bInEditorRecompile);
 					}
 					break;
 			}

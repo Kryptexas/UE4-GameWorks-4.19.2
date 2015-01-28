@@ -207,7 +207,7 @@ namespace UnrealBuildTool
 
 			// When targeting Windows XP with Visual Studio 2012+, we need to tell the compiler to use the older Windows SDK that works
 			// with Windows XP (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-			if( WindowsPlatform.SupportWindowsXP )
+			if (WindowsPlatform.IsWindowsXPSupported())
 			{
 				AddDefinition( ref Arguments, "_USING_V110_SDK71_");
 			}
@@ -722,7 +722,7 @@ namespace UnrealBuildTool
 
 					// When targeting Windows XP in Visual Studio 2012+, we need to tell the linker we are going to support execution
 					// on that older platform.  The compiler defaults to version 6.0+.  We'll modify the SUBSYSTEM parameter here.
-					if( WindowsPlatform.SupportWindowsXP )
+					if (WindowsPlatform.IsWindowsXPSupported())
 					{
 						Arguments.Append(LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64 ? ",5.02" : ",5.01");
 					}
@@ -886,7 +886,7 @@ namespace UnrealBuildTool
 
 					// When targeting Windows XP in Visual Studio 2012+, we need to tell the linker we are going to support execution
 					// on that older platform.  The compiler defaults to version 6.0+.  We'll modify the SUBSYSTEM parameter here.
-					if( WindowsPlatform.SupportWindowsXP )
+					if (WindowsPlatform.IsWindowsXPSupported())
 					{
 						Arguments.Append(LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64 ? ",5.02" : ",5.01");
 					}
@@ -1314,7 +1314,7 @@ namespace UnrealBuildTool
 
 				// When targeting Windows XP with Visual Studio 2012+, we need to tell the compiler to use the older Windows SDK that works
 				// with Windows XP (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-				if (WindowsPlatform.SupportWindowsXP)
+				if (WindowsPlatform.IsWindowsXPSupported())
 				{
 					AddDefinition( ref Arguments, "_USING_V110_SDK71_" );
 				}

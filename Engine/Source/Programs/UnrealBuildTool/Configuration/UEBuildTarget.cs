@@ -164,7 +164,6 @@ namespace UnrealBuildTool
 		public bool bIsEditorRecompile;
 		public string RemoteRoot;
 		public List<OnlyModule> OnlyModules;
-		public string OverridenAppName;
 	}
 
 
@@ -214,7 +213,6 @@ namespace UnrealBuildTool
 			var Configuration = UnrealTargetConfiguration.Unknown;
 			string RemoteRoot = null;
 			var OnlyModules = new List<OnlyModule>();
-			string OverridenAppName = null;
 
 			// If true, the recompile was launched by the editor.
 			bool bIsEditorRecompile = false;
@@ -231,11 +229,6 @@ namespace UnrealBuildTool
 				if (ParsedPlatform != UnrealTargetPlatform.Unknown)
 				{
 					Platform = ParsedPlatform;
-				}
-				else if (Arguments[ArgumentIndex].ToLowerInvariant().StartsWith("-overridetargetappname="))
-				{
-					string OverrideTargetAppNameSwitch = "-overridetargetappname=";
-					OverridenAppName = Arguments[ArgumentIndex].Substring(OverrideTargetAppNameSwitch.Length);
 				}
 				else
 				{
@@ -464,7 +457,6 @@ namespace UnrealBuildTool
 			string RemoteRoot = Desc.RemoteRoot;
 			List<OnlyModule> OnlyModules = Desc.OnlyModules;
 			bool bIsEditorRecompile = Desc.bIsEditorRecompile;
-			string OverridenAppName = Desc.OverridenAppName;
 
 			UEBuildTarget BuildTarget = null;
 			if( !ProjectFileGenerator.bGenerateProjectFiles )
@@ -488,8 +480,7 @@ namespace UnrealBuildTool
 				InAdditionalDefinitions:AdditionalDefinitions, 
 				InRemoteRoot:RemoteRoot, 
 				InOnlyModules:OnlyModules, 
-				bInEditorRecompile:bIsEditorRecompile,
-				InOverridenAppName:OverridenAppName);
+				bInEditorRecompile:bIsEditorRecompile);
 			if (Target == null)
 			{
 				if (UEBuildConfiguration.bCleanProject)
@@ -653,9 +644,6 @@ namespace UnrealBuildTool
 		/** The name of the application the target is part of. */
 		public string AppName;
 
-		/** AppName overriden from the commandline */
-		private static string OverridenAppName;
-
 		/** The name of the game the target is part of - can be empty */
 		public string GameName;
 
@@ -757,8 +745,7 @@ namespace UnrealBuildTool
 			List<string> InAdditionalDefinitions,
 			string InRemoteRoot,
 			List<OnlyModule> InOnlyModules,
-			bool bInEditorRecompile,
-			string InOverridenAppName = "" )
+			bool bInEditorRecompile)
 		{
 			AppName = InAppName;
 			GameName = InGameName;
@@ -766,7 +753,6 @@ namespace UnrealBuildTool
 			Configuration = InConfiguration;
 			Rules = InRulesObject;
 			bEditorRecompile = bInEditorRecompile;
-			OverridenAppName = InOverridenAppName;
 
 
 			{
@@ -2398,10 +2384,6 @@ namespace UnrealBuildTool
 			if (Platform == UnrealTargetPlatform.Linux && (BinaryType == UEBuildBinaryType.DynamicLinkLibrary || BinaryType == UEBuildBinaryType.StaticLibrary))
 			{
 				Prefix = "lib";
-			}
-			if (!string.IsNullOrEmpty(OverridenAppName) && BinaryType == UEBuildBinaryType.Executable)
-			{
-				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{2}{0}{1}", OverridenAppName, BinaryExtension, Prefix));
 			}
 			else if (LocalConfig == UnrealTargetConfiguration.Development || bForceNameAsForDevelopment)
 			{
