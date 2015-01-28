@@ -60,11 +60,5 @@ private:
 	// Is the App ID string writable?
 	TAttribute<bool> SetupForGooglePlayAttribute;
 
-	// Converts an orientation enum to the associated string value
-	static FString OrientationToString(const EAndroidScreenOrientation::Type Orientation);
-
-	// Converts an depth preference enum to the associated string value
-	static FString DepthBufferPreferenceToString(const EAndroidDepthBufferPreference::Type DepthBufferPreference);
-
-	IDetailLayoutBuilder* SavedLayoutBuilder;
+ 	IDetailLayoutBuilder* SavedLayoutBuilder;
 };
