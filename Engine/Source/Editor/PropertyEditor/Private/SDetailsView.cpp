@@ -179,6 +179,9 @@ void SDetailsView::Construct(const FArguments& InArgs)
 	SAssignNew(NameArea, SDetailNameArea, &SelectedObjects)
 		// the name area is only for actors
 		.Visibility(this, &SDetailsView::GetActorNameAreaVisibility)
+		.OnLockButtonClicked(this, &SDetailsView::OnLockButtonClicked)
+		.IsLocked(this, &SDetailsView::IsLocked)
+		.ShowLockButton(DetailsViewArgs.bLockable)
 		.ShowActorLabel(DetailsViewArgs.bShowActorLabel)
 		// only show the selection tip if we're not selecting objects
 		.SelectionTip(!DetailsViewArgs.bHideSelectionTip);
@@ -285,9 +288,9 @@ void SDetailsView::ForceRefresh()
 }
 
 
-void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh/* = false*/ )
+void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh/* = false*/, bool bOverrideLock/* = false*/ )
 {
-	if( !IsLocked() )
+	if (!IsLocked() || bOverrideLock)
 	{
 		TArray< TWeakObjectPtr< UObject > > ObjectWeakPtrs;
 		
@@ -303,9 +306,9 @@ void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRef
 	}
 }
 
-void SDetailsView::SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh/* = false*/ )
+void SDetailsView::SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh/* = false*/, bool bOverrideLock/* = false*/ )
 {
-	if( !IsLocked() )
+	if (!IsLocked() || bOverrideLock)
 	{
 		if( bForceRefresh || ShouldSetNewObjects( InObjects ) )
 		{
