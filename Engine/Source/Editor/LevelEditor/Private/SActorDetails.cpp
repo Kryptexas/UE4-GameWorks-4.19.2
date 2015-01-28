@@ -44,6 +44,27 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 
 	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&Local::IsPropertyVisible));
 
+	auto IsPropertyEditingEnabled = [&]()
+	{
+		bool bIsEditable = true;
+		const TArray<TWeakObjectPtr<UObject> >& Objects = DetailsView->GetSelectedObjects();
+		for (auto Object : Objects)
+		{
+			UActorComponent* ActorComp = Cast<UActorComponent>( Object.Get() );
+			if (ActorComp)
+			{
+				bIsEditable = ActorComp->CreationMethod != EComponentCreationMethod::ConstructionScript;
+				if( !bIsEditable )
+				{
+					break;
+				}
+			}
+		}
+		return bIsEditable;
+	};
+
+	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateLambda(IsPropertyEditingEnabled));
+
 	// Set up a delegate to call to add generic details to the view
 	DetailsView->SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FLevelEditorGenericDetails::MakeInstance));
 
@@ -71,20 +92,20 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 			DetailsView->GetNameAreaWidget().ToSharedRef()
 		]
 		+ SVerticalBox::Slot()
-			.Padding(0.0f, 0.0f, 0.0f, 2.0f)
-			.AutoHeight()
-			[
-				DetailsView->GetFilterAreaWidget().ToSharedRef()
-			]
+		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
+		.AutoHeight()
+		[
+			DetailsView->GetFilterAreaWidget().ToSharedRef()
+		]
 		+SVerticalBox::Slot()
+		[
+			SAssignNew(DetailsSplitter, SSplitter)
+			.Orientation(Orient_Vertical)
+			+ SSplitter::Slot()
 			[
-				SAssignNew(DetailsSplitter, SSplitter)
-				.Orientation(Orient_Vertical)
-				+ SSplitter::Slot()
-				[
-					DetailsView.ToSharedRef()
-				]
+				DetailsView.ToSharedRef()
 			]
+		]
 	];
 
 	DetailsSplitter->AddSlot(0)
