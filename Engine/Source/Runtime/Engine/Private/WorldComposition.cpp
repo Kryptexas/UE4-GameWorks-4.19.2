@@ -275,6 +275,18 @@ void UWorldComposition::ReinitializeForPIE()
 	GetWorld()->StreamingLevels.Append(TilesStreaming);
 }
 
+bool UWorldComposition::DoesTileExists(const FName& InTilePackageName) const
+{
+	for (const auto& Tile : Tiles)
+	{
+		if (Tile.PackageName == InTilePackageName)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 ULevelStreaming* UWorldComposition::CreateStreamingLevel(const FWorldCompositionTile& InTile) const
 {
 	UWorld* OwningWorld = GetWorld();

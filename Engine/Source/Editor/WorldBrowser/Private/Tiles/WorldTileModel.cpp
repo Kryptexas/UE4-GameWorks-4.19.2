@@ -466,6 +466,11 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 		if (Offset != FIntPoint::ZeroValue)
 		{
 			Level->ApplyWorldOffset(FVector(Offset), false);
+
+			for (auto Actor : Level->Actors)
+			{
+				Editor->BroadcastOnActorMoved(Actor);
+			}
 		}
 	}
 

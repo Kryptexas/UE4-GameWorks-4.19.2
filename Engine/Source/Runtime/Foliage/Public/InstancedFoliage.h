@@ -3,13 +3,12 @@
 /*=============================================================================
 	InstancedFoliage.h: Instanced foliage type definitions.
   =============================================================================*/
-
 #pragma once
+#include "FoliageInstanceBase.h"
 
 //
 // Forward declarations.
 //
-class UInstancedStaticMeshComponent;
 class UHierarchicalInstancedStaticMeshComponent;
 class AInstancedFoliageActor;
 class UFoliageType;
@@ -49,21 +48,29 @@ struct FFoliageInstancePlacementInfo
 };
 
 /**
+ *	Legacy instance
+ */
+struct FFoliageInstance_Deprecated : public FFoliageInstancePlacementInfo
+{
+	UActorComponent* Base;
+	FGuid ProceduralGuid;
+	friend FArchive& operator<<(FArchive& Ar, FFoliageInstance_Deprecated& Instance);
+};
+
+/**
  *	FFoliageInstance - editor info an individual instance
  */
 struct FFoliageInstance : public FFoliageInstancePlacementInfo
 {
-	UActorComponent* Base;
+	// ID of base this instance was painted on
+	FFoliageInstanceBaseId BaseId;
 
-#if WITH_EDITORONLY_DATA
 	FGuid ProceduralGuid;
-#endif
 
 	FFoliageInstance()
-	: Base(NULL)
+	: BaseId(0)
 	{}
-
-
+	
 	friend FArchive& operator<<(FArchive& Ar, FFoliageInstance& Instance);
 
 	FTransform GetInstanceWorldTransform() const
@@ -100,54 +107,24 @@ struct FFoliageInstance : public FFoliageInstancePlacementInfo
 	}
 };
 
-/**
- * FFoliageComponentHashInfo
- * Cached instance list and component location info stored in the ComponentHash.
- * Used for moving quick updates after operations on components with foliage painted on them.
- */
-struct FFoliageComponentHashInfo
+struct FFoliageMeshInfo_Deprecated
 {
-	// tors
-	FFoliageComponentHashInfo()
-		: CachedLocation(0, 0, 0)
-		, CachedRotation(0, 0, 0)
-		, CachedDrawScale(1, 1, 1)
-	{}
+	UHierarchicalInstancedStaticMeshComponent* Component;
 
-	FFoliageComponentHashInfo(UActorComponent* InComponent)
-		: CachedLocation(0, 0, 0)
-		, CachedRotation(0, 0, 0)
-		, CachedDrawScale(1, 1, 1)
+#if WITH_EDITORONLY_DATA
+	// Allows us to detect if FoliageType was updated while this level wasn't loaded
+	FGuid FoliageTypeUpdateGuid;
+
+	// Editor-only placed instances
+	TArray<FFoliageInstance_Deprecated> Instances;
+#endif
+
+	FFoliageMeshInfo_Deprecated()
+		: Component(nullptr)
 	{
-		UpdateLocationFromActor(InComponent);
 	}
 
-	// Cache the location and rotation from the actor
-	void UpdateLocationFromActor(UActorComponent* InComponent)
-	{
-		if (InComponent)
-		{
-			AActor* Owner = Cast<AActor>(InComponent->GetOuter());
-			if (Owner)
-			{
-				const USceneComponent* RootComponent = Owner->GetRootComponent();
-				if (RootComponent)
-				{
-					CachedLocation = RootComponent->RelativeLocation;
-					CachedRotation = RootComponent->RelativeRotation;
-					CachedDrawScale = RootComponent->RelativeScale3D;
-				}
-			}
-		}
-	}
-
-	// serializer
-	friend FArchive& operator<<(FArchive& Ar, FFoliageComponentHashInfo& ComponentHashInfo);
-
-	FVector CachedLocation;
-	FRotator CachedRotation;
-	FVector CachedDrawScale;
-	TSet<int32> Instances;
+	friend FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo_Deprecated& MeshInfo);
 };
 
 /**
@@ -168,7 +145,7 @@ struct FFoliageMeshInfo
 	TUniquePtr<FFoliageInstanceHash> InstanceHash;
 
 	// Transient, editor-only set of instances per component
-	TMap<UActorComponent*, FFoliageComponentHashInfo> ComponentHash;
+	TMap<FFoliageInstanceBaseId, TSet<int32>> ComponentHash;
 
 	// Transient, editor-only list of selected instances.
 	TSet<int32> SelectedIndices;
@@ -208,6 +185,7 @@ struct FFoliageMeshInfo
 
 #if WITH_EDITOR
 	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance);
+	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance, UActorComponent* InBaseComponent);
 	FOLIAGE_API void RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove);
 	FOLIAGE_API void PreMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToMove);
 	FOLIAGE_API void PostMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesMoved);
@@ -216,7 +194,7 @@ struct FFoliageMeshInfo
 	FOLIAGE_API void GetInstancesInsideSphere(const FSphere& Sphere, TArray<int32>& OutInstances);
 	FOLIAGE_API bool CheckForOverlappingSphere(const FSphere& Sphere);
 	FOLIAGE_API bool CheckForOverlappingInstanceExcluding(int32 TestInstanceIdx, float Radius, TSet<int32>& ExcludeInstances);
-
+	
 	// Destroy existing clusters and reassign all instances to new clusters
 	FOLIAGE_API void ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings);
 
@@ -226,6 +204,8 @@ struct FFoliageMeshInfo
 
 	// Get the number of placed instances
 	FOLIAGE_API int32 GetInstanceCount() const;
+
+	FOLIAGE_API void SetInstanceBaseId(FFoliageInstanceBaseId BaseId, int32 InstanceIdx);
 
 	// For debugging. Validate state after editing.
 	void CheckValid();

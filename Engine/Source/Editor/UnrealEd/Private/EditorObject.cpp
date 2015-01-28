@@ -284,8 +284,6 @@ static const TCHAR* ImportProperties(
 							}
 							FParse::Value(StrPtr, TEXT("Flags="), Instance.Flags);
 
-							Instance.Base = ActorComponent;
-
 							// Add the instance
 							FFoliageMeshInfo* MeshInfo;
 							UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh, &MeshInfo);
@@ -293,7 +291,7 @@ static const TCHAR* ImportProperties(
 							{
 								MeshInfo = IFA->AddMesh(StaticMesh, &Type);
 							}
-							MeshInfo->AddInstance(IFA, Type, Instance);
+							MeshInfo->AddInstance(IFA, Type, Instance, ActorComponent);
 						}
 					}
 				}

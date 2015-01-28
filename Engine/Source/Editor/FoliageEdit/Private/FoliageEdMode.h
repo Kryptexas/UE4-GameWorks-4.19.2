@@ -329,6 +329,12 @@ private:
 	/** Lookup the vertex color corresponding to a location traced on a static mesh */
 	static bool GetStaticMeshVertexColorForHit(UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor);
 
+	/** 
+	 * Snaps given instance to the ground  
+	 * @return Whether instance was sucessfully snapped
+	 */
+	bool SnapInstanceToGround(AInstancedFoliageActor* InIFA, float AlignMaxAngle, FFoliageMeshInfo& Mesh, int32 InstanceIdx);
+
 	bool bBrushTraceValid;
 	FVector BrushLocation;
 	FVector BrushTraceDirection;

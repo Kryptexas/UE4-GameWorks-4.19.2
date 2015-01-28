@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Templates/UniqueObj.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "FoliageInstanceBase.h"
 
 #include "InstancedFoliageActor.generated.h"
 
@@ -29,20 +30,26 @@ class AInstancedFoliageActor : public AActor
 	UFoliageType* SelectedMesh;
 
 public:
+#if WITH_EDITORONLY_DATA
+	// Cross level references cache for instances base
+	FFoliageInstanceBaseCache InstanceBaseCache;
+#endif// WITH_EDITORONLY_DATA
+
 	TMap<UFoliageType*, TUniqueObj<FFoliageMeshInfo>> FoliageMeshes;
 
 public:
 	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostInitProperties() override;
+	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
+	virtual void PreSave() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface. 
 
 	// Begin AActor interface.
 	// we don't want to have our components automatically destroyed by the Blueprint code
 	virtual void RerunConstructionScripts() override {}
-	virtual void PostRegisterAllComponents() override;
-	virtual void PostUnregisterAllComponents() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End AActor interface.
 
@@ -76,7 +83,7 @@ public:
 	*/
 	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
 
-	static FOLIAGE_API AInstancedFoliageActor* FoliageTrace(UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, const AInstancedFoliageActor* IgnoreIFA = nullptr, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false);
+	static FOLIAGE_API bool FoliageTrace(UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, const AInstancedFoliageActor* IgnoreIFA = nullptr, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false);
 	FOLIAGE_API bool CheckCollisionWithWorld(const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation);
 
 #if WITH_EDITOR
@@ -126,9 +133,6 @@ public:
 	// Returns the location for the widget
 	FOLIAGE_API FVector GetSelectionLocation();
 
-	// Transforms Editor specific data which is stored in world space
-	FOLIAGE_API void ApplyLevelTransform(const FTransform& LevelTransform);
-
 	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
 	void NotifyFoliageTypeChanged(UFoliageType* FoliageType);
 
@@ -137,11 +141,12 @@ public:
 private:
 #if WITH_EDITOR
 	void OnLevelActorMoved(AActor* InActor);
+	void OnLevelActorDeleted(AActor* InActor);
 #endif
 private:
 #if WITH_EDITOR
 	FDelegateHandle OnLevelActorMovedDelegateHandle;
-	FDelegateHandle OnApplyLevelTransformDelegateHandle;
+	FDelegateHandle OnLevelActorDeletedDelegateHandle;
 #endif
 
 };

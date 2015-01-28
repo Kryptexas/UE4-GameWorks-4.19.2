@@ -1019,16 +1019,17 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(AInstancedFol
 		// Find the per-mesh info matching the mesh.
 		UFoliageType* Settings = MeshPair.Key;
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		const auto BaseId = IFA.InstanceBaseCache.GetInstanceBaseId(this);  // can we move this out?
 
-		FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(this);
-		if (ComponentHashInfo)
+		const auto* InstanceSet = MeshInfo.ComponentHash.Find(BaseId);
+		if (InstanceSet)
 		{
 			float TraceExtentSize = Bounds.SphereRadius * 2.f + 10.f; // extend a little
 			FVector TraceVector = GetOwner()->GetRootComponent()->ComponentToWorld.GetUnitAxis(EAxis::Z) * TraceExtentSize;
 
 			bool bFirst = true;
 			TArray<int32> InstancesToRemove;
-			for (int32 InstanceIndex : ComponentHashInfo->Instances)
+			for (int32 InstanceIndex : *InstanceSet)
 			{
 				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
 

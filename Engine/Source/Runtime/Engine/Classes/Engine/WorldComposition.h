@@ -126,6 +126,9 @@ class ENGINE_API UWorldComposition : public UObject
 	/**  */
 	void ReinitializeForPIE();
 
+	/** @returns Whether specified tile package name is managed by world composition */
+	bool DoesTileExists(const FName& TilePackageName) const;
+
 #if WITH_EDITOR
 	/** @returns FWorldTileInfo associated with specified package */
 	FWorldTileInfo GetTileInfo(const FName& InPackageName) const;

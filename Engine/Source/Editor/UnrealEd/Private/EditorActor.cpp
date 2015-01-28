@@ -680,19 +680,6 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 			Level->Modify();
 		}
 
-		// See if there is any foliage that also needs to be removed
-		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
-		if( IFA )
-		{
-			TInlineComponentArray<UActorComponent*> Components;
-			Actor->GetComponents(Components);
-
-			for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
-			{
-				IFA->DeleteInstancesForComponent( Components[ComponentIndex] );
-			}
-		}
-
 		UE_LOG(LogEditorActor, Log,  TEXT("Deleted Actor: %s"), *Actor->GetClass()->GetName() );
 
 		// Destroy actor and clear references.
