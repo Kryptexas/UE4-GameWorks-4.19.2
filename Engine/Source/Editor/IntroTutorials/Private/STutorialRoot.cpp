@@ -347,6 +347,9 @@ void STutorialRoot::HandleCloseClicked()
 			
 		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.Closed"), EventAttributes );
 	}
+
+	//Tutorial is no longer current
+	CurrentTutorial = nullptr;
 }
 
 bool STutorialRoot::WasWidgetDrawn(const FName& InName) const
