@@ -4,6 +4,7 @@
 #include "FeaturePackContentSource.h"
 
 #include "AssetToolsModule.h"
+#include "ContentBrowserModule.h"
 #include "IPlatformFilePak.h"
 #include "FileHelpers.h"
 
@@ -64,6 +65,9 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	// Parse class types field
 	ClassTypes = ManifestObject->GetStringField("ClassTypes");
 	
+	// Parse initial focus asset
+	FocusAssetIdent = ManifestObject->GetStringField("FocusAsset");
+
 	FString CategoryString = ManifestObject->GetStringField("Category");	
 	if (CategoryString == "CodeFeature")
 	{
@@ -164,7 +168,8 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 		TArray<FString> AssetPaths;
 		AssetPaths.Add(FeaturePackPath);
-		TArray<UObject*> ImportedObjects = AssetToolsModule.Get().ImportAssets(AssetPaths, InstallPath);
+
+		TArray<UObject*> ImportedObjects = AssetToolsModule.Get().ImportAssets(AssetPaths, InstallPath );
 		if( ImportedObjects.Num() == 0 )
 		{
 			UE_LOG(LogFeaturePack, Warning, TEXT("No objects imported installing pack %s"), *InstallPath);
@@ -179,6 +184,19 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 			}
 			FEditorFileUtils::PromptForCheckoutAndSave( ToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false );
 			bResult = true;
+			
+			// Focus on a specific asset if we want to.
+			if( GetFocusAssetName().IsEmpty() == false )
+			{
+				UObject* FocusAsset = LoadObject<UObject>(nullptr, *GetFocusAssetName());
+				if (FocusAsset)
+				{
+					FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+					TArray<UObject*> SyncObjects;
+					SyncObjects.Add(FocusAsset);
+					ContentBrowserModule.Get().SyncBrowserToAssets(SyncObjects);
+				}
+			}
 		}
 	}
 	return bResult;
@@ -196,4 +214,9 @@ bool FFeaturePackContentSource::IsDataValid() const
 	}
 	// To Do maybe validate other data here
 	return true;	
+}
+
+FString FFeaturePackContentSource::GetFocusAssetName() const
+{
+	return FocusAssetIdent;
 }

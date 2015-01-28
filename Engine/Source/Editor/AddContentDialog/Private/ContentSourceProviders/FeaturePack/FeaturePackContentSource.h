@@ -22,11 +22,12 @@ public:
 
 	virtual bool InstallToProject(FString InstallPath) override;
 	virtual bool IsDataValid() const override;
-
+	
 	virtual ~FFeaturePackContentSource();
 	
 private:
 	bool LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer);
+	FString GetFocusAssetName() const;
 
 private:
 	FString FeaturePackPath;
@@ -38,4 +39,5 @@ private:
 	TArray<FLocalizedText> LocalizedAssetTypesList;
 	FString ClassTypes;
 	bool bPackValid;
+	FString FocusAssetIdent;
 };

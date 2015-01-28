@@ -246,7 +246,7 @@ UObject* UPackFactory::FactoryCreateBinary
 	const uint8*		BufferEnd,
 	FFeedbackContext*	Warn
 )
-{
+{ 
 	FBufferReader PakReader((void*)Buffer, BufferEnd-Buffer, false);
 	FPakFile PakFile(&PakReader);
 
@@ -336,7 +336,6 @@ UObject* UPackFactory::FactoryCreateBinary
 					// Setup the game name redirect
 					if (FString* GameName = ConfigParameters.Find("GameName"))
 					{
-
 						const FString EngineIniFilename = FPaths::ConvertRelativePathToFull(GetDefault<UEngine>()->GetDefaultConfigFilename());
 
 						if (ISourceControlModule::Get().IsEnabled())
@@ -478,15 +477,9 @@ UObject* UPackFactory::FactoryCreateBinary
 		if (WrittenFiles.Num() > 0)
 		{
 			// If we wrote out source files, kick off the hot reload process
-			// TODO: Ideally we would block on finishing the factory until the hot reload completed
 			if (WrittenSourceFiles.Num() > 0)
 			{
-				IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-				if( !HotReloadSupport.IsCurrentlyCompiling() )
-				{
-					HotReloadSupport.DoHotReloadFromEditor();
-				}
-
+				// Ask about editing code where applicable
 				if (FSlateApplication::Get().SupportsSourceAccess() )
 				{
 					// Code successfully added, notify the user and ask about opening the IDE now
@@ -496,11 +489,31 @@ UObject* UPackFactory::FactoryCreateBinary
 						FSourceCodeNavigation::OpenSourceFiles(WrittenSourceFiles);
 					}
 				}
-
+				
+				// Tell the user we are about to compile and fire it off (if we need to)
+				IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+				if (!HotReloadSupport.IsCurrentlyCompiling())
+				{					
+					const FText Message = NSLOCTEXT("PackFactory", "WaitingForCompile", "Press OK to begin compling. Pack will installation will complete when the compiler has finished.");
+					FMessageDialog::Open(EAppMsgType::Ok, Message);
+				
+					HotReloadSupport.DoHotReloadFromEditor();
+					
+					UE_LOG(LogPackFactory, Warning, TEXT("Starting compile."));
+					// Wait until the compiler finishes
+					while (HotReloadSupport.IsCurrentlyCompiling())
+					{
+						// Tick slate while we wait
+						FSlateApplication::Get().PumpMessages();
+						FSlateApplication::Get().Tick();						
+						// Tick hot reload - or nothing will happen !
+						HotReloadSupport.Tick();
+					}
+					UE_LOG(LogPackFactory, Warning, TEXT("Compile complete."));
+				}
 			}
-
-			// Find an asset to return as the file to be selected in the content browser
-			// TODO: Should we load all objects? Should the config file be able to specify which asset is selected?
+			
+			// Find an asset to return (It will be marked as dirty)
 			for (const FString& Filename : WrittenFiles)
 			{
 				static const FString AssetExtension(TEXT(".uasset"));
@@ -515,7 +528,7 @@ UObject* UPackFactory::FactoryCreateBinary
 						{
 							const FString AssetName = GameFileName.RightChop(SlashIndex + 1);
 							ReturnAsset = LoadObject<UObject>(nullptr, *(GameFileName + TEXT(".") + AssetName));
-							if (ReturnAsset) 
+							if (ReturnAsset)
 							{
 								break;
 							}
@@ -542,7 +555,6 @@ UObject* UPackFactory::FactoryCreateBinary
 	{
 		UE_LOG(LogPackFactory, Warning, TEXT("Invalid pak file."));
 	}
-
 
 	return ReturnAsset;
 }
