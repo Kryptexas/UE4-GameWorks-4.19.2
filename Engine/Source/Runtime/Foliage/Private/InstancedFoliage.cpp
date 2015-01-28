@@ -14,6 +14,7 @@
 #include "Serialization/CustomVersion.h"
 #include "ProceduralFoliageComponent.h"
 #include "ProceduralFoliageBlockingVolume.h"
+#include "ProceduralFoliageActor.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 
@@ -1848,7 +1849,15 @@ AInstancedFoliageActor* AInstancedFoliageActor::FoliageTrace(UWorld* InWorld, FH
 		{
 			if (Hit.Actor.IsValid())	//if we hit the ProceduralFoliage blocking volume don't spawn instance
 			{
-				if (Cast<AProceduralFoliageBlockingVolume>(Hit.Actor.Get()) || Cast<AInstancedFoliageActor>(Hit.Actor.Get()))
+				if (AProceduralFoliageBlockingVolume* ProceduralFoliageBlockingVolume = Cast<AProceduralFoliageBlockingVolume>(Hit.Actor.Get()))
+				{
+					const AProceduralFoliageActor* ProceduralFoliageActor = ProceduralFoliageBlockingVolume->ProceduralFoliageActor;
+					if (ProceduralFoliageActor == nullptr || ProceduralFoliageActor->ProceduralComponent == nullptr || ProceduralFoliageActor->ProceduralComponent->GetProceduralGuid() == DesiredInstance.ProceduralGuid)
+					{
+						return nullptr;
+					}
+
+				}else if(Cast<AInstancedFoliageActor>(Hit.Actor.Get()))
 				{
 					return nullptr;
 				}
