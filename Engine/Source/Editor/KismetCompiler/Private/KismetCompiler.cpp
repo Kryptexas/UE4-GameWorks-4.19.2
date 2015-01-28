@@ -3538,6 +3538,7 @@ void FKismetCompilerContext::Compile()
 
 		CopyTermDefaultsToDefaultObject(NewCDO);
 		SetCanEverTick();
+		SetWantsInitialize();
 		FKismetCompilerUtilities::ValidateEnumProperties(NewCDO, MessageLog);
 	}
 
@@ -3710,7 +3711,7 @@ const UK2Node_FunctionEntry* FKismetCompilerContext::FindLocalEntryPoint(const U
 	return NULL;
 }
 
-void FKismetCompilerContext::SetCanEverTick()
+void FKismetCompilerContext::SetCanEverTick() const
 {
 	FTickFunction* TickFunction = nullptr;
 	FTickFunction* ParentTickFunction = nullptr;
@@ -3736,30 +3737,65 @@ void FKismetCompilerContext::SetCanEverTick()
 	TickFunction->bCanEverTick = ParentTickFunction->bCanEverTick;
 	
 	// RECEIVE TICK
-	static FName ReceiveTickName(GET_FUNCTION_NAME_CHECKED(AActor, ReceiveTick));
-	static FName ComponentReceiveTickName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveTick)); // Only doing this to ensure that both classes have the correct, same name
-	const UFunction* ReciveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveTickName, NewClass);
-	if (ReciveTickEvent)
+	if (!TickFunction->bCanEverTick)
 	{
-		static const FName ChildCanTickName = TEXT("ChildCanTick");
-		const UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(NewClass);
-		const bool bOverrideFlags = (AActor::StaticClass() == FirstNativeClass) || (UActorComponent::StaticClass() == FirstNativeClass) || (FirstNativeClass && FirstNativeClass->HasMetaData(ChildCanTickName));
-		if (bOverrideFlags)
+		static FName ReceiveTickName(GET_FUNCTION_NAME_CHECKED(AActor, ReceiveTick));
+		static FName ComponentReceiveTickName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveTick)); // Only doing this to ensure that both classes have the correct, same name
+		const UFunction* ReciveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveTickName, NewClass);
+		if (ReciveTickEvent)
 		{
-			TickFunction->bCanEverTick = true;
-		}
-		else if (!TickFunction->bCanEverTick)
-		{
-			const FString ReceivTickEventWarning = FString::Printf( 
-				*LOCTEXT("ReceiveTick_CanNeverTick", "Blueprint %s has the ReceiveTick @@ event, but it can never tick.  Please consider using a Timer instead of a tick or you can enable Tick using code in one of the following ways: set ChildCanTick in the metadata on the parent class, or set bCanEverTick to true.").ToString(), *NewClass->GetName());
-			MessageLog.Warning( *ReceivTickEventWarning, FindLocalEntryPoint(ReciveTickEvent) );
+			static const FName ChildCanTickName = TEXT("ChildCanTick");
+			const UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(NewClass);
+			const bool bOverrideFlags = (AActor::StaticClass() == FirstNativeClass) || (UActorComponent::StaticClass() == FirstNativeClass) || (FirstNativeClass && FirstNativeClass->HasMetaData(ChildCanTickName));
+			if (bOverrideFlags)
+			{
+				TickFunction->bCanEverTick = true;
+			}
+			else if (!TickFunction->bCanEverTick)
+			{
+				const FString ReceivTickEventWarning = FString::Printf( 
+					*LOCTEXT("ReceiveTick_CanNeverTick", "Blueprint %s has the ReceiveTick @@ event, but it can never tick.  Please consider using a Timer instead of a tick or you can enable Tick using code in one of the following ways: set ChildCanTick in the metadata on the parent class, or set bCanEverTick to true.").ToString(), *NewClass->GetName());
+				MessageLog.Warning( *ReceivTickEventWarning, FindLocalEntryPoint(ReciveTickEvent) );
+			}
 		}
 	}
 
 	if(TickFunction->bCanEverTick != bOldFlag)
 	{
-		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flags for class '%s': CanEverTick %s "), *NewClass->GetName(),
+		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flag for class '%s': CanEverTick %s "), *NewClass->GetName(),
 			TickFunction->bCanEverTick ? *(GTrue.ToString()) : *(GFalse.ToString()) );
+	}
+}
+
+void FKismetCompilerContext::SetWantsInitialize() const
+{
+	UActorComponent* CDComponent = Cast<UActorComponent>(NewClass->GetDefaultObject());
+
+	if (CDComponent == nullptr)
+	{
+		return;
+	}
+
+	const bool bOldFlag = CDComponent->bWantsInitializeComponent;
+
+	CDComponent->bWantsInitializeComponent = NewClass->GetSuperClass()->GetDefaultObject<UActorComponent>()->bWantsInitializeComponent;
+
+	if (!CDComponent->bWantsInitializeComponent)
+	{
+		static FName ReceiveInitializeComponentName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveInitializeComponent));
+		static FName ReceiveUninitializeComponentName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveUninitializeComponent));
+		const UFunction* ReciveInitializeComponentEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveInitializeComponentName, NewClass);
+		const UFunction* ReciveUninitializeComponentEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveUninitializeComponentName, NewClass);
+		if (ReciveInitializeComponentEvent || ReciveUninitializeComponentEvent)
+		{
+			CDComponent->bWantsInitializeComponent = true;
+		}
+	}
+
+	if(CDComponent->bWantsInitializeComponent != bOldFlag)
+	{
+		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flag for class '%s': bWantsInitializeComponent %s "), *NewClass->GetName(),
+			CDComponent->bWantsInitializeComponent ? *(GTrue.ToString()) : *(GFalse.ToString()) );
 	}
 }
 
