@@ -116,9 +116,6 @@ private:
 
 	TSharedPtr< IDetailCustomization > LayersLayoutDetails;
 
-	/** The material category that displays used materials */
-	TSharedPtr< class FActorMaterialCategory > MaterialCategory;
-
 	/** The active blutility function, picked from the combo list and cached here */
 	TWeakObjectPtr<UFunction> ActiveBlutilityFunction;
 

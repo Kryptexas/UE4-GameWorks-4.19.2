@@ -14,7 +14,6 @@
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "BlueprintGraphDefinitions.h"
 #include "Engine/Breakpoint.h"
-#include "ActorMaterialCategory.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "ScopedTransaction.h"
@@ -107,11 +106,6 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		if (!HideCategories.Contains(TEXT("Transform")))
 		{
 			AddTransformCategory(DetailLayout);
-		}
-
-		if (!HideCategories.Contains(TEXT("Materials")))
-		{
-			AddMaterialCategory(DetailLayout);
 		}
 		
 		if (!HideCategories.Contains(TEXT("Actor")))
@@ -484,13 +478,6 @@ void FActorDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& Detail
 			];
 	}
 }
-
-void FActorDetails::AddMaterialCategory( IDetailLayoutBuilder& DetailBuilder )
-{
-	MaterialCategory = MakeShareable( new FActorMaterialCategory( SelectedActors ) );
-	MaterialCategory->Create( DetailBuilder );
-}
-
 
 void FActorDetails::AddActorCategory( IDetailLayoutBuilder& DetailBuilder, const TMap<ULevel*, int32>& ActorsPerLevelCount )
 {		

@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
-#include "ActorMaterialCategory.h"
+#include "ComponentMaterialCategory.h"
 #include "AssetThumbnail.h"
 #include "ActorEditorUtils.h"
 
@@ -20,11 +20,10 @@
 class FMaterialIterator
 {
 public:
-	FMaterialIterator( TArray< TWeakObjectPtr<AActor> >& InSelectedActors )
-		: SelectedActors( InSelectedActors )
+	FMaterialIterator( TArray< TWeakObjectPtr<USceneComponent> >& InSelectedComponents )
+		: SelectedComponents( InSelectedComponents )
 		, CurMaterial( NULL )
 		, CurComponent( NULL )
-		, CurActorIndex( 0 )
 		, CurComponentIndex( 0 )
 		, CurMaterialIndex( -1 )
 		, bReachedEnd( false )
@@ -43,80 +42,60 @@ public:
 		++CurMaterialIndex;
 
 		// Examine each actor until we are out of actors
-		while( SelectedActors.IsValidIndex(CurActorIndex) )
+		while( SelectedComponents.IsValidIndex(CurComponentIndex) )
 		{
-			// Current actor
-			AActor* Actor = SelectedActors[CurActorIndex].Get();
+			USceneComponent* TestComponent = SelectedComponents[CurComponentIndex].Get();
 
-			if( Actor )
+			if( TestComponent != NULL )
 			{
-				if (bNeedComponents)
-				{
-					Actor->GetComponents(CurActorComponents);
-					bNeedComponents = false;
-				}
+				CurComponent = TestComponent;
+				int32 NumMaterials = 0;
 
-				// Examine each component on the current actor
-				while( CurActorComponents.IsValidIndex(CurComponentIndex) )
-				{
-					USceneComponent* TestComponent = CurActorComponents[CurComponentIndex];
+				// Primitive components and some actor components have materials
+				UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>( CurComponent );
+				UDecalComponent* DecalComponent = (PrimitiveComp ? NULL : Cast<UDecalComponent>( CurComponent ));
 
-					if( TestComponent != NULL )
+				if( CurComponent->CreationMethod != EComponentCreationMethod::ConstructionScript)
+				{
+					if( PrimitiveComp )
 					{
-						CurComponent = TestComponent;
-						int32 NumMaterials = 0;
-
-						// Primitive components and some actor components have materials
-						UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>( CurComponent );
-						UDecalComponent* DecalComponent = (PrimitiveComp ? NULL : Cast<UDecalComponent>( CurComponent ));
-
-						if( CurComponent->CreationMethod != EComponentCreationMethod::ConstructionScript)
-						{
-							if( PrimitiveComp )
-							{
-								NumMaterials = PrimitiveComp->GetNumMaterials();
-							}
-							else if( DecalComponent )
-							{
-								// DecalComponent isn't a primitive component so we must get the materials directly from it
-								NumMaterials = DecalComponent->GetNumMaterials();
-							}
-						}
-
-						// Check materials
-						while( CurMaterialIndex < NumMaterials )
-						{
-							UMaterialInterface* Material = NULL;
-
-							if( PrimitiveComp )
-							{
-								Material = PrimitiveComp->GetMaterial(CurMaterialIndex);
-							}
-							else if( DecalComponent )
-							{
-								Material = DecalComponent->GetMaterial(CurMaterialIndex);
-							}
-
-							CurMaterial = Material;
-							
-							// We step only once in the iterator if we have a material.  Note: A null material is considered valid
-							return;
-						}
-						// Out of materials on this component, reset for the next component
-						CurMaterialIndex = 0;
+						NumMaterials = PrimitiveComp->GetNumMaterials();
 					}
-					// Check the next component
-					++CurComponentIndex;
+					else if( DecalComponent )
+					{
+						// DecalComponent isn't a primitive component so we must get the materials directly from it
+						NumMaterials = DecalComponent->GetNumMaterials();
+					}
 				}
-				// Out of components on this actor, reset for the next actor
-				CurComponentIndex = 0;
+
+				// Check materials
+				while( CurMaterialIndex < NumMaterials )
+				{
+					UMaterialInterface* Material = NULL;
+
+					if( PrimitiveComp )
+					{
+						Material = PrimitiveComp->GetMaterial(CurMaterialIndex);
+					}
+					else if( DecalComponent )
+					{
+						Material = DecalComponent->GetMaterial(CurMaterialIndex);
+					}
+
+					CurMaterial = Material;
+							
+					// We step only once in the iterator if we have a material.  Note: A null material is considered valid
+					return;
+				}
+				// Out of materials on this component, reset for the next component
+				CurMaterialIndex = 0;
 			}
-			// Advance to the next actor
-			++CurActorIndex;
-			bNeedComponents = true;
+			// Advance to the next compoment
+			++CurComponentIndex;
 		}
+
+
 		// Out of actors to check, reset to an invalid state
-		CurActorIndex = INDEX_NONE;
 		CurComponentIndex = INDEX_NONE;
 		bReachedEnd = true;
 		CurComponent = NULL;
@@ -167,22 +146,9 @@ public:
 	 */
 	UActorComponent* GetComponent() const { return CurComponent; }
 
-	/**
-	 * @return The current actor
-	 */
-	AActor* GetActor() const
-	{
-		if( SelectedActors.IsValidIndex(CurActorIndex) )
-		{
-			return SelectedActors[CurActorIndex].Get(); 
-		}
-
-		return NULL;
-	}
-
 private:
 	/** Reference to the selected actors */
-	TArray< TWeakObjectPtr<AActor> >& SelectedActors;
+	TArray< TWeakObjectPtr<USceneComponent> >& SelectedComponents;
 	/** Reference to the current actor's components */
 	TInlineComponentArray<USceneComponent*> CurActorComponents;
 	/** The current material the iterator is stopped on */
@@ -201,43 +167,29 @@ private:
 	uint32 bNeedComponents;
 };
 
-FActorMaterialCategory::FActorMaterialCategory( TArray< TWeakObjectPtr<AActor> >& InSelectedActors )
-	: SelectedActors( InSelectedActors )
+FComponentMaterialCategory::FComponentMaterialCategory( TArray< TWeakObjectPtr<USceneComponent> >& InSelectedComponents )
+	: SelectedComponents( InSelectedComponents )
 {
 }
 
-void FActorMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
+void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 {
 	FMaterialListDelegates MaterialListDelegates;
-	MaterialListDelegates.OnGetMaterials.BindSP( this, &FActorMaterialCategory::OnGetMaterialsForView );
-	MaterialListDelegates.OnMaterialChanged.BindSP( this, &FActorMaterialCategory::OnMaterialChanged );
+	MaterialListDelegates.OnGetMaterials.BindSP( this, &FComponentMaterialCategory::OnGetMaterialsForView );
+	MaterialListDelegates.OnMaterialChanged.BindSP( this, &FComponentMaterialCategory::OnMaterialChanged );
 
 	TSharedRef<FMaterialList> MaterialList = MakeShareable( new FMaterialList( DetailBuilder, MaterialListDelegates ) );
 
-	TSet<AActor*> FoundActors;
 	bool bAnyMaterialsToDisplay = false;
 
-	for( FMaterialIterator It( SelectedActors ); It; ++It )
+	for( FMaterialIterator It( SelectedComponents ); It; ++It )
 	{	
 		UActorComponent* CurrentComponent = It.GetComponent();
 
-		AActor* Actor = It.GetActor();
-		if( Actor && !FoundActors.Contains( Actor ) )
-		{
-			FoundActors.Add( Actor );
-
-			TArray<UActorComponent*> EditableComponentsForActor;
-			FActorEditorUtils::GetEditableComponents( Actor, EditableComponentsForActor );
-
-			for( int32 ComponentIndex = 0; ComponentIndex < EditableComponentsForActor.Num(); ++ComponentIndex )
-			{
-				EditableComponents.Add( EditableComponentsForActor[ComponentIndex] );
-			}
-		}
-
-		if( !bAnyMaterialsToDisplay && IsComponentEditable( CurrentComponent ) )
+		if( !bAnyMaterialsToDisplay && CurrentComponent->CreationMethod != EComponentCreationMethod::ConstructionScript )
 		{
 			bAnyMaterialsToDisplay = true;
+			break;
 		}
 	}
 
@@ -252,18 +204,18 @@ void FActorMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	}
 }
 
-void FActorMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& MaterialList )
+void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& MaterialList )
 {
 	const bool bAllowNullEntries = true;
 
 	// Iterate over every material on the actors
-	for( FMaterialIterator It( SelectedActors ); It; ++It )
+	for( FMaterialIterator It( SelectedComponents ); It; ++It )
 	{	
 		int32 MaterialIndex = It.GetMaterialIndex();
 
 		UActorComponent* CurrentComponent = It.GetComponent();
 
-		if( CurrentComponent && IsComponentEditable( CurrentComponent ) )
+		if( CurrentComponent && CurrentComponent->CreationMethod != EComponentCreationMethod::ConstructionScript )
 		{
 			UMaterialInterface* Material = It.GetMaterial();
 
@@ -284,7 +236,7 @@ void FActorMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& Materi
 	}
 }
 
-void FActorMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll )
+void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll )
 {
 	// Whether or not we should begin a transaction on swap
 	// Note we only begin a transaction on the first swap
@@ -294,7 +246,7 @@ void FActorMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMaterial,
 	bool bMadeTransaction = false;
 
 	// Scan the selected actors mesh components for the old material and swap it with the new material 
-	for( FMaterialIterator It( SelectedActors ); It; ++It )
+	for( FMaterialIterator It( SelectedComponents ); It; ++It )
 	{
 		int32 MaterialIndex = It.GetMaterialIndex();
 
@@ -363,11 +315,6 @@ void FActorMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMaterial,
 		// Redraw viewports to reflect the material changes 
 		GUnrealEd->RedrawLevelEditingViewports();
 	}
-}
-
-bool FActorMaterialCategory::IsComponentEditable( UActorComponent* InComponent ) const
-{
-	return EditableComponents.Contains( InComponent );
 }
 
 #undef LOCTEXT_NAMESPACE
