@@ -820,15 +820,23 @@ bool STutorialsBrowser::IsBackButtonEnabled() const
 
 void STutorialsBrowser::OnTutorialSelected(UEditorTutorial* InTutorial, bool bRestart)
 {
-	if( FEngineAnalytics::IsAvailable() && InTutorial != nullptr )
+	if (InTutorial != nullptr)
 	{
-		TArray<FAnalyticsEventAttribute> EventAttributes;
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Restarted"), bRestart));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TutorialAsset"), FIntroTutorials::AnalyticsEventNameFromTutorial(InTutorial)));
+		if (FEngineAnalytics::IsAvailable())
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Restarted"), bRestart));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TutorialAsset"), FIntroTutorials::AnalyticsEventNameFromTutorial(InTutorial)));
 
-		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.LaunchedFromBrowser"), EventAttributes );
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Rocket.Tutorials.LaunchedFromBrowser"), EventAttributes);
+		}
+		//Close the tutorial browser so it doesn't get in the way of the actual tutorial.
+		if (OnLaunchTutorial.IsBound())
+		{
+			FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+			IntroTutorials.DismissTutorialBrowser();
+		}
 	}
-
 	OnLaunchTutorial.ExecuteIfBound(InTutorial, bRestart, ParentWindow, FSimpleDelegate(), FSimpleDelegate());
 }
 
