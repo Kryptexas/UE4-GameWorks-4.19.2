@@ -269,6 +269,10 @@ protected:
 
 	uint32 bPruneStartedOffmeshConnections : 1;
 	uint32 bSingleAreaVisibilityOptimization : 1;
+	
+	/** should crowd simulation resolve collisions between agents? if not, this will be handled by their movement components */
+	UPROPERTY(config, EditAnywhere, Category = Config)
+	uint32 bResolveCollisions : 1;
 
 	/** agents registered in crowd manager */
 	TMap<ICrowdAgentInterface*, FCrowdAgentData> ActiveAgents;

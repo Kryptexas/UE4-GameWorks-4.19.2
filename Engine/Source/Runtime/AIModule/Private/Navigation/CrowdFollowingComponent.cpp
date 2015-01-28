@@ -240,6 +240,11 @@ void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocit
 	}
 }
 
+void UCrowdFollowingComponent::ApplyCrowdAgentPosition(const FVector& NewPosition)
+{
+	// base implementation does nothing
+}
+
 void UCrowdFollowingComponent::SetCrowdSimulation(bool bEnable)
 {
 	if (bEnableCrowdSimulation == bEnable)

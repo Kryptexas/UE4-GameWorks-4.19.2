@@ -24,6 +24,7 @@ DECLARE_CYCLE_STAT(TEXT("Step: proximity"), STAT_AI_Crowd_StepProximityTime, STA
 DECLARE_CYCLE_STAT(TEXT("Step: next point"), STAT_AI_Crowd_StepNextPointTime, STATGROUP_AICrowd);
 DECLARE_CYCLE_STAT(TEXT("Step: steering"), STAT_AI_Crowd_StepSteeringTime, STATGROUP_AICrowd);
 DECLARE_CYCLE_STAT(TEXT("Step: avoidance"), STAT_AI_Crowd_StepAvoidanceTime, STATGROUP_AICrowd);
+DECLARE_CYCLE_STAT(TEXT("Step: collisions"), STAT_AI_Crowd_StepCollisionsTime, STATGROUP_AICrowd);
 DECLARE_CYCLE_STAT(TEXT("Step: components"), STAT_AI_Crowd_StepComponentsTime, STATGROUP_AICrowd);
 DECLARE_CYCLE_STAT(TEXT("Step: navlinks"), STAT_AI_Crowd_StepNavLinkTime, STATGROUP_AICrowd);
 DECLARE_CYCLE_STAT(TEXT("Step: movement"), STAT_AI_Crowd_StepMovementTime, STATGROUP_AICrowd);
@@ -139,6 +140,7 @@ UCrowdManager::UCrowdManager(const FObjectInitializer& ObjectInitializer) : Supe
 	PathOptimizationInterval = 0.5f;
 	bSingleAreaVisibilityOptimization = true;
 	bPruneStartedOffmeshConnections = false;
+	bResolveCollisions = false;
 	
 	FCrowdAvoidanceConfig AvoidanceConfig11;		// 11 samples, ECrowdAvoidanceQuality::Low
 	AvoidanceConfig11.VelocityBias = 0.5f;
@@ -236,6 +238,11 @@ void UCrowdManager::Tick(float DeltaTime)
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepAvoidanceTime);
 				DetourCrowd->updateStepAvoidance(DeltaTime, DetourAgentDebug);
+			}
+			if (bResolveCollisions)
+			{
+				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepCollisionsTime);
+				DetourCrowd->updateStepMove(DeltaTime, DetourAgentDebug);
 			}
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepComponentsTime);
@@ -755,6 +762,12 @@ void UCrowdManager::ApplyVelocity(UCrowdFollowingComponent* AgentComponent, int3
 
 	const FVector DestPathCorner = Recast2UnrealPoint(RcDestCorner);
 	AgentComponent->ApplyCrowdAgentVelocity(NewVelocity, DestPathCorner, anims->active != 0);
+
+	if (bResolveCollisions)
+	{
+		const FVector NewPosition = Recast2UnrealPoint(ag->npos);
+		AgentComponent->ApplyCrowdAgentPosition(NewPosition);
+	}
 }
 
 void UCrowdManager::UpdateAgentPaths()

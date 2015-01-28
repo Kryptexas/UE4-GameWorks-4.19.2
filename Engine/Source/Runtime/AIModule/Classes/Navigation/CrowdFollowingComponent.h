@@ -57,6 +57,9 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	/** pass agent velocity to movement component */
 	virtual void ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink);
 
+	/** pass desired position to movement component (after resolving collisions between crowd agents) */
+	virtual void ApplyCrowdAgentPosition(const FVector& NewPosition);
+
 	/** master switch for crowd steering & avoidance */
 	virtual void SuspendCrowdSteering(bool bSuspend);
 
