@@ -104,6 +104,21 @@ namespace UnrealBuildTool.Android
 			return CachedSDKLevel;
 		}
 
+		public static bool PackageDataInsideApk(ConfigCacheIni Ini=null)
+		{
+			// make a new one if one wasn't passed in
+			if (Ini == null)
+			{
+				Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+			}
+
+			// we check this a lot, so make it easy 
+			bool bPackageDataInsideApk;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageDataInsideApk", out bPackageDataInsideApk);
+
+			return bPackageDataInsideApk;
+		}
+
 		private static string GetAntPath()
 		{
 			// look up an ANT_HOME env var
@@ -251,43 +266,6 @@ namespace UnrealBuildTool.Android
         public string GetUE4BuildFilePath(String EngineDirectory)
         {
             return Path.GetFullPath(Path.Combine(EngineDirectory, "Build/Android/Java"));
-        }
-
-        public string GetUE4JavaFilePath(String EngineDirectory)
-        {
-            return Path.GetFullPath(Path.Combine(GetUE4BuildFilePath(EngineDirectory), "src/com/epicgames/ue4"));
-        }
-
-        public string GetUE4JavaBuildSettingsFileName(String EngineDirectory)
-        {
-            return Path.Combine(GetUE4JavaFilePath(EngineDirectory), "JavaBuildSettings.java");
-        }
-
-        public void WriteJavaBuildSettingsFile(string FileName, bool OBBinAPK)
-        {
-             // (!UEBuildConfiguration.bOBBinAPK ? "PackageType.AMAZON" : /*bPackageForGoogle ? "PackageType.GOOGLE" :*/ "PackageType.DEVELOPMENT") + ";\n");
-            string Setting = OBBinAPK ? "AMAZON" : "DEVELOPMENT";
-            if (!File.Exists(FileName) || ShouldWriteJavaBuildSettingsFile(FileName, Setting))
-            {
-				Log.TraceInformation("\n===={0}====WRITING JAVABUILDSETTINGS.JAVA========================================================", DateTime.Now.ToString());
-				StringBuilder BuildSettings = new StringBuilder("package com.epicgames.ue4;\npublic class JavaBuildSettings\n{\n");
-                BuildSettings.Append("\tpublic enum PackageType {AMAZON, GOOGLE, DEVELOPMENT};\n");
-                BuildSettings.Append("\tpublic static final PackageType PACKAGING = PackageType." + Setting + ";\n");
-                BuildSettings.Append("}\n");
-                File.WriteAllText(FileName, BuildSettings.ToString());
-            }
-        }
-
-        public bool ShouldWriteJavaBuildSettingsFile(string FileName, string setting)
-        {
-            var fileContent = File.ReadAllLines(FileName);
-            if (fileContent.Length < 5)
-                return true;
-            var packageLine = fileContent[4]; // We know this to be true... because we write it below...
-            int location = packageLine.IndexOf("PACKAGING") + 12 + 12; // + ("PACKAGING = ") + ("PackageType.")
-            if (location == -1)
-                return true;
-            return String.Compare(setting, packageLine.Substring(location, Math.Min(packageLine.Length - location - 1, setting.Length))) != 0;
         }
 
 		private static string GetNDKArch(string UE4Arch)
@@ -460,7 +438,7 @@ namespace UnrealBuildTool.Android
 		}
 
 
-		private string GetAllBuildSettings(string BuildPath, bool bForDistribution, bool bMakeSeparateApks, bool bOBBinApk)
+		private string GetAllBuildSettings(string BuildPath, bool bForDistribution, bool bMakeSeparateApks)
 		{
 			// make the settings string - this will be char by char compared against last time
 			StringBuilder CurrentSettings = new StringBuilder();
@@ -471,7 +449,6 @@ namespace UnrealBuildTool.Android
 			CurrentSettings.AppendLine(string.Format("SDKVersion={0}", GetSdkApiLevel()));
 			CurrentSettings.AppendLine(string.Format("bForDistribution={0}", bForDistribution));
 			CurrentSettings.AppendLine(string.Format("bMakeSeparateApks={0}", bMakeSeparateApks));
-			CurrentSettings.AppendLine(string.Format("bOBBinApk={0}", bOBBinApk));
 
 			// all AndroidRuntimeSettings ini settings in here
 			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
@@ -516,7 +493,7 @@ namespace UnrealBuildTool.Android
 			return CurrentSettings.ToString();
 		}
 
-		private bool CheckDependencies(string ProjectName, string ProjectDirectory, string UE4BuildFilesPath, string GameBuildFilesPath, string EngineDirectory, string JavaSettingsFile, string CookFlavor, string OutputPath, string UE4BuildPath, bool bMakeSeparateApks)
+		private bool CheckDependencies(string ProjectName, string ProjectDirectory, string UE4BuildFilesPath, string GameBuildFilesPath, string EngineDirectory, string CookFlavor, string OutputPath, string UE4BuildPath, bool bMakeSeparateApks)
 		{
 			string[] Arches = AndroidToolChain.GetAllArchitectures();
 			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
@@ -547,11 +524,8 @@ namespace UnrealBuildTool.Android
 						InputFiles.AddRange(Directory.EnumerateFiles(GameBuildFilesPath, "*.*", SearchOption.AllDirectories));
 					}
 
-					// make sure changed java settings will rebuild apk
-					InputFiles.Add(JavaSettingsFile);
-
-					// rebuild if .pak files exist for OBB in APK case
-					if (UEBuildConfiguration.bOBBinAPK)
+					// rebuild if .pak files exist for  in APK case
+					if (PackageDataInsideApk())
 					{
 						string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + "/" + ProjectName + "/Content/Paks";
 						if (Directory.Exists(PAKFileLocation))
@@ -692,6 +666,7 @@ namespace UnrealBuildTool.Android
 			}
 			Text.AppendLine("\t\t</activity>");
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\"{0}\"/>", ConvertDepthBufferIniValue(DepthBufferPreference)));
+			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bPackageDataInsideApk\" android:value=\"{0}\"/>", PackageDataInsideApk(Ini) ? "true" : "false"));
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.games.APP_ID\"");
 			Text.AppendLine("\t\t           android:value=\"@string/app_id\" />");
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.version\"");
@@ -752,13 +727,8 @@ namespace UnrealBuildTool.Android
 			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
 //			int NumArches = Arches.Length * GPUArchitectures.Length;
 
-
-            // See if we need to create a 'default' Java Build settings file if one doesn't exist (if it does exist we have to assume it has been setup correctly)
-            string UE4JavaBuildSettingsFileName = GetUE4JavaBuildSettingsFileName(EngineDirectory);
-            WriteJavaBuildSettingsFile(UE4JavaBuildSettingsFileName, UEBuildConfiguration.bOBBinAPK);
-
 			// check to see if any "meta information" is newer than last time we build
-			string CurrentBuildSettings = GetAllBuildSettings(UE4BuildPath, bForDistribution, bMakeSeparateApks, UEBuildConfiguration.bOBBinAPK);
+			string CurrentBuildSettings = GetAllBuildSettings(UE4BuildPath, bForDistribution, bMakeSeparateApks);
 			string BuildSettingsCacheFile = Path.Combine(UE4BuildPath, "UEBuildSettings.txt");
 
 			// do we match previous build settings?
@@ -795,7 +765,7 @@ namespace UnrealBuildTool.Android
 			{
 				// check if so's are up to date against various inputs
 				bool bAllInputsCurrent = CheckDependencies(ProjectName, ProjectDirectory, UE4BuildFilesPath, GameBuildFilesPath, 
-					EngineDirectory, UE4JavaBuildSettingsFileName, CookFlavor, OutputPath, UE4BuildPath, bMakeSeparateApks);
+					EngineDirectory, CookFlavor, OutputPath, UE4BuildPath, bMakeSeparateApks);
 
 				if (bAllInputsCurrent)
 				{
@@ -825,9 +795,10 @@ namespace UnrealBuildTool.Android
 				DeleteDirectory(UE4BuildPath, "dexedLibs");
 			}
 
-			// If we are packaging for Amazon then we need to copy the OBB file to the correct location
-			Log.TraceInformation("UEBuildConfiguration.bOBBinAPK = {0}", UEBuildConfiguration.bOBBinAPK);
-			if (UEBuildConfiguration.bOBBinAPK)
+			// If we are packaging for Amazon then we need to copy the  file to the correct location
+			bool bPackageDataInsideApk = PackageDataInsideApk();
+			Log.TraceInformation("bPackageDataInsideApk = {0}", bPackageDataInsideApk);
+			if (bPackageDataInsideApk)
 			{
 				string ObbFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + ".obb";
 				Console.WriteLine("Obb location {0}", ObbFileLocation);

@@ -93,10 +93,6 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool IncludePrerequisites;
 
-	/** If enabled, on Android platforms, .pak files are placed inside the APK. */
-	UPROPERTY(config, EditAnywhere, Category = Packaging, meta = (DisplayName = "Package .pak in APK"))
-	bool UseOBB_InAPK;
-
 	/**
 	 * Specifies whether to include the crash reporter in the packaged project. 
 	 * This is included by default for Blueprint based projects, but can optionally be disabled.

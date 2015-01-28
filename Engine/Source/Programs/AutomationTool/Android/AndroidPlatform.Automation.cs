@@ -189,9 +189,7 @@ public class AndroidPlatform : Platform
 		string[] Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
 		string[] GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
-
-		// Make sure this setting is sync'd pre-build
-		UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK;
+		bool bPackageDataInsideApk = UnrealBuildTool.Android.UEDeployAndroid.PackageDataInsideApk();
 
 		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
 
@@ -248,7 +246,7 @@ public class AndroidPlatform : Platform
 			    // Create APK specific OBB in case we have a detached OBB.
 			    string DeviceObbName = "";
 			    string ObbName = "";
-			    if (!Params.OBBinAPK)
+				if (!bPackageDataInsideApk)
 			    {
 				    DeviceObbName = GetDeviceObbName(ApkName);
 				    ObbName = GetFinalObbName(ApkName);
@@ -262,7 +260,7 @@ public class AndroidPlatform : Platform
 				string[] BatchLines;
 				if (Utils.IsRunningOnMono)
 				{
-					Log("Writing shell script for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
+					Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
 					BatchLines = new string[] {
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
@@ -270,15 +268,24 @@ public class AndroidPlatform : Platform
 						"if [ \"$ANDROID_HOME\" != \"\" ]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "; fi",
 						"DEVICE=",
 						"if [ \"$1\" != \"\" ]; then DEVICE=\"-s $1\"; fi",
+						"echo",
+						"echo Uninstalling existing application. Failures here can almost always be ignored.",
 						"$ADB $DEVICE uninstall " + PackageName,
+						"echo",
+						"echo Installing existing application. Failures here indicate a problem with the device \\(connection or storage permissions\\) and are fatal.",
 						"$ADB $DEVICE install " + Path.GetFileName(ApkName),
 						"if [ $? -eq 0 ]; then",
+						"\techo",
+						"\techo Removing old data. Failures here are usually fine - indicating the files were not on the device.",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/" + Params.ShortProjectName + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/obb/" + PackageName + "'",
-						"\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
-						"\t$ADB $DEVICE push " + Path.GetFileName(ObbName) + " $STORAGE/" + DeviceObbName,
-						"\tif [ $? -eq 0 ]; then",
+						bPackageDataInsideApk ? "" : "\techo",
+						bPackageDataInsideApk ? "" : "\techo Installing new data. Failures here indicate storage problems \\(missing SD card or bad permissions\\) and are fatal.",
+						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
+						bPackageDataInsideApk ? "" : "\t$ADB $DEVICE push " + Path.GetFileName(ObbName) + " $STORAGE/" + DeviceObbName,
+						bPackageDataInsideApk ? "if [ 1 ]; then" : "\tif [ $? -eq 0 ]; then",
+						"\t\techo",
 						"\t\techo Installation successful",
 						"\t\texit 0",
 						"\tfi",
@@ -287,7 +294,7 @@ public class AndroidPlatform : Platform
 						"echo There was an error installing the game or the obb file. Look above for more info.",
 						"echo",
 						"echo Things to try:",
-						"echo Check that the device (and only the device) is listed with \"$ADB devices\" from a command prompt.",
+						"echo Check that the device (and only the device) is listed with \\\"$ADB devices\\\" from a command prompt.",
 						"echo Make sure all Developer options look normal on the device",
 						"echo Check that the device has an SD card.",
 						"exit 1"
@@ -295,7 +302,7 @@ public class AndroidPlatform : Platform
 				}
 				else
 				{
-					Log("Writing bat for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
+					Log("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
 					BatchLines = new string[] {
 						"setlocal",
                         "set ANDROIDHOME=%ANDROID_HOME%",
@@ -304,14 +311,22 @@ public class AndroidPlatform : Platform
 						"set DEVICE=",
                         "if not \"%1\"==\"\" set DEVICE=-s %1",
                         "for /f \"delims=\" %%A in ('%ADB% %DEVICE% " + GetStorageQueryCommand() +"') do @set STORAGE=%%A",
+						"@echo.",
+						"@echo Uninstalling existing application. Failures here can almost always be ignored.",
 						"%ADB% %DEVICE% uninstall " + PackageName,
+						"@echo.",
+						"@echo Installing existing application. Failures here indicate a problem with the device \\(connection or storage permissions\\) and are fatal.",
 						"%ADB% %DEVICE% install " + Path.GetFileName(ApkName),
 						"@if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/" + Params.ShortProjectName,
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/obb/" + PackageName,
-						Params.OBBinAPK ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(ObbName) + " %STORAGE%/" + DeviceObbName,
-						Params.OBBinAPK ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
+						bPackageDataInsideApk ? "" : "@echo.",
+						bPackageDataInsideApk ? "" : "@echo Installing new data. Failures here indicate storage problems \\(missing SD card or bad permissions\\) and are fatal.",
+						bPackageDataInsideApk ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(ObbName) + " %STORAGE%/" + DeviceObbName,
+						bPackageDataInsideApk ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
+						"@echo.",
+						"@echo Installation successful",
 						"goto:eof",
 						":Error",
 						"@echo.",
@@ -348,6 +363,7 @@ public class AndroidPlatform : Platform
 		string[] Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
 		string[] GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bPackageDataInsideApk = UnrealBuildTool.Android.UEDeployAndroid.PackageDataInsideApk();
 
 		bool bAddedOBB = false;
 		foreach (string Architecture in Architectures)
@@ -365,7 +381,7 @@ public class AndroidPlatform : Platform
 					ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_AppNotFound);
 					throw new AutomationException(ErrorString);
 				}
-				if (!Params.OBBinAPK && !FileExists(ObbName))
+				if (!bPackageDataInsideApk && !FileExists(ObbName))
 				{
 					string ErrorString = String.Format("ARCHIVE FAILED - {0} was not found", ObbName);
 					ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_ObbNotFound);
@@ -373,7 +389,7 @@ public class AndroidPlatform : Platform
 				}
 
 				SC.ArchiveFiles(Path.GetDirectoryName(ApkName), Path.GetFileName(ApkName));
-				if (!Params.OBBinAPK && !bAddedOBB)
+				if (!bPackageDataInsideApk && !bAddedOBB)
 				{
 					bAddedOBB = true;
 					SC.ArchiveFiles(Path.GetDirectoryName(ObbName), Path.GetFileName(ObbName));
