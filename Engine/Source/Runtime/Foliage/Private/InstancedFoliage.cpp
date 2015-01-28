@@ -525,8 +525,7 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 	FFoliageInstance& AddedInstance = Instances[InstanceIndex];
 
 	// Add the instance to the hash
-	InstanceHash->InsertInstance(InNewInstance.Location, InstanceIndex);
-	ComponentHash.FindOrAdd(InNewInstance.BaseId).Add(InstanceIndex);
+	AddToHash(InstanceIndex);
 	// Calculate transform for the instance
 	FTransform InstanceToWorld = InNewInstance.GetInstanceWorldTransform();
 
@@ -565,8 +564,7 @@ void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArr
 			FFoliageInstance& Instance = Instances[InstanceIndex];
 
 			// remove from hash
-			InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
-			SetInstanceBaseId(FFoliageInstanceBaseCache::InvalidBaseId, InstanceIndex);
+			RemoveFromHash(InstanceIndex);
 
 			// remove from the component
 			Component->RemoveInstance(InstanceIndex);
@@ -678,33 +676,31 @@ int32 FFoliageMeshInfo::GetInstanceCount() const
 	return Instances.Num();
 }
 
-void FFoliageMeshInfo::SetInstanceBaseId(FFoliageInstanceBaseId NewBaseId, int32 InstanceIndex)
+void FFoliageMeshInfo::AddToHash(int32 InstanceIndex)
 {
 	FFoliageInstance& Instance = Instances[InstanceIndex];
-	if (NewBaseId != Instance.BaseId)
-	{
-		// Remove current base link
-		auto* InstanceSet = ComponentHash.Find(Instance.BaseId);
-		if (InstanceSet)
-		{
-			InstanceSet->Remove(InstanceIndex);
-			if (InstanceSet->Num() == 0)
-			{
-				// Remove the component from the component hash if this is the last instance.
-				ComponentHash.Remove(Instance.BaseId);
-			}
-		}
+	InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
+	ComponentHash.FindOrAdd(Instance.BaseId).Add(InstanceIndex);
+}
 
-		// Assign new
-		Instance.BaseId = NewBaseId;
-		
-		if (NewBaseId != FFoliageInstanceBaseCache::InvalidBaseId)
+void FFoliageMeshInfo::RemoveFromHash(int32 InstanceIndex)
+{
+	FFoliageInstance& Instance = Instances[InstanceIndex];
+	
+	InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
+
+	// Remove current base link
+	auto* InstanceSet = ComponentHash.Find(Instance.BaseId);
+	if (InstanceSet)
+	{
+		InstanceSet->Remove(InstanceIndex);
+		if (InstanceSet->Num() == 0)
 		{
-			ComponentHash.FindOrAdd(NewBaseId).Add(InstanceIndex);
+			// Remove the component from the component hash if this is the last instance.
+			ComponentHash.Remove(Instance.BaseId);
 		}
 	}
 }
-
 
 // Destroy existing clusters and reassign all instances to new clusters
 void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings)
@@ -1752,12 +1748,7 @@ void AInstancedFoliageActor::PostLoad()
 			MeshInfo.InstanceHash->Empty();
 			for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
 			{
-				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIdx];
-				{
-					// Add valid instances to the hash.
-					MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIdx);
-					MeshInfo.ComponentHash.FindOrAdd(Instance.BaseId).Add(InstanceIdx);
-				}
+				MeshInfo.AddToHash(InstanceIdx);
 			}
 			
 			// Fix-up cross level references after serializing deprecated data
@@ -1777,7 +1768,7 @@ void AInstancedFoliageActor::PostLoad()
 			}
 
 			// Clean up dead cross-level references
-			InstanceBaseCache.CompactInstanceBaseCache(this);
+			FFoliageInstanceBaseCache::CompactInstanceBaseCache(this);
 			
 			// Convert to Heirarchical foliage
 			if (GetLinkerCustomVersion(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageUsingHierarchicalISMC)
@@ -1804,7 +1795,7 @@ void AInstancedFoliageActor::PreSave()
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
-		InstanceBaseCache.CompactInstanceBaseCache(this);
+		FFoliageInstanceBaseCache::CompactInstanceBaseCache(this);
 	}
 #endif //WITH_EDITOR
 }

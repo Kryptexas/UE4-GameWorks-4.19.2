@@ -53,7 +53,7 @@ struct FFoliageInstanceBaseCache
 	FOLIAGE_API FFoliageInstanceBaseInfo UpdateInstanceBaseInfoTransform(UActorComponent* InComponent);
 
 	/* Compacts cross-level references, removing dead links */
-	FOLIAGE_API void CompactInstanceBaseCache(AInstancedFoliageActor* IFA);
+	FOLIAGE_API static void CompactInstanceBaseCache(AInstancedFoliageActor* IFA);
 	
 	/* Refreshes base component transforms cache */
 	FOLIAGE_API void UpdateInstanceBaseCachedTransforms();

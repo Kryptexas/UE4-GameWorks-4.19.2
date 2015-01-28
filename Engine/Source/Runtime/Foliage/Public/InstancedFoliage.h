@@ -205,8 +205,9 @@ struct FFoliageMeshInfo
 	// Get the number of placed instances
 	FOLIAGE_API int32 GetInstanceCount() const;
 
-	FOLIAGE_API void SetInstanceBaseId(FFoliageInstanceBaseId BaseId, int32 InstanceIdx);
-
+	FOLIAGE_API void AddToHash(int32 InstanceIdx);
+	FOLIAGE_API void RemoveFromHash(int32 InstanceIdx);
+		
 	// For debugging. Validate state after editing.
 	void CheckValid();
 #endif

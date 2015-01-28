@@ -165,6 +165,8 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 		return;
 	}
 
+	FFoliageInstanceBaseCache& Cache = IFA->InstanceBaseCache;
+	
 	TSet<FFoliageInstanceBaseId> BasesInUse;
 	for (auto& Pair : IFA->FoliageMeshes)
 	{
@@ -179,7 +181,7 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 	
 	// Look for any removed maps
 	TSet<FFoliageInstanceBasePtr> InvalidBasePtrs;
-	for (auto& Pair : InstanceBaseLevelMap)
+	for (auto& Pair : Cache.InstanceBaseLevelMap)
 	{
 		const auto& WorldAsset = Pair.Key;
 		
@@ -201,7 +203,7 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 		if (!bExists)
 		{
 			InvalidBasePtrs.Append(Pair.Value);
-			InstanceBaseLevelMap.Remove(Pair.Key);
+			Cache.InstanceBaseLevelMap.Remove(Pair.Key);
 		}
 		else
 		{
@@ -209,7 +211,7 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 			for (int32 i = Pair.Value.Num()-1; i >= 0; --i)
 			{
 				// Base needs to be removed if it's not in use by existing instances or component was removed
-				if (Pair.Value[i].IsNull() || !BasesInUse.Contains(GetInstanceBaseId(Pair.Value[i])))
+				if (Pair.Value[i].IsNull() || !BasesInUse.Contains(Cache.GetInstanceBaseId(Pair.Value[i])))
 				{
 					InvalidBasePtrs.Add(Pair.Value[i]);
 					Pair.Value.RemoveAt(i);
@@ -218,27 +220,27 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 
 			if (Pair.Value.Num() == 0)
 			{
-				InstanceBaseLevelMap.Remove(Pair.Key);
+				Cache.InstanceBaseLevelMap.Remove(Pair.Key);
 			}
 		}
 	}
 	
 	TSet<FFoliageInstanceBaseId> InvalidBaseIds;
-	InstanceBaseInvMap.Empty();
+	Cache.InstanceBaseInvMap.Empty();
 	// Look for any removed base components
-	for (const auto& Pair : InstanceBaseMap)
+	for (const auto& Pair : Cache.InstanceBaseMap)
 	{
 		const FFoliageInstanceBaseInfo& BaseInfo = Pair.Value;
 		if (InvalidBasePtrs.Contains(BaseInfo.BasePtr))
 		{
 			InvalidBaseIds.Add(Pair.Key);
-			InstanceBaseMap.Remove(Pair.Key);
+			Cache.InstanceBaseMap.Remove(Pair.Key);
 		}
 		else
 		{
 			// Regenerate inverse map
-			check(!InstanceBaseInvMap.Contains(BaseInfo.BasePtr));
-			InstanceBaseInvMap.Add(BaseInfo.BasePtr, Pair.Key);
+			check(!Cache.InstanceBaseInvMap.Contains(BaseInfo.BasePtr));
+			Cache.InstanceBaseInvMap.Add(BaseInfo.BasePtr, Pair.Key);
 		}
 	}
 
@@ -247,24 +249,23 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 		for (auto& Pair : IFA->FoliageMeshes)
 		{
 			auto& MeshInfo = Pair.Value;
+			MeshInfo->ComponentHash.Empty();
+			int32 InstanceIdx = 0;
+			
 			for (FFoliageInstance& Instance : MeshInfo->Instances)
 			{
 				if (InvalidBaseIds.Contains(Instance.BaseId))
 				{
 					Instance.BaseId = FFoliageInstanceBaseCache::InvalidBaseId;
 				}
-			}
 
-			for (auto RemovedBaseId : InvalidBaseIds)
-			{
-				MeshInfo->ComponentHash.Remove(RemovedBaseId);
+				MeshInfo->ComponentHash.FindOrAdd(Instance.BaseId).Add(InstanceIdx);
+				InstanceIdx++;
 			}
-		
-			MeshInfo->ComponentHash.Compact();
 		}
 
-		InstanceBaseMap.Compact();
-		InstanceBaseLevelMap.Compact();
+		Cache.InstanceBaseMap.Compact();
+		Cache.InstanceBaseLevelMap.Compact();
 	}
 }
 
