@@ -567,13 +567,22 @@ namespace iPhonePackager
 				// Copy the data up to the executable into the final stream
 				if (FatBinary.bIsFatBinary)
 				{
-					OutputExeStream.Seek(0, SeekOrigin.Begin);
-					OutputExeStream.Write(SourceExeData, (int)CurrentStreamOffset, (int)FatBinary.Archs[ArchIndex].Offset - (int)CurrentStreamOffset);
-					OutputExeStream.Seek(0, SeekOrigin.Begin);
+					if (ArchIndex == 0)
+					{
+						OutputExeStream.Seek(0, SeekOrigin.Begin);
+						OutputExeStream.Write(SourceExeData, (int)CurrentStreamOffset, (int)FatBinary.Archs[ArchIndex].Offset - (int)CurrentStreamOffset);
+						OutputExeStream.Seek(0, SeekOrigin.Begin);
 
-					byte[] HeaderData = OutputExeStream.ToArray();
-					HeaderData.CopyTo(FinalExeData, (long)CurrentStreamOffset);
-					CurrentStreamOffset += (ulong)HeaderData.Length;
+						byte[] HeaderData = OutputExeStream.ToArray();
+						HeaderData.CopyTo(FinalExeData, (long)CurrentStreamOffset);
+						CurrentStreamOffset += (ulong)HeaderData.Length;
+					}
+					else
+					{
+						byte[] ZeroData = new byte[(int)FatBinary.Archs[ArchIndex].Offset - (int)CurrentStreamOffset];
+						ZeroData.CopyTo(FinalExeData, (long)CurrentStreamOffset);
+						CurrentStreamOffset += (ulong)ZeroData.Length;
+					}
 				}
 
 				// Copy the executable into the stream
@@ -725,11 +734,20 @@ namespace iPhonePackager
 				}
 				byte[] Data = OutputExeStream.ToArray();
 				Data.CopyTo(FinalExeData, (long)CurrentStreamOffset);
-				CurrentStreamOffset += (ulong)Data.Length;
+				CurrentStreamOffset += DesiredExecutableLength;
+
+				// update the header if it is a fat binary
+				if (FatBinary.bIsFatBinary)
+				{
+					FatBinary.Archs[ArchIndex].Size = (uint)DesiredExecutableLength;
+				}
 
 				// increment the architecture index
 				ArchIndex++;
 			}
+
+			// re-write the header
+			FatBinary.WriteHeader(ref FinalExeData, 0);
 
 			// resize to the finale size
 			Array.Resize(ref FinalExeData, (int)CurrentStreamOffset); //@todo: Extend the file system interface so we don't have to copy 20 MB just to truncate a few hundred bytes
