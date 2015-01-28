@@ -676,6 +676,10 @@ protected:
 	/** Flag set in pre-physics update to indicate that based movement should be updated post-physics */
 	uint32 bDeferUpdateBasedMovement : 1;
 
+	/** Whether to raycast to underlying geometry to better conform navmesh-walking characters */
+	UPROPERTY(Category = "Character Movement", EditAnywhere, BlueprintReadOnly)
+	uint32 bProjectNavMeshWalking : 1;
+
 	/** forced avoidance velocity, used when AvoidanceLockTimer is > 0 */
 	FVector AvoidanceLockVelocity;
 
@@ -726,6 +730,16 @@ public:
 
 	/** last known location projected on navmesh, used by NavWalking mode */
 	FNavLocation CachedNavLocation;
+
+	/** Last valid projected hit result from raycast to geometry from navmesh */
+	FHitResult CachedProjectedNavMeshHitResult;
+
+	/** How often we should raycast to project from navmesh to underlying geometry */
+	UPROPERTY(Category = "Character Movement", EditAnywhere, BlueprintReadOnly, meta=(editcondition = "bProjectNavMeshWalking"))
+	float NavMeshProjectionInterval;
+
+	UPROPERTY(Transient)
+	float NavMeshProjectionTimer;
 
 	/** Change avoidance state and registers in RVO manager if needed */
 	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|CharacterMovement", meta = (UnsafeDuringActorConstruction = "true"))
@@ -1110,6 +1124,13 @@ protected:
 	 * @return True if movement mode was successfully changed
 	 */
 	virtual bool TryToLeaveNavWalking();
+
+	/** 
+	 * Attempts to better align navmesh walking characters with underlying geometry (sometimes 
+	 * navmesh can differ quite significantly from geometry).
+	 * Updates CachedProjectedNavMeshHitResult, access this for more info about hits.
+	 */
+	void ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation);
 
 public:
 

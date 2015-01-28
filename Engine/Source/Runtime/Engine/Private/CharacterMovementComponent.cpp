@@ -279,6 +279,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 
 	OldBaseQuat = FQuat::Identity;
 	OldBaseLocation = FVector::ZeroVector;
+
+	NavMeshProjectionInterval = 0.1f;
 }
 
 void UCharacterMovementComponent::PostLoad()
@@ -3830,8 +3832,10 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 
 	if (DestNavLocation.NodeRef != INVALID_NAVNODEREF)
 	{
-		const FVector ActorLoc = GetActorLocation();
-		FVector AdjustedDelta = FVector(AdjustedDest.X, AdjustedDest.Y, DestNavLocation.Location.Z) - OldLocation;
+		FVector NewLocation(AdjustedDest.X, AdjustedDest.Y, DestNavLocation.Location.Z);
+		ProjectLocationFromNavMesh(deltaTime, NewLocation);
+
+		FVector AdjustedDelta = NewLocation - OldLocation;
 
 		if (!AdjustedDelta.IsNearlyZero())
 		{
@@ -3849,6 +3853,37 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 	else
 	{
 		StartFalling(Iterations, deltaTime, deltaTime, DeltaMove, OldLocation);
+	}
+}
+
+void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation)
+{
+	if(bProjectNavMeshWalking)
+	{
+		NavMeshProjectionTimer -= DeltaSeconds;
+
+		if(NavMeshProjectionTimer < 0.0f)
+		{
+			const FVector RayCastOffset(0.0f, 0.0f, CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.0f);
+
+			// raycast to underlying mesh to allow us to more closely follow geometry
+			FCollisionQueryParams Params;
+			FCollisionObjectQueryParams ObjectQueryParams(FCollisionObjectQueryParams::AllStaticObjects);
+			if(GetWorld()->LineTraceSingle(CachedProjectedNavMeshHitResult, InOutLocation + RayCastOffset, InOutLocation - RayCastOffset, Params, ObjectQueryParams))
+			{
+				InOutLocation.Z = CachedProjectedNavMeshHitResult.Location.Z;
+			}
+
+			NavMeshProjectionTimer = NavMeshProjectionInterval;
+		}
+		
+		// interpolate to new height if we had a blocking hit
+		if(CachedProjectedNavMeshHitResult.bBlockingHit)
+		{
+			FPlane Plane(CachedProjectedNavMeshHitResult.Location, CachedProjectedNavMeshHitResult.Normal);
+			FVector ProjectedPoint = FVector::PointPlaneProject(InOutLocation, Plane);
+			InOutLocation.Z = ProjectedPoint.Z;
+		}
 	}
 }
 
@@ -3971,6 +4006,8 @@ void UCharacterMovementComponent::SetNavWalkingPhysics(bool bEnable)
 		{
 			UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
 			UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
+			CachedProjectedNavMeshHitResult.Reset();
+			NavMeshProjectionTimer = -1.0f;
 		}
 		else
 		{
