@@ -56,13 +56,9 @@ UObject* USoundModImporterFactory::FactoryCreateBinary
 
 	if (ExistingSound && !bUseExistingSettings && !GIsAutomationTesting)
 	{
-		// Prompt the user for what to do if a 'To All' response wasn't already given.
-		if (OverwriteYesOrNoToAllState != EAppReturnType::YesAll && OverwriteYesOrNoToAllState != EAppReturnType::NoAll)
-		{
-			OverwriteYesOrNoToAllState = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel, FText::Format(
-				NSLOCTEXT("UnrealEd", "ImportedSoundAlreadyExists_F", "You are about to import '{0}' over an existing sound. Would you like to overwrite the existing settings?\n\nYes or Yes to All: Overwrite the existing settings.\nNo or No to All: Preserve the existing settings.\nCancel: Abort the operation."),
-				FText::FromName(Name)));
-		}
+		DisplayOverwriteOptionsDialog(FText::Format(
+			NSLOCTEXT("SoundModImporterFactory", "ImportOverwriteWarning", "You are about to import '{0}' over an existing sound."),
+			FText::FromName(Name)));
 
 		switch (OverwriteYesOrNoToAllState)
 		{

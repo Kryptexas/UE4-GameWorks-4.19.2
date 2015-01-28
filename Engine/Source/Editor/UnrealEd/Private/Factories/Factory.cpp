@@ -163,6 +163,17 @@ void UFactory::ResetState()
 	bAllowOneTimeWarningMessages = true;
 }
 
+void UFactory::DisplayOverwriteOptionsDialog(const FText& Message)
+{
+	// Prompt the user for what to do if a 'To All' response wasn't already given.
+	if (OverwriteYesOrNoToAllState != EAppReturnType::YesAll && OverwriteYesOrNoToAllState != EAppReturnType::NoAll)
+	{
+		OverwriteYesOrNoToAllState = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel, FText::Format(
+			NSLOCTEXT("UnrealEd", "ImportedAssetAlreadyExists", "{0} Would you like to overwrite the existing settings?\n\nYes or Yes to All: Overwrite the existing settings.\nNo or No to All: Preserve the existing settings.\nCancel: Abort the operation."),
+			Message));
+	}
+}
+
 UObject* UFactory::StaticImportObject
 (
 UClass*				Class,

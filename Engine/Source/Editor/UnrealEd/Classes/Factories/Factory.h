@@ -115,6 +115,11 @@ public:
 	 */
 	static void ResetState();
 
+	/**
+	 * Pop up message to the user asking whether they wish to overwrite existing state or not
+	 */
+	static void DisplayOverwriteOptionsDialog(const FText& Message);
+
 	/** Opens a dialog to configure the factory properties. Return false if user opted out of configuring properties */
 	virtual bool ConfigureProperties() { return true; }
 

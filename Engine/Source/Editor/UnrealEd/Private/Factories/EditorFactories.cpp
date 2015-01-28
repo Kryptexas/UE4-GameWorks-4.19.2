@@ -1703,13 +1703,9 @@ UObject* USoundFactory::FactoryCreateBinary
 
 		if( ExistingSound && !bSoundFactorySuppressImportOverwriteDialog && !GIsAutomationTesting )
 		{
-			// Prompt the user for what to do if a 'To All' response wasn't already given.
-			if( OverwriteYesOrNoToAllState != EAppReturnType::YesAll && OverwriteYesOrNoToAllState != EAppReturnType::NoAll )
-			{
-				OverwriteYesOrNoToAllState = FMessageDialog::Open( EAppMsgType::YesNoYesAllNoAllCancel, FText::Format(
-						NSLOCTEXT("UnrealEd", "ImportedSoundAlreadyExists_F", "You are about to import '{0}' over an existing sound. Would you like to overwrite the existing settings?\n\nYes or Yes to All: Overwrite the existing settings.\nNo or No to All: Preserve the existing settings.\nCancel: Abort the operation." ),
-						FText::FromName(Name) ) );
-			}
+			DisplayOverwriteOptionsDialog(FText::Format(
+				NSLOCTEXT("SoundFactory", "ImportOverwriteWarning", "You are about to import '{0}' over an existing sound."),
+				FText::FromName(Name)));
 
 			switch( OverwriteYesOrNoToAllState )
 			{
@@ -4304,12 +4300,9 @@ UObject* UTextureFactory::FactoryCreateBinary
 
 	if(ExistingTexture && !bSuppressImportOverwriteDialog)
 	{
-		// Prompt the user for what to do if a 'To All' response wasn't already given.
-		if( OverwriteYesOrNoToAllState != EAppReturnType::YesAll && OverwriteYesOrNoToAllState != EAppReturnType::NoAll )
-		{
-			OverwriteYesOrNoToAllState = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel,
-				NSLOCTEXT("UnrealEd", "ImportedTextureAlreadyExists_F", "The specified texture already exists and will be overwritten.  Do you want to keep the existing texture's settings?" ) );
-		}
+		DisplayOverwriteOptionsDialog(FText::Format(
+			NSLOCTEXT("TextureFactory", "ImportOverwriteWarning", "You are about to import '{0}' over an existing texture."),
+			FText::FromName(Name)));
 
 		switch( OverwriteYesOrNoToAllState )
 		{
@@ -4317,15 +4310,15 @@ UObject* UTextureFactory::FactoryCreateBinary
 		case EAppReturnType::Yes:
 		case EAppReturnType::YesAll:
 			{
-				// Preserve existing settings
-				bUsingExistingSettings = true;
+				// Overwrite existing settings
+				bUsingExistingSettings = false;
 				break;
 			}
 		case EAppReturnType::No:
 		case EAppReturnType::NoAll:
 			{
-				// Overwrite existing settings
-				bUsingExistingSettings = false;
+				// Preserve existing settings
+				bUsingExistingSettings = true;
 				break;
 			}
 		case EAppReturnType::Cancel:
