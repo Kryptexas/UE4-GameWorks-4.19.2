@@ -92,6 +92,12 @@ void STutorialButton::Tick(const FGeometry& AllottedGeometry, const double InCur
 		}
 	}
 	bDeferTutorialOpen = false;
+
+	//The user has clicked to the button, but if the asset registry isn't done loading, we don't know whether to open the browser or do a tutorial immediately.
+	if (bPendingClickAction)
+	{
+		bPendingClickAction = HandleButtonClicked_AssetRegistryChecker();
+	}
 }
 
 static void GetAnimationValues(float InAnimationProgress, float& OutAlphaFactor0, float& OutPulseFactor0, float& OutAlphaFactor1, float& OutPulseFactor1)
@@ -173,22 +179,20 @@ FReply STutorialButton::HandleButtonClicked()
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Rocket.Tutorials.ClickedContextButton"), EventAttributes);
 	}
 
-	bPendingClickAction = true;
-	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &STutorialButton::HandleButtonClicked_AssetRegistryChecker));
 	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 	IntroTutorials.AttachWidget(LoadingWidget);
+	bPendingClickAction = HandleButtonClicked_AssetRegistryChecker();
 	return FReply::Handled();
 }
 
-EActiveTimerReturnType STutorialButton::HandleButtonClicked_AssetRegistryChecker(double InCurrentTime, float InDeltaTime)
+bool STutorialButton::HandleButtonClicked_AssetRegistryChecker()
 {
 	//Force tutorials to load into the asset registry before we proceed any further.
 	FAssetRegistryModule& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	bool IsStillLoading = AssetRegistry.Get().IsLoadingAssets();
 	if (IsStillLoading)
 	{
-		//We could tick the asset registry here, but we don't need to.
-		return EActiveTimerReturnType::Continue;
+		return true;		//Keep doing this on tick
 	}
 
 	//Sometimes, this gives a false positive because the tutorial we want to launch wasn't loaded into the asset registry when we checked. Opening and closing the tab works around that by letting the browser recheck.
@@ -219,9 +223,7 @@ EActiveTimerReturnType STutorialButton::HandleButtonClicked_AssetRegistryChecker
 		GetMutableDefault<UTutorialStateSettings>()->SaveProgress();
 		bTutorialDismissed = true;
 	}
-
-	bPendingClickAction = false;
-	return EActiveTimerReturnType::Stop;
+	return false;		//Stop doing this
 }
 
 FReply STutorialButton::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

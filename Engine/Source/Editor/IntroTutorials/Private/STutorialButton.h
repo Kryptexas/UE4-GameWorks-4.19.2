@@ -25,8 +25,8 @@ private:
 	/** Handle clicking the tutorial button */
 	FReply HandleButtonClicked();
 
-	/** After the initial click is processed, go here, wait for the asset registry to load, and complete the action once we're ready */
-	EActiveTimerReturnType HandleButtonClicked_AssetRegistryChecker(double InCurrentTime, float InDeltaTime);
+	/** After the initial click is processed, go here, wait for the asset registry to load, and complete the action once we're ready. Returns true if it needs to be ticked again, false when it's done. */
+	bool HandleButtonClicked_AssetRegistryChecker();
 
 	/** Dismiss the pulsing alert */
 	void DismissAlert();
