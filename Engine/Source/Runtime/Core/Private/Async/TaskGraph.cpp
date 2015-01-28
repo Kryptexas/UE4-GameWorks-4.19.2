@@ -614,14 +614,14 @@ private:
 		FEvent*												StallRestartEvent;
 
 		FThreadTaskQueue()
-			: StallRestartEvent(FPlatformProcess::CreateSynchEvent(true))
+			: StallRestartEvent(FPlatformProcess::GetSynchEventFromPool(true))
 		{
 
 		}
 		~FThreadTaskQueue()
 		{
-			delete StallRestartEvent;
-			StallRestartEvent = NULL;
+			FPlatformProcess::ReturnSynchEventToPool( StallRestartEvent );
+			StallRestartEvent = nullptr;
 		}
 	};
 

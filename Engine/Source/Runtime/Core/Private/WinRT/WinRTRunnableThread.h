@@ -227,7 +227,7 @@ protected:
 		ThreadAffintyMask = InThreadAffinityMask;
 
 		// Create a sync event to guarantee the Init() function is called first
-		ThreadInitSyncEvent	= FPlatformProcess::CreateSynchEvent(true);
+		ThreadInitSyncEvent	= FPlatformProcess::GetSynchEventFromPool(true);
 
 		// Create the new thread
 		Thread = ThreadEmulation::CreateThread(NULL,InStackSize,_ThreadProc,this,0,(::DWORD *)&ThreadID);
@@ -248,8 +248,8 @@ protected:
 		}
 
 		// Cleanup the sync event
-		delete ThreadInitSyncEvent;
-		ThreadInitSyncEvent = NULL;
+		FPlatformProcess::ReturnSynchEventToPool(ThreadInitSyncEvent);
+		ThreadInitSyncEvent = nullptr;
 		return Thread != NULL;
 	}
 };

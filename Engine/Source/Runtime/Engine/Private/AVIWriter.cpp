@@ -111,7 +111,7 @@ public:
 
 	void StartCapture(FViewport* Viewport , const FString& OutputPath /*=FString()*/)
 	{
-		GCaptureSyncEvent = FPlatformProcess::CreateSynchEvent();
+		GCaptureSyncEvent = FPlatformProcess::GetSynchEventFromPool();
 		if (!bCapturing)
 		{
 			if (!Viewport)
@@ -347,8 +347,8 @@ public:
 			SAFE_RELEASE(Control);
 			SAFE_RELEASE(Graph);
 			FWindowsPlatformMisc::CoUninitialize();
-			delete GCaptureSyncEvent;
-			GCaptureSyncEvent = NULL;
+			FPlatformProcess::ReturnSynchEventToPool(GCaptureSyncEvent);
+			GCaptureSyncEvent = nullptr;
 		}
 	}
 
@@ -607,13 +607,14 @@ public:
 			[AVFWriterInputRef markAsFinished];
 			// This will finish asynchronously and then destroy the relevant objects.
 			// We must wait for this to complete.
-			FEvent* Event = FPlatformProcess::CreateSynchEvent(true);
+			FEvent* Event = FPlatformProcess::GetSynchEventFromPool(true);
 			[AVFWriterRef finishWritingWithCompletionHandler:^{
 				check(AVFWriterRef.status == AVAssetWriterStatusCompleted);
 				Event->Trigger();
 			}];
 			Event->Wait(~0u);
-			delete Event;
+			FPlatformProcess::ReturnSynchEventToPool(Event);
+			Event = nullptr;
 			[AVFWriterInputRef release];
 			[AVFWriterRef release];
 			[AVFPixelBufferAdaptorRef release];

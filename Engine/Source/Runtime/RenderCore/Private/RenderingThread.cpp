@@ -342,8 +342,14 @@ public:
 
 	FRenderingThread() : FRunnable()
 	{
-		TaskGraphBoundSyncEvent	= FPlatformProcess::CreateSynchEvent(true);
+		TaskGraphBoundSyncEvent	= FPlatformProcess::GetSynchEventFromPool(true);
 		RHIFlushResources();
+	}
+
+	virtual ~FRenderingThread()
+	{
+		FPlatformProcess::ReturnSynchEventToPool(TaskGraphBoundSyncEvent);
+		TaskGraphBoundSyncEvent = nullptr;
 	}
 
 	// FRunnable interface.
@@ -743,8 +749,7 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 		SCOPE_CYCLE_COUNTER(STAT_GameIdleTime);
 		{
 			static int32 NumRecursiveCalls = 0;
-			static TArray<FEvent*> EventPool;
-			
+		
 			// Check for recursion. It's not completely safe but because we pump messages while 
 			// blocked it is expected.
 			NumRecursiveCalls++;
@@ -758,15 +763,7 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 			}
 
 			// Grab an event from the pool and fire off a task to trigger it.
-			FEvent* Event = NULL;
-			if (EventPool.Num() > 0)
-			{
-				Event = EventPool.Pop();
-			}
-			else
-			{
-				Event = FPlatformProcess::CreateSynchEvent();
-			}
+			FEvent* Event = FPlatformProcess::GetSynchEventFromPool();
 			FTaskGraphInterface::Get().TriggerEventWhenTaskCompletes(Event, Task, ENamedThreads::GameThread);
 
 			// Check rendering thread health needs to be called from time to
@@ -780,7 +777,7 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				CheckRenderingThreadHealth();
 				if (bEmptyGameThreadTasks)
 				{
-					// process gamehtread tasks if there are any
+					// process gamethread tasks if there are any
 					FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
 				}
 				bDone = Event->Wait(WaitTime);
@@ -788,7 +785,8 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 			while (!bDone);
 
 			// Return the event to the pool and decrement the recursion counter.
-			EventPool.Push(Event);
+			FPlatformProcess::ReturnSynchEventToPool(Event);
+			Event = nullptr;
 			NumRecursiveCalls--;
 		}
 	}

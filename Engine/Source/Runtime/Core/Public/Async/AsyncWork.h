@@ -255,8 +255,8 @@ class FAsyncTask
 	**/
 	void DestroyEvent()
 	{
-		delete DoneEvent;
-		DoneEvent = NULL;
+		FPlatformProcess::ReturnSynchEventToPool(DoneEvent);
+		DoneEvent = nullptr;
 	}
 
 	/* Generic start function, not called directly
@@ -276,7 +276,7 @@ class FAsyncTask
 		{
 			if (!DoneEvent)
 			{
-				DoneEvent = FPlatformProcess::CreateSynchEvent(true);
+				DoneEvent = FPlatformProcess::GetSynchEventFromPool(true);
 			}
 			DoneEvent->Reset();
 			QueuedPool->AddQueuedWork(this);

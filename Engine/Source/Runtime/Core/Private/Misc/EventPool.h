@@ -15,6 +15,12 @@ enum class EEventPoolTypes
 	ManualReset
 };
 
+/** Helper class used to create a new stat id for events. */
+struct FEventStats
+{
+	/** Creates a new stats id that can be used for events. */
+	CORE_API static TStatId CreateStatID();
+};
 
 /**
  * Template class for event pools.
@@ -37,7 +43,7 @@ public:
 	 *
 	 * @return Pool singleton.
 	 */
-	static FEventPool& Get()
+	CORE_API static FEventPool& Get()
 	{
 		static FEventPool Singleton;
 		return Singleton;

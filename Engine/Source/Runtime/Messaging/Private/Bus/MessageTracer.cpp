@@ -11,13 +11,14 @@ FMessageTracer::FMessageTracer()
 	, ResetPending(false)
 	, Running(false)
 {
-	ContinueEvent = FPlatformProcess::CreateSynchEvent();
+	ContinueEvent = FPlatformProcess::GetSynchEventFromPool();
 }
 
 
 FMessageTracer::~FMessageTracer()
 {
-	delete ContinueEvent;
+	FPlatformProcess::ReturnSynchEventToPool(ContinueEvent);
+	ContinueEvent = nullptr;
 }
 
 

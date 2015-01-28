@@ -26,7 +26,7 @@ public:
 	/** Default constructor. */
 	FFileTransferRunnable( FMessageEndpointPtr& InMessageEndpoint )
 		: Runnable( nullptr )
-		, WorkEvent( FPlatformProcess::CreateSynchEvent( true ) )
+		, WorkEvent( FPlatformProcess::GetSynchEventFromPool( true ) )
 		, MessageEndpoint( InMessageEndpoint )
 		, StopTaskCounter( 0 )
 	{
@@ -53,7 +53,8 @@ public:
 			UE_LOG(LogProfile, Log, TEXT( "File service-client sending aborted (srv): %s" ), *It.Key() );
 		}
 
-		delete WorkEvent;
+		FPlatformProcess::ReturnSynchEventToPool( WorkEvent );
+		WorkEvent = nullptr;
 	}
 
 	// Begin FRunnable interface.

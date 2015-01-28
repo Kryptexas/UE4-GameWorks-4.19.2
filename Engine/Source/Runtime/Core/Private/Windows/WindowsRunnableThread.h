@@ -97,10 +97,10 @@ public:
 
 	FRunnableThreadWin( )
 		: Thread(NULL)
-		, Runnable(NULL)
-		, ThreadInitSyncEvent(NULL)
+		, Runnable(nullptr)
+		, ThreadInitSyncEvent(nullptr)
 		, ThreadPriority(TPri_Normal)
-		, ThreadID(NULL)
+		, ThreadID(0)
 	{
 
 	}
@@ -196,7 +196,7 @@ protected:
 		ThreadAffintyMask = InThreadAffinityMask;
 
 		// Create a sync event to guarantee the Init() function is called first
-		ThreadInitSyncEvent	= FPlatformProcess::CreateSynchEvent(true);
+		ThreadInitSyncEvent	= FPlatformProcess::GetSynchEventFromPool(true);
 
 		// Create the new thread
 		Thread = CreateThread(NULL,InStackSize,_ThreadProc,this,STACK_SIZE_PARAM_IS_A_RESERVATION,(::DWORD *)&ThreadID);
@@ -204,7 +204,7 @@ protected:
 		// If it fails, clear all the vars
 		if (Thread == NULL)
 		{
-			Runnable = NULL;
+			Runnable = nullptr;
 		}
 		else
 		{
@@ -216,8 +216,8 @@ protected:
 		}
 
 		// Cleanup the sync event
-		delete ThreadInitSyncEvent;
-		ThreadInitSyncEvent = NULL;
+		FPlatformProcess::ReturnSynchEventToPool(ThreadInitSyncEvent);
+		ThreadInitSyncEvent = nullptr;
 		return Thread != NULL;
 	}
 };

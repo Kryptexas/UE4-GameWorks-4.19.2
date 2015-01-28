@@ -330,7 +330,7 @@ public:
 		PoolThreadIndex++;
 
 		OwningThreadPool = InPool;
-		DoWorkEvent = FPlatformProcess::CreateSynchEvent();
+		DoWorkEvent = FPlatformProcess::GetSynchEventFromPool();
 		Thread = FRunnableThread::Create(this, *PoolThreadName, InStackSize, ThreadPriority, FPlatformAffinity::GetPoolThreadMask());
 		check(Thread);
 		return true;
@@ -356,9 +356,8 @@ public:
 		// brute force kill that thread. Very bad as that might leak.
 		Thread->WaitForCompletion();
 		// Clean up the event
-		delete DoWorkEvent;
+		FPlatformProcess::ReturnSynchEventToPool(DoWorkEvent);
 		DoWorkEvent = nullptr;
-		delete DoWorkEvent;
 		delete Thread;
 		return bDidExitOK;
 	}

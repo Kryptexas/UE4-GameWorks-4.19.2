@@ -514,7 +514,7 @@ bool FAsyncIOSystemBase::Init()
 {
 	CriticalSection				= new FCriticalSection();
 	ExclusiveReadCriticalSection= new FCriticalSection();
-	OutstandingRequestsEvent	= FPlatformProcess::CreateSynchEvent();
+	OutstandingRequestsEvent	= FPlatformProcess::GetSynchEventFromPool();
 	RequestIndex				= 1;
 	MinPriority					= AIOP_MIN;
 	IsRunning.Increment();
@@ -562,7 +562,8 @@ void FAsyncIOSystemBase::Exit()
 {
 	FlushHandles();
 	delete CriticalSection;
-	delete OutstandingRequestsEvent;
+	FPlatformProcess::ReturnSynchEventToPool(OutstandingRequestsEvent);
+	OutstandingRequestsEvent = nullptr;
 }
 
 void FAsyncIOSystemBase::Stop()

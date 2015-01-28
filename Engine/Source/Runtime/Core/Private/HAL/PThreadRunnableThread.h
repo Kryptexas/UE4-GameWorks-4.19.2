@@ -320,7 +320,7 @@ protected:
 		Runnable = InRunnable;
 
 		// Create a sync event to guarantee the Init() function is called first
-		ThreadInitSyncEvent	= FPlatformProcess::CreateSynchEvent(true);
+		ThreadInitSyncEvent	= FPlatformProcess::GetSynchEventFromPool(true);
 		// A name for the thread in for debug purposes. _ThreadProc will set it.
 		ThreadName = InThreadName ? InThreadName : TEXT("Unnamed UE4");
 		ThreadAffinityMask = InThreadAffinityMask;
@@ -344,8 +344,8 @@ protected:
 		}
 
 		// Cleanup the sync event
-		delete ThreadInitSyncEvent;
-		ThreadInitSyncEvent = NULL;
+		FPlatformProcess::ReturnSynchEventToPool( ThreadInitSyncEvent );
+		ThreadInitSyncEvent = nullptr;
 		return Thread != PTHREAD_NULL;
 	}
 };
