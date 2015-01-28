@@ -2027,7 +2027,7 @@ void ARecastNavMesh::UpdateActiveTiles(const TArray<FNavigationInvokerRaw>& Invo
 	RemoveTiles(TilesToRemove);
 	RebuildTile(TilesToUpdate);
 
-	if (ActiveTiles.Num() == 0)
+	if (TilesToRemove.Num() > 0 || TilesToUpdate.Num() > 0)
 	{
 		UpdateNavMeshDrawing();
 	}
