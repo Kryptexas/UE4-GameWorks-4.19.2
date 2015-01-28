@@ -124,10 +124,10 @@ public:
 	static FString GetSanitizedComponentName( UClass* ComponentClass );
 
 protected:
-	virtual FReply OnButtonClicked();
 
 	/** Called when a project is hot reloaded to refresh the components list */
 	void OnProjectHotReloaded( bool bWasTriggeredAutomatically );
+
 private:
 
 	FText GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const;
