@@ -1774,7 +1774,8 @@ void SSCS_RowWidget::OnDragLeave( const FDragDropEvent& DragDropEvent )
 		// Only clear the tooltip text if all dragged nodes support it
 		if(bCanReparentAllNodes)
 		{
-			DragRowOp->SetFeedbackMessage(SNullWidget::NullWidget);
+			TSharedPtr<SWidget> NoWidget;
+			DragRowOp->SetFeedbackMessage(NoWidget);
 			DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_None;
 		}
 	}
