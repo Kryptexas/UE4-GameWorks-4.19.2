@@ -648,7 +648,7 @@ void SColorPicker::DiscardColor()
 	if (OnColorPickerCancelled.IsBound())
 	{
 		// let the user decide what to do about cancel
-		OnColorPickerCancelled.Execute( OldColor );
+		OnColorPickerCancelled.Execute( OldColor.HSVToLinearRGB() );
 	}
 	else
 	{	
