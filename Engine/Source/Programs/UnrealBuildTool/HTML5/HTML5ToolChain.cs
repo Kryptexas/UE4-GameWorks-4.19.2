@@ -465,22 +465,30 @@ namespace UnrealBuildTool
 			}
 			if (!LinkEnvironment.Config.bIsBuildingLibrary)
 			{
-				foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
-				{
-					FileItem Item = FileItem.GetItemByPath(InputFile);
+                    // Make sure ThirdParty libs are at the end. 
+                    List<string> ThirdParty = (from Lib in LinkEnvironment.Config.AdditionalLibraries
+                                     where Lib.Contains("ThirdParty")
+                                     select Lib).ToList();
 
-					if (Item.AbsolutePath.Contains(".lib"))
-						continue;
+                    LinkEnvironment.Config.AdditionalLibraries.RemoveAll(Element => Element.Contains("ThirdParty"));
+                    LinkEnvironment.Config.AdditionalLibraries.AddRange(ThirdParty);
 
-					if (Item != null)
-					{
-						if (Item.ToString().Contains(".js"))
-							LinkAction.CommandArguments += string.Format(" --js-library \"{0}\"", Item.AbsolutePath);
-						else
-							LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
-						LinkAction.PrerequisiteItems.Add(Item);
-					}
-				}
+                    foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
+                    {
+                        FileItem Item = FileItem.GetItemByPath(InputFile);
+
+                        if (Item.AbsolutePath.Contains(".lib"))
+                            continue;
+
+                        if (Item != null)
+                        {
+                            if (Item.ToString().Contains(".js"))
+                                LinkAction.CommandArguments += string.Format(" --js-library \"{0}\"", Item.AbsolutePath);
+                            else
+                                LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
+                            LinkAction.PrerequisiteItems.Add(Item);
+                        }
+                    }
 			}
 			// make the file we will create
 			OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
