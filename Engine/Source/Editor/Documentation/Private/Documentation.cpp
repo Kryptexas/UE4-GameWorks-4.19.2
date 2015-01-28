@@ -251,8 +251,12 @@ TSharedRef< class SToolTip > FDocumentation::CreateToolTip(const TAttribute<FTex
 	}
 
 	return SNew(SToolTip)
-		.TextMargin(1)
 		.IsInteractive(DocToolTip, &SDocumentationToolTip::IsInteractive)
+
+		// Emulate text-only tool-tip styling that SToolTip uses when no custom content is supplied.  We want documentation tool-tips to 
+		// be styled just like text-only tool-tips
+		.BorderImage( FCoreStyle::Get().GetBrush("ToolTip.BrightBackground") )
+		.TextMargin(FMargin(11.0f))
 		[
 			DocToolTip
 		];
