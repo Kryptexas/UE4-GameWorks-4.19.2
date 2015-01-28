@@ -77,7 +77,10 @@ public:
 	virtual uint32 Run();
 	inline void WaitForCompletion() const
 	{
-		Thread->WaitForCompletion();
+		if( Thread )
+		{
+			Thread->WaitForCompletion();
+		}
 	}
 
 	/** Checks the thread's health, and passes on any errors that have occured.  Called by the main thread. */
