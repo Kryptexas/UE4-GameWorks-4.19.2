@@ -51,8 +51,7 @@ FArchive& operator<<(FArchive& Ar,FModelElement& Element)
 	return Ar;
 }
 
-UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+UModelComponent::UModelComponent()
 {
 	CastShadow = true;
 	bUseAsOccluder = true;
@@ -63,8 +62,7 @@ UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer)
 }
 
 #if WITH_EDITOR
-UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer,UModel* InModel,uint16 InComponentIndex,uint32 MaskedSurfaceFlags,const TArray<uint16>& InNodes):
-	UPrimitiveComponent(ObjectInitializer),
+UModelComponent::UModelComponent(UModel* InModel,uint16 InComponentIndex,uint32 MaskedSurfaceFlags,const TArray<uint16>& InNodes):
 	Model(InModel),
 	ComponentIndex(InComponentIndex),
 	Nodes(InNodes)
