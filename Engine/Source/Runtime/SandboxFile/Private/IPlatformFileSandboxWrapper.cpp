@@ -131,6 +131,9 @@ bool FSandboxPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 
 FString FSandboxPlatformFile::ConvertToSandboxPath( const TCHAR* Filename ) const
 {
+	// Mostly for the malloc profiler to flush the data.
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FSandboxPlatformFile::ConvertToSandboxPath"), STAT_SandboxPlatformFile_ConvertToSandboxPath, STATGROUP_LoadTimeVerbose);
+
 	// convert to a standardized path (relative)
 	FString SandboxPath = Filename;
 	FPaths::MakeStandardFilename(SandboxPath);
