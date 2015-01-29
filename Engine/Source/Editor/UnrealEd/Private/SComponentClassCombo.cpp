@@ -128,7 +128,7 @@ void SComponentClassCombo::GenerateFilteredComponentList(const FString& InSearch
 
 			if (CurrentEntry->IsClass() && CurrentEntry->IsIncludedInFilter())
 			{
-				FString FriendlyComponentName = GetSanitizedComponentName( CurrentEntry->GetComponentClass() );
+				FString FriendlyComponentName = GetSanitizedComponentName( CurrentEntry->GetComponentClass(), CurrentEntry->GetComponentNameOverride() );
 
 				if ( FriendlyComponentName.Contains( InSearchText, ESearchCase::IgnoreCase ) )
 				{
@@ -176,10 +176,17 @@ void SComponentClassCombo::OnAddComponentSelectionChanged( FComponentClassComboE
 
 		if ( InItem->IsClass() )
 		{
-			OnComponentClassSelected.ExecuteIfBound(InItem->GetComponentClass(), InItem->GetComponentCreateAction() );
-
 			// Neither do we want the combo dropdown staying open once the user has clicked on a valid option
-			SetIsOpen( false, false );
+			SetIsOpen(false, false);
+
+			if( OnComponentClassSelected.IsBound() )
+			{
+				UActorComponent* NewActorComponent = OnComponentClassSelected.Execute(InItem->GetComponentClass(), InItem->GetComponentCreateAction(), InItem->GetAssetOverride());
+				if(NewActorComponent)
+				{
+					InItem->GetOnComponentCreated().ExecuteIfBound(NewActorComponent);
+				}
+			}
 		}
 	}
 	else if ( InItem.IsValid() && SelectInfo != ESelectInfo::OnMouseClick )
@@ -318,6 +325,61 @@ struct SortComboEntry
 };
 const FString SortComboEntry::CommonClassGroup(TEXT("Common"));
 
+void SComponentClassCombo::OnBasicShapeCreated(UActorComponent* Component)
+{
+	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(Component);
+	if(SMC)
+	{
+		SMC->SetMaterial(0, LoadObject<UMaterial>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")));
+	}
+};
+
+void SComponentClassCombo::AddBasicShapeComponents( TArray<FComponentClassComboEntryPtr>& SortedClassList )
+{
+	FString BasicShapesHeading = LOCTEXT("BasicShapesHeading", "Basic Shapes").ToString();
+
+	{
+		FComponentEntryCustomizationArgs Args;
+		Args.AssetOverride = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));;
+		Args.OnComponentCreated = FOnComponentCreated::CreateSP(this, &SComponentClassCombo::OnBasicShapeCreated);
+		Args.ComponentNameOverride = LOCTEXT("BasicCubeShapeDisplayName", "Cube").ToString();
+
+		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
+		SortedClassList.Add(NewShape);
+	}
+
+	{
+		FComponentEntryCustomizationArgs Args;
+		Args.AssetOverride = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));;
+		Args.OnComponentCreated = FOnComponentCreated::CreateSP(this, &SComponentClassCombo::OnBasicShapeCreated);
+		Args.ComponentNameOverride = LOCTEXT("BasicSphereShapeDisplayName", "Sphere").ToString();
+
+		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
+		SortedClassList.Add(NewShape);
+	}
+
+	{
+		FComponentEntryCustomizationArgs Args;
+		Args.AssetOverride = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));;
+		Args.OnComponentCreated = FOnComponentCreated::CreateSP(this, &SComponentClassCombo::OnBasicShapeCreated);
+		Args.ComponentNameOverride = LOCTEXT("BasicCylinderShapeDisplayName", "Cylinder").ToString();
+
+		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
+		SortedClassList.Add(NewShape);
+	}
+
+	{
+		FComponentEntryCustomizationArgs Args;
+		Args.AssetOverride = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cone.Cone"));;
+		Args.OnComponentCreated = FOnComponentCreated::CreateSP(this, &SComponentClassCombo::OnBasicShapeCreated);
+		Args.ComponentNameOverride = LOCTEXT("BasicConeShapeDisplayName", "Cone").ToString();
+
+		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
+		SortedClassList.Add(NewShape);
+	}
+
+}
+
 void SComponentClassCombo::UpdateComponentClassList()
 {
 	ComponentClassList.Empty();
@@ -364,6 +426,8 @@ void SComponentClassCombo::UpdateComponentClassList()
 			}
 		}
 	}
+
+	AddBasicShapeComponents(SortedClassList);
 
 	if (SortedClassList.Num() > 0)
 	{
@@ -419,75 +483,84 @@ FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPt
 	}
 	else
 	{
-		FriendlyComponentName = GetSanitizedComponentName(Entry->GetComponentClass());
+		FriendlyComponentName = GetSanitizedComponentName(Entry->GetComponentClass(), Entry->GetComponentNameOverride() );
 
-
-		// Search the selected assets and look for any that can be used as a source asset for this type of component
-		// If there is one we append the asset name to the component name, if there are many we append "Multiple Assets"
-		FString AssetName;
-		UObject* PreviousMatchingAsset = NULL;
-
-		FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-		USelection* Selection = GEditor->GetSelectedObjects();
-		for(FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
+		if( Entry->GetComponentNameOverride().IsEmpty() )
 		{
-			UObject* Object = *ObjectIter;
-			UClass* Class = Object->GetClass();
+			// Search the selected assets and look for any that can be used as a source asset for this type of component
+			// If there is one we append the asset name to the component name, if there are many we append "Multiple Assets"
+			FString AssetName;
+			UObject* PreviousMatchingAsset = NULL;
 
-			TArray<TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);
-			for(int32 ComponentIndex = 0; ComponentIndex < ComponentClasses.Num(); ComponentIndex++)
+			FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
+			USelection* Selection = GEditor->GetSelectedObjects();
+			for(FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
 			{
-				if(ComponentClasses[ComponentIndex]->IsChildOf(Entry->GetComponentClass()))
+				UObject* Object = *ObjectIter;
+				UClass* Class = Object->GetClass();
+
+				TArray<TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);
+				for(int32 ComponentIndex = 0; ComponentIndex < ComponentClasses.Num(); ComponentIndex++)
 				{
-					if(AssetName.IsEmpty())
+					if(ComponentClasses[ComponentIndex]->IsChildOf(Entry->GetComponentClass()))
 					{
-						// If there is no previous asset then we just accept the name
-						AssetName = Object->GetName();
-						PreviousMatchingAsset = Object;
-					}
-					else
-					{
-						// if there is a previous asset then check that we didn't just find multiple appropriate components
-						// in a single asset - if the asset differs then we don't display the name, just "Multiple Assets"
-						if(PreviousMatchingAsset != Object)
+						if(AssetName.IsEmpty())
 						{
-							AssetName = LOCTEXT("MultipleAssetsForComponentAnnotation", "Multiple Assets").ToString();
+							// If there is no previous asset then we just accept the name
+							AssetName = Object->GetName();
 							PreviousMatchingAsset = Object;
+						}
+						else
+						{
+							// if there is a previous asset then check that we didn't just find multiple appropriate components
+							// in a single asset - if the asset differs then we don't display the name, just "Multiple Assets"
+							if(PreviousMatchingAsset != Object)
+							{
+								AssetName = LOCTEXT("MultipleAssetsForComponentAnnotation", "Multiple Assets").ToString();
+								PreviousMatchingAsset = Object;
+							}
 						}
 					}
 				}
 			}
-		}
 
-		if(!AssetName.IsEmpty())
-		{
-			FriendlyComponentName += FString(" (") + AssetName + FString(")");
+			if(!AssetName.IsEmpty())
+			{
+				FriendlyComponentName += FString(" (") + AssetName + FString(")");
+			}
 		}
 	}
 	return FText::FromString(FriendlyComponentName);
 }
 
-FString SComponentClassCombo::GetSanitizedComponentName( UClass* ComponentClass )
+FString SComponentClassCombo::GetSanitizedComponentName( UClass* ComponentClass, const FString& InComponentNameOverride )
 {
-	FString DisplayName;
-	if (ComponentClass->HasMetaData(TEXT("DisplayName")))
+	if( InComponentNameOverride.IsEmpty() )
 	{
-		DisplayName = ComponentClass->GetMetaData(TEXT("DisplayName"));
+		FString DisplayName;
+		if(ComponentClass->HasMetaData(TEXT("DisplayName")))
+		{
+			DisplayName = ComponentClass->GetMetaData(TEXT("DisplayName"));
+		}
+		else
+		{
+			DisplayName = ComponentClass->GetName();
+			DisplayName = DisplayName.Replace(TEXT("Component"), TEXT(""), ESearchCase::IgnoreCase);
+		}
+
+		// Purge the _C for BP Components
+		if(DisplayName.EndsWith(TEXT("_C")))
+		{
+			const int32 NewLen = DisplayName.Len() - 2;
+			DisplayName = DisplayName.Left(NewLen);
+		}
+
+		return FName::NameToDisplayString(DisplayName, false);
 	}
 	else
 	{
-		DisplayName = ComponentClass->GetName();
-		DisplayName = DisplayName.Replace( TEXT("Component"), TEXT(""), ESearchCase::IgnoreCase );
+		return InComponentNameOverride;
 	}
-
-	// Purge the _C for BP Components
-	if (DisplayName.EndsWith(TEXT("_C")))
-	{
-		const int32 NewLen = DisplayName.Len() - 2;
-		DisplayName = DisplayName.Left(NewLen);
-	}
-
-	return FName::NameToDisplayString(DisplayName, false);
 }
 
 #undef LOCTEXT_NAMESPACE

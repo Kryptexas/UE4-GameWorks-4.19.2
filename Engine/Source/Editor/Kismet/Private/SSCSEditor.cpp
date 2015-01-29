@@ -3429,9 +3429,11 @@ void SSCSEditor::OnGetChildrenForTree( FSCSEditorTreeNodePtrType InNodePtr, TArr
 }
 
 
-void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass, EComponentCreateAction::Type ComponentCreateAction )
+UActorComponent* SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClass, EComponentCreateAction::Type ComponentCreateAction, UObject* AssetOverride)
 {
 	UClass* NewClass = ComponentClass;
+
+	UActorComponent* NewComponent = nullptr;
 
 	if( ComponentCreateAction == EComponentCreateAction::CreateNewCPPClass )
 	{
@@ -3452,7 +3454,7 @@ void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClas
 		// This adds components according to the type selected in the drop down. If the user
 		// has the appropriate objects selected in the content browser then those are added,
 		// else we go down the previous route of adding components by type.
-		if(Selection->Num() > 0)
+		if(Selection->Num() > 0 && !AssetOverride)
 		{
 			for(FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
 			{
@@ -3466,7 +3468,7 @@ void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClas
 				{
 					if(ComponentClasses[ComponentIndex]->IsChildOf(NewClass))
 					{
-						AddNewComponent(NewClass, Object);
+						NewComponent = AddNewComponent(NewClass, Object);
 						bAddedComponent = true;
 						break;
 					}
@@ -3477,9 +3479,11 @@ void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClas
 		if(!bAddedComponent)
 		{
 			// As the SCS splits up the scene and actor components, can now add directly
-			AddNewComponent(NewClass, NULL);
+			NewComponent = AddNewComponent(NewClass, AssetOverride);
 		}
 	}
+
+	return NewComponent;
 }
 
 TArray<FSCSEditorTreeNodePtrType>  SSCSEditor::GetSelectedNodes() const

@@ -327,6 +327,38 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 }
 
 /*-----------------------------------------------------------------------------
+UActorFactoryBasicShape
+-----------------------------------------------------------------------------*/
+UActorFactoryBasicShape::UActorFactoryBasicShape(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("UActorFactoryBasicShapeDisplayName", "Basic Shape");
+	NewActorClass = AStaticMeshActor::StaticClass();
+	bUseSurfaceOrientation = true;
+}
+
+void UActorFactoryBasicShape::PostSpawnActor(UObject* Asset, AActor* NewActor)
+{
+	// Change properties
+	UStaticMesh* StaticMesh = CastChecked<UStaticMesh>(Asset);
+	GEditor->SetActorLabelUnique(NewActor, StaticMesh->GetName());
+
+	AStaticMeshActor* StaticMeshActor = CastChecked<AStaticMeshActor>(NewActor);
+	UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
+
+	if( StaticMeshComponent )
+	{
+		StaticMeshComponent->UnregisterComponent();
+
+		StaticMeshComponent->StaticMesh = StaticMesh;
+		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
+		StaticMeshComponent->SetMaterial(0, LoadObject<UMaterial>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")));
+		// Init Component
+		StaticMeshComponent->RegisterComponent();
+	}
+}
+
+/*-----------------------------------------------------------------------------
 UActorFactoryDeferredDecal
 -----------------------------------------------------------------------------*/
 UActorFactoryDeferredDecal::UActorFactoryDeferredDecal(const FObjectInitializer& ObjectInitializer)

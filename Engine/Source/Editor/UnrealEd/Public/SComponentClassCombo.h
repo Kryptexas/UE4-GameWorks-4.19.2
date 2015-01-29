@@ -19,16 +19,37 @@ namespace EComponentCreateAction
 	};
 }
 
-DECLARE_DELEGATE_TwoParams(FComponentClassSelected, TSubclassOf<UActorComponent>, EComponentCreateAction::Type );
 
+DECLARE_DELEGATE_OneParam(FOnComponentCreated, UActorComponent*);
+
+DECLARE_DELEGATE_RetVal_ThreeParams( UActorComponent*, FComponentClassSelected, TSubclassOf<UActorComponent>, EComponentCreateAction::Type, UObject*);
+
+struct FComponentEntryCustomizationArgs
+{
+	/** Specific asset to use instead of the selected asset in the content browser */
+	TWeakObjectPtr<UObject> AssetOverride;
+	/** Custom name to display */
+	FString ComponentNameOverride;
+	/** Callback when a new component is created */
+	FOnComponentCreated OnComponentCreated;
+
+	FComponentEntryCustomizationArgs()
+		: AssetOverride( nullptr )
+		, ComponentNameOverride()
+		, OnComponentCreated()
+	{
+	
+	}
+};
 class FComponentClassComboEntry: public TSharedFromThis<FComponentClassComboEntry>
 {
 public:
-	FComponentClassComboEntry( const FString& InHeadingText, TSubclassOf<UActorComponent> InComponentClass, bool InIncludedInFilter, EComponentCreateAction::Type InComponentCreateAction )
+	FComponentClassComboEntry( const FString& InHeadingText, TSubclassOf<UActorComponent> InComponentClass, bool InIncludedInFilter, EComponentCreateAction::Type InComponentCreateAction, FComponentEntryCustomizationArgs InCustomizationArgs = FComponentEntryCustomizationArgs() )
 		: ComponentClass(InComponentClass)
 		, HeadingText(InHeadingText)
 		, bIncludedInFilter(InIncludedInFilter)
 		, ComponentCreateAction(InComponentCreateAction)
+		, CustomizationArgs(InCustomizationArgs)
 	{}
 
 	FComponentClassComboEntry( const FString& InHeadingText )
@@ -65,16 +86,31 @@ public:
 		return bIncludedInFilter;
 	}
 	
+	const FString& GetComponentNameOverride() const
+	{
+		return CustomizationArgs.ComponentNameOverride;
+	}
+
 	EComponentCreateAction::Type GetComponentCreateAction() const
 	{
 		return ComponentCreateAction;
 	}
 
+	FOnComponentCreated& GetOnComponentCreated()
+	{
+		return CustomizationArgs.OnComponentCreated;
+	}
+
+	UObject* GetAssetOverride()
+	{
+		return CustomizationArgs.AssetOverride.Get();
+	}
 private:
 	TSubclassOf<UActorComponent> ComponentClass;
 	FString HeadingText;
 	bool bIncludedInFilter;
 	EComponentCreateAction::Type ComponentCreateAction;
+	FComponentEntryCustomizationArgs CustomizationArgs;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -121,13 +157,18 @@ public:
 	void UpdateComponentClassList();
 
 	/** Returns a component name without the substring "Component" and sanitized for display */
-	static FString GetSanitizedComponentName( UClass* ComponentClass );
+	static FString GetSanitizedComponentName( UClass* ComponentClass, const FString& DisplayNameOverride );
 
 protected:
 
 	/** Called when a project is hot reloaded to refresh the components list */
 	void OnProjectHotReloaded( bool bWasTriggeredAutomatically );
 
+	/** Adds basic shapes to the component dropdown */
+	void AddBasicShapeComponents( TArray<FComponentClassComboEntryPtr>& SortedClassList );
+
+	/** Called when a new basic shape is added */
+	void OnBasicShapeCreated( UActorComponent* CreatedComponent);
 private:
 
 	FText GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const;

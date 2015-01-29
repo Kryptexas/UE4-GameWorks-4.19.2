@@ -49,18 +49,20 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, const FAssetData& InAsset )
+	void Construct( const FArguments& InArgs, const FAssetData& InAsset, bool bAlwaysUseClassThumbnail )
 	{
 		Asset = InAsset;
 
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
 		TSharedPtr<FAssetThumbnailPool> ThumbnailPool = LevelEditorModule.GetFirstLevelEditor()->GetThumbnailPool();
 
-		Thumbnail = MakeShareable( new FAssetThumbnail( Asset, InArgs._Width, InArgs._Height, ThumbnailPool ) );
+		Thumbnail = MakeShareable(new FAssetThumbnail(Asset, InArgs._Width, InArgs._Height, ThumbnailPool));
 
+		FAssetThumbnailConfig Config;
+		Config.bForceGenericThumbnail = bAlwaysUseClassThumbnail;
 		ChildSlot
 		[
-			Thumbnail->MakeThumbnailWidget()
+			Thumbnail->MakeThumbnailWidget( Config )
 		];
 	}
 
@@ -165,7 +167,7 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 					.WidthOverride( 35 )
 					.HeightOverride( 35 )
 					[
-						SNew( SPlacementAssetThumbnail, AssetData )
+						SNew( SPlacementAssetThumbnail, AssetData, InArgs._UseClassThumbnailForAsset )
 					]
 				]
 			]
@@ -567,10 +569,10 @@ TSharedRef< SWidget > BuildDraggableAssetWidget( UClass* InAssetClass )
 	return SNew( SPlacementAssetEntry, Factory, AssetData );
 }
 
-TSharedRef< SWidget > BuildDraggableAssetWidget( UClass* InAssetClass, const FAssetData& InAssetData )
+TSharedRef< SWidget > BuildDraggableAssetWidget( UClass* InAssetClass, const FAssetData& InAssetData, bool bUseClassThumbnail )
 {
 	UActorFactory* Factory = GEditor->FindActorFactoryByClass( InAssetClass );
-	return SNew( SPlacementAssetEntry, Factory, InAssetData );
+	return SNew( SPlacementAssetEntry, Factory, InAssetData ).UseClassThumbnailForAsset( bUseClassThumbnail );
 }
 
 TSharedRef< SWidget > SPlacementModeTools::BuildLightsWidget()
@@ -662,6 +664,30 @@ TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 	.AutoHeight()
 	[
 		BuildDraggableAssetWidget( UActorFactoryPlayerStart::StaticClass() )
+	]
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		// Cube
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData( LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"))), true )
+	]
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		// Sphere
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"))), true )
+	]
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		// Cylinder
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cylinder.Cylinder"))), true )
+	]
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		// Cone
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cone.Cone"))), true )
 	]
 	+ SVerticalBox::Slot()
 	.AutoHeight()
