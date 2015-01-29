@@ -97,14 +97,14 @@ void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProj
                 [
                     SNew(SVerticalBox)
 
-                    + SVerticalBox::Slot()
+/*                    + SVerticalBox::Slot()
                     .AutoHeight()
                     [
                         SNew(SButton)
                         .Text(LOCTEXT("GenDSYMText", "Generate DSYM"))
                         .IsEnabled( this, &SProjectLauncherBuildPage::HandleGenDSYMButtonEnabled )
                         .OnClicked( this, &SProjectLauncherBuildPage::HandleGenDSYMClicked )
-                    ]
+                    ]*/
 					+ SVerticalBox::Slot()
 					.AutoHeight()
 					[
