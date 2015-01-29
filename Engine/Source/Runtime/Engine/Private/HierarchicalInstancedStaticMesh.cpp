@@ -1384,6 +1384,7 @@ UHierarchicalInstancedStaticMeshComponent::UHierarchicalInstancedStaticMeshCompo
 	, bConcurrentRemoval(false)
 	, AccumulatedNavigationDirtyArea(0)
 {
+	bCanEverAffectNavigation = true;
 }
 
 UHierarchicalInstancedStaticMeshComponent::~UHierarchicalInstancedStaticMeshComponent()
