@@ -402,7 +402,7 @@ private:
 	void RefreshList();
 
 	/** Build the friends UI. */
-	void BuildFriendsUI();
+	void BuildFriendsUI(TSharedPtr< SWindow > WindowPtr);
 
 	/**
 	 * Set the manager state.

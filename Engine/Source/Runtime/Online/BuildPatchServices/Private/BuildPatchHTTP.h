@@ -13,7 +13,7 @@
 /**
  * Implements the BuildPatchHTTP
  */
-class FBuildPatchHTTP : private FNoncopyable
+class FBuildPatchHTTP : public TSharedFromThis<FBuildPatchHTTP>
 {
 private:
 
@@ -114,11 +114,21 @@ private:
 	 */
 	bool Tick( float Delta );
 
+	/**
+	 * Internal HTTP request complete function, used to clean out this request from the map and remove any pending cancels which
+	 * could cause double complete delegates
+	 * @param Request			The http request interface
+	 * @param Response			The http response interface
+	 * @param bSucceeded		Whether the request was successful
+	 * @param HttpRequestInfo	The original request details
+	 */
+	void HttpRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded, FHttpRequestInfo HttpRequestInfo);
+
 /* Here we have private static access for the singleton
 *****************************************************************************/
 private:
 	static FBuildPatchHTTP& Get();
-	static FBuildPatchHTTP* SingletonInstance;
+	static TSharedPtr<FBuildPatchHTTP> SingletonInstance;
 	static FDelegateHandle TickDelegateHandle;
 };
 

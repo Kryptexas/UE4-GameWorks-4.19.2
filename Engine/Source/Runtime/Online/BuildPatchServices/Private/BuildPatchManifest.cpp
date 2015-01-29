@@ -968,6 +968,7 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 	}
 
 	// Get the ChunkFilesizeList
+	bool bHasChunkFilesizeList = false;
 	TSharedPtr< FJsonValue > JsonChunkFilesizeList = JsonValueMap.FindRef(TEXT("ChunkFilesizeList"));
 	if (JsonChunkFilesizeList.IsValid())
 	{
@@ -983,11 +984,12 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 				{
 					FChunkInfoData* ChunkInfoData = ChunkInfoLookup[ChunkGuid];
 					ChunkInfoData->FileSize = ChunkSize;
+					bHasChunkFilesizeList = true;
 				}
 			}
 		}
 	}
-	else
+	if (bHasChunkFilesizeList == false)
 	{
 		// Missing chunk list, version before we saved them compressed.. Assume chunk size
 		for (FChunkInfoData& ChunkInfo : Data->ChunkList)

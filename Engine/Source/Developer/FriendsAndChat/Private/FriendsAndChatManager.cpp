@@ -16,6 +16,13 @@
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
+namespace FriendsAndChatManagerDefs
+{
+	static const FVector2D FriendsListWindowPosition(100, 100);
+	static const FVector2D FriendsListWindowSize(400, 458);
+	static const FVector2D ChatWindowSize(420, 500);
+	static const float FriendsAndChatWindowGap = 20.0f;
+}
 
 /* FFriendsAndChatManager structors
  *****************************************************************************/
@@ -225,8 +232,6 @@ void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
 
 void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle)
 {
-	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(400, 458);
-
 	Style = *InStyle;
 	FFriendsAndChatModuleStyle::Initialize(Style);
 
@@ -235,24 +240,25 @@ void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle*
 		FriendWindow = SNew( SWindow )
 		.Title(LOCTEXT("FFriendsAndChatManager_FriendsTitle", "Friends List"))
 		.Style(&Style.WindowStyle)
-		.ClientSize(DEFAULT_WINDOW_SIZE)
-		.ScreenPosition(FVector2D(100, 100))
+		.ClientSize(FriendsAndChatManagerDefs::FriendsListWindowSize)
+		.ScreenPosition(FriendsAndChatManagerDefs::FriendsListWindowPosition)
 		.AutoCenter( EAutoCenter::None )
 		.SizingRule(ESizingRule::UserSized)
 		.SupportsMaximize(true)
 		.SupportsMinimize(true)
 		.bDragAnywhere(true)
-		.CreateTitleBar(false);
+		.CreateTitleBar(false)
+		.LayoutBorder(FMargin(0));
 
 		FriendWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleFriendsWindowClosed));
 
-		BuildFriendsUI();
+		BuildFriendsUI(FriendWindow);
 		FriendWindow = FSlateApplication::Get().AddWindow(FriendWindow.ToSharedRef());
 	}
 	else if(FriendWindow->IsWindowMinimized())
 	{
 		FriendWindow->Restore();
-		BuildFriendsUI();
+		BuildFriendsUI(FriendWindow);
 	}
 
 	FriendWindow->BringToFront(true);
@@ -266,12 +272,12 @@ void FFriendsAndChatManager::HandleFriendsWindowClosed(const TSharedRef<SWindow>
 	FriendWindow.Reset();
 }
 
-void FFriendsAndChatManager::BuildFriendsUI()
+void FFriendsAndChatManager::BuildFriendsUI(TSharedPtr< SWindow > WindowPtr)
 {
-	check(FriendWindow.IsValid());
+	check(WindowPtr.IsValid());
 
 	TSharedPtr<SWindowTitleBar> TitleBar;
-	FriendWindow->SetContent(
+	WindowPtr->SetContent(
 		SNew(SBorder)
 		.BorderImage( &Style.Background )
 		.VAlign( VAlign_Fill )
@@ -285,7 +291,7 @@ void FFriendsAndChatManager::BuildFriendsUI()
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SAssignNew(TitleBar, SWindowTitleBar, FriendWindow.ToSharedRef(), nullptr, HAlign_Center)
+					SAssignNew(TitleBar, SWindowTitleBar, WindowPtr.ToSharedRef(), nullptr, HAlign_Center)
 					.Style(&Style.WindowStyle)
 					.ShowAppIcon(false)
 					.Title(FText::GetEmpty())
@@ -367,7 +373,12 @@ TSharedPtr<IChatViewModel> FFriendsAndChatManager::GetChatViewModel()
 
 void FFriendsAndChatManager::CreateChatWindow(const struct FFriendsAndChatStyle* InStyle)
 {
-	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(420, 500);
+	FVector2D WindowPosition
+	(
+		FriendsAndChatManagerDefs::FriendsListWindowPosition.X + FriendsAndChatManagerDefs::FriendsListWindowSize.X + FriendsAndChatManagerDefs::FriendsAndChatWindowGap,
+		FriendsAndChatManagerDefs::FriendsListWindowPosition.Y
+	);
+
 	check(MessageManager.IsValid());
 	bCreateChatWindow = true;
 
@@ -379,13 +390,14 @@ void FFriendsAndChatManager::CreateChatWindow(const struct FFriendsAndChatStyle*
 		ChatWindow = SNew( SWindow )
 		.Title( LOCTEXT( "FriendsAndChatManager_ChatTitle", "Chat Window") )
 		.Style(&Style.WindowStyle)
-		.ClientSize( DEFAULT_WINDOW_SIZE )
-		.ScreenPosition( FVector2D( 200, 100 ) )
+		.ClientSize(FriendsAndChatManagerDefs::ChatWindowSize)
+		.ScreenPosition(WindowPosition)
 		.AutoCenter( EAutoCenter::None )
 		.SupportsMaximize( true )
 		.SupportsMinimize( true )
 		.CreateTitleBar( false )
-		.SizingRule(ESizingRule::UserSized);
+		.SizingRule(ESizingRule::UserSized)
+		.LayoutBorder(FMargin(0));
 
 		ChatWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleChatWindowClosed));
 
