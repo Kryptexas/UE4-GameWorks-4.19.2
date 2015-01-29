@@ -404,7 +404,16 @@ void FIntroTutorials::SummonTutorialBrowser()
 	if(TutorialRoot.IsValid())
 	{
 		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
-		LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"));
+		TutorialBrowserDockTab = LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"));
+	}
+}
+
+void FIntroTutorials::DismissTutorialBrowser()
+{
+	if (TutorialBrowserDockTab.IsValid() && TutorialBrowserDockTab.Pin().IsValid())
+	{
+		TutorialBrowserDockTab.Pin()->RequestCloseTab();
+		TutorialBrowserDockTab = nullptr;
 	}
 }
 

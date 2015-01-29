@@ -34,6 +34,8 @@ public:
 
 	void SummonTutorialBrowser();
 
+	void DismissTutorialBrowser();
+
 	void AttachWidget(TSharedPtr<SWidget> Widget);
 
 	void DetachWidget();
@@ -94,6 +96,9 @@ private:
 
 	/** Spawn a tab for browsing tutorials */
 	TSharedRef<SDockTab> SpawnTutorialsBrowserTab(const FSpawnTabArgs& SpawnTabArgs);
+
+	/** When we create a tutorial browser tab, we only keep a weak pointer to it. This way, it can be closed/destroyed without our involvement, but we can also close/destroy it ourselves. */
+	TWeakPtr<SDockTab> TutorialBrowserDockTab;
 
 public:
 
