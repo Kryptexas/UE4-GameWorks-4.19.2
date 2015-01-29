@@ -85,6 +85,7 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
 		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
 		{
 			Comp->CompleteParallelAnimationEvaluation();
@@ -447,6 +448,7 @@ void USkeletalMeshComponent::LoadedFromAnotherClass(const FName& OldClassName)
 void USkeletalMeshComponent::TickAnimation(float DeltaTime)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimTickTime);
+	SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
 	if (SkeletalMesh != NULL)
 	{
 		if (AnimScriptInstance != NULL)
@@ -923,6 +925,7 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
+	SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
 
 	if (!SkeletalMesh || GetNumSpaceBases() == 0)
 	{

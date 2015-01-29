@@ -53,6 +53,8 @@ DEFINE_STAT(STAT_AnimStateMachineEvaluate);
 DEFINE_STAT(STAT_SkinPerPolyVertices);
 DEFINE_STAT(STAT_UpdateTriMeshVertices);
 
+DEFINE_STAT(STAT_AnimGameThreadTime);
+
 // Define AnimNotify
 DEFINE_LOG_CATEGORY(LogAnimNotify);
 
