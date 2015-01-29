@@ -587,9 +587,8 @@ private:
 	/** Determine whether the render targets for any shading path have been allocated */
 	bool AreAnyShadingPathRenderTargetsAllocated() const { return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) || AreShadingPathRenderTargetsAllocated(EShadingPath::Forward); }
 
-	static const int32  MAX_CONCURRENT_GBUFFERS = 7;
 	/** Gets all GBuffers to use.  Returns the number actually used. */
-	int32 GetGBufferRenderTargets(FRHIRenderTargetView RenderTargets[MAX_CONCURRENT_GBUFFERS], ERenderTargetLoadAction ColorLoadAction, int32 & VelocityRTIndex);
+	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FRHIRenderTargetView OutRenderTargets[MaxSimultaneousRenderTargets], int32& OutVelocityRTIndex);
 
 private:
 	/** Uniform buffer containing GBuffer resources. */
