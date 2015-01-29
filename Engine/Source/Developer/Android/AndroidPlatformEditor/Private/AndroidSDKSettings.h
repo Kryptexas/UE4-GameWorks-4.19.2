@@ -47,8 +47,7 @@ public:
 	// End of UObject interface
 	void SetTargetModule(ITargetPlatformManagerModule * TargetManagerModule);
 	void SetDeviceDetection(IAndroidDeviceDetection * AndroidDeviceDetection);
-	void SetupInitialTargetPaths();
-	void UpdateTargetModulePaths(bool bForceUpdate);
+	void UpdateTargetModulePaths();
 	ITargetPlatformManagerModule * TargetManagerModule;
 	IAndroidDeviceDetection * AndroidDeviceDetection;
 #endif

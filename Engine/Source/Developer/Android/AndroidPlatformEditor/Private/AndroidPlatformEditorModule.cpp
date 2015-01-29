@@ -59,8 +59,7 @@ class FAndroidPlatformEditorModule
 		settings->SetTargetModule(&TargetPlatformManagerModule);
 		auto &AndroidDeviceDetection = FModuleManager::LoadModuleChecked<IAndroidDeviceDetectionModule>("AndroidDeviceDetection");
 		settings->SetDeviceDetection(AndroidDeviceDetection.GetAndroidDeviceDetection());
-		settings->SetupInitialTargetPaths();
-
+		settings->UpdateTargetModulePaths();
 	}
 
 	virtual void ShutdownModule() override

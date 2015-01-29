@@ -31,7 +31,6 @@ TSharedRef<IDetailCustomization> FAndroidSDKSettingsCustomization::MakeInstance(
 FAndroidSDKSettingsCustomization::FAndroidSDKSettingsCustomization()
 {
 	TargetPlatformManagerModule = &FModuleManager::LoadModuleChecked<ITargetPlatformManagerModule>("TargetPlatform");
-	SetupSDKPaths();
 }
 
 void FAndroidSDKSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
@@ -43,8 +42,6 @@ void FAndroidSDKSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 void FAndroidSDKSettingsCustomization::BuildSDKPathSection(IDetailLayoutBuilder& DetailLayout)
 {
-	SetupSDKPaths();
-
 #if PLATFORM_MAC
 	IDetailCategoryBuilder& SDKConfigCategory = DetailLayout.EditCategory(TEXT("SDKConfig"));
 
@@ -53,71 +50,6 @@ void FAndroidSDKSettingsCustomization::BuildSDKPathSection(IDetailLayoutBuilder&
 	SDKConfigCategory.AddProperty(JavaPathProperty)
 		.Visibility(EVisibility::Hidden);
 #endif
-}
-
-
-void FAndroidSDKSettingsCustomization::SetupSDKPaths()
-{
-	// Try and query the env vars
-	UAndroidSDKSettings * settings = GetMutableDefault<UAndroidSDKSettings>();
-	bool changed = false;
-	
-	if (settings->SDKPath.Path.IsEmpty())
-	{
-		TCHAR AndroidSDKPath[256];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("ANDROID_HOME"), AndroidSDKPath, ARRAY_COUNT(AndroidSDKPath));
-		if (AndroidSDKPath[0])
-		{
-			settings->SDKPath.Path = AndroidSDKPath;
-			changed |= true;
-		}
-				
-	}	
-
-	if (settings->NDKPath.Path.IsEmpty())
-	{
-		TCHAR AndroidNDKPath[256];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("NDKROOT"), AndroidNDKPath, ARRAY_COUNT(AndroidNDKPath));
-		if (AndroidNDKPath[0])
-		{
-			settings->NDKPath.Path = AndroidNDKPath;
-			changed |= true;
-		}
-		
-	}	
-
-	if (settings->ANTPath.Path.IsEmpty())
-	{
-		TCHAR AndroidANTPath[256];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("ANT_HOME"), AndroidANTPath, ARRAY_COUNT(AndroidANTPath));
-		if (AndroidANTPath[0])
-		{
-			settings->ANTPath.Path = AndroidANTPath;
-			changed |= true;
-		}
-		
-	}
-#if PLATFORM_MAC == 0
-	if (settings->JavaPath.Path.IsEmpty())
-	{
-		TCHAR AndroidJavaPath[256];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("JAVA_HOME"), AndroidJavaPath, ARRAY_COUNT(AndroidJavaPath));
-		if (AndroidJavaPath[0])
-		{
-			settings->JavaPath.Path = AndroidJavaPath;
-			changed |= true;
-		}
-
-	}
-#endif	
-	if (changed)
-	{
-		settings->Modify();
-		settings->SaveConfig();
-	}
-
-	settings->UpdateTargetModulePaths(false);
-
 }
 
 //////////////////////////////////////////////////////////////////////////
