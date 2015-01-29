@@ -98,14 +98,17 @@ void APawn::PostInitializeComponents()
 		GetWorld()->AddPawn( this );
 
 		// Automatically add Controller to AI Pawns if we are allowed to.
-		if (AutoPossessAI != EAutoPossessAI::Disabled && Controller == NULL && GetNetMode() != NM_Client)
+		if (AutoPossessPlayer == EAutoReceiveInput::Disabled)
 		{
-			const bool bPlacedInWorld = (GetWorld()->bStartup);
-			if ((AutoPossessAI == EAutoPossessAI::PlacedInWorldOrSpawned) ||
-				(AutoPossessAI == EAutoPossessAI::PlacedInWorld && bPlacedInWorld) ||
-				(AutoPossessAI == EAutoPossessAI::Spawned && !bPlacedInWorld))
+			if (AutoPossessAI != EAutoPossessAI::Disabled && Controller == NULL && GetNetMode() != NM_Client)
 			{
-				SpawnDefaultController();
+				const bool bPlacedInWorld = (GetWorld()->bStartup);
+				if ((AutoPossessAI == EAutoPossessAI::PlacedInWorldOrSpawned) ||
+					(AutoPossessAI == EAutoPossessAI::PlacedInWorld && bPlacedInWorld) ||
+					(AutoPossessAI == EAutoPossessAI::Spawned && !bPlacedInWorld))
+				{
+					SpawnDefaultController();
+				}
 			}
 		}
 
