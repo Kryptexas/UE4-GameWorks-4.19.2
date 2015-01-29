@@ -5405,48 +5405,49 @@ int32 UMaterialExpressionFontSample::Compile(class FMaterialCompiler* Compiler, 
 		FontTexturePage = 0;
 	}
 #endif
-	if( Font )
+	if( !Font )
 	{
-		if( Font->Textures.IsValidIndex(FontTexturePage) )
-		{
-			UTexture* Texture = Font->Textures[FontTexturePage];
-			if( !Texture )
-			{
-				UE_LOG(LogMaterial, Log, TEXT("Invalid font texture. Using default texture"));
-				Texture = Texture = GEngine->DefaultTexture;
-			}
-			check(Texture);
-
-			EMaterialSamplerType ExpectedSamplerType;
-			if (Texture->CompressionSettings == TC_DistanceFieldFont)
-			{
-				ExpectedSamplerType = SAMPLERTYPE_DistanceFieldFont;
-			}
-			else
-			{
-				ExpectedSamplerType = Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
-			}
-
-			if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("FontSample")), Texture, ExpectedSamplerType))
-			{
-				return INDEX_NONE;
-			}
-
-			int32 TextureCodeIndex = Compiler->Texture(Texture);
-			Result = Compiler->TextureSample(
-				TextureCodeIndex,
-				Compiler->TextureCoordinate(0, false, false),
-				ExpectedSamplerType
-			);
-		}
-		else
-		{
-			Result = CompilerError(Compiler, *FString::Printf(TEXT("Invalid font page %d. Max allowed is %d"),FontTexturePage,Font->Textures.Num()));
-		}		
+		Result = CompilerError(Compiler, TEXT("Missing input Font"));
+	}
+	else if( Font->FontCacheType == EFontCacheType::Runtime )
+	{
+		Result = CompilerError(Compiler, *FString::Printf(TEXT("Font '%s' is runtime cached, but only offline cached fonts can be sampled"), *Font->GetName()));
+	}
+	else if( !Font->Textures.IsValidIndex(FontTexturePage) )
+	{
+		Result = CompilerError(Compiler, *FString::Printf(TEXT("Invalid font page %d. Max allowed is %d"), FontTexturePage, Font->Textures.Num()));
 	}
 	else
 	{
-		Result = CompilerError(Compiler, TEXT("Missing input Font"));
+		UTexture* Texture = Font->Textures[FontTexturePage];
+		if( !Texture )
+		{
+			UE_LOG(LogMaterial, Log, TEXT("Invalid font texture. Using default texture"));
+			Texture = Texture = GEngine->DefaultTexture;
+		}
+		check(Texture);
+
+		EMaterialSamplerType ExpectedSamplerType;
+		if (Texture->CompressionSettings == TC_DistanceFieldFont)
+		{
+			ExpectedSamplerType = SAMPLERTYPE_DistanceFieldFont;
+		}
+		else
+		{
+			ExpectedSamplerType = Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+		}
+
+		if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("FontSample")), Texture, ExpectedSamplerType))
+		{
+			return INDEX_NONE;
+		}
+
+		int32 TextureCodeIndex = Compiler->Texture(Texture);
+		Result = Compiler->TextureSample(
+			TextureCodeIndex,
+			Compiler->TextureCoordinate(0, false, false),
+			ExpectedSamplerType
+		);
 	}
 	return Result;
 }
