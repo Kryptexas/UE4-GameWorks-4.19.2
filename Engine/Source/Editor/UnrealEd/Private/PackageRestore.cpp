@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 #include "PackageRestore.h"
 #include "PackageTools.h"
+#include "AutoSaveUtils.h"
 
 #define LOCTEXT_NAMESPACE "PackageRestore"
 
@@ -514,7 +515,7 @@ namespace PackageRestore
 
 FEditorFileUtils::EPromptReturnCode PackageRestore::PromptToRestorePackages(const TMap<FString, FString>& PackagesToRestore, TArray<FString>* OutFailedPackages)
 {
-	const FString& AutoSaveDir = GUnrealEd->AutoSaveDir;
+	const FString AutoSaveDir = AutoSaveUtils::GetAutoSaveDir();
 
 	FPackageRestoreItems PackageRestoreItems;
 	PackageRestoreItems.Reserve(PackagesToRestore.Num());
