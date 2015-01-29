@@ -347,6 +347,35 @@ public:
 		}
 		return true;
 	}
+
+	/**
+	 * Merges another cache file into this one.
+	 * @return true on success
+	 */
+	bool MergeCache(const TCHAR* OtherFileName)
+	{
+		if(FPlatformFileManager::Get().GetPlatformFile().FileExists(OtherFileName))
+		{
+			FPakFileDerivedDataBackend OtherPak(OtherFileName, false);
+			if(!OtherPak.bClosed)
+			{
+				// Get all the existing keys
+				TArray<FString> KeyNames;
+				OtherPak.CacheItems.GenerateKeyArray(KeyNames);
+
+				// Copy them all to the new cache
+				TArray<uint8> Buffer;
+				for(const FString& KeyName: KeyNames)
+				{
+					Buffer.Reset();
+					OtherPak.GetCachedData(*KeyName, Buffer);
+					PutCachedData(*KeyName, Buffer, false);
+				}
+				return true;
+			}
+		}
+		return false;
+	}
 	
 	const FString& GetFilename() const
 	{
