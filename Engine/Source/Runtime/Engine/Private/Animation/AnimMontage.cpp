@@ -683,7 +683,7 @@ EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetFromSections(float T
 	for(auto Iter = CompositeSections.CreateConstIterator(); Iter; ++Iter)
 	{
 		float SectionTime = Iter->GetTime();
-		if(SectionTime == Time)
+		if(FMath::IsNearlyEqual(SectionTime,Time))
 		{
 			return EAnimEventTriggerOffsets::OffsetBefore;
 		}
