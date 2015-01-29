@@ -604,6 +604,20 @@ void UMaterialGraphNode::OnRenameNode(const FString& NewName)
 	MaterialDirtyDelegate.ExecuteIfBound();
 }
 
+void UMaterialGraphNode::OnUpdateCommentText( const FString& NewComment )
+{
+	const FScopedTransaction Transaction( LOCTEXT( "CommentCommitted", "Comment Changed" ) );
+	// Update the Node comment
+	Modify();
+	NodeComment	= NewComment;
+	// Update the Material Expresssion desc to match the comment
+	if( MaterialExpression )
+	{
+		MaterialExpression->Modify();
+		MaterialExpression->Desc = NewComment;
+	}
+}
+
 void UMaterialGraphNode::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const
 {
 	Super::GetPinHoverText(Pin, HoverTextOut);

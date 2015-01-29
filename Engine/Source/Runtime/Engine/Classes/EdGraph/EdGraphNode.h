@@ -404,6 +404,9 @@ public:
 	// called when this node is being renamed after a successful name validation
 	virtual void OnRenameNode(const FString& NewName) {}
 
+	// called to replace this nodes comment text
+	virtual void OnUpdateCommentText( const FString& NewComment );
+
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }
 
