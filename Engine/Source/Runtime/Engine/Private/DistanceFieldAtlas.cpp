@@ -23,7 +23,21 @@ FDistanceFieldVolumeTextureAtlas::FDistanceFieldVolumeTextureAtlas(EPixelFormat 
 	Generation = 0;
 	Format = InFormat;
 }
- 
+
+FString FDistanceFieldVolumeTextureAtlas::GetSizeString() const
+{
+	if (VolumeTextureRHI)
+	{
+		const int32 FormatSize = GPixelFormats[Format].BlockBytes;
+		float MemorySize = VolumeTextureRHI->GetSizeX() * VolumeTextureRHI->GetSizeY() * VolumeTextureRHI->GetSizeZ() * FormatSize / 1024.0f / 1024.0f;
+		return FString::Printf(TEXT("Allocated %ux%ux%u distance field atlas = %.1fMb"), VolumeTextureRHI->GetSizeX(), VolumeTextureRHI->GetSizeY(), VolumeTextureRHI->GetSizeZ(), MemorySize);
+	}
+	else
+	{
+		return TEXT("");
+	}
+}
+
 void FDistanceFieldVolumeTextureAtlas::AddAllocation(FDistanceFieldVolumeTexture* Texture)
 {
 	PendingAllocations.AddUnique(Texture);
@@ -115,9 +129,7 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 				TexCreate_ShaderResource,
 				CreateInfo);
 
-			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
-			float MemorySize = VolumeTextureRHI->GetSizeX() * VolumeTextureRHI->GetSizeY() * VolumeTextureRHI->GetSizeZ() * FormatSize / 1024.0f / 1024.0f;
-			UE_LOG(LogStaticMesh,Log,TEXT("Allocated %ux%ux%u distance field atlas = %.1fMb"), VolumeTextureRHI->GetSizeX(), VolumeTextureRHI->GetSizeY(), VolumeTextureRHI->GetSizeZ(), MemorySize);
+			UE_LOG(LogStaticMesh,Log,TEXT("Allocated %s"), *GetSizeString());
 		}
 
 		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)

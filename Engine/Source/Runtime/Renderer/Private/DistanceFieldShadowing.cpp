@@ -89,13 +89,18 @@ public:
 		CulledObjectBoxBounds.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.BoxBounds);
 
 		SetShaderValue(RHICmdList, ShaderRHI, ObjectBoundingGeometryIndexCount, StencilingGeometry::GLowPolyStencilSphereIndexBuffer.GetIndexCount());
-
 		SetShaderValue(RHICmdList, ShaderRHI, WorldToShadow, WorldToShadowValue);
-
-		check(NumPlanes < 12);
-		SetShaderValue(RHICmdList, ShaderRHI, NumShadowHullPlanes, NumPlanes);
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowBoundingSphere, ShadowBoundingSphereValue);
-		SetShaderValueArray(RHICmdList, ShaderRHI, ShadowConvexHull, PlaneData, NumPlanes);
+
+		if (NumPlanes < 12)
+		{
+			SetShaderValue(RHICmdList, ShaderRHI, NumShadowHullPlanes, NumPlanes);
+			SetShaderValueArray(RHICmdList, ShaderRHI, ShadowConvexHull, PlaneData, NumPlanes);
+		}
+		else
+		{
+			SetShaderValue(RHICmdList, ShaderRHI, NumShadowHullPlanes, 0);
+		}
 	}
 
 	void UnsetParameters(FRHICommandList& RHICmdList)
@@ -580,9 +585,9 @@ void CullDistanceFieldObjectsForLight(
 {
 	const FScene* Scene = (const FScene*)(View.Family->Scene);
 
-	{
-		SCOPED_DRAW_EVENT(RHICmdList, ObjectFrustumCulling);
+	SCOPED_DRAW_EVENT(RHICmdList, CullObjectsForLight);
 
+	{
 		if (GShadowCulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
 			|| GShadowCulledObjectBuffers.Buffers.MaxObjects > 3 * Scene->DistanceFieldSceneData.NumObjectsInBuffer)
 		{
@@ -629,7 +634,6 @@ void CullDistanceFieldObjectsForLight(
 		}
 
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
 			TShaderMapRef<FClearTilesCS> ComputeShader(View.ShaderMap);
 
 			uint32 GroupSizeX = FMath::DivideAndRoundUp(LightTileDimensions.X, GDistanceFieldAOTileSizeX);
@@ -643,8 +647,6 @@ void CullDistanceFieldObjectsForLight(
 		}
 		
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, CullObjects);
-
 			TShaderMapRef<FShadowObjectCullVS> VertexShader(View.ShaderMap);
 			TShaderMapRef<FShadowObjectCullPS> PixelShader(View.ShaderMap);
 

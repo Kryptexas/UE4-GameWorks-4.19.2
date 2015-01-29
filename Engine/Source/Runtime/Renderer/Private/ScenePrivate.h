@@ -505,8 +505,6 @@ public:
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
 
-	class FVPLTileIntersectionResources* VPLTileIntersectionResources;
-
 	// Is DOFHistoryRT set from Bokeh DOF?
 	bool bBokehDOFHistory;
 	bool bBokehDOFHistory2;
@@ -876,6 +874,90 @@ public:
 	int32 InstanceIndex;
 };
 
+class FPrimitiveSurfelFreeEntry
+{
+public:
+	FPrimitiveSurfelFreeEntry(int32 InOffset, int32 InNumSurfels) :
+		Offset(InOffset),
+		NumSurfels(InNumSurfels)
+	{}
+
+	FPrimitiveSurfelFreeEntry() :
+		Offset(0),
+		NumSurfels(0)
+	{}
+
+	int32 Offset;
+	int32 NumSurfels;
+};
+
+class FPrimitiveSurfelAllocation
+{
+public:
+	FPrimitiveSurfelAllocation(int32 InOffset, int32 InNumLOD0, int32 InNumSurfels, int32 InNumInstances) :
+		Offset(InOffset),
+		NumLOD0(InNumLOD0),
+		NumSurfels(InNumSurfels),
+		NumInstances(InNumInstances)
+	{}
+
+	FPrimitiveSurfelAllocation() :
+		Offset(0),
+		NumLOD0(0),
+		NumSurfels(0),
+		NumInstances(1)
+	{}
+
+	int32 GetTotalNumSurfels() const
+	{
+		return NumSurfels * NumInstances;
+	}
+
+	int32 Offset;
+	int32 NumLOD0;
+	int32 NumSurfels;
+	int32 NumInstances;
+};
+
+class FPrimitiveRemoveInfo
+{
+public:
+	FPrimitiveRemoveInfo(const FPrimitiveSceneInfo* InPrimitive) :
+		Primitive(InPrimitive),
+		DistanceFieldInstanceIndices(Primitive->DistanceFieldInstanceIndices)
+	{}
+
+	/** 
+	 * Must not be dereferenced after creation, the primitive was removed from the scene and deleted
+	 * Value of the pointer is still useful for map lookups
+	 */
+	const FPrimitiveSceneInfo* Primitive;
+
+	TArray<int32, TInlineAllocator<1>> DistanceFieldInstanceIndices;
+};
+
+class FSurfelBufferAllocator
+{
+public:
+
+	FSurfelBufferAllocator() : NumSurfelsInBuffer(0) {}
+
+	int32 GetNumSurfelsInBuffer() const { return NumSurfelsInBuffer; }
+	void AddPrimitive(const FPrimitiveSceneInfo* PrimitiveSceneInfo, int32 PrimitiveLOD0Surfels, int32 PrimitiveNumSurfels, int32 NumInstances);
+	void RemovePrimitive(const FPrimitiveSceneInfo* Primitive);
+
+	const FPrimitiveSurfelAllocation* FindAllocation(const FPrimitiveSceneInfo* Primitive)
+	{
+		return Allocations.Find(Primitive);
+	}
+
+private:
+
+	int32 NumSurfelsInBuffer;
+	TMap<const FPrimitiveSceneInfo*, FPrimitiveSurfelAllocation> Allocations;
+	TArray<FPrimitiveSurfelFreeEntry> FreeList;
+};
+
 /** Scene data used to manage distance field object buffers on the GPU. */
 class FDistanceFieldSceneData
 {
@@ -895,6 +977,19 @@ public:
 		return PendingAddOperations.Num() > 0 || PendingUpdateOperations.Num() > 0 || PendingRemoveOperations.Num() > 0;
 	}
 
+	bool HasPendingRemovePrimitive(const FPrimitiveSceneInfo* Primitive) const
+	{
+		for (int32 RemoveIndex = 0; RemoveIndex < PendingRemoveOperations.Num(); RemoveIndex++)
+		{
+			if (PendingRemoveOperations[RemoveIndex].Primitive == Primitive)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	int32 NumObjectsInBuffer;
 	class FDistanceFieldObjectBuffers* ObjectBuffers;
 
@@ -902,10 +997,16 @@ public:
 	TArray<FPrimitiveAndInstance> PrimitiveInstanceMapping;
 	TArray<const FPrimitiveSceneInfo*> HeightfieldPrimitives;
 
+	class FSurfelBuffers* SurfelBuffers;
+	FSurfelBufferAllocator SurfelAllocations;
+
+	class FInstancedSurfelBuffers* InstancedSurfelBuffers;
+	FSurfelBufferAllocator InstancedSurfelAllocations;
+
 	/** Pending operations on the object buffers to be processed next frame. */
 	TArray<FPrimitiveSceneInfo*> PendingAddOperations;
 	TArray<FPrimitiveSceneInfo*> PendingUpdateOperations;
-	TArray<int32> PendingRemoveOperations;
+	TArray<FPrimitiveRemoveInfo> PendingRemoveOperations;
 
 	/** Used to detect atlas reallocations, since objects store UVs into the atlas and need to be updated when it changes. */
 	int32 AtlasGeneration;

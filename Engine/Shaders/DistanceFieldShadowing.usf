@@ -543,6 +543,7 @@ void DistanceFieldShadowingCS(
 
 			float MinRayTime = MaxRayTime;
 			float MinConeVisibility = 1;
+			float3 WorldRayUnitDirection = normalize(WorldRayEnd - WorldRayStart);
 
 			LOOP
 			for (uint ListObjectIndex = 0; ListObjectIndex < NumIntersectingObjects && MinRayTime >= MaxRayTime; ListObjectIndex++)
@@ -557,72 +558,77 @@ void DistanceFieldShadowingCS(
 					uint ObjectIndex = ListObjectIndex;
 				#endif
 
-				float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
-				float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
-				float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
-				float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
-
-				float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
-				float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
-				float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;
-				float VolumeRayLength = length(VolumeRayDirection);
-				VolumeRayDirection /= VolumeRayLength;
-				float VolumeMinSphereRadius = MinSphereRadius / UVScaleAndVolumeScale.w;
-				float VolumeMaxSphereRadius = MaxSphereRadius / UVScaleAndVolumeScale.w;
-
 				float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
-				float ObjectCenterDistanceAlongRay = max(dot(SphereCenterAndRadius.xyz - WorldRayStart, WorldRayEnd - WorldRayStart), 0);
-				// Expand the intersection box by the radius of the cone at the distance of the object along the cone
-				float LocalConeRadiusAtObject = min(TanLightAngle * ObjectCenterDistanceAlongRay / UVScaleAndVolumeScale.w, VolumeMaxSphereRadius);
-
-				float2 IntersectionTimes = LineBoxIntersect(VolumeRayStart, VolumeRayEnd, -LocalPositionExtent - LocalConeRadiusAtObject, LocalPositionExtent + LocalConeRadiusAtObject);
+				float ObjectCenterDistanceAlongRay = dot(SphereCenterAndRadius.xyz - WorldRayStart, WorldRayUnitDirection);
 
 				BRANCH
-				if (IntersectionTimes.x < IntersectionTimes.y && IntersectionTimes.x < 1)
+				if (ObjectCenterDistanceAlongRay > -SphereCenterAndRadius.w)
 				{
-					float SampleRayTime = IntersectionTimes.x * VolumeRayLength;
-					uint MaxSteps = 64;
-					float MinStepSize = 1.0f / (4 * MaxSteps);
+					float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
+					float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
+					float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
+					float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
 
-					float MinDistance = 1000000;
-					float3 IntersectionPosition = float3(0, 0, 0);
+					float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
+					float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
+					float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;
+					float VolumeRayLength = length(VolumeRayDirection);
+					VolumeRayDirection /= VolumeRayLength;
+					float VolumeMinSphereRadius = MinSphereRadius / UVScaleAndVolumeScale.w;
+					float VolumeMaxSphereRadius = MaxSphereRadius / UVScaleAndVolumeScale.w;
 
-					uint StepIndex = 0;
+					// Expand the intersection box by the radius of the cone at the distance of the object along the cone
+					float LocalConeRadiusAtObject = min(TanLightAngle * max(ObjectCenterDistanceAlongRay, 0) / UVScaleAndVolumeScale.w, VolumeMaxSphereRadius);
 
-					LOOP
-					for (; StepIndex < MaxSteps; StepIndex++)
+					float2 IntersectionTimes = LineBoxIntersect(VolumeRayStart, VolumeRayEnd, -LocalPositionExtent - LocalConeRadiusAtObject, LocalPositionExtent + LocalConeRadiusAtObject);
+
+					BRANCH
+					if (IntersectionTimes.x < IntersectionTimes.y && IntersectionTimes.x < 1)
 					{
-						float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
-						float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
-						float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
-						float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-						float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+						float SampleRayTime = IntersectionTimes.x * VolumeRayLength;
+						uint MaxSteps = 64;
+						float MinStepSize = 1.0f / (4 * MaxSteps);
 
-						MinDistance = min(MinDistance, DistanceField);
-						float SphereRadius = clamp(TanLightAngle * SampleRayTime, VolumeMinSphereRadius, VolumeMaxSphereRadius);
+						float MinDistance = 1000000;
+						float3 IntersectionPosition = float3(0, 0, 0);
 
-						MinConeVisibility = min(MinConeVisibility, saturate(DistanceField / SphereRadius));
-						IntersectionPosition = SampleVolumePosition;
+						uint StepIndex = 0;
 
-						float StepDistance = max(DistanceField, MinStepSize);
-						SampleRayTime += StepDistance;
-
-						// Terminate the trace if we reached a negative area or went past the end of the ray
-						if (DistanceField < 0 
-							|| SampleRayTime > IntersectionTimes.y * VolumeRayLength)
+						LOOP
+						for (; StepIndex < MaxSteps; StepIndex++)
 						{
-							break;
+							float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
+							float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
+							float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
+							float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+							float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+
+							MinDistance = min(MinDistance, DistanceField);
+							float SphereRadius = clamp(TanLightAngle * SampleRayTime, VolumeMinSphereRadius, VolumeMaxSphereRadius);
+
+							MinConeVisibility = min(MinConeVisibility, saturate(DistanceField / SphereRadius));
+							IntersectionPosition = SampleVolumePosition;
+
+							float StepDistance = max(DistanceField, MinStepSize);
+							SampleRayTime += StepDistance;
+
+							// Terminate the trace if we reached a negative area or went past the end of the ray
+							if (DistanceField < 0 
+								|| SampleRayTime > IntersectionTimes.y * VolumeRayLength)
+							{
+								break;
+							}
 						}
-					}
 
-					if (MinDistance < 0 || StepIndex == MaxSteps)
-					{
-						MinConeVisibility = 0;
-						MinRayTime = min(MinRayTime, SampleRayTime * UVScaleAndVolumeScale.w);
-					}
+						if (MinDistance < 0 || StepIndex == MaxSteps)
+						{
+							MinConeVisibility = 0;
+							MinRayTime = min(MinRayTime, SampleRayTime * UVScaleAndVolumeScale.w);
+						}
 
-					// Force to shadowed as we approach max steps
-					MinConeVisibility = min(MinConeVisibility, (1 - StepIndex / (float)MaxSteps));
+						// Force to shadowed as we approach max steps
+						MinConeVisibility = min(MinConeVisibility, (1 - StepIndex / (float)MaxSteps));
+					}
 				}
 			}
 

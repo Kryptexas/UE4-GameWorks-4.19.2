@@ -6,6 +6,8 @@
 FSplineMeshSceneProxy::FSplineMeshSceneProxy(USplineMeshComponent* InComponent) :
 	FStaticMeshSceneProxy(InComponent)
 {
+	bSupportsDistanceFieldRepresentation = false;
+
 	// make sure all the materials are okay to be rendered as a spline mesh
 	for (FStaticMeshSceneProxy::FLODInfo& LODInfo : LODs)
 	{

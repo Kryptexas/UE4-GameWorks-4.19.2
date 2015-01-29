@@ -250,7 +250,7 @@ struct FMaterialVertexParameters
 	FMaterialParticleParameters Particle;
 };
 
-#if MESH_MATERIAL_SHADER
+#if HAS_PRIMITIVE_UNIFORM_BUFFER
 
 /** Transforms a vector from tangent space to world space, prescaling by an amount calculated previously */
 MaterialFloat3 TransformTangentVectorToWorld_PreScaled(FMaterialTessellationParameters Parameters, MaterialFloat3 InTangentVector)
@@ -410,7 +410,7 @@ MaterialFloat GetDistanceCullFade()
 	return saturate( View.RealTime * PrimitiveFade.FadeTimeScaleBias.x + PrimitiveFade.FadeTimeScaleBias.y );
 }
 
-#endif // #if MESH_MATERIAL_SHADER
+#endif // #if HAS_PRIMITIVE_UNIFORM_BUFFER
 
 /** Transforms a vector from view space to world space */
 MaterialFloat3 TransformViewVectorToWorld(MaterialFloat3 InViewVector)
@@ -626,14 +626,14 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 {
 	float Opacity = 0;
 
-#if PARTICLE_FACTORY || MESH_MATERIAL_SHADER
+#if PARTICLE_FACTORY || HAS_PRIMITIVE_UNIFORM_BUFFER
 
 #if PARTICLE_FACTORY
 
 	float3 ParticlePosition = Parameters.Particle.PositionAndSize.xyz;
 	float ParticleRadius = max(0.000001f, Parameters.Particle.PositionAndSize.w);
 
-#elif MESH_MATERIAL_SHADER
+#elif HAS_PRIMITIVE_UNIFORM_BUFFER
 
 	// Substitute object attributes if the mesh is not a particle
 	// This is mostly useful for previewing materials using spherical opacity in the material editor
@@ -1400,7 +1400,7 @@ void CalcMaterialParameters(
 
 	Parameters.TwoSidedSign = 1.0f;
 
-#if MATERIAL_TWOSIDED && MESH_MATERIAL_SHADER
+#if MATERIAL_TWOSIDED && HAS_PRIMITIVE_UNIFORM_BUFFER
 	Parameters.TwoSidedSign *= View.CullingSign * Primitive.LocalToWorldDeterminantSign;
 
 	#if !MATERIAL_TWOSIDED_SEPARATE_PASS

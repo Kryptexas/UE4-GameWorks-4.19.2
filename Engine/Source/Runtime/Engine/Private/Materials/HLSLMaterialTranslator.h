@@ -3397,7 +3397,7 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		return AddCodeChunk(GetParameterType(X),TEXT("ddx(%s)"),*GetParameterCode(X));
+		return AddCodeChunk(GetParameterType(X),TEXT("DDX(%s)"),*GetParameterCode(X));
 	}
 
 	virtual int32 DDY( int32 X ) override
@@ -3422,7 +3422,7 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		return AddCodeChunk(GetParameterType(X),TEXT("ddy(%s)"),*GetParameterCode(X));
+		return AddCodeChunk(GetParameterType(X),TEXT("DDY(%s)"),*GetParameterCode(X));
 	}
 
 	virtual int32 AntialiasedTextureMask(int32 Tex, int32 UV, float Threshold, uint8 Channel) override

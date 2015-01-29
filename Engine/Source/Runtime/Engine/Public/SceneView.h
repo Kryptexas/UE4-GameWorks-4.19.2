@@ -392,6 +392,9 @@ public:
 	/** For stereoscopic rendering, whether or not this is a full pass, or a left / right eye pass */
 	EStereoscopicPass StereoPass;
 
+	/** Whether this view should render the first instance only of any meshes using instancing. */
+	bool bRenderFirstInstanceOnly;
+
 	/** Current buffer visualization mode */
 	FName CurrentBufferVisualizationMode;
 

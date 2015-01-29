@@ -43,28 +43,3 @@ public:
 	FRWBuffer VPLClusterData;
 	FRWBuffer VPLData;
 };
-
-/**  */
-class FVPLTileIntersectionResources : public FRenderResource
-{
-public:
-
-	FVPLTileIntersectionResources()
-		: TileDimensions(FIntPoint(0, 0))
-	{}
-
-	virtual void InitDynamicRHI() override;
-
-	virtual void ReleaseDynamicRHI() override
-	{
-		TileHeadDataUnpacked.Release();
-		TileArrayData.Release();
-		TileArrayNextAllocation.Release();
-	}
-
-	FIntPoint TileDimensions;
-
-	FRWBuffer TileHeadDataUnpacked;
-	FRWBuffer TileArrayData;
-	FRWBuffer TileArrayNextAllocation;
-};

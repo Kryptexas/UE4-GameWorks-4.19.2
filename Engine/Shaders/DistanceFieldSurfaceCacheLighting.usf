@@ -90,12 +90,8 @@ void ObjectCullPS(
 
 		if (ArrayIndex < MAX_OBJECTS_PER_TILE)
 		{
-#if COHERENT_OBJECT_LIST_WRITES
+			// Note: indexing so that threads are writing to RWTileArrayData coherently, has a huge impact on speed, even though the array data for one record is no longer dense
 			uint DataIndex = (ArrayIndex * (uint)(NumGroups.x * NumGroups.y + .5f) + TileIndex) * NUM_CULLED_OBJECT_LISTS + SmallestGroupIndex;
-#else
-			uint TileArrayStart = TileIndex * MAX_OBJECTS_PER_TILE;
-			uint DataIndex = TileArrayStart + ArrayIndex;
-#endif
 
 			RWTileArrayData[DataIndex] = Input.ObjectIndex;
 		}
@@ -156,7 +152,7 @@ struct FIrradianceCacheSplatVertexOutput
 {
 	float4 Position : SV_POSITION;
 	nointerpolation float4 PositionRadius : TEXCOORD0;
-	nointerpolation float3 Normal : TEXCOORD1;
+	nointerpolation float4 NormalAndFade : TEXCOORD1;
 #if FINAL_INTERPOLATION_PASS
 	nointerpolation float3 BentNormal : TEXCOORD2;
 	#if SUPPORT_IRRADIANCE
@@ -222,7 +218,7 @@ void IrradianceCacheSplatVS(
 	VirtualRadius += HackExpand * ViewToCenterLength * 4;
 #endif
 
-	float3 RecordNormal = IrradianceCacheNormal.Load(JobIndex).xyz;
+	float4 RecordNormalAndTime = IrradianceCacheNormal.Load(JobIndex);
 
 	float2 CornerUVs = InUV;
 	float3 CornerPosition = VirtualPosition + (View.ViewRight * CornerUVs.x + View.ViewUp * CornerUVs.y) * VirtualRadius;
@@ -237,7 +233,9 @@ void IrradianceCacheSplatVS(
 	Output.Position.xy += NormalizedOffsetToPixelCenter * Output.Position.w;
 
 	Output.PositionRadius = PositionAndRadius; 
-	Output.Normal = RecordNormal;
+
+	float Fade = 1;
+	Output.NormalAndFade = float4(RecordNormalAndTime.xyz, Fade);
 
 #if FINAL_INTERPOLATION_PASS
 	Output.BentNormal = IrradianceCacheBentNormal.Load(JobIndex).xyz;
@@ -293,21 +291,23 @@ void IrradianceCacheSplatPS(
 	if (DistanceError < 1 && SceneW < AOMaxViewDistance)
 	{ 
 		float3 WorldNormal = DistanceFieldNormalValue.xyz;
-		float NormalError = InterpolationAngleNormalization * sqrt(saturate(1 - dot(WorldNormal, Input.Normal)));
+		float3 RecordNormal = Input.NormalAndFade.xyz;
+		float NormalError = InterpolationAngleNormalization * sqrt(saturate(1 - dot(WorldNormal, RecordNormal)));
 
 		// Don't use a lighting record if it's in front of the query point.
 		// Query points behind the lighting record may have nearby occluders that the lighting record does not see.
 		// Offset the comparison point along the negative normal to prevent self-occlusion
-		float3 RecordToVertexVector = OpaqueWorldPosition - (Input.PositionRadius.xyz - 1 * Input.Normal.xyz);
+		float3 RecordToVertexVector = OpaqueWorldPosition - (Input.PositionRadius.xyz - 1 * RecordNormal.xyz);
 		float DistanceToVertex = length(RecordToVertexVector);
-		float PlaneDistance = dot(Input.Normal.xyz, RecordToVertexVector) / DistanceToVertex;
+		float PlaneDistance = dot(RecordNormal.xyz, RecordToVertexVector) / DistanceToVertex;
 		
 		// Setup an error metric that goes from 0 if the points are coplanar, to 1 if the point being shaded is at the angle corresponding to MinCosPointBehindPlane behind the plane
 		float PointBehindPlaneError = min(max(PlaneDistance * InvMinCosPointBehindPlane, 0.0f), DistanceToVertex / 3.0f);
 
 		float PrecisionScale = .1f;
-		Weight = saturate(PrecisionScale * (1 - max(DistanceError, max(NormalError, PointBehindPlaneError))));
-		//Weight = saturate(PrecisionScale * (1 - DistanceError));
+		Weight = saturate(PrecisionScale * Input.NormalAndFade.w * (1 - max(DistanceError, max(NormalError, PointBehindPlaneError))));
+		//Weight = saturate(PrecisionScale * Input.NormalAndFade.w * (1 - DistanceError));
+		//Weight = Input.NormalAndFade.w;
 
 		float VisualizePlacement = Distance < .1f * Input.PositionRadius.w;
 
@@ -343,6 +343,9 @@ Texture2D IrradianceTexture;
 SamplerState IrradianceSampler;
 
 Buffer<float4> DebugBuffer;
+
+// 1 / ((1 - FadeDistanceFraction) * AOMaxViewDistance)
+float DistanceFadeScale;
 
 /** Normalizes the splatted surface cache values, packs depth in alpha. */
 void AOCombinePS(
@@ -395,7 +398,7 @@ void AOCombinePS(
 
 	float BentNormalLength = length(OutBentNormal.rgb);
 	// Fade to unoccluded in the distance
-	float FadeAlpha = saturate(.001f * (.95f * AOMaxViewDistance - SceneDepth));
+	float FadeAlpha = saturate((AOMaxViewDistance - SceneDepth) * DistanceFadeScale);
 	float3 NormalizedBentNormal = OutBentNormal.rgb / max(BentNormalLength, .0001f);
 	OutBentNormal.rgb = NormalizedBentNormal * lerp(1, BentNormalLength, FadeAlpha);
 
@@ -503,6 +506,7 @@ void FillGapsPS(
 
 	float4 Accumulation = 0;
 	float3 IrradianceAccumulation = 0;
+	float Length = 0;
 
 	for (float y = -HALF_FILL_KERNEL_SIZE; y <= HALF_FILL_KERNEL_SIZE; y++)
 	{
@@ -514,13 +518,16 @@ void FillGapsPS(
 			float SampleSceneDepth = abs(TextureValue.w);
 			float ValidMask = TextureValue.w > 0;
 
-			float DepthWeight = 1 / exp2(abs(SceneDepth - SampleSceneDepth) * .01f);
+			// Don't let depth weight go to 0 with huge depth differences
+			float DepthWeight = max(1 / exp2(abs(SceneDepth - SampleSceneDepth) * .01f), .001f);
 
 			float2 Weight2D = 1 / exp2(abs(float2(x, y) * 10.0f / HALF_FILL_KERNEL_SIZE));
 			float ScreenSpaceSpatialWeight = max(Weight2D.x, Weight2D.y);
 
 			float Weight = ValidMask * ScreenSpaceSpatialWeight * DepthWeight;
 
+			// Track length separately 
+			Length += length(TextureValue.rgb) * Weight;
 			Accumulation.rgb += TextureValue.rgb * Weight;
 			Accumulation.a += Weight;
 
@@ -532,7 +539,17 @@ void FillGapsPS(
 	}
 	
 	float InvSafeWeight = 1.0f / max(Accumulation.a, .00001f);
-	OutBentNormal = float4(Accumulation.rgb * InvSafeWeight, CenterValue.w);
+	float AverageLength = Length * InvSafeWeight;
+	float3 AverageBentNormal = Accumulation.rgb * InvSafeWeight;
+	float BentNormalLength = length(AverageBentNormal);
+
+	if (BentNormalLength < AverageLength && BentNormalLength > 0)
+	{
+		// Fixup normal shortening due to weighted average of vectors
+		AverageBentNormal = AverageBentNormal / BentNormalLength * AverageLength;
+	}
+	
+	OutBentNormal = float4(AverageBentNormal, CenterValue.w);
 
 #if SUPPORT_IRRADIANCE
 	OutIrradiance = float4(IrradianceAccumulation * InvSafeWeight, 0);

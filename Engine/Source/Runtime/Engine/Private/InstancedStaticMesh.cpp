@@ -522,6 +522,14 @@ void FInstancedStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const F
 							MeshElement.bUseSelectionOutline = BatchRenderSelection[SelectionGroupIndex];
 							MeshElement.bUseWireframeSelectionColoring = BatchRenderSelection[SelectionGroupIndex];
 
+							if (View->bRenderFirstInstanceOnly)
+							{
+								for (int32 ElementIndex = 0; ElementIndex < MeshElement.Elements.Num(); ElementIndex++)
+								{
+									MeshElement.Elements[ElementIndex].NumInstances = FMath::Min<uint32>(MeshElement.Elements[ElementIndex].NumInstances, 1);
+								}
+							}
+
 							Collector.AddMesh(ViewIndex, MeshElement);
 							INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, MeshElement.GetNumPrimitives());
 						}
@@ -632,7 +640,7 @@ void FInstancedStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolume
 	ObjectLocalToWorldTransforms.Reset();
 
 	const FInstanceStream* InstanceStream = InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetData();
-	FVector4 FourthVector(0, 0, 0, 1);
+	const FVector4 FourthVector(0, 0, 0, 1);
 
 	const uint32 NumInstances = InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 	for (uint32 InstanceIndex = 0; InstanceIndex < NumInstances; InstanceIndex++)
@@ -656,6 +664,43 @@ void FInstancedStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolume
 			(const FPlane&)FourthVector);
 
 		ObjectLocalToWorldTransforms.Add(TransposedInstanceToLocal.GetTransposed() * GetLocalToWorld());
+	}
+}
+
+void FInstancedStaticMeshSceneProxy::GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const
+{
+	NumInstances = DistanceFieldData ? InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetNumInstances() : 0;
+
+	if (NumInstances > 0)
+	{
+		const FInstanceStream* InstanceStream = InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetData();
+		const FVector4 FourthVector(0, 0, 0, 1);
+		const int32 InstanceIndex = 0;
+		const FMatrix TransposedInstanceToLocal(
+			FPlane(
+				InstanceStream[InstanceIndex].InstanceTransform1[0].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceTransform1[1].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceTransform1[2].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceOrigin.X),
+			FPlane(
+				InstanceStream[InstanceIndex].InstanceTransform2[0].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceTransform2[1].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceTransform2[2].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceOrigin.Y),
+			FPlane(
+				InstanceStream[InstanceIndex].InstanceTransform3[0].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceTransform3[1].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceTransform3[2].GetFloat(),
+				InstanceStream[InstanceIndex].InstanceOrigin.Z),
+			(const FPlane&)FourthVector);
+
+		const FMatrix InstanceTransform = TransposedInstanceToLocal.GetTransposed() * GetLocalToWorld();
+		const FVector AxisScales = InstanceTransform.GetScaleVector();
+		const FVector BoxDimensions = RenderData->Bounds.BoxExtent * AxisScales * 2;
+
+		BoundsSurfaceArea = 2 * BoxDimensions.X * BoxDimensions.Y
+			+ 2 * BoxDimensions.Z * BoxDimensions.Y
+			+ 2 * BoxDimensions.X * BoxDimensions.Z;
 	}
 }
 

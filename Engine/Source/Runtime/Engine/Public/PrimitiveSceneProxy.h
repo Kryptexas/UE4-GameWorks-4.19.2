@@ -204,6 +204,12 @@ public:
 		bMeshWasPlane = false;
 	}
 
+	virtual void GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const
+	{
+		NumInstances = 0;
+		BoundsSurfaceArea = 0;
+	}
+
 	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FVector4& OutHeightfieldScaleBias, FVector4& OutMinMaxUV)
 	{
 		OutHeightmapTexture = NULL;

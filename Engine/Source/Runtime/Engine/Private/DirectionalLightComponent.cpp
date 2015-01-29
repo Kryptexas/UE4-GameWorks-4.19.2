@@ -511,18 +511,17 @@ private:
 		}
 	}
 
-	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const
+	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, FVector ViewOrigin, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const
 	{
 		const FMatrix ViewMatrix = View.ShadowViewMatrices.ViewMatrix;
 		const FMatrix ProjectionMatrix = View.ShadowViewMatrices.ProjMatrix;
-		const FVector4 ViewOrigin = View.ShadowViewMatrices.ViewOrigin;
 
 		const FVector CameraDirection = ViewMatrix.GetColumn(2);
 		const FVector LightDirection = -GetDirection();
 
 		// Get FOV and AspectRatio from the view's projection matrix.
 		float AspectRatio = ProjectionMatrix.M[1][1] / ProjectionMatrix.M[0][0];
-		float HalfFOV = (ViewOrigin.W > 0.0f) ? FMath::Atan(1.0f / ProjectionMatrix.M[0][0]) : PI/4.0f;
+		float HalfFOV = View.ShadowViewMatrices.IsPerspectiveProjection() ? FMath::Atan(1.0f / ProjectionMatrix.M[0][0]) : PI/4.0f;
 
 		// Build the camera frustum for this cascade
 		const float StartHorizontalLength = SplitNear * FMath::Tan(HalfFOV);
@@ -638,7 +637,7 @@ private:
 			OutCascadeSettings->FadePlaneLength = SplitFar - FadePlane;
 		}
 
-		const FSphere CascadeSphere = FDirectionalLightSceneProxy::GetShadowSplitBoundsDepthRange(View, SplitNear, SplitFar, OutCascadeSettings);
+		const FSphere CascadeSphere = FDirectionalLightSceneProxy::GetShadowSplitBoundsDepthRange(View, View.ViewMatrices.ViewOrigin, SplitNear, SplitFar, OutCascadeSettings);
 
 		return CascadeSphere;
 	}

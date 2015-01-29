@@ -129,6 +129,11 @@ public:
 		return Code.GetAllocatedSize() + sizeof(FShaderResource);
 	}
 
+	const TArray<uint8>& GetCode() const
+	{
+		return Code;
+	}
+
 	// FRenderResource interface.
 	virtual void InitRHI();
 	virtual void ReleaseRHI();
@@ -381,7 +386,7 @@ public:
 class FMaterial;
 
 /** A compiled shader and its parameter bindings. */
-class SHADERCORE_API FShader : public FDeferredCleanupInterface
+class SHADERCORE_API FShader : public FRenderResource, public FDeferredCleanupInterface
 {
 	friend class FShaderType;
 public:
@@ -477,7 +482,12 @@ public:
 	/** @return the shader's geometry shader */
 	const FGeometryShaderRHIRef& GetGeometryShader()
 	{
-		return Resource->GetGeometryShader();
+		if (!IsInitialized())
+		{
+			InitResourceFromPossiblyParallelRendering();
+		}
+
+		return GeometryShaderWithStreamOutput ? GeometryShaderWithStreamOutput : Resource->GetGeometryShader();
 	}
 	/** @return the shader's compute shader */
 	const FComputeShaderRHIRef& GetComputeShader()
@@ -528,6 +538,13 @@ public:
 
 	// FDeferredCleanupInterface implementation.
 	virtual void FinishCleanup();
+
+	// FRenderResource interface.
+	virtual void InitRHI();
+	virtual void ReleaseRHI();
+
+	/** Implement for geometry shaders that want to use stream out. */
+	virtual void GetStreamOutElements(FStreamOutElementList& ElementList, TArray<uint32>& StreamStrides, int32& RasterizedStream) {}
 
 	void InitializeResource()
 	{
@@ -623,6 +640,8 @@ private:
 
 	/** Reference to the shader resource, which stores the compiled bytecode and the RHI shader resource. */
 	TRefCountPtr<FShaderResource> Resource;
+
+	FGeometryShaderRHIRef GeometryShaderWithStreamOutput;
 
 	/** Hash of the material shader map this shader belongs to, stored so that an FShaderId can be constructed from this shader. */
 	FSHAHash MaterialShaderMapHash;

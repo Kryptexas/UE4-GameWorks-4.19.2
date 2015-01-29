@@ -22,6 +22,14 @@ FAutoConsoleVariableRef CVarDistanceFieldGI(
 	TEXT("r.DistanceFieldGI"),
 	GDistanceFieldGI,
 	TEXT(""),
+	ECVF_Cheat | ECVF_RenderThreadSafe | ECVF_ReadOnly
+	);
+
+int32 GVPLSurfelRepresentation = 1;
+FAutoConsoleVariableRef CVarVPLSurfelRepresentation(
+	TEXT("r.VPLSurfelRepresentation"),
+	GVPLSurfelRepresentation,
+	TEXT(""),
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
@@ -65,8 +73,18 @@ FAutoConsoleVariableRef CVarAOUseConesForGI(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
+int32 GVPLSpreadUpdateOver = 5;
+FAutoConsoleVariableRef CVarVPLSpreadUpdateOver(
+	TEXT("r.VPLSpreadUpdateOver"),
+	GVPLSpreadUpdateOver,
+	TEXT(""),
+	ECVF_Cheat | ECVF_RenderThreadSafe
+	);
+
 TGlobalResource<FVPLResources> GVPLResources;
 TGlobalResource<FVPLResources> GCulledVPLResources;
+
+extern TGlobalResource<FDistanceFieldObjectBufferResource> GShadowCulledObjectBuffers;
 
 class FVPLPlacementCS : public FGlobalShader
 {
@@ -92,7 +110,6 @@ public:
 		: FGlobalShader(Initializer)
 	{
 		VPLParameterBuffer.Bind(Initializer.ParameterMap, TEXT("VPLParameterBuffer"));
-		VPLClusterData.Bind(Initializer.ParameterMap, TEXT("VPLClusterData"));
 		VPLData.Bind(Initializer.ParameterMap, TEXT("VPLData"));
 		InvPlacementGridSize.Bind(Initializer.ParameterMap, TEXT("InvPlacementGridSize"));
 		WorldToShadow.Bind(Initializer.ParameterMap, TEXT("WorldToShadow"));
@@ -117,7 +134,6 @@ public:
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-		extern TGlobalResource<FDistanceFieldObjectBufferResource> GShadowCulledObjectBuffers;
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers);
 
 		SetShaderValue(RHICmdList, ShaderRHI, InvPlacementGridSize, InvPlacementGridSizeValue);
@@ -127,7 +143,6 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, LightColor, LightSceneProxy->GetColor() * LightSceneProxy->GetIndirectLightingScale());
 
 		VPLParameterBuffer.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLParameterBuffer);
-		VPLClusterData.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLClusterData);
 		VPLData.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLData);
 
 		check(TileIntersectionResources || !ShadowTileHeadDataUnpacked.IsBound());
@@ -145,7 +160,6 @@ public:
 	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		VPLParameterBuffer.UnsetUAV(RHICmdList, GetComputeShader());
-		VPLClusterData.UnsetUAV(RHICmdList, GetComputeShader());
 		VPLData.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
@@ -154,7 +168,6 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << VPLParameterBuffer;
-		Ar << VPLClusterData;
 		Ar << VPLData;
 		Ar << InvPlacementGridSize;
 		Ar << WorldToShadow;
@@ -172,7 +185,6 @@ public:
 private:
 
 	FRWShaderParameter VPLParameterBuffer;
-	FRWShaderParameter VPLClusterData;
 	FRWShaderParameter VPLData;
 	FShaderParameter InvPlacementGridSize;
 	FShaderParameter WorldToShadow;
@@ -248,7 +260,6 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FSetupVPLCullndirectArgumentsCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("SetupVPLCullndirectArgumentsCS"),SF_Compute);
 
-
 class FCullVPLsForViewCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FCullVPLsForViewCS,Global)
@@ -270,10 +281,8 @@ public:
 		: FGlobalShader(Initializer)
 	{
 		VPLParameterBuffer.Bind(Initializer.ParameterMap, TEXT("VPLParameterBuffer"));
-		VPLClusterData.Bind(Initializer.ParameterMap, TEXT("VPLClusterData"));
 		VPLData.Bind(Initializer.ParameterMap, TEXT("VPLData"));
 		CulledVPLParameterBuffer.Bind(Initializer.ParameterMap, TEXT("CulledVPLParameterBuffer"));
-		CulledVPLClusterData.Bind(Initializer.ParameterMap, TEXT("CulledVPLClusterData"));
 		CulledVPLData.Bind(Initializer.ParameterMap, TEXT("CulledVPLData"));
 		AOParameters.Bind(Initializer.ParameterMap);
 		NumConvexHullPlanes.Bind(Initializer.ParameterMap, TEXT("NumConvexHullPlanes"));
@@ -290,12 +299,10 @@ public:
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
 		CulledVPLParameterBuffer.SetBuffer(RHICmdList, ShaderRHI, GCulledVPLResources.VPLParameterBuffer);
-		CulledVPLClusterData.SetBuffer(RHICmdList, ShaderRHI, GCulledVPLResources.VPLClusterData);
 		CulledVPLData.SetBuffer(RHICmdList, ShaderRHI, GCulledVPLResources.VPLData);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 
 		SetSRVParameter(RHICmdList, ShaderRHI, VPLParameterBuffer, GVPLResources.VPLParameterBuffer.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, VPLClusterData, GVPLResources.VPLClusterData.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, VPLData, GVPLResources.VPLData.SRV);
 
 		// Shader assumes max 6
@@ -307,7 +314,6 @@ public:
 	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		CulledVPLParameterBuffer.UnsetUAV(RHICmdList, GetComputeShader());
-		CulledVPLClusterData.UnsetUAV(RHICmdList, GetComputeShader());
 		CulledVPLData.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
@@ -315,10 +321,8 @@ public:
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << VPLParameterBuffer;
-		Ar << VPLClusterData;
 		Ar << VPLData;
 		Ar << CulledVPLParameterBuffer;
-		Ar << CulledVPLClusterData;
 		Ar << CulledVPLData;
 		Ar << AOParameters;
 		Ar << NumConvexHullPlanes;
@@ -329,10 +333,8 @@ public:
 private:
 
 	FShaderResourceParameter VPLParameterBuffer;
-	FShaderResourceParameter VPLClusterData;
 	FShaderResourceParameter VPLData;
 	FRWShaderParameter CulledVPLParameterBuffer;
-	FRWShaderParameter CulledVPLClusterData;
 	FRWShaderParameter CulledVPLData;
 	FAOParameters AOParameters;
 	FShaderParameter NumConvexHullPlanes;
@@ -340,289 +342,6 @@ private:
 };
 
 IMPLEMENT_SHADER_TYPE(,FCullVPLsForViewCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("CullVPLsForViewCS"),SF_Compute);
-
-
-/**  */
-class FVPLTileCullCS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FVPLTileCullCS,Global)
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GDistanceFieldAOTileSizeX);
-		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GDistanceFieldAOTileSizeY);
-		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
-	}
-
-	FVPLTileCullCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		AOParameters.Bind(Initializer.ParameterMap);
-		TileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("TileHeadDataUnpacked"));
-		TileArrayData.Bind(Initializer.ParameterMap, TEXT("TileArrayData"));
-		VPLParameterBuffer.Bind(Initializer.ParameterMap, TEXT("VPLParameterBuffer"));
-		VPLClusterData.Bind(Initializer.ParameterMap, TEXT("VPLClusterData"));
-		TileConeAxisAndCos.Bind(Initializer.ParameterMap, TEXT("TileConeAxisAndCos"));
-		TileConeDepthRanges.Bind(Initializer.ParameterMap, TEXT("TileConeDepthRanges"));
-		NumGroups.Bind(Initializer.ParameterMap, TEXT("NumGroups"));
-	}
-
-	FVPLTileCullCS()
-	{
-	}
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FScene* Scene, const FDistanceFieldAOParameters& Parameters, const FVPLResources& VPLResources)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
-
-		FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
-		FVPLTileIntersectionResources* VPLTileIntersectionResources = ((FSceneViewState*)View.State)->VPLTileIntersectionResources;
-
-		TileHeadDataUnpacked.SetBuffer(RHICmdList, ShaderRHI, VPLTileIntersectionResources->TileHeadDataUnpacked);
-		TileArrayData.SetBuffer(RHICmdList, ShaderRHI, VPLTileIntersectionResources->TileArrayData);
-
-		SetSRVParameter(RHICmdList, ShaderRHI, VPLParameterBuffer, VPLResources.VPLParameterBuffer.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, VPLClusterData, VPLResources.VPLClusterData.SRV);
-
-		SetSRVParameter(RHICmdList, ShaderRHI, TileConeAxisAndCos, TileIntersectionResources->TileConeAxisAndCos.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, TileConeDepthRanges, TileIntersectionResources->TileConeDepthRanges.SRV);
-	
-		SetShaderValue(RHICmdList, ShaderRHI, NumGroups, VPLTileIntersectionResources->TileDimensions);
-	}
-
-	void UnsetParameters(FRHICommandList& RHICmdList)
-	{
-		TileHeadDataUnpacked.UnsetUAV(RHICmdList, GetComputeShader());
-		TileArrayData.UnsetUAV(RHICmdList, GetComputeShader());
-	}
-
-	virtual bool Serialize(FArchive& Ar)
-	{		
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << AOParameters;
-		Ar << TileHeadDataUnpacked;
-		Ar << TileArrayData;
-		Ar << VPLParameterBuffer;
-		Ar << VPLClusterData;
-		Ar << TileConeAxisAndCos;
-		Ar << TileConeDepthRanges;
-		Ar << NumGroups;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FAOParameters AOParameters;
-	FRWShaderParameter TileHeadDataUnpacked;
-	FRWShaderParameter TileArrayData;
-	FShaderResourceParameter VPLParameterBuffer;
-	FShaderResourceParameter VPLClusterData;
-	FShaderResourceParameter TileConeAxisAndCos;
-	FShaderResourceParameter TileConeDepthRanges;
-	FShaderParameter NumGroups;
-};
-
-IMPLEMENT_SHADER_TYPE(,FVPLTileCullCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("VPLTileCullCS"),SF_Compute);
-
-
-enum EComputeIrradianceMode
-{
-	IrradianceMode_IrradianceFromAOCones,
-	IrradianceMode_IrradianceFinalGather
-};
-
-template<EComputeIrradianceMode CombineMode>
-class TComputeIrradianceCS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(TComputeIrradianceCS,Global)
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("NUM_CONE_DIRECTIONS"), NumConeSampleDirections);
-		OutEnvironment.SetDefine(TEXT("IRRADIANCE_FROM_AO_CONES"), CombineMode == IrradianceMode_IrradianceFromAOCones ? TEXT("1") : TEXT("0"));
-
-		// To reduce shader compile time of compute shaders with shared memory, doesn't have an impact on generated code with current compiler (June 2010 DX SDK)
-		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
-	}
-
-	TComputeIrradianceCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		AOParameters.Bind(Initializer.ParameterMap);
-		IrradianceCacheIrradiance.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheIrradiance"));
-		IrradianceCachePositionRadius.Bind(Initializer.ParameterMap, TEXT("IrradianceCachePositionRadius"));
-		IrradianceCacheNormal.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheNormal"));
-		IrradianceCacheTileCoordinate.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheTileCoordinate"));
-		RecordConeData.Bind(Initializer.ParameterMap, TEXT("RecordConeData"));
-		ScatterDrawParameters.Bind(Initializer.ParameterMap, TEXT("ScatterDrawParameters"));
-		SavedStartIndex.Bind(Initializer.ParameterMap, TEXT("SavedStartIndex"));
-		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
-		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
-		GlobalObjectParameters.Bind(Initializer.ParameterMap);
-		VPLParameterBuffer.Bind(Initializer.ParameterMap, TEXT("VPLParameterBuffer"));
-		VPLClusterData.Bind(Initializer.ParameterMap, TEXT("VPLClusterData"));
-		VPLData.Bind(Initializer.ParameterMap, TEXT("VPLData"));
-		VPLGatherRadius.Bind(Initializer.ParameterMap, TEXT("VPLGatherRadius"));
-		ConeHalfAngle.Bind(Initializer.ParameterMap, TEXT("ConeHalfAngle"));
-		BentNormalNormalizeFactor.Bind(Initializer.ParameterMap, TEXT("BentNormalNormalizeFactor"));
-		TileListGroupSize.Bind(Initializer.ParameterMap, TEXT("TileListGroupSize"));
-		TileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("TileHeadDataUnpacked"));
-		TileArrayData.Bind(Initializer.ParameterMap, TEXT("TileArrayData"));
-	}
-
-	TComputeIrradianceCS()
-	{
-	}
-
-	void SetParameters(
-		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
-		int32 DepthLevel, 
-		const FDistanceFieldAOParameters& Parameters,
-		FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCachePositionRadius, SurfaceCacheResources.Level[DepthLevel]->PositionAndRadius.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheNormal, SurfaceCacheResources.Level[DepthLevel]->Normal.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheTileCoordinate, SurfaceCacheResources.Level[DepthLevel]->TileCoordinate.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeData, TemporaryIrradianceCacheResources->ConeData.SRV);
-
-		IrradianceCacheIrradiance.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->Irradiance);
-
-		FAOSampleData2 AOSampleData;
-
-		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
-
-		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
-		{
-			AOSampleData.SampleDirections[SampleIndex] = FVector4(SampleDirections[SampleIndex]);
-		}
-
-		SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, GetUniformBufferParameter<FAOSampleData2>(), AOSampleData);
-
-		FVector UnoccludedVector(0);
-
-		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
-		{
-			UnoccludedVector += SampleDirections[SampleIndex];
-		}
-
-		float BentNormalNormalizeFactorValue = 1.0f / (UnoccludedVector / NumConeSampleDirections).Size();
-		SetShaderValue(RHICmdList, ShaderRHI, BentNormalNormalizeFactor, BentNormalNormalizeFactorValue);
-
-		GlobalObjectParameters.Set(RHICmdList, ShaderRHI, *(Scene->DistanceFieldSceneData.ObjectBuffers), Scene->DistanceFieldSceneData.NumObjectsInBuffer);
-
-		FVPLResources& SourceVPLResources = GVPLViewCulling ? GCulledVPLResources : GVPLResources;
-		SetSRVParameter(RHICmdList, ShaderRHI, VPLParameterBuffer, SourceVPLResources.VPLParameterBuffer.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, VPLClusterData, SourceVPLResources.VPLClusterData.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, VPLData, SourceVPLResources.VPLData.SRV);
-
-		SetShaderValue(RHICmdList, ShaderRHI, VPLGatherRadius, Parameters.OcclusionMaxDistance);
-		extern float GAOConeHalfAngle;
-		SetShaderValue(RHICmdList, ShaderRHI, ConeHalfAngle, GAOConeHalfAngle);
-
-		FVPLTileIntersectionResources* VPLTileIntersectionResources = ((FSceneViewState*)View.State)->VPLTileIntersectionResources;
-
-		SetShaderValue(RHICmdList, ShaderRHI, TileListGroupSize, VPLTileIntersectionResources->TileDimensions);
-		SetSRVParameter(RHICmdList, ShaderRHI, TileHeadDataUnpacked, VPLTileIntersectionResources->TileHeadDataUnpacked.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, TileArrayData, VPLTileIntersectionResources->TileArrayData.SRV);
-	}
-
-	void UnsetParameters(FRHICommandList& RHICmdList)
-	{
-		IrradianceCacheIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
-	}
-
-	virtual bool Serialize(FArchive& Ar)
-	{		
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << AOParameters;
-		Ar << IrradianceCacheIrradiance;
-		Ar << IrradianceCachePositionRadius;
-		Ar << IrradianceCacheNormal;
-		Ar << IrradianceCacheTileCoordinate;
-		Ar << RecordConeData;
-		Ar << ScatterDrawParameters;
-		Ar << SavedStartIndex;
-		Ar << DistanceFieldNormalTexture;
-		Ar << DistanceFieldNormalSampler;
-		Ar << GlobalObjectParameters;
-		Ar << VPLParameterBuffer;
-		Ar << VPLClusterData;
-		Ar << VPLData;
-		Ar << VPLGatherRadius;
-		Ar << ConeHalfAngle;
-		Ar << BentNormalNormalizeFactor;
-		Ar << TileListGroupSize;
-		Ar << TileHeadDataUnpacked;
-		Ar << TileArrayData;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FAOParameters AOParameters;
-	FRWShaderParameter IrradianceCacheIrradiance;
-	FShaderResourceParameter IrradianceCachePositionRadius;
-	FShaderResourceParameter IrradianceCacheNormal;
-	FShaderResourceParameter IrradianceCacheTileCoordinate;
-	FShaderResourceParameter RecordConeData;
-	FShaderResourceParameter ScatterDrawParameters;
-	FShaderResourceParameter SavedStartIndex;
-	FShaderResourceParameter DistanceFieldNormalTexture;
-	FShaderResourceParameter DistanceFieldNormalSampler;
-	FDistanceFieldObjectBufferParameters GlobalObjectParameters;
-	FShaderResourceParameter VPLParameterBuffer;
-	FShaderResourceParameter VPLClusterData;
-	FShaderResourceParameter VPLData;
-	FShaderParameter VPLGatherRadius;
-	FShaderParameter ConeHalfAngle;
-	FShaderParameter BentNormalNormalizeFactor;
-	FShaderParameter TileListGroupSize;
-	FShaderResourceParameter TileHeadDataUnpacked;
-	FShaderResourceParameter TileArrayData;
-};
-
-IMPLEMENT_SHADER_TYPE(template<>,TComputeIrradianceCS<IrradianceMode_IrradianceFromAOCones>,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeIrradianceCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TComputeIrradianceCS<IrradianceMode_IrradianceFinalGather>,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeIrradianceCS"),SF_Compute);
-
-// Must match usf
-const int32 MaxVPLsPerTile = 1024;
-
-void FVPLTileIntersectionResources::InitDynamicRHI()
-{
-	TileHeadDataUnpacked.Initialize(sizeof(uint32), TileDimensions.X * TileDimensions.Y * 2, PF_R32_UINT, BUF_Static);
-
-	//@todo - handle max exceeded
-	TileArrayData.Initialize(sizeof(uint32), MaxVPLsPerTile * TileDimensions.X * TileDimensions.Y, PF_R32_UINT, BUF_Static);
-	TileArrayNextAllocation.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
-}
 
 TScopedPointer<FLightTileIntersectionResources> GVPLPlacementTileIntersectionResources;
 
@@ -636,33 +355,6 @@ void PlaceVPLs(
 
 	uint32 ClearValues[4] = { 0 };
 	RHICmdList.ClearUAV(GVPLResources.VPLParameterBuffer.UAV, ClearValues);
-
-	FVPLTileIntersectionResources*& VPLTileIntersectionResources = ((FSceneViewState*)View.State)->VPLTileIntersectionResources;
-
-	{
-		uint32 GroupSizeX = (View.ViewRect.Size().X / GAODownsampleFactor + GDistanceFieldAOTileSizeX - 1) / GDistanceFieldAOTileSizeX;
-		uint32 GroupSizeY = (View.ViewRect.Size().Y / GAODownsampleFactor + GDistanceFieldAOTileSizeY - 1) / GDistanceFieldAOTileSizeY;
-
-		if (!VPLTileIntersectionResources || VPLTileIntersectionResources->TileDimensions != FIntPoint(GroupSizeX, GroupSizeY))
-		{
-			if (VPLTileIntersectionResources)
-			{
-				VPLTileIntersectionResources->ReleaseResource();
-			}
-			else
-			{
-				VPLTileIntersectionResources = new FVPLTileIntersectionResources();
-			}
-
-			VPLTileIntersectionResources->TileDimensions = FIntPoint(GroupSizeX, GroupSizeY);
-
-			VPLTileIntersectionResources->InitResource();
-		}
-
-		// Indicates the clear value for each channel of the UAV format
-		uint32 ClearValues[4] = { 0 };
-		RHICmdList.ClearUAV(VPLTileIntersectionResources->TileHeadDataUnpacked.UAV, ClearValues);
-	}
 
 	const FLightSceneProxy* DirectionalLightProxy = NULL;
 
@@ -699,6 +391,7 @@ void PlaceVPLs(
 			{
 				ShadowBounds = DirectionalLightProxy->GetShadowSplitBoundsDepthRange(
 					View, 
+					View.ViewMatrices.ViewOrigin,
 					View.NearClippingDistance, 
 					GVPLPlacementCameraRadius, 
 					&CascadeSettings);
@@ -771,6 +464,7 @@ void PlaceVPLs(
 				const float MaxSubjectZ = WorldToFace.TransformPosition(SubjectBounds.Center).Z + SubjectBounds.W;
 				const float MinSubjectZ = FMath::Max(MaxSubjectZ - SubjectBounds.W * 2, (float)-HALF_WORLD_MAX);
 
+				//@todo - naming is wrong and maybe derived matrices
 				DirectionalLightShadowToWorld = FTranslationMatrix(-ShadowBounds.Center) * WorldToFace * FShadowProjectionMatrix(MinSubjectZ, MaxSubjectZ, FVector4(0,0,0,1));
 
 				GetViewFrustumBounds(FrustumVolume, DirectionalLightShadowToWorld, true);
@@ -828,18 +522,589 @@ void PlaceVPLs(
 				ComputeShader->UnsetParameters(RHICmdList);
 			}
 		}
-		/*
+	}
+}
+
+const int32 LightVPLsThreadGroupSize = 64;
+
+class FSetupLightVPLsIndirectArgumentsCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FSetupLightVPLsIndirectArgumentsCS,Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("LIGHT_VPLS_THREADGROUP_SIZE"), LightVPLsThreadGroupSize);
+	}
+
+	FSetupLightVPLsIndirectArgumentsCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		DispatchParameters.Bind(Initializer.ParameterMap, TEXT("DispatchParameters"));
+		ObjectParameters.Bind(Initializer.ParameterMap);
+		ObjectProcessStride.Bind(Initializer.ParameterMap, TEXT("ObjectProcessStride"));
+	}
+
+	FSetupLightVPLsIndirectArgumentsCS()
+	{
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+
+		DispatchParameters.SetBuffer(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
+
+		SetShaderValue(RHICmdList, ShaderRHI, ObjectProcessStride, GVPLSpreadUpdateOver);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList)
+	{
+		DispatchParameters.UnsetUAV(RHICmdList, GetComputeShader());
+	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{		
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << DispatchParameters;
+		Ar << ObjectParameters;
+		Ar << ObjectProcessStride;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FRWShaderParameter DispatchParameters;
+	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
+	FShaderParameter ObjectProcessStride;
+};
+
+IMPLEMENT_SHADER_TYPE(,FSetupLightVPLsIndirectArgumentsCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("SetupLightVPLsIndirectArgumentsCS"),SF_Compute);
+
+class FLightVPLsCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FLightVPLsCS, Global);
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("LIGHT_VPLS_THREADGROUP_SIZE"), LightVPLsThreadGroupSize);
+	}
+
+	/** Default constructor. */
+	FLightVPLsCS() {}
+
+	/** Initialization constructor. */
+	FLightVPLsCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		AOParameters.Bind(Initializer.ParameterMap);
+		LightDirection.Bind(Initializer.ParameterMap, TEXT("LightDirection"));
+		LightSourceRadius.Bind(Initializer.ParameterMap, TEXT("LightSourceRadius"));
+		LightPositionAndInvRadius.Bind(Initializer.ParameterMap, TEXT("LightPositionAndInvRadius"));
+		TanLightAngleAndNormalThreshold.Bind(Initializer.ParameterMap, TEXT("TanLightAngleAndNormalThreshold"));
+		LightColor.Bind(Initializer.ParameterMap, TEXT("LightColor"));
+		ObjectParameters.Bind(Initializer.ParameterMap);
+		SurfelParameters.Bind(Initializer.ParameterMap);
+		ShadowTileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("ShadowTileHeadDataUnpacked"));
+		ShadowTileArrayData.Bind(Initializer.ParameterMap, TEXT("ShadowTileArrayData"));
+		ShadowTileListGroupSize.Bind(Initializer.ParameterMap, TEXT("ShadowTileListGroupSize"));
+		WorldToShadow.Bind(Initializer.ParameterMap, TEXT("WorldToShadow"));
+		ShadowCulledObjectBounds.Bind(Initializer.ParameterMap, TEXT("ShadowCulledObjectBounds"));
+		ShadowCulledObjectData.Bind(Initializer.ParameterMap, TEXT("ShadowCulledObjectData"));
+		ObjectProcessStride.Bind(Initializer.ParameterMap, TEXT("ObjectProcessStride"));
+		ObjectProcessStartIndex.Bind(Initializer.ParameterMap, TEXT("ObjectProcessStartIndex"));
+	}
+
+	void SetParameters(
+		FRHICommandList& RHICmdList, 
+		const FSceneView& View, 
+		const FLightSceneProxy* LightSceneProxy,
+		const FMatrix& WorldToShadowMatrixValue,
+		const FDistanceFieldAOParameters& Parameters,
+		FLightTileIntersectionResources* TileIntersectionResources)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
+
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
+		SurfelParameters.Set(RHICmdList, ShaderRHI, *Scene->DistanceFieldSceneData.SurfelBuffers, *Scene->DistanceFieldSceneData.InstancedSurfelBuffers);
+
+		FVector4 LightPositionAndInvRadiusValue;
+		FVector4 LightColorAndFalloffExponent;
+		FVector NormalizedLightDirection;
+		FVector2D SpotAngles;
+		float LightSourceRadiusValue;
+		float LightSourceLength;
+		float LightMinRoughness;
+
+		LightSceneProxy->GetParameters(LightPositionAndInvRadiusValue, LightColorAndFalloffExponent, NormalizedLightDirection, SpotAngles, LightSourceRadiusValue, LightSourceLength, LightMinRoughness);
+
+		SetShaderValue(RHICmdList, ShaderRHI, LightDirection, NormalizedLightDirection);
+		SetShaderValue(RHICmdList, ShaderRHI, LightPositionAndInvRadius, LightPositionAndInvRadiusValue);
+		// Default light source radius of 0 gives poor results
+		SetShaderValue(RHICmdList, ShaderRHI, LightSourceRadius, LightSourceRadiusValue == 0 ? 20 : FMath::Clamp(LightSourceRadiusValue, .001f, 1.0f / (4 * LightPositionAndInvRadiusValue.W)));
+
+		const float LightSourceAngle = FMath::Clamp(LightSceneProxy->GetLightSourceAngle(), 0.001f, 5.0f) * PI / 180.0f;
+		const FVector2D TanLightAngleAndNormalThresholdValue(FMath::Tan(LightSourceAngle), FMath::Cos(PI / 2 + LightSourceAngle));
+		SetShaderValue(RHICmdList, ShaderRHI, TanLightAngleAndNormalThreshold, TanLightAngleAndNormalThresholdValue);
+		SetShaderValue(RHICmdList, ShaderRHI, LightColor, LightSceneProxy->GetColor() * LightSceneProxy->GetIndirectLightingScale());
+
+		check(TileIntersectionResources || !ShadowTileHeadDataUnpacked.IsBound());
+
+		if (TileIntersectionResources)
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, TileCulling);
+			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
+			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileArrayData, TileIntersectionResources->TileArrayData.SRV);
+			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileListGroupSize, TileIntersectionResources->TileDimensions);
+		}
 
-			TShaderMapRef<FVPLTileCullCS> ComputeShader(View.ShaderMap);
+		SetShaderValue(RHICmdList, ShaderRHI, WorldToShadow, WorldToShadowMatrixValue);
 
-			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, Scene, Parameters, GVPLViewCulling ? GCulledVPLResources : GVPLResources);
-			DispatchComputeShader(RHICmdList, *ComputeShader, VPLTileIntersectionResources->TileDimensions.X, VPLTileIntersectionResources->TileDimensions.Y, 1);
+		SetSRVParameter(RHICmdList, ShaderRHI, ShadowCulledObjectBounds, GShadowCulledObjectBuffers.Buffers.Bounds.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, ShadowCulledObjectData, GShadowCulledObjectBuffers.Buffers.Data.SRV);
 
-			ComputeShader->UnsetParameters(RHICmdList);
-		}*/
+		SetShaderValue(RHICmdList, ShaderRHI, ObjectProcessStride, GVPLSpreadUpdateOver);
+		SetShaderValue(RHICmdList, ShaderRHI, ObjectProcessStartIndex, GFrameNumberRenderThread % GVPLSpreadUpdateOver);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList)
+	{
+		SurfelParameters.UnsetParameters(RHICmdList, GetComputeShader());
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar)
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << AOParameters;
+		Ar << LightDirection;
+		Ar << LightPositionAndInvRadius;
+		Ar << LightSourceRadius;
+		Ar << TanLightAngleAndNormalThreshold;
+		Ar << LightColor;
+		Ar << ObjectParameters;
+		Ar << SurfelParameters;
+		Ar << ShadowTileHeadDataUnpacked;
+		Ar << ShadowTileArrayData;
+		Ar << ShadowTileListGroupSize;
+		Ar << WorldToShadow;
+		Ar << ShadowCulledObjectBounds;
+		Ar << ShadowCulledObjectData;
+		Ar << ObjectProcessStride;
+		Ar << ObjectProcessStartIndex;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FAOParameters AOParameters;
+	FShaderParameter LightDirection;
+	FShaderParameter LightPositionAndInvRadius;
+	FShaderParameter LightSourceRadius;
+	FShaderParameter TanLightAngleAndNormalThreshold;
+	FShaderParameter LightColor;
+	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
+	FSurfelBufferParameters SurfelParameters;
+	FShaderResourceParameter ShadowTileHeadDataUnpacked;
+	FShaderResourceParameter ShadowTileArrayData;
+	FShaderParameter ShadowTileListGroupSize;
+	FShaderParameter WorldToShadow;
+	FShaderResourceParameter ShadowCulledObjectBounds;
+	FShaderResourceParameter ShadowCulledObjectData;
+	FShaderParameter ObjectProcessStride;
+	FShaderParameter ObjectProcessStartIndex;
+};
+
+IMPLEMENT_SHADER_TYPE(,FLightVPLsCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("LightVPLsCS"),SF_Compute);
+
+
+class FComputeStepBentNormalCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FComputeStepBentNormalCS,Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("NUM_CONE_DIRECTIONS"), NumConeSampleDirections);
+	}
+
+	FComputeStepBentNormalCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		StepBentNormal.Bind(Initializer.ParameterMap, TEXT("StepBentNormal"));
+		IrradianceCacheNormal.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheNormal"));
+		RecordConeData.Bind(Initializer.ParameterMap, TEXT("RecordConeData"));
+		ScatterDrawParameters.Bind(Initializer.ParameterMap, TEXT("ScatterDrawParameters"));
+		SavedStartIndex.Bind(Initializer.ParameterMap, TEXT("SavedStartIndex"));
+		BentNormalNormalizeFactor.Bind(Initializer.ParameterMap, TEXT("BentNormalNormalizeFactor"));
+	}
+
+	FComputeStepBentNormalCS()
+	{
+	}
+
+	void SetParameters(
+		FRHICommandList& RHICmdList, 
+		const FSceneView& View, 
+		int32 DepthLevel, 
+		FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
+
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheNormal, SurfaceCacheResources.Level[DepthLevel]->Normal.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeData, TemporaryIrradianceCacheResources->ConeData.SRV);
+
+		StepBentNormal.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->StepBentNormal);
+
+		FAOSampleData2 AOSampleData;
+
+		TArray<FVector, TInlineAllocator<9> > SampleDirections;
+		GetSpacedVectors(SampleDirections);
+
+		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
+		{
+			AOSampleData.SampleDirections[SampleIndex] = FVector4(SampleDirections[SampleIndex]);
+		}
+
+		SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, GetUniformBufferParameter<FAOSampleData2>(), AOSampleData);
+
+		FVector UnoccludedVector(0);
+
+		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
+		{
+			UnoccludedVector += SampleDirections[SampleIndex];
+		}
+
+		float BentNormalNormalizeFactorValue = 1.0f / (UnoccludedVector / NumConeSampleDirections).Size();
+		SetShaderValue(RHICmdList, ShaderRHI, BentNormalNormalizeFactor, BentNormalNormalizeFactorValue);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList)
+	{
+		StepBentNormal.UnsetUAV(RHICmdList, GetComputeShader());
+	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{		
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << StepBentNormal;
+		Ar << IrradianceCacheNormal;
+		Ar << RecordConeData;
+		Ar << ScatterDrawParameters;
+		Ar << SavedStartIndex;
+		Ar << BentNormalNormalizeFactor;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FRWShaderParameter StepBentNormal;
+	FShaderResourceParameter IrradianceCacheNormal;
+	FShaderResourceParameter RecordConeData;
+	FShaderResourceParameter ScatterDrawParameters;
+	FShaderResourceParameter SavedStartIndex;
+	FShaderParameter BentNormalNormalizeFactor;
+};
+
+IMPLEMENT_SHADER_TYPE(,FComputeStepBentNormalCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeStepBentNormalCS"),SF_Compute);
+
+enum EVPLMode
+{
+	VPLMode_PlaceFromLight,
+	VPLMode_PlaceFromSurfels
+};
+
+template<EVPLMode VPLMode>
+class TComputeIrradianceCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(TComputeIrradianceCS,Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("NUM_CONE_DIRECTIONS"), NumConeSampleDirections);
+		OutEnvironment.SetDefine(TEXT("IRRADIANCE_FROM_SURFELS"), VPLMode == VPLMode_PlaceFromSurfels ? TEXT("1") : TEXT("0"));
+
+		// To reduce shader compile time of compute shaders with shared memory, doesn't have an impact on generated code with current compiler (June 2010 DX SDK)
+		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
+	}
+
+	TComputeIrradianceCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		AOParameters.Bind(Initializer.ParameterMap);
+		IrradianceCacheIrradiance.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheIrradiance"));
+		IrradianceCachePositionRadius.Bind(Initializer.ParameterMap, TEXT("IrradianceCachePositionRadius"));
+		IrradianceCacheNormal.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheNormal"));
+		IrradianceCacheTileCoordinate.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheTileCoordinate"));
+		ScatterDrawParameters.Bind(Initializer.ParameterMap, TEXT("ScatterDrawParameters"));
+		SavedStartIndex.Bind(Initializer.ParameterMap, TEXT("SavedStartIndex"));
+		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
+		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
+		GlobalObjectParameters.Bind(Initializer.ParameterMap);
+		ObjectParameters.Bind(Initializer.ParameterMap);
+		SurfelParameters.Bind(Initializer.ParameterMap);
+		VPLParameterBuffer.Bind(Initializer.ParameterMap, TEXT("VPLParameterBuffer"));
+		VPLData.Bind(Initializer.ParameterMap, TEXT("VPLData"));
+		VPLGatherRadius.Bind(Initializer.ParameterMap, TEXT("VPLGatherRadius"));
+		TileListGroupSize.Bind(Initializer.ParameterMap, TEXT("TileListGroupSize"));
+		TileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("TileHeadDataUnpacked"));
+		TileArrayData.Bind(Initializer.ParameterMap, TEXT("TileArrayData"));
+		StepBentNormalBuffer.Bind(Initializer.ParameterMap, TEXT("StepBentNormalBuffer"));
+	}
+
+	TComputeIrradianceCS()
+	{
+	}
+
+	void SetParameters(
+		FRHICommandList& RHICmdList, 
+		const FSceneView& View, 
+		int32 DepthLevel, 
+		const FDistanceFieldAOParameters& Parameters,
+		FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+
+		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
+
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
+
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCachePositionRadius, SurfaceCacheResources.Level[DepthLevel]->PositionAndRadius.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheNormal, SurfaceCacheResources.Level[DepthLevel]->Normal.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheTileCoordinate, SurfaceCacheResources.Level[DepthLevel]->TileCoordinate.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
+
+		IrradianceCacheIrradiance.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->Irradiance);
+
+		GlobalObjectParameters.Set(RHICmdList, ShaderRHI, *Scene->DistanceFieldSceneData.ObjectBuffers, Scene->DistanceFieldSceneData.NumObjectsInBuffer);
+		extern TGlobalResource<FDistanceFieldObjectBufferResource> GAOCulledObjectBuffers;
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
+		SurfelParameters.Set(RHICmdList, ShaderRHI, *Scene->DistanceFieldSceneData.SurfelBuffers, *Scene->DistanceFieldSceneData.InstancedSurfelBuffers);
+
+		FVPLResources& SourceVPLResources = GVPLViewCulling ? GCulledVPLResources : GVPLResources;
+		SetSRVParameter(RHICmdList, ShaderRHI, VPLParameterBuffer, SourceVPLResources.VPLParameterBuffer.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, VPLData, SourceVPLResources.VPLData.SRV);
+
+		SetShaderValue(RHICmdList, ShaderRHI, VPLGatherRadius, Parameters.OcclusionMaxDistance);
+
+		FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
+
+		SetSRVParameter(RHICmdList, ShaderRHI, TileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, TileArrayData, TileIntersectionResources->TileArrayData.SRV);
+		SetShaderValue(RHICmdList, ShaderRHI, TileListGroupSize, TileIntersectionResources->TileDimensions);
+
+		SetSRVParameter(RHICmdList, ShaderRHI, StepBentNormalBuffer, TemporaryIrradianceCacheResources->StepBentNormal.SRV);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList)
+	{
+		IrradianceCacheIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
+	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{		
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << AOParameters;
+		Ar << IrradianceCacheIrradiance;
+		Ar << IrradianceCachePositionRadius;
+		Ar << IrradianceCacheNormal;
+		Ar << IrradianceCacheTileCoordinate;
+		Ar << ScatterDrawParameters;
+		Ar << SavedStartIndex;
+		Ar << DistanceFieldNormalTexture;
+		Ar << DistanceFieldNormalSampler;
+		Ar << GlobalObjectParameters;
+		Ar << ObjectParameters;
+		Ar << SurfelParameters;
+		Ar << VPLParameterBuffer;
+		Ar << VPLData;
+		Ar << VPLGatherRadius;
+		Ar << TileListGroupSize;
+		Ar << TileHeadDataUnpacked;
+		Ar << TileArrayData;
+		Ar << StepBentNormalBuffer;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FAOParameters AOParameters;
+	FRWShaderParameter IrradianceCacheIrradiance;
+	FShaderResourceParameter IrradianceCachePositionRadius;
+	FShaderResourceParameter IrradianceCacheNormal;
+	FShaderResourceParameter IrradianceCacheTileCoordinate;
+	FShaderResourceParameter ScatterDrawParameters;
+	FShaderResourceParameter SavedStartIndex;
+	FShaderResourceParameter DistanceFieldNormalTexture;
+	FShaderResourceParameter DistanceFieldNormalSampler;
+	FDistanceFieldObjectBufferParameters GlobalObjectParameters;
+	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
+	FSurfelBufferParameters SurfelParameters;
+	FShaderResourceParameter VPLParameterBuffer;
+	FShaderResourceParameter VPLData;
+	FShaderParameter VPLGatherRadius;
+	FShaderParameter TileListGroupSize;
+	FShaderResourceParameter TileHeadDataUnpacked;
+	FShaderResourceParameter TileArrayData;
+	FShaderResourceParameter StepBentNormalBuffer;
+};
+
+IMPLEMENT_SHADER_TYPE(template<>,TComputeIrradianceCS<VPLMode_PlaceFromLight>,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeIrradianceCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TComputeIrradianceCS<VPLMode_PlaceFromSurfels>,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeIrradianceCS"),SF_Compute);
+
+void UpdateVPLs(
+	FRHICommandListImmediate& RHICmdList,
+	const FViewInfo& View,
+	const FScene* Scene,
+	const FDistanceFieldAOParameters& Parameters)
+{
+	if (GVPLSurfelRepresentation)
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, UpdateVPLs);
+
+		const FLightSceneProxy* DirectionalLightProxy = NULL;
+
+		for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+		{
+			const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
+			const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+
+			if (LightSceneInfo->ShouldRenderLightViewIndependent() 
+				&& LightSceneInfo->Proxy->GetLightType() == LightType_Directional
+				&& LightSceneInfo->Proxy->CastsDynamicShadow())
+			{
+				DirectionalLightProxy = LightSceneInfo->Proxy;
+				break;
+			}
+		}
+
+		FMatrix DirectionalLightWorldToShadow = FMatrix::Identity;
+
+		if (DirectionalLightProxy)
+		{
+			{
+				int32 NumPlanes = 0;
+				const FPlane* PlaneData = NULL;
+				FVector4 ShadowBoundingSphereValue(0, 0, 0, 0);
+				FShadowCascadeSettings CascadeSettings;
+				FSphere ShadowBounds;
+				FConvexVolume FrustumVolume;
+
+				{
+					const float ConeExpandDistance = Parameters.OcclusionMaxDistance;
+					const float TanHalfFOV = 1.0f / View.ViewMatrices.ProjMatrix.M[0][0];
+					const float VertexPullbackLength = ConeExpandDistance / TanHalfFOV;
+
+					// Pull back cone vertex to contain VPLs outside of the view
+					const FVector ViewConeVertex = View.ViewMatrices.ViewOrigin - View.GetViewDirection() * VertexPullbackLength;
+
+					//@todo - expand by AOMaxDistance
+					ShadowBounds = DirectionalLightProxy->GetShadowSplitBoundsDepthRange(
+						View, 
+						ViewConeVertex,
+						View.NearClippingDistance, 
+						GetMaxAOViewDistance() + VertexPullbackLength + Parameters.OcclusionMaxDistance, 
+						&CascadeSettings); 
+
+					FSphere SubjectBounds(FVector::ZeroVector, ShadowBounds.W);
+
+					const FMatrix& WorldToLight = DirectionalLightProxy->GetWorldToLight();
+					const FMatrix InitializerWorldToLight = FInverseRotationMatrix(FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]).GetSafeNormal().Rotation());
+					const FVector InitializerFaceDirection = FVector(1,0,0);
+
+					FVector	XAxis, YAxis;
+					InitializerFaceDirection.FindBestAxisVectors(XAxis, YAxis);
+					const FMatrix WorldToLightScaled = InitializerWorldToLight * FScaleMatrix(FVector(1.0f,1.0f / SubjectBounds.W,1.0f / SubjectBounds.W));
+					const FMatrix WorldToFace = WorldToLightScaled * FBasisVectorMatrix(-XAxis,YAxis,InitializerFaceDirection.GetSafeNormal(),FVector::ZeroVector);
+
+					NumPlanes = CascadeSettings.ShadowBoundsAccurate.Planes.Num();
+					PlaneData = CascadeSettings.ShadowBoundsAccurate.Planes.GetData();
+
+					DirectionalLightWorldToShadow = FTranslationMatrix(-ShadowBounds.Center) 
+						* WorldToFace 
+						* FShadowProjectionMatrix(-GVPLDirectionalLightTraceDistance / 2, GVPLDirectionalLightTraceDistance / 2, FVector4(0,0,0,1));
+				}
+
+				CullDistanceFieldObjectsForLight(
+					RHICmdList,
+					View,
+					DirectionalLightProxy, 
+					DirectionalLightWorldToShadow,
+					NumPlanes,
+					PlaneData,
+					ShadowBoundingSphereValue,
+					ShadowBounds.W,
+					GVPLPlacementTileIntersectionResources);
+			}
+
+			SCOPED_DRAW_EVENT(RHICmdList, LightVPLs);
+
+			{
+				TShaderMapRef<FSetupLightVPLsIndirectArgumentsCS> ComputeShader(View.ShaderMap);
+				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+				ComputeShader->SetParameters(RHICmdList, View);
+
+				DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
+				ComputeShader->UnsetParameters(RHICmdList);
+			}
+
+			{
+				TShaderMapRef<FLightVPLsCS> ComputeShader(View.ShaderMap);
+				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+				ComputeShader->SetParameters(RHICmdList, View, DirectionalLightProxy, DirectionalLightWorldToShadow, Parameters, GVPLPlacementTileIntersectionResources);
+				DispatchIndirectComputeShader(RHICmdList, *ComputeShader, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch.Buffer, 0);
+				ComputeShader->UnsetParameters(RHICmdList);
+			}
+		}
+		else
+		{
+			uint32 ClearValues[4] = { 0 };
+			RHICmdList.ClearUAV(Scene->DistanceFieldSceneData.InstancedSurfelBuffers->VPLFlux.UAV, ClearValues);
+		}
+	}
+	else
+	{
+		PlaceVPLs(RHICmdList, View, Scene, Parameters);
 	}
 }
 
@@ -851,13 +1116,41 @@ void ComputeIrradianceForSamples(
 	const FDistanceFieldAOParameters& Parameters,
 	FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, ComputeIrradiance);
-
 	FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-	if (GAOUseConesForGI)
+	
 	{
-		TShaderMapRef<TComputeIrradianceCS<IrradianceMode_IrradianceFromAOCones> > ComputeShader(View.ShaderMap);
+		SCOPED_DRAW_EVENT(RHICmdList, ComputeStepBentNormal);
+
+		{	
+			TShaderMapRef<TSetupFinalGatherIndirectArgumentsCS<false> > ComputeShader(View.ShaderMap);
+			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
+			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
+			ComputeShader->UnsetParameters(RHICmdList);
+		}
+
+		{
+			TShaderMapRef<FComputeStepBentNormalCS> ComputeShader(View.ShaderMap);
+			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
+			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
+			ComputeShader->UnsetParameters(RHICmdList);
+		}
+	}
+	
+	{	
+		TShaderMapRef<TSetupFinalGatherIndirectArgumentsCS<true> > ComputeShader(View.ShaderMap);
+		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+		ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
+		DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
+		ComputeShader->UnsetParameters(RHICmdList);
+	}
+	
+	SCOPED_DRAW_EVENT(RHICmdList, ComputeIrradiance);
+	
+	if (GVPLSurfelRepresentation)
+	{
+		TShaderMapRef<TComputeIrradianceCS<VPLMode_PlaceFromSurfels> > ComputeShader(View.ShaderMap);
 
 		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 		ComputeShader->SetParameters(RHICmdList, View, DepthLevel, Parameters, TemporaryIrradianceCacheResources);
@@ -867,12 +1160,22 @@ void ComputeIrradianceForSamples(
 	}
 	else
 	{
-		TShaderMapRef<TComputeIrradianceCS<IrradianceMode_IrradianceFinalGather> > ComputeShader(View.ShaderMap);
+		TShaderMapRef<TComputeIrradianceCS<VPLMode_PlaceFromLight> > ComputeShader(View.ShaderMap);
 
 		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 		ComputeShader->SetParameters(RHICmdList, View, DepthLevel, Parameters, TemporaryIrradianceCacheResources);
 		DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
 		ComputeShader->UnsetParameters(RHICmdList);
+	}
+}
+
+void ListDistanceFieldGIMemory(const FViewInfo& View)
+{
+	const FScene* Scene = (const FScene*)View.Family->Scene;
+
+	if (GVPLPlacementTileIntersectionResources)
+	{
+		UE_LOG(LogTemp, Log, TEXT("   Shadow tile culled objects %.3fMb"), GVPLPlacementTileIntersectionResources->GetSizeBytes() / 1024.0f / 1024.0f);
 	}
 }

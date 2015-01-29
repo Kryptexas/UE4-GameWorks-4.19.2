@@ -144,6 +144,7 @@ RWBuffer<float4> RWCulledObjectBoxBounds;
 uint ObjectBoundingGeometryIndexCount;
 
 groupshared uint NumGroupObjects;
+
 groupshared uint GroupBaseIndex;
 groupshared uint GroupObjectIndices[UPDATEOBJECTS_THREADGROUP_SIZE];
 
@@ -159,8 +160,10 @@ void CopyCulledObjectData(uint DestIndex, uint SourceIndex)
 	UNROLL
 	for (uint VectorIndex = 0; VectorIndex < CULLED_OBJECT_DATA_STRIDE; VectorIndex++)
 	{
+		float4 Data = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + VectorIndex);
+
 		// Note: only copying the first CULLED_OBJECT_DATA_STRIDE of the original object data
-		RWCulledObjectData[DestIndex * CULLED_OBJECT_DATA_STRIDE + VectorIndex] = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + VectorIndex);
+		RWCulledObjectData[DestIndex * CULLED_OBJECT_DATA_STRIDE + VectorIndex] = Data;
 	}
 }
 
@@ -355,11 +358,7 @@ void BuildTileConesMain(
 		RWTileConeAxisAndCos[TileIndex] = float4(TileConeAxis, TileConeAngleCos);
 		RWTileConeDepthRanges[TileIndex] = ConeAxisDepthRanges;
 
-#if COHERENT_OBJECT_LIST_WRITES
 		RWTileHeadDataUnpacked[TileIndex * 4 + 0] = TileIndex;
-#else
-		RWTileHeadDataUnpacked[TileIndex * 4 + 0] = TileIndex * MAX_OBJECTS_PER_TILE;
-#endif
 		RWTileHeadDataUnpacked[TileIndex * 4 + 1] = 0;
 		RWTileHeadDataUnpacked[TileIndex * 4 + 2] = 0;
 		RWTileHeadDataUnpacked[TileIndex * 4 + 3] = 0;
@@ -612,7 +611,7 @@ void PopulateCacheCS(
 	BRANCH
 	if (GBufferData.ShadingModelID > 0
 		&& IrradianceCacheSplat.w < .0001f 
-		&& all(DispatchThreadId.xy < AOBufferSize))
+		&& all((float2)DispatchThreadId.xy < AOBufferSize))
 	{
 		float SceneDepth = CalcSceneDepth(ScreenUV);
 
@@ -631,7 +630,7 @@ void PopulateCacheCS(
 			float3 WorldShadingPosition = OpaqueWorldPosition;
 
 			// For debugging
-			//if (all(DispatchThreadId.xy == uint2(2,1)))
+			//if (all(DispatchThreadId.xy == uint2(4,3)))
 			{
 				// Allocate a new record and store off attributes of the created record
 				int NextSampleIndex;
@@ -641,7 +640,7 @@ void PopulateCacheCS(
 				// Sign of W stores whether the sample was placed on geometry with a distance field representation or not
 				float RadiusSign = GBufferData.HasDistanceFieldRepresentation > 0 ? 1 : -1;
 				CachedIrradianceCachePositionRadius[NextSampleIndex] = float4(WorldShadingPosition, RadiusSign * SceneDepth * CurrentLevelDownsampleFactor * MaxRadiusScale);
-				CachedIrradianceCacheNormal[NextSampleIndex] = float4(WorldNormal, .01f * CurrentLevelDownsampleFactor / 2);
+				CachedIrradianceCacheNormal[NextSampleIndex] = float4(WorldNormal, 0);
 				CachedIrradianceCacheTileCoordinate[NextSampleIndex] = TileCoordinate;
 			}
 		}
@@ -661,7 +660,7 @@ void PopulateCacheCS(
 	{
 		int SampleIndex = BaseRecordIndex + LocalRecordIndex;
 		RWIrradianceCachePositionRadius[SampleIndex] = CachedIrradianceCachePositionRadius[LocalRecordIndex];
-		RWIrradianceCacheNormal[SampleIndex] = float4(CachedIrradianceCacheNormal[LocalRecordIndex].xyz, 0);
+		RWIrradianceCacheNormal[SampleIndex] = CachedIrradianceCacheNormal[LocalRecordIndex];
 		uint2 TileCoordinate = CachedIrradianceCacheTileCoordinate[LocalRecordIndex];
 		RWIrradianceCacheTileCoordinate[SampleIndex] = TileCoordinate;
 	}
@@ -702,7 +701,7 @@ groupshared float3 SharedGatheredLighting[FINAL_GATHER_THREADGROUP_SIZE];
 
 /** Computes ambient occlusion for a surface cache record by cone stepping through the nearby object distance fields. */
 [numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
-void FinalGatherCS(
+void ConeTraceOcclusionCS(
 	uint3 GroupId : SV_GroupID,
 	uint3 DispatchThreadId : SV_DispatchThreadID,
     uint3 GroupThreadId : SV_GroupThreadID) 
@@ -783,8 +782,6 @@ void FinalGatherCS(
 				// Ignore extra threads
 				&& ObjectOffsetIndex < SIMULTANEOUSLY_TRACED_OBJECTS)
 			{
-#if COHERENT_OBJECT_LIST_WRITES
-
 				uint ListIndex = 0;
 				uint ArrayIndex = EffectiveListObjectIndex;
 
@@ -801,78 +798,87 @@ void FinalGatherCS(
 				}
 
 				uint ObjectIndex = TileArrayData.Load((ArrayIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
-#else
-				uint ObjectIndex = TileArrayData.Load(TileHead.x + EffectiveListObjectIndex);
-#endif
 
-				float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
-				float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
-				float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
-				float3 VolumeShadingPosition = mul(float4(WorldShadingPosition, 1), WorldToVolume).xyz;
-
-				float ObjectOccluderRadius = length(LocalPositionExtent) * .5f * UVScaleAndVolumeScale.w;
-				float BoxDistance = ComputeDistanceFromBoxToPoint(-LocalPositionExtent, LocalPositionExtent, VolumeShadingPosition) * UVScaleAndVolumeScale.w;
+				float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
+				float ObjectDistanceSq = dot(ObjectPositionAndRadius.xyz - WorldShadingPosition, ObjectPositionAndRadius.xyz - WorldShadingPosition);
 
 				BRANCH
-				if (BoxDistance < AOMaxDistance)
+				// Skip tracing objects with a small projected angle 
+				if (ObjectPositionAndRadius.w * ObjectPositionAndRadius.w / ObjectDistanceSq > Square(.5f))
 				{
-					float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+					float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
+					float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
+					bool bGeneratedAsTwoSided;
+					float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex, bGeneratedAsTwoSided);
+					float3 VolumeShadingPosition = mul(float4(WorldShadingPosition, 1), WorldToVolume).xyz;
 
-					uint StartStepIndex = 0;
+					float ObjectOccluderRadius = length(LocalPositionExtent) * .5f * UVScaleAndVolumeScale.w;
+					float BoxDistance = ComputeDistanceFromBoxToPoint(-LocalPositionExtent, LocalPositionExtent, VolumeShadingPosition) * UVScaleAndVolumeScale.w;
+
+					BRANCH
+					if (BoxDistance < AOMaxDistance)
+					{
+						float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+
+						uint StartStepIndex = 0;
 			
-					FLATTEN
-					if (EffectiveListObjectIndex >= TileHead.y + TileHead.z)
-					{
-						StartStepIndex = 8;
-					}
-					else if (EffectiveListObjectIndex >= TileHead.y)
-					{
-						StartStepIndex = 5;
-					}
-
-					float WorldStepOffset = GetStepOffset(StartStepIndex);
-
-					LOOP
-					for (uint StepIndex = StartStepIndex; StepIndex < NUM_CONE_STEPS && WorldStepOffset < MaxWorldStepOffset; StepIndex++)
-					{
-						float3 WorldSamplePosition = WorldShadingPosition + RotatedConeDirection * WorldStepOffset;
-						float3 StepSamplePosition = mul(float4(WorldSamplePosition, 1), WorldToVolume).xyz;
-						float3 ClampedSamplePosition = clamp(StepSamplePosition, -LocalPositionExtent, LocalPositionExtent);
-						float DistanceToClamped = length(StepSamplePosition - ClampedSamplePosition);
-
-						float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-						float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
-						float SphereRadius = WorldStepOffset * TanConeHalfAngle;
-						//@todo - have to bias away from surface further for this to work
-						float ShadingSphereRadius = SphereRadius * 1.0f;
-
-						// Derive visibility from 1d intersection
-						float Visibility = saturate(DistanceToOccluder / ShadingSphereRadius);
-
-						// Don't allow small objects to fully occlude a cone step
-						Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
-						float OccluderDistanceFraction = (WorldStepOffset + DistanceToOccluder) / AOMaxDistance;
-
-						#if SUPPORT_IRRADIANCE
-							uint VisibilityIndex = NUM_VISIBILITY_STEPS * WorldStepOffset / AOMaxDistance;
-							// Track raw visibility before the distance fade for GI shadowing
-							MinRawVisibility[VisibilityIndex] = min(MinRawVisibility[VisibilityIndex], Visibility);
-						#endif
-
-						// Fade out occlusion based on distance to occluder to avoid a discontinuity at the max AO distance
-						Visibility = max(Visibility, saturate(OccluderDistanceFraction * OccluderDistanceFraction * .8f));
-
-						MinVisibility = min(MinVisibility, Visibility);
-
-						if (DistanceToOccluder < .9f * SphereRadius)
+						FLATTEN
+						if (EffectiveListObjectIndex >= TileHead.y + TileHead.z)
 						{
-							// Assuming occluder is straight forward along the cone
-							float WorldDistanceToOccluder = WorldStepOffset + DistanceToOccluder;
-							MinWorldDistanceToOccluder = min(MinWorldDistanceToOccluder, WorldDistanceToOccluder);
+							StartStepIndex = 8;
 						}
+						else if (EffectiveListObjectIndex >= TileHead.y)
+						{
+							StartStepIndex = 5;
+						}
+
+						float WorldStepOffset = GetStepOffset(StartStepIndex);
+
+						LOOP
+						for (uint StepIndex = StartStepIndex; StepIndex < NUM_CONE_STEPS && WorldStepOffset < MaxWorldStepOffset; StepIndex++)
+						{
+							float3 WorldSamplePosition = WorldShadingPosition + RotatedConeDirection * WorldStepOffset;
+							float3 StepSamplePosition = mul(float4(WorldSamplePosition, 1), WorldToVolume).xyz;
+							float3 ClampedSamplePosition = clamp(StepSamplePosition, -LocalPositionExtent, LocalPositionExtent);
+							float DistanceToClamped = length(StepSamplePosition - ClampedSamplePosition);
+
+							float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+							float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
+							float SphereRadius = WorldStepOffset * TanConeHalfAngle;
+							//@todo - have to bias away from surface further for this to work
+							float ShadingSphereRadius = SphereRadius * 1.0f;
+
+							// Derive visibility from 1d intersection
+							float Visibility = saturate(DistanceToOccluder / ShadingSphereRadius);
+
+							// Don't allow small objects to fully occlude a cone step
+							Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
+							float OccluderDistanceFraction = (WorldStepOffset + DistanceToOccluder) / AOMaxDistance;
+
+							#if SUPPORT_IRRADIANCE
+								uint VisibilityIndex = NUM_VISIBILITY_STEPS * WorldStepOffset / AOMaxDistance;
+								// Less GI occlusion for two sided meshes, which can't separate self-occlusion
+								//@todo - expose
+								float TwoSidedVisibilityScale = bGeneratedAsTwoSided ? 100 : 1;
+								// Track raw visibility before the distance fade for GI shadowing
+								MinRawVisibility[VisibilityIndex] = min(MinRawVisibility[VisibilityIndex], TwoSidedVisibilityScale * Visibility);
+							#endif
+
+							// Fade out occlusion based on distance to occluder to avoid a discontinuity at the max AO distance
+							Visibility = max(Visibility, saturate(OccluderDistanceFraction * OccluderDistanceFraction * .8f));
+
+							MinVisibility = min(MinVisibility, Visibility);
+
+							if (DistanceToOccluder < .9f * SphereRadius)
+							{
+								// Assuming occluder is straight forward along the cone
+								float WorldDistanceToOccluder = WorldStepOffset + DistanceToOccluder;
+								MinWorldDistanceToOccluder = min(MinWorldDistanceToOccluder, WorldDistanceToOccluder);
+							}
 						
-						float MinStepSize = .6f * (GetStepOffset(StepIndex + 1) - GetStepOffset(StepIndex));
-						WorldStepOffset += max(DistanceToOccluder, MinStepSize);
+							float MinStepSize = .6f * (GetStepOffset(StepIndex + 1) - GetStepOffset(StepIndex));
+							WorldStepOffset += max(DistanceToOccluder, MinStepSize);
+						}
 					}
 				}
 			}
@@ -921,7 +927,8 @@ void FinalGatherCS(
 			RWRecordConeVisibility[GroupId.x * NUM_CONE_DIRECTIONS + ConeIndex] = ConeVisibility;
 		}
 
-		RWOccluderRadius[RecordIndex] = RecordRadiusScale * asfloat(SharedMinOcclusionDistance);
+		float RecordRadius = RecordRadiusScale * asfloat(SharedMinOcclusionDistance);
+		RWOccluderRadius[RecordIndex] = RecordRadius;
 	}
 }
 
@@ -933,9 +940,13 @@ Buffer<float4> HeightfieldDescriptions;
 // In float4's, must match C++
 #define HEIGHTFIELD_DATA_STRIDE 10
 
-float4 GetHeightfieldScaleBias(uint Index)
+float4 GetHeightfieldScaleBias(uint Index, out bool bHasSubsections)
 {
-	return HeightfieldDescriptions[Index * HEIGHTFIELD_DATA_STRIDE + 0];
+	float4 Vector = HeightfieldDescriptions[Index * HEIGHTFIELD_DATA_STRIDE + 0];
+	// Sign bit stored presence of subsections
+	bHasSubsections = Vector < 0;
+	Vector.x = abs(Vector.x);
+	return Vector;
 }
 
 float4 GetHeightfieldMinMaxUV(uint Index)
@@ -990,9 +1001,19 @@ void CalculateHeightfieldOcclusionCS(
 		for (uint HeightfieldIndex = 0; HeightfieldIndex < NumHeightfields; HeightfieldIndex++)
 		{
 			float3 LocalPosition = mul(float4(WorldPosition, 1), GetWorldToLocal(HeightfieldIndex)).xyz;
-			float4 HeightfieldScaleBias = GetHeightfieldScaleBias(HeightfieldIndex);
+			bool bHasSubsections;
+			float4 HeightfieldScaleBias = GetHeightfieldScaleBias(HeightfieldIndex, bHasSubsections);
 			float2 HeightfieldUV = LocalPosition.xy * HeightfieldScaleBias.xy + HeightfieldScaleBias.zw;
 			float4 MinMaxHeightfieldUV = GetHeightfieldMinMaxUV(HeightfieldIndex);
+
+			if (bHasSubsections)
+			{
+				float2 CenterUV = .5f * (MinMaxHeightfieldUV.xy + MinMaxHeightfieldUV.zw);
+				// One row of heights in the heightfield are duplicated between subsections
+				// The only number of subsections supported is 2
+				// If we are in subsection 0, no adjustment is needed, but if we are in subsection 1 we need to shift up by one texel
+				HeightfieldUV += HeightfieldUV + .5f * HeightfieldScaleBias.xy > CenterUV ? HeightfieldScaleBias.xy : 0;
+			}
 
 			BRANCH
 			if (all(HeightfieldUV > MinMaxHeightfieldUV.xy) 
@@ -1003,6 +1024,7 @@ void CalculateHeightfieldOcclusionCS(
 
 				float2 SampleNormal = float2(SampleValue.b, SampleValue.a) * float2(2.0,2.0) - float2(1.0,1.0);
 				// @todo - use the normal to compute occlusion from an arbitrary plane, instead of assuming upward facing plane
+				// This would require an averaged normal over the gather region
 				float3 HeightfieldNormal = float3(SampleNormal, sqrt(max(1.0 - dot(SampleNormal, SampleNormal), 0.0)));
 
 				float3 HeightfieldShadingPosition = float3(LocalPosition.xy, HeightfieldHeight);
@@ -1017,7 +1039,7 @@ void CalculateHeightfieldOcclusionCS(
 
 					float ExistingConeVisibility = RWRecordConeVisibility[DispatchThreadId.x * NUM_CONE_DIRECTIONS + ConeIndex];
 				
-					float ZBias = 10;
+					float ZBias = 20;
 					float DistanceAlongConeToOccluder = clamp((WorldPosition.z + ZBias - WorldHeightfieldShadingPosition.z) / max(-RotatedConeDirection.z, .0001f), .00001f, AOMaxDistance);
 					float DistanceFromConeEndToOccluder = max(WorldPosition.z + ZBias + RotatedConeDirection.z * DistanceAlongConeToOccluder - WorldHeightfieldShadingPosition.z, 0);
 
@@ -1131,7 +1153,7 @@ void SetupCopyIndirectArgumentsCS(
 {
 	uint NumRecords = (1 - TrimFraction) * DrawParameters[1];
 
-	// Make sure we spawn at least one group so RWDispatchParameters gets written to
+	// Make sure we spawn at least one group so RWScatterDrawParameters gets written to in the next pass
 	RWDispatchParameters[0] = max((NumRecords + COPY_THREADGROUP_SIZE - 1) / COPY_THREADGROUP_SIZE, 1);
 	RWDispatchParameters[1] = 1;
 	RWDispatchParameters[2] = 1;
@@ -1153,6 +1175,7 @@ void CopyIrradianceCacheSamplesCS(
     uint3 GroupThreadId : SV_GroupThreadID) 
 {
 	uint NumRecords = DrawParameters[1];
+
 	// Always trim at least one to handle dynamic scene changes not accounted for with irradiance cache misses
 	uint StartIndex = max(NumRecords * TrimFraction, 1);
 	StartIndex = min(StartIndex, NumRecords);

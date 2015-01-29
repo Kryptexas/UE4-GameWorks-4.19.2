@@ -59,7 +59,6 @@ FSceneViewState::FSceneViewState()
 	TemporalAASampleIndex = 0;
 	TemporalAASampleCount = 1;
 	AOTileIntersectionResources = NULL;
-	VPLTileIntersectionResources = NULL;
 	bBokehDOFHistory = true;
 	bBokehDOFHistory2 = true;
 
@@ -80,6 +79,8 @@ FSceneViewState::FSceneViewState()
 FDistanceFieldSceneData::FDistanceFieldSceneData() 
 	: NumObjectsInBuffer(0)
 	, ObjectBuffers(NULL)
+	, SurfelBuffers(NULL)
+	, InstancedSurfelBuffers(NULL)
 	, AtlasGeneration(0)
 {
 
@@ -130,30 +131,25 @@ void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (Proxy->SupportsDistanceFieldRepresentation() && Proxy->AffectsDistanceFieldLighting())
+	if (Proxy->AffectsDistanceFieldLighting())
 	{
-		PendingAddOperations.Remove(InPrimitive);
-		PendingUpdateOperations.Remove(InPrimitive);
-
-		for (int32 InstanceIndex = 0; InstanceIndex < InPrimitive->DistanceFieldInstanceIndices.Num(); InstanceIndex++)
+		if (Proxy->SupportsDistanceFieldRepresentation())
 		{
-			int32 RemoveIndex = InPrimitive->DistanceFieldInstanceIndices[InstanceIndex];
+			PendingAddOperations.Remove(InPrimitive);
+			PendingUpdateOperations.Remove(InPrimitive);
 
-			// Sanity check that scales poorly
-			if (PendingRemoveOperations.Num() < 1000)
+			if (InPrimitive->DistanceFieldInstanceIndices.Num() > 0)
 			{
-				checkSlow(!PendingRemoveOperations.Contains(RemoveIndex));
+				PendingRemoveOperations.Add(FPrimitiveRemoveInfo(InPrimitive));
 			}
 			
-			PendingRemoveOperations.Add(RemoveIndex);
+			InPrimitive->DistanceFieldInstanceIndices.Empty();
 		}
 
-		InPrimitive->DistanceFieldInstanceIndices.Empty();
-	}
-
-	if (Proxy->SupportsHeightfieldRepresentation() && Proxy->AffectsDistanceFieldLighting())
-	{
-		HeightfieldPrimitives.Remove(InPrimitive);
+		if (Proxy->SupportsHeightfieldRepresentation())
+		{
+			HeightfieldPrimitives.Remove(InPrimitive);
+		}
 	}
 }
 

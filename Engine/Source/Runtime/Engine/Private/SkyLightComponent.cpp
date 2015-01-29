@@ -109,7 +109,7 @@ USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializ
 	bCaptureDirty = false;
 	bLowerHemisphereIsBlack = true;
 	bSavedConstructionScriptValuesValid = true;
-	OcclusionMaxDistance = 600;
+	OcclusionMaxDistance = 1000;
 	MinOcclusion = 0;
 	OcclusionTint = FColor::Black;
 }
@@ -250,7 +250,8 @@ bool USkyLightComponent::CanEditChange(const UProperty* InProperty) const
 		}
 
 		if (FCString::Strcmp(*PropertyName, TEXT("Contrast")) == 0
-			|| FCString::Strcmp(*PropertyName, TEXT("OcclusionMaxDistance")) == 0)
+			|| FCString::Strcmp(*PropertyName, TEXT("OcclusionMaxDistance")) == 0
+			|| FCString::Strcmp(*PropertyName, TEXT("MinOcclusion")) == 0)
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 			return Mobility == EComponentMobility::Movable && CastShadows && CVar->GetValueOnGameThread() != 0;

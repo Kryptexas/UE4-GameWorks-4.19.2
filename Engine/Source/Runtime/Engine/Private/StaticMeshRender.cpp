@@ -972,6 +972,17 @@ void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, F
 	}
 }
 
+void FStaticMeshSceneProxy::GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const
+{
+	NumInstances = DistanceFieldData ? 1 : 0;
+	const FVector AxisScales = GetLocalToWorld().GetScaleVector();
+	const FVector BoxDimensions = RenderData->Bounds.BoxExtent * AxisScales * 2;
+
+	BoundsSurfaceArea = 2 * BoxDimensions.X * BoxDimensions.Y
+		+ 2 * BoxDimensions.Z * BoxDimensions.Y
+		+ 2 * BoxDimensions.X * BoxDimensions.Z;
+}
+
 bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 {
 	return CastsDynamicShadow() && AffectsDistanceFieldLighting() && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();

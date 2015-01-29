@@ -63,6 +63,12 @@ public:
 		TileCoordinate.Release();
 	}
 
+	size_t GetSizeBytes() const
+	{
+		return PositionAndRadius.NumBytes + OccluderRadius.NumBytes + Normal.NumBytes + BentNormal.NumBytes
+			+ Irradiance.NumBytes + ScatterDrawParameters.NumBytes + SavedStartIndex.NumBytes + TileCoordinate.NumBytes;
+	}
+
 	int32 MaxIrradianceCacheSamples;
 
 	FRWBuffer PositionAndRadius;
@@ -174,6 +180,20 @@ public:
 		TempResources->ReleaseDynamicRHI();
 	}
 
+	size_t GetSizeBytes() const
+	{
+		size_t TotalSize = 0;
+
+		for (int32 i = MinLevel; i <= MaxLevel; i++)
+		{
+			TotalSize += Level[i]->GetSizeBytes();
+		}
+
+		TotalSize += TempResources->GetSizeBytes();
+
+		return TotalSize;
+	}
+
 	FRWBuffer DispatchParameters;
 
 	FRefinementLevelResources* Level[GAOMaxSupportedLevel + 1];
@@ -189,6 +209,74 @@ private:
 	int32 MinLevel;
 	int32 MaxLevel;
 };
+
+template<bool bOneGroupPerRecord>
+class TSetupFinalGatherIndirectArgumentsCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(TSetupFinalGatherIndirectArgumentsCS,Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("ONE_GROUP_PER_RECORD"), bOneGroupPerRecord ? TEXT("1") : TEXT("0"));
+
+		// To reduce shader compile time of compute shaders with shared memory, doesn't have an impact on generated code with current compiler (June 2010 DX SDK)
+		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
+	}
+
+	TSetupFinalGatherIndirectArgumentsCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		DrawParameters.Bind(Initializer.ParameterMap, TEXT("DrawParameters"));
+		DispatchParameters.Bind(Initializer.ParameterMap, TEXT("DispatchParameters"));
+		SavedStartIndex.Bind(Initializer.ParameterMap, TEXT("SavedStartIndex"));
+	}
+
+	TSetupFinalGatherIndirectArgumentsCS()
+	{
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
+
+		SetSRVParameter(RHICmdList, ShaderRHI, DrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
+
+		DispatchParameters.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.DispatchParameters);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList)
+	{
+		DispatchParameters.UnsetUAV(RHICmdList, GetComputeShader());
+	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{		
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << DrawParameters;
+		Ar << SavedStartIndex;
+		Ar << DispatchParameters;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FShaderResourceParameter DrawParameters;
+	FShaderResourceParameter SavedStartIndex;
+	FRWShaderParameter DispatchParameters;
+};
+
 
 /**  */
 class FTileIntersectionResources : public FRenderResource
@@ -214,6 +302,11 @@ public:
 	FRWBuffer TileHeadData;
 	FRWBuffer TileArrayData;
 	FRWBuffer TileArrayNextAllocation;
+
+	size_t GetSizeBytes() const
+	{
+		return TileConeAxisAndCos.NumBytes + TileConeDepthRanges.NumBytes + TileHeadDataUnpacked.NumBytes + TileHeadData.NumBytes + TileArrayData.NumBytes + TileArrayNextAllocation.NumBytes;
+	}
 };
 
 
@@ -331,6 +424,8 @@ protected:
 
 // Must match usf
 const int32 RecordConeDataStride = 10;
+// In float4s, must match usf
+const int32 NumVisibilitySteps = 10;
 
 /**  */
 class FTemporaryIrradianceCacheResources : public FMaxSizedRWBuffers
@@ -343,6 +438,7 @@ public:
 		{
 			ConeVisibility.Initialize(sizeof(float), MaxSize * NumConeSampleDirections, PF_R32_FLOAT, BUF_Static);
 			ConeData.Initialize(sizeof(float), MaxSize * NumConeSampleDirections * RecordConeDataStride, PF_R32_FLOAT, BUF_Static);
+			StepBentNormal.Initialize(sizeof(float) * 4, MaxSize * NumVisibilitySteps, PF_A32B32G32R32F, BUF_Static);
 		}
 	}
 
@@ -350,8 +446,67 @@ public:
 	{
 		ConeVisibility.Release();
 		ConeData.Release();
+		StepBentNormal.Release();
+	}
+
+	size_t GetSizeBytes() const
+	{
+		return ConeVisibility.NumBytes + ConeData.NumBytes + StepBentNormal.NumBytes;
 	}
 
 	FRWBuffer ConeVisibility;
 	FRWBuffer ConeData;
+	FRWBuffer StepBentNormal;
 };
+
+extern FRWBuffer* GDebugBuffer2;
+
+class FTrackGPUProgressCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FTrackGPUProgressCS,Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+	}
+
+	FTrackGPUProgressCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		DebugBuffer.Bind(Initializer.ParameterMap, TEXT("DebugBuffer"));
+		DebugId.Bind(Initializer.ParameterMap, TEXT("DebugId"));
+	}
+
+	FTrackGPUProgressCS()
+	{
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, uint32 DebugIdValue)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+
+		DebugBuffer.SetBuffer(RHICmdList, ShaderRHI, *GDebugBuffer2);
+		SetShaderValue(RHICmdList, ShaderRHI, DebugId, DebugIdValue);
+	}
+
+	void UnsetParameters(FRHICommandListImmediate& RHICmdList)
+	{
+		DebugBuffer.UnsetUAV(RHICmdList, GetComputeShader());
+	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{		
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << DebugBuffer;
+		Ar << DebugId;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FRWShaderParameter DebugBuffer;
+	FShaderParameter DebugId;
+};
+
+extern void TrackGPUProgress(FRHICommandListImmediate& RHICmdList, uint32 DebugId);

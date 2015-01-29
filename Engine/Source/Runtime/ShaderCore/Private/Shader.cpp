@@ -761,6 +761,7 @@ FShader::FShader(const CompiledShaderInitializerType& Initializer):
 
 FShader::~FShader()
 {
+	check(!IsInitialized());
 	check(Canary == ShaderMagic_Uninitialized || Canary == ShaderMagic_Initialized);
 	check(NumRefs == 0);
 	Canary = 0;
@@ -897,6 +898,8 @@ void FShader::Release()
 		// Deregister the shader now to eliminate references to it by the type's ShaderIdMap
 		Deregister();
 
+		BeginReleaseResource(this);
+
 		BeginCleanup(this);
 	}
 }
@@ -944,6 +947,41 @@ void FShader::FinishCleanup()
 	delete this;
 }
 
+
+void FShader::InitRHI()
+{
+	checkf(Resource->GetCode().Num() > 0, TEXT("FShader::InitRHI was called with empty bytecode, which can happen if the resource is initialized multiple times on platforms with no editor data."));
+
+	// we can't have this called on the wrong platform's shaders
+	if (!ArePlatformsCompatible(GMaxRHIShaderPlatform, (EShaderPlatform)Target.Platform))
+ 	{
+ 		if (FPlatformProperties::RequiresCookedData())
+ 		{
+ 			UE_LOG(LogShaders, Fatal, TEXT("FShader::InitRHI got platform %s but it is not compatible with %s"), 
+				*LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString(), *LegacyShaderPlatformToShaderFormat(GMaxRHIShaderPlatform).ToString());
+ 		}
+ 		return;
+ 	}
+
+	if (Target.Frequency == SF_Geometry)
+	{
+		FStreamOutElementList ElementList;
+		TArray<uint32> StreamStrides;
+		int32 RasterizedStream = -1;
+		GetStreamOutElements(ElementList, StreamStrides, RasterizedStream);
+
+		if (ElementList.Num() > 0)
+		{
+			GeometryShaderWithStreamOutput = RHICreateGeometryShaderWithStreamOutput(Resource->GetCode(), ElementList, StreamStrides.Num(), StreamStrides.GetData(), RasterizedStream);
+		}
+	}
+}
+
+
+void FShader::ReleaseRHI()
+{
+	GeometryShaderWithStreamOutput.SafeRelease();
+}
 
 void FShader::VerifyBoundUniformBufferParameters()
 {

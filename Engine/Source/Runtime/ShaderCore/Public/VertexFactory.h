@@ -171,7 +171,7 @@ public:
 		FString VertexFactoryIncludeString = FString::Printf( TEXT("#include \"%s.usf\""), GetShaderFilename() );
 		OutEnvironment.IncludeFileNameToContentsMap.Add(TEXT("VertexFactory.usf"), VertexFactoryIncludeString);
 
-		OutEnvironment.SetDefine(TEXT("MESH_MATERIAL_SHADER"), 1);
+		OutEnvironment.SetDefine(TEXT("HAS_PRIMITIVE_UNIFORM_BUFFER"), 1);
 
 		(*ModifyCompilationEnvironmentRef)(Platform, Material, OutEnvironment);
 	}

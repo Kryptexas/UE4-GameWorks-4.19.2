@@ -59,9 +59,7 @@ Buffer<uint4> TileHeadData;
 Buffer<uint> TileArrayData;
 uint2 TileListGroupSize;
 
-
 #define UNPACKED_TILE_HEAD 1
-#define COHERENT_OBJECT_LIST_WRITES 1
  
 uint4 GetTileHead(uint2 TileCoordinate) 
 { 
@@ -128,3 +126,4 @@ bool SphereIntersectConeWithDepthRanges(float4 SphereCenterAndRadius, float3 Con
 
 	return false;
 }
+

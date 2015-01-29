@@ -2606,10 +2606,17 @@ void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& Ou
 	OutHeightmapTexture = HeightmapTexture;
 	OutHeightfieldScaleBias = HeightmapScaleBias;
 
+	check(OutHeightfieldScaleBias.X > 0);
+
+	// CalculateHeightfieldOcclusionCS needs to be fixed up if other values are ever supported
+	check(NumSubsections == 1 || NumSubsections == 2);
+
+	// Store the presence of subsections in the sign bit
+	OutHeightfieldScaleBias.X *= NumSubsections > 1 ? -1 : 1;
+
 	OutMinMaxUV = FVector4(
 		HeightmapScaleBias.Z, 
 		HeightmapScaleBias.W, 
-		//@todo - subsections duplicate a line of border heights in the heightmap, take this into account in the UV mapping
 		HeightmapScaleBias.Z + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.X, 
 		HeightmapScaleBias.W + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.Y);
 }

@@ -71,6 +71,8 @@ public:
 	int32 GetSizeY() const { return VolumeTextureRHI->GetSizeY(); }
 	int32 GetSizeZ() const { return VolumeTextureRHI->GetSizeZ(); }
 
+	ENGINE_API FString GetSizeString() const;
+
 	/** Add an allocation to the atlas. */
 	void AddAllocation(FDistanceFieldVolumeTexture* Texture);
 

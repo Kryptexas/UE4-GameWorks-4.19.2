@@ -4,6 +4,8 @@
 	DistanceFieldLightingShared.usf
 =============================================================================*/
 
+#include "SurfelMaterialShared.usf"
+
 #ifndef THREADGROUP_SIZEX
 #define THREADGROUP_SIZEX 1
 #endif   
@@ -45,7 +47,7 @@ uint GetCulledNumObjects()
 }
 
 // In float4's.  Must match equivalent C++ variables.
-#define OBJECT_DATA_STRIDE 15
+#define OBJECT_DATA_STRIDE 16
 
 uint NumSceneObjects;
 
@@ -96,8 +98,59 @@ float3 LoadGlobalObjectUVAdd(uint ObjectIndex)
 }
 
 // In float4's.  Must match equivalent C++ variables.
-#define CULLED_OBJECT_DATA_STRIDE 11
+#define CULLED_OBJECT_DATA_STRIDE 16
 #define CULLED_OBJECT_BOX_BOUNDS_STRIDE 5
+
+float4 LoadObjectPositionAndRadiusFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+{
+	return InBuffer.Load(ObjectIndex);
+}
+
+float4x4 LoadObjectWorldToVolumeFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+{
+	float4 M0 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 0);
+	float4 M1 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 1);
+	float4 M2 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 2);
+	float4 M3 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 3);
+
+	return float4x4(M0, M1, M2, M3);
+}
+ 
+float3 LoadObjectLocalPositionExtentFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+{
+	return InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 4).xyz;
+}
+
+float4 LoadObjectUVScaleFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer, out bool bGeneratedAsTwoSided)
+{
+	float4 Value = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 5).xyzw;
+	bGeneratedAsTwoSided = Value.w < 0;
+	return float4(Value.xyz, abs(Value.w));
+}
+
+float3 LoadObjectUVAddFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+{
+	return InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 6).xyz;
+}
+
+float3x3 LoadObjectVolumeToWorldFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+{
+	float3 M0 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 8).xyz;
+	float3 M1 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 9).xyz;
+	float3 M2 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 10).xyz;
+
+	return float3x3(M0, M1, M2);
+}
+
+float4x4 LoadObjectLocalToWorldFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+{
+	float4 M0 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 11);
+	float4 M1 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 12);
+	float4 M2 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 13);
+	float4 M3 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 14);
+
+	return float4x4(M0, M1, M2, M3);
+}
 
 Buffer<float4> CulledObjectBounds;
 Buffer<float4> CulledObjectData;
@@ -105,41 +158,49 @@ Buffer<float4> CulledObjectBoxBounds;
 
 float4 LoadObjectPositionAndRadius(uint ObjectIndex)
 {
-	return CulledObjectBounds.Load(ObjectIndex);
+	return LoadObjectPositionAndRadiusFromBuffer(ObjectIndex, CulledObjectBounds);
 }
 
 float4x4 LoadObjectWorldToVolume(uint ObjectIndex)
 {
-	float4 M0 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 0);
-	float4 M1 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 1);
-	float4 M2 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 2);
-	float4 M3 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 3);
-
-	return float4x4(M0, M1, M2, M3);
+	return LoadObjectWorldToVolumeFromBuffer(ObjectIndex, CulledObjectData);
 }
  
 float3 LoadObjectLocalPositionExtent(uint ObjectIndex)
 {
-	return CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 4).xyz;
+	return LoadObjectLocalPositionExtentFromBuffer(ObjectIndex, CulledObjectData);
 }
 
 float4 LoadObjectUVScale(uint ObjectIndex)
 {
-	return CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 5).xyzw;
+	bool bUnused;
+	return LoadObjectUVScaleFromBuffer(ObjectIndex, CulledObjectData, bUnused);
+}
+
+float4 LoadObjectUVScale(uint ObjectIndex, out bool bGeneratedAsTwoSided)
+{
+	return LoadObjectUVScaleFromBuffer(ObjectIndex, CulledObjectData, bGeneratedAsTwoSided);
 }
 
 float3 LoadObjectUVAdd(uint ObjectIndex)
 {
-	return CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 6).xyz;
+	return LoadObjectUVAddFromBuffer(ObjectIndex, CulledObjectData);
 }
 
 float3x3 LoadObjectVolumeToWorld(uint ObjectIndex)
 {
-	float3 M0 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 8).xyz;
-	float3 M1 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 9).xyz;
-	float3 M2 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 10).xyz;
+	return LoadObjectVolumeToWorldFromBuffer(ObjectIndex, CulledObjectData);
+}
 
-	return float3x3(M0, M1, M2);
+float4x4 LoadObjectLocalToWorld(uint ObjectIndex)
+{
+	return LoadObjectLocalToWorldFromBuffer(ObjectIndex, CulledObjectData);
+}
+
+// x = Offset in global buffer, y = NumLOD0, z = NumSurfels (all LODs), W = instance index
+uint4 LoadObjectSurfelCoordinate(uint ObjectIndex)
+{
+	return CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 15);
 }
 
 void LoadObjectViewSpaceBox(uint ObjectIndex, out float3 ObjectViewSpaceMin, out float3 ObjectViewSpaceMax)
@@ -175,10 +236,12 @@ void FindBestAxisVectors2(float3 InZAxis, out float3 OutXAxis, out float3 OutYAx
 	OutYAxis = cross( InZAxis, OutXAxis );
 }
 
+// VPLs generated by raytracing from the light
 #define VPL_DATA_STRIDE 3
 
 #define FINAL_GATHER_THREADGROUP_SIZE 64
 
+// Must match C++
 #define NUM_VISIBILITY_STEPS 10
 
 // Must match C++
@@ -212,3 +275,26 @@ bool ViewFrustumIntersectSphere(float3 SphereOrigin, float SphereRadius)
 	
 	return true;
 }
+
+Buffer<float4> SurfelData;
+
+float4 LoadSurfelPositionAndRadius(uint SurfelIndex)
+{
+	return SurfelData[SurfelIndex * SURFEL_DATA_STRIDE + 0];
+}
+
+float3 LoadSurfelNormal(uint SurfelIndex)
+{
+	return SurfelData[SurfelIndex * SURFEL_DATA_STRIDE + 1].xyz;
+}
+
+float3 LoadSurfelDiffuseColor(uint SurfelIndex)
+{
+	return SurfelData[SurfelIndex * SURFEL_DATA_STRIDE + 2].xyz;
+}
+
+float3 LoadSurfelEmissiveColor(uint SurfelIndex)
+{
+	return SurfelData[SurfelIndex * SURFEL_DATA_STRIDE + 3].xyz;
+}
+

@@ -171,23 +171,43 @@
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
 MaterialFloat4 Texture1DSample(Texture1D Tex, SamplerState Sampler, float UV)
 {
+#if COMPUTESHADER
+	return Tex.SampleLevel(Sampler, UV, 0);
+#else
 	return Tex.Sample(Sampler, UV);
+#endif
 }
 MaterialFloat4 Texture2DSample(Texture2D Tex, SamplerState Sampler, float2 UV)
 {
+#if COMPUTESHADER
+	return Tex.SampleLevel(Sampler, UV, 0);
+#else
 	return Tex.Sample(Sampler, UV);
+#endif
 }
 MaterialFloat Texture2DSample_A8(Texture2D Tex, SamplerState Sampler, float2 UV)
 {
+#if COMPUTESHADER
+	return Tex.SampleLevel(Sampler, UV, 0) A8_SAMPLE_MASK;
+#else
 	return Tex.Sample(Sampler, UV) A8_SAMPLE_MASK;
+#endif
 }
 MaterialFloat4 Texture3DSample(Texture3D Tex, SamplerState Sampler, float3 UV)
 {
+#if COMPUTESHADER
+	return Tex.SampleLevel(Sampler, UV, 0);
+#else
 	return Tex.Sample(Sampler, UV);
+#endif
 }
 MaterialFloat4 TextureCubeSample(TextureCube Tex, SamplerState Sampler, float3 UV)
 {
+#if COMPUTESHADER
+	return Tex.SampleLevel(Sampler, UV, 0);
+#else
 	return Tex.Sample(Sampler, UV);
+#endif
 }
 MaterialFloat4 Texture1DSampleLevel(Texture1D Tex, SamplerState Sampler, float UV, MaterialFloat Mip)
 {
@@ -199,7 +219,11 @@ MaterialFloat4 Texture2DSampleLevel(Texture2D Tex, SamplerState Sampler, float2 
 }
 MaterialFloat4 Texture2DSampleBias(Texture2D Tex, SamplerState Sampler, float2 UV, MaterialFloat MipBias)
 {
+#if COMPUTESHADER
+	return Tex.SampleLevel(Sampler, UV, 0);
+#else
 	return Tex.SampleBias(Sampler, UV, MipBias);
+#endif
 }
 MaterialFloat4 Texture3DSampleLevel(Texture3D Tex, SamplerState Sampler, float3 UV, MaterialFloat Mip)
 {
@@ -211,7 +235,11 @@ MaterialFloat4 TextureCubeSampleLevel(TextureCube Tex, SamplerState Sampler, flo
 }
 MaterialFloat4 TextureCubeSampleBias(TextureCube Tex, SamplerState Sampler, float3 UV, MaterialFloat MipBias)
 {
+#if COMPUTESHADER
+	return Tex.SampleLevel(Sampler, UV, 0);
+#else
 	return Tex.SampleBias(Sampler, UV, MipBias);
+#endif
 }
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5 // Cubemap arrays are not supported in SM4 feature level
@@ -303,6 +331,78 @@ MaterialFloat4 ClampedPow(MaterialFloat4 X,MaterialFloat4 Y)
 {
 	return pow(max(abs(X),MaterialFloat4(0.000001f,0.000001f,0.000001f,0.000001f)),Y);
 } 
+
+float DDX(float Input)
+{
+#if COMPUTESHADER
+	return 0;
+#else
+	return ddx(Input);
+#endif
+}
+
+float2 DDX(float2 Input)
+{
+#if COMPUTESHADER
+	return 0;
+#else
+	return ddx(Input);
+#endif
+}
+
+float3 DDX(float3 Input)
+{
+#if COMPUTESHADER
+	return 0;
+#else
+	return ddx(Input);
+#endif
+}
+
+float4 DDX(float4 Input)
+{
+#if COMPUTESHADER
+	return 0;
+#else
+	return ddx(Input);
+#endif
+}
+
+float DDY(float Input)
+{
+#if COMPUTESHADER
+	return 0;
+#else
+	return ddy(Input);
+#endif
+}
+
+float2 DDY(float2 Input)
+{
+#if COMPUTESHADER
+	return 0;
+#else
+	return ddy(Input);
+#endif
+}
+
+float3 DDY(float3 Input)
+{
+#if COMPUTESHADER
+	return 0;
+#else
+	return ddy(Input);
+#endif
+}
+
+float4 DDY(float4 Input)
+{
+#if COMPUTESHADER
+	return 0;
+#else
+	return ddy(Input);
+#endif
+}
 
 #include "Random.usf"	// used by MaterialExpressionNoise
   
