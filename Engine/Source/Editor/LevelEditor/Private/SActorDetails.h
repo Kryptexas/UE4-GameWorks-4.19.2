@@ -8,7 +8,8 @@
 class SActorDetails : public SCompoundWidget, public FEditorUndoClient
 {
 public:
-	SLATE_BEGIN_ARGS(SActorDetails){}
+	SLATE_BEGIN_ARGS(SActorDetails) {}
+		SLATE_ARGUMENT( TSharedPtr<FExtender>, ActorMenuExtender )
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const FName TabIdentifier);

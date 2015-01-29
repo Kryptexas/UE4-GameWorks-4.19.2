@@ -2682,6 +2682,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	ActorContext = InArgs._ActorContext;
 	AllowEditing = InArgs._AllowEditing;
 	PreviewActor = InArgs._PreviewActor;
+	ActorMenuExtender = InArgs._ActorMenuExtender;
 	OnSelectionUpdated = InArgs._OnSelectionUpdated;
 	OnItemDoubleClicked = InArgs._OnItemDoubleClicked;
 	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;
@@ -3138,114 +3139,149 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu() // @todo: make the context
 	if (SelectedNodes.Num() > 0 || CanPasteNodes())
 	{
 		const bool CloseAfterSelection = true;
-		FMenuBuilder MenuBuilder( CloseAfterSelection, CommandList );
+		FMenuBuilder MenuBuilder( CloseAfterSelection, CommandList, ActorMenuExtender );
 
-		MenuBuilder.BeginSection("ComponentActions", LOCTEXT("ComponentContextMenu", "Component Actions") );
+		bool bShowJustPasteOption = false;
+
+		if (SelectedNodes.Num() > 0)
 		{
-			if(SelectedNodes.Num() > 0)
+			if (SelectedNodes.Num() == 1 && SelectedNodes[0]->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
 			{
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Cut) ;
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Copy );
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Paste );
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Duplicate );
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete );
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename );
-
 				if (EditorMode == EComponentEditorMode::BlueprintSCS)
 				{
-					// Collect the classes of all selected objects
-					TArray<UClass*> SelectionClasses;
-					for( auto NodeIter = SelectedNodes.CreateConstIterator(); NodeIter; ++NodeIter )
-					{
-						auto TreeNode = *NodeIter;
-						if( UActorComponent* ComponentTemplate = TreeNode->GetComponentTemplate() )
-						{
-							SelectionClasses.Add(ComponentTemplate->GetClass());
-						}
-					}
-
-					if ( SelectionClasses.Num() )
-					{
-						// Find the common base class of all selected classes
-						UClass* SelectedClass = UClass::FindCommonBase( SelectionClasses );
-						// Build an event submenu if we can generate events
-						if( FBlueprintEditorUtils::CanClassGenerateEvents( SelectedClass ))
-						{
-							MenuBuilder.AddSubMenu(	LOCTEXT("AddEventSubMenu", "Add Event"), 
-								LOCTEXT("ActtionsSubMenu_ToolTip", "Add Event"), 
-								FNewMenuDelegate::CreateStatic( &SSCSEditor::BuildMenuEventsSection,
-								GetBlueprint(), SelectedClass, FCanExecuteAction::CreateSP(this, &SSCSEditor::IsEditingAllowed),
-								FGetSelectedObjectsDelegate::CreateSP(this, &SSCSEditor::GetSelectedItemsForContextMenu)));
-						}
-					}
+					bShowJustPasteOption = false;
+				}
+				else
+				{
+					// Display the Actor menu
+					MenuBuilder.BeginSection("MainSection");
+					MenuBuilder.EndSection();
 				}
 			}
 			else
 			{
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Paste );
-			}
-		}
-		MenuBuilder.EndSection();
-
-		if (SelectedNodes.Num() == 1)
-		{
-			UActorComponent* ComponentTemplate = SelectedNodes[0]->GetComponentTemplate();
-			if (ComponentTemplate)
-			{
-				if (ComponentTemplate->GetClass()->ClassGeneratedBy)
+				for (auto SelectedNode : SelectedNodes)
 				{
-					MenuBuilder.BeginSection("ComponentAsset", LOCTEXT("ComponentAssetHeading", "Asset"));
+					if (SelectedNode->GetNodeType() != FSCSEditorTreeNode::ComponentNode)
 					{
-						MenuBuilder.AddMenuEntry(
-							FText::Format(LOCTEXT("GoToBlueprintForComponent", "Edit {0}"), FText::FromString(ComponentTemplate->GetClass()->ClassGeneratedBy->GetName())),
-							LOCTEXT("EditBlueprintForComponent_ToolTip", "Edits the class blueprint that defines this component."),
-							FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(ComponentTemplate->GetClass())),
-							FUIAction(
-								FExecuteAction::CreateSP(this, &SSCSEditor::OnEditBlueprint, ComponentTemplate->GetClass()->ClassGeneratedBy),
-								FCanExecuteAction()));
-
-						MenuBuilder.AddMenuEntry(
-							LOCTEXT("GoToAssetForComponent", "Find Class in Content Browser"),
-							LOCTEXT("GoToAssetForComponent_ToolTip", "Summons the content browser and goes to the class for this component."),
-							FSlateIcon(FEditorStyle::GetStyleSetName(), "SystemWideCommands.FindInContentBrowser"),
-							FUIAction(
-								FExecuteAction::CreateSP(this, &SSCSEditor::OnGoToAssetInBrowser, ComponentTemplate->GetClass()->ClassGeneratedBy),
-								FCanExecuteAction()));
+						bShowJustPasteOption = true;
+						break;
 					}
-					MenuBuilder.EndSection();			
 				}
-				else
+				if (!bShowJustPasteOption)
 				{
-					MenuBuilder.BeginSection("ComponentCode", LOCTEXT("ComponentCodeHeading", "C++"));
+					MenuBuilder.BeginSection("ComponentActions", LOCTEXT("ComponentContextMenu", "Component Actions") );
 					{
-						if (FSourceCodeNavigation::IsCompilerAvailable())
-						{
-							FString ClassHeaderPath;
-							if (FSourceCodeNavigation::FindClassHeaderPath(ComponentTemplate->GetClass(), ClassHeaderPath) && IFileManager::Get().FileSize(*ClassHeaderPath) != INDEX_NONE)
-							{
-								const FString CodeFileName = FPaths::GetCleanFilename(*ClassHeaderPath);
+						MenuBuilder.AddMenuEntry( FGenericCommands::Get().Cut) ;
+						MenuBuilder.AddMenuEntry( FGenericCommands::Get().Copy );
+						MenuBuilder.AddMenuEntry( FGenericCommands::Get().Paste );
+						MenuBuilder.AddMenuEntry( FGenericCommands::Get().Duplicate );
+						MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete );
+						MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename );
 
-								MenuBuilder.AddMenuEntry(
-									FText::Format(LOCTEXT("GoToCodeForComponent", "Open {0}"), FText::FromString(CodeFileName)),
-									FText::Format(LOCTEXT("GoToCodeForComponent_ToolTip", "Opens the header file for this component ({0}) in a code editing program"), FText::FromString(CodeFileName)),
-									FSlateIcon(),
-									FUIAction(
-										FExecuteAction::CreateSP(this, &SSCSEditor::OnOpenCodeFile, ClassHeaderPath),
-										FCanExecuteAction()));
+						if (EditorMode == EComponentEditorMode::BlueprintSCS)
+						{
+							// Collect the classes of all selected objects
+							TArray<UClass*> SelectionClasses;
+							for( auto NodeIter = SelectedNodes.CreateConstIterator(); NodeIter; ++NodeIter )
+							{
+								auto TreeNode = *NodeIter;
+								if( UActorComponent* ComponentTemplate = TreeNode->GetComponentTemplate() )
+								{
+									SelectionClasses.Add(ComponentTemplate->GetClass());
+								}
 							}
 
-							MenuBuilder.AddMenuEntry(
-								LOCTEXT("GoToAssetForComponent", "Find Class in Content Browser"),
-								LOCTEXT("GoToAssetForComponent_ToolTip", "Summons the content browser and goes to the class for this component."),
-								FSlateIcon(FEditorStyle::GetStyleSetName(), "SystemWideCommands.FindInContentBrowser"),
-								FUIAction(
-									FExecuteAction::CreateSP(this, &SSCSEditor::OnGoToAssetInBrowser, (UObject*)ComponentTemplate->GetClass()),
-									FCanExecuteAction()));
-						}
+							if ( SelectionClasses.Num() )
+							{
+								// Find the common base class of all selected classes
+								UClass* SelectedClass = UClass::FindCommonBase( SelectionClasses );
+								// Build an event submenu if we can generate events
+								if( FBlueprintEditorUtils::CanClassGenerateEvents( SelectedClass ))
+								{
+									MenuBuilder.AddSubMenu(	LOCTEXT("AddEventSubMenu", "Add Event"), 
+										LOCTEXT("ActtionsSubMenu_ToolTip", "Add Event"), 
+										FNewMenuDelegate::CreateStatic( &SSCSEditor::BuildMenuEventsSection,
+										GetBlueprint(), SelectedClass, FCanExecuteAction::CreateSP(this, &SSCSEditor::IsEditingAllowed),
+										FGetSelectedObjectsDelegate::CreateSP(this, &SSCSEditor::GetSelectedItemsForContextMenu)));
+								}
+							}
+						}					
 					}
 					MenuBuilder.EndSection();
+
+					if (SelectedNodes.Num() == 1)
+					{
+						UActorComponent* ComponentTemplate = SelectedNodes[0]->GetComponentTemplate();
+						if (ComponentTemplate->GetClass()->ClassGeneratedBy)
+						{
+							MenuBuilder.BeginSection("ComponentAsset", LOCTEXT("ComponentAssetHeading", "Asset"));
+							{
+								MenuBuilder.AddMenuEntry(
+									FText::Format(LOCTEXT("GoToBlueprintForComponent", "Edit {0}"), FText::FromString(ComponentTemplate->GetClass()->ClassGeneratedBy->GetName())),
+									LOCTEXT("EditBlueprintForComponent_ToolTip", "Edits the class blueprint that defines this component."),
+									FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(ComponentTemplate->GetClass())),
+									FUIAction(
+										FExecuteAction::CreateSP(this, &SSCSEditor::OnEditBlueprint, ComponentTemplate->GetClass()->ClassGeneratedBy),
+										FCanExecuteAction()));
+
+								MenuBuilder.AddMenuEntry(
+									LOCTEXT("GoToAssetForComponent", "Find Class in Content Browser"),
+									LOCTEXT("GoToAssetForComponent_ToolTip", "Summons the content browser and goes to the class for this component."),
+									FSlateIcon(FEditorStyle::GetStyleSetName(), "SystemWideCommands.FindInContentBrowser"),
+									FUIAction(
+										FExecuteAction::CreateSP(this, &SSCSEditor::OnGoToAssetInBrowser, ComponentTemplate->GetClass()->ClassGeneratedBy),
+										FCanExecuteAction()));
+							}
+							MenuBuilder.EndSection();			
+						}
+						else
+						{
+							MenuBuilder.BeginSection("ComponentCode", LOCTEXT("ComponentCodeHeading", "C++"));
+							{
+								if (FSourceCodeNavigation::IsCompilerAvailable())
+								{
+									FString ClassHeaderPath;
+									if (FSourceCodeNavigation::FindClassHeaderPath(ComponentTemplate->GetClass(), ClassHeaderPath) && IFileManager::Get().FileSize(*ClassHeaderPath) != INDEX_NONE)
+									{
+										const FString CodeFileName = FPaths::GetCleanFilename(*ClassHeaderPath);
+
+										MenuBuilder.AddMenuEntry(
+											FText::Format(LOCTEXT("GoToCodeForComponent", "Open {0}"), FText::FromString(CodeFileName)),
+											FText::Format(LOCTEXT("GoToCodeForComponent_ToolTip", "Opens the header file for this component ({0}) in a code editing program"), FText::FromString(CodeFileName)),
+											FSlateIcon(),
+											FUIAction(
+												FExecuteAction::CreateSP(this, &SSCSEditor::OnOpenCodeFile, ClassHeaderPath),
+												FCanExecuteAction()));
+									}
+
+									MenuBuilder.AddMenuEntry(
+										LOCTEXT("GoToAssetForComponent", "Find Class in Content Browser"),
+										LOCTEXT("GoToAssetForComponent_ToolTip", "Summons the content browser and goes to the class for this component."),
+										FSlateIcon(FEditorStyle::GetStyleSetName(), "SystemWideCommands.FindInContentBrowser"),
+										FUIAction(
+											FExecuteAction::CreateSP(this, &SSCSEditor::OnGoToAssetInBrowser, (UObject*)ComponentTemplate->GetClass()),
+											FCanExecuteAction()));
+								}
+							}
+							MenuBuilder.EndSection();
+						}
+					}
 				}
 			}
+		}
+		else
+		{
+			bShowJustPasteOption = true;
+		}
+
+		if (bShowJustPasteOption)
+		{
+			MenuBuilder.BeginSection("ComponentActions", LOCTEXT("ComponentContextMenu", "Component Actions") );
+			{
+				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Paste );
+			}
+			MenuBuilder.EndSection();
 		}
 
 		return MenuBuilder.MakeWidget();
