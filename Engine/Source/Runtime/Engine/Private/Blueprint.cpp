@@ -538,6 +538,16 @@ void UBlueprint::PostLoad()
 	}
 
 	FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(this);
+
+
+#if WITH_EDITOR
+	// Do not want to run this code without the editor present nor when running commandlets.
+	if(GEditor && GIsEditor && !IsRunningCommandlet())
+	{
+		// Gathers Find-in-Blueprint data, makes sure that it is fresh and ready, especially if the asset did not have any available.
+		FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
+	}
+#endif
 }
 
 void UBlueprint::DebuggingWorldRegistrationHelper(UObject* ObjectProvidingWorld, UObject* ValueToRegister)

@@ -1235,14 +1235,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			Blueprint->Status = BS_UpToDate;
 		}
 
-#if WITH_EDITOR
-		// Do not want to run this code without the editor present nor when running commandlets.
-		if(GEditor && GIsEditor && !IsRunningCommandlet())
-		{
-			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(Blueprint);
-		}
-#endif
-
 		if (ReplaceBlueprintWithClass)
 		{
 			FEditoronlyBlueprintHelper::ShouldBeFixed(Blueprint, true);
