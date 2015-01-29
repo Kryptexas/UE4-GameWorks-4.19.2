@@ -1172,6 +1172,13 @@ half GetMaterialOpacity(FMaterialPixelParameters Parameters)
 
 float3 GetMaterialWorldPositionOffset(FMaterialVertexParameters Parameters)
 {
+	#if USE_INSTANCING
+		// skip if this instance is hidden
+		if (Parameters.PerInstanceParams.z < 1.f)
+		{
+			return float3(0,0,0);
+		}
+	#endif
 %s;
 }
 
