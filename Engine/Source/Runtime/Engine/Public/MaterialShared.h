@@ -922,7 +922,7 @@ public:
 	virtual bool IsCrackFreeDisplacementEnabled() const { return false; }
 	virtual bool IsAdaptiveTessellationEnabled() const { return false; }
 	virtual bool IsFullyRough() const { return false; }
-	virtual bool HasSkipVelocityOnBasePass() const { return false; }
+	virtual bool OutputsVelocityOnBasePass() const { return true; }
 	virtual bool IsNonmetal() const { return false; }
 	virtual bool UseLmDirectionality() const { return true; }
 	virtual bool IsMasked() const = 0;
@@ -1505,7 +1505,7 @@ public:
 	ENGINE_API virtual bool IsCrackFreeDisplacementEnabled() const;
 	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const;
 	ENGINE_API virtual bool IsFullyRough() const;
-	ENGINE_API virtual bool HasSkipVelocityOnBasePass() const;
+	ENGINE_API virtual bool OutputsVelocityOnBasePass() const;
 	ENGINE_API virtual bool IsNonmetal() const;
 	ENGINE_API virtual bool UseLmDirectionality() const;
 	ENGINE_API virtual enum EBlendMode GetBlendMode() const;

@@ -235,8 +235,8 @@ class ENGINE_API URendererSettings
 	TEnumAsByte<EClearSceneOptions::Type> ClearSceneMethod;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
-		ConsoleVariable="r.BasePassOutputsVelocity", DisplayName="WPO materials output velocity",
-		ToolTip="Enables materials with time-based World Position Offset attributes to render their velocities for motion blur in the base rendering pass."))
+		ConsoleVariable="r.BasePassOutputsVelocity", DisplayName="Accurate velocities from Vertex Deformation",
+		ToolTip="Enables materials with time-based World Position Offset and/or World Displacement to output accurate velocities. This incurs a performance cost. If this is disabled, those materials will not output velocities."))
 	uint32 bBasePassOutputsVelocity:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(

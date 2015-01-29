@@ -790,9 +790,9 @@ bool FMaterialResource::IsFullyRough() const
 	return Material->bFullyRough;
 }
 
-bool FMaterialResource::HasSkipVelocityOnBasePass() const
+bool FMaterialResource::OutputsVelocityOnBasePass() const
 {
-	return Material->bSkipVelocityOnBasePass;
+	return Material->bOutputVelocityOnBasePass;
 }
 
 bool FMaterialResource::IsNonmetal() const

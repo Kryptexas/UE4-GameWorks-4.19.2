@@ -369,7 +369,7 @@ bool FVelocityDrawingPolicy::HasVelocityOnBasePass(const FViewInfo& View,const F
 
 	//@todo-rco: Optimize finding WPO!
 	auto* Material = Mesh.MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
-	return Material->MaterialModifiesMeshPosition_RenderThread() && !Material->HasSkipVelocityOnBasePass();
+	return Material->MaterialModifiesMeshPosition_RenderThread() && Material->OutputsVelocityOnBasePass();
 }
 
 FBoundShaderStateInput FVelocityDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)

@@ -534,6 +534,7 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	D3D11TessellationMode = MTM_NoTessellation;
 	bEnableCrackFreeDisplacement = false;
 	bEnableAdaptiveTessellation = true;
+	bOutputVelocityOnBasePass = true;
 	bEnableSeparateTranslucency = true;
 	bEnableResponsiveAA = false;
 	bTangentSpaceNormal = true;

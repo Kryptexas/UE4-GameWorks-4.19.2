@@ -615,8 +615,8 @@ public:
 	uint32 Wireframe:1;
 
 	/** Skips outputting velocity during the base pass. */
-	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
-	uint32 bSkipVelocityOnBasePass:1;
+	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay, meta=(DisplayName = "Support accurate velocities from Vertex Deformation"))
+	uint32 bOutputVelocityOnBasePass:1;
 
 	UPROPERTY()
 	int32 EditorX;
