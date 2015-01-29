@@ -2383,6 +2383,17 @@ UBlueprint* SSCS_RowWidget::GetBlueprint() const
 	return SCSEditor.Pin()->GetBlueprint();
 }
 
+ESelectionMode::Type SSCS_RowWidget::GetSelectionMode() const
+{
+	FSCSEditorTreeNodePtrType NodePtr = GetNode();
+	if (NodePtr->GetNodeType() == FSCSEditorTreeNode::SeparatorNode)
+	{
+		return ESelectionMode::None;
+	}
+	
+	return SMultiColumnTableRow<FSCSEditorTreeNodePtrType>::GetSelectionMode();
+}
+
 bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage)
 {
 	FSCSEditorTreeNodePtrType NodePtr = GetNode();
@@ -2757,7 +2768,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		.DefaultLabel(LOCTEXT("Asset", "Asset"))\
 		.FillWidth(3);
 	}
-
+	
 	SCSTreeWidget = SNew(SSCSTreeType)
 		.ToolTipText(LOCTEXT("DropAssetToAddComponent", "Drop asset here to add a component."))
 		.SCSEditor(this)
@@ -3050,11 +3061,10 @@ void SSCSEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( CommandList->ProcessCommandBindings( InKeyEvent ) )
+	if (CommandList->ProcessCommandBindings(InKeyEvent))
 	{
 		return FReply::Handled();
 	}
-
 	return FReply::Unhandled();
 }
 
@@ -3132,12 +3142,12 @@ void SSCSEditor::OnOpenCodeFile(const FString CodeFileName) const
 	FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
 }
 
-TSharedPtr< SWidget > SSCSEditor::CreateContextMenu() // @todo: make the context manual meaningful for the actor and avoid separators
+TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 {
 	TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
 
-	if (SelectedNodes.Num() > 0 || CanPasteNodes())
 	{
+		
 		const bool CloseAfterSelection = true;
 		FMenuBuilder MenuBuilder( CloseAfterSelection, CommandList, ActorMenuExtender );
 
@@ -4061,8 +4071,6 @@ void SSCSEditor::ClearSelection()
 {
 	if ( bUpdatingSelection == false )
 	{
-		bIsActorSelected = false;
-
 		check(SCSTreeWidget.IsValid());
 		SCSTreeWidget->ClearSelection();
 	}
@@ -4613,23 +4621,22 @@ void SSCSEditor::OnDeleteNodes()
 						NewSelection = ChildNodes[ChildIndex];
 					}
 				}
-				else if(Cast<USceneComponent>(Node->GetComponentTemplate()) == nullptr)
+				else
 				{
-					int32 NodeIndex = RootComponentNodes.Find(Node);
-					if(NodeIndex != INDEX_NONE)
+					const TArray<FSCSEditorTreeNodePtrType>& Nodes = GetRootNodes();
+					int32 NodeIndex = Nodes.Find(Node);
+					if (NodeIndex != INDEX_NONE && NodeIndex > 0)
 					{
-						// We should always have a valid scene root component, so there should be at least 2 root nodes in this case
-						check(RootComponentNodes.Num() > 1);
-						NewSelection = RootComponentNodes[NodeIndex > 0 ? NodeIndex - 1 : NodeIndex + 1];
+						while (NodeIndex > 0 && Nodes[--NodeIndex]->GetNodeType() == FSCSEditorTreeNode::SeparatorNode)
+						{
+							--NodeIndex;
+						}
+						NewSelection = Nodes[NodeIndex];
 					}
 					else
 					{
 						NewSelection.Reset();
 					}
-				}
-				else
-				{
-					NewSelection.Reset();
 				}
 			}
 
@@ -4655,17 +4662,17 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 {
 	check(InNodePtr.IsValid());
 
-	// Clear selection if current
-	if(SCSTreeWidget->GetSelectedItems().Contains(InNodePtr))
-	{
-		SCSTreeWidget->ClearSelection();
-	}
-
 	if (EditorMode == EComponentEditorMode::BlueprintSCS)
 	{
 		USCS_Node* SCS_Node = InNodePtr->GetSCSNode();
 		if(SCS_Node != NULL)
 		{
+			// Clear selection if current
+			if (SCSTreeWidget->GetSelectedItems().Contains(InNodePtr))
+			{
+				SCSTreeWidget->ClearSelection();
+			}
+
 			USimpleConstructionScript* SCS = SCS_Node->GetSCS();
 			check(SCS != nullptr);
 
@@ -4690,6 +4697,12 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 		UActorComponent* ComponentInstance = InNodePtr->GetComponentTemplate();
 		if ((ActorInstance != nullptr) && (ComponentInstance != nullptr))
 		{
+			// Clear selection if current
+			if (SCSTreeWidget->GetSelectedItems().Contains(InNodePtr))
+			{
+				SCSTreeWidget->ClearSelection();
+			}
+
 			ComponentInstance->Modify();
 
 			// Handle removal of a node within the scene component hierarchy
@@ -4801,8 +4814,6 @@ void SSCSEditor::RefreshSelectionDetails()
 
 void SSCSEditor::OnTreeSelectionChanged(FSCSEditorTreeNodePtrType, ESelectInfo::Type /*SelectInfo*/)
 {
-	bIsActorSelected = false;
-
 	UpdateSelectionFromNodes(SCSTreeWidget->GetSelectedItems());
 }
 

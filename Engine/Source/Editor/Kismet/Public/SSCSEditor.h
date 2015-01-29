@@ -132,15 +132,15 @@ public:
 	/** 
 	 * @return Whether or not this object represents a node that can be deleted from the SCS tree.
 	 */
-	bool CanDelete() const { return (IsUserInstanced() || (!IsNative() && !IsInherited())) && !IsDefaultSceneRoot(); }
+	bool CanDelete() const { return NodeType == ComponentNode && ((IsUserInstanced() || (!IsNative() && !IsInherited())) && !IsDefaultSceneRoot()); }
 	/** 
 	 * @return Whether or not this object represents a node that can be renamed from the SCS tree.
 	 */
-	bool CanRename() const { return (IsUserInstanced() || (!IsNative() && !IsInherited())) && !IsDefaultSceneRoot(); }
+	bool CanRename() const { return NodeType == ComponentNode && ((IsUserInstanced() || (!IsNative() && !IsInherited())) && !IsDefaultSceneRoot()); }
 	/** 
 	 * @return Whether or not this object represents a node that can be reparented to other nodes based on its context.
 	 */
-	bool CanReparent() const { return (IsUserInstanced() || (!IsNative() && !IsInherited())) && !IsDefaultSceneRoot() && Cast<USceneComponent>(GetComponentTemplate()) != NULL; }
+	bool CanReparent() const { return NodeType == ComponentNode && ((IsUserInstanced() || (!IsNative() && !IsInherited())) && !IsDefaultSceneRoot() && Cast<USceneComponent>(GetComponentTemplate()) != NULL); }
 	/** 
 	 * @return Whether or not we can edit default properties for the component template represented by this object.
 	 */
@@ -289,6 +289,9 @@ public:
 
 	/* Get the node used by the row Widget */
 	virtual FSCSEditorTreeNodePtrType GetNode() const { return TreeNodePtr; };
+
+protected:
+	virtual ESelectionMode::Type GetSelectionMode() const override;
 
 private:
 	/** Verifies the name of the component when changing it */
@@ -835,6 +838,4 @@ private:
 	/** Gate to prevent changing the selection while selection change is being broadcast. */
 	bool bUpdatingSelection;
 
-	/** Flag to track if we have the Actor selected currently */
-	bool bIsActorSelected;
 };
