@@ -355,7 +355,7 @@ TAutoConsoleVariable<int32> SkipSecondPrepass(
 /** Whether Slate should go to sleep when there are no active timers and the user is idle */
 TAutoConsoleVariable<int32> AllowSlateToSleep(
 	TEXT("Slate.AllowSlateToSleep"),
-	false,
+	true,
 	TEXT("Whether Slate should go to sleep when there are no active timers and the user is idle"));
 
 /** The amount of time that must pass without any user action before Slate is put to sleep (provided that there are no active timers). */

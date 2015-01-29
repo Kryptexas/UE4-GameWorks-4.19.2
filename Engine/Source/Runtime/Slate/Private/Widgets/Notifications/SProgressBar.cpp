@@ -7,8 +7,8 @@ void SProgressBar::Construct( const FArguments& InArgs )
 {
 	check(InArgs._Style);
 
-	MarqueeAnimation = FCurveSequence(0.0f, 0.5f);
-	
+	MarqueeOffset = 0.0f;
+
 	Style = InArgs._Style;
 
 	SetPercent(InArgs._Percent);
@@ -20,25 +20,16 @@ void SProgressBar::Construct( const FArguments& InArgs )
 	
 	FillColorAndOpacity = InArgs._FillColorAndOpacity;
 	BorderPadding = InArgs._BorderPadding;
+
+	CurrentTickRate = 0.0f;
+	MinimumTickRate = InArgs._RefreshRate;
+
+	ActiveTimerHandle = RegisterActiveTimer(CurrentTickRate, FWidgetActiveTimerDelegate::CreateSP(this, &SProgressBar::ActiveTick));
 }
 
 void SProgressBar::SetPercent(TAttribute< TOptional<float> > InPercent)
 {
 	Percent = InPercent;
-
-	if ( InPercent.Get().IsSet() )
-	{
-		// No need for the marquee animation
-		MarqueeAnimation.JumpToEnd();
-	}
-	else
-	{
-		// Kick off the marquee animation
-		if ( !MarqueeAnimation.IsPlaying() )
-		{
-			MarqueeAnimation.Play(this->AsShared(), true);
-		}
-	}
 }
 
 void SProgressBar::SetStyle(const FProgressBarStyle* InStyle)
@@ -229,7 +220,7 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 		const FSlateBrush* CurrentMarqueeImage = GetMarqueeImage();
 		
 		// Draw Marquee
-		const float MarqueeAnimOffset = CurrentMarqueeImage->ImageSize.X * MarqueeAnimation.GetLerp();
+		const float MarqueeAnimOffset = CurrentMarqueeImage->ImageSize.X * MarqueeOffset;
 		const float MarqueeImageSize = CurrentMarqueeImage->ImageSize.X;
 
 		FSlateDrawElement::MakeBox(
@@ -258,3 +249,38 @@ FVector2D SProgressBar::ComputeDesiredSize( float ) const
 {
 	return GetMarqueeImage()->ImageSize;
 }
+
+void SProgressBar::SetActiveTimerTickRate(float TickRate)
+{
+	if (CurrentTickRate != TickRate || !ActiveTimerHandle.IsValid())
+	{
+		CurrentTickRate = TickRate;
+
+		TSharedPtr<FActiveTimerHandle> SharedActiveTimerHandle = ActiveTimerHandle.Pin();
+		if (SharedActiveTimerHandle.IsValid())
+		{
+			UnRegisterActiveTimer(SharedActiveTimerHandle.ToSharedRef());
+		}
+
+		ActiveTimerHandle = RegisterActiveTimer(TickRate, FWidgetActiveTimerDelegate::CreateSP(this, &SProgressBar::ActiveTick));
+	}
+}
+
+EActiveTimerReturnType SProgressBar::ActiveTick(double InCurrentTime, float InDeltaTime)
+{
+	MarqueeOffset = InCurrentTime - FMath::FloorToDouble(InCurrentTime);
+	
+	TOptional<float> PrecentFracton = Percent.Get();
+	if (PrecentFracton.IsSet())
+	{
+		SetActiveTimerTickRate(MinimumTickRate);
+	}
+	else
+	{
+		SetActiveTimerTickRate(0.0f);
+	}
+
+	return EActiveTimerReturnType::Continue;
+}
+
+
