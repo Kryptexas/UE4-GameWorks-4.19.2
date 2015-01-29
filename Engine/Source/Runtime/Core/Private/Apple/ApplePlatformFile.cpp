@@ -536,6 +536,7 @@ bool FApplePlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
 		struct stat FileInfo;
 		if (Stat(From, &FileInfo) == 0)
 		{
+			FileInfo.st_mode |= S_IWUSR;
 			chmod(TCHAR_TO_UTF8(*NormalizeFilename(To)), FileInfo.st_mode);
 		}
 	}
