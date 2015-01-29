@@ -270,6 +270,9 @@ FText FAutoReimportManager::GetProgressText() const
 
 TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const FTimeLimit& TimeLimit)
 {
+	// Override the global feedback context while we do this to avoid popping up dialogs
+	TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
+	
 	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
 
 	TMap<FString, TArray<UFactory*>> Factories;
