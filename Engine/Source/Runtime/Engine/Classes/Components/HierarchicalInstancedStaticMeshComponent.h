@@ -102,6 +102,10 @@ public:
 
 	/** Get the number of instances that overlap a given sphere */
 	int32 GetOverlappingSphereCount(const FSphere& Sphere) const;
+	/** Get the number of instances that overlap a given box */
+	int32 GetOverlappingBoxCount(const FBox& Box) const;
+	/** Get the transforms of instances inside the provided box */
+	void GetOverlappingBoxTransforms(const FBox& Box, TArray<FTransform>& OutTransforms) const;
 
 	virtual bool ShouldCreatePhysicsState() const override;
 

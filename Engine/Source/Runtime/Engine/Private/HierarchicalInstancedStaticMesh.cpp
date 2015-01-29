@@ -1970,6 +1970,46 @@ int32 UHierarchicalInstancedStaticMeshComponent::GetOverlappingSphereCount(const
 	return Count;
 }
 
+int32 UHierarchicalInstancedStaticMeshComponent::GetOverlappingBoxCount(const FBox& Box) const
+{
+	TArray<FTransform> Transforms;
+	GatherInstanceTransformsInArea(*this, Box, 0, Transforms);
+	
+	int32 Count = 0;
+	const FBoxSphereBounds Bounds = StaticMesh->GetBounds();
+	for(FTransform& T : Transforms)
+	{
+		const FVector Centre = T.GetLocation();
+		const FBox OtherBox(FVector(Centre - Bounds.BoxExtent), FVector(Centre + Bounds.BoxExtent));
+
+		if(Box.Intersect(OtherBox))
+		{
+			Count++;
+		}
+	}
+
+	return Count;
+}
+
+void UHierarchicalInstancedStaticMeshComponent::GetOverlappingBoxTransforms(const FBox& Box, TArray<FTransform>& OutTransforms) const
+{
+	GatherInstanceTransformsInArea(*this, Box, 0, OutTransforms);
+
+	const FBoxSphereBounds Bounds = StaticMesh->GetBounds();
+	int32 NumTransforms = OutTransforms.Num();
+	for(int32 Idx = NumTransforms - 1 ; Idx >= 0 ; --Idx)
+	{
+		FTransform& TM = OutTransforms[Idx];
+		const FVector Centre = TM.GetLocation();
+		const FBox OtherBox(FVector(Centre - Bounds.BoxExtent), FVector(Centre + Bounds.BoxExtent));
+
+		if(!Box.Intersect(OtherBox))
+		{
+			OutTransforms.RemoveAt(Idx);
+		}
+	}
+}
+
 void UHierarchicalInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& InstanceData) const
 {
 	if (IsTreeFullyBuilt())

@@ -950,6 +950,32 @@ int32 AInstancedFoliageActor::GetOverlappingSphereCount(const UFoliageType* Foli
 }
 
 
+int32 AInstancedFoliageActor::GetOverlappingBoxCount(const UFoliageType* FoliageType, const FBox& Box) const
+{
+	if(const FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType))
+	{
+		if(MeshInfo->Component)
+		{
+			return MeshInfo->Component->GetOverlappingBoxCount(Box);
+		}
+	}
+
+	return 0;
+}
+
+
+void AInstancedFoliageActor::GetOverlappingBoxTransforms(const UFoliageType* FoliageType, const FBox& Box, TArray<FTransform>& OutTransforms) const
+{
+	if(const FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType))
+	{
+		if(MeshInfo->Component)
+		{
+			MeshInfo->Component->GetOverlappingBoxTransforms(Box, OutTransforms);
+		}
+	}
+}
+
+
 UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo)
 {
 	UFoliageType* Type = nullptr;
