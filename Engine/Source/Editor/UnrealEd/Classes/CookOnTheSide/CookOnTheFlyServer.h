@@ -836,6 +836,7 @@ public:
 	void OnObjectModified( UObject *ObjectMoving );
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 	void OnObjectUpdated( UObject *Object );
+	void OnObjectSaved( UObject *ObjectSaved );
 
 	/**
 	 * Marks a package as dirty for cook

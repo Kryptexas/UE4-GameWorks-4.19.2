@@ -1454,19 +1454,32 @@ void UEditorEngine::PlayUsingLauncher()
 
 		// select the quickest cook mode based on which in editor cook mode is enabled
 		bool bIncrimentalCooking = true;
+		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
 		ELauncherProfileCookModes::Type CurrentLauncherCookMode = ELauncherProfileCookModes::ByTheBook;
-		if ( CanCookByTheBookInEditor() )
+		bool bCanCookByTheBookInEditor = true;
+		bool bCanCookOnTheFlyInEditor = true;
+		for ( const auto &PlatformName : LauncherProfile->GetCookedPlatforms() )
+		{
+			if ( CanCookByTheBookInEditor(PlatformName) == false )
+			{
+				bCanCookByTheBookInEditor = false;
+			}
+			if ( CanCookOnTheFlyInEditor(PlatformName)== false )
+			{
+				bCanCookOnTheFlyInEditor = false;
+			}
+		}
+		if ( bCanCookByTheBookInEditor )
 		{
 			CurrentLauncherCookMode = ELauncherProfileCookModes::ByTheBookInEditor;
 		}
-		if ( CanCookOnTheFlyInEditor() )
+		if ( bCanCookOnTheFlyInEditor )
 		{
 			CurrentLauncherCookMode = ELauncherProfileCookModes::OnTheFlyInEditor;
 			bIncrimentalCooking = false;
 		}
 		LauncherProfile->SetCookMode( CurrentLauncherCookMode );
 		LauncherProfile->SetIncrementalCooking(bIncrimentalCooking);
-		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
 		LauncherProfile->SetIncrementalDeploying(bIncrimentalCooking);
 		LauncherProfile->SetEditorExe(FUnrealEdMisc::Get().GetExecutableForCommandlets());
@@ -1490,6 +1503,18 @@ void UEditorEngine::PlayUsingLauncher()
 			// Or if using by book in editor don't need to resave the package just cook it by the book 
 			FString MapName = EditorContext.World()->GetOutermost()->GetName();
 			MapNames.Add(MapName);
+
+
+			// Daniel: Only reason we actually need to save any packages is because if a new package is created it won't be on disk yet and CookOnTheFly will early out if the package doesn't exist (even though it could be in memory and not require loading at all)
+			//			future me can optimize this by either adding extra allowances to CookOnTheFlyServer code or only saving packages which doesn't exist if it becomes a problem
+			// if this returns false, it means we should stop what we're doing and return to the editor
+			bool bPromptUserToSave = true;
+			bool bSaveMapPackages = false;
+			bool bSaveContentPackages = true;
+			if (!FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
+			{
+				return;
+			}
 		}
 		else
 		{

@@ -1448,6 +1448,11 @@ void UCookOnTheFlyServer::OnObjectPropertyChanged(UObject* ObjectBeingModified, 
 	OnObjectUpdated( ObjectBeingModified );
 }
 
+void UCookOnTheFlyServer::OnObjectSaved( UObject* ObjectSaved )
+{
+	OnObjectUpdated( ObjectSaved );
+}
+
 void UCookOnTheFlyServer::OnObjectUpdated( UObject *Object )
 {
 	// get the outer of the object
@@ -1468,10 +1473,10 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 		/*FString PackageFilename(GetPackageFilename(Package));
 		FPaths::MakeStandardFilename(PackageFilename);*/
 
+		FString PackageFilename = GetCachedStandardPackageFilename(Package);
+
 		ClearPackageFilenameCacheForPackage( Package );
 
-
-		FString PackageFilename = GetCachedStandardPackageFilename(Package);
 #if DEBUG_COOKONTHEFLY
 		UE_LOG(LogCook, Display, TEXT("Modification detected to package %s"), *PackageFilename);
 #endif
@@ -1485,11 +1490,11 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 			{
 				if ( IsCookByTheBookRunning() )
 				{
-				// if this package was previously cooked and we are doing a cook by the book 
-				// we need to recook this package before finishing cook by the book
-				CookRequests.EnqueueUnique( FFilePlatformRequest(PackageFFileName, CookedPlatforms) );
+					// if this package was previously cooked and we are doing a cook by the book 
+					// we need to recook this package before finishing cook by the book
+					CookRequests.EnqueueUnique( FFilePlatformRequest(PackageFFileName, CookedPlatforms) );
+				}
 			}
-		}
 		}
 		CookedPackages.RemoveFile( PackageFFileName );
 	}
