@@ -765,8 +765,10 @@ bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMateri
 							}
 							else
 							{
-								check(OptionalMaterialSlot < MaterialCount);
-								FoundMeshComponent->SetMaterial(OptionalMaterialSlot, MaterialToApply);
+								if( OptionalMaterialSlot < MaterialCount )
+								{
+									FoundMeshComponent->SetMaterial(OptionalMaterialSlot, MaterialToApply);
+								}
 							}
 
 							TargetActor->MarkComponentsRenderStateDirty();
