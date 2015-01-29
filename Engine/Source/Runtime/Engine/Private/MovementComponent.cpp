@@ -99,10 +99,14 @@ void UMovementComponent::InitializeComponent()
 			NewUpdatedComponent = Cast<UPrimitiveComponent>(MyActor->GetRootComponent());
 			if (!NewUpdatedComponent)
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("NoRootPrimitiveWarning", "Movement component {0} must update a PrimitiveComponent, but owning actor '{1}' does not have a root PrimitiveComponent. Auto registration failed."),
-					FText::FromString(GetName()),
-					FText::FromString(MyActor->GetName())
-					));
+				FMessageLog("PIE").Warning(
+					FText::Format(
+						LOCTEXT("NoRootPrimitiveWarning",
+								"Movement component {0} must update a PrimitiveComponent. Consider changing root component of owning actor '{1}' to a shape (Box, Capsule, etc) or another component that can handle collision."),
+						FText::FromString(GetName()),
+						FText::FromString(MyActor->GetName())
+					)
+				);
 			}
 		}
 	}
