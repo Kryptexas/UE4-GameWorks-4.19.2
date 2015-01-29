@@ -96,7 +96,7 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 	, bMonitorContentDirectories(true)
 	, bAutoCreateAssets(true)
 	, bAutoDeleteAssets(true)
-	, bDeleteSourceFilesWithAssets(true)
+	, bDeleteSourceFilesWithAssets(false)
 {
 	TextDiffToolPath.FilePath = TEXT("P4Merge.exe");
 	AutoReimportDirectories.Add("/Game/");
