@@ -2,7 +2,7 @@
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "ILocalizationDashboardModule.h"
-#include "SLocalizationDashboard.h"
+#include "LocalizationDashboard.h"
 #include "ProjectLocalizationSettings.h"
 #include "SDockTab.h"
 #include "Features/IModularFeatures.h"
@@ -28,19 +28,7 @@ public:
 	// Begin IModuleInterface interface
 	virtual void StartupModule() override
 	{
-		const auto& SpawnMainTab = [this](const FSpawnTabArgs& Args) -> TSharedRef<SDockTab>
-		{
-			return SNew(SDockTab)
-				.Label(LOCTEXT("MainTabTitle", "Localization Dashboard"))
-				.TabRole(ETabRole::MajorTab)
-				[
-					SNew(SLocalizationDashboard, Settings.Get())
-				];
-		};
-
-		FGlobalTabmanager::Get()->RegisterTabSpawner(SLocalizationDashboard::TabName, FOnSpawnTab::CreateLambda( TFunction<TSharedRef<SDockTab> (const FSpawnTabArgs&)>(SpawnMainTab) ) )
-			.SetDisplayName(LOCTEXT("MainTabTitle", "Localization Dashboard"))
-			.SetMenuType(ETabSpawnerMenuType::Hidden);
+		FLocalizationDashboard::Initialize();
 
 		ServiceProviders = IModularFeatures::Get().GetModularFeatureImplementations<ILocalizationServiceProvider>("LocalizationService");
 		ServiceProviders.Insert(nullptr, 0); // "None"
@@ -48,13 +36,17 @@ public:
 
 	virtual void ShutdownModule() override
 	{
-		FGlobalTabmanager::Get()->UnregisterTabSpawner(SLocalizationDashboard::TabName);
+		FLocalizationDashboard::Terminate();
 	}
 	// End IModuleInterface interface
 
 	virtual void Show()
 	{
-		FGlobalTabmanager::Get()->InvokeTab(SLocalizationDashboard::TabName);
+		FLocalizationDashboard* const LocalizationDashboard = FLocalizationDashboard::Get();
+		if (LocalizationDashboard)
+		{
+			LocalizationDashboard->Show();
+		}
 	}
 
 	virtual const TArray<ILocalizationServiceProvider*>& GetLocalizationServiceProviders() const

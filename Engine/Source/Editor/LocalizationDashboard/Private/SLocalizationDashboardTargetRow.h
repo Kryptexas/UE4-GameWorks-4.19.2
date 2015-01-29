@@ -40,5 +40,5 @@ private:
 private:
 	TSharedPtr<IPropertyUtilities> PropertyUtilities;
 	TSharedPtr<IPropertyHandle> TargetObjectPropertyHandle;
-	static TMap< TWeakObjectPtr<ULocalizationTarget>, TWeakPtr<SDockTab> > TargetToTabMap;
+	TWeakPtr<SDockTab> TargetEditorDockTab;
 };

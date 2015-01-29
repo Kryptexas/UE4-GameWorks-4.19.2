@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
-#include "SLocalizationDashboard.h"
+#include "LocalizationDashboard.h"
 #include "IDetailCustomization.h"
 #include "EditorStyleSet.h"
 #include "DetailLayoutBuilder.h"
@@ -21,10 +21,11 @@
 #include "FeedbackContext.h"
 #include "LocalizationCommandletTasks.h"
 #include "FileHelpers.h"
+#include "SLocalizationTargetEditor.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
-const FName SLocalizationDashboard::TabName("LocalizationDashboard");
+const FName FLocalizationDashboard::TabName("LocalizationDashboard");
 
 class ILocalizationServiceProvider;
 
@@ -479,20 +480,183 @@ namespace
 	}
 }
 
-void SLocalizationDashboard::Construct(const FArguments& InArgs, UProjectLocalizationSettings* const InSettings)
+class SLocalizationDashboard : public SCompoundWidget
 {
-	check(InSettings);
+public:
+	SLATE_BEGIN_ARGS(SLocalizationDashboard) {}
+	SLATE_END_ARGS()
 
-	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	FDetailsViewArgs DetailsViewArgs(false, false, false, FDetailsViewArgs::ENameAreaSettings::HideNameArea, false, nullptr, false, NAME_None);
-	TSharedRef<IDetailsView> DetailsView = PropertyModule.CreateDetailView(DetailsViewArgs);
-	DetailsView->RegisterInstancedCustomPropertyLayout(UProjectLocalizationSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateLambda([&]()->TSharedRef<IDetailCustomization>{return MakeShareable(new FProjectLocalizationSettingsDetailsCustomization(InSettings));}));
+		void Construct(const FArguments& InArgs, const TSharedPtr<SWindow>& OwningWindow, const TSharedRef<SDockTab>& OwningTab, UProjectLocalizationSettings* const Settings);
+	TWeakPtr<SDockTab> ShowTargetEditor(ULocalizationTarget* const LocalizationTarget);
+
+private:
+	static const FName DetailsTabName;
+	static const FName DocumentsTabName;
+
+	TSharedPtr<FTabManager> TabManager;
+	TMap< TWeakObjectPtr<ULocalizationTarget>, TWeakPtr<SDockTab> > TargetToTabMap;
+};
+
+const FName SLocalizationDashboard::DetailsTabName("Details");
+const FName SLocalizationDashboard::DocumentsTabName("Documents");
+
+void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPtr<SWindow>& OwningWindow, const TSharedRef<SDockTab>& OwningTab, UProjectLocalizationSettings* const Settings)
+{
+	check(Settings);
+
+	TabManager = FGlobalTabmanager::Get()->NewTabManager(OwningTab);
+
+	const auto& PersistLayout = [](const TSharedRef<FTabManager::FLayout>& LayoutToSave)
+	{
+		FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
+	};
+	TabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateLambda(PersistLayout));
+
+	const auto& CreateDetailsTab = [Settings](const FSpawnTabArgs& SpawnTabArgs) -> TSharedRef<SDockTab>
+	{
+		const TSharedRef<SDockTab> DockTab = SNew(SDockTab);
+			//.OnCanCloseTab_Lambda([]()->bool{return false;});
+
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FDetailsViewArgs DetailsViewArgs(false, false, false, FDetailsViewArgs::ENameAreaSettings::HideNameArea, false, nullptr, false, NAME_None);
+		TSharedRef<IDetailsView> DetailsView = PropertyModule.CreateDetailView(DetailsViewArgs);
+
+		DetailsView->RegisterInstancedCustomPropertyLayout(UProjectLocalizationSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateLambda([&]()->TSharedRef<IDetailCustomization>{return MakeShareable(new FProjectLocalizationSettingsDetailsCustomization(Settings));}));
+		DetailsView->SetObject(Settings, true);
+
+		DockTab->SetContent(DetailsView);
+
+		return DockTab;
+	};
+	TabManager->RegisterTabSpawner(DetailsTabName, FOnSpawnTab::CreateLambda(CreateDetailsTab));
+
+	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("LocalizationDashboard_Experimental_V1")
+		->AddArea
+		(
+		FTabManager::NewPrimaryArea()
+		->SetOrientation(Orient_Vertical)
+		->Split
+		(
+		FTabManager::NewStack()
+		->SetHideTabWell(true)
+		->AddTab(DetailsTabName, ETabState::OpenedTab)
+		)
+		->Split
+		(
+		FTabManager::NewStack()
+		->SetHideTabWell(false)
+		->AddTab(DocumentsTabName, ETabState::ClosedTab)
+		)
+		);
+
+	Layout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, Layout);
 
 	ChildSlot
 		[
-			DetailsView
+			TabManager->RestoreFrom(Layout, OwningWindow).ToSharedRef()
 		];
-
-	DetailsView->SetObject(InSettings, true);
 }
+
+TWeakPtr<SDockTab> SLocalizationDashboard::ShowTargetEditor(ULocalizationTarget* const LocalizationTarget)
+{
+	// Create tab if not existent.
+	TWeakPtr<SDockTab>& TargetEditorDockTab = TargetToTabMap.FindOrAdd(TWeakObjectPtr<ULocalizationTarget>(LocalizationTarget));
+
+	if (!TargetEditorDockTab.IsValid())
+	{
+		UProjectLocalizationSettings* const ProjectSettings = LocalizationTarget->GetTypedOuter<UProjectLocalizationSettings>();
+
+		const TSharedRef<SLocalizationTargetEditor> OurTargetEditor = SNew(SLocalizationTargetEditor, ProjectSettings, LocalizationTarget);
+		const TSharedRef<SDockTab> NewTargetEditorTab = SNew(SDockTab)
+			.TabRole(ETabRole::DocumentTab)
+			.Label_Lambda( [LocalizationTarget]
+			{
+				return LocalizationTarget ? FText::FromString(LocalizationTarget->Settings.Name) : FText::GetEmpty();
+			})
+			[
+				OurTargetEditor
+			];
+
+		TabManager->InsertNewDocumentTab(DocumentsTabName, FTabManager::ESearchPreference::RequireClosedTab, NewTargetEditorTab);
+		TargetEditorDockTab = NewTargetEditorTab;
+	}
+	else
+	{
+		const TSharedPtr<SDockTab> OldTargetEditorTab = TargetEditorDockTab.Pin();
+		TabManager->DrawAttention(OldTargetEditorTab.ToSharedRef());
+	}
+
+	return TargetEditorDockTab;
+}
+
+FLocalizationDashboard* FLocalizationDashboard::Instance = nullptr;
+
+FLocalizationDashboard* FLocalizationDashboard::Get()
+{
+	return Instance;
+}
+
+void FLocalizationDashboard::Initialize()
+{
+	if (!Instance)
+	{
+		Instance = new FLocalizationDashboard();
+	}
+}
+
+void FLocalizationDashboard::Terminate()
+{
+	if (Instance)
+	{
+		delete Instance;
+	}
+}
+
+void FLocalizationDashboard::Show()
+{
+	FGlobalTabmanager::Get()->InvokeTab(TabName);
+}
+
+TWeakPtr<SDockTab> FLocalizationDashboard::ShowTargetEditorTab(ULocalizationTarget* const LocalizationTarget)
+{
+	if (LocalizationDashboardWidget.IsValid())
+	{
+		return LocalizationDashboardWidget->ShowTargetEditor(LocalizationTarget);
+	}
+	return nullptr;
+}
+
+FLocalizationDashboard::FLocalizationDashboard()
+{
+	RegisterTabSpawner();
+}
+
+FLocalizationDashboard::~FLocalizationDashboard()
+{
+	UnregisterTabSpawner();
+}
+
+void FLocalizationDashboard::RegisterTabSpawner()
+{
+	const auto& SpawnMainTab = [this](const FSpawnTabArgs& Args) -> TSharedRef<SDockTab>
+	{
+		const TSharedRef<SDockTab> DockTab = SNew(SDockTab)
+			.Label(LOCTEXT("MainTabTitle", "Localization Dashboard"))
+			.TabRole(ETabRole::MajorTab);
+
+		DockTab->SetContent( SAssignNew(LocalizationDashboardWidget, SLocalizationDashboard, Args.GetOwnerWindow(), DockTab, GetMutableDefault<UProjectLocalizationSettings>()) );
+
+		return DockTab;
+	};
+
+	FGlobalTabmanager::Get()->RegisterTabSpawner(TabName, FOnSpawnTab::CreateLambda( TFunction<TSharedRef<SDockTab> (const FSpawnTabArgs&)>(SpawnMainTab) ) )
+		.SetDisplayName(LOCTEXT("MainTabTitle", "Localization Dashboard"))
+		.SetMenuType(ETabSpawnerMenuType::Hidden);
+}
+
+void FLocalizationDashboard::UnregisterTabSpawner()
+{
+	FGlobalTabmanager::Get()->UnregisterTabSpawner(TabName);
+}
+
 #undef LOCTEXT_NAMESPACE

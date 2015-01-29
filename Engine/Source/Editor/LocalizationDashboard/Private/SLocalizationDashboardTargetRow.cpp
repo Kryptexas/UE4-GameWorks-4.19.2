@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
-#include "SLocalizationDashboard.h"
+#include "LocalizationDashboard.h"
 #include "SLocalizationDashboardTargetRow.h"
 #include "SHyperlink.h"
 #include "SLocalizationTargetEditor.h"
@@ -10,8 +10,6 @@
 #include "LocalizationCommandletTasks.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboardTargetRow"
-
-TMap< TWeakObjectPtr<ULocalizationTarget>, TWeakPtr<SDockTab> > SLocalizationDashboardTargetRow::TargetToTabMap;
 
 void SLocalizationDashboardTargetRow::Construct(const FTableRowArgs& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const TSharedRef<IPropertyUtilities>& InPropertyUtilities, const TSharedRef<IPropertyHandle>& InTargetObjectPropertyHandle)
 {
@@ -177,38 +175,11 @@ void SLocalizationDashboardTargetRow::OnNavigate()
 	ULocalizationTarget* const LocalizationTarget = GetTarget();
 	if (LocalizationTarget)
 	{
-		// Create tab if not existent.
-		TWeakPtr<SDockTab>& TargetEditorDockTab = TargetToTabMap.FindOrAdd(TWeakObjectPtr<ULocalizationTarget>(LocalizationTarget));
+		FLocalizationDashboard* const LocalizationDashboard = FLocalizationDashboard::Get();
 
-		if (!TargetEditorDockTab.IsValid())
+		if (LocalizationDashboard)
 		{
-			UProjectLocalizationSettings* ProjectSettings = nullptr;
-			const TSharedPtr<IPropertyHandle> TargetObjectsPropertyHandle = TargetObjectPropertyHandle->GetParentHandle(); // TargetObjects
-			if (TargetObjectsPropertyHandle.IsValid() && TargetObjectsPropertyHandle->IsValidHandle())
-			{
-				TArray<UObject*> OuterObjects;
-				TargetObjectsPropertyHandle->GetOuterObjects(OuterObjects);
-				ProjectSettings = Cast<UProjectLocalizationSettings>(OuterObjects.Top());
-			}
-
-			const TSharedRef<SLocalizationTargetEditor> OurTargetEditor = SNew(SLocalizationTargetEditor, ProjectSettings, LocalizationTarget);
-			const TSharedRef<SDockTab> NewTargetEditorTab = SNew(SDockTab)
-				.TabRole(ETabRole::DocumentTab)
-				.Label_Lambda( [LocalizationTarget]
-			{
-				return LocalizationTarget ? FText::FromString(LocalizationTarget->Settings.Name) : FText::GetEmpty();
-			})
-				[
-					OurTargetEditor
-				];
-
-			FGlobalTabmanager::Get()->InsertNewDocumentTab( SLocalizationDashboard::TabName, FTabManager::ESearchPreference::RequireClosedTab, NewTargetEditorTab );
-			TargetEditorDockTab = NewTargetEditorTab;
-		}
-		else
-		{
-			const TSharedPtr<SDockTab> OldTargetEditorTab = TargetEditorDockTab.Pin();
-			FGlobalTabmanager::Get()->DrawAttention(OldTargetEditorTab.ToSharedRef());
+			TargetEditorDockTab = LocalizationDashboard->ShowTargetEditorTab(LocalizationTarget);
 		}
 	}
 }
@@ -427,7 +398,6 @@ void SLocalizationDashboardTargetRow::Delete()
 					LocalizationTarget->Settings.DeleteFiles();
 
 					// Close target editor.
-					TWeakPtr<SDockTab>& TargetEditorDockTab = TargetToTabMap.FindOrAdd(TWeakObjectPtr<ULocalizationTarget>(LocalizationTarget));
 					if (TargetEditorDockTab.IsValid())
 					{
 						const TSharedPtr<SDockTab> OldTargetEditorTab = TargetEditorDockTab.Pin();
