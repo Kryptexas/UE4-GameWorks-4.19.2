@@ -4328,6 +4328,13 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 	{
 		IDetailCategoryBuilder& VariableCategory = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable"), ECategoryPriority::Variable);
 
+		VariableNameEditableTextBox = SNew(SEditableTextBox)
+			.Text(this, &FBlueprintComponentDetails::OnGetVariableText)
+			.OnTextChanged(this, &FBlueprintComponentDetails::OnVariableTextChanged)
+			.OnTextCommitted(this, &FBlueprintComponentDetails::OnVariableTextCommitted)
+			.IsReadOnly(!CachedNodePtr->CanRename())
+			.Font(IDetailLayoutBuilder::GetDetailFont());
+
 		VariableCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_VariableNameLabel", "Variable Name"))
 		.NameContent()
 		[
@@ -4337,12 +4344,7 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 		]
 		.ValueContent()
 		[
-			SAssignNew(VariableNameEditableTextBox, SEditableTextBox)
-			.Text(this, &FBlueprintComponentDetails::OnGetVariableText)
-			.OnTextChanged( this, &FBlueprintComponentDetails::OnVariableTextChanged)
-			.OnTextCommitted( this, &FBlueprintComponentDetails::OnVariableTextCommitted)
-			.IsReadOnly(CachedNodePtr->IsNative() || CachedNodePtr->IsInherited() || CachedNodePtr->IsDefaultSceneRoot())
-			.Font(IDetailLayoutBuilder::GetDetailFont())
+			VariableNameEditableTextBox.ToSharedRef()
 		];
 
 		VariableCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_VariableTooltipLabel", "Tooltip"))
@@ -4630,7 +4632,7 @@ bool FBlueprintComponentDetails::OnVariableCategoryChangeEnabled() const
 {
 	check(CachedNodePtr.IsValid());
 
-	return !CachedNodePtr->IsNative() && !CachedNodePtr->IsInherited();
+	return !CachedNodePtr->CanRename();
 }
 
 FText FBlueprintComponentDetails::OnGetVariableCategoryText() const
@@ -4736,41 +4738,6 @@ void FBlueprintComponentDetails::PopulateVariableCategories()
 			}
 		}
 	}
-}
-
-bool FBlueprintComponentDetails::IsNodeAttachable() const
-{
-	check(CachedNodePtr.IsValid());
-
-	// See if node is an attachable type
-	bool bCanAttach = false;	
-	if (!CachedNodePtr->IsRootComponent())
-	{
-		// check component is the correct type
-		if (USceneComponent* SceneComponent = Cast<USceneComponent>(CachedNodePtr->GetComponentTemplate()))
-		{
-			check(BlueprintEditorPtr.IsValid());
-			TSharedPtr<SSCSEditor> Editor = BlueprintEditorPtr.Pin()->GetSCSEditor();
-			check( Editor.IsValid() );
-
-			USCS_Node* SCS_Node = CachedNodePtr->GetSCSNode();
-			if (SCS_Node != NULL && Editor->IsNodeInSimpleConstructionScript(SCS_Node))
-			{
-				FSCSEditorTreeNodePtrType ParentFNode = CachedNodePtr->GetParent();
-				
-				// check parent is of the right type
-				if (ParentFNode.IsValid())
-				{
-					if (USceneComponent* ParentComponent = Cast<USceneComponent>(ParentFNode->GetComponentTemplate()))
-					{
-						bCanAttach = ParentComponent->HasAnySockets();
-					}
-				}
-			}
-		}
-	}
-	
-	return bCanAttach;
 }
 
 FText FBlueprintComponentDetails::GetSocketName() const
