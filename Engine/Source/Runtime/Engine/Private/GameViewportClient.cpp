@@ -800,105 +800,102 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	FReverbSettings ReverbSettings;
 	class AAudioVolume* AudioVolume = nullptr;
 
-	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
+	for (FLocalPlayerIterator Iterator(GEngine, GetWorld()); Iterator; ++Iterator)
 	{
-		APlayerController* PlayerController = *Iterator;
-		if( PlayerController )
+		ULocalPlayer* LocalPlayer = *Iterator;
+		if (LocalPlayer)
 		{
-			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
-			if (LocalPlayer)
+			APlayerController* PlayerController = LocalPlayer->PlayerController;
+
+			const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
+			int32 NumViews = bEnableStereo ? 2 : 1;
+
+			for (int i = 0; i < NumViews; ++i)
 			{
-				const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
-				int32 NumViews = bEnableStereo ? 2 : 1;
+				// Calculate the player's view information.
+				FVector		ViewLocation;
+				FRotator	ViewRotation;
 
-				for( int i = 0; i < NumViews; ++i )
+				EStereoscopicPass PassType = !bEnableStereo ? eSSP_FULL : ((i == 0) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE);
+
+				FSceneView* View = LocalPlayer->CalcSceneView(&ViewFamily, ViewLocation, ViewRotation, InViewport, &GameViewDrawer, PassType);
+
+				if (View)
 				{
-					// Calculate the player's view information.
-					FVector		ViewLocation;
-					FRotator	ViewRotation;
-
-					EStereoscopicPass PassType = !bEnableStereo ? eSSP_FULL : ((i == 0) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE);
-
-					FSceneView* View = LocalPlayer->CalcSceneView( &ViewFamily, ViewLocation, ViewRotation, InViewport, &GameViewDrawer, PassType );
-
-					if (View)
+					if (View->Family->EngineShowFlags.Wireframe)
 					{
-						if (View->Family->EngineShowFlags.Wireframe)
-						{
-							// Wireframe color is emissive-only, and mesh-modifying materials do not use material substitution, hence...
-							View->DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
-							View->SpecularOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
-						}
-						else if (View->Family->EngineShowFlags.OverrideDiffuseAndSpecular)
-						{
-							View->DiffuseOverrideParameter = FVector4(GEngine->LightingOnlyBrightness.R, GEngine->LightingOnlyBrightness.G, GEngine->LightingOnlyBrightness.B, 0.0f);
-							View->SpecularOverrideParameter = FVector4(.1f, .1f, .1f, 0.0f);
-						}
-						else if (View->Family->EngineShowFlags.ReflectionOverride)
-						{
-							View->DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
-							View->SpecularOverrideParameter = FVector4(1, 1, 1, 0.0f);
-							View->NormalOverrideParameter = FVector4(0, 0, 1, 0.0f);
-							View->RoughnessOverrideParameter = FVector2D(0.0f, 0.0f);
-						}
-
-
-						if (!View->Family->EngineShowFlags.Diffuse)
-						{
-							View->DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
-						}
-
-						if (!View->Family->EngineShowFlags.Specular)
-						{
-							View->SpecularOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
-						}
-
-						View->CurrentBufferVisualizationMode = CurrentBufferVisualizationMode;
-
-						View->CameraConstrainedViewRect = View->UnscaledViewRect;
-
-						// If this is the primary drawing pass, update things that depend on the view location
-						if( i == 0 )
-						{
-							// Save the location of the view.
-							LocalPlayer->LastViewLocation = ViewLocation;
-
-							PlayerViewMap.Add(LocalPlayer,View);
-
-							// Update the listener.
-							if (AudioDevice != NULL)
-							{
-								FVector Location;
-								FVector ProjFront;
-								FVector ProjRight;
-								PlayerController->GetAudioListenerPosition(/*out*/ Location, /*out*/ ProjFront, /*out*/ ProjRight);
-
-								FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
-								ListenerTransform.SetTranslation(Location);
-								ListenerTransform.NormalizeRotation();
-
-								bReverbSettingsFound = true;
-
-								FReverbSettings PlayerReverbSettings;
-								FInteriorSettings PlayerInteriorSettings;
-								class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings( Location, &PlayerReverbSettings, &PlayerInteriorSettings );
-
-								if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
-								{
-									AudioVolume = PlayerAudioVolume;
-									ReverbSettings = PlayerReverbSettings;
-								}
-
-								uint32 ViewportIndex = PlayerViewMap.Num()-1;
-								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerAudioVolume, PlayerInteriorSettings);
-							}
-					
-						}
-						
-						// Add view information for resource streaming.
-						IStreamingManager::Get().AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
-						GetWorld()->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
+						// Wireframe color is emissive-only, and mesh-modifying materials do not use material substitution, hence...
+						View->DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
+						View->SpecularOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
 					}
+					else if (View->Family->EngineShowFlags.OverrideDiffuseAndSpecular)
+					{
+						View->DiffuseOverrideParameter = FVector4(GEngine->LightingOnlyBrightness.R, GEngine->LightingOnlyBrightness.G, GEngine->LightingOnlyBrightness.B, 0.0f);
+						View->SpecularOverrideParameter = FVector4(.1f, .1f, .1f, 0.0f);
+					}
+					else if (View->Family->EngineShowFlags.ReflectionOverride)
+					{
+						View->DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
+						View->SpecularOverrideParameter = FVector4(1, 1, 1, 0.0f);
+						View->NormalOverrideParameter = FVector4(0, 0, 1, 0.0f);
+						View->RoughnessOverrideParameter = FVector2D(0.0f, 0.0f);
+					}
+
+					if (!View->Family->EngineShowFlags.Diffuse)
+					{
+						View->DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
+					}
+
+					if (!View->Family->EngineShowFlags.Specular)
+					{
+						View->SpecularOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
+					}
+
+					View->CurrentBufferVisualizationMode = CurrentBufferVisualizationMode;
+
+					View->CameraConstrainedViewRect = View->UnscaledViewRect;
+
+					// If this is the primary drawing pass, update things that depend on the view location
+					if (i == 0)
+					{
+						// Save the location of the view.
+						LocalPlayer->LastViewLocation = ViewLocation;
+
+						PlayerViewMap.Add(LocalPlayer, View);
+
+						// Update the listener.
+						if (AudioDevice != NULL && PlayerController != NULL)
+						{
+							FVector Location;
+							FVector ProjFront;
+							FVector ProjRight;
+							PlayerController->GetAudioListenerPosition(/*out*/ Location, /*out*/ ProjFront, /*out*/ ProjRight);
+
+							FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
+							ListenerTransform.SetTranslation(Location);
+							ListenerTransform.NormalizeRotation();
+
+							bReverbSettingsFound = true;
+
+							FReverbSettings PlayerReverbSettings;
+							FInteriorSettings PlayerInteriorSettings;
+							class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings(Location, &PlayerReverbSettings, &PlayerInteriorSettings);
+
+							if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
+							{
+								AudioVolume = PlayerAudioVolume;
+								ReverbSettings = PlayerReverbSettings;
+							}
+
+							uint32 ViewportIndex = PlayerViewMap.Num() - 1;
+							AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerAudioVolume, PlayerInteriorSettings);
+						}
+
+					}
+
+					// Add view information for resource streaming.
+					IStreamingManager::Get().AddViewInformation(View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0]);
+					GetWorld()->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
 				}
 			}
 		}
