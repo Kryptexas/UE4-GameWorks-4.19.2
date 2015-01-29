@@ -4,6 +4,18 @@
 
 namespace ContentBrowserUtils
 {
+	enum class ECBFolderCategory : uint8
+	{
+		GameContent,
+		EngineContent,
+		PluginContent,
+		DeveloperContent,
+
+		GameClasses,
+		EngineClasses,
+		PluginClasses,
+	};
+
 	/** Loads the specified object if needed and opens the asset editor for it */
 	bool OpenEditorForAsset(const FString& ObjectPath);
 
@@ -119,6 +131,9 @@ namespace ContentBrowserUtils
 
 	/** Returns true if the specified asset that uses shared thumbnails has a thumbnail assigned to it */
 	bool AssetHasCustomThumbnail( const FAssetData& AssetData );
+
+	/** Extract the category of the given path */
+	ECBFolderCategory GetFolderCategory( const FString& InPath );
 
 	/** Returns true if the passed-in path is a engine folder */
 	bool IsEngineFolder( const FString& InPath );

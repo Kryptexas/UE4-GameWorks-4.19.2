@@ -1028,6 +1028,53 @@ bool ContentBrowserUtils::AssetHasCustomThumbnail( const FAssetData& AssetData )
 	return false;
 }
 
+ContentBrowserUtils::ECBFolderCategory ContentBrowserUtils::GetFolderCategory( const FString& InPath )
+{
+	static const FString ClassesPrefix = TEXT("/Classes_");
+	static const FString GameClassesPrefix = TEXT("/Classes_Game");
+	static const FString EngineClassesPrefix = TEXT("/Classes_Engine");
+
+	const bool bIsClassDir = InPath.StartsWith(ClassesPrefix);
+	if(bIsClassDir)
+	{
+		const bool bIsGameClassDir = InPath.StartsWith(GameClassesPrefix);
+		if(bIsGameClassDir)
+		{
+			return ECBFolderCategory::GameClasses;
+		}
+
+		const bool bIsEngineClassDir = InPath.StartsWith(EngineClassesPrefix);
+		if(bIsEngineClassDir)
+		{
+			return ECBFolderCategory::EngineClasses;
+		}
+
+		return ECBFolderCategory::PluginClasses;
+	}
+	else
+	{
+		const bool bIsEngineContent = IsEngineFolder(InPath);
+		if(bIsEngineContent)
+		{
+			return ECBFolderCategory::EngineContent;
+		}
+
+		const bool bIsPluginContent = IsPluginFolder(InPath);
+		if(bIsPluginContent)
+		{
+			return ECBFolderCategory::PluginContent;
+		}
+
+		const bool bIsDeveloperContent = IsDevelopersFolder(InPath);
+		if(bIsDeveloperContent)
+		{
+			return ECBFolderCategory::DeveloperContent;
+		}
+
+		return ECBFolderCategory::GameContent;
+	}
+}
+
 bool ContentBrowserUtils::IsEngineFolder( const FString& InPath )
 {
 	return InPath.StartsWith(TEXT("/Engine")) || InPath == TEXT("Engine");
