@@ -131,6 +131,8 @@ public:
 
 void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor, const UBlueprint* InBlueprint )
 {
+	bNeedsRefresh = false;
+
 	BlueprintEditorPtr = InBlueprintEditor;
 	EdGraph = nullptr;
 	
@@ -404,6 +406,18 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 	ExpandedSections.Add(NodeSectionID::LOCAL_VARIABLE, true);
 
 	GraphActionMenu->SetSectionExpansion(ExpandedSections);
+
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &SMyBlueprint::OnObjectPropertyChanged);
+}
+
+void SMyBlueprint::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if(bNeedsRefresh)
+	{
+		Refresh();
+	}
 }
 
 void SMyBlueprint::OnCategoryNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit, TWeakPtr< FGraphActionNode > InAction )
@@ -700,6 +714,8 @@ bool SMyBlueprint::CanRequestRenameOnActionNode(TWeakPtr<FGraphActionNode> InSel
 
 void SMyBlueprint::Refresh()
 {
+	bNeedsRefresh = false;
+
 	GraphActionMenu->RefreshAllActions(true);
 	
 	bool bLocalActionsAreVisible = (GetLocalActionsListVisibility() == EVisibility::Visible);

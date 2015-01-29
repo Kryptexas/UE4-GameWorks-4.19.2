@@ -57,6 +57,9 @@ public:
 	void Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor, const UBlueprint* InBlueprint = nullptr);
 	void SetInspector( TSharedPtr<SKismetInspector> InInspector ) { Inspector = InInspector ; }
 
+	/* SWidget interface */
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
+
 	/* Reset the last pin type settings to default. */
 	void ResetLastPinType();
 
@@ -217,6 +220,12 @@ private:
 	void OnDeleteDelegate(FEdGraphSchemaAction_K2Delegate* InDelegateAction);
 
 	UEdGraph* GetFocusedGraph() const;
+
+	/** Delegate to hook us into non-structural Blueprint object post-change events */
+	void OnObjectPropertyChanged(UObject* InObject, FPropertyChangedEvent& InPropertyChangedEvent)
+	{
+		bNeedsRefresh = (InObject == Blueprint);
+	}
 private:
 	/** Pointer back to the blueprint editor that owns us */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
@@ -251,4 +260,7 @@ private:
 
 	/** The Kismet Inspector used to display properties: */
 	TWeakPtr<SKismetInspector> Inspector;
+
+	/** Flag to indicate whether or not we need to refresh the panel */
+	bool bNeedsRefresh;
 };
