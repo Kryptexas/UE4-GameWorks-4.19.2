@@ -448,13 +448,15 @@ FName USCS_Node::GenerateNewComponentName( TArray<FName>& CurrentNames, FName De
 			else
 			{
 				const UClass* ComponentClass = ComponentTemplate->GetClass();
-				ComponentName = ComponentClass->GetName().Replace(TEXT("Component"), TEXT(""));
+				ComponentName = ComponentClass->GetName();
 
-				// Trim the _C, if needed
-				if (ComponentClass->ClassGeneratedBy && ComponentName.EndsWith(TEXT("_C")))
+				if (!ComponentClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
 				{
-					const int32 NameLen = ComponentName.Len() - 1;
-					ComponentName = ComponentName.Left(NameLen);
+					ComponentName.RemoveFromEnd(TEXT("Component"));
+				}
+				else
+				{
+					ComponentName.RemoveFromEnd("_C");
 				}
 			}
 			
