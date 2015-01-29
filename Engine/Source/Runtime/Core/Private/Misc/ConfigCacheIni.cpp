@@ -1250,7 +1250,7 @@ void FConfigFile::ProcessSourceAndCheckAgainstBackup()
 
 void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FString >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName )
 {
-	FConfigCacheIni Hierarchy;
+	FConfigCacheIni Hierarchy(EConfigCacheType::Temporary);
 	const FString& LastFileInHierarchy = SourceIniHierarchy.Last().Filename;
 
 	// Build a config file out of this default configs hierarchy.
@@ -1292,9 +1292,10 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FString >& I
 	FConfigCacheIni
 -----------------------------------------------------------------------------*/
 
-FConfigCacheIni::FConfigCacheIni()
+FConfigCacheIni::FConfigCacheIni(EConfigCacheType InType)
 	: bAreFileOperationsDisabled(false)
 	, bIsReadyForUse(false)
+	, Type(InType)
 {
 }
 
@@ -1330,6 +1331,12 @@ FConfigFile* FConfigCacheIni::Find( const FString& Filename, bool CreateIfNotFou
 
 void FConfigCacheIni::Flush( bool Read, const FString& Filename )
 {
+	// never Flush temporary cache objects
+	if (Type == EConfigCacheType::Temporary)
+	{
+		return;
+	}
+
 	// write out the files if we can
 	if (!bAreFileOperationsDisabled)
 	{
@@ -2700,7 +2707,17 @@ static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCH
 	// Engine/Config/NotForLicensees/Base* ini
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNotForLicensees/Base%s.ini"), EngineConfigDir, InBaseIniName), false) );
 	// Engine/Config/NoRedist/Base* ini
-	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNoRedist/Base%s.ini"), EngineConfigDir, InBaseIniName), false) );
+	/////
+	// NOTE: 4.7
+	// There was a bug that was causing this file to be written out for all users and for all projects, with bad values
+	// that would break all projects (external reference errors)
+	// Since this file has not been used yet, we will delete it if it exists, and then for 4.8, we will put this back
+	// into the hierarchy and remove the delete operation
+	// - Remember to fixup EngineConfiguration.cs
+	/////
+	IFileManager::Get().Delete(*FString::Printf(TEXT("%sNoRedist/Base%s.ini"), EngineConfigDir, InBaseIniName), false, true, true);
+	IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sNoRedist"), EngineConfigDir), false, false);
+	// OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNoRedist/Base%s.ini"), EngineConfigDir, InBaseIniName), false) );
 
 	// [[[[ PROJECT SETTINGS ]]]]
 	// Game/Config/Default* ini
@@ -2716,11 +2733,14 @@ static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCH
 	FString HierarchyCheckpointPath = FString::Printf(TEXT("%sNoRedist/Default%s.ini"), SourceConfigDir, InBaseIniName);
 	OutHierarchy.Add(FIniFilename(HierarchyCheckpointPath, false, GenerateHierarchyCacheKey(OutHierarchy, HierarchyCheckpointPath)));
 	
-	// [[[[ PLATFORM DEFAULTS AND PROJECT SETTINGS ]]]]
-	// Engine/Config/Platform/Platform* ini
-	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
-	// Game/Config/Platform/Platform* ini
-	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), SourceConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+	if (InPlatformName && InPlatformName[0])
+	{
+		// [[[[ PLATFORM DEFAULTS AND PROJECT SETTINGS ]]]]
+		// Engine/Config/Platform/Platform* ini
+		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+		// Game/Config/Platform/Platform* ini
+		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), SourceConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+	}
 
 	// [[[[ GLOBAL USER OVERRIDES ]]]]
 	// <AppData>/UE4/EngineConfig/User* ini
@@ -2769,7 +2789,7 @@ static FString GetDestIniFilename(const TCHAR* BaseIniName, const TCHAR* Platfor
 void FConfigCacheIni::InitializeConfigSystem()
 {
 	// create GConfig
-	GConfig = new FConfigCacheIni;
+	GConfig = new FConfigCacheIni(EConfigCacheType::DiskBacked);
 
 	// load the main .ini files (unless we're running a program or a gameless UE4Editor.exe, DefaultEngine.ini is required).
 	const bool bIsGamelessExe = !FApp::HasGameName();

@@ -353,7 +353,7 @@ UObject* UPackFactory::FactoryCreateBinary
 						const FString LongOldGameName = FString::Printf(TEXT("/Script/%s"), **GameName);
 						const FString LongNewGameName = FString::Printf(TEXT("/Script/%s"), *ModuleInfo.ModuleName);
 						
-						FConfigCacheIni Config;
+						FConfigCacheIni Config(EConfigCacheType::Temporary);
 						FConfigFile& NewFile = Config.Add(EngineIniFilename, FConfigFile());
 						FConfigCacheIni::LoadLocalIniFile(NewFile, TEXT("DefaultEngine"), false);
 						FConfigSection* PackageRedirects = Config.GetSectionPrivate(*RedirectsSection, true, false, EngineIniFilename);

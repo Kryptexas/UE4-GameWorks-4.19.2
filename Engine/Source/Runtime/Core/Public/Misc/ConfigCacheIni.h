@@ -52,6 +52,7 @@ struct FConfigCommandlineOverride
 
 
 // One config file.
+
 class FConfigFile : public TMap<FString,FConfigSection>
 {
 public:
@@ -157,12 +158,20 @@ private:
  */
 DECLARE_DELEGATE_TwoParams(FKeyValueSink, const TCHAR*, const TCHAR*);
 
+enum class EConfigCacheType : uint8
+{
+	// this type of config cache will write its files to disk during Flush (i.e. GConfig)
+	DiskBacked,
+	// this type of config cache is temporary and will never write to disk (only load from disk)
+	Temporary,
+};
+
 // Set of all cached config files.
 class CORE_API FConfigCacheIni : public TMap<FString,FConfigFile>
 {
 public:
 	// Basic functions.
-	FConfigCacheIni();
+	FConfigCacheIni(EConfigCacheType Type);
 	virtual ~FConfigCacheIni();
 
 	/**
@@ -550,6 +559,9 @@ private:
 
 	/** true after the base .ini files have been loaded, and GConfig is generally "ready for use" */
 	bool bIsReadyForUse;
+	
+	/** The type of the cache (basically, do we call Flush in the destructor) */
+	EConfigCacheType Type;
 };
 
 /**

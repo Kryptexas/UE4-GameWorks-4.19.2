@@ -1789,7 +1789,7 @@ FString UObject::GetGlobalUserConfigFilename() const
 void UObject::UpdateSingleSectionOfConfigFile(const FString& ConfigIniName)
 {
 	// create a sandbox FConfigCache
-	FConfigCacheIni Config;
+	FConfigCacheIni Config(EConfigCacheType::Temporary);
 
 	// add an empty file to the config so it doesn't read in the original file (see FConfigCacheIni.Find())
 	FConfigFile& NewFile = Config.Add(ConfigIniName, FConfigFile());
