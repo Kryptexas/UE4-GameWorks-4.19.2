@@ -398,35 +398,41 @@ public:
 				}
 
 				// Draw Mesh
-				for (int32 Index = 0; Index < MeshBatchElements.Num(); ++Index)
+				if (MeshBatchElements.Num())
 				{
-					if (MeshBatchElements[Index].NumPrimitives == 0)
+					for (size_t i = 0; i < length; i++)
 					{
-						continue;
+						(int32 Index = 0; Index < MeshBatchElements.Num(); ++Index)
+						{
+						if (MeshBatchElements[Index].NumPrimitives == 0)
+						{
+							continue;
+						}
+
+						FMeshBatch& Mesh = Collector.AllocateMesh();
+						FMeshBatchElement& BatchElement = Mesh.Elements[0];
+						BatchElement = MeshBatchElements[Index];
+						BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), false, UseEditorDepthTest());
+
+						Mesh.bWireframe = false;
+						Mesh.VertexFactory = &VertexFactory;
+						Mesh.MaterialRenderProxy = &MeshColors[Index];
+						Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+						Mesh.Type = PT_TriangleList;
+						Mesh.DepthPriorityGroup = SDPG_World;
+						Mesh.bCanApplyViewModeOverrides = false;
+						Collector.AddMesh(ViewIndex, Mesh);
 					}
 
-					FMeshBatch& Mesh = Collector.AllocateMesh();
-					FMeshBatchElement& BatchElement = Mesh.Elements[0];
-					BatchElement = MeshBatchElements[Index];
-					BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), false, UseEditorDepthTest());
+						if (ProxyData.PathCollidingGeomIndices.Num() > 2)
+						{
+							FDynamicMeshBuilder MeshBuilder;
+							MeshBuilder.AddVertices(ProxyData.PathCollidingGeomVerts);
+							MeshBuilder.AddTriangles(ProxyData.PathCollidingGeomIndices);
 
-					Mesh.bWireframe = false;
-					Mesh.VertexFactory = &VertexFactory;
-					Mesh.MaterialRenderProxy = &MeshColors[Index];
-					Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
-					Mesh.Type = PT_TriangleList;
-					Mesh.DepthPriorityGroup = SDPG_World;
-					Mesh.bCanApplyViewModeOverrides = false;
-					Collector.AddMesh(ViewIndex, Mesh);
-				}
-
-				if (ProxyData.PathCollidingGeomIndices.Num() > 2)
-				{
-					FDynamicMeshBuilder MeshBuilder;
-					MeshBuilder.AddVertices(ProxyData.PathCollidingGeomVerts);
-					MeshBuilder.AddTriangles(ProxyData.PathCollidingGeomIndices);
-
-					MeshBuilder.GetMesh(FMatrix::Identity, &MeshColors[MeshBatchElements.Num()], SDPG_World, false, false, ViewIndex, Collector);
+							MeshBuilder.GetMesh(FMatrix::Identity, &MeshColors[MeshBatchElements.Num()], SDPG_World, false, false, ViewIndex, Collector);
+						}
+					}
 				}
 
 				int32 Num = ProxyData.NavMeshEdgeLines.Num();

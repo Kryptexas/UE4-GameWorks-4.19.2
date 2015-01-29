@@ -197,13 +197,16 @@ void ANavigationTestingActor::PostEditMove(bool bFinished)
 	Super::PostEditMove(bFinished);
 
 	// project location to navmesh
-	FNavLocation NavLoc;
-	bProjectedLocationValid = GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(GetActorLocation(), NavLoc, QueryingExtent, MyNavData);
-	ProjectedLocation = NavLoc.Location;
-
-	if (bSearchStart || (OtherActor != NULL && OtherActor->bSearchStart))
+	if (GetWorld()->GetNavigationSystem())
 	{
-		UpdatePathfinding();
+		FNavLocation NavLoc;
+		bProjectedLocationValid = GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(GetActorLocation(), NavLoc, QueryingExtent, MyNavData);
+		ProjectedLocation = NavLoc.Location;
+
+		if (bSearchStart || (OtherActor != NULL && OtherActor->bSearchStart))
+		{
+			UpdatePathfinding();
+		}
 	}
 }
 
