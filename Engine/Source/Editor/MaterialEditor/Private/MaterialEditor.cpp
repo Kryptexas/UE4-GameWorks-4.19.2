@@ -1198,7 +1198,7 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 		// So that RebuildMaterialFunctionInfo will see all the nested material functions that may need to be updated
 		ExpressionPreviewMaterial->Expressions = Material->Expressions;
 
-		FMaterialUpdateContext UpdateContext;
+		FMaterialUpdateContext UpdateContext(FMaterialUpdateContext::EOptions::SyncWithRenderingThread);
 		UpdateContext.AddMaterial(ExpressionPreviewMaterial);
 
 		// If we are previewing an expression, update the expression preview material
@@ -1207,7 +1207,7 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 	}
 	else 
 	{
-		FMaterialUpdateContext UpdateContext;
+		FMaterialUpdateContext UpdateContext(FMaterialUpdateContext::EOptions::SyncWithRenderingThread);
 		UpdateContext.AddMaterial(Material);
 
 		// Update the regular preview material when not previewing an expression.
