@@ -128,10 +128,28 @@ void FAssetDeleteModel::DeleteSourceContentFiles()
 		Utils::ExtractSourceFilePaths(PendingDelete->GetObject(), FilesToDelete);
 	}
 
-	IFileManager& FileManager = IFileManager::Get();
-	for (const auto& Path : FilesToDelete)
+	if (FilesToDelete.Num() != 0)
 	{
-		FileManager.Delete(*Path, false /* RequireExists */, true /* Even if read only */, true /* Quiet */);
+		TArray<FString> RootContentPaths;
+		FPackageName::QueryRootContentPaths( RootContentPaths );
+		for (FString& RootPath : RootContentPaths)
+		{
+			RootPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(RootPath));
+		}
+
+		IFileManager& FileManager = IFileManager::Get();
+		for (const auto& Path : FilesToDelete)
+		{
+			const FString FullPath = FPaths::ConvertRelativePathToFull(Path);
+			const bool bFileIsExternal = !RootContentPaths.ContainsByPredicate([&](const FString& ContentDir){
+				return FullPath.StartsWith(ContentDir);
+			});
+
+			if (!bFileIsExternal)
+			{
+				FileManager.Delete(*Path, false /* RequireExists */, true /* Even if read only */, true /* Quiet */);
+			}
+		}
 	}
 }
 

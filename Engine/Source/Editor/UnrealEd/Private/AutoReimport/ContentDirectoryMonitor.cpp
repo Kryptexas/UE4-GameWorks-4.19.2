@@ -67,7 +67,7 @@ void FContentDirectoryMonitor::StartProcessing()
 			switch(Transaction.Action)
 			{
 				case FFileChangeData::FCA_Added:
-					if (Settings->bAutoCreateAssets)
+					if (Settings->bAutoCreateAssets && !MountedContentPath.IsEmpty())
 					{
 						AddedFiles.Emplace(MoveTemp(Transaction));
 					}
@@ -76,13 +76,13 @@ void FContentDirectoryMonitor::StartProcessing()
 						Cache.CompleteTransaction(MoveTemp(Transaction));
 					}
 					break;
-					
+
 				case FFileChangeData::FCA_Modified:
 					ModifiedFiles.Emplace(MoveTemp(Transaction));
 					break;
 
 				case FFileChangeData::FCA_Removed:
-					if (Settings->bAutoDeleteAssets)
+					if (Settings->bAutoDeleteAssets && !MountedContentPath.IsEmpty())
 					{
 						DeletedFiles.Emplace(MoveTemp(Transaction));
 					}
@@ -100,12 +100,6 @@ void FContentDirectoryMonitor::StartProcessing()
 
 void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesToSave, const FTimeLimit& TimeLimit, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context)
 {
-	if (MountedContentPath.IsEmpty())
-	{
-		// @todo: arodham: Prompt user for import location
-		return;
-	}
-	
 	bool bCancelled = false;
 	for (int32 Index = 0; Index < AddedFiles.Num(); ++Index)
 	{
@@ -166,10 +160,15 @@ void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesTo
 
 				UObject* NewAsset = nullptr;
 				UFactory* FactoryInstance = FactoryType ? ConstructObject<UFactory>(FactoryType->GetClass()) : nullptr;
-				if (FactoryInstance && FactoryInstance->ConfigureProperties())
+				if (FactoryInstance)
 				{
-					UClass* ImportAssetType = FactoryInstance->SupportedClass;
-					NewAsset = UFactory::StaticImportObject(ImportAssetType, NewPackage, FName(*NewAssetName), RF_Public | RF_Standalone, bCancelled, *FullFilename, nullptr, FactoryInstance);
+					FactoryInstance->AddToRoot();
+					if (FactoryInstance->ConfigureProperties())
+					{
+						UClass* ImportAssetType = FactoryInstance->SupportedClass;
+						NewAsset = UFactory::StaticImportObject(ImportAssetType, NewPackage, FName(*NewAssetName), RF_Public | RF_Standalone, bCancelled, *FullFilename, nullptr, FactoryInstance);
+					}
+					FactoryInstance->RemoveFromRoot();
 				}
 
 				if (!bCancelled)
@@ -215,6 +214,7 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 		auto& Change = ModifiedFiles[Index];
 
 		const FString FullFilename = Cache.GetDirectory() + Change.Filename.Get();
+
 		for (const auto& AssetData : Utils::FindAssetsPertainingToFile(Registry, FullFilename))
 		{
 			UObject* Asset = AssetData.GetAsset();
