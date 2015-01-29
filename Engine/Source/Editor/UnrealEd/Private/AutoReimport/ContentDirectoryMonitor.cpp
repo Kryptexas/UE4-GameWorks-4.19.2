@@ -175,9 +175,20 @@ void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesTo
 				{
 					if (!NewAsset)
 					{
+						TArray<UPackage*> Packages;
+						Packages.Add(NewPackage);
+
+						FText ErrorMessage;
+						if (!PackageTools::UnloadPackages(Packages, ErrorMessage))
+						{
+							Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_UnloadingPackage", "There was an error unloading a package: {0}."), ErrorMessage));
+						}						
+
 						Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToImportAsset", "Failed to import file {0}."), FText::FromString(FullFilename)));
 						continue;
 					}
+
+					Context.AddMessage(EMessageSeverity::Info, FText::Format(LOCTEXT("Success_CreatedNewAsset", "Created new asset {0}."), FText::FromString(PackagePath)));
 
 					FAssetRegistryModule::AssetCreated(NewAsset);
 					GEditor->BroadcastObjectReimported(NewAsset);
@@ -221,6 +232,10 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 			if (!ReimportManager->Reimport(Asset, false /* Ask for new file */, false /* Show notification */))
 			{
 				Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToReimportAsset", "Failed to reimport asset {0}."), FText::FromString(Asset->GetName())));
+			}
+			else
+			{
+				Context.AddMessage(EMessageSeverity::Info, FText::Format(LOCTEXT("Success_CreatedNewAsset", "Reimported asset {0} from {1}."), FText::FromString(Asset->GetName()), FText::FromString(FullFilename)));
 			}
 		}
 

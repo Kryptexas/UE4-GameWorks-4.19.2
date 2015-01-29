@@ -370,6 +370,10 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessDeletions()
 	if (AssetsToDelete.Num() > 0)
 	{
 		ObjectTools::DeleteAssets(AssetsToDelete);
+		for (const auto& AssetData : AssetsToDelete)
+		{
+			FeedbackContextOverride->AddMessage(EMessageSeverity::Info, FText::Format(LOCTEXT("Success_DeletedAsset", "Deleted {0}."), FText::FromName(AssetData.AssetName)));
+		}
 	}
 
 	Cleanup();
