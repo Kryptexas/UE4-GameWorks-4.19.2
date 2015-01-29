@@ -1236,6 +1236,11 @@ bool FSceneRenderer::ShouldCompositeEditorPrimitives(const FViewInfo& View)
 		return false;
 	}
 
+	if(View.Family->EngineShowFlags.VisualizeHDR)
+	{
+		return false;
+	}
+
 	if (GIsEditor && View.Family->EngineShowFlags.Wireframe)
 	{
 		// In Editor we want wire frame view modes to be in MSAA

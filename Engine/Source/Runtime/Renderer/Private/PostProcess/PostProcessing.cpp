@@ -1417,7 +1417,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			&& View.Family->EngineShowFlags.SelectionOutline
 			&& !(View.Family->EngineShowFlags.Wireframe)
 			&& ( !GIsDemoMode || ( GIsDemoMode && !View.Family->EngineShowFlags.Game ) ) 
-			&& !bVisualizeBloom)
+			&& !bVisualizeBloom
+			&& !View.Family->EngineShowFlags.VisualizeHDR)
 		{
 			// Selection outline is after bloom, but before AA
 			AddSelectionOutline(Context);
