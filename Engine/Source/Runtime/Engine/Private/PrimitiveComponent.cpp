@@ -316,8 +316,8 @@ void UPrimitiveComponent::OnRegister()
 
 	if (bCanEverAffectNavigation)
 	{
-		UNavigationSystem::OnComponentRegistered(this);
 		bNavigationRelevant = IsNavigationRelevant();
+		UNavigationSystem::OnComponentRegistered(this);	
 	}
 }
 
@@ -1634,8 +1634,8 @@ void UPrimitiveComponent::SetCanEverAffectNavigation(bool bRelevant)
 		{
 			if (bRelevant)
 			{
-				UNavigationSystem::OnComponentRegistered(this);
 				bNavigationRelevant = IsNavigationRelevant();
+				UNavigationSystem::OnComponentRegistered(this);
 			}
 			else
 			{
