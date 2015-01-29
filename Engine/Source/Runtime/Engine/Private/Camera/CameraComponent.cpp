@@ -39,6 +39,22 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
+#if WITH_EDITORONLY_DATA
+void UCameraComponent::OnComponentDestroyed()
+{
+	Super::OnComponentDestroyed();
+
+	if (ProxyMeshComponent)
+	{
+		ProxyMeshComponent->DestroyComponent();
+	}
+	if (DrawFrustum)
+	{
+		DrawFrustum->DestroyComponent();
+	}
+}
+#endif
+
 void UCameraComponent::OnRegister()
 {
 #if WITH_EDITORONLY_DATA
