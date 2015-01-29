@@ -1062,7 +1062,7 @@ void APlayerCameraManager::ClearCameraLensEffects()
 
 void APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> Shake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
 {
-	if (Shake != NULL)
+	if ((Shake != nullptr) && (Scale > 0.0f))
 	{
 		CameraShakeCamMod->AddCameraShake(Shake, Scale, PlaySpace, UserPlaySpaceRot);
 	}

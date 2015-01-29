@@ -36,12 +36,7 @@ void UCameraModifier_CameraShake::UpdateCameraShake(float DeltaTime, FCameraShak
 	}
 
 	// this is the base scale for the whole shake, anim and oscillation alike
-	float const BaseShakeScale = GetShakeScale(Shake);
-	// do not update if percentage is null
-	if (BaseShakeScale <= 0.f)
-	{
-		return;
-	}
+	float const BaseShakeScale = FMath::Max<float>(GetShakeScale(Shake), 0.0f);
 
 	// update anims with any desired scaling
 	if (Shake.AnimInst)
