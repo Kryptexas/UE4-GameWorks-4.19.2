@@ -95,6 +95,7 @@
 #include "RigDetails.h"
 #include "SceneCaptureDetails.h"
 #include "CurveColorCustomization.h"
+#include "ActorComponentDetails.h"
 
 IMPLEMENT_MODULE( FDetailCustomizationsModule, DetailCustomizations );
 
