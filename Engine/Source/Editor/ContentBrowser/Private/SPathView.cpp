@@ -341,6 +341,11 @@ TSharedPtr<FTreeItem> SPathView::AddPath(const FString& Path, bool bUserNamed)
 						TreeViewPtr->RequestScrollIntoView(ChildItem);
 					}
 				}
+				else
+				{
+					//If the child item does exist, ensure its folder path is correct (may differ when renaming parent folder)
+					ChildItem->FolderPath = CurrentItem->FolderPath + "/" + PathItemName;
+				}
 
 				CurrentItem = ChildItem;
 			}
