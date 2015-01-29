@@ -1316,14 +1316,14 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 			const int32 IntersectedLength = IntersectedRangeToRemove.Len();
 			if (RunLength == IntersectedLength)
 			{
-				// The text for this entire run has been removed
-				if (LineModel.Runs.Num() > 1)
+				// The text for this entire run has been removed, so remove this run
+				LineModel.Runs.RemoveAt(RunIndex);
+
+				// Every line needs at least one run - if we just removed the last run for this line, add a new default text run with a zero range
+				if (LineModel.Runs.Num() == 0)
 				{
-					LineModel.Runs.RemoveAt(RunIndex);
-				}
-				else
-				{
-					RunModel.SetTextRange(FTextRange(0, 0));
+					TSharedRef<IRun> NewTextRun = CreateDefaultTextRun(LineModel.Text, FTextRange(0, 0));
+					LineModel.Runs.Add(NewTextRun);
 				}
 			}
 			else if (RunRange.BeginIndex > RemoveTextRange.BeginIndex)
