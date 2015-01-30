@@ -264,7 +264,7 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 
 
 /**
- * SkeletalMeshComponent is used to create an instance of a USkeletalMesh.
+ * SkeletalMeshComponent is used to create an instance of an animated SkeletalMesh asset.
  *
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
  * @see USkeletalMesh
