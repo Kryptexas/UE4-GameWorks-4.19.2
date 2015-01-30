@@ -105,7 +105,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		}
 
 		TSharedRef<SWidget> KeyFrameButton = CreateKeyframeButton( *Customization, InOwnerTreeNode );
-		auto IsPropertyEditingEnabled = InOwnerTreeNode->IsPropertyEditingEnabled();
+		TAttribute<bool> IsPropertyEditingEnabled = InOwnerTreeNode->IsPropertyEditingEnabled();
 
 		if( bHasMultipleColumns )
 		{
