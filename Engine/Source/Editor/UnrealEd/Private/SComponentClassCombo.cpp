@@ -388,7 +388,7 @@ void SComponentClassCombo::UpdateComponentClassList()
 
 	if( GetDefault<UEditorExperimentalSettings>()->bScriptableComponentsOnActors )
 	{
-		FString NewComponentsHeading = LOCTEXT("NewComponentsHeading", "Behavioral").ToString();
+		FString NewComponentsHeading = LOCTEXT("NewComponentsHeading", "New").ToString();
 		// Add new C++ component class
 		FComponentClassComboEntryPtr NewClassHeader = MakeShareable(new FComponentClassComboEntry(NewComponentsHeading));
 		ComponentClassList.Add(NewClassHeader);
@@ -398,6 +398,9 @@ void SComponentClassCombo::UpdateComponentClassList()
 
 		FComponentClassComboEntryPtr NewBPClass = MakeShareable(new FComponentClassComboEntry(NewComponentsHeading, UActorComponent::StaticClass(), true, EComponentCreateAction::CreateNewBlueprintClass));
 		ComponentClassList.Add(NewBPClass);
+
+		FComponentClassComboEntryPtr NewSeparator(new FComponentClassComboEntry());
+		ComponentClassList.Add( NewSeparator );
 	}
 	
 	TArray<FComponentClassComboEntryPtr> SortedClassList;
