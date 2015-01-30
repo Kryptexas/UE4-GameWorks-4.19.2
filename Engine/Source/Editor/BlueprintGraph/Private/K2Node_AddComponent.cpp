@@ -321,7 +321,7 @@ FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			else
 			{
 				FFormatNamedArguments Args;
-				Args.Add(TEXT("ClassName"), FText::FromString(SourceTemplate->GetClass()->GetName()));
+				Args.Add(TEXT("ClassName"), SourceTemplate->GetClass()->GetDisplayNameText());
 				CachedNodeTitle = FText::Format(LOCTEXT("AddClass", "Add {ClassName}"), Args);
 			}
 		}
