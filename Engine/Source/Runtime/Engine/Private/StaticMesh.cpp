@@ -1189,6 +1189,13 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 
 		const FMeshBuildSettings& BuildSettings = Owner->SourceModels[0].BuildSettings;
 		UStaticMesh* MeshToGenerateFrom = BuildSettings.DistanceFieldReplacementMesh ? BuildSettings.DistanceFieldReplacementMesh : Owner;
+
+		if (BuildSettings.DistanceFieldReplacementMesh)
+		{
+			// Make sure dependency is postloaded
+			BuildSettings.DistanceFieldReplacementMesh->ConditionalPostLoad();
+		}
+
 		LODResources[0].DistanceFieldData->CacheDerivedData(DistanceFieldKey, Owner, MeshToGenerateFrom, BuildSettings.DistanceFieldResolutionScale, BuildSettings.bGenerateDistanceFieldAsIfTwoSided);
 	}
 }
