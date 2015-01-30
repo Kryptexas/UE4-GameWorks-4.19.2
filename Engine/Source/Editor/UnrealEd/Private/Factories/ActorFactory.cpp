@@ -1215,8 +1215,8 @@ AActor* UActorFactoryPawn::SpawnActor(UObject* Asset, ULevel* InLevel, const FVe
 	AActor* NewActor = nullptr;
 	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
 	{
-			NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
-		}
+		NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
+	}
 
 	return NewActor;
 }
