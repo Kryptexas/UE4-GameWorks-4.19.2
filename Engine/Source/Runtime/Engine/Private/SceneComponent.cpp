@@ -130,7 +130,7 @@ void USceneComponent::OnRegister()
 	
 	Super::OnRegister();
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	if (bVisualizeComponent && SpriteComponent == nullptr && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
 		// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
@@ -331,7 +331,7 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 					USceneComponent* NewRootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), Owner, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 					NewRootComponent->Mobility = Mobility;
 					NewRootComponent->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 					NewRootComponent->bVisualizeComponent = true;
 #endif
 					Owner->AddInstanceComponent(NewRootComponent);
@@ -392,7 +392,7 @@ void USceneComponent::OnComponentDestroyed()
 {
 	Super::OnComponentDestroyed();
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	if (SpriteComponent)
 	{
 		SpriteComponent->DestroyComponent();
