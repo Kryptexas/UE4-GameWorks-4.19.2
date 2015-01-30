@@ -5,49 +5,10 @@
 #include "FileCache.h"
 #include "IDirectoryWatcher.h"
 #include "DirectoryWatcherModule.h"
+#include "AutoReimportUtilities.h"
 
 const FGuid FFileCacheCustomVersion::Key(0x8E7DDCB3, 0x80DA47BB, 0x9FD346A2, 0x93984DF6);
 FCustomVersionRegistration GRegisterFileCacheVersion(FFileCacheCustomVersion::Key, FFileCacheCustomVersion::Latest, TEXT("FileCacheVersion"));
-
-namespace
-{
-	/** Helper template function to remove duplicates from an array, given some predicate */
-	template<typename T, typename P>
-	void RemoveDuplicates(TArray<T>& Array, P Predicate)
-	{
-		if (Array.Num() == 0)
-			return;
-
-		const int32 NumElements = Array.Num();
-		int32 Write = 0;
-		for (int32 Read = 0; Read < NumElements; ++Read)
-		{
-			for (int32 DuplRead = Read + 1; DuplRead < NumElements; ++DuplRead)
-			{
-				if (Predicate(Array[Read], Array[DuplRead]))
-				{
-					goto next;
-				}
-			}
-
-			if (Write != Read)
-			{
-				Swap(Array[Write++], Array[Read]);
-			}
-			else
-			{
-				Write++;
-			}
-	next:
-			;
-		}
-		const int32 NumDuplicates = NumElements - Write;
-		if (NumDuplicates != 0)
-		{
-			Array.RemoveAt(Write, NumDuplicates, false);
-		}
-	}
-}
 
 FAsyncDirectoryReader::FAsyncDirectoryReader(const FString& InDirectory, EPathType InPathType)
 	: RootPath(InDirectory), PathType(InPathType)
@@ -419,7 +380,7 @@ void FFileCache::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 		}
 	}
 
-	RemoveDuplicates(OutstandingChanges, [](const FUpdateCacheTransaction& A, const FUpdateCacheTransaction& B){
+	Utils::RemoveDuplicates(OutstandingChanges, [](const FUpdateCacheTransaction& A, const FUpdateCacheTransaction& B){
 		return A.Action == B.Action && A.Filename == B.Filename;
 	});
 }

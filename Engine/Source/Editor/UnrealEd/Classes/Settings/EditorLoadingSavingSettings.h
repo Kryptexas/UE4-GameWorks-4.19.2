@@ -32,8 +32,13 @@ public:
 	bool bMonitorContentDirectories;
 
 	/** Directories being monitored for Auto Reimport */
-	UPROPERTY(EditAnywhere, config, Category=AutoReimport, meta=(DisplayName="Additional Directories to Monitor"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay,Category=AutoReimport, meta=(DisplayName="Directories to Monitor", ToolTip="Lists every directory to monitor for content changes. Can be virtual package paths (eg /Game/ or /MyPlugin/), or absolute paths on disk."))
 	TArray<FString> AutoReimportDirectories;
+
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=AutoReimport, meta=(DisplayName="Auto Create Assets", ToolTip="When enabled, newly added source content files will be automatically imported into new assets."))
+	bool bAutoCreateAssets;
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=AutoReimport, meta=(DisplayName="Auto Delete Assets", ToolTip="When enabled, deleting a source content file will automatically prompt the deletion of any related assets."))
+	bool bAutoDeleteAssets;
 
 	/** Internal setting to control whether we should ask the user whether we should automatically delete source files when their assets are deleted */
 	UPROPERTY(config)

@@ -97,6 +97,43 @@ namespace Utils
 		return Accumulator;
 	}
 
+	/** Helper template function to remove duplicates from an array, given some predicate */
+	template<typename T, typename P>
+	void RemoveDuplicates(TArray<T>& Array, P Predicate)
+	{
+		if (Array.Num() == 0)
+			return;
+
+		const int32 NumElements = Array.Num();
+		int32 Write = 0;
+		for (int32 Read = 0; Read < NumElements; ++Read)
+		{
+			for (int32 DuplRead = Read + 1; DuplRead < NumElements; ++DuplRead)
+			{
+				if (Predicate(Array[Read], Array[DuplRead]))
+				{
+					goto next;
+				}
+			}
+
+			if (Write != Read)
+			{
+				Swap(Array[Write++], Array[Read]);
+			}
+			else
+			{
+				Write++;
+			}
+	next:
+			;
+		}
+		const int32 NumDuplicates = NumElements - Write;
+		if (NumDuplicates != 0)
+		{
+			Array.RemoveAt(Write, NumDuplicates, false);
+		}
+	}
+
 	/** Find a list of assets that were once imported from the specified filename */
 	TArray<FAssetData> FindAssetsPertainingToFile(const IAssetRegistry& Registry, const FString& AbsoluteFilename);
 
