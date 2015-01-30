@@ -2562,8 +2562,7 @@ FText SSCS_RowWidget_ActorRoot::GetActorDisplayText() const
 				}
 				else
 				{
-					FString Name;
-					DefaultActor->GetName(Name);
+					FString Name = DefaultActor->GetActorLabel();
 					return FText::Format(LOCTEXT("DefaultActor_Name", "{0} (Instance)"), FText::FromString(Name));
 				}
 			}
