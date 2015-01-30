@@ -32,6 +32,7 @@
 #include "ComponentReregisterContext.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Layers/ILayers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
@@ -1755,7 +1756,9 @@ namespace ObjectTools
 
 		GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "Deleting", "Deleting"), true );
 
+		TArray<AActor*> ActorsToDelete;
 		TArray<UObject*> ObjectsToDelete;
+		bool bNeedsGarbageCollection = false;
 	
 		// Clear audio components to allow previewed sounds to be consolidated
 		GEditor->ClearPreviewComponents();
@@ -1767,6 +1770,65 @@ namespace ObjectTools
 			GEditor->GetSelectedObjects()->Deselect( CurrentObject );
 
 			ObjectsToDelete.Add( CurrentObject );
+
+			// If the object about to be deleted is a Blueprint asset, make sure that any instances of the Blueprint class get deleted as well
+			UBlueprint *BlueprintObject = Cast<UBlueprint>(CurrentObject);
+			if ( BlueprintObject && BlueprintObject->GeneratedClass && BlueprintObject->GeneratedClass->ClassDefaultObject )
+			{
+				TArray<UObject*> InstancesToDelete;
+				BlueprintObject->GeneratedClass->ClassDefaultObject->GetArchetypeInstances( InstancesToDelete );
+
+				for ( TArray<UObject*>::TConstIterator InstanceItr( InstancesToDelete ); InstanceItr; ++InstanceItr )
+				{
+					UObject* CurrentInstance = *InstanceItr;
+
+					AActor* CurrentInstanceAsActor = Cast<AActor>( CurrentInstance );
+					if ( CurrentInstanceAsActor )
+					{
+						ActorsToDelete.Add( CurrentInstanceAsActor );
+					}
+					else
+					{
+						ObjectsToDelete.Add( CurrentInstance );
+					}
+				}
+			}
+		}
+
+		// Destroy all Actor instances
+		if ( ActorsToDelete.Num() > 0 )
+		{
+			bool bSelectionChanged = false;
+			for ( TArray<AActor*>::TConstIterator ActorItr( ActorsToDelete ); ActorItr; ++ActorItr )
+			{
+				AActor* CurActor = *ActorItr;
+
+				// Skip if already pending GC
+				if ( !CurActor->IsPendingKill() )
+				{
+					// Deselect if active
+					USelection* SelectedActors = GEditor->GetSelectedActors();
+					if ( SelectedActors && CurActor->IsSelected() )
+					{
+						SelectedActors->Deselect( CurActor );
+
+						bSelectionChanged = true;
+					}
+
+					// Destroy the Actor instance. This is similar to edactDeleteSelected(), but we don't request user confirmation here.
+					GEditor->Layers->DisassociateActorFromLayers( CurActor );
+					GEditor->GetEditorWorldContext().World()->EditorDestroyActor( CurActor, false );
+
+					bNeedsGarbageCollection = true;
+				}
+
+				GWarn->StatusUpdate( ActorItr.GetIndex(), ActorsToDelete.Num(), NSLOCTEXT( "UnrealEd", "ConsolidateAssetsUpdate_DeletingInstances", "Deleting Instances..." ) );
+			}
+
+			if ( bSelectionChanged )
+			{
+				GEditor->NoteSelectionChange();
+			}
 		}
 
 		// If the current editor world is in this list, transition to a new map and reload the world to finish the delete
@@ -1775,7 +1837,6 @@ namespace ObjectTools
 		{
 			int32 ReplaceableObjectsNum = 0;
 			{
-				bool bNeedsGarbageCollection = false;
 				TArray<UObject*> ObjectsToReplace = ObjectsToDelete;
 				for (TArray<UObject*>::TIterator ObjectItr(ObjectsToReplace); ObjectItr; ++ObjectItr)
 				{
