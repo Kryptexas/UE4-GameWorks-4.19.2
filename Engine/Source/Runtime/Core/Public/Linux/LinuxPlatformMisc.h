@@ -32,14 +32,16 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 			raise(SIGTRAP);
 		}
 	}
+#endif // !UE_BUILD_SHIPPING
 
 	/** Break into debugger. Returning false allows this function to be used in conditionals. */
 	FORCEINLINE static bool DebugBreakReturningFalse()
 	{
+#if !UE_BUILD_SHIPPING
 		DebugBreak();
+#endif
 		return false;
 	}
-#endif // !UE_BUILD_SHIPPING
 
 	static void PumpMessages(bool bFromMainLoop);
 	static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings );

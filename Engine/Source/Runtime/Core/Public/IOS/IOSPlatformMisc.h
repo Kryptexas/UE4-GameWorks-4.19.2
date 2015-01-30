@@ -55,7 +55,9 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	/** Break into debugger. Returning false allows this function to be used in conditionals. */
 	FORCEINLINE static bool DebugBreakReturningFalse()
 	{
+#if !UE_BUILD_SHIPPING
 		DebugBreak();
+#endif
 		return false;
 	}
 
