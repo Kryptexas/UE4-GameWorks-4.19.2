@@ -13,7 +13,9 @@ UPhysicsConstraintComponent::UPhysicsConstraintComponent(const FObjectInitialize
 	: Super(ObjectInitializer)
 {
 	bWantsInitializeComponent = true;
+#if WITH_EDITOR
 	bVisualizeComponent = true;
+#endif
 }
 
 
