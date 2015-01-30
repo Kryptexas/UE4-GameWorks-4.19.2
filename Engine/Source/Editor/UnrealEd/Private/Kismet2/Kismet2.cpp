@@ -1069,6 +1069,8 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 				}
 			}
 
+			FKismetEditorUtilities::CompileBlueprint(NewBlueprint);
+
 			if(bReplaceActor)
 			{
 				TArray<AActor*> Actors;
