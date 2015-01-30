@@ -43,6 +43,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FTargetingRejectedConfirmation, int32);
 
 /**
  *	The core ActorComponent for interfacing with the GameplayAbilities System
+ *	NOTE: This feature is EXPERIMENTAL. Use at your own risk!
  */
 UCLASS(ClassGroup=AbilitySystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
 class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, public IGameplayTagAssetInterface
