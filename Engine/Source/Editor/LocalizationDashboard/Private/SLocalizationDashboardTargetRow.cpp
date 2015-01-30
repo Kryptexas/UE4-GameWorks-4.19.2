@@ -124,6 +124,23 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 				]
 			];
 
+		// Compile
+		HorizontalBox->AddSlot()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
+				.ToolTipText( LOCTEXT("CompileButtonLabel", "Compile") )
+				.OnClicked(this, &SLocalizationDashboardTargetRow::Compile)
+				.Content()
+				[
+					SNew(SImage)
+					.Image( FEditorStyle::GetBrush("LocalizationDashboard.CompileTarget") )
+				]
+			];
+
 		// Delete Target
 		HorizontalBox->AddSlot()
 			.FillWidth(1.0f)
@@ -401,6 +418,19 @@ FReply SLocalizationDashboardTargetRow::ExportAll()
 		{
 			LocalizationCommandletTasks::ExportTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings, TOptional<FString>(OutputDirectory));
 		}
+	}
+
+	return FReply::Handled();
+}
+
+FReply SLocalizationDashboardTargetRow::Compile()
+{
+	ULocalizationTarget* const LocalizationTarget = GetTarget();
+	if (LocalizationTarget)
+	{
+		// Execute compile.
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+		LocalizationCommandletTasks::CompileTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings);
 	}
 
 	return FReply::Handled();

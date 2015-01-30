@@ -217,4 +217,37 @@ bool LocalizationCommandletTasks::GenerateReportsForTarget(const TSharedRef<SWin
 	return LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
 }
 
+bool LocalizationCommandletTasks::CompileTargets(const TSharedRef<SWindow>& ParentWindow, const TArray<FLocalizationTargetSettings*>& TargetsSettings)
+{
+	TArray<LocalizationCommandletExecution::FTask> Tasks;
+
+	for (FLocalizationTargetSettings* TargetSettings : TargetsSettings)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("TargetName"), FText::FromString(TargetSettings->Name));
+
+		const FText CompileTaskName = FText::Format(LOCTEXT("CompileTaskNameFormat", "Compile Translations for {TargetName}"), Arguments);
+		const FString CompileScriptPath = LocalizationConfigurationScript::GetCompileScriptPath(*TargetSettings);
+		LocalizationConfigurationScript::GenerateCompileScript(*TargetSettings).Write(CompileScriptPath);
+		Tasks.Add(LocalizationCommandletExecution::FTask(CompileTaskName, CompileScriptPath));
+	}
+
+	return LocalizationCommandletExecution::Execute(ParentWindow, LOCTEXT("GenerateLocResForAllTargetsWindowTitle", "Compile Translations for All Targets"), Tasks);
+}
+
+bool LocalizationCommandletTasks::CompileTarget(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings)
+{
+	TArray<LocalizationCommandletExecution::FTask> Tasks;
+
+	const FString CompileScriptPath = LocalizationConfigurationScript::GetCompileScriptPath(TargetSettings);
+	LocalizationConfigurationScript::GenerateCompileScript(TargetSettings).Write(CompileScriptPath);
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("CompileTaskName", "Compile Translations"), CompileScriptPath));
+
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("TargetName"), FText::FromString(TargetSettings.Name));
+
+	const FText WindowTitle = FText::Format(LOCTEXT("GenerateLocResForTargetWindowTitle", "Compile Translations for Target {TargetName}"), Arguments);
+	return LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
+}
+
 #undef LOCTEXT_NAMESPACE

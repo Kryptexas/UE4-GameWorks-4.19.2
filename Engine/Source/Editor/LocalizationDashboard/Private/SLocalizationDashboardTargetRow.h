@@ -34,6 +34,8 @@ private:
 	FReply Gather();
 	FReply ImportAll();
 	FReply ExportAll();
+	FReply Compile();
+
 	FReply EnqueueDeletion();
 	void Delete();
 

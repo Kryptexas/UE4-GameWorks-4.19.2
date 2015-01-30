@@ -51,6 +51,7 @@ namespace
 		void ImportAllTargets();
 		void ExportAllTargets();
 		void UpdateTargetFromReports(ULocalizationTarget* const LocalizationTarget);
+		void CompileAllTargets();
 
 		TSharedRef<ITableRow> OnGenerateRow(TSharedPtr<IPropertyHandle> TargetObjectPropertyHandle, const TSharedRef<STableViewBase>& Table);
 		FReply OnNewTargetButtonClicked();
@@ -123,6 +124,7 @@ namespace
 		TSharedPtr<FUICommandInfo> GatherAllTargets;
 		TSharedPtr<FUICommandInfo> ImportAllTargets;
 		TSharedPtr<FUICommandInfo> ExportAllTargets;
+		TSharedPtr<FUICommandInfo> CompileAllTargets;
 
 		/** Initialize commands */
 		virtual void RegisterCommands() override;
@@ -133,6 +135,7 @@ namespace
 		UI_COMMAND( GatherAllTargets, "Gather All", "Gathers text for all targets in the project.", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( ImportAllTargets, "Import All", "Imports translations for all cultures of all targets in the project.", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( ExportAllTargets, "Export All", "Exports translations for all cultures of all targets in the project.", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( CompileAllTargets, "Compile All", "Compiles translations for all targets in the project.", EUserInterfaceActionType::Button, FInputGesture() );
 	}
 
 	void FProjectLocalizationSettingsDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
@@ -197,6 +200,9 @@ namespace
 
 				CommandList->MapAction( FLocalizationDashboardCommands::Get().ExportAllTargets, FExecuteAction::CreateSP(this, &FProjectLocalizationSettingsDetailsCustomization::ExportAllTargets));
 				ToolBarBuilder.AddToolBarButton(FLocalizationDashboardCommands::Get().ExportAllTargets, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "LocalizationDashboard.ExportForAllTargetsCultures"));
+
+				CommandList->MapAction( FLocalizationDashboardCommands::Get().CompileAllTargets, FExecuteAction::CreateSP(this, &FProjectLocalizationSettingsDetailsCustomization::CompileAllTargets));
+				ToolBarBuilder.AddToolBarButton(FLocalizationDashboardCommands::Get().CompileAllTargets, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "LocalizationDashboard.CompileAllTargets"));
 
 				BuildTargetsList();
 
@@ -494,6 +500,18 @@ namespace
 		//{
 		//	WordCountPropertyHandle->NotifyPostChange();
 		//}
+	}
+
+	void FProjectLocalizationSettingsDetailsCustomization::CompileAllTargets()
+	{
+		// Execute compile.
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		TArray<FLocalizationTargetSettings*> TargetSettings;
+		for (ULocalizationTarget* const TargetObject : Settings->TargetObjects)
+		{
+			TargetSettings.Add(&TargetObject->Settings);
+		}
+		LocalizationCommandletTasks::CompileTargets(ParentWindow.ToSharedRef(), TargetSettings);
 	}
 
 	TSharedRef<ITableRow> FProjectLocalizationSettingsDetailsCustomization::OnGenerateRow(TSharedPtr<IPropertyHandle> TargetObjectPropertyHandle, const TSharedRef<STableViewBase>& Table)

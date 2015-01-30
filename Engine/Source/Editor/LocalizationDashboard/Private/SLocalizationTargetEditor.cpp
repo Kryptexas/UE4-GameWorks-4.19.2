@@ -51,6 +51,7 @@ namespace
 		void Gather();
 		void ImportAllCultures();
 		void ExportAllCultures();
+		void Compile();
 		void RefreshWordCounts();
 		void UpdateTargetFromReports();
 
@@ -112,6 +113,7 @@ namespace
 		TSharedPtr<FUICommandInfo> ImportAllCultures;
 		TSharedPtr<FUICommandInfo> ExportAllCultures;
 		TSharedPtr<FUICommandInfo> RefreshWordCounts;
+		TSharedPtr<FUICommandInfo> Compile;
 
 		/** Initialize commands */
 		virtual void RegisterCommands() override;
@@ -123,6 +125,7 @@ namespace
 		UI_COMMAND( ImportAllCultures, "Import All", "Imports translations for all cultures of this target.", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( ExportAllCultures, "Export All", "Exports translations for all cultures of this target.", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( RefreshWordCounts, "Count Words", "Recalculates the word counts for all cultures of this target.", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( Compile, "Compile", "Compiles translations for this target.", EUserInterfaceActionType::Button, FInputGesture() );
 	}
 
 	void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
@@ -310,6 +313,10 @@ namespace
 
 				CommandList->MapAction( FLocalizationTargetEditorCommands::Get().RefreshWordCounts, FExecuteAction::CreateSP(this, &FLocalizationTargetDetailCustomization::RefreshWordCounts));
 				ToolBarBuilder.AddToolBarButton(FLocalizationTargetEditorCommands::Get().RefreshWordCounts, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "LocalizationTargetEditor.RefreshWordCounts"));
+
+				CommandList->MapAction( FLocalizationTargetEditorCommands::Get().Compile, FExecuteAction::CreateSP(this, &FLocalizationTargetDetailCustomization::Compile));
+				ToolBarBuilder.AddToolBarButton(FLocalizationTargetEditorCommands::Get().Compile, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "LocalizationTargetEditor.Compile"));
+
 
 				BuildListedCulturesList();
 
@@ -729,6 +736,16 @@ namespace
 			{
 				LocalizationCommandletTasks::ExportTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings, TOptional<FString>(OutputDirectory));
 			}
+		}
+	}
+
+	void FLocalizationTargetDetailCustomization::Compile()
+	{
+		if (LocalizationTarget)
+		{
+			// Execute compile.
+			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+			LocalizationCommandletTasks::CompileTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings);
 		}
 	}
 

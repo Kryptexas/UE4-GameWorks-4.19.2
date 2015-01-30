@@ -58,6 +58,16 @@ namespace LocalizationConfigurationScript
 		return GetDataDirectory(Target) / CultureName / FString::Printf( TEXT("%s.%s"), *Target.Name, TEXT("locres") );
 	}
 
+	FString GetWordCountCSVPath(const FLocalizationTargetSettings& Target)
+	{
+		return GetDataDirectory(Target) / FString::Printf( TEXT("%s.%s"), *Target.Name, TEXT("csv") );
+	}
+
+	FString GetConflictReportPath(const FLocalizationTargetSettings& Target)
+	{
+		return GetDataDirectory(Target) / FString::Printf( TEXT("%s_Conflicts.%s"), *Target.Name, TEXT("txt") );
+	}
+
 	FLocalizationConfigurationScript GenerateGatherScript(const FLocalizationTargetSettings& Target)
 	{
 		FLocalizationConfigurationScript Script;
@@ -317,7 +327,6 @@ namespace LocalizationConfigurationScript
 			}
 			ConfigSection.Add( TEXT("DestinationPath"), DestinationPath );
 
-
 			TArray<const FCultureStatistics*> AllCultureStatistics;
 			AllCultureStatistics.Add(&Target.NativeCultureStatistics);
 			for (const FCultureStatistics& SupportedCultureStatistics : Target.SupportedCulturesStatistics)
@@ -432,13 +441,47 @@ namespace LocalizationConfigurationScript
 		return GetScriptDirectory() / FString::Printf( TEXT("%s_GenerateReports.%s"), *(Target.Name), TEXT("ini") );
 	}
 
-	FString GetWordCountCSVPath(const FLocalizationTargetSettings& Target)
+	FLocalizationConfigurationScript GenerateCompileScript(const FLocalizationTargetSettings& Target)
 	{
-		return GetDataDirectory(Target) / FString::Printf( TEXT("%s.%s"), *Target.Name, TEXT("csv") );
+		FLocalizationConfigurationScript Script;
+
+		const FString ContentDirRelativeToGameDir = MakePathRelativeToProjectDirectory(FPaths::GameContentDir());
+
+		// GatherTextStep0 - GenerateTextLocalizationResource
+		{
+			FConfigSection& ConfigSection = Script.GatherTextStep(0);
+
+			// CommandletClass
+			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GenerateTextLocalizationResource") );
+
+			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target.Name;
+			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
+			const FString DestinationPath = ContentDirRelativeToGameDir / TEXT("Localization") / Target.Name;
+			ConfigSection.Add( TEXT("DestinationPath"), DestinationPath );
+
+			ConfigSection.Add( TEXT("ManifestName"), FString::Printf( TEXT("%s.%s"), *Target.Name, TEXT("manifest") ) );
+			ConfigSection.Add( TEXT("ResourceName"), FString::Printf( TEXT("%s.%s"), *Target.Name, TEXT("locres") ) );
+
+			TArray<const FCultureStatistics*> AllCultureStatistics;
+			AllCultureStatistics.Add(&Target.NativeCultureStatistics);
+			for (const FCultureStatistics& SupportedCultureStatistics : Target.SupportedCulturesStatistics)
+			{
+				AllCultureStatistics.Add(&SupportedCultureStatistics);
+			}
+
+			for (const FCultureStatistics* CultureStatistics : AllCultureStatistics)
+			{
+				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics->CultureName );
+			}
+		}
+
+		Script.Dirty = true;
+
+		return Script;
 	}
 
-	FString GetConflictReportPath(const FLocalizationTargetSettings& Target)
+	FString GetCompileScriptPath(const FLocalizationTargetSettings& Target)
 	{
-		return GetDataDirectory(Target) / FString::Printf( TEXT("%s_Conflicts.%s"), *Target.Name, TEXT("txt") );
+		return GetScriptDirectory() / FString::Printf( TEXT("%s_Compile.%s"), *(Target.Name), TEXT("ini") );
 	}
 }

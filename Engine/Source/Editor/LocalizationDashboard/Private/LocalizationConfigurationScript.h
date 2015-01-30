@@ -31,6 +31,8 @@ namespace LocalizationConfigurationScript
 	FString GetDefaultPOFileName(const FLocalizationTargetSettings& Target);
 	FString GetDefaultPOPath(const FLocalizationTargetSettings& Target, const FString& CultureName);
 	FString GetLocResPath(const FLocalizationTargetSettings& Target, const FString& CultureName);
+	FString GetWordCountCSVPath(const FLocalizationTargetSettings& Target);
+	FString GetConflictReportPath(const FLocalizationTargetSettings& Target);
 
 	FLocalizationConfigurationScript GenerateGatherScript(const FLocalizationTargetSettings& Target);
 	FString GetGatherScriptPath(const FLocalizationTargetSettings& Target);
@@ -43,6 +45,7 @@ namespace LocalizationConfigurationScript
 
 	FLocalizationConfigurationScript GenerateReportScript(const FLocalizationTargetSettings& Target);
 	FString GetReportScriptPath(const FLocalizationTargetSettings& Target);
-	FString GetWordCountCSVPath(const FLocalizationTargetSettings& Target);
-	FString GetConflictReportPath(const FLocalizationTargetSettings& Target);
+
+	FLocalizationConfigurationScript GenerateCompileScript(const FLocalizationTargetSettings& Target);
+	FString GetCompileScriptPath(const FLocalizationTargetSettings& Target);
 }
