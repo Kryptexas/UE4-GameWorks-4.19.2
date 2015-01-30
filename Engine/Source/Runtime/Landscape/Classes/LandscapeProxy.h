@@ -614,6 +614,11 @@ public:
 	/* For the grassmap rendering notification */
 	int32 NumComponentsNeedingGrassMapRender;
 	LANDSCAPE_API static int32 TotalComponentsNeedingGrassMapRender;
+
+	/* To throttle texture streaming when we're trying to render a grassmap */
+	int32 NumTexturesToStreamForVisibleGrassMapRender;
+	LANDSCAPE_API static int32 TotalTexturesToStreamForVisibleGrassMapRender;
+
 #endif
 };
 
