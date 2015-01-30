@@ -2850,8 +2850,8 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, bool bForceS
 												for (auto WeightmapTexture : Component->WeightmapTextures)
 												{
 													DesiredForceStreamedTextures.Add(WeightmapTexture);
-													bStreamingRenderedGrassHeightmap = true;
 												}
+												bStreamingRenderedGrassHeightmap = true;
 												continue;
 											}
 
