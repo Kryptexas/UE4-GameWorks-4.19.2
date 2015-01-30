@@ -67,18 +67,21 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 {
 	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 
-	bool bIsHovered = IsHovered();
+	const bool bTitleBarBubbleVisible = bEnableTitleBarBubble && IsGraphNodeHovered.IsBound();
 
-	const FLinearColor BubbleColor = ColorAndOpacity.Get().GetSpecifiedColor() * SCommentBubbleDefs::LuminanceCoEff;
-	const float BubbleLuminance = BubbleColor.R + BubbleColor.G + BubbleColor.B;
-	ForegroundColor = BubbleLuminance < 0.5f ? SCommentBubbleDefs::DarkForegroundClr : SCommentBubbleDefs::LightForegroundClr;
-
-	if( bEnableTitleBarBubble && IsGraphNodeHovered.IsBound() )
+	if( bTitleBarBubbleVisible || IsBubbleVisible() )
 	{
-		bIsHovered |= IsGraphNodeHovered.Execute();
+		const FLinearColor BubbleColor = ColorAndOpacity.Get().GetSpecifiedColor() * SCommentBubbleDefs::LuminanceCoEff;
+		const float BubbleLuminance = BubbleColor.R + BubbleColor.G + BubbleColor.B;
+		ForegroundColor = BubbleLuminance < 0.5f ? SCommentBubbleDefs::DarkForegroundClr : SCommentBubbleDefs::LightForegroundClr;
+	}
 
-		if( !GraphNode->bCommentBubbleVisible )
+	if( !GraphNode->bCommentBubbleVisible )
+	{
+		if( bTitleBarBubbleVisible )
 		{
+			const bool bIsHovered = IsHovered() || IsGraphNodeHovered.Execute();
+
 			if( bIsHovered )
 			{
 				if( OpacityValue < 1.f )
@@ -96,6 +99,13 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 				}
 			}
 		}
+	}
+	if( CachedComment != GraphNode->NodeComment )
+	{
+		CachedComment = GraphNode->NodeComment;
+		CachedCommentText = FText::FromString( CachedComment );
+		GraphNode->bCommentBubbleVisible = !CachedComment.IsEmpty();
+		UpdateBubble();
 	}
 }
 
