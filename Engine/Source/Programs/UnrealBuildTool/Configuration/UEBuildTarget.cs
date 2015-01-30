@@ -2372,7 +2372,8 @@ namespace UnrealBuildTool
 			{
 				Prefix = "lib";
 			}
-			else if (LocalConfig == UnrealTargetConfiguration.Development || bForceNameAsForDevelopment)
+
+			if (LocalConfig == UnrealTargetConfiguration.Development || bForceNameAsForDevelopment)
 			{
 				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{3}{0}{1}{2}", BinaryName, BinarySuffix, BinaryExtension, Prefix));
 			}
