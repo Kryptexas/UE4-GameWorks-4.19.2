@@ -1555,16 +1555,21 @@ void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spe
 
 void UAbilitySystemComponent::TryActivateInputHeldAbilities()
 {
-	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
-	{
-		if ((Spec.InputID == INDEX_NONE) || !Spec.InputPressed || Spec.IsActive() || !Spec.Ability)
-		{
-			continue;
-		}
+	APlayerController* PC = AbilityActorInfo.IsValid() ? AbilityActorInfo->PlayerController.Get() : nullptr;
 
-		if (Spec.Ability->bActivateOnInputHeld)
+	if (PC && PC->PlayerInput)
+	{
+		for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 		{
-			TryActivateAbility(Spec.Handle);
+			if ((Spec.InputID == INDEX_NONE) || !Spec.InputPressed || Spec.IsActive() || !Spec.Ability)
+			{
+				continue;
+			}
+
+			if (Spec.Ability->bActivateOnInputHeld)
+			{
+				TryActivateAbility(Spec.Handle);
+			}
 		}
 	}
 }
