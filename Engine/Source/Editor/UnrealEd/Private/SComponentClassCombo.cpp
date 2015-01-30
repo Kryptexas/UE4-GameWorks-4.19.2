@@ -544,15 +544,11 @@ FString SComponentClassCombo::GetSanitizedComponentName( UClass* ComponentClass,
 		}
 		else
 		{
-			DisplayName = ComponentClass->GetName();
-			DisplayName = DisplayName.Replace(TEXT("Component"), TEXT(""), ESearchCase::IgnoreCase);
-		}
-
-		// Purge the _C for BP Components
-		if(DisplayName.EndsWith(TEXT("_C")))
-		{
-			const int32 NewLen = DisplayName.Len() - 2;
-			DisplayName = DisplayName.Left(NewLen);
+			DisplayName = ComponentClass->GetDisplayNameText().ToString();
+			if (!ComponentClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+			{
+				DisplayName.RemoveFromEnd(TEXT("Component"), ESearchCase::IgnoreCase);
+			}
 		}
 
 		return FName::NameToDisplayString(DisplayName, false);
