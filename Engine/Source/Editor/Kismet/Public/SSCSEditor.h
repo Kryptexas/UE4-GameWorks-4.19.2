@@ -484,8 +484,6 @@ public:
 	FText GetAssetPath() const;
 	EVisibility GetAssetVisibility() const;
 
-	EVisibility GetRootLabelVisibility() const;
-
 	/* Get the node used by the row Widget */
 	virtual FSCSEditorTreeNodePtrType GetNode() const { return TreeNodePtr; };
 
