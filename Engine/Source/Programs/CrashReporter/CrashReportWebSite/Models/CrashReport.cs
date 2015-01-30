@@ -239,6 +239,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			return Properties.Settings.Default.CrashReporterVideos + Id + "_CrashVideo.avi";
 		}
 
+		/// <summary> Whether the user allowed us to be contacted. </summary>
+		public bool AllowToBeContacted
+		{
+			get
+			{
+				return bAllowToBeContacted.GetValueOrDefault( false );
+			}
+		}
+			
 		/// <summary>
 		/// Return lines of processed callstack entries.
 		/// </summary>

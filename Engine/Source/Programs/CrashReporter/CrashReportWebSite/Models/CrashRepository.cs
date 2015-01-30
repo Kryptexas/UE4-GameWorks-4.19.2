@@ -904,6 +904,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewCrash.HasVideoFile = NewCrashInfo.bHasVideo;
 			NewCrash.HasMetaData = NewCrashInfo.bHasWERData;
 
+			NewCrash.bAllowToBeContacted = NewCrashInfo.bAllowToBeContacted;
+
 			NewCrash.TTPID = "";
 			NewCrash.FixedChangeList = "";
 
@@ -931,19 +933,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Selected			bit				
 				Version				int				
 				AutoReporterID		int				
-				Processed			bit				
-				HasDiagnosticsFile	bit				
+				Processed			bit	-> renamed to AllowToBeContacted			
+				HasDiagnosticsFile	bit	always true		
 				HasNewLogFile		bit				
-				HasMetaData			bit	
+				HasMetaData			bit	always true
 			*/
 			// Set the unused fields to the default values.
-			NewCrash.Title = "";
-			NewCrash.Selected = false;
-			NewCrash.Version = 4;
-			NewCrash.AutoReporterID = 0;
-			NewCrash.Processed = true;
-			//NewCrash.HasDiagnosticsFile = true;
-			NewCrash.HasNewLogFile = false;
+			//NewCrash.Title = "";			removed from dbml
+			//NewCrash.Selected = false;	removed from dbml
+			//NewCrash.Version = 4;			removed from dbml
+			//NewCrash.AutoReporterID = 0;	removed from dbml
+			//NewCrash.HasNewLogFile = false;removed from dbml
+			// 
+			//NewCrash.HasDiagnosticsFile = true;		
 			//NewCrash.HasMetaData = true;
 
 			// Add the crash to the database

@@ -61,7 +61,6 @@
   <Table Name="dbo.Crashes" Member="Crashes">
     <Type Name="Crash">
       <Column Name="Id" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
-      <Column Name="Title" Type="System.String" DbType="NChar(20)" CanBeNull="true" />
       <Column Name="Summary" Type="System.String" DbType="VarChar(512)" CanBeNull="true" />
       <Column Name="GameName" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
       <Column Name="Status" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
@@ -74,22 +73,18 @@
       <Column Name="Pattern" Type="System.String" DbType="VarChar(800)" CanBeNull="true" />
       <Column Name="CommandLine" Type="System.String" DbType="VarChar(512)" CanBeNull="true" />
       <Column Name="ComputerName" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
-      <Column Name="Selected" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
       <Column Name="FixedChangeList" Type="System.String" DbType="VarChar(256)" CanBeNull="true" />
       <Column Name="LanguageExt" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
       <Column Name="Module" Type="System.String" DbType="VarChar(128)" CanBeNull="true" />
       <Column Name="BuildVersion" Type="System.String" DbType="VarChar(128)" CanBeNull="true" />
       <Column Name="BaseDir" Type="System.String" DbType="VarChar(512)" CanBeNull="true" />
-      <Column Name="Version" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="UserName" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
       <Column Name="TTPID" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
-      <Column Name="AutoReporterID" Type="System.Int32" DbType="Int" CanBeNull="true" />
-      <Column Name="Processed" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Processed" Member="bAllowToBeContacted" Storage="_Processed" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
       <Column Name="HasLogFile" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
       <Column Name="HasMiniDumpFile" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
       <Column Name="HasVideoFile" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
       <Column Name="HasDiagnosticsFile" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
-      <Column Name="HasNewLogFile" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
       <Column Name="Branch" Type="System.String" DbType="VarChar(32)" CanBeNull="true" />
       <Column Name="UserNameId" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="CrashType" Type="System.Int16" DbType="SmallInt" CanBeNull="true" />

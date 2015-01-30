@@ -193,6 +193,9 @@
 			<dt>Epic Account Id</dt> 
 				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.EpicAccountId) %></dd>
 
+			<dt>Allowed to contact</dt> 
+				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.AllowToBeContacted) %></dd>
+
 			<dt>Build Version</dt>
 				<dd ><%=Html.DisplayFor(m => Model.Crash.BuildVersion) %></dd>
 
