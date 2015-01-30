@@ -411,6 +411,15 @@ void UActorComponent::PostEditUndo()
 			EditReregisterContexts.Remove(this);
 		}
 	}
+	else
+	{
+		//Let the component be properly registered, after it was restored.
+		AActor* Owner = GetOwner();
+		if (Owner)
+		{
+			Owner->AddOwnedComponent(this);
+		}
+	}
 	Super::PostEditUndo();
 }
 
