@@ -116,8 +116,11 @@ bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InC
 
 bool FComponentEditorUtils::IsComponentNameAvailable(const FString& InString, AActor* ComponentOwner, const UActorComponent* ComponentToIgnore)
 {
-	UObject* ExistingObject = FindObject<UObject>(ComponentOwner, *InString);
-	return (ExistingObject == nullptr || ExistingObject == ComponentToIgnore);
+	UObject* Object = FindObjectFast<UObject>(ComponentOwner, *InString);
+
+	bool bNameIsAvailable = Object == nullptr || Object == ComponentToIgnore;
+
+	return bNameIsAvailable;
 }
 
 FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorComponent> ComponentClass, AActor* ComponentOwner)

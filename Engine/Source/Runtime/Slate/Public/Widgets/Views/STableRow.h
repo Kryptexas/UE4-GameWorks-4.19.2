@@ -37,6 +37,10 @@ class SLATE_API ITableRow
 
 		/** Called when the expander arrow for this row is shift+clicked */
 		virtual void Private_OnExpanderArrowShiftClicked() = 0;
+
+	protected:
+		/** Called to query the selection mode for the row */
+		virtual ESelectionMode::Type GetSelectionMode() const = 0;
 };
 
 
@@ -272,7 +276,7 @@ public:
 
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
-			switch( OwnerWidget->Private_GetSelectionMode() )
+			switch( GetSelectionMode() )
 			{
 			case ESelectionMode::Single:
 				{
@@ -377,7 +381,7 @@ public:
 			{
 				if ( bIsUnderMouse )
 				{
-					switch( OwnerWidget->Private_GetSelectionMode() )
+					switch( GetSelectionMode() )
 					{
 					case ESelectionMode::SingleToggle:
 						{
@@ -438,7 +442,7 @@ public:
 			// Handle selection of items when releasing the right mouse button, but only if the user isn't actively
 			// scrolling the view by holding down the right mouse button.
 
-			switch( OwnerWidget->Private_GetSelectionMode() )
+			switch( GetSelectionMode() )
 			{
 			case ESelectionMode::Single:
 			case ESelectionMode::SingleToggle:
@@ -486,7 +490,7 @@ public:
 			const TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 			const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
 
-			switch( OwnerWidget->Private_GetSelectionMode() )
+			switch( GetSelectionMode() )
 			{
 				default:
 				case ESelectionMode::None:
@@ -762,7 +766,7 @@ public:
 		else
 		{
 			// Add a slightly lighter background for even rows
-			const bool bAllowSelection = OwnerWidget->Private_GetSelectionMode() != ESelectionMode::None;
+			const bool bAllowSelection = GetSelectionMode() != ESelectionMode::None;
 			if( IndexInList % 2 == 0 )
 			{
 				return ( IsHovered() && bAllowSelection )
@@ -864,6 +868,12 @@ protected:
 		return bIsSelected
 			? SelectedForeground
 			: NonSelectedForeground;
+	}
+
+	virtual ESelectionMode::Type GetSelectionMode() const override
+	{
+		const TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
+		return OwnerWidget->Private_GetSelectionMode();
 	}
 
 protected:

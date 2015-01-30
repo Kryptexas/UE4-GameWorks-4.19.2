@@ -221,25 +221,30 @@ void SActorDetails::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorT
 {
 	if (!bSelectionGuard && SelectedNodes.Num() > 0)
 	{
-		const bool bDetailsLocked = DetailsView->IsLocked();
-		//AActor* Actor = bDetailsLocked ? LockedActorSelection.Get() : GetSelectedActorInEditor();
 		AActor* Actor = GetActorContext();
 		if (Actor)
 		{
 			TArray<UObject*> DetailsObjects;
 
-			// Determine if the root actor node is among the selected nodes
+			// Determine if the root actor node is among the selected nodes and Count number of components selected
 			bool bActorNodeSelected = false;
+			int NumSelectedComponentNodes = 0;
 			for (auto& SelectedNode : SelectedNodes)
 			{
-				if (SelectedNode.IsValid() && SelectedNode->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
+				if (SelectedNode.IsValid())
 				{
-					bActorNodeSelected = true;
-					break;
+					if (SelectedNode->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
+					{
+						bActorNodeSelected = true;
+					}
+					else if (SelectedNode->GetNodeType() == FSCSEditorTreeNode::ComponentNode)
+					{
+						++NumSelectedComponentNodes;
+					}
 				}
 			}
 
-			if (bDetailsLocked)
+			if (DetailsView->IsLocked())
 			{
 				// When the details panel is locked, we don't want to touch the editor's component selection
 				// We do want to force the locked panel to update to match the selected components, though, since they are part of the actor selection we're locked on
@@ -279,13 +284,13 @@ void SActorDetails::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorT
 				USelection* SelectedComponents = GEditor->GetSelectedComponents();
 
 				// Determine if the selected non-root actor nodes differ from the editor component selection
-				bool bComponentSelectionChanged = GEditor->GetSelectedComponentCount() != SelectedNodes.Num() - ( bActorNodeSelected ? 1 : 0 );
+				bool bComponentSelectionChanged = GEditor->GetSelectedComponentCount() != NumSelectedComponentNodes;
 				if (!bComponentSelectionChanged)
 				{
 					// Check to see if any of the selected nodes aren't already selected in the world
 					for (auto& SelectedNode : SelectedNodes)
 					{
-						if (SelectedNode.IsValid() && SelectedNode->GetNodeType() != FSCSEditorTreeNode::RootActorNode)
+						if (SelectedNode.IsValid() && SelectedNode->GetNodeType() == FSCSEditorTreeNode::ComponentNode)
 						{
 							UActorComponent* ComponentInstance = SelectedNode->FindComponentInstanceInActor(Actor);
 							if (ComponentInstance && !SelectedComponents->IsSelected(ComponentInstance))
