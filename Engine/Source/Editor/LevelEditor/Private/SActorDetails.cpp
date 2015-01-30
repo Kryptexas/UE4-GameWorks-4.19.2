@@ -340,7 +340,7 @@ void SActorDetails::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorT
 									auto SceneComponent = Cast<USceneComponent>(ComponentInstance);
 									if (SceneComponent)
 									{
-										FComponentEditorUtils::BindComponentSelectionOverride(SceneComponent);
+										FComponentEditorUtils::BindComponentSelectionOverride(SceneComponent, true);
 									}
 								}
 							}
