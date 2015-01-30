@@ -3042,8 +3042,19 @@ public:
 			*Component->GetName(),*Component->Template->GetName(),(PTRINT)this, AllocatedTiles.Num());
 #endif // #if TRACK_TILE_ALLOCATIONS
 
-		ActiveTiles.Init(false, AllocatedTiles.Num());
-		ClearAllocatedTiles();
+		bool bClearExistingParticles = false;
+		UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels[0];
+		if (LODLevel)
+		{
+			UParticleModuleTypeDataGpu* TypeDataModule = CastChecked<UParticleModuleTypeDataGpu>(LODLevel->TypeDataModule);
+			bClearExistingParticles = TypeDataModule->bClearExistingParticlesOnInit;
+		}
+
+		if (bClearExistingParticles || ActiveTiles.Num() != AllocatedTiles.Num())
+		{
+			ActiveTiles.Init(false, AllocatedTiles.Num());
+			ClearAllocatedTiles();
+		}
 
 		Simulation->bDirty_GameThread = true;
 		FXSystem->AddGPUSimulation(Simulation);

@@ -4023,6 +4023,7 @@ bool UDistributionVectorParticleParameter::GetParamValue(UObject* Data, FName Pa
 -----------------------------------------------------------------------------*/
 UParticleModuleTypeDataGpu::UParticleModuleTypeDataGpu(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bClearExistingParticlesOnInit(false)
 {
 }
 
@@ -4030,6 +4031,13 @@ void UParticleModuleTypeDataGpu::PostLoad()
 {
 	Super::PostLoad();
 	//EmitterInfo.Resources = BeginCreateGPUSpriteResources( ResourceData );
+
+	if (GetLinkerUE4Version() < VER_UE4_OPTIONALLY_CLEAR_GPU_EMITTERS_ON_INIT)
+	{
+		//Force old emitters to clear their particles on Init() to maintain old behaviour.
+		//New emitters are defaulted to false so they behave like other emitter types.
+		bClearExistingParticlesOnInit = true;
+	}
 }
 
 void UParticleModuleTypeDataGpu::BeginDestroy()
