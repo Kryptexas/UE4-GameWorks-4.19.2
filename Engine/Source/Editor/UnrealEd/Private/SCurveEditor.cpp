@@ -1983,11 +1983,11 @@ TSharedPtr<FUICommandList> SCurveEditor::GetCommands()
 bool SCurveEditor::IsValidCurve( FRichCurve* Curve ) const
 {
 	bool bIsValid = false;
-	if(Curve)
+	if(Curve && CurveOwner)
 	{
 		for(auto CurveViewModel : CurveViewModels)
 		{
-			if(CurveViewModel->CurveInfo.CurveToEdit == Curve)
+			if(CurveViewModel->CurveInfo.CurveToEdit == Curve && CurveOwner->IsValidCurve(CurveViewModel->CurveInfo))
 			{
 				bIsValid = true;
 				break;
