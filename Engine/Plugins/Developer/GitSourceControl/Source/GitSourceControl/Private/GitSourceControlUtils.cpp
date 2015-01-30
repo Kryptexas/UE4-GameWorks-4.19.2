@@ -139,6 +139,7 @@ FString FindGitBinaryPath()
 #endif
 	}
 
+	FPaths::MakePlatformFilename( GitBinaryPath );
 	return GitBinaryPath;
 }
 

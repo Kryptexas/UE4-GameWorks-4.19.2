@@ -97,10 +97,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
 	
-	/** Enables Git source control plugin */
-	UPROPERTY(EditAnywhere, config, Category = "Source Control", meta = (DisplayName = "Git Source Control plugin (requires editor restart)"))
-	bool bGitSourceControl;
-
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
