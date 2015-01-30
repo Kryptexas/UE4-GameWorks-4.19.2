@@ -4,7 +4,7 @@
 
 #include "SCompoundWidget.h"
 
-class UProjectLocalizationSettings;
+class ULocalizationTarget;
 class SLocalizationDashboard;
 
 class FLocalizationDashboard
