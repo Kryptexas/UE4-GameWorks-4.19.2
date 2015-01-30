@@ -858,7 +858,7 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 }
 
 #if WITH_APEX
-void UDestructibleComponent::UpdateDestructibleChunkTM(TArray<const PxRigidActor*> ActiveActors)
+void UDestructibleComponent::UpdateDestructibleChunkTM(const TArray<const PxRigidActor*>& ActiveActors)
 {
 	//We want to consolidate the transforms so that we update each destructible component once by passing it an array of chunks to update.
 	//This helps avoid a lot of duplicated work like marking render dirty, computing inverse world component, etc...

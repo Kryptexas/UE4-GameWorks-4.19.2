@@ -177,7 +177,7 @@ public:
 	 *  @param ActiveActors - The array of actors that need their transforms updated
 	 *
      */
-	static void UpdateDestructibleChunkTM(TArray<const physx::PxRigidActor*> ActiveActors);
+	static void UpdateDestructibleChunkTM(const TArray<const physx::PxRigidActor*>& ActiveActors);
 #endif
 
 
