@@ -310,12 +310,12 @@ FSceneView* FUMGViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	const ECameraProjectionMode::Type ProjectionType = GetProjectionType();
 	const bool bConstrainAspectRatio = ViewInfo.bConstrainAspectRatio;
 
-	ViewInitOptions.ViewMatrix = FTranslationMatrix(-GetViewLocation());
+	ViewInitOptions.ViewOrigin = ViewLocation;
 	if ( ProjectionType == ECameraProjectionMode::Perspective )
 	{
-		ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FInverseRotationMatrix(ViewRotation);
+		ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation);
 
-		ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FMatrix(
+		ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix * FMatrix(
 			FPlane(0, 0, 1, 0),
 			FPlane(1, 0, 0, 0),
 			FPlane(0, 1, 0, 0),
@@ -377,8 +377,8 @@ FSceneView* FUMGViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		float OrthoWidth = Zoom * ViewportSizeXY.X / 2.0f;
 		float OrthoHeight = Zoom * ViewportSizeXY.Y / 2.0f;
 
-		ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FInverseRotationMatrix(ViewRotation);
-		ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FMatrix(
+		ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation);
+		ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix * FMatrix(
 			FPlane(0, 0, 1, 0),
 			FPlane(1, 0, 0, 0),
 			FPlane(0, 1, 0, 0),
@@ -389,7 +389,7 @@ FSceneView* FUMGViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		OrthoWidth = ViewInfo.OrthoWidth / 2.0f;
 		OrthoHeight = ( ViewInfo.OrthoWidth / 2.0f ) * YScale;
 
-		const float NearViewPlane = ViewInitOptions.ViewMatrix.GetOrigin().Z;
+		const float NearViewPlane = -ViewInitOptions.ViewOrigin.X;
 		const float FarViewPlane = NearViewPlane - 2.0f*WORLD_MAX;
 
 		const float InverseRange = 1.0f / ( FarViewPlane - NearViewPlane );

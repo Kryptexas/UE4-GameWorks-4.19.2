@@ -226,7 +226,8 @@ public:
 	FIntPoint TargetSize;
 	int32 NumPasses;
 	float PassOffsetX;
-	FMatrix ViewMatrix;
+	FVector ViewOrigin;
+	FMatrix ViewRotationMatrix;
 	FMatrix ProjectionMatrix;
 
 	void RenderLandscapeComponentToTexture_RenderThread(FRHICommandListImmediate& RHICmdList)
@@ -239,7 +240,8 @@ public:
 
 		FSceneViewInitOptions ViewInitOptions;
 		ViewInitOptions.SetViewRectangle(FIntRect(0, 0, TargetSize.X, TargetSize.Y));
-		ViewInitOptions.ViewMatrix = ViewMatrix;
+		ViewInitOptions.ViewOrigin = ViewOrigin;
+		ViewInitOptions.ViewRotationMatrix = ViewRotationMatrix;
 		ViewInitOptions.ProjectionMatrix = ProjectionMatrix;
 		ViewInitOptions.ViewFamily = &ViewFamily;
 
@@ -320,9 +322,9 @@ public:
 		// extent of target in world space
 		FVector TargetExtent = FVector(TargetSize, 0.f)*LandscapeProxy->GetActorScale()*0.5f;
 
-		ViewMatrix = FTranslationMatrix(-TargetCenter);
-		ViewMatrix *= FInverseRotationMatrix(LandscapeProxy->GetActorRotation());
-		ViewMatrix *= FMatrix(FPlane(1, 0, 0, 0),
+		ViewOrigin = TargetCenter;
+		ViewRotationMatrix = FInverseRotationMatrix(LandscapeProxy->GetActorRotation());
+		ViewRotationMatrix *= FMatrix(FPlane(1, 0, 0, 0),
 			FPlane(0, -1, 0, 0),
 			FPlane(0, 0, -1, 0),
 			FPlane(0, 0, 0, 1));

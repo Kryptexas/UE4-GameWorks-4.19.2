@@ -550,19 +550,20 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 
 	const bool bConstrainAspectRatio = bUseControllingActorViewInfo && ControllingActorViewInfo.bConstrainAspectRatio;
 
-	ViewInitOptions.ViewMatrix = FTranslationMatrix(-ViewLocation);
+	ViewInitOptions.ViewOrigin = ViewLocation;
 	if (EffectiveViewportType == LVT_Perspective)
 	{
 		if (bUsingOrbitCamera)
 		{
-			ViewInitOptions.ViewMatrix = ViewTransform.ComputeOrbitMatrix();
+			ViewInitOptions.ViewRotationMatrix = ViewTransform.ComputeOrbitMatrix();
+			ViewInitOptions.ViewOrigin = FVector::ZeroVector;
 		}
 		else
 		{
-			ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FInverseRotationMatrix(ViewRotation);
+			ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation);
 		}
 
-		ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FMatrix(
+		ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix * FMatrix(
 			FPlane(0,	0,	1,	0),
 			FPlane(1,	0,	0,	0),
 			FPlane(0,	1,	0,	0),
@@ -628,7 +629,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 
 		if (EffectiveViewportType == LVT_OrthoXY)
 		{
-			ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FMatrix(
+			ViewInitOptions.ViewRotationMatrix = FMatrix(
 				FPlane(1,	0,	0,					0),
 				FPlane(0,	-1,	0,					0),
 				FPlane(0,	0,	-1,					0),
@@ -636,7 +637,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		}
 		else if (EffectiveViewportType == LVT_OrthoXZ)
 		{
-			ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FMatrix(
+			ViewInitOptions.ViewRotationMatrix = FMatrix(
 				FPlane(1,	0,	0,					0),
 				FPlane(0,	0,	-1,					0),
 				FPlane(0,	1,	0,					0),
@@ -644,7 +645,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		}
 		else if (EffectiveViewportType == LVT_OrthoYZ)
 		{
-			ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FMatrix(
+			ViewInitOptions.ViewRotationMatrix = FMatrix(
 				FPlane(0,	0,	1,					0),
 				FPlane(1,	0,	0,					0),
 				FPlane(0,	1,	0,					0),
@@ -652,8 +653,8 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		}
 		else if (EffectiveViewportType == LVT_OrthoFreelook)
 		{
-			ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FInverseRotationMatrix(ViewRotation);
-			ViewInitOptions.ViewMatrix = ViewInitOptions.ViewMatrix * FMatrix(
+			ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation);
+			ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix * FMatrix(
 				FPlane(0,	0,	 1,	0),
 				FPlane(1,	0,	 0,	0),
 				FPlane(0,	1,	 0,	0),
@@ -664,7 +665,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 			OrthoWidth = ControllingActorViewInfo.OrthoWidth / 2.0f;
 			OrthoHeight = (ControllingActorViewInfo.OrthoWidth / 2.0f) * YScale;
 
-			const float NearViewPlane = ViewInitOptions.ViewMatrix.GetOrigin().Z;
+			const float NearViewPlane = -ViewInitOptions.ViewOrigin.X;
 			const float FarViewPlane = NearViewPlane - 2.0f*WORLD_MAX;
 
 			const float InverseRange = 1.0f / (FarViewPlane - NearViewPlane);

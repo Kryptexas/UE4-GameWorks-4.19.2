@@ -2697,7 +2697,8 @@ namespace MaterialExportUtils
 	void RenderSceneToTexture(
 		FSceneInterface* Scene,
 		const FName& VisualizationMode, 
-		const FMatrix& ViewMatrix, 
+		const FVector& ViewOrigin,
+		const FMatrix& ViewRotationMatrix, 
 		const FMatrix& ProjectionMatrix,  
 		const TSet<FPrimitiveComponentId>& HiddenPrimitives, 
 		FIntPoint TargetSize,
@@ -2726,7 +2727,8 @@ namespace MaterialExportUtils
 		ViewInitOptions.SetViewRectangle(FIntRect(0, 0, TargetSize.X, TargetSize.Y));
 		ViewInitOptions.ViewFamily = &ViewFamily;
 		ViewInitOptions.HiddenPrimitives = HiddenPrimitives;
-		ViewInitOptions.ViewMatrix = ViewMatrix;
+		ViewInitOptions.ViewOrigin = ViewOrigin;
+		ViewInitOptions.ViewRotationMatrix = ViewRotationMatrix;
 		ViewInitOptions.ProjectionMatrix = ProjectionMatrix;
 		
 		FSceneView* NewView = new FSceneView(ViewInitOptions);
@@ -2758,9 +2760,9 @@ namespace MaterialExportUtils
 		FVector LandscapeCenter = InLandscape->GetTransform().TransformPosition(MidPoint);
 		FVector LandscapeExtent = FVector(LandscapeRect.Size(), 0.f)*InLandscape->GetActorScale()*0.5f; 
 
-		FMatrix ViewMatrix = FTranslationMatrix(-LandscapeCenter);
-		ViewMatrix*= FInverseRotationMatrix(InLandscape->GetActorRotation());
-		ViewMatrix*= FMatrix(FPlane(1,	0,	0,	0),
+		FVector ViewOrigin = LandscapeCenter;
+		FMatrix ViewRotationMatrix = FInverseRotationMatrix(InLandscape->GetActorRotation());
+		ViewRotationMatrix*= FMatrix(FPlane(1,	0,	0,	0),
 							 FPlane(0,	-1,	0,	0),
 							 FPlane(0,	0,	-1,	0),
 							 FPlane(0,	0,	0,	1));
@@ -2780,7 +2782,7 @@ namespace MaterialExportUtils
 		{
 			static const FName BaseColorName("BaseColor");
 			const float BaseColorGamma = 1.0f; // BaseColor material already do transformation to gamma space
-			RenderSceneToTexture(Scene, BaseColorName, ViewMatrix, ProjectionMatrix, HiddenPrimitives, 
+			RenderSceneToTexture(Scene, BaseColorName, ViewOrigin, ViewRotationMatrix, ProjectionMatrix, HiddenPrimitives, 
 				OutFlattenMaterial.DiffuseSize, BaseColorGamma, OutFlattenMaterial.DiffuseSamples);
 		}
 
@@ -2791,7 +2793,7 @@ namespace MaterialExportUtils
 		{
 			static const FName WorldNormalName("WorldNormal");
 			const float NormalColorGamma = 1.0f; // Dump normal texture in linear space
-			RenderSceneToTexture(Scene, WorldNormalName, ViewMatrix, ProjectionMatrix, HiddenPrimitives, 
+			RenderSceneToTexture(Scene, WorldNormalName, ViewOrigin, ViewRotationMatrix, ProjectionMatrix, HiddenPrimitives, 
 				OutFlattenMaterial.NormalSize, NormalColorGamma, OutFlattenMaterial.NormalSamples);
 		}
 
@@ -2801,7 +2803,7 @@ namespace MaterialExportUtils
 		{
 			static const FName MetallicName("Metallic");
 			const float MetallicColorGamma = 1.0f; // Dump metallic texture in linear space
-			RenderSceneToTexture(Scene, MetallicName, ViewMatrix, ProjectionMatrix, HiddenPrimitives, 
+			RenderSceneToTexture(Scene, MetallicName, ViewOrigin, ViewRotationMatrix, ProjectionMatrix, HiddenPrimitives, 
 				OutFlattenMaterial.MetallicSize, MetallicColorGamma, OutFlattenMaterial.MetallicSamples);
 		}
 
@@ -2811,7 +2813,7 @@ namespace MaterialExportUtils
 		{
 			static const FName RoughnessName("Roughness");
 			const float RoughnessColorGamma = 2.2f; // Roughness material powers color by 2.2, transform it back to linear
-			RenderSceneToTexture(Scene, RoughnessName, ViewMatrix, ProjectionMatrix, HiddenPrimitives, 
+			RenderSceneToTexture(Scene, RoughnessName, ViewOrigin, ViewRotationMatrix, ProjectionMatrix, HiddenPrimitives, 
 				OutFlattenMaterial.RoughnessSize, RoughnessColorGamma, OutFlattenMaterial.RoughnessSamples);
 		}
 
@@ -2821,7 +2823,7 @@ namespace MaterialExportUtils
 		{
 			static const FName SpecularName("Specular");
 			const float SpecularColorGamma = 1.0f; // Dump specular texture in linear space
-			RenderSceneToTexture(Scene, SpecularName, ViewMatrix, ProjectionMatrix, HiddenPrimitives, 
+			RenderSceneToTexture(Scene, SpecularName, ViewOrigin, ViewRotationMatrix, ProjectionMatrix, HiddenPrimitives, 
 				OutFlattenMaterial.SpecularSize, SpecularColorGamma, OutFlattenMaterial.SpecularSamples);
 		}
 				

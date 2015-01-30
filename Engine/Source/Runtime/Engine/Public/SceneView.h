@@ -20,7 +20,11 @@ class FSceneViewFamily;
 // Projection data for a FSceneView
 struct FSceneViewProjectionData
 {
-	FMatrix ViewMatrix;
+	/** The view origin. */
+	FVector ViewOrigin;
+
+	/** Rotation matrix transforming from world space to view space. */
+	FMatrix ViewRotationMatrix;
 
 	/** UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
 	FMatrix ProjectionMatrix;
@@ -54,6 +58,11 @@ public:
 
 	const FIntRect& GetViewRect() const { return ViewRect; }
 	const FIntRect& GetConstrainedViewRect() const { return ConstrainedViewRect; }
+
+	FMatrix ComputeViewProjectionMatrix() const
+	{
+		return FTranslationMatrix(-ViewOrigin) * ViewRotationMatrix * ProjectionMatrix;
+	}
 };
 
 // Construction parameters for a FSceneView

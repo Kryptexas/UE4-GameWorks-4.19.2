@@ -1775,7 +1775,7 @@ private:
 	 *
 	 * @param	SceneCaptureComponent - The scene capture component for which to create a scene renderer.
 	 * @param	TextureTarget - render target to draw to.
-	 * @param	ViewMatrix - Camera view matrix.
+	 * @param	ViewRotationMatrix - Camera rotation matrix.
 	 * @param	ViewLocation - Camera location.
 	 * @param	FOV - Camera field of view.
 	 * @param	MaxViewDistance - Far draw distance.
@@ -1784,7 +1784,7 @@ private:
 	 * @param	PostProcessBlendWeight - Blendweight for PostProcessSettings.
 	 * @return	pointer to a configured SceneRenderer instance.
 	 */
-	FSceneRenderer* CreateSceneRenderer(USceneCaptureComponent* SceneCaptureComponent, UTextureRenderTarget* TextureTarget, const FMatrix& ViewMatrix, const FVector& ViewLocation, float FOV, float MaxViewDistance, bool bCaptureSceneColour = true, FPostProcessSettings* PostProcessSettings = NULL, float PostProcessBlendWeight = 0);
+	FSceneRenderer* CreateSceneRenderer(USceneCaptureComponent* SceneCaptureComponent, UTextureRenderTarget* TextureTarget, const FMatrix& ViewRotationMatrix, const FVector& ViewLocation, float FOV, float MaxViewDistance, bool bCaptureSceneColour = true, FPostProcessSettings* PostProcessSettings = NULL, float PostProcessBlendWeight = 0);
 
 private:
 	/** 

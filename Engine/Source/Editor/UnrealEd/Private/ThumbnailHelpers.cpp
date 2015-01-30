@@ -89,13 +89,12 @@ void FThumbnailPreviewScene::GetView(FSceneViewFamily* ViewFamily, int32 X, int3
 		OrbitZoom = FMath::Max<float>(MinCameraDistance, OrbitZoom);
 
 		const FRotator RotationOffsetToViewCenter(0.f, 90.f, 0.f);
-		FMatrix ViewMatrix = FTranslationMatrix( Origin ) *
-			FRotationMatrix( FRotator(0, OrbitYaw, 0) ) * 
+		FMatrix ViewRotationMatrix = FRotationMatrix( FRotator(0, OrbitYaw, 0) ) * 
 			FRotationMatrix( FRotator(0, 0, OrbitPitch) ) *
 			FTranslationMatrix( FVector(0, OrbitZoom, 0) ) *
 			FInverseRotationMatrix( RotationOffsetToViewCenter );
 
-		ViewMatrix = ViewMatrix * FMatrix(
+		ViewRotationMatrix = ViewRotationMatrix * FMatrix(
 			FPlane(0,	0,	1,	0),
 			FPlane(1,	0,	0,	0),
 			FPlane(0,	1,	0,	0),
@@ -104,7 +103,8 @@ void FThumbnailPreviewScene::GetView(FSceneViewFamily* ViewFamily, int32 X, int3
 		FSceneViewInitOptions ViewInitOptions;
 		ViewInitOptions.ViewFamily = ViewFamily;
 		ViewInitOptions.SetViewRectangle(ViewRect);
-		ViewInitOptions.ViewMatrix = ViewMatrix;
+		ViewInitOptions.ViewOrigin = -Origin;
+		ViewInitOptions.ViewRotationMatrix = ViewRotationMatrix;
 		ViewInitOptions.ProjectionMatrix = ProjectionMatrix;
 		ViewInitOptions.BackgroundColor = FLinearColor::Black;
 
@@ -112,7 +112,7 @@ void FThumbnailPreviewScene::GetView(FSceneViewFamily* ViewFamily, int32 X, int3
 
 		ViewFamily->Views.Add(NewView);
 
-		NewView->StartFinalPostprocessSettings( ViewMatrix.GetOrigin() );
+		NewView->StartFinalPostprocessSettings( ViewInitOptions.ViewOrigin );
 		NewView->EndFinalPostprocessSettings(ViewInitOptions);
 
 		FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(NewView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;

@@ -1060,7 +1060,7 @@ void UploadReflectionCapture_RenderingThread(FScene* Scene, const FReflectionCap
 }
 
 /** Creates a transformation for a cubemap face, following the D3D cubemap layout. */
-FMatrix CalcCubeFaceViewMatrix(ECubeFace Face, FVector WorldLocation)
+FMatrix CalcCubeFaceViewRotationMatrix(ECubeFace Face)
 {
 	FMatrix Result(FMatrix::Identity);
 
@@ -1099,7 +1099,7 @@ FMatrix CalcCubeFaceViewMatrix(ECubeFace Face, FVector WorldLocation)
 	// derive right vector
 	FVector vRight( vUp ^ vDir );
 	// create matrix from the 3 axes
-	Result = FBasisVectorMatrix( vRight, vUp, vDir, -WorldLocation );	
+	Result = FBasisVectorMatrix( vRight, vUp, vDir, FVector::ZeroVector );	
 
 	return Result;
 }
@@ -1184,7 +1184,8 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 			NearPlane
 			);
 
-		ViewInitOptions.ViewMatrix = CalcCubeFaceViewMatrix((ECubeFace)CubeFace, CapturePosition);
+		ViewInitOptions.ViewOrigin = CapturePosition;
+		ViewInitOptions.ViewRotationMatrix = CalcCubeFaceViewRotationMatrix((ECubeFace)CubeFace);
 
 		FSceneView* View = new FSceneView(ViewInitOptions);
 

@@ -819,7 +819,7 @@ bool ULocalPlayer::GetPixelBoundingBox(const FBox& ActorBox, FVector2D& OutLower
 		};
 
 		// create the view projection matrix
-		const FMatrix ViewProjectionMatrix = ProjectionData.ViewMatrix * ProjectionData.ProjectionMatrix;
+		const FMatrix ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
 
 		int SuccessCount = 0;
 		OutLowerLeft = FVector2D(FLT_MAX, FLT_MAX);
@@ -879,7 +879,7 @@ bool ULocalPlayer::GetPixelPoint(const FVector& InPoint, FVector2D& OutPoint, co
 		}
 
 		// create the view projection matrix
-		const FMatrix ViewProjectionMatrix = ProjectionData.ViewMatrix * ProjectionData.ProjectionMatrix;
+		const FMatrix ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
 
 		//@TODO: CAMERA: Validate this code!
 		// grab the point in screen space
@@ -965,9 +965,8 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
     }
 
 	// Create the view matrix
-	ProjectionData.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
-	ProjectionData.ViewMatrix = ProjectionData.ViewMatrix * FInverseRotationMatrix(ViewInfo.Rotation);
-	ProjectionData.ViewMatrix = ProjectionData.ViewMatrix * FMatrix(
+	ProjectionData.ViewOrigin = StereoViewLocation;
+	ProjectionData.ViewRotationMatrix = FInverseRotationMatrix(ViewInfo.Rotation) * FMatrix(
 		FPlane(0,	0,	1,	0),
 		FPlane(1,	0,	0,	0),
 		FPlane(0,	1,	0,	0),
@@ -988,7 +987,7 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	
 				const float OrthoWidth = ViewInfo.OrthoWidth / 2.0f;
 				const float OrthoHeight = ViewInfo.OrthoWidth / 2.0f * YScale;
-				const float NearPlane = ProjectionData.ViewMatrix.GetOrigin().Z;
+				const float NearPlane = -ProjectionData.ViewOrigin.X;
 				const float FarPlane = NearPlane - 2.0f*WORLD_MAX;
 				const float InverseRange = 1.0f / (FarPlane - NearPlane);
 				const float ZScale = -2.0f * InverseRange;
@@ -1034,7 +1033,7 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	
 			if (ViewInfo.ProjectionMode == ECameraProjectionMode::Orthographic)
 			{
-				const float NearPlane = ProjectionData.ViewMatrix.GetOrigin().Z;
+				const float NearPlane = -ProjectionData.ViewOrigin.X;
 				const float FarPlane = NearPlane - 2.0f*WORLD_MAX;
 	
 				const float OrthoWidth = ViewInfo.OrthoWidth / 2.0f * XAxisMultiplier;
