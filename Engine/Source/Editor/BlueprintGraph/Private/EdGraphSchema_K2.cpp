@@ -407,14 +407,17 @@ FText UEdGraphSchema_K2::FPinTypeTreeInfo::GetDescription() const
 	}
 	else if (PinType.PinSubCategoryObject.IsValid())
 	{
-		FString DisplayName = PinType.PinSubCategoryObject->GetName();
-		const auto SubCategoryClass = Cast<UClass>(PinType.PinSubCategoryObject.Get());
-		if (SubCategoryClass && !SubCategoryClass->HasAnyClassFlags(CLASS_Native))
+		FText DisplayName;
+		if (UClass* SubCategoryClass = Cast<UClass>(PinType.PinSubCategoryObject.Get()))
 		{
-			DisplayName.RemoveFromEnd(TEXT("_C"));
+			DisplayName = FBlueprintEditorUtils::GetFriendlyClassDisplayName(SubCategoryClass);
+		}
+		else
+		{
+			DisplayName = FText::FromString(PinType.PinSubCategoryObject->GetName());
 		}
 
-		return FText::FromString(DisplayName);
+		return DisplayName;
 	}
 	else
 	{

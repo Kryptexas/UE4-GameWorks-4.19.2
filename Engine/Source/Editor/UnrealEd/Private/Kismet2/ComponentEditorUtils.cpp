@@ -7,7 +7,7 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "ScopedTransaction.h"
-
+#include "BlueprintEditorUtils.h"
 
 USceneComponent* FComponentEditorUtils::GetSceneComponent( UObject* Object, UObject* SubObject /*= NULL*/ )
 {
@@ -122,12 +122,7 @@ FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorCompo
 {
 	check(ComponentOwner);
 
-	// Strip off "_C" suffix if it has one
-	FString ComponentTypeName = *ComponentClass->GetName();
-	if (ComponentClass->ClassGeneratedBy && ComponentTypeName.EndsWith(TEXT("_C")))
-	{
-		ComponentTypeName = ComponentTypeName.Left( ComponentTypeName.Len() - 2 );
-	}
+	FString ComponentTypeName = FBlueprintEditorUtils::GetClassNameWithoutSuffix(ComponentClass);
 
 	// Strip off 'Component' if the class ends with that.  It just looks better in the UI.
 	const FString SuffixToStrip( TEXT( "Component" ) );
