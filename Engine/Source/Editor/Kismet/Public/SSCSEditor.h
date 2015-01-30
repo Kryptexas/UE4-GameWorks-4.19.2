@@ -170,6 +170,9 @@ public:
 	 * Creates the correct type of node based on the component (instanced or not, etc...)
 	 */
 	static FSCSEditorTreeNodePtrType FactoryNodeFromComponent(UActorComponent* InComponent);
+
+	// Destructor
+	virtual ~FSCSEditorTreeNode() {}
 protected:
 	// Called when this node is being removed via a RemoveChild call
 	virtual void RemoveMeAsChild() {}
