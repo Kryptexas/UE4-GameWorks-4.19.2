@@ -504,7 +504,6 @@ UObject* UPackFactory::FactoryCreateBinary
 					while (HotReloadSupport.IsCurrentlyCompiling())
 					{
 						// Tick slate while we wait
-						FSlateApplication::Get().PumpMessages();
 						FSlateApplication::Get().Tick();						
 						// Tick hot reload - or nothing will happen !
 						HotReloadSupport.Tick();
