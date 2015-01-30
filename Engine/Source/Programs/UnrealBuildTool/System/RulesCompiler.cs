@@ -664,6 +664,15 @@ namespace UnrealBuildTool
             return false;
         }
 
+		///<summary>
+		///Returns true if XP monolithics are required for a game
+		/// </summary>
+		/// <returns>true if this target needs to be compiled for Windows XP</returns>
+		public virtual bool GUBP_BuildWindowsXPMonolithics()
+		{
+			return false;
+		}
+
         /// <summary>
         /// Return a list of target platforms for the monolithic
         /// </summary>

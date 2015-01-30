@@ -142,4 +142,8 @@ public class UE4GameTarget : TargetRules
     {
         return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping, UnrealTargetConfiguration.Test };
     }
+	public override bool GUBP_BuildWindowsXPMonolithics()
+	{
+		return true;
+	}
 }

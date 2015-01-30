@@ -230,10 +230,6 @@ namespace UnrealBuildTool
 				{
 					Platform = ParsedPlatform;
 				}
-				else if (Arguments[ArgumentIndex].ToLowerInvariant().StartsWith("-overridetargetappname="))
-				{
-					AdditionalDefinitions.Add(Arguments[ArgumentIndex]);
-				}
 				else
 				{
 					switch (Arguments[ArgumentIndex].ToUpperInvariant())
@@ -658,9 +654,6 @@ namespace UnrealBuildTool
 
 		/** The name of the application the target is part of. */
 		public string AppName;
-
-		/** AppName overriden from the commandline */
-		private static string OverridenAppName;
 
 		/** The name of the game the target is part of - can be empty */
 		public string GameName;
@@ -2378,10 +2371,6 @@ namespace UnrealBuildTool
 			if (Platform == UnrealTargetPlatform.Linux && (BinaryType == UEBuildBinaryType.DynamicLinkLibrary || BinaryType == UEBuildBinaryType.StaticLibrary))
 			{
 				Prefix = "lib";
-			}
-			if (!string.IsNullOrEmpty(OverridenAppName) && BinaryType == UEBuildBinaryType.Executable)
-			{
-				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{2}{0}{1}", OverridenAppName, BinaryExtension, Prefix));
 			}
 			else if (LocalConfig == UnrealTargetConfiguration.Development || bForceNameAsForDevelopment)
 			{
