@@ -3862,26 +3862,30 @@ void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds,
 	{
 		NavMeshProjectionTimer -= DeltaSeconds;
 
-		if(NavMeshProjectionTimer < 0.0f)
-		{
-			const FVector RayCastOffset(0.0f, 0.0f, CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.0f);
+		const FVector RayCastOffset(0.0f, 0.0f, CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.0f);
 
+		if(NavMeshProjectionTimer <= 0.0f)
+		{
 			// raycast to underlying mesh to allow us to more closely follow geometry
+			// we use static objects here as a best approximation to accept only objects that
+			// influence navmesh generation
 			FCollisionQueryParams Params;
 			FCollisionObjectQueryParams ObjectQueryParams(FCollisionObjectQueryParams::AllStaticObjects);
-			if(GetWorld()->LineTraceSingle(CachedProjectedNavMeshHitResult, InOutLocation + RayCastOffset, InOutLocation - RayCastOffset, Params, ObjectQueryParams))
+			GetWorld()->LineTraceSingle(CachedProjectedNavMeshHitResult, InOutLocation + RayCastOffset, InOutLocation - RayCastOffset, Params, ObjectQueryParams);
+
+			// discard result if we were already inside something
+			if(CachedProjectedNavMeshHitResult.bStartPenetrating)
 			{
-				InOutLocation.Z = CachedProjectedNavMeshHitResult.Location.Z;
+				CachedProjectedNavMeshHitResult.Reset();
 			}
 
 			NavMeshProjectionTimer = NavMeshProjectionInterval;
 		}
 		
-		// interpolate to new height if we had a blocking hit
+		// project to last plane we found
 		if(CachedProjectedNavMeshHitResult.bBlockingHit)
 		{
-			FPlane Plane(CachedProjectedNavMeshHitResult.Location, CachedProjectedNavMeshHitResult.Normal);
-			FVector ProjectedPoint = FVector::PointPlaneProject(InOutLocation, Plane);
+			FVector ProjectedPoint = FMath::LinePlaneIntersection(InOutLocation, InOutLocation - RayCastOffset, CachedProjectedNavMeshHitResult.Location, CachedProjectedNavMeshHitResult.Normal);
 			InOutLocation.Z = ProjectedPoint.Z;
 		}
 	}
@@ -4007,7 +4011,7 @@ void UCharacterMovementComponent::SetNavWalkingPhysics(bool bEnable)
 			UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
 			UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
 			CachedProjectedNavMeshHitResult.Reset();
-			NavMeshProjectionTimer = -1.0f;
+			NavMeshProjectionTimer = 0.0f;
 		}
 		else
 		{

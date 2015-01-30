@@ -677,7 +677,7 @@ protected:
 	uint32 bDeferUpdateBasedMovement : 1;
 
 	/** Whether to raycast to underlying geometry to better conform navmesh-walking characters */
-	UPROPERTY(Category = "Character Movement", EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadOnly)
 	uint32 bProjectNavMeshWalking : 1;
 
 	/** forced avoidance velocity, used when AvoidanceLockTimer is > 0 */
@@ -735,7 +735,7 @@ public:
 	FHitResult CachedProjectedNavMeshHitResult;
 
 	/** How often we should raycast to project from navmesh to underlying geometry */
-	UPROPERTY(Category = "Character Movement", EditAnywhere, BlueprintReadOnly, meta=(editcondition = "bProjectNavMeshWalking"))
+	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadOnly, meta=(editcondition = "bProjectNavMeshWalking"))
 	float NavMeshProjectionInterval;
 
 	UPROPERTY(Transient)
