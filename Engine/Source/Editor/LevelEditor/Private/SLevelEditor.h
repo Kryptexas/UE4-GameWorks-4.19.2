@@ -127,7 +127,7 @@ private:
 	
 	TSharedRef<SDockTab> SpawnLevelEditorTab(const FSpawnTabArgs& Args, FName TabIdentifier, FString InitializationPayload);
 	//TSharedRef<SDockTab> SpawnLevelEditorModeTab(const FSpawnTabArgs& Args, FEdMode* EditorMode);
-	TSharedRef<SDockTab> SummonDetailsPanel( FName Identifier );
+	TSharedRef<SDockTab> SummonDetailsPanel( FName Identifier, TSharedPtr<FExtender> ActorMenuExtender = nullptr );
 
 	/**
 	 * Binds UI commands to actions for the level editor                   

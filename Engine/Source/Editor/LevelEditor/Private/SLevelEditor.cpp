@@ -501,7 +501,7 @@ TSharedRef<FTabManager> SLevelEditor::GetTabManager() const
 
 
 
-TSharedRef<SDockTab> SLevelEditor::SummonDetailsPanel( FName TabIdentifier )
+TSharedRef<SDockTab> SLevelEditor::SummonDetailsPanel( FName TabIdentifier, TSharedPtr<FExtender> ActorMenuExtender )
 {
 	TSharedPtr<SActorDetails> ActorDetails;
 
@@ -516,6 +516,7 @@ TSharedRef<SDockTab> SLevelEditor::SummonDetailsPanel( FName TabIdentifier )
 			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("ActorDetails"), TEXT("LevelEditorSelectionDetails")))
 			[
 				SAssignNew( ActorDetails, SActorDetails, TabIdentifier )
+					.ActorMenuExtender(ActorMenuExtender)
 			]
 		];
 
@@ -563,7 +564,20 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 	}
 	else if( TabIdentifier == TEXT("LevelEditorSelectionDetails") || TabIdentifier == TEXT("LevelEditorSelectionDetails2") || TabIdentifier == TEXT("LevelEditorSelectionDetails3") || TabIdentifier == TEXT("LevelEditorSelectionDetails4") )
 	{
-		TSharedRef<SDockTab> DetailsPanel = SummonDetailsPanel( TabIdentifier );
+		TWeakPtr<SLevelEditor> WeakLevelEditor = SharedThis(this);
+		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender);
+		MenuExtender->AddMenuExtension(
+			"MainSection", EExtensionHook::Before, GetLevelEditorActions(),
+			FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> InWeakLevelEditor){
+				// Only extend the menu if we have actors selected
+				if (GEditor->GetSelectedActors()->Num())
+				{
+					FLevelEditorContextMenu::FillMenu(MenuBuilder, InWeakLevelEditor, LevelEditorMenuContext::NonViewport, TSharedPtr<FExtender>());
+				}
+			}, WeakLevelEditor)
+		);
+
+		TSharedRef<SDockTab> DetailsPanel = SummonDetailsPanel( TabIdentifier, MenuExtender );
 		GUnrealEd->UpdateFloatingPropertyWindows();
 		return DetailsPanel;
 	}

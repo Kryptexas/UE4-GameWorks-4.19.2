@@ -79,6 +79,7 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 		.EditorMode(EComponentEditorMode::ActorInstance)
 		.ActorContext(this, &SActorDetails::GetActorContext)
 		.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)
+		.ActorMenuExtender(InArgs._ActorMenuExtender)
 	);
 
 	ChildSlot
