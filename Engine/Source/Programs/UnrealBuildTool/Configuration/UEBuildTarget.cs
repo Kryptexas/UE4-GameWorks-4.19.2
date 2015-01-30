@@ -758,13 +758,6 @@ namespace UnrealBuildTool
 			List<OnlyModule> InOnlyModules,
 			bool bInEditorRecompile)
 		{
-			string CmdlineAppName = null;
-			const string OverrideTargetAppNameSwitch = "-overridetargetappname=";
-			if ((CmdlineAppName = InAdditionalDefinitions.Find(x => x.StartsWith(OverrideTargetAppNameSwitch))) != null)
-			{
-				OverridenAppName = CmdlineAppName.Substring(OverrideTargetAppNameSwitch.Length);
-			}
-
 			AppName = InAppName;
 			GameName = InGameName;
 			Platform = InPlatform;
