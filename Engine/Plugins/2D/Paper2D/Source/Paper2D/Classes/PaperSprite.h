@@ -144,6 +144,10 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	class UPaperSpriteAtlas* AtlasGroup;
 
+	// The previous spritesheet group this belonged to
+	// To make sure we remove ourselves from it if changed or nulled out
+	TAssetPtr<class UPaperSpriteAtlas> PreviousAtlasGroup;
+
 #endif
 
 public:
@@ -233,6 +237,8 @@ public:
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
+
+	const UPaperSpriteAtlas* GetAtlasGroup() const { return AtlasGroup; }
 #endif
 
 #if WITH_EDITOR

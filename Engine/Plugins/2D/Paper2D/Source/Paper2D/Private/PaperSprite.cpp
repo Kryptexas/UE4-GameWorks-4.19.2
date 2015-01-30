@@ -369,10 +369,17 @@ void UPaperSprite::OnObjectReimported(UObject* InObject)
 	// If SourceTetxureDimension == 0, we don't have a previous dimension to work off, so can't
 	// rescale sensibly
 	UTexture2D* Texture = Cast<UTexture2D>(InObject);
-	if (Texture != nullptr && Texture == GetSourceTexture() && NeedRescaleSpriteData())
+	if (Texture != nullptr && Texture == GetSourceTexture())
 	{
-		RescaleSpriteData(GetSourceTexture());
-		PostEditChange();
+		if (NeedRescaleSpriteData())
+		{
+			RescaleSpriteData(GetSourceTexture());
+			PostEditChange();
+		}
+		else if (AtlasGroup != nullptr)
+		{
+			AtlasGroup->PostEditChange();
+		}
 	}
 }
 
@@ -517,6 +524,42 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 		(MemberPropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, Sockets) && PropertyName == GET_MEMBER_NAME_CHECKED(FPaperSpriteSocket, SocketName)))
 	{
 		ValidateSocketNames();
+	}
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, AtlasGroup))
+	{
+		auto SpriteAssetPtr = PreviousAtlasGroup;
+		FStringAssetReference AtlasGroupStringRef = SpriteAssetPtr.ToStringReference();
+		UPaperSpriteAtlas* PreviousAtlasGroupPtr = nullptr;
+		if (!AtlasGroupStringRef.ToString().IsEmpty())
+		{
+			PreviousAtlasGroupPtr = Cast<UPaperSpriteAtlas>(StaticLoadObject(UPaperSpriteAtlas::StaticClass(), nullptr, *AtlasGroupStringRef.ToString(), nullptr, LOAD_None, nullptr));
+		}
+		
+		if (PreviousAtlasGroupPtr != AtlasGroup)
+		{
+			// Update previous
+			if (PreviousAtlasGroupPtr != nullptr)
+			{
+				PreviousAtlasGroupPtr->PostEditChange();
+			}
+
+			// Update cached previous atlas group
+			PreviousAtlasGroup = AtlasGroup;
+
+			// Rebuild atlas group
+			if (AtlasGroup != nullptr)
+			{
+				AtlasGroup->PostEditChange();
+			}
+			else
+			{
+				BakedSourceTexture = nullptr;
+				BakedSourceUV = FVector2D(0, 0);
+				bRenderDataModified = true;
+			}
+
+		}
 	}
 
 	// The texture dimensions have changed

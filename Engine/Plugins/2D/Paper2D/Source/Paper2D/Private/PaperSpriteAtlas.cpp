@@ -10,6 +10,12 @@ UPaperSpriteAtlas::UPaperSpriteAtlas(const FObjectInitializer& ObjectInitializer
 #if WITH_EDITORONLY_DATA
 	, MaxWidth(2048)
 	, MaxHeight(2048)
+	, MipCount(1)
+	, PaddingType(EPaperSpriteAtlasPadding::DilateBorder)
+	, Padding(1)
+	, CompressionSettings(TextureCompressionSettings::TC_Default)
+	, Filter(TextureFilter::TF_Bilinear)
+	, bRebuildAtlas(false)
 #endif
 {
 }
@@ -24,6 +30,7 @@ void UPaperSpriteAtlas::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags)
 }
 
 #if WITH_EDITORONLY_DATA
+
 void UPaperSpriteAtlas::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
@@ -35,4 +42,5 @@ void UPaperSpriteAtlas::PostInitProperties()
 	Super::PostInitProperties();
 	FPlatformMisc::CreateGuid(AtlasGUID);
 }
+
 #endif
