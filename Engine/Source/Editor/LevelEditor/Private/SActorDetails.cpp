@@ -70,17 +70,16 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 
 	GEditor->RegisterForUndo(this);
 
-	SAssignNew(ComponentsBox, SBox)
+	ComponentsBox = SNew(SBox)
 		.Visibility(EVisibility::Collapsed);
 
-	ComponentsBox->SetContent
-	(
-		SAssignNew(SCSEditor, SSCSEditor)
+	SCSEditor = SNew(SSCSEditor)
 		.EditorMode(EComponentEditorMode::ActorInstance)
 		.ActorContext(this, &SActorDetails::GetActorContext)
 		.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)
-		.ActorMenuExtender(InArgs._ActorMenuExtender)
-	);
+		.ActorMenuExtender(InArgs._ActorMenuExtender);
+		
+	ComponentsBox->SetContent(SCSEditor.ToSharedRef());
 
 	ChildSlot
 	[
