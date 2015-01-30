@@ -450,18 +450,21 @@ private:
 
 typedef SSCSEditorDragDropTree SSCSTreeType;
 
-class KISMET_API SSCSEditor : public SCompoundWidget
+/* Component editor mode */
+namespace EComponentEditorMode
 {
-public:
-	/* Editor mode */
-	enum EEditorMode
+	enum Type
 	{
 		/* View/edit the SCS in a BGPC */
 		BlueprintSCS,
 		/* View/edit the Actor instance */
 		ActorInstance
 	};
+};
 
+class KISMET_API SSCSEditor : public SCompoundWidget
+{
+public:
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddNewComponent, class UClass*);
 	DECLARE_DELEGATE_RetVal_OneParam(class USCS_Node*, FOnAddExistingComponent, class UActorComponent*);
 	DECLARE_DELEGATE_OneParam(FOnSelectionUpdated, const TArray<FSCSEditorTreeNodePtrType>&);
@@ -469,7 +472,7 @@ public:
 	DECLARE_DELEGATE_OneParam(FOnHighlightPropertyInDetailsView, const class FPropertyPath&);
 
 	SLATE_BEGIN_ARGS( SSCSEditor )
-		:_EditorMode(BlueprintSCS)
+		:_EditorMode(EComponentEditorMode::BlueprintSCS)
 		,_ActorContext(nullptr)
 		,_PreviewActor(nullptr)
 		,_AllowEditing(true)
@@ -478,7 +481,7 @@ public:
 		,_OnHighlightPropertyInDetailsView()
 		{}
 
-		SLATE_ARGUMENT(EEditorMode, EditorMode)
+		SLATE_ARGUMENT(EComponentEditorMode::Type, EditorMode)
 		SLATE_ATTRIBUTE(class AActor*, ActorContext)
 		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
 		SLATE_ATTRIBUTE(bool, AllowEditing)
@@ -645,7 +648,7 @@ public:
 	const TArray<FSCSEditorTreeNodePtrType>& GetRootComponentNodes();
 
 	/** @return The current editor mode (editing live actors or editing blueprints) */
-	EEditorMode GetEditorMode() const { return EditorMode; }
+	EComponentEditorMode::Type GetEditorMode() const { return EditorMode; }
 protected:
 	FString GetSelectedClassText() const;
 
@@ -800,9 +803,12 @@ public:
 
 	/** Delegate to invoke when the given property should be highlighted in the details view (e.g. diff). */
 	FOnHighlightPropertyInDetailsView OnHighlightPropertyInDetailsView;
+
+	/** Returns the Actor context for which we are viewing/editing the SCS.  Can return null.  Should not be cached as it may change from frame to frame. */
+	class AActor* GetActorContext() const;
 private:
 	/** Indicates which editor mode we're in. */
-	EEditorMode EditorMode;
+	EComponentEditorMode::Type EditorMode;
 
 	/** Root set of tree */
 	TArray<FSCSEditorTreeNodePtrType> RootNodes;
@@ -819,6 +825,6 @@ private:
 	/** Gate to prevent changing the selection while selection change is being broadcast. */
 	bool bUpdatingSelection;
 
-	/** Flag to track if we have the Actor selected curently */
+	/** Flag to track if we have the Actor selected currently */
 	bool bIsActorSelected;
 };

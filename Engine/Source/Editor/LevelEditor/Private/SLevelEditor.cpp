@@ -558,7 +558,7 @@ public:
 		ComponentsBox->SetContent
 		(
 			SAssignNew(SCSEditor, SSCSEditor)
-			.EditorMode(SSCSEditor::EEditorMode::ActorInstance)
+			.EditorMode(EComponentEditorMode::ActorInstance)
 			.ActorContext(this, &SActorDetails::GetSelectedActor)												// Get the instance of the actor in the world
 			.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)						// A selection has been made in the tree view, so inform the level editor
 			//.OnHighlightPropertyInDetailsView(this, &SLevelEditor::OnSCSEditorHighlightPropertyInDetailsView)	// Also unsure and don't think it's needed
