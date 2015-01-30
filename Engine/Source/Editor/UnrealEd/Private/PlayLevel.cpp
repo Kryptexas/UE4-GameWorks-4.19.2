@@ -3002,7 +3002,42 @@ void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 					AuthGameMode->RemovePlayerControllerFromPlayerCount(PC);
 					PC->PlayerState->bOnlySpectator = false;
 					AuthGameMode->NumPlayers++;
-					AuthGameMode->RestartPlayer(PC);
+
+					bool bNeedsRestart = true;
+					if (PC->GetPawn() == NULL)
+					{
+						// Use the "auto-possess" pawn in the world, if there is one.
+						for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
+						{
+							APawn* Pawn = *Iterator;
+							if (Pawn && Pawn->AutoPossessPlayer == EAutoReceiveInput::Player0)
+							{
+								if (Pawn->Controller == nullptr)
+								{
+									PC->Possess(Pawn);
+									bNeedsRestart = false;
+								}
+								break;
+							}
+						}
+					}
+
+					if (bNeedsRestart)
+					{
+						AuthGameMode->RestartPlayer(PC);
+
+						if (PC->GetPawn())
+						{
+							// If there was no player start, then try to place the pawn where the camera was.						
+							if (PC->StartSpot == nullptr || Cast<AWorldSettings>(PC->StartSpot.Get()))
+							{
+								const FVector Location = EditorViewportClient.GetViewLocation();
+								const FRotator Rotation = EditorViewportClient.GetViewRotation();
+								PC->SetControlRotation(Rotation);
+								PC->GetPawn()->TeleportTo(Location, Rotation);
+							}
+						}
+					}
 				}
 
 				OnSwitchWorldsForPIE(false);
