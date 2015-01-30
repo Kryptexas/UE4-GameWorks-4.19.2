@@ -956,11 +956,14 @@ namespace APIDocTool
 				// Create the output directory
 				Utility.SafeCreateDirectory(JsonDir);
 
+				string Arguments = "-run=GenerateBlueprintAPI -path=" + JsonDir + " -name=BlueprintAPI";
+				Console.WriteLine("Running: {0} {1}", EditorPath, Arguments);
+
 				using (Process JsonExportProcess = new Process())
 				{
 					JsonExportProcess.StartInfo.WorkingDirectory = EngineDir;
 					JsonExportProcess.StartInfo.FileName = EditorPath;
-					JsonExportProcess.StartInfo.Arguments = "-run=GenerateBlueprintAPI -path=" + JsonDir + " -name=BlueprintAPI";
+					JsonExportProcess.StartInfo.Arguments = Arguments;
 					JsonExportProcess.StartInfo.UseShellExecute = false;
 					JsonExportProcess.StartInfo.RedirectStandardOutput = true;
 					JsonExportProcess.StartInfo.RedirectStandardError = true;
