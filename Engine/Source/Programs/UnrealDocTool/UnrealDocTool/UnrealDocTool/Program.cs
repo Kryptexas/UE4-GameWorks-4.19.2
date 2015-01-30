@@ -1074,7 +1074,12 @@ namespace UnrealDocTool
 
         private static void DoRecursively(string sourcePath, Action<string> action)
         {
-            action(sourcePath);
+			if (!Directory.Exists(sourcePath))
+			{
+				return;
+			}
+
+			action(sourcePath);
 
             foreach (var subDirectory in Directory.GetDirectories(sourcePath))
             {
