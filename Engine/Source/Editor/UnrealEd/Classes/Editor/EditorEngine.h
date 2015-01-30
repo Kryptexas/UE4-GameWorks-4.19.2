@@ -359,10 +359,6 @@ class UNREALED_API UEditorEngine : public UEngine
 	UPROPERTY(EditAnywhere, config, Category=Advanced)
 	uint32 GodMode:1;
 
-	/** The location to autosave to. */
-	UPROPERTY(EditAnywhere, config, Category=Advanced)
-	FString AutoSaveDir;
-
 	UPROPERTY(EditAnywhere, config, Category=Advanced)
 	uint32 InvertwidgetZAxis:1;
 

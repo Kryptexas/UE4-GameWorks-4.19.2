@@ -31,6 +31,7 @@
 #include "NotificationManager.h"
 #include "Engine/LevelStreaming.h"
 #include "GameMapsSettings.h"
+#include "AutoSaveUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
@@ -392,7 +393,7 @@ static bool SaveWorld(UWorld* World,
 		{
 			// If package exists, but doesn't feature the default extension, it will not load when launched,
 			// Change the extension of the map to the default for the auto-save
-			Path			= GEditor->AutoSaveDir;
+			Path			= AutoSaveUtils::GetAutoSaveDir();
 			CleanFilename	= FPackageName::GetLongPackageAssetName(PackageName) + FPackageName::GetMapPackageExtension();
 		}
 		else
@@ -412,7 +413,7 @@ static bool SaveWorld(UWorld* World,
 	else
 	{
 		// No package filename exists and none was specified, so save the package in the autosaves folder.
-		Path			= GEditor->AutoSaveDir;
+		Path			= AutoSaveUtils::GetAutoSaveDir();
 		CleanFilename	= FPackageName::GetLongPackageAssetName(PackageName) + FPackageName::GetMapPackageExtension();
 	}
 
