@@ -7,6 +7,7 @@ class FSlateTexture2DRHIRef;
 class FSlateTextureRenderTarget2DResource;
 
 #include "Runtime/AssetRegistry/Public/AssetData.h"
+#include "TickableEditorObject.h"
 
 namespace EThumbnailLabel
 {
