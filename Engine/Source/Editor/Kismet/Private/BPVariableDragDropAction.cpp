@@ -59,6 +59,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 
 	UEdGraphPin* PinUnderCursor = GetHoveredPin();
 
+	bool bCanMakeSetter = false;
 	bool bBadSchema = false;
 	bool bBadGraph = false;
 	UEdGraph* HoveredGraph = GetHoveredGraph();
@@ -72,6 +73,16 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		{
 			bBadGraph = true;
 		}
+
+		UStruct* Outer = CastChecked<UStruct>(VariableProperty->GetOuter());
+
+		FNodeConstructionParams NewNodeParams;
+		NewNodeParams.VariableName = VariableName;
+		const UBlueprint* DropOnBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(HoveredGraph);
+		NewNodeParams.Graph = HoveredGraph;
+		NewNodeParams.VariableSource = Outer;
+		
+		bCanMakeSetter = CanExecuteMakeSetter(NewNodeParams, VariableProperty);
 	}
 
 	UEdGraphNode* VarNodeUnderCursor = Cast<UK2Node_Variable>(GetHoveredNode());
@@ -286,6 +297,14 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 			}
 		}
 	}
+	else if (bAltDrag && !bCanMakeSetter)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
+
+		StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
+		Message = FText::Format(LOCTEXT("CannotPlaceSetter", "Variable '{VariableName}' is readonly you cannot set this variable."), Args);
+	}
 	// Draw variable icon
 	else
 	{
@@ -446,7 +465,7 @@ FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget 
 			AnalyticCallback.ExecuteIfBound();
 
 			// Asking for a getter
-			if (bControlDrag)
+			if (bControlDrag || !CanExecuteMakeSetter(NewNodeParams, VariableProperty))
 			{
 				MakeGetter(NewNodeParams);
 			}

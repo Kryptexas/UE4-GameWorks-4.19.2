@@ -105,6 +105,8 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 
 void SComponentClassCombo::ClearSelection()
 {
+	SearchBox->SetText(FText::GetEmpty());
+
 	PrevSelectedIndex = INDEX_NONE;
 
 	// Clear the selection in such a way as to also clear the keyboard selector
@@ -393,11 +395,6 @@ void SComponentClassCombo::UpdateComponentClassList()
 	}
 }
 
-FReply SComponentClassCombo::OnButtonClicked()
-{
-	SearchBox->SetText(FText::GetEmpty());
-	return SComboButton::OnButtonClicked();
-}
 
 void SComponentClassCombo::OnProjectHotReloaded( bool bWasTriggeredAutomatically )
 {
