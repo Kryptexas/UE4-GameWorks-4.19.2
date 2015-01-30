@@ -41,7 +41,8 @@ void UBlueprintGeneratedClass::PostLoad()
 	for( auto SubObjIt = SubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
 	{
 		UObject* CurrObj = *SubObjIt;
-		if( !CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() )
+		const bool bComponentChild = (CurrObj->GetOuter() != ClassCDO) && CurrObj->GetOuter()->IsDefaultSubobject();
+		if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
 		{
 			CurrObj->MarkPendingKill();
 		}
