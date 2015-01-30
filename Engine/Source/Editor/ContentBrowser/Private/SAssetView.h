@@ -867,10 +867,4 @@ private:
 
 	/** Data for the asset quick-jump */
 	FQuickJumpData QuickJumpData;
-
-	/** Cached warning text that is checked against each tick when the warning block is visible. */
-	FText CachedWarningText;
-
-	/** The Warning text widget. */
-	TSharedPtr<SRichTextBlock> WarningTextWidget;
 };

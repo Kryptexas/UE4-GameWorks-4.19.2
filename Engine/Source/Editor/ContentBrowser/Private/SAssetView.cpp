@@ -258,8 +258,9 @@ void SAssetView::Construct( const FArguments& InArgs )
 			.Padding(FMargin(0, 14, 0, 0))
 			[
 				// A warning to display when there are no assets to show
-				SAssignNew( WarningTextWidget, SRichTextBlock )
+				SNew( STextBlock )
 				.Justification( ETextJustify::Center )
+				.Text( this, &SAssetView::GetAssetShowWarningText )
 				.Visibility( this, &SAssetView::IsAssetShowWarningTextVisible )
 				.AutoWrapText( true )
 			]
@@ -929,16 +930,6 @@ void SAssetView::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	else if(QuickJumpData.bIsJumping && InCurrentTime > QuickJumpData.LastJumpTime + JumpDelaySeconds)
 	{
 		ResetQuickJump();
-	}
-
-	if ( IsAssetShowWarningTextVisible() == EVisibility::Visible )
-	{
-		FText WarningText = GetAssetShowWarningText();
-		if ( WarningText.CompareTo( CachedWarningText ) != 0)
-		{
-			CachedWarningText = WarningText;
-			WarningTextWidget->SetText( WarningText );
-		}
 	}
 }
 
@@ -3625,7 +3616,7 @@ void SAssetView::OnSortColumnHeader(const EColumnSortPriority::Type SortPriority
 
 EVisibility SAssetView::IsAssetShowWarningTextVisible() const
 {
-	return FilteredAssetItems.Num() > 0 ? EVisibility::Collapsed : EVisibility::Visible;
+	return FilteredAssetItems.Num() > 0 ? EVisibility::Collapsed : EVisibility::HitTestInvisible;
 }
 
 FText SAssetView::GetAssetShowWarningText() const
