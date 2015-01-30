@@ -349,9 +349,9 @@ public:
 	/** Multi-cast delegate serialization */
 	friend FArchive& operator<<( FArchive& Ar, TMulticastScriptDelegate<TWeakPtr>& D )
 	{
-		if( Ar.IsSaving() )
+		if (Ar.IsSaving() || Ar.HasAnyPortFlags(PPF_Duplicate))
 		{
-			// When saving the delegate, clean up the list to make sure there are no bad object references
+			// When saving or duplicating the delegate, clean up the list to make sure there are no bad object references
 			D.CompactInvocationList();
 		}
 
