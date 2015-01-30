@@ -14,147 +14,55 @@ void SAssetDropTarget::Construct(const FArguments& InArgs )
 	OnAssetDropped = InArgs._OnAssetDropped;
 	OnIsAssetAcceptableForDrop = InArgs._OnIsAssetAcceptableForDrop;
 
-	bIsDragEventRecognized = false;
-	bAllowDrop = false;
-	bIsDragOver = false;
-
-	ChildSlot
-	[
-		SNew(SOverlay)
-			
-		+ SOverlay::Slot()
+	SDropTarget::Construct(
+		SDropTarget::FArguments()
+		.OnDrop(this, &SAssetDropTarget::OnDropped)
 		[
 			InArgs._Content.Widget
-		]
-
-		+ SOverlay::Slot()
-		[
-			SNew(SBorder)
-			.Visibility(this, &SAssetDropTarget::GetDragOverlayVisibility)
-			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-			.BorderBackgroundColor(this, &SAssetDropTarget::GetDropBorderColor)
-			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
-				.BorderBackgroundColor(this, &SAssetDropTarget::GetBackgroundBrightness)
-				.Padding(15.0f)
-				[
-					SNew(SScaleBox)
-					.Stretch(EStretch::ScaleToFit)
-					[
-						SNew(STextBlock)
-						.Text(this, &SAssetDropTarget::GetDragOverlayText)
-						.ColorAndOpacity(this, &SAssetDropTarget::GetDropBorderColor)
-					]
-				]
-			]
-		]
-	];
+		]);
 }
 
-FSlateColor SAssetDropTarget::GetBackgroundBrightness() const
+FReply SAssetDropTarget::OnDropped(TSharedPtr<FDragDropOperation> DragDropOperation)
 {
-	return ( bAllowDrop && bIsDragOver ) ? FLinearColor(1, 1, 1, 0.40f) : FLinearColor(1, 1, 1, 0.25f);
-}
+	bool bUnused;
+	UObject* Object = GetDroppedObject(DragDropOperation, bUnused);
 
-EVisibility SAssetDropTarget::GetDragOverlayVisibility() const
-{
-	if ( FSlateApplication::Get().IsDragDropping() )
+	if ( Object )
 	{
-		if ( AllowDrop(FSlateApplication::Get().GetDragDroppingContent()) || bIsDragOver )
-		{
-			return EVisibility::HitTestInvisible;
-		}
+		OnAssetDropped.ExecuteIfBound(Object);
 	}
 
-	return EVisibility::Hidden;
+	return FReply::Handled();
 }
 
-FText SAssetDropTarget::GetDragOverlayText() const
+bool SAssetDropTarget::OnAllowDrop(TSharedPtr<FDragDropOperation> DragDropOperation) const
 {
-	return bAllowDrop ? FText::GetEmpty() : LOCTEXT("Nope", "Nope");
-}
-
-FSlateColor SAssetDropTarget::GetDropBorderColor() const
-{
-	return bIsDragEventRecognized ? 
-		bAllowDrop ? FLinearColor(0,1,0,1) : FLinearColor(1,0,0,1)
-		: FLinearColor::White;
-}
-
-FReply SAssetDropTarget::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
-{
-	// Handle the reply if we are allowed to drop, otherwise do not handle it.
-	return AllowDrop(DragDropEvent.GetOperation()) ? FReply::Handled() : FReply::Unhandled();
-}
-
-bool SAssetDropTarget::AllowDrop(TSharedPtr<FDragDropOperation> DragDropOperation) const
-{
-	bool bRecognizedEvent = false;
-	UObject* Object = GetDroppedObject(DragDropOperation, bRecognizedEvent);
-
-	// Not being dragged over by a recognizable event
-	bIsDragEventRecognized = bRecognizedEvent;
-
-	bAllowDrop = false;
+	bool bUnused = false;
+	UObject* Object = GetDroppedObject(DragDropOperation, bUnused);
 
 	if ( Object )
 	{
 		// Check and see if its valid to drop this object
 		if ( OnIsAssetAcceptableForDrop.IsBound() )
 		{
-			bAllowDrop = OnIsAssetAcceptableForDrop.Execute(Object);
+			return OnIsAssetAcceptableForDrop.Execute(Object);
 		}
 		else
 		{
 			// If no delegate is bound assume its always valid to drop this object
-			bAllowDrop = true;
-		}
-	}
-	else
-	{
-		// No object so we dont allow dropping
-		bAllowDrop = false;
-	}
-
-	return bAllowDrop;
-}
-
-FReply SAssetDropTarget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
-{
-	// We've dropped an asset so we are no longer being dragged over
-	bIsDragEventRecognized = false;
-
-	// if we allow drop, call a delegate to handle the drop
-	if( bAllowDrop )
-	{
-		bool bUnused;
-		UObject* Object = GetDroppedObject( DragDropEvent.GetOperation(), bUnused );
-
-		if( Object )
-		{
-			OnAssetDropped.ExecuteIfBound( Object );
+			return true;
 		}
 	}
 
-	return FReply::Handled();
+	return false;
 }
 
-void SAssetDropTarget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+bool SAssetDropTarget::OnIsRecognized(TSharedPtr<FDragDropOperation> DragDropOperation) const
 {
-	// initially we dont recognize this event
-	bIsDragEventRecognized = false;
-	bIsDragOver = true;
-}
+	bool bRecognizedEvent = false;
+	UObject* Object = GetDroppedObject(DragDropOperation, bRecognizedEvent);
 
-void SAssetDropTarget::OnDragLeave( const FDragDropEvent& DragDropEvent )
-{
-	// No longer being dragged over
-	bIsDragEventRecognized = false;
-	// Disallow dropping if not dragged over.
-	bAllowDrop = false;
-
-	bIsDragOver = false;
+	return bRecognizedEvent;
 }
 
 UObject* SAssetDropTarget::GetDroppedObject(TSharedPtr<FDragDropOperation> DragDropOperation, bool& bOutRecognizedEvent) const
@@ -202,68 +110,6 @@ UObject* SAssetDropTarget::GetDroppedObject(TSharedPtr<FDragDropOperation> DragD
 	}
 
 	return DroppedObject;
-}
-
-int32 SAssetDropTarget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
-{
-	LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-
-	if ( GetDragOverlayVisibility().IsVisible() )
-	{
-		if ( bIsDragEventRecognized )
-		{
-			FLinearColor DashColor = bAllowDrop ? FLinearColor(0, 1, 0, 1) : FLinearColor(1, 0, 0, 1);
-
-			const FSlateBrush* HorizontalBrush = FEditorStyle::GetBrush("WideDash.Horizontal");
-			const FSlateBrush* VerticalBrush = FEditorStyle::GetBrush("WideDash.Vertical");
-
-			int32 DashLayer = LayerId + 1;
-
-			// Top
-			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				DashLayer,
-				AllottedGeometry.ToPaintGeometry(FVector2D(0, 0), FVector2D(AllottedGeometry.Size.X, HorizontalBrush->ImageSize.Y)),
-				HorizontalBrush,
-				MyClippingRect,
-				ESlateDrawEffect::None,
-				DashColor);
-
-			// Bottom
-			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				DashLayer,
-				AllottedGeometry.ToPaintGeometry(FVector2D(0, AllottedGeometry.Size.Y - HorizontalBrush->ImageSize.Y), FVector2D(AllottedGeometry.Size.X, HorizontalBrush->ImageSize.Y)),
-				HorizontalBrush,
-				MyClippingRect,
-				ESlateDrawEffect::None,
-				DashColor);
-
-			// Left
-			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				DashLayer,
-				AllottedGeometry.ToPaintGeometry(FVector2D(0, 0), FVector2D(VerticalBrush->ImageSize.X, AllottedGeometry.Size.Y)),
-				VerticalBrush,
-				MyClippingRect,
-				ESlateDrawEffect::None,
-				DashColor);
-
-			// Right
-			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				DashLayer,
-				AllottedGeometry.ToPaintGeometry(FVector2D(AllottedGeometry.Size.X - VerticalBrush->ImageSize.X, 0), FVector2D(VerticalBrush->ImageSize.X, AllottedGeometry.Size.Y)),
-				VerticalBrush,
-				MyClippingRect,
-				ESlateDrawEffect::None,
-				DashColor);
-
-			return DashLayer;
-		}
-	}
-
-	return LayerId;
 }
 
 #undef LOCTEXT_NAMESPACE
