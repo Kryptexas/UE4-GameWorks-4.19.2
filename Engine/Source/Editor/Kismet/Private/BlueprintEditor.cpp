@@ -6288,20 +6288,10 @@ void FBlueprintEditor::OnAddNewVariable()
 {
 	const FScopedTransaction Transaction( LOCTEXT("AddVariable", "Add Variable") );
 
-	FString VarNameString = TEXT("NewVar");
-	FName VarName = FName(*VarNameString);
-
 	// Reset MyBlueprint item filter so new variable is visible
 	MyBlueprintWidget->OnResetItemFilter();
 
-	// Make sure the new name is valid
-	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(GetBlueprintObj()));
-	int32 Index = 0;
-	while (NameValidator->IsValid(VarName) != Ok)
-	{
-		VarName = FName(*FString::Printf(TEXT("%s%i"), *VarNameString, Index));
-		++Index;
-	}
+	FName VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewVar"));
 
 	bool bSuccess = MyBlueprintWidget.IsValid() && FBlueprintEditorUtils::AddMemberVariable(GetBlueprintObj(), VarName, MyBlueprintWidget->GetLastPinTypeUsed());
 
@@ -6345,16 +6335,8 @@ void FBlueprintEditor::OnAddNewDelegate()
 	// Reset MyBlueprint item filter so new variable is visible
 	MyBlueprintWidget->OnResetItemFilter();
 
-	const FString NameString = TEXT("NewEventDispatcher");
-	FName Name = FName(*NameString);
-	TArray<FName> Variables;
-	FBlueprintEditorUtils::GetClassVariableList(Blueprint, Variables);
-	int32 Index = 0;
-	while (Variables.Contains(Name) || !FBlueprintEditorUtils::IsGraphNameUnique(Blueprint, Name))
-	{
-		Name = FName(*FString::Printf(TEXT("%s%i"), *NameString, Index));
-		++Index;
-	}
+	FName Name = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewEventDispatcher"));
+
 
 	const FScopedTransaction Transaction( LOCTEXT("AddNewDelegate", "Add New Event Dispatcher") ); 
 	Blueprint->Modify();
