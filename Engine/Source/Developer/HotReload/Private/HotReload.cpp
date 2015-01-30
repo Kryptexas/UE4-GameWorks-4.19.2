@@ -476,7 +476,7 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 	Args.Add( TEXT("CodeModuleName"), FText::FromName( InModuleName ) );
 	const FText StatusUpdate = FText::Format( NSLOCTEXT("ModuleManager", "Recompile_SlowTaskName", "Compiling {CodeModuleName}..."), Args );
 
-	FScopedSlowTask SlowTask(1, StatusUpdate);
+	FScopedSlowTask SlowTask(2, StatusUpdate);
 	SlowTask.MakeDialog();
 
 	ModuleCompilerStartedEvent.Broadcast();
@@ -488,6 +488,8 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 	// the module without actually having to unload it first.
 	const bool bWasModuleLoaded = FModuleManager::Get().IsModuleLoaded( InModuleName );
 	const bool bUseRollingModuleNames = bWasModuleLoaded;
+
+	SlowTask.EnterProgressFrame();
 
 	bool bWasSuccessful = true;
 	if( bUseRollingModuleNames )
@@ -510,6 +512,8 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 		bWasSuccessful = RecompileModuleDLLs(ModulesToRecompile, Ar, bFailIfGeneratedCodeChanges, bForceCodeProject);		
 	}
 
+	SlowTask.EnterProgressFrame();
+	
 	if( bWasSuccessful )
 	{
 		// Shutdown the module if it's already running
