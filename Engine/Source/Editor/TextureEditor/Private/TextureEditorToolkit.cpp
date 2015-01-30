@@ -109,7 +109,7 @@ void FTextureEditorToolkit::InitTextureEditor( const EToolkitMode::Type Mode, co
 		break;
 	}
 
-	bIsSaturation = false;
+	bIsDesaturation = false;
 
 	PreviewEffectiveTextureWidth = 0;
 	PreviewEffectiveTextureHeight = 0;
@@ -280,8 +280,8 @@ ESimpleElementBlendMode FTextureEditorToolkit::GetColourChannelBlendMode( ) cons
 	
 	// If we only have one color channel active, enable color desaturation by default
 	const int32 NumColorChannelsActive = (bIsRedChannel ? 1 : 0) + (bIsGreenChannel ? 1 : 0) + (bIsBlueChannel ? 1 : 0);
-	const bool bIsSaturationLocal = bIsSaturation ? true : (NumColorChannelsActive==1);
-	Result += bIsSaturationLocal ? (1 << 4) : 0;
+	const bool bIsDesaturationLocal = bIsDesaturation ? true : (NumColorChannelsActive==1);
+	Result += bIsDesaturationLocal ? (1 << 4) : 0;
 
 	return (ESimpleElementBlendMode)Result;
 }
@@ -505,10 +505,10 @@ void FTextureEditorToolkit::BindCommands( )
 		FIsActionChecked::CreateSP(this, &FTextureEditorToolkit::HandleAlphaChannelActionIsChecked));
 
 	ToolkitCommands->MapAction(
-		Commands.Saturation,
-		FExecuteAction::CreateSP(this, &FTextureEditorToolkit::HandleSaturationChannelActionExecute),
+		Commands.Desaturation,
+		FExecuteAction::CreateSP(this, &FTextureEditorToolkit::HandleDesaturationChannelActionExecute),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FTextureEditorToolkit::HandleSaturationChannelActionIsChecked));
+		FIsActionChecked::CreateSP(this, &FTextureEditorToolkit::HandleDesaturationChannelActionIsChecked));
 
 	ToolkitCommands->MapAction(
 		Commands.FitToViewport,
@@ -1067,15 +1067,15 @@ void FTextureEditorToolkit::HandleReimportManagerPreReimport( UObject* InObject 
 }
 
 
-void FTextureEditorToolkit::HandleSaturationChannelActionExecute( )
+void FTextureEditorToolkit::HandleDesaturationChannelActionExecute( )
 {
-	bIsSaturation = !bIsSaturation;
+	bIsDesaturation = !bIsDesaturation;
 }
 
 
-bool FTextureEditorToolkit::HandleSaturationChannelActionIsChecked( ) const
+bool FTextureEditorToolkit::HandleDesaturationChannelActionIsChecked( ) const
 {
-	return bIsSaturation;
+	return bIsDesaturation;
 }
 
 
