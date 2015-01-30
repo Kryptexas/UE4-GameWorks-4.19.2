@@ -352,29 +352,25 @@ public:
 	 * Merges another cache file into this one.
 	 * @return true on success
 	 */
-	bool MergeCache(const TCHAR* OtherFileName)
+	void MergeCache(FPakFileDerivedDataBackend* OtherPak)
 	{
-		if(FPlatformFileManager::Get().GetPlatformFile().FileExists(OtherFileName))
-		{
-			FPakFileDerivedDataBackend OtherPak(OtherFileName, false);
-			if(!OtherPak.bClosed)
-			{
-				// Get all the existing keys
-				TArray<FString> KeyNames;
-				OtherPak.CacheItems.GenerateKeyArray(KeyNames);
+		// Get all the existing keys
+		TArray<FString> KeyNames;
+		OtherPak->CacheItems.GenerateKeyArray(KeyNames);
+		UE_LOG(LogDerivedDataCache, Display, TEXT("Found %d entries."), KeyNames.Num());
 
-				// Copy them all to the new cache
-				TArray<uint8> Buffer;
-				for(const FString& KeyName: KeyNames)
-				{
-					Buffer.Reset();
-					OtherPak.GetCachedData(*KeyName, Buffer);
-					PutCachedData(*KeyName, Buffer, false);
-				}
-				return true;
-			}
+		// Copy them all to the new cache
+		TArray<uint8> Buffer;
+		for(int32 Idx = 0; Idx < KeyNames.Num(); Idx++)
+		{
+			Buffer.Reset();
+
+			UE_LOG(LogDerivedDataCache, Display, TEXT("[%d/%d] Reading %s..."), Idx + 1, KeyNames.Num(), *KeyNames[Idx]);
+			OtherPak->GetCachedData(*KeyNames[Idx], Buffer);
+
+			UE_LOG(LogDerivedDataCache, Display, TEXT("[%d/%d] Writing %d bytes..."), Idx + 1, KeyNames.Num(), Buffer.Num());
+			PutCachedData(*KeyNames[Idx], Buffer, false);
 		}
-		return false;
 	}
 	
 	const FString& GetFilename() const

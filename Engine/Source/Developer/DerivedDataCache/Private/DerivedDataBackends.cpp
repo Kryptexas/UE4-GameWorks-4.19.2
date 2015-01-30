@@ -235,12 +235,6 @@ public:
 				WritePakFilename = PakFilename + TEXT(".") + Temp.ToString();
 				WritePakCache = new FPakFileDerivedDataBackend( *WritePakFilename, true );
 				PakNode = WritePakCache;
-
-				bool bMerge = false;
-				if(FParse::Bool(Entry, TEXT("Merge="), bMerge) && bMerge)
-				{
-					WritePakCache->MergeCache(*PakFilename);
-				}
 			}
 			else
 			{
@@ -680,6 +674,13 @@ public:
 		}
 		if (bShutdown)
 		{
+			if(FParse::Param(FCommandLine::Get(), TEXT("MergePaks")) && WritePakCache && WritePakCache->IsWritable())
+			{
+				for (int32 ReadPakIndex = 0; ReadPakIndex < ReadPakCache.Num(); ReadPakIndex++)
+				{
+					WritePakCache->MergeCache(ReadPakCache[ReadPakIndex]);
+				}
+			}
 			for (int32 ReadPakIndex = 0; ReadPakIndex < ReadPakCache.Num(); ReadPakIndex++)
 			{
 				ReadPakCache[ReadPakIndex]->Close();
