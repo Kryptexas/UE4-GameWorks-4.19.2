@@ -2719,6 +2719,7 @@ private:
 	/** The platform to run on (as selected in dreop down) */
 	FString PlayUsingLauncherDeviceId;
 	FString PlayUsingLauncherDeviceName;
+	bool bPlayUsingLauncherHasCode;
 
 	/** List of files we are deferring adding to source control */
 	TArray<FString> DeferredFilesToAddToSourceControl;
