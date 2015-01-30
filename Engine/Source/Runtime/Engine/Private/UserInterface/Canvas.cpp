@@ -1186,7 +1186,8 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 				if( CharIndexFormat == ELastCharacterIndexFormat::CharacterAtOffset )
 				{
 					// Round our test toward the character's center position
-					if( StopAfterHorizontalOffset < Parameters.DrawXL - CharWidth / 2 )
+					const float TotalCharWidth = CharWidth + Parameters.DrawFont->GetCharHorizontalOffset(Ch);
+					if( StopAfterHorizontalOffset < Parameters.DrawXL - TotalCharWidth / 2 )
 					{
 						// We've reached the stopping point, so bail
 						break;

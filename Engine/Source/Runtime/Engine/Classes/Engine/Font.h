@@ -221,6 +221,15 @@ public:
 	ENGINE_API int8 GetCharKerning(TCHAR First, TCHAR Second) const;
 
 	/**
+	 * Gets the horizontal distance from the origin to the left most border of the given character
+	 *
+	 * @param	InCh					the character to get the offset for
+	 *
+	 * @return The offset value
+	 */
+	ENGINE_API int16 GetCharHorizontalOffset(TCHAR InCh) const;
+
+	/**
 	 * Calculate the width of the string using this font's default size and scale.
 	 *
 	 * @param	Text					the string to size
