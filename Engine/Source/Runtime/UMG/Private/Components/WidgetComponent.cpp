@@ -435,7 +435,7 @@ void UWidgetComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-void UWidgetComponent::DestroyComponent()
+void UWidgetComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
 	Super::DestroyComponent();
 

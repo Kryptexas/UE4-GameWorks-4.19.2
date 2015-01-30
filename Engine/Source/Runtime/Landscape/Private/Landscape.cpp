@@ -776,7 +776,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 	return Proxy;
 }
 
-void ULandscapeComponent::DestroyComponent()
+void ULandscapeComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
 	ALandscapeProxy* Proxy = GetLandscapeProxy();
 	if (Proxy)

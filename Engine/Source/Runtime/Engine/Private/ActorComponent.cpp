@@ -711,7 +711,7 @@ void UActorComponent::UnregisterComponent()
 	World = NULL;
 }
 
-void UActorComponent::DestroyComponent()
+void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
 	// Ensure that we call UninitializeComponent before we destroy this component
 	if (bHasBeenInitialized)

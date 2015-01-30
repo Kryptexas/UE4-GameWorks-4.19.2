@@ -7,12 +7,6 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
 
-const FName& FComponentEditorUtils::GetDefaultSceneRootVariableName()
-{
-	static FName DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
-
-	return DefaultSceneRootVariableName;
-}
 
 USceneComponent* FComponentEditorUtils::GetSceneComponent( UObject* Object, UObject* SubObject /*= NULL*/ )
 {
@@ -100,7 +94,7 @@ void FComponentEditorUtils::GetArchetypeInstances( UObject* Object, TArray<UObje
 bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InComponent, const FString& InString)
 {
 	// First test to make sure the string is not empty and does not equate to the DefaultSceneRoot node name
-	bool bIsValid = !InString.IsEmpty() && !InString.Equals(GetDefaultSceneRootVariableName().ToString());
+	bool bIsValid = !InString.IsEmpty() && !InString.Equals(USceneComponent::GetDefaultSceneRootVariableName().ToString());
 	if(bIsValid && InComponent != NULL)
 	{
 		// Next test to make sure the string doesn't conflict with the format that MakeUniqueObjectName() generates

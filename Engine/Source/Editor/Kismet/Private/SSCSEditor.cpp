@@ -779,7 +779,7 @@ bool FSCSEditorTreeNodeInstanceAddedComponent::IsDefaultSceneRoot() const
 {
 	if (USceneComponent* SceneComponent = Cast<USceneComponent>(GetComponentTemplate()))
 	{
-		return SceneComponent->GetFName() == FComponentEditorUtils::GetDefaultSceneRootVariableName();
+		return SceneComponent->GetFName() == USceneComponent::GetDefaultSceneRootVariableName();
 	}
 
 	return false;
@@ -4179,6 +4179,15 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 					}
 				}
 			}
+
+			if (GetEditorMode() != EComponentEditorMode::BlueprintSCS)
+			{
+				TArray<FSCSEditorTreeNodePtrType> NewSelectedTreeNodes = SCSTreeWidget->GetSelectedItems();
+				if (NewSelectedTreeNodes.Num() == 0)
+				{
+					SCSTreeWidget->SetItemSelection(GetRootNodes()[0], true);
+				}
+			}
 		}
 
 		// If we have a pending deferred rename request, redirect it to the new tree node
@@ -4967,96 +4976,8 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 				SCSTreeWidget->ClearSelection();
 			}
 
-			ComponentInstance->Modify();
-
-			// Handle removal of a node within the scene component hierarchy
-			USceneComponent* SceneComponent = Cast<USceneComponent>(ComponentInstance);
-			if(SceneComponent != nullptr)
-			{
-				// Find an appropriate child node to promote to this node's position in the hierarchy
-				USceneComponent* ChildToPromote = nullptr;
-				if(SceneComponent->AttachChildren.Num() > 0)
-				{
-					// Start with the first child node
-					ChildToPromote = SceneComponent->AttachChildren[0];
-					check(ChildToPromote != nullptr);
-
-					// Always choose non editor-only child nodes over editor-only child nodes (since we don't want editor-only nodes to end up with non editor-only child nodes)
-					if(ChildToPromote->IsEditorOnly())
-					{
-						for(int32 ChildIndex = 1; ChildIndex < SceneComponent->AttachChildren.Num(); ++ChildIndex)
-						{
-							USceneComponent* Child = SceneComponent->AttachChildren[ChildIndex];
-							if (Child != nullptr && !Child->IsEditorOnly())
-							{
-								ChildToPromote = Child;
-								break;
-							}
-						}
-					}
-				}
-
-				// Handle removal of the root node
-				if(SceneComponent == ActorInstance->GetRootComponent())
-				{
-					// We only promote non editor-only components to root in instanced mode
-					if(ChildToPromote == nullptr || ChildToPromote->IsEditorOnly())
-					{
-						// Construct a new default root component
-						USceneComponent* NewRootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), ActorInstance, FComponentEditorUtils::GetDefaultSceneRootVariableName(), RF_Transactional);
-						NewRootComponent->Mobility = SceneComponent->Mobility;
-						NewRootComponent->SetWorldLocationAndRotation(SceneComponent->GetComponentLocation(), SceneComponent->GetComponentRotation());
-
-						// Designate the new default root as the child we're promoting
-						ChildToPromote = NewRootComponent;
-					}
-
-					ActorInstance->Modify();
-
-					// Set the selected child node as the new root
-					check(ChildToPromote != nullptr);
-					ActorInstance->SetRootComponent(ChildToPromote);
-				}
-				else    // ...not the root node, so we'll promote the selected child node to this position in its AttachParent's child array.
-				{
-					// Get the node's AttachParent
-					USceneComponent* AttachParent = SceneComponent->AttachParent;
-					check(AttachParent != nullptr);
-
-					// Find the node's position in its AttachParent's child array
-					int32 Index = AttachParent->AttachChildren.Find(SceneComponent);
-					check(Index != INDEX_NONE);
-
-					// Detach the node from its parent
-					SceneComponent->DetachFromParent();
-
-					if(ChildToPromote != nullptr)
-					{
-						// Attach the child node that we're promoting to the parent and move it to the same position as the old node was in the array
-						ChildToPromote->AttachTo(AttachParent, NAME_None, EAttachLocation::KeepWorldPosition);
-						AttachParent->AttachChildren.Remove(ChildToPromote);
-						AttachParent->AttachChildren.Insert(ChildToPromote, Index);
-					}
-				}
-
-				// Detach child nodes from the node that's being removed and re-attach them to the child that's being promoted
-				TArray<USceneComponent*> AttachChildrenLocalCopy(SceneComponent->AttachChildren);
-				for(auto ChildCompIt = AttachChildrenLocalCopy.CreateIterator(); ChildCompIt; ++ChildCompIt)
-				{
-					USceneComponent* Child = *ChildCompIt;
-					check(Child != nullptr);
-
-					// Note: This will internally call Modify(), so we don't need to call it here
-					Child->DetachFromParent(true);
-					if(Child != ChildToPromote)
-					{
-						Child->AttachTo(ChildToPromote, NAME_None, EAttachLocation::KeepWorldPosition);
-					}
-				}
-			}
-
 			// Destroy the component instance
-			ComponentInstance->DestroyComponent();
+			ComponentInstance->DestroyComponent(true);
 		}
 	}
 }

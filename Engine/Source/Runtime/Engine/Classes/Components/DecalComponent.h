@@ -57,6 +57,9 @@ protected:
 	/** Handle for efficient management of DestroyDecalComponent timer */
 	FTimerHandle TimerHandle_DestroyDecalComponent;
 
+	/** Called when the life span of the decal has been exceeded */
+	void LifeSpanCallback();
+
 public:
 	
 	void SetLifeSpan(const float LifeSpan);
@@ -95,5 +98,6 @@ public:
 	// Begin USceneComponent Interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End USceneComponent Interface
+
 };
 

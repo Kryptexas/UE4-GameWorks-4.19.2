@@ -860,7 +860,7 @@ void ULandscapeMeshCollisionComponent::ApplyWorldOffset(const FVector& InOffset,
 	}
 }
 
-void ULandscapeMeshCollisionComponent::DestroyComponent()
+void ULandscapeMeshCollisionComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
 	ALandscapeProxy* Proxy = GetLandscapeProxy();
 	if (Proxy)
@@ -960,7 +960,7 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 }
 #endif// WITH_EDITOR
 
-void ULandscapeHeightfieldCollisionComponent::DestroyComponent()
+void ULandscapeHeightfieldCollisionComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
 	ALandscapeProxy* Proxy = GetLandscapeProxy();
 	if (Proxy)
