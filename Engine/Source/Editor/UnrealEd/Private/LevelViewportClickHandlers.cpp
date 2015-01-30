@@ -302,7 +302,7 @@ namespace ClickHandlers
 		// Pivot snapping
 		if (Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown())
 		{
-			GEditor->SetPivot(GEditor->ClickLocation, true, false, true);
+			GEditor->SetPivot(GEditor->ClickLocation, true, false);
 
 			return true;
 		}
