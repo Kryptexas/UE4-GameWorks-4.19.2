@@ -82,6 +82,9 @@ class ENGINE_API USceneComponent : public UActorComponent
 	GENERATED_BODY()
 public:
 
+	/** The name to use for the default scene root variable */
+	static const FName& GetDefaultSceneRootVariableName();
+
 	/**
 	 * Default UObject constructor.
 	 */
@@ -507,6 +510,7 @@ public:
 	// Begin ActorComponent interface
 	virtual void OnRegister() override;
 	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
+	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual class FComponentInstanceDataBase* GetComponentInstanceData() const override;

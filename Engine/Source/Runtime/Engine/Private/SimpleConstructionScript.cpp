@@ -650,7 +650,7 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 			&& FBlueprintEditorUtils::IsActorBased(Blueprint)
 			&& Blueprint->BlueprintType != BPTYPE_MacroLibrary)
 		{
-			DefaultSceneRootNode = CreateNode(USceneComponent::StaticClass(), FComponentEditorUtils::GetDefaultSceneRootVariableName());
+			DefaultSceneRootNode = CreateNode(USceneComponent::StaticClass(), USceneComponent::GetDefaultSceneRootVariableName());
 		}
 	}
 

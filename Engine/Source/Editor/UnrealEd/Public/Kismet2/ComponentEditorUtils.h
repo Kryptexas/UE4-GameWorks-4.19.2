@@ -8,9 +8,7 @@
 class UNREALED_API FComponentEditorUtils
 {
 public:
-	/** The name to use for the default scene root variable */
-	static const FName& GetDefaultSceneRootVariableName();
-
+	
 	static class USceneComponent* GetSceneComponent(class UObject* Object, class UObject* SubObject = NULL);
 
 	static void GetArchetypeInstances(class UObject* Object, TArray<class UObject*>& ArchetypeInstances);

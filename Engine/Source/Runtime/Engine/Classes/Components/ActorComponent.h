@@ -522,7 +522,7 @@ public:
 	void UnregisterComponent();
 
 	/** Unregister the component, remove it from its outer Actor's Components array and mark for pending kill. */
-	virtual void DestroyComponent();
+	virtual void DestroyComponent(bool bPromoteChildren = false);
 
 	/** Called when a component is created (not loaded) */
 	virtual void OnComponentCreated();

@@ -272,7 +272,7 @@ public:
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual void DestroyComponent() override;
+	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End USceneComponent interface.
 
