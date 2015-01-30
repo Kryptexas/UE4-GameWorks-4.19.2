@@ -390,6 +390,19 @@ namespace UnrealBuildTool
 				// Place projects into root level solution folders
 				if( IncludeEngineSource )
 				{
+					// If we're still missing an engine project because we don't have any targets for it, make one up.
+					if( EngineProject == null )
+					{
+						string ProjectFilePath = Path.Combine(IntermediateProjectFilesPath, "UE4" + ProjectFileExtension);
+
+						bool bAlreadyExisted;
+						EngineProject = FindOrAddProject(Utils.MakePathRelativeTo(ProjectFilePath, MasterProjectRelativePath), true, out bAlreadyExisted);
+
+						EngineProject.IsForeignProject = false;
+						EngineProject.IsGeneratedProject = true;
+						EngineProject.IsStubProject = true;
+					}
+
 					if( EngineProject != null )
 					{
 						RootFolder.AddSubFolder( "Engine" ).ChildProjects.Add( EngineProject );
