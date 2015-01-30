@@ -516,8 +516,9 @@ namespace UnrealBuildTool
 			// Engine/Config/NotForLicensees/Base* ini
 			yield return Path.Combine(EngineDirectory, "Config", "NotForLicensees", "Base" + BaseIniName + ".ini");
 
+			// NOTE: 4.7: See comment in GetSourceIniHierarchyFilenames()
 			// Engine/Config/NoRedist/Base* ini
-			yield return Path.Combine(EngineDirectory, "Config", "NoRedist", "Base" + BaseIniName + ".ini");
+			// yield return Path.Combine(EngineDirectory, "Config", "NoRedist", "Base" + BaseIniName + ".ini");
 
 			if(!String.IsNullOrEmpty(ProjectDirectory))
 			{
