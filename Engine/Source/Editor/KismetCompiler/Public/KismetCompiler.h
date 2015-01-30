@@ -236,11 +236,10 @@ protected:
 	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject);
 
 	/** 
-	 * Function works only is first native superclass is AActor.
+	 * Function works only is subclass of AActor or UActorComponent.
 	 * If ReceiveTick event is defined, force CanEverTick.
-	 * If ReceiveAnyDamage or ReceiveRadialDamage or ReceivePointDamage event is defined, force CanBeDamaged.
 	 */
-	void SetCanEverTickForActor();
+	void SetCanEverTick();
 
 	/** Scan FunctionList and return Entry point, for matching one  */
 	const UK2Node_FunctionEntry* FindLocalEntryPoint(const UFunction* Function) const;

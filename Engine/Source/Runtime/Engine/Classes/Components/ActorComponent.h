@@ -39,7 +39,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Main tick function for the Actor */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category="Tick")
 	struct FActorComponentTickFunction PrimaryComponentTick;
 
 	/** Array of tags that can be used for grouping and categorizing. Can also be accessed from scripting. */
@@ -334,6 +334,7 @@ public:
 	/** 
 	 * Returns whether this component has tick enabled or not
 	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
 	bool IsComponentTickEnabled() const;
 
 	/**
@@ -539,6 +540,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	virtual void RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
 
+	/** Event called every frame */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Tick"))
+	virtual void ReceiveTick(float DeltaSeconds);
+	
 	/** 
 	 *  Called by owner actor on position shifting
 	 *  Component should update all relevant data structures to reflect new actor location
