@@ -393,7 +393,12 @@ bool FNativeClassHierarchy::GetClassPath(UClass* InClass, FString& OutClassPath,
 
 	// Work out the final path to this class within the hierarchy (which isn't the same as the path on disk)
 	const FString ClassModuleRelativePath = ClassModuleRelativeIncludePath.Left(ClassModuleRelativeIncludePath.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd));
-	OutClassPath = FString(TEXT("/")) + RootNodeName.ToString() + TEXT("/") + ClassModuleName.ToString() + TEXT("/") + ClassModuleRelativePath;
+	OutClassPath = FString(TEXT("/")) + RootNodeName.ToString() + TEXT("/") + ClassModuleName.ToString();
+
+	if(!ClassModuleRelativePath.IsEmpty())
+	{
+		OutClassPath += TEXT("/") + ClassModuleRelativePath;
+	}
 
 	if(bIncludeClassName)
 	{
