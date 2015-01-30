@@ -320,7 +320,7 @@ TSharedRef<SWidget> SVisualLoggerView::MakeSectionOverlay(TSharedRef<FVisualLogg
 		+ SHorizontalBox::Slot()
 		.FillWidth(1.0f)
 		[
-			SNew(SSequencerSectionOverlay, TimeSliderController)
+			SNew(SVisualLoggerSectionOverlay, TimeSliderController)
 			.DisplayScrubPosition(bTopOverlay)
 			.DisplayTickLines(!bTopOverlay)
 		];

@@ -5,10 +5,10 @@
 /**
  * An overlay that displays global information in the section area
  */
-class SSequencerSectionOverlay : public SCompoundWidget
+class SVisualLoggerSectionOverlay : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SSequencerSectionOverlay )
+	SLATE_BEGIN_ARGS( SVisualLoggerSectionOverlay )
 		: _DisplayTickLines( true )
 		, _DisplayScrubPosition( false )
 	{}
