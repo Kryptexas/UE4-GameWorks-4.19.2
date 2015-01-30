@@ -83,6 +83,17 @@ void UAudioComponent::OnUnregister()
 	}
 }
 
+#if WITH_EDITORONLY_DATA
+void UAudioComponent::OnComponentDestroyed()
+{
+	Super::OnComponentDestroyed();
+	if (SpriteComponent)
+	{
+		SpriteComponent->DestroyComponent();
+	}
+}
+#endif
+
 void UAudioComponent::SetSound( USoundBase* NewSound )
 {
 	const bool bPlay = IsPlaying();

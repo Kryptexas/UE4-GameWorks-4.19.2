@@ -68,8 +68,9 @@ public:
 	//Begin ActorComponent interface
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
-#endif // WITH_EDITOR
+	virtual void OnComponentDestroyed() override;
 	virtual void OnRegister() override;
+#endif // WITH_EDITOR
 	virtual void OnUnregister() override;
 	virtual void InitializeComponent() override;
 	//End ActorComponent interface

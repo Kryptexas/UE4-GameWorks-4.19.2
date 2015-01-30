@@ -230,11 +230,21 @@ void UPhysicsConstraintComponent::InitializeComponent()
 	InitComponentConstraint();
 }
 
+#if WITH_EDITOR
+void UPhysicsConstraintComponent::OnComponentDestroyed()
+{
+	Super::OnComponentDestroyed();
+
+	if (SpriteComponent)
+	{
+		SpriteComponent->DestroyComponent();
+	}
+}
+
 void UPhysicsConstraintComponent::OnRegister()
 {
 	Super::OnRegister();
 
-#if WITH_EDITOR
 	if (SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
 		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
@@ -250,8 +260,8 @@ void UPhysicsConstraintComponent::OnRegister()
 
 		SpriteComponent->RegisterComponent();
 	}
-#endif
 }
+#endif
 
 void UPhysicsConstraintComponent::OnUnregister()
 {

@@ -278,6 +278,7 @@ public:
 
 	// Begin ActorComponent interface.
 #if WITH_EDITORONLY_DATA
+	virtual void OnComponentDestroyed() override;
 	virtual void OnRegister() override;
 #endif
 	virtual void OnUnregister() override;
