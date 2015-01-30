@@ -3917,6 +3917,13 @@ UClass* SSCSEditor::CreateNewBPComponent(TSubclassOf<UActorComponent> ComponentC
 				Package->MarkPackageDirty();
 
 				NewClass = NewBP->GeneratedClass;
+
+				TArray<UObject*> Objects;
+				Objects.Add(NewBP);
+				GEditor->SyncBrowserToObjects( Objects );
+
+				// Open the editor for the new blueprint
+				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
 			}
 		}
 	}
