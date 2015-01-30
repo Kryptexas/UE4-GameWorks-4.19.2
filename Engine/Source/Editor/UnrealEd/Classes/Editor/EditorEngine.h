@@ -1548,12 +1548,12 @@ public:
 	/**
 	 * Can the editor do cook by the book in the editor process space
 	 */
-	virtual bool CanCookByTheBookInEditor() const { return false; }
+	virtual bool CanCookByTheBookInEditor(const FString& PlatformName ) const { return false; }
 
 	/**
 	 * Can the editor act as a cook on the fly server
 	 */
-	virtual bool CanCookOnTheFlyInEditor() const { return false; }
+	virtual bool CanCookOnTheFlyInEditor(const FString& PlatformName) const { return false; }
 
 	/**
 	 * Start cook by the book in the editor process space
