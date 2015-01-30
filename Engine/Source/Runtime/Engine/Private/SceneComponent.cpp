@@ -330,6 +330,7 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 					NewRootComponent->Mobility = Mobility;
 					NewRootComponent->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
 					NewRootComponent->bVisualizeComponent = true;
+					Owner->AddInstanceComponent(NewRootComponent);
 					NewRootComponent->RegisterComponent();
 
 					// Designate the new default root as the child we're promoting
