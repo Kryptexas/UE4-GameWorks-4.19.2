@@ -20,10 +20,10 @@ struct FVisualLoggerTimeSliderArgs : FTimeSliderArgs
  * A time slider controller for sequencer
  * Draws and manages time data for a Sequencer
  */
-class FSequencerTimeSliderController : public ITimeSliderController
+class FVisualLoggerTimeSliderController : public ITimeSliderController
 {
 public:
-	FSequencerTimeSliderController(const FVisualLoggerTimeSliderArgs& InArgs);
+	FVisualLoggerTimeSliderController(const FVisualLoggerTimeSliderArgs& InArgs);
 	void SetTimesliderArgs(const FVisualLoggerTimeSliderArgs& InArgs);
 
 	/** ITimeSliderController Interface */

@@ -17,7 +17,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedRef<class FSequencerTimeSliderController> InTimeSliderController)
+	void Construct(const FArguments& InArgs, TSharedRef<class FVisualLoggerTimeSliderController> InTimeSliderController)
 	{
 		bDisplayScrubPosition = InArgs._DisplayScrubPosition;
 		bDisplayTickLines = InArgs._DisplayTickLines;
@@ -34,7 +34,7 @@ private:
 
 private:
 	/** Controller for manipulating time */
-	TSharedPtr<class FSequencerTimeSliderController> TimeSliderController;
+	TSharedPtr<class FVisualLoggerTimeSliderController> TimeSliderController;
 	/** Whether or not to display the scrub position */
 	TAttribute<bool> bDisplayScrubPosition;
 	/** Whether or not to display tick lines */

@@ -14,14 +14,14 @@
 class SInputCatcherOverlay : public SOverlay
 {
 public:
-	void Construct(const FArguments& InArgs, TSharedRef<class FSequencerTimeSliderController> InTimeSliderController)
+	void Construct(const FArguments& InArgs, TSharedRef<class FVisualLoggerTimeSliderController> InTimeSliderController)
 	{
 		SOverlay::Construct(InArgs);
 		TimeSliderController = InTimeSliderController;
 	}
 
 	/** Controller for manipulating time */
-	TSharedPtr<class FSequencerTimeSliderController> TimeSliderController;
+	TSharedPtr<class FVisualLoggerTimeSliderController> TimeSliderController;
 private:
 	/** SWidget Interface */
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -306,7 +306,7 @@ void SVisualLoggerView::OnSearchChanged(const FText& Filter)
 	TimelinesContainer->OnSearchChanged(Filter);
 }
 
-TSharedRef<SWidget> SVisualLoggerView::MakeSectionOverlay(TSharedRef<FSequencerTimeSliderController> TimeSliderController, const TAttribute< TRange<float> >& ViewRange, const TAttribute<float>& ScrubPosition, bool bTopOverlay)
+TSharedRef<SWidget> SVisualLoggerView::MakeSectionOverlay(TSharedRef<FVisualLoggerTimeSliderController> TimeSliderController, const TAttribute< TRange<float> >& ViewRange, const TAttribute<float>& ScrubPosition, bool bTopOverlay)
 {
 	return
 		SNew(SHorizontalBox)

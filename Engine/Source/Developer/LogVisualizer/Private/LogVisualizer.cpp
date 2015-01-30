@@ -67,7 +67,7 @@ FColor FLogVisualizerColorPalette[] = {
 void FLogVisualizer::Initialize()
 {
 	StaticInstance = MakeShareable(new FLogVisualizer);
-	Get().TimeSliderController = MakeShareable(new FSequencerTimeSliderController(FVisualLoggerTimeSliderArgs()));
+	Get().TimeSliderController = MakeShareable(new FVisualLoggerTimeSliderController(FVisualLoggerTimeSliderArgs()));
 
 }
 

@@ -42,7 +42,7 @@ struct IVisualLoggerInterface
 	virtual bool IsValidCategory(const FString& InGraphName, const FString& InDataName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All) = 0;
 };
 
-class FSequencerTimeSliderController;
+class FVisualLoggerTimeSliderController;
 struct LOGVISUALIZER_API FLogVisualizer
 {
 	/** LogVisualizer interface*/
@@ -52,7 +52,7 @@ struct LOGVISUALIZER_API FLogVisualizer
 
 	FLinearColor GetColorForCategory(int32 Index) const;
 	FLinearColor GetColorForCategory(const FString& InFilterName) const;
-	TSharedPtr<FSequencerTimeSliderController> GetTimeSliderController() { return TimeSliderController; }
+	TSharedPtr<FVisualLoggerTimeSliderController> GetTimeSliderController() { return TimeSliderController; }
 	UWorld* GetWorld(UObject* OptionalObject = nullptr);
 	class AActor* GetVisualLoggerHelperActor();
 	FVisualLoggerEvents& GetVisualLoggerEvents() { return VisualLoggerEvents; }
@@ -70,7 +70,7 @@ struct LOGVISUALIZER_API FLogVisualizer
 protected:
 	static TSharedPtr< struct FLogVisualizer > StaticInstance;
 	
-	TSharedPtr<FSequencerTimeSliderController> TimeSliderController;
+	TSharedPtr<FVisualLoggerTimeSliderController> TimeSliderController;
 	FVisualLoggerEvents VisualLoggerEvents;
 	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	TWeakPtr<class STimeline> CurrentTimeLine;
