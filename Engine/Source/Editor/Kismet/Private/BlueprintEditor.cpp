@@ -771,23 +771,14 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 				}
 				else
 				{
-				UActorComponent* EditableComponent = nullptr;
-				if (NodePtr->CanEditDefaults())
-				{
-					EditableComponent = NodePtr->GetComponentTemplate();
-				}
-				else if (!NodePtr->IsNative() && NodePtr->IsInherited())
-				{
-					EditableComponent = NodePtr->GetOverridenComponentTemplate(GetBlueprintObj(), true);
-				}
-
-				if (EditableComponent)
-				{
-					InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
-					InspectorObjects.Add(EditableComponent);
+					UActorComponent* EditableComponent = NodePtr->GetEditableComponentTemplate(GetBlueprintObj());
+					if (EditableComponent)
+					{
+						InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
+						InspectorObjects.Add(EditableComponent);
+					}
 				}
 			}
-		}
 		}
 
 		// Update the details panel
