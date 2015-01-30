@@ -551,14 +551,21 @@ bool USkeletalMeshComponent::ShouldTickPose() const
 {
 	// When we stop root motion we go back to ticking after CharacterMovement. Unfortunately that means that we could tick twice that frame.
 	// So only enforce a single tick per frame.
-	const bool bAlreadyTickedThisFrame = (LastTickTime == GetWorld()->TimeSeconds);
+	const bool bAlreadyTickedThisFrame = PoseTickedThisFrame();
 	return (Super::ShouldTickPose() && IsRegistered() && AnimScriptInstance && !bAutonomousTickPose && !bPauseAnims && GetWorld()->AreActorsInitialized() && !bNoSkeletonUpdate && !bAlreadyTickedThisFrame);
 }
 
-void USkeletalMeshComponent::TickPose(float DeltaTime)
+void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotion)
 {
-	TickAnimation( DeltaTime );
-	LastTickTime = GetWorld()->TimeSeconds;
+	Super::TickPose(DeltaTime, bNeedsValidRootMotion);
+
+	if (!bEnableUpdateRateOptimizations || !AnimUpdateRateParams->ShouldSkipUpdate())
+	{
+		float TimeAdjustment = AnimUpdateRateParams->GetTimeAdjustment();
+		TickAnimation(DeltaTime + TimeAdjustment);
+		LastPoseTickTime = GetWorld()->TimeSeconds;
+	}
+	//return bPoseTicked;
 }
 
 void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
@@ -922,6 +929,11 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	FillSpaceBases(InSkeletalMesh, OutLocalAtoms, OutSpaceBases);
 }
 
+const TCHAR* B(bool b)
+{
+	return b ? TEXT("true") : TEXT("false");
+}
+
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
@@ -945,19 +957,19 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	AnimEvaluationContext.AnimInstance = AnimScriptInstance;
 
 	//Handle update rate optimization setup
-	const bool bDoUpdateRateOptimization = bEnableUpdateRateOptimizations && (AnimUpdateRateParams->GetEvaluationRate() > 1);
+	const bool bDoEvaluationRateOptimization = bEnableUpdateRateOptimizations && AnimUpdateRateParams->DoEvaluationRateOptimizations();
 	//Dont mark cache as invalid if we aren't performing optimization anyway
-	const bool bInvalidCachedBones = bDoUpdateRateOptimization &&
+	const bool bInvalidCachedBones = bDoEvaluationRateOptimization &&
 									( (LocalAtoms.Num() != SkeletalMesh->RefSkeleton.GetNum())
 									  || (LocalAtoms.Num() != CachedLocalAtoms.Num())
 									  || (GetNumSpaceBases() != CachedSpaceBases.Num()) );
 
-	AnimEvaluationContext.bDoEvaluation = !bDoUpdateRateOptimization || bInvalidCachedBones || !AnimUpdateRateParams->ShouldSkipEvaluation();
+	AnimEvaluationContext.bDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || !AnimUpdateRateParams->ShouldSkipEvaluation();
 	
-	AnimEvaluationContext.bDoInterpolation = bDoUpdateRateOptimization && !bInvalidCachedBones && AnimUpdateRateParams->ShouldInterpolateSkippedFrames();
-	AnimEvaluationContext.bDuplicateToCacheBones = bInvalidCachedBones || (bDoUpdateRateOptimization && AnimEvaluationContext.bDoEvaluation && !AnimEvaluationContext.bDoInterpolation);
+	AnimEvaluationContext.bDoInterpolation = bDoEvaluationRateOptimization && !bInvalidCachedBones && AnimUpdateRateParams->ShouldInterpolateSkippedFrames();
+	AnimEvaluationContext.bDuplicateToCacheBones = bInvalidCachedBones || (bDoEvaluationRateOptimization && AnimEvaluationContext.bDoEvaluation && !AnimEvaluationContext.bDoInterpolation);
 
-	if (!bDoUpdateRateOptimization)
+	if (!bDoEvaluationRateOptimization)
 	{
 		//If we aren't optimizing clear the cached local atoms
 		CachedLocalAtoms.Empty();
@@ -1029,7 +1041,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	{
 		SCOPE_CYCLE_COUNTER(STAT_InterpolateSkippedFrames);
 
-		const float Alpha = 0.25f + (1.f / float(FMath::Max(AnimUpdateRateParams->GetEvaluationRate(), 2) * 2));
+		const float Alpha = AnimUpdateRateParams->GetInterpolationAlpha();
 		FAnimationRuntime::LerpBoneTransforms(LocalAtoms, CachedLocalAtoms, Alpha, RequiredBones);
 		if (bDoubleBufferedBlendSpaces)
 		{
@@ -1039,6 +1051,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		}
 		FAnimationRuntime::LerpBoneTransforms(GetEditableSpaceBases(), CachedSpaceBases, Alpha, RequiredBones);
 	}
+
 	bNeedToFlipSpaceBaseBuffers = true;
 
 	// Transforms updated, cached local bounds are now out of date.
@@ -1707,6 +1720,16 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 	return DeltaWorldTransform;
 }
 
+FRootMotionMovementParams USkeletalMeshComponent::ConsumeRootMotion()
+{
+	if (AnimScriptInstance)
+	{
+		float InterpAlpha = bEnableUpdateRateOptimizations ? AnimUpdateRateParams->GetRootMotionInterp() : 1.f;
+		return AnimScriptInstance->ConsumeExtractedRootMotion(InterpAlpha);
+	}
+	return FRootMotionMovementParams();
+}
+
 
 float USkeletalMeshComponent::CalculateMass(FName BoneName)
 {
@@ -1924,6 +1947,11 @@ void USkeletalMeshComponent::ValidateAnimation()
 bool USkeletalMeshComponent::IsPlayingRootMotion()
 {
 	return (AnimScriptInstance ? (AnimScriptInstance->GetRootMotionMontageInstance() != NULL) : false);
+}
+
+bool USkeletalMeshComponent::IsPlayingRootMotionFromEverything()
+{
+	return AnimScriptInstance ? (AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything) : false;
 }
 
 void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)

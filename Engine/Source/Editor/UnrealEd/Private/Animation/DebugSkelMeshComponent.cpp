@@ -172,7 +172,7 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 
 	if (UAnimInstance* AnimInst = GetAnimInstance())
 	{
-		ExtractedRootMotion = AnimInst->ConsumeExtractedRootMotion();
+		ExtractedRootMotion = AnimInst->ConsumeExtractedRootMotion(1.f);
 	}
 
 	if (bPreviewRootMotion)

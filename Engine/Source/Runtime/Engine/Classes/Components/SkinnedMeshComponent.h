@@ -526,8 +526,9 @@ public:
 	 * @param DeltaTime DeltaTime
 	 *
 	 * @return	Return true if anything modified. Return false otherwise
+	 * @param bNeedsValidRootMotion - Networked games care more about this, but if false we can do less calculations
 	 */
-	virtual void TickPose( float DeltaTime ) {}
+	virtual void TickPose(float DeltaTime, bool bNeedsValidRootMotion) { TickUpdateRate(DeltaTime, bNeedsValidRootMotion); }
 
 	/** 
 	 * Update Slave Component. This gets called when MasterPoseComponent!=NULL
@@ -644,14 +645,8 @@ public:
 
 private:
 	/** Update Rate Optimization ticking. */
-	void TickUpdateRate();
-
-protected:
-	/** Accumulated DeltaTime skipped by Update Rate Optimization. */
-	UPROPERTY(Transient)
-	float SkippedTickDeltaTime;
-	/** check whether animated or not */
-	bool bPoseTicked;
+	void TickUpdateRate(float DeltaTime, bool bNeedsValidRootMotion);
+	
 public:
 	/**
 	 * Set MasterPoseComponent for this component
@@ -911,14 +906,13 @@ public:
 	/** Animation Update Rate optimization parameters. */
 	struct FAnimUpdateRateParameters* AnimUpdateRateParams;
 
-	/** Aimation Update Rate Tick. */
-	void AnimUpdateRateTick(uint8 UpdateRateShift);
-
 	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
 	* 
 	* @param bRecentlyRendered : true if at least one SkinnedMeshComponent on this Actor has been rendered in the last second.
 	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
-	void AnimUpdateRateSetParams(uint8 UpdateRateShift, const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion);
+	void AnimUpdateRateSetParams(uint8 UpdateRateShift, float DeltaTime, const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion);
 
 	virtual bool IsPlayingRootMotion(){ return false; }
+
+	virtual bool IsPlayingRootMotionFromEverything(){ return false; }
 };

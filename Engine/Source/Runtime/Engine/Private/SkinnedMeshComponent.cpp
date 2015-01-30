@@ -57,6 +57,13 @@ namespace FAnimUpdateRateManager
 
 			return AnimUpdateRateShiftTag;
 		}
+
+		bool IsHumanControlled() const
+		{
+			AActor* Owner = RegisteredComponents[0]->GetOwner();
+			AController * Controller = Owner ? Owner->GetInstigatorController() : NULL;
+			return Cast<APlayerController>(Controller) != NULL;
+		}
 	};
 
 
@@ -105,7 +112,87 @@ namespace FAnimUpdateRateManager
 		}
 	}
 
-	void TickUpdateRateParameters(USkinnedMeshComponent* SkinnedComponent)
+	void AnimUpdateRateSetParams(FAnimUpdateRateParametersTracker* Tracker, float DeltaTime, bool bRecentlyRendered, float MaxDistanceFactor, bool bNeedsValidRootMotion, bool bUsingRootMotionFromEverything)
+	{
+		// default rules for setting update rates
+
+		// Human controlled characters should be ticked always fully to minimize latency w/ game play events triggered by animation.
+		const bool bHumanControlled = Tracker->IsHumanControlled();
+
+		bool bNeedsEveryFrame = bNeedsValidRootMotion && !bUsingRootMotionFromEverything;
+
+		// Not rendered, including dedicated servers. we can skip the Evaluation part.
+		if (!bRecentlyRendered)
+		{
+			Tracker->UpdateRateParameters.SetTrailMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), (bHumanControlled ? 1 : 4), 4, false);
+		}
+		// Visible controlled characters or playing root motion. Need evaluation and ticking done every frame.
+		else  if (bHumanControlled || bNeedsEveryFrame)
+		{
+			Tracker->UpdateRateParameters.SetTrailMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), 1, 1, false);
+		}
+		else
+		{
+			// For visible meshes, figure out how often bones should be evaluated VS interpolated to previous evaluation.
+			// This is based on screen size and makes sense for a 3D FPS game, different games or Actors can implement different rules.
+			int32 DesiredEvaluationRate;
+			if (MaxDistanceFactor > 0.4f)
+			{
+				DesiredEvaluationRate = 1;
+			}
+			else if (MaxDistanceFactor > .2f)
+			{
+				DesiredEvaluationRate = 2;
+			}
+			else
+			{
+				DesiredEvaluationRate = 3;
+			}
+
+			if (bUsingRootMotionFromEverything && DesiredEvaluationRate > 1)
+			{
+				//Use look ahead mode that allows us to rate limit updates even when using root motion
+				Tracker->UpdateRateParameters.SetLookAheadMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), DeltaTime*DesiredEvaluationRate);
+			}
+			else
+			{
+				Tracker->UpdateRateParameters.SetTrailMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), DesiredEvaluationRate, DesiredEvaluationRate, true);
+			}
+		}
+	}
+
+	void AnimUpdateRateTick(FAnimUpdateRateParametersTracker* Tracker, float DeltaTime, bool bNeedsValidRootMotion)
+	{
+		const float RecentlyRenderedTime = (Tracker->RegisteredComponents[0]->GetWorld()->TimeSeconds - 1.f);
+
+		// Go through components and figure out if they've been recently rendered, and the biggest MaxDistanceFactor
+		bool bRecentlyRendered = false;
+		bool bPlayingRootMotion = false;
+		bool bUsingRootMotionFromEverything = true;
+		float MaxDistanceFactor = 0.f;
+
+		const TArray<USkinnedMeshComponent*>& SkinnedComponents = Tracker->RegisteredComponents;
+
+		for (USkinnedMeshComponent* Component : SkinnedComponents)
+		{
+			bRecentlyRendered |= (Component->LastRenderTime > RecentlyRenderedTime);
+			MaxDistanceFactor = FMath::Max(MaxDistanceFactor, Component->MaxDistanceFactor);
+			bPlayingRootMotion |= Component->IsPlayingRootMotion();
+			bUsingRootMotionFromEverything &= Component->IsPlayingRootMotionFromEverything();
+		}
+
+		bNeedsValidRootMotion &= bPlayingRootMotion;
+
+		// Figure out which update rate should be used.
+		AnimUpdateRateSetParams(Tracker, DeltaTime, bRecentlyRendered, MaxDistanceFactor, bNeedsValidRootMotion, bUsingRootMotionFromEverything);
+	}
+
+	const TCHAR* B(bool b)
+	{
+		return b ? TEXT("true") : TEXT("false");
+	}
+
+	void TickUpdateRateParameters(USkinnedMeshComponent* SkinnedComponent, float DeltaTime, bool bNeedsValidRootMotion)
 	{
 		// Convert current frame counter from 64 to 32 bits.
 		const uint32 CurrentFrame32 = uint32(GFrameCounter % MAX_uint32);
@@ -116,17 +203,9 @@ namespace FAnimUpdateRateManager
 		if (CurrentFrame32 != Tracker->AnimUpdateRateFrameCount)
 		{
 			Tracker->AnimUpdateRateFrameCount = CurrentFrame32;
-			SkinnedComponent->AnimUpdateRateTick(Tracker->GetAnimUpdateRateShiftTag());
+			AnimUpdateRateTick(Tracker, DeltaTime, bNeedsValidRootMotion);
 		}
 	}
-
-	const TArray<USkinnedMeshComponent*> GetSharedMeshComponents(USkinnedMeshComponent* SkinnedComponent)
-	{
-		UObject* TrackerIndex = GetMapIndexForComponent(SkinnedComponent);
-		FAnimUpdateRateParametersTracker* Tracker = ActorToUpdateRateParams.FindChecked(TrackerIndex);
-		return Tracker->RegisteredComponents;
-	}
-
 }
 
 void USkinnedMeshComponent::OnRegister()
@@ -323,7 +402,7 @@ bool USkinnedMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 }
 
 
-void USkinnedMeshComponent::TickUpdateRate()
+void USkinnedMeshComponent::TickUpdateRate(float DeltaTime, bool bNeedsValidRootMotion)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TickUpdateRate);
 	if( bEnableUpdateRateOptimizations )
@@ -331,19 +410,12 @@ void USkinnedMeshComponent::TickUpdateRate()
 		if (GetOwner())
 		{
 			// Tick Owner once per frame. All attached SkinnedMeshComponents will share the same settings.
-			FAnimUpdateRateManager::TickUpdateRateParameters(this);
+			FAnimUpdateRateManager::TickUpdateRateParameters(this, DeltaTime, bNeedsValidRootMotion);
 
 			// debug -- @todo: hook this up to a console command.
 			if (bDisplayDebugUpdateRateOptimizations)
 			{
-				FColor DrawColor;
-				switch (AnimUpdateRateParams->GetUpdateRate())
-				{
-				case 1: DrawColor = FColor::Red; break;
-				case 2: DrawColor = FColor::Green; break;
-				case 3: DrawColor = FColor::Blue; break;
-				default: DrawColor = FColor::Black; break;
-				}
+				FColor DrawColor = AnimUpdateRateParams->GetUpdateRateDebugColor();
 				DrawDebugBox(GetWorld(), Bounds.Origin, Bounds.BoxExtent, FQuat::Identity, DrawColor, false);
 			}
 		}
@@ -359,30 +431,11 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 
 	// See if this mesh was rendered recently. This has to happen first because other data will rely on this
 	bRecentlyRendered = (LastRenderTime > GetWorld()->TimeSeconds - 1.0f);
-	TickUpdateRate();
 
-	bPoseTicked = false;
 	// Tick Pose first
-	if( ShouldTickPose() )
+	if (ShouldTickPose())
 	{
-		if (bEnableUpdateRateOptimizations && AnimUpdateRateParams->ShouldSkipUpdate())
-		{
-			SkippedTickDeltaTime += DeltaTime;
-			if( !bRecentlyRendered )
-			{
-				return;
-			}
-		}
-		else
-		{
-			TickPose(DeltaTime + SkippedTickDeltaTime);
-			bPoseTicked = true;
-			SkippedTickDeltaTime = 0.f;
-		}
-	}
-	else
-	{
-		SkippedTickDeltaTime = 0.f;
+		TickPose(DeltaTime, false);
 	}
 
 	// Update component's LOD settings
@@ -1847,69 +1900,6 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 	return OutVertexAnims;
 }
 
-void USkinnedMeshComponent::AnimUpdateRateTick(uint8 UpdateRateShift)
-{
-	const float RecentlyRenderedTime = (GetWorld()->TimeSeconds - 1.f);
-
-	// Go through components and figure out if they've been recently rendered, and the biggest MaxDistanceFactor
-	bool bRecentlyRendered = false;
-	bool bPlayingRootMotion = false;
-	float MaxDistanceFactor = 0.f;
-
-	const TArray<USkinnedMeshComponent*> SkinnedComponents = FAnimUpdateRateManager::GetSharedMeshComponents(this);
-
-	for (USkinnedMeshComponent* Component : SkinnedComponents)
-	{
-		bRecentlyRendered = bRecentlyRendered || (Component->LastRenderTime > RecentlyRenderedTime);
-		MaxDistanceFactor = FMath::Max(MaxDistanceFactor, Component->MaxDistanceFactor);
-		bPlayingRootMotion = bPlayingRootMotion || Component->IsPlayingRootMotion();
-	}
-
-	// Figure out which update rate should be used.
-	AnimUpdateRateSetParams(UpdateRateShift, bRecentlyRendered, MaxDistanceFactor, bPlayingRootMotion);
-}
-
-void USkinnedMeshComponent::AnimUpdateRateSetParams(uint8 UpdateRateShift, const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion)
-{
-	// default rules for setting update rates
-
-	// Human controlled characters should be ticked always fully to minimize latency w/ game play events triggered by animation.
-	AActor* Owner = GetOwner();
-	AController * Controller = Owner ? Owner->GetInstigatorController() : NULL;
-	const bool bHumanControlled = Controller && (Cast<APlayerController>(Controller) != NULL);
-
-	// Not rendered, including dedicated servers. we can skip the Evaluation part.
-	if (!bRecentlyRendered)
-	{
-		AnimUpdateRateParams->Set(UpdateRateShift, (bHumanControlled ? 1 : 4), 4, false);
-	}
-	// Visible controlled characters or playing root motion. Need evaluation and ticking done every frame.
-	else  if (bHumanControlled || bPlayingRootMotion)
-	{
-		AnimUpdateRateParams->Set(UpdateRateShift, 1, 1, false);
-	}
-	else
-	{
-		// For visible meshes, figure out how often bones should be evaluated VS interpolated to previous evaluation.
-		// This is based on screen size and makes sense for a 3D FPS game, different games or Actors can implement different rules.
-		int32 DesiredEvaluationRate;
-		if (MaxDistanceFactor > 0.4f)
-		{
-			DesiredEvaluationRate = 1;
-		}
-		else if (MaxDistanceFactor > .2f)
-		{
-			DesiredEvaluationRate = 2;
-		}
-		else
-		{
-			DesiredEvaluationRate = 3;
-		}
-
-		AnimUpdateRateParams->Set(UpdateRateShift, DesiredEvaluationRate, DesiredEvaluationRate, true);
-	}
-}
-
 void USkinnedMeshComponent::FlipEditableSpaceBases()
 {
 	if (bNeedToFlipSpaceBaseBuffers)
@@ -1941,8 +1931,11 @@ void USkinnedMeshComponent::SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBl
 	}
 }
 
-void FAnimUpdateRateParameters::Set(uint8 UpdateRateShift, const int32& NewUpdateRate, const int32& NewEvaluationRate, const bool & bNewInterpSkippedFrames)
+void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateShift, int32 NewUpdateRate, int32 NewEvaluationRate, bool bNewInterpSkippedFrames)
 {
+	OptimizeMode = TrailMode;
+	ThisTickDelta = DeltaTime;
+
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
 	// Make sure EvaluationRate is a multiple of UpdateRate.
 	EvaluationRate = FMath::Max((NewEvaluationRate / UpdateRate) * UpdateRate, 1);
@@ -1953,5 +1946,76 @@ void FAnimUpdateRateParameters::Set(uint8 UpdateRateShift, const int32& NewUpdat
 
 	bSkipUpdate = ((Counter % UpdateRate) > 0);
 	bSkipEvaluation = ((Counter % EvaluationRate) > 0);
+
+	AdditionalTime = 0.f;
+
+	if (bSkipUpdate)
+	{
+		TickedPoseOffestTime -= DeltaTime;
+	}
+	else
+	{
+		if (TickedPoseOffestTime < 0.f)
+		{
+			AdditionalTime = -TickedPoseOffestTime;
+			TickedPoseOffestTime = 0.f;
+		}
+	}
 }
 
+void FAnimUpdateRateParameters::SetLookAheadMode(float DeltaTime, uint8 UpdateRateShift, float LookAheadAmount)
+{
+	float OriginalTickedPoseOffestTime = TickedPoseOffestTime;
+	if (OptimizeMode == TrailMode)
+	{
+		TickedPoseOffestTime = 0.f;
+	}
+	OptimizeMode = LookAheadMode;
+	ThisTickDelta = DeltaTime;
+
+	bInterpolateSkippedFrames = true;
+
+	TickedPoseOffestTime -= DeltaTime;
+
+	if (TickedPoseOffestTime < 0.f)
+	{
+		AdditionalTime = LookAheadAmount;
+		TickedPoseOffestTime += LookAheadAmount;
+
+		bool bValid = (TickedPoseOffestTime > 0.f);
+		if (!bValid)
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("TPO Time: %.3f | Orig TPO Time: %.3f | DT: %.3f | LookAheadAmount: %.3f\n"), TickedPoseOffestTime, OriginalTickedPoseOffestTime, DeltaTime, LookAheadAmount);
+		}
+		check(bValid);
+		bSkipUpdate = bSkipEvaluation = false;
+	}
+	else
+	{
+		AdditionalTime = 0.f;
+		bSkipUpdate = bSkipEvaluation = true;
+	}
+}
+
+float FAnimUpdateRateParameters::GetInterpolationAlpha() const
+{
+	if (OptimizeMode == TrailMode)
+	{
+		return 0.25f + (1.f / float(FMath::Max(EvaluationRate, 2) * 2));
+	}
+	else if (OptimizeMode == LookAheadMode)
+	{
+		return FMath::Clamp(ThisTickDelta / (TickedPoseOffestTime + ThisTickDelta), 0.f, 1.f);
+	}
+	check(false); // Unknown mode
+	return 0.f;
+}
+
+float FAnimUpdateRateParameters::GetRootMotionInterp() const
+{
+	if (OptimizeMode == LookAheadMode)
+	{
+		return FMath::Clamp(ThisTickDelta / (TickedPoseOffestTime + ThisTickDelta), 0.f, 1.f);
+	}
+	return 1.f;
+}

@@ -323,6 +323,22 @@ struct FRootMotionMovementParams
 			AccumulateWithBlend(FTransform(), WeightLeft);
 		}
 	}
+
+	FRootMotionMovementParams ConsumeRootMotion(float Alpha)
+	{
+		const ScalarRegister VAlpha(Alpha);
+		FTransform PartialRootMotion = (RootMotionTransform*VAlpha);
+		PartialRootMotion.SetScale3D(FVector(1.f));
+		PartialRootMotion.NormalizeRotation();
+		RootMotionTransform = RootMotionTransform.GetRelativeTransform(PartialRootMotion);
+
+		FRootMotionMovementParams ReturnParams;
+		ReturnParams.Set(PartialRootMotion);
+
+		check(PartialRootMotion.IsRotationNormalized());
+		check(RootMotionTransform.IsRotationNormalized());
+		return ReturnParams;
+	}
 };
 
 // This structure is used to either advance or synchronize animation players

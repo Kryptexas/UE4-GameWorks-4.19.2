@@ -1730,7 +1730,16 @@ struct FAnimUpdateRateParameters
 {
 	GENERATED_USTRUCT_BODY()
 
-private:
+public:
+	enum EOptimizeMode
+	{
+		TrailMode,
+		LookAheadMode,
+	};
+
+	/** Cache which Update Rate Optimization mode we are using */
+	EOptimizeMode OptimizeMode;
+
 	/** How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc. */
 	UPROPERTY()
 	int32 UpdateRate;
@@ -1752,6 +1761,17 @@ private:
 	UPROPERTY()
 	bool bSkipEvaluation;
 
+	UPROPERTY(Transient)
+	/** Track time we have lost via skipping */
+	float TickedPoseOffestTime;
+
+	UPROPERTY(Transient)
+	/** Total time of the last series of skipped updates */
+	float AdditionalTime;
+
+	/** The delta time of the last tick */
+	float ThisTickDelta;
+
 public:
 
 	/** Default constructor. */
@@ -1761,26 +1781,28 @@ public:
 		, bInterpolateSkippedFrames(false)
 		, bSkipUpdate(false)
 		, bSkipEvaluation(false)
+		, TickedPoseOffestTime(0.f)
+		, AdditionalTime(0.f)
+		, ThisTickDelta(0.f)
 	{ }
 
-	/** Set parameters and verify inputs.
+	/** Set parameters and verify inputs for Trail Mode (original behaviour - skip frames, track skipped time and then catch up afterwards).
 	 * @param : UpdateShiftRate. Shift our update frames so that updates across all skinned components are staggered
 	 * @param : NewUpdateRate. How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc.
 	 * @param : NewEvaluationRate. How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
 	 * @param : bNewInterpSkippedFrames. When skipping a frame, should it be interpolated or frozen?
 	 */
-	void Set(uint8 UpdateRateShift, const int32& NewUpdateRate, const int32& NewEvaluationRate, const bool & bNewInterpSkippedFrames);
+	void SetTrailMode(float DeltaTime, uint8 UpdateRateShift, int32 NewUpdateRate, int32 NewEvaluationRate, bool bNewInterpSkippedFrames);
 
-	/* Getter for UpdateRate */
-	int32 GetUpdateRate() const
-	{
-		return UpdateRate;
-	}
+	void SetLookAheadMode(float DeltaTime, uint8 UpdateRateShift, float LookAheadAmount);
 
-	/* Getter for EvaluationRate */
-	int32 GetEvaluationRate() const
+	float GetInterpolationAlpha() const;
+
+	float GetRootMotionInterp() const;
+
+	bool DoEvaluationRateOptimizations() const
 	{
-		return EvaluationRate;
+		return OptimizeMode == LookAheadMode || EvaluationRate > 1;
 	}
 
 	/* Getter for bSkipUpdate */
@@ -1799,6 +1821,34 @@ public:
 	bool ShouldInterpolateSkippedFrames() const
 	{
 		return bInterpolateSkippedFrames;
+	}
+
+	/** Called when we are ticking a pose to make sure we accumulate all needed time */
+	float GetTimeAdjustment()
+	{
+		return AdditionalTime;
+	}
+
+	FColor GetUpdateRateDebugColor() const
+	{
+		if (OptimizeMode == TrailMode)
+		{
+			/*switch (UpdateRate)
+			{
+			case 1: return FColor::Red;
+			case 2: return FColor::Green;
+			case 3: return FColor::Blue;
+			}*/
+			return FColor::Black;
+		}
+		else
+		{
+			if (bSkipUpdate)
+			{
+				return FColor::Yellow;
+			}
+			return FColor::Green;
+		}
 	}
 };
 

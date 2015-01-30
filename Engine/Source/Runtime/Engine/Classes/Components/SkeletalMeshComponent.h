@@ -6,6 +6,7 @@
 #include "Components/SkinnedMeshComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "SkeletalMeshTypes.h"
+#include "Animation/AnimationAsset.h"
 #include "SkeletalMeshComponent.generated.h"
 
 class UAnimInstance;
@@ -854,7 +855,7 @@ public:
 	// Begin USkinnedMeshComponent interface
 	virtual bool UpdateLODStatus() override;
 	virtual void RefreshBoneTransforms( FActorComponentTickFunction* TickFunction = NULL ) override;
-	virtual void TickPose( float DeltaTime ) override;
+	virtual void TickPose(float DeltaTime, bool bNeedsValidRootMotion) override;
 	virtual void UpdateSlaveComponent() override;
 	virtual bool ShouldUpdateTransform(bool bLODHasChanged) const override;
 	virtual bool ShouldTickPose() const override;
@@ -867,6 +868,7 @@ public:
 	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const override;
 
 	virtual bool IsPlayingRootMotion() override;
+	virtual bool IsPlayingRootMotionFromEverything() override;
 
 	// End USkinnedMeshComponent interface
 	/** 
@@ -1213,12 +1215,17 @@ private:
 	float DefaultPlayRate_DEPRECATED;
 
 public:
-	/** Keep track of when animation haa been ticked to ensure it is ticked only once per frame. */
+	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */
 	UPROPERTY(Transient)
-	float LastTickTime;
+	float LastPoseTickTime;
+
+	/** Checked whether we have already ticked the pose this frame */
+	bool PoseTickedThisFrame() const { return LastPoseTickTime == GetWorld()->TimeSeconds; }
 
 	/** Take extracted RootMotion and convert it from local space to world space. */
 	FTransform ConvertLocalRootMotionToWorld(const FTransform& InTransform);
+
+	FRootMotionMovementParams ConsumeRootMotion();
 };
 
 

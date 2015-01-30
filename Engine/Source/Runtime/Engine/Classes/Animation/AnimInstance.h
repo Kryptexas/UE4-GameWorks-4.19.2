@@ -741,7 +741,7 @@ public:
 	FAnimMontageInstance * GetRootMotionMontageInstance() const;
 
 	/** Get current accumulated root motion, removing it from the AnimInstance in the process */
-	FRootMotionMovementParams ConsumeExtractedRootMotion();
+	FRootMotionMovementParams ConsumeExtractedRootMotion(float Alpha);
 
 private:
 	/** Active Root Motion Montage Instance, if any. */

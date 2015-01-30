@@ -2414,11 +2414,22 @@ FAnimMontageInstance * UAnimInstance::GetRootMotionMontageInstance() const
 	return RootMotionMontageInstance;
 }
 
-FRootMotionMovementParams UAnimInstance::ConsumeExtractedRootMotion()
+FRootMotionMovementParams UAnimInstance::ConsumeExtractedRootMotion(float Alpha)
 {
-	FRootMotionMovementParams RootMotion = ExtractedRootMotion;
-	ExtractedRootMotion.Clear();
-	return RootMotion;
+	if (Alpha < ZERO_ANIMWEIGHT_THRESH)
+	{
+		return FRootMotionMovementParams();
+	}
+	else if (Alpha > (1.f - ZERO_ANIMWEIGHT_THRESH))
+	{
+		FRootMotionMovementParams RootMotion = ExtractedRootMotion;
+		ExtractedRootMotion.Clear();
+		return RootMotion;
+	}
+	else
+	{
+		return ExtractedRootMotion.ConsumeRootMotion(Alpha);
+	}
 }
 
 void UAnimInstance::SetMorphTarget(FName MorphTargetName, float Value)

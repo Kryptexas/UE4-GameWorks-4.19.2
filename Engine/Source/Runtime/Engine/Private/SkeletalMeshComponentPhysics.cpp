@@ -3619,7 +3619,7 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime)
 {
 #if WITH_APEX_CLOTHING
 	// animated but bone transforms were not updated because it was not rendered
-	if(bPoseTicked && !bRecentlyRendered)
+	if(PoseTickedThisFrame() && !bRecentlyRendered)
 	{
 		ForceClothNextUpdateTeleportAndReset();
 	}
