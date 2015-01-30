@@ -32,6 +32,13 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 			raise(SIGTRAP);
 		}
 	}
+
+	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	FORCEINLINE static bool DebugBreakReturningFalse()
+	{
+		DebugBreak();
+		return false;
+	}
 #endif // !UE_BUILD_SHIPPING
 
 	static void PumpMessages(bool bFromMainLoop);

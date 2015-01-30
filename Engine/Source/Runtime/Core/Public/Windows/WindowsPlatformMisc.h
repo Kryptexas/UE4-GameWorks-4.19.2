@@ -49,6 +49,14 @@ struct CORE_API FWindowsPlatformMisc
 			::DebugBreak();
 		}
 	}
+
+	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	FORCEINLINE static bool DebugBreakReturningFalse()
+	{
+		DebugBreak();
+		return false;
+	}
+
 #endif
 
 	static void PumpMessages(bool bFromMainLoop);
