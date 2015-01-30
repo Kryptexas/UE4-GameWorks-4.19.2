@@ -879,7 +879,7 @@ void FRCPassPostProcessCircleDOFRecombine::Process(FRenderingCompositePassContex
 		Context.RHICmdList,
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
-		0, 0,
+		View.ViewRect.Min.X, View.ViewRect.Min.Y,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		TexSize,
