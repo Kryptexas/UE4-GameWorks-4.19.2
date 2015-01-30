@@ -13,6 +13,6 @@ while : ; do
 
         echo "Result: $RESULT"
         # quit if not crashed
-        [[ RESULT -eq 139 ]] || break
+        [[ $RESULT -lt 129 ]] && break
         echo "mono GitDependencies.exe $ARGS crashed with return code $RESULT" >> GitDependencies.crash.log
 done
