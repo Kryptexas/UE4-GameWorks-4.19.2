@@ -346,6 +346,11 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 		{
 			ReplaceInstancesOfClass(DuplicatedClass, ClassToReinstance, OriginalCDO, &ObjectsThatShouldUseOldStuff);
 		}
+		else if (ClassToReinstance->IsChildOf<UActorComponent>())
+		{
+			// ReplaceInstancesOfClass() handles this itself, if we had to re-instance
+			ReconstructOwnerInstances(ClassToReinstance);
+		}
 	
 		{ 
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_RecompileChildClasses);
@@ -642,6 +647,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 	// A list of objects (e.g. Blueprints) that potentially have editors open that we need to refresh
 	TArray<UObject*> PotentialEditorsForRefreshing;
 
+	// A list of component owners that need their construction scripts re-ran (because a component of theirs has been reinstanced)
+	TSet<AActor*> OwnersToReconstruct;
+
 	// Set global flag to let system know we are reconstructing blueprint instances
 	TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
 
@@ -805,6 +813,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 						{
 							PotentialEditorsForRefreshing.AddUnique(OwningActor->GetClass()->ClassGeneratedBy);
 						}
+
+						// we need to keep track of actor instances that need 
+						// their construction scripts re-ran (since we've just 
+						// replaced a component they own)
+						OwnersToReconstruct.Add(OwningActor);
 					}
 				}
 			}
@@ -873,6 +886,44 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				BlueprintEditor->RefreshEditors();
 			}
 		}
+	}
+
+	// in the case where we're replacing component instances, we need to make 
+	// sure to re-run their owner's construction scripts
+	for (AActor* ActorInstance : OwnersToReconstruct)
+	{
+		ActorInstance->RerunConstructionScripts();
+	}
+}
+
+void FBlueprintCompileReinstancer::ReconstructOwnerInstances(TSubclassOf<UActorComponent> ComponentClass)
+{
+	if (ComponentClass == nullptr)
+	{
+		return;
+	}
+
+	TArray<UObject*> ComponentInstances;
+	GetObjectsOfClass(ComponentClass, ComponentInstances, /*bIncludeDerivedClasses =*/false);
+
+	TSet<AActor*> OwnerInstances;
+	for (UObject* ComponentObj : ComponentInstances)
+	{
+	
+		UActorComponent* Component = CastChecked<UActorComponent>(ComponentObj);
+			
+		if (AActor* OwningActor = Component->GetOwner())
+		{
+			// we don't just rerun construction here, because we could end up 
+			// doing it twice for the same actor (if it had multiple components 
+			// of this kind), so we put that off as a secondary pass
+			OwnerInstances.Add(OwningActor);
+		}
+	}
+
+	for (AActor* ComponentOwner : OwnerInstances)
+	{
+		ComponentOwner->RerunConstructionScripts();
 	}
 }
 

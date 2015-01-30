@@ -67,6 +67,15 @@ public:
 
 	/** Worker function to replace all instances of OldClass with a new instance of NewClass */
 	static void ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject* OriginalCDO = NULL, TSet<UObject*>* ObjectsThatShouldUseOldStuff = NULL);
+
+	/**
+	 * When re-instancing a component, we have to make sure all instance owners' 
+	 * construction scripts are re-ran (in-case modifying the component alters 
+	 * the construction of the actor).
+	 * 
+	 * @param  ComponentClass    Identifies the component that was altered (used to find all its instances, and thusly all instance owners).
+	 */
+	static void ReconstructOwnerInstances(TSubclassOf<UActorComponent> ComponentClass);
 	
 	/** Verify that all instances of the duplicated class have been replaced and collected */
 	void VerifyReplacement();
