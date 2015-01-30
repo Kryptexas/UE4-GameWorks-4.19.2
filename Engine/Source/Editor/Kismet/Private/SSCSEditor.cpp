@@ -4216,7 +4216,15 @@ UActorComponent* SSCSEditor::AddNewNode(UActorComponent* NewInstanceComponent,  
 
 	if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewInstanceComponent))
 	{
-		NewSceneComponent->AttachTo(ActorInstance->GetRootComponent());
+		USceneComponent* RootComponent = ActorInstance->GetRootComponent();
+		if (RootComponent)
+		{
+			NewSceneComponent->AttachTo(RootComponent);
+		}
+		else
+		{
+			ActorInstance->SetRootComponent(NewSceneComponent);
+		}
 	}
 
 	// Add to SerializedComponents array so it gets saved
