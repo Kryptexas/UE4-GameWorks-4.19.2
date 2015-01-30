@@ -3104,7 +3104,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		// guard against cyclic dependencies (with these placeholder classes), 
 		// we need to make sure this export is created BEFORE we start serializing
 		// the class (maybe through ordering in this linker's ExportMap?)
-		check(Cast<ULinkerPlaceholderClass>(LoadClass) == nullptr);
+		check(!LoadClass->IsChildOf<ULinkerPlaceholderClass>());
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 		check(LoadClass);
