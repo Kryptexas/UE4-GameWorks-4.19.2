@@ -445,6 +445,24 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 								&& ExistingEventNodes[i]->EventSignatureClass == EventSignatureClass;
 						}
 
+						// We need to also check for 'const' BPIE methods that might already be implemented as functions with a read-only 'self' context (these were previously implemented as events)
+						if(!bDisallowPaste)
+						{
+							TArray<UBlueprint*> ParentBPStack;
+							UBlueprint::GetBlueprintHierarchyFromClass(Blueprint->SkeletonGeneratedClass, ParentBPStack);
+							for(auto BPStackIt = ParentBPStack.CreateConstIterator(); BPStackIt && !bDisallowPaste; ++BPStackIt)
+							{
+								TArray<UK2Node_FunctionEntry*> ExistingFunctionEntryNodes;
+								FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_FunctionEntry>(*BPStackIt, ExistingFunctionEntryNodes);
+								for(auto NodeIt = ExistingFunctionEntryNodes.CreateConstIterator(); NodeIt && !bDisallowPaste; ++NodeIt)
+								{
+									UK2Node_FunctionEntry* ExistingFunctionEntryNode = *NodeIt;
+									bDisallowPaste = ExistingFunctionEntryNode->bEnforceConstCorrectness
+										&& ExistingFunctionEntryNode->SignatureName == EventSignatureName;
+								}
+							}
+						}
+
 						if(!bDisallowPaste)
 						{
 							// If the signature class is not implemented by the Blueprint parent class or an interface, don't paste this event
