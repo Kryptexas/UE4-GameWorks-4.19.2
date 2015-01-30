@@ -407,7 +407,11 @@ public:
 
 	virtual bool IsCookingIncrementally( ) const override
 	{
-		return CookIncremental;
+		if ( CookMode != ELauncherProfileCookModes::DoNotCook )
+		{
+			return CookIncremental;
+		}
+		return false;
 	}
 
 	virtual bool IsCookingUnversioned( ) const override
@@ -1006,7 +1010,7 @@ protected:
 		}
 
 		// Launch: when launching, all devices that the build is launched on must have content cooked for their platform
-		if ((LaunchMode != ELauncherProfileLaunchModes::DoNotLaunch) && (CookMode != ELauncherProfileCookModes::OnTheFly))
+		if ((LaunchMode != ELauncherProfileLaunchModes::DoNotLaunch) && (CookMode != ELauncherProfileCookModes::OnTheFly || CookMode != ELauncherProfileCookModes::OnTheFlyInEditor))
 		{
 			// @todo ensure that launched devices have cooked content
 		}

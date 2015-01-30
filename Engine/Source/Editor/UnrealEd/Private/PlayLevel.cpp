@@ -1451,11 +1451,24 @@ void UEditorEngine::PlayUsingLauncher()
 		// Setup launch profile, keep the setting here to a minimum.
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
 		LauncherProfile->SetBuildGame(bPlayUsingLauncherHasCode && FSourceCodeNavigation::IsCompilerAvailable());
-		LauncherProfile->SetCookMode(CanCookByTheBookInEditor() ? ELauncherProfileCookModes::ByTheBookInEditor : ELauncherProfileCookModes::ByTheBook);
-		LauncherProfile->SetIncrementalCooking(true);
+
+		// select the quickest cook mode based on which in editor cook mode is enabled
+		bool bIncrimentalCooking = true;
+		ELauncherProfileCookModes::Type CurrentLauncherCookMode = ELauncherProfileCookModes::ByTheBook;
+		if ( CanCookByTheBookInEditor() )
+		{
+			CurrentLauncherCookMode = ELauncherProfileCookModes::ByTheBookInEditor;
+		}
+		if ( CanCookOnTheFlyInEditor() )
+		{
+			CurrentLauncherCookMode = ELauncherProfileCookModes::OnTheFlyInEditor;
+			bIncrimentalCooking = false;
+		}
+		LauncherProfile->SetCookMode( CurrentLauncherCookMode );
+		LauncherProfile->SetIncrementalCooking(bIncrimentalCooking);
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
-		LauncherProfile->SetIncrementalDeploying(true);
+		LauncherProfile->SetIncrementalDeploying(bIncrimentalCooking);
 		LauncherProfile->SetEditorExe(FUnrealEdMisc::Get().GetExecutableForCommandlets());
 
 		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
@@ -1464,9 +1477,14 @@ void UEditorEngine::PlayUsingLauncher()
 			LauncherProfile->SetLaunchMode(ELauncherProfileLaunchModes::DefaultRole);
 		}
 
+		if ( LauncherProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFlyInEditor || LauncherProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFly )
+		{
+			LauncherProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::FileServer);
+		}
+
 		TArray<FString> MapNames;
 		FWorldContext & EditorContext = GetEditorWorldContext();
-		if (EditorContext.World()->WorldComposition || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) )
+		if (EditorContext.World()->WorldComposition || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFlyInEditor) )
 		{
 			// Open world composition from original folder
 			// Or if using by book in editor don't need to resave the package just cook it by the book 
@@ -1481,7 +1499,7 @@ void UEditorEngine::PlayUsingLauncher()
 			{
 				GEditor->CancelRequestPlaySession();
 				return;
-		}
+			}
 		}
 	
 		FString InitialMapName;
@@ -1500,8 +1518,6 @@ void UEditorEngine::PlayUsingLauncher()
 
 		if ( LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor )
 		{
-			// check( GEditor != NULL );
-
 			TArray<ITargetPlatform*> TargetPlatforms;
 			for ( const auto &PlatformName : LauncherProfile->GetCookedPlatforms() )
 			{
@@ -1510,8 +1526,6 @@ void UEditorEngine::PlayUsingLauncher()
 				// crashes if two requests are inflight but we can support having multiple platforms cooking at once
 				TargetPlatforms.Add( TargetPlatform ); 
 			}
-
-
 			const TArray<FString> &CookedMaps = LauncherProfile->GetCookedMaps();
 
 			// const TArray<FString>& CookedMaps = ChainState.Profile->GetCookedMaps();
