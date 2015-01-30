@@ -128,7 +128,7 @@ void ULinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 				//full redirect
 				else
 				{
-					if (NewClassName.ToString().Find(TEXT(".")) != NewClassName.ToString().Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd))
+					if (NewClassName.ToString().Find(TEXT("."), ESearchCase::CaseSensitive) != NewClassName.ToString().Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd))
 					{
 						UE_LOG(LogLinker, Error, TEXT("Currently we cannot rename nested objects for '%s'; if you want to leave the outer alone, just specify the name with no path"), *NewClassName.ToString());
 					}
@@ -1183,7 +1183,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FixupImportMap()
 						}
 
 						// Accepts either "PackageName.ClassName" or just "ClassName"
-						int32 Offset = RedirectName.Find(TEXT("."));
+						int32 Offset = RedirectName.Find(TEXT("."), ESearchCase::CaseSensitive);
 						if ( Offset >= 0 )
 						{
 							// A package class name redirect

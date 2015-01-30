@@ -1477,7 +1477,7 @@ public:
 
 			// Strip the namespace from the name.
 			FString EnumName(Names[InIndex].ToString());
-			int32 ScopeIndex = EnumName.Find(TEXT("::"));
+			int32 ScopeIndex = EnumName.Find(TEXT("::"), ESearchCase::CaseSensitive);
 			if (ScopeIndex != INDEX_NONE)
 			{
 				return EnumName.Mid(ScopeIndex + 2);

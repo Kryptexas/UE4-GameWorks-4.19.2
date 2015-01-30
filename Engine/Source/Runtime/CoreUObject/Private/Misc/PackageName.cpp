@@ -241,7 +241,7 @@ private:
 FString FPackageName::InternalFilenameToLongPackageName(const FString& InFilename)
 {
 	const FLongPackagePathsSingleton& Paths = FLongPackagePathsSingleton::Get();
-	FString Filename = InFilename.Replace(TEXT("\\"), TEXT("/"));
+	FString Filename = InFilename.Replace(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
 
 	// Convert to relative path if it's not already a long package name
 	bool bIsValidLongPackageName = false;
@@ -262,7 +262,7 @@ FString FPackageName::InternalFilenameToLongPackageName(const FString& InFilenam
 	FString PackageName         = FPaths::GetBaseFilename(Filename);
 	int32   PackageNameStartsAt = Filename.Len() - FPaths::GetCleanFilename(Filename).Len();
 	FString Result              = Filename.Mid(0, PackageNameStartsAt + PackageName.Len());
-	Result.ReplaceInline(TEXT("\\"), TEXT("/"));
+	Result.ReplaceInline(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
 
 	for (const auto& Pair : Paths.ContentPathToRoot)
 	{
@@ -281,7 +281,7 @@ bool FPackageName::TryConvertFilenameToLongPackageName(const FString& InFilename
 	FString Result = InternalFilenameToLongPackageName(InFilename);
 
 	// we don't support loading packages from outside of well defined places
-	if (Result.Contains(TEXT(".")) || Result.Contains(TEXT("\\")) || Result.Contains(TEXT(":")))
+	if (Result.Contains(TEXT("."), ESearchCase::CaseSensitive) || Result.Contains(TEXT("\\"), ESearchCase::CaseSensitive) || Result.Contains(TEXT(":"), ESearchCase::CaseSensitive))
 	{
 		return false;
 	}
@@ -295,9 +295,9 @@ FString FPackageName::FilenameToLongPackageName(const FString& InFilename)
 	FString Result = InternalFilenameToLongPackageName(InFilename);
 
 	// we don't support loading packages from outside of well defined places
-	const bool bContainsDot       = Result.Contains(TEXT("."));
-	const bool bContainsBackslash = Result.Contains(TEXT("\\"));
-	const bool bContainsColon     = Result.Contains(TEXT(":"));
+	const bool bContainsDot = Result.Contains(TEXT("."), ESearchCase::CaseSensitive);
+	const bool bContainsBackslash = Result.Contains(TEXT("\\"), ESearchCase::CaseSensitive);
+	const bool bContainsColon = Result.Contains(TEXT(":"), ESearchCase::CaseSensitive);
 
 	if (bContainsDot || bContainsBackslash || bContainsColon)
 	{
@@ -694,7 +694,7 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 			}
 		}
 
-		const FString PackageWildcard = (PackageName.Find(TEXT(".")) != INDEX_NONE ? PackageName : PackageName + TEXT(".*"));
+		const FString PackageWildcard = (PackageName.Find(TEXT("."), ESearchCase::CaseSensitive) != INDEX_NONE ? PackageName : PackageName + TEXT(".*"));
 		TArray<FString> Results;
 
 		for (int32 PathIndex = 0; PathIndex < Paths.Num() && !bResult; ++PathIndex)
@@ -805,7 +805,7 @@ void FPackageName::EnsureContentPathsAreRegistered()
 
 bool FPackageName::ParseExportTextPath(const FString& InExportTextPath, FString* OutClassName, FString* OutObjectPath)
 {
-	if ( InExportTextPath.Split(TEXT("'"), OutClassName, OutObjectPath) )
+	if (InExportTextPath.Split(TEXT("'"), OutClassName, OutObjectPath, ESearchCase::CaseSensitive))
 	{
 		if ( OutObjectPath )
 		{

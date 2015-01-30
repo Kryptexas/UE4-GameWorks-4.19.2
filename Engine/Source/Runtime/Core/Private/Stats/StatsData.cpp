@@ -1657,7 +1657,7 @@ FString FStatsUtils::FromEscapedFString(const TCHAR* Escaped)
 	while (Input.Len())
 	{
 		{
-			int32 Index = Input.Find(TEXT("$"));
+			int32 Index = Input.Find(TEXT("$"), ESearchCase::CaseSensitive);
 			if (Index == INDEX_NONE)
 			{
 				Result += Input;
@@ -1668,7 +1668,7 @@ FString FStatsUtils::FromEscapedFString(const TCHAR* Escaped)
 
 		}
 		{
-			int32 IndexEnd = Input.Find(TEXT("$"));
+			int32 IndexEnd = Input.Find(TEXT("$"), ESearchCase::CaseSensitive);
 			if (IndexEnd == INDEX_NONE)
 			{
 				checkStats(0); // malformed escaped fname

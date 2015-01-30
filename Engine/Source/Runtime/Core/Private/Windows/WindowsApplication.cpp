@@ -527,7 +527,7 @@ void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 					FMonitorInfo Info;
 
 					Info.ID = FString::Printf(TEXT("%s"), Monitor.DeviceID);
-					Info.Name = Info.ID.Mid (8, Info.ID.Find (TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, 9) - 8);
+					Info.Name = Info.ID.Mid (8, Info.ID.Find (TEXT("\\"), ESearchCase::CaseSensitive, ESearchDir::FromStart, 9) - 8);
 
 					if (GetSizeForDevID(Info.Name, Info.NativeWidth, Info.NativeHeight))
 					{
@@ -1916,7 +1916,7 @@ void FWindowsApplication::QueryConnectedMice()
 
 		Name[NameLen] = 0;
 		FString WName = ANSI_TO_TCHAR(Name);
-		WName.ReplaceInline(TEXT("#"), TEXT("\\"));
+		WName.ReplaceInline(TEXT("#"), TEXT("\\"), ESearchCase::CaseSensitive);
 		/*
 		 * Name XP starts with \??\, vista+ starts \\?\ 
 		 * In the device list exists a fake Mouse device with the device name of RDP_MOU

@@ -1085,16 +1085,16 @@ public:
 	 * @param SearchDir			Indicates whether the search starts at the begining or at the end ( defaults to ESearchDir::FromStart )
 	 * @return true if string is split, otherwise false
 	 */
-	bool Split( const FString& InS, FString* LeftS, FString* RightS, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase, 
-				ESearchDir::Type SearchDir = ESearchDir::FromStart) const
+	bool Split(const FString& InS, FString* LeftS, FString* RightS, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase,
+		ESearchDir::Type SearchDir = ESearchDir::FromStart) const
 	{
 		int32 InPos = Find(InS, SearchCase, SearchDir);
-		
-		if( InPos < 0 )	{ return false; }
 
-		if( LeftS )		{ *LeftS  = Left(InPos); }
-		if( RightS )	{ *RightS = Mid(InPos + InS.Len()); }
-		
+		if (InPos < 0)	{ return false; }
+
+		if (LeftS)		{ *LeftS = Left(InPos); }
+		if (RightS)	{ *RightS = Mid(InPos + InS.Len()); }
+
 		return true;
 	}
 

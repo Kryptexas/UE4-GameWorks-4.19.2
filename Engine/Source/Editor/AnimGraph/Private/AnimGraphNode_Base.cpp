@@ -273,7 +273,7 @@ void UAnimGraphNode_Base::GetPinAssociatedProperty(const UScriptStruct* NodeType
 	OutIndex = INDEX_NONE;
 
 	//@TODO: Name-based hackery, avoid the roundtrip and better indicate when it's an array pose pin
-	int32 UnderscoreIndex = InputPin->PinName.Find(TEXT("_"));
+	int32 UnderscoreIndex = InputPin->PinName.Find(TEXT("_"), ESearchCase::CaseSensitive);
 	if (UnderscoreIndex != INDEX_NONE)
 	{
 		FString ArrayName = InputPin->PinName.Left(UnderscoreIndex);
@@ -302,7 +302,7 @@ FPoseLinkMappingRecord UAnimGraphNode_Base::GetLinkIDLocation(const UScriptStruc
 		if (UAnimGraphNode_Base* LinkedNode = Cast<UAnimGraphNode_Base>(SourcePin->LinkedTo[0]->GetOwningNode()))
 		{
 			//@TODO: Name-based hackery, avoid the roundtrip and better indicate when it's an array pose pin
-			int32 UnderscoreIndex = SourcePin->PinName.Find(TEXT("_"));
+			int32 UnderscoreIndex = SourcePin->PinName.Find(TEXT("_"), ESearchCase::CaseSensitive);
 			if (UnderscoreIndex != INDEX_NONE)
 			{
 				FString ArrayName = SourcePin->PinName.Left(UnderscoreIndex);

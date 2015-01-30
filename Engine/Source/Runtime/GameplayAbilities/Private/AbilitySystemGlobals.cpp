@@ -76,7 +76,7 @@ void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName,
 			AssetName.RemoveFromStart(TEXT("GC_"));		// allow GC_ prefix in asset name
 			AssetName.RemoveFromEnd(TEXT("_c"));
 
-			AssetName.ReplaceInline(TEXT("_"), TEXT("."));
+			AssetName.ReplaceInline(TEXT("_"), TEXT("."), ESearchCase::CaseSensitive);
 
 			if (!AssetName.Contains(TEXT("GameplayCue")))
 			{

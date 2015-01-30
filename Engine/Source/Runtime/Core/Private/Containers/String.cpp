@@ -20,7 +20,7 @@ void FString::TrimToNullTerminator()
 }
 
 
-int32 FString::Find( const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDir::Type SearchDir, int32 StartPosition ) const
+int32 FString::Find(const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDir::Type SearchDir, int32 StartPosition) const
 {
 	if ( SubStr == nullptr )
 	{
@@ -643,8 +643,8 @@ bool FString::MatchesWildcard(const FString& InWildcard, ESearchCase::Type Searc
 			Wildcard = Wildcard.Left(Suffix + 1);
 			Target = Target.Left(Target.Len() - SuffixString.Len());
 		}
-		int32 PrefixIndexOfStar = Wildcard.Find(TEXT("*")); 
-		int32 PrefixIndexOfQuestion = Wildcard.Find( TEXT("?"));
+		int32 PrefixIndexOfStar = Wildcard.Find(TEXT("*"), ESearchCase::CaseSensitive); 
+		int32 PrefixIndexOfQuestion = Wildcard.Find(TEXT("?"), ESearchCase::CaseSensitive);
 		int32 Prefix = FMath::Min<int32>(PrefixIndexOfStar < 0 ? MAX_int32 : PrefixIndexOfStar, PrefixIndexOfQuestion < 0 ? MAX_int32 : PrefixIndexOfQuestion);
 		check(Prefix >= 0 && Prefix < Wildcard.Len());
 		if (Prefix > 0)
@@ -833,31 +833,31 @@ FString FString::Replace(const TCHAR* From, const TCHAR* To, ESearchCase::Type S
 	return Result;
 }
 
-int32 FString::ReplaceInline( const TCHAR* SearchText, const TCHAR* ReplacementText, ESearchCase::Type SearchCase )
+int32 FString::ReplaceInline(const TCHAR* SearchText, const TCHAR* ReplacementText, ESearchCase::Type SearchCase)
 {
 	int32 ReplacementCount = 0;
 
 	if (Len() > 0
-	&&	SearchText != nullptr && *SearchText != 0
-	&&	ReplacementText != nullptr && (SearchCase == ESearchCase::IgnoreCase || FCString::Strcmp(SearchText, ReplacementText) != 0) )
+		&& SearchText != nullptr && *SearchText != 0
+		&& ReplacementText != nullptr && (SearchCase == ESearchCase::IgnoreCase || FCString::Strcmp(SearchText, ReplacementText) != 0))
 	{
-		const int32 NumCharsToReplace=FCString::Strlen(SearchText);
-		const int32 NumCharsToInsert=FCString::Strlen(ReplacementText);
+		const int32 NumCharsToReplace = FCString::Strlen(SearchText);
+		const int32 NumCharsToInsert = FCString::Strlen(ReplacementText);
 
-		if ( NumCharsToInsert == NumCharsToReplace )
+		if (NumCharsToInsert == NumCharsToReplace)
 		{
 			TCHAR* Pos = SearchCase == ESearchCase::IgnoreCase ? FCString::Stristr(&(*this)[0], SearchText) : FCString::Strstr(&(*this)[0], SearchText);
-			while ( Pos != nullptr )
+			while (Pos != nullptr)
 			{
 				ReplacementCount++;
 
 				// FCString::Strcpy now inserts a terminating zero so can't use that
-				for ( int32 i = 0; i < NumCharsToInsert; i++ )
+				for (int32 i = 0; i < NumCharsToInsert; i++)
 				{
 					Pos[i] = ReplacementText[i];
 				}
 
-				if ( Pos + NumCharsToReplace - **this < Len() )
+				if (Pos + NumCharsToReplace - **this < Len())
 				{
 					Pos = SearchCase == ESearchCase::IgnoreCase ? FCString::Stristr(Pos + NumCharsToReplace, SearchText) : FCString::Strstr(Pos + NumCharsToReplace, SearchText);
 				}
@@ -867,7 +867,7 @@ int32 FString::ReplaceInline( const TCHAR* SearchText, const TCHAR* ReplacementT
 				}
 			}
 		}
-		else if ( Contains(SearchText, SearchCase) )
+		else if (Contains(SearchText, SearchCase))
 		{
 			FString Copy(*this);
 			Empty(Len());
@@ -876,7 +876,7 @@ int32 FString::ReplaceInline( const TCHAR* SearchText, const TCHAR* ReplacementT
 			TCHAR* WritePosition = (TCHAR*)Copy.Data.GetData();
 			// look for From in the remaining string
 			TCHAR* SearchPosition = SearchCase == ESearchCase::IgnoreCase ? FCString::Stristr(WritePosition, SearchText) : FCString::Strstr(WritePosition, SearchText);
-			while ( SearchPosition != nullptr )
+			while (SearchPosition != nullptr)
 			{
 				ReplacementCount++;
 
@@ -910,7 +910,7 @@ int32 FString::ReplaceInline( const TCHAR* SearchText, const TCHAR* ReplacementT
  */
 FString FString::ReplaceQuotesWithEscapedQuotes() const
 {
-	if ( Contains(TEXT("\"")) )
+	if (Contains(TEXT("\""), ESearchCase::CaseSensitive))
 	{
 		FString Result;
 

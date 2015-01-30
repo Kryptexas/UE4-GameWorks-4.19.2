@@ -1153,16 +1153,16 @@ bool AGameMode::GrabOption( FString& Options, FString& Result )
 	{
 		// Get result.
 		Result = Options.Mid(1, MAX_int32);
-		if( Result.Contains(TEXT("?")) )
+		if (Result.Contains(TEXT("?"), ESearchCase::CaseSensitive))
 		{
-			Result =  Result.Left( Result.Find(TEXT("?")) );
+			Result = Result.Left(Result.Find(TEXT("?"), ESearchCase::CaseSensitive));
 		}
 
 		// Update options.
 		Options = Options.Mid(1, MAX_int32);
-		if( Options.Contains(TEXT("?")) )
+		if (Options.Contains(TEXT("?"), ESearchCase::CaseSensitive))
 		{
-			Options =  Options.Mid( Options.Find(TEXT("?")) , MAX_int32);
+			Options = Options.Mid(Options.Find(TEXT("?"), ESearchCase::CaseSensitive), MAX_int32);
 		}
 		else
 		{
@@ -1176,7 +1176,7 @@ bool AGameMode::GrabOption( FString& Options, FString& Result )
 
 void AGameMode::GetKeyValue( const FString& Pair, FString& Key, FString& Value )
 {
-	const int32 EqualSignIndex = Pair.Find(TEXT("="));
+	const int32 EqualSignIndex = Pair.Find(TEXT("="), ESearchCase::CaseSensitive);
 	if( EqualSignIndex != INDEX_NONE )
 	{
 		Key = Pair.Left(EqualSignIndex);

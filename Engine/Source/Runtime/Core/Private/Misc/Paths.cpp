@@ -501,7 +501,7 @@ bool FPaths::IsDrive(const FString& InPath)
 		}
 
 		FString CheckPath = TEXT("");
-		int32 ColonSlashIndex = TempPath.Find(TEXT(":\\"));
+		int32 ColonSlashIndex = TempPath.Find(TEXT(":\\"), ESearchCase::CaseSensitive);
 		if (ColonSlashIndex != INDEX_NONE)
 		{
 			// Remove the 'X:\' from the start
@@ -510,11 +510,11 @@ bool FPaths::IsDrive(const FString& InPath)
 		else
 		{
 			// See if the first two characters are '\\' to handle \\Server\Foo\Bar cases
-			if (TempPath.StartsWith(TEXT("\\\\")) == true)
+			if (TempPath.StartsWith(TEXT("\\\\"), ESearchCase::CaseSensitive) == true)
 			{
 				CheckPath = TempPath.Right(TempPath.Len() - 2);
 				// Find the next slash
-				int32 SlashIndex = CheckPath.Find(TEXT("\\"));
+				int32 SlashIndex = CheckPath.Find(TEXT("\\"), ESearchCase::CaseSensitive);
 				if (SlashIndex != INDEX_NONE)
 				{
 					CheckPath = CheckPath.Right(CheckPath.Len() - SlashIndex  - 1);
@@ -529,10 +529,10 @@ bool FPaths::IsDrive(const FString& InPath)
 		if (CheckPath.Len() > 0)
 		{
 			// Replace any remaining '\\' instances with '\'
-			CheckPath.Replace(TEXT("\\\\"), TEXT("\\"));
+			CheckPath.Replace(TEXT("\\\\"), TEXT("\\"), ESearchCase::CaseSensitive);
 
 			int32 CheckCount = 0;
-			int32 SlashIndex = CheckPath.Find(TEXT("\\"));
+			int32 SlashIndex = CheckPath.Find(TEXT("\\"), ESearchCase::CaseSensitive);
 			while (SlashIndex != INDEX_NONE)
 			{
 				FString FolderName = CheckPath.Left(SlashIndex);
@@ -547,7 +547,7 @@ bool FPaths::IsDrive(const FString& InPath)
 					CheckCount++;
 				}
 				CheckPath = CheckPath.Right(CheckPath.Len() - SlashIndex  - 1);
-				SlashIndex = CheckPath.Find(TEXT("\\"));
+				SlashIndex = CheckPath.Find(TEXT("\\"), ESearchCase::CaseSensitive);
 			}
 
 			if (CheckCount <= 0)
@@ -578,15 +578,15 @@ bool FPaths::IsRelative(const FString& InPath)
 
 void FPaths::NormalizeFilename(FString& InPath)
 {
-	InPath.ReplaceInline(TEXT("\\"), TEXT("/"));
+	InPath.ReplaceInline(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
 
 	FPlatformMisc::NormalizePath(InPath);
 }
 
 void FPaths::NormalizeDirectoryName(FString& InPath)
 {
-	InPath.ReplaceInline(TEXT("\\"), TEXT("/"));
-	if (InPath.EndsWith(TEXT("/")) && !InPath.EndsWith(TEXT("//")) && !InPath.EndsWith(TEXT(":/")))
+	InPath.ReplaceInline(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
+	if (InPath.EndsWith(TEXT("/"), ESearchCase::CaseSensitive) && !InPath.EndsWith(TEXT("//"), ESearchCase::CaseSensitive) && !InPath.EndsWith(TEXT(":/"), ESearchCase::CaseSensitive))
 	{
 		// overwrite trailing slash with terminator
 		InPath.GetCharArray()[InPath.Len() - 1] = 0;
@@ -609,11 +609,11 @@ bool FPaths::CollapseRelativeDirectories(FString& InPath)
 			break;
 
 		// Consider empty paths or paths which start with .. or /.. as invalid
-		if (InPath.StartsWith(TEXT("..")) || InPath.StartsWith(ParentDir))
+		if (InPath.StartsWith(TEXT(".."), ESearchCase::CaseSensitive) || InPath.StartsWith(ParentDir))
 			return false;
 
 		// If there are no "/.."s left then we're done
-		const int32 Index = InPath.Find(ParentDir);
+		const int32 Index = InPath.Find(ParentDir, ESearchCase::CaseSensitive);
 		if (Index == -1)
 			break;
 
@@ -640,7 +640,7 @@ bool FPaths::CollapseRelativeDirectories(FString& InPath)
 		InPath.RemoveAt(PreviousSeparatorIndex, Index - PreviousSeparatorIndex + ParentDirLength, false);
 	}
 
-	InPath.ReplaceInline(TEXT("./"), TEXT(""));
+	InPath.ReplaceInline(TEXT("./"), TEXT(""), ESearchCase::CaseSensitive);
 
 	InPath.TrimToNullTerminator();
 
@@ -649,9 +649,9 @@ bool FPaths::CollapseRelativeDirectories(FString& InPath)
 
 void FPaths::RemoveDuplicateSlashes(FString& InPath)
 {
-	while (InPath.Contains(TEXT("//")))
+	while (InPath.Contains(TEXT("//"), ESearchCase::CaseSensitive))
 	{
-		InPath = InPath.Replace(TEXT("//"), TEXT("/"));
+		InPath = InPath.Replace(TEXT("//"), TEXT("/"), ESearchCase::CaseSensitive);
 	}
 }
 
@@ -670,13 +670,13 @@ void FPaths::MakeStandardFilename(FString& InPath)
 		return;
 	}
 
-	FString WithSlashes = InPath.Replace(TEXT("\\"), TEXT("/"));
+	FString WithSlashes = InPath.Replace(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
 
 	FString RootDirectory = FPaths::ConvertRelativePathToFull(FPaths::RootDir());
 
 	// look for paths that cannot be made relative, and are therefore left alone
 	// UNC (windows) network path
-	bool bCannotBeStandardized = InPath.StartsWith(TEXT("\\\\"));
+	bool bCannotBeStandardized = InPath.StartsWith(TEXT("\\\\"), ESearchCase::CaseSensitive);
 	// windows drive letter path that doesn't start with base dir
 	bCannotBeStandardized |= (InPath[1] == ':' && !WithSlashes.StartsWith(RootDirectory));
 	// Unix style absolute path that doesn't start with base dir
@@ -707,8 +707,8 @@ void FPaths::MakeStandardFilename(FString& InPath)
 
 void FPaths::MakePlatformFilename( FString& InPath )
 {
-	InPath.ReplaceInline( TEXT( "\\" ), FPlatformMisc::GetDefaultPathSeparator() );
-	InPath.ReplaceInline( TEXT( "/" ), FPlatformMisc::GetDefaultPathSeparator() );
+	InPath.ReplaceInline(TEXT("\\"), FPlatformMisc::GetDefaultPathSeparator(), ESearchCase::CaseSensitive);
+	InPath.ReplaceInline(TEXT("/"), FPlatformMisc::GetDefaultPathSeparator(), ESearchCase::CaseSensitive);
 }
 
 bool FPaths::MakePathRelativeTo( FString& InPath, const TCHAR* InRelativeTo )
@@ -717,8 +717,8 @@ bool FPaths::MakePathRelativeTo( FString& InPath, const TCHAR* InRelativeTo )
 	FString Source = FPaths::ConvertRelativePathToFull(InRelativeTo);
 	
 	Source = FPaths::GetPath(Source);
-	Source.ReplaceInline(TEXT("\\"), TEXT("/"));
-	Target.ReplaceInline(TEXT("\\"), TEXT("/"));
+	Source.ReplaceInline(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
+	Target.ReplaceInline(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
 
 	TArray<FString> TargetArray;
 	Target.ParseIntoArray(&TargetArray, TEXT("/"), true);

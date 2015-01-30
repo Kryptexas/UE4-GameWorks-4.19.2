@@ -45,7 +45,7 @@ public:
 		for (int32 DirIndex = 0; DirIndex < InDirectoriesWildcards.Num(); DirIndex++)
 		{
 			FString Dir = InDirectoriesWildcards[DirIndex];
-			Dir.ReplaceInline(TEXT("\\"), TEXT("/"));
+			Dir.ReplaceInline(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
 			DirectoriesWildcards.Add(Dir);
 		}
 

@@ -64,8 +64,8 @@ FBlueprintNodeSignature::FBlueprintNodeSignature(FString const& UserString)
 		SignatureElement.Split(SignatureKeyDelim, &SignatureKey, &SignatureValue);
 		// @TODO: look for UObject redirects with SignatureValue
 
-		SignatureValue.RemoveFromStart(TEXT("\""));
-		SignatureValue.RemoveFromEnd(TEXT("\""));
+		SignatureValue.RemoveFromStart(TEXT("\""), ESearchCase::CaseSensitive);
+		SignatureValue.RemoveFromEnd(TEXT("\""), ESearchCase::CaseSensitive);
 		AddNamedValue(FName(*SignatureKey), SignatureValue);
 	}
 }

@@ -1488,7 +1488,7 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 		for (int32 StringAssetRefIdx = 0; StringAssetRefIdx < Result.StringAssetReferencesMap.Num(); ++StringAssetRefIdx)
 		{
 			FString PackageName, ObjName;
-			Result.StringAssetReferencesMap[StringAssetRefIdx].Split(".", &PackageName, &ObjName);
+			Result.StringAssetReferencesMap[StringAssetRefIdx].Split(".", &PackageName, &ObjName, ESearchCase::CaseSensitive);
 			PackageDependencies.Add(*PackageName);
 		}
 

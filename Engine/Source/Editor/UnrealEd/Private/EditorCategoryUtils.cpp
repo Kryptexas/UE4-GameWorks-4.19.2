@@ -279,7 +279,7 @@ FString FEditorCategoryUtils::GetCategoryDisplayString(FString const& Unsanitize
 	} while (KeyIndex != INDEX_NONE);
 
 	DisplayString = FName::NameToDisplayString(DisplayString, /*bIsBool =*/false);
-	DisplayString.ReplaceInline(TEXT("| "), TEXT("|"));
+	DisplayString.ReplaceInline(TEXT("| "), TEXT("|"), ESearchCase::CaseSensitive);
 
 	return DisplayString;
 }

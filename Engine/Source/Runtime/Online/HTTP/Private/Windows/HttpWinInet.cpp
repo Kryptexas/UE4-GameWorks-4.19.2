@@ -1027,7 +1027,7 @@ void FHttpResponseWinInet::ProcessResponseHeaders()
 			}
 			FString HeaderLine(DelimiterPtr-HeaderPtr, HeaderPtr);
 			FString HeaderKey,HeaderValue;
-			if (HeaderLine.Split(TEXT(":"), &HeaderKey, &HeaderValue))
+			if (HeaderLine.Split(TEXT(":"), &HeaderKey, &HeaderValue, ESearchCase::CaseSensitive))
 			{
 				if (!HeaderKey.IsEmpty())
 				{

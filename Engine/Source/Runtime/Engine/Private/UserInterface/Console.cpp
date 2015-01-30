@@ -433,7 +433,7 @@ void UConsole::OutputText(const FString& Text)
 	while(StringLength > 0)
 	{
 		// Find the number of characters in the next line of text.
-		int32 LineLength = RemainingText.Find(TEXT("\n"));
+		int32 LineLength = RemainingText.Find(TEXT("\n"), ESearchCase::CaseSensitive);
 		if(LineLength == -1)
 		{
 			// There aren't any more newlines in the string, assume there's a newline at the end of the string.

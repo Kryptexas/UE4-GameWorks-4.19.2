@@ -467,7 +467,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 		InName = PackageName;
 	}
 
-	if (InName.Contains(TEXT("//")))
+	if (InName.Contains(TEXT("//"), ESearchCase::CaseSensitive))
 	{
 		UE_LOG(LogUObjectGlobals, Fatal, TEXT("Attempted to create a package with name containing double slashes. PackageName: %s"), PackageName);
 	}
@@ -542,7 +542,7 @@ bool ResolveName( UObject*& InPackage, FString& InOutName, bool Create, bool Thr
 	}
 
 
-	if( IniFilename && InOutName.Contains(TEXT(".")) )
+	if( IniFilename && InOutName.Contains(TEXT("."), ESearchCase::CaseSensitive) )
 	{
 		// Get .ini key and section.
 		FString Section = InOutName.Mid(1+InOutName.Find(TEXT(":"), ESearchCase::CaseSensitive));
@@ -583,8 +583,8 @@ bool ResolveName( UObject*& InPackage, FString& InOutName, bool Create, bool Thr
 	bool bSubobjectPath = false;
 
 	// to make parsing the name easier, replace the subobject delimiter with an extra dot
-	InOutName.ReplaceInline(SUBOBJECT_DELIMITER, TEXT(".."));
-	while( (i=InOutName.Find(TEXT("."))) != -1 )
+	InOutName.ReplaceInline(SUBOBJECT_DELIMITER, TEXT(".."), ESearchCase::CaseSensitive);
+	while ((i = InOutName.Find(TEXT("."), ESearchCase::CaseSensitive)) != -1)
 	{
 		FString PartialName = InOutName.Left(i);
 

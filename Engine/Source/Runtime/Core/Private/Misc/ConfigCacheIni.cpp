@@ -3146,7 +3146,7 @@ void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFile
 		{
 			FString CVarName;
 			FString CVarValue;
-			SectionStrings[VarIndex].Split(TEXT("="), &CVarName, &CVarValue);
+			SectionStrings[VarIndex].Split(TEXT("="), &CVarName, &CVarValue, ESearchCase::CaseSensitive);
 
 			IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName);
 			if (CVar)

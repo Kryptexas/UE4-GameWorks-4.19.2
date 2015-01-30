@@ -557,7 +557,7 @@ FName FStatNameAndInfo::GetShortNameFrom(FName InLongName)
 	if (Input.StartsWith(TEXT("//")))
 	{
 		Input = Input.RightChop(2);
-		const int32 IndexEnd = Input.Find(TEXT("//"));
+		const int32 IndexEnd = Input.Find(TEXT("//"), ESearchCase::CaseSensitive);
 		if (IndexEnd == INDEX_NONE)
 		{
 			checkStats(0);
@@ -565,7 +565,7 @@ FName FStatNameAndInfo::GetShortNameFrom(FName InLongName)
 		}
 		Input = Input.RightChop(IndexEnd + 2);
 	}
-	const int32 IndexEnd = Input.Find(TEXT("///"));
+	const int32 IndexEnd = Input.Find(TEXT("///"), ESearchCase::CaseSensitive);
 	if (IndexEnd != INDEX_NONE)
 	{
 		Input = Input.Left(IndexEnd);
@@ -580,7 +580,7 @@ FName FStatNameAndInfo::GetGroupNameFrom(FName InLongName)
 	if (Input.StartsWith(TEXT("//")))
 	{
 		Input = Input.RightChop(2);
-		const int32 IndexEnd = Input.Find(TEXT("//"));
+		const int32 IndexEnd = Input.Find(TEXT("//"), ESearchCase::CaseSensitive);
 		if (IndexEnd != INDEX_NONE)
 		{
 			return FName(*Input.Left(IndexEnd));
@@ -594,11 +594,11 @@ FString FStatNameAndInfo::GetDescriptionFrom(FName InLongName)
 {
 	FString Input(InLongName.ToString());
 
-	const int32 IndexStart = Input.Find(TEXT("///"));
+	const int32 IndexStart = Input.Find(TEXT("///"), ESearchCase::CaseSensitive);
 	if (IndexStart != INDEX_NONE)
 	{
 		Input = Input.RightChop(IndexStart + 3);
-		const int32 IndexEnd = Input.Find(TEXT("///"));
+		const int32 IndexEnd = Input.Find(TEXT("///"), ESearchCase::CaseSensitive);
 		if (IndexEnd != INDEX_NONE)
 		{
 			return FStatsUtils::FromEscapedFString(*Input.Left(IndexEnd));
@@ -615,7 +615,7 @@ FName FStatNameAndInfo::GetGroupCategoryFrom(FName InLongName)
 	if (IndexStart != INDEX_NONE)
 	{
 		Input = Input.RightChop(IndexStart + 7);
-		const int32 IndexEnd = Input.Find(TEXT("////"));
+		const int32 IndexEnd = Input.Find(TEXT("////"), ESearchCase::CaseSensitive);
 		if (IndexEnd != INDEX_NONE)
 		{
 			return FName(*Input.Left(IndexEnd));

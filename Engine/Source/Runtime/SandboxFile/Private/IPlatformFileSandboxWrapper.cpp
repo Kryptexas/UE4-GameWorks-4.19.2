@@ -54,7 +54,7 @@ bool FSandboxPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 		// Commandline syntax
 		bool bWipeSandbox = false;
 		FPaths::NormalizeFilename(CommandLineDirectory);
-		int32 CommandIndex = CommandLineDirectory.Find( TEXT(":") );
+		int32 CommandIndex = CommandLineDirectory.Find(TEXT(":"), ESearchCase::CaseSensitive);
 		if( CommandIndex != INDEX_NONE )
 		{
 			// Check if absolute path was specified and the ':' refers to drive name

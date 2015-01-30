@@ -792,9 +792,9 @@ void FModuleManager::GetModuleFilenameFormat(bool bGameModule, FString& OutPrefi
 
 	// Get the base name for modules of this application
 	OutPrefix = FPlatformProcess::GetModulePrefix() + FPaths::GetBaseFilename(FPlatformProcess::ExecutableName());
-	if (OutPrefix.Contains(TEXT("-")))
+	if (OutPrefix.Contains(TEXT("-"), ESearchCase::CaseSensitive))
 	{
-		OutPrefix = OutPrefix.Left(OutPrefix.Find(TEXT("-")) + 1);
+		OutPrefix = OutPrefix.Left(OutPrefix.Find(TEXT("-"), ESearchCase::CaseSensitive) + 1);
 	}
 	else
 	{

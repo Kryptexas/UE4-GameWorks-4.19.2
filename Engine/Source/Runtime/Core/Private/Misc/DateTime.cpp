@@ -277,8 +277,8 @@ bool FDateTime::Parse( const FString& DateTimeString, FDateTime& OutDateTime )
 	// first replace -, : and . with space
 	FString FixedString = DateTimeString.Replace(TEXT("-"), TEXT(" "));
 
-	FixedString.ReplaceInline(TEXT(":"), TEXT(" "));
-	FixedString.ReplaceInline(TEXT("."), TEXT(" "));
+	FixedString.ReplaceInline(TEXT(":"), TEXT(" "), ESearchCase::CaseSensitive);
+	FixedString.ReplaceInline(TEXT("."), TEXT(" "), ESearchCase::CaseSensitive);
 
 	TArray<FString> Tokens;
 
