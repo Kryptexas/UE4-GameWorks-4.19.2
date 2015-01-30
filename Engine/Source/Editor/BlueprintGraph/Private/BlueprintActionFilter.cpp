@@ -742,7 +742,8 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 	{
 		auto IsFunctionHiddenLambda = [](UClass* Class, UFunction const* Function)->bool
 		{
-			return FObjectEditorUtils::IsFunctionHiddenFromClass(Function, Class->GetAuthoritativeClass());
+			// Only hide functions that are not static
+			return !Function->HasAnyFunctionFlags(FUNC_Static) && FObjectEditorUtils::IsFunctionHiddenFromClass(Function, Class->GetAuthoritativeClass());
 		};
 		IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsFunctionHiddenLambda, Function);
 	}
