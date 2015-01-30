@@ -5,13 +5,13 @@
 /**
  * Encapsulates functionality for the ActorDetails material category
  */
-class FActorMaterialCategory : public TSharedFromThis<FActorMaterialCategory>
+class FComponentMaterialCategory : public TSharedFromThis<FComponentMaterialCategory>
 {
 public:
 	/**
 	 * Constructs a category in the details panel for displaying used materials
 	 */
-	FActorMaterialCategory( TArray< TWeakObjectPtr<AActor> >& InSelectedActors );
+	FComponentMaterialCategory( TArray< TWeakObjectPtr<USceneComponent> >& InSelectedComponents );
 
 	/**
 	 * Creates the category
@@ -42,7 +42,5 @@ private:
 
 private:
 	/** Reference to the list of selected actors */
-	TArray< TWeakObjectPtr<AActor> >& SelectedActors;
-	/** List of editable components that can be viewed */
-	TSet< TWeakObjectPtr<UActorComponent> > EditableComponents;
+	TArray< TWeakObjectPtr<USceneComponent> > SelectedComponents;
 };
