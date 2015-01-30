@@ -93,10 +93,10 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 		if (BaseId == FFoliageInstanceBaseCache::InvalidBaseId)
 		{
 			BaseId = NextBaseId++;
-			FFoliageInstanceBasePtr BasePtr = InComponent;
 
-			InstanceBaseMap.Add(BaseId, FFoliageInstanceBaseInfo(InComponent));
-			InstanceBaseInvMap.Add(BasePtr, BaseId);
+			FFoliageInstanceBaseInfo BaseInfo(InComponent);
+			InstanceBaseMap.Add(BaseId, BaseInfo);
+			InstanceBaseInvMap.Add(BaseInfo.BasePtr, BaseId);
 
 			check(InstanceBaseMap.Num() == InstanceBaseInvMap.Num());
 
@@ -107,7 +107,7 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 				if (ComponentWorld)
 				{
 					auto WorldKey = TAssetPtr<UWorld>(ComponentWorld);
-					InstanceBaseLevelMap.FindOrAdd(WorldKey).Add(BasePtr);
+					InstanceBaseLevelMap.FindOrAdd(WorldKey).Add(BaseInfo.BasePtr);
 				}
 			}
 		}

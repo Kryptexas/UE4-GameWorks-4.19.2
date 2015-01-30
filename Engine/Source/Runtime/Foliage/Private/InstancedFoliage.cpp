@@ -1799,10 +1799,7 @@ void AInstancedFoliageActor::PostLoad()
 					BaseList.Add(BaseInfoPair.Value.BasePtr);
 				}
 			}
-
-			// Clean up dead cross-level references
-			FFoliageInstanceBaseCache::CompactInstanceBaseCache(this);
-			
+		
 			// Convert to Heirarchical foliage
 			if (GetLinkerCustomVersion(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageUsingHierarchicalISMC)
 			{
@@ -1817,20 +1814,12 @@ void AInstancedFoliageActor::PostLoad()
 				}
 			}
 		}
+
+		// Clean up dead cross-level references
+		FFoliageInstanceBaseCache::CompactInstanceBaseCache(this);
+
 	}
 #endif
-}
-
-void AInstancedFoliageActor::PreSave()
-{
-	Super::PreSave();
-
-#if WITH_EDITOR
-	if (GIsEditor)
-	{
-		FFoliageInstanceBaseCache::CompactInstanceBaseCache(this);
-	}
-#endif //WITH_EDITOR
 }
 
 #if WITH_EDITOR
