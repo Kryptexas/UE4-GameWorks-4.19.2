@@ -1605,10 +1605,21 @@ void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlu
 		{
 			if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
 			{
-				AddApplicationMode(
-					FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-					MakeShareable(new FBlueprintEditorUnifiedMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode, CanAccessComponentsMode())));
-				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+				if ( bShouldOpenInDefaultsMode )
+				{
+					// We either have no blueprints or many, open in the defaults mode for multi-editing
+					AddApplicationMode(
+						FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+						MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+					SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+				}
+				else
+				{
+					AddApplicationMode(
+						FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+						MakeShareable(new FBlueprintEditorUnifiedMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode, CanAccessComponentsMode())));
+					SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+				}
 			}
 			else
 			{
@@ -2047,9 +2058,6 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 
 	if (InBlueprints.Num() > 0)
 	{
-		// Hide the inspector title for Persona, where we customize the defaults editor widget
-		const bool bIsPersona = InBlueprint ? InBlueprint->IsA<UAnimBlueprint>() : InBlueprints[0]->IsA<UAnimBlueprint>();
-		const bool bShowTitle = !bIsPersona;
 		const bool bShowPublicView = true;
 		const bool bHideNameArea = false;
 
@@ -2059,7 +2067,7 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 			. ViewIdentifier(FName("BlueprintDefaults"))
 			. IsEnabled(!bIsInterface)
 			. ShowPublicViewControl(bShowPublicView)
-			. ShowTitleArea(bShowTitle)
+			. ShowTitleArea(false)
 			. HideNameArea(bHideNameArea)
 			. IsPropertyEditingEnabledDelegate( IsPropertyEditingEnabledDelegate )
 			. OnFinishedChangingProperties( FOnFinishedChangingProperties::FDelegate::CreateSP( this, &FBlueprintEditor::OnFinishedChangingProperties ) );
@@ -6232,7 +6240,7 @@ void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 	{
 		if (GetBlueprintObj()->GeneratedClass != NULL)
 		{
-			DefaultEditor->ShowDetailsForSingleObject(GetBlueprintObj()->GeneratedClass->GetDefaultObject(), SKismetInspector::FShowDetailsOptions(DefaultEditString(), bForceRefresh));
+			DefaultEditor->ShowDetailsForSingleObject(GetBlueprintObj()->GeneratedClass->GetDefaultObject(), SKismetInspector::FShowDetailsOptions(FText::GetEmpty(), bForceRefresh));
 		}
 	}
 	else if (GetEditingObjects().Num() > 0)
@@ -6658,11 +6666,6 @@ FString FBlueprintEditor::GetWorldCentricTabPrefix() const
 void FBlueprintEditor::VariableListWasUpdated()
 {
 	StartEditingDefaults(/*bAutoFocus=*/ false);
-}
-
-FText FBlueprintEditor::DefaultEditString() 
-{
-	return LOCTEXT("BlueprintEditingDefaults", "Editing defaults");
 }
 
 bool FBlueprintEditor::GetBoundsForSelectedNodes(class FSlateRect& Rect, float Padding)

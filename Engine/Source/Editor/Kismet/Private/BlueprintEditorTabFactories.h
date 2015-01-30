@@ -72,6 +72,11 @@ public:
 	{
 		return LOCTEXT("DefaultsEditorTooltip", "The class defaults editor lets you set the default value for all variables in your Blueprint.");
 	}
+
+private:
+	TSharedRef<SWidget> CreateOptionalDataOnlyMessage() const;
+
+	void OnChangeBlueprintToNotDataOnly();
 };
 
 /////////////////////////////////////////////////////
