@@ -687,9 +687,6 @@ protected:
 
 	/** Build Event Menu for currently selected components */
 	TSharedRef<SWidget> BuildEventsMenuForComponents() const;
-	
-	/** True if the selected node can be attached to sockets */
-	bool IsNodeAttachable() const;
 
 	FText GetSocketName() const;
 	void OnBrowseSocket();
