@@ -43,7 +43,8 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
-	virtual void PreSave() override;
+	// @todo beng: fixme
+	//virtual void PreSave() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface. 
 
