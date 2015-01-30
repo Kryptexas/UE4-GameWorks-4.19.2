@@ -49,15 +49,17 @@ struct CORE_API FWindowsPlatformMisc
 			::DebugBreak();
 		}
 	}
+#endif
+
 
 	/** Break into debugger. Returning false allows this function to be used in conditionals. */
 	FORCEINLINE static bool DebugBreakReturningFalse()
 	{
+#if !UE_BUILD_SHIPPING
 		DebugBreak();
+#endif
 		return false;
 	}
-
-#endif
 
 	static void PumpMessages(bool bFromMainLoop);
 	static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings );

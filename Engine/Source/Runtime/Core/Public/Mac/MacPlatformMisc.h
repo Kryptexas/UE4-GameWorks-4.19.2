@@ -50,14 +50,16 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 			__asm__ ( "int $3" );
 		}
 	}
+#endif
 
 	/** Break into debugger. Returning false allows this function to be used in conditionals. */
 	FORCEINLINE static bool DebugBreakReturningFalse()
 	{
+#if !UE_BUILD_SHIPPING
 		DebugBreak();
+#endif
 		return false;
 	}
-#endif
 
 	FORCEINLINE static void MemoryBarrier()
 	{
