@@ -640,7 +640,8 @@ void ALandscapeGizmoActiveActor::SetTargetLandscape(ULandscapeInfo* LandscapeInf
 		TargetLandscapeInfo = LandscapeInfo;
 	}
 
-	if (TargetLandscapeInfo && TargetLandscapeInfo != PrevInfo)
+	// if there's no copied data, try to move somewhere useful
+	if (TargetLandscapeInfo && TargetLandscapeInfo != PrevInfo && DataType == LGT_None)
 	{
 		MarginZ = TargetLandscapeInfo->DrawScale.Z * 3;
 		Width = Height = TargetLandscapeInfo->DrawScale.X * (TargetLandscapeInfo->ComponentSizeQuads+1);
