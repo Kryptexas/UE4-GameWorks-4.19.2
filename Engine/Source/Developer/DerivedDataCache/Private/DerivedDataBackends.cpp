@@ -235,6 +235,12 @@ public:
 				WritePakFilename = PakFilename + TEXT(".") + Temp.ToString();
 				WritePakCache = new FPakFileDerivedDataBackend( *WritePakFilename, true );
 				PakNode = WritePakCache;
+
+				bool bMerge = false;
+				if(FParse::Bool(Entry, TEXT("Merge="), bMerge) && bMerge)
+				{
+					WritePakCache->MergeCache(*PakFilename);
+				}
 			}
 			else
 			{
