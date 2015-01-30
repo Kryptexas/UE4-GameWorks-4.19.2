@@ -2137,7 +2137,7 @@ public:
 
 	/* Gets all the components that inherit from the given class.
 		Currently returns an array of UActorComponent which must be cast to the correct type. */
-	UFUNCTION(BlueprintCallable, Category="Actor", meta=(ComponentClass="ActorComponent"))
+	UFUNCTION(BlueprintCallable, Category = "Actor", meta = (ComponentClass = "ActorComponent"), meta=(DeterminesOutputType="ComponentClass"))
 	TArray<UActorComponent*> GetComponentsByClass(TSubclassOf<UActorComponent> ComponentClass) const;
 
 	/** Templatized version for syntactic nicety. */
