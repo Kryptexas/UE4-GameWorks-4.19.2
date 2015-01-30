@@ -203,6 +203,33 @@ void FComponentEditorUtils::AdjustComponentDelta(USceneComponent* Component, FVe
 	}
 }
 
+void FComponentEditorUtils::BindComponentSelectionOverride(USceneComponent* SceneComponent)
+{
+	if (SceneComponent)
+	{
+		// If the scene component is a primitive component, ensure the override is bound
+		auto PrimComponent = Cast<UPrimitiveComponent>(SceneComponent);
+		if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
+		{
+			PrimComponent->Modify();
+			PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+		}
+		else
+		{
+			// Otherwise, make sure the override is bound on any attached primitive components (to make sure we catch any editor-only billboards and the like)
+			for (auto Component : SceneComponent->AttachChildren)
+			{
+				PrimComponent = Cast<UPrimitiveComponent>(Component);
+				if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
+				{
+					PrimComponent->Modify();
+					PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+				}
+			}
+		}
+	}
+}
+
 void FComponentEditorUtils::PropagateTransformPropertyChange(
 	class USceneComponent* InSceneComponentTemplate,
 	const FTransformData& OldDefaultTransform,

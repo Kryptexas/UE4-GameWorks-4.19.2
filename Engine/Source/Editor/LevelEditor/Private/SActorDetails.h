@@ -26,8 +26,10 @@ public:
 	virtual void PostRedo(bool bSuccess) override;
 
 private:
+	AActor* GetSelectedActorInEditor() const;
+
 	void OnEditorSelectionChanged(UObject* Object);
-	AActor* GetSelectedActor() const;
+	AActor* GetActorContext() const;
 	void OnSCSEditorRootSelected(AActor* Actor);
 	void OnSCSEditorTreeViewSelectionChanged(const TArray<TSharedPtr<class FSCSEditorTreeNode> >& SelectedNodes);
 	void UpdateComponentTreeFromEditorSelection();
@@ -38,6 +40,10 @@ private:
 	TSharedPtr<SBox> ComponentsBox;
 	TSharedPtr<class SSCSEditor> SCSEditor;
 
+	// The actor selected when the details panel was locked
+	TWeakObjectPtr<AActor> LockedActorSelection;
+
+	// Used to prevent reentrant changes
 	bool bSelectionGuard;
 
 	// True if the actor "root" node in the SCS editor is currently shown as selected

@@ -31,6 +31,12 @@ public:
 	/** Generate a valid variable name string for the given component instance based on the name of the asset referenced by the component */
 	static FString GenerateValidVariableNameFromAsset(UObject* Asset, AActor* ComponentOwner);
 
+	/**
+	* Ensures that the selection override delegate is bound for the supplied component
+	* This includes any attached editor-only primitive components (such as billboard visualizers)
+	*/
+	static void BindComponentSelectionOverride(USceneComponent* SceneComponent);
+
 	struct FTransformData
 	{
 		FTransformData(const class USceneComponent& Component)

@@ -123,9 +123,10 @@ public:
 	 *
 	 * @param InObjects		The list of objects to observe
 	 * @param bForceRefresh	If true, doesn't check if new objects are being set
+	 * @param bOverrideLock	If true, will set the objects even if the details view is locked
 	 */
-	virtual void SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh = false ) = 0;
-	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false ) = 0;
+	virtual void SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh = false, bool bOverrideLock = false ) = 0;
+	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false, bool bOverrideLock = false ) = 0;
 
 	/**
 	 * Sets a single objects that details view is viewing
