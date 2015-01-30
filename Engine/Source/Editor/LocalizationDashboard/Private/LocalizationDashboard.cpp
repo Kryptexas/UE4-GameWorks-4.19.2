@@ -387,29 +387,64 @@ namespace
 
 	void FProjectLocalizationSettingsDetailsCustomization::ImportAllTargets()
 	{
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
-		TArray<FLocalizationTargetSettings*> TargetSettings;
-		for (ULocalizationTarget* const TargetObject : Settings->TargetObjects)
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		if (DesktopPlatform)
 		{
-			TargetSettings.Add(&TargetObject->Settings);
-		}
-		LocalizationCommandletTasks::ImportTargets(ParentWindow.ToSharedRef(), TargetSettings);
+			void* ParentWindowWindowHandle = NULL;
+			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+			if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
+			{
+				ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			}
 
-		for (ULocalizationTarget* const LocalizationTarget : Settings->TargetObjects)
-		{
-			UpdateTargetFromReports(LocalizationTarget);
+			
+			const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+
+			// Prompt the user for the directory
+			FString OutputDirectory;
+			if (DesktopPlatform->OpenDirectoryDialog(ParentWindowWindowHandle, LOCTEXT("ImportAllTranslationsDialogTitle", "Import All Translations from Directory").ToString(), DefaultPath, OutputDirectory))
+			{
+				TArray<FLocalizationTargetSettings*> TargetSettings;
+				for (ULocalizationTarget* const TargetObject : Settings->TargetObjects)
+				{
+					TargetSettings.Add(&TargetObject->Settings);
+				}
+				LocalizationCommandletTasks::ImportTargets(ParentWindow.ToSharedRef(), TargetSettings, TOptional<FString>(OutputDirectory));
+
+				for (ULocalizationTarget* const LocalizationTarget : Settings->TargetObjects)
+				{
+					UpdateTargetFromReports(LocalizationTarget);
+				}
+			}
 		}
 	}
 
 	void FProjectLocalizationSettingsDetailsCustomization::ExportAllTargets()
 	{
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
-		TArray<FLocalizationTargetSettings*> TargetSettings;
-		for (ULocalizationTarget* const TargetObject : Settings->TargetObjects)
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		if (DesktopPlatform)
 		{
-			TargetSettings.Add(&TargetObject->Settings);
+			void* ParentWindowWindowHandle = NULL;
+			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+			if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
+			{
+				ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			}
+
+			const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+
+			// Prompt the user for the directory
+			FString OutputDirectory;
+			if (DesktopPlatform->OpenDirectoryDialog(ParentWindowWindowHandle, LOCTEXT("ExportAllTranslationsDialogTitle", "Export All Translations to Directory").ToString(), DefaultPath, OutputDirectory))
+			{
+				TArray<FLocalizationTargetSettings*> TargetSettings;
+				for (ULocalizationTarget* const TargetObject : Settings->TargetObjects)
+				{
+					TargetSettings.Add(&TargetObject->Settings);
+				}
+				LocalizationCommandletTasks::ExportTargets(ParentWindow.ToSharedRef(), TargetSettings, TOptional<FString>(OutputDirectory));
+			}
 		}
-		LocalizationCommandletTasks::ExportTargets(ParentWindow.ToSharedRef(), TargetSettings);
 	}
 
 	void FProjectLocalizationSettingsDetailsCustomization::UpdateTargetFromReports(ULocalizationTarget* const LocalizationTarget)

@@ -43,9 +43,14 @@ namespace LocalizationConfigurationScript
 		return GetDataDirectory(Target) / CultureName / FString::Printf( TEXT("%s.%s"), *Target.Name, TEXT("archive") );
 	}
 
-	FString GetPOPath(const FLocalizationTargetSettings& Target, const FString& CultureName)
+	FString GetDefaultPOFileName(const FLocalizationTargetSettings& Target)
 	{
-		return GetDataDirectory(Target) / CultureName / FString::Printf( TEXT("%s.%s"), *Target.Name, TEXT("po") );
+		return FString::Printf( TEXT("%s.%s"), *Target.Name, TEXT("po") );
+	}
+
+	FString GetDefaultPOPath(const FLocalizationTargetSettings& Target, const FString& CultureName)
+	{
+		return GetDataDirectory(Target) / CultureName / GetDefaultPOFileName(Target);
 	}
 
 	FString GetLocResPath(const FLocalizationTargetSettings& Target, const FString& CultureName)
@@ -170,7 +175,7 @@ namespace LocalizationConfigurationScript
 		return GetScriptDirectory() / FString::Printf( TEXT("%s_Gather.%s"), *(Target.Name), TEXT("ini") );
 	}
 
-	FLocalizationConfigurationScript GenerateImportScript(const FLocalizationTargetSettings& Target, const FString* const SpecificCulture)
+	FLocalizationConfigurationScript GenerateImportScript(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName, const TOptional<FString> OutputPathOverride)
 	{
 		FLocalizationConfigurationScript Script;
 
@@ -185,8 +190,28 @@ namespace LocalizationConfigurationScript
 
 			ConfigSection.Add( TEXT("bImportLoc"), TEXT("true") );
 
-			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target.Name;
+			FString SourcePath;
+			// Overriding output path changes the source directory for the PO file.
+			if (OutputPathOverride.IsSet())
+			{
+				// The output path for a specific culture is a file path.
+				if (CultureName.IsSet())
+				{
+					SourcePath = MakePathRelativeToProjectDirectory( FPaths::GetPath(OutputPathOverride.GetValue()) );
+				}
+				// Otherwise, it is a directory path.
+				else
+				{
+					SourcePath = MakePathRelativeToProjectDirectory( OutputPathOverride.GetValue() );
+				}
+			}
+			// Use the default PO file's directory path.
+			else
+			{
+				SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target.Name;
+			}
 			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
+
 			const FString DestinationPath = ContentDirRelativeToGameDir / TEXT("Localization") / Target.Name;
 			ConfigSection.Add( TEXT("DestinationPath"), DestinationPath );
 
@@ -196,9 +221,9 @@ namespace LocalizationConfigurationScript
 			};
 
 			// Export for a specific culture.
-			if (SpecificCulture)
+			if (CultureName.IsSet())
 			{
-				ConfigSection.Add( TEXT("CulturesToGenerate"), *SpecificCulture );
+				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureName.GetValue() );
 			}
 			// Export for all cultures.
 			else
@@ -209,9 +234,27 @@ namespace LocalizationConfigurationScript
 				}
 			}
 
+			// Do not use culture subdirectories if importing a single culture to a specific directory.
+			if (CultureName.IsSet() && OutputPathOverride.IsSet())
+			{
+				ConfigSection.Add( TEXT("bUseCultureDirectory"), "false" );
+			}
+
 			ConfigSection.Add( TEXT("ManifestName"), FPaths::GetCleanFilename(GetManifestPath(Target)) );
 			ConfigSection.Add( TEXT("ArchiveName"), FPaths::GetCleanFilename(GetArchivePath(Target, FString())) );
-			ConfigSection.Add( TEXT("PortableObjectName"), FPaths::GetCleanFilename(GetPOPath(Target, FString())) );
+
+			FString POFileName;
+			// The output path for a specific culture is a file path.
+			if (CultureName.IsSet() && OutputPathOverride.IsSet())
+			{
+				POFileName =  FPaths::GetCleanFilename( OutputPathOverride.GetValue() );
+			}
+			// Use the default PO file's name.
+			else
+			{
+				POFileName = FPaths::GetCleanFilename( GetDefaultPOFileName( Target ) );
+			}
+			ConfigSection.Add( TEXT("PortableObjectName"), POFileName );
 		}
 
 		Script.Dirty = true;
@@ -219,13 +262,13 @@ namespace LocalizationConfigurationScript
 		return Script;
 	}
 
-	FString GetImportScriptPath(const FLocalizationTargetSettings& Target, const FString* const SpecificCultureName)
+	FString GetImportScriptPath(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName)
 	{
 		const FString ConfigFileDirectory = GetScriptDirectory();
 		FString ConfigFilePath;
-		if (SpecificCultureName)
+		if (CultureName.IsSet())
 		{
-			ConfigFilePath = ConfigFileDirectory / FString::Printf( TEXT("%s_Import_%s.%s"), *Target.Name, **SpecificCultureName, TEXT("ini") );
+			ConfigFilePath = ConfigFileDirectory / FString::Printf( TEXT("%s_Import_%s.%s"), *Target.Name, *CultureName.GetValue(), TEXT("ini") );
 		}
 		else
 		{
@@ -234,7 +277,7 @@ namespace LocalizationConfigurationScript
 		return ConfigFilePath;
 	}
 
-	FLocalizationConfigurationScript GenerateExportScript(const FLocalizationTargetSettings& Target, const FString* const SpecificCulture)
+	FLocalizationConfigurationScript GenerateExportScript(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName, const TOptional<FString> OutputPathOverride)
 	{
 		FLocalizationConfigurationScript Script;
 
@@ -251,8 +294,29 @@ namespace LocalizationConfigurationScript
 
 			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target.Name;
 			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
-			const FString DestinationPath = ContentDirRelativeToGameDir / TEXT("Localization") / Target.Name;
+
+			FString DestinationPath;
+			// Overriding output path changes the destination directory for the PO file.
+			if (OutputPathOverride.IsSet())
+			{
+				// The output path for a specific culture is a file path.
+				if (CultureName.IsSet())
+				{
+					DestinationPath = MakePathRelativeToProjectDirectory( FPaths::GetPath(OutputPathOverride.GetValue()) );
+				}
+				// Otherwise, it is a directory path.
+				else
+				{
+					DestinationPath = MakePathRelativeToProjectDirectory( OutputPathOverride.GetValue() );
+				}
+			}
+			// Use the default PO file's directory path.
+			else
+			{
+				DestinationPath = ContentDirRelativeToGameDir / TEXT("Localization") / Target.Name;
+			}
 			ConfigSection.Add( TEXT("DestinationPath"), DestinationPath );
+
 
 			TArray<const FCultureStatistics*> AllCultureStatistics;
 			AllCultureStatistics.Add(&Target.NativeCultureStatistics);
@@ -267,9 +331,9 @@ namespace LocalizationConfigurationScript
 			};
 
 			// Export for a specific culture.
-			if (SpecificCulture)
+			if (CultureName.IsSet())
 			{
-				const int32 CultureIndex = AllCultureStatistics.IndexOfByPredicate([SpecificCulture](const FCultureStatistics* Culture) { return Culture->CultureName == *SpecificCulture; });
+				const int32 CultureIndex = AllCultureStatistics.IndexOfByPredicate([CultureName](const FCultureStatistics* Culture) { return Culture->CultureName == CultureName.GetValue(); });
 				AddCultureToGenerate(CultureIndex);
 			}
 			// Export for all cultures.
@@ -281,9 +345,27 @@ namespace LocalizationConfigurationScript
 				}
 			}
 
+			// Do not use culture subdirectories if exporting a single culture to a specific directory.
+			if (CultureName.IsSet() && OutputPathOverride.IsSet())
+			{
+				ConfigSection.Add( TEXT("bUseCultureDirectory"), "false" );
+			}
+
+
 			ConfigSection.Add( TEXT("ManifestName"), FPaths::GetCleanFilename(GetManifestPath(Target)) );
 			ConfigSection.Add( TEXT("ArchiveName"), FPaths::GetCleanFilename(GetArchivePath(Target, FString())) );
-			ConfigSection.Add( TEXT("PortableObjectName"), FPaths::GetCleanFilename(GetPOPath(Target, FString())) );
+			FString POFileName;
+			// The output path for a specific culture is a file path.
+			if (CultureName.IsSet() && OutputPathOverride.IsSet())
+			{
+				POFileName =  FPaths::GetCleanFilename( OutputPathOverride.GetValue() );
+			}
+			// Use the default PO file's name.
+			else
+			{
+				POFileName = FPaths::GetCleanFilename( GetDefaultPOPath( Target, CultureName.Get( TEXT("") ) ) );
+			}
+			ConfigSection.Add( TEXT("PortableObjectName"), POFileName );
 		}
 
 		Script.Dirty = true;
@@ -291,13 +373,13 @@ namespace LocalizationConfigurationScript
 		return Script;
 	}
 
-	FString GetExportScriptPath(const FLocalizationTargetSettings& Target, const FString* const SpecificCultureName)
+	FString GetExportScriptPath(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName)
 	{
 		const FString ConfigFileDirectory = GetScriptDirectory();
 		FString ConfigFilePath;
-		if (SpecificCultureName)
+		if (CultureName.IsSet())
 		{
-			ConfigFilePath = ConfigFileDirectory / FString::Printf( TEXT("%s_Export_%s.%s"), *Target.Name, **SpecificCultureName, TEXT("ini") );
+			ConfigFilePath = ConfigFileDirectory / FString::Printf( TEXT("%s_Export_%s.%s"), *Target.Name, *CultureName.GetValue(), TEXT("ini") );
 		}
 		else
 		{

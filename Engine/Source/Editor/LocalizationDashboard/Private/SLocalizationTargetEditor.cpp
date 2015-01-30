@@ -672,21 +672,63 @@ namespace
 
 	void FLocalizationTargetDetailCustomization::ImportAllCultures()
 	{
-		if (LocalizationTarget)
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		if (LocalizationTarget && DesktopPlatform)
 		{
+			void* ParentWindowWindowHandle = NULL;
 			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
-			LocalizationCommandletTasks::ImportTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings);
+			if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
+			{
+				ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			}
 
-			UpdateTargetFromReports();
+			const FString DefaultPath = FPaths::ConvertRelativePathToFull(LocalizationConfigurationScript::GetDataDirectory(LocalizationTarget->Settings));
+
+			FText DialogTitle;
+			{
+				FFormatNamedArguments FormatArguments;
+				FormatArguments.Add(TEXT("TargetName"), FText::FromString(LocalizationTarget->Settings.Name));
+				DialogTitle = FText::Format(LOCTEXT("ImportAllTranslationsForTargetDialogTitleFormat", "Import All Translations for {TargetName} from Directory"), FormatArguments);
+			}
+
+			// Prompt the user for the directory
+			FString OutputDirectory;
+			if (DesktopPlatform->OpenDirectoryDialog(ParentWindowWindowHandle, DialogTitle.ToString(), DefaultPath, OutputDirectory))
+			{
+				LocalizationCommandletTasks::ImportTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings, TOptional<FString>(OutputDirectory));
+
+				UpdateTargetFromReports();
+			}
 		}
 	}
 
 	void FLocalizationTargetDetailCustomization::ExportAllCultures()
 	{
-		if (LocalizationTarget)
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		if (LocalizationTarget && DesktopPlatform)
 		{
+			void* ParentWindowWindowHandle = NULL;
 			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
-			LocalizationCommandletTasks::ExportTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings);
+			if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
+			{
+				ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			}
+
+			const FString DefaultPath = FPaths::ConvertRelativePathToFull(LocalizationConfigurationScript::GetDataDirectory(LocalizationTarget->Settings));
+
+			FText DialogTitle;
+			{
+				FFormatNamedArguments FormatArguments;
+				FormatArguments.Add(TEXT("TargetName"), FText::FromString(LocalizationTarget->Settings.Name));
+				DialogTitle = FText::Format(LOCTEXT("ExportAllTranslationsForTargetDialogTitleFormat", "Export All Translations for {TargetName} to Directory"), FormatArguments);
+			}
+
+			// Prompt the user for the directory
+			FString OutputDirectory;
+			if (DesktopPlatform->OpenDirectoryDialog(ParentWindowWindowHandle, DialogTitle.ToString(), DefaultPath, OutputDirectory))
+			{
+				LocalizationCommandletTasks::ExportTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings, TOptional<FString>(OutputDirectory));
+			}
 		}
 	}
 

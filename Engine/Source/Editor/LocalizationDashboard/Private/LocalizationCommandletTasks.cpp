@@ -50,7 +50,7 @@ bool LocalizationCommandletTasks::GatherTarget(const TSharedRef<SWindow>& Parent
 }
 
 
-bool LocalizationCommandletTasks::ImportTargets(const TSharedRef<SWindow>& ParentWindow, const TArray<FLocalizationTargetSettings*>& TargetsSettings)
+bool LocalizationCommandletTasks::ImportTargets(const TSharedRef<SWindow>& ParentWindow, const TArray<FLocalizationTargetSettings*>& TargetsSettings, const TOptional<FString> DirectoryPath)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
 
@@ -60,8 +60,9 @@ bool LocalizationCommandletTasks::ImportTargets(const TSharedRef<SWindow>& Paren
 		Arguments.Add(TEXT("TargetName"), FText::FromString(TargetSettings->Name));
 
 		const FText ImportTaskName = FText::Format(LOCTEXT("ImportTaskNameFormat", "Import Translations for {TargetName}"), Arguments);
-		const FString ImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(*TargetSettings);
-		LocalizationConfigurationScript::GenerateImportScript(*TargetSettings).Write(ImportScriptPath);
+		const FString ImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(*TargetSettings, TOptional<FString>());
+		const TOptional<FString> DirectoryPathForTarget = DirectoryPath.IsSet() ? DirectoryPath.GetValue() / TargetSettings->Name : TOptional<FString>();
+		LocalizationConfigurationScript::GenerateImportScript(*TargetSettings, TOptional<FString>(), DirectoryPathForTarget).Write(ImportScriptPath);
 		Tasks.Add(LocalizationCommandletExecution::FTask(ImportTaskName, ImportScriptPath));
 
 		const FText ReportTaskName = FText::Format(LOCTEXT("ReportTaskNameFormat", "Generate Reports for {TargetName}"), Arguments);
@@ -73,12 +74,12 @@ bool LocalizationCommandletTasks::ImportTargets(const TSharedRef<SWindow>& Paren
 	return LocalizationCommandletExecution::Execute(ParentWindow, LOCTEXT("ImportForAllTargetsWindowTitle", "Import Translations for All Targets"), Tasks);
 }
 
-bool LocalizationCommandletTasks::ImportTarget(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings)
+bool LocalizationCommandletTasks::ImportTarget(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings, const TOptional<FString> DirectoryPath)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
 
-	const FString ImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(TargetSettings);
-	LocalizationConfigurationScript::GenerateImportScript(TargetSettings).Write(ImportScriptPath);
+	const FString ImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(TargetSettings, TOptional<FString>());
+	LocalizationConfigurationScript::GenerateImportScript(TargetSettings, TOptional<FString>(), DirectoryPath).Write(ImportScriptPath);
 	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ImportTaskName", "Import Translations"), ImportScriptPath));
 
 	const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(TargetSettings);
@@ -92,7 +93,7 @@ bool LocalizationCommandletTasks::ImportTarget(const TSharedRef<SWindow>& Parent
 	return LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
 }
 
-bool LocalizationCommandletTasks::ImportCulture(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings, const FString& CultureName)
+bool LocalizationCommandletTasks::ImportCulture(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings, const FString& CultureName, const TOptional<FString> FilePath)
 {
 	FCulturePtr Culture = FInternationalization::Get().GetCulture(CultureName);
 	if (!Culture.IsValid())
@@ -102,8 +103,9 @@ bool LocalizationCommandletTasks::ImportCulture(const TSharedRef<SWindow>& Paren
 
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
 
-	const FString ImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(TargetSettings, &CultureName);
-	LocalizationConfigurationScript::GenerateImportScript(TargetSettings, &CultureName).Write(ImportScriptPath);
+	const FString DefaultImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(TargetSettings, TOptional<FString>(CultureName));
+	const FString ImportScriptPath = FPaths::CreateTempFilename(*FPaths::GetPath(DefaultImportScriptPath), *FPaths::GetBaseFilename(DefaultImportScriptPath), *FPaths::GetExtension(DefaultImportScriptPath, true));
+	LocalizationConfigurationScript::GenerateImportScript(TargetSettings, TOptional<FString>(CultureName), FilePath).Write(ImportScriptPath);
 	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ImportTaskName", "Import Translations"), ImportScriptPath));
 
 	const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(TargetSettings);
@@ -115,10 +117,14 @@ bool LocalizationCommandletTasks::ImportCulture(const TSharedRef<SWindow>& Paren
 	Arguments.Add(TEXT("TargetName"), FText::FromString(TargetSettings.Name));
 
 	const FText WindowTitle = FText::Format(LOCTEXT("ImportCultureForTargetWindowTitle", "Import {CultureName} Translations for Target {TargetName}"), Arguments);
-	return LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
+
+	bool HasSucceeeded = LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
+	IFileManager::Get().Delete(*ImportScriptPath); // Don't clutter up the loc config directory with scripts for individual cultures.
+	return HasSucceeeded;
+
 }
 
-bool LocalizationCommandletTasks::ExportTargets(const TSharedRef<SWindow>& ParentWindow, const TArray<FLocalizationTargetSettings*>& TargetsSettings)
+bool LocalizationCommandletTasks::ExportTargets(const TSharedRef<SWindow>& ParentWindow, const TArray<FLocalizationTargetSettings*>& TargetsSettings, const TOptional<FString> DirectoryPath)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
 
@@ -128,20 +134,21 @@ bool LocalizationCommandletTasks::ExportTargets(const TSharedRef<SWindow>& Paren
 		Arguments.Add(TEXT("TargetName"), FText::FromString(TargetSettings->Name));
 
 		const FText ExportTaskName = FText::Format(LOCTEXT("ExportTaskNameFormat", "Export Translations for {TargetName}"), Arguments);
-		const FString ExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(*TargetSettings);
-		LocalizationConfigurationScript::GenerateExportScript(*TargetSettings).Write(ExportScriptPath);
+		const FString ExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(*TargetSettings, TOptional<FString>());
+		const TOptional<FString> DirectoryPathForTarget = DirectoryPath.IsSet() ? DirectoryPath.GetValue() / TargetSettings->Name : TOptional<FString>();
+		LocalizationConfigurationScript::GenerateExportScript(*TargetSettings, TOptional<FString>(), DirectoryPathForTarget).Write(ExportScriptPath);
 		Tasks.Add(LocalizationCommandletExecution::FTask(ExportTaskName, ExportScriptPath));
 	}
 
 	return LocalizationCommandletExecution::Execute(ParentWindow, LOCTEXT("ExportForAllTargetsWindowTitle", "Export Translations for All Targets"), Tasks);
 }
 
-bool LocalizationCommandletTasks::ExportTarget(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings)
+bool LocalizationCommandletTasks::ExportTarget(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings, const TOptional<FString> DirectoryPath)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
 
-	const FString ExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(TargetSettings);
-	LocalizationConfigurationScript::GenerateExportScript(TargetSettings).Write(ExportScriptPath);
+	const FString ExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(TargetSettings, TOptional<FString>());
+	LocalizationConfigurationScript::GenerateExportScript(TargetSettings, TOptional<FString>(), DirectoryPath).Write(ExportScriptPath);
 	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ExportTaskName", "Export Translations"), ExportScriptPath));
 
 	FFormatNamedArguments Arguments;
@@ -151,7 +158,7 @@ bool LocalizationCommandletTasks::ExportTarget(const TSharedRef<SWindow>& Parent
 	return LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
 }
 
-bool LocalizationCommandletTasks::ExportCulture(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings, const FString& CultureName)
+bool LocalizationCommandletTasks::ExportCulture(const TSharedRef<SWindow>& ParentWindow, FLocalizationTargetSettings& TargetSettings, const FString& CultureName, const TOptional<FString> FilePath)
 {
 	FCulturePtr Culture = FInternationalization::Get().GetCulture(CultureName);
 	if (!Culture.IsValid())
@@ -161,8 +168,9 @@ bool LocalizationCommandletTasks::ExportCulture(const TSharedRef<SWindow>& Paren
 
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
 
-	const FString ExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(TargetSettings, &CultureName);
-	LocalizationConfigurationScript::GenerateExportScript(TargetSettings, &CultureName).Write(ExportScriptPath);
+	const FString DefaultExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(TargetSettings, TOptional<FString>(CultureName));
+	const FString ExportScriptPath = FPaths::CreateTempFilename(*FPaths::GetPath(DefaultExportScriptPath), *FPaths::GetBaseFilename(DefaultExportScriptPath), *FPaths::GetExtension(DefaultExportScriptPath, true));
+	LocalizationConfigurationScript::GenerateExportScript(TargetSettings, TOptional<FString>(CultureName), FilePath).Write(ExportScriptPath);
 	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ExportTaskName", "Export Translations"), ExportScriptPath));
 
 	FFormatNamedArguments Arguments;
@@ -170,7 +178,10 @@ bool LocalizationCommandletTasks::ExportCulture(const TSharedRef<SWindow>& Paren
 	Arguments.Add(TEXT("TargetName"), FText::FromString(TargetSettings.Name));
 
 	const FText WindowTitle = FText::Format(LOCTEXT("ExportCultureForTargetWindowTitle", "Export {CultureName} Translations for Target {TargetName}"), Arguments);
-	return LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
+
+	bool HasSucceeeded = LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
+	IFileManager::Get().Delete(*ExportScriptPath); // Don't clutter up the loc config directory with scripts for individual cultures.
+	return HasSucceeeded;
 }
 
 bool LocalizationCommandletTasks::GenerateReportsForTargets(const TSharedRef<SWindow>& ParentWindow, const TArray<FLocalizationTargetSettings*>& TargetsSettings)

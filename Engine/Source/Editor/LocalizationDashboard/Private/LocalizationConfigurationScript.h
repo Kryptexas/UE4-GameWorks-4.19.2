@@ -28,17 +28,18 @@ namespace LocalizationConfigurationScript
 
 	FString GetManifestPath(const FLocalizationTargetSettings& Target);
 	FString GetArchivePath(const FLocalizationTargetSettings& Target, const FString& CultureName);
-	FString GetPOPath(const FLocalizationTargetSettings& Target, const FString& CultureName);
+	FString GetDefaultPOFileName(const FLocalizationTargetSettings& Target);
+	FString GetDefaultPOPath(const FLocalizationTargetSettings& Target, const FString& CultureName);
 	FString GetLocResPath(const FLocalizationTargetSettings& Target, const FString& CultureName);
 
 	FLocalizationConfigurationScript GenerateGatherScript(const FLocalizationTargetSettings& Target);
 	FString GetGatherScriptPath(const FLocalizationTargetSettings& Target);
 
-	FLocalizationConfigurationScript GenerateImportScript(const FLocalizationTargetSettings& Target, const FString* const SpecificCulture = nullptr);
-	FString GetImportScriptPath(const FLocalizationTargetSettings& Target, const FString* const SpecificCultureName = nullptr);
+	FLocalizationConfigurationScript GenerateImportScript(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName = TOptional<FString>(), const TOptional<FString> OutputPathOverride = TOptional<FString>());
+	FString GetImportScriptPath(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName = TOptional<FString>());
 
-	FLocalizationConfigurationScript GenerateExportScript(const FLocalizationTargetSettings& Target, const FString* const SpecificCulture = nullptr);
-	FString GetExportScriptPath(const FLocalizationTargetSettings& Target, const FString* const SpecificCultureName = nullptr);
+	FLocalizationConfigurationScript GenerateExportScript(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName = TOptional<FString>(), const TOptional<FString> OutputPathOverride = TOptional<FString>());
+	FString GetExportScriptPath(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName = TOptional<FString>());
 
 	FLocalizationConfigurationScript GenerateReportScript(const FLocalizationTargetSettings& Target);
 	FString GetReportScriptPath(const FLocalizationTargetSettings& Target);

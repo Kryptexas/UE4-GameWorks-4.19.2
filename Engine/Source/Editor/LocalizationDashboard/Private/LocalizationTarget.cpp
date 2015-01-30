@@ -255,7 +255,7 @@ bool FLocalizationTargetSettings::Rename(const FString& NewName)
 		for (const FCultureStatistics* Culture : Cultures)
 		{
 			NamedPaths.Add(LocalizationConfigurationScript::GetArchivePath(*this, Culture->CultureName));
-			NamedPaths.Add(LocalizationConfigurationScript::GetPOPath(*this, Culture->CultureName));
+			NamedPaths.Add(LocalizationConfigurationScript::GetDefaultPOPath(*this, Culture->CultureName));
 			NamedPaths.Add(LocalizationConfigurationScript::GetLocResPath(*this, Culture->CultureName));
 		}
 
