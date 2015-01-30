@@ -39,4 +39,7 @@ private:
 	TSharedPtr<class SSCSEditor> SCSEditor;
 
 	bool bSelectionGuard;
+
+	// True if the actor "root" node in the SCS editor is currently shown as selected
+	bool bShowingRootActorNodeSelected;
 };

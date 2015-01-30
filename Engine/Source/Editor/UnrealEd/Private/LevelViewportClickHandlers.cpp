@@ -215,7 +215,10 @@ namespace ClickHandlers
 					const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors") );
 					GEditor->GetSelectedActors()->Modify();
 
-					if( Click.IsControlDown() )
+					// Ctrl- or shift- clicking an actor is the same as regular clicking when components are selected
+					const bool bComponentSelected = GEditor->GetSelectedComponentCount() > 0;
+
+					if( Click.IsControlDown() && !bComponentSelected )
 					{
 						const bool bSelect = !Actor->IsSelected();
 						if( bSelect )
@@ -224,7 +227,7 @@ namespace ClickHandlers
 						}
 						GEditor->SelectActor( Actor, bSelect, true, true );
 					}
-					else if( Click.IsShiftDown() )
+					else if( Click.IsShiftDown() && !bComponentSelected )
 					{
 						if( !Actor->IsSelected() )
 						{
