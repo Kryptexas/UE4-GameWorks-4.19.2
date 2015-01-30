@@ -682,6 +682,11 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 		// Handle attachment at the instance level
 		if (ChildInstance->AttachParent != ParentInstance)
 		{
+			AActor* Owner = ParentInstance->GetOwner();
+			if (Owner->GetRootComponent() == ChildInstance)
+			{
+				Owner->SetRootComponent(ParentInstance);
+			}
 			ChildInstance->AttachTo(ParentInstance, NAME_None, EAttachLocation::KeepWorldPosition);
 		}
 	}
