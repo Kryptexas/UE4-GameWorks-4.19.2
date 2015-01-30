@@ -302,7 +302,7 @@ namespace iPhonePackager
 			string SelectedProvision = "";
 			string SelectedCert = "";
 			string SelectedFile = "";
-			bool bFoundName = false;
+			int FoundName = -1;
 			Dictionary<string, MobileProvision> ProvisionLibrary = new Dictionary<string, MobileProvision>();
 			foreach (string Provision in Directory.EnumerateFiles(Config.ProvisionDirectory, "*.mobileprovision"))
 			{
@@ -320,10 +320,24 @@ namespace iPhonePackager
 					bValid = (Cert.NotBefore < Now) && (Cert.NotAfter > Now);
 				}
 				bool bPassesNameCheck = p.ApplicationIdentifier.Substring(p.ApplicationIdentifierPrefix.Length+1) == CFBundleIdentifier;
-				bool bPassesWildCardCheck = p.ApplicationIdentifier.Contains("*");
+				bool bPassesCompanyCheck = false;
+				bool bPassesWildCardCheck = false;
+				if (p.ApplicationIdentifier.Contains("*"))
+				{
+					string CompanyName = p.ApplicationIdentifier.Substring(p.ApplicationIdentifierPrefix.Length + 1);
+					if (CompanyName != "*")
+					{
+						CompanyName = CompanyName.Substring(0, CompanyName.LastIndexOf("."));
+						bPassesCompanyCheck = CFBundleIdentifier.StartsWith(CompanyName);
+					}
+					else
+					{
+						bPassesWildCardCheck = true;
+					}
+				}
 				bool bDistribution = ((p.ProvisionedDeviceIDs.Count == 0) && !p.bDebug);
 				string Validity = "VALID";
-				if (!bPassesNameCheck && !bPassesWildCardCheck)
+				if (!bPassesNameCheck && !bPassesWildCardCheck && !bPassesCompanyCheck)
 				{
 					Validity = "NO_MATCH";
 				}
@@ -338,12 +352,27 @@ namespace iPhonePackager
 						Validity = "EXPIRED";
 					}
 				}
-				if ((string.IsNullOrWhiteSpace(SelectedProvision) || !bFoundName) && Validity == "VALID" && !bDistribution)
+				if ((string.IsNullOrWhiteSpace(SelectedProvision) || FoundName < 2) && Validity == "VALID" && !bDistribution)
 				{
-					bFoundName = bPassesNameCheck;
-					SelectedProvision = p.ProvisionName;
-					SelectedFile = Path.GetFileName(Provision);
-					SelectedCert = Cert.FriendlyName;
+					int Prev = FoundName;
+					if (bPassesNameCheck)
+					{
+						FoundName = 2;
+					}
+					else if (bPassesCompanyCheck && FoundName < 1)
+					{
+						FoundName = 1;
+					}
+					else if (bPassesWildCardCheck && FoundName == -1)
+					{
+						FoundName = 0;
+					}
+					if (FoundName != Prev)
+					{
+						SelectedProvision = p.ProvisionName;
+						SelectedFile = Path.GetFileName(Provision);
+						SelectedCert = Cert.FriendlyName;
+					}
 				}
 				Program.LogVerbose("PROVISION-File:{0},Name:{1},Validity:{2},StartDate:{3},EndDate:{4},Type:{5}", Path.GetFileName(Provision), p.ProvisionName, Validity, EffectiveDate.ToString(), ExpirationDate.ToString(), bDistribution ? "DISTRIBUTION" : "DEVELOPMENT");
 			}
