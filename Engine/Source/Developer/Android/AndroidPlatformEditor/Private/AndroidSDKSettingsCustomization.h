@@ -23,7 +23,6 @@ private:
 	FAndroidSDKSettingsCustomization();
 
 	void BuildSDKPathSection(IDetailLayoutBuilder& DetailLayout);
-	void SetupSDKPaths();
 
 private:
 	IDetailLayoutBuilder* SavedLayoutBuilder;
