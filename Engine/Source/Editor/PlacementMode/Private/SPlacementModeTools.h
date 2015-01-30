@@ -15,13 +15,15 @@ public:
 
 	SLATE_BEGIN_ARGS(SPlacementAssetEntry)
 		: _LabelOverride()
+		, _UseClassThumbnailForAsset(false)
 	{}
 	
 	/** Highlight this text in the text block */
 	SLATE_ATTRIBUTE(FText, HighlightText)
 
 	SLATE_ARGUMENT(FText, LabelOverride)
-	
+
+	SLATE_ARGUMENT(bool, UseClassThumbnailForAsset)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, UActorFactory* InFactory, const FAssetData& InAsset);
