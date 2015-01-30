@@ -61,9 +61,9 @@ void FGameProjectGenerationModule::OpenAddCodeToProjectDialog(const TSharedPtr<S
 	AddCodeToProjectDialogOpenedEvent.Broadcast();
 }
 
-void FGameProjectGenerationModule::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal, FOnCodeAddedToProject OnCodeAddedToProject)
+void FGameProjectGenerationModule::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal, FOnCodeAddedToProject OnCodeAddedToProject, const FString InDefaultClassPrefix, const FString InDefaultClassName)
 {
-	GameProjectUtils::OpenAddCodeToProjectDialog(InClass, InInitialPath, InParentWindow, bModal, OnCodeAddedToProject);
+	GameProjectUtils::OpenAddCodeToProjectDialog(InClass, InInitialPath, InParentWindow, bModal, OnCodeAddedToProject, InDefaultClassPrefix, InDefaultClassName);
 	AddCodeToProjectDialogOpenedEvent.Broadcast();
 }
 

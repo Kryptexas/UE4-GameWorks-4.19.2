@@ -20,6 +20,13 @@ public:
 	/** The initial path to use as the destination for the new class. If this is not specified, we will work out a suitable default from the available project modules */
 	SLATE_ARGUMENT(FString, InitialPath)
 
+	/** The prefix to put on new classes by default, if the user doesn't type in a new name.  Defaults to 'My'. */
+	SLATE_ARGUMENT(FString, DefaultClassPrefix)
+
+	/** If non-empty, overrides the default name of the class, when the user doesn't type a new name.  Defaults to empty, which causes the
+	    name to be the inherited class name.  Note that DefaultClassPrefix is still prepended to this name, if non-empty. */
+	SLATE_ARGUMENT(FString, DefaultClassName)
+
 	/** Event called when code is successfully added to the project */
 	SLATE_EVENT( FOnCodeAddedToProject, OnCodeAddedToProject )
 	SLATE_END_ARGS()
@@ -170,6 +177,13 @@ private:
 
 	/** A pointer to a class viewer **/
 	TSharedPtr<class SClassViewer> ClassViewer;
+
+	/** The prefix to put on new classes by default, if the user doesn't type in a new name.  Defaults to 'My'. */
+	FString DefaultClassPrefix;
+
+	/** If non-empty, overrides the default name of the class, when the user doesn't type a new name.  Defaults to empty, which causes the
+	    name to be the inherited class name.  Note that DefaultClassPrefix is still prepended to this name, if non-empty. */
+	FString DefaultClassName;
 
 	/** The editable text box to enter the current name */
 	TSharedPtr<SEditableTextBox> ClassNameEditBox;

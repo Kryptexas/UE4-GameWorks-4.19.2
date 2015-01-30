@@ -140,10 +140,22 @@ FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorCompo
 {
 	check(ComponentOwner);
 
-	int32 Counter = 1;
-	FString ComponentTypeName = *ComponentClass->GetName().Replace(TEXT("Component"), TEXT(""));
+	// Strip off "_C" suffix if it has one
+	FString ComponentTypeName = *ComponentClass->GetName();
+	if (ComponentClass->ClassGeneratedBy && ComponentTypeName.EndsWith(TEXT("_C")))
+	{
+		ComponentTypeName = ComponentTypeName.Left( ComponentTypeName.Len() - 2 );
+	}
+
+	// Strip off 'Component' if the class ends with that.  It just looks better in the UI.
+	const FString SuffixToStrip( TEXT( "Component" ) );
+	if( ComponentTypeName.EndsWith( SuffixToStrip ) )
+	{
+		ComponentTypeName = ComponentTypeName.Left( ComponentTypeName.Len() - SuffixToStrip.Len() );
+	}
 	
 	// Try to create a name without any numerical suffix first
+	int32 Counter = 1;
 	FString ComponentInstanceName = ComponentTypeName;
 	while (!IsComponentNameAvailable(ComponentInstanceName, ComponentOwner))
 	{

@@ -721,7 +721,7 @@ bool GameProjectUtils::UpdateGameProject(const FString& ProjectFile, const FStri
 	return UpdateGameProjectFile(ProjectFile, EngineIdentifier, NULL, OutFailReason);
 }
 
-void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal, FOnCodeAddedToProject OnCodeAddedToProject )
+void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal, FOnCodeAddedToProject OnCodeAddedToProject, const FString InDefaultClassPrefix, const FString InDefaultClassName )
 {
 	// If we've been given a class then we only show the second page of the dialog, so we can make the window smaller as that page doesn't have as much content
 	const FVector2D WindowSize = (InClass) ? FVector2D(940, 380) : FVector2D(940, 540);
@@ -737,7 +737,9 @@ void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const F
 		SNew(SNewClassDialog)
 		.Class(InClass)
 		.InitialPath(InInitialPath)
-		.OnCodeAddedToProject( OnCodeAddedToProject );
+		.OnCodeAddedToProject( OnCodeAddedToProject )
+		.DefaultClassPrefix( InDefaultClassPrefix )
+		.DefaultClassName( InDefaultClassName );
 
 	AddCodeWindow->SetContent( NewClassDialog );
 
