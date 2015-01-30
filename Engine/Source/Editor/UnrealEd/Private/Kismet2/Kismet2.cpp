@@ -879,6 +879,7 @@ bool FKismetEditorUtilities::CanCreateBlueprintOfClass(const UClass* Class)
 	const bool bIsValidClass = Class->GetBoolMetaDataHierarchical(FBlueprintMetadata::MD_IsBlueprintBase)
 		|| (Class == UObject::StaticClass())
 		|| (Class == UActorComponent::StaticClass() && bAllowBlueprintableComponents)
+		|| (bAllowBlueprintableComponents && Class->IsChildOf<UActorComponent>() && Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
 		|| bIsBPGC;  // BPs are always considered inheritable
 
 	return bCanCreateBlueprint && bIsValidClass;
