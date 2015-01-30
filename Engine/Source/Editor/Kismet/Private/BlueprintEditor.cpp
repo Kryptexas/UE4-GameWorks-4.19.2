@@ -1267,6 +1267,13 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 			FBlueprintEditorUtils::AddFunctionGraph(BlueprintObj, UCSGraph, /*bIsUserCreated=*/ false, AActor::StaticClass());
 			UCSGraph->bAllowDeletion = false;
 		}
+
+		// Check to see if we have gained a component from our parent (that would require us removing our scene root)
+		// (or lost one, which requires adding one)
+		if (BlueprintObj->SimpleConstructionScript != nullptr)
+		{
+			BlueprintObj->SimpleConstructionScript->ValidateSceneRootNodes();
+		}
 	}
 	else
 	{
@@ -2461,6 +2468,9 @@ void FBlueprintEditor::ReparentBlueprint_NewParentChosen(UClass* ChosenClass)
 			EnsureBlueprintIsUpToDate(BlueprintObj);
 
 			Compile();
+
+			// Ensure that the Blueprint is up-to-date (valid SCS etc.) after compiling (new parent class)
+			EnsureBlueprintIsUpToDate(BlueprintObj);
 
 			if (SCSEditor.IsValid())
 			{
