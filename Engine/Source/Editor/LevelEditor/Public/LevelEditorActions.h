@@ -1162,7 +1162,7 @@ public:
 	 * @param InUseBounds		Whether or not to base the line trace off of the bounds.
 	 * @param InUsePivot		Whether or not to use the pivot position.
 	 */
-	static void SnapActorToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot );
+	static void SnapToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot );
 
 	/**
 	 * Snaps an actor to another actor.  Optionally will align with the trace normal.
@@ -1193,14 +1193,14 @@ private:
 	static void MoveActorTo_Clicked( const bool InAlign, const AActor* InDestination = NULL, bool bInPerActor = false );
 
 	/** 
-	 * Snaps an actor...  Optionally will align with the trace normal.
+	 * Snaps an actor or component...  Optionally will align with the trace normal.
 	 * @param InAlign			Whether or not to rotate the actor to align with the trace normal.
 	 * @param InUseLineTrace	Whether or not to only trace with a line through the world.
 	 * @param InUseBounds		Whether or not to base the line trace off of the bounds.
 	 * @param InUsePivot		Whether or not to use the pivot position.
 	 * @param InDestination		The destination actor we want to move this actor to, NULL assumes we just want to go towards the floor
 	 */
-	static void SnapActorTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, const AActor* InDestination = NULL );
+	static void SnapTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, AActor* InDestination = NULL );
 
 	/** 
 	 * Create and apply animation to the SkeletalMeshComponent if Simulating
