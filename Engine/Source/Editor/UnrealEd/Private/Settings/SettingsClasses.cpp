@@ -93,7 +93,7 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 
 UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-	, bMonitorContentDirectories(false)
+	, bMonitorContentDirectories(true)
 	, bAutoCreateAssets(true)
 	, bAutoDeleteAssets(true)
 	, bDeleteSourceFilesWithAssets(true)
