@@ -69,7 +69,7 @@ FArchive& operator << (FArchive& Ar, FFoliageInstanceBaseCache& InstanceBaseCach
 	{
 		Ar << InstanceBaseCache.InstanceBaseInvMap;
 	}
-	else if (Ar.IsLoading())
+	else if (!Ar.IsSaving())
 	{
 		InstanceBaseCache.InstanceBaseInvMap.Empty();
 		for (const auto& Pair : InstanceBaseCache.InstanceBaseMap)
@@ -78,8 +78,6 @@ FArchive& operator << (FArchive& Ar, FFoliageInstanceBaseCache& InstanceBaseCach
 			InstanceBaseCache.InstanceBaseInvMap.Add(BaseInfo.BasePtr, Pair.Key);
 		}
 	}
-	
-	check(InstanceBaseCache.InstanceBaseInvMap.Num() == InstanceBaseCache.InstanceBaseMap.Num());
 
 	return Ar;
 }
@@ -160,7 +158,7 @@ FFoliageInstanceBaseInfo FFoliageInstanceBaseCache::UpdateInstanceBaseInfoTransf
 void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor* IFA)
 {
 	UWorld* World = IFA->GetWorld();
-	if (!World)
+	if (!World || World->IsGameWorld())
 	{
 		return;
 	}

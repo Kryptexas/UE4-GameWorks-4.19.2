@@ -43,8 +43,6 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
-	// @todo beng: fixme
-	//virtual void PreSave() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface. 
 
@@ -144,6 +142,11 @@ public:
 #endif	//WITH_EDITOR
 
 private:
+#if WITH_EDITORONLY_DATA
+	// Deprecated data, will be converted and cleaned up in PostLoad
+	TMap<UFoliageType*, TUniqueObj<struct FFoliageMeshInfo_Deprecated>> FoliageMeshes_Deprecated;
+#endif//WITH_EDITORONLY_DATA
+	
 #if WITH_EDITOR
 	void OnLevelActorMoved(AActor* InActor);
 	void OnLevelActorDeleted(AActor* InActor);

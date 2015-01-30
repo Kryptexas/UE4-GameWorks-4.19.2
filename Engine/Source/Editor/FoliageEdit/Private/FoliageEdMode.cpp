@@ -1516,12 +1516,12 @@ bool FEdModeFoliage::SnapInstanceToGround(AInstancedFoliageActor* InIFA, float A
 
 		// Set new base
 		auto NewBaseId = InIFA->InstanceBaseCache.AddInstanceBaseId(HitComponent);
-		Mesh.RemoveFromHash(InstanceIdx);
+		Mesh.RemoveFromBaseHash(InstanceIdx);
 		Instance.BaseId = NewBaseId;
+		Mesh.AddToBaseHash(InstanceIdx);
 		Instance.Location = Hit.Location;
 		Instance.ZOffset = 0.f;
-		Mesh.AddToHash(InstanceIdx);
-											
+													
 		if (Instance.Flags & FOLIAGE_AlignToNormal)
 		{
 			// Remove previous alignment and align to new normal.
