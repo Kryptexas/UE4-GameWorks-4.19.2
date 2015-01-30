@@ -569,7 +569,8 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 					auto PrimComponent = Cast<UPrimitiveComponent>(Component);
 					if (PrimComponent && PrimComponent->SelectionOverrideDelegate.IsBound())
 					{
-						PrimComponent->Modify();
+						const bool bShouldMarkPackageDirty = false;
+						PrimComponent->Modify( bShouldMarkPackageDirty );
 						PrimComponent->SelectionOverrideDelegate.Unbind();
 					}
 				}
@@ -582,7 +583,8 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 					auto PrimComponent = Cast<UPrimitiveComponent>(Component);
 					if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
 					{
-						PrimComponent->Modify();
+						const bool bShouldMarkPackageDirty = false;
+						PrimComponent->Modify( bShouldMarkPackageDirty );
 						PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(this, &UUnrealEdEngine::IsComponentSelected);
 					}
 				}
