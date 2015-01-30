@@ -112,6 +112,7 @@ public:
 	uint32 bIsActive:1;
 
 	/** If TRUE, we call the virtual InitializeComponent */
+	UPROPERTY()
 	uint32 bWantsInitializeComponent:1;
 
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
@@ -287,12 +288,20 @@ public:
 	 */
 	virtual void InitializeComponent();
 
+	/** Event when the component is initialized, either via creation or its Actor's BeginPlay. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "Begin", FriendlyName = "Initialize Component"))
+	virtual void ReceiveInitializeComponent();
+
 	/**
 	 * Ends gameplay for this component.
 	 * Called from AActor::EndPlay only if bHasBeenInitialized is true
 	 */
 	virtual void UninitializeComponent();
 
+	/** Event when the component is uninitialized, generally via descruction or its Actor's EndPlay. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "End Delete", FriendlyName = "Uninitialize Component"))
+	virtual void ReceiveUninitializeComponent();
+	
 	/**
 	 * When called, will call the virtual call chain to register all of the tick functions
 	 * Do not override this function or make it virtual
