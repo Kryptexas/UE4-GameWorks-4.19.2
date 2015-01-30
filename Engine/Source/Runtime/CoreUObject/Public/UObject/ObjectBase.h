@@ -95,7 +95,7 @@ enum EPackageFlags
 // Internal enums.
 //
 enum EStaticConstructor				{EC_StaticConstructor};
-enum EInternal						{EC_Internal};
+enum EInternal						{EC_InternalUseOnlyConstructor};
 enum ECppProperty					{EC_CppProperty};
 
 /** Empty API definition.  Used as a placeholder parameter when no DLL export/import API is needed for a UObject class */
@@ -1178,11 +1178,16 @@ public: \
 	{ \
 		return TStaticCastFlags; \
 	} \
-	/** For internal use only; use StaticConstructObject() to create new objects. */ \
+	DEPRECATED(4.8, "operator new has been deprecated for UObjects - please use NewObject or NewNamedObject instead") \
 	inline void* operator new( const size_t InSize, UObject* InOuter=(UObject*)GetTransientPackage(), FName InName=NAME_None, EObjectFlags InSetFlags=RF_NoFlags ) \
 	{ \
 		return StaticAllocateObject( StaticClass(), InOuter, InName, InSetFlags ); \
 	} \
+	/** For internal use only; use StaticConstructObject() to create new objects. */ \
+	inline void* operator new(const size_t InSize, EInternal InInternalOnly, UObject* InOuter = (UObject*)GetTransientPackage(), FName InName = NAME_None, EObjectFlags InSetFlags = RF_NoFlags) \
+	{ \
+		return StaticAllocateObject(StaticClass(), InOuter, InName, InSetFlags); \
+} \
 	/** For internal use only; use StaticConstructObject() to create new objects. */ \
 	inline void* operator new( const size_t InSize, EInternal* InMem ) \
 	{ \
@@ -1193,15 +1198,29 @@ public: \
 	static_assert(false, "You have to define " #TClass "::" #TClass "() or " #TClass "::" #TClass "(const FObjectInitializer&). This is required by UObject system to work correctly.");
 
 #define DEFINE_DEFAULT_CONSTRUCTOR_CALL(TClass) \
-	static void __DefaultConstructor(const FObjectInitializer& X) { const_cast<FObjectInitializer&>(X).FinalizeSubobjectClassInitialization(); new((EInternal*)X.GetObj())TClass(); }
+	static void __DefaultConstructor(const FObjectInitializer& X) { new((EInternal*)X.GetObj())TClass(); }
 
 #define DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
 	static void __DefaultConstructor(const FObjectInitializer& X) { new((EInternal*)X.GetObj())TClass(X); }
+
+#define DECLARE_CLASS_INTRINSIC_NO_CTOR(TClass,TSuperClass,TStaticFlags,TPackage) \
+	DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, CASTCLASS_None, TPackage, NO_API) \
+	enum { IsIntrinsic = 1 }; \
+	static void StaticRegisterNatives##TClass() {} \
+	DECLARE_SERIALIZER(TClass) \
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
 
 #define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
 	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \
 	RELAY_CONSTRUCTOR(TClass, TSuperClass) \
 	enum {IsIntrinsic=1}; \
+	static void StaticRegisterNatives##TClass() {} \
+	DECLARE_SERIALIZER(TClass) \
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
+
+#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+	DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, TStaticCastFlags, TPackage, TRequiredAPI) \
+	enum { IsIntrinsic = 1 }; \
 	static void StaticRegisterNatives##TClass() {} \
 	DECLARE_SERIALIZER(TClass) \
 	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)

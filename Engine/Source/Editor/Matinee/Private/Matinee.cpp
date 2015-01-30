@@ -497,7 +497,8 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	GEditor->ResetTransaction( NSLOCTEXT("UnrealEd", "OpenMatinee", "Open UnrealMatinee") );
 
 	NormalTransactor = GEditor->Trans;
-	InterpEdTrans = new UMatineeTransBuffer( FObjectInitializer(), 8*1024*1024 );
+	InterpEdTrans = NewObject<UMatineeTransBuffer>();
+	InterpEdTrans->Initialize(8 * 1024 * 1024);
 	InterpEdTrans->OnUndo().AddRaw(this, &FMatinee::OnPostUndoRedo);
 	InterpEdTrans->OnRedo().AddRaw(this, &FMatinee::OnPostUndoRedo);
 	GEditor->Trans = InterpEdTrans;

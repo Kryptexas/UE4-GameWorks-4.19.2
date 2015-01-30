@@ -334,7 +334,7 @@ public:
 			0.5f / ZOffset,
 			ZOffset);
 
-		RenderTargetTexture = new UTextureRenderTarget2D(FObjectInitializer());
+		RenderTargetTexture = NewObject<UTextureRenderTarget2D>();
 		check(RenderTargetTexture);
 		RenderTargetTexture->ClearColor = FLinearColor::Transparent;
 		RenderTargetTexture->TargetGamma = 1.f;

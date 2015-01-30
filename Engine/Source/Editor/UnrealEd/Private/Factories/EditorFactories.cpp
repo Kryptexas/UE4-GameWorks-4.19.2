@@ -813,7 +813,7 @@ UObject* ULevelFactory::FactoryCreateText
 
 	if (GIsImportingT3D && (MapPackageText.Len() > 0))
 	{
-		UPackageFactory* PackageFactory = new UPackageFactory(FObjectInitializer());
+		UPackageFactory* PackageFactory = NewObject<UPackageFactory>();
 		check(PackageFactory);
 
 		FName NewPackageName(*(RootMapPackage->GetName()));
@@ -1201,8 +1201,8 @@ UObject* UPolysFactory::FactoryCreateText
 {
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
-	// Create polys.
-	UPolys* Polys = Context ? CastChecked<UPolys>(Context) : new(InParent,Name,Flags)UPolys(FObjectInitializer());
+	// Create polys.	
+	UPolys* Polys = Context ? CastChecked<UPolys>(Context) : NewNamedObject<UPolys>(InParent, Name, Flags);
 
 	// Eat up if present.
 	GetBEGIN( &Buffer, TEXT("POLYLIST") );
@@ -1474,7 +1474,8 @@ UObject* UModelFactory::FactoryCreateText
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
 	ABrush* TempOwner = (ABrush*)Context;
-	UModel* Model = new( InParent, Name, Flags )UModel( FObjectInitializer(),TempOwner, 1 );
+	UModel* Model = NewNamedObject<UModel>(InParent, Name, Flags);
+	Model->Initialize(TempOwner, true);
 
 	const TCHAR* StrPtr;
 	FString StrLine;
@@ -1492,7 +1493,7 @@ UObject* UModelFactory::FactoryCreateText
 		}
 		else if( GetBEGIN (&StrPtr,TEXT("POLYLIST")) )
 		{
-			UPolysFactory* PolysFactory = new UPolysFactory(FObjectInitializer());
+			UPolysFactory* PolysFactory = NewObject<UPolysFactory>();
 			Model->Polys = (UPolys*)PolysFactory->FactoryCreateText(UPolys::StaticClass(),Model,NAME_None,RF_Transactional,nullptr,Type,Buffer,BufferEnd,Warn);
 			check(Model->Polys);
 		}
@@ -1770,7 +1771,7 @@ UObject* USoundFactory::FactoryCreateBinary
 
 		// Use pre-existing sound if it exists and we want to keep settings,
 		// otherwise create new sound and import raw data.
-		USoundWave* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : new( InParent, Name, Flags ) USoundWave(FObjectInitializer());
+		USoundWave* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : NewNamedObject<USoundWave>(InParent, Name, Flags);
 		
 		if (bUseExistingSettings && ExistingSound)
 		{
@@ -2077,7 +2078,7 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 
 			if (Sound == nullptr)
 			{
-				Sound = new( InParent, BaseName, Flags ) USoundWave(FObjectInitializer());
+				Sound = NewNamedObject<USoundWave>(InParent, BaseName, Flags);
 			}
 		}
 
@@ -4509,7 +4510,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 		UPackage* MaterialPackage = CreatePackage(nullptr, *MaterialPackageName);
 
 		// Create the material
-		UMaterialFactoryNew* Factory = new UMaterialFactoryNew(FObjectInitializer());
+		UMaterialFactoryNew* Factory = NewObject<UMaterialFactoryNew>();
 		UMaterial* Material = (UMaterial*)Factory->FactoryCreateNew( UMaterial::StaticClass(), MaterialPackage, *MaterialName, Flags, Context, Warn );
 
 		// Notify the asset registry
@@ -5245,7 +5246,8 @@ UObject* UFontFileImportFactory::FactoryCreateBinary(UClass* InClass, UObject* I
 		Font->FontCacheType = EFontCacheType::Runtime;
 
 		// We need to allocate the bulk data with the font as its outer
-		const UFontBulkData* const BulkData = new(Font) UFontBulkData(InBuffer, InBufferEnd - InBuffer);
+		UFontBulkData* const BulkData = NewObject<UFontBulkData>(Font);
+		BulkData->Initialize(InBuffer, InBufferEnd - InBuffer);
 
 		Font->CompositeFont.DefaultTypeface.Fonts.Add(FTypefaceEntry("Default", GetCurrentFilename(), BulkData, EFontHinting::Auto));
 	}

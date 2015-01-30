@@ -46,7 +46,9 @@ void UFont::Serialize( FArchive& Ar )
 		{
 			if( InFontData.FontData_DEPRECATED.Num() > 0 )
 			{
-				InFontData.BulkDataPtr = new(this) UFontBulkData(InFontData.FontData_DEPRECATED.GetData(), InFontData.FontData_DEPRECATED.Num());
+				UFontBulkData* FontBulkData = NewObject<UFontBulkData>(this);
+				FontBulkData->Initialize(InFontData.FontData_DEPRECATED.GetData(), InFontData.FontData_DEPRECATED.Num());
+				InFontData.BulkDataPtr = FontBulkData;					
 				InFontData.FontData_DEPRECATED.Empty();
 			}
 		};

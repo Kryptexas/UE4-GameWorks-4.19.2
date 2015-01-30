@@ -492,7 +492,7 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 		{
 			LoadFlags |= LOAD_SeekFree;
 		}
-		Linker = new ULinkerLoad( FObjectInitializer(), Parent, Filename, LoadFlags );
+		Linker = new(EC_InternalUseOnlyConstructor) ULinkerLoad(FObjectInitializer(), Parent, Filename, LoadFlags);
 		// Add to the list of linkers that haven't been finalized yet
 		GObjPendingLoaders.Add(Parent, Linker);
 	}

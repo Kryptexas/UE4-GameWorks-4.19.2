@@ -51,7 +51,8 @@ FArchive& operator<<(FArchive& Ar,FModelElement& Element)
 	return Ar;
 }
 
-UModelComponent::UModelComponent()
+UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CastShadow = true;
 	bUseAsOccluder = true;
@@ -62,13 +63,14 @@ UModelComponent::UModelComponent()
 }
 
 #if WITH_EDITOR
-UModelComponent::UModelComponent(UModel* InModel,uint16 InComponentIndex,uint32 MaskedSurfaceFlags,const TArray<uint16>& InNodes):
-	Model(InModel),
-	ComponentIndex(InComponentIndex),
-	Nodes(InNodes)
+void UModelComponent::InitializeModelComponent(UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes)
 {
+	Model = InModel;
+	ComponentIndex = InComponentIndex;
+	Nodes = InNodes;
+
 	// Model components are transacted.
-	SetFlags( RF_Transactional );
+	SetFlags(RF_Transactional);
 
 	GenerateElements(true);
 

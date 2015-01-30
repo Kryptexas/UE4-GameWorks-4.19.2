@@ -31,18 +31,9 @@ class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserDa
 public:
 
 	/**
-	 * Default UObject constructor.
+	 * Default UObject constructor that takes an optional ObjectInitializer.
 	 */
-	UActorComponent();
-
-	/**
-	 * UObject constructor that takes an ObjectInitializer
-	 */
-	UActorComponent(const FObjectInitializer& ObjectInitializer);
-
-private:
-	/** Called from the constructor to initialize the object to its default settings */
-	void InitializeDefaults();
+	UActorComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

@@ -83,18 +83,9 @@ class ENGINE_API USceneComponent : public UActorComponent
 public:
 
 	/**
-	 * Default UObject constructor.
-	 */
-	USceneComponent();
-
-	/**
 	 * UObject constructor that takes an ObjectInitializer
 	 */
-	USceneComponent(const FObjectInitializer& ObjectInitializer);
-
-private:
-	/** Initialize the component to its default settings */
-	void InitializeDefaults();
+	USceneComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

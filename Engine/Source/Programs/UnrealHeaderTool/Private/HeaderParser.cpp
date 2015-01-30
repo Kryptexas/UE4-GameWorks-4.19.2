@@ -645,7 +645,7 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 	ParseFieldMetaData(EnumToken.MetaData, EnumToken.Identifier);
 
 	// Create enum definition.
-	UEnum* Enum = new(SourceFile.GetPackage(), EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
+	UEnum* Enum = new(EC_InternalUseOnlyConstructor, SourceFile.GetPackage(), EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
 	Scope->AddType(Enum);
 
 	// Validate the metadata for the enum
@@ -1339,7 +1339,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 	}
 
 	// Create.
-	UScriptStruct* Struct = new(SourceFile.GetPackage(), *EffectiveStructName, RF_Public) UScriptStruct(FObjectInitializer(), BaseStruct);
+	UScriptStruct* Struct = new(EC_InternalUseOnlyConstructor, SourceFile.GetPackage(), *EffectiveStructName, RF_Public) UScriptStruct(FObjectInitializer(), BaseStruct);
 
 	AddModuleRelativePathToMetadata(Struct, MetaData);
 
@@ -3371,7 +3371,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		int32      ArrayDim = 1; // 1 = not a static array, 2 = static array
 		if (VarProperty.ArrayType == EArrayType::Dynamic)
 		{
-			Array       = new(Scope,PropertyName,ObjectFlags)UArrayProperty(FObjectInitializer());
+			Array = new(EC_InternalUseOnlyConstructor, Scope, PropertyName, ObjectFlags)UArrayProperty(FObjectInitializer());
 			NewScope    = Array;
 			ObjectFlags = RF_Public;
 		}
@@ -3382,40 +3382,40 @@ UProperty* FHeaderParser::GetVarNameAndDim
 
 		if (VarProperty.Type == CPT_Byte)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UByteProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UByteProperty(FObjectInitializer());
 			((UByteProperty*)NewProperty)->Enum = VarProperty.Enum;
 		}
 		else if (VarProperty.Type == CPT_Int8)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt8Property(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UInt8Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Int16)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt16Property(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UInt16Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Int)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UIntProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UIntProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Int64)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt64Property(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UInt64Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_UInt16)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt16Property(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UUInt16Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_UInt32)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt32Property(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UUInt32Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_UInt64)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt64Property(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UUInt64Property(FObjectInitializer());
 		}
 		else if (VarProperty.IsBool())
 		{
-			UBoolProperty* NewBoolProperty = new(NewScope,PropertyName,ObjectFlags)UBoolProperty(FObjectInitializer());
+			UBoolProperty* NewBoolProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UBoolProperty(FObjectInitializer());
 			NewProperty = NewBoolProperty;
 			if (HardcodedName && FCString::Stricmp(HardcodedName, TEXT("ReturnValue")) == 0)
 			{
@@ -3445,18 +3445,18 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		}
 		else if (VarProperty.Type == CPT_Float)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UFloatProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UFloatProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Double)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UDoubleProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UDoubleProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_ObjectReference)
 		{
 			check(VarProperty.PropertyClass);
 			if (VarProperty.PropertyClass->IsChildOf(UClass::StaticClass()))
 			{
-				NewProperty = new(NewScope,PropertyName,ObjectFlags)UClassProperty(FObjectInitializer());
+				NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UClassProperty(FObjectInitializer());
 				((UClassProperty*)NewProperty)->MetaClass = VarProperty.MetaClass;
 			}
 			else
@@ -3466,7 +3466,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 					VarProperty.PropertyFlags |= CPF_InstancedReference;
 					AddEditInlineMetaData(VarProperty.MetaData);
 				}
-				NewProperty = new(NewScope,PropertyName,ObjectFlags)UObjectProperty(FObjectInitializer());
+				NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UObjectProperty(FObjectInitializer());
 			}
 
 			((UObjectPropertyBase*)NewProperty)->PropertyClass = VarProperty.PropertyClass;
@@ -3474,13 +3474,13 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		else if (VarProperty.Type == CPT_WeakObjectReference)
 		{
 			check(VarProperty.PropertyClass);
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UWeakObjectProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UWeakObjectProperty(FObjectInitializer());
 			((UObjectPropertyBase*)NewProperty)->PropertyClass = VarProperty.PropertyClass;
 		}
 		else if( VarProperty.Type == CPT_LazyObjectReference )
 		{
 			check(VarProperty.PropertyClass);
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)ULazyObjectProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)ULazyObjectProperty(FObjectInitializer());
 			((UObjectPropertyBase*)NewProperty)->PropertyClass = VarProperty.PropertyClass;
 		}
 		else if( VarProperty.Type == CPT_AssetObjectReference )
@@ -3488,12 +3488,12 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			check(VarProperty.PropertyClass);
 			if (VarProperty.PropertyClass->IsChildOf(UClass::StaticClass()))
 			{
-				NewProperty = new(NewScope,PropertyName,ObjectFlags)UAssetClassProperty(FObjectInitializer());
+				NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UAssetClassProperty(FObjectInitializer());
 				((UAssetClassProperty*)NewProperty)->MetaClass = VarProperty.MetaClass;
 			}
 			else
 			{
-				NewProperty = new(NewScope,PropertyName,ObjectFlags)UAssetObjectProperty(FObjectInitializer());
+				NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UAssetObjectProperty(FObjectInitializer());
 			}
 			((UObjectPropertyBase*)NewProperty)->PropertyClass = VarProperty.PropertyClass;
 		}
@@ -3502,26 +3502,26 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			check(VarProperty.PropertyClass);
 			check(VarProperty.PropertyClass->HasAnyClassFlags(CLASS_Interface));
 
-			UInterfaceProperty* InterfaceProperty = new(NewScope,PropertyName,ObjectFlags) UInterfaceProperty(FObjectInitializer());
+			UInterfaceProperty* InterfaceProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags) UInterfaceProperty(FObjectInitializer());
 			InterfaceProperty->InterfaceClass = VarProperty.PropertyClass;
 
 			NewProperty = InterfaceProperty;
 		}
 		else if (VarProperty.Type == CPT_Name)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UNameProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UNameProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_String)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UStrProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UStrProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Text)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UTextProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UTextProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Struct)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UStructProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UStructProperty(FObjectInitializer());
 			if (VarProperty.Struct->StructFlags & STRUCT_HasInstancedReference)
 			{
 				VarProperty.PropertyFlags |= CPF_ContainsInstancedReference;
@@ -3530,11 +3530,11 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		}
 		else if (VarProperty.Type == CPT_Delegate)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UDelegateProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UDelegateProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_MulticastDelegate)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UMulticastDelegateProperty(FObjectInitializer());
+			NewProperty = new(EC_InternalUseOnlyConstructor, NewScope, PropertyName, ObjectFlags)UMulticastDelegateProperty(FObjectInitializer());
 		}
 		else
 		{
@@ -7671,7 +7671,7 @@ TFunctionType* CreateFunctionImpl(const FFuncInfo& FuncInfo, UObject* Outer, FSc
 		}
 	}
 
-	TFunctionType* Function = new(Outer, FuncInfo.Function.Identifier, RF_Public) TFunctionType(FObjectInitializer(), nullptr);
+	TFunctionType* Function = new(EC_InternalUseOnlyConstructor, Outer, FuncInfo.Function.Identifier, RF_Public) TFunctionType(FObjectInitializer(), nullptr);
 	Function->RepOffset = MAX_uint16;
 	Function->ReturnValueOffset = MAX_uint16;
 	Function->FirstPropertyToInit = nullptr;

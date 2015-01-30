@@ -107,6 +107,7 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 ,	HierarchicalLODBuilder(this)
 #endif
 ,	FeatureLevel(GMaxRHIFeatureLevel)
+, URL(FURL(NULL))
 ,	FXSystem(NULL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
@@ -120,30 +121,6 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 
 	FWorldDelegates::OnPostWorldCreation.Broadcast(this);
 }
-
-
-UWorld::UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
-:	UObject(ObjectInitializer)
-#if WITH_EDITOR
-,	HierarchicalLODBuilder(this)
-#endif
-,	FeatureLevel(GMaxRHIFeatureLevel)
-,	URL(InURL)
-,	FXSystem(NULL)
-,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
-,   bIsBuilt(false)
-,	FlushLevelStreamingType(EFlushLevelStreamingType::None)
-,	NextTravelType(TRAVEL_Relative)
-{
-	SetFlags( RF_Transactional );
-	TimerManager = new FTimerManager();
-#if WITH_EDITOR
-	bBroadcastSelectionChange = true;
-#endif // WITH_EDITOR
-
-	FWorldDelegates::OnPostWorldCreation.Broadcast(this);
-}
-
 
 void UWorld::Serialize( FArchive& Ar )
 {
@@ -907,7 +884,8 @@ void UWorld::InitWorld(const InitializationValues IVS)
 			// Spawn the default brush.
 			DefaultBrush = SpawnBrush();
 			check(DefaultBrush->GetBrushComponent());
-			DefaultBrush->Brush = new( DefaultBrush->GetOuter(), TEXT("Brush") )UModel( FObjectInitializer(), DefaultBrush, 1 );
+			DefaultBrush->Brush = NewNamedObject<UModel>(DefaultBrush->GetOuter(), TEXT("Brush"));
+			DefaultBrush->Brush->Initialize(DefaultBrush, 1);
 			DefaultBrush->GetBrushComponent()->Brush = DefaultBrush->Brush;
 			DefaultBrush->SetNotForClientOrServer();
 			DefaultBrush->Brush->SetFlags( RF_Transactional );
@@ -977,8 +955,10 @@ void UWorld::InitializeNewWorld(const InitializationValues IVS)
 		ClearFlags(RF_Transactional);
 	}
 
-	PersistentLevel			= new( this, TEXT("PersistentLevel") ) ULevel(FObjectInitializer(),FURL(NULL));
-	PersistentLevel->Model	= new( PersistentLevel				 ) UModel(FObjectInitializer(),NULL, 1 );
+	PersistentLevel = NewNamedObject<ULevel>(this, TEXT("PersistentLevel"));
+	PersistentLevel->Initialize(FURL(nullptr));
+	PersistentLevel->Model = NewObject<UModel>(PersistentLevel);
+	PersistentLevel->Model->Initialize(nullptr, 1);
 	PersistentLevel->OwningWorld = this;
 
 	// Mark objects are transactional for undo/ redo.
@@ -1071,7 +1051,8 @@ UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngi
 
 	// Create new UWorld, ULevel and UModel.
 	const FString WorldNameString = (WorldName != NAME_None) ? WorldName.ToString() : TEXT("NewWorld");
-	UWorld* NewWorld = new(WorldPackage, *WorldNameString) UWorld(FObjectInitializer(),FURL(NULL));
+	UWorld* NewWorld = NewNamedObject<UWorld>(WorldPackage, *WorldNameString);
+	NewWorld->SetFlags(RF_Transactional);
 	NewWorld->WorldType = InWorldType;
 	NewWorld->FeatureLevel = InFeatureLevel;
 	NewWorld->InitializeNewWorld(UWorld::InitializationValues().ShouldSimulatePhysics(false).EnableTraceCollision(true).CreateNavigation(InWorldType == EWorldType::Editor).CreateAISystem(InWorldType == EWorldType::Editor));

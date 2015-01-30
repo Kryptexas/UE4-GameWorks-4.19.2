@@ -14,11 +14,11 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	: PreviewWorld(NULL)
 	, bForceAllUsedMipsResident(CVS.bForceMipsResident)
 {
-	PreviewWorld = new UWorld(FObjectInitializer(),FURL(NULL));
+	PreviewWorld = NewObject<UWorld>();
 	PreviewWorld->WorldType = EWorldType::Preview;
-	if (!CVS.bTransactional)
+	if (CVS.bTransactional)
 	{
-		PreviewWorld->ClearFlags(RF_Transactional);
+		PreviewWorld->SetFlags(RF_Transactional);
 	}
 
 	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Preview);

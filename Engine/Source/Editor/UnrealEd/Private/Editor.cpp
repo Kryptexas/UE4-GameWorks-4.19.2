@@ -203,15 +203,15 @@ static void OnObjectSelected(UObject* Object)
 
 static void PrivateInitSelectedSets()
 {
-	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FObjectInitializer());
+	PrivateGetSelectedActors() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional);
 	PrivateGetSelectedActors()->AddToRoot();
 
 	PrivateGetSelectedActors()->SelectObjectEvent.AddStatic(&OnObjectSelected);
 
-	PrivateGetSelectedComponents() = new(GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional) USelection(FObjectInitializer());
+	PrivateGetSelectedComponents() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional);
 	PrivateGetSelectedComponents()->AddToRoot();
 
-	PrivateGetSelectedObjects() = new(GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional) USelection(FObjectInitializer());
+	PrivateGetSelectedObjects() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional);
 	PrivateGetSelectedObjects()->AddToRoot();
 }
 
@@ -493,8 +493,10 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem());
 
 	// Allocate temporary model.
-	TempModel = new UModel(FObjectInitializer(), NULL, 1);
-	ConversionTempModel = new UModel(FObjectInitializer(), NULL, 1);
+	TempModel = NewObject<UModel>();
+	TempModel->Initialize(nullptr, 1);
+	ConversionTempModel = NewObject<UModel>();
+	ConversionTempModel->Initialize(nullptr, 1);
 
 	// create the timer manager
 	TimerManager = MakeShareable(new FTimerManager());
@@ -6211,7 +6213,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 	}
 
 	// Use a level factory to spawn all the actors using the ExportText
-	ULevelFactory* Factory = new ULevelFactory(FObjectInitializer());
+	auto Factory = NewObject<ULevelFactory>();
 	FVector Location;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );

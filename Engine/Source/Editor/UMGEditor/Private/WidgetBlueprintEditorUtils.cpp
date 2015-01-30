@@ -479,7 +479,7 @@ void FWidgetBlueprintEditorUtils::ExportWidgetsToText(TSet<UWidget*> WidgetsToEx
 
 		if ( Widget->GetParent() == nullptr || !WidgetsToExport.Contains(Widget->GetParent()) )
 		{
-			UWidgetSlotPair* SlotMetaData = new UWidgetSlotPair();
+			auto SlotMetaData = NewObject<UWidgetSlotPair>();
 			SlotMetaData->SetWidget(Widget);
 
 			UExporter::ExportToOutputDevice(&Context, SlotMetaData, nullptr, Archive, TEXT("copy"), 0, PPF_ExportsNotFullyQualified | PPF_Copy | PPF_Delimited, false, nullptr);
