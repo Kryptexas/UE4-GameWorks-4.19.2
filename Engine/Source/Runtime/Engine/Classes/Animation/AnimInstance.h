@@ -548,7 +548,7 @@ protected:
 
 public:
 	/** Returns the value of a named curve. */
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintProtected = "true"))
+	UFUNCTION(BlueprintPure, Category="Animation")
 	float GetCurveValue(FName CurveName);
 
 	/** Returns the length (in seconds) of an animation AnimAsset. */
