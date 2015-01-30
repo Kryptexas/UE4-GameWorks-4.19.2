@@ -502,7 +502,7 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "0.0"))
 	float MinRegionArea;
 
-	/* The size limit of regions to be merged with bigger regions */
+	/* The size limit of regions to be merged with bigger regions (watershed partitioning only) */
 	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "0.0"))
 	float MergeRegionSize;
 

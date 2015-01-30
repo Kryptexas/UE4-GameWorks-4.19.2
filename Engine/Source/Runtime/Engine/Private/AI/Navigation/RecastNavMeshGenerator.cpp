@@ -2259,7 +2259,7 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 			// Build regions
 			if (TileConfig.TileCachePartitionType == RC_REGION_MONOTONE)
 			{
-				status = dtBuildTileCacheRegionsMonotone(&MyAllocator, *GenerationContext.Layer);
+				status = dtBuildTileCacheRegionsMonotone(&MyAllocator, TileConfig.minRegionArea, TileConfig.mergeRegionArea, *GenerationContext.Layer);
 			}
 			else if (TileConfig.TileCachePartitionType == RC_REGION_WATERSHED)
 			{
@@ -2277,12 +2277,11 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 					return false;
 				}
 
-				const int TileBoderSize = 0;
-				status = dtBuildTileCacheRegions(&MyAllocator, TileBoderSize, TileConfig.minRegionArea, TileConfig.mergeRegionArea, *GenerationContext.Layer, *GenerationContext.DistanceField);
+				status = dtBuildTileCacheRegions(&MyAllocator, TileConfig.minRegionArea, TileConfig.mergeRegionArea, *GenerationContext.Layer, *GenerationContext.DistanceField);
 			}
 			else
 			{
-				status = dtBuildTileCacheRegionsChunky(&MyAllocator, *GenerationContext.Layer, TileConfig.TileCacheChunkSize);
+				status = dtBuildTileCacheRegionsChunky(&MyAllocator, TileConfig.minRegionArea, TileConfig.mergeRegionArea, *GenerationContext.Layer, TileConfig.TileCacheChunkSize);
 			}
 
 			if (dtStatusFailed(status))

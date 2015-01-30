@@ -661,7 +661,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	// Build navmesh
 	if (m_params.regionPartitioning == DT_REGION_MONOTONE)
 	{
-		status = dtBuildTileCacheRegionsMonotone(m_talloc, *bc.layer);
+		status = dtBuildTileCacheRegionsMonotone(m_talloc, m_params.minRegionArea, m_params.mergeRegionArea, *bc.layer);
 	}
 	else if (m_params.regionPartitioning == DT_REGION_WATERSHED)
 	{
@@ -673,11 +673,11 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		if (dtStatusFailed(status))
 			return status;
 
-		status = dtBuildTileCacheRegions(m_talloc, 0, m_params.minRegionArea, m_params.mergeRegionArea, *bc.layer, *bc.dfield);
+		status = dtBuildTileCacheRegions(m_talloc, m_params.minRegionArea, m_params.mergeRegionArea, *bc.layer, *bc.dfield);
 	}
 	else
 	{
-		status = dtBuildTileCacheRegionsChunky(m_talloc, *bc.layer, m_params.regionChunkSize);
+		status = dtBuildTileCacheRegionsChunky(m_talloc, m_params.minRegionArea, m_params.mergeRegionArea, *bc.layer, m_params.regionChunkSize);
 	}
 	if (dtStatusFailed(status))
 		return status;

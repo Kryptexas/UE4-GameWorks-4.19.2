@@ -237,13 +237,15 @@ NAVMESH_API dtStatus dtReplaceConvexArea(dtTileCacheLayer& layer, const float* o
 NAVMESH_API dtStatus dtBuildTileCacheDistanceField(dtTileCacheAlloc* alloc, dtTileCacheLayer& layer, dtTileCacheDistanceField& dfield);
 
 NAVMESH_API dtStatus dtBuildTileCacheRegions(dtTileCacheAlloc* alloc,
-								const int borderSize, const int minRegionArea, const int mergeRegionArea,
+								const int minRegionArea, const int mergeRegionArea,
 								dtTileCacheLayer& layer, dtTileCacheDistanceField dfield);
 
 NAVMESH_API dtStatus dtBuildTileCacheRegionsMonotone(dtTileCacheAlloc* alloc,
+								const int minRegionArea, const int mergeRegionArea,
 								dtTileCacheLayer& layer);
 
 NAVMESH_API dtStatus dtBuildTileCacheRegionsChunky(dtTileCacheAlloc* alloc,
+								const int minRegionArea, const int mergeRegionArea,
 								dtTileCacheLayer& layer, int regionChunkSize);
 //@UE4 END
 
