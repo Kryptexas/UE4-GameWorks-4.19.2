@@ -114,26 +114,10 @@ bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InC
 	return bIsValid;
 }
 
-bool FComponentEditorUtils::IsComponentNameAvailable(const FString& InString, const AActor* ComponentOwner, const UActorComponent* ComponentToIgnore)
+bool FComponentEditorUtils::IsComponentNameAvailable(const FString& InString, AActor* ComponentOwner, const UActorComponent* ComponentToIgnore)
 {
-	bool bNameIsAvailable = true;
-
-	if (ComponentOwner != nullptr)
-	{
-		TInlineComponentArray<UActorComponent*> Components;
-		ComponentOwner->GetComponents(Components);
-
-		for (auto Component : Components)
-		{
-			if (Component != ComponentToIgnore && Component->GetName() == InString)
-			{
-				bNameIsAvailable = false;
-				break;
-			}
-		}
-	}
-
-	return bNameIsAvailable;
+	UObject* ExistingObject = FindObject<UObject>(ComponentOwner, *InString);
+	return (ExistingObject == nullptr || ExistingObject == ComponentToIgnore);
 }
 
 FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorComponent> ComponentClass, AActor* ComponentOwner)
