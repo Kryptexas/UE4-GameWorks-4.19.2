@@ -64,9 +64,8 @@ class USimpleConstructionScript : public UObject
 	/** Find the SCS_Node node by name and return it if found */
 	ENGINE_API USCS_Node* FindSCSNodeByGuid(FGuid Guid);
 
-protected:
 	/** Checks the root node set for scene components and ensures that it is valid (e.g. after a removal) */
-	void ValidateSceneRootNodes();
+	ENGINE_API void ValidateSceneRootNodes();
 
 private:
 	/** Root nodes of the construction script */
