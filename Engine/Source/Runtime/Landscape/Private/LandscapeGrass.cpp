@@ -225,7 +225,7 @@ public:
 	TArray<FComponentInfo> ComponentInfos;
 	FIntPoint TargetSize;
 	int32 NumPasses;
-	int32 PassOffsetX;
+	float PassOffsetX;
 	FMatrix ViewMatrix;
 	FMatrix ProjectionMatrix;
 
@@ -298,7 +298,7 @@ public:
 
 		TargetSize = FIntPoint(ComponentSizeVerts * NumPasses * InLandscapeComponents.Num(), ComponentSizeVerts);
 		FIntPoint TargetSizeMinusOne(TargetSize - FIntPoint(1,1));
-		PassOffsetX = 2.0f * ComponentSizeVerts / TargetSize.X;
+		PassOffsetX = 2.0f * (float)ComponentSizeVerts / (float)TargetSize.X;
 
 		for (int32 Idx = 0; Idx<InLandscapeComponents.Num();Idx++)
 		{
@@ -363,7 +363,7 @@ public:
 
 		for (auto& ComponentInfo : ComponentInfos)
 		{
-			FLandscapeComponentGrassData* NewGrassData = new FLandscapeComponentGrassData();
+			FLandscapeComponentGrassData* NewGrassData = new FLandscapeComponentGrassData(ComponentInfo.Component->MaterialInstance->GetMaterial()->StateId);
 
 			NewGrassData->HeightData.Empty(FMath::Square(ComponentSizeVerts));
 
@@ -461,10 +461,23 @@ public:
 
 #if WITH_EDITOR
 
-bool ULandscapeComponent::CanRenderGrassMap()
+bool ULandscapeComponent::IsGrassMapOutdated() const
+{
+	if (GrassData->HasData())
+	{
+		if (GrassData->MaterialStateId != MaterialInstance->GetMaterial()->StateId)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ULandscapeComponent::CanRenderGrassMap() const
 {
 	// Check we can render
-	if (!GIsEditor || GUsingNullRHI || !GetWorld() || GetWorld()->FeatureLevel < ERHIFeatureLevel::SM4 || !SceneProxy)
+	UWorld* World = GetWorld();
+	if (!GIsEditor || GUsingNullRHI || !World || World->IsGameWorld() || World->FeatureLevel < ERHIFeatureLevel::SM4 || !SceneProxy)
 	{
 		return false;
 	}
@@ -516,6 +529,12 @@ void ULandscapeComponent::RenderGrassMap()
 void ULandscapeComponent::RemoveGrassMap()
 {
 	GrassData = MakeShareable(new FLandscapeComponentGrassData());
+}
+
+void ALandscapeProxy::RenderGrassMaps(const TArray<ULandscapeComponent*>& LandscapeComponents, const TArray<ULandscapeGrassType*>& GrassTypes)
+{
+	FLandscapeGrassWeightExporter Exporter(this, LandscapeComponents, GrassTypes);
+	Exporter.ApplyResults();
 }
 
 #endif
@@ -669,7 +688,7 @@ void ULandscapeGrassType::PostEditChangeProperty(FPropertyChangedEvent& Property
 					{
 						if (Output.GrassType == this)
 						{
-							Proxy->FlushFoliageComponents();
+							Proxy->FlushGrassComponents();
 							break;
 						}
 					}
@@ -685,6 +704,11 @@ void ULandscapeGrassType::PostEditChangeProperty(FPropertyChangedEvent& Property
 //
 FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 {
+	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA_MATERIAL_GUID)
+	{
+		Ar << Data.MaterialStateId;
+	}
+
 	Data.HeightData.BulkSerialize(Ar);
 	// Each weight data array, being 1 byte will be serialized in bulk.
 	return Ar << Data.WeightData;

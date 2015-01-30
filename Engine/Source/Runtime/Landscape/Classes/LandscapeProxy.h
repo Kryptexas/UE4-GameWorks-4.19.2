@@ -494,19 +494,23 @@ public:
 	void SetLandscapeGuid(const FGuid& Guid) { LandscapeGuid = Guid; }
 	virtual ALandscape* GetLandscapeActor();
 
-	/** Flush the foliage cache */
-	LANDSCAPE_API void FlushFoliageComponents(const TSet<ULandscapeComponent*>* OnlyForComponents = nullptr);
+	/** Flush the grass cache */
+	LANDSCAPE_API void FlushGrassComponents(const TSet<ULandscapeComponent*>* OnlyForComponents = nullptr);
 
 	/** 
-		Update Foliage 
+		Update Grass 
 		* @param Cameras to use for culling, if empty, then NO culling
-		* @param OnlyComponent if non-null only do this component
 		* @param bForceSync if true, block and finish all work
 	*/
-	LANDSCAPE_API void UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeComponent* OnlyComponent = nullptr, bool bForceSync = false);
+	LANDSCAPE_API void UpdateFoliage(const TArray<FVector>& Cameras, bool bForceSync = false);
 
 	/* Get the list of grass types on this landscape */
-	TArray<const ULandscapeGrassType*> GetGrassTypes() const;
+	TArray<ULandscapeGrassType*> GetGrassTypes() const;
+
+#if WITH_EDITOR
+	/** Render grass maps for the specified components */
+	void RenderGrassMaps(const TArray<ULandscapeComponent*>& LandscapeComponents, const TArray<ULandscapeGrassType*>& GrassTypes);
+#endif
 
 	// Begin FTickableGameObject interface.
 	virtual void Tick(float DeltaTime) override;
@@ -606,6 +610,10 @@ public:
 
 	/** Creates a Texture2D for use by this landscape proxy or one of it's components. If OptionalOverrideOuter is not specified, the level is used. */
 	LANDSCAPE_API UTexture2D* CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter = nullptr) const;
+
+	/* For the grassmap rendering notification */
+	int32 NumComponentsNeedingGrassMapRender;
+	LANDSCAPE_API static int32 TotalComponentsNeedingGrassMapRender;
 #endif
 };
 

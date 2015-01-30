@@ -468,6 +468,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA,
 	// New property to optionally prevent gpu emitters clearing existing particles on Init().
 	VER_UE4_OPTIONALLY_CLEAR_GPU_EMITTERS_ON_INIT,
+	// Also store the Material guid with the landscape grass data
+	VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA_MATERIAL_GUID,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

@@ -154,7 +154,26 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA)
 	{
-		Ar << GrassData.Get();
+		// Share the shared ref so PIE can share this data
+		if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
+		{
+			if (Ar.IsSaving())
+			{
+				PTRINT GrassDataPointer = (PTRINT)&GrassData;
+				Ar << GrassDataPointer;
+			}
+			else
+			{
+				PTRINT GrassDataPointer;
+				Ar << GrassDataPointer;
+				// Duplicate shared reference
+				GrassData = *(TSharedRef<FLandscapeComponentGrassData, ESPMode::ThreadSafe>*)GrassDataPointer;
+			}
+		}
+		else
+		{
+			Ar << GrassData.Get();
+		}
 	}
 
 #if WITH_EDITOR
@@ -1318,6 +1337,11 @@ void ALandscapeProxy::Destroyed()
 	{
 		SplineComponent->ModifySplines();
 	}
+
+#if WITH_EDITOR
+	TotalComponentsNeedingGrassMapRender -= NumComponentsNeedingGrassMapRender;
+	NumComponentsNeedingGrassMapRender = 0;
+#endif
 }
 #endif
 
@@ -2113,19 +2137,10 @@ DECLARE_CYCLE_STAT(TEXT("Grass End Comp"), STAT_FoliageGrassEndComp, STATGROUP_F
 DECLARE_CYCLE_STAT(TEXT("Grass Destroy Comps"), STAT_FoliageGrassDestoryComp, STATGROUP_Foliage);
 DECLARE_CYCLE_STAT(TEXT("Grass Update"), STAT_GrassUpdate, STATGROUP_Foliage);
 
-void ALandscapeProxy::FlushFoliageComponents(const TSet<ULandscapeComponent*>* OnlyForComponents)
+void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* OnlyForComponents)
 {
 	if (OnlyForComponents)
 	{
-#if WITH_EDITOR
-		for (auto LandComp : *OnlyForComponents)
-		{
-			if (LandComp)
-			{
-				LandComp->RenderGrassMap();
-			}
-		}
-#endif
 		for (FCachedLandscapeFoliage::TGrassSet::TIterator Iter(FoliageCache.CachedGrassComps); Iter; ++Iter)
 		{
 			ULandscapeComponent* Component = (*Iter).Key.BasedOn.Get();
@@ -2142,6 +2157,15 @@ void ALandscapeProxy::FlushFoliageComponents(const TSet<ULandscapeComponent*>* O
 				Iter.RemoveCurrent();
 			}
 		}
+#if WITH_EDITOR
+		if (GIsEditor)
+		{
+		    for (ULandscapeComponent* Component : *OnlyForComponents)
+		    {
+			    Component->RemoveGrassMap();
+		    }
+		}
+#endif
 	}
 	else
 	{
@@ -2174,12 +2198,15 @@ void ALandscapeProxy::FlushFoliageComponents(const TSet<ULandscapeComponent*>* O
 		}
 
 #if WITH_EDITOR
-		// Clear GrassMaps
-		TInlineComponentArray<ULandscapeComponent*> LandComps;
-		GetComponents(LandComps);
-		for (ULandscapeComponent* Component : LandComps)
+		if (GIsEditor)
 		{
-			Component->RemoveGrassMap();
+		    // Clear GrassMaps
+		    TInlineComponentArray<ULandscapeComponent*> LandComps;
+		    GetComponents(LandComps);
+		    for (ULandscapeComponent* Component : LandComps)
+		    {
+			    Component->RemoveGrassMap();
+		    }
 		}
 #endif
 	}
@@ -2610,9 +2637,9 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 	}
 }
 
-TArray<const ULandscapeGrassType*> ALandscapeProxy::GetGrassTypes() const
+TArray<ULandscapeGrassType*> ALandscapeProxy::GetGrassTypes() const
 {
-	TArray<const ULandscapeGrassType*> GrassTypes;
+	TArray<ULandscapeGrassType*> GrassTypes;
 	if (LandscapeMaterial)
 	{
 		TArray<const UMaterialExpressionLandscapeGrassOutput*> GrassExpressions;
@@ -2628,13 +2655,17 @@ TArray<const ULandscapeGrassType*> ALandscapeProxy::GetGrassTypes() const
 	return GrassTypes;
 }
 
-void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeComponent* OnlyComponent, bool bForceSync)
+#if WITH_EDITOR
+int ALandscapeProxy::TotalComponentsNeedingGrassMapRender = 0;
+#endif
+
+void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, bool bForceSync)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GrassUpdate);
 
 	if (CVarGrassEnable.GetValueOnAnyThread() > 0)
 	{
-		TArray<const ULandscapeGrassType*> GrassTypes = GetGrassTypes();
+		TArray<ULandscapeGrassType*> GrassTypes = GetGrassTypes();
 
 		float GuardBand = CVarGuardBandMultiplier.GetValueOnAnyThread();
 		float DiscardGuardBand = CVarGuardBandDiscardMultiplier.GetValueOnAnyThread();
@@ -2643,23 +2674,65 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 		int32 MaxInstancesPerComponent = FMath::Max<int32>(1024, CVarMaxInstancesPerComponent.GetValueOnAnyThread());
 		int32 MaxTasks = CVarMaxAsyncTasks.GetValueOnAnyThread();
 
-		if (GetWorld())
+		UWorld* World = GetWorld();
+		if (World)
 		{
+#if WITH_EDITOR
+			bool bStreamingRenderedGrassHeightmap = false;
+			TSet<ULandscapeComponent*> ComponentsNeedingGrassMapRender;
+			TSet<UTexture2D*> CurrentForcedStreamedTextures;
+			TSet<UTexture2D*> DesiredForceStreamedTextures;
+
+			if (!World->IsGameWorld())
+			{
+				// see if we need to flush grass for any components
+				TSet<ULandscapeComponent*> FlushComponents;
+				for (auto Component : LandscapeComponents)
+				{
+					// check textures currently needing force streaming
+					if (Component->HeightmapTexture->bForceMiplevelsToBeResident)
+					{
+						CurrentForcedStreamedTextures.Add(Component->HeightmapTexture);
+					}
+					for(auto WeightmapTexture : Component->WeightmapTextures)
+					{
+						if (WeightmapTexture->bForceMiplevelsToBeResident)
+						{
+							CurrentForcedStreamedTextures.Add(WeightmapTexture);
+						}
+					}
+
+					if (Component->IsGrassMapOutdated())
+					{
+						FlushComponents.Add(Component);
+						if (GrassTypes.Num() > 0)
+						{
+							ComponentsNeedingGrassMapRender.Add(Component);
+						}
+					}
+					else
+					if (!Component->GrassData->HasData())
+					{
+						if (GrassTypes.Num() > 0)
+						{
+							ComponentsNeedingGrassMapRender.Add(Component);
+						}
+					}
+				}
+				if (FlushComponents.Num())
+				{
+					FlushGrassComponents(&FlushComponents);
+				}
+			}
+#endif
+
 			int32 NumCompsCreated = 0;
 			for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
 			{
 				ULandscapeComponent* Component = LandscapeComponents[ComponentIndex];
-				if (OnlyComponent && OnlyComponent != Component)
-				{
-					continue;
-				}
 
-				// Don't try to place foliage for this component if it doesn't have data and it can't currently render it.
-				if (!Component->GrassData->HasData() 
-#if WITH_EDITOR
-					&& !Component->CanRenderGrassMap()
-#endif
-					)
+				// skip if we have no data and no way to generate it
+				if (World->IsGameWorld() && !Component->GrassData->HasData()) 
 				{
 					continue;
 				}
@@ -2765,6 +2838,30 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 										{
 											continue; // one per frame, but we still want to touch the existing ones
 										}
+
+#if WITH_EDITOR
+											// render grass data if we don't have any
+										if (!Component->GrassData->HasData())
+										{
+											// if we can't generate now, force our textures to be streamed in
+											if (!Component->CanRenderGrassMap())
+											{
+												DesiredForceStreamedTextures.Add(Component->HeightmapTexture);
+												for (auto WeightmapTexture : Component->WeightmapTextures)
+												{
+													DesiredForceStreamedTextures.Add(WeightmapTexture);
+													bStreamingRenderedGrassHeightmap = true;
+												}
+												continue;
+											}
+
+											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassRenderToTexture);
+											Component->RenderGrassMap();
+											ComponentsNeedingGrassMapRender.Remove(Component);
+											Component->MarkPackageDirty();
+										}
+#endif
+
 										NumCompsCreated++;
 
 										SCOPE_CYCLE_COUNTER(STAT_FoliageGrassStartComp);
@@ -2819,15 +2916,6 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 											FoliageComponents.Add(HierarchicalInstancedStaticMeshComponent);
 										}
 
-#if WITH_EDITOR
-										// render grass data if we don't have any
-										if (!Component->GrassData->HasData())
-										{
-											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassRenderToTexture);
-											Component->RenderGrassMap();
-										}
-#endif
-
 										FAsyncGrassBuilder* Builder;
 
 										{
@@ -2858,6 +2946,60 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, ULandscapeCo
 					}
 				}
 			}
+
+#if WITH_EDITOR
+			{
+				int32 NumComponentsRendered = 0;
+				if (GrassTypes.Num() > 0)
+				{
+					// try to render some grassmaps
+					TArray<ULandscapeComponent*> ComponentsToRender;
+					for (auto Component : ComponentsNeedingGrassMapRender)
+					{
+						if (Component->CanRenderGrassMap())
+						{
+							ComponentsToRender.Add(Component);
+							NumComponentsRendered++;
+							// We really want to throttle the number based on component size...
+							if (NumComponentsRendered >= 4)
+							{
+								break;
+							}
+						}
+						else if (!bStreamingRenderedGrassHeightmap)
+						{
+							// Force stream in other heightmaps but only if we're not waiting for the textures 
+							// near the camera to stream in
+							DesiredForceStreamedTextures.Add(Component->HeightmapTexture);
+							for (auto WeightmapTexture : Component->WeightmapTextures)
+							{
+								DesiredForceStreamedTextures.Add(WeightmapTexture);
+							}
+						}
+					}
+					if (ComponentsToRender.Num())
+					{
+						RenderGrassMaps(ComponentsToRender, GrassTypes);
+						MarkPackageDirty();
+					}
+				}
+
+				TotalComponentsNeedingGrassMapRender -= NumComponentsNeedingGrassMapRender;
+				NumComponentsNeedingGrassMapRender = ComponentsNeedingGrassMapRender.Num() - NumComponentsRendered;
+				TotalComponentsNeedingGrassMapRender += NumComponentsNeedingGrassMapRender;
+				
+				// Update resident flags
+				for (auto Texture : DesiredForceStreamedTextures.Difference(CurrentForcedStreamedTextures))
+				{
+					Texture->bForceMiplevelsToBeResident = true;
+				}
+				for (auto Texture : CurrentForcedStreamedTextures.Difference(DesiredForceStreamedTextures))
+				{
+					Texture->bForceMiplevelsToBeResident = false;
+				}
+
+			}
+#endif
 		}
 	}
 
@@ -2965,6 +3107,11 @@ ALandscapeProxy::~ALandscapeProxy()
 		delete Task;
 	}
 	AsyncFoliageTasks.Empty();
+
+#if WITH_EDITOR
+	TotalComponentsNeedingGrassMapRender -= NumComponentsNeedingGrassMapRender;
+	NumComponentsNeedingGrassMapRender = 0;
+#endif
 }
 
 void FAsyncGrassTask::DoWork()
@@ -2972,40 +3119,23 @@ void FAsyncGrassTask::DoWork()
 	Builder->Build();
 }
 
-static void FlushFoliage(const TArray<FString>& Args)
+static void FlushGrass(const TArray<FString>& Args)
 {
 	for (TObjectIterator<ALandscapeProxy> It; It; ++It)
 	{
 		ALandscapeProxy* Landscape = *It;
 		if (Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
 		{
-			Landscape->FlushFoliageComponents();
+			Landscape->FlushGrassComponents();
 		}
 	}
 }
 
-static FAutoConsoleCommand FlushFoliageCmd(
+static FAutoConsoleCommand FlushGrassCmd(
 	TEXT("grass.FlushCache"),
 	TEXT("Flush the grass cache, debugging."),
-	FConsoleCommandWithArgsDelegate::CreateStatic(&FlushFoliage)
+	FConsoleCommandWithArgsDelegate::CreateStatic(&FlushGrass)
 	);
-
-
-#if WITH_EDITOR
-static void RenderGrass(const TArray<FString>& Args)
-{
-	for (TObjectIterator<ULandscapeComponent> It; It; ++It)
-	{
-		It->RenderGrassMap();
-	}
-}
-
-static FAutoConsoleCommand RenderFoliageCmd(
-	TEXT("grass.Render"),
-	TEXT("Render grass to texture. Debugging."),
-	FConsoleCommandWithArgsDelegate::CreateStatic(&RenderGrass)
-	);
-#endif
 
 
 //

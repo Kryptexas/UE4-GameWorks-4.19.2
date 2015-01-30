@@ -348,7 +348,7 @@ void ULandscapeComponent::PostEditUndo()
 
 	TSet<ULandscapeComponent*> Components;
 	Components.Add(this);
-	GetLandscapeProxy()->FlushFoliageComponents(&Components);
+	GetLandscapeProxy()->FlushGrassComponents(&Components);
 }
 
 void ULandscapeComponent::FixupWeightmaps()
@@ -3477,7 +3477,7 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 					{
 						if (Info->Layers[i].LayerInfoObj == this)
 						{
-							Proxy->FlushFoliageComponents();
+							Proxy->FlushGrassComponents();
 							break;
 						}
 					}
@@ -3530,7 +3530,7 @@ void ALandscapeProxy::RemoveXYOffsets()
 void ALandscapeProxy::RecreateCollisionComponents()
 {
 	// We can assume these are all junk; they recreate as needed
-	FlushFoliageComponents();
+	FlushGrassComponents();
 
 	// Clear old CollisionComponent containers
 	CollisionComponents.Empty();

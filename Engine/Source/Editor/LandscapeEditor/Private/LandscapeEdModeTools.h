@@ -619,7 +619,7 @@ struct FHeightmapAccessor
 			}
 
 			// Flush dynamic foliage (grass)
-			LandscapeInfo->GetLandscapeProxy()->FlushFoliageComponents(&Components);
+			LandscapeInfo->GetLandscapeProxy()->FlushGrassComponents(&Components);
 
 			// Notify foliage to move any attached instances
 			bool bUpdateFoliage = false;
@@ -792,7 +792,7 @@ struct FXYOffsetmapAccessor
 			}
 
 			// Flush dynamic foliage (grass)
-			LandscapeInfo->GetLandscapeProxy()->FlushFoliageComponents(&Components);
+			LandscapeInfo->GetLandscapeProxy()->FlushGrassComponents(&Components);
 
 			// Notify foliage to move any attached instances
 			bool bUpdateFoliage = false;
@@ -946,7 +946,7 @@ struct FAlphamapAccessor
 		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2, &Components))
 		{
 			// Flush dynamic foliage (grass)
-			LandscapeInfo->GetLandscapeProxy()->FlushFoliageComponents(&Components);
+			LandscapeInfo->GetLandscapeProxy()->FlushGrassComponents(&Components);
 
 			LandscapeEdit.SetAlphaData(LayerInfo, X1, Y1, X2, Y2, Data, 0, PaintingRestriction, bBlendWeight, bUseTotalNormalize);
 			ModifiedComponents.Append(Components);
@@ -1053,7 +1053,7 @@ struct FFullWeightmapAccessor
 		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2, &Components))
 		{
 			// Flush dynamic foliage (grass)
-			LandscapeInfo->GetLandscapeProxy()->FlushFoliageComponents(&Components);
+			LandscapeInfo->GetLandscapeProxy()->FlushGrassComponents(&Components);
 
 			LandscapeEdit.SetAlphaData(DirtyLayerInfos, X1, Y1, X2, Y2, Data, 0, PaintingRestriction);
 			ModifiedComponents.Append(Components);
