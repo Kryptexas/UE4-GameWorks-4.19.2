@@ -478,6 +478,28 @@ void FFoliageMeshInfo::CheckValid()
 #endif
 }
 
+void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
+{
+	if (Component)
+	{
+		Component->Mobility = InSettings->bEnableStaticLighting ? EComponentMobility::Static : EComponentMobility::Movable;
+		Component->InstanceStartCullDistance = InSettings->StartCullDistance;
+		Component->InstanceEndCullDistance = InSettings->EndCullDistance;
+
+		Component->CastShadow = InSettings->CastShadow;
+		Component->bCastDynamicShadow = InSettings->bCastDynamicShadow;
+		Component->bCastStaticShadow = InSettings->bCastStaticShadow;
+		Component->bAffectDynamicIndirectLighting = InSettings->bAffectDynamicIndirectLighting;
+		Component->bAffectDistanceFieldLighting = InSettings->bAffectDistanceFieldLighting;
+		Component->bCastShadowAsTwoSided = InSettings->bCastShadowAsTwoSided;
+		Component->bReceivesDecals = InSettings->bReceivesDecals;
+		Component->bOverrideLightMapRes = InSettings->bOverrideLightMapRes;
+		Component->OverriddenLightMapRes = InSettings->OverriddenLightMapRes;
+
+		Component->BodyInstance.CopyBodyInstancePropertiesFrom(&InSettings->BodyInstance);
+	}
+}
+
 void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance, UActorComponent* InBaseComponent)
 {
 	FFoliageInstance Instance = InNewInstance;
@@ -493,26 +515,12 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 	{
 		Component = ConstructObject<UHierarchicalInstancedStaticMeshComponent>(UHierarchicalInstancedStaticMeshComponent::StaticClass(), InIFA, NAME_None, RF_Transactional);
 
-		Component->Mobility = InSettings->bEnableStaticLighting ? EComponentMobility::Static : EComponentMobility::Movable;
-
 		Component->StaticMesh = InSettings->GetStaticMesh();
 		Component->bSelectable = true;
 		Component->bHasPerInstanceHitProxies = true;
 		Component->InstancingRandomSeed = FMath::Rand();
-		Component->InstanceStartCullDistance = InSettings->StartCullDistance;
-		Component->InstanceEndCullDistance = InSettings->EndCullDistance;
 
-		Component->CastShadow = InSettings->CastShadow;
-		Component->bCastDynamicShadow = InSettings->bCastDynamicShadow;
-		Component->bCastStaticShadow = InSettings->bCastStaticShadow;
-		Component->bAffectDynamicIndirectLighting = InSettings->bAffectDynamicIndirectLighting;
-		Component->bAffectDistanceFieldLighting = InSettings->bAffectDistanceFieldLighting;
-		Component->bCastShadowAsTwoSided = InSettings->bCastShadowAsTwoSided;
-		Component->bReceivesDecals = InSettings->bReceivesDecals;
-		Component->bOverrideLightMapRes = InSettings->bOverrideLightMapRes;
-		Component->OverriddenLightMapRes = InSettings->OverriddenLightMapRes;
-
-		Component->BodyInstance.CopyBodyInstancePropertiesFrom(&InSettings->BodyInstance);
+		UpdateComponentSettings(InSettings);
 
 		Component->AttachTo(InIFA->GetRootComponent());
 		Component->RegisterComponent();
@@ -1251,28 +1259,9 @@ FFoliageMeshInfo* AInstancedFoliageActor::FindOrAddMesh(UFoliageType* InType)
 	return MeshInfo;
 }
 
-FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings, const UFoliageType_InstancedStaticMesh* DefaultSettings)
+
+void UpdateSettingsBounds(const UStaticMesh* InMesh, UFoliageType_InstancedStaticMesh* Settings)
 {
-	check(GetSettingsForMesh(InMesh) == nullptr);
-
-	MarkPackageDirty();
-
-	UFoliageType_InstancedStaticMesh* Settings = nullptr;
-#if WITH_EDITORONLY_DATA
-	if (DefaultSettings)
-	{
-		// TODO: Can't we just use this directly?
-		Settings = DuplicateObject<UFoliageType_InstancedStaticMesh>(DefaultSettings, this);
-	}
-	else
-#endif
-	{
-		Settings = ConstructObject<UFoliageType_InstancedStaticMesh>(UFoliageType_InstancedStaticMesh::StaticClass(), this);
-	}
-	Settings->Mesh = InMesh;
-
-	FFoliageMeshInfo* MeshInfo = AddMesh(Settings);
-
 	const FBoxSphereBounds MeshBounds = InMesh->GetBounds();
 
 	Settings->MeshBounds = MeshBounds;
@@ -1301,6 +1290,52 @@ FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageT
 	}
 
 	Settings->LowBoundOriginRadius = FVector((MinX + MaxX), (MinY + MaxY), FMath::Sqrt(FMath::Square(MaxX - MinX) + FMath::Square(MaxY - MinY))) * 0.5f;
+}
+
+
+#if WITH_EDITORONLY_DATA
+FFoliageMeshInfo* AInstancedFoliageActor::UpdateMeshSettings(const UStaticMesh* InMesh, const UFoliageType_InstancedStaticMesh* DefaultSettings)
+{
+	if (UFoliageType* OldSettings = GetSettingsForMesh(InMesh))
+	{
+		MarkPackageDirty();
+
+		UFoliageType_InstancedStaticMesh* NewSettings = DuplicateObject<UFoliageType_InstancedStaticMesh>(DefaultSettings, this);
+		UpdateSettingsBounds(InMesh, NewSettings);
+
+		TUniqueObj<FFoliageMeshInfo> MeshInfo;
+		FoliageMeshes.RemoveAndCopyValue(OldSettings, MeshInfo);
+		MeshInfo->FoliageTypeUpdateGuid = NewSettings->UpdateGuid;
+		MeshInfo->UpdateComponentSettings(NewSettings);
+		return &*FoliageMeshes.Add(NewSettings, MoveTemp(MeshInfo));
+	}
+
+	return nullptr;
+}
+#endif
+
+FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings, const UFoliageType_InstancedStaticMesh* DefaultSettings)
+{
+	check(GetSettingsForMesh(InMesh) == nullptr);
+
+	MarkPackageDirty();
+
+	UFoliageType_InstancedStaticMesh* Settings = nullptr;
+#if WITH_EDITORONLY_DATA
+	if (DefaultSettings)
+	{
+		// TODO: Can't we just use this directly?
+		Settings = DuplicateObject<UFoliageType_InstancedStaticMesh>(DefaultSettings, this);
+	}
+	else
+#endif
+	{
+		Settings = ConstructObject<UFoliageType_InstancedStaticMesh>(UFoliageType_InstancedStaticMesh::StaticClass(), this);
+	}
+	Settings->Mesh = InMesh;
+
+	FFoliageMeshInfo* MeshInfo = AddMesh(Settings);
+	UpdateSettingsBounds(InMesh, Settings);
 
 	if (OutSettings)
 	{
@@ -1913,7 +1948,7 @@ void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWor
 	}
 }
 
-bool AInstancedFoliageActor::FoliageTrace(UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, const AInstancedFoliageActor* IgnoreIFA, FName InTraceTag, bool InbReturnFaceIndex)
+bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, const AInstancedFoliageActor* IgnoreIFA, FName InTraceTag, bool InbReturnFaceIndex)
 {
 	FCollisionQueryParams QueryParams(InTraceTag, true, IgnoreIFA);
 	QueryParams.bReturnFaceIndex = InbReturnFaceIndex;
@@ -1931,7 +1966,7 @@ bool AInstancedFoliageActor::FoliageTrace(UWorld* InWorld, FHitResult& OutHit, c
 		{
 			if (Hit.Actor.IsValid())	//if we hit the ProceduralFoliage blocking volume don't spawn instance
 			{
-				if (AProceduralFoliageBlockingVolume* ProceduralFoliageBlockingVolume = Cast<AProceduralFoliageBlockingVolume>(Hit.Actor.Get()))
+				if (const AProceduralFoliageBlockingVolume* ProceduralFoliageBlockingVolume = Cast<AProceduralFoliageBlockingVolume>(Hit.Actor.Get()))
 				{
 					const AProceduralFoliageActor* ProceduralFoliageActor = ProceduralFoliageBlockingVolume->ProceduralFoliageActor;
 					if (ProceduralFoliageActor == nullptr || ProceduralFoliageActor->ProceduralComponent == nullptr || ProceduralFoliageActor->ProceduralComponent->GetProceduralGuid() == DesiredInstance.ProceduralGuid)
@@ -1947,7 +1982,7 @@ bool AInstancedFoliageActor::FoliageTrace(UWorld* InWorld, FHitResult& OutHit, c
 		}
 			
 		// In the editor traces can hit "No Collision" type actors, so ugh.
-		FBodyInstance* BodyInstance = Hit.Component->GetBodyInstance();
+		const FBodyInstance* BodyInstance = Hit.Component->GetBodyInstance();
 		if (BodyInstance->GetCollisionEnabled() != ECollisionEnabled::QueryAndPhysics || BodyInstance->GetResponseToChannel(ECC_WorldStatic) != ECR_Block)
 		{
 			continue;

@@ -33,6 +33,7 @@
 #include "LandscapeDataAccess.h"
 #include "FoliageType_InstancedStaticMesh.h"
 
+
 #define LOCTEXT_NAMESPACE "FoliageEdMode"
 #define FOLIAGE_SNAP_TRACE (10000.f)
 
@@ -344,9 +345,9 @@ void FEdModeFoliage::GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd)
 	OutEnd = BrushLocation + UISettings.GetRadius() * (Ru * U + Rv * V + Rw * BrushTraceDirection);
 }
 
-static bool CheckLocationForPotentialInstance(FFoliageMeshInfo& MeshInfo, const UFoliageType* Settings, float DensityCheckRadius, const FVector& Location, const FVector& Normal, TArray<FVector>& PotentialInstanceLocations, FFoliageInstanceHash& PotentialInstanceHash)
+/** This does not check for overlaps or density */
+static bool CheckLocationForPotentialInstance_ThreadSafe(const UFoliageType* Settings, const FVector& Location, const FVector& Normal)
 {
-
 	// Check height range
 	if (Location.Z < Settings->HeightMin || Location.Z > Settings->HeightMax)
 	{
@@ -357,6 +358,17 @@ static bool CheckLocationForPotentialInstance(FFoliageMeshInfo& MeshInfo, const 
 	const float MaxNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->GroundSlope));
 	const float MinNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->MinGroundSlope));
 	if (MaxNormalAngle > Normal.Z || MinNormalAngle < Normal.Z)	//keep in mind Hit.ImpactNormal.Z is (0,0,1) dot normal. However, ground slope is with relation to plane vector, not plane normal - so we swap comparisons
+	{
+		return false;
+	}
+
+	return true;
+}
+
+static bool CheckLocationForPotentialInstance(FFoliageMeshInfo& MeshInfo, const UFoliageType* Settings, float DensityCheckRadius, const FVector& Location, const FVector& Normal, TArray<FVector>& PotentialInstanceLocations, FFoliageInstanceHash& PotentialInstanceHash)
+{
+
+	if (CheckLocationForPotentialInstance_ThreadSafe(Settings, Location, Normal) == false)
 	{
 		return false;
 	}
@@ -452,7 +464,7 @@ bool GetMaxHitWeight(const FVector& Location, UActorComponent* Component, const 
 	{
 		if (ULandscapeComponent* HitLandscape = HitLandscapeCollision->RenderComponent.Get())
 		{
-			for (FName LandscapeLayerName : Settings->LandscapeLayers)
+			for (const FName LandscapeLayerName : Settings->LandscapeLayers)
 			{
 				// Cache store mapping between component and weight data
 				TMap<ULandscapeComponent*, TArray<uint8> >* LandscapeLayerCache = &LandscapeLayerCaches->FindOrAdd(LandscapeLayerName);;
@@ -476,7 +488,103 @@ bool FilterByWeight(float Weight, const UFoliageType* Settings)
 	return Weight < FMath::Max(SMALL_NUMBER, WeightNeeded);
 }
 
-void FEdModeFoliage::CalculatePotentialInstances(UWorld* InWorld, const AInstancedFoliageActor* IgnoreIFA, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings)
+bool GeometryFilterCheck(const FHitResult& Hit, const UWorld* InWorld, const FDesiredFoliageInstance& DesiredInst, const FFoliageUISettings* UISettings)
+{
+	if (UPrimitiveComponent* PrimComp = Hit.Component.Get())
+	{
+		if (DesiredInst.PlacementMode == EFoliagePlacementMode::Manual)
+		{
+			UMaterialInterface* Material = PrimComp ? PrimComp->GetMaterial(0) : nullptr;
+			if (PrimComp->GetOutermost() != InWorld->GetCurrentLevel()->GetOutermost() ||
+				(!UISettings->bFilterLandscape && PrimComp->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
+				(!UISettings->bFilterStaticMesh && PrimComp->IsA(UStaticMeshComponent::StaticClass())) ||
+				(!UISettings->bFilterBSP && PrimComp->IsA(UModelComponent::StaticClass())) ||
+				(!UISettings->bFilterTranslucent && Material && IsTranslucentBlendMode(Material->GetBlendMode()))
+				)
+			{
+				return false;
+			}
+		}
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FEdModeFoliage::VertexMaskCheck(const FHitResult& Hit, const UFoliageType* Settings)
+{
+	if (Settings->VertexColorMask != FOLIAGEVERTEXCOLORMASK_Disabled && Hit.FaceIndex != INDEX_NONE)
+	{
+		if (UStaticMeshComponent* HitStaticMeshComponent = Cast<UStaticMeshComponent>(Hit.Component.Get()))
+		{
+			FColor VertexColor;
+			if (FEdModeFoliage::GetStaticMeshVertexColorForHit(HitStaticMeshComponent, Hit.FaceIndex, Hit.ImpactPoint, VertexColor))
+			{
+				if (!CheckVertexColor(Settings, VertexColor))
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+bool LandscapeLayerCheck(const FHitResult& Hit, const UFoliageType* Settings, FEdModeFoliage::LandscapeLayerCacheData& LandscapeLayersCache, float& OutHitWeight)
+{
+	OutHitWeight = 1.f;
+	if (LandscapeLayersValid(Settings) && GetMaxHitWeight(Hit.ImpactPoint, Hit.Component.Get(), Settings, &LandscapeLayersCache, OutHitWeight))
+	{
+		// Reject instance randomly in proportion to weight
+		if (FilterByWeight(OutHitWeight, Settings))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void FEdModeFoliage::CalculatePotentialInstances_ThreadSafe(const UWorld* InWorld, const AInstancedFoliageActor* IgnoreIFA, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>* DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], const FFoliageUISettings* UISettings, const int32 StartIdx, const int32 LastIdx)
+{
+	LandscapeLayerCacheData LocalCache;
+
+	// Reserve space in buckets for a potential instances 
+	for (int32 BucketIdx = 0; BucketIdx < NUM_INSTANCE_BUCKETS; ++BucketIdx)
+	{
+		auto& Bucket = OutPotentialInstances[BucketIdx];
+		Bucket.Reserve(DesiredInstances->Num());
+	}
+
+	for (int32 InstanceIdx = StartIdx; InstanceIdx <= LastIdx; ++InstanceIdx)
+	{
+		const FDesiredFoliageInstance& DesiredInst = (*DesiredInstances)[InstanceIdx];
+		FHitResult Hit;
+		static FName NAME_AddFoliageInstances = FName(TEXT("AddFoliageInstances"));
+		if (AInstancedFoliageActor::FoliageTrace(InWorld, Hit, DesiredInst, IgnoreIFA, NAME_AddFoliageInstances, true))
+		{
+			float HitWeight = 1.f;
+			const bool bValidInstance = GeometryFilterCheck(Hit, InWorld, DesiredInst, UISettings)
+										&& CheckLocationForPotentialInstance_ThreadSafe(Settings, Hit.ImpactPoint, Hit.ImpactNormal)
+										&& VertexMaskCheck(Hit, Settings)
+										&& LandscapeLayerCheck(Hit, Settings, LocalCache, HitWeight);
+
+			
+
+			if (bValidInstance)
+			{
+				const int32 BucketIndex = FMath::RoundToInt(HitWeight * (float)(NUM_INSTANCE_BUCKETS - 1));
+				OutPotentialInstances[BucketIndex].Add(FPotentialInstance(Hit.ImpactPoint, Hit.ImpactNormal, Hit.Component.Get(), HitWeight, nullptr, nullptr, DesiredInst));
+			}
+		}
+	}
+}
+
+void FEdModeFoliage::CalculatePotentialInstances(const UWorld* InWorld, const AInstancedFoliageActor* IgnoreIFA, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings)
 {
 	LandscapeLayerCacheData LocalCache;
 	LandscapeLayerCachesPtr = LandscapeLayerCachesPtr ? LandscapeLayerCachesPtr : &LocalCache;
@@ -502,22 +610,14 @@ void FEdModeFoliage::CalculatePotentialInstances(UWorld* InWorld, const AInstanc
 		static FName NAME_AddFoliageInstances = FName(TEXT("AddFoliageInstances"));
 		if (AInstancedFoliageActor::FoliageTrace(InWorld, Hit, DesiredInst, IgnoreIFA, NAME_AddFoliageInstances, true))
 		{
-			// Check filters
-			UPrimitiveComponent* InstanceBase = Hit.Component.Get();
-			check(InstanceBase);
-
-			if (DesiredInst.PlacementMode == EFoliagePlacementMode::Manual)
+			float HitWeight = 1.f;
+			if (GeometryFilterCheck(Hit, InWorld, DesiredInst, UISettings) == false)
 			{
-				UMaterialInterface* Material = InstanceBase->GetMaterial(0);
-				if ((!UISettings->bFilterLandscape && InstanceBase->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
-					(!UISettings->bFilterStaticMesh && InstanceBase->IsA(UStaticMeshComponent::StaticClass())) ||
-					(!UISettings->bFilterBSP && InstanceBase->IsA(UModelComponent::StaticClass())) ||
-					(!UISettings->bFilterTranslucent && Material && IsTranslucentBlendMode(Material->GetBlendMode()))
-					)
-				{
-					continue;
-				}
+				continue;
 			}
+			
+			UPrimitiveComponent* InstanceBase = Hit.GetComponent();
+			check(InstanceBase);
 
 			// New foliage instances always go into base component level
 			AInstancedFoliageActor* TargetIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InstanceBase->GetComponentLevel(), true);
@@ -530,11 +630,11 @@ void FEdModeFoliage::CalculatePotentialInstances(UWorld* InWorld, const AInstanc
 			if (DesiredInst.PlacementMode == EFoliagePlacementMode::Manual)
 			{
 				if (!Settings->IsAsset() && Settings->GetOuter() != TargetIFA)
-				{
-					continue;
-				}
+			{
+				continue;
 			}
-				
+			}
+
 			FFoliageMeshInfo* MeshInfo = DesiredInst.MeshInfo;
 			//We have to add the mesh into the foliage actor. This assumes the foliage type is just a concrete InstancedStaticMesh.
 			//With the new tree system coming this will not be true and you'll need to traverse the tree and insert the needed meshes
@@ -554,45 +654,15 @@ void FEdModeFoliage::CalculatePotentialInstances(UWorld* InWorld, const AInstanc
 				}
 			}
 
-			if (MeshInfo == nullptr)
+			if (MeshInfo)
 			{
-				continue;
-			}
+				const bool bValidInstance =	CheckLocationForPotentialInstance(*MeshInfo, Settings, DensityCheckRadius, Hit.ImpactPoint, Hit.ImpactNormal, PotentialInstanceLocations, PotentialInstanceHash)
+											&& VertexMaskCheck(Hit, Settings)
+											&& LandscapeLayerCheck(Hit, Settings, LocalCache, HitWeight);
 
-			if (CheckLocationForPotentialInstance(*MeshInfo, Settings, DensityCheckRadius, Hit.ImpactPoint, Hit.ImpactNormal, PotentialInstanceLocations, PotentialInstanceHash) == false)
-			{
-				continue;
+				const int32 BucketIndex = FMath::RoundToInt(HitWeight * (float)(NUM_INSTANCE_BUCKETS - 1));
+				OutPotentialInstances[BucketIndex].Add(FPotentialInstance(Hit.ImpactPoint, Hit.ImpactNormal, InstanceBase, HitWeight, MeshInfo, TargetIFA, DesiredInst));
 			}
-
-			// Check vertex color mask
-			if (Settings->VertexColorMask != FOLIAGEVERTEXCOLORMASK_Disabled && Hit.FaceIndex != INDEX_NONE)
-			{
-				if (UStaticMeshComponent* HitStaticMeshComponent = Cast<UStaticMeshComponent>(InstanceBase))
-				{
-					FColor VertexColor;
-					if (GetStaticMeshVertexColorForHit(HitStaticMeshComponent, Hit.FaceIndex, Hit.ImpactPoint, VertexColor))
-					{
-						if (!CheckVertexColor(Settings, VertexColor))
-						{
-							continue;
-						}
-					}
-				}
-			}
-
-			// Check landscape layer
-			float HitWeight = 1.f;
-			if (LandscapeLayersValid(Settings) && GetMaxHitWeight(Hit.ImpactPoint, InstanceBase, Settings, LandscapeLayerCachesPtr, HitWeight))
-			{
-				// Reject instance randomly in proportion to weight
-				if (FilterByWeight(HitWeight, Settings))
-				{
-					continue;
-				}
-			}
-
-			const int32 BucketIndex = FMath::RoundToInt(HitWeight * (float)(NUM_INSTANCE_BUCKETS - 1));
-			OutPotentialInstances[BucketIndex].Add(FPotentialInstance(Hit.ImpactPoint, Hit.ImpactNormal, InstanceBase, HitWeight, MeshInfo, TargetIFA, DesiredInst));
 		}
 	}
 }
@@ -615,10 +685,73 @@ void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageI
 	}
 }
 
+FFoliageMeshInfo* UpdateMeshSettings(AInstancedFoliageActor* IFA, const FDesiredFoliageInstance& DesiredInstance)
+{
+	FFoliageMeshInfo* MeshInfo = nullptr;
+	//We have to add the mesh into the foliage actor. This assumes the foliage type is just a concrete InstancedStaticMesh.
+	//With the new tree system coming this will not be true and you'll need to traverse the tree and insert the needed meshes
+	if (const UFoliageType_InstancedStaticMesh* Settings = Cast<UFoliageType_InstancedStaticMesh>(DesiredInstance.FoliageType))
+	{
+		if (UStaticMesh* StaticMesh = Settings->GetStaticMesh())
+		{
+			if (UFoliageType* ExistingSettings = IFA->GetSettingsForMesh(StaticMesh))
+			{
+				MeshInfo = IFA->UpdateMeshSettings(StaticMesh, Settings);
+			}
+			else
+			{
+				MeshInfo = IFA->AddMesh(Settings->GetStaticMesh(), nullptr, Settings);
+			}
+		}
+	}
+
+	return MeshInfo;
+}
+
 void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const AInstancedFoliageActor* IgnoreIFA, const TArray<int32>& ExistingInstanceBuckets, const float Pressure, LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings)
 {
+	if (DesiredInstances.Num() == 0)
+	{
+		return;
+	}
+
+
 	TArray<FPotentialInstance> PotentialInstanceBuckets[NUM_INSTANCE_BUCKETS];
+	if (DesiredInstances[0].PlacementMode == EFoliagePlacementMode::Manual)
+	{
 	CalculatePotentialInstances(InWorld, IgnoreIFA, Settings, DesiredInstances, PotentialInstanceBuckets, LandscapeLayerCachesPtr, UISettings);
+	}
+	else
+	{
+		//@TODO: actual threaded part coming, need parts of this refactor sooner for content team
+		CalculatePotentialInstances_ThreadSafe(InWorld, IgnoreIFA, Settings, &DesiredInstances, PotentialInstanceBuckets, nullptr, 0, DesiredInstances.Num() - 1);
+
+		TMap<AInstancedFoliageActor*, FFoliageMeshInfo*> UpdatedIFAs;	//we want to override any existing mesh settings with the procedural settings.
+		for (auto& Bucket : PotentialInstanceBuckets)
+		{
+			for (FPotentialInstance& PotentialInst : Bucket)
+			{
+				// New foliage instances always go into base component level
+				AInstancedFoliageActor* TargetIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(PotentialInst.HitComponent->GetComponentLevel());
+				FFoliageMeshInfo* MeshInfo = nullptr;
+				if (FFoliageMeshInfo** MeshInfoResult = UpdatedIFAs.Find(TargetIFA))
+				{
+					MeshInfo = *MeshInfoResult;
+				}
+				else
+				{
+					MeshInfo = UpdateMeshSettings(TargetIFA, PotentialInst.DesiredInstance);
+					UpdatedIFAs.Add(TargetIFA, MeshInfo);
+				}
+
+				PotentialInst.IFA = TargetIFA;
+				PotentialInst.MeshInfo = MeshInfo;
+			}
+		}
+	}
+		
+	UStaticMesh* StaticMesh = Settings->GetStaticMesh();
+	
 
 	for (int32 BucketIdx = 0; BucketIdx < NUM_INSTANCE_BUCKETS; BucketIdx++)
 	{
@@ -1397,16 +1530,16 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 	}
 }
 
-bool FEdModeFoliage::GetStaticMeshVertexColorForHit(UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor)
+bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor)
 {
-	UStaticMesh* StaticMesh = InStaticMeshComponent->StaticMesh;
+	const UStaticMesh* StaticMesh = InStaticMeshComponent->StaticMesh;
 
 	if (StaticMesh == nullptr || StaticMesh->RenderData == nullptr)
 	{
 		return false;
 	}
 
-	FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
+	const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
 	bool bHasInstancedColorData = false;
 	const FStaticMeshComponentLODInfo* InstanceMeshLODInfo = nullptr;
 	if (InStaticMeshComponent->LODData.Num() > 0)
@@ -1911,7 +2044,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 					for (int32 InstanceIndex : SelectedIndices)
 					{
 						bMovedInstance|= SnapInstanceToGround(IFA, MeshPair.Key->AlignMaxAngle, Mesh, InstanceIndex);
-					}
+								}
 					Mesh.PostMoveInstances(IFA, SelectedIndices);
 				}
 
