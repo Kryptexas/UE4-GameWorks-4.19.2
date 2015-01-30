@@ -10,6 +10,8 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectEditor"
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 void SNiagaraEffectEditorWidget::Construct(const FArguments& InArgs)
 {
 	/*
@@ -590,3 +592,6 @@ void SEmitterWidget::OnSpawnScriptSelectedFromPicker(UObject *Asset)
 			]
 		];
 }
+
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION

@@ -29,6 +29,8 @@ DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnValidateProfile, const FCollisionResp
 // SChannelEditDialog 
 //=====================================================================================
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 class SChannelEditDialog : public SCompoundWidget
 {
 public:
@@ -2199,3 +2201,5 @@ void FCollisionProfileDetails::FCollsiionProfileData::Save(UCollisionProfile * P
 
 #undef LOCTEXT_NAMESPACE
 #undef RowWidth_Customization
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
