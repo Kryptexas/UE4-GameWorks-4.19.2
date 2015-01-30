@@ -210,6 +210,11 @@ private:
 	int32 MaxLevel;
 };
 
+inline bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
+{
+	return Platform == SP_PCD3D_SM5;
+}
+
 template<bool bOneGroupPerRecord>
 class TSetupFinalGatherIndirectArgumentsCS : public FGlobalShader
 {
@@ -364,11 +369,6 @@ private:
 	FShaderParameter AOStepExponentScale;
 	FShaderParameter AOMaxViewDistance;
 };
-
-inline bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
-{
-	return Platform == SP_PCD3D_SM5;
-}
 
 inline float GetMaxAOViewDistance()
 {
