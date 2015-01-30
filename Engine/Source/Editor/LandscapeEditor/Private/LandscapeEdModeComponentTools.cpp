@@ -12,6 +12,7 @@
 #include "LandscapeSplineProxies.h"
 #include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "LandscapeEdMode.h"
 #include "LandscapeEdModeTools.h"
 #include "InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
