@@ -117,11 +117,11 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	UPROPERTY()
 	class UBodySetup* BodySetup;
 
-#if WITH_EDITORONLY_DATA
 	// Used to automatically trigger rebuild of collision data
 	UPROPERTY()
 	FGuid CachedMeshBodySetupGuid;
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(transient)
 	uint32 bSelected:1;
 #endif
