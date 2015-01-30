@@ -3264,6 +3264,17 @@ namespace ObjectTools
 		return bResult;
 	}
 
+	bool IsClassValidForPlacing(const UClass* InClass)
+	{
+		check(InClass);
+
+		const bool bIsPlaceable = !InClass->HasAllClassFlags(CLASS_NotPlaceable) && (InClass->IsChildOf(AActor::StaticClass()) || InClass->IsChildOf(ABrush::StaticClass()) || InClass->IsChildOf(AVolume::StaticClass()));
+		const bool bIsAbstractOrDeprecated = InClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
+		const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(InClass);
+		
+		return bIsPlaceable && !bIsAbstractOrDeprecated && !bIsSkeletonClass;
+	}
+
 	bool AreObjectsOfEquivalantType( const TArray<UObject*>& InProposedObjects )
 	{
 		if ( InProposedObjects.Num() > 0 )

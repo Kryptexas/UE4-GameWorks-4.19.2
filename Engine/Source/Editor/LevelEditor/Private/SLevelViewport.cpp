@@ -446,7 +446,7 @@ void SLevelViewport::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 		{
 			if ( HandleDragObjects(MyGeometry, DragDropEvent) )
 			{
-				if ( HandlePlaceDraggedObjects(DragDropEvent, /*bCreateDropPreview=*/true) )
+				if ( HandlePlaceDraggedObjects(MyGeometry, DragDropEvent, /*bCreateDropPreview=*/true) )
 				{
 					DragDropEvent.GetOperation()->SetDecoratorVisibility(false);
 				}
@@ -586,7 +586,7 @@ FReply SLevelViewport::OnDragOver( const FGeometry& MyGeometry, const FDragDropE
 	return FReply::Unhandled();
 }
 
-bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEvent, bool bCreateDropPreview)
+bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bCreateDropPreview)
 {
 	bool bAllAssetWereLoaded = false;
 	bool bValidDrop = false;
@@ -594,6 +594,12 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 
 	TSharedPtr< FDragDropOperation > Operation = DragDropEvent.GetOperation();
 	if (!Operation.IsValid())
+	{
+		return false;
+	}
+
+	// Don't handle the placement if we couldn't handle the drag
+	if (!HandleDragObjects(MyGeometry, DragDropEvent))
 	{
 		return false;
 	}
@@ -801,7 +807,7 @@ FReply SLevelViewport::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 	if (CurrentLevel && !FLevelUtils::IsLevelLocked(CurrentLevel))
 	{
-		return HandlePlaceDraggedObjects(DragDropEvent, /*bCreateDropPreview=*/false) ? FReply::Handled() : FReply::Unhandled();
+		return HandlePlaceDraggedObjects(MyGeometry, DragDropEvent, /*bCreateDropPreview=*/false) ? FReply::Handled() : FReply::Unhandled();
 	}
 	else
 	{
