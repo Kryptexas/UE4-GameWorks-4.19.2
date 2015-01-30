@@ -773,6 +773,15 @@ namespace iPhonePackager
 						{
 							ToolsHub.TryInstallingCertificate_PromptForKey(Config.Certificate, false);
 						}
+						CodeSignatureBuilder.FindCertificates();
+						CodeSignatureBuilder.FindProvisions(Config.OverrideBundleName);
+						break;
+
+					case "certificates":
+						{
+							CodeSignatureBuilder.FindCertificates();
+							CodeSignatureBuilder.FindProvisions(Config.OverrideBundleName);
+						}
 						break;
 
 					case "resigntool":
