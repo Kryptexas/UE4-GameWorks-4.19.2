@@ -129,6 +129,28 @@ void USceneComponent::OnRegister()
 	AttachTo(AttachParent, AttachSocketName);
 	
 	Super::OnRegister();
+
+#if WITH_EDITOR
+	if (bVisualizeComponent && SpriteComponent == nullptr && GetOwner() && !GetWorld()->IsGameWorld() )
+	{
+		// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
+		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
+
+		SpriteComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/EmptyActor.EmptyActor"));
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+		SpriteComponent->Mobility = EComponentMobility::Movable;
+		SpriteComponent->AlwaysLoadOnClient = false;
+		SpriteComponent->AlwaysLoadOnServer = false;
+		SpriteComponent->SpriteInfo.Category = TEXT("Misc");
+		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Misc", "Misc" );
+		SpriteComponent->CreationMethod = CreationMethod;
+		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->bUseInEditorScaling = true;
+
+		SpriteComponent->AttachTo(this);
+		SpriteComponent->RegisterComponent();
+	}
+#endif
 }
 
 void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
@@ -307,6 +329,8 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 					USceneComponent* NewRootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), Owner, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 					NewRootComponent->Mobility = Mobility;
 					NewRootComponent->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
+					NewRootComponent->bVisualizeComponent = true;
+					NewRootComponent->RegisterComponent();
 
 					// Designate the new default root as the child we're promoting
 					ChildToPromote = NewRootComponent;
@@ -362,6 +386,11 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 void USceneComponent::OnComponentDestroyed()
 {
 	Super::OnComponentDestroyed();
+
+	if (SpriteComponent)
+	{
+		SpriteComponent->DestroyComponent();
+	}
 
 	ScopedMovementStack.Reset();
 

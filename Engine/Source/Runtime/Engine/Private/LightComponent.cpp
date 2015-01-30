@@ -168,29 +168,20 @@ bool ULightComponentBase::HasStaticShadowing() const
 	return Owner && (Mobility != EComponentMobility::Movable);
 }
 
+#if WITH_EDITOR
 void ULightComponentBase::OnRegister()
 {
 	Super::OnRegister();
 
-#if WITH_EDITOR
-	if (SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld())
+	if (SpriteComponent)
 	{
-		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
-
-		SpriteComponent->AttachTo(this);
-		SpriteComponent->AlwaysLoadOnClient = false;
-		SpriteComponent->AlwaysLoadOnServer = false;
 		SpriteComponent->SpriteInfo.Category = TEXT("Lighting");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Lighting", "Lighting");
-		SpriteComponent->CreationMethod = CreationMethod;
-		SpriteComponent->bIsScreenSizeScaled = true;
-
-		SpriteComponent->RegisterComponent();
 
 		UpdateLightSpriteTexture();
 	}
-#endif
 }
+#endif
 
 bool ULightComponentBase::ShouldCollideWhenPlacing() const
 {
@@ -299,6 +290,7 @@ ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitial
 	CastStaticShadows = true;
 	CastDynamicShadows = true;
 	bPrecomputedLightingIsValid = true;
+	bVisualizeComponent = true;
 }
 
 /**
