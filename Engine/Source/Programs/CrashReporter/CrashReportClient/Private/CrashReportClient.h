@@ -50,6 +50,9 @@ public:
 	 */
 	FCrashReportClient( const FPlatformErrorReport& InErrorReport );
 
+	/** Destructor. */
+	virtual ~FCrashReportClient();
+
 	/**
 	 * Respond to the user pressing Submit
 	 * @return Whether the request was handled
@@ -87,10 +90,19 @@ public:
 	 */
 	void RequestCloseWindow(const TSharedRef<SWindow>& Window);
 
+	/** Whether the main window should be hidden. */
 	bool ShouldWindowBeHidden() const
 	{
 		return bShouldWindowBeHidden;
 	}
+
+	/** Whether the app should enable widgets related to the displayed callstack. */
+	bool AreCallstackWidgetsEnabled() const;
+
+	/** Whether the throbber should be visible while processing the callstack. */
+	EVisibility IsThrobberVisible() const;
+
+	void SCrashReportClient_OnCheckStateChanged( ECheckBoxState NewRadioState );
 
 private:
 	/**
@@ -113,6 +125,11 @@ private:
 	/** Enqueued from the diagnose report worker thread to be executed on the game thread. */
 	void FinalizeDiagnoseReportWorker( FText ReportText );
 
+	/**
+	 * @return true if we are still processing a callstack
+	 */
+	bool IsProcessingCallstack() const;
+
 	/** Comment provided by the user */
 	FText UserComment;
 
@@ -131,8 +148,11 @@ private:
 	/** Whether BeginUpload has been called. */
 	bool bBeginUploadCalled;
 
-	/** Whether the main windows should be hidden. */
+	/** Whether the main window should be hidden. */
 	bool bShouldWindowBeHidden;
+
+	/** Whether the user allowed us to be contacted. */
+	bool bAllowToBeContacted;
 
 };
 

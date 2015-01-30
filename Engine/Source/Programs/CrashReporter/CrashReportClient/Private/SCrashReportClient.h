@@ -28,11 +28,6 @@ public:
 	 */
 	void Construct(const FArguments& InArgs, TSharedRef<FCrashReportClient> Client);
 
-	/**
-	 * Give the edit box focus (seems this has to be done after the window has been created)
-	 */
-	void SetDefaultFocus();
-
 private:
 	/**
 	 * Keyboard short-cut handler
@@ -43,9 +38,6 @@ private:
 
 	/** Crash report client implementation object */
 	TSharedPtr<FCrashReportClient> CrashReportClient;
-
-	/** The edit box that has keyboard focus to receive the user's comment */
-	TSharedPtr<SEditableTextBox> UserCommentBox;
 };
 
 #endif // !CRASH_REPORT_UNATTENDED_ONLY

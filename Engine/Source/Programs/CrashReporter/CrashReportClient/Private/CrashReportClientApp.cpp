@@ -125,7 +125,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 
 	if (bUnattended)
 	{
-		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ) );
+		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ), false );
 		FCrashReportClientUnattended CrashReportClient( ErrorReport );
 
 		// loop until the app is ready to quit
@@ -160,7 +160,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		Window->SetRequestDestroyWindowOverride(FRequestDestroyWindowOverride::CreateSP(CrashReportClient, &FCrashReportClient::RequestCloseWindow));
 
 		// Setting focus seems to have to happen after the Window has been added
-		ClientControl->SetDefaultFocus();
+		FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
 
 		// Debugging code
 		if (RunWidgetReflector)

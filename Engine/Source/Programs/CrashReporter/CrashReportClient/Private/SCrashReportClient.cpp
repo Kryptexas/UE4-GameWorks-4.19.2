@@ -7,64 +7,117 @@
 #include "SCrashReportClient.h"
 #include "CrashReportClientStyle.h"
 #include "SlateStyle.h"
+#include "SThrobber.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
+
+static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata, TSharedRef<SWidget> ParentWidget)
+{
+	const FString* UrlPtr = Metadata.Find(TEXT("href"));
+	if(UrlPtr)
+	{
+		FPlatformProcess::LaunchURL(**UrlPtr, nullptr, nullptr);
+	}
+}
 
 void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashReportClient> Client)
 {
 	CrashReportClient = Client;
 
-	TSharedPtr<SVerticalBox> CrashedAppBox;
+	auto CrashedAppName = CrashReportClient->GetCrashedAppName();
+
+	// Set the text displaying the name of the crashed app, if available
+	FText CrashedAppText = CrashedAppName.IsEmpty() ?
+		LOCTEXT("CrashedAppNotFound", "An Unreal process has crashed") :
+		LOCTEXT("CrashedApp", "The following process has crashed: ");
+
 	ChildSlot
 	[
 		SNew(SBorder)
 		.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
-		.Padding(FMargin(3, 0))
 		[
 			SNew(SVerticalBox)
 
 			// Stuff anchored to the top
 			+SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding(5)
+			.Padding(3)
 			[
-				SNew(SVerticalBox)
-
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(10)
-				[
-					SAssignNew(CrashedAppBox, SVerticalBox)
-				]
-
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5)
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.AutoWrapText(true)
-					.Text(LOCTEXT("Blurb", "Please describe what you were doing immediately before the crash:"))
+					.TextStyle(FCrashReportClientStyle::Get(), "Title")
+					.Text(CrashedAppText)
 				]
 
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
 				[
-					SAssignNew(UserCommentBox, SEditableTextBox)
-					.OnTextCommitted(CrashReportClient.ToSharedRef(), &FCrashReportClient::UserCommentChanged)
-					.HintText(LOCTEXT("CircumstancesOfCrash", "Circumstances of crash"))
+					SNew(STextBlock)
+					.TextStyle(FCrashReportClientStyle::Get(), "Title")
+					.Text(CrashedAppName)
 				]
 			]
 
 			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(3)
 			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.MaxHeight(550)
+				SNew( SRichTextBlock )
+				.Text( LOCTEXT("CrashDetailed", "We are very sorry that this crash occurred. Our goal is to prevent crashes like this from occurring in the future. Please help us track down and fix this crash by providing detailed information about what you were doing so that we may reproduce the crash and fix it quickly. You can also log a Bug Report with us at <a id=\"browser\" href=\"https://answers.unrealengine.com\" style=\"Hyperlink\">AnswerHub</> and work directly with support staff to report this issue.")
+				)
+				.AutoWrapText(true)
+				.DecoratorStyleSet( &FCoreStyle::Get() )
+				+ SRichTextBlock::HyperlinkDecorator( TEXT("browser"), FSlateHyperlinkRun::FOnClick::CreateStatic( &OnBrowserLinkClicked, AsShared() ) )
+			]
+
+			+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(3)
+				[
+					SNew( STextBlock )
+					.Text( LOCTEXT("CrashThanks", "Thanks for your help in improving the Unreal Engine.")
+					)
+					.AutoWrapText(true)
+				]
+
+			+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(3)
+				[
+					SNew( STextBlock )
+					.Text( LOCTEXT("CrashPRovide", "Please provide detailed information about what you were doing when the crash occurred.")
+					)
+					.AutoWrapText(true)
+				]
+
+			+SVerticalBox::Slot()
+			.FillHeight(0.3f)
+			.Padding(3)
+			[
+				SNew(SMultiLineEditableTextBox)
+				.OnTextCommitted(CrashReportClient.ToSharedRef(), &FCrashReportClient::UserCommentChanged)
+				.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 9 ) )
+				.AutoWrapText( true )
+				.BackgroundColor(FSlateColor(FLinearColor::Black))
+				.ForegroundColor(FSlateColor(FLinearColor::White))
+				.HintText(LOCTEXT("CircumstancesOfCrash", "Circumstances of crash"))
+			]
+			
+			+SVerticalBox::Slot()
+			.FillHeight(0.7f)
+			.Padding(3)
+			[
+				SNew(SOverlay)
+
+				+SOverlay::Slot()
 				[
 					SNew(SBorder)
 					.BorderImage(new FSlateBoxBrush(TEXT("Common/TextBlockHighlightShape"), FMargin(.5f)))
 					.BorderBackgroundColor(FSlateColor(FLinearColor::Black))
+					.IsEnabled(CrashReportClient.ToSharedRef(), &FCrashReportClient::AreCallstackWidgetsEnabled)
 					[
 						SNew(SScrollBox)
 						+SScrollBox::Slot()
@@ -76,83 +129,86 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 					]
 				]
 
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Right)
-				.Padding(2)
+				+SOverlay::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
 				[
-					SNew(SButton)
-					.Text(LOCTEXT("CopyCallstack", "Copy Callstack to Clipboard"))
-					.OnClicked(CrashReportClient.ToSharedRef(), &FCrashReportClient::CopyCallstack)
+					SNew(SThrobber)
+					.Visibility(CrashReportClient.ToSharedRef(), &FCrashReportClient::IsThrobberVisible)
+					.NumPieces(5)
+				]
+			]
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(3)
+			[
+				SNew(SHorizontalBox)
+
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SCheckBox)
+					.IsChecked(ECheckBoxState::Checked)
+					.OnCheckStateChanged(CrashReportClient.ToSharedRef(), &FCrashReportClient::SCrashReportClient_OnCheckStateChanged)
+				]
+
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.AutoWrapText(true)
+					.Text(LOCTEXT("IAgree", "I agree to be contacted by Epic Games via email if additional information about this crash would help fix it."))
 				]
 			]
 
 			// Stuff anchored to the bottom
 			+SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding(10)
+			.Padding( FMargin(3, 3+16, 3, 3) )
 			[
 				SNew(SHorizontalBox)
 
 				+SHorizontalBox::Slot()
-				.Padding(3)
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("KeyboardShortcuts", "Shift+Enter: submit\n"))
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				.Padding(0)
+				[			
+					SNew(SSpacer)
 				]
 
 				+SHorizontalBox::Slot()
-				.VAlign(VAlign_Bottom)
-				.HAlign(HAlign_Right)
 				.AutoWidth()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Padding( FMargin(0,0,8,0) )
 				[
-					SNew(SUniformGridPanel)
-					.SlotPadding(FCoreStyle::Get().GetMargin("StandardDialog.SlotPadding"))
-					.MinDesiredSlotWidth(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotWidth"))
-					.MinDesiredSlotHeight(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotHeight"))
-					+SUniformGridPanel::Slot(0, 0)
-					[
-						SNew(SButton)
-						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("Send", "Send"))
-						.OnClicked(Client, &FCrashReportClient::Submit)
-					]
+					SNew(SButton)
+					.ContentPadding( FMargin(8,2) )
+					.Text(LOCTEXT("CopyCallstack", "Copy to Clipboard"))
+					.OnClicked(CrashReportClient.ToSharedRef(), &FCrashReportClient::CopyCallstack)
+					.IsEnabled(CrashReportClient.ToSharedRef(), &FCrashReportClient::AreCallstackWidgetsEnabled)
+				]
+
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding( FMargin(0) )
+				[
+					SNew(SButton)
+					.ContentPadding( FMargin(8,2) )
+					.Text(LOCTEXT("Send", "Send"))
+					.OnClicked(Client, &FCrashReportClient::Submit)
 				]
 			]
 		]
 	];
 
-	auto CrashedAppName = CrashReportClient->GetCrashedAppName();
-
-	// Set the text displaying the name of the crashed app, if available
-	FText CrashedAppText = CrashedAppName.IsEmpty() ?
-		LOCTEXT("CrashedAppNotFound", "An Unreal process has crashed") :
-		LOCTEXT("CrashedApp", "The following process has crashed:");
-
-	CrashedAppBox->AddSlot()
-	[
-		SNew(STextBlock)
-		.TextStyle(FCrashReportClientStyle::Get(), "Title")
-		.Text(CrashedAppText)
-	];
-
-	if (!CrashedAppName.IsEmpty())
-	{
-		CrashedAppBox->AddSlot()
-		.Padding(5)
-		.HAlign(HAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(CrashedAppName))
-		];
-	}
-
 	FSlateApplication::Get().SetUnhandledKeyDownEventHandler(FOnKeyEvent::CreateSP(this, &SCrashReportClient::OnUnhandledKeyDown));
-}
-
-void SCrashReportClient::SetDefaultFocus()
-{
-	FSlateApplication::Get().SetKeyboardFocus(UserCommentBox.ToSharedRef());
 }
 
 FReply SCrashReportClient::OnUnhandledKeyDown(const FKeyEvent& InKeyEvent)
@@ -160,11 +216,8 @@ FReply SCrashReportClient::OnUnhandledKeyDown(const FKeyEvent& InKeyEvent)
 	const FKey Key = InKeyEvent.GetKey();
 	if (Key == EKeys::Enter)
 	{
-		if (InKeyEvent.IsShiftDown())
-		{
-			CrashReportClient->Submit();
-			return FReply::Handled();
-		}
+		CrashReportClient->Submit();
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();

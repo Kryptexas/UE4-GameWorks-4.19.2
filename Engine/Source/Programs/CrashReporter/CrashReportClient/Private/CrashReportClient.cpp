@@ -39,6 +39,7 @@ FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport
 	, Uploader(GServerIP)
 	, bBeginUploadCalled(false)
 	, bShouldWindowBeHidden(false)
+	, bAllowToBeContacted(true)
 {
 
 	if (!ErrorReport.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
@@ -49,6 +50,16 @@ FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport
 	else if( !DiagnosticText.IsEmpty() )
 	{
 		DiagnosticText = FCrashReportUtil::FormatDiagnosticText( DiagnosticText, GetCrashDescription().MachineId, GetCrashDescription().EpicAccountId, GetCrashDescription().UserName );
+	}
+}
+
+
+FCrashReportClient::~FCrashReportClient()
+{
+	if( DiagnoseReportTask )
+	{
+		DiagnoseReportTask->EnsureCompletion();
+		delete DiagnoseReportTask;
 	}
 }
 
@@ -88,6 +99,21 @@ void FCrashReportClient::RequestCloseWindow(const TSharedRef<SWindow>& Window)
 	bShouldWindowBeHidden = true;
 }
 
+bool FCrashReportClient::AreCallstackWidgetsEnabled() const
+{
+	return !IsProcessingCallstack();
+}
+
+EVisibility FCrashReportClient::IsThrobberVisible() const
+{
+	return IsProcessingCallstack() ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+void FCrashReportClient::SCrashReportClient_OnCheckStateChanged( ECheckBoxState NewRadioState )
+{
+	bAllowToBeContacted = NewRadioState == ECheckBoxState::Checked;
+}
+
 void FCrashReportClient::StartTicker()
 {
 	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateSP(this, &FCrashReportClient::Tick), 1.f);
@@ -96,14 +122,14 @@ void FCrashReportClient::StartTicker()
 void FCrashReportClient::StoreCommentAndUpload()
 {
 	// Call upload even if the report is empty: pending reports will be sent if any
-	ErrorReport.SetUserComment(UserComment);
+	ErrorReport.SetUserComment(UserComment, bAllowToBeContacted);
 	StartTicker();
 }
 
 bool FCrashReportClient::Tick(float UnusedDeltaTime)
 {
 	// We are waiting for diagnose report task to complete.
-	if( DiagnoseReportTask && !DiagnoseReportTask->IsWorkDone() )
+	if( IsProcessingCallstack() )
 	{
 		return true;
 	}
@@ -139,6 +165,12 @@ void FCrashReportClient::FinalizeDiagnoseReportWorker( FText ReportText )
 	Uploader.LocalDiagnosisComplete(FPaths::FileExists(DiagnosticsFilePath) ? DiagnosticsFilePath : TEXT(""));
 }
 
+
+bool FCrashReportClient::IsProcessingCallstack() const
+{
+	return DiagnoseReportTask && !DiagnoseReportTask->IsWorkDone();
+}
+
 FDiagnoseReportWorker::FDiagnoseReportWorker( FCrashReportClient* InCrashReportClient ) 
 	: CrashReportClient( InCrashReportClient )
 {}
@@ -164,7 +196,7 @@ FText FCrashReportUtil::FormatDiagnosticText( const FText& DiagnosticText, const
 	}
 	else
 	{
-		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\nUserName:{1}\n\n{2}" ), FText::FromString( MachineId ), FText::FromString( UserNameNoDot ), DiagnosticText );
+		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\n\n{1}" ), FText::FromString( MachineId ), DiagnosticText );
 	}
 
 }
