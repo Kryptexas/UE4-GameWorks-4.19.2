@@ -46,14 +46,27 @@ class FComponentClassComboEntry: public TSharedFromThis<FComponentClassComboEntr
 public:
 	FComponentClassComboEntry( const FString& InHeadingText, TSubclassOf<UActorComponent> InComponentClass, bool InIncludedInFilter, EComponentCreateAction::Type InComponentCreateAction, FComponentEntryCustomizationArgs InCustomizationArgs = FComponentEntryCustomizationArgs() )
 		: ComponentClass(InComponentClass)
+		, ComponentName()
+		, ComponentPath()
 		, HeadingText(InHeadingText)
 		, bIncludedInFilter(InIncludedInFilter)
 		, ComponentCreateAction(InComponentCreateAction)
 		, CustomizationArgs(InCustomizationArgs)
 	{}
 
+	FComponentClassComboEntry(const FString& InHeadingText, const FString& InComponentName, FName InComponentPath, bool InIncludedInFilter)
+		: ComponentClass()
+		, ComponentName(InComponentName)
+		, ComponentPath(InComponentPath)
+		, HeadingText(InHeadingText)
+		, bIncludedInFilter(InIncludedInFilter)
+		, ComponentCreateAction(EComponentCreateAction::SpawnExistingClass)
+	{}
+
 	FComponentClassComboEntry( const FString& InHeadingText )
 		: ComponentClass(NULL)
+		, ComponentName()
+		, ComponentPath()
 		, HeadingText(InHeadingText)
 		, bIncludedInFilter(false)
 	{}
@@ -69,16 +82,16 @@ public:
 
 	bool IsHeading() const
 	{
-		return (ComponentClass==NULL && !HeadingText.IsEmpty());
+		return ((ComponentClass == NULL && ComponentName == FString()) && !HeadingText.IsEmpty());
 	}
 	bool IsSeparator() const
 	{
-		return (ComponentClass==NULL && HeadingText.IsEmpty());
+		return ((ComponentClass == NULL && ComponentName == FString()) && HeadingText.IsEmpty());
 	}
 	
 	bool IsClass() const
 	{
-		return (ComponentClass!=NULL);
+		return (ComponentClass != NULL || ComponentName != FString());
 	}
 	
 	bool IsIncludedInFilter() const
@@ -100,6 +113,8 @@ public:
 	{
 		return CustomizationArgs.OnComponentCreated;
 	}
+	FString GetClassName() const;
+	FString GetComponentPath() const { return ComponentPath.ToString(); }
 
 	UObject* GetAssetOverride()
 	{
@@ -107,6 +122,11 @@ public:
 	}
 private:
 	TSubclassOf<UActorComponent> ComponentClass;
+	// For components that are not loaded we just keep the name of the component,
+	// loading occurs when the blueprint is spawned, which should also trigger a refresh
+	// of the component list:
+	FString ComponentName;
+	FName ComponentPath;
 	FString HeadingText;
 	bool bIncludedInFilter;
 	EComponentCreateAction::Type ComponentCreateAction;
@@ -128,6 +148,8 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
+
+	~SComponentClassCombo();
 
 	/** Clear the current combo list selection */
 	void ClearSelection();
@@ -157,18 +179,13 @@ public:
 	void UpdateComponentClassList();
 
 	/** Returns a component name without the substring "Component" and sanitized for display */
-	static FString GetSanitizedComponentName( UClass* ComponentClass, const FString& DisplayNameOverride );
+	static FString GetSanitizedComponentName(FComponentClassComboEntryPtr Entry);
 
 protected:
 
 	/** Called when a project is hot reloaded to refresh the components list */
 	void OnProjectHotReloaded( bool bWasTriggeredAutomatically );
 
-	/** Adds basic shapes to the component dropdown */
-	void AddBasicShapeComponents( TArray<FComponentClassComboEntryPtr>& SortedClassList );
-
-	/** Called when a new basic shape is added */
-	void OnBasicShapeCreated( UActorComponent* CreatedComponent);
 private:
 
 	FText GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const;
@@ -176,7 +193,7 @@ private:
 	FComponentClassSelected OnComponentClassSelected;
 
 	/** List of component class names used by combo box */
-	TArray<FComponentClassComboEntryPtr> ComponentClassList;
+	TArray<FComponentClassComboEntryPtr>* ComponentClassList;
 
 	/** List of component class names, filtered by the current search string */
 	TArray<FComponentClassComboEntryPtr> FilteredComponentClassList;
