@@ -211,6 +211,7 @@ EMaterialValueType GetMaterialPropertyType(EMaterialProperty Property)
 	case MP_AmbientOcclusion: return MCT_Float;
 	case MP_Refraction: return MCT_Float;
 	case MP_MaterialAttributes: return MCT_MaterialAttributes;
+	case MP_PixelDepthOffset: return MCT_Float;
 	};
 
 	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
@@ -1409,7 +1410,6 @@ bool FMaterial::BeginCompileShaderMap(
 		}
 		else
 		{
-			UE_LOG(LogMaterial, Display, TEXT("Add compile shader map id %d"), NewShaderMap->GetCompilingId());
 			OutstandingCompileShaderMapIds.Add( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.
 			OutShaderMap = NULL;
@@ -2157,6 +2157,11 @@ EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 		return MP_MaterialAttributes;
 	}
 
+	if (Index == UVEnd + 2)
+	{
+		return MP_PixelDepthOffset;
+	}
+
 	return MP_MAX;
 }
 
@@ -2185,9 +2190,17 @@ int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property)
 	case MP_MaterialAttributes: UE_LOG(LogMaterial, Fatal, TEXT("We should never need the IO index of the MaterialAttriubtes property."));
 	};
 
+	const int32 UVStart = 16;
+	const int32 UVEnd = UVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0;
+
 	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 	{
-		return 16 + Property - MP_CustomizedUVs0;
+		return UVStart + Property - MP_CustomizedUVs0;
+	}
+
+	if (Property == MP_PixelDepthOffset)
+	{
+		return UVEnd + 2;
 	}
 
 	return -1;
@@ -2206,6 +2219,7 @@ int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMate
 		case MP_ClearCoat:				return Compiler->Constant(1.0f);
 		case MP_ClearCoatRoughness:		return Compiler->Constant(0.1f);
 		case MP_AmbientOcclusion:		return Compiler->Constant(1.0f);
+		case MP_PixelDepthOffset:		return Compiler->Constant(0.0f);
 
 		case MP_EmissiveColor:			return Compiler->Constant3(0, 0, 0);
 		case MP_DiffuseColor:			return Compiler->Constant3(0, 0, 0);
@@ -2257,6 +2271,7 @@ FString GetNameOfMaterialProperty(EMaterialProperty Property)
 	case MP_ClearCoatRoughness:		return TEXT("ClearCoatRoughness");
 	case MP_AmbientOcclusion:		return TEXT("AmbientOcclusion");
 	case MP_Refraction:				return TEXT("Refraction");
+	case MP_PixelDepthOffset:		return TEXT("PixelDepthOffset");
 	};
 
 	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)

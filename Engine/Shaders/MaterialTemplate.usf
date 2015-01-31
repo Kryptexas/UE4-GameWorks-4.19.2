@@ -1259,6 +1259,11 @@ void GetMaterialCustomizedUVs(FMaterialVertexParameters Parameters, out float2 O
 }
 #endif
 
+float GetMaterialPixelDepthOffset(FMaterialPixelParameters Parameters)
+{
+%s;
+}
+
 // Programmatically set the line number after all the material inputs which have a variable number of line endings
 // This allows shader error line numbers after this point to be the same regardless of which material is being compiled
 #line %s
@@ -1454,4 +1459,40 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 	half3 TangentToWorld1 = cross(TangentToWorld2.xyz,TangentToWorld0) * TangentToWorld2.w;
 	// Transform from tangent space to world space
 	return half3x3(TangentToWorld0, TangentToWorld1, TangentToWorld2.xyz);
+}
+
+// Whether the material shader should output pixel depth offset
+#define OUTPUT_PIXEL_DEPTH_OFFSET (WANT_PIXEL_DEPTH_OFFSET && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED))
+
+// Whether to use the hidden d3d11 feature that supports depth writes with ZCull by only pushing into the screen
+//@todo - use for other SM5 platforms
+#define USE_CONSERVATIVE_DEPTH_WRITES (OUTPUT_PIXEL_DEPTH_OFFSET && COMPILER_HLSL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5)
+
+#if USE_CONSERVATIVE_DEPTH_WRITES
+	// Note: for some reason using SV_DepthLessEqual without these interpolation modifiers causes a compile error in d3d
+	#define INPUT_POSITION_QUALIFIERS linear noperspective centroid
+	// Use conservative depth output so we still get Z Cull.  Note, this is a reversed Z depth surface.
+	#define DEPTH_WRITE_SEMANTIC SV_DepthLessEqual
+#else
+	#define INPUT_POSITION_QUALIFIERS 
+	#define DEPTH_WRITE_SEMANTIC SV_DEPTH
+#endif
+
+#if OUTPUT_PIXEL_DEPTH_OFFSET
+	#define OPTIONAL_OutDepth ,out float OutDepth : DEPTH_WRITE_SEMANTIC
+#else
+	#define OPTIONAL_OutDepth
+#endif
+
+void ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters MaterialParameters, out float OutDepth)
+{
+	// Can only push into the scene for conservative depth writes
+	float PixelDepthOffset = max(GetMaterialPixelDepthOffset(MaterialParameters), 0);
+
+	// Update positions used for shading
+	MaterialParameters.ScreenPosition.w += PixelDepthOffset;
+	MaterialParameters.SVPosition.w = MaterialParameters.ScreenPosition.w;
+	MaterialParameters.WorldPosition += MaterialParameters.CameraVector * PixelDepthOffset;
+
+	OutDepth = MaterialParameters.ScreenPosition.z / MaterialParameters.ScreenPosition.w;
 }

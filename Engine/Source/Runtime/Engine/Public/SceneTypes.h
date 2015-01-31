@@ -153,6 +153,7 @@ enum EMaterialProperty
 	MP_CustomizedUVs6,
 	MP_CustomizedUVs7,
 	MP_MaterialAttributes,
+	MP_PixelDepthOffset,
 	MP_MAX,
 };
 

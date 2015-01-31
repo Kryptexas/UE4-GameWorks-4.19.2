@@ -576,7 +576,8 @@ uint CustomAlpha2Coverage(inout float4 InOutColor)
 void Main(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
-	in float4 SvPosition : SV_Position,
+	in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position,
+
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor		: SV_Target0
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !NO_GBUFFER
@@ -591,6 +592,8 @@ void Main(
 		, out float4 OutGBufferVelocity : SV_Target6
 	#endif
 #endif
+
+	OPTIONAL_OutDepth
 
 #if EDITOR_ALPHA2COVERAGE != 0
    ,in uint InCoverage : SV_Coverage
@@ -615,7 +618,10 @@ void Main(
 #else
 	const bool bEditorWeightedZBuffering = false;
 #endif
-
+		
+#if OUTPUT_PIXEL_DEPTH_OFFSET
+	ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, OutDepth);
+#endif
 
 	//Clip if the blend mode requires it.
 	if(!bEditorWeightedZBuffering)
@@ -642,7 +648,7 @@ void Main(
 		float4 SubsurfaceData = GetMaterialSubsurfaceData(MaterialParameters);
 
 #if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-		SubsurfaceColor = SubsurfaceData.rgb;
+		SubsurfaceColor = SubsurfaceData.rgb * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
 #endif
 		SubsurfaceProfile = SubsurfaceData.a;
 	}
@@ -866,9 +872,6 @@ void Main(
 		float QuantizationBias = PseudoRandom( MaterialParameters.SVPosition.xy ) * 0.5 - 0.5;
 		EncodeGBuffer(GBuffer, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD, OutGBufferE, OutGBufferVelocity, QuantizationBias);
 	#endif 
-	
-
-
 
 	if(bEditorWeightedZBuffering)
 	{

@@ -198,6 +198,7 @@ protected:
 	uint32 bUsesTransformVector : 1;
 	// True if the current property requires last frame's time
 	uint32 bUsesPreviousFrameTime : 1;
+	uint32 bUsesPixelDepthOffset : 1;
 	/** Tracks the number of texture coordinates used by this material. */
 	uint32 NumUserTexCoords;
 	/** Tracks the number of texture coordinates used by the vertex shader in this material. */
@@ -240,6 +241,7 @@ public:
 	,	bUsesParticleColor(false)
 	,	bUsesTransformVector(false)
 	,	bUsesPreviousFrameTime(false)
+	,	bUsesPixelDepthOffset(false)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
 	{}
@@ -343,31 +345,12 @@ public:
 				}
 			}
 
-			if (Chunk[MP_WorldPositionOffset] == -1)
-			{
-				MaterialCompilationOutput.bModifiesMeshPosition = false;
-			}
-			else
-			{
-				int32 WPOFreq = (int32)GetMaterialPropertyShaderFrequency(MP_WorldPositionOffset);
-				FShaderCodeChunk& WPOChunk = PropertyCodeChunks[MP_WorldPositionOffset][WPOFreq][Chunk[MP_WorldPositionOffset]];
+			Chunk[MP_PixelDepthOffset] = Material->CompilePropertyAndSetMaterialProperty(MP_PixelDepthOffset,this);
 
-				// Determine whether the world position offset is used. 
-				// If the output chunk has a uniform expression, it is constant, and GetNumberValue returns the default property value then WPO isn't used.
-				MaterialCompilationOutput.bModifiesMeshPosition = true;
-				if( WPOChunk.UniformExpression && WPOChunk.UniformExpression->IsConstant() )
-				{
-					FLinearColor WPOValue;
-					FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
-					WPOChunk.UniformExpression->GetNumberValue(DummyContext, WPOValue);
-					if (FVector(WPOValue) == FVector::ZeroVector)
-					{
-						MaterialCompilationOutput.bModifiesMeshPosition = false;
-					}
-				}
-			}
-
-
+			bUsesPixelDepthOffset = IsMaterialPropertyUsed(MP_PixelDepthOffset, Chunk[MP_PixelDepthOffset], FLinearColor(0, 0, 0, 0), 1);
+			const bool bUsesWorldPositionOffset = IsMaterialPropertyUsed(MP_WorldPositionOffset, Chunk[MP_WorldPositionOffset], FLinearColor(0, 0, 0, 0), 3);
+			MaterialCompilationOutput.bModifiesMeshPosition = bUsesPixelDepthOffset || bUsesWorldPositionOffset;
+			
 			if (Material->GetBlendMode() == BLEND_Modulate && MaterialShadingModel != MSM_Unlit && !Material->IsUsedWithDeferredDecal())
 			{
 				Errorf(TEXT("Dynamically lit translucency is not supported for BLEND_Modulate materials."));
@@ -632,6 +615,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor ? TEXT("1") : TEXT("0")); 
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor ? TEXT("1") : TEXT("0")); 
 		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector ? TEXT("1") : TEXT("0")); 
+		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset ? TEXT("1") : TEXT("0")); 
 		// Distortion uses tangent space transform 
 		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted() ? TEXT("1") : TEXT("0")); 
 
@@ -708,12 +692,50 @@ public:
 
 		LazyPrintf.PushParam(*CustomUVAssignments);
 	
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_PixelDepthOffset));
+
 		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),MaterialTemplateLineNumber));
 
 		return LazyPrintf.GetResultString();
 	}
 
 protected:
+
+	bool IsMaterialPropertyUsed(EMaterialProperty Property, int32 PropertyChunkIndex, const FLinearColor& ReferenceValue, int32 NumComponents)
+	{
+		bool bPropertyUsed = false;
+
+		if (PropertyChunkIndex == -1)
+		{
+			bPropertyUsed = false;
+		}
+		else
+		{
+			int32 Frequency = (int32)GetMaterialPropertyShaderFrequency(Property);
+			FShaderCodeChunk& PropertyChunk = PropertyCodeChunks[Property][Frequency][PropertyChunkIndex];
+
+			// Determine whether the property is used. 
+			// If the output chunk has a uniform expression, it is constant, and GetNumberValue returns the default property value then property isn't used.
+			bPropertyUsed = true;
+
+			if( PropertyChunk.UniformExpression && PropertyChunk.UniformExpression->IsConstant() )
+			{
+				FLinearColor Value;
+				FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
+				PropertyChunk.UniformExpression->GetNumberValue(DummyContext, Value);
+
+				if ((NumComponents < 1 || Value.R == ReferenceValue.R)
+					&& (NumComponents < 2 || Value.G == ReferenceValue.G)
+					&& (NumComponents < 3 || Value.B == ReferenceValue.B)
+					&& (NumComponents < 4 || Value.A == ReferenceValue.A))
+				{
+					bPropertyUsed = false;
+				}
+			}
+		}
+
+		return bPropertyUsed;
+	}
 
 	// only used by GetMaterialShaderCode()
 	// @param Index ECompiledMaterialProperty or EMaterialProperty

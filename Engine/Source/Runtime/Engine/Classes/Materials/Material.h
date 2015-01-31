@@ -383,6 +383,9 @@ public:
 	UPROPERTY()
 	FMaterialAttributesInput MaterialAttributes;
 
+	UPROPERTY()
+	FScalarMaterialInput PixelDepthOffset;
+
 	/** Indicates that the material should be rendered in the SeparateTranslucency Pass (not affected by DOF, requires bAllowSeparateTranslucency to be set in .ini). */
 	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Separate Translucency"))
 	uint32 bEnableSeparateTranslucency:1;

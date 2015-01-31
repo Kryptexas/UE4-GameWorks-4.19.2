@@ -3078,6 +3078,7 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		case MP_AmbientOcclusion:		return &AmbientOcclusion;
 		case MP_Refraction:				return &Refraction;
 		case MP_MaterialAttributes:		return &MaterialAttributes;
+		case MP_PixelDepthOffset:		return &PixelDepthOffset;
 	}
 
 	if (InProperty >= MP_CustomizedUVs0 && InProperty <= MP_CustomizedUVs7)
@@ -3378,6 +3379,7 @@ int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProper
 		case MP_Normal:					return Normal.CompileWithDefault(Compiler, Property);
 		case MP_WorldPositionOffset:	return WorldPositionOffset.CompileWithDefault(Compiler, Property);
 		case MP_WorldDisplacement:		return WorldDisplacement.CompileWithDefault(Compiler, Property);
+		case MP_PixelDepthOffset:		return PixelDepthOffset.CompileWithDefault(Compiler, Property);
 
 		default:
 			if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
@@ -3662,6 +3664,9 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		break;
 	case MP_WorldPositionOffset:
 		Active = !bUsedWithUI;
+		break;
+	case MP_PixelDepthOffset:
+		Active = !IsTranslucentBlendMode((EBlendMode)BlendMode);
 		break;
 	case MP_MaterialAttributes:
 	default:

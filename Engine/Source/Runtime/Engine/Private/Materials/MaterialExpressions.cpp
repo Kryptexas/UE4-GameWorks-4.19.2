@@ -3196,6 +3196,12 @@ int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler
 		Ret = CustomizedUVs[MultiplexIndex - CustomUVStart].Compile(Compiler); Expression = CustomizedUVs[MultiplexIndex - CustomUVStart].Expression; 
 	}
 
+	if (MultiplexIndex == CustomUVStart + 2)
+	{
+		Ret = PixelDepthOffset.Compile(Compiler);
+		Expression = PixelDepthOffset.Expression;
+	}
+
 	//If we've connected an expression but its still returned INDEX_NONE, flag the error.
 	if( Expression && INDEX_NONE == Ret )
 	{
@@ -3252,6 +3258,7 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	{
 		Outputs.Add(FExpressionOutput(*FString::Printf(TEXT("CustomizedUV%u"), UVIndex), 1, 1, 1, 0, 0));
 	}
+	Outputs.Add(FExpressionOutput(TEXT("PixelDepthOffset"), 1, 1, 1, 1, 0));
 }
 
 int32 UMaterialExpressionBreakMaterialAttributes::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
