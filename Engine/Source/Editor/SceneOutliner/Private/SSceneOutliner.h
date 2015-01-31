@@ -5,6 +5,10 @@
 #include "SceneOutlinerStandaloneTypes.h"
 #include "EditorUndoClient.h"
 
+/**
+ * Scene Outliner definition
+ * Note the Scene Outliner is also called the World Outliner
+ */
 namespace SceneOutliner
 {
 	typedef TTextFilter< const ITreeItem& > TreeItemTextFilter;

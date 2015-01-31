@@ -1377,7 +1377,7 @@ namespace SceneOutliner
 			return;
 		}
 
-		const FScopedTransaction Transaction( LOCTEXT("MoveOutlinerItems", "Move Scene Outliner Items") );
+		const FScopedTransaction Transaction( LOCTEXT("MoveOutlinerItems", "Move World Outliner Items") );
 		DropTarget.OnDrop(DraggedObjects, *SharedData->RepresentingWorld, Validation, SNullWidget::NullWidget);
 	}
 
@@ -1631,7 +1631,7 @@ namespace SceneOutliner
 					const bool bSelectEvenIfHidden = true;	// @todo outliner: Is this actually OK?
 					for (auto* Actor : SelectedActors)
 					{
-						UE_LOG(LogSceneOutliner, Verbose,  TEXT("Clicking on Actor (scene outliner): %s (%s)"), *Actor->GetClass()->GetName(), *Actor->GetActorLabel());
+						UE_LOG(LogSceneOutliner, Verbose,  TEXT("Clicking on Actor (world outliner): %s (%s)"), *Actor->GetClass()->GetName(), *Actor->GetActorLabel());
 						GEditor->SelectActor( Actor, bShouldSelect, bNotifyAfterSelect, bSelectEvenIfHidden );
 					}
 
