@@ -73,16 +73,20 @@ void Main(
 
 		#if USING_TESSELLATION
 			// We let the Domain Shader convert to post projection when tessellating
-			Output.BasePassInterpolants.PrevScreenPosition = PrevTranslatedWorldPosition;
+			Output.BasePassInterpolants.VelocityPrevScreenPosition = PrevTranslatedWorldPosition;
 			// Store the mask in .w when doing tessellation as we need the world space Z
-			Output.BasePassInterpolants.PrevScreenPosition.w = 1 - SkipOutputVelocity;
-			Output.BasePassInterpolants.ScreenPosition = WorldPosition;
+			Output.BasePassInterpolants.VelocityPrevScreenPosition.w = 1 - SkipOutputVelocity;
+			#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
+			Output.BasePassInterpolants.VelocityScreenPosition = WorldPosition;
+			#endif
 		#else
 			// compute the old screen pos with the old world position and the old camera matrix
-			Output.BasePassInterpolants.PrevScreenPosition = mul(float4(PrevTranslatedWorldPosition.xyz, 1), View.PrevTranslatedWorldToClip);		
+			Output.BasePassInterpolants.VelocityPrevScreenPosition = mul(float4(PrevTranslatedWorldPosition.xyz, 1), View.PrevTranslatedWorldToClip);		
 			// Store the mask in .z when as we don't need the clip space Z
-			Output.BasePassInterpolants.PrevScreenPosition.z = 1 - SkipOutputVelocity;
-			Output.BasePassInterpolants.ScreenPosition = Output.Position;
+			Output.BasePassInterpolants.VelocityPrevScreenPosition.z = 1 - SkipOutputVelocity;
+			#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
+			Output.BasePassInterpolants.VelocityScreenPosition = Output.Position;
+			#endif
 		#endif	// USING_TESSELLATION
 	}
 #endif	// WRITES_VELOCITY_TO_GBUFFER

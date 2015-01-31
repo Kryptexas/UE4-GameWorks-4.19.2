@@ -22,8 +22,10 @@ FBasePassVSToDS PassInterpolate(FBasePassVSToDS a, float aInterp, FBasePassVSToD
 	#endif
 
 	#if WRITES_VELOCITY_TO_GBUFFER
-		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.PrevScreenPosition);
-		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.ScreenPosition);
+		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.VelocityPrevScreenPosition);
+		#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
+		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.VelocityScreenPosition);
+		#endif
 	#endif
 
 	return O;
@@ -43,11 +45,13 @@ FBasePassVSToPS PassFinalizeTessellationOutput(FBasePassVSToDS Interpolants, flo
 	{
 		O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
 #if WRITES_VELOCITY_TO_GBUFFER
-		float SkipVelocity = O.BasePassInterpolants.PrevScreenPosition.w;
-		O.BasePassInterpolants.PrevScreenPosition = mul(float4(Interpolants.BasePassInterpolants.PrevScreenPosition.xyz, 1), View.PrevTranslatedWorldToClip);
+		float SkipVelocity = O.BasePassInterpolants.VelocityPrevScreenPosition.w;
+		O.BasePassInterpolants.VelocityPrevScreenPosition = mul(float4(Interpolants.BasePassInterpolants.VelocityPrevScreenPosition.xyz, 1), View.PrevTranslatedWorldToClip);
 		// Move the mask to .z when as we don't need the clip space Z
-		O.BasePassInterpolants.PrevScreenPosition.z = SkipVelocity;
-		O.BasePassInterpolants.ScreenPosition = mul(float4(Interpolants.BasePassInterpolants.ScreenPosition.xyz, 1), View.TranslatedWorldToClip);
+		O.BasePassInterpolants.VelocityPrevScreenPosition.z = SkipVelocity;
+		#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
+		O.BasePassInterpolants.VelocityScreenPosition = mul(float4(Interpolants.BasePassInterpolants.VelocityScreenPosition.xyz, 1), View.TranslatedWorldToClip);
+		#endif
 #endif
 	}
 	

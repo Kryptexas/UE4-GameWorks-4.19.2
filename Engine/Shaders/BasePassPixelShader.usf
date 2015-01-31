@@ -859,10 +859,14 @@ void Main(
 		#if WRITES_VELOCITY_TO_GBUFFER
 			{
 				// 2d velocity, includes camera an object motion
-				float2 Velocity = Calculate2DVelocity(BasePassInterpolants.ScreenPosition, BasePassInterpolants.PrevScreenPosition);
+			#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
+				float2 Velocity = Calculate2DVelocity(BasePassInterpolants.VelocityScreenPosition, BasePassInterpolants.VelocityPrevScreenPosition);
+			#else
+				float2 Velocity = Calculate2DVelocity(MaterialParameters.ScreenPosition, BasePassInterpolants.VelocityPrevScreenPosition);
+			#endif
 
 				// Make sure not to touch 0,0 which is clear color
-				GBuffer.Velocity = float4(EncodeVelocityToTexture(Velocity), 0, 0) * BasePassInterpolants.PrevScreenPosition.z;
+				GBuffer.Velocity = float4(EncodeVelocityToTexture(Velocity), 0, 0) * BasePassInterpolants.VelocityPrevScreenPosition.z;
 			}
 		#else
 			GBuffer.Velocity = 0;
