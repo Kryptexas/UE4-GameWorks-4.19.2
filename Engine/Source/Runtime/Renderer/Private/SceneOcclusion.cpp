@@ -956,8 +956,6 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 	
 	// Mip 0
 	{
-		SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB#%d"), 0);
-
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, 0, NULL);
 
 		TShaderMapRef< FScreenVS >		VertexShader(View.ShaderMap);
@@ -992,8 +990,6 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 	// Mip 1-7
 	for( uint8 MipIndex = 1; MipIndex < NumMips; MipIndex++ )
 	{
-		SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB#%d"), MipIndex);
-
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
 
 		TShaderMapRef< FScreenVS >		VertexShader(View.ShaderMap);

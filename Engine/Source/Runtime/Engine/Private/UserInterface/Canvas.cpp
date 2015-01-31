@@ -425,8 +425,6 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 			BatchedDrawCommand,
 			FBatchedDrawParameters,Parameters,DrawParameters,
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, CanvasBatchedElements);
-
 			// draw batched items
 			Parameters.RenderData->BatchedElements.Draw(
 				RHICmdList,
