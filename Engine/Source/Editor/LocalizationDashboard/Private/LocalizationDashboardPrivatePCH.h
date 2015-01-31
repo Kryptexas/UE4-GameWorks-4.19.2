@@ -2,7 +2,10 @@
 
 #pragma once
 
+
 /* Dependencies
  *****************************************************************************/
 
+#include "IDesktopPlatform.h"
+#include "DesktopPlatformModule.h"
 #include "SlateBasics.h"
