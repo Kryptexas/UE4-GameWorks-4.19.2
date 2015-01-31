@@ -32,11 +32,14 @@ struct FComponentEntryCustomizationArgs
 	FString ComponentNameOverride;
 	/** Callback when a new component is created */
 	FOnComponentCreated OnComponentCreated;
+	/** Brush icon to use instead of the class icon */
+	FName IconOverrideBrushName;
 
 	FComponentEntryCustomizationArgs()
 		: AssetOverride( nullptr )
 		, ComponentNameOverride()
 		, OnComponentCreated()
+		, IconOverrideBrushName( NAME_None )
 	{
 	
 	}
@@ -120,6 +123,8 @@ public:
 	{
 		return CustomizationArgs.AssetOverride.Get();
 	}
+
+	virtual FName GetIconOverrideBrushName() const { return CustomizationArgs.IconOverrideBrushName; }
 private:
 	TSubclassOf<UActorComponent> ComponentClass;
 	// For components that are not loaded we just keep the name of the component,
