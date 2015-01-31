@@ -730,6 +730,7 @@ void UBrushComponent::BuildSimpleBrushCollision()
 #if WITH_EDITOR
 	// Convert collision model into convex hulls.
 	BrushBodySetup->CreateFromModel( Brush, true );
+	RecreatePhysicsState();
 #endif // WITH_EDITOR
 
 	MarkPackageDirty();
