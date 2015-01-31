@@ -29,6 +29,7 @@ struct FAssetThumbnailConfig
 		, ThumbnailLabel( EThumbnailLabel::ClassName )
 		, HighlightedText( FText::GetEmpty() )
 		, HintColorAndOpacity( FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f ) )
+		, AssetTypeColorOverride()
 	{
 	}
 
@@ -40,6 +41,7 @@ struct FAssetThumbnailConfig
 	EThumbnailLabel::Type ThumbnailLabel;
 	TAttribute< FText > HighlightedText;
 	TAttribute< FLinearColor > HintColorAndOpacity;
+	TOptional< FLinearColor > AssetTypeColorOverride;
 };
 
 /**
