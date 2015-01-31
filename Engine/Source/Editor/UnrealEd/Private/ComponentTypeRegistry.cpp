@@ -321,3 +321,4 @@ FComponentTypeRegistry::FComponentTypeRegistry()
 	Data->RefreshComponentList();
 }
 
+#undef LOCTEXT_NAMESPACE
