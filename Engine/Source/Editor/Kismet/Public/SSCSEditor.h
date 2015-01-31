@@ -476,7 +476,8 @@ public:
 
 	FText GetNameLabel() const;
 	FText GetTooltipText() const;
-	FSlateColor GetColorTint() const;
+	FSlateColor GetColorTintForIcon() const;
+	FSlateColor GetColorTintForText() const;
 	FString GetDocumentationLink() const;
 	FString GetDocumentationExcerptName() const;
 	
@@ -489,6 +490,8 @@ public:
 
 protected:
 	virtual ESelectionMode::Type GetSelectionMode() const override;
+
+	static void AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox, const FText& Key, TSharedRef<SWidget> ValueIcon, const TAttribute<FText>& Value, bool bImportant);
 
 private:
 	/** Verifies the name of the component when changing it */
@@ -543,6 +546,14 @@ private:
 	 * @returns An FText object containing a description of when the component was first introduced
 	 */
 	FText GetIntroducedInToolTipText() const;
+
+	/**
+	 * Retrieves tooltip text describing how the component was introduced
+	 * 
+	 * @returns An FText object containing a description of when the component was first introduced
+	 */
+	FText GetComponentAddSourceToolTipText() const;
+
 public:
 	/** Pointer back to owning SCSEditor 2 tool */
 	TWeakPtr<SSCSEditor> SCSEditor;
