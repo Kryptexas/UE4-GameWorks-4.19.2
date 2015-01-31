@@ -2,13 +2,13 @@
 
 #pragma once
 #include "ScriptBlueprintGeneratedClass.h"
-#include "ScriptComponent.generated.h"
+#include "ScriptPluginComponent.generated.h"
 
 /** 
  * Script-extendable component class
  */
 UCLASS(Blueprintable, hidecategories = (Object, ActorComponent), editinlinenew, meta = (BlueprintSpawnableComponent), ClassGroup = Script, Abstract, EarlyAccessPreview)
-class SCRIPTPLUGIN_API UScriptComponent : public UActorComponent
+class SCRIPTPLUGIN_API UScriptPluginComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 

@@ -3,7 +3,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 
-UScriptComponent::UScriptComponent(const FObjectInitializer& ObjectInitializer)
+UScriptPluginComponent::UScriptPluginComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -14,7 +14,7 @@ UScriptComponent::UScriptComponent(const FObjectInitializer& ObjectInitializer)
 	Context = NULL;
 }
 
-void UScriptComponent::OnRegister()
+void UScriptPluginComponent::OnRegister()
 {
 	Super::OnRegister();
 
@@ -30,7 +30,7 @@ void UScriptComponent::OnRegister()
 	}
 }
 
-void UScriptComponent::InitializeComponent()
+void UScriptPluginComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 	if (Context)
@@ -42,7 +42,7 @@ void UScriptComponent::InitializeComponent()
 	}
 }
 
-void UScriptComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void UScriptPluginComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (Context)
@@ -54,7 +54,7 @@ void UScriptComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	}
 };
 
-void UScriptComponent::OnUnregister()
+void UScriptPluginComponent::OnUnregister()
 {
 	if (Context)
 	{
@@ -66,7 +66,7 @@ void UScriptComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-bool UScriptComponent::CallScriptFunction(FString FunctionName)
+bool UScriptPluginComponent::CallScriptFunction(FString FunctionName)
 {
 	bool bSuccess = false;
 	if (Context)
