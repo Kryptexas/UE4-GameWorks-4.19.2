@@ -166,7 +166,7 @@ void FEdModeFoliage::PostUndo()
 {
 	FEdMode::PostUndo();
 
-	StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->PostUndo();
+	StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->RefreshFullList();
 }
 
 /** When the user changes the active streaming level with the level browser */
@@ -1898,7 +1898,7 @@ bool FEdModeFoliage::ReplaceStaticMesh(UFoliageType* OldSettings, UStaticMesh* N
 
 			GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_ChangeStaticMeshTransaction", "Foliage Editing: Change StaticMesh"));
 			IFA->Modify();
-			NewMeshInfo = IFA->AddMesh(NewStaticMesh, &NewSettings);
+			NewMeshInfo = IFA->AddMesh(NewStaticMesh, &NewSettings, Cast<UFoliageType_InstancedStaticMesh>(OldSettings));
 			NewSettings->DisplayOrder = OldSettings->DisplayOrder;
 			NewSettings->ShowNothing = OldSettings->ShowNothing;
 			NewSettings->ShowPaintSettings = OldSettings->ShowPaintSettings;
@@ -1935,6 +1935,8 @@ bool FEdModeFoliage::ReplaceStaticMesh(UFoliageType* OldSettings, UStaticMesh* N
 
 		// Update mesh list.
 		UpdateFoliageMeshList();
+
+		StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->RefreshFullList();
 	}
 	return true;
 }
