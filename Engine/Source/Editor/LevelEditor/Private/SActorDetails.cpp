@@ -10,19 +10,7 @@
 
 void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifier)
 {
-	struct Local
-	{
-		static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent)
-		{
-			// For details views in the level editor all properties are the instanced versions
-			if(PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance))
-			{
-				return false;
-			}
 
-			return true;
-		}
-	};
 
 	bSelectionGuard = false;
 	bShowingRootActorNodeSelected = false;
@@ -42,28 +30,21 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 
 	DetailsView = PropPlugin.CreateDetailView(DetailsViewArgs);
 
-	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&Local::IsPropertyVisible));
-
-	auto IsPropertyEditingEnabled = [&]()
+	auto IsPropertyVisible = [](const FPropertyAndParent& PropertyAndParent)
 	{
-		bool bIsEditable = true;
-		const TArray<TWeakObjectPtr<UObject> >& Objects = DetailsView->GetSelectedObjects();
-		for (auto Object : Objects)
+		// For details views in the level editor all properties are the instanced versions
+		if(PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance))
 		{
-			UActorComponent* ActorComp = Cast<UActorComponent>( Object.Get() );
-			if (ActorComp)
-			{
-				bIsEditable = ActorComp->CreationMethod != EComponentCreationMethod::ConstructionScript;
-				if( !bIsEditable )
-				{
-					break;
-				}
-			}
+			return false;
 		}
-		return bIsEditable;
+
+		return true;
 	};
 
-	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateLambda(IsPropertyEditingEnabled));
+	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateLambda(IsPropertyVisible));
+
+	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SActorDetails::IsPropertyEditingEnabled));
+
 
 	// Set up a delegate to call to add generic details to the view
 	DetailsView->SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FLevelEditorGenericDetails::MakeInstance));
@@ -102,7 +83,43 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 			.Orientation(Orient_Vertical)
 			+ SSplitter::Slot()
 			[
-				DetailsView.ToSharedRef()
+				SNew( SVerticalBox )
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding( FMargin( 0,0,0,1) )
+				[
+					SNew( SBorder )
+					.Visibility(this, &SActorDetails::GetBlueprintComponentWarningVisibility)
+					.BorderImage( FEditorStyle::Get().GetBrush( "ToolPanel.GroupBorder" ) )
+					[
+						SNew( SHorizontalBox )
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.HAlign( HAlign_Center )
+						.VAlign( VAlign_Center )
+						.Padding( 2 )
+						[
+							SNew( SImage )
+							.Image( FEditorStyle::Get().GetBrush("Icons.Warning") )
+						]
+						+ SHorizontalBox::Slot()
+						.VAlign( VAlign_Center )
+						.Padding( 2 )
+						[
+							SNew(SRichTextBlock)
+							.DecoratorStyleSet(&FEditorStyle::Get())
+							.Justification(ETextJustify::Left)
+							.TextStyle(FEditorStyle::Get(), "DetailsView.BPMessageTextStyle")
+							.Text(NSLOCTEXT("SActorDetails", "BlueprintedComponentWarning", "Blueprinted components must be edited in the <a id=\"HyperlinkDecorator\" style=\"DetailsView.BPMessageHyperlinkStyle\">Blueprint</>"))
+							.AutoWrapText(true)
+							+SRichTextBlock::HyperlinkDecorator(TEXT("HyperlinkDecorator"), this, &SActorDetails::OnBlueprintWarningHyperlinkClicked)
+						]
+					]
+				]
+				+ SVerticalBox::Slot()
+				[
+					DetailsView.ToSharedRef()
+				]
 			]
 		]
 	];
@@ -397,4 +414,38 @@ void SActorDetails::UpdateComponentTreeFromEditorSelection()
 			SCSEditor->SelectRoot();
 		}
 	}
+}
+
+bool SActorDetails::IsPropertyEditingEnabled() const
+{
+	bool bIsEditable = true;
+	const TArray<TWeakObjectPtr<UObject> >& Objects = DetailsView->GetSelectedObjects();
+	for(auto Object : Objects)
+	{
+		UActorComponent* ActorComp = Cast<UActorComponent>(Object.Get());
+		if(ActorComp)
+		{
+			bIsEditable = ActorComp->CreationMethod != EComponentCreationMethod::ConstructionScript;
+			if(!bIsEditable)
+			{
+				break;
+			}
+		}
+	}
+	return bIsEditable;
+}
+
+void SActorDetails::OnBlueprintWarningHyperlinkClicked( const FSlateHyperlinkRun::FMetadata& Metadata )
+{
+	UBlueprint* Blueprint = SCSEditor->GetBlueprint();
+	if( Blueprint )
+	{
+		// Open the blueprint
+		GEditor->EditObject(Blueprint);
+	}
+}
+
+EVisibility SActorDetails::GetBlueprintComponentWarningVisibility() const
+{
+	return IsPropertyEditingEnabled() ? EVisibility::Collapsed : EVisibility::Visible;
 }
