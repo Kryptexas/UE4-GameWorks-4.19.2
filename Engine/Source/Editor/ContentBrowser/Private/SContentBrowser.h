@@ -320,6 +320,17 @@ private:
 	/** Bind our UI commands */
 	void BindCommands();
 
+	/** Adds menu extensions to the asset view */
+	void ExtendAssetViewMenu( FMenuBuilder& MenuBuilder );
+
+	/** Enables or disables collections from being shown */
+	void ToggleShowCollections();
+
+	/** @return Whether or not we are showing collections */
+	bool IsShowingCollections() const;
+
+	/** Gets the visibility of the collection view */
+	EVisibility GetCollectionViewVisibility() const;
 private:
 
 	/** The tab that contains this browser */
