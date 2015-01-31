@@ -742,7 +742,7 @@ void ULandscapeComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 		Proxy->LandscapeComponents.Remove(this);
 	}
 
-	Super::DestroyComponent();
+	Super::DestroyComponent(bPromoteChildren);
 }
 
 FBoxSphereBounds ULandscapeComponent::CalcBounds(const FTransform& LocalToWorld) const
