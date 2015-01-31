@@ -1176,6 +1176,27 @@ UActorComponent* FSCSEditorTreeNodeComponent::INTERNAL_GetOverridenComponentTemp
 }
 
 //////////////////////////////////////////////////////////////////////////
+// FSCSEditorTreeNodeRootActor
+
+FName FSCSEditorTreeNodeRootActor::GetVariableName() const
+{
+	if (Actor)
+	{
+		return Actor->GetFName();
+	}
+	return NAME_None;
+}
+
+void FSCSEditorTreeNodeRootActor::OnCompleteRename(const FText& InNewName)
+{
+	if (Actor && Actor->IsActorLabelEditable() && !InNewName.ToString().Equals(Actor->GetActorLabel(), ESearchCase::CaseSensitive))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("SCSEditorRenameActorTransaction", "Rename Actor"));
+		Actor->SetActorLabel(InNewName.ToString());
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
 // FSCSEditorComponentObjectTextFactory
 
 struct FSCSEditorComponentObjectTextFactory : public FCustomizableTextObjectFactory
@@ -2789,8 +2810,21 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 
 TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FName& ColumnName)
 {
+	FSCSEditorTreeNodePtrType NodePtr = GetNode();
+
 	// We've removed the other columns for now,  implement them for the root actor if necessary
 	ensure(ColumnName == SCS_ColumnName_ComponentClass);
+
+	// Create the name field
+	TSharedPtr<SInlineEditableTextBlock> InlineWidget =
+		SNew(SInlineEditableTextBlock)
+		.Text(this, &SSCS_RowWidget_ActorRoot::GetActorDisplayText)
+		.OnVerifyTextChanged(this, &SSCS_RowWidget_ActorRoot::OnVerifyActorLabelChanged)
+		.OnTextCommitted(this, &SSCS_RowWidget_ActorRoot::OnNameTextCommit)
+		.IsSelected(this, &SSCS_RowWidget_ActorRoot::IsSelectedExclusively)
+		.IsReadOnly(!NodePtr->CanRename() || (SCSEditor.IsValid() && !SCSEditor.Pin()->IsEditingAllowed()));
+
+	NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
 
 	return SNew(SHorizontalBox)
 		.ToolTip(CreateToolTipWidget())
@@ -2805,12 +2839,21 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 		]
 
 	+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.Padding(0.0f, 0.0f)
+		[
+			InlineWidget.ToSharedRef()
+		]
+
+	+SHorizontalBox::Slot()
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Center)
 		.Padding(0.0f, 0.0f)
 		[
 			SNew(STextBlock)
-			.Text(this, &SSCS_RowWidget_ActorRoot::GetActorDisplayText)
+			.Text(this, &SSCS_RowWidget_ActorRoot::GetActorContextText)
 			.ColorAndOpacity(FSlateColor::UseForeground())
 		];
 }
@@ -2873,6 +2916,27 @@ TSharedRef<SToolTip> SSCS_RowWidget_ActorRoot::CreateToolTipWidget() const
 	return IDocumentation::Get()->CreateToolTip(TAttribute<FText>(this, &SSCS_RowWidget_ActorRoot::GetActorDisplayText), TooltipContent, InfoBox, TEXT(""), TEXT(""));
 }
 
+bool SSCS_RowWidget_ActorRoot::OnVerifyActorLabelChanged(const FText& InLabel, FText& OutErrorMessage)
+{
+	FText TrimmedLabel = FText::TrimPrecedingAndTrailing(InLabel);
+
+	if (TrimmedLabel.IsEmpty())
+	{
+		OutErrorMessage = LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank");
+		return false;
+	}
+
+	if (TrimmedLabel.ToString().Len() >= NAME_SIZE)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("CharCount"), NAME_SIZE);
+		OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_TooLong", "Names must be less than {CharCount} characters long."), Arguments);
+		return false;
+	}
+
+	return true;
+}
+
 const FSlateBrush* SSCS_RowWidget_ActorRoot::GetActorIcon() const
 {
 	if (SCSEditor.IsValid())
@@ -2893,16 +2957,35 @@ FText SSCS_RowWidget_ActorRoot::GetActorDisplayText() const
 		TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
 		if (AActor* DefaultActor = SCSEditorPtr->GetActorContext())
 		{
+			FString Name;
 			if (UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(DefaultActor->GetClass()))
 			{
-				FString Name;
 				Blueprint->GetName(Name);
-				return FText::Format(LOCTEXT("DefaultActor_Name", "{0} (self)"), FText::FromString(Name));
 			}
 			else
 			{
-				FString Name = DefaultActor->GetActorLabel();
-				return FText::Format(LOCTEXT("DefaultActor_Name", "{0} (Instance)"), FText::FromString(Name));
+				Name = DefaultActor->GetActorLabel();
+			}
+			return FText::FromString(Name);
+		}
+	}
+	return FText::GetEmpty();
+}
+
+FText SSCS_RowWidget_ActorRoot::GetActorContextText() const
+{
+	if (SCSEditor.IsValid())
+	{
+		TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
+		if (AActor* DefaultActor = SCSEditorPtr->GetActorContext())
+		{
+			if (UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(DefaultActor->GetClass()))
+			{
+				return LOCTEXT("ActorContext_self", " (self)");
+			}
+			else
+			{
+				return LOCTEXT("ActorContext_Instance", " (Instance)");
 			}
 		}
 	}
@@ -3226,8 +3309,25 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 
 	// Refresh the tree widget
 	UpdateTree();
+
+	if (EditorMode == EComponentEditorMode::ActorInstance)
+	{
+		GEngine->OnLevelComponentRequestRename().AddSP(this, &SSCSEditor::OnLevelComponentRequestRename);
+	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+
+void SSCSEditor::OnLevelComponentRequestRename(const UActorComponent* InComponent)
+{
+	TArray< FSCSEditorTreeNodePtrType > SelectedItems = SCSTreeWidget->GetSelectedItems();
+	
+	FSCSEditorTreeNodePtrType Node = GetNodeFromActorComponent(InComponent);
+	if (SelectedItems.Contains(Node) && CanRenameComponent())
+	{
+		OnRenameComponent(true);
+	}
+}
 
 UBlueprint* SSCSEditor::GetBlueprint() const
 {
@@ -3981,7 +4081,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		// Reset the scene root node
 		SceneRootNodePtr.Reset();
 
-		TSharedPtr<FSCSEditorTreeNode> ActorTreeNode  = MakeShareable(new FSCSEditorTreeNodeRootActor());
+		TSharedPtr<FSCSEditorTreeNode> ActorTreeNode = MakeShareable(new FSCSEditorTreeNodeRootActor(GetActorContext(),EditorMode == EComponentEditorMode::ActorInstance));
 
 		RootNodes.Add(ActorTreeNode);
 		RootNodes.Add(MakeShareable(new FSCSEditorTreeNodeSeparator()));

@@ -1576,6 +1576,13 @@ public:
 	/** Called by internal engine systems after a level actor has been requested to be renamed */
 	void BroadcastLevelActorRequestRename(const AActor* InActor) { LevelActorRequestRenameEvent.Broadcast(InActor); }
 
+	/** Editor-only event triggered when actors are being requested to be renamed */
+	DECLARE_EVENT_OneParam(UEngine, FLevelComponentRequestRenameEvent, const UActorComponent*);
+	FLevelComponentRequestRenameEvent& OnLevelComponentRequestRename() { return LevelComponentRequestRenameEvent; }
+
+	/** Called by internal engine systems after a level actor has been requested to be renamed */
+	void BroadcastLevelComponentRequestRename(const UActorComponent* InComponent) { LevelComponentRequestRenameEvent.Broadcast(InComponent); }
+
 #endif // #if WITH_EDITOR
 
 	/** Event triggered after a server travel failure of any kind has occurred */
@@ -2198,6 +2205,9 @@ private:
 
 	/** Broadcasts whenever an actor is being renamed */
 	FLevelActorRequestRenameEvent LevelActorRequestRenameEvent;
+
+	/** Broadcasts whenever a component is being renamed */
+	FLevelComponentRequestRenameEvent LevelComponentRequestRenameEvent;
 
 	/** Broadcasts after an actor has been moved, rotated or scaled */
 	FOnActorMovedEvent		OnActorMovedEvent;

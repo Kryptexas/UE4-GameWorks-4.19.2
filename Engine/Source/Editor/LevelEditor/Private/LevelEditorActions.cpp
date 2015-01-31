@@ -1382,10 +1382,18 @@ bool FLevelEditorActionCallbacks::Delete_CanExecute()
 
 void FLevelEditorActionCallbacks::Rename_Execute()
 {
-	AActor* Actor = Cast<AActor>( *GEditor->GetSelectedActorIterator() );
-	if(Actor)
+	UActorComponent* Component = Cast<UActorComponent>(*GEditor->GetSelectedComponentIterator());
+	if (Component)
 	{
-		GEditor->BroadcastLevelActorRequestRename(Actor);
+		GEditor->BroadcastLevelComponentRequestRename(Component);
+	}
+	else
+	{
+		AActor* Actor = Cast<AActor>(*GEditor->GetSelectedActorIterator());
+		if (Actor)
+		{
+			GEditor->BroadcastLevelActorRequestRename(Actor);
+		}
 	}
 }
 
