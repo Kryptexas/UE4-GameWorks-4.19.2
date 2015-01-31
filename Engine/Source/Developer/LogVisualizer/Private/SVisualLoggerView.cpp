@@ -87,7 +87,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 		.Thickness(FVector2D(2.0f, 2.0f));
 	ZoomScrollBar->SetState(0.0f, 1.0f);
 
-	TSharedPtr<FSequencerTimeSliderController> TimeSliderController(new FSequencerTimeSliderController(TimeSliderArgs));
+	TSharedPtr<FVisualLoggerTimeSliderController> TimeSliderController(new FVisualLoggerTimeSliderController(TimeSliderArgs));
 	TimeSliderController->SetExternalScrollbar(ZoomScrollBar);
 	VisualLoggerInterface->SetTimeSliderController(TimeSliderController);
 
