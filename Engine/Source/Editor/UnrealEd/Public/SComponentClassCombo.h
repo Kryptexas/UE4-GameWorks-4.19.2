@@ -124,7 +124,7 @@ public:
 		return CustomizationArgs.AssetOverride.Get();
 	}
 
-	virtual FName GetIconOverrideBrushName() const { return CustomizationArgs.IconOverrideBrushName; }
+	FName GetIconOverrideBrushName() const { return CustomizationArgs.IconOverrideBrushName; }
 private:
 	TSubclassOf<UActorComponent> ComponentClass;
 	// For components that are not loaded we just keep the name of the component,
