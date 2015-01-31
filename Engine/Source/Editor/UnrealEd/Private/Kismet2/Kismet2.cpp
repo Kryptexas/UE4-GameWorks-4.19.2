@@ -874,8 +874,7 @@ bool FKismetEditorUtilities::CanCreateBlueprintOfClass(const UClass* Class)
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	const bool bIsValidClass = Class->GetBoolMetaDataHierarchical(FBlueprintMetadata::MD_IsBlueprintBase)
 		|| (Class == UObject::StaticClass())
-		|| (Class == UActorComponent::StaticClass() && bAllowBlueprintableComponents)
-		|| (bAllowBlueprintableComponents && Class->IsChildOf<UActorComponent>() && Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
+		|| (bAllowBlueprintableComponents && !Class->HasAnyClassFlags(CLASS_Abstract) && Class->IsChildOf<UActorComponent>() && ( Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint) || Class->HasMetaData( FBlueprintMetadata::MD_BlueprintSpawnableComponent ) ) );
 
 	return bCanCreateBlueprint && bIsValidClass;
 }

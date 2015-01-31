@@ -141,7 +141,7 @@ void FComponentTypeRegistryData::RefreshComponentList()
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	if (GetDefault<UEditorExperimentalSettings>()->bScriptableComponentsOnActors)
+	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintableComponents)
 	{
 		FString NewComponentsHeading = LOCTEXT("NewComponentsHeading", "New").ToString();
 		// Add new C++ component class
