@@ -556,10 +556,11 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		// Delete selected components if they are an Instance component
 		for (FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
 		{
-			UActorComponent* CurActor = CastChecked<UActorComponent>(*It);
-			if (CurActor->CreationMethod == EComponentCreationMethod::Instance)
+			UActorComponent* CurActorComp = CastChecked<UActorComponent>(*It);
+			if (CurActorComp->CreationMethod == EComponentCreationMethod::Instance)
 			{
-				CurActor->DestroyComponent(true);
+				CurActorComp->Modify();
+				CurActorComp->DestroyComponent(true);
 				bComponentWasDeleted = true;
 			}
 		}
