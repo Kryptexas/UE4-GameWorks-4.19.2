@@ -108,10 +108,12 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	FGameplayTagContainer();
 	FGameplayTagContainer(FGameplayTagContainer const& Other);
 	FGameplayTagContainer(const FGameplayTag& Tag);
+	FGameplayTagContainer(FGameplayTagContainer&& Other);
 	virtual ~FGameplayTagContainer() {}
 
 	/** Assignment/Equality operators */
 	FGameplayTagContainer& operator=(FGameplayTagContainer const& Other);
+	FGameplayTagContainer & operator=(FGameplayTagContainer&& Other);
 	bool operator==(FGameplayTagContainer const& Other) const;
 	bool operator!=(FGameplayTagContainer const& Other) const;
 

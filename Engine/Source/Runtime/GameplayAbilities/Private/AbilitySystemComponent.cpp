@@ -325,11 +325,8 @@ int32 UAbilitySystemComponent::GetNumActiveGameplayEffects() const
 }
 
 void UAbilitySystemComponent::GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies)
-{
-	for (const auto& ActiveEffect : ActiveGameplayEffects.GameplayEffects)
-	{
-		OutSpecCopies.Add(ActiveEffect.Spec);
-	}
+{	
+	ActiveGameplayEffects.GetAllActiveGameplayEffectSpecs(OutSpecCopies);
 }
 
 const FGameplayTagContainer* UAbilitySystemComponent::GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const
@@ -1208,8 +1205,9 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 
 	if (bShowGameplayEffects)
 	{
-		for (FActiveGameplayEffect& ActiveGE : ActiveGameplayEffects.GameplayEffects)
+		for (FActiveGameplayEffect& ActiveGE : &ActiveGameplayEffects)
 		{
+			
 			Canvas->SetDrawColor(FColor::White);
 
 			FString DurationStr = TEXT("Infinite Duration ");

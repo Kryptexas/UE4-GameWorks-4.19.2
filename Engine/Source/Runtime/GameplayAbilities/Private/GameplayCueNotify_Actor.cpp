@@ -11,6 +11,7 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 {
 	IsOverride = true;
 	PrimaryActorTick.bCanEverTick = true;
+	bAutoDestroyOnRemove = false;
 }
 
 #if WITH_EDITOR
@@ -81,6 +82,11 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 
 		case EGameplayCueEvent::Removed:
 			OnRemove(MyTarget, Parameters);
+
+			if (bAutoDestroyOnRemove)
+			{
+				Destroy();
+			}
 			break;
 		};
 	}

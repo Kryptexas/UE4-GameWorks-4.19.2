@@ -859,13 +859,49 @@ struct GAMEPLAYABILITIES_API FTagContainerAggregator
 
 	FTagContainerAggregator() : CacheIsValid(false) {}
 
+	FTagContainerAggregator(FTagContainerAggregator&& Other)
+		: CapturedActorTags(MoveTemp(Other.CapturedActorTags))
+		, CapturedSpecTags(MoveTemp(Other.CapturedSpecTags))
+		, ScopedTags(MoveTemp(Other.ScopedTags))
+		, CachedAggregator(MoveTemp(Other.CachedAggregator))
+		, CacheIsValid(Other.CacheIsValid)
+	{
+	}
+
+	FTagContainerAggregator(const FTagContainerAggregator& Other)
+		: CapturedActorTags(Other.CapturedActorTags)
+		, CapturedSpecTags(Other.CapturedSpecTags)
+		, ScopedTags(Other.ScopedTags)
+		, CachedAggregator(Other.CachedAggregator)
+		, CacheIsValid(Other.CacheIsValid)
+	{
+	}
+
+	FTagContainerAggregator& operator=(FTagContainerAggregator&& Other)
+	{
+		CapturedActorTags = MoveTemp(Other.CapturedActorTags);
+		CapturedSpecTags = MoveTemp(Other.CapturedSpecTags);
+		ScopedTags = MoveTemp(Other.ScopedTags);
+		CachedAggregator = MoveTemp(Other.CachedAggregator);
+		CacheIsValid = Other.CacheIsValid;
+		return *this;
+	}
+
+	FTagContainerAggregator& operator=(const FTagContainerAggregator& Other)
+	{
+		CapturedActorTags = Other.CapturedActorTags;
+		CapturedSpecTags = Other.CapturedSpecTags;
+		ScopedTags = Other.ScopedTags;
+		CachedAggregator = Other.CachedAggregator;
+		CacheIsValid = Other.CacheIsValid;
+		return *this;
+	}
+
 	FGameplayTagContainer& GetActorTags();
 	const FGameplayTagContainer& GetActorTags() const;
 
 	FGameplayTagContainer& GetSpecTags();
 	const FGameplayTagContainer& GetSpecTags() const;
-
-
 
 	const FGameplayTagContainer* GetAggregatedTags() const;
 

@@ -359,8 +359,9 @@ FString FGameplayTagRequirements::ToString() const
 
 void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
 {
-	ABILITY_LOG_SCOPE(TEXT("ActiveGameplayEffects. Num: %d"), GameplayEffects.Num());
-	for (const FActiveGameplayEffect& Effect : GameplayEffects)
+	ABILITY_LOG_SCOPE(TEXT("ActiveGameplayEffects. Num: %d"), GetNumGameplayEffects());
+
+	for (const FActiveGameplayEffect& Effect : this)
 	{
 		Effect.PrintAll();
 	}

@@ -174,6 +174,7 @@ bool FGameplayEffectCustomExecutionParameters::AttemptGetCapturedAttributeAggreg
 FGameplayEffectCustomExecutionOutput::FGameplayEffectCustomExecutionOutput()
 	: bTriggerConditionalGameplayEffects(false)
 	, bHandledStackCountManually(false)
+	, bHandledGameplayCuesManually(false)
 {
 }
 
@@ -187,9 +188,19 @@ bool FGameplayEffectCustomExecutionOutput::IsStackCountHandledManually() const
 	return bHandledStackCountManually;
 }
 
+bool FGameplayEffectCustomExecutionOutput::AreGameplayCuesHandledManually() const
+{
+	return bHandledGameplayCuesManually;
+}
+
 void FGameplayEffectCustomExecutionOutput::MarkConditionalGameplayEffectsToTrigger()
 {
 	bTriggerConditionalGameplayEffects = true;
+}
+
+void FGameplayEffectCustomExecutionOutput::MarkGameplayCuesHandledManually()
+{
+	bHandledGameplayCuesManually = true;
 }
 
 bool FGameplayEffectCustomExecutionOutput::ShouldTriggerConditionalGameplayEffects() const

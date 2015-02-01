@@ -17,6 +17,12 @@ FGameplayTagContainer::FGameplayTagContainer(const FGameplayTag& Tag)
 	AddTag(Tag);
 }
 
+FGameplayTagContainer::FGameplayTagContainer(FGameplayTagContainer&& Other)
+	: GameplayTags(MoveTemp(Other.GameplayTags))
+{
+	
+}
+
 FGameplayTagContainer& FGameplayTagContainer::operator=(FGameplayTagContainer const& Other)
 {
 	// Guard against self-assignment
@@ -27,6 +33,12 @@ FGameplayTagContainer& FGameplayTagContainer::operator=(FGameplayTagContainer co
 	GameplayTags.Empty(Other.GameplayTags.Num());
 	GameplayTags.Append(Other.GameplayTags);
 
+	return *this;
+}
+
+FGameplayTagContainer& FGameplayTagContainer::operator=(FGameplayTagContainer&& Other)
+{
+	GameplayTags = MoveTemp(Other.GameplayTags);
 	return *this;
 }
 

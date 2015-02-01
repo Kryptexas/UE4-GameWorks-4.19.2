@@ -9,6 +9,7 @@
 #include "GameplayEffectTypes.h"
 #include "GameplayEffectAggregator.h"
 #include "GameplayEffectCalculation.h"
+#include "ActiveGameplayEffectIterator.h"
 #include "GameplayEffect.generated.h"
 
 struct FActiveGameplayEffect;
@@ -829,6 +830,16 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpecContainer
 
 public:
 
+	FGameplayEffectAttributeCaptureSpecContainer();
+
+	FGameplayEffectAttributeCaptureSpecContainer(FGameplayEffectAttributeCaptureSpecContainer&& Other);
+
+	FGameplayEffectAttributeCaptureSpecContainer(const FGameplayEffectAttributeCaptureSpecContainer& Other);
+
+	FGameplayEffectAttributeCaptureSpecContainer& operator=(FGameplayEffectAttributeCaptureSpecContainer&& Other);
+
+	FGameplayEffectAttributeCaptureSpecContainer& operator=(const FGameplayEffectAttributeCaptureSpecContainer& Other);
+
 	/**
 	 * Add a definition to be captured by the owner of the container. Will not add the definition if its exact
 	 * match already exists within the container.
@@ -902,31 +913,22 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 {
 	GENERATED_USTRUCT_BODY()
 
-	FGameplayEffectSpec()
-		: Def(nullptr)
-		, Duration(UGameplayEffect::INSTANT_APPLICATION)
-		, Period(UGameplayEffect::NO_PERIOD)
-		, ChanceToApplyToTarget(1.f)
-		, StackCount(1)
-		, bCompletedSourceAttributeCapture(false)
-		, bCompletedTargetAttributeCapture(false)
-		, bDurationLocked(false)
-		, Level(UGameplayEffect::INVALID_LEVEL)
-	{
+	// --------------------------------------------------------------------------------------------------------------------------
+	//	IMPORTANT: Any state added to FGameplayEffectSpec must be handled in the move/copy constructor/operator!
+	//	(When VS2012/2013 support is dropped, we can use compiler generated operators, but until then these need to be maintained manually!)
+	// --------------------------------------------------------------------------------------------------------------------------
 
-	}
+	FGameplayEffectSpec();
 
 	FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level = UGameplayEffect::INVALID_LEVEL);
-	
-	UPROPERTY()
-	const UGameplayEffect* Def;
-	
-	UPROPERTY()
-	TArray<FGameplayEffectModifiedAttribute> ModifiedAttributes;
-	
-	/** Attributes captured by the spec that are relevant to custom calculations, potentially in owned modifiers, etc.; NOT replicated to clients */
-	UPROPERTY(NotReplicated)
-	FGameplayEffectAttributeCaptureSpecContainer CapturedRelevantAttributes;
+
+	FGameplayEffectSpec(const FGameplayEffectSpec& Other);
+
+	FGameplayEffectSpec(FGameplayEffectSpec&& Other);
+
+	FGameplayEffectSpec& operator=(FGameplayEffectSpec&& Other);
+
+	FGameplayEffectSpec& operator=(const FGameplayEffectSpec& Other);
 
 	/**
 	 * Determines if the spec has capture specs with valid captures for all of the specified definitions.
@@ -963,9 +965,6 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	float GetPeriod() const;
 	float GetChanceToApplyToTarget() const;
 
-	/** other effects that need to be applied to the target if this effect is successful */
-	TArray< FGameplayEffectSpecHandle > TargetEffectSpecs;
-
 	/** Set the context info: who and where this spec came from. */
 	void SetContext(FGameplayEffectContextHandle NewEffectContext);
 
@@ -981,6 +980,61 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	/** Returns the magnitude of a SetByCaller modifier. Will return 0.f and Warn if the magnitude has not been set. */
 	float GetSetByCallerMagnitude(FName DataName) const;
+
+	void SetLevel(float InLevel);
+
+	float GetLevel() const;
+
+	void PrintAll() const;
+
+	FString ToSimpleString() const
+	{
+		return FString::Printf(TEXT("%s"), *Def->GetName());
+	}
+
+	const FGameplayEffectContextHandle& GetEffectContext() const
+	{
+		return EffectContext;
+	}
+
+	void CaptureAttributeDataFromTarget(UAbilitySystemComponent* TargetAbilitySystemComponent);
+
+	/**
+	 * Get the computed magnitude of the modifier on the spec with the specified index
+	 * 
+	 * @param ModifierIndx			Modifier to get
+	 * @param bFactorInStackCount	If true, the calculation will include the stack count
+	 * 
+	 * @return Computed magnitude
+	 */
+	float GetModifierMagnitude(int32 ModifierIdx, bool bFactorInStackCount) const;
+
+	void CalculateModifierMagnitudes();
+
+private:
+
+	void CaptureDataFromSource();
+
+	/** Helper function to initialize all of the capture definitions required by the spec */
+	void SetupAttributeCaptureDefinitions();
+
+public:
+
+	// -----------------------------------------------------------------------
+
+	/** GameplayEfect definition. The static data that this spec points to. */
+	UPROPERTY()
+	const UGameplayEffect* Def;
+	
+	UPROPERTY()
+	TArray<FGameplayEffectModifiedAttribute> ModifiedAttributes;
+	
+	/** Attributes captured by the spec that are relevant to custom calculations, potentially in owned modifiers, etc.; NOT replicated to clients */
+	UPROPERTY(NotReplicated)
+	FGameplayEffectAttributeCaptureSpecContainer CapturedRelevantAttributes;
+
+	/** other effects that need to be applied to the target if this effect is successful */
+	TArray< FGameplayEffectSpecHandle > TargetEffectSpecs;
 
 	// The duration in seconds of this effect
 	// instantaneous effects should have a duration of UGameplayEffect::INSTANT_APPLICATION
@@ -1026,46 +1080,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	/** Whether the duration of the spec is locked or not; If it is, attempts to set it will fail */
 	UPROPERTY(NotReplicated)
 	uint32 bDurationLocked : 1;
-	
-	/**
-	 * Get the computed magnitude of the modifier on the spec with the specified index
-	 * 
-	 * @param ModifierIndx			Modifier to get
-	 * @param bFactorInStackCount	If true, the calculation will include the stack count
-	 * 
-	 * @return Computed magnitude
-	 */
-	float GetModifierMagnitude(int32 ModifierIdx, bool bFactorInStackCount) const;
-
-	void CalculateModifierMagnitudes();
-
-	void SetLevel(float InLevel);
-
-	float GetLevel() const;
-
-	void PrintAll() const;
-
-	FString ToSimpleString() const
-	{
-		return FString::Printf(TEXT("%s"), *Def->GetName());
-	}
-
-	const FGameplayEffectContextHandle& GetEffectContext() const
-	{
-		return EffectContext;
-	}
-
-	void CaptureAttributeDataFromTarget(UAbilitySystemComponent* TargetAbilitySystemComponent);
 
 private:
 
 	/** Map of set by caller magnitudes */
 	TMap<FName, float>	SetByCallerMagnitudes;
-
-	void CaptureDataFromSource();
-
-	/** Helper function to initialize all of the capture definitions required by the spec */
-	void SetupAttributeCaptureDefinitions();
 	
 	UPROPERTY()
 	FGameplayEffectContextHandle EffectContext; // This tells us how we got here (who / what applied us)
@@ -1083,31 +1102,59 @@ private:
  *
  */
 USTRUCT()
-struct FActiveGameplayEffect : public FFastArraySerializerItem
+struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializerItem
 {
 	GENERATED_USTRUCT_BODY()
 
-	FActiveGameplayEffect()
-		: StartGameStateTime(0)
-		, CachedStartGameStateTime(0)
-		, StartWorldTime(0.f)
-		, bIsInhibited(true)
-		, IsPendingRemove(false)
+	// ---------------------------------------------------------------------------------------------------------------------------------
+	//  IMPORTANT: Any new state added to FActiveGameplayEffect must be handled in the copy/move constructor/operator
+	//	(When VS2012/2013 support is dropped, we can use compiler generated operators, but until then these need to be maintained manually)
+	// ---------------------------------------------------------------------------------------------------------------------------------
+
+	FActiveGameplayEffect();
+
+	FActiveGameplayEffect(const FActiveGameplayEffect& Other);
+
+	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime, FPredictionKey InPredictionKey);
+	
+	FActiveGameplayEffect(FActiveGameplayEffect&& Other);
+
+	FActiveGameplayEffect& operator=(FActiveGameplayEffect&& other);
+
+	FActiveGameplayEffect& operator=(const FActiveGameplayEffect& other);
+
+	float GetTimeRemaining(float WorldTime)
 	{
+		float Duration = GetDuration();		
+		return (Duration == UGameplayEffect::INFINITE_DURATION ? -1.f : Duration - (WorldTime - StartWorldTime));
+	}
+	
+	float GetDuration() const
+	{
+		return Spec.GetDuration();
 	}
 
-	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime, FPredictionKey InPredictionKey)
-		: Handle(InHandle)
-		, Spec(InSpec)
-		, PredictionKey(InPredictionKey)
-		, StartGameStateTime(InStartGameStateTime)
-		, CachedStartGameStateTime(InStartGameStateTime)
-		, StartWorldTime(CurrentWorldTime)
-		, bIsInhibited(true)
-		, IsPendingRemove(false)
+	float GetPeriod() const
 	{
+		return Spec.GetPeriod();
 	}
 
+	void CheckOngoingTagRequirements(const FGameplayTagContainer& OwnerTags, struct FActiveGameplayEffectsContainer& OwningContainer);
+
+	void PrintAll() const;
+
+	void PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray);
+	void PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray);
+	void PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray);
+
+	bool operator==(const FActiveGameplayEffect& Other)
+	{
+		return Handle == Other.Handle;
+	}
+
+	// ---------------------------------------------------------------------------------------------------------------------------------
+
+	/** Globally unique ID for identify this active gameplay effect. Can be used to look up owner. Not networked. */
 	FActiveGameplayEffectHandle Handle;
 
 	UPROPERTY()
@@ -1139,34 +1186,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	FTimerHandle DurationHandle;
 
-	float GetTimeRemaining(float WorldTime)
-	{
-		float Duration = GetDuration();		
-		return (Duration == UGameplayEffect::INFINITE_DURATION ? -1.f : Duration - (WorldTime - StartWorldTime));
-	}
-	
-	float GetDuration() const
-	{
-		return Spec.GetDuration();
-	}
-
-	float GetPeriod() const
-	{
-		return Spec.GetPeriod();
-	}
-
-	void CheckOngoingTagRequirements(const FGameplayTagContainer& OwnerTags, struct FActiveGameplayEffectsContainer& OwningContainer);
-
-	void PrintAll() const;
-
-	void PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray);
-	void PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray);
-	void PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray);
-
-	bool operator==(const FActiveGameplayEffect& Other)
-	{
-		return Handle == Other.Handle;
-	}
+	FActiveGameplayEffect* PendingNext;
 };
 
 /**
@@ -1235,6 +1255,18 @@ struct FActiveGameplayEffectQuery
  *  
  * This should only be used by UAbilitySystemComponent. All of this could just live in UAbilitySystemComponent except that we need a distinct USTRUCT to implement FFastArraySerializer.
  *
+ * The preferred way to iterate through the ActiveGameplayEffectContainer is with CreateConstITerator/CreateIterator or stl style range iteration:
+ * 
+ * 
+ *	for (const FActiveGameplayEffect& Effect : this)
+ *	{
+ *	}
+ *
+ *	for (auto It = CreateConstIterator(); It; ++It) 
+ *	{
+ *	}
+ *
+ *
  */
 USTRUCT()
 struct FActiveGameplayEffectsContainer : public FFastArraySerializer
@@ -1245,8 +1277,14 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	friend class UAbilitySystemComponent;
 	friend struct FScopedActiveGameplayEffectLock;
 	friend class AAbilitySystemDebugHUD;
+	friend class FActiveGameplayEffectIterator<const FActiveGameplayEffect, FActiveGameplayEffectsContainer>;
+	friend class FActiveGameplayEffectIterator<FActiveGameplayEffect, FActiveGameplayEffectsContainer>;
+
+	typedef FActiveGameplayEffectIterator<const FActiveGameplayEffect, FActiveGameplayEffectsContainer> ConstIterator;
+	typedef FActiveGameplayEffectIterator<FActiveGameplayEffect, FActiveGameplayEffectsContainer> Iterator;
 
 	FActiveGameplayEffectsContainer();
+	~FActiveGameplayEffectsContainer();
 
 	UAbilitySystemComponent* Owner;
 
@@ -1270,6 +1308,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	FActiveGameplayEffect* ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey InPredictionKey);
 
 	FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle);
+	const FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const;
 		
 	void ExecuteActiveEffectsFrom(FGameplayEffectSpec &Spec, FPredictionKey PredictionKey = FPredictionKey() );
 	
@@ -1313,16 +1352,21 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void PrintAllGameplayEffects() const;
 
-	int32 GetNumGameplayEffects() const
+	/**
+	 *	Returns the total number of gameplay effects.
+	 *	NOTE this does include GameplayEffects that pending removal.
+	 *	Any pending remove gameplay effects are deleted at the end of their scope lock
+	 */
+	FORCEINLINE int32 GetNumGameplayEffects() const
 	{
-		return GameplayEffects.Num();
+		return GameplayEffects_Internal.Num() + PendingAdds;
 	}
 
 	void CheckDuration(FActiveGameplayEffectHandle Handle);
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
-		return FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects, DeltaParms, *this);
+		return FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects_Internal, DeltaParms, *this);
 	}
 
 	void PreDestroy();	
@@ -1347,6 +1391,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 		
 	void SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float BaseBalue);
 
+	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies);
+
 	// -------------------------------------------------------------------------------------------
 
 	FOnGameplayAttributeChange& RegisterGameplayAttributeEvent(FGameplayAttribute Attribute);
@@ -1357,11 +1403,43 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void IncrementLock();
 	void DecrementLock();
+	
+	FORCEINLINE ConstIterator CreateConstIterator() const { return ConstIterator(*this);	}
+	FORCEINLINE Iterator CreateIterator() { return Iterator(*this);	}
 
 private:
 
+	/**
+	 *	Accessors for internal functions to get GameplayEffects directly by index.
+	 *	Note this will return GameplayEffects that are pending removal!
+	 *	
+	 *	To iteratre over all 'valid' gameplay effects, use the CreateConstIterator/CreateIterator or the stl style range iterator
+	 */
+	FORCEINLINE const FActiveGameplayEffect* GetActiveGameplayEffect(int32 idx) const
+	{
+		return const_cast<FActiveGameplayEffectsContainer*>(this)->GetActiveGameplayEffect(idx);
+	}
+
+	FORCEINLINE FActiveGameplayEffect* GetActiveGameplayEffect(int32 idx)
+	{
+		if (idx < GameplayEffects_Internal.Num())
+		{
+			return &GameplayEffects_Internal[idx];
+		}
+
+		idx -= GameplayEffects_Internal.Num();
+		FActiveGameplayEffect* Ptr = PendingGameplayEffectHead;
+		while(idx-- > 0 && Ptr)
+		{
+			Ptr = Ptr->PendingNext;
+		}
+
+		return idx <= 0 ? Ptr : nullptr;
+	}
+
+	/** Our active list of Effects. Do not access this directly (Even from internal functions!) Use GetNumGameplayEffect() / GetGameplayEffect() ! */
 	UPROPERTY()
-	TArray<FActiveGameplayEffect>	GameplayEffects;
+	TArray<FActiveGameplayEffect>	GameplayEffects_Internal;
 
 	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
 	
@@ -1432,6 +1510,21 @@ private:
 
 	mutable int32 ScopedLockCount;
 	int32 PendingRemoves;
+	int32 PendingAdds;
+
+	FActiveGameplayEffect*	PendingGameplayEffectHead;	// Head of pending GE linked list
+	FActiveGameplayEffect** PendingGameplayEffectNext;	// Points to the where to store the next pending GE (starts pointing at head, as more are added, points further down the list).
+
+	/**
+	 * DO NOT USE DIRECTLY
+	 * STL-like iterators to enable range-based for loop support.
+	 */
+
+	FORCEINLINE friend Iterator begin(FActiveGameplayEffectsContainer* Container) { return Container->CreateIterator(); }
+	FORCEINLINE friend Iterator end(FActiveGameplayEffectsContainer* Container) { return Iterator(*Container, -1); }
+
+	FORCEINLINE friend ConstIterator begin(const FActiveGameplayEffectsContainer* Container) { return Container->CreateConstIterator(); }
+	FORCEINLINE friend ConstIterator end(const FActiveGameplayEffectsContainer* Container) { return ConstIterator(*Container, -1); }
 };
 
 template<>
@@ -1443,7 +1536,15 @@ struct TStructOpsTypeTraits< FActiveGameplayEffectsContainer > : public TStructO
 	};
 };
 
-
+/**
+ *	FScopedActiveGameplayEffectLock
+ *	Provides a mechanism for locking the active gameplay effect list while possibly invoking callbacks into gamecode.
+ *	For example, if some internal code in FActiveGameplayEffectsContainer is iterating through the active GE list
+ *	or holding onto a pointer to something in that list, any changes to that list could cause memory the move out from underneath.
+ *	
+ *	This scope lock will queue deletions and additions until after the scope is over. The additions and deletions will actually 
+ *	go through, but we will defer the memory operations to the active gameplay effect list.
+ */
 struct GAMEPLAYABILITIES_API FScopedActiveGameplayEffectLock
 {
 	FScopedActiveGameplayEffectLock(FActiveGameplayEffectsContainer& InContainer);
@@ -1452,6 +1553,5 @@ struct GAMEPLAYABILITIES_API FScopedActiveGameplayEffectLock
 private:
 	FActiveGameplayEffectsContainer& Container;
 };
-
 
 #define GAMEPLAYEFFECT_SCOPE_LOCK()	FScopedActiveGameplayEffectLock ActiveScopeLock(*this);

@@ -37,8 +37,10 @@ void UAbilityTask_WaitTargetData::Activate()
 		if (TargetActor.IsValid())
 		{
 			AGameplayAbilityTargetActor* SpawnedActor = TargetActor.Get();
-
 			TargetClass = SpawnedActor->GetClass();
+
+			RegisterTargetDataCallbacks();
+
 
 			if (IsPendingKill())
 			{
@@ -49,6 +51,8 @@ void UAbilityTask_WaitTargetData::Activate()
 			{
 				InitializeTargetActor(SpawnedActor);
 				FinalizeTargetActor(SpawnedActor);
+
+				// Note that the call to FinalizeTargetActor, this task could finish and our owning ability may be ended.
 			}
 			else
 			{
@@ -58,8 +62,6 @@ void UAbilityTask_WaitTargetData::Activate()
 				SpawnedActor->Destroy();
 				SpawnedActor = nullptr;
 			}
-
-			RegisterTargetDataCallbacks();
 		}
 		else
 		{
@@ -184,6 +186,11 @@ void UAbilityTask_WaitTargetData::FinalizeTargetActor(AGameplayAbilityTargetActo
 
 void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
 {
+	if (!ensure(IsPendingKill() == false))
+	{
+		return;
+	}
+
 	check(TargetClass);
 	check(Ability.IsValid());
 

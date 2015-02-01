@@ -125,14 +125,14 @@ UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
 }
 
 /** Helping function to avoid having to manually cast */
-UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor* Actor, bool LookForComponent)
+UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(const AActor* Actor, bool LookForComponent)
 {
 	if (Actor == nullptr)
 	{
 		return nullptr;
 	}
 
-	IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(Actor);
+	const IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(Actor);
 	if (ASI)
 	{
 		return ASI->GetAbilitySystemComponent();

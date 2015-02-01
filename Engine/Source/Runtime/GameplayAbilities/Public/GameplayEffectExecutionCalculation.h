@@ -119,8 +119,14 @@ public:
 	/** Simple accessor for determining whether the execution has manually handled the stack count or not */
 	bool IsStackCountHandledManually() const;
 
+	/** Accessor for determining if GameplayCue events have already been handled */
+	bool AreGameplayCuesHandledManually() const;
+
 	/** Mark that the execution wants conditional gameplay effects to trigger */
 	void MarkConditionalGameplayEffectsToTrigger();
+
+	/** Mark that the execution wants conditional gameplay effects to trigger */
+	void MarkGameplayCuesHandledManually();
 
 	/** Simple accessor for determining whether the execution wants conditional gameplay effects to trigger or not */
 	bool ShouldTriggerConditionalGameplayEffects() const;
@@ -147,6 +153,10 @@ private:
 	/** If true, the execution itself has manually handled the stack count of the effect and the GE system doesn't have to automatically handle it */
 	UPROPERTY()
 	uint32 bHandledStackCountManually : 1;
+
+	/** If true, the execution itself has manually invoked all gameplay cues and the GE system doesn't have to automatically handle them. */
+	UPROPERTY()
+	uint32 bHandledGameplayCuesManually : 1;
 };
 
 UCLASS(BlueprintType, Blueprintable, Abstract)

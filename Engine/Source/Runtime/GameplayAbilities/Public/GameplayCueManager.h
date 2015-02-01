@@ -135,14 +135,14 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	bool bAccelerationMapOutdated;
 #endif
 
-private:
+protected:
 
 	virtual void HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
-	#if WITH_EDITOR
-		//This handles the case where GameplayCueNotifications have changed between sessions, which is possible in editor.
-		void ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS);
-	#endif
+#if WITH_EDITOR
+	//This handles the case where GameplayCueNotifications have changed between sessions, which is possible in editor.
+	void ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS);
+#endif
 
 	void LoadObjectLibrary_Internal();
 

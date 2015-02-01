@@ -62,6 +62,10 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	UPROPERTY(AssetRegistrySearchable)
 	FName GameplayCueName;
 
+	/** We will auto destroy this GameplayCueActor when the OnRemove event fires (after OnRemove is called). */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
+	bool	bAutoDestroyOnRemove;
+
 	/** Does this Cue override other cues, or is it called in addition to them? E.g., If this is Damage.Physical.Slash, we wont call Damage.Physical afer we run this cue. */
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	bool IsOverride;
