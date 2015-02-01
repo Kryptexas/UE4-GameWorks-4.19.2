@@ -183,6 +183,22 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("For per-process classes, the same instance must be returned from different threads [1]"), Two1, Two2);
 	}
 
+	// factory test
+	{
+		FTypeContainer Container;
+		{
+			Container.RegisterFactory<IFruit>(
+				[]() -> TSharedPtr<IFruit> {
+					return MakeShareable(new FBanana());
+				}
+			);
+		}
+
+		auto Fruit = Container.GetInstance<IFruit>();
+
+		TestTrue(TEXT("For delegate classes, an instance must be returned"), Fruit.IsValid());
+	}
+
 	return true;
 }
 
