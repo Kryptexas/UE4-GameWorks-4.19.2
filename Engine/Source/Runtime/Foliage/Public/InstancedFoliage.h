@@ -378,6 +378,7 @@ struct FDesiredFoliageInstance
 	FQuat Rotation;
 	float TraceRadius;
 	float Age;
+	const struct FBodyInstance* ProceduralVolumeBodyInstance;
 	EFoliagePlacementMode::Type PlacementMode;
 };
 

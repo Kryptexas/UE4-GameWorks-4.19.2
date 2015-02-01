@@ -2,11 +2,11 @@
 
 
 #pragma once
-#include "ActorFactories/ActorFactory.h"
+#include "ActorFactories/ActorFactoryBoxVolume.h"
 #include "ActorFactoryProceduralFoliage.generated.h"
 
 UCLASS(MinimalAPI, config=Editor)
-class UActorFactoryProceduralFoliage : public UActorFactory
+class UActorFactoryProceduralFoliage : public UActorFactoryBoxVolume
 {
 	GENERATED_UCLASS_BODY()
 

@@ -8,5 +8,11 @@ AProceduralFoliageActor::AProceduralFoliageActor(const FObjectInitializer& Objec
 : Super(ObjectInitializer)
 {
 	ProceduralComponent = ObjectInitializer.CreateDefaultSubobject<UProceduralFoliageComponent>(this, TEXT("ProceduralFoliageComponent"));
-	RootComponent = ProceduralComponent;
+	ProceduralComponent->SpawningVolume = this;
+
+	if (UBrushComponent* BrushComponent = GetBrushComponent())
+	{
+		BrushComponent->SetCollisionObjectType(ECC_WorldStatic);
+		BrushComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	}
 }

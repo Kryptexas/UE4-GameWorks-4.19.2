@@ -14,11 +14,11 @@
 UProceduralFoliageComponent::UProceduralFoliageComponent(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	TilesX = 1;
-	TilesY = 1;
 	Overlap = 0.f;
-	HalfHeight = 10000.f;
 	ProceduralGuid = FGuid::NewGuid();
+#if WITH_EDITORONLY_DATA
+	bHideDebugTiles = true;
+#endif
 }
 
 void CopyTileInstances(const UProceduralFoliageTile* FromTile, UProceduralFoliageTile* ToTile, const FBox2D& InnerLocalAABB, const FTransform& ToLocalTM, const float Overlap)
@@ -47,11 +47,48 @@ FBox2D GetTileRegion(const int32 X, const int32 Y, const int32 CountX, const int
 
 	return Region;
 }
+void UProceduralFoliageComponent::GetTilesLayout(int32& MinXIdx, int32& MinYIdx, int32& NumX, int32& NumY, float& HalfHeight) const
+{
+	if(UBrushComponent* Brush = SpawningVolume->GetBrushComponent())
+	{
+		const FVector MinPosition = Brush->Bounds.GetBox().Min;
+		const FVector MaxPosition = Brush->Bounds.GetBox().Max;
+
+		//we want to find the bottom left tile that contains this MinPosition
+		MinXIdx = FMath::FloorToInt(MinPosition.X / ProceduralFoliage->TileSize);
+		MinYIdx = FMath::FloorToInt(MinPosition.Y / ProceduralFoliage->TileSize);
+
+		const int32 MaxXIdx = FMath::FloorToInt(MaxPosition.X / ProceduralFoliage->TileSize);
+		const int32 MaxYIdx = FMath::FloorToInt(MaxPosition.Y / ProceduralFoliage->TileSize);
+
+		NumX = (MaxXIdx - MinXIdx) + 1;
+		NumY = (MaxYIdx - MinYIdx) + 1;
+
+		HalfHeight = Brush->Bounds.GetBox().GetExtent().Z;
+	}
+}
+
+FVector UProceduralFoliageComponent::GetWorldPosition() const
+{
+	UBrushComponent* Brush = SpawningVolume->GetBrushComponent();
+	if (Brush == nullptr || ProceduralFoliage == nullptr)
+	{
+		return FVector::ZeroVector;
+	}
+	
+	int32 X1 = 0;
+	int32 Y1 = 0;
+	int32 NumX, NumY;
+	float HalfHeight;
+	GetTilesLayout(X1, Y1, NumX, NumY, HalfHeight);
+
+	return FVector(X1 * ProceduralFoliage->TileSize, Y1 * ProceduralFoliage->TileSize, Brush->Bounds.Origin.Z);
+}
 
 void UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& OutInstances)
 {
 #if WITH_EDITOR
-	if (ProceduralFoliage)
+	if (ProceduralFoliage && SpawningVolume && SpawningVolume->GetBrushComponent())
 	{
 		/** Constants for laying out the overlapping tile grid*/
 		const float InnerTileSize = ProceduralFoliage->TileSize;
@@ -68,30 +105,38 @@ void UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& Ou
 		const FVector2D OverlapY(0.f, Overlap);
 
 		TArray<TFuture< TArray<FDesiredFoliageInstance>* >> Futures;
-		FScopedSlowTask SlowTask(TilesX * TilesY, LOCTEXT("PlaceProceduralFoliage", "Placing ProceduralFoliage..."));
+		
+		int32 XOffset, YOffset, NumTilesX, NumTilesY;
+		float HalfHeight;
+		GetTilesLayout(XOffset, YOffset, NumTilesX, NumTilesY, HalfHeight);
+
+		FScopedSlowTask SlowTask(NumTilesX * NumTilesY, LOCTEXT("PlaceProceduralFoliage", "Placing ProceduralFoliage..."));
 		SlowTask.MakeDialog();
 
-		for (int32 X = 0; X < TilesX; ++X)
+		FBodyInstance* VolumeBodyInstance = SpawningVolume->GetBrushComponent()->GetBodyInstance();
+
+		const FVector WorldPosition = GetWorldPosition();
+
+		for (int32 X = 0; X < NumTilesX; ++X)
 		{
-			for (int32 Y = 0; Y < TilesY; ++Y)
+			for (int32 Y = 0; Y < NumTilesY; ++Y)
 			{
 				
 				//We have to get the tiles and create new one to build on main thread
-				const UProceduralFoliageTile* Tile = ProceduralFoliage->GetRandomTile(X, Y);
-				const UProceduralFoliageTile* RightTile = (X + 1 < TilesX) ? ProceduralFoliage->GetRandomTile(X + 1, Y) : nullptr;
-				const UProceduralFoliageTile* TopTile = (Y + 1 < TilesY) ? ProceduralFoliage->GetRandomTile(X, Y+1) : nullptr;
-				const UProceduralFoliageTile* TopRightTile = (RightTile && TopTile) ? ProceduralFoliage->GetRandomTile(X + 1, Y+1) : nullptr;
+				const UProceduralFoliageTile* Tile = ProceduralFoliage->GetRandomTile(X + XOffset, Y + YOffset);
+				const UProceduralFoliageTile* RightTile = (X + 1 < NumTilesX) ? ProceduralFoliage->GetRandomTile(X + XOffset + 1, Y + YOffset) : nullptr;
+				const UProceduralFoliageTile* TopTile = (Y + 1 < NumTilesY) ? ProceduralFoliage->GetRandomTile(X + XOffset, Y + YOffset+ 1) : nullptr;
+				const UProceduralFoliageTile* TopRightTile = (RightTile && TopTile) ? ProceduralFoliage->GetRandomTile(X + XOffset + 1, Y + YOffset + 1) : nullptr;
 
 				UProceduralFoliageTile* JTile = ProceduralFoliage->CreateTempTile();
 
 				Futures.Add(Async<TArray<FDesiredFoliageInstance>*>(EAsyncExecution::ThreadPool, [=]()
 				{
-					FTransform TileTM = ComponentToWorld;
-					const FVector OrientedOffset = ComponentToWorld.TransformVectorNoScale(FVector(X, Y, 0.f) * FVector(InnerTileSize, InnerTileSize, 0.f));
-					TileTM.AddToTranslation(OrientedOffset);
+					const FVector OrientedOffset = FVector(X, Y, 0.f) * FVector(InnerTileSize, InnerTileSize, 0.f);
+					const FTransform TileTM(OrientedOffset + WorldPosition);
 
 					//copy the inner tile
-					const FBox2D InnerBox = GetTileRegion(X, Y, TilesX, TilesY, InnerTileSize, Overlap);
+					const FBox2D InnerBox = GetTileRegion(X, Y, NumTilesX, NumTilesY, InnerTileSize, Overlap);
 					CopyTileInstances(Tile, JTile, InnerBox, FTransform::Identity, Overlap);
 
 
@@ -121,7 +166,7 @@ void UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& Ou
 
 					TArray<FDesiredFoliageInstance>* DesiredInstances = new TArray<FDesiredFoliageInstance>();
 					JTile->InstancesToArray();
-					JTile->CreateInstancesToSpawn(*DesiredInstances, TileTM, ProceduralGuid, HalfHeight);
+					JTile->CreateInstancesToSpawn(*DesiredInstances, TileTM, ProceduralGuid, HalfHeight, VolumeBodyInstance);
 					JTile->Empty();
 
 					return DesiredInstances;
@@ -132,9 +177,9 @@ void UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& Ou
 		}
 
 		int32 FutureIdx = 0;
-		for (int X = 0; X < TilesX; ++X)
+		for (int X = 0; X < NumTilesX; ++X)
 		{
-			for (int Y = 0; Y < TilesY; ++Y)
+			for (int Y = 0; Y < NumTilesY; ++Y)
 			{
 				TArray<FDesiredFoliageInstance>* DesiredInstances = Futures[FutureIdx++].Get();
 				OutInstances.Append(*DesiredInstances);

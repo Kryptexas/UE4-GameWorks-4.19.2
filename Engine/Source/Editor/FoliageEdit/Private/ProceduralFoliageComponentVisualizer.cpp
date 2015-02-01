@@ -13,16 +13,23 @@ void FProceduralFoliageComponentVisualizer::DrawVisualization(const UActorCompon
 {
 	if (const UProceduralFoliageComponent* ProcComponent = Cast<const UProceduralFoliageComponent>(Component))
 	{
-		if (ProcComponent->ProceduralFoliage)
+		if (ProcComponent->ProceduralFoliage && ProcComponent->bHideDebugTiles == false)
 		{
 			const float TileSize = ProcComponent->ProceduralFoliage->TileSize;
 			const FVector TileSizeOffset(TileSize, TileSize, 0.f);
-			const FVector TileLocation = ProcComponent->GetComponentToWorld().GetLocation();
+			const FVector TileLocation = ProcComponent->GetWorldPosition();
 			const FVector OverlapV(ProcComponent->Overlap, ProcComponent->Overlap, 0.f);
 			
-			for (int32 X = 0; X < ProcComponent->TilesX; ++X)
+			int32 XOffset, YOffset;
+			int32 NumX = 0;
+			int32 NumY = 0;
+			float HalfHeight;
+
+			ProcComponent->GetTilesLayout(XOffset, YOffset, NumX, NumY, HalfHeight);
+
+			for (int32 X = 0; X < NumX; ++X)
 			{
-				for (int32 Y = 0; Y < ProcComponent->TilesY; ++Y)
+				for (int32 Y = 0; Y < NumY; ++Y)
 				{
 					const FVector StartOffset(X*TileSize, Y*TileSize, 0.f);
 					

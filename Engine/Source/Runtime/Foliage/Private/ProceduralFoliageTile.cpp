@@ -433,7 +433,7 @@ void UProceduralFoliageTile::BeginDestroy()
 	RemoveInstances();
 }
 
-void UProceduralFoliageTile::CreateInstancesToSpawn(TArray<FDesiredFoliageInstance>& OutInstances, const FTransform& WorldTM, const FGuid& ProceduralGuid, const float HalfHeight) const
+void UProceduralFoliageTile::CreateInstancesToSpawn(TArray<FDesiredFoliageInstance>& OutInstances, const FTransform& WorldTM, const FGuid& ProceduralGuid, const float HalfHeight, const FBodyInstance* VolumeBodyInstance) const
 {
 	const FCollisionQueryParams Params(true);
 	FHitResult Hit;
@@ -451,6 +451,7 @@ void UProceduralFoliageTile::CreateInstancesToSpawn(TArray<FDesiredFoliageInstan
 		DesiredInst->ProceduralGuid = ProceduralGuid;
 		DesiredInst->FoliageType = Instance.Type;
 		DesiredInst->Age = Instance.Age;
+		DesiredInst->ProceduralVolumeBodyInstance = VolumeBodyInstance;
 		DesiredInst->PlacementMode = EFoliagePlacementMode::Procedural;
 	}
 }

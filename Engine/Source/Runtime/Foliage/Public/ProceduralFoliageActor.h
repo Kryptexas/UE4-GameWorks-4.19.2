@@ -7,7 +7,7 @@
 class UProceduralFoliageComponent;
 
 UCLASS()
-class FOLIAGE_API AProceduralFoliageActor: public AActor
+class FOLIAGE_API AProceduralFoliageActor: public AVolume
 {
 	GENERATED_UCLASS_BODY()
 

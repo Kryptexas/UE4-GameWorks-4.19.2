@@ -38,8 +38,8 @@ bool UActorFactoryProceduralFoliage::CanCreateActorFrom(const FAssetData& AssetD
 
 void UActorFactoryProceduralFoliage::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
+	Super::PostSpawnActor(Asset, NewActor);
 	UProceduralFoliage* ProceduralFoliage = CastChecked<UProceduralFoliage>(Asset);
-	GEditor->SetActorLabelUnique(NewActor, ProceduralFoliage->GetName());
 
 	UE_LOG(LogActorFactory, Log, TEXT("Actor Factory created %s"), *ProceduralFoliage->GetName());
 

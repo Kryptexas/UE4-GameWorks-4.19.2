@@ -10,21 +10,9 @@ class AProceduralFoliageLevelInfo;
 struct FDesiredFoliageInstance;
 
 UCLASS(BlueprintType)
-class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
+class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
-
-	/** The number of ProceduralFoliage tiles to place along the x-axis */
-	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
-	int32 TilesX;
-
-	/** The number of ProceduralFoliage tiles to place along the y-axis */
-	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
-	int32 TilesY;
-
-	/** The extent of the volume above and below. Instances will only be placed on geometry within this volume*/
-	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
-	float HalfHeight;
 
 	/** The overlap in Cms between two tiles. */
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
@@ -33,9 +21,21 @@ class FOLIAGE_API UProceduralFoliageComponent : public USceneComponent
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere, meta=(DisplayName="ProceduralFoliage Asset") )
 	UProceduralFoliage* ProceduralFoliage;
 
+#if WITH_EDITORONLY_DATA
+	/** The overlap in Cms between two tiles. */
+	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
+	bool bHideDebugTiles;
+#endif
+
 	void SpawnProceduralContent(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
 	void RemoveProceduralContent();
 	const FGuid& GetProceduralGuid() const { return ProceduralGuid;  }
+
+	UPROPERTY()
+	AVolume* SpawningVolume;
+
+	FVector GetWorldPosition() const;
+	void GetTilesLayout(int32& MinXIdx, int32& MinYIdx, int32& NumXTiles, int32& NumYTiles, float& HalfHeight) const;
 
 private:
 	void SpawnTiles(TArray<FDesiredFoliageInstance>& OutFoliageInstances);

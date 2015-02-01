@@ -1956,10 +1956,9 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 	FVector StartTrace = DesiredInstance.StartTrace;
 
 	TArray<FHitResult> Hits;
-	FCollisionShape SphereShape;
-	SphereShape.SetSphere(DesiredInstance.TraceRadius);
 
-	InWorld->SweepMulti(Hits, StartTrace, DesiredInstance.EndTrace, FQuat::Identity, SphereShape, QueryParams, FCollisionObjectQueryParams(ECC_WorldStatic));
+	bool bInsideProceduralVolume = false;
+	InWorld->LineTraceMulti(Hits, StartTrace, DesiredInstance.EndTrace, QueryParams, FCollisionObjectQueryParams(ECC_WorldStatic));
 	for (const FHitResult& Hit : Hits)
 	{
 		if (DesiredInstance.PlacementMode == EFoliagePlacementMode::Procedural)
@@ -1978,6 +1977,15 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 				{
 					return false;
 				}
+				else if (Cast<AProceduralFoliageActor>(Hit.Actor.Get()))	//we never want to collide with our spawning volume
+				{
+					continue;
+				}
+
+				if (bInsideProceduralVolume == false)
+				{
+					bInsideProceduralVolume = DesiredInstance.ProceduralVolumeBodyInstance->OverlapTest(Hit.ImpactPoint, FQuat::Identity, FCollisionShape::MakeSphere(1.f));	//make sphere of 1cm radius to test if we're in the procedural volume
+				}
 			}
 		}
 			
@@ -1991,7 +1999,7 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 		if (Hit.Component.IsValid() && Hit.Component->GetComponentLevel())
 		{
 			OutHit = Hit;
-			return true;
+			return (DesiredInstance.PlacementMode != EFoliagePlacementMode::Procedural) || bInsideProceduralVolume;
 		}
 	}
 
