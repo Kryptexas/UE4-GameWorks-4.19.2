@@ -525,7 +525,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	}
 
 	// only build if the project has code that might need to be built
-	if ((bProjectHasCode || bContentProjectCanBeBuilt) && FSourceCodeNavigation::IsCompilerAvailable())
+	if (bProjectHasCode && FSourceCodeNavigation::IsCompilerAvailable())
 	{
 		OptionalParams += TEXT(" -build");
 	}
@@ -1140,6 +1140,7 @@ void FMainFrameActionCallbacks::HandleUatProcessCanceled( TWeakPtr<SNotification
 }
 
 
+DECLARE_CYCLE_STAT(TEXT("Requesting FMainFrameActionCallbacks::HandleUatProcessCompleted message dialog to present the error message"), STAT_FMainFrameActionCallbacks_HandleUatProcessCompleted_DialogMessage, STATGROUP_TaskGraphTasks);
 void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event )
 {
 	FFormatNamedArguments Arguments;
@@ -1172,6 +1173,18 @@ void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWe
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
 		FEditorAnalytics::ReportEvent(Event.EventName + TEXT(".Failed"), PlatformDisplayName.ToString(), Event.bProjectHasCode, ReturnCode, ParamArray);
 
+		// Present a message dialog if we want the error message to be prominent.
+		if (FEditorAnalytics::ShouldElevateMessageThroughDialog(ReturnCode))
+		{
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateLambda([=](){
+					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FEditorAnalytics::TranslateErrorCode(ReturnCode)));
+				}),
+				GET_STATID(STAT_FMainFrameActionCallbacks_HandleUatProcessCompleted_DialogMessage),
+				nullptr,
+				ENamedThreads::GameThread
+			);
+		}
 //		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessFailedMessageLog", "{TaskName} for {Platform} failed"), Arguments));
 	}
 }
