@@ -1182,6 +1182,7 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 		{
 			const auto AddNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, UEdGraphNode* Node, bool bForceUserAdded) -> EActiveTimerReturnType
 			{
+				Parent->RemoveNode(Node);
 				Parent->AddNode(Node, bForceUserAdded ? WasUserAdded : NotUserAdded );
 				return EActiveTimerReturnType::Stop;
 			};
