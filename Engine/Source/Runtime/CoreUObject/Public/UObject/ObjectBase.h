@@ -1164,7 +1164,7 @@ public: \
 	{ \
 		return TStaticCastFlags; \
 	} \
-	DEPRECATED(4.8, "operator new has been deprecated for UObjects - please use NewObject or NewNamedObject instead") \
+	DEPRECATED(4.7, "operator new has been deprecated for UObjects - please use NewObject or NewNamedObject instead") \
 	inline void* operator new( const size_t InSize, UObject* InOuter=(UObject*)GetTransientPackage(), FName InName=NAME_None, EObjectFlags InSetFlags=RF_NoFlags ) \
 	{ \
 		return StaticAllocateObject( StaticClass(), InOuter, InName, InSetFlags ); \
