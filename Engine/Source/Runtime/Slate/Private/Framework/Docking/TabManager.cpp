@@ -920,7 +920,11 @@ TSharedRef<SDockTab> FTabManager::InvokeTab_Internal( const FTabId& TabId )
 
 		if ( ExistingTab.IsValid() )
 		{
-			DrawAttention( ExistingTab.ToSharedRef() );
+			if ( !ExistingTab->IsActive() )
+			{
+				// Draw attention to this tab if it didn't already have focus
+				DrawAttention( ExistingTab.ToSharedRef() );
+			}
 			return ExistingTab.ToSharedRef();
 		}
 	}
