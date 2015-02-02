@@ -818,7 +818,7 @@ MaterialFloat2 GetViewportCoordinates(MaterialFloat2 InFragmentCoordinates)
  */
 MaterialFloat4 UnpackNormalMap( MaterialFloat4 TextureSample )
 {
-#if COMPILER_GLSL_ES2
+#if COMPILER_GLSL_ES2 && IOS
 	return MaterialFloat4(TextureSample.rgb * 2 - 1, 1);
 #else
 	#if DXT5_NORMALMAPS
