@@ -212,9 +212,8 @@ public:
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif
 
-	//----------------------------------------------------------------------//
-	// DEPRECATED
-	//----------------------------------------------------------------------//
+	//////////////////////////////////////////////////////////////////////////
+	// Deprecated functions
 	DEPRECATED(4.7, "This function is deprecated. Please use ClearValue() instead.")
 	void ClearValueAsRotator(FBlackboard::FKey KeyID);
 	DEPRECATED(4.7, "This function is deprecated. Please use ClearValue() instead.")
@@ -278,6 +277,9 @@ protected:
 	/** offsets in ValueMemory for each key */
 	TArray<uint16> ValueOffsets;
 
+	/** instanced keys with custom data allocations */
+	TArray<UBlackboardKeyType*> KeyInstances;
+
 	/** observers registered for blackboard keys */
 	TMultiMap<uint8, FOnBlackboardChange> Observers;
 
@@ -299,10 +301,15 @@ protected:
 	/** initializes parent chain in asset */
 	void InitializeParentChain(UBlackboardData* NewAsset);
 
+	/** destroy allocated values */
+	void DestroyValues();
+
 	/** populates BB's synchronized entries */
 	void PopulateSynchronizedKeys();
 
 	bool ShouldSyncWithBlackboard(UBlackboardComponent& OtherBlackboardComponent) const;
+
+	friend UBlackboardKeyType;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -323,15 +330,18 @@ bool UBlackboardComponent::SetValue(const FName& KeyName, typename TDataClass::F
 template<class TDataClass>
 bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass::FDataType Value)
 {
-	if (GetKeyType(KeyID) != TDataClass::StaticClass())
+	const FBlackboardEntry* EntryInfo = BlackboardAsset ? BlackboardAsset->GetKey(KeyID) : nullptr;
+	if ((EntryInfo == nullptr) || (EntryInfo->KeyType == nullptr) || !EntryInfo->KeyType->IsA(TDataClass::StaticClass()))
 	{
 		return false;
 	}
 
-	uint8* RawData = GetKeyRawData(KeyID);
+	const uint16 DataOffset = EntryInfo->KeyType->IsInstanced() ? sizeof(FBlackboardInstancedKeyMemory) : 0;
+	uint8* RawData = GetKeyRawData(KeyID) + DataOffset;
 	if (RawData)
 	{
-		const bool bChanged = TDataClass::SetValue(RawData, Value);
+		UBlackboardKeyType* KeyOb = EntryInfo->KeyType->IsInstanced() ? KeyInstances[KeyID] : EntryInfo->KeyType;
+		const bool bChanged = TDataClass::SetValue((TDataClass*)KeyOb, RawData, Value);
 		if (bChanged)
 		{
 			NotifyObservers(KeyID);
@@ -343,7 +353,10 @@ bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass
 					UBlackboardComponent* OtherBlackboard = Iter.Value();
 					if (OtherBlackboard != nullptr && ShouldSyncWithBlackboard(*OtherBlackboard))
 					{
-						TDataClass::SetValue(OtherBlackboard->GetKeyRawData(KeyID), Value);
+						UBlackboardKeyType* OtherKeyOb = EntryInfo->KeyType->IsInstanced() ? OtherBlackboard->KeyInstances[KeyID] : EntryInfo->KeyType;
+						uint8* OtherRawData = OtherBlackboard->GetKeyRawData(KeyID) + DataOffset;
+
+						TDataClass::SetValue((TDataClass*)OtherKeyOb, OtherRawData, Value);
 						OtherBlackboard->NotifyObservers(KeyID);
 					}
 				}
@@ -360,14 +373,21 @@ template<class TDataClass>
 typename TDataClass::FDataType UBlackboardComponent::GetValue(const FName& KeyName) const
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	return (GetKeyType(KeyID) != TDataClass::StaticClass())
-		? TDataClass::InvalidValue
-		: GetValue<TDataClass>(KeyID);
+	return GetValue<TDataClass>(KeyID);
 }
 
 template<class TDataClass>
 typename TDataClass::FDataType UBlackboardComponent::GetValue(FBlackboard::FKey KeyID) const
 {
-	const uint8* RawData = GetKeyRawData(KeyID);
-	return RawData ? TDataClass::GetValue(RawData) : TDataClass::InvalidValue;
+	const FBlackboardEntry* EntryInfo = BlackboardAsset ? BlackboardAsset->GetKey(KeyID) : nullptr;
+	if ((EntryInfo == nullptr) || (EntryInfo->KeyType == nullptr) || !EntryInfo->KeyType->IsA(TDataClass::StaticClass()))
+	{
+		return TDataClass::InvalidValue;
+	}
+
+	UBlackboardKeyType* KeyOb = EntryInfo->KeyType->IsInstanced() ? KeyInstances[KeyID] : EntryInfo->KeyType;
+	const uint16 DataOffset = EntryInfo->KeyType->IsInstanced() ? sizeof(FBlackboardInstancedKeyMemory) : 0;
+
+	const uint8* RawData = GetKeyRawData(KeyID) + DataOffset;
+	return RawData ? TDataClass::GetValue((TDataClass*)KeyOb, RawData) : TDataClass::InvalidValue;
 }

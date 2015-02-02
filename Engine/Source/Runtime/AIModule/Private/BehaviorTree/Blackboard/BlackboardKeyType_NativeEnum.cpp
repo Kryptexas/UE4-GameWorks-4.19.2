@@ -11,19 +11,30 @@ UBlackboardKeyType_NativeEnum::UBlackboardKeyType_NativeEnum(const FObjectInitia
 	SupportedOp = EBlackboardKeyOperation::Arithmetic;
 }
 
-uint8 UBlackboardKeyType_NativeEnum::GetValue(const uint8* RawData)
+uint8 UBlackboardKeyType_NativeEnum::GetValue(const UBlackboardKeyType_NativeEnum* KeyOb, const uint8* RawData)
 {
 	return GetValueFromMemory<uint8>(RawData);
 }
 
-bool UBlackboardKeyType_NativeEnum::SetValue(uint8* RawData, uint8 Value)
+bool UBlackboardKeyType_NativeEnum::SetValue(UBlackboardKeyType_NativeEnum* KeyOb, uint8* RawData, uint8 Value)
 {
 	return SetValueInMemory<uint8>(RawData, Value);
 }
 
-FString UBlackboardKeyType_NativeEnum::DescribeValue(const uint8* RawData) const
+EBlackboardCompare::Type UBlackboardKeyType_NativeEnum::CompareValues(const UBlackboardComponent& OwnerComp, const uint8* MemoryBlock,
+	const UBlackboardKeyType* OtherKeyOb, const uint8* OtherMemoryBlock) const
 {
-	return EnumType ? EnumType->GetEnumName(GetValue(RawData)) : FString("UNKNOWN!");
+	const uint8 MyValue = GetValue(this, MemoryBlock);
+	const uint8 OtherValue = GetValue((UBlackboardKeyType_NativeEnum*)OtherKeyOb, OtherMemoryBlock);
+
+	return (MyValue > OtherValue) ? EBlackboardCompare::Greater :
+		(MyValue < OtherValue) ? EBlackboardCompare::Less :
+		EBlackboardCompare::Equal;
+}
+
+FString UBlackboardKeyType_NativeEnum::DescribeValue(const UBlackboardComponent& OwnerComp, const uint8* RawData) const
+{
+	return EnumType ? EnumType->GetEnumName(GetValue(this, RawData)) : FString("UNKNOWN!");
 }
 
 FString UBlackboardKeyType_NativeEnum::DescribeSelf() const
@@ -51,15 +62,9 @@ void UBlackboardKeyType_NativeEnum::PostEditChangeProperty(FPropertyChangedEvent
 }
 #endif
 
-EBlackboardCompare::Type UBlackboardKeyType_NativeEnum::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
+bool UBlackboardKeyType_NativeEnum::TestArithmeticOperation(const UBlackboardComponent& OwnerComp, const uint8* MemoryBlock, EArithmeticKeyOperation::Type Op, int32 OtherIntValue, float OtherFloatValue) const
 {
-	const int8 Diff = GetValueFromMemory<uint8>(MemoryBlockA) - GetValueFromMemory<uint8>(MemoryBlockB);
-	return Diff > 0 ? EBlackboardCompare::Greater : (Diff < 0 ? EBlackboardCompare::Less : EBlackboardCompare::Equal);
-}
-
-bool UBlackboardKeyType_NativeEnum::TestArithmeticOperation(const uint8* MemoryBlock, EArithmeticKeyOperation::Type Op, int32 OtherIntValue, float OtherFloatValue) const
-{
-	const uint8 Value = GetValue(MemoryBlock);
+	const uint8 Value = GetValue(this, MemoryBlock);
 	switch (Op)
 	{
 	case EArithmeticKeyOperation::Equal:			return (Value == OtherIntValue);

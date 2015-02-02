@@ -423,8 +423,8 @@ struct AIMODULE_API FBlackboardKeySelector
 	{}
 
 	/** array of allowed types with additional properties (e.g. uobject's base class) 
-	  * EditDefaults is required for FBlackboardSelectorDetails::CacheBlackboardData() */
-	UPROPERTY(transient, EditDefaultsOnly, BlueprintReadWrite, Category = Blackboard)
+	  * EditAnywhere is required for FBlackboardSelectorDetails::CacheBlackboardData() */
+	UPROPERTY(transient, EditAnywhere, BlueprintReadWrite, Category = Blackboard)
 	TArray<UBlackboardKeyType*> AllowedTypes;
 
 	/** name of selected key */
@@ -443,7 +443,7 @@ protected:
 	static_assert(sizeof(uint8) == sizeof(FBlackboard::FKey), "FBlackboardKeySelector::SelectedKeyId should be of FBlackboard::FKey-compatible type.");
 
 	// Requires BlueprintReadWrite so that blueprint creators (using MakeBlackboardKeySelector) can specify whether or not None is Allowed.
-	UPROPERTY(transient, EditDefaultsOnly, BlueprintReadWrite, Category=Blackboard, Meta=(Tooltip=""))
+	UPROPERTY(transient, EditAnywhere, BlueprintReadWrite, Category = Blackboard, Meta = (Tooltip = ""))
 	uint32 bNoneIsAllowedValue:1;
 
 public:
