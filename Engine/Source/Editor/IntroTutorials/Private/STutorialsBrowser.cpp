@@ -166,6 +166,10 @@ public:
 		return Title;
 	}
 
+	int32 GetSortOrder() const override
+	{
+		return Category.SortOrder;
+	}
 
 	FText GetTitleText() const override
 	{
@@ -174,7 +178,7 @@ public:
 
 	bool SortAgainst(TSharedRef<ITutorialListEntry> OtherEntry) const override
 	{
-		return GetTitleString() < OtherEntry->GetTitleString();
+		return (GetSortOrder() == OtherEntry->GetSortOrder()) ? (GetTitleString() > OtherEntry->GetTitleString()) : (GetSortOrder() < OtherEntry->GetSortOrder());
 	}
 
 	void AddSubCategory(TSharedPtr<FTutorialListEntry_Category> InSubCategory)
@@ -388,9 +392,14 @@ public:
 		return Tutorial->Title.ToString();
 	}
 
+	int32 GetSortOrder() const override
+	{
+		return Tutorial->SortOrder;
+	}
+
 	bool SortAgainst(TSharedRef<ITutorialListEntry> OtherEntry) const override
 	{
-		return GetTitleString() < OtherEntry->GetTitleString();
+		return (GetSortOrder() == OtherEntry->GetSortOrder()) ? (GetTitleString() > OtherEntry->GetTitleString()) : (GetSortOrder() < OtherEntry->GetSortOrder());
 	}
 
 	FReply OnClicked(bool bRestart) const
