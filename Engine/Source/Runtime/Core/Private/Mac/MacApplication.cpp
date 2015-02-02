@@ -13,6 +13,7 @@
 #include "IAnalyticsProvider.h"
 #include "CocoaThread.h"
 #include "ModuleManager.h"
+#include "CocoaTextView.h"
 
 static NSString* NSWindowDraggingFinished = @"NSWindowDraggingFinished";
 
