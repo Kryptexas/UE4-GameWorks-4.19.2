@@ -31,11 +31,11 @@ public:
 
 	/**
 	 * Ensures that the selection override delegate is properly bound for the supplied component
-	 * This includes any attached editor-only primitive components (such as billboard visualizers)
+	* This includes any attached editor-only primitive components (such as billboard visualizers)
 	 * 
 	 * @param SceneComponent The component to set the selection override for
 	 * @param bBind Whether the override should be bound
-	 */
+	*/
 	static void BindComponentSelectionOverride(USceneComponent* SceneComponent, bool bBind);
 
 	/**
@@ -67,6 +67,9 @@ public:
 
 	// Given a template, propagates a default transform change to all instances of the template
 	static void PropagateTransformPropertyChange(class USceneComponent* InSceneComponentTemplate, const FTransformData& OldDefaultTransform, const FTransformData& NewDefaultTransform, TSet<class USceneComponent*>& UpdatedComponents);
+
+	static void PropagateTransformPropertyChangeAmongOverridenTemplates(class USceneComponent* InSceneComponentTemplate, const FTransformData& OldDefaultTransform, const FTransformData& NewDefaultTransform, TSet<class USceneComponent*>& UpdatedComponents);
+
 
 	// Given an instance of a template and a property, propagates a default value change to the instance (only if applicable)
 	template<typename T>

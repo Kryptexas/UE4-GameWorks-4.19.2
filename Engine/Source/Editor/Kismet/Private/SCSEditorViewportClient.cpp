@@ -438,12 +438,17 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 							FComponentEditorUtils::FTransformData NewDefaultTransform(*SelectedTemplate);
 
-							if (SelectedNodePtr->IsNative())
+							const bool bCanPropagateForNativeComponent = SelectedNodePtr->IsNative()
+								&& SelectedTemplate->HasAnyFlags(RF_DefaultSubObject);
+							if (bCanPropagateForNativeComponent)
 							{
-								if (ensure(SelectedTemplate->HasAnyFlags(RF_DefaultSubObject)))
-								{
-									FComponentEditorUtils::PropagateTransformPropertyChange(SelectedTemplate, OldDefaultTransform, NewDefaultTransform, UpdatedComponents);
-								}
+								FComponentEditorUtils::PropagateTransformPropertyChange(SelectedTemplate, OldDefaultTransform, NewDefaultTransform, UpdatedComponents);
+							}
+							const bool bCanPropagateForOverridenComponent = !SelectedNodePtr->IsNative()
+								&& SelectedTemplate->HasAnyFlags(RF_ArchetypeObject);
+							if (bCanPropagateForOverridenComponent)
+							{
+								FComponentEditorUtils::PropagateTransformPropertyChangeAmongOverridenTemplates(SelectedTemplate, OldDefaultTransform, NewDefaultTransform, UpdatedComponents);
 							}
 
 							if(PreviewBlueprint != NULL)
