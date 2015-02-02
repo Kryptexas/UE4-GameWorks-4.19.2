@@ -1147,8 +1147,15 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	using namespace BlueprintActionDatabaseImpl;
 	check(BlueprintActionDatabaseImpl::IsObjectValidForDatabase(AssetObject));
 
-	bool const bHadExistingEntry = ActionRegistry.Contains(AssetObject);
 	FActionList& AssetActionList = ActionRegistry.FindOrAdd(AssetObject);
+	bool const bHadExistingEntry = AssetActionList.Num() > 0;
+	for (UBlueprintNodeSpawner* Action : AssetActionList)
+	{
+		// because some asserts expect everything to be cleaned up in a 
+		// single GC pass, we need to ensure that any previously cached node templates
+		// are cleaned up here before we add any new node spawners.
+		Action->ClearCachedTemplateNode();
+	}
 	AssetActionList.Empty();
 
 	if(const USkeleton* Skeleton = Cast<USkeleton>(AssetObject))
