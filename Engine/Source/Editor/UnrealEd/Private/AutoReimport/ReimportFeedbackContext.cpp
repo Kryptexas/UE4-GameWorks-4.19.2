@@ -314,7 +314,7 @@ void FReimportFeedbackContext::Tick()
 
 void FReimportFeedbackContext::Destroy()
 {
-	MessageLog.Notify(FText(), EMessageSeverity::Warning);
+	MessageLog.Notify(FText(), EMessageSeverity::Error);
 
 	if (Notification.IsValid())
 	{
