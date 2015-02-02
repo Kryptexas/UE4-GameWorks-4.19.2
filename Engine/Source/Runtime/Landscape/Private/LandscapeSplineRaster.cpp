@@ -13,8 +13,10 @@
 #include "LandscapeSplinesComponent.h"
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
+#if WITH_EDITOR
 #include "ScopedTransaction.h"
 #include "Raster.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -22,6 +24,7 @@
 // Apply splines
 //////////////////////////////////////////////////////////////////////////
 
+#if WITH_EDITOR
 class FLandscapeSplineHeightsRasterPolicy
 {
 public:
@@ -109,23 +112,6 @@ private:
 	TArray<uint8>& Data;
 	int32 MinX, MinY, MaxX, MaxY;
 };
-
-bool ULandscapeInfo::ApplySplines(bool bOnlySelected)
-{
-	bool bResult = false;
-
-	ALandscape* Landscape = LandscapeActor.Get();
-
-	bResult |= ApplySplinesInternal(bOnlySelected, Landscape);
-
-	for (auto It = Proxies.CreateIterator(); It; ++It)
-	{
-		ALandscapeProxy* LandscapeProxy = (*It);
-		bResult |= ApplySplinesInternal(bOnlySelected, LandscapeProxy);
-	}
-
-	return bResult;
-}
 
 void RasterizeControlPointHeights(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY, FLandscapeEditDataInterface& LandscapeEdit, FVector ControlPointLocation, const TArray<FLandscapeSplineInterpPoint>& Points, bool bRaiseTerrain, bool bLowerTerrain, TSet<ULandscapeComponent*>& ModifiedComponents)
 {
@@ -426,6 +412,23 @@ void RasterizeSegmentAlpha(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY, F
 
 	LandscapeEdit.SetAlphaData(LayerInfo, MinX, MinY, MaxX, MaxY, Data.GetData(), 0, ELandscapeLayerPaintingRestriction::None, true, false);
 	LandscapeEdit.GetComponentsInRegion(MinX, MinY, MaxX, MaxY, &ModifiedComponents);
+}
+
+bool ULandscapeInfo::ApplySplines(bool bOnlySelected)
+{
+	bool bResult = false;
+
+	ALandscape* Landscape = LandscapeActor.Get();
+
+	bResult |= ApplySplinesInternal(bOnlySelected, Landscape);
+
+	for (auto It = Proxies.CreateIterator(); It; ++It)
+	{
+		ALandscapeProxy* LandscapeProxy = (*It);
+		bResult |= ApplySplinesInternal(bOnlySelected, LandscapeProxy);
+	}
+
+	return bResult;
 }
 
 bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* Landscape)
@@ -883,5 +886,6 @@ namespace LandscapeSplineRaster
 		FixSelfIntersection(Points, &FLandscapeSplineInterpPoint::FalloffRight);
 	}
 }
+#endif
 
 #undef LOCTEXT_NAMESPACE
