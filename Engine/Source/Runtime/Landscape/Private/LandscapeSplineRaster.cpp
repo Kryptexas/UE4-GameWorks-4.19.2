@@ -8,6 +8,7 @@
 #include "Landscape.h"
 #include "LandscapeSplineRaster.h"
 #include "LandscapeProxy.h"
+#include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeSplinesComponent.h"
