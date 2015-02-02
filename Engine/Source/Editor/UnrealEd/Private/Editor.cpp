@@ -12,6 +12,7 @@
 #include "BSPOps.h"
 #include "EditorCommandLineUtils.h"
 #include "Net/NetworkProfiler.h"
+#include "UObjectGlobals.h"
 
 // needed for the RemotePropagator
 #include "SoundDefinitions.h"
@@ -4241,15 +4242,6 @@ bool UEditorEngine::CanParentActors( const AActor* ParentActor, const AActor* Ch
 		return false;
 	}
 
-	if(ParentActor->IsSelected())
-	{
-		if (ReasonText)
-		{
-			*ReasonText = NSLOCTEXT("ActorAttachmentError", "ParentSelected_ActorAttachementError", "Cannot attach actor to an actor which is also selected.");
-		}
-		return false;
-	}
-
 	if(ParentRoot->IsAttachedTo( ChildRoot ))
 	{
 		if (ReasonText)
@@ -5110,7 +5102,8 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 		AActor* NewActor = NULL;
 
 		const FName OldActorName = OldActor->GetFName();
-		OldActor->Rename(*FString::Printf(TEXT("%s_REPLACED"), *OldActorName.ToString()));
+		const FName OldActorReplacedNamed = MakeUniqueObjectName(OldActor->GetOuter(), OldActor->GetClass(), *FString::Printf(TEXT("%s_REPLACED"), *OldActorName.ToString()));
+		OldActor->Rename(*OldActorReplacedNamed.ToString());
 
 		const FTransform OldTransform = OldActor->ActorToWorld();
 

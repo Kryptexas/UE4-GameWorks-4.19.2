@@ -2173,7 +2173,7 @@ static void DispatchOnComponentsCreated(AActor* NewActor)
 	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
 	{
 		UActorComponent* ActorComp = Components[Idx];
-		if (ActorComp != NULL)
+		if (ActorComp != NULL && !ActorComp->bHasBeenCreated)
 		{
 			ActorComp->OnComponentCreated();
 		}
