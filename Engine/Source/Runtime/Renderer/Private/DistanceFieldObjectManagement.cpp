@@ -4,6 +4,8 @@
 	DistanceFieldSurfaceCacheLighting.cpp
 =============================================================================*/
 
+#include "RendererPrivate.h"
+
 float GAOMaxObjectBoundingRadius = 50000;
 FAutoConsoleVariableRef CVarAOMaxObjectBoundingRadius(
 	TEXT("r.AOMaxObjectBoundingRadius"),
