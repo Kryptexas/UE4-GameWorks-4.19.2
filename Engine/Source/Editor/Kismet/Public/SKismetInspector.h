@@ -51,6 +51,10 @@ public:
 		{}
 	};
 
+	// SWidget interface
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	// End of SWidget interface
+
 	/** Update the inspector window to show information on the supplied object */
 	void ShowDetailsForSingleObject(UObject* Object, const FShowDetailsOptions& Options = FShowDetailsOptions());
 
@@ -119,6 +123,15 @@ protected:
 	
 	/** User defined delegate for OnFinishedChangingProperties */
 	FOnFinishedChangingProperties::FDelegate UserOnFinishedChangingProperties;
+
+	/** When TRUE, the Kismet inspector needs to refresh the details view on Tick */
+	bool bRefreshOnTick;
+
+	/** Holds the property objects that need to be displayed by the inspector starting on the next tick */
+	TArray<UObject*> RefreshPropertyObjects;
+
+	/** Details options that are used by the inspector on the next refresh. */
+	FShowDetailsOptions RefreshOptions;
 
 protected:
 	/** Show properties of the selected object */

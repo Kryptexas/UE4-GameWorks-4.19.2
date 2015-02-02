@@ -36,6 +36,18 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SKismetInspector
 
+void SKismetInspector::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	if(bRefreshOnTick)
+	{
+		FKismetSelectionInfo SelectionInfo;
+		UpdateFromObjects(RefreshPropertyObjects, SelectionInfo, RefreshOptions);
+		RefreshPropertyObjects.Empty();
+
+		bRefreshOnTick = false;
+	}
+}
+
 TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options)
 {
 	TSharedRef< SVerticalBox > ContextualEditingWidget = SNew( SVerticalBox );
@@ -342,8 +354,10 @@ void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObj
 		bIsReentrant = false;
 	}
 
-	FKismetSelectionInfo SelectionInfo;
-	UpdateFromObjects(PropertyObjects, SelectionInfo, Options);
+	// Refresh is being deferred until the next tick, this prevents batch operations from bombarding the details view with calls to refresh
+	RefreshPropertyObjects = PropertyObjects;
+	RefreshOptions = Options;
+	bRefreshOnTick = true;
 }
 
 void SKismetInspector::AddPropertiesRecursive(UProperty* Property)
