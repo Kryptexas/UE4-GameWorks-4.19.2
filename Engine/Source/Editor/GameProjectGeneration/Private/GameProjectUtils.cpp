@@ -2976,8 +2976,8 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	
 	// If the project does not already contain code, add the primary game module
 	TArray<FString> CreatedFiles;
-	bool bDidNotHaveAnyCodeFiles = !ProjectHasCodeFiles();
-	if (bDidNotHaveAnyCodeFiles)
+	const bool bProjectHadCodeFiles = ProjectHasCodeFiles();
+	if (!bProjectHadCodeFiles)
 	{
 		// We always add the basic source code to the root directory, not the potential sub-directory provided by NewClassPath
 		const FString SourceDir = FPaths::GameSourceDir().LeftChop(1); // Trim the trailing /
@@ -3033,11 +3033,26 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 
 	SlowTask.EnterProgressFrame();
 
-	// Generate project files if we happen to be using a project file.
-	if ( !FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
+	TArray<FString> CreatedFilesForExternalAppRead;
+	CreatedFilesForExternalAppRead.Reserve(CreatedFiles.Num());
+	for (const FString& CreatedFile : CreatedFiles)
 	{
-		OutFailReason = LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files.");
-		return false;
+		CreatedFilesForExternalAppRead.Add( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*CreatedFile) );
+	}
+
+	// First see if we can avoid a full generation by adding the new files to an already open project
+	if ( bProjectHadCodeFiles && FSourceCodeNavigation::AddSourceFiles(CreatedFilesForExternalAppRead) )
+	{
+		// todo: jdale - even if this succeeds, we still need to run UBT with "-gather" to update the makefiles
+	}
+	else
+	{
+		// Generate project files if we happen to be using a project file.
+		if ( !FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
+		{
+			OutFailReason = LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files.");
+			return false;
+		}
 	}
 
 	SlowTask.EnterProgressFrame();
@@ -3046,13 +3061,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 	if ( ISourceControlModule::Get().IsEnabled() && SourceControlProvider.IsAvailable() )
 	{
-		TArray<FString> FilesToCheckOut;
-		for ( auto FileIt = CreatedFiles.CreateConstIterator(); FileIt; ++FileIt )
-		{
-			FilesToCheckOut.Add( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(**FileIt) );
-		}
-
-		SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), FilesToCheckOut);
+		SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), CreatedFilesForExternalAppRead);
 	}
 
 	SlowTask.EnterProgressFrame( 1.0f, LOCTEXT("CompilingCPlusPlusCode", "Compiling new C++ code.  Please wait..."));
@@ -3060,7 +3069,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	OutHeaderFilePath = NewHeaderFilename;
 	OutCppFilePath = NewCppFilename;
 
-	if (bDidNotHaveAnyCodeFiles)
+	if (!bProjectHadCodeFiles)
 	{
 		// This is the first time we add code to this project so compile its game DLL
 		const FString GameModuleName = FApp::GetGameName();

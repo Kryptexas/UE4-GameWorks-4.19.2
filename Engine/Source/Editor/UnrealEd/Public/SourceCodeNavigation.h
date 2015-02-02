@@ -178,6 +178,9 @@ public:
 	/** Opens a multiple source files */
 	UNREALED_API static bool OpenSourceFiles(const TArray<FString>& AbsoluteSourcePaths);
 
+	/** Add multiple source files to the current solution/project/workspace */
+	UNREALED_API static bool AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths);
+
 	UNREALED_API static bool OpenModuleSolution();
 
 	/** Attempt to locate fully qualified class module name */
