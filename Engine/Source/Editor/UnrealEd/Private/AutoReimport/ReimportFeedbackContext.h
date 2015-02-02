@@ -59,9 +59,6 @@ public:
 	/** Destroy this reimport context */
 	void Destroy();
 
-	/** Tick this context - potentially opening a new notification if the process has taken a while */
-	void Tick();
-
 	TSharedPtr<SReimportFeedback> GetContent() { return NotificationContent; }
 
 	/** Add a message to the context (and message log) */
@@ -82,9 +79,6 @@ private:
 
 	/** True if we need to notifiy about new messages on the message log */
 	bool NotifyMessageLog;
-
-	/** The time when the last change to the cache was reported */
-	FTimeLimit ShowNotificationDelay;
 
 	/** The notification that is shown when the context is active */
 	TSharedPtr<class SNotificationItem> Notification;

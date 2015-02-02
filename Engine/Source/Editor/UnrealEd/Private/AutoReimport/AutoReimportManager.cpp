@@ -454,11 +454,6 @@ void FAutoReimportManager::Cleanup()
 
 void FAutoReimportManager::Tick(float DeltaTime)
 {
-	if (FeedbackContextOverride.IsValid())
-	{
-		FeedbackContextOverride->Tick();
-	}
-	
 	// Never spend more than a 60fps frame doing this work (meaning we shouldn't drop below 30fps), we can do more if we're throttling CPU usage (ie editor running in background)
 	const FTimeLimit TimeLimit(GEditor->ShouldThrottleCPUUsage() ? 1 / 6.f : 1.f / 60.f);
 	StateMachine.Tick(TimeLimit);
