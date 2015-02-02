@@ -18,6 +18,17 @@ const int ReflectiveShadowMapResolution = 256;
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
 
+static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocityDebug(
+	TEXT("r.BasePassOutputsVelocityDebug"),
+	0,
+	TEXT("Debug settings for Base Pass outputting velocity.\n") \
+	TEXT("0 - Regular rendering\n") \
+	TEXT("1 - Skip setting GBufferVelocity RT\n") \
+	TEXT("2 - Set Color Mask 0 for GBufferVelocity RT\n"),
+	ECVF_RenderThreadSafe);
+
+static int32 GBasePassOutputsVelocityDebug = 0;
+
 /*-----------------------------------------------------------------------------
 FSceneRenderTargets
 -----------------------------------------------------------------------------*/
@@ -288,8 +299,6 @@ void FSceneRenderTargets::BeginRenderingSceneColor(FRHICommandList& RHICmdList, 
 
 int32 FSceneRenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FRHIRenderTargetView OutRenderTargets[MaxSimultaneousRenderTargets], int32& OutVelocityRTIndex)
 {
-	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
-
 	OutRenderTargets[0] = FRHIRenderTargetView(GetSceneColorSurface(), 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 	OutRenderTargets[1] = FRHIRenderTargetView(GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 	OutRenderTargets[2] = FRHIRenderTargetView(GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
@@ -305,7 +314,7 @@ int32 FSceneRenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction Color
 		++MRTCount;
 	}
 
-	if (bUseVelocityGBuffer)
+	if (bAllocateVelocityGBuffer)
 	{
 		OutVelocityRTIndex = MRTCount;
 		++MRTCount;
@@ -405,7 +414,7 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 	{
 		NumGBufferTargets = bAllowStaticLighting ? 6 : 5;
 
-		if (FVelocityRendering::OutputsToGBuffer())
+		if (bAllocateVelocityGBuffer)
 		{
 			++NumGBufferTargets;
 		}
@@ -506,12 +515,24 @@ void FSceneRenderTargets::ReleaseGBufferTargets()
 	GBufferVelocity.SafeRelease();
 }
 
+void FSceneRenderTargets::PreallocGBufferTargets(bool bShouldRenderVelocities)
+{
+	if (GBasePassOutputsVelocityDebug == 1)
+	{
+		bAllocateVelocityGBuffer = false;
+	}
+	else
+	{
+		bAllocateVelocityGBuffer = bShouldRenderVelocities && FVelocityRendering::OutputsToGBuffer();
+	}
+}
+
 void FSceneRenderTargets::AllocGBufferTargets()
 {
 	// AdjustGBufferRefCount +1 doesn't match -1 (within the same frame)
 	ensure(GBufferRefCount == 0);
 
-	if(GBufferA)
+	if (GBufferA)
 	{
 		// no work needed
 		return;
@@ -571,8 +592,8 @@ void FSceneRenderTargets::AllocGBufferTargets()
 		GRenderTargetPool.FindFreeElement(Desc, GBufferE, TEXT("GBufferE"));
 	}
 
-	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
-	if (bUseVelocityGBuffer)
+	GBasePassOutputsVelocityDebug = CVarBasePassOutputsVelocityDebug.GetValueOnRenderThread();
+	if (bAllocateVelocityGBuffer)
 	{
 		FPooledRenderTargetDesc VelocityRTDesc = FVelocityRendering::GetRenderTargetDesc();
 		GRenderTargetPool.FindFreeElement(VelocityRTDesc, GBufferVelocity, TEXT("GBufferVelocity"));
@@ -861,7 +882,7 @@ void FSceneRenderTargets::ResolveGBufferSurfaces(FRHICommandList& RHICmdList, co
 			RHICmdList.CopyToResolveTarget(GSceneRenderTargets.GBufferE->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GBufferE->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
 		}
 
-		if (FVelocityRendering::OutputsToGBuffer())
+		if (bAllocateVelocityGBuffer)
 		{
 			RHICmdList.CopyToResolveTarget(GSceneRenderTargets.GBufferVelocity->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GBufferVelocity->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
 		}
@@ -1491,7 +1512,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		}
 	}
 
-	if (FVelocityRendering::OutputsToGBuffer())
+	if (bAllocateVelocityGBuffer)
 	{
 		FPooledRenderTargetDesc VelocityRTDesc = FVelocityRendering::GetRenderTargetDesc();
 		GRenderTargetPool.FindFreeElement(VelocityRTDesc, GBufferVelocity, TEXT("GBufferVelocity"));
@@ -1678,7 +1699,7 @@ const FTextureRHIRef& FSceneRenderTargets::GetSceneColorTexture() const
 
 IPooledRenderTarget* FSceneRenderTargets::GetGBufferVelocityRT()
 {
-	if (!FVelocityRendering::OutputsToGBuffer())
+	if (!bAllocateVelocityGBuffer)
 	{
 		return nullptr;
 	}

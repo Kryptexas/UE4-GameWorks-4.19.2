@@ -699,24 +699,33 @@ static TAutoConsoleVariable<int32> CVarParallelVelocity(
 	ECVF_RenderThreadSafe
 	);
 
-
-void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+bool FDeferredShadingSceneRenderer::ShouldRenderVelocities() const
 {
-	check(FeatureLevel >= ERHIFeatureLevel::SM4);
-	SCOPE_CYCLE_COUNTER(STAT_RenderVelocities);
+	if (!GPixelFormats[PF_G16R16].Supported)
+	{
+		return false;
+	}
 
 	bool bNeedsVelocity = false;
-	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
-	
+
 		bool bTemporalAA = (View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA) && !View.bCameraCut;
 		bool bMotionBlur = IsMotionBlurEnabled(View);
 
 		bNeedsVelocity |= bMotionBlur || bTemporalAA;
 	}
 
-	if( !bNeedsVelocity || !GPixelFormats[PF_G16R16].Supported )
+	return bNeedsVelocity;
+}
+
+void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+{
+	check(FeatureLevel >= ERHIFeatureLevel::SM4);
+	SCOPE_CYCLE_COUNTER(STAT_RenderVelocities);
+
+	if (!ShouldRenderVelocities())
 	{
 		return;
 	}

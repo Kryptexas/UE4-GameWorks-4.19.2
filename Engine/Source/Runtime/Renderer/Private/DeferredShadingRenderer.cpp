@@ -462,7 +462,16 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FIntRect& ViewR
 	else
 	{
 		// Opaque blending for all G buffer targets, depth tests and writes.
-		RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA>::GetRHI());
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocityDebug"));
+		if (CVar && CVar->GetValueOnRenderThread() == 2)
+		{
+			RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_NONE>::GetRHI());
+		}
+		else
+		{
+			RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA>::GetRHI());
+		}
+
 		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
 	}
@@ -738,6 +747,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterPrePass));
 	
+	const bool bShouldRenderVelocities = ShouldRenderVelocities();
+	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
+	GSceneRenderTargets.PreallocGBufferTargets(bShouldRenderVelocities && bUseVelocityGBuffer);
 	GSceneRenderTargets.AllocGBufferTargets();
 	
 	// Clear LPVs for all views
@@ -1008,11 +1020,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 
-	if (FVelocityRendering::OutputsToGBuffer())
+	if (bUseVelocityGBuffer)
 	{
 		VelocityRT = GSceneRenderTargets.GetGBufferVelocityRT();
 	}
-	else
+	else if (bShouldRenderVelocities)
 	{
 		// Render the velocities of movable objects
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Velocity));

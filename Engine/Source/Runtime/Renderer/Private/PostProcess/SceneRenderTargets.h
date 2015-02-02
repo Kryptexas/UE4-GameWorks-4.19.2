@@ -134,7 +134,8 @@ protected:
 		CurrentMobile32bpp(0),
 		bCurrentLightPropagationVolume(false),
 		CurrentFeatureLevel(ERHIFeatureLevel::Num),
-		CurrentShadingPath(EShadingPath::Num)
+		CurrentShadingPath(EShadingPath::Num),
+		bAllocateVelocityGBuffer(false)
 		{
 		}
 public:
@@ -428,6 +429,7 @@ public:
 	void AdjustGBufferRefCount(int Delta);
 
 	//
+	void PreallocGBufferTargets(bool bShouldRenderVelocities);
 	void AllocGBufferTargets();
 
 	void AllocLightAttenuation();
@@ -623,6 +625,9 @@ private:
 	ERHIFeatureLevel::Type CurrentFeatureLevel;
 	/** Shading path that we are currently drawing through. Set when calling Allocate at the start of a scene render. */
 	EShadingPath CurrentShadingPath;
+
+	// Set this per frame since there might be cases where we don't need an extra GBuffer
+	bool bAllocateVelocityGBuffer;
 
 	/** Helpers to track gbuffer state on platforms that need to propagate clear information across parallel rendering boundaries. */
 	bool bGBuffersCleared;
