@@ -747,7 +747,7 @@ struct FBlueprintInnerHelper
 	}
 };
 
-UActorComponent* UBlueprint::FindTemplateByName(const FName& TemplateName)
+UActorComponent* UBlueprint::FindTemplateByName(const FName& TemplateName) const
 {
 	return FBlueprintInnerHelper::FindObjectByName<UActorComponent>(ComponentTemplates, TemplateName);
 }
