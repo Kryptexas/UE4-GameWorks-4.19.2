@@ -1503,6 +1503,28 @@ public:
 				return;
 			}
 
+			// Automatically fill in any placeholder layers
+			// This gives a much better user experience when copying data to a newly created landscape
+			for (ULandscapeLayerInfoObject* LayerInfo : Gizmo->LayerInfos)
+			{
+				int32 LayerInfoIndex = LandscapeInfo->GetLayerInfoIndex(LayerInfo);
+				if (LayerInfoIndex == INDEX_NONE)
+				{
+					LayerInfoIndex = LandscapeInfo->GetLayerInfoIndex(LayerInfo->LayerName);
+					if (LayerInfoIndex != INDEX_NONE)
+					{
+						FLandscapeInfoLayerSettings& LayerSettings = LandscapeInfo->Layers[LayerInfoIndex];
+
+						if (LayerSettings.LayerInfoObj == nullptr)
+						{
+							LayerSettings.Owner = LandscapeInfo->GetLandscapeProxy(); // this isn't strictly accurate, but close enough
+							LayerSettings.LayerInfoObj = LayerInfo;
+							LayerSettings.bValid = true;
+						}
+					}
+				}
+			}
+
 			Gizmo->TargetLandscapeInfo = LandscapeInfo;
 			float ScaleXY = LandscapeInfo->DrawScale.X;
 
@@ -1687,9 +1709,12 @@ public:
 				}
 			}
 
-			for (int i = 0; i < Gizmo->LayerInfos.Num(); ++i)
+			for (ULandscapeLayerInfoObject* LayerInfo : Gizmo->LayerInfos)
 			{
-				WeightCache.AddDirtyLayer(Gizmo->LayerInfos[i]);
+				if (LandscapeInfo->GetLayerInfoIndex(LayerInfo) != INDEX_NONE)
+				{
+					WeightCache.AddDirtyLayer(LayerInfo);
+				}
 			}
 
 			if (bApplyToAll)
