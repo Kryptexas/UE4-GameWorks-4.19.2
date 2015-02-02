@@ -28,6 +28,7 @@ class UTexture2D;
 class ALandscape;
 class ALandscapeProxy;
 class ULandscapeComponent;
+class USplineComponent;
 
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
@@ -446,10 +447,6 @@ public:
 	UPROPERTY()
 	int32 NumSubsections;    // Number of subsections in X and Y axis
 
-	/** Change the Level of Detail distance factor */
-	UFUNCTION(BlueprintCallable, Category="Rendering")
-	virtual void ChangeLODDistanceFactor(float InLODDistanceFactor);
-
 	/** Hints navigation system whether this landscape will ever be navigated on. true by default, but make sure to set it to false for faraway, background landscapes */
 	UPROPERTY(EditAnywhere, Category=Landscape)
 	uint32 bUsedForNavigation:1;
@@ -473,6 +470,31 @@ public:
 
 	/** Map of weightmap usage */
 	TMap<UTexture2D*, struct FLandscapeWeightmapUsage> WeightmapUsageMap;
+
+	// Blueprint functions
+
+	/** Change the Level of Detail distance factor */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	virtual void ChangeLODDistanceFactor(float InLODDistanceFactor);
+
+	// Editor-time blueprint functions
+
+	/** Deform landscape using a given spline
+	 * @param StartWidth - Width of the spline at the start node, in Spline Component local space
+	 * @param EndWidth   - Width of the spline at the end node, in Spline Component local space
+	 * @param StartSideFalloff - Width of the falloff at either side of the spline at the start node, in Spline Component local space
+	 * @param EndSideFalloff - Width of the falloff at either side of the spline at the end node, in Spline Component local space
+	 * @param StartRoll - Roll applied to the spline at the start node, in degrees. 0 is flat
+	 * @param EndRoll - Roll applied to the spline at the end node, in degrees. 0 is flat
+	 * @param NumSubdivisions - Number of triangles to place along the spline when applying it to the landscape. Higher numbers give better results, but setting it too high will be slow and may cause artifacts
+	 * @param bRaiseHeights - Allow the landscape to be raised up to the level of the spline. If both bRaiseHeights and bLowerHeights are false, no height modification of the landscape will be performed
+	 * @param bLowerHeights - Allow the landscape to be lowered down to the level of the spline. If both bRaiseHeights and bLowerHeights are false, no height modification of the landscape will be performed
+	 * @param PaintLayer - LayerInfo to paint, or none to skip painting. The landscape must be configured with the same layer info in one of its layers or this will do nothing!
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Landscape Editor")
+	void EditorApplySpline(USplineComponent* InSplineComponent, float StartWidth = 200, float EndWidth = 200, float StartSideFalloff = 200, float EndSideFalloff = 200, float StartRoll = 0, float EndRoll = 0, int32 NumSubdivisions = 20, bool bRaiseHeights = true, bool bLowerHeights = true, ULandscapeLayerInfoObject* PaintLayer = nullptr);
+
+	// End blueprint functions
 
 	// Begin AActor Interface
 	virtual void UnregisterAllComponents() override;

@@ -1160,17 +1160,6 @@ static float ApproxLength(const FInterpCurveVector& SplineInfo, const float Star
 	return SplineLength;
 }
 
-/** Util that takes a 2D vector and rotates it by RotAngle (given in radians) */
-static FVector2D RotateVec2D(const FVector2D InVec, float RotAngle)
-{
-	FVector2D OutVec;
-	OutVec.X = (InVec.X * FMath::Cos(RotAngle)) - (InVec.Y * FMath::Sin(RotAngle));
-	OutVec.Y = (InVec.X * FMath::Sin(RotAngle)) + (InVec.Y * FMath::Cos(RotAngle));
-	return OutVec;
-}
-
-
-
 static ESplineMeshAxis::Type CrossAxis(ESplineMeshAxis::Type InForwardAxis, ESplineMeshAxis::Type InUpAxis)
 {
 	check(InForwardAxis != InUpAxis);
@@ -1201,27 +1190,18 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 	// Set up BSpline
 	FVector StartLocation; FRotator StartRotation;
 	Connections[0].ControlPoint->GetConnectionLocationAndRotation(Connections[0].SocketName, StartLocation, StartRotation);
-	new(SplineInfo.Points) FInterpCurvePoint<FVector>(0.0f, StartLocation, StartRotation.Vector() * Connections[0].TangentLen, StartRotation.Vector() * Connections[0].TangentLen, CIM_CurveUser);
+	SplineInfo.Points.Emplace(0.0f, StartLocation, StartRotation.Vector() * Connections[0].TangentLen, StartRotation.Vector() * Connections[0].TangentLen, CIM_CurveUser);
 	FVector EndLocation; FRotator EndRotation;
 	Connections[1].ControlPoint->GetConnectionLocationAndRotation(Connections[1].SocketName, EndLocation, EndRotation);
-	new(SplineInfo.Points) FInterpCurvePoint<FVector>(1.0f, EndLocation, EndRotation.Vector() * -Connections[1].TangentLen, EndRotation.Vector() * -Connections[1].TangentLen, CIM_CurveUser);
+	SplineInfo.Points.Emplace(1.0f, EndLocation, EndRotation.Vector() * -Connections[1].TangentLen, EndRotation.Vector() * -Connections[1].TangentLen, CIM_CurveUser);
 
 	// Pointify
 
 	// Calculate spline length
 	const float SplineLength = ApproxLength(SplineInfo, 0.0f, 1.0f, 4);
 
-	float StartFalloffFraction = ((Connections[0].ControlPoint->ConnectedSegments.Num() > 1) ? 0 : (Connections[0].ControlPoint->EndFalloff / SplineLength));
-	float EndFalloffFraction = ((Connections[1].ControlPoint->ConnectedSegments.Num() > 1) ? 0 : (Connections[1].ControlPoint->EndFalloff / SplineLength));
-
-	// Stop the start and end fall-off overlapping
-	const float TotalFalloff = StartFalloffFraction + EndFalloffFraction;
-	if (TotalFalloff > 1.0f)
-	{
-		StartFalloffFraction /= TotalFalloff;
-		EndFalloffFraction /= TotalFalloff;
-	}
-
+	const float StartFalloffFraction = ((Connections[0].ControlPoint->ConnectedSegments.Num() > 1) ? 0 : (Connections[0].ControlPoint->EndFalloff / SplineLength));
+	const float EndFalloffFraction = ((Connections[1].ControlPoint->ConnectedSegments.Num() > 1) ? 0 : (Connections[1].ControlPoint->EndFalloff / SplineLength));
 	const float StartWidth = Connections[0].ControlPoint->Width;
 	const float EndWidth = Connections[1].ControlPoint->Width;
 	const float StartSideFalloff = Connections[0].ControlPoint->SideFalloff;
@@ -1234,60 +1214,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 	int32 NumPoints = FMath::CeilToInt(SplineLength / OuterSplines->SplineResolution);
 	NumPoints = FMath::Clamp(NumPoints, 1, 1000);
 
-	float OldKeyTime = 0;
-	for (int32 i = 0; i < SplineInfo.Points.Num(); i++)
-	{
-		const float NewKeyTime = SplineInfo.Points[i].InVal;
-		const float NewKeyCosInterp = 0.5f - 0.5f * FMath::Cos(NewKeyTime * PI);
-		const float NewKeyWidth = FMath::Lerp(StartWidth, EndWidth, NewKeyCosInterp);
-		const float NewKeyFalloff = FMath::Lerp(StartSideFalloff, EndSideFalloff, NewKeyCosInterp);
-		const float NewKeyRoll = FMath::Lerp(StartRoll, EndRoll, NewKeyCosInterp);
-		const FVector NewKeyPos = SplineInfo.Eval(NewKeyTime, FVector::ZeroVector);
-		const FVector NewKeyTangent = SplineInfo.EvalDerivative(NewKeyTime, FVector::ZeroVector).GetSafeNormal();
-		const FVector NewKeyBiNormal = FQuat(NewKeyTangent, -NewKeyRoll).RotateVector((NewKeyTangent ^ FVector(0, 0, -1)).GetSafeNormal());
-		const FVector NewKeyLeftPos = NewKeyPos - NewKeyBiNormal * NewKeyWidth;
-		const FVector NewKeyRightPos = NewKeyPos + NewKeyBiNormal * NewKeyWidth;
-		const FVector NewKeyFalloffLeftPos = NewKeyPos - NewKeyBiNormal * (NewKeyWidth + NewKeyFalloff);
-		const FVector NewKeyFalloffRightPos = NewKeyPos + NewKeyBiNormal * (NewKeyWidth + NewKeyFalloff);
-		const float NewKeyStartEndFalloff = FMath::Min((StartFalloffFraction > 0 ? NewKeyTime / StartFalloffFraction : 1.0f), (EndFalloffFraction > 0 ? (1 - NewKeyTime) / EndFalloffFraction : 1.0f));
-
-		// If not the first keypoint, interp from the last keypoint.
-		if (i > 0)
-		{
-			int32 NumSteps = FMath::CeilToInt( (NewKeyTime - OldKeyTime) * NumPoints );
-			float DrawSubstep = (NewKeyTime - OldKeyTime) / NumSteps;
-
-			// Add a point for each substep, except the ends because that's the point added outside the interp'ing.
-			for (int32 j = 1; j < NumSteps; j++)
-			{
-				const float NewTime = OldKeyTime + j*DrawSubstep;
-				const float NewCosInterp = 0.5f - 0.5f * FMath::Cos(NewTime * PI);
-				const float NewWidth = FMath::Lerp(StartWidth, EndWidth, NewCosInterp);
-				const float NewFalloff = FMath::Lerp(StartSideFalloff, EndSideFalloff, NewCosInterp);
-				const float NewRoll = FMath::Lerp(StartRoll, EndRoll, NewCosInterp);
-				const FVector NewPos = SplineInfo.Eval(NewTime, FVector::ZeroVector);
-				const FVector NewTangent = SplineInfo.EvalDerivative(NewTime, FVector::ZeroVector).GetSafeNormal();
-				const FVector NewBiNormal = FQuat(NewTangent, -NewRoll).RotateVector((NewTangent ^ FVector(0, 0, -1)).GetSafeNormal());
-				const FVector NewLeftPos = NewPos - NewBiNormal * NewWidth;
-				const FVector NewRightPos = NewPos + NewBiNormal * NewWidth;
-				const FVector NewFalloffLeftPos = NewPos - NewBiNormal * (NewWidth + NewFalloff);
-				const FVector NewFalloffRightPos = NewPos + NewBiNormal * (NewWidth + NewFalloff);
-				const float NewStartEndFalloff = FMath::Min((StartFalloffFraction > 0 ? NewTime / StartFalloffFraction : 1.0f), (EndFalloffFraction > 0 ? (1 - NewTime) / EndFalloffFraction : 1.0f));
-
-				new(Points) FLandscapeSplineInterpPoint(NewPos, NewLeftPos, NewRightPos, NewFalloffLeftPos, NewFalloffRightPos, NewStartEndFalloff);
-			}
-		}
-
-		new(Points) FLandscapeSplineInterpPoint(NewKeyPos, NewKeyLeftPos, NewKeyRightPos, NewKeyFalloffLeftPos, NewKeyFalloffRightPos, NewKeyStartEndFalloff);
-
-		OldKeyTime = NewKeyTime;
-	}
-
-	// Handle self-intersection errors due to tight turns
-	FixSelfIntersection(&FLandscapeSplineInterpPoint::Left);
-	FixSelfIntersection(&FLandscapeSplineInterpPoint::Right);
-	FixSelfIntersection(&FLandscapeSplineInterpPoint::FalloffLeft);
-	FixSelfIntersection(&FLandscapeSplineInterpPoint::FalloffRight);
+	LandscapeSplineRaster::Pointify(SplineInfo, Points, NumPoints, StartFalloffFraction, EndFalloffFraction, StartWidth, EndWidth, StartSideFalloff, EndSideFalloff, StartRollDegrees, EndRollDegrees);
 
 	// Update Bounds
 	Bounds = FBox(0);
@@ -1481,7 +1408,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				break;
 			}
 			Offset *= Scale2D;
-			Offset = RotateVec2D(Offset, -Roll);
+			Offset = Offset.GetRotated(-Roll);
 
 			MeshComponent->SplineParams.StartPos = SplineInfo.Eval(RescaledT, FVector::ZeroVector);
 			MeshComponent->SplineParams.StartTangent = SplineInfo.EvalDerivative(RescaledT, FVector::ZeroVector) * (TEnd - RescaledT);
@@ -1529,7 +1456,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				break;
 			}
 			OffsetEnd *= Scale2DEnd;
-			OffsetEnd = RotateVec2D(OffsetEnd, -RollEnd);
+			OffsetEnd = OffsetEnd.GetRotated(-RollEnd);
 
 			MeshComponent->SplineParams.EndPos = SplineInfo.Eval(TEnd, FVector::ZeroVector);
 			MeshComponent->SplineParams.EndTangent = SplineInfo.EvalDerivative(TEnd, FVector::ZeroVector) * (TEnd - RescaledT);
@@ -1638,127 +1565,6 @@ void ULandscapeSplineSegment::DeleteSplinePoints()
 		MeshComponent->DestroyComponent();
 	}
 	MeshComponents.Empty();
-}
-
-static bool LineIntersect( const FVector2D& L1Start, const FVector2D& L1End, const FVector2D& L2Start, const FVector2D& L2End, FVector2D& Intersect, float Tolerance = KINDA_SMALL_NUMBER)
-{
-	float tA = (L2End - L2Start) ^ (L2Start - L1Start);
-	float tB = (L1End - L1Start) ^ (L2Start - L1Start);
-	float Denom = (L2End - L2Start) ^ (L1End - L1Start);
-
-	if( FMath::IsNearlyZero( tA ) && FMath::IsNearlyZero( tB )  )
-	{
-		// Lines are the same
-		Intersect = (L2Start + L2End) / 2;
-		return true;
-	}
-
-	if( FMath::IsNearlyZero(Denom) )
-	{
-		// Lines are parallel
-		Intersect = (L2Start + L2End) / 2;
-		return false;
-	}
-
-	tA /= Denom;
-	tB /= Denom;
-
-	Intersect = L1Start + tA * (L1End - L1Start);
-
-	if( tA >= -Tolerance && tA <= (1.0f + Tolerance ) && tB >= -Tolerance && tB <= (1.0f + Tolerance) )
-	{
-		return true;
-	}
-
-	return false;
-}
-
-bool ULandscapeSplineSegment::FixSelfIntersection(FVector FLandscapeSplineInterpPoint::* Side)
-{
-	int32 StartSide = INDEX_NONE;
-	for(int32 i = 0; i < Points.Num(); i++)
-	{
-		bool bReversed = false;
-
-		if (i < Points.Num() - 1)
-		{
-			const FLandscapeSplineInterpPoint& CurrentPoint = Points[i];
-			const FLandscapeSplineInterpPoint& NextPoint = Points[i+1];
-			const FVector Direction = (NextPoint.Center - CurrentPoint.Center).GetSafeNormal();
-			const FVector SideDirection = (NextPoint.*Side - CurrentPoint.*Side).GetSafeNormal();
-			bReversed = (SideDirection | Direction) < 0;
-		}
-
-		if (bReversed)
-		{
-			if (StartSide == INDEX_NONE)
-			{
-				StartSide = i;
-			}
-		}
-		else
-		{
-			if (StartSide != INDEX_NONE)
-			{
-				int32 EndSide = i;
-
-				// step startSide back until before the endSide point
-				while (StartSide > 0)
-				{
-					const float Projection = (Points[StartSide].*Side - Points[StartSide-1].*Side) | (Points[EndSide].*Side - Points[StartSide-1].*Side);
-					if (Projection >= 0)
-					{
-						break;
-					}
-					StartSide--;
-				}
-				// step endSide forwards until after the startSide point
-				while (EndSide < Points.Num() - 1)
-				{
-					const float Projection = (Points[EndSide].*Side - Points[EndSide+1].*Side) | (Points[StartSide].*Side - Points[EndSide+1].*Side);
-					if (Projection >= 0)
-					{
-						break;
-					}
-					EndSide++;
-				}
-
-				// Can't do anything if the start and end intersect, as they're both unalterable
-				if (StartSide == 0 && EndSide == Points.Num() - 1)
-				{
-					return false;
-				}
-
-				FVector2D Collapse;
-				if (StartSide == 0)
-				{
-					Collapse = FVector2D(Points[StartSide].*Side);
-					StartSide++;
-				}
-				else if (EndSide == Points.Num() - 1)
-				{
-					Collapse = FVector2D(Points[EndSide].*Side);
-					EndSide--;
-				}
-				else
-				{
-					LineIntersect(FVector2D(Points[StartSide-1].*Side), FVector2D(Points[StartSide].*Side),
-						FVector2D(Points[EndSide+1].*Side), FVector2D(Points[EndSide].*Side), Collapse);
-				}
-
-				for (int32 j = StartSide; j <= EndSide; j++)
-				{
-					(Points[j].*Side).X = Collapse.X;
-					(Points[j].*Side).Y = Collapse.Y;
-				}
-
-				StartSide = INDEX_NONE;
-				i = EndSide;
-			}
-		}
-	}
-
-	return true;
 }
 #endif
 

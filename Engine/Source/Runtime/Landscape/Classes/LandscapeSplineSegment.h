@@ -247,10 +247,5 @@ public:
 
 	virtual bool OwnsComponent(const class USplineMeshComponent* SplineMeshComponent) const;
 
-protected:
-#if WITH_EDITOR
-	bool FixSelfIntersection(FVector FLandscapeSplineInterpPoint::* Side);
-#endif
-
 	friend class FEdModeLandscape;
 };
