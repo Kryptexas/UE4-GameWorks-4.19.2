@@ -267,9 +267,30 @@ void UK2Node::PinConnectionListChanged(UEdGraphPin* Pin)
 	NotifyPinConnectionListChanged(Pin);
 }
 
-void UK2Node::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& /*OldPins*/)
+void UK2Node::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	AllocateDefaultPins();
+
+	for (auto OldPin : OldPins)
+	{
+		if (OldPin->ParentPin)
+		{
+			// find the new pin that corresponds to parent, and split it if it isn't already split
+			for (auto NewPin : Pins)
+			{
+				if (FCString::Stricmp(*(NewPin->PinName), *(OldPin->ParentPin->PinName)) == 0)
+				{
+					// Make sure we're not dealing with a menu node
+					UEdGraph* OuterGraph = GetGraph();
+					if (OuterGraph && OuterGraph->Schema && NewPin->SubPins.Num() == 0)
+					{
+						NewPin->PinType = OldPin->ParentPin->PinType;
+						GetSchema()->SplitPin(NewPin);
+					}
+				}
+			}
+		}
+	}
 }
 
 void UK2Node::PostReconstructNode()
