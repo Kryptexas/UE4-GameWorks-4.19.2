@@ -6,6 +6,7 @@
 /* Dependencies
  *****************************************************************************/
 
+#include "CoreUObject.h"
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
 #include "SlateBasics.h"
