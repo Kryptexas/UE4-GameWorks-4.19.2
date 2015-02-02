@@ -7,6 +7,7 @@
 #include "AssetRegistryModule.h"
 #include "AssetEditorManager.h"
 #include "AutoReimport/AutoReimportUtilities.h"
+#include "AutoReimport/AutoReimportManager.h"
 
 #define LOCTEXT_NAMESPACE "FAssetDeleteModel"
 
@@ -15,6 +16,7 @@ FAssetDeleteModel::FAssetDeleteModel( const TArray<UObject*>& InObjectsToDelete 
 	, bPendingObjectsCanBeReplaced(false)
 	, bIsAnythingReferencedInMemoryByNonUndo(false)
 	, bIsAnythingReferencedInMemoryByUndo(false)
+	, bHasSourceContentFilesToDelete(false)
 	, PendingDeleteIndex(0)
 	, ObjectsDeleted(0)
 {
@@ -64,6 +66,7 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 		OnDiskReferences = TSet<FName>();
 		bIsAnythingReferencedInMemoryByNonUndo = false;
 		bIsAnythingReferencedInMemoryByUndo = false;
+		bHasSourceContentFilesToDelete = false;
 		PendingDeleteIndex = 0;
 
 		SetState(Scanning);
@@ -99,8 +102,35 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 			}
 			PendingDelete->RemainingMemoryReferences = NonPendingDeletedExternalInMemoryReferences;
 
+			if (GetDefault<UEditorLoadingSavingSettings>()->bMonitorContentDirectories)
+			{
+				Utils::ExtractSourceFilePaths(PendingDelete->GetObject(), PendingDelete->SourceContentFiles);
+
+				auto MonitoredDirectories = GUnrealEd->AutoReimportManager->GetMonitoredDirectories();
+
+				// Remove anything that's not under a monitored, mounted path
+				PendingDelete->SourceContentFiles.RemoveAll([&](const FString& InFilename){
+					for (const auto& Dir : MonitoredDirectories)
+					{
+						if (!Dir.MountPoint.IsEmpty() && InFilename.StartsWith(Dir.Path))
+						{
+							if (FPaths::FileExists(InFilename))
+							{
+								return false;
+							}
+							else
+							{
+								return true;
+							}
+						}
+					}
+					return true;
+				});
+			}
+
 			bIsAnythingReferencedInMemoryByNonUndo |= PendingDelete->RemainingMemoryReferences > 0;
 			bIsAnythingReferencedInMemoryByUndo |= PendingDelete->IsReferencedInMemoryByUndo();
+			bHasSourceContentFilesToDelete |= PendingDelete->SourceContentFiles.Num() != 0;
 
 			PendingDeleteIndex++;
 		}
@@ -120,35 +150,12 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 
 void FAssetDeleteModel::DeleteSourceContentFiles()
 {
-	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-	
-	TArray<FString> FilesToDelete;
-	for ( const TSharedPtr< FPendingDelete >& PendingDelete : PendingDeletes )
+	IFileManager& FileManager = IFileManager::Get();
+	for (const auto& PendingDelete : PendingDeletes)
 	{
-		Utils::ExtractSourceFilePaths(PendingDelete->GetObject(), FilesToDelete);
-	}
-
-	if (FilesToDelete.Num() != 0)
-	{
-		TArray<FString> RootContentPaths;
-		FPackageName::QueryRootContentPaths( RootContentPaths );
-		for (FString& RootPath : RootContentPaths)
+		for (const auto& Path : PendingDelete->SourceContentFiles)
 		{
-			RootPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(RootPath));
-		}
-
-		IFileManager& FileManager = IFileManager::Get();
-		for (const auto& Path : FilesToDelete)
-		{
-			const FString FullPath = FPaths::ConvertRelativePathToFull(Path);
-			const bool bFileIsExternal = !RootContentPaths.ContainsByPredicate([&](const FString& ContentDir){
-				return FullPath.StartsWith(ContentDir);
-			});
-
-			if (!bFileIsExternal)
-			{
-				FileManager.Delete(*Path, false /* RequireExists */, true /* Even if read only */, true /* Quiet */);
-			}
+			FileManager.Delete(*Path, false /* RequireExists */, true /* Even if read only */, true /* Quiet */);
 		}
 	}
 }
