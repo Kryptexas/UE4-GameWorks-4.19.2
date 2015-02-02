@@ -3,6 +3,7 @@
 #include "FoliagePrivate.h"
 #include "ProceduralFoliageActor.h"
 #include "ProceduralFoliageComponent.h"
+#include "ProceduralFoliage.h"
 
 AProceduralFoliageActor::AProceduralFoliageActor(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
