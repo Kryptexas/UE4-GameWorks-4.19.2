@@ -66,6 +66,10 @@ public:
 	 */
 	bool GetIsSimulateEnabled();
 
+	void SetOwnerTab(TSharedRef<SDockTab> Tab);
+
+	TSharedPtr<SDockTab> GetOwnerTab() const;
+
 protected:
 	/**
 	 * Determines if the viewport widget is visible.
@@ -95,4 +99,6 @@ private:
 	/** If true, reset the camera on the next preview scene update */
 	bool bResetCameraOnNextPreviewUpdate;
 
+	/** The owner dock tab for this viewport. */
+	TWeakPtr<SDockTab> OwnerTab;
 };

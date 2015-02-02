@@ -180,9 +180,9 @@ void FSCSEditorViewportClient::Tick(float DeltaSeconds)
 		}
 	}
 
-	if ( PreviewActor != LastPreviewActor.Get() || PreviewActor == nullptr )
+	if ( PreviewActor != LastPreviewActor.Get() || PreviewActor == nullptr || IsRealtime() )
 	{
-//		PreviewActor = PreviewActor;
+		LastPreviewActor = PreviewActor;
 
 		Invalidate();
 		RefreshPreviewBounds();
@@ -670,6 +670,9 @@ void FSCSEditorViewportClient::InvalidatePreview(bool bResetCamera)
 	{
 		return;
 	}
+
+	// Destroy the preview
+	BlueprintEditorPtr.Pin()->DestroyPreview();
 	
 	if( bResetCamera )
 	{
