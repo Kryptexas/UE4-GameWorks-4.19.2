@@ -31,6 +31,7 @@
 #include "Components/ModelComponent.h"
 #include "EngineUtils.h"
 #include "LandscapeDataAccess.h"
+#include "Foliage/FoliageType_InstancedStaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEdMode"
 #define FOLIAGE_SNAP_TRACE (10000.f)
