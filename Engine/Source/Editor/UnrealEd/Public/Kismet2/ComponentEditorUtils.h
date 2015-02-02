@@ -119,4 +119,7 @@ public:
 			UpdatedComponents.Add(InSceneComponent);
 		}
 	}
+private:
+	static void PropagateTransformInner(class USceneComponent* InstancedSceneComponent, const FTransformData& OldDefaultTransform, const FTransformData& NewDefaultTransform, TSet<class USceneComponent*>& UpdatedComponents);
+
 };
