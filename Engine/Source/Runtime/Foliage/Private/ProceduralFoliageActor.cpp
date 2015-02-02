@@ -16,3 +16,16 @@ AProceduralFoliageActor::AProceduralFoliageActor(const FObjectInitializer& Objec
 		BrushComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
 	}
 }
+
+#if WITH_EDITOR
+
+bool AProceduralFoliageActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+	if (ProceduralComponent && ProceduralComponent->ProceduralFoliage)
+	{
+		Objects.Add(ProceduralComponent->ProceduralFoliage);
+	}
+	return true;
+}
+
+#endif
