@@ -334,6 +334,11 @@ FSelectionIterator UEditorEngine::GetSelectedComponentIterator() const
 	return FSelectionIterator(*GetSelectedComponents());
 };
 
+FSelectedEditableComponentIterator UEditorEngine::GetSelectedEditableComponentIterator() const
+{
+	return FSelectedEditableComponentIterator(*GetSelectedComponents());
+}
+
 USelection* UEditorEngine::GetSelectedComponents() const
 {
 	return PrivateGetSelectedComponents();

@@ -2459,7 +2459,7 @@ void FLevelEditorActionCallbacks::SnapTo_Clicked( const bool InAlign, const bool
 	bool bSnappedComponents = false;
 	if( GEditor->GetSelectedComponentCount() > 0 )
 	{
-		for(FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+		for(FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
 		{
 			USceneComponent* SceneComponent = Cast<USceneComponent>(*It);
 			if(SceneComponent)

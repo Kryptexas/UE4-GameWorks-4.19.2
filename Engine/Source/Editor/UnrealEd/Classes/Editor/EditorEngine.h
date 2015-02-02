@@ -705,7 +705,6 @@ public:
 	bool	HandleMapCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool	HandleSelectCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool	HandleDeleteCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
-	bool	HandlePrefabCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleLightmassDebugCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleLightmassStatsCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleSwarmDistributionCommand( const TCHAR* Str, FOutputDevice& Ar );
@@ -1265,15 +1264,6 @@ public:
 	 */
 	virtual bool ShouldAbortActorDeletion() const { return false; }
 
-	/** Create a prefab from the selected actors, and replace those actors with an instance of that prefab. */
-	virtual void edactPrefabSelected() {};
-
-	/** Add the selected prefab at the clicked location. */
-	virtual void edactAddPrefab() {};
-
-	/** Select all Actors that make up the selected PrefabInstance. */
-	virtual void edactSelectPrefabActors() {};
-
 	/**
 	*
 	* Rebuild the level's Bsp from the level's CSG brushes.
@@ -1757,6 +1747,8 @@ public:
 	* Returns an FSelectionIterator that iterates over the set of selected components.
 	*/
 	class FSelectionIterator GetSelectedComponentIterator() const;
+
+	class FSelectedEditableComponentIterator GetSelectedEditableComponentIterator() const;
 
 	/**
 	* Returns the number of currently selected components.

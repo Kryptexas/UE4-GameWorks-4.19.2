@@ -1257,7 +1257,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 						if (ComponentSelection->IsSelected(TargetComponent))
 						{
 							// The target component is selected, so try applying the object to every selected component
-							for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+							for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
 							{
 								auto SceneComponent = Cast<USceneComponent>(*It);
 								AttemptApplyObjToComponent(DroppedObjects[0], SceneComponent, TargetMaterialSlot, bCreateDropPreview);
@@ -3023,7 +3023,7 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 				// Only move the parent-most component(s) that are selected 
 				// Otherwise, if both a parent and child are selected and the delta is applied to both, the child will actually move 2x delta
 				TInlineComponentArray<USceneComponent*> ComponentsToMove;
-				for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+				for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
 				{
 					USceneComponent* SceneComponent = CastChecked<USceneComponent>(*It);
 					if (SceneComponent)

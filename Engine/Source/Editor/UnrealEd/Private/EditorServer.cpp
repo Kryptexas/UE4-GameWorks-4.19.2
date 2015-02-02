@@ -5254,13 +5254,6 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 		return CommandIsDeprecated( CommandTemp, Ar );
 	}
 	//------------------------------------------------------------------------------------
-	// LEVEL
-	//
-	if( FParse::Command(&Str,TEXT("PREFAB")) )
-	{
-		return HandlePrefabCommand( Str, Ar );
-	}
-	//------------------------------------------------------------------------------------
 	// PARTICLE: Particle system-related commands
 	//
 	else if (FParse::Command(&Str,TEXT("PARTICLE")))
@@ -5703,16 +5696,6 @@ bool UEditorEngine::HandleDeleteCommand( const TCHAR* Str, FOutputDevice& Ar, UW
 		return Exec( InWorld, TEXT("ACTOR DELETE") );
 	}
 	return true;
-}
-
-bool UEditorEngine::HandlePrefabCommand( const TCHAR* Str, FOutputDevice& Ar )
-{
-	if( FParse::Command(&Str,TEXT("SELECTACTORSINPREFABS")) )
-	{
-		edactSelectPrefabActors();
-		return true;
-	}
-	return false;	
 }
 
 bool UEditorEngine::HandleLightmassDebugCommand( const TCHAR* Str, FOutputDevice& Ar )
