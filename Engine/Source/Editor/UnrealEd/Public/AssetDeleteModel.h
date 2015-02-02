@@ -40,9 +40,6 @@ public:
 	/** The on disk references to this object */
 	TArray<FName> DiskReferences;
 
-	/** Source content files for this pending delete operation */
-	TArray<FString> SourceContentFiles;
-
 	/** In memory references to this object (*excluding* the undo buffer) */
 	FReferencerInformationList MemoryReferences;
 
@@ -112,6 +109,9 @@ public:
 	/** Returns the pending deleted assets. */
 	const TArray< TSharedPtr< FPendingDelete > >* GetPendingDeletedAssets() const { return &PendingDeletes; };
 
+	/** Returns a map of currently discovered source content files, and the number of times they are referenced by non-deleted assets */
+	const TMap< FString, int32 >& GetPendingDeletedSourceFileCounts() const { return SourceFileToAssetCount; };
+
 	/** Returns the current state of the deletion process */
 	EState GetState() const { return State; }
 
@@ -164,7 +164,7 @@ public:
 	bool IsAnythingReferencedInMemoryByUndo() const { return bIsAnythingReferencedInMemoryByUndo; }
 
 	/** Check whether we have any source files residing under monitored, mounted paths to delete */
-	bool HasAnySourceContentFilesToDelete() const { return bHasSourceContentFilesToDelete; }
+	bool HasAnySourceContentFilesToDelete() const;
 
 	/** Goes to the next actor in the loaded level if it is available */
 	bool GoToNextReferenceInLevel() const;
@@ -188,6 +188,9 @@ private:
 	/** Computes the value that should be used for CanReplaceReferences */
 	bool ComputeCanReplaceReferences();
 
+	/** Discover source file references for the specified object */
+	void DiscoverSourceFileReferences(FPendingDelete& PendingDelete);
+
 private:
 
 	/** Holds an event delegate that is executed when the state changes */
@@ -195,6 +198,9 @@ private:
 
 	/** The assets being deleted */
 	TArray< TSharedPtr< FPendingDelete > > PendingDeletes;
+
+	/** A running count of source content filename -> number of assets referencing. For files that are no longer referenced, the count will be 0. */
+	TMap<FString, int32> SourceFileToAssetCount;
 
 	/** On disk references to the currently to be deleted objects */
 	TSet< FName > OnDiskReferences;
@@ -210,9 +216,6 @@ private:
 
 	/** Is any of the pending deleted assets being referenced in the undo stack. */
 	bool bIsAnythingReferencedInMemoryByUndo;
-
-	/** Boolean that specifies whether we have any relevant (in game dir) source content files to remove with the assets */
-	bool bHasSourceContentFilesToDelete;
 
 	/** A tick-to-tick state tracking variable so we know what pending deleted object we checked last. */
 	int32 PendingDeleteIndex;

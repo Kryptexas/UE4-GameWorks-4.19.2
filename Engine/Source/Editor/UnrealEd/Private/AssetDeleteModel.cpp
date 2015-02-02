@@ -8,6 +8,7 @@
 #include "AssetEditorManager.h"
 #include "AutoReimport/AutoReimportUtilities.h"
 #include "AutoReimport/AutoReimportManager.h"
+#include "ISourceControlModule.h"
 
 #define LOCTEXT_NAMESPACE "FAssetDeleteModel"
 
@@ -16,7 +17,6 @@ FAssetDeleteModel::FAssetDeleteModel( const TArray<UObject*>& InObjectsToDelete 
 	, bPendingObjectsCanBeReplaced(false)
 	, bIsAnythingReferencedInMemoryByNonUndo(false)
 	, bIsAnythingReferencedInMemoryByUndo(false)
-	, bHasSourceContentFilesToDelete(false)
 	, PendingDeleteIndex(0)
 	, ObjectsDeleted(0)
 {
@@ -66,7 +66,7 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 		OnDiskReferences = TSet<FName>();
 		bIsAnythingReferencedInMemoryByNonUndo = false;
 		bIsAnythingReferencedInMemoryByUndo = false;
-		bHasSourceContentFilesToDelete = false;
+		SourceFileToAssetCount.Empty();
 		PendingDeleteIndex = 0;
 
 		SetState(Scanning);
@@ -102,35 +102,10 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 			}
 			PendingDelete->RemainingMemoryReferences = NonPendingDeletedExternalInMemoryReferences;
 
-			if (GetDefault<UEditorLoadingSavingSettings>()->bMonitorContentDirectories)
-			{
-				Utils::ExtractSourceFilePaths(PendingDelete->GetObject(), PendingDelete->SourceContentFiles);
-
-				auto MonitoredDirectories = GUnrealEd->AutoReimportManager->GetMonitoredDirectories();
-
-				// Remove anything that's not under a monitored, mounted path
-				PendingDelete->SourceContentFiles.RemoveAll([&](const FString& InFilename){
-					for (const auto& Dir : MonitoredDirectories)
-					{
-						if (!Dir.MountPoint.IsEmpty() && InFilename.StartsWith(Dir.Path))
-						{
-							if (FPaths::FileExists(InFilename))
-							{
-								return false;
-							}
-							else
-							{
-								return true;
-							}
-						}
-					}
-					return true;
-				});
-			}
+			DiscoverSourceFileReferences(*PendingDelete);
 
 			bIsAnythingReferencedInMemoryByNonUndo |= PendingDelete->RemainingMemoryReferences > 0;
 			bIsAnythingReferencedInMemoryByUndo |= PendingDelete->IsReferencedInMemoryByUndo();
-			bHasSourceContentFilesToDelete |= PendingDelete->SourceContentFiles.Num() != 0;
 
 			PendingDeleteIndex++;
 		}
@@ -148,15 +123,111 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 	}
 }
 
+void FAssetDeleteModel::DiscoverSourceFileReferences(FPendingDelete& PendingDelete)
+{
+	if (!GetDefault<UEditorLoadingSavingSettings>()->bMonitorContentDirectories)
+	{
+		return;
+	}
+	
+	// Start by extracting the files from the object
+	TArray<FString> SourceContentFiles;
+	Utils::ExtractSourceFilePaths(PendingDelete.GetObject(), SourceContentFiles);
+
+	auto MonitoredDirectories = GUnrealEd->AutoReimportManager->GetMonitoredDirectories();
+
+	// Remove anything that's not under a monitored, mounted path, or doesn't exist
+	SourceContentFiles.RemoveAll([&](const FString& InFilename){
+		for (const auto& Dir : MonitoredDirectories)
+		{
+			if (!Dir.MountPoint.IsEmpty() && InFilename.StartsWith(Dir.Path))
+			{
+				if (FPaths::FileExists(InFilename))
+				{
+					return false;
+				}
+				else
+				{
+					return true;
+				}
+			}
+		}
+		return true;
+	});
+
+	// Now accumulate references to the same source content file. We only offer to delete a file if it is only referenced by the deleted object(s)
+	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
+	for (const FString& SourcePath : SourceContentFiles)
+	{
+		int32* NumReferences = SourceFileToAssetCount.Find(SourcePath);
+		if (NumReferences)
+		{
+			(*NumReferences)--;
+		}
+		else
+		{
+			SourceFileToAssetCount.Add(SourcePath, Utils::FindAssetsPertainingToFile(AssetRegistry, SourcePath).Num());
+		}
+	}
+}
+
+bool FAssetDeleteModel::HasAnySourceContentFilesToDelete() const
+{
+	for (const auto& Pair : SourceFileToAssetCount)
+	{
+		if (Pair.Value == 0)
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 void FAssetDeleteModel::DeleteSourceContentFiles()
 {
 	IFileManager& FileManager = IFileManager::Get();
-	for (const auto& PendingDelete : PendingDeletes)
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+	for (const auto& Pair : SourceFileToAssetCount)
 	{
-		for (const auto& Path : PendingDelete->SourceContentFiles)
+		const auto& Path = Pair.Key;
+		// We can only delete this path if there are no (non-deleted) objects referencing it
+		if (Pair.Value != 0)
 		{
-			FileManager.Delete(*Path, false /* RequireExists */, true /* Even if read only */, true /* Quiet */);
+			continue;
 		}
+
+		if (ISourceControlModule::Get().IsEnabled())
+		{
+			const FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Path, EStateCacheUsage::ForceUpdate);
+			const bool bIsSourceControlled = SourceControlState.IsValid() && SourceControlState->IsSourceControlled();
+
+			if (bIsSourceControlled)
+			{
+				// The file is managed by source control. Delete it through there.
+				TArray<FString> DeleteFilenames;
+				DeleteFilenames.Add(Path);
+
+				// Revert the file if it is checked out
+				const bool bIsAdded = SourceControlState->IsAdded();
+				if (SourceControlState->IsCheckedOut() || bIsAdded || SourceControlState->IsDeleted())
+				{
+					SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), DeleteFilenames);
+				}
+
+				// If it wasn't already marked as an add, we can ask the source control provider to delete the file
+				if (!bIsAdded)
+				{
+					// Open the file for delete
+					SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), DeleteFilenames);
+					continue;
+				}
+			}
+		}
+
+		// We'll just delete it ourself
+		FileManager.Delete(*Path, false /* RequireExists */, true /* Even if read only */, true /* Quiet */);
 	}
 }
 
