@@ -44,10 +44,13 @@ struct FDetailsViewArgs
 	uint32 bShowActorLabel : 1;
 	/** Bind this delegate to hide differing properties */
 	uint32 bShowDifferingPropertiesOption : 1;
-	/** If true the name area will be created but will not be displayed so it can be placed in a custom location.  */
+	/** If true, the name area will be created but will not be displayed so it can be placed in a custom location.  */
 	uint32 bCustomNameAreaLocation : 1;
-	/** If true the filter area will be created but will not be displayed so it can be placed in a custom location.  */
+	/** If true, the filter area will be created but will not be displayed so it can be placed in a custom location.  */
 	uint32 bCustomFilterAreaLocation : 1;
+	/** If true, nodes marked CPF_DisableEditOnInstance will be shown */
+	uint32 bShowDisableEditOnInstanceNodes : 1;
+
 	/** Default constructor */
 	FDetailsViewArgs( const bool InUpdateFromSelection = false
 					, const bool InLockable = false
@@ -71,6 +74,7 @@ struct FDetailsViewArgs
 		, bShowDifferingPropertiesOption(false)
 		, bCustomNameAreaLocation(false)
 		, bCustomFilterAreaLocation(false)
+		, bShowDisableEditOnInstanceNodes(true)
 	{
 	}
 };

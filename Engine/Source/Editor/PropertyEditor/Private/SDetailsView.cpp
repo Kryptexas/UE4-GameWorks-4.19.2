@@ -579,6 +579,7 @@ void SDetailsView::PostSetObject()
 	InitParams.ArrayIndex = INDEX_NONE;
 	InitParams.bAllowChildren = true;
 	InitParams.bForceHiddenPropertyVisibility =  FPropertySettings::Get().ShowHiddenProperties();
+	InitParams.bCreateDisableEditOnInstanceNodes = DetailsViewArgs.bShowDisableEditOnInstanceNodes;
 
 	RootPropertyNode->InitNode( InitParams );
 

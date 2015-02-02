@@ -103,10 +103,8 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 		SetNodeFlags(EPropertyNodeFlags::ShowCategories, InitParams.bCreateCategoryNodes );
 	}
 
-	if (InitParams.bForceHiddenPropertyVisibility)
-	{
-		SetNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties, true );
-	}
+	SetNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties, InitParams.bForceHiddenPropertyVisibility);
+	SetNodeFlags(EPropertyNodeFlags::ShouldShowDisableEditOnInstance, InitParams.bCreateDisableEditOnInstanceNodes);
 
 	//Custom code run prior to setting property flags
 	//needs to happen after the above SetNodeFlags calls so that ObjectPropertyNode can properly respond to CollapseCategories
@@ -321,6 +319,8 @@ FObjectPropertyNode* FPropertyNode::FindRootObjectItemParent()
  */
 FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 {
+	bool bValidateChildren = true;
+
 	// The root must always be validated
 	if( GetParentNode() == NULL || HasNodeFlags(EPropertyNodeFlags::RequiresValidation) != 0 )
 	{
@@ -346,6 +346,14 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 			bool bArraysMatchChildNum = true;
 
 			bool bArrayHasNewItem = false;
+
+			if (ArrayProperty)
+			{
+				if (!ArrayProperty->Inner->IsA(UObjectProperty::StaticClass()) && !ArrayProperty->Inner->IsA(UStructProperty::StaticClass()))
+				{
+					bValidateChildren = false;
+				}
+			}
 
 			//verify that the number of object children are the same too
 			UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(MyProperty);
@@ -453,20 +461,23 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 	FPropertyNode::DataValidationResult FinalResult = DataValid;
 
 	//go through my children
-	for (int32 Scan = 0; Scan < ChildNodes.Num(); ++Scan)
+	if (bValidateChildren)
 	{
-		TSharedPtr<FPropertyNode>& ChildNode = ChildNodes[Scan];
-		check( ChildNode.IsValid() );
-
-		// @todo Slate Property Window 
-		//if (ChildNode->HasNodeFlags(EPropertyNodeFlags::IsSeen))
-		//{
-		FPropertyNode::DataValidationResult ChildDataResult = ChildNode->EnsureDataIsValid();
-		if (FinalResult == DataValid && ChildDataResult != DataValid )
+		for (int32 Scan = 0; Scan < ChildNodes.Num(); ++Scan)
 		{
-			FinalResult = ChildDataResult;
+			TSharedPtr<FPropertyNode>& ChildNode = ChildNodes[Scan];
+			check(ChildNode.IsValid());
+
+			// @todo Slate Property Window 
+			//if (ChildNode->HasNodeFlags(EPropertyNodeFlags::IsSeen))
+			//{
+			FPropertyNode::DataValidationResult ChildDataResult = ChildNode->EnsureDataIsValid();
+			if (FinalResult == DataValid && ChildDataResult != DataValid)
+			{
+				FinalResult = ChildDataResult;
+			}
+			//}
 		}
-		//}
 	}
 
 	return FinalResult;

@@ -954,9 +954,9 @@ void FBehaviorTreeEditor::CreateInternalWidgets()
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 	FDetailsViewArgs DetailsViewArgs( false, false, true, FDetailsViewArgs::HideNameArea, false );
 	DetailsViewArgs.NotifyHook = this;
+	DetailsViewArgs.bShowDisableEditOnInstanceNodes = false;
 	DetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
 	DetailsView->SetObject( NULL );
-	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateSP(this, &FBehaviorTreeEditor::IsPropertyVisible));
 	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &FBehaviorTreeEditor::IsPropertyEditable));
 	DetailsView->OnFinishedChangingProperties().AddSP(this, &FBehaviorTreeEditor::OnFinishedChangingProperties);
 }
@@ -1107,11 +1107,6 @@ void FBehaviorTreeEditor::BindDebuggerToolbarCommands()
 	ToolkitCommands->MapAction(
 		Commands.StopPlaySession,
 		FExecuteAction::CreateStatic(&FBehaviorTreeDebugger::StopPlaySession));
-}
-
-bool FBehaviorTreeEditor::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent) const
-{
-	return !PropertyAndParent.Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance);
 }
 
 bool FBehaviorTreeEditor::IsPropertyEditable() const

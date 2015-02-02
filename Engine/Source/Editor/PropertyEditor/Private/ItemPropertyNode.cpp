@@ -112,11 +112,11 @@ void FItemPropertyNode::InitChildNodes()
 	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
 	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Property);
 
-	bool bShouldShowHiddenProperties = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties);
+	const bool bShouldShowHiddenProperties = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties);
+	const bool bShouldShowDisableEditOnInstance = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowDisableEditOnInstance);
 
 	if( Property->ArrayDim > 1 && ArrayIndex == -1 )
 	{
-
 		// Do not add array children which are defined by an enum but the enum at the array index is hidden
 		// This only applies to static arrays
 		static const FName NAME_ArraySizeEnum("ArraySizeEnum");
@@ -126,11 +126,9 @@ void FItemPropertyNode::InitChildNodes()
 			ArraySizeEnum	= FindObject<UEnum>(NULL, *Property->GetMetaData(NAME_ArraySizeEnum));
 		}
 
-	
 		// Expand array.
 		for( int32 ArrayIndex = 0 ; ArrayIndex < Property->ArrayDim ; ArrayIndex++ )
 		{
-		
 			bool bShouldBeHidden = false;
 			if( ArraySizeEnum )
 			{
@@ -148,6 +146,7 @@ void FItemPropertyNode::InitChildNodes()
 				InitParams.ArrayIndex = ArrayIndex;
 				InitParams.bAllowChildren = true;
 				InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
+				InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
 
 				NewItemNode->InitNode( InitParams );
 				AddChildNode(NewItemNode);
@@ -176,6 +175,7 @@ void FItemPropertyNode::InitChildNodes()
 				InitParams.ArrayIndex = ArrayIndex;
 				InitParams.bAllowChildren = true;
 				InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
+				InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
 
 				NewItemNode->InitNode( InitParams );
 				AddChildNode(NewItemNode);
@@ -188,7 +188,9 @@ void FItemPropertyNode::InitChildNodes()
 		for( TFieldIterator<UProperty> It(StructProperty->Struct); It; ++It )
 		{
 			UProperty* StructMember = *It;
-			if( bShouldShowHiddenProperties || (StructMember->PropertyFlags & CPF_Edit) )
+			const bool bShowIfEditableProperty = StructMember->HasAnyPropertyFlags(CPF_Edit);
+			const bool bShowIfDisableEditOnInstance = !StructMember->HasAnyPropertyFlags(CPF_DisableEditOnInstance) || bShouldShowDisableEditOnInstance;
+			if (bShouldShowHiddenProperties || (bShowIfEditableProperty && bShowIfDisableEditOnInstance))
 			{
 				TSharedPtr<FItemPropertyNode> NewItemNode( new FItemPropertyNode );//;//CreatePropertyItem(StructMember,INDEX_NONE,this);
 		
@@ -199,6 +201,7 @@ void FItemPropertyNode::InitChildNodes()
 				InitParams.ArrayIndex = INDEX_NONE;
 				InitParams.bAllowChildren = true;
 				InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
+				InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
 
 				NewItemNode->InitNode( InitParams );
 				AddChildNode(NewItemNode);
@@ -261,24 +264,10 @@ void FItemPropertyNode::InitChildNodes()
 				InitParams.ArrayIndex = INDEX_NONE;
 				InitParams.bAllowChildren = true;
 				InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
+				InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
 
 				NewObjectNode->InitNode( InitParams );
 				AddChildNode(NewObjectNode);
-			}
-		}
-	}
-
-	//needs to be after all the children are created
-	if ( FPropertySettings::Get().ExpandDistributions() == true)
-	{
-		// auto-expand distribution structs
-		if (Property->IsA(UStructProperty::StaticClass()))
-		{
-			FName StructName = ((UStructProperty*)Property)->Struct->GetFName();
-			if (StructName == NAME_RawDistributionFloat || StructName == NAME_RawDistributionVector)
-			{
-				const bool bExpand = true;
-				const bool bRecurse = true;
 			}
 		}
 	}

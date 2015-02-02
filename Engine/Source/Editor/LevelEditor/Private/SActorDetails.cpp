@@ -10,20 +10,6 @@
 
 void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifier)
 {
-	struct Local
-	{
-		static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent)
-		{
-			// For details views in the level editor all properties are the instanced versions
-			if(PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance))
-			{
-				return false;
-			}
-
-			return true;
-		}
-	};
-
 	bSelectionGuard = false;
 	bShowingRootActorNodeSelected = false;
 
@@ -39,10 +25,9 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 	DetailsViewArgs.ViewIdentifier = TabIdentifier;
 	DetailsViewArgs.bCustomNameAreaLocation = true;
 	DetailsViewArgs.bCustomFilterAreaLocation = true;
+	DetailsViewArgs.bShowDisableEditOnInstanceNodes = false;
 
 	DetailsView = PropPlugin.CreateDetailView(DetailsViewArgs);
-
-	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&Local::IsPropertyVisible));
 
 	auto IsPropertyEditingEnabled = [&]()
 	{

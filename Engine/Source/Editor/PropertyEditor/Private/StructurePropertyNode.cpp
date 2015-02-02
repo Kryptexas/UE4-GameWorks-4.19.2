@@ -11,12 +11,17 @@
 void FStructurePropertyNode::InitChildNodes()
 {
 	const bool bShouldShowHiddenProperties = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties);
+	const bool bShouldShowDisableEditOnInstance = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowDisableEditOnInstance);
+
 	const UStruct* Struct = StructData.IsValid() ? StructData->GetStruct() : NULL;
 
 	for (TFieldIterator<UProperty> It(Struct); It; ++It)
 	{
 		UProperty* StructMember = *It;
-		if (StructMember && (bShouldShowHiddenProperties || (StructMember->PropertyFlags & CPF_Edit)))
+		const bool bShowIfEditableProperty = StructMember->HasAnyPropertyFlags(CPF_Edit);
+		const bool bShowIfDisableEditOnInstance = !StructMember->HasAnyPropertyFlags(CPF_DisableEditOnInstance) || bShouldShowDisableEditOnInstance;
+
+		if (StructMember && (bShouldShowHiddenProperties || (bShowIfEditableProperty && bShowIfDisableEditOnInstance)))
 		{
 			TSharedPtr<FItemPropertyNode> NewItemNode(new FItemPropertyNode);//;//CreatePropertyItem(StructMember,INDEX_NONE,this);
 
@@ -26,7 +31,8 @@ void FStructurePropertyNode::InitChildNodes()
 			InitParams.ArrayOffset = 0;
 			InitParams.ArrayIndex = INDEX_NONE;
 			InitParams.bAllowChildren = true;
-			InitParams.bForceHiddenPropertyVisibility = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties);
+			InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
+			InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
 			InitParams.bCreateCategoryNodes = false;
 
 			NewItemNode->InitNode(InitParams);
