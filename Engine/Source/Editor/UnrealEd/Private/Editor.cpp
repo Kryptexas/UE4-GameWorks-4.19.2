@@ -2853,6 +2853,11 @@ FReimportManager::~FReimportManager()
 	Handlers.Empty();
 }
 
+int32 FReimportHandler::GetPriority() const
+{
+	return UFactory::DefaultImportPriority;
+}
+
 /*-----------------------------------------------------------------------------
 	PIE helpers.
 -----------------------------------------------------------------------------*/

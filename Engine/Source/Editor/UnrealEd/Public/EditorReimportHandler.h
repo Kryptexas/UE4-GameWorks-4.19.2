@@ -171,5 +171,9 @@ public:
 	 */
 	virtual EReimportResult::Type Reimport( UObject* Obj ) = 0;
 
-	virtual int32 GetPriority() const = 0;
+	/**
+	 * Get the import priority for this handler.
+	 * Import handlers with higher priority values will take precedent over lower priorities.
+	 */
+	UNREALED_API virtual int32 GetPriority() const;
 };
