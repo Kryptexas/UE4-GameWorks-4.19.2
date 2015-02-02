@@ -30,25 +30,15 @@ const FName& USceneComponent::GetDefaultSceneRootVariableName()
 	return DefaultSceneRootVariableName;
 }
 
-USceneComponent::USceneComponent()
-{
-	InitializeDefaults();
-}
-
-USceneComponent::USceneComponent( const FObjectInitializer& ObjectInitializer )
-{
-	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
-	InitializeDefaults();
-}
-
-void USceneComponent::InitializeDefaults()
+USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
+	: Super(ObjectInitializer)
 {
 	Mobility = EComponentMobility::Movable;
-	RelativeScale3D = FVector(1.0f,1.0f,1.0f);
+	RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
 	// default behavior is visible
 	bVisible = true;
-	bAutoActivate=false;
-	
+	bAutoActivate = false;
+
 	NetUpdateTransform = false;
 }
 

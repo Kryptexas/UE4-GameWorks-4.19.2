@@ -109,15 +109,8 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	UPrimitiveComponent();
+	UPrimitiveComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	UPrimitiveComponent(const FObjectInitializer& ObjectInitializer);
-
-private:
-	/** Initialize the component to its default settings */
-	void InitializePrimitiveComponentDefaults();
-
-public:
 	// Rendering
 	
 	/**

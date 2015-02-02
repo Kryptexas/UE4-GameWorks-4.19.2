@@ -189,22 +189,17 @@ bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails
 TMap<FName, UWorld*> ULevel::StreamedLevelsOwningWorld;
 
 ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
-	:   UObject( ObjectInitializer )
-	,   Actors(this)
-	,   OwningWorld(NULL)
-	,   TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+	:	UObject( ObjectInitializer )
+	,	Actors(this)
+	,	OwningWorld(NULL)
+	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+	,	PrecomputedLightVolume(new FPrecomputedLightVolume())
 {
-	PrecomputedLightVolume = new FPrecomputedLightVolume();
 }
 
-ULevel::ULevel( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
-	:   UObject( ObjectInitializer )
-	,   URL(InURL)
-	,   Actors(this)
-	,   OwningWorld(NULL)
-	,   TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+void ULevel::Initialize(const FURL& InURL)
 {
-	PrecomputedLightVolume = new FPrecomputedLightVolume();
+	URL = InURL;
 }
 
 ULevel::~ULevel()
@@ -846,7 +841,8 @@ void ULevel::CreateModelComponents()
 			Model->Nodes[Nodes[NodeIndex]].ComponentNodeIndex = NodeIndex;
 		}
 
-		UModelComponent* ModelComponent = new(this) UModelComponent(Model,ModelComponents.Num(),Key.MaskedPolyFlags,Nodes);
+		UModelComponent* ModelComponent = NewObject<UModelComponent>(this);
+		ModelComponent->InitializeModelComponent(Model, ModelComponents.Num(), Key.MaskedPolyFlags, Nodes);
 		ModelComponents.Add(ModelComponent);
 
 		for(int32 NodeIndex = 0;NodeIndex < Nodes.Num();NodeIndex++)

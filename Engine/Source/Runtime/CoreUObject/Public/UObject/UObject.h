@@ -43,7 +43,7 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	static const TCHAR* StaticConfigName() {return TEXT("Engine");}
 
 	// Constructors and destructors.
-	UObject() { };
+	UObject();
 	UObject(const FObjectInitializer& ObjectInitializer);
 	UObject( EStaticConstructor, EObjectFlags InFlags );
 
