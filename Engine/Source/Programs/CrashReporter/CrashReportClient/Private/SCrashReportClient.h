@@ -36,8 +36,13 @@ private:
 	 */
 	FReply OnUnhandledKeyDown(const FKeyEvent& InKeyEvent);
 
+	/** Whether the hint text should be visible. */
+	EVisibility IsHintTextVisible() const;
+
 	/** Crash report client implementation object */
 	TSharedPtr<FCrashReportClient> CrashReportClient;
+
+	TSharedPtr<SMultiLineEditableTextBox> CrashDetailsInformation;
 };
 
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
