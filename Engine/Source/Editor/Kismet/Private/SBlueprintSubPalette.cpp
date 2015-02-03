@@ -195,6 +195,7 @@ SBlueprintSubPalette::~SBlueprintSubPalette()
 //------------------------------------------------------------------------------
 void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor)
 {
+	bIsActiveTimerRegistered = false;
 	BlueprintEditorPtr = InBlueprintEditor;
 
 	struct LocalUtils
@@ -259,6 +260,7 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 EActiveTimerReturnType SBlueprintSubPalette::TriggerRefreshActionsList(double InCurrentTime, float InDeltaTime)
 {
 	RefreshActionsList(true);
+	bIsActiveTimerRegistered = false;
 	return EActiveTimerReturnType::Stop;
 }
 
@@ -390,7 +392,11 @@ void SBlueprintSubPalette::GenerateContextMenuEntries(FMenuBuilder& MenuBuilder)
 //------------------------------------------------------------------------------
 void SBlueprintSubPalette::RequestRefreshActionsList()
 {
-	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SBlueprintSubPalette::TriggerRefreshActionsList));
+	if (!bIsActiveTimerRegistered)
+	{
+		bIsActiveTimerRegistered = true;
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SBlueprintSubPalette::TriggerRefreshActionsList));
+	}
 }
 
 //------------------------------------------------------------------------------

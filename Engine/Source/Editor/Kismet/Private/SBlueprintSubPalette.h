@@ -109,7 +109,11 @@ private:
 	 */
 	TSharedPtr<SWidget> ConstructContextMenuWidget() const;
 
+private:
 	/** Pointer to the command list created for this (so multiple sub-palettes can have their own bindings)*/
 	TSharedPtr<FUICommandList> CommandList;
+
+	/** Whether the active timer to refresh the actions list is currently registered */
+	bool bIsActiveTimerRegistered;
 };
 
