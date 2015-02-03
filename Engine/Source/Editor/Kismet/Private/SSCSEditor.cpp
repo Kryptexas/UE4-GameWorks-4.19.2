@@ -399,20 +399,22 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 	else if (IsInstanced())
 	{
 		USceneComponent* ChildInstance = Cast<USceneComponent>(InChildNodePtr->GetComponentTemplate());
-		check(ChildInstance != nullptr);
-
-		USceneComponent* ParentInstance = Cast<USceneComponent>(GetComponentTemplate());
-		check(ParentInstance != nullptr);
-
-		// Handle attachment at the instance level
-		if (ChildInstance->AttachParent != ParentInstance)
+		if (ensure(ChildInstance != nullptr))
 		{
-			AActor* Owner = ParentInstance->GetOwner();
-			if (Owner->GetRootComponent() == ChildInstance)
+			USceneComponent* ParentInstance = Cast<USceneComponent>(GetComponentTemplate());
+			if (ensure(ParentInstance != nullptr))
 			{
-				Owner->SetRootComponent(ParentInstance);
+				// Handle attachment at the instance level
+				if (ChildInstance->AttachParent != ParentInstance)
+				{
+					AActor* Owner = ParentInstance->GetOwner();
+					if (Owner->GetRootComponent() == ChildInstance)
+					{
+						Owner->SetRootComponent(ParentInstance);
+					}
+					ChildInstance->AttachTo(ParentInstance, NAME_None, EAttachLocation::KeepWorldPosition);
+				}
 			}
-			ChildInstance->AttachTo(ParentInstance, NAME_None, EAttachLocation::KeepWorldPosition);
 		}
 	}
 }
@@ -5181,6 +5183,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNodeFromComponent(USceneComponent* 
 	FSCSEditorTreeNodePtrType NewNodePtr;
 
 	check(InSceneComponent != NULL);
+	ensure(!InSceneComponent->HasAnyFlags(RF_PendingKill));
 
 	// If the given component has a parent, and if we're not in "instance" mode OR the owner of the parent matches the Actor instance we're editing
 	if(InSceneComponent->AttachParent != NULL
