@@ -18,9 +18,7 @@ SLATE_DECLARE_CYCLE_COUNTER(GSlateGetVisibility, "GetVisibility");
 TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 0, TEXT("Controls whether invisible widgets are ticked."));
 
 SWidget::SWidget()
-	: CreatedInFile( TEXT("") )
-	, CreatedOnLine( -1 )
-	, Cursor( TOptional<EMouseCursor::Type>() )
+	: Cursor( TOptional<EMouseCursor::Type>() )
 	, EnabledState( true )
 	, Visibility( EVisibility::Visible )
 	, RenderTransform( )
@@ -535,7 +533,7 @@ int32 SWidget::FindChildUnderMouse( const FArrangedChildren& Children, const FPo
 
 FString SWidget::ToString() const
 {
-	return FString::Printf(TEXT("%s [%s(%d)]"), *this->TypeOfWidget.ToString(), *this->CreatedInFile.ToString(), this->CreatedOnLine );
+	return FString::Printf(TEXT("%s [%s]"), *this->TypeOfWidget.ToString(), *this->GetReadableLocation() );
 }
 
 
@@ -553,25 +551,14 @@ FName SWidget::GetType() const
 
 FString SWidget::GetReadableLocation() const
 {
-	return FString::Printf(TEXT("%s(%d)"), *FPaths::GetCleanFilename(this->GetCreatedInFile()), this->CreatedOnLine);
+	return FString::Printf(TEXT("%s(%d)"), *FPaths::GetCleanFilename(this->CreatedInLocation.GetPlainNameString()), this->CreatedInLocation.GetNumber());
 }
 
 
-FString SWidget::GetCreatedInFile() const
+FName SWidget::GetCreatedInLocation() const
 {
-	return this->CreatedInFileFullPath.GetPlainNameString();
+	return this->CreatedInLocation;
 }
-
-FName SWidget::GetCreatedInFileFName() const
-{
-	return this->CreatedInFile;
-}
-
-int32 SWidget::GetCreatedInLineNumber() const
-{
-	return this->CreatedOnLine;
-}
-
 
 FName SWidget::GetTag() const
 {
@@ -634,11 +621,9 @@ void SWidget::SetCursor( const TAttribute< TOptional<EMouseCursor::Type> >& InCu
 void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int32 OnLine )
 {
 	this->TypeOfWidget = InType;
-	this->CreatedInFileFullPath = FName( InFile );
-	this->CreatedInFileFullPath.SetNumber(OnLine);
-	this->CreatedInFile = FName( *FPaths::GetCleanFilename(InFile) );
-	this->CreatedInFile.SetNumber(OnLine);
-	this->CreatedOnLine = OnLine;
+	this->
+		CreatedInLocation = FName( InFile );
+	this->CreatedInLocation.SetNumber(OnLine);
 }
 
 SLATECORE_API int32 bFoldTick = 0;

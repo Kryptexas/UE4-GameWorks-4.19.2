@@ -40,8 +40,8 @@ public:
 		if ( Widget.IsValid() )
 		{
 			CachedWidgetType = FText::FromString(Widget->GetTypeAsString());
-			CachedWidgetFile = FText::FromString(Widget->GetCreatedInFile());
-			CachedWidgetLineNumber =  Widget->GetCreatedInLineNumber();
+			CachedWidgetFile = Widget->GetCreatedInLocation().GetPlainNameString();
+			CachedWidgetLineNumber = Widget->GetCreatedInLocation().GetNumber();
 			CachedWidgetVisibility = FText::FromString(Widget->GetVisibility().ToString());
 
 			CachedReadableLocation = Widget->GetReadableLocation();
@@ -71,7 +71,7 @@ protected:
 		return FText::FromString(GetReadableLocation());
 	}
 
-	FText GetWidgetFile() const
+	FString GetWidgetFile() const
 	{
 		return CachedWidgetFile;
 	}
@@ -100,7 +100,7 @@ private:
 	TAttribute< TSharedPtr<FReflectorNode> > WidgetInfo;
 
 	FText CachedWidgetType;
-	FText CachedWidgetFile;
+	FString CachedWidgetFile;
 	int32 CachedWidgetLineNumber;
 	FText CachedWidgetVisibility;
 

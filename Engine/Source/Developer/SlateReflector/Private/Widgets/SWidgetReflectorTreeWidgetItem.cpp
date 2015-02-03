@@ -131,6 +131,6 @@ void SReflectorTreeWidgetItem::HandleHyperlinkNavigate()
 
 	if ( OnAccessSourceCode.IsBound() )
 	{
-		OnAccessSourceCode.Execute(GetWidgetFile().ToString(), GetWidgetLineNumber(), 0);
+		OnAccessSourceCode.Execute(GetWidgetFile(), GetWidgetLineNumber(), 0);
 	}
 }

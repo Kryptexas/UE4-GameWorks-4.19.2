@@ -763,17 +763,11 @@ public:
 	/** @return The widget's type as an FName ID */
 	FName GetType() const;
 
-	/** @return A String of the widget's code location in readable format */
+	/** @return A String of the widget's code location in readable format "BaseFileName(LineNumber)" */
 	virtual FString GetReadableLocation() const;
 
-	/** @return A String of the widget's code location */
-	virtual FString GetCreatedInFile() const;
-
-	/** @return A String of the widget's code location */
-	virtual FName GetCreatedInFileFName() const;
-
-	/** @return The line number of the widgets location */
-	virtual int32 GetCreatedInLineNumber() const;
+	/** @return An FName of the widget's code location (full path with number == line number of the file) */
+	FName GetCreatedInLocation() const;
 
 	/** @return The name this widget was tagged with */
 	virtual FName GetTag() const;
@@ -915,12 +909,8 @@ protected:
 	//	DEBUG INFORMATION
 	// @todo Slate: Should compile out in final release builds?
 	FName TypeOfWidget;
-	/** Full file path in which this widget was created */
-	FName CreatedInFileFullPath;
-	/** Filename in which this widget was created */
-	FName CreatedInFile;
-	/** Line number on which this widget was created */
-	int32 CreatedOnLine;
+	/** Full file path (and line) in which this widget was created */
+	FName CreatedInLocation;
 
 	/** Tag for this widget */
 	FName Tag;
