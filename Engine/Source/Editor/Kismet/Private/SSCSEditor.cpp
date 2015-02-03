@@ -4115,8 +4115,16 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				
 				TInlineComponentArray<UActorComponent*> Components;
 				CDO->GetComponents(Components);
+
+				// Add the native root component
+				USceneComponent* RootComponent = CDO->GetRootComponent();
+				if(RootComponent != NULL)
+				{
+					Components.Remove(RootComponent);
+					AddTreeNodeFromComponent(RootComponent);
+				}
 				
-				// Add the native base class SceneComponent hierarchy
+				// Add the rest of the native base class SceneComponent hierarchy
 				for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
 				{
 					USceneComponent* SceneComp = Cast<USceneComponent>(*CompIter);
@@ -4182,8 +4190,16 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				// Get the full set of instanced components
 				TInlineComponentArray<UActorComponent*> Components;
 				ActorInstance->GetComponents(Components);
+
+				// Add the root component first (it may not be the first one)
+				USceneComponent* RootComponent = ActorInstance->GetRootComponent();
+				if(RootComponent != nullptr)
+				{
+					Components.Remove(RootComponent);
+					AddTreeNodeFromComponent(RootComponent);
+				}
 				
-				// Now add the instanced scene component hierarchy
+				// Now add the rest of the instanced scene component hierarchy
 				for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
 				{
 					USceneComponent* SceneComp = Cast<USceneComponent>(*CompIter);
