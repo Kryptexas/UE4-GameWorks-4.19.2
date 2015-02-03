@@ -767,7 +767,7 @@ USCS_Node* USimpleConstructionScript::CreateNode(UClass* NewComponentClass, FNam
 		NewComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, NewComponentClass, FName(*NewClassName.Left(NewStrLen)));
 	}
 
-	UActorComponent* NewComponentTemplate = ConstructObject<UActorComponent>(NewComponentClass, Blueprint->GeneratedClass, NewComponentName);
+	auto NewComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, NewComponentClass, NewComponentName);
 	NewComponentTemplate->SetFlags(RF_ArchetypeObject|RF_Transactional|RF_Public);
 
 	return CreateNode(NewComponentTemplate, NewComponentVariableName);
@@ -779,7 +779,7 @@ USCS_Node* USimpleConstructionScript::CreateNode(UActorComponent* NewComponentTe
 	{
 		// Create a node for the script, and save a pointer to the template
 		// NewNamedObject to work around the fact we shouldn't use NewObject for default subobjects
-		USCS_Node* NewNode = NewNamedObject<USCS_Node>(this, NAME_None);
+		auto NewNode = NewObject<USCS_Node>(this);
 		NewNode->SetFlags(RF_Transactional);
 		NewNode->ComponentTemplate = NewComponentTemplate;
 

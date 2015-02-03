@@ -30,8 +30,8 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 		return NULL;
 	}
 	ensure(Cast<UBlueprintGeneratedClass>(GetOuter()));
-	auto NewComponentTemplate = ConstructObject<UActorComponent>(
-		BestArchetype->GetClass(), GetOuter(), BestArchetype->GetFName(), RF_ArchetypeObject | RF_Public | RF_InheritableComponentTemplate, BestArchetype);
+	auto NewComponentTemplate = NewObject<UActorComponent>(
+		GetOuter(), BestArchetype->GetClass(), BestArchetype->GetFName(), RF_ArchetypeObject | RF_Public | RF_InheritableComponentTemplate, BestArchetype);
 
 	FComponentOverrideRecord NewRecord;
 	NewRecord.ComponentKey = Key;

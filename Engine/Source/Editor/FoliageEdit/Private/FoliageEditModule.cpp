@@ -46,7 +46,7 @@ public:
 		PropertyEditor.RegisterCustomClassLayout("ProceduralFoliageComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FProceduralFoliageComponentDetails::MakeInstance));
 
 		// Actor Factories
-		UActorFactoryProceduralFoliage* ProceduralFoliageActorFactory = ConstructObject<UActorFactoryProceduralFoliage>(UActorFactoryProceduralFoliage::StaticClass());
+		auto ProceduralFoliageActorFactory = NewObject<UActorFactoryProceduralFoliage>();
 		GEditor->ActorFactories.Add(ProceduralFoliageActorFactory);
 
 #if WITH_EDITOR

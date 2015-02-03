@@ -2876,7 +2876,7 @@ namespace MaterialExportUtils
 			MaterialOuter->Modify();
 		}
 
-		UMaterial* Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), MaterialOuter, FName(*MaterialAssetName), Flags);
+		UMaterial* Material = NewObject<UMaterial>(MaterialOuter, FName(*MaterialAssetName), Flags);
 		Material->TwoSided = false;
 		Material->SetShadingModel(MSM_DefaultLit);
 		OutGeneratedAssets.Add(Material);
@@ -2893,7 +2893,7 @@ namespace MaterialExportUtils
 			UTexture2D* Texture = CreateTexture(Outer, AssetLongName, InFlattenMaterial.DiffuseSize, InFlattenMaterial.DiffuseSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 			
-			UMaterialExpressionTextureSample* BasecolorExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			auto BasecolorExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			BasecolorExpression->Texture = Texture;
 			BasecolorExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 			BasecolorExpression->MaterialExpressionEditorX = -400;
@@ -2912,7 +2912,7 @@ namespace MaterialExportUtils
 			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 			
-			UMaterialExpressionTextureSample* MetallicExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			auto MetallicExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			MetallicExpression->Texture = Texture;
 			MetallicExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
 			MetallicExpression->MaterialExpressionEditorX = -400;
@@ -2926,7 +2926,7 @@ namespace MaterialExportUtils
 		{
 			// Set Metallic to constant
 			float Metallic = InFlattenMaterial.MetallicSamples.Num() ? InFlattenMaterial.MetallicSamples[0].R : 0.0f;
-			UMaterialExpressionConstant* MetallicExpression = ConstructObject<UMaterialExpressionConstant>(UMaterialExpressionConstant::StaticClass(), Material);
+			auto MetallicExpression = NewObject<UMaterialExpressionConstant>(Material);
 			MetallicExpression->R = Metallic;
 			MetallicExpression->MaterialExpressionEditorX = -400;
 			MetallicExpression->MaterialExpressionEditorY = MaterialNodeY;
@@ -2944,7 +2944,7 @@ namespace MaterialExportUtils
 			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 			
-			UMaterialExpressionTextureSample* SpecularExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			auto SpecularExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			SpecularExpression->Texture = Texture;
 			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
 			SpecularExpression->MaterialExpressionEditorX = -400;
@@ -2963,7 +2963,7 @@ namespace MaterialExportUtils
 			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 			
-			UMaterialExpressionTextureSample* RoughnessExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			auto RoughnessExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			RoughnessExpression->Texture = Texture;
 			RoughnessExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
 			RoughnessExpression->MaterialExpressionEditorX = -400;
@@ -2977,7 +2977,7 @@ namespace MaterialExportUtils
 		{
 			// Set Roughness to constant
 			float Roughness = InFlattenMaterial.RoughnessSamples.Num() ? InFlattenMaterial.RoughnessSamples[0].R : 0.8f;
-			UMaterialExpressionConstant* RoughnessExpression = ConstructObject<UMaterialExpressionConstant>(UMaterialExpressionConstant::StaticClass(), Material);
+			auto RoughnessExpression = NewObject<UMaterialExpressionConstant>(Material);
 			RoughnessExpression->R = Roughness;
 			RoughnessExpression->MaterialExpressionEditorX = -400;
 			RoughnessExpression->MaterialExpressionEditorY = MaterialNodeY;
@@ -2995,7 +2995,7 @@ namespace MaterialExportUtils
 			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.NormalSize, InFlattenMaterial.NormalSamples, TC_Normalmap, TEXTUREGROUP_WorldNormalMap, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 			
-			UMaterialExpressionTextureSample* NormalExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			auto NormalExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			NormalExpression->Texture = Texture;
 			NormalExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Normal;
 			NormalExpression->MaterialExpressionEditorX = -400;

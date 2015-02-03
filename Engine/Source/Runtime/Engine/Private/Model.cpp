@@ -491,7 +491,7 @@ void UModel::EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys )
 #if WITH_EDITOR
 	if( EmptyPolys )
 	{
-		Polys = NewNamedObject<UPolys>(GetOuter(), NAME_None, RF_Transactional);
+		Polys = NewObject<UPolys>(GetOuter(), NAME_None, RF_Transactional);
 	}
 #endif // WITH_EDITOR
 

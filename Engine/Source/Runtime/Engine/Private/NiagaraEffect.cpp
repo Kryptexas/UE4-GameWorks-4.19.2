@@ -26,7 +26,7 @@ void UNiagaraEffect::CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Si
 	UClass *RendererProps = Sim->GetEffectRenderer()->GetPropertiesClass();
 	if (RendererProps)
 	{
-		Sim->GetProperties()->RendererProperties = ConstructObject<UNiagaraEffectRendererProperties>(RendererProps, this);
+		Sim->GetProperties()->RendererProperties = NewObject<UNiagaraEffectRendererProperties>(this, RendererProps);
 	}
 	else
 	{

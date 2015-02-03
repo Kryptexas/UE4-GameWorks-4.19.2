@@ -685,7 +685,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 			}
 
 			AActor*  OldActor = Cast<AActor>(OldObject);
-			UObject* NewObject = nullptr;
+			UObject* NewUObject = nullptr;
 			// if the object to replace is an actor...
 			if (OldActor != nullptr)
 			{
@@ -727,7 +727,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				}
 
 				check(NewActor != nullptr);
-				NewObject = NewActor;
+				NewUObject = NewActor;
 				// store the new actor for the second pass (NOTE: this detaches 
 				// OldActor from all child/parent attachments)
 				//
@@ -736,7 +736,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				// another instance that hasn't been replaced yet).
 				ReplacementActors.Add(FActorReplacementHelper(NewActor, OldActor));
 
-				ReinstancedObjectsWeakReferenceMap.Add(OldObject, NewObject);
+				ReinstancedObjectsWeakReferenceMap.Add(OldObject, NewUObject);
 
 				OldActor->DestroyConstructedComponents(); // don't want to serialize components from the old actor
 				// Unregister native components so we don't copy any sub-components they generate for themselves (like UCameraComponent does)
@@ -771,12 +771,12 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 			{
 				FName OldName(OldObject->GetFName());
 				OldObject->Rename(NULL, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
-				NewObject = ConstructObject<UObject>(NewClass, OldObject->GetOuter(), OldName);
-				check(NewObject != nullptr);
+				NewUObject = NewObject<UObject>(OldObject->GetOuter(), NewClass, OldName);
+				check(NewUObject != nullptr);
 
-				UEditorEngine::CopyPropertiesForUnrelatedObjects(OldObject, NewObject);
+				UEditorEngine::CopyPropertiesForUnrelatedObjects(OldObject, NewUObject);
 
-				if (UAnimInstance* AnimTree = Cast<UAnimInstance>(NewObject))
+				if (UAnimInstance* AnimTree = Cast<UAnimInstance>(NewUObject))
 				{
 					// Initialising the anim instance isn't enough to correctly set up the skeletal mesh again in a
 					// paused world, need to initialise the skeletal mesh component that contains the anim instance.
@@ -789,11 +789,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				OldObject->RemoveFromRoot();
 				OldObject->MarkPendingKill();
 
-				OldToNewInstanceMap.Add(OldObject, NewObject);
+				OldToNewInstanceMap.Add(OldObject, NewUObject);
 
 				if (bIsComponent)
 				{
-					UActorComponent* Component = Cast<UActorComponent>(NewObject);
+					UActorComponent* Component = Cast<UActorComponent>(NewUObject);
 					AActor* OwningActor = Component->GetOwner();
 					if (OwningActor)
 					{
@@ -809,14 +809,14 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 			}
 
 			// If this original object came from a blueprint and it was in the selected debug set, change the debugging to the new object.
-			if ((CorrespondingBlueprint) && (OldBlueprintDebugObject) && (NewObject))
+			if ((CorrespondingBlueprint) && (OldBlueprintDebugObject) && (NewUObject))
 			{
-				CorrespondingBlueprint->SetObjectBeingDebugged(NewObject);
+				CorrespondingBlueprint->SetObjectBeingDebugged(NewUObject);
 			}
 
 			if (bLogConversions)
 			{
-				UE_LOG(LogBlueprint, Log, TEXT("Converted instance '%s' to '%s'"), *OldObject->GetPathName(), *NewObject->GetPathName());
+				UE_LOG(LogBlueprint, Log, TEXT("Converted instance '%s' to '%s'"), *OldObject->GetPathName(), *NewUObject->GetPathName());
 			}
 		}
 	}

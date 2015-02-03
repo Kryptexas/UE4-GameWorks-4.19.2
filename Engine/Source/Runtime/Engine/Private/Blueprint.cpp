@@ -1240,7 +1240,7 @@ UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bC
 	{
 		auto BPGC = CastChecked<UBlueprintGeneratedClass>(GeneratedClass);
 		ensure(!BPGC->InheritableComponentHandler);
-		InheritableComponentHandler = NewNamedObject<UInheritableComponentHandler>(BPGC, FName(TEXT("InheritableComponentHandler")));
+		InheritableComponentHandler = NewObject<UInheritableComponentHandler>(BPGC, FName(TEXT("InheritableComponentHandler")));
 		BPGC->InheritableComponentHandler = InheritableComponentHandler;
 	}
 	return InheritableComponentHandler;

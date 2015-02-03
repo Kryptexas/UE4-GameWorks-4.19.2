@@ -17,7 +17,7 @@ UPaperTileSetFactory::UPaperTileSetFactory(const FObjectInitializer& ObjectIniti
 
 UObject* UPaperTileSetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UPaperTileSet* NewTileSet = ConstructObject<UPaperTileSet>(Class, InParent, Name, Flags | RF_Transactional);
+	auto NewTileSet = NewObject<UPaperTileSet>(InParent, Class, Name, Flags | RF_Transactional);
 	NewTileSet->TileSheet = InitialTexture;
 
 	return NewTileSet;

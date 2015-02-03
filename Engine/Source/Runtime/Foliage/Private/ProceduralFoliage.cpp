@@ -46,7 +46,7 @@ void UProceduralFoliage::CreateProceduralFoliageInstances()
 	{
 		if( TypeData.Type )
 		{
-			TypeData.TypeInstance = ConstructObject<UFoliageType_InstancedStaticMesh>(TypeData.Type, this);
+			TypeData.TypeInstance = NewObject<UFoliageType_InstancedStaticMesh>(this, TypeData.Type);
 			TypeData.ChangeCount = TypeData.TypeInstance->ChangeCount;
 		}
 		else

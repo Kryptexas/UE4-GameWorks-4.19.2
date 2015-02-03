@@ -504,7 +504,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 			}
 			else
 			{
-				Result = NewNamedObject<UPackage>(InOuter, NewPackageName, RF_Public);
+				Result = NewObject<UPackage>(InOuter, NewPackageName, RF_Public);
 			}
 		}
 	}

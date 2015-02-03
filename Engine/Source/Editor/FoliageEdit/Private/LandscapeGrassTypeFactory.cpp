@@ -15,7 +15,7 @@ ULandscapeGrassTypeFactory::ULandscapeGrassTypeFactory(const FObjectInitializer&
 
 UObject* ULandscapeGrassTypeFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	ULandscapeGrassType* NewGrassType = ConstructObject<ULandscapeGrassType>(Class, InParent, Name, Flags | RF_Transactional);
+	auto NewGrassType = NewObject<ULandscapeGrassType>(InParent, Class, Name, Flags | RF_Transactional);
 
 	return NewGrassType;
 }

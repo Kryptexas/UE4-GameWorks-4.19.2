@@ -656,7 +656,7 @@ bool FUnrealEdMisc::EnableWorldComposition(UWorld* InWorld, bool bEnable)
 			return false;
 		}
 			
-		UWorldComposition* WorldCompostion = ConstructObject<UWorldComposition>(UWorldComposition::StaticClass(), InWorld);
+		auto WorldCompostion = NewObject<UWorldComposition>(InWorld);
 		// All map files found in the same and folder and all sub-folders will be added ass sub-levels to this map
 		// Make sure user understands this
 		int32 NumFoundSublevels = WorldCompostion->GetTilesList().Num();

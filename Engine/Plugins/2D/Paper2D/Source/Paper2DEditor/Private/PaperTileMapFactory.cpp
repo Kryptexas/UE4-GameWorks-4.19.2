@@ -17,7 +17,7 @@ UPaperTileMapFactory::UPaperTileMapFactory(const FObjectInitializer& ObjectIniti
 
 UObject* UPaperTileMapFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UPaperTileMap* NewTileMap = ConstructObject<UPaperTileMap>(Class, InParent, Name, Flags | RF_Transactional);
+	UPaperTileMap* NewTileMap = NewObject<UPaperTileMap>(InParent, Class, Name, Flags | RF_Transactional);
 
 	if (InitialTileSet != nullptr)
 	{

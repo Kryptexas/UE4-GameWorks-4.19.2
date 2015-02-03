@@ -4465,7 +4465,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			{
 				NewComponentName = *FComponentEditorUtils::GenerateValidVariableName(NewComponentClass, ActorInstance);
 			}
-			NewComponent = AddNewNodeForInstancedComponent(ConstructObject<UActorComponent>(NewComponentClass, ActorInstance, NewComponentName, RF_Transactional, ComponentTemplate), Asset, true);
+			NewComponent = AddNewNodeForInstancedComponent(NewObject<UActorComponent>(ActorInstance, NewComponentClass, NewComponentName, RF_Transactional, ComponentTemplate), Asset, true);
 		}
 	}
 

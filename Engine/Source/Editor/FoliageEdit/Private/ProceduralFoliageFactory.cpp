@@ -15,7 +15,7 @@ UProceduralFoliageFactory::UProceduralFoliageFactory(const FObjectInitializer& O
 
 UObject* UProceduralFoliageFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UProceduralFoliage* NewProceduralFoliage = ConstructObject<UProceduralFoliage>(Class, InParent, Name, Flags | RF_Transactional);
+	auto NewProceduralFoliage = NewObject<UProceduralFoliage>(InParent, Class, Name, Flags | RF_Transactional);
 
 	return NewProceduralFoliage;
 }

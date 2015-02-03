@@ -321,7 +321,7 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 					FName PlaceholderName(*FString::Printf(TEXT("PLACEHOLDER-CLASS_%s"), *Import.ObjectName.ToString()));
 					PlaceholderName = MakeUniqueObjectName(PlaceholderOuter, PlaceholderType, PlaceholderName);
 
-					ULinkerPlaceholderClass* Placeholder = ConstructObject<ULinkerPlaceholderClass>(PlaceholderType, PlaceholderOuter, PlaceholderName, RF_Public | RF_Transient);
+					ULinkerPlaceholderClass* Placeholder = NewObject<ULinkerPlaceholderClass>(PlaceholderOuter, PlaceholderType, PlaceholderName, RF_Public | RF_Transient);
 					// store the import index in the placeholder, so we can 
 					// easily look it up in the import map, given the 
 					// placeholder (needed, to find the corresponding import for 

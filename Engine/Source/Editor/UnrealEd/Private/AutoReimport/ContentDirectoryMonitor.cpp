@@ -159,7 +159,7 @@ void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesTo
 				}
 
 				UObject* NewAsset = nullptr;
-				UFactory* FactoryInstance = FactoryType ? ConstructObject<UFactory>(FactoryType->GetClass()) : nullptr;
+				UFactory* FactoryInstance = FactoryType ? NewObject<UFactory>(GetTransientPackage(), FactoryType->GetClass()) : nullptr;
 				if (FactoryInstance)
 				{
 					FactoryInstance->AddToRoot();
