@@ -301,7 +301,7 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	uint32 bGenerateConstClass : 1;
 
 	/**shows up in the content browser when the blueprint is hovered */
-	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
+	UPROPERTY(EditAnywhere, Category=BlueprintOptions, meta=(MultiLine=true))
 	FString BlueprintDescription;
 
 	/** The category of the Blueprint, used to organize this Blueprint class when displayed in palette windows */
