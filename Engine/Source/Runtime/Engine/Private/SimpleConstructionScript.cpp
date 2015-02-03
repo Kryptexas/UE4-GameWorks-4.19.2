@@ -174,22 +174,6 @@ void USimpleConstructionScript::PostLoad()
 		}
 	}
 
-	// Templates are used as archetypes, so they should be Public
-	auto OwnerClass = GetOwnerClass();
-	if (OwnerClass)
-	{
-		for (auto Node : Nodes)
-		{
-			auto ComponentTemplate = Node ? Node->ComponentTemplate : nullptr;
-			if (ComponentTemplate && !ComponentTemplate->HasAllFlags(RF_Public) && (ComponentTemplate->GetOuter() == OwnerClass))
-			{
-				ComponentTemplate->SetFlags(RF_Public);
-
-				// Package should be marked as dirty here, but it's not user friendly
-			}
-		}
-	}
-
 #endif // WITH_EDITOR
 	// Fix up native/inherited parent attachments, in case anything has changed
 	FixupRootNodeParentReferences();

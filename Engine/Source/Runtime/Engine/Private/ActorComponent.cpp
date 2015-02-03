@@ -134,6 +134,12 @@ void UActorComponent::PostLoad()
 	{
 		CreationMethod = EComponentCreationMethod::Instance;
 	}
+
+	if (!HasAllFlags(RF_Public) && GetOuter()->IsA<UBlueprintGeneratedClass>())
+	{
+		SetFlags(RF_Public);
+		ULinkerLoad::RefreshExportFlags(this);
+	}
 }
 
 void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
