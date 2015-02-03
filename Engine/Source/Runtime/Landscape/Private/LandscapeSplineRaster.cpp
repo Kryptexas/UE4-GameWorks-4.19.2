@@ -15,6 +15,7 @@
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
 #if WITH_EDITOR
+#include "AI/Navigation/NavigationSystem.h"
 #include "ScopedTransaction.h"
 #include "Raster.h"
 #endif
