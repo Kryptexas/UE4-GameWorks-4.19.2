@@ -3155,6 +3155,12 @@ bool UGeomModifier_Turn::OnApply()
 					Quad.AddUnique( Poly->Vertices[v] );
 				}
 
+				// If the adjoining polys were coincident, don't try to turn the edge
+				if (Quad.Num() == 3)
+				{
+					continue;
+				}
+
 				// Create new polygons
 
 				FPoly* NewPoly;
