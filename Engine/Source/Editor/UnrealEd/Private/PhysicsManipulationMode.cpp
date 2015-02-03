@@ -41,7 +41,7 @@ TSharedRef<FEdMode> FPhysicsManipulationEdModeFactory::CreateMode() const
 
 FPhysicsManipulationEdMode::FPhysicsManipulationEdMode()
 {
-	HandleComp = ConstructObject<UPhysicsHandleComponent>(UPhysicsHandleComponent::StaticClass(), GetTransientPackage(), NAME_None, RF_NoFlags);
+	HandleComp = NewObject<UPhysicsHandleComponent>();
 }
 
 FPhysicsManipulationEdMode::~FPhysicsManipulationEdMode()

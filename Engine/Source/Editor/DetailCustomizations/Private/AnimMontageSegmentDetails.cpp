@@ -202,7 +202,7 @@ void SAnimationSegmentViewport::Construct(const FArguments& InArgs)
 
 	ViewportWidget->SetViewportInterface( SceneViewport.ToSharedRef() );
 	
-	PreviewComponent = ConstructObject<UDebugSkelMeshComponent>(UDebugSkelMeshComponent::StaticClass());
+	PreviewComponent = NewObject<UDebugSkelMeshComponent>();
 	PreviewComponent->bEnablePhysicsOnDedicatedServer = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	PreviewScene.AddComponent(PreviewComponent, FTransform::Identity);
 

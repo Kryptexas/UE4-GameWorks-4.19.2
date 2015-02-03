@@ -184,7 +184,7 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 
 
 		// Create the new tile map asset and import basic/global data
-		Result = NewNamedObject<UPaperTileMap>(InParent, InName, Flags);
+		Result = NewObject<UPaperTileMap>(InParent, InName, Flags);
 
 		Result->Modify();
 		Result->MapWidth = GlobalInfo.Width;
@@ -391,7 +391,7 @@ UObject* UPaperTiledImporterFactory::CreateNewAsset(UClass* AssetClass, const FS
 	UObject* OuterForAsset = CreatePackage(nullptr, *PackageName);
 
 	// Create a frame in the package
-	UObject* NewAsset = ConstructObject<UObject>(AssetClass, OuterForAsset, *AssetName, Flags);
+	UObject* NewAsset = NewObject<UObject>(OuterForAsset, AssetClass, *AssetName, Flags);
 	FAssetRegistryModule::AssetCreated(NewAsset);
 
 	return NewAsset;

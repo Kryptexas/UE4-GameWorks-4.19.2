@@ -204,15 +204,15 @@ static void OnObjectSelected(UObject* Object)
 
 static void PrivateInitSelectedSets()
 {
-	PrivateGetSelectedActors() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional);
+	PrivateGetSelectedActors() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional);
 	PrivateGetSelectedActors()->AddToRoot();
 
 	PrivateGetSelectedActors()->SelectObjectEvent.AddStatic(&OnObjectSelected);
 
-	PrivateGetSelectedComponents() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional);
+	PrivateGetSelectedComponents() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional);
 	PrivateGetSelectedComponents()->AddToRoot();
 
-	PrivateGetSelectedObjects() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional);
+	PrivateGetSelectedObjects() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional);
 	PrivateGetSelectedObjects()->AddToRoot();
 }
 
@@ -746,7 +746,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 					{
 						for ( int32 i=0; i < VolumeClasses.Num(); i++ )
 						{
-							UActorFactory* NewFactory = ConstructObject<UActorFactory>(TestClass);
+							UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), TestClass);
 							check(NewFactory);
 							NewFactory->NewActorClass = VolumeClasses[i];
 							ActorFactories.Add(NewFactory);
@@ -754,7 +754,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 					}
 					else
 					{
-						UActorFactory* NewFactory = ConstructObject<UActorFactory>(TestClass);
+						UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), TestClass);
 						check(NewFactory);
 						ActorFactories.Add(NewFactory);
 					}
@@ -820,7 +820,7 @@ void UEditorEngine::InitBuilderBrush( UWorld* InWorld )
 
 	// For additive geometry mode, make the builder brush a small 256x256x256 cube so its visible.
 	const int32 CubeSize = 256;
-	UCubeBuilder* CubeBuilder = ConstructObject<UCubeBuilder>( UCubeBuilder::StaticClass() );
+	UCubeBuilder* CubeBuilder = NewObject<UCubeBuilder>();
 	CubeBuilder->X = CubeSize;
 	CubeBuilder->Y = CubeSize;
 	CubeBuilder->Z = CubeSize;
@@ -1642,7 +1642,7 @@ const UEditorUserSettings& UEditorEngine::GetEditorUserSettings() const
 	if (EditorUserSettings == NULL)
 	{
 		auto ConstThis = const_cast< UEditorEngine* >( this );	// Hack because Header Generator doesn't yet support mutable keyword
-		ConstThis->EditorUserSettings = ConstructObject<UEditorUserSettings>(UEditorUserSettings::StaticClass());
+		ConstThis->EditorUserSettings = NewObject<UEditorUserSettings>();
 	}
 	return *EditorUserSettings;
 }
@@ -1651,7 +1651,7 @@ UEditorUserSettings& UEditorEngine::AccessEditorUserSettings()
 {
 	if (EditorUserSettings == NULL)
 	{
-		EditorUserSettings = ConstructObject<UEditorUserSettings>(UEditorUserSettings::StaticClass());
+		EditorUserSettings = NewObject<UEditorUserSettings>();
 	}
 	return *EditorUserSettings;
 }
@@ -1669,7 +1669,7 @@ const UEditorGameAgnosticSettings& UEditorEngine::GetGameAgnosticSettings() cons
 	if (GameAgnosticSettings == NULL)
 	{
 		auto ConstThis = const_cast< UEditorEngine* >( this );	// Hack because Header Generator doesn't yet support mutable keyword
-		ConstThis->GameAgnosticSettings = ConstructObject<UEditorGameAgnosticSettings>(UEditorGameAgnosticSettings::StaticClass());
+		ConstThis->GameAgnosticSettings = NewObject<UEditorGameAgnosticSettings>();
 		
 		// Load config from file, but only if we are not the build machine since game agnostic settings may put the builder in an unclean state
 		if ( !GIsBuildMachine )
@@ -1684,7 +1684,7 @@ UEditorGameAgnosticSettings& UEditorEngine::AccessGameAgnosticSettings()
 {
 	if (GameAgnosticSettings == NULL)
 	{
-		GameAgnosticSettings = ConstructObject<UEditorGameAgnosticSettings>(UEditorGameAgnosticSettings::StaticClass());
+		GameAgnosticSettings = NewObject<UEditorGameAgnosticSettings>();
 		
 		// Load config from file, but only if we are not the build machine since game agnostic settings may put the builder in an unclean state
 		if ( !GIsBuildMachine )
@@ -1915,7 +1915,7 @@ UAudioComponent* UEditorEngine::ResetPreviewAudioComponent( USoundBase* Sound, U
 		}
 		else
 		{
-			PreviewSoundCue = ConstructObject<USoundCue>( USoundCue::StaticClass() );
+			PreviewSoundCue = NewObject<USoundCue>();
 			// Set world to NULL as it will most likely become invalid in the next PIE/Simulate session and the
 			// component will be left with invalid pointer.
 			PreviewAudioComponent = FAudioDevice::CreateComponent( PreviewSoundCue, NULL, NULL, false );
@@ -3998,7 +3998,7 @@ UBrushBuilder* UEditorEngine::FindBrushBuilder( UClass* BrushBuilderClass )
 	else
 	{
 		// An existing builder does not exist so create one now
-		Builder = ConstructObject<UBrushBuilder>( BrushBuilderClass );
+		Builder = NewObject<UBrushBuilder>(GetTransientPackage(), BrushBuilderClass);
 		BrushBuilders.Add( Builder );
 	}
 
@@ -6461,7 +6461,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		// If we don't have a preview mesh component in the world yet, create one. 
 		if( !PreviewMeshComp )
 		{
-			PreviewMeshComp = ConstructObject<UStaticMeshComponent>( UStaticMeshComponent::StaticClass(), GetTransientPackage() );
+			PreviewMeshComp = NewObject<UStaticMeshComponent>();
 			check(PreviewMeshComp);
 
 			// Attach the component to the scene even if the preview mesh doesn't load.

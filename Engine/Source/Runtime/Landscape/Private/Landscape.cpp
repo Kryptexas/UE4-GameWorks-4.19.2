@@ -582,7 +582,7 @@ ULandscapeInfo* ALandscapeProxy::GetLandscapeInfo(bool bSpawnNewActor /*= true*/
 			ULandscapeInfo* LandscapeInfo = LandscapeInfoMap.Map.FindRef(LandscapeGuid);
 			if (!LandscapeInfo && bSpawnNewActor && !HasAnyFlags(RF_BeginDestroyed))
 			{
-				LandscapeInfo = ConstructObject<ULandscapeInfo>(ULandscapeInfo::StaticClass(), OwningWorld, NAME_None, RF_Transactional | RF_Transient);
+				LandscapeInfo = NewObject<ULandscapeInfo>(OwningWorld, NAME_None, RF_Transactional | RF_Transient);
 				LandscapeInfoMap.Modify(false);
 				LandscapeInfoMap.Map.Add(LandscapeGuid, LandscapeInfo);
 			}
@@ -2876,7 +2876,7 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, bool bForceS
 										UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent;
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateComp);
-											HierarchicalInstancedStaticMeshComponent = ConstructObject<UHierarchicalInstancedStaticMeshComponent>(UHierarchicalInstancedStaticMeshComponent::StaticClass(), this); //, NAME_None, RF_Transactional);
+											HierarchicalInstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(this);
 										}
 										NewComp.Foliage = HierarchicalInstancedStaticMeshComponent;
 										FoliageCache.CachedGrassComps.Add(NewComp);

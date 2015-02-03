@@ -556,7 +556,7 @@ class UPlayer* APawn::GetNetOwningPlayer()
 UInputComponent* APawn::CreatePlayerInputComponent()
 {
 	static const FName InputComponentName(TEXT("PawnInputComponent0"));
-	return ConstructObject<UInputComponent>(UInputComponent::StaticClass(), this, InputComponentName);
+	return NewObject<UInputComponent>(this, InputComponentName);
 }
 
 void APawn::DestroyPlayerInputComponent()

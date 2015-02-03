@@ -36,8 +36,8 @@ UWidgetAnimation* UWidgetAnimation::GetNullAnimation()
 	static UWidgetAnimation* NullAnimation = nullptr;
 	if( !NullAnimation )
 	{
-		NullAnimation = ConstructObject<UWidgetAnimation>( UWidgetAnimation::StaticClass(), GetTransientPackage(), NAME_None, RF_RootSet );
-		NullAnimation->MovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), NullAnimation, FName("No Animation"), RF_RootSet );
+		NullAnimation = NewObject<UWidgetAnimation>(GetTransientPackage(), NAME_None, RF_RootSet);
+		NullAnimation->MovieScene = NewObject<UMovieScene>(NullAnimation, FName("No Animation"), RF_RootSet);
 	}
 
 	return NullAnimation;

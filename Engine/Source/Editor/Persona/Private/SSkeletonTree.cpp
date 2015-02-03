@@ -1791,7 +1791,7 @@ void SSkeletonTree::OnAddSocket()
 		const FScopedTransaction Transaction( LOCTEXT( "AddSocket", "Add Socket to Skeleton" ) );
 		TargetSkeleton->Modify();
 
-		NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), TargetSkeleton );
+		NewSocket = NewObject<USkeletalMeshSocket>(TargetSkeleton);
 		check(NewSocket);
 
 		NewSocket->BoneName = *static_cast<FName*>( TreeSelection.GetSingleSelectedItem()->GetData() );
@@ -1826,7 +1826,7 @@ void SSkeletonTree::OnCustomizeSocket()
 				const FScopedTransaction Transaction( LOCTEXT( "CreateMeshSocket", "Create Mesh Socket" ) );
 				Mesh->Modify();
 
-				USkeletalMeshSocket* NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), Mesh );
+				USkeletalMeshSocket* NewSocket = NewObject<USkeletalMeshSocket>(Mesh);
 				check(NewSocket);
 
 				NewSocket->BoneName = SocketToCustomize->BoneName;
@@ -1857,7 +1857,7 @@ void SSkeletonTree::OnPromoteSocket()
 		const FScopedTransaction Transaction( LOCTEXT( "PromoteSocket", "Promote Socket" ) );
 		TargetSkeleton->Modify();
 
-		USkeletalMeshSocket* NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), TargetSkeleton );
+		USkeletalMeshSocket* NewSocket = NewObject<USkeletalMeshSocket>(TargetSkeleton);
 		check(NewSocket);
 
 		NewSocket->BoneName = SocketToCustomize->BoneName;

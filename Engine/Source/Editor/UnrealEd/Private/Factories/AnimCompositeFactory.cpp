@@ -65,7 +65,7 @@ UObject* UAnimCompositeFactory::FactoryCreateNew(UClass* Class, UObject* InParen
 {
 	if (TargetSkeleton || SourceAnimation)
 	{
-		UAnimComposite* AnimComposite = ConstructObject<UAnimComposite>(Class,InParent,Name,Flags);
+		UAnimComposite* AnimComposite = NewObject<UAnimComposite>(InParent, Class, Name, Flags);
 
 		if(SourceAnimation)
 		{

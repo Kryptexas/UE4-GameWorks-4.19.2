@@ -123,7 +123,7 @@ void UEdGraph::RemoveOnGraphChangedHandler( FDelegateHandle Handle )
 
 UEdGraphNode* UEdGraph::CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool bSelectNewNode/* = true*/ )
 {
-	UEdGraphNode* NewNode = ConstructObject<UEdGraphNode>(NewNodeClass, this, NAME_None, RF_Transactional);
+	UEdGraphNode* NewNode = NewObject<UEdGraphNode>(this, NewNodeClass, NAME_None, RF_Transactional);
 	AddNode(NewNode, false, bSelectNewNode );
 	return NewNode;
 }

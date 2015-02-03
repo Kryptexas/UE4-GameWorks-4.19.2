@@ -76,7 +76,7 @@ int32 FromHex( TCHAR Ch )
 void UTrueTypeFontFactory::SetupFontImportOptions()
 {
 	// Allocate our import options object if it hasn't been created already!
-	ImportOptions = ConstructObject< UFontImportOptions >( UFontImportOptions::StaticClass(), this, NAME_None );
+	ImportOptions = NewObject<UFontImportOptions>(this, NAME_None);
 }
 
 bool UTrueTypeFontFactory::ConfigureProperties()
@@ -153,7 +153,7 @@ UObject* UTrueTypeFontFactory::FactoryCreateNew(
 	}
 
 	// Create font and its texture.
-	auto Font = NewNamedObject<UFont>(InParent, Name, Flags);
+	auto Font = NewObject<UFont>(InParent, Name, Flags);
 	
 	if (ImportOptions->Data.bUseDistanceFieldAlpha)
 	{
@@ -777,7 +777,7 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromDC( UFont* Font, HDC dc, int3
 	}
 
 	// Create texture for page.
-	auto Texture = NewNamedObject<UTexture2D>(Font, *TextureString);
+	auto Texture = NewObject<UTexture2D>(Font, *TextureString);
 
 	// note RF_Public because font textures can be referenced directly by material expressions
 	Texture->SetFlags(RF_Public);

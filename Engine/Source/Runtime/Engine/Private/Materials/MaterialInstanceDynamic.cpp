@@ -15,10 +15,7 @@ UMaterialInstanceDynamic::UMaterialInstanceDynamic(const FObjectInitializer& Obj
 UMaterialInstanceDynamic* UMaterialInstanceDynamic::Create(UMaterialInterface* ParentMaterial, UObject* InOuter)
 {
 	UObject* Outer = InOuter ? InOuter : GetTransientPackage();
-	UMaterialInstanceDynamic* MID = ConstructObject<UMaterialInstanceDynamic>(
-		UMaterialInstanceDynamic::StaticClass(),
-		Outer
-		);
+	UMaterialInstanceDynamic* MID = NewObject<UMaterialInstanceDynamic>(Outer);
 	MID->SetParentInternal(ParentMaterial);
 	return MID;
 }

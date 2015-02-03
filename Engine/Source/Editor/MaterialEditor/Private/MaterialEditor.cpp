@@ -1051,7 +1051,7 @@ void FMaterialEditor::RefreshPreviewViewport()
 
 void FMaterialEditor::LoadEditorSettings()
 {
-	EditorOptions = ConstructObject<UMaterialEditorOptions>( UMaterialEditorOptions::StaticClass() );
+	EditorOptions = NewObject<UMaterialEditorOptions>();
 	
 	if (EditorOptions->bHideUnusedConnectors) {OnShowConnectors();}
 	if (bLivePreview != EditorOptions->bLivePreviewUpdate)
@@ -2805,7 +2805,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 			ExpressionOuter = MaterialFunction;
 		}
 
-		NewExpression = ConstructObject<UMaterialExpression>( NewExpressionClass, ExpressionOuter, NAME_None, RF_Transactional );
+		NewExpression = NewObject<UMaterialExpression>(ExpressionOuter, NewExpressionClass, NAME_None, RF_Transactional);
 		Material->Expressions.Add( NewExpression );
 		NewExpression->Material = Material;
 
@@ -2890,7 +2890,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		if( RotateAboutAxisExpression )
 		{
 			// Create a default expression for the Position input
-			UMaterialExpressionWorldPosition* WorldPositionExpression = ConstructObject<UMaterialExpressionWorldPosition>( UMaterialExpressionWorldPosition::StaticClass(), ExpressionOuter, NAME_None, RF_Transactional );
+			UMaterialExpressionWorldPosition* WorldPositionExpression = NewObject<UMaterialExpressionWorldPosition>(ExpressionOuter, NAME_None, RF_Transactional);
 			Material->Expressions.Add( WorldPositionExpression );
 			WorldPositionExpression->Material = Material;
 			RotateAboutAxisExpression->Position.Expression = WorldPositionExpression;
@@ -2957,7 +2957,7 @@ UMaterialExpressionComment* FMaterialEditor::CreateNewMaterialExpressionComment(
 			ExpressionOuter = MaterialFunction;
 		}
 
-		NewComment = ConstructObject<UMaterialExpressionComment>( UMaterialExpressionComment::StaticClass(), ExpressionOuter, NAME_None, RF_Transactional );
+		NewComment = NewObject<UMaterialExpressionComment>(ExpressionOuter, NAME_None, RF_Transactional);
 
 		// Add to the list of comments associated with this material.
 		Material->EditorComments.Add( NewComment );

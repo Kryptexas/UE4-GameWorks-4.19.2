@@ -497,7 +497,7 @@ bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath
 		
 		if (TargetSprite == nullptr)
 		{
-			TargetSprite = NewNamedObject<UPaperSprite>(OuterForFrame, *AssetName, Flags);
+			TargetSprite = NewObject<UPaperSprite>(OuterForFrame, *AssetName, Flags);
 			FAssetRegistryModule::AssetCreated(TargetSprite);
 		}
 

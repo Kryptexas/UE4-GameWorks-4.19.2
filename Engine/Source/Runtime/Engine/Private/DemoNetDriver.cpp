@@ -156,7 +156,7 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	}
 
 	// Playback, local machine is a client, and the demo stream acts "as if" it's the server.
-	ServerConnection = ConstructObject<UNetConnection>( UDemoNetConnection::StaticClass() );
+	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
 	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
 
 	// use the same byte format regardless of platform so that the demos are cross platform
@@ -289,7 +289,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	}
 
 	// Recording, local machine is server, demo stream acts "as if" it's a client.
-	UDemoNetConnection* Connection = ConstructObject<UDemoNetConnection>( UDemoNetConnection::StaticClass() );
+	UDemoNetConnection* Connection = NewObject<UDemoNetConnection>();
 	Connection->InitConnection( this, USOCK_Open, ListenURL, 1000000 );
 	Connection->InitSendBuffer();
 

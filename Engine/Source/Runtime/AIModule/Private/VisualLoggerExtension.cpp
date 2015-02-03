@@ -79,7 +79,7 @@ void FVisualLoggerExtension::DrawData(UWorld* InWorld, UCanvas* Canvas, AActor* 
 			UEQSRenderingComponent* EQSRenderComp = HelperActor->FindComponentByClass<UEQSRenderingComponent>();
 			if (!EQSRenderComp)
 			{
-				EQSRenderComp = ConstructObject<UEQSRenderingComponent>(UEQSRenderingComponent::StaticClass(), HelperActor);
+				EQSRenderComp = NewObject<UEQSRenderingComponent>(HelperActor);
 				EQSRenderComp->bDrawOnlyWhenSelected = false;
 				EQSRenderComp->RegisterComponent();
 				EQSRenderComp->SetHiddenInGame(true);

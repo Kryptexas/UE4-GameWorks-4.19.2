@@ -676,7 +676,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	UArrayProperty* NewArrayProperty = NULL;
 	if( bIsArrayProperty )
 	{
-		NewArrayProperty = NewNamedObject<UArrayProperty>(Scope, ValidatedPropertyName, ObjectFlags);
+		NewArrayProperty = NewObject<UArrayProperty>(Scope, ValidatedPropertyName, ObjectFlags);
 		PropertyScope = NewArrayProperty;
 	}
 	else
@@ -699,7 +699,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 		{
 			if (SubType->HasAnyClassFlags(CLASS_Interface))
 			{
-				UInterfaceProperty* NewPropertyObj = NewNamedObject<UInterfaceProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+				UInterfaceProperty* NewPropertyObj = NewObject<UInterfaceProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				// we want to use this setter function instead of setting the 
 				// InterfaceClass member directly, because it properly handles  
 				// placeholder classes (classes that are stubbed in during load)
@@ -712,11 +712,11 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 
 				if( Type.bIsWeakPointer )
 				{
-					NewPropertyObj = NewNamedObject<UWeakObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+					NewPropertyObj = NewObject<UWeakObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				}
 				else
 				{
-					NewPropertyObj = NewNamedObject<UObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+					NewPropertyObj = NewObject<UObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				}
 				// we want to use this setter function instead of setting the 
 				// PropertyClass member directly, because it properly handles  
@@ -734,7 +734,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 			FString StructureError;
 			if (FStructureEditorUtils::EStructureError::Ok == FStructureEditorUtils::IsStructureValid(SubType, NULL, &StructureError))
 			{
-				UStructProperty* NewPropertyStruct = NewNamedObject<UStructProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+				UStructProperty* NewPropertyStruct = NewObject<UStructProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				NewPropertyStruct->Struct = SubType;
 				NewProperty = NewPropertyStruct;
 			}
@@ -768,7 +768,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 
 		if (SubType != NULL)
 		{
-			UClassProperty* NewPropertyClass = NewNamedObject<UClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+			UClassProperty* NewPropertyClass = NewObject<UClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 			// we want to use this setter function instead of setting the 
 			// MetaClass member directly, because it properly handles  
 			// placeholder classes (classes that are stubbed in during load)
@@ -781,7 +781,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	{
 		if (UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference))
 		{
-			UDelegateProperty* NewPropertyDelegate = NewNamedObject<UDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+			UDelegateProperty* NewPropertyDelegate = NewObject<UDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 			NewPropertyDelegate->SignatureFunction = SignatureFunction;
 			NewProperty = NewPropertyDelegate;
 		}
@@ -789,47 +789,47 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	else if (Type.PinCategory == Schema->PC_MCDelegate)
 	{
 		UFunction* const SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference);
-		UMulticastDelegateProperty* NewPropertyDelegate = NewNamedObject<UMulticastDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		UMulticastDelegateProperty* NewPropertyDelegate = NewObject<UMulticastDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 		NewPropertyDelegate->SignatureFunction = SignatureFunction;
 		NewProperty = NewPropertyDelegate;
 	}
 	else if (Type.PinCategory == Schema->PC_Int)
 	{
-		NewProperty = NewNamedObject<UIntProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty = NewObject<UIntProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 	}
 	else if (Type.PinCategory == Schema->PC_Float)
 	{
-		NewProperty = NewNamedObject<UFloatProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty = NewObject<UFloatProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 	}
 	else if (Type.PinCategory == Schema->PC_Boolean)
 	{
-		UBoolProperty* BoolProperty = NewNamedObject<UBoolProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		UBoolProperty* BoolProperty = NewObject<UBoolProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 		BoolProperty->SetBoolSize(sizeof(bool), true);
 		NewProperty = BoolProperty;
 	}
 	else if (Type.PinCategory == Schema->PC_String)
 	{
-		NewProperty = NewNamedObject<UStrProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty = NewObject<UStrProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 	}
 	else if (Type.PinCategory == Schema->PC_Text)
 	{
-		NewProperty = NewNamedObject<UTextProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty = NewObject<UTextProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 	}
 	else if (Type.PinCategory == Schema->PC_Byte)
 	{
-		UByteProperty* ByteProp = NewNamedObject<UByteProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		UByteProperty* ByteProp = NewObject<UByteProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 		ByteProp->Enum = Cast<UEnum>(Type.PinSubCategoryObject.Get());
 
 		NewProperty = ByteProp;
 	}
 	else if (Type.PinCategory == Schema->PC_Name)
 	{
-		NewProperty = NewNamedObject<UNameProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty = NewObject<UNameProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 	}
 	else
 	{
 		// Failed to resolve the type-subtype, create a generic property to survive VM bytecode emission
-		NewProperty = NewNamedObject<UIntProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty = NewObject<UIntProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 	}
 
 	if (bIsArrayProperty)

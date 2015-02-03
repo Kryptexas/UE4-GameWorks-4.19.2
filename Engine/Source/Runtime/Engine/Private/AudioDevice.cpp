@@ -533,7 +533,7 @@ bool FAudioDevice::HandlePlaySoundCueCommand( const TCHAR* Cmd, FOutputDevice& A
 	// Stop any existing sound playing
 	if( !TestAudioComponent.IsValid() )
 	{
-		TestAudioComponent = ConstructObject<UAudioComponent>( UAudioComponent::StaticClass() );
+		TestAudioComponent = NewObject<UAudioComponent>();
 	}
 
 	UAudioComponent* AudioComp = TestAudioComponent.Get();
@@ -570,7 +570,7 @@ bool FAudioDevice::HandlePlaySoundWaveCommand( const TCHAR* Cmd, FOutputDevice& 
 	// Stop any existing sound playing
 	if( !TestAudioComponent.IsValid() )
 	{
-		TestAudioComponent = ConstructObject<UAudioComponent>( UAudioComponent::StaticClass() );
+		TestAudioComponent = NewObject<UAudioComponent>();
 	}
 
 	UAudioComponent* AudioComp = TestAudioComponent.Get();
@@ -2044,12 +2044,12 @@ UAudioComponent* FAudioDevice::CreateComponent( USoundBase* Sound, UWorld* World
 			// Use actor as outer if we have one.
 			if( Actor )
 			{
-				AudioComponent = ConstructObject<UAudioComponent>( UAudioComponent::StaticClass(), Actor );
+				AudioComponent = NewObject<UAudioComponent>(Actor);
 			}
 			// Let engine pick the outer (transient package).
 			else
 			{
-				AudioComponent = ConstructObject<UAudioComponent>( UAudioComponent::StaticClass() );
+				AudioComponent = NewObject<UAudioComponent>();
 			}
 
 			check( AudioComponent );

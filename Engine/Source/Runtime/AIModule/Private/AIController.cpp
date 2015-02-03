@@ -13,6 +13,7 @@
 #include "Engine/Canvas.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "AIController.h"
+#include "Perception/AIPerceptionComponent.h"
 
 // mz@todo these need to be removed, legacy code
 #define CLOSEPROXIMITY					500.f
@@ -765,7 +766,7 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 		{
 			UE_VLOG(this, LogBehaviorTree, Log, TEXT("RunBehaviorTree: spawning BehaviorTreeComponent.."));
 
-			BrainComponent = BTComp = ConstructObject<UBehaviorTreeComponent>(UBehaviorTreeComponent::StaticClass(), this, TEXT("BTComponent"));
+			BrainComponent = BTComp = NewObject<UBehaviorTreeComponent>(this, TEXT("BTComponent"));
 			BrainComponent->RegisterComponent();
 		}
 
@@ -800,7 +801,7 @@ bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset)
 
 	if (BlackboardComp == NULL)
 	{
-		BlackboardComp = ConstructObject<UBlackboardComponent>(UBlackboardComponent::StaticClass(), this, TEXT("BlackboardComponent"));
+		BlackboardComp = NewObject<UBlackboardComponent>(this, TEXT("BlackboardComponent"));
 		if (BlackboardComp != NULL)
 		{
 			InitializeBlackboard(*BlackboardComp, *BlackboardAsset);

@@ -2394,7 +2394,7 @@ void AActor::EnableInput(APlayerController* PlayerController)
 		// If it doesn't exist create it and bind delegates
 		if (!InputComponent)
 		{
-			InputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), this);
+			InputComponent = NewObject<UInputComponent>(this);
 			InputComponent->RegisterComponent();
 			InputComponent->bBlockInput = bBlockInput;
 			InputComponent->Priority = InputPriority;

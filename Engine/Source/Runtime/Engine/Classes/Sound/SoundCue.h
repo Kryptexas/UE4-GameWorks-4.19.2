@@ -98,7 +98,7 @@ public:
 	template<class T>
 	T* ConstructSoundNode(TSubclassOf<USoundNode> SoundNodeClass = T::StaticClass(), bool bSelectNewNode = true)
 	{
-		T* SoundNode = ConstructObject<T>(SoundNodeClass, this);
+		T* SoundNode = NewObject<T>(this, SoundNodeClass);
 #if WITH_EDITOR
 		AllNodes.Add(SoundNode);
 		SetupSoundNode(SoundNode, bSelectNewNode);

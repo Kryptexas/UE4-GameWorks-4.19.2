@@ -1025,20 +1025,20 @@ FModeTool_GeometryModify::FModeTool_GeometryModify()
 {
 	ID = MT_GeometryModify;
 
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Edit::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Extrude::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Clip::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Pen::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Lathe::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Edit::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Extrude::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Clip::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Pen::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Lathe::StaticClass() ) );
 
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Create::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Delete::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Flip::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Split::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Triangulate::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Optimize::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Turn::StaticClass() ) );
-	Modifiers.Add( ConstructObject<UGeomModifier>( UGeomModifier_Weld::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Create::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Delete::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Flip::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Split::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Triangulate::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Optimize::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Turn::StaticClass() ) );
+	Modifiers.Add( NewObject<UGeomModifier>( GetTransientPackage(), UGeomModifier_Weld::StaticClass() ) );
 
 	CurrentModifier = NULL;
 	

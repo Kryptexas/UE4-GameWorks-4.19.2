@@ -26,7 +26,7 @@ bool UPaperSpriteFactory::ConfigureProperties()
 
 UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UPaperSprite* NewSprite = ConstructObject<UPaperSprite>(Class, InParent, Name, Flags | RF_Transactional);
+	UPaperSprite* NewSprite = NewObject<UPaperSprite>(InParent, Class, Name, Flags | RF_Transactional);
 
 	FSpriteAssetInitParameters SpriteInitParams;
 	SpriteInitParams.bNewlyCreated = true;

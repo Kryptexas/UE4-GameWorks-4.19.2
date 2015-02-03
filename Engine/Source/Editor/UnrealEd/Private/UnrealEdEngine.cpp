@@ -103,7 +103,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 
 	if (FPaths::IsProjectFilePathSet())
 	{
-		AutoReimportManager = ConstructObject<UAutoReimportManager>(UAutoReimportManager::StaticClass());
+		AutoReimportManager = NewObject<UAutoReimportManager>();
 		AutoReimportManager->Initialize();
 	}
 
@@ -123,7 +123,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
 	if ( ExperimentalSettings->bCookOnTheSide )
 	{
-		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
+		CookServer = NewObject<UCookOnTheFlyServer>();
 		CookServer->Initialize( ECookMode::CookOnTheFlyFromTheEditor, BaseCookingFlags );
 		CookServer->StartNetworkFileServer( false );
 
@@ -133,7 +133,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	}
 	else if ( !ExperimentalSettings->bDisableCookInEditor)
 	{
-		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
+		CookServer = NewObject<UCookOnTheFlyServer>();
 		CookServer->Initialize( ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags );
 
 		FCoreUObjectDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
@@ -814,7 +814,7 @@ void UUnrealEdOptions::PostInitProperties()
 	Super::PostInitProperties();
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
-		EditorKeyBindings = ConstructObject<UUnrealEdKeyBindings>(UUnrealEdKeyBindings::StaticClass(), this, FName("EditorKeyBindingsInst"));
+		EditorKeyBindings = NewObject<UUnrealEdKeyBindings>(this, FName("EditorKeyBindingsInst"));
 	}
 }
 
@@ -823,7 +823,7 @@ UUnrealEdOptions* UUnrealEdEngine::GetUnrealEdOptions()
 {
 	if(EditorOptionsInst == NULL)
 	{
-		EditorOptionsInst = ConstructObject<UUnrealEdOptions>(UUnrealEdOptions::StaticClass());
+		EditorOptionsInst = NewObject<UUnrealEdOptions>();
 	}
 
 	return EditorOptionsInst;

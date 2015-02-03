@@ -228,7 +228,7 @@ void UDialogueWave::UpdateMappingProxy(FDialogueContextMapping& ContextMapping)
 	{
 		if (!ContextMapping.Proxy)
 		{
-			ContextMapping.Proxy = ConstructObject<UDialogueSoundWaveProxy>(UDialogueSoundWaveProxy::StaticClass());
+			ContextMapping.Proxy = NewObject<UDialogueSoundWaveProxy>();
 		}
 	}
 	else

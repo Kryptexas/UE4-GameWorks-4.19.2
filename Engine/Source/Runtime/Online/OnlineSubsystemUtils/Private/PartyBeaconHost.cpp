@@ -15,7 +15,7 @@ bool APartyBeaconHost::InitHostBeacon(int32 InTeamCount, int32 InTeamSize, int32
 	UE_LOG(LogBeacon, Verbose, TEXT("InitHostBeacon TeamCount:%d TeamSize:%d MaxSize:%d"), InTeamCount, InTeamSize, InMaxReservations);
 	if (InMaxReservations > 0)
 	{
-		State = ConstructObject<UPartyBeaconState>(GetPartyBeaconHostClass());
+		State = NewObject<UPartyBeaconState>(GetTransientPackage(), GetPartyBeaconHostClass());
 		if (State->InitState(InTeamCount, InTeamSize, InMaxReservations, InSessionName, InForceTeamNum))
 		{
 			return true;

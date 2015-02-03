@@ -224,6 +224,7 @@ UObject* UFactory::StaticImportObject
 	}
 	else
 	{
+		auto TransientPackage = GetTransientPackage();
 		// Try all automatic factories, sorted by priority.
 		for( TObjectIterator<UClass> It; It; ++It )
 		{
@@ -232,7 +233,7 @@ UObject* UFactory::StaticImportObject
 				UFactory* Default = It->GetDefaultObject<UFactory>();
 				if (Class->IsChildOf(Default->SupportedClass) && Default->ImportPriority >= 0)
 				{
-					Factories.Add( ConstructObject<UFactory>( *It ) );
+					Factories.Add(NewObject<UFactory>(TransientPackage, *It));
 				}
 			}
 		}

@@ -400,7 +400,7 @@ void FMatinee::BuildCurveEditor()
 {
 	if(!IData->CurveEdSetup)
 	{
-		IData->CurveEdSetup = ConstructObject<UInterpCurveEdSetup>( UInterpCurveEdSetup::StaticClass(), IData, NAME_None );
+		IData->CurveEdSetup = NewObject<UInterpCurveEdSetup>(IData, NAME_None);
 	}
 
 	// Create graph editor to work on MatineeData's CurveEd setup.
@@ -490,7 +490,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	GetLockCameraPitchFromConfig();
 
 	// Create options object.
-	Opt = ConstructObject<UMatineeOptions>( UMatineeOptions::StaticClass(), GetTransientPackage(), NAME_None, RF_Transactional );
+	Opt = NewObject<UMatineeOptions>(GetTransientPackage(), NAME_None, RF_Transactional);
 	check(Opt);
 
 	// Swap out regular UTransactor for our special one

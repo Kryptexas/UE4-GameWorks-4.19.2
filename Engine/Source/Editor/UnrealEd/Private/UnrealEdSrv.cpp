@@ -1929,7 +1929,7 @@ void CreateBoundingBoxBuilderBrush( UWorld* InWorld, const TArray<FPoly*> Select
 	{
 		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "BrushSet", "Brush Set"));
 
-		UCubeBuilder* CubeBuilder = ConstructObject<UCubeBuilder>(UCubeBuilder::StaticClass(), GetTransientPackage(), NAME_None, RF_Transactional);
+		UCubeBuilder* CubeBuilder = NewObject<UCubeBuilder>(GetTransientPackage(), NAME_None, RF_Transactional);
 		FVector Extent = BBox.GetExtent();
 		CubeBuilder->X = Extent.X * 2;
 		CubeBuilder->Y = Extent.Y * 2;

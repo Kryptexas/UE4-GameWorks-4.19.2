@@ -665,7 +665,7 @@ public:
 		FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>::EnterTool();
 
 		ALandscapeProxy* LandscapeProxy = this->EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
-		MeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), LandscapeProxy, NAME_None, RF_Transient);
+		MeshComponent = NewObject<UStaticMeshComponent>(LandscapeProxy, NAME_None, RF_Transient);
 		MeshComponent->StaticMesh = PlaneMesh;
 		MeshComponent->AttachTo(LandscapeProxy->GetRootComponent());
 		MeshComponent->RegisterComponent();

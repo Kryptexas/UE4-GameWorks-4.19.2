@@ -77,13 +77,14 @@ UExporter* UExporter::FindExporter( UObject* Object, const TCHAR* FileType )
 	}
 
 	UClass** E;
+	auto TransientPackage = GetTransientPackage();
 	for (UClass* TempClass = Object->GetClass(); TempClass != NULL; TempClass = TempClass->GetSuperClass())
 	{
 		const bool bFoundExporter = ((E = Exporters.Find( TempClass )) != NULL);
 
 		if( bFoundExporter )
 		{
-			return ConstructObject<UExporter>( *E );
+			return NewObject<UExporter>(TransientPackage, *E);
 		}
 	}
 		

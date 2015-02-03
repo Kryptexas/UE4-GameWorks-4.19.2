@@ -386,7 +386,7 @@ UPawnAction* UPawnAction::CreateActionInstance(UObject* WorldContextObject, TSub
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World && ActionClass)
 	{
-		return ConstructObject<UPawnAction>(ActionClass, World);
+		return NewObject<UPawnAction>(World, ActionClass);
 	}
 	return NULL;
 }

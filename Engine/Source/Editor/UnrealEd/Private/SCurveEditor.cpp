@@ -1955,7 +1955,7 @@ void SCurveEditor::OnCreateExternalCurveClicked()
 UObject* SCurveEditor::CreateCurveObject( TSubclassOf<UCurveBase> CurveType, UObject* PackagePtr, FName& AssetName )
 {
 	UObject* NewObj = NULL;
-	CurveFactory = Cast<UCurveFactory>(ConstructObject<UFactory>( UCurveFactory::StaticClass() ) );
+	CurveFactory = Cast<UCurveFactory>(NewObject<UFactory>(GetTransientPackage(), UCurveFactory::StaticClass()));
 	if(CurveFactory)
 	{
 		CurveFactory->CurveClass = CurveType;

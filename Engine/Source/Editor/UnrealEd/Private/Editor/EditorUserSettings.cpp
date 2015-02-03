@@ -12,7 +12,7 @@ UEditorUserSettings::UEditorUserSettings(const FObjectInitializer& ObjectInitial
 	//Default to high quality
 	MaterialQualityLevel = 1;
 	bMonitorEditorPerformance = true;
-	BlueprintFavorites = ConstructObject<UBlueprintPaletteFavorites>(UBlueprintPaletteFavorites::StaticClass(), this);
+	BlueprintFavorites = CreateDefaultSubobject<UBlueprintPaletteFavorites>(TEXT("BlueprintFavorites"));
 }
 
 void UEditorUserSettings::PostInitProperties()

@@ -46,12 +46,12 @@ void UParticleModuleVelocity::InitializeDefaults()
 {
 	if (!StartVelocity.Distribution)
 	{
-		StartVelocity.Distribution = NewNamedObject<UDistributionVectorUniform>(this, TEXT("DistributionStartVelocity"));
+		StartVelocity.Distribution = NewObject<UDistributionVectorUniform>(this, TEXT("DistributionStartVelocity"));
 	}
 
 	if (!StartVelocityRadial.Distribution)
 	{
-		StartVelocityRadial.Distribution = NewNamedObject<UDistributionFloatUniform>(this, TEXT("DistributionStartVelocityRadial"));
+		StartVelocityRadial.Distribution = NewObject<UDistributionFloatUniform>(this, TEXT("DistributionStartVelocityRadial"));
 	}
 }
 
@@ -163,7 +163,7 @@ void UParticleModuleVelocityInheritParent::InitializeDefaults()
 {
 	if (!Scale.Distribution)
 	{
-		UDistributionVectorConstant* DistributionScale = NewNamedObject<UDistributionVectorConstant>(this, TEXT("DistributionScale"));
+		UDistributionVectorConstant* DistributionScale = NewObject<UDistributionVectorConstant>(this, TEXT("DistributionScale"));
 		DistributionScale->Constant = FVector(1.0f, 1.0f, 1.0f);
 		Scale.Distribution = DistributionScale;
 	}
@@ -227,7 +227,7 @@ void UParticleModuleVelocityOverLifetime::InitializeDefaults()
 {
 	if (!VelOverLife.Distribution)
 	{
-		VelOverLife.Distribution = NewNamedObject<UDistributionVectorConstantCurve>(this, TEXT("DistributionVelOverLife"));
+		VelOverLife.Distribution = NewObject<UDistributionVectorConstantCurve>(this, TEXT("DistributionVelOverLife"));
 	}
 }
 
@@ -387,12 +387,12 @@ void UParticleModuleVelocityCone::InitializeDefaults()
 {
 	if (!Angle.Distribution)
 	{
-		Angle.Distribution = NewNamedObject<UDistributionFloatUniform>(this, TEXT("DistributionAngle"));
+		Angle.Distribution = NewObject<UDistributionFloatUniform>(this, TEXT("DistributionAngle"));
 	}
 
 	if (!Velocity.Distribution)
 	{
-		Velocity.Distribution = NewNamedObject<UDistributionFloatUniform>(this, TEXT("DistributionVelocity"));
+		Velocity.Distribution = NewObject<UDistributionFloatUniform>(this, TEXT("DistributionVelocity"));
 	}
 }
 

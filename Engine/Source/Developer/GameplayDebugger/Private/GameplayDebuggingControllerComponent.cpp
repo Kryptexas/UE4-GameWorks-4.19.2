@@ -217,7 +217,7 @@ void UGameplayDebuggingControllerComponent::BindAIDebugViewKeys()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!AIDebugViewInputComponent)
 	{
-		AIDebugViewInputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), GetOwner(), TEXT("AIDebugViewInputComponent0"));
+		AIDebugViewInputComponent = NewObject<UInputComponent>(GetOwner(), TEXT("AIDebugViewInputComponent0"));
 		AIDebugViewInputComponent->RegisterComponent();
 
 		AIDebugViewInputComponent->BindKey(EKeys::NumPadZero, IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0);

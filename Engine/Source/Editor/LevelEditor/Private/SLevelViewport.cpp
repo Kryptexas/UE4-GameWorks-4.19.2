@@ -740,7 +740,7 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, cons
 		DroppedObjects.Empty();
 
 		// Create a container object to hold the export text and pass it into the actor placement code
-		UExportTextContainer* NewContainer = ConstructObject<UExportTextContainer>(UExportTextContainer::StaticClass());
+		UExportTextContainer* NewContainer = NewObject<UExportTextContainer>();
 		NewContainer->ExportText = DragDropOp->ActorExportText;
 		DroppedObjects.Add(NewContainer);
 	}

@@ -34,7 +34,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 	HistoryManager.SetOnUpdateHistoryData(FOnUpdateHistoryData::CreateSP(this, &SReferenceViewer::OnUpdateHistoryData));
 
 	// Create the graph
-	GraphObj = ConstructObject<UEdGraph_ReferenceViewer>(UEdGraph_ReferenceViewer::StaticClass());
+	GraphObj = NewObject<UEdGraph_ReferenceViewer>();
 	GraphObj->Schema = UReferenceViewerSchema::StaticClass();
 	GraphObj->AddToRoot();
 

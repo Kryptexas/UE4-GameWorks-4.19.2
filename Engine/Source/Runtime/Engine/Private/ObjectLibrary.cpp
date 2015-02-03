@@ -69,7 +69,7 @@ void UObjectLibrary::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 
 class UObjectLibrary* UObjectLibrary::CreateLibrary(UClass* InBaseClass, bool bInHasBlueprintClasses, bool bInUseWeak)
 {
-	UObjectLibrary *NewLibrary = ConstructObject<UObjectLibrary>(UObjectLibrary::StaticClass());
+	UObjectLibrary *NewLibrary = NewObject<UObjectLibrary>();
 
 	NewLibrary->ObjectBaseClass = InBaseClass;
 	NewLibrary->bHasBlueprintClasses = bInHasBlueprintClasses;

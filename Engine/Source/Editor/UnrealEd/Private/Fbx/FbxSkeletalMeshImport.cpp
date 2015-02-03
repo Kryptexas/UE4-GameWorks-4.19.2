@@ -2785,7 +2785,7 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 		{
 			if (LODIndex == 0)
 			{
-				Result = NewNamedObject<UMorphTarget>(BaseSkelMesh, FName(*ShapeName));
+				Result = NewObject<UMorphTarget>(BaseSkelMesh, FName(*ShapeName));
 			}
 			else
 			{

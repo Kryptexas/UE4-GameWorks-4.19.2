@@ -162,7 +162,7 @@ void FDestructibleMeshEditorViewportClient::UpdateChunkSelection( TArray<int32> 
 	// make sure we have enough proxies to fill the selection array */
 	while(UnusedProxies.Num() < InSelectedChunkIndices.Num())
 	{
-		UnusedProxies.Add(ConstructObject<UDestructibleChunkParamsProxy>(UDestructibleChunkParamsProxy::StaticClass(), GetTransientPackage(), NAME_None, RF_NoFlags, NULL, false, NULL));
+		UnusedProxies.Add(NewObject<UDestructibleChunkParamsProxy>());
 	}
 
 	UDestructibleMesh* DestructibleMesh = DestructibleMeshEditorPtr.Pin()->GetDestructibleMesh();
@@ -439,7 +439,7 @@ void FDestructibleMeshEditorViewportClient::ImportFBXChunks()
 				TArray<FbxNode*> FbxMeshArray;
 				FFbxImporter->FillFbxMeshArray(FFbxImporter->Scene->GetRootNode(), FbxMeshArray, FFbxImporter);
 
- 				UFbxStaticMeshImportData* ImportData = ConstructObject<UFbxStaticMeshImportData>(UFbxStaticMeshImportData::StaticClass(), GetTransientPackage(), NAME_None, RF_NoFlags, NULL);
+				UFbxStaticMeshImportData* ImportData = NewObject<UFbxStaticMeshImportData>(GetTransientPackage(), NAME_None, RF_NoFlags, NULL);
 
 				TArray<UStaticMesh*> ChunkMeshes;
 
@@ -483,8 +483,7 @@ void SDestructibleMeshEditorViewport::Construct(const FArguments& InArgs)
 
 	SEditorViewport::Construct(SEditorViewport::FArguments());
 
-	PreviewComponent = ConstructObject<UDestructibleComponent>(
-		UDestructibleComponent::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient );
+	PreviewComponent = NewObject<UDestructibleComponent>(GetTransientPackage(), NAME_None, RF_Transient );
 
 	SetPreviewMesh(InArgs._ObjectToEdit);
 
@@ -606,7 +605,7 @@ void SDestructibleMeshEditorViewport::UpdatePreviewMesh(UDestructibleMesh* InDes
 
 	DestructibleMesh = InDestructibleMesh;
 
-	PreviewComponent = ConstructObject<UDestructibleComponent>(UDestructibleComponent::StaticClass());
+	PreviewComponent = NewObject<UDestructibleComponent>();
 
 	PreviewComponent->SetSkeletalMesh(InDestructibleMesh);
 

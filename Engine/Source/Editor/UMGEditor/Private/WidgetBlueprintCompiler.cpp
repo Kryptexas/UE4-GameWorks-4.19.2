@@ -310,7 +310,7 @@ void FWidgetBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 
 	if ( NewWidgetBlueprintClass == nullptr )
 	{
-		NewWidgetBlueprintClass = ConstructObject<UWidgetBlueprintGeneratedClass>(UWidgetBlueprintGeneratedClass::StaticClass(), Blueprint->GetOutermost(), FName(*NewClassName), RF_Public | RF_Transactional);
+		NewWidgetBlueprintClass = NewObject<UWidgetBlueprintGeneratedClass>(Blueprint->GetOutermost(), FName(*NewClassName), RF_Public | RF_Transactional);
 	}
 	else
 	{

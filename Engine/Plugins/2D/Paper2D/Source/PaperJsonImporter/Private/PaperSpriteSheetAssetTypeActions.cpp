@@ -112,7 +112,7 @@ void FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks(TArray<TWeakObjec
 			// Create one flipbook for every grouped flipbook name
 			if (SpriteFlipbookMap.Num() > 0)
 			{
-				UPaperFlipbookFactory* FlipbookFactory = ConstructObject<UPaperFlipbookFactory>(UPaperFlipbookFactory::StaticClass());
+				UPaperFlipbookFactory* FlipbookFactory = NewObject<UPaperFlipbookFactory>();
 
 				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "Paper2D_CreateFlipbooks", "Creating flipbooks from selection"), true, true);
 

@@ -818,7 +818,7 @@ static UPropertyBinding* GenerateBinder(UDelegateProperty* DelegateProperty, UOb
 			TSubclassOf<UPropertyBinding> BinderClass = UWidget::FindBinderClassForDestination(ReturnProperty);
 			if ( BinderClass != nullptr )
 			{
-				UPropertyBinding* Binder = ConstructObject<UPropertyBinding>(BinderClass, Container);
+				UPropertyBinding* Binder = NewObject<UPropertyBinding>(Container, BinderClass);
 				Binder->SourceObject = SourceObject;
 				Binder->SourcePath = BindingPath;
 				Binder->Bind(ReturnProperty, ScriptDelegate);

@@ -185,9 +185,9 @@ void FCascade::InitCascade(const EToolkitMode::Type Mode, const TSharedPtr< clas
 
 	CurrentLODIdx = 0;
 
-	EditorOptions = ConstructObject<UCascadeOptions>(UCascadeOptions::StaticClass());
+	EditorOptions = NewObject<UCascadeOptions>();
 	check(EditorOptions);
-	EditorConfig = ConstructObject<UCascadeConfiguration>(UCascadeConfiguration::StaticClass());
+	EditorConfig = NewObject<UCascadeConfiguration>();
 	check(EditorConfig);
 
 	FString Description;
@@ -237,9 +237,9 @@ void FCascade::InitCascade(const EToolkitMode::Type Mode, const TSharedPtr< clas
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.Init"), TEXT("Overview"), Description);
 	}
 
-	ParticleSystemComponent = ConstructObject<UCascadeParticleSystemComponent>(UCascadeParticleSystemComponent::StaticClass());
+	ParticleSystemComponent = NewObject<UCascadeParticleSystemComponent>();
 
-	LocalVectorFieldPreviewComponent = ConstructObject<UVectorFieldComponent>(UVectorFieldComponent::StaticClass());
+	LocalVectorFieldPreviewComponent = NewObject<UVectorFieldComponent>();
 
 	bIsSoloing = false;
 
@@ -924,7 +924,7 @@ void FCascade::OnNewModule(int32 Idx)
 	ParticleSystemComponent->PreEditChange(NULL);
 
 	// Construct it and add to selected emitter.
-	UParticleModule* NewModule = ConstructObject<UParticleModule>(NewModClass, ParticleSystem, NAME_None, RF_Transactional);
+	UParticleModule* NewModule = NewObject<UParticleModule>(ParticleSystem, NewModClass, NAME_None, RF_Transactional);
 	NewModule->ModuleEditorColor = FColor::MakeRandomColor();
 	NewModule->SetToSensibleDefaults(SelectedEmitter);
 	NewModule->LODValidity = 1;
@@ -996,7 +996,7 @@ void FCascade::OnNewEmitter()
 	UClass* NewEmitClass = UParticleSpriteEmitter::StaticClass();
 
 	// Construct it
-	UParticleEmitter* NewEmitter = ConstructObject<UParticleEmitter>(NewEmitClass, ParticleSystem, NAME_None, RF_Transactional);
+	UParticleEmitter* NewEmitter = NewObject<UParticleEmitter>(ParticleSystem, NewEmitClass, NAME_None, RF_Transactional);
 	UParticleLODLevel* LODLevel	= NewEmitter->GetLODLevel(0);
 	if (LODLevel == NULL)
 	{
@@ -1974,7 +1974,7 @@ void FCascade::CreateInternalWidgets()
 
 	if (!ParticleSystem->CurveEdSetup)
 	{
-		ParticleSystem->CurveEdSetup = ConstructObject<UInterpCurveEdSetup>(UInterpCurveEdSetup::StaticClass(), ParticleSystem, NAME_None, RF_Transactional);
+		ParticleSystem->CurveEdSetup = NewObject<UInterpCurveEdSetup>(ParticleSystem, NAME_None, RF_Transactional);
 	}
 
 	IDistributionCurveEditorModule* CurveEditorModule = &FModuleManager::LoadModuleChecked<IDistributionCurveEditorModule>( "DistCurveEditor" );
@@ -2676,7 +2676,7 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 	if (NewEmitClass == UParticleSpriteEmitter::StaticClass())
 	{
 		// Construct it
-		UParticleEmitter* NewEmitter = ConstructObject<UParticleEmitter>(NewEmitClass, DestSystem, NAME_None, RF_Transactional);
+		UParticleEmitter* NewEmitter = NewObject<UParticleEmitter>(DestSystem, NewEmitClass, NAME_None, RF_Transactional);
 
 		check(NewEmitter);
 
@@ -2696,7 +2696,7 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 		for (int32 LODIndex = 0; LODIndex < SourceEmitter->LODLevels.Num(); LODIndex++)
 		{
 			SourceLODLevel	= SourceEmitter->LODLevels[LODIndex];
-			NewLODLevel		= ConstructObject<UParticleLODLevel>(UParticleLODLevel::StaticClass(), NewEmitter, NAME_None, RF_Transactional);
+			NewLODLevel = NewObject<UParticleLODLevel>(NewEmitter, NAME_None, RF_Transactional);
 			check(NewLODLevel);
 
 			NewLODLevel->Level					= SourceLODLevel->Level;

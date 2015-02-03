@@ -59,7 +59,7 @@ UThumbnailInfo* FAssetTypeActions_StaticMesh::GetThumbnailInfo(UObject* Asset) c
 	UThumbnailInfo* ThumbnailInfo = StaticMesh->ThumbnailInfo;
 	if ( ThumbnailInfo == NULL )
 	{
-		ThumbnailInfo = ConstructObject<USceneThumbnailInfo>(USceneThumbnailInfo::StaticClass(), StaticMesh);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(StaticMesh);
 		StaticMesh->ThumbnailInfo = ThumbnailInfo;
 	}
 

@@ -29,7 +29,7 @@ FThumbnailPreviewScene::FThumbnailPreviewScene()
 						.SetTransactional(false))
 {
 	// A background sky sphere
- 	UStaticMeshComponent* BackgroundComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
+	UStaticMeshComponent* BackgroundComponent = NewObject<UStaticMeshComponent>();
  	BackgroundComponent->SetStaticMesh( GUnrealEd->GetThumbnailManager()->EditorSkySphere );
  	const float SkySphereScale = 2000.0f;
  	const FTransform BackgroundTransform(FRotator(0,0,0), FVector(0,0,0), FVector(SkySphereScale));
@@ -39,18 +39,18 @@ FThumbnailPreviewScene::FThumbnailPreviewScene()
 	DirectionalLight->Intensity = 0.2f;
 
 	// Add additional lights
-	UDirectionalLightComponent* DirectionalLight2 = ConstructObject<UDirectionalLightComponent>(UDirectionalLightComponent::StaticClass());
+	UDirectionalLightComponent* DirectionalLight2 = NewObject<UDirectionalLightComponent>();
 	DirectionalLight->Intensity = 5.0f;
 	AddComponent(DirectionalLight2, FTransform( FRotator(-40,-144.678, 0) ));
 
-	UDirectionalLightComponent* DirectionalLight3 = ConstructObject<UDirectionalLightComponent>(UDirectionalLightComponent::StaticClass());
+	UDirectionalLightComponent* DirectionalLight3 = NewObject<UDirectionalLightComponent>();
 	DirectionalLight->Intensity = 1.0f;
 	AddComponent(DirectionalLight3, FTransform( FRotator(299.235,144.993, 0) ));
 
 	// Add an infinite plane
 	const float FloorPlaneScale = 10000.f;
 	const FTransform FloorPlaneTransform(FRotator(-90.f,0,0), FVector::ZeroVector, FVector(FloorPlaneScale));
-	UStaticMeshComponent* FloorPlaneComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
+	UStaticMeshComponent* FloorPlaneComponent = NewObject<UStaticMeshComponent>();
 	FloorPlaneComponent->SetStaticMesh( GUnrealEd->GetThumbnailManager()->EditorPlane );
 	FloorPlaneComponent->SetMaterial( 0, GUnrealEd->GetThumbnailManager()->FloorPlaneMaterial );
 	FPreviewScene::AddComponent(FloorPlaneComponent, FloorPlaneTransform);
@@ -162,7 +162,7 @@ void FParticleSystemThumbnailScene::SetParticleSystem(UParticleSystem* ParticleS
 	// If no preview component currently existing - create it now and warm it up.
 	if ( ParticleSystem && !ParticleSystem->PreviewComponent)
 	{
-		ParticleSystem->PreviewComponent = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass());
+		ParticleSystem->PreviewComponent = NewObject<UParticleSystemComponent>();
 		ParticleSystem->PreviewComponent->Template = ParticleSystem;
 
 		ParticleSystem->PreviewComponent->ComponentToWorld.SetIdentity();
@@ -986,7 +986,7 @@ UActorComponent* FClassActorThumbnailScene::CreateComponentInstanceFromTemplate(
 	{
 		// We can not instance components that use the within keyword.
 		// Make a placeholder scene component instead.
-		USceneComponent* NewSceneComp = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), GetTransientPackage());
+		USceneComponent* NewSceneComp = NewObject<USceneComponent>();
 		NewComponent = NewSceneComp;
 		
 		// Preserve relative location, rotation, scale, parent, and children if the template was a scene component.

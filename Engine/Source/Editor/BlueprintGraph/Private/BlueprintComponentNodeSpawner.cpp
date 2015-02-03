@@ -118,7 +118,7 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 	if (!bIsTemplateNode)
 	{
 		UBlueprint* Blueprint = NewNode->GetBlueprint();
-		UActorComponent* ComponentTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass);
+		UActorComponent* ComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, ComponentClass);
 		ComponentTemplate->SetFlags(RF_ArchetypeObject);
 
 		Blueprint->ComponentTemplates.Add(ComponentTemplate);

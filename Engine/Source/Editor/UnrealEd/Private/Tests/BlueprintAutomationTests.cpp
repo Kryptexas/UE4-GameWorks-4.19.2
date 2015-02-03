@@ -938,7 +938,7 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 	FName ReconstructedName = MakeUniqueObjectName(TransientPackage, UBlueprint::StaticClass(), BlueprintName);
 	// reconstruct the initial blueprint (using the serialized data from its initial load)
 	EObjectFlags const StandardBlueprintFlags = RF_Public | RF_Standalone | RF_Transactional;
-	InitialBlueprint = ConstructObject<UBlueprint>(UBlueprint::StaticClass(), TransientPackage, ReconstructedName, StandardBlueprintFlags | RF_Transient);
+	InitialBlueprint = NewObject<UBlueprint>(TransientPackage, ReconstructedName, StandardBlueprintFlags | RF_Transient);
 	FObjectReader(InitialBlueprint, InitialLoadData);
 	{
 		TMap<UObject*, UObject*> ClassRedirects;

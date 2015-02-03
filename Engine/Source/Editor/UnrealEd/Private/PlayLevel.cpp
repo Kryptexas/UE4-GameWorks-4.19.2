@@ -2525,7 +2525,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	{
 		GameInstanceClass = UGameInstance::StaticClass();
 	}
-	UGameInstance* GameInstance = ConstructObject<UGameInstance>(GameInstanceClass, this);
+	UGameInstance* GameInstance = NewObject<UGameInstance>(this, GameInstanceClass);
 
 	// We need to temporarily add the GameInstance to the root because the InitPIE call can do garbage collection wiping out the GameInstance
 	GameInstance->AddToRoot();
@@ -2631,7 +2631,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	
 	if (!PieWorldContext->RunAsDedicated)
 	{
-		ViewportClient = ConstructObject<UGameViewportClient>(GameViewportClientClass,this);
+		ViewportClient = NewObject<UGameViewportClient>(this, GameViewportClientClass);
 		ViewportClient->Init(*PieWorldContext, GameInstance);
 		GameViewport = ViewportClient;
 		GameViewport->bIsPlayInEditorViewport = true;

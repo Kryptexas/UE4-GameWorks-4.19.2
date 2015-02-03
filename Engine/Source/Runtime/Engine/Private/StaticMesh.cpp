@@ -1832,7 +1832,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	{
 		if ( AssetImportData == NULL )
 		{
-			AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), this);
+			AssetImportData = NewObject<UAssetImportData>(this);
 		}
 
 		AssetImportData->SourceFilePath = SourceFilePath_DEPRECATED;
@@ -2096,7 +2096,7 @@ void UStaticMesh::CreateBodySetup()
 {
 	if (BodySetup==NULL)
 	{
-		BodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		BodySetup = NewObject<UBodySetup>(this);
 	}
 }
 
@@ -2104,7 +2104,7 @@ void UStaticMesh::CreateNavCollision()
 {
 	if (NavCollision == NULL && BodySetup != NULL)
 	{
-		NavCollision = ConstructObject<UNavCollision>(UNavCollision::StaticClass(), this);
+		NavCollision = NewObject<UNavCollision>(this);
 		NavCollision->Setup(BodySetup);
 	}
 }

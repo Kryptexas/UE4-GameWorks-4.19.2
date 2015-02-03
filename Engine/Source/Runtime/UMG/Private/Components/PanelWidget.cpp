@@ -112,7 +112,7 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 
 	Content->RemoveFromParent();
 
-	UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
+	UPanelSlot* Slot = NewObject<UPanelSlot>(this);
 	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;

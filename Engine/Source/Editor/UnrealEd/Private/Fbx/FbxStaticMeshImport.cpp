@@ -956,7 +956,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	}
 	else
 	{
-		StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), Flags | RF_Public);
+		StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), Flags | RF_Public);
 	}
 
 	if (StaticMesh->SourceModels.Num() < LODIndex+1)
@@ -1329,7 +1329,7 @@ void UnFbx::FFbxImporter::ImportStaticMeshSockets( UStaticMesh* StaticMesh )
 		if( !Socket )
 		{
 			// If the socket didn't exist create a new one now
-			Socket = ConstructObject<UStaticMeshSocket>( UStaticMeshSocket::StaticClass(), StaticMesh );
+			Socket = NewObject<UStaticMeshSocket>(StaticMesh);
 			check(Socket);
 
 			Socket->SocketName = SocketNode.SocketName;

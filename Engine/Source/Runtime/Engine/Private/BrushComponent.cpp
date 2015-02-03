@@ -718,7 +718,7 @@ void UBrushComponent::BuildSimpleBrushCollision()
 
 	if(BrushBodySetup == NULL)
 	{
-		BrushBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		BrushBodySetup = NewObject<UBodySetup>(this);
 		check(BrushBodySetup);
 	}
 

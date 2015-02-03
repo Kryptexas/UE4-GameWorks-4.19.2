@@ -1028,6 +1028,7 @@ public:
  * @return	a pointer of type T to a new object of the specified class
  */
 template< class T >
+DEPRECATED(4.8, "ConstructObject is deprecated. Use NewObject instead")
 T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage(), FName Name=NAME_None, EObjectFlags SetFlags=RF_NoFlags, UObject* Template=NULL, bool bCopyTransientsFromClassDefaults=false, struct FObjectInstancingGraph* InstanceGraph=NULL );
 
 /**
@@ -1037,10 +1038,21 @@ T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage
  * @param	Class		the class of object to construct
  */
 template< class T >
-T* NewObject(UObject* Outer=(UObject*)GetTransientPackage(),UClass* Class=T::StaticClass() )
+T* NewObject(UObject* Outer = (UObject*)GetTransientPackage(), UClass* Class = T::StaticClass(), FName Name = NAME_None, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
 {
-	FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
-	return ConstructObject<T>(Class,Outer);
+	if (Name == NAME_None)
+	{
+		FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject with empty name can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
+	}
+	checkf(Class, TEXT("NewObject called with a nullptr class object"));
+	checkSlow(Class->IsChildOf(T::StaticClass()));
+	return static_cast<T*>(StaticConstructObject(Class, Outer, Name, Flags, Template, bCopyTransientsFromClassDefaults, InInstanceGraph));
+}
+
+template< class T >
+T* NewObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+{
+	return NewObject<T>(Outer, T::StaticClass(), Name, Flags, Template, bCopyTransientsFromClassDefaults, InInstanceGraph);
 }
 
 /**
@@ -1051,9 +1063,10 @@ T* NewObject(UObject* Outer=(UObject*)GetTransientPackage(),UClass* Class=T::Sta
  * @param	Flags	The object flags for the new object.
  */
 template< class TClass >
+DEPRECATED(4.8, "NewNamedObject is deprecated. Use NewObject instead")
 TClass* NewNamedObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template=NULL)
 {
-	return ConstructObject<TClass>(TClass::StaticClass(), Outer, Name, Flags, Template);
+	return NewObject<TClass>(Outer, Name, Flags, Template);
 }
 
 

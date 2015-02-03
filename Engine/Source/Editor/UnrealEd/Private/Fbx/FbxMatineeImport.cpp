@@ -387,9 +387,9 @@ void FFbxImporter::ImportAnimatedProperty(float* Value, const TCHAR* ValueName, 
 	// If a track for this property was not found, create one.
 	if (PropertyTrack == NULL)
 	{
-		PropertyTrack = ConstructObject<UInterpTrackFloatProp>( UInterpTrackFloatProp::StaticClass(), MatineeGroup->Group, NAME_None, RF_Transactional );
+		PropertyTrack = NewObject<UInterpTrackFloatProp>(MatineeGroup->Group, NAME_None, RF_Transactional);
 		MatineeGroup->Group->InterpTracks.Add(PropertyTrack);
-		UInterpTrackInstFloatProp* PropertyTrackInst = ConstructObject<UInterpTrackInstFloatProp>( UInterpTrackInstFloatProp::StaticClass(), MatineeGroup, NAME_None, RF_Transactional );
+		UInterpTrackInstFloatProp* PropertyTrackInst = NewObject<UInterpTrackInstFloatProp>(MatineeGroup, NAME_None, RF_Transactional);
 		MatineeGroup->TrackInst.Add(PropertyTrackInst);
 		PropertyTrack->PropertyName = ValueName;
 		PropertyTrack->TrackTitle = ValueName;
@@ -461,12 +461,12 @@ void FFbxImporter::ImportAnimatedProperty(float* Value, const TCHAR* ValueName, 
 UInterpGroupInst* FFbxImporter::CreateMatineeGroup(AMatineeActor* InMatineeActor, AActor* Actor, FString GroupName)
 {
 	// There are no groups for this actor: create the Matinee group data structure.
-	UInterpGroup* MatineeGroupData = ConstructObject<UInterpGroup>( UInterpGroup::StaticClass(), InMatineeActor->MatineeData, NAME_None, RF_Transactional );
+	UInterpGroup* MatineeGroupData = NewObject<UInterpGroup>(InMatineeActor->MatineeData, NAME_None, RF_Transactional);
 	MatineeGroupData->GroupName = FName( *GroupName );
 	InMatineeActor->MatineeData->InterpGroups.Add(MatineeGroupData);
 
 	// Instantiate the Matinee group data structure.
-	UInterpGroupInst* MatineeGroup = ConstructObject<UInterpGroupInst>( UInterpGroupInst::StaticClass(), InMatineeActor, NAME_None, RF_Transactional );
+	UInterpGroupInst* MatineeGroup = NewObject<UInterpGroupInst>(InMatineeActor, NAME_None, RF_Transactional);
 	InMatineeActor->GroupInst.Add(MatineeGroup);
 	MatineeGroup->InitGroupInst(MatineeGroupData, Actor);
 	MatineeGroup->SaveGroupActorState();
@@ -598,9 +598,9 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 	// Add a Movement track if the node is animated and the group does not already have one.
 	if (MovementTrack == NULL && bNodeAnimated)
 	{
-		MovementTrack = ConstructObject<UInterpTrackMove>( UInterpTrackMove::StaticClass(), MatineeGroup->Group, NAME_None, RF_Transactional );
+		MovementTrack = NewObject<UInterpTrackMove>(MatineeGroup->Group, NAME_None, RF_Transactional);
 		MatineeGroup->Group->InterpTracks.Add(MovementTrack);
-		UInterpTrackInstMove* MovementTrackInst = ConstructObject<UInterpTrackInstMove>( UInterpTrackInstMove::StaticClass(), MatineeGroup, NAME_None, RF_Transactional );
+		UInterpTrackInstMove* MovementTrackInst = NewObject<UInterpTrackInstMove>(MatineeGroup, NAME_None, RF_Transactional);
 		MatineeGroup->TrackInst.Add(MovementTrackInst);
 		MovementTrackInst->InitTrackInst(MovementTrack);
 	}

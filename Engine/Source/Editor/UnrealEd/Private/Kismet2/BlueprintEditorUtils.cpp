@@ -1461,8 +1461,8 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			FName NewSkelClassName, NewGenClassName;
 			Blueprint->GetBlueprintClassNames(NewGenClassName, NewSkelClassName);
 
-			UClass* NewClass = ConstructObject<UClass>(
-				Blueprint->GetBlueprintClass(), Blueprint->GetOutermost(), NewGenClassName, RF_Public | RF_Transactional);
+			UClass* NewClass = NewObject<UClass>(
+				Blueprint->GetOutermost(), Blueprint->GetBlueprintClass(), NewGenClassName, RF_Public | RF_Transactional);
 
 			Blueprint->GeneratedClass = NewClass;
 			NewClass->ClassGeneratedBy = Blueprint;
@@ -1803,13 +1803,13 @@ UEdGraph* FBlueprintEditorUtils::CreateNewGraph(UObject* ParentScope, const FNam
 		}
 
 		// Construct new graph with the supplied name
-		NewGraph = ConstructObject<UEdGraph>(GraphClass, ParentScope, NAME_None, RF_Transactional);
+		NewGraph = NewObject<UEdGraph>(ParentScope, GraphClass, NAME_None, RF_Transactional);
 		bRename = true;
 	}
 	else
 	{
 		// Construct a new graph with a default name
-		NewGraph = ConstructObject<UEdGraph>(GraphClass, ParentScope, NAME_None, RF_Transactional);
+		NewGraph = NewObject<UEdGraph>(ParentScope, GraphClass, NAME_None, RF_Transactional);
 	}
 
 	NewGraph->Schema = SchemaClass;
@@ -5483,7 +5483,7 @@ UTimelineTemplate* FBlueprintEditorUtils::AddNewTimeline(UBlueprint* Blueprint, 
 		check(NULL != Blueprint->GeneratedClass);
 		// Construct new graph with the supplied name
 		const FName TimelineTemplateName = *UTimelineTemplate::TimelineVariableNameToTemplateName(TimelineVarName);
-		Timeline = NewNamedObject<UTimelineTemplate>(Blueprint->GeneratedClass, TimelineTemplateName, RF_Transactional);
+		Timeline = NewObject<UTimelineTemplate>(Blueprint->GeneratedClass, TimelineTemplateName, RF_Transactional);
 		Blueprint->Timelines.Add(Timeline);
 
 		// Potentially adjust variable names for any child blueprints

@@ -490,7 +490,7 @@ bool FWidgetAnimation_DEPRECATED::SerializeFromMismatchedTag(struct FPropertyTag
 UWidgetBlueprint::UWidgetBlueprint(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+	WidgetTree = CreateDefaultSubobject<UWidgetTree>(TEXT("WidgetTree"));
 	WidgetTree->SetFlags(RF_Transactional);
 }
 
@@ -512,7 +512,7 @@ void UWidgetBlueprint::PostLoad()
 			// Rename the old movie scene so we can reuse the name
 			OldAnim.MovieScene->Rename( *MakeUniqueObjectName( this, UMovieScene::StaticClass(), "MovieScene").ToString(), nullptr, REN_ForceNoResetLoaders | REN_DontCreateRedirectors | REN_DoNotDirty | REN_NonTransactional);
 
-			UWidgetAnimation* NewAnimation = ConstructObject<UWidgetAnimation>( UWidgetAnimation::StaticClass(), this, AnimName, RF_Transactional );
+			UWidgetAnimation* NewAnimation = NewObject<UWidgetAnimation>(this, AnimName, RF_Transactional);
 
 			OldAnim.MovieScene->Rename(*AnimName.ToString(), NewAnimation, REN_ForceNoResetLoaders | REN_DontCreateRedirectors | REN_DoNotDirty | REN_NonTransactional );
 

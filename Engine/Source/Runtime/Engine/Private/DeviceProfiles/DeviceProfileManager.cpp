@@ -135,7 +135,7 @@ UDeviceProfileManager::UDeviceProfileManager( const FObjectInitializer& ObjectIn
 
 UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName )
 {
-	UDeviceProfile* NewProfile = ConstructObject<UDeviceProfile>( UDeviceProfile::StaticClass(), GetTransientPackage(), *ProfileName, RF_Transient|RF_Public);
+	UDeviceProfile* NewProfile = NewObject<UDeviceProfile>(GetTransientPackage(), *ProfileName, RF_Transient | RF_Public);
 	Profiles.Add( NewProfile );
 
 	// Inform the UI that the device list has changed
@@ -150,7 +150,7 @@ UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName
 	UDeviceProfile* DeviceProfile = FindObject<UDeviceProfile>( GetTransientPackage(), *ProfileName );
 	if( DeviceProfile == NULL )
 	{
-		DeviceProfile = ConstructObject<UDeviceProfile>( UDeviceProfile::StaticClass(), GetTransientPackage(), *ProfileName, RF_Transient|RF_Public);
+		DeviceProfile = NewObject<UDeviceProfile>(GetTransientPackage(), *ProfileName, RF_Transient | RF_Public);
 		DeviceProfile->LoadConfig( UDeviceProfile::StaticClass(), *DeviceProfileFileName );
 		DeviceProfile->BaseProfileName = ParentName != TEXT("") ? ParentName : DeviceProfile->BaseProfileName;
 		DeviceProfile->DeviceType = ProfileType;

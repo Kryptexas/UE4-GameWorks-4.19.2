@@ -32,7 +32,7 @@ FOnlineSubsystemImpl::~FOnlineSubsystemImpl()
 
 void FOnlineSubsystemImpl::InitNamedInterfaces()
 {
-	NamedInterfaces = ConstructObject<UNamedInterfaces>(UNamedInterfaces::StaticClass());
+	NamedInterfaces = NewObject<UNamedInterfaces>();
 	if (NamedInterfaces)
 	{
 		NamedInterfaces->Initialize();

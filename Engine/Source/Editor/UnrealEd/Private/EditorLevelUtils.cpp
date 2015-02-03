@@ -563,7 +563,7 @@ namespace EditorLevelUtils
 		if (UEditorEngine::IsUsingWorldAssets())
 		{
 			// Create a new world
-			UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
+			UWorldFactory* Factory = NewObject<UWorldFactory>();
 			Factory->WorldType = EWorldType::Inactive;
 			UPackage* Pkg = CreatePackage(NULL, NULL);
 			FName WorldName(TEXT("NewWorld"));

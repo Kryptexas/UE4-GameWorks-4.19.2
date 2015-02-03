@@ -341,7 +341,7 @@ void SAnimationRefPoseViewport::Construct(const FArguments& InArgs)
 	RefFrameIndexPropertyHandle = InArgs._RefFrameIndexPropertyHandle;
 
 	// Create the preview component
-	PreviewComponent = ConstructObject<UDebugSkelMeshComponent>( UDebugSkelMeshComponent::StaticClass() );
+	PreviewComponent = NewObject<UDebugSkelMeshComponent>();
 	PreviewComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	PreviewScene.AddComponent( PreviewComponent, FTransform::Identity );
 

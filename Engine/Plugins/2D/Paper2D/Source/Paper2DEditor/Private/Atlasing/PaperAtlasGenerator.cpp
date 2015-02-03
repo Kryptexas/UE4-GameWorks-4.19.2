@@ -168,7 +168,7 @@ void FPaperAtlasGenerator::HandleAssetChangedEvent(UPaperSpriteAtlas* Atlas)
 			else
 			{
 				// The texture never existed - all sprites referencing this MUST be dirty and MUST be updated
-				RemappedAtlasTextures.Add(NewNamedObject<UTexture2D>(Atlas, NAME_None, RF_Public));
+				RemappedAtlasTextures.Add(NewObject<UTexture2D>(Atlas, NAME_None, RF_Public));
 				RemappedAtlasForceDirty.Add(true);
 			}
 		}

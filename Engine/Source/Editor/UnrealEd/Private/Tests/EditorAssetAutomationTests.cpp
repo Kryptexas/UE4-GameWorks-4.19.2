@@ -426,7 +426,7 @@ bool FLogAssetCreationStatsCommand::Update()
 #define ASSET_TEST_CREATE( TAssetClass, TFactoryClass, NamePrefix, ExtraCommands ) \
 { \
 	FString NameString = FString::Printf(TEXT("%s_%s"), TEXT(#NamePrefix), *CurrentTimestamp); \
-	TFactoryClass* FactoryInst = ConstructObject<TFactoryClass>(TFactoryClass::StaticClass()); \
+	TFactoryClass* FactoryInst = NewObject<TFactoryClass>(); \
 	ExtraCommands \
 	TSharedPtr<CreateAssetHelper::FCreateAssetInfo> CreateInfo = MakeShareable(new CreateAssetHelper::FCreateAssetInfo(NameString, GamePath, TAssetClass::StaticClass(), FactoryInst, BuildStats)); \
 	AssetInfos.Add(CreateInfo); \
@@ -440,7 +440,7 @@ bool FLogAssetCreationStatsCommand::Update()
 	UClass* FactoryClass = StaticLoadClass(UFactory::StaticClass(), NULL, TEXT(#TFactoryClassName), NULL, LOAD_None, NULL); \
 	if (FactoryClass) \
 	{ \
-		UFactory* FactoryInst = ConstructObject<UFactory>(FactoryClass); \
+		UFactory* FactoryInst = NewObject<UFactory>(GetTransientPackage(), FactoryClass); \
 		ExtraCommands \
 		UClass* AssetClass = StaticLoadClass(UObject::StaticClass(), NULL, TEXT(#TAssetClassName), NULL, LOAD_None, NULL); \
 		TSharedPtr<CreateAssetHelper::FCreateAssetInfo> CreateInfo = MakeShareable(new CreateAssetHelper::FCreateAssetInfo(NameString, GamePath, AssetClass, FactoryInst, BuildStats)); \
@@ -821,7 +821,7 @@ namespace ImportExportAssetHelper
 			{
 				GWarn->BeginSlowTask(LOCTEXT("ImportSlowTask", "Importing"), true);
 
-				UFactory* ImportFactory = ConstructObject<UFactory>(FactoryClass);
+				UFactory* ImportFactory = NewObject<UFactory>(GetTransientPackage(), FactoryClass);
 
 				//Apply any custom settings to the factory
 				AutomationEditorCommonUtils::ApplyCustomFactorySettings(ImportFactory, FactorySettings);

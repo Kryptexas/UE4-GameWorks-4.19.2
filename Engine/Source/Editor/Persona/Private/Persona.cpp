@@ -650,7 +650,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	check(PreviewComponent == NULL);
 
 	// Create the preview component
-	PreviewComponent = ConstructObject<UDebugSkelMeshComponent>(UDebugSkelMeshComponent::StaticClass(), GetTransientPackage());
+	PreviewComponent = NewObject<UDebugSkelMeshComponent>();
 
 	// note: we add to root here (rather than using RF_Standalone) as all standalone objects will be cleaned up when we switch
 	// preview worlds (in UWorld::CleanupWorld), but we want this to stick around while Persona exists
@@ -2098,14 +2098,14 @@ void FPersona::DuplicateAndSelectSocket( const FSelectedSocketInfo& SocketInfoTo
 		TargetSkeleton->Modify();
 		bModifiedSkeleton = true;
 
-		NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), TargetSkeleton );
+		NewSocket = NewObject<USkeletalMeshSocket>(TargetSkeleton);
 		check(NewSocket);
 	}
 	else if ( Mesh )
 	{
 		Mesh->Modify();
 
-		NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), Mesh );
+		NewSocket = NewObject<USkeletalMeshSocket>(Mesh);
 		check(NewSocket);
 	}
 	else 
@@ -2187,7 +2187,7 @@ bool FPersona::DoesSocketAlreadyExist( const USkeletalMeshSocket* InSocket, cons
 
 USkeletalMeshComponent*	FPersona::CreateNewSkeletalMeshComponent()
 {
-	USkeletalMeshComponent* NewComp = ConstructObject<USkeletalMeshComponent>(USkeletalMeshComponent::StaticClass());
+	USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>();
 	AdditionalMeshes.Add(NewComp);
 	NewComp->SetMasterPoseComponent(GetPreviewMeshComponent());
 	return NewComp;
@@ -2255,7 +2255,7 @@ bool FPersona::AttachObjectToPreviewComponent( UObject* Object, FName AttachTo, 
 		WorldSettings->SetFlags(RF_Transactional);
 		WorldSettings->Modify();
 
-		USceneComponent* SceneComponent = ConstructObject<USceneComponent>(ComponentClass, WorldSettings, NAME_None, RF_Transactional);
+		USceneComponent* SceneComponent = NewObject<USceneComponent>(WorldSettings, ComponentClass, NAME_None, RF_Transactional);
 
 		FComponentAssetBrokerage::AssignAssetToComponent(SceneComponent, Object);
 
@@ -3016,7 +3016,7 @@ void FPersona::OnImportAsset(enum EFBXImportType DefaultImportType)
 	{
 		AssetPath = NewAnimDlg->GetAssetPath();
 	
-		UFbxImportUI* ImportUI = ConstructObject<UFbxImportUI>(UFbxImportUI::StaticClass());
+		UFbxImportUI* ImportUI = NewObject<UFbxImportUI>();
 		ImportUI->Skeleton = TargetSkeleton;
 		ImportUI->MeshTypeToImport = DefaultImportType;
 

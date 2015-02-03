@@ -247,7 +247,7 @@ void UPhysicsConstraintComponent::OnRegister()
 
 	if (SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
-		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
+		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
 
 		UpdateSpriteTexture();
 		SpriteComponent->AttachTo(this);

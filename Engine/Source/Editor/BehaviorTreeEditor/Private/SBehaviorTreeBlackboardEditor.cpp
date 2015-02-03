@@ -249,7 +249,7 @@ void SBehaviorTreeBlackboardEditor::HandleKeyClassPicked(UClass* InClass)
 
 	FBlackboardEntry Entry;
 	Entry.EntryName = FName(*NewKeyName);
-	Entry.KeyType = ConstructObject<UBlackboardKeyType>(InClass, BlackboardData);		
+	Entry.KeyType = NewObject<UBlackboardKeyType>(BlackboardData, InClass);
 
 	BlackboardData->Keys.Add(Entry);
 

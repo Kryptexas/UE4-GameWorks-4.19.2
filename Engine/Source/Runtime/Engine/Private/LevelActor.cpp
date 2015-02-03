@@ -307,7 +307,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 		// Spawn in the same level as the owner if we have one. @warning: this relies on the outer of an actor being the level.
 		LevelToSpawnIn = (SpawnParameters.Owner != NULL) ? CastChecked<ULevel>(SpawnParameters.Owner->GetOuter()) : CurrentLevel;
 	}
-	AActor* Actor = ConstructObject<AActor>( Class, LevelToSpawnIn, SpawnParameters.Name, SpawnParameters.ObjectFlags, Template );
+	AActor* Actor = NewObject<AActor>(LevelToSpawnIn, Class, SpawnParameters.Name, SpawnParameters.ObjectFlags, Template);
 	check(Actor);
 
 #if WITH_EDITOR

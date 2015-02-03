@@ -689,7 +689,7 @@ static UCanvas* GetCanvasByName(FName CanvasName)
 		UCanvas* CanvasObject = FindObject<UCanvas>(GetTransientPackage(),*CanvasName.ToString());
 		if( !CanvasObject )
 		{
-			CanvasObject = NewNamedObject<UCanvas>(GetTransientPackage(), CanvasName);
+			CanvasObject = NewObject<UCanvas>(GetTransientPackage(), CanvasName);
 			CanvasObject->AddToRoot();
 		}
 

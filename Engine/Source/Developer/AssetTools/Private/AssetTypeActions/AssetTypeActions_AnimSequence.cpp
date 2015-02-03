@@ -89,7 +89,7 @@ void FAssetTypeActions_AnimSequence::ExecuteReimportWithNewSource(TArray<TWeakOb
 void FAssetTypeActions_AnimSequence::ExecuteNewAnimComposite(TArray<TWeakObjectPtr<UAnimSequence>> Objects) const
 {
 	const FString DefaultSuffix = TEXT("_Composite");
-	UAnimCompositeFactory* Factory = ConstructObject<UAnimCompositeFactory>(UAnimCompositeFactory::StaticClass());
+	UAnimCompositeFactory* Factory = NewObject<UAnimCompositeFactory>();
 
 	CreateAnimationAssets(Objects, UAnimComposite::StaticClass(), Factory, DefaultSuffix, FOnConfigureFactory::CreateSP(this, &FAssetTypeActions_AnimSequence::ConfigureFactoryForAnimComposite));
 }
@@ -97,7 +97,7 @@ void FAssetTypeActions_AnimSequence::ExecuteNewAnimComposite(TArray<TWeakObjectP
 void FAssetTypeActions_AnimSequence::ExecuteNewAnimMontage(TArray<TWeakObjectPtr<UAnimSequence>> Objects) const
 {
 	const FString DefaultSuffix = TEXT("_Montage");
-	UAnimMontageFactory* Factory = ConstructObject<UAnimMontageFactory>(UAnimMontageFactory::StaticClass());
+	UAnimMontageFactory* Factory = NewObject<UAnimMontageFactory>();
 
 	CreateAnimationAssets(Objects, UAnimMontage::StaticClass(), Factory, DefaultSuffix, FOnConfigureFactory::CreateSP(this, &FAssetTypeActions_AnimSequence::ConfigureFactoryForAnimMontage));
 }

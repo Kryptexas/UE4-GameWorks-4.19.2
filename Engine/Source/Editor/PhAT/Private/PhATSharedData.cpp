@@ -59,7 +59,7 @@ FPhATSharedData::FPhATSharedData()
 	MouseHandle = NewObject<UPhysicsHandleComponent>();
 
 	// Construct sim options.
-	EditorSimOptions = ConstructObject<UPhATSimOptions>(UPhATSimOptions::StaticClass());
+	EditorSimOptions = NewObject<UPhATSimOptions>(GetTransientPackage(), TEXT("EditorSimOptions"));
 	check(EditorSimOptions);
 
 	EditorSimOptions->HandleLinearDamping = MouseHandle->LinearDamping;
@@ -107,7 +107,7 @@ void FPhATSharedData::Initialize()
 	EditorSkelMesh = PreviewMesh;
 
 	// Create SkeletalMeshComponent for rendering skeletal mesh
-	EditorSkelComp = ConstructObject<UPhATEdSkeletalMeshComponent>(UPhATEdSkeletalMeshComponent::StaticClass());
+	EditorSkelComp = NewObject<UPhATEdSkeletalMeshComponent>();
 	EditorSkelComp->SharedData = this;
 	
 	// first disable collision first to avoid creating physics body
@@ -118,7 +118,7 @@ void FPhATSharedData::Initialize()
 	UStaticMesh* FloorMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PhAT_FloorBox.PhAT_FloorBox"), NULL, LOAD_None, NULL);
 	check(FloorMesh);
 
-	EditorFloorComp = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
+	EditorFloorComp = NewObject<UStaticMeshComponent>();
 	EditorFloorComp->StaticMesh = FloorMesh;
 	EditorFloorComp->SetRelativeScale3D(FVector(4.f));
 

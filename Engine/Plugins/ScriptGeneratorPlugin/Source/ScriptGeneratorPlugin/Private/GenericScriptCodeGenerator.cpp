@@ -157,7 +157,7 @@ FString FGenericScriptCodeGenerator::ExportAdditionalClassGlue(const FString& Cl
 		GeneratedGlue += TEXT("\r\n{\r\n");
 		GeneratedGlue += TEXT("\tUObject* Outer = NULL;\r\n");
 		GeneratedGlue += TEXT("\tFName Name = FName(\"ScriptObject\");\r\n");
-		GeneratedGlue += FString::Printf(TEXT("\tUObject* Obj = NewNamedObject<%s>(Outer, Name);\r\n"), *ClassNameCPP);
+		GeneratedGlue += FString::Printf(TEXT("\tUObject* Obj = NewObject<%s>(Outer, Name);\r\n"), *ClassNameCPP);
 		GeneratedGlue += TEXT("\tif (Obj)\r\n\t{\r\n");
 		GeneratedGlue += TEXT("\t\tFScriptObjectReferencer::Get().AddObjectReference(Obj);\r\n");
 		GeneratedGlue += TEXT("\t\t// @todo: Register the object with the script context here\r\n");

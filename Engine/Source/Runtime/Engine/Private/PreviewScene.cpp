@@ -34,12 +34,12 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 
 	GetScene()->UpdateDynamicSkyLight(FLinearColor::White * CVS.SkyBrightness, FLinearColor::Black);
 
-	DirectionalLight = ConstructObject<UDirectionalLightComponent>(UDirectionalLightComponent::StaticClass());
+	DirectionalLight = NewObject<UDirectionalLightComponent>(GetTransientPackage(), TEXT("DirectionalLight"));
 	DirectionalLight->Intensity = CVS.LightBrightness;
 	DirectionalLight->LightColor = FColor::White;
 	AddComponent(DirectionalLight, FTransform(CVS.LightRotation));
 
-	LineBatcher = ConstructObject<ULineBatchComponent>(ULineBatchComponent::StaticClass());
+	LineBatcher = NewObject<ULineBatchComponent>(GetTransientPackage(), TEXT("LineBatcher"));
 	AddComponent(LineBatcher, FTransform::Identity);
 }
 

@@ -2443,7 +2443,7 @@ UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDe
 		// Construct the sub-object
 		UE_LOG( LogNetTraffic, Log, TEXT( "UActorChannel::ReadContentBlockHeader: Instantiating sub-object. Class: %s, Actor: %s" ), *SubObjClass->GetName(), *Actor->GetName() );
 
-		SubObj = ConstructObject< UObject >( SubObjClass, Actor );
+		SubObj = NewObject< UObject >(Actor, SubObjClass);
 
 		// Sanity check some things
 		check( SubObj != NULL );

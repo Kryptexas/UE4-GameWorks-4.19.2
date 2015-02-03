@@ -186,7 +186,7 @@ void ULocalPlayer::InitOnlineSession()
 	if (OnlineSession == NULL)
 	{
 		UClass* SpawnClass = GetOnlineSessionClass();
-		OnlineSession = ConstructObject<UOnlineSession>(SpawnClass, this);
+		OnlineSession = NewObject<UOnlineSession>(this, SpawnClass);
 		if (OnlineSession)
 		{
 			UWorld* World = GetWorld();

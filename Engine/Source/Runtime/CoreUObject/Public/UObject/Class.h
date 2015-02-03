@@ -2546,6 +2546,7 @@ FORCEINLINE bool UObject::Implements() const
  * @return	a pointer of type T to a new object of the specified class
  */
 template< class T >
+DEPRECATED(4.8, "ConstructObject is deprecated. Use NewObject instead")
 T* ConstructObject(UClass* Class, UObject* Outer, FName Name, EObjectFlags SetFlags, UObject* Template, bool bCopyTransientsFromClassDefaults, struct FObjectInstancingGraph* InstanceGraph )
 {
 	checkf(Class, TEXT("ConstructObject called with a NULL class object"));

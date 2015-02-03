@@ -259,7 +259,7 @@ namespace EditorBuildPromotionTestUtils
 	static UMaterial* CreateMaterialFromTexture(UTexture* InTexture)
 	{
 		// Create the factory used to generate the asset
-		UMaterialFactoryNew* Factory = ConstructObject<UMaterialFactoryNew>(UMaterialFactoryNew::StaticClass());
+		UMaterialFactoryNew* Factory = NewObject<UMaterialFactoryNew>();
 		Factory->InitialTexture = InTexture;
 
 
@@ -600,7 +600,7 @@ namespace EditorBuildPromotionTestUtils
 
 			ensure(NULL != Cast<UBlueprintGeneratedClass>(InBlueprint->GeneratedClass));
 			// Then create a new template object, and add to array in
-			UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, InBlueprint->GeneratedClass);
+			UActorComponent* NewTemplate = NewObject<UActorComponent>(InBlueprint->GeneratedClass, ComponentClass);
 			NewTemplate->SetFlags(RF_ArchetypeObject);
 			InBlueprint->ComponentTemplates.Add(NewTemplate);
 
@@ -2350,7 +2350,7 @@ namespace BuildPromotionTestHelper
 	const FString FilePath = AutomationTestSettings->BuildPromotionTest.ImportWorkflow.ImportSetting.ImportFilePath.FilePath; \
 	if (FilePath.Len() > 0) \
 	{ \
-		TFactoryClass* FactoryInst = ConstructObject<TFactoryClass>(TFactoryClass::StaticClass()); \
+		TFactoryClass* FactoryInst = NewObject<TFactoryClass>(); \
 		ExtraSettings \
 		AutomationEditorCommonUtils::ApplyCustomFactorySettings(FactoryInst, AutomationTestSettings->BuildPromotionTest.ImportWorkflow.ImportSetting.FactorySettings); \
 		ClassVariable = Cast<TObjectClass>(EditorBuildPromotionTestUtils::ImportAsset(FactoryInst, FilePath)); \
@@ -2416,7 +2416,7 @@ namespace BuildPromotionTestHelper
 			{
 				const FString BaseFileName = FPaths::GetPath(SurroundFilePath) / FPaths::GetBaseFilename(SurroundFilePath).LeftChop(3);
 
-				USoundSurroundFactory* FactoryInst = ConstructObject<USoundSurroundFactory>(USoundSurroundFactory::StaticClass());
+				USoundSurroundFactory* FactoryInst = NewObject<USoundSurroundFactory>();
 				AutomationEditorCommonUtils::ApplyCustomFactorySettings(FactoryInst, AutomationTestSettings->BuildPromotionTest.ImportWorkflow.SurroundSound.FactorySettings); 
 
 				const FString SurroundChannels[] = { TEXT("_fl"), TEXT("_fr"), TEXT("_fc"), TEXT("_lf"), TEXT("_sl"), TEXT("_sr"), TEXT("_bl"), TEXT("_br") };
@@ -2464,7 +2464,7 @@ namespace BuildPromotionTestHelper
 					if (FactoryClass)
 					{
 						//Create the factory and import the asset
-						UFactory* FactoryInst = ConstructObject<UFactory>(FactoryClass);
+						UFactory* FactoryInst = NewObject<UFactory>(GetTransientPackage(), FactoryClass);
 						AutomationEditorCommonUtils::ApplyCustomFactorySettings(FactoryInst, AssetsToImport[i].FactorySettings);
 						UObject* NewObject = EditorBuildPromotionTestUtils::ImportAsset(FactoryInst, FilePath);
 						if (NewObject)
@@ -2988,7 +2988,7 @@ namespace BuildPromotionTestHelper
 		bool ContentBrowser_CreateAParticleSystem_Part1()
 		{
 			//Create a Particle system
-			UParticleSystemFactoryNew* PSFactory = ConstructObject<UParticleSystemFactoryNew>(UParticleSystemFactoryNew::StaticClass());
+			UParticleSystemFactoryNew* PSFactory = NewObject<UParticleSystemFactoryNew>();
 			const FString& PSName(TEXT("BP_ParticleSystem"));
 			CreatedPS = Cast<UParticleSystem>(EditorBuildPromotionTestUtils::CreateAsset(PSFactory, UParticleSystem::StaticClass(), PSName));
 			if (CreatedPS)
@@ -3093,7 +3093,7 @@ namespace BuildPromotionTestHelper
 
 			if (FirstBlueprintMesh && SecondBlueprintMesh && CreatedPS)
 			{
-				UBlueprintFactory* Factory = ConstructObject<UBlueprintFactory>(UBlueprintFactory::StaticClass());
+				UBlueprintFactory* Factory = NewObject<UBlueprintFactory>();
 				Factory->ParentClass = AActor::StaticClass();
 
 				const FString PackageName = EditorBuildPromotionTestUtils::GetGamePath() + TEXT("/") + EditorBuildPromotionTestUtils::BlueprintNameString;

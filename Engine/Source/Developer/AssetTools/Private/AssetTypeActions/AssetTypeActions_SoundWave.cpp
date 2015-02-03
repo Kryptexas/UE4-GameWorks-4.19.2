@@ -112,7 +112,7 @@ void FAssetTypeActions_SoundWave::ExecuteCreateSoundCue(TArray<TWeakObjectPtr<US
 			CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackagePath, Name);
 
 			// Create the factory used to generate the asset
-			USoundCueFactoryNew* Factory = ConstructObject<USoundCueFactoryNew>(USoundCueFactoryNew::StaticClass());
+			USoundCueFactoryNew* Factory = NewObject<USoundCueFactoryNew>();
 			Factory->InitialSoundWave = Object;
 
 			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
@@ -133,7 +133,7 @@ void FAssetTypeActions_SoundWave::ExecuteCreateSoundCue(TArray<TWeakObjectPtr<US
 				CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
 
 				// Create the factory used to generate the asset
-				USoundCueFactoryNew* Factory = ConstructObject<USoundCueFactoryNew>(USoundCueFactoryNew::StaticClass());
+				USoundCueFactoryNew* Factory = NewObject<USoundCueFactoryNew>();
 				Factory->InitialSoundWave = Object;
 
 				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");

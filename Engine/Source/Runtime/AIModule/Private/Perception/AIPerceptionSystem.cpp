@@ -8,6 +8,8 @@
 #include "Perception/AISense_Touch.h"
 #include "Perception/AISense_Prediction.h"
 #include "Perception/AISense_Damage.h"
+#include "Perception/AISenseConfig.h"
+#include "Perception/AISenseEvent.h"
 
 DECLARE_CYCLE_STAT(TEXT("Perception System"),STAT_AI_PerceptionSys,STATGROUP_AI);
 
@@ -60,7 +62,7 @@ void UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseClass)
 
 	if (Senses[SenseID] == nullptr)
 	{
-		Senses[SenseID] = ConstructObject<UAISense>(SenseClass, this);
+		Senses[SenseID] = NewObject<UAISense>(this, SenseClass);
 		check(Senses[SenseID]);
 #if !UE_BUILD_SHIPPING
 		DebugSenseColors[SenseID] = Senses[SenseID]->GetDebugColor();

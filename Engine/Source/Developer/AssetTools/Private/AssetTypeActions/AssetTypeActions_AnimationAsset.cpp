@@ -76,7 +76,7 @@ UThumbnailInfo* FAssetTypeActions_AnimationAsset::GetThumbnailInfo(UObject* Asse
 	UThumbnailInfo* ThumbnailInfo = Anim->ThumbnailInfo;
 	if (ThumbnailInfo == NULL)
 	{
-		ThumbnailInfo = ConstructObject<USceneThumbnailInfo>(USceneThumbnailInfo::StaticClass(), Anim);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(Anim);
 		Anim->ThumbnailInfo = ThumbnailInfo;
 	}
 

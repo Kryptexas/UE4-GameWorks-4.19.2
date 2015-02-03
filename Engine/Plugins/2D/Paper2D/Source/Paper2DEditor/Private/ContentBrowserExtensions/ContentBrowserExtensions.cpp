@@ -57,7 +57,7 @@ struct FCreateSpriteFromTextureExtension : public FContentBrowserSelectedAssetEx
 			UTexture2D* Texture = *TextureIt;
 
 			// Create the factory used to generate the sprite
-			UPaperSpriteFactory* SpriteFactory = ConstructObject<UPaperSpriteFactory>(UPaperSpriteFactory::StaticClass());
+			UPaperSpriteFactory* SpriteFactory = NewObject<UPaperSpriteFactory>();
 			SpriteFactory->InitialTexture = Texture;
 
 			// Create the sprite
@@ -141,7 +141,7 @@ struct FCreateTileSetFromTextureExtension : public FContentBrowserSelectedAssetE
 			UTexture2D* Texture = *TextureIt;
 
 			// Create the factory used to generate the tile set
-			UPaperTileSetFactory* TileSetFactory = ConstructObject<UPaperTileSetFactory>(UPaperTileSetFactory::StaticClass());
+			UPaperTileSetFactory* TileSetFactory = NewObject<UPaperTileSetFactory>();
 			TileSetFactory->InitialTexture = Texture;
 
 			// Get a unique name for the tile set

@@ -37,11 +37,11 @@ UDragDropOperation* UWidgetBlueprintLibrary::CreateDragDropOperation(TSubclassOf
 {
 	if ( Operation )
 	{
-		return ConstructObject<UDragDropOperation>(Operation);
+		return NewObject<UDragDropOperation>(GetTransientPackage(), Operation);
 	}
 	else
 	{
-		return ConstructObject<UDragDropOperation>(UDragDropOperation::StaticClass());
+		return NewObject<UDragDropOperation>();
 	}
 }
 

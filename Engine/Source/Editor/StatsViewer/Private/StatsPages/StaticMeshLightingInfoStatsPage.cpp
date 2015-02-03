@@ -103,7 +103,7 @@ struct StaticMeshLightingInfoStatsGenerator
 				bTextureMapping, 
 				bHasLightmapTexCoords) )
 		{
-			UStaticMeshLightingInfo* Entry = ConstructObject<UStaticMeshLightingInfo>(UStaticMeshLightingInfo::StaticClass());
+			UStaticMeshLightingInfo* Entry = NewObject<UStaticMeshLightingInfo>();
 			Entry->AddToRoot();
 			OutObjects.Add(Entry);
 
@@ -205,7 +205,7 @@ void FStaticMeshLightingInfoStatsPage::GenerateTotals( const TArray< TWeakObject
 {
 	if(InObjects.Num())
 	{
-		UStaticMeshLightingInfo* TotalEntry = ConstructObject<UStaticMeshLightingInfo>( UStaticMeshLightingInfo::StaticClass() );
+		UStaticMeshLightingInfo* TotalEntry = NewObject<UStaticMeshLightingInfo>();
 
 		for( auto It = InObjects.CreateConstIterator(); It; ++It )
 		{

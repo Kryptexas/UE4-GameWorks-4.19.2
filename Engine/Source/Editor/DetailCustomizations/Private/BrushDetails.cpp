@@ -128,14 +128,14 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "BrushSet", "Brush Set"));
 				for (UObject* OuterObject : OuterObjects)
 				{
-					UBrushBuilder* NewObject = ConstructObject<UBrushBuilder>(InChosenClass, OuterObject, NAME_None, RF_Transactional);
+					UBrushBuilder* NewUObject = NewObject<UBrushBuilder>(OuterObject, InChosenClass, NAME_None, RF_Transactional);
 
 					FNewBrushBuilder NewBuilder;
-					NewBuilder.Builder = NewObject;
+					NewBuilder.Builder = NewUObject;
 					NewBuilder.Brush = CastChecked<ABrush>(OuterObject);
 
 					NewBuilders.Add(NewBuilder);
-					NewObjectPaths.Add(NewObject->GetPathName());
+					NewObjectPaths.Add(NewUObject->GetPathName());
 				}
 
 				BrushBuilderHandle->SetPerObjectValues(NewObjectPaths);

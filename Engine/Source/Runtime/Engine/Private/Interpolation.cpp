@@ -572,7 +572,7 @@ void AMatineeActor::AddPlayerToDirectorTracks(class APlayerController* PC)
 					if( IsMatineeCompatibleWithPlayer( PC ) )
 					{
 						// create a new instance with this player
-						UInterpGroupInstDirector* NewGroupInstDir = ConstructObject<UInterpGroupInstDirector>(UInterpGroupInstDirector::StaticClass(), this, NAME_None, RF_Transactional);
+						UInterpGroupInstDirector* NewGroupInstDir = NewObject<UInterpGroupInstDirector>(this, NAME_None, RF_Transactional);
 						GroupInst.Add(NewGroupInstDir);
 
 						// and initialize the instance
@@ -794,7 +794,7 @@ void AMatineeActor::InitInterp()
 						if (IsMatineeCompatibleWithPlayer( PC ) )
 						{
 							// create a new instance with this player
-							UInterpGroupInstDirector* NewGroupInstDir = ConstructObject<UInterpGroupInstDirector>(UInterpGroupInstDirector::StaticClass(), this, NAME_None, RF_Transactional);
+							UInterpGroupInstDirector* NewGroupInstDir = NewObject<UInterpGroupInstDirector>(this, NAME_None, RF_Transactional);
 							GroupInst.Add(NewGroupInstDir);
 
 							// and initialize the instance
@@ -807,7 +807,7 @@ void AMatineeActor::InitInterp()
 				else
 				{
 					// In the editor always create a director group instance with a NULL group actor since there are no player controllers.
-					UInterpGroupInstDirector* NewGroupInstDir = ConstructObject<UInterpGroupInstDirector>(UInterpGroupInstDirector::StaticClass(), this, NAME_None, RF_Transactional);
+					UInterpGroupInstDirector* NewGroupInstDir = NewObject<UInterpGroupInstDirector>(this, NAME_None, RF_Transactional);
 					GroupInst.Add(NewGroupInstDir);
 
 					// and initialize the instance
@@ -827,7 +827,7 @@ void AMatineeActor::InitInterp()
 						{
 							AActor* Actor = GroupInfo->Actors[ ActorIndex ];
 
-							UInterpGroupInst* NewGroupInst = ConstructObject<UInterpGroupInst>(UInterpGroupInst::StaticClass(), this, NAME_None, RF_Transactional);
+							UInterpGroupInst* NewGroupInst = NewObject<UInterpGroupInst>(this, NAME_None, RF_Transactional);
 							GroupInst.Add(NewGroupInst);
 
 							NewGroupInst->InitGroupInst(Group, Actor);
@@ -837,7 +837,7 @@ void AMatineeActor::InitInterp()
 					{
 						// we need to create groupinst when actor does not exist. 
 						// Create new InterpGroupInst
-						UInterpGroupInst* NewGroupInst = ConstructObject<UInterpGroupInst>( UInterpGroupInst::StaticClass(), this, NAME_None, RF_Transactional );
+						UInterpGroupInst* NewGroupInst = NewObject<UInterpGroupInst>(this, NAME_None, RF_Transactional);
 						GroupInst.Add(NewGroupInst);
 						// Initialise group instance, saving ref to actor it works on.
 						NewGroupInst->InitGroupInst(Group, NULL);
@@ -1791,36 +1791,36 @@ UInterpData::UInterpData(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 void UInterpData::CreateDefaultFilters()
 {
-	UInterpFilter* FilterAll = NewNamedObject<UInterpFilter>(this, TEXT("FilterAll"), RF_Transient | RF_TextExportTransient);
+	UInterpFilter* FilterAll = NewObject<UInterpFilter>(this, TEXT("FilterAll"), RF_Transient | RF_TextExportTransient);
 	FilterAll->Caption = TEXT("All");
 	DefaultFilters.Add(FilterAll);
 
-	UInterpFilter_Classes* FilterCameras = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterCameras"), RF_Transient | RF_TextExportTransient);
+	UInterpFilter_Classes* FilterCameras = NewObject<UInterpFilter_Classes>(this, TEXT("FilterCameras"), RF_Transient | RF_TextExportTransient);
 	FilterCameras->Caption = TEXT("Cameras");
 	FilterCameras->ClassToFilterBy = ACameraActor::StaticClass();
 	DefaultFilters.Add(FilterCameras);
 
-	UInterpFilter_Classes* FilterSkeletalMeshes = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterSkeletalMeshes"), RF_Transient | RF_TextExportTransient);
+	UInterpFilter_Classes* FilterSkeletalMeshes = NewObject<UInterpFilter_Classes>(this, TEXT("FilterSkeletalMeshes"), RF_Transient | RF_TextExportTransient);
 	FilterSkeletalMeshes->Caption = TEXT("Skeletal Meshes");
 	FilterSkeletalMeshes->ClassToFilterBy = ASkeletalMeshActor::StaticClass();
 	DefaultFilters.Add(FilterSkeletalMeshes);
 
-	UInterpFilter_Classes* FilterLighting = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterLighting"), RF_Transient | RF_TextExportTransient);
+	UInterpFilter_Classes* FilterLighting = NewObject<UInterpFilter_Classes>(this, TEXT("FilterLighting"), RF_Transient | RF_TextExportTransient);
 	FilterLighting->Caption = TEXT("Lights");
 	FilterLighting->ClassToFilterBy = ALight::StaticClass();
 	DefaultFilters.Add(FilterLighting);
 
-	UInterpFilter_Classes* FilterEmitters = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterEmitters"), RF_Transient | RF_TextExportTransient);
+	UInterpFilter_Classes* FilterEmitters = NewObject<UInterpFilter_Classes>(this, TEXT("FilterEmitters"), RF_Transient | RF_TextExportTransient);
 	FilterEmitters->Caption = TEXT("Particles");
 	FilterEmitters->ClassToFilterBy = AEmitter::StaticClass();
 	DefaultFilters.Add(FilterEmitters);
 
-	UInterpFilter_Classes* FilterSounds = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterSounds"), RF_Transient | RF_TextExportTransient);
+	UInterpFilter_Classes* FilterSounds = NewObject<UInterpFilter_Classes>(this, TEXT("FilterSounds"), RF_Transient | RF_TextExportTransient);
 	FilterSounds->Caption = TEXT("Sounds");
 	FilterSounds->TrackClasses.Add(UInterpTrackSound::StaticClass());
 	DefaultFilters.Add(FilterSounds);
 
-	UInterpFilter_Classes* FilterEvents = NewNamedObject<UInterpFilter_Classes>(this, TEXT("FilterEvents"), RF_Transient | RF_TextExportTransient);
+	UInterpFilter_Classes* FilterEvents = NewObject<UInterpFilter_Classes>(this, TEXT("FilterEvents"), RF_Transient | RF_TextExportTransient);
 	FilterEvents->Caption = TEXT("Events");
 	FilterEvents->TrackClasses.Add(UInterpTrackEvent::StaticClass());
 	DefaultFilters.Add(FilterEvents);
@@ -2512,7 +2512,7 @@ void UInterpGroupInst::InitGroupInst(UInterpGroup* InGroup, AActor* InGroupActor
 	for(int32 i=0; i<InGroup->InterpTracks.Num(); i++)
 	{
 		// Construct Track instance object
-		UInterpTrackInst* TrInst = ConstructObject<UInterpTrackInst>( InGroup->InterpTracks[i]->TrackInstClass, this, NAME_None, RF_Transactional );
+		UInterpTrackInst* TrInst = NewObject<UInterpTrackInst>(this, InGroup->InterpTracks[i]->TrackInstClass, NAME_None, RF_Transactional);
 		TrackInst.Add(TrInst);
 
 		TrInst->InitTrackInst( InGroup->InterpTracks[i] );
@@ -4743,7 +4743,7 @@ void UInterpTrackMove::CreateSubTracks( bool bCopy )
 		check( TrackDef && TrackDef->bSubTrackOnly );
 
 		UInterpTrack* NewSubTrack = NULL;
-		NewSubTrack = ConstructObject<UInterpTrack>( SubTrackInfo.SupportedClass, this, NAME_None, RF_Transactional );
+		NewSubTrack = NewObject<UInterpTrack>(this, SubTrackInfo.SupportedClass, NAME_None, RF_Transactional);
 		check( NewSubTrack );
 
 		int32 NewTrackIndex = SubTracks.Add( NewSubTrack );
@@ -7983,7 +7983,7 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 		FSoundTrackKey& SoundTrackKey = GetSoundTrackKeyAtPosition(NewPosition);
 		const bool bIsInRange = NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
 
-		USoundCue* TempPlaybackAudioCue = ConstructObject<USoundCue>(USoundCue::StaticClass());
+		USoundCue* TempPlaybackAudioCue = NewObject<USoundCue>();
 		UAudioComponent* Component = FAudioDevice::CreateComponent(TempPlaybackAudioCue, NULL, NULL, false, false);
 
 		if ( bIsInRange && Component )

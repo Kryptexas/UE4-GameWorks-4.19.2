@@ -165,7 +165,7 @@ UAudioComponent* FMovieSceneAudioTrackInstance::GetAudioComponent(AActor* Actor,
 	UAudioComponent*& AudioComponent = PlaybackAudioComponents[RowIndex].FindOrAdd(Actor);
 	if (AudioComponent == NULL)
 	{
-		USoundCue* TempPlaybackAudioCue = ConstructObject<USoundCue>( USoundCue::StaticClass() );
+		USoundCue* TempPlaybackAudioCue = NewObject<USoundCue>();
 		
 		AudioComponent = FAudioDevice::CreateComponent(TempPlaybackAudioCue, NULL, Actor, false, false);
 	}

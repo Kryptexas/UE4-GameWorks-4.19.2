@@ -131,7 +131,7 @@ void UGeomModifier::CacheBrushState()
 	if( !CachedPolys )
 	{
 		//Create the list of polys
-		CachedPolys = ConstructObject<UPolys>(UPolys::StaticClass(), this);
+		CachedPolys = NewObject<UPolys>(this);
 	}
 	CachedPolys->Element.Empty();
 

@@ -52,7 +52,7 @@ void UBehaviorTreeGraphNode::PostPlacedNewNode()
 		UBehaviorTree* BT = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
 		if (BT)
 		{
-			NodeInstance = ConstructObject<UBTNode>(NodeClass, BT);
+			NodeInstance = NewObject<UBTNode>(BT, NodeClass);
 
 			UBTNode* BTNode = (UBTNode*)NodeInstance;
 			BTNode->SetFlags(RF_Transactional);

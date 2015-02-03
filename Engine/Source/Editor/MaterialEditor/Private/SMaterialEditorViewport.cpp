@@ -194,10 +194,8 @@ void SMaterialEditorViewport::Construct(const FArguments& InArgs)
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 
 
-	PreviewMeshComponent = ConstructObject<UMaterialEditorMeshComponent>(
-		UMaterialEditorMeshComponent::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient );
-	PreviewSkeletalMeshComponent = ConstructObject<USkeletalMeshComponent>(
-		USkeletalMeshComponent::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient );
+	PreviewMeshComponent = NewObject<UMaterialEditorMeshComponent>(GetTransientPackage(), NAME_None, RF_Transient);
+	PreviewSkeletalMeshComponent = NewObject<USkeletalMeshComponent>(GetTransientPackage(), NAME_None, RF_Transient);
 
 	UMaterialInterface* Material = MaterialEditorPtr.Pin()->GetMaterialInterface();
 	if (Material)

@@ -191,7 +191,7 @@ void UK2Node_PlayMovieScene::CreateBindingsIfNeeded()
 
 		// The new MovieSceneBindings object will be stored as an "inner" of this object
 		UObject* MovieSceneBindingsOuter = this;
-		UMovieSceneBindings* NewMovieSceneBindings = ConstructObject< UMovieSceneBindings >( UMovieSceneBindings::StaticClass(), MovieSceneBindingsOuter );
+		UMovieSceneBindings* NewMovieSceneBindings = NewObject<UMovieSceneBindings>(MovieSceneBindingsOuter);
 		check( NewMovieSceneBindings != NULL );
 
 		MovieSceneBindings = NewMovieSceneBindings;

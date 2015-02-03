@@ -513,7 +513,7 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 
 	if (Component == nullptr)
 	{
-		Component = ConstructObject<UHierarchicalInstancedStaticMeshComponent>(UHierarchicalInstancedStaticMeshComponent::StaticClass(), InIFA, NAME_None, RF_Transactional);
+		Component = NewObject<UHierarchicalInstancedStaticMeshComponent>(InIFA, NAME_None, RF_Transactional);
 
 		Component->StaticMesh = InSettings->GetStaticMesh();
 		Component->bSelectable = true;
@@ -1330,7 +1330,7 @@ FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageT
 	else
 #endif
 	{
-		Settings = ConstructObject<UFoliageType_InstancedStaticMesh>(UFoliageType_InstancedStaticMesh::StaticClass(), this);
+		Settings = NewObject<UFoliageType_InstancedStaticMesh>(this);
 	}
 	Settings->Mesh = InMesh;
 
@@ -1684,7 +1684,7 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 			if (FoliageType == nullptr)
 			{
 				// If the Settings object was null, eg the user forgot to save their settings asset, create a new one.
-				FoliageType = ConstructObject<UFoliageType_InstancedStaticMesh>(UFoliageType_InstancedStaticMesh::StaticClass(), this);
+				FoliageType = NewObject<UFoliageType_InstancedStaticMesh>(this);
 			}
 
 			if (FoliageType->Mesh == nullptr)

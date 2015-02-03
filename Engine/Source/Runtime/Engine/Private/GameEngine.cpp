@@ -416,7 +416,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		FStringClassReference GameInstanceClassName = GetDefault<UGameMapsSettings>()->GameInstanceClass;
 		UClass* GameInstanceClass = (GameInstanceClassName.IsValid() ? LoadObject<UClass>(NULL, *GameInstanceClassName.ToString()) : UGameInstance::StaticClass());
 		
-		GameInstance = ConstructObject<UGameInstance>(GameInstanceClass, this);
+		GameInstance = NewObject<UGameInstance>(this, GameInstanceClass);
 
 		GameInstance->InitializeStandalone();
 	}
@@ -428,7 +428,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 	UGameViewportClient* ViewportClient = NULL;
 	if(GIsClient)
 	{
-		ViewportClient = ConstructObject<UGameViewportClient>(GameViewportClientClass,this);
+		ViewportClient = NewObject<UGameViewportClient>(this, GameViewportClientClass);
 		ViewportClient->Init(*GameInstance->GetWorldContext(), GameInstance);
 		GameViewport = ViewportClient;
 		GameInstance->GetWorldContext()->GameViewport = ViewportClient;

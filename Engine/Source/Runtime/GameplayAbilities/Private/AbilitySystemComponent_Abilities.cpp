@@ -469,7 +469,7 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayA
 	AActor* OwnerActor = GetOwner();
 	check(OwnerActor);
 
-	UGameplayAbility * AbilityInstance = ConstructObject<UGameplayAbility>(Ability->GetClass(), OwnerActor);
+	UGameplayAbility * AbilityInstance = NewObject<UGameplayAbility>(OwnerActor, Ability->GetClass());
 	check(AbilityInstance);
 
 	// Add it to one of our instance lists so that it doesn't GC.

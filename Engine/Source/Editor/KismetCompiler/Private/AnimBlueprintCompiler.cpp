@@ -1117,7 +1117,7 @@ void FAnimBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 
 	if (NewAnimBlueprintClass == NULL)
 	{
-		NewAnimBlueprintClass = ConstructObject<UAnimBlueprintGeneratedClass>(UAnimBlueprintGeneratedClass::StaticClass(), Blueprint->GetOutermost(), FName(*NewClassName), RF_Public|RF_Transactional);
+		NewAnimBlueprintClass = NewObject<UAnimBlueprintGeneratedClass>(Blueprint->GetOutermost(), FName(*NewClassName), RF_Public | RF_Transactional);
 	}
 	else
 	{

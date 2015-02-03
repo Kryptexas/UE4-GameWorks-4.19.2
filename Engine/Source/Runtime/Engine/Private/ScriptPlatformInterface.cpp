@@ -142,7 +142,7 @@ void UPlatformInterfaceBase::ClearDelegate(int32 DelegateType, FPlatformInterfac
 			} \
  \
 			/* make the singleton object */ \
-			Singleton = ConstructObject<Class>(SingletonClass); \
+			Singleton = NewObject<Class>(GetTransientPackage(), SingletonClass); \
 			check(Singleton); \
  \
 			/* initialize it */ \

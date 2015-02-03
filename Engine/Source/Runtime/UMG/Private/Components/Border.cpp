@@ -269,7 +269,7 @@ void UBorder::PostLoad()
 			UBorderSlot* BorderSlot = Cast<UBorderSlot>(PanelSlot);
 			if ( BorderSlot == NULL )
 			{
-				BorderSlot = ConstructObject<UBorderSlot>(UBorderSlot::StaticClass(), this);
+				BorderSlot = NewObject<UBorderSlot>(this);
 				BorderSlot->Content = GetContentSlot()->Content;
 				BorderSlot->Content->Slot = BorderSlot;
 				Slots[0] = BorderSlot;

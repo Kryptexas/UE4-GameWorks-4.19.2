@@ -855,7 +855,7 @@ void SAnimationSequenceBrowser::CreateAssetTooltipResources()
 
 	ViewportClient = MakeShareable(new FAnimationAssetViewportClient(PreviewScene));
 	SceneViewport = MakeShareable(new FSceneViewport(ViewportClient.Get(), ViewportWidget));
-	PreviewComponent = ConstructObject<UDebugSkelMeshComponent>(UDebugSkelMeshComponent::StaticClass());
+	PreviewComponent = NewObject<UDebugSkelMeshComponent>();
 
 	// Client options
 	ViewportClient->ViewportType = LVT_Perspective;

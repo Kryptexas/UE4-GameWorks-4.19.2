@@ -68,7 +68,7 @@ FReply FWidgetNavigationCustomization::OnCustomizeNavigation(TWeakPtr<IPropertyH
 			if ( !Widget->Navigation )
 			{
 				Widget->Modify();
-				Widget->Navigation = ConstructObject<UWidgetNavigation>(UWidgetNavigation::StaticClass(), Widget);
+				Widget->Navigation = NewObject<UWidgetNavigation>(Widget);
 			}
 		}
 	}
@@ -193,7 +193,7 @@ void FWidgetNavigationCustomization::SetNav(UWidget* Widget, EUINavigation Nav, 
 	UWidgetNavigation* WidgetNavigation = Widget->Navigation;
 	if (!Widget->Navigation)
 	{
-		WidgetNavigation = ConstructObject<UWidgetNavigation>(UWidgetNavigation::StaticClass(), Widget);
+		WidgetNavigation = NewObject<UWidgetNavigation>(Widget);
 	}
 
 	switch (Nav)

@@ -23,8 +23,8 @@ void UEnvironmentQueryGraphNode_Option::PostPlacedNewNode()
 	if (EnvQueryNodeClass != NULL)
 	{
 		UEnvQuery* Query = Cast<UEnvQuery>(GetEnvironmentQueryGraph()->GetOuter());
-		UEnvQueryOption* QueryOption = ConstructObject<UEnvQueryOption>(UEnvQueryOption::StaticClass(), Query);
-		QueryOption->Generator = ConstructObject<UEnvQueryGenerator>(EnvQueryNodeClass, Query);
+		UEnvQueryOption* QueryOption = NewObject<UEnvQueryOption>(Query);
+		QueryOption->Generator = NewObject<UEnvQueryGenerator>(Query, EnvQueryNodeClass);
 		QueryOption->Generator->UpdateGeneratorVersion();
 		
 		QueryOption->SetFlags(RF_Transactional);

@@ -178,7 +178,7 @@ public:
 	static TActionClass* CreateActionInstance(UWorld& World)
 	{
 		TSubclassOf<UPawnAction> ActionClass = TActionClass::StaticClass();
-		return ConstructObject<TActionClass>(ActionClass, &World);
+		return NewObject<TActionClass>(&World, ActionClass);
 	}
 
 	//----------------------------------------------------------------------//

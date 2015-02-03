@@ -369,7 +369,7 @@ void USkeletalMeshComponent::CreateBodySetup()
 {
 	if (BodySetup == NULL && SkeletalMesh)
 	{
-		BodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		BodySetup = NewObject<UBodySetup>(this);
 	}
 
 	UBodySetup* OriginalBodySetup = SkeletalMesh->GetBodySetup();

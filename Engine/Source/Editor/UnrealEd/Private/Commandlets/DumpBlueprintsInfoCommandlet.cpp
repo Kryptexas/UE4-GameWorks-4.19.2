@@ -699,7 +699,7 @@ static AActor* DumpBlueprintInfoUtils::SpawnLevelActor(UClass* ActorClass, bool 
 	}
 	else if (FKismetEditorUtilities::CanCreateBlueprintOfClass(ActorClass))
 	{
-		UActorFactory* NewFactory = ConstructObject<UActorFactory>(UActorFactoryBlueprint::StaticClass());
+		UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), UActorFactoryBlueprint::StaticClass());
 		NewFactory->AddToRoot();
 
 		UBlueprint* ActorTemplate = MakeTempBlueprint(ActorClass);
@@ -764,7 +764,7 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 			BlueprintClass = UAnimBlueprint::StaticClass();
 			GeneratedClass = UAnimBlueprintGeneratedClass::StaticClass();
 
-			UAnimBlueprintFactory* BlueprintFactory = ConstructObject<UAnimBlueprintFactory>(UAnimBlueprintFactory::StaticClass());
+			UAnimBlueprintFactory* BlueprintFactory = NewObject<UAnimBlueprintFactory>();
 			BlueprintFactory->ParentClass    = ParentClass;
 			BlueprintFactory->BlueprintType  = BlueprintType;
 			BlueprintFactory->TargetSkeleton = (USkeleton*)StaticLoadObject(USkeleton::StaticClass(), /*Outer =*/nullptr, TEXT("/Engine/NotForLicensees/Automation/QAAutomationtest_Assets/TEST_SkeletalMesh_Skeleton.TEST_SkeletalMesh_Skeleton"));
@@ -787,7 +787,7 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 		}
 		else 
 		{
-			UBlueprintFactory* BlueprintFactory = ConstructObject<UBlueprintFactory>(UBlueprintFactory::StaticClass());
+			UBlueprintFactory* BlueprintFactory = NewObject<UBlueprintFactory>();
 			BlueprintFactory->ParentClass = ParentClass;
 			AssetFactory = BlueprintFactory;
 		}

@@ -83,7 +83,7 @@ const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(TSub
 		MyAttributes = GetAttributeSubobject(AttributeClass);
 		if (!MyAttributes)
 		{
-			UAttributeSet *Attributes = ConstructObject<UAttributeSet>(AttributeClass, OwningActor);
+			UAttributeSet *Attributes = NewObject<UAttributeSet>(OwningActor, AttributeClass);
 			SpawnedAttributes.AddUnique(Attributes);
 			MyAttributes = Attributes;
 		}

@@ -812,7 +812,7 @@ void UParticleLODLevel::ConvertToSpawnModule()
 	}
 
 	UParticleEmitter* EmitterOuter = CastChecked<UParticleEmitter>(GetOuter());
-	SpawnModule = ConstructObject<UParticleModuleSpawn>(UParticleModuleSpawn::StaticClass(), EmitterOuter->GetOuter());
+	SpawnModule = NewObject<UParticleModuleSpawn>(EmitterOuter->GetOuter());
 	check(SpawnModule);
 
 	UDistributionFloat* SourceDist = RequiredModule->SpawnRate.Distribution;
@@ -1454,7 +1454,7 @@ int32 UParticleEmitter::CreateLODLevel(int32 LODLevel, bool bGenerateModuleData)
 	}
 
 	// Create a ParticleLODLevel
-	CreatedLODLevel = ConstructObject<UParticleLODLevel>(UParticleLODLevel::StaticClass(), this);
+	CreatedLODLevel = NewObject<UParticleLODLevel>(this);
 	check(CreatedLODLevel);
 
 	CreatedLODLevel->Level = LODLevel;
@@ -1487,7 +1487,7 @@ int32 UParticleEmitter::CreateLODLevel(int32 LODLevel, bool bGenerateModuleData)
 	else
 	{
 		// Create the RequiredModule
-		UParticleModuleRequired* RequiredModule	= ConstructObject<UParticleModuleRequired>(UParticleModuleRequired::StaticClass(), GetOuter());
+		UParticleModuleRequired* RequiredModule = NewObject<UParticleModuleRequired>(GetOuter());
 		check(RequiredModule);
 		RequiredModule->SetToSensibleDefaults(this);
 		CreatedLODLevel->RequiredModule	= RequiredModule;
@@ -1513,7 +1513,7 @@ int32 UParticleEmitter::CreateLODLevel(int32 LODLevel, bool bGenerateModuleData)
 		RequiredModule->LODValidity = (1 << LODLevel);
 
 		// There must be a spawn module as well...
-		UParticleModuleSpawn* SpawnModule = ConstructObject<UParticleModuleSpawn>(UParticleModuleSpawn::StaticClass(), GetOuter());
+		UParticleModuleSpawn* SpawnModule = NewObject<UParticleModuleSpawn>(GetOuter());
 		check(SpawnModule);
 		CreatedLODLevel->SpawnModule = SpawnModule;
 		SpawnModule->LODValidity = (1 << LODLevel);
@@ -1603,7 +1603,7 @@ bool UParticleEmitter::AutogenerateLowestLODLevel(bool bDuplicateHighest)
 	{
 		// We need to generate it...
 		LODLevels.InsertZeroed(1, 1);
-		UParticleLODLevel* LODLevel = ConstructObject<UParticleLODLevel>(UParticleLODLevel::StaticClass(), this);
+		UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>(this);
 		check(LODLevel);
 		LODLevels[1]					= LODLevel;
 		LODLevel->Level					= 1;
@@ -1887,7 +1887,7 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 	// Create basic set of modules
 
 	// Lifetime module
-	UParticleModuleLifetime* LifetimeModule = ConstructObject<UParticleModuleLifetime>(UParticleModuleLifetime::StaticClass(), GetOuter());
+	UParticleModuleLifetime* LifetimeModule = NewObject<UParticleModuleLifetime>(GetOuter());
 	UDistributionFloatUniform* LifetimeDist = Cast<UDistributionFloatUniform>(LifetimeModule->Lifetime.Distribution);
 	if (LifetimeDist)
 	{
@@ -1899,7 +1899,7 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 	LODLevel->Modules.Add(LifetimeModule);
 
 	// Size module
-	UParticleModuleSize* SizeModule = ConstructObject<UParticleModuleSize>(UParticleModuleSize::StaticClass(), GetOuter());
+	UParticleModuleSize* SizeModule = NewObject<UParticleModuleSize>(GetOuter());
 	UDistributionVectorUniform* SizeDist = Cast<UDistributionVectorUniform>(SizeModule->StartSize.Distribution);
 	if (SizeDist)
 	{
@@ -1911,7 +1911,7 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 	LODLevel->Modules.Add(SizeModule);
 
 	// Initial velocity module
-	UParticleModuleVelocity* VelModule = ConstructObject<UParticleModuleVelocity>(UParticleModuleVelocity::StaticClass(), GetOuter());
+	UParticleModuleVelocity* VelModule = NewObject<UParticleModuleVelocity>(GetOuter());
 	UDistributionVectorUniform* VelDist = Cast<UDistributionVectorUniform>(VelModule->StartVelocity.Distribution);
 	if (VelDist)
 	{
@@ -1923,7 +1923,7 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 	LODLevel->Modules.Add(VelModule);
 
 	// Color over life module
-	UParticleModuleColorOverLife* ColorModule = ConstructObject<UParticleModuleColorOverLife>(UParticleModuleColorOverLife::StaticClass(), GetOuter());
+	UParticleModuleColorOverLife* ColorModule = NewObject<UParticleModuleColorOverLife>(GetOuter());
 	UDistributionVectorConstantCurve* ColorCurveDist = Cast<UDistributionVectorConstantCurve>(ColorModule->ColorOverLife.Distribution);
 	if (ColorCurveDist)
 	{
@@ -3417,7 +3417,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 			if( ReplayData == NULL )
 			{
 				// Create a new replay clip!
-				ReplayData = ConstructObject< UParticleSystemReplay >( UParticleSystemReplay::StaticClass(), this );
+				ReplayData = NewObject<UParticleSystemReplay>(this);
 
 				// Set the clip ID number
 				ReplayData->ClipIDNumber = ReplayClipIDNumber;

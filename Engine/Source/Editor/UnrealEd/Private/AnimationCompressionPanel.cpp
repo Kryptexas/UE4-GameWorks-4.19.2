@@ -48,7 +48,7 @@ void SAnimationCompressionPanel::Construct(const FArguments& InArgs)
 		{
 			if ( Class->IsChildOf(UAnimCompress::StaticClass()) )
 			{
-				UAnimCompress* NewAlgorithm = ConstructObject<UAnimCompress>( Class );
+				UAnimCompress* NewAlgorithm = NewObject<UAnimCompress>(GetTransientPackage(), Class);
 				AnimationCompressionAlgorithms.Add( NewAlgorithm );
 			}
 		}

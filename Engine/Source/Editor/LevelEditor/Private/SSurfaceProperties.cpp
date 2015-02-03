@@ -531,8 +531,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructLighting()
 					}
 					if (FoundIndex == INDEX_NONE)
 					{
-						ULightmassPrimitiveSettingsObject* LightmassSettingsObject = 
-							ConstructObject<ULightmassPrimitiveSettingsObject>(ULightmassPrimitiveSettingsObject::StaticClass());
+						ULightmassPrimitiveSettingsObject* LightmassSettingsObject = NewObject<ULightmassPrimitiveSettingsObject>();
 						LightmassSettingsObject->LightmassSettings = TempSettings;
 						ObjArray.Add(LightmassSettingsObject);
 						SelectedLightmassSettingsObjects.Add(LightmassSettingsObject);

@@ -495,7 +495,7 @@ void FAssetTypeActions_SkeletalMesh::OpenAssetEditor( const TArray<UObject*>& In
 					FString PackageName;
 					CreateUniqueAssetName(Mesh->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
 
-					USkeletonFactory* Factory = ConstructObject<USkeletonFactory>(USkeletonFactory::StaticClass());
+					USkeletonFactory* Factory = NewObject<USkeletonFactory>();
 					Factory->TargetSkeletalMesh = Mesh;
 
 					FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
@@ -538,7 +538,7 @@ UThumbnailInfo* FAssetTypeActions_SkeletalMesh::GetThumbnailInfo(UObject* Asset)
 	UThumbnailInfo* ThumbnailInfo = SkeletalMesh->ThumbnailInfo;
 	if ( ThumbnailInfo == NULL )
 	{
-		ThumbnailInfo = ConstructObject<USceneThumbnailInfo>(USceneThumbnailInfo::StaticClass(), SkeletalMesh);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(SkeletalMesh);
 		SkeletalMesh->ThumbnailInfo = ThumbnailInfo;
 	}
 
@@ -601,7 +601,7 @@ void FAssetTypeActions_SkeletalMesh::ExecuteNewSkeleton(TArray<TWeakObjectPtr<US
 			FString PackagePath;
 			CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackagePath, Name);
 
-			USkeletonFactory* Factory = ConstructObject<USkeletonFactory>(USkeletonFactory::StaticClass());
+			USkeletonFactory* Factory = NewObject<USkeletonFactory>();
 			Factory->TargetSkeletalMesh = Object;
 
 			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
@@ -622,7 +622,7 @@ void FAssetTypeActions_SkeletalMesh::ExecuteNewSkeleton(TArray<TWeakObjectPtr<US
 				CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
 
 				// Create the factory used to generate the asset
-				USkeletonFactory* Factory = ConstructObject<USkeletonFactory>(USkeletonFactory::StaticClass());
+				USkeletonFactory* Factory = NewObject<USkeletonFactory>();
 				Factory->TargetSkeletalMesh = Object;
 
 				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
@@ -736,7 +736,7 @@ void FAssetTypeActions_SkeletalMesh::CreatePhysicsAssetFromMesh(USkeletalMesh* S
 
 	if( bWasOkClicked )
 	{			
-		UPhysicsAsset* NewAsset = ConstructObject<UPhysicsAsset>( UPhysicsAsset::StaticClass(), Package, *Name, RF_Public|RF_Standalone|RF_Transactional );
+		UPhysicsAsset* NewAsset = NewObject<UPhysicsAsset>(Package, *Name, RF_Public | RF_Standalone | RF_Transactional);
 		if(NewAsset)
 		{
 			// Do automatic asset generation.

@@ -5,6 +5,7 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "BehaviorTree/BehaviorTreeTypes.h"
+#include "BehaviorTree/BTDecorator.h"
 
 //----------------------------------------------------------------------//
 // FBehaviorTreeInstance
@@ -225,65 +226,65 @@ void FBlackboardKeySelector::InitSelectedKey(UBlackboardData* BlackboardAsset)
 
 void FBlackboardKeySelector::AddObjectFilter(UObject* Owner, TSubclassOf<UObject> AllowedClass)
 {
-	UBlackboardKeyType_Object* FilterOb = NewNamedObject<UBlackboardKeyType_Object>(Owner, TEXT("BlackboardKeyType_Object"));
+	UBlackboardKeyType_Object* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Object>(TEXT("BlackboardKeyType_Object"));
 	FilterOb->BaseClass = AllowedClass;
 	AllowedTypes.Add(FilterOb);
 }
 
 void FBlackboardKeySelector::AddClassFilter(UObject* Owner, TSubclassOf<UClass> AllowedClass)
 {
-	UBlackboardKeyType_Class* FilterOb = NewNamedObject<UBlackboardKeyType_Class>(Owner, TEXT("BlackboardKeyType_Class"));
+	UBlackboardKeyType_Class* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Class>(TEXT("BlackboardKeyType_Class"));
 	FilterOb->BaseClass = AllowedClass;
 	AllowedTypes.Add(FilterOb);
 }
 
 void FBlackboardKeySelector::AddEnumFilter(UObject* Owner, UEnum* AllowedEnum)
 {
-	UBlackboardKeyType_Enum* FilterOb = NewNamedObject<UBlackboardKeyType_Enum>(Owner, TEXT("BlackboardKeyType_Enum"));
+	UBlackboardKeyType_Enum* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Enum>(TEXT("BlackboardKeyType_Enum"));
 	FilterOb->EnumType = AllowedEnum;
 	AllowedTypes.Add(FilterOb);
 }
 
 void FBlackboardKeySelector::AddNativeEnumFilter(UObject* Owner, const FString& AllowedEnumName)
 {
-	UBlackboardKeyType_NativeEnum* FilterOb = NewNamedObject<UBlackboardKeyType_NativeEnum>(Owner, TEXT("BlackboardKeyType_NativeEnum"));
+	UBlackboardKeyType_NativeEnum* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_NativeEnum>(TEXT("BlackboardKeyType_NativeEnum"));
 	FilterOb->EnumName = AllowedEnumName;
 	AllowedTypes.Add(FilterOb);
 }
 
 void FBlackboardKeySelector::AddIntFilter(UObject* Owner)
 {
-	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_Int>(Owner, TEXT("BlackboardKeyType_Int")));
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Int>(TEXT("BlackboardKeyType_Int")));
 }
 
 void FBlackboardKeySelector::AddFloatFilter(UObject* Owner)
 {
-	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_Float>(Owner, TEXT("BlackboardKeyType_Float")));
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Float>(TEXT("BlackboardKeyType_Float")));
 }
 
 void FBlackboardKeySelector::AddBoolFilter(UObject* Owner)
 {
-	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_Bool>(Owner, TEXT("BlackboardKeyType_Bool")));
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Bool>(TEXT("BlackboardKeyType_Bool")));
 }
 
 void FBlackboardKeySelector::AddVectorFilter(UObject* Owner)
 {
-	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_Vector>(Owner, TEXT("BlackboardKeyType_Vector")));
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Vector>(TEXT("BlackboardKeyType_Vector")));
 }
 
 void FBlackboardKeySelector::AddRotatorFilter(UObject* Owner)
 {
-	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_Rotator>(Owner, TEXT("BlackboardKeyType_Rotator")));
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Rotator>(TEXT("BlackboardKeyType_Rotator")));
 }
 
 void FBlackboardKeySelector::AddStringFilter(UObject* Owner)
 {
-	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_String>(Owner, TEXT("BlackboardKeyType_String")));
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_String>(TEXT("BlackboardKeyType_String")));
 }
 
 void FBlackboardKeySelector::AddNameFilter(UObject* Owner)
 {
-	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_Name>(Owner, TEXT("BlackboardKeyType_Name")));
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Name>(TEXT("BlackboardKeyType_Name")));
 }
 
 //----------------------------------------------------------------------//

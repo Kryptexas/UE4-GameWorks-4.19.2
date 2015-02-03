@@ -130,7 +130,7 @@ FAnimationViewportClient::FAnimationViewportClient(FPreviewScene& InPreviewScene
 	PreviewScene->DirectionalLight->RecreateRenderState_Concurrent();
 
 	// A background sky sphere
-	EditorSkyComp = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
+	EditorSkyComp = NewObject<UStaticMeshComponent>(GetTransientPackage(), TEXT("EditorSkyComp"));
 	UStaticMesh * StaticMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/MapTemplates/Sky/SM_SkySphere.SM_SkySphere"), NULL, LOAD_None, NULL);
 	check (StaticMesh);
 	EditorSkyComp->SetStaticMesh( StaticMesh );
@@ -143,7 +143,7 @@ FAnimationViewportClient::FAnimationViewportClient(FPreviewScene& InPreviewScene
 
 	// now add height fog component
 
-	EditorHeightFogComponent = ConstructObject<UExponentialHeightFogComponent>(UExponentialHeightFogComponent::StaticClass());
+	EditorHeightFogComponent = NewObject<UExponentialHeightFogComponent>(GetTransientPackage(), TEXT("EditorHeightFogComponent"));
 	
 	EditorHeightFogComponent->FogDensity=0.00075f;
 	EditorHeightFogComponent->FogInscatteringColor=FLinearColor(3.f,4.f,6.f,0.f)*0.3f;
@@ -155,7 +155,7 @@ FAnimationViewportClient::FAnimationViewportClient(FPreviewScene& InPreviewScene
 	PreviewScene->AddComponent(EditorHeightFogComponent, FogTransform);
 
 	// add capture component for reflection
- 	USphereReflectionCaptureComponent* CaptureComponent = ConstructObject<USphereReflectionCaptureComponent>(USphereReflectionCaptureComponent::StaticClass());
+	USphereReflectionCaptureComponent* CaptureComponent = NewObject<USphereReflectionCaptureComponent>(GetTransientPackage(), TEXT("CaptureComponent"));
  
  	const FTransform CaptureTransform(FRotator(0,0,0), FVector(0.f,0.f,100.f), FVector(1.f));
  	PreviewScene->AddComponent(CaptureComponent, CaptureTransform);
@@ -165,7 +165,7 @@ FAnimationViewportClient::FAnimationViewportClient(FPreviewScene& InPreviewScene
 	// now add floor
  	UStaticMesh* FloorMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PhAT_FloorBox.PhAT_FloorBox"), NULL, LOAD_None, NULL);
  	check(FloorMesh);
- 	EditorFloorComp = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
+	EditorFloorComp = NewObject<UStaticMeshComponent>(GetTransientPackage(), TEXT("EditorFloorComp"));
  	EditorFloorComp->SetStaticMesh( FloorMesh );
  	PreviewScene->AddComponent(EditorFloorComp, FTransform::Identity);
  	EditorFloorComp->SetRelativeScale3D(FVector(3.f, 3.f, 1.f));

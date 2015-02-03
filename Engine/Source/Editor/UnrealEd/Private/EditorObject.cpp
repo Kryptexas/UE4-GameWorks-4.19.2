@@ -473,9 +473,9 @@ static const TCHAR* ImportProperties(
 
 				if (!ComponentTemplate)
 				{
-					ComponentTemplate = ConstructObject<UObject>(
-						TemplateClass,
+					ComponentTemplate = NewObject<UObject>(
 						SubobjectOuter,
+						TemplateClass,
 						TemplateName,
 						NewFlags,
 						Archetype,

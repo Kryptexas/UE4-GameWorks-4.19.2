@@ -65,7 +65,7 @@ public:
 	void CreateSplineComponent(ALandscapeProxy* Landscape, FVector Scale3D)
 	{
 		Landscape->Modify();
-		Landscape->SplineComponent = ConstructObject<ULandscapeSplinesComponent>(ULandscapeSplinesComponent::StaticClass(), Landscape, NAME_None, RF_Transactional);
+		Landscape->SplineComponent = NewObject<ULandscapeSplinesComponent>(Landscape, NAME_None, RF_Transactional);
 		Landscape->SplineComponent->RelativeScale3D = Scale3D;
 		Landscape->SplineComponent->AttachTo(Landscape->GetRootComponent());
 		Landscape->SplineComponent->ShowSplineEditorMesh(true);
@@ -255,7 +255,7 @@ public:
 		Start->Modify();
 		End->Modify();
 
-		ULandscapeSplineSegment* NewSegment = ConstructObject<ULandscapeSplineSegment>(ULandscapeSplineSegment::StaticClass(), SplinesComponent, NAME_None, RF_Transactional);
+		ULandscapeSplineSegment* NewSegment = NewObject<ULandscapeSplineSegment>(SplinesComponent, NAME_None, RF_Transactional);
 		SplinesComponent->Segments.Add(NewSegment);
 
 		NewSegment->Connections[0].ControlPoint = Start;
@@ -333,7 +333,7 @@ public:
 
 		Landscape->SplineComponent->Modify();
 
-		ULandscapeSplineControlPoint* NewControlPoint = ConstructObject<ULandscapeSplineControlPoint>(ULandscapeSplineControlPoint::StaticClass(), Landscape->SplineComponent, NAME_None, RF_Transactional);
+		ULandscapeSplineControlPoint* NewControlPoint = NewObject<ULandscapeSplineControlPoint>(Landscape->SplineComponent, NAME_None, RF_Transactional);
 		Landscape->SplineComponent->ControlPoints.Add(NewControlPoint);
 
 		NewControlPoint->Location = LocalLocation;
@@ -512,7 +512,7 @@ public:
 		FVector Tangent;
 		Segment->FindNearest(LocalLocation, t, Location, Tangent);
 
-		ULandscapeSplineControlPoint* NewControlPoint = ConstructObject<ULandscapeSplineControlPoint>(ULandscapeSplineControlPoint::StaticClass(), SplinesComponent, NAME_None, RF_Transactional);
+		ULandscapeSplineControlPoint* NewControlPoint = NewObject<ULandscapeSplineControlPoint>(SplinesComponent, NAME_None, RF_Transactional);
 		SplinesComponent->ControlPoints.Add(NewControlPoint);
 
 		NewControlPoint->Location = Location;
@@ -522,7 +522,7 @@ public:
 		NewControlPoint->SideFalloff = FMath::Lerp(Segment->Connections[0].ControlPoint->SideFalloff, Segment->Connections[1].ControlPoint->SideFalloff, t);
 		NewControlPoint->EndFalloff = FMath::Lerp(Segment->Connections[0].ControlPoint->EndFalloff, Segment->Connections[1].ControlPoint->EndFalloff, t);
 
-		ULandscapeSplineSegment* NewSegment = ConstructObject<ULandscapeSplineSegment>(ULandscapeSplineSegment::StaticClass(), SplinesComponent, NAME_None, RF_Transactional);
+		ULandscapeSplineSegment* NewSegment = NewObject<ULandscapeSplineSegment>(SplinesComponent, NAME_None, RF_Transactional);
 		SplinesComponent->Segments.Add(NewSegment);
 
 		NewSegment->Connections[0].ControlPoint = NewControlPoint;

@@ -258,7 +258,7 @@ struct PrimitiveStatsGenerator
 			else
 			{
 				// We don't. Create new base entry.
-				UPrimitiveStats* NewStatsEntry = ConstructObject<UPrimitiveStats>( UPrimitiveStats::StaticClass() );
+				UPrimitiveStats* NewStatsEntry = NewObject<UPrimitiveStats>();
 				NewStatsEntry->AddToRoot();
 				NewStatsEntry->Object			= Resource;
 				NewStatsEntry->Actors.AddUnique(ActorOuter);
@@ -412,7 +412,7 @@ void FPrimitiveStatsPage::GenerateTotals( const TArray< TWeakObjectPtr<UObject> 
 {
 	if(InObjects.Num())
 	{
-		UPrimitiveStats* TotalEntry = ConstructObject<UPrimitiveStats>( UPrimitiveStats::StaticClass() );
+		UPrimitiveStats* TotalEntry = NewObject<UPrimitiveStats>();
 
 		TotalEntry->RadiusMin = FLT_MAX;
 		TotalEntry->RadiusMax = 0.0f;

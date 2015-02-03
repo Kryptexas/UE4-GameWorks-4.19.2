@@ -1148,7 +1148,7 @@ UActorFactoryCameraActor::UActorFactoryCameraActor(const FObjectInitializer& Obj
 static UBillboardComponent* CreateEditorOnlyBillboardComponent(AActor* ActorOwner, USceneComponent* AttachParent)
 {
 	// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
-	UBillboardComponent* BillboardComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), ActorOwner, NAME_None, RF_Transactional);
+	UBillboardComponent* BillboardComponent = NewObject<UBillboardComponent>(ActorOwner, NAME_None, RF_Transactional);
 
 	BillboardComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/EmptyActor.EmptyActor"));
 	BillboardComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
@@ -1184,7 +1184,7 @@ AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, co
 		// Spawn a temporary actor for dragging around
 		NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
 
-		USceneComponent* RootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), NewActor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
+		USceneComponent* RootComponent = NewObject<USceneComponent>(NewActor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 		RootComponent->Mobility = EComponentMobility::Movable;
 		RootComponent->SetWorldLocationAndRotation(Location, Rotation);
 		NewActor->SetRootComponent(RootComponent);
@@ -1530,7 +1530,7 @@ void UActorFactoryMatineeActor::PostSpawnActor( UObject* Asset, AActor* NewActor
 	else
 	{
 		// if MatineeData isn't set yet, create default one
-		UInterpData * NewMatineeData = ConstructObject<UInterpData>(UInterpData::StaticClass(), NewActor);
+		UInterpData * NewMatineeData = NewObject<UInterpData>(NewActor);
 		MatineeActor->MatineeData = NewMatineeData;
 	}
 }
@@ -1805,9 +1805,9 @@ void CreateBrushForVolumeActor( AVolume* NewActor, UBrushBuilder* BrushBuilder )
 		NewActor->PreEditChange(NULL);
 
 		NewActor->PolyFlags = 0;
-		NewActor->Brush = NewNamedObject<UModel>(NewActor, NAME_None, RF_Transactional);
+		NewActor->Brush = NewObject<UModel>(NewActor, NAME_None, RF_Transactional);
 		NewActor->Brush->Initialize(nullptr, true);
-		NewActor->Brush->Polys = NewNamedObject<UPolys>(NewActor->Brush, NAME_None, RF_Transactional);
+		NewActor->Brush->Polys = NewObject<UPolys>(NewActor->Brush, NAME_None, RF_Transactional);
 		NewActor->GetBrushComponent()->Brush = NewActor->Brush;
 		if(BrushBuilder != nullptr)
 		{
@@ -1863,7 +1863,7 @@ void UActorFactoryBoxVolume::PostSpawnActor( UObject* Asset, AActor* NewActor )
 	AVolume* VolumeActor = CastChecked<AVolume>(NewActor);
 	if ( VolumeActor != NULL )
 	{
-		UCubeBuilder* Builder = ConstructObject<UCubeBuilder>( UCubeBuilder::StaticClass() );
+		UCubeBuilder* Builder = NewObject<UCubeBuilder>();
 		CreateBrushForVolumeActor( VolumeActor, Builder );
 
 		if (Asset)
@@ -1903,7 +1903,7 @@ void UActorFactorySphereVolume::PostSpawnActor( UObject* Asset, AActor* NewActor
 	AVolume* VolumeActor = CastChecked<AVolume>(NewActor);
 	if ( VolumeActor != NULL )
 	{
-		UTetrahedronBuilder* Builder = ConstructObject<UTetrahedronBuilder>( UTetrahedronBuilder::StaticClass() );
+		UTetrahedronBuilder* Builder = NewObject<UTetrahedronBuilder>();
 		Builder->SphereExtrapolation = 2;
 		Builder->Radius = 192.0f;
 		CreateBrushForVolumeActor( VolumeActor, Builder );
@@ -1944,7 +1944,7 @@ void UActorFactoryCylinderVolume::PostSpawnActor( UObject* Asset, AActor* NewAct
 	AVolume* VolumeActor = CastChecked<AVolume>(NewActor);
 	if ( VolumeActor != NULL )
 	{
-		UCylinderBuilder* Builder = ConstructObject<UCylinderBuilder>( UCylinderBuilder::StaticClass() );
+		UCylinderBuilder* Builder = NewObject<UCylinderBuilder>();
 		Builder->OuterRadius = 128.0f;
 		CreateBrushForVolumeActor( VolumeActor, Builder );
 

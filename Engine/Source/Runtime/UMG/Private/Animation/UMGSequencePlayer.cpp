@@ -25,7 +25,7 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 	// Cache the time range of the sequence to determine when we stop
 	TimeRange = MovieScene->GetTimeRange();
 
-	RuntimeBindings = ConstructObject<UMovieSceneBindings>( UMovieSceneBindings::StaticClass(), this );
+	RuntimeBindings = NewObject<UMovieSceneBindings>(this);
 	RuntimeBindings->SetRootMovieScene( MovieScene );
 
 	UWidgetTree* WidgetTree = UserWidget.WidgetTree;

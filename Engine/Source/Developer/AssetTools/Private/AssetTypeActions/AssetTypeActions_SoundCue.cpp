@@ -83,7 +83,7 @@ void FAssetTypeActions_SoundCue::ExecuteConsolidateAttenuation(TArray<TWeakObjec
 		TArray<UObject*> ObjectsToSync;
 
 		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-		USoundAttenuationFactory* Factory = ConstructObject<USoundAttenuationFactory>(USoundAttenuationFactory::StaticClass());
+		USoundAttenuationFactory* Factory = NewObject<USoundAttenuationFactory>();
 
 		for (auto UnmatchedIt = UnmatchedAttenuations.CreateConstIterator(); UnmatchedIt; ++UnmatchedIt)
 		{

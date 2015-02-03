@@ -93,7 +93,7 @@ uint32 FAssetTypeActions_GameplayEffect::GetCategories()
 
 void FAssetTypeActions_GameplayEffect::ExecuteConvertToBlueprint(FWeakGameplayEffectPointerArray Objects)
 {
-	UBlueprintFactory* BlueprintFactory = ConstructObject<UBlueprintFactory>(UBlueprintFactory::StaticClass());
+	UBlueprintFactory* BlueprintFactory = NewObject<UBlueprintFactory>();
 	BlueprintFactory->ParentClass = UGameplayEffect::StaticClass();
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 

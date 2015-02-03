@@ -112,7 +112,7 @@ void SNiagaraEffectEditorViewport::Construct(const FArguments& InArgs)
 	
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 
-	PreviewComponent = ConstructObject<UNiagaraComponent>(UNiagaraComponent::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient);
+	PreviewComponent = NewObject<UNiagaraComponent>(GetTransientPackage(), NAME_None, RF_Transient);
 }
 
 SNiagaraEffectEditorViewport::~SNiagaraEffectEditorViewport()

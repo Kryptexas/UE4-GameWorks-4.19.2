@@ -1099,7 +1099,7 @@ void SContentBrowser::NewAssetRequested(const FString& SelectedPath, TWeakObject
 {
 	if ( ensure(SelectedPath.Len() > 0) && ensure(FactoryClass.IsValid()) )
 	{
-		UFactory* NewFactory = ConstructObject<UFactory>( FactoryClass.Get() );
+		UFactory* NewFactory = NewObject<UFactory>(GetTransientPackage(), FactoryClass.Get());
 		FEditorDelegates::OnConfigureNewAssetProperties.Broadcast(NewFactory);
 		if ( NewFactory->ConfigureProperties() )
 		{

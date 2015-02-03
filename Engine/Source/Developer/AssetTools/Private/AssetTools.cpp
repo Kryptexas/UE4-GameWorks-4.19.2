@@ -570,7 +570,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 								// We found a factory for this file, it can be imported!
 								// Create a new factory of the same class and make sure it doesn't get GCed.
 								// The object will be removed from the root set at the end of this function.
-								UFactory* NewFactory = ConstructObject<UFactory>( Factory->GetClass() );
+								UFactory* NewFactory = NewObject<UFactory>(GetTransientPackage(), Factory->GetClass());
 								if ( NewFactory->ConfigureProperties() )
 								{
 									NewFactory->AddToRoot();
@@ -615,7 +615,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 						// We found a factory for this file, it can be imported!
 						// Create a new factory of the same class and make sure it doesnt get GCed.
 						// The object will be removed from the root set at the end of this function.
-						UFactory* NewFactory = ConstructObject<UFactory>( SpecifiedFactory->GetClass() );
+						UFactory* NewFactory = NewObject<UFactory>(GetTransientPackage(), SpecifiedFactory->GetClass());
 						if ( NewFactory->ConfigureProperties() )
 						{
 							NewFactory->AddToRoot();

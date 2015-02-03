@@ -548,8 +548,8 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 		}
 		else
 		{
-			UWidgetAnimation* NewAnimation = ConstructObject<UWidgetAnimation>(UWidgetAnimation::StaticClass(), Blueprint, MakeUniqueObjectName(Blueprint, UWidgetAnimation::StaticClass(), "NewAnimation"), RF_Transactional);
-			NewAnimation->MovieScene =  ConstructObject<UMovieScene>(UMovieScene::StaticClass(), NewAnimation, NAME_None, RF_Transactional);
+			UWidgetAnimation* NewAnimation = NewObject<UWidgetAnimation>(Blueprint, MakeUniqueObjectName(Blueprint, UWidgetAnimation::StaticClass(), "NewAnimation"), RF_Transactional);
+			NewAnimation->MovieScene = NewObject<UMovieScene>(NewAnimation, NAME_None, RF_Transactional);
 
 			WidgetAnimation = NewAnimation;
 		}

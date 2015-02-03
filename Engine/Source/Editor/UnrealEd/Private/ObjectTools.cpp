@@ -2805,13 +2805,15 @@ namespace ObjectTools
 	 */
 	void AssembleListOfExporters(TArray<UExporter*>& OutExporters)
 	{
+		auto TransientPackage = GetTransientPackage();
+
 		// @todo DB: Assemble this set once.
 		OutExporters.Empty();
 		for( TObjectIterator<UClass> It ; It ; ++It )
 		{
 			if( It->IsChildOf(UExporter::StaticClass()) && !It->HasAnyClassFlags(CLASS_Abstract) )
 			{
-				UExporter* Exporter = ConstructObject<UExporter>( *It );
+				UExporter* Exporter = NewObject<UExporter>(TransientPackage, *It);
 				OutExporters.Add( Exporter );		
 			}
 		}

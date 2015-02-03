@@ -668,11 +668,11 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 	UMaterialExpressionClamp* BranchSeamAmount = NULL;
 	if (Options->IncludeBranchSeamSmoothing->IsChecked() && RenderState->m_bBranchesPresent && RenderState->m_eBranchSeamSmoothing != SpeedTree::EFFECT_OFF)
 	{
-		UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>(UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial);
+		UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = NewObject<UMaterialExpressionTextureCoordinate>(UnrealMaterial);
 		SeamTexcoordExpression->CoordinateIndex = 4;
 		UnrealMaterial->Expressions.Add(SeamTexcoordExpression);
 
-		UMaterialExpressionComponentMask* ComponentMaskExpression = ConstructObject<UMaterialExpressionComponentMask>(UMaterialExpressionComponentMask::StaticClass(), UnrealMaterial);
+		UMaterialExpressionComponentMask* ComponentMaskExpression = NewObject<UMaterialExpressionComponentMask>(UnrealMaterial);
 		ComponentMaskExpression->R = 0;
 		ComponentMaskExpression->G = 1;
 		ComponentMaskExpression->B = 0;
@@ -680,12 +680,12 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		ComponentMaskExpression->Input.Expression = SeamTexcoordExpression;
 		UnrealMaterial->Expressions.Add(ComponentMaskExpression);
 
-		UMaterialExpressionPower* PowerExpression = ConstructObject<UMaterialExpressionPower>(UMaterialExpressionPower::StaticClass(), UnrealMaterial);
+		UMaterialExpressionPower* PowerExpression = NewObject<UMaterialExpressionPower>(UnrealMaterial);
 		PowerExpression->Base.Expression = ComponentMaskExpression;
 		PowerExpression->ConstExponent = RenderState->m_fBranchSeamWeight;
 		UnrealMaterial->Expressions.Add(PowerExpression);
 
-		BranchSeamAmount = ConstructObject<UMaterialExpressionClamp>(UMaterialExpressionClamp::StaticClass(), UnrealMaterial);
+		BranchSeamAmount = NewObject<UMaterialExpressionClamp>(UnrealMaterial);
 		BranchSeamAmount->Input.Expression = PowerExpression;
 		UnrealMaterial->Expressions.Add(BranchSeamAmount);
 	}
@@ -695,7 +695,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 	if (DiffuseTexture)
 	{
 		// make texture sampler
-		UMaterialExpressionTextureSample* TextureExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), UnrealMaterial);
+		UMaterialExpressionTextureSample* TextureExpression = NewObject<UMaterialExpressionTextureSample>(UnrealMaterial);
 		TextureExpression->Texture = DiffuseTexture;
 		TextureExpression->SamplerType = SAMPLERTYPE_Color;
 		UnrealMaterial->Expressions.Add(TextureExpression);
@@ -712,17 +712,17 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		if (BranchSeamAmount != NULL)
 		{
 			// perform branch seam smoothing
-			UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>(UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial);
+			UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = NewObject<UMaterialExpressionTextureCoordinate>(UnrealMaterial);
 			SeamTexcoordExpression->CoordinateIndex = 6;
 			UnrealMaterial->Expressions.Add(SeamTexcoordExpression);
 
-			UMaterialExpressionTextureSample* SeamTextureExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), UnrealMaterial);
+			UMaterialExpressionTextureSample* SeamTextureExpression = NewObject<UMaterialExpressionTextureSample>(UnrealMaterial);
 			SeamTextureExpression->Texture = DiffuseTexture;
 			SeamTextureExpression->SamplerType = SAMPLERTYPE_Color;
 			SeamTextureExpression->Coordinates.Expression = SeamTexcoordExpression;
 			UnrealMaterial->Expressions.Add(SeamTextureExpression);
 
-			UMaterialExpressionLinearInterpolate* InterpolateExpression = ConstructObject<UMaterialExpressionLinearInterpolate>(UMaterialExpressionLinearInterpolate::StaticClass(), UnrealMaterial);
+			UMaterialExpressionLinearInterpolate* InterpolateExpression = NewObject<UMaterialExpressionLinearInterpolate>(UnrealMaterial);
 			InterpolateExpression->A.Expression = SeamTextureExpression;
 			InterpolateExpression->B.Expression = TextureExpression;
 			InterpolateExpression->Alpha.Expression = BranchSeamAmount;
@@ -737,19 +737,19 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 			if (DetailTexture)
 			{
 				// add/find UVSet
-				UMaterialExpressionTextureCoordinate* DetailTexcoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>(UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial);
+				UMaterialExpressionTextureCoordinate* DetailTexcoordExpression = NewObject<UMaterialExpressionTextureCoordinate>(UnrealMaterial);
 				DetailTexcoordExpression->CoordinateIndex = 5;
 				UnrealMaterial->Expressions.Add(DetailTexcoordExpression);
 				
 				// make texture sampler
-				UMaterialExpressionTextureSample* DetailTextureExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), UnrealMaterial);
+				UMaterialExpressionTextureSample* DetailTextureExpression = NewObject<UMaterialExpressionTextureSample>(UnrealMaterial);
 				DetailTextureExpression->Texture = DetailTexture;
 				DetailTextureExpression->SamplerType = SAMPLERTYPE_Color;
 				DetailTextureExpression->Coordinates.Expression = DetailTexcoordExpression;
 				UnrealMaterial->Expressions.Add(DetailTextureExpression);
 
 				// interpolate the detail
-				UMaterialExpressionLinearInterpolate* InterpolateExpression = ConstructObject<UMaterialExpressionLinearInterpolate>(UMaterialExpressionLinearInterpolate::StaticClass(), UnrealMaterial);
+				UMaterialExpressionLinearInterpolate* InterpolateExpression = NewObject<UMaterialExpressionLinearInterpolate>(UnrealMaterial);
 				InterpolateExpression->A.Expression = UnrealMaterial->BaseColor.Expression;
 				InterpolateExpression->B.Expression = DetailTextureExpression;
 				InterpolateExpression->Alpha.Expression = DetailTextureExpression;
@@ -773,7 +773,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		if (SpecularTexture)
 		{
 			// make texture sampler
-			UMaterialExpressionTextureSample* TextureExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), UnrealMaterial);
+			UMaterialExpressionTextureSample* TextureExpression = NewObject<UMaterialExpressionTextureSample>(UnrealMaterial);
 			TextureExpression->Texture = SpecularTexture;
 			TextureExpression->SamplerType = SAMPLERTYPE_Color;
 			
@@ -785,7 +785,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 
 	if (!bMadeSpecular)
 	{
-		UMaterialExpressionConstant* ZeroExpression = ConstructObject<UMaterialExpressionConstant>(UMaterialExpressionConstant::StaticClass(), UnrealMaterial);
+		UMaterialExpressionConstant* ZeroExpression = NewObject<UMaterialExpressionConstant>(UnrealMaterial);
 		ZeroExpression->R = 0.0f;
 		UnrealMaterial->Expressions.Add(ZeroExpression);
 		UnrealMaterial->Specular.Expression = ZeroExpression;
@@ -797,7 +797,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		if (NormalTexture)
 		{
 			// make texture sampler
-			UMaterialExpressionTextureSample* TextureExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), UnrealMaterial);
+			UMaterialExpressionTextureSample* TextureExpression = NewObject<UMaterialExpressionTextureSample>(UnrealMaterial);
 			TextureExpression->Texture = NormalTexture;
 			TextureExpression->SamplerType = SAMPLERTYPE_Normal;
 			
@@ -807,17 +807,17 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 			if (BranchSeamAmount != NULL)
 			{
 				// perform branch seam smoothing
-				UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>(UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial);
+				UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = NewObject<UMaterialExpressionTextureCoordinate>(UnrealMaterial);
 				SeamTexcoordExpression->CoordinateIndex = 6;
 				UnrealMaterial->Expressions.Add(SeamTexcoordExpression);
 
-				UMaterialExpressionTextureSample* SeamTextureExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), UnrealMaterial);
+				UMaterialExpressionTextureSample* SeamTextureExpression = NewObject<UMaterialExpressionTextureSample>(UnrealMaterial);
 				SeamTextureExpression->Texture = NormalTexture;
 				SeamTextureExpression->SamplerType = SAMPLERTYPE_Normal;
 				SeamTextureExpression->Coordinates.Expression = SeamTexcoordExpression;
 				UnrealMaterial->Expressions.Add(SeamTextureExpression);
 
-				UMaterialExpressionLinearInterpolate* InterpolateExpression = ConstructObject<UMaterialExpressionLinearInterpolate>(UMaterialExpressionLinearInterpolate::StaticClass(), UnrealMaterial);
+				UMaterialExpressionLinearInterpolate* InterpolateExpression = NewObject<UMaterialExpressionLinearInterpolate>(UnrealMaterial);
 				InterpolateExpression->A.Expression = SeamTextureExpression;
 				InterpolateExpression->B.Expression = TextureExpression;
 				InterpolateExpression->Alpha.Expression = BranchSeamAmount;
@@ -830,7 +830,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 
 	if (Options->IncludeVertexProcessingCheck->IsChecked() && !RenderState->m_bRigidMeshesPresent)
 	{
-		UMaterialExpressionSpeedTree* SpeedTreeExpression = ConstructObject<UMaterialExpressionSpeedTree>(UMaterialExpressionSpeedTree::StaticClass(), UnrealMaterial);
+		UMaterialExpressionSpeedTree* SpeedTreeExpression = NewObject<UMaterialExpressionSpeedTree>(UnrealMaterial);
 	
 		SpeedTreeExpression->LODType = (Options->IncludeSmoothLODCheck->IsChecked() ? STLOD_Smooth : STLOD_Pop);
 		SpeedTreeExpression->WindType = WindType;
@@ -856,7 +856,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 	if (Options->IncludeSpeedTreeAO->IsChecked() && 
 		!(RenderState->m_bVertBillboard || RenderState->m_bHorzBillboard))
 	{
-		UMaterialExpressionVertexColor* VertexColor = ConstructObject<UMaterialExpressionVertexColor>(UMaterialExpressionVertexColor::StaticClass(), UnrealMaterial);
+		UMaterialExpressionVertexColor* VertexColor = NewObject<UMaterialExpressionVertexColor>(UnrealMaterial);
 		UnrealMaterial->Expressions.Add(VertexColor);
 		UnrealMaterial->AmbientOcclusion.Expression = VertexColor;
 		UnrealMaterial->AmbientOcclusion.Mask = VertexColor->GetOutputs()[0].Mask;
@@ -869,16 +869,16 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 	// UE4 flips normals for two-sided materials. SpeedTrees don't need that
 	if (UnrealMaterial->TwoSided)
 	{
-		UMaterialExpressionTwoSidedSign* TwoSidedSign = ConstructObject<UMaterialExpressionTwoSidedSign>(UMaterialExpressionTwoSidedSign::StaticClass(), UnrealMaterial);
+		UMaterialExpressionTwoSidedSign* TwoSidedSign = NewObject<UMaterialExpressionTwoSidedSign>(UnrealMaterial);
 		UnrealMaterial->Expressions.Add(TwoSidedSign);
 
-		UMaterialExpressionMultiply* Multiply = ConstructObject<UMaterialExpressionMultiply>(UMaterialExpressionMultiply::StaticClass(), UnrealMaterial);
+		auto Multiply = NewObject<UMaterialExpressionMultiply>(UnrealMaterial);
 		UnrealMaterial->Expressions.Add(Multiply);
 		Multiply->A.Expression = TwoSidedSign;
 
 		if (UnrealMaterial->Normal.Expression == NULL)
 		{
-			UMaterialExpressionConstant3Vector* VertexNormalExpression = ConstructObject<UMaterialExpressionConstant3Vector>(UMaterialExpressionConstant3Vector::StaticClass(), UnrealMaterial);
+			auto VertexNormalExpression = NewObject<UMaterialExpressionConstant3Vector>(UnrealMaterial);
 			UnrealMaterial->Expressions.Add(VertexNormalExpression);
 			VertexNormalExpression->Constant = FLinearColor(0.0f, 0.0f, 1.0f);
 
@@ -898,7 +898,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		UMaterialFunction* ColorVariationFunction = LoadObject<UMaterialFunction>(NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/SpeedTree/SpeedTreeColorVariation.SpeedTreeColorVariation"), NULL, LOAD_None, NULL);
 		if (ColorVariationFunction)
 		{
-			UMaterialExpressionMaterialFunctionCall* ColorVariation = ConstructObject<UMaterialExpressionMaterialFunctionCall>(UMaterialExpressionMaterialFunctionCall::StaticClass(), UnrealMaterial);
+			UMaterialExpressionMaterialFunctionCall* ColorVariation = NewObject<UMaterialExpressionMaterialFunctionCall>(UnrealMaterial);
 			UnrealMaterial->Expressions.Add(ColorVariation);
 
 			ColorVariation->MaterialFunction = ColorVariationFunction;
@@ -1231,10 +1231,10 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 					ExistingMesh->PreEditChange(NULL);
 				}
 				
-				StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), Flags | RF_Public);
+				StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), Flags | RF_Public);
 
 				// @todo AssetImportData make a data class for speed tree assets
-				StaticMesh->AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), StaticMesh);
+				StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
 				StaticMesh->AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(UFactory::GetCurrentFilename(), StaticMesh);
 				StaticMesh->AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*UFactory::GetCurrentFilename()).ToString();
 				StaticMesh->AssetImportData->bDirty = false;

@@ -120,7 +120,7 @@ void UButton::PostLoad()
 			UButtonSlot* ButtonSlot = Cast<UButtonSlot>(PanelSlot);
 			if ( ButtonSlot == NULL )
 			{
-				ButtonSlot = ConstructObject<UButtonSlot>(UButtonSlot::StaticClass(), this);
+				ButtonSlot = NewObject<UButtonSlot>(this);
 				ButtonSlot->Content = GetContentSlot()->Content;
 				ButtonSlot->Content->Slot = ButtonSlot;
 				Slots[0] = ButtonSlot;

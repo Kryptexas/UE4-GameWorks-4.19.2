@@ -27,7 +27,7 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::PostPlacedNewNode()
 			UBehaviorTree* BT = Cast<UBehaviorTree>(OwningNode->GetOuter()->GetOuter());
 			if (BT)
 			{
-				UBTDecorator* MyDecorator = ConstructObject<UBTDecorator>(NodeClass, BT);
+				UBTDecorator* MyDecorator = NewObject<UBTDecorator>(BT, NodeClass);
 				MyDecorator->InitializeFromAsset(*BT);
 				OwningNode->InitializeDecorator(MyDecorator);
 

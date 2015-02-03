@@ -108,7 +108,7 @@ void FSpriteAssetTypeActions::ExecuteCreateFlipbook(TArray<TWeakObjectPtr<UPaper
 			FString AssetName;
 			FString PackageName;
 
-			UPaperFlipbookFactory* FlipbookFactory = ConstructObject<UPaperFlipbookFactory>(UPaperFlipbookFactory::StaticClass());
+			UPaperFlipbookFactory* FlipbookFactory = NewObject<UPaperFlipbookFactory>();
 			for (int32 SpriteIndex = 0; SpriteIndex < Sprites.Num(); ++SpriteIndex)
 			{
 				UPaperSprite* Sprite = Sprites[SpriteIndex];

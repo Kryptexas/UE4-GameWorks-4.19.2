@@ -49,7 +49,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 		if (AudioDevice != NULL)
 		{
 			USoundWaveStreaming* SoundStreaming = NULL;
-			SoundStreaming = ConstructObject<USoundWaveStreaming>(USoundWaveStreaming::StaticClass());
+			SoundStreaming = NewObject<USoundWaveStreaming>();
 			SoundStreaming->SampleRate = SampleRate;
 			SoundStreaming->NumChannels = 1;
 			SoundStreaming->Duration = INDEFINITELY_LOOPING_DURATION;

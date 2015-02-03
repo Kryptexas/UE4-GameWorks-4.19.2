@@ -94,7 +94,7 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 	if (!bFoundExistingTrail && !bError)
 	{
 		//Spawn a new component from PSTemplate. This notify is made the outer so that the component can be identified later.
-		UParticleSystemComponent* NewParticleComp = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass(), MeshComp);
+		UParticleSystemComponent* NewParticleComp = NewObject<UParticleSystemComponent>(MeshComp);
 		NewParticleComp->bAutoDestroy = true;
 		NewParticleComp->SecondsBeforeInactive = 0.0f;
 		NewParticleComp->bAutoActivate = false;

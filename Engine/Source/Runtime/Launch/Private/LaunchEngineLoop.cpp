@@ -1499,7 +1499,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				{
 					UClass* EditorEngineClass = StaticLoadClass( UEditorEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.EditorEngine"), NULL, LOAD_None, NULL );
 
-					GEngine = GEditor = ConstructObject<UEditorEngine>( EditorEngineClass );
+					GEngine = GEditor = NewObject<UEditorEngine>(GetTransientPackage(), EditorEngineClass);
 
 					GEngine->ParseCommandline();
 
@@ -1513,7 +1513,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					UClass* EngineClass = StaticLoadClass( UEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.GameEngine"), NULL, LOAD_None, NULL );
 
 					// must do this here so that the engine object that we create on the next line receives the correct property values
-					GEngine = ConstructObject<UEngine>( EngineClass );
+					GEngine = NewObject<UEngine>(GetTransientPackage(), EngineClass);
 					check(GEngine);
 
 					GEngine->ParseCommandline();
@@ -1529,7 +1529,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			FAutomationTestFramework::GetInstance().RunSmokeTests();
 #endif 
 	
-			UCommandlet* Commandlet = ConstructObject<UCommandlet>( CommandletClass );
+			UCommandlet* Commandlet = NewObject<UCommandlet>(GetTransientPackage(), CommandletClass);
 			check(Commandlet);
 			Commandlet->AddToRoot();			
 
@@ -1945,14 +1945,14 @@ int32 FEngineLoop::Init()
 	{
 		// We're the game.
 		EngineClass = StaticLoadClass( UGameEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.GameEngine"), NULL, LOAD_None, NULL );
-		GEngine = ConstructObject<UEngine>( EngineClass );
+		GEngine = NewObject<UEngine>(GetTransientPackage(), EngineClass);
 	}
 	else
 	{
 #if WITH_EDITOR
 		// We're UnrealEd.
 		EngineClass = StaticLoadClass( UUnrealEdEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.UnrealEdEngine"), NULL, LOAD_None, NULL );
-		GEngine = GEditor = GUnrealEd = ConstructObject<UUnrealEdEngine>( EngineClass );
+		GEngine = GEditor = GUnrealEd = NewObject<UUnrealEdEngine>(GetTransientPackage(), EngineClass);
 #else
 		check(0);
 #endif

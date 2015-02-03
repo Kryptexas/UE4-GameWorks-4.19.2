@@ -103,7 +103,7 @@ public:
 			FBlackboardEntry Entry;
 			Entry.EntryName = KeyName;
 
-			CreatedKeyType = ConstructObject<T>(T::StaticClass(), this);
+			CreatedKeyType = NewObject<T>(this);
 			Entry.KeyType = CreatedKeyType;		
 
 			Keys.Add(Entry);

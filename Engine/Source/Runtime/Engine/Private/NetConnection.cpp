@@ -1285,7 +1285,7 @@ UChannel* UNetConnection::CreateChannel( EChannelType ChType, bool bOpenedLocall
 	check(Channels[ChIndex]==NULL);
 
 	// Create channel.
-	UChannel* Channel = ConstructObject<UChannel>( UChannel::ChannelClasses[ChType] );
+	UChannel* Channel = NewObject<UChannel>(GetTransientPackage(), UChannel::ChannelClasses[ChType]);
 	Channel->Init( this, ChIndex, bOpenedLocally );
 	Channels[ChIndex] = Channel;
 	OpenChannels.Add(Channel);

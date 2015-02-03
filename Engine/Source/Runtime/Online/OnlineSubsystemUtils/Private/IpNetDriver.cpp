@@ -138,7 +138,7 @@ bool UIpNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectURL
 	}
 
 	// Create new connection.
-	ServerConnection = ConstructObject<UNetConnection>(NetConnectionClass);
+	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), NetConnectionClass);
 	ServerConnection->InitLocalConnection( this, Socket, ConnectURL, USOCK_Pending);
 	UE_LOG(LogNet, Log, TEXT("Game client on port %i, rate %i"), ConnectURL.Port, ServerConnection->CurrentNetSpeed );
 
@@ -264,7 +264,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 
 				if (bAcceptingConnection)
 				{
-					Connection = ConstructObject<UIpConnection>(NetConnectionClass);
+					Connection = NewObject<UIpConnection>(GetTransientPackage(), NetConnectionClass);
                     check(Connection);
 					Connection->InitRemoteConnection( this, Socket,  FURL(), *FromAddr, USOCK_Open);
 					Notify->NotifyAcceptedConnection( Connection );

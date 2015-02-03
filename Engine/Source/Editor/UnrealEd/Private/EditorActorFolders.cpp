@@ -217,7 +217,7 @@ UEditorActorFolders& FActorFolders::InitializeForWorld(UWorld& InWorld)
 
 	// We intentionally don't pass RF_Transactional to ConstructObject so that we don't record the creation of the object into the undo buffer
 	// (to stop it getting deleted on undo as we manage its lifetime), but we still want it to be RF_Transactional so we can record any changes later
-	UEditorActorFolders* Folders = ConstructObject<UEditorActorFolders>(UEditorActorFolders::StaticClass(), GetTransientPackage(), NAME_None, RF_NoFlags);
+	UEditorActorFolders* Folders = NewObject<UEditorActorFolders>(GetTransientPackage(), NAME_None, RF_NoFlags);
 	Folders->SetFlags(RF_Transactional);
 	TemporaryWorldFolders.Add(&InWorld, Folders);
 

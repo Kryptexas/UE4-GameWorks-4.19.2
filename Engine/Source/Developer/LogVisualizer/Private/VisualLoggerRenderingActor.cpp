@@ -105,7 +105,7 @@ void UVisualLoggerRenderingComponent::DestroyRenderState_Concurrent()
 AVisualLoggerRenderingActor::AVisualLoggerRenderingActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	RenderingComponent = ConstructObject<UVisualLoggerRenderingComponent>(UVisualLoggerRenderingComponent::StaticClass(), this);
+	RenderingComponent = CreateDefaultSubobject<UVisualLoggerRenderingComponent>(TEXT("RenderingComponent"));
 }
 
 void AVisualLoggerRenderingActor::AddDebugRendering()

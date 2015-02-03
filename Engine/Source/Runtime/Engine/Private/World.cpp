@@ -555,7 +555,7 @@ void UWorld::PostLoad()
 		// Make sure thumbnail info exists
 		if ( !ThumbnailInfo )
 		{
-			ThumbnailInfo = ConstructObject<UWorldThumbnailInfo>(UWorldThumbnailInfo::StaticClass(), this);
+			ThumbnailInfo = NewObject<UWorldThumbnailInfo>(this);
 		}
 	}
 #endif
@@ -884,7 +884,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 			// Spawn the default brush.
 			DefaultBrush = SpawnBrush();
 			check(DefaultBrush->GetBrushComponent());
-			DefaultBrush->Brush = NewNamedObject<UModel>(DefaultBrush->GetOuter(), TEXT("Brush"));
+			DefaultBrush->Brush = NewObject<UModel>(DefaultBrush->GetOuter(), TEXT("Brush"));
 			DefaultBrush->Brush->Initialize(DefaultBrush, 1);
 			DefaultBrush->GetBrushComponent()->Brush = DefaultBrush->Brush;
 			DefaultBrush->SetNotForClientOrServer();
@@ -955,7 +955,7 @@ void UWorld::InitializeNewWorld(const InitializationValues IVS)
 		ClearFlags(RF_Transactional);
 	}
 
-	PersistentLevel = NewNamedObject<ULevel>(this, TEXT("PersistentLevel"));
+	PersistentLevel = NewObject<ULevel>(this, TEXT("PersistentLevel"));
 	PersistentLevel->Initialize(FURL(nullptr));
 	PersistentLevel->Model = NewObject<UModel>(PersistentLevel);
 	PersistentLevel->Model->Initialize(nullptr, 1);
@@ -1051,7 +1051,7 @@ UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngi
 
 	// Create new UWorld, ULevel and UModel.
 	const FString WorldNameString = (WorldName != NAME_None) ? WorldName.ToString() : TEXT("NewWorld");
-	UWorld* NewWorld = NewNamedObject<UWorld>(WorldPackage, *WorldNameString);
+	UWorld* NewWorld = NewObject<UWorld>(WorldPackage, *WorldNameString);
 	NewWorld->SetFlags(RF_Transactional);
 	NewWorld->WorldType = InWorldType;
 	NewWorld->FeatureLevel = InFeatureLevel;
@@ -1176,7 +1176,7 @@ void UWorld::UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrent
 	{
 		if(!LineBatcher)
 		{
-			LineBatcher = ConstructObject<ULineBatchComponent>(ULineBatchComponent::StaticClass());
+			LineBatcher = NewObject<ULineBatchComponent>();
 		}
 
 		if(!LineBatcher->IsRegistered())
@@ -1186,7 +1186,7 @@ void UWorld::UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrent
 
 		if(!PersistentLineBatcher)
 		{
-			PersistentLineBatcher = ConstructObject<ULineBatchComponent>(ULineBatchComponent::StaticClass());
+			PersistentLineBatcher = NewObject<ULineBatchComponent>();
 		}
 
 		if(!PersistentLineBatcher->IsRegistered())	
@@ -1196,7 +1196,7 @@ void UWorld::UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrent
 
 		if(!ForegroundLineBatcher)
 		{
-			ForegroundLineBatcher = ConstructObject<ULineBatchComponent>(ULineBatchComponent::StaticClass());
+			ForegroundLineBatcher = NewObject<ULineBatchComponent>();
 		}
 
 		if(!ForegroundLineBatcher->IsRegistered())	

@@ -67,12 +67,12 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 	if (Importer.ImportFromString(FileContent, NameForErrors) &&
 		Importer.ImportTextures(LongPackagePath, CurrentSourcePath))
 	{
-		UPaperSpriteSheet* SpriteSheet = NewNamedObject<UPaperSpriteSheet>(InParent, InName, Flags);
+		UPaperSpriteSheet* SpriteSheet = NewObject<UPaperSpriteSheet>(InParent, InName, Flags);
 		if (Importer.PerformImport(LongPackagePath, Flags, SpriteSheet))
 		{
 			if (SpriteSheet->AssetImportData == nullptr)
 			{
-				SpriteSheet->AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), SpriteSheet);
+				SpriteSheet->AssetImportData = NewObject<UAssetImportData>(SpriteSheet);
 			}
 
 			SpriteSheet->AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, SpriteSheet);

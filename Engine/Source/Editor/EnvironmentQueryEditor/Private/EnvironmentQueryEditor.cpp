@@ -218,7 +218,7 @@ TSharedRef<SDockTab> FEnvironmentQueryEditor::SpawnTab_UpdateGraph( const FSpawn
 	check( Args.GetTabId().TabType == EQSUpdateGraphTabId );
 	if (Query->EdGraph == NULL)
 	{
-		UEnvironmentQueryGraph* MyGraph = ConstructObject<UEnvironmentQueryGraph>(UEnvironmentQueryGraph::StaticClass(), Query, NAME_None, RF_Transactional);
+		UEnvironmentQueryGraph* MyGraph = NewObject<UEnvironmentQueryGraph>(Query, NAME_None, RF_Transactional);
 		MyGraph->MarkVersion();
 
 		Query->EdGraph = MyGraph;

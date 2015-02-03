@@ -113,7 +113,7 @@ UMetaData* UPackage::GetMetaData()
 		// If MetaData is NULL then it wasn't loaded by linker, so we have to create it.
 		if(MetaData == NULL)
 		{
-			MetaData = ConstructObject<UMetaData>(UMetaData::StaticClass(), this, NAME_PackageMetaData, RF_Standalone | RF_LoadCompleted);
+			MetaData = NewObject<UMetaData>(this, NAME_PackageMetaData, RF_Standalone | RF_LoadCompleted);
 		}
 	}
 

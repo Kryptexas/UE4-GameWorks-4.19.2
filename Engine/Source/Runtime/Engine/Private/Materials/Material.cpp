@@ -1789,7 +1789,7 @@ void UMaterial::BackwardsCompatibilityInputConversion()
 
 			check( GConvertFromDiffSpecMaterialFunction );
 
-			UMaterialExpressionMaterialFunctionCall* FunctionExpression = ConstructObject< UMaterialExpressionMaterialFunctionCall >( UMaterialExpressionMaterialFunctionCall::StaticClass(), this );
+			UMaterialExpressionMaterialFunctionCall* FunctionExpression = NewObject<UMaterialExpressionMaterialFunctionCall>(this);
 			Expressions.Add( FunctionExpression );
 
 			FunctionExpression->MaterialExpressionEditorX += 200;

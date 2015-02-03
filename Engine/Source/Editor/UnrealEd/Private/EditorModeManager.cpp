@@ -912,7 +912,7 @@ void FEditorModeTools::SetBookmark( uint32 InIndex, FEditorViewportClient* InVie
 			// If the index doesn't already have a bookmark in place, create a new one
 			if ( !WorldSettings->BookMarks[ InIndex ] )
 			{
-				WorldSettings->BookMarks[ InIndex ] = ConstructObject<UBookMark>( UBookMark::StaticClass(), WorldSettings );
+				WorldSettings->BookMarks[InIndex] = NewObject<UBookMark>(WorldSettings);
 			}
 
 			UBookMark* CurBookMark = WorldSettings->BookMarks[ InIndex ];

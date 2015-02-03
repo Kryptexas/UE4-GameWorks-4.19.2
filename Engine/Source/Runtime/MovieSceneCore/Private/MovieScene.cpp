@@ -312,7 +312,7 @@ class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> Tra
 		{
 			Modify();
 
-			CreatedType = ConstructObject<UMovieSceneTrack>( TrackClass, this, NAME_None, RF_Transactional );
+			CreatedType = NewObject<UMovieSceneTrack>(this, TrackClass, NAME_None, RF_Transactional);
 			
 			ObjectBinding.AddTrack( *CreatedType );
 		}
@@ -360,7 +360,7 @@ class UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrac
 {
 	Modify();
 
-	UMovieSceneTrack* CreatedType = ConstructObject<UMovieSceneTrack>( TrackClass, this, NAME_None, RF_Transactional );
+	UMovieSceneTrack* CreatedType = NewObject<UMovieSceneTrack>(this, TrackClass, NAME_None, RF_Transactional);
 
 	MasterTracks.Add( CreatedType );
 	

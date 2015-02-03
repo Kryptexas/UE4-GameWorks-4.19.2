@@ -45,8 +45,7 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 
-	PreviewMeshComponent = ConstructObject<UStaticMeshComponent>(
-		UStaticMeshComponent::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient );
+	PreviewMeshComponent = NewObject<UStaticMeshComponent>(GetTransientPackage(), NAME_None, RF_Transient );
 
 	SetPreviewMesh(StaticMesh);
 
@@ -156,7 +155,7 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 				// Handle adding a new component
 				if(i >= SocketedComponentCount)
 				{
-					SocketPreviewMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
+					SocketPreviewMeshComponent = NewObject<UStaticMeshComponent>();
 					PreviewScene.AddComponent(SocketPreviewMeshComponent, FTransform::Identity);
 					SocketPreviewMeshComponents.Add(SocketPreviewMeshComponent);
 				}
@@ -205,7 +204,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 		PreviewMeshComponent = NULL;
 	}
 
-	PreviewMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
+	PreviewMeshComponent = NewObject<UStaticMeshComponent>();
 
 	PreviewMeshComponent->SetStaticMesh(InStaticMesh);
 	PreviewScene.AddComponent(PreviewMeshComponent,FTransform::Identity);
@@ -219,7 +218,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 		UStaticMeshComponent* SocketPreviewMeshComponent = NULL;
 		if( Socket && Socket->PreviewStaticMesh )
 		{
-			SocketPreviewMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
+			SocketPreviewMeshComponent = NewObject<UStaticMeshComponent>();
 			SocketPreviewMeshComponent->SetStaticMesh(Socket->PreviewStaticMesh);
 			SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
 			SocketPreviewMeshComponents.Add(SocketPreviewMeshComponent);

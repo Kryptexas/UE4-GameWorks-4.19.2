@@ -69,7 +69,7 @@ void MaterialExpressionClasses::InitMaterialExpressionClasses()
 {
 	if( !bInitialized )
 	{
-		UMaterialEditorOptions* TempEditorOptions = ConstructObject<UMaterialEditorOptions>( UMaterialEditorOptions::StaticClass() );
+		UMaterialEditorOptions* TempEditorOptions = NewObject<UMaterialEditorOptions>();
 		UClass* BaseType = UMaterialExpression::StaticClass();
 		if( BaseType )
 		{

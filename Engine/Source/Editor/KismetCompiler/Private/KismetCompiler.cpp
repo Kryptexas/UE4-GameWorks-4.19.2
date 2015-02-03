@@ -113,7 +113,7 @@ void FKismetCompilerContext::SpawnNewClass(const FString& NewClassName)
 	if (NewClass == NULL)
 	{
 		// If the class hasn't been found, then spawn a new one
-		NewClass = ConstructObject<UBlueprintGeneratedClass>(UBlueprintGeneratedClass::StaticClass(), Blueprint->GetOutermost(), FName(*NewClassName), RF_Public|RF_Transactional);
+		NewClass = NewObject<UBlueprintGeneratedClass>(Blueprint->GetOutermost(), FName(*NewClassName), RF_Public | RF_Transactional);
 	}
 	else
 	{
@@ -148,7 +148,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	const bool bRecompilingOnLoad = Blueprint->bIsRegeneratingOnLoad;
 	FString TransientClassString = FString::Printf(TEXT("TRASHCLASS_%s"), *Blueprint->GetName());
 	FName TransientClassName = MakeUniqueObjectName(GetTransientPackage(), UBlueprintGeneratedClass::StaticClass(), FName(*TransientClassString));
-	UClass* TransientClass = ConstructObject<UBlueprintGeneratedClass>(UBlueprintGeneratedClass::StaticClass(), GetTransientPackage(), TransientClassName, RF_Public|RF_Transient);
+	UClass* TransientClass = NewObject<UBlueprintGeneratedClass>(GetTransientPackage(), TransientClassName, RF_Public | RF_Transient);
 	
 	UClass* ParentClass = Blueprint->ParentClass;
 
@@ -1169,7 +1169,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			CreatedFunctionNames.Add(NewFunctionNameString);
 		}
 
-		Context.Function = NewNamedObject<UFunction>(NewClass, NewFunctionName, RF_Public);
+		Context.Function = NewObject<UFunction>(NewClass, NewFunctionName, RF_Public);
 
 #if USE_TRANSIENT_SKELETON
 		// Propagate down transient settings from the class
@@ -1822,7 +1822,7 @@ void FKismetCompilerContext::BuildDynamicBindingObjects(UBlueprintGeneratedClass
 					UDynamicBlueprintBinding* DynamicBindingObject = Class->GetDynamicBindingObject(DynamicBindingClass);
 					if (DynamicBindingObject == NULL)
 					{
-						DynamicBindingObject = ConstructObject<UDynamicBlueprintBinding>(DynamicBindingClass, Class);
+						DynamicBindingObject = NewObject<UDynamicBlueprintBinding>(Class, DynamicBindingClass);
 						Class->DynamicBindingObjects.Add(DynamicBindingObject);
 					}
 					Node->RegisterDynamicBinding(DynamicBindingObject);
@@ -2327,7 +2327,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 
 	// Create the stub graph and add it to the list of functions to compile
 
-	UEdGraph* ChildStubGraph = NewNamedObject<UEdGraph>(OwnerOfTemporaries, EventNodeName);
+	UEdGraph* ChildStubGraph = NewObject<UEdGraph>(OwnerOfTemporaries, EventNodeName);
 	Blueprint->EventGraphs.Add(ChildStubGraph);
 	ChildStubGraph->Schema = UEdGraphSchema_K2::StaticClass();
 	ChildStubGraph->SetFlags(RF_Transient);
@@ -2625,7 +2625,7 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ProcessUbergraph);
 
-	ConsolidatedEventGraph = NewNamedObject<UEdGraph>(Blueprint, GetUbergraphCallName());
+	ConsolidatedEventGraph = NewObject<UEdGraph>(Blueprint, GetUbergraphCallName());
 	ConsolidatedEventGraph->Schema = UEdGraphSchema_K2::StaticClass();
 	ConsolidatedEventGraph->SetFlags(RF_Transient);
 

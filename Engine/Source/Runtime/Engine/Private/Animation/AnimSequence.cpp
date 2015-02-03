@@ -280,7 +280,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 	{
 		if ( AssetImportData == NULL )
 		{
-			AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), this);
+			AssetImportData = NewObject<UAssetImportData>(this);
 		}
 		
 		AssetImportData->SourceFilePath = SourceFilePath_DEPRECATED;

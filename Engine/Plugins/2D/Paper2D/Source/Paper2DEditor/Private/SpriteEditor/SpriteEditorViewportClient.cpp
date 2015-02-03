@@ -1143,7 +1143,7 @@ UPaperSprite* FSpriteEditorViewportClient::CreateNewSprite(FVector2D TopLeft, FV
 	UPaperSprite* CreatedSprite = nullptr;
 
 	// Create the factory used to generate the sprite
-	UPaperSpriteFactory* SpriteFactory = ConstructObject<UPaperSpriteFactory>(UPaperSpriteFactory::StaticClass());
+	UPaperSpriteFactory* SpriteFactory = NewObject<UPaperSpriteFactory>();
 	SpriteFactory->InitialTexture = CurrentSprite->SourceTexture;
 	SpriteFactory->bUseSourceRegion = true;
 	SpriteFactory->InitialSourceUV = TopLeft;

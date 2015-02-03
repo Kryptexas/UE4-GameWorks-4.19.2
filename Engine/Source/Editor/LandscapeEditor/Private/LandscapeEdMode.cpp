@@ -206,7 +206,7 @@ FEdModeLandscape::FEdModeLandscape()
 	CurrentToolTarget.TargetType = ELandscapeToolTargetType::Heightmap;
 	CurrentToolTarget.LayerInfo = nullptr;
 
-	UISettings = ConstructObject<ULandscapeEditorObject>(ULandscapeEditorObject::StaticClass(), GetTransientPackage(), NAME_None, RF_Transactional);
+	UISettings = NewObject<ULandscapeEditorObject>(GetTransientPackage(), TEXT("UISettings"), RF_Transactional);
 	UISettings->SetParent(this);
 }
 
@@ -331,7 +331,7 @@ void FEdModeLandscape::Enter()
 	if (CurrentGizmoActor.IsValid() && !CurrentGizmoActor->GizmoTexture)
 	{
 		// Init Gizmo Texture...
-		CurrentGizmoActor->GizmoTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient);
+		CurrentGizmoActor->GizmoTexture = NewObject<UTexture2D>(GetTransientPackage(), NAME_None, RF_Transient);
 		if (CurrentGizmoActor->GizmoTexture)
 		{
 			CurrentGizmoActor->GizmoTexture->Source.Init(

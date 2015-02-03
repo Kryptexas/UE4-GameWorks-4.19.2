@@ -105,14 +105,14 @@ public:
 	{
 		if ( WidgetType->IsChildOf(UUserWidget::StaticClass()) )
 		{
-			UUserWidget* Widget = ConstructObject<UUserWidget>(WidgetType, this);
+			UUserWidget* Widget = NewObject<UUserWidget>(this, WidgetType);
 			Widget->Initialize();
 			Widget->SetFlags(RF_Transactional);
 			return (T*)Widget;
 		}
 		else
 		{
-			UWidget* Widget = (UWidget*)ConstructObject<UWidget>(WidgetType, this);
+			UWidget* Widget = (UWidget*)NewObject<UWidget>(this, WidgetType);
 			Widget->SetFlags(RF_Transactional);
 			return (T*)Widget;
 		}

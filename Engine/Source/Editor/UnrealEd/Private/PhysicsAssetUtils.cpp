@@ -677,7 +677,7 @@ int32 CreateNewConstraint(UPhysicsAsset* PhysAsset, FName InConstraintName, UPhy
 		return ConstraintIndex;
 	}
 
-	UPhysicsConstraintTemplate* NewConstraintSetup = ConstructObject<UPhysicsConstraintTemplate>( UPhysicsConstraintTemplate::StaticClass(), PhysAsset, NAME_None, RF_Transactional );
+	UPhysicsConstraintTemplate* NewConstraintSetup = NewObject<UPhysicsConstraintTemplate>(PhysAsset, NAME_None, RF_Transactional);
 	if(InConstraintSetup)
 	{
 		NewConstraintSetup->DefaultInstance.CopyConstraintParamsFrom( &InConstraintSetup->DefaultInstance );
@@ -706,7 +706,7 @@ int32 CreateNewBody(UPhysicsAsset* PhysAsset, FName InBodyName)
 		return BodyIndex; // if we already have one for this name - just return that.
 	}
 
-	UBodySetup* NewBodySetup = ConstructObject<UBodySetup>( UBodySetup::StaticClass(), PhysAsset, NAME_None, RF_Transactional );
+	UBodySetup* NewBodySetup = NewObject<UBodySetup>(PhysAsset, NAME_None, RF_Transactional);
 	// make default to be use complex as simple 
 	NewBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 	// newly created bodies default to simulating

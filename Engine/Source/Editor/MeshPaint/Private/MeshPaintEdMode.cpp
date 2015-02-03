@@ -4889,7 +4889,7 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 				{
 					UClass* FactoryClass = UMaterialInstanceConstantFactoryNew::StaticClass();
 
-					UMaterialInstanceConstantFactoryNew* Factory = ConstructObject<UMaterialInstanceConstantFactoryNew>(UMaterialInstanceConstantFactoryNew::StaticClass());
+					UMaterialInstanceConstantFactoryNew* Factory = NewObject<UMaterialInstanceConstantFactoryNew>();
 					if ( Factory->ConfigureProperties() )
 					{
 						FString AssetName;
@@ -4953,7 +4953,7 @@ void FEdModeMeshPaint::CreateNewTexture()
 	{
 		UClass* FactoryClass = UTexture2DFactoryNew::StaticClass();
 			
-		UTexture2DFactoryNew* Factory = ConstructObject<UTexture2DFactoryNew>(UTexture2DFactoryNew::StaticClass());
+		UTexture2DFactoryNew* Factory = NewObject<UTexture2DFactoryNew>();
 		if ( Factory->ConfigureProperties() )
 		{
 			FString AssetName;

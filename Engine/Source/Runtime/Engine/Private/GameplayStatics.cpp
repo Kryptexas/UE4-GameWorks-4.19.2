@@ -532,7 +532,7 @@ void UGameplayStatics::PlayWorldCameraShake(UObject* WorldContextObject, TSubcla
 
 UParticleSystemComponent* CreateParticleSystem(UParticleSystem* EmitterTemplate, UWorld* World, AActor* Actor, bool bAutoDestroy)
 {
-	UParticleSystemComponent* PSC = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass(), (Actor ? Actor : (UObject*)World) );
+	UParticleSystemComponent* PSC = NewObject<UParticleSystemComponent>((Actor ? Actor : (UObject*)World));
 	PSC->bAutoDestroy = bAutoDestroy;
 	PSC->SecondsBeforeInactive = 0.0f;
 	PSC->bAutoActivate = false;
@@ -899,7 +899,7 @@ UDecalComponent* CreateDecalComponent(class UMaterialInterface* DecalMaterial, F
 {
 	const FMatrix DecalInternalTransform = FRotationMatrix(FRotator(0.f, 90.0f, -90.0f));
 
-	UDecalComponent* DecalComp = ConstructObject<UDecalComponent>(UDecalComponent::StaticClass(), (Actor ? Actor : (UObject*)GetTransientPackage()));
+	UDecalComponent* DecalComp = NewObject<UDecalComponent>((Actor ? Actor : (UObject*)GetTransientPackage()));
 	DecalComp->DecalMaterial = DecalMaterial;
 	DecalComp->RelativeScale3D = DecalInternalTransform.TransformVector(DecalSize);
 	DecalComp->bAbsoluteScale = true;

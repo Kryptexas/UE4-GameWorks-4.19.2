@@ -109,7 +109,7 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 	if ( ImportData )
 	{
 		// Prepare the import options
-		UFbxImportUI* ReimportUI = ConstructObject<UFbxImportUI>(UFbxImportUI::StaticClass());
+		UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
 		ReimportUI->MeshTypeToImport = FBXIT_Animation;
 		ReimportUI->bOverrideFullName = false;
 		ReimportUI->AnimSequenceImportData = ImportData;
@@ -535,7 +535,7 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 		// If not, create new one now.
 		if(!DestSeq)
 		{
-			DestSeq = ConstructObject<UAnimSequence>( UAnimSequence::StaticClass(), ParentPackage, *SequenceName, RF_Public|RF_Standalone );
+			DestSeq = NewObject<UAnimSequence>(ParentPackage, *SequenceName, RF_Public | RF_Standalone);
 	
 			// Notify the asset registry
 			FAssetRegistryModule::AssetCreated(DestSeq);

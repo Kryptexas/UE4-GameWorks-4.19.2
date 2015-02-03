@@ -925,8 +925,7 @@ UTexture2D* UTexture2D::CreateTransient(int32 InSizeX, int32 InSizeY, EPixelForm
 		(InSizeX % GPixelFormats[InFormat].BlockSizeX) == 0 &&
 		(InSizeY % GPixelFormats[InFormat].BlockSizeY) == 0)
 	{
-		NewTexture = ConstructObject<UTexture2D>(
-			UTexture2D::StaticClass(),
+		NewTexture = NewObject<UTexture2D>(
 			GetTransientPackage(),
 			NAME_None,
 			RF_Transient

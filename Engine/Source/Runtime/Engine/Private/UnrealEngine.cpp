@@ -1441,7 +1441,7 @@ void UEngine::InitializeObjectReferences()
 
 		checkf(SingletonClass != NULL, TEXT("Engine config value GameSingletonClassName is not a valid class name."));
 
-		GameSingleton = ConstructObject<UObject>(SingletonClass, this);
+		GameSingleton = NewObject<UObject>(this, SingletonClass);
 	}
 
 	if (DefaultTireType == NULL && DefaultTireTypeName.ToString().Len())
@@ -7608,7 +7608,7 @@ bool CreateNamedNetDriver_Local(UEngine *Engine, FWorldContext &Context, FName N
 				}
 
 				// Try to create network driver.
-				NetDriver = ConstructObject<UNetDriver>(NetDriverClass);
+				NetDriver = NewObject<UNetDriver>(GetTransientPackage(), NetDriverClass);
 				check(NetDriver);
 				NetDriver->NetDriverName = NetDriverName;
 				
@@ -9985,8 +9985,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		check( FakePersistentLevel );
 
 		// Construct a new ULevelStreamingPersistent for the new persistent level.
-		ULevelStreamingPersistent* LevelStreamingPersistent = ConstructObject<ULevelStreamingPersistent>(
-			ULevelStreamingPersistent::StaticClass(),
+		ULevelStreamingPersistent* LevelStreamingPersistent = NewObject<ULevelStreamingPersistent>(
 			GetTransientPackage(),
 			*FString::Printf(TEXT("LevelStreamingPersistent_%s"), *FakePersistentLevel->GetOutermost()->GetName()) );
 
@@ -10154,7 +10153,7 @@ FURL& UEngine::LastURLFromWorld(UWorld *World)
 void UEngine::CreateGameUserSettings()
 {
 	UGameUserSettings::LoadConfigIni();
-	GameUserSettings = ConstructObject<UGameUserSettings>(GEngine->GameUserSettingsClass);
+	GameUserSettings = NewObject<UGameUserSettings>(GetTransientPackage(), GEngine->GameUserSettingsClass);
 	GameUserSettings->LoadSettings();
 }
 
@@ -10520,7 +10519,7 @@ UDeviceProfileManager* UEngine::GetDeviceProfileManager()
 {
 	if(DeviceProfileManager == NULL)
 	{
-		DeviceProfileManager = ConstructObject< UDeviceProfileManager >( UDeviceProfileManager::StaticClass(), GetTransientPackage(), TEXT("GlobalDeviceProfileManager"), RF_Public|RF_Transient );
+		DeviceProfileManager = NewObject<UDeviceProfileManager>(GetTransientPackage(), TEXT("GlobalDeviceProfileManager"), RF_Public | RF_Transient);
 	}
 
 	return DeviceProfileManager;

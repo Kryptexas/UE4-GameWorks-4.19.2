@@ -1978,7 +1978,7 @@ struct CompressAnimationsFunctor
 			if( bResetCompression )
 			{
 				UE_LOG(LogPackageUtilities, Warning, TEXT("%s (%s) Resetting with BitwiseCompressOnly."), *AnimSeq->GetName(), *AnimSeq->GetFullName());
-				UAnimCompress* CompressionAlgorithm = ConstructObject<UAnimCompress_BitwiseCompressOnly>( UAnimCompress_BitwiseCompressOnly::StaticClass() );
+				UAnimCompress* CompressionAlgorithm = NewObject<UAnimCompress_BitwiseCompressOnly>();
 				CompressionAlgorithm->RotationCompressionFormat = ACF_Float96NoW;
 				CompressionAlgorithm->TranslationCompressionFormat = ACF_None;
 				CompressionAlgorithm->ScaleCompressionFormat = ACF_Float96NoW;

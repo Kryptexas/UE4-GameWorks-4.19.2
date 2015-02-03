@@ -60,7 +60,7 @@ void UCameraComponent::OnRegister()
 #if WITH_EDITORONLY_DATA
 	if (ProxyMeshComponent == NULL)
 	{
-		ProxyMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOuter(), NAME_None, RF_Transactional);
+		ProxyMeshComponent = NewObject<UStaticMeshComponent>(GetOuter(), NAME_None, RF_Transactional);
 		ProxyMeshComponent->AttachTo(this);
 		ProxyMeshComponent->StaticMesh = CameraMesh;
 		ProxyMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -73,7 +73,7 @@ void UCameraComponent::OnRegister()
 
 	if (DrawFrustum == NULL)
 	{
-		DrawFrustum = ConstructObject<UDrawFrustumComponent>(UDrawFrustumComponent::StaticClass(), GetOuter(), NAME_None, RF_Transactional);
+		DrawFrustum = NewObject<UDrawFrustumComponent>(GetOuter(), NAME_None, RF_Transactional);
 		DrawFrustum->AttachTo(this);
 		DrawFrustum->AlwaysLoadOnClient = false;
 		DrawFrustum->AlwaysLoadOnServer = false;

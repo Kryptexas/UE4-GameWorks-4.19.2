@@ -421,7 +421,7 @@ void SSocketManager::CreateSocket()
 
 		const FScopedTransaction Transaction( LOCTEXT( "CreateSocket", "Create Socket" ) );
 
-		UStaticMeshSocket* NewSocket = ConstructObject<UStaticMeshSocket>(UStaticMeshSocket::StaticClass(), CurrentStaticMesh);
+		UStaticMeshSocket* NewSocket = NewObject<UStaticMeshSocket>(CurrentStaticMesh);
 		check(NewSocket);
 
 		if (FEngineAnalytics::IsAvailable())

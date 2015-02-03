@@ -393,7 +393,7 @@ void FMatinee::NewGroupPopupTextCommitted(
 	GroupAttribs.Add(FAnalyticsEventAttribute(TEXT("ActionId"), FString::Printf(TEXT("%d"), static_cast<int32>(InActionId))));
 	if(bDirGroup)
 	{
-		UInterpGroup* NewDirector = ConstructObject<UInterpGroupDirector>( UInterpGroupDirector::StaticClass(), IData, NAME_None, RF_Transactional );
+		UInterpGroup* NewDirector = NewObject<UInterpGroupDirector>(IData, NAME_None, RF_Transactional);
 		NewGroups.Add(NewDirector);
 		GroupAttribs.Add(FAnalyticsEventAttribute(TEXT("Name"), NewDirector->GroupName.ToString()));
 	}
@@ -416,7 +416,7 @@ void FMatinee::NewGroupPopupTextCommitted(
 	}
 	else
 	{
-		UInterpGroup* NewGroup = ConstructObject<UInterpGroup>( UInterpGroup::StaticClass(), IData, NAME_None, RF_Transactional );
+		UInterpGroup* NewGroup = NewObject<UInterpGroup>(IData, NAME_None, RF_Transactional);
 		NewGroup->GroupName = NewGroupName;
 		NewGroups.Add(NewGroup);
 		GroupAttribs.Add(FAnalyticsEventAttribute(TEXT("Name"), NewGroup->GroupName.ToString()));
@@ -483,12 +483,12 @@ void FMatinee::NewGroupPopupTextCommitted(
 			// Create new InterpGroupInst
 			if(bDirGroup)
 			{
-				NewGroupInst = ConstructObject<UInterpGroupInstDirector>( UInterpGroupInstDirector::StaticClass(), MatineeActor, NAME_None, RF_Transactional );
+				NewGroupInst = NewObject<UInterpGroupInstDirector>(MatineeActor, NAME_None, RF_Transactional);
 				NewGroupInst->InitGroupInst(NewGroup, NULL);
 			}
 			else
 			{
-				NewGroupInst = ConstructObject<UInterpGroupInst>( UInterpGroupInst::StaticClass(), MatineeActor, NAME_None, RF_Transactional );
+				NewGroupInst = NewObject<UInterpGroupInst>(MatineeActor, NAME_None, RF_Transactional);
 				// Initialize group instance, saving ref to actor it works on.
 				NewGroupInst->InitGroupInst(NewGroup, GroupActor);
 			}
@@ -504,10 +504,10 @@ void FMatinee::NewGroupPopupTextCommitted(
 		// If a director group, create a director track for it now.
 		if(bDirGroup)
 		{
-			UInterpTrack* NewDirTrack = ConstructObject<UInterpTrackDirector>( UInterpTrackDirector::StaticClass(), NewGroup, NAME_None, RF_Transactional );
+			UInterpTrack* NewDirTrack = NewObject<UInterpTrackDirector>(NewGroup, NAME_None, RF_Transactional);
 			const int32 TrackIndex = NewGroup->InterpTracks.Add(NewDirTrack);
 
-			UInterpTrackInst* NewDirTrackInst = ConstructObject<UInterpTrackInstDirector>( UInterpTrackInstDirector::StaticClass(), NewGroupInst, NAME_None, RF_Transactional );
+			UInterpTrackInst* NewDirTrackInst = NewObject<UInterpTrackInstDirector>(NewGroupInst, NAME_None, RF_Transactional);
 			NewGroupInst->TrackInst.Add(NewDirTrackInst);
 
 			NewDirTrackInst->InitTrackInst(NewDirTrack);
@@ -551,10 +551,10 @@ void FMatinee::NewGroupPopupTextCommitted(
 			// For Lighting groups, add a Movement, Brightness, Light Color, and Radius Property track
 			if ( InActionId == FMatineeCommands::EGroupAction::NewLightingGroup )
 			{
-				UInterpTrack* NewMovTrack = ConstructObject<UInterpTrackMove>( UInterpTrackMove::StaticClass(), NewGroup, NAME_None, RF_Transactional );
+				UInterpTrack* NewMovTrack = NewObject<UInterpTrackMove>(NewGroup, NAME_None, RF_Transactional);
 				const int32 TrackIndex = NewGroup->InterpTracks.Add(NewMovTrack);
 
-				UInterpTrackInst* NewMovTrackInst = ConstructObject<UInterpTrackInstMove>( UInterpTrackInstMove::StaticClass(), NewGroupInst, NAME_None, RF_Transactional );
+				UInterpTrackInst* NewMovTrackInst = NewObject<UInterpTrackInstMove>(NewGroupInst, NAME_None, RF_Transactional);
 				NewGroupInst->TrackInst.Add(NewMovTrackInst);
 
 				NewMovTrackInst->InitTrackInst(NewMovTrack);
@@ -1434,7 +1434,7 @@ void FMatinee::AddActorToGroup(UInterpGroup* GroupToAdd, AActor* ActorToAdd)
 	}
 	else
 	{
-		NewGroupInst = ConstructObject<UInterpGroupInst>( UInterpGroupInst::StaticClass(), MatineeActor, NAME_None, RF_Transactional );
+		NewGroupInst = NewObject<UInterpGroupInst>(MatineeActor, NAME_None, RF_Transactional);
 		// Instantiate the Matinee group data structure.
 		MatineeActor->GroupInst.Add(NewGroupInst);
 		NewGroupInst->InitGroupInst(GroupToAdd, ActorToAdd);
@@ -1822,7 +1822,7 @@ void FMatinee::OnContextGroupCreateTabTextCommitted(const FText& InText, ETextCo
 		// Create a new tab.
 		if( HasAGroupSelected() )
 		{
-			UInterpFilter_Custom* Filter = ConstructObject<UInterpFilter_Custom>(UInterpFilter_Custom::StaticClass(), IData, NAME_None, RF_Transactional);
+			UInterpFilter_Custom* Filter = NewObject<UInterpFilter_Custom>(IData, NAME_None, RF_Transactional);
 
 			if(!InText.IsEmpty())
 			{

@@ -32,9 +32,9 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 	
 	if (UserDefinedStructEnabled())
 	{
-		Struct = NewNamedObject<UUserDefinedStruct>(InParent, Name, Flags);
+		Struct = NewObject<UUserDefinedStruct>(InParent, Name, Flags);
 		check(Struct);
-		Struct->EditorData = NewNamedObject<UUserDefinedStructEditorData>(Struct, NAME_None, RF_Transactional);
+		Struct->EditorData = NewObject<UUserDefinedStructEditorData>(Struct, NAME_None, RF_Transactional);
 		check(Struct->EditorData);
 
 		Struct->SetMetaData(TEXT("BlueprintType"), TEXT("true"));

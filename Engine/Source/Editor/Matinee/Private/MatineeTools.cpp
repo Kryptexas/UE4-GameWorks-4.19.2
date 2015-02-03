@@ -183,7 +183,7 @@ void  FMatinee::UpdateCameraRecording (void)
 						NewCam->GetCameraComponent()->FieldOfView = LevelVC->ViewFOV;
 
 						//make new group for the camera
-						UInterpGroup* NewGroup = ConstructObject<UInterpGroup>( UInterpGroup::StaticClass(), IData, NAME_None, RF_Transactional );
+						UInterpGroup* NewGroup = NewObject<UInterpGroup>(IData, NAME_None, RF_Transactional);
 						FString NewGroupName = NSLOCTEXT( "UnrealEd", "InterpEd_RecordMode_CameraGroupName", "CameraGroupCG" ).ToString();
 						NewGroup->GroupName = FName(*NewGroupName);
 						NewGroup->EnsureUniqueName();
@@ -192,7 +192,7 @@ void  FMatinee::UpdateCameraRecording (void)
 						IData->InterpGroups.Add(NewGroup);
 
 						//add group instance for camera
-						UInterpGroupInst* NewGroupInst = ConstructObject<UInterpGroupInst>( UInterpGroupInst::StaticClass(), MatineeActor, NAME_None, RF_Transactional );
+						UInterpGroupInst* NewGroupInst = NewObject<UInterpGroupInst>(MatineeActor, NAME_None, RF_Transactional);
 						// Initialise group instance, saving ref to actor it works on.
 						NewGroupInst->InitGroupInst(NewGroup, NewCam);
 						const int32 NewGroupInstIndex = MatineeActor->GroupInst.Add(NewGroupInst);
@@ -2780,7 +2780,7 @@ UInterpTrack* FMatinee::AddTrackToGroup( UInterpGroup* Group, UClass* TrackClass
 	}
 	else
 	{
-		NewTrack = ConstructObject<UInterpTrack>( TrackClass, Group, NAME_None, RF_Transactional );
+		NewTrack = NewObject<UInterpTrack>(Group, TrackClass, NAME_None, RF_Transactional);
 	}
 
 	check(NewTrack);
@@ -2812,7 +2812,7 @@ UInterpTrack* FMatinee::AddTrackToGroup( UInterpGroup* Group, UClass* TrackClass
 		{
 			GroupInst->Modify();
 
-			UInterpTrackInst* NewTrackInst = ConstructObject<UInterpTrackInst>( NewTrack->TrackInstClass, GroupInst, NAME_None, RF_Transactional );
+			UInterpTrackInst* NewTrackInst = NewObject<UInterpTrackInst>(GroupInst, NewTrack->TrackInstClass, NAME_None, RF_Transactional);
 
 			const int32 NewInstIndex = GroupInst->TrackInst.Add(NewTrackInst);
 			check(NewInstIndex == OutNewTrackIndex);
@@ -3305,11 +3305,11 @@ void FMatinee::DuplicateGroup(UInterpGroup* GroupToDuplicate)
 
 		if(bDirGroup)
 		{
-			NewGroupInst = ConstructObject<UInterpGroupInstDirector>( UInterpGroupInstDirector::StaticClass(), MatineeActor, NAME_None, RF_Transactional );
+			NewGroupInst = NewObject<UInterpGroupInstDirector>(MatineeActor, NAME_None, RF_Transactional);
 		}
 		else
 		{
-			NewGroupInst = ConstructObject<UInterpGroupInst>( UInterpGroupInst::StaticClass(), MatineeActor, NAME_None, RF_Transactional );
+			NewGroupInst = NewObject<UInterpGroupInst>(MatineeActor, NAME_None, RF_Transactional);
 		}
 
 		// Initialise group instance, saving ref to actor it works on.
@@ -3332,10 +3332,10 @@ void FMatinee::DuplicateGroup(UInterpGroup* GroupToDuplicate)
 			
 			if(NewDirTrack==NULL)
 			{
-				NewDirTrack = ConstructObject<UInterpTrackDirector>( UInterpTrackDirector::StaticClass(), NewGroup, NAME_None, RF_Transactional );
+				NewDirTrack = NewObject<UInterpTrackDirector>(NewGroup, NAME_None, RF_Transactional);
 				NewGroup->InterpTracks.Add(NewDirTrack);
 
-				UInterpTrackInst* NewDirTrackInst = ConstructObject<UInterpTrackInstDirector>( UInterpTrackInstDirector::StaticClass(), NewGroupInst, NAME_None, RF_Transactional );
+				UInterpTrackInst* NewDirTrackInst = NewObject<UInterpTrackInstDirector>(NewGroupInst, NAME_None, RF_Transactional);
 				NewGroupInst->TrackInst.Add(NewDirTrackInst);
 
 				NewDirTrackInst->InitTrackInst(NewDirTrack);

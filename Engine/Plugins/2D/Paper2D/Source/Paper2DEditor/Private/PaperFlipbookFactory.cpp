@@ -17,7 +17,7 @@ UPaperFlipbookFactory::UPaperFlipbookFactory(const FObjectInitializer& ObjectIni
 
 UObject* UPaperFlipbookFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UPaperFlipbook* NewFlipbook = ConstructObject<UPaperFlipbook>(Class, InParent, Name, Flags | RF_Transactional);
+	UPaperFlipbook* NewFlipbook = NewObject<UPaperFlipbook>(InParent, Class, Name, Flags | RF_Transactional);
 	{
 		FScopedFlipbookMutator EditLock(NewFlipbook);
 		EditLock.KeyFrames = KeyFrames;

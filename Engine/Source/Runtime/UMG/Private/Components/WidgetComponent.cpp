@@ -716,7 +716,7 @@ void UWidgetComponent::UpdateRenderTarget()
 
 	if(!RenderTarget && DrawSize != FIntPoint::ZeroValue)
 	{
-		RenderTarget = ConstructObject<UTextureRenderTarget2D>(UTextureRenderTarget2D::StaticClass(), this);
+		RenderTarget = NewObject<UTextureRenderTarget2D>(this);
 
 		RenderTarget->ClearColor = BackgroundColor;
 
@@ -771,7 +771,7 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 {
 	if( !BodySetup || bDrawSizeChanged )
 	{
-		BodySetup = ConstructObject<UBodySetup>( UBodySetup::StaticClass(), this );
+		BodySetup = NewObject<UBodySetup>(this);
 		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		BodySetup->AggGeom.BoxElems.Add(FKBoxElem());
 

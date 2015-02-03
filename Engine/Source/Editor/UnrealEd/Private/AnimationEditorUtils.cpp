@@ -284,7 +284,7 @@ namespace AnimationEditorUtils
 				FString PackageName;
 				CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
 
-				UAnimBlueprintFactory* Factory = ConstructObject<UAnimBlueprintFactory>(UAnimBlueprintFactory::StaticClass());
+				UAnimBlueprintFactory* Factory = NewObject<UAnimBlueprintFactory>();
 				Factory->TargetSkeleton = Object;
 
 				FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
@@ -305,7 +305,7 @@ namespace AnimationEditorUtils
 					CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
 
 					// Create the anim blueprint factory used to generate the asset
-					UAnimBlueprintFactory* Factory = ConstructObject<UAnimBlueprintFactory>(UAnimBlueprintFactory::StaticClass());
+					UAnimBlueprintFactory* Factory = NewObject<UAnimBlueprintFactory>();
 					Factory->TargetSkeleton = Object;
 
 					FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");

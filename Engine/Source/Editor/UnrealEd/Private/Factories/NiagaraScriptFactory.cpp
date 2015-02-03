@@ -25,15 +25,15 @@ UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class,UObject* InPar
 	check(Class->IsChildOf(UNiagaraScript::StaticClass()));
 
 	// First allocate runtime script 
-	UNiagaraScript* NewScript = ConstructObject<UNiagaraScript>(Class, InParent, Name, Flags);
+	UNiagaraScript* NewScript = NewObject<UNiagaraScript>(InParent, Class, Name, Flags);
 	if(NewScript != NULL)
 	{
 		// Then allocate editor-only 'source' object
-		UNiagaraScriptSource* Source = ConstructObject<UNiagaraScriptSource>(UNiagaraScriptSource::StaticClass(), NewScript, NAME_None, RF_Transactional);
+		UNiagaraScriptSource* Source = NewObject<UNiagaraScriptSource>(NewScript, NAME_None, RF_Transactional);
 		if(Source)
 		{
 			// Create 'update graph'
-			UNiagaraGraph* CreatedGraph  = ConstructObject<UNiagaraGraph>(UNiagaraGraph::StaticClass(), Source, NAME_None, RF_Transactional);
+			UNiagaraGraph* CreatedGraph = NewObject<UNiagaraGraph>(Source, NAME_None, RF_Transactional);
 			Source->NodeGraph = CreatedGraph;
 
 			FGraphNodeCreator<UNiagaraNodeOutput> OutputNodeCreator(*CreatedGraph);

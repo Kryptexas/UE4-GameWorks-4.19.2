@@ -694,7 +694,7 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
 
 	// Assign the outer to the game instance if it exists, otherwise use the world
 	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
-	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
+	UUserWidget* NewWidget = NewObject<UUserWidget>(Outer, UserWidgetClass);
 
 	if ( ULocalPlayer* Player = World->GetFirstLocalPlayerFromController() )
 	{
@@ -724,7 +724,7 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 	// Assign the outer to the game instance if it exists, otherwise use the player controller's world
 	UWorld* World = OwningPlayer->GetWorld();
 	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
-	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
+	UUserWidget* NewWidget = NewObject<UUserWidget>(Outer, UserWidgetClass);
 	
 	NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
 	NewWidget->Initialize();

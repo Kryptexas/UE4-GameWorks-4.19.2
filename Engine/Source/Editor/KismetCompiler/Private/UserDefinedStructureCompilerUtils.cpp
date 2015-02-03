@@ -75,7 +75,7 @@ struct FUserDefinedStructureCompilerInner
 
 		const FString TransientString = FString::Printf(TEXT("TRASHSTRUCT_%s"), *StructToClean->GetName());
 		const FName TransientName = MakeUniqueObjectName(GetTransientPackage(), UUserDefinedStruct::StaticClass(), FName(*TransientString));
-		UUserDefinedStruct* TransientStruct = NewNamedObject<UUserDefinedStruct>(GetTransientPackage(), TransientName, RF_Public|RF_Transient);
+		UUserDefinedStruct* TransientStruct = NewObject<UUserDefinedStruct>(GetTransientPackage(), TransientName, RF_Public | RF_Transient);
 
 		TArray<UObject*> SubObjects;
 		GetObjectsWithOuter(StructToClean, SubObjects, true);

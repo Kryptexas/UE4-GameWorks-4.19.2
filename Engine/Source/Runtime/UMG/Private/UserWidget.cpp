@@ -385,7 +385,7 @@ void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation, float Start
 
 		if( !FoundPlayer )
 		{
-			UUMGSequencePlayer* NewPlayer = ConstructObject<UUMGSequencePlayer>( UUMGSequencePlayer::StaticClass(), this );
+			UUMGSequencePlayer* NewPlayer = NewObject<UUMGSequencePlayer>(this);
 			ActiveSequencePlayers.Add( NewPlayer );
 
 			NewPlayer->OnSequenceFinishedPlaying().AddUObject( this, &UUserWidget::OnAnimationFinishedPlaying );

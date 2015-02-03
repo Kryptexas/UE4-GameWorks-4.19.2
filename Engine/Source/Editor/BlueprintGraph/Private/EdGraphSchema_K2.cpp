@@ -4923,7 +4923,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 			}
 
 			// Create a custom event node to replace the original event node imported from text
-			UK2Node_CustomEvent* CustomEventNode = ConstructObject<UK2Node_CustomEvent>(UK2Node_CustomEvent::StaticClass(), EventNode->GetOuter(), ObjName, EventNode->GetFlags(), NULL, true, InstanceGraph);
+			UK2Node_CustomEvent* CustomEventNode = NewObject<UK2Node_CustomEvent>(EventNode->GetOuter(), ObjName, EventNode->GetFlags(), nullptr, true, InstanceGraph);
 
 			// Ensure that it is editable
 			CustomEventNode->bIsEditable = true;

@@ -273,7 +273,7 @@ UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()
 {
 	if (!DebugComponent && DebugComponentClass.IsValid() && GetNetMode() < ENetMode::NM_Client)
 	{
-		DebugComponent = ConstructObject<UGameplayDebuggingComponent>(DebugComponentClass.Get(), this);
+		DebugComponent = NewObject<UGameplayDebuggingComponent>(this, DebugComponentClass.Get());
 		DebugComponent->SetIsReplicated(true);
 		DebugComponent->RegisterComponent();
 		DebugComponent->Activate();
@@ -377,7 +377,7 @@ void AGameplayDebuggingReplicator::CreateTool()
 			{
 				DebugComponentControllerClass = AGameplayDebuggingHUDComponent::StaticClass();
 			}
-			GDC = ConstructObject<UGameplayDebuggingControllerComponent>(DebugComponentControllerClass.Get(), this);
+			GDC = NewObject<UGameplayDebuggingControllerComponent>(this, DebugComponentControllerClass.Get());
 			GDC->SetPlayerOwner(LocalPlayerOwner);
 			GDC->RegisterComponent();
 		}

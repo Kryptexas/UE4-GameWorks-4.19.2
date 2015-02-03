@@ -277,7 +277,7 @@ void UDebugSkelMeshComponent::InitAnim(bool bForceReinit)
 	// if PreviewInstance is NULL, create here once
 	if (PreviewInstance == NULL)
 	{
-		PreviewInstance = ConstructObject<UAnimPreviewInstance>(UAnimPreviewInstance::StaticClass(), this);				
+		PreviewInstance = NewObject<UAnimPreviewInstance>(this);
 		check(PreviewInstance);
 
 		//Set transactional flag in order to restore slider position when undo operation is performed

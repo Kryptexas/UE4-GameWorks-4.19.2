@@ -502,7 +502,7 @@ void UModelComponent::CreateModelBodySetup()
 {
 	if(ModelBodySetup == NULL)
 	{
-		ModelBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		ModelBodySetup = NewObject<UBodySetup>(this);
 		check(ModelBodySetup);
 		ModelBodySetup->BodySetupGuid = FGuid::NewGuid();
 	}
