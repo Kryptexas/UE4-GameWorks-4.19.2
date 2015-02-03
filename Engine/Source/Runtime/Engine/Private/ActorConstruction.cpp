@@ -189,7 +189,7 @@ void AActor::DestroyConstructedComponents()
 		if (Component)
 		{
 			bool bDestroyComponent = false;
-			if (Component->CreationMethod == EComponentCreationMethod::ConstructionScript)
+			if (Component->IsCreatedByConstructionScript())
 			{
 				bDestroyComponent = true;
 			}
@@ -198,7 +198,7 @@ void AActor::DestroyConstructedComponents()
 				UActorComponent* OuterComponent = Component->GetTypedOuter<UActorComponent>();
 				while (OuterComponent)
 				{
-					if (OuterComponent->CreationMethod == EComponentCreationMethod::ConstructionScript)
+					if (OuterComponent->IsCreatedByConstructionScript())
 					{
 						bDestroyComponent = true;
 						break;
@@ -331,7 +331,7 @@ void AActor::RerunConstructionScripts()
 			{
 				USceneComponent* EachRoot = AttachedActor->GetRootComponent();
 				// If the component we are attached to is about to go away...
-				if (EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->CreationMethod == EComponentCreationMethod::ConstructionScript)
+				if (EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->IsCreatedByConstructionScript())
 				{
 					// Save info about actor to reattach
 					FAttachedActorInfo Info;
@@ -350,7 +350,7 @@ void AActor::RerunConstructionScripts()
 		if (bUseRootComponentProperties && RootComponent != nullptr)
 		{
 			// Do not need to detach if root component is not going away
-			if (RootComponent->AttachParent != NULL && RootComponent->CreationMethod == EComponentCreationMethod::ConstructionScript)
+			if (RootComponent->AttachParent != NULL && RootComponent->IsCreatedByConstructionScript())
 			{
 				Parent = RootComponent->AttachParent->GetOwner();
 				// Root component should never be attached to another component in the same actor!
@@ -503,7 +503,7 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 			{
 				UBillboardComponent* BillboardComponent = NewObject<UBillboardComponent>(this);
 				BillboardComponent->SetFlags(RF_Transactional);
-				BillboardComponent->CreationMethod = EComponentCreationMethod::ConstructionScript;
+				BillboardComponent->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
 #if WITH_EDITOR
 				BillboardComponent->Sprite = (UTexture2D*)(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorResources/BadBlueprintSprite.BadBlueprintSprite"), NULL, LOAD_None, NULL));
 #endif
@@ -579,7 +579,7 @@ UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, 
 		NewActorComp = (UActorComponent*)StaticDuplicateObject(Template, this, *InName, RF_AllFlags & ~(RF_ArchetypeObject|RF_Transactional|RF_WasLoaded|RF_Public|RF_InheritableComponentTemplate) );
 		//NewActorComp = ConstructObject<UActorComponent>(Template->GetClass(), this, *InName, RF_NoFlags, Template);
 
-		NewActorComp->CreationMethod = EComponentCreationMethod::ConstructionScript;
+		NewActorComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 
 		// Need to do this so component gets saved - Components array is not serialized
 		BlueprintCreatedComponents.Add(NewActorComp);

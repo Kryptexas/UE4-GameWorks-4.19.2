@@ -491,7 +491,7 @@ static const TCHAR* ImportProperties(
 					if (NewFlags & RF_Transactional)
 					{
 						UActorComponent* Component = Cast<UActorComponent>(ComponentTemplate);
-						if (Component && Component->CreationMethod == EComponentCreationMethod::ConstructionScript)
+						if (Component && Component->IsCreatedByConstructionScript())
 						{
 							NewFlags &= ~RF_Transactional;
 						}

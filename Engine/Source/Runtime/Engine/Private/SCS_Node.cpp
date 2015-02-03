@@ -52,6 +52,7 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 	UActorComponent* NewActorComp = Actor->CreateComponentFromTemplate(ActualComponentTemplate, VariableName.ToString());
 	if(NewActorComp != nullptr)
 	{
+		NewActorComp->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
 		// SCS created components are net addressable
 		NewActorComp->SetNetAddressable();
 

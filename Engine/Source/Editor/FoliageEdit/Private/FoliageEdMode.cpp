@@ -1953,7 +1953,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 								Instance.ZOffset = 0.f;
 								Instance.Base = Hit.Component.Get();
 								// We cannot be based on an a blueprint component as these will disappear when the construction script is re-run
-								if (Instance.Base && Instance.Base->CreationMethod == EComponentCreationMethod::ConstructionScript)
+								if (Instance.Base && Instance.Base->IsCreatedByConstructionScript())
 								{
 									Instance.Base = nullptr;
 								}

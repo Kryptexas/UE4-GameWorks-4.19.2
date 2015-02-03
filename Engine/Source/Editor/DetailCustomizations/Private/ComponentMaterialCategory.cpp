@@ -55,7 +55,7 @@ public:
 				UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>( CurComponent );
 				UDecalComponent* DecalComponent = (PrimitiveComp ? NULL : Cast<UDecalComponent>( CurComponent ));
 
-				if( CurComponent->CreationMethod != EComponentCreationMethod::ConstructionScript)
+				if (!CurComponent->IsCreatedByConstructionScript())
 				{
 					if( PrimitiveComp )
 					{
@@ -186,7 +186,7 @@ void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	{	
 		UActorComponent* CurrentComponent = It.GetComponent();
 
-		if( !bAnyMaterialsToDisplay && CurrentComponent->CreationMethod != EComponentCreationMethod::ConstructionScript )
+		if( !bAnyMaterialsToDisplay && !CurrentComponent->IsCreatedByConstructionScript() )
 		{
 			bAnyMaterialsToDisplay = true;
 			break;
@@ -215,7 +215,7 @@ void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& Ma
 
 		UActorComponent* CurrentComponent = It.GetComponent();
 
-		if( CurrentComponent && CurrentComponent->CreationMethod != EComponentCreationMethod::ConstructionScript )
+		if( CurrentComponent && !CurrentComponent->IsCreatedByConstructionScript() )
 		{
 			UMaterialInterface* Material = It.GetMaterial();
 

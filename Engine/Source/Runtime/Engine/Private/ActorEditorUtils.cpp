@@ -40,7 +40,7 @@ namespace FActorEditorUtils
 		InActor->GetComponents(InstanceComponents);
 		for (auto Component : InstanceComponents)
 		{
-			if (Component->CreationMethod != EComponentCreationMethod::ConstructionScript)
+			if (!Component->IsCreatedByConstructionScript())
 			{
 				OutEditableComponents.Add(Component);
 			}

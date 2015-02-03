@@ -505,7 +505,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 {
 	bool bResult = false;
 
-	if (ComponentToApplyTo && ComponentToApplyTo->CreationMethod != EComponentCreationMethod::ConstructionScript)
+	if (ComponentToApplyTo && !ComponentToApplyTo->IsCreatedByConstructionScript())
 	{
 		// MESH/DECAL
 		auto MeshComponent = Cast<UMeshComponent>(ComponentToApplyTo);
