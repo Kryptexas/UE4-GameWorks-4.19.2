@@ -188,6 +188,11 @@ void USCS_Node::PreloadChain()
 		GetLinker()->Preload(this);
 	}
 
+	if (ComponentTemplate && ComponentTemplate->HasAnyFlags(RF_NeedLoad))
+	{
+		ComponentTemplate->GetLinker()->Preload(ComponentTemplate);
+	}
+
 	for( TArray<USCS_Node*>::TIterator ChildIt(ChildNodes); ChildIt; ++ChildIt )
 	{
 		USCS_Node* CurrentChild = *ChildIt;
