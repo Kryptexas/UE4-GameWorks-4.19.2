@@ -4578,9 +4578,8 @@ UActorComponent* SSCSEditor::AddNewNodeForInstancedComponent(UActorComponent* Ne
 		if(SceneRootNodePtr.IsValid() && SceneRootNodePtr->IsDefaultSceneRoot())
 		{
 			RemoveComponentNode(SceneRootNodePtr);
+			RootNodes.Remove( SceneRootNodePtr );
 			SceneRootNodePtr.Reset();
-
-			UpdateTree();
 		}
 	}
 	else
