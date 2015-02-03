@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "DeviceProfiles/DeviceProfile.h"
 
 #define LOCTEXT_NAMESPACE "DeviceProfileCreateProfilePanel"
 
