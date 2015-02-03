@@ -115,7 +115,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		Compiler->PreCompile(Blueprint);
 	}
 
-	if ((CompileOptions.CompileType != EKismetCompileType::BytecodeOnly) && (CompileOptions.CompileType != EKismetCompileType::Cpp))
+	if (CompileOptions.CompileType != EKismetCompileType::Cpp)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileSkeletonClass);
 
