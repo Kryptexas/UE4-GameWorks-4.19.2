@@ -234,6 +234,20 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(FSCSEditorTreeNode::ENodeType InNodeType)
 {
 }
 
+FName FSCSEditorTreeNode::GetNodeID() const
+{
+	FName ItemName = GetVariableName();
+	if (ItemName == NAME_None)
+	{
+		UActorComponent* ComponentTemplateOrInstance = GetComponentTemplate();
+		if (ComponentTemplateOrInstance != nullptr)
+		{
+			ItemName = ComponentTemplateOrInstance->GetFName();
+		}
+	}
+	return ItemName;
+}
+
 FName FSCSEditorTreeNode::GetVariableName() const
 {
 	return NAME_None;
@@ -1180,7 +1194,7 @@ UActorComponent* FSCSEditorTreeNodeComponent::INTERNAL_GetOverridenComponentTemp
 //////////////////////////////////////////////////////////////////////////
 // FSCSEditorTreeNodeRootActor
 
-FName FSCSEditorTreeNodeRootActor::GetVariableName() const
+FName FSCSEditorTreeNodeRootActor::GetNodeID() const
 {
 	if (Actor)
 	{
@@ -3408,19 +3422,6 @@ FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 
 TSharedRef<ITableRow> SSCSEditor::MakeTableRowWidget( FSCSEditorTreeNodePtrType InNodePtr, const TSharedRef<STableViewBase>& OwnerTable )
 {
-	if(DeferredRenameRequest != NAME_None)
-	{
-		FName ItemName = InNodePtr->GetVariableName();
-		if(ItemName == NAME_None)
-		{
-			UActorComponent* ComponentTemplateOrInstance = InNodePtr->GetComponentTemplate();
-			if (ComponentTemplateOrInstance != nullptr)
-			{
-				ItemName = ComponentTemplateOrInstance->GetFName();
-			}
-		}
-	}
-
 	// Setup a meta tag for this node
 	FGraphNodeMetaData TagMeta(TEXT("TableRow"));
 	if (InNodePtr.IsValid() && InNodePtr->GetComponentTemplate() != NULL )
@@ -3428,6 +3429,7 @@ TSharedRef<ITableRow> SSCSEditor::MakeTableRowWidget( FSCSEditorTreeNodePtrType 
 		TagMeta.FriendlyName = FString::Printf(TEXT("TableRow,%s,0"), *InNodePtr->GetComponentTemplate()->GetReadableName());
 	}
 
+	// Create the node of the appropriate type
 	if (InNodePtr->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
 	{
 		return SNew(SSCS_RowWidget_ActorRoot, SharedThis(this), InNodePtr, OwnerTable)
@@ -5336,13 +5338,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::FindTreeNode(const FName& InVariableOrInst
 
 		if(InStartNodePtr.IsValid())
 		{
-			FName ItemName = InStartNodePtr->GetVariableName();
-			if(ItemName == NAME_None)
-			{
-				UActorComponent* ComponentTemplateOrInstance = InStartNodePtr->GetComponentTemplate();
-				check(ComponentTemplateOrInstance != nullptr);
-				ItemName = ComponentTemplateOrInstance->GetFName();
-			}
+			FName ItemName = InStartNodePtr->GetNodeID();
 
 			// Check to see if the given name matches the item name
 			if(InVariableOrInstanceName == ItemName)
@@ -5371,14 +5367,7 @@ void SSCSEditor::OnItemScrolledIntoView( FSCSEditorTreeNodePtrType InItem, const
 {
 	if(DeferredRenameRequest != NAME_None)
 	{
-		FName ItemName = InItem->GetVariableName();
-		if(ItemName == NAME_None)
-		{
-			UActorComponent* ComponentTemplateOrInstance = InItem->GetComponentTemplate();
-			check(ComponentTemplateOrInstance != nullptr);
-			ItemName = ComponentTemplateOrInstance->GetFName();
-		}
-
+		FName ItemName = InItem->GetNodeID();
 		if(DeferredRenameRequest == ItemName)
 		{
 			DeferredRenameRequest = NAME_None;
@@ -5400,16 +5389,10 @@ void SSCSEditor::OnRenameComponent(bool bTransactional)
 	// Should already be prevented from making it here.
 	check(SelectedItems.Num() == 1);
 
-	SCSTreeWidget->RequestScrollIntoView(SelectedItems[0]);
-	DeferredRenameRequest = SelectedItems[0]->GetVariableName();
-	if(DeferredRenameRequest == NAME_None)
-	{
-		UActorComponent* ComponentTemplateOrInstance = SelectedItems[0]->GetComponentTemplate();
-		check(ComponentTemplateOrInstance != nullptr);
-		DeferredRenameRequest = ComponentTemplateOrInstance->GetFName();
-	}
-
+	DeferredRenameRequest = SelectedItems[0]->GetNodeID();
 	bIsDeferredRenameRequestTransactional = bTransactional;
+
+	SCSTreeWidget->RequestScrollIntoView(SelectedItems[0]);
 }
 
 bool SSCSEditor::CanRenameComponent() const

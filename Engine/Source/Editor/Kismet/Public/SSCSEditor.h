@@ -36,6 +36,11 @@ public:
 	FSCSEditorTreeNode(FSCSEditorTreeNode::ENodeType InNodeType);
 
 	/**
+	* @return The name to identify this node.
+	*/
+	virtual FName GetNodeID() const;
+
+	/**
 	 * @return The name of the variable represented by this node.
 	 */
 	virtual FName GetVariableName() const;
@@ -440,7 +445,7 @@ public:
 	}
 
 	// FSCSEditorTreeNode public interface
-	virtual FName GetVariableName() const override;
+	virtual FName GetNodeID() const override;
 	virtual bool CanRename() const override { return bAllowRename; }
 	virtual void OnCompleteRename(const FText& InNewName) override;
 	// End of FSCSEditorTreeNode public interface
