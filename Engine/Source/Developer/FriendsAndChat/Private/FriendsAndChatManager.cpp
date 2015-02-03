@@ -16,6 +16,8 @@
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
+const float CHAT_ANALYTICS_INTERVAL = 5 * 60.0f;  // 5 min
+
 namespace FriendsAndChatManagerDefs
 {
 	static const FVector2D FriendsListWindowPosition(100, 100);
@@ -35,12 +37,15 @@ FFriendsAndChatManager::FFriendsAndChatManager( )
 	, bRequiresListRefresh(false)
 	, bRequiresRecentPlayersRefresh(false)
 	, bCreateChatWindow(false)
+	, FlushChatAnalyticsCountdown(CHAT_ANALYTICS_INTERVAL)
 {
 }
 
 
 FFriendsAndChatManager::~FFriendsAndChatManager( )
-{ }
+{
+	Analytics.FlushChatStats();
+}
 
 
 /* IFriendsAndChatManager interface
@@ -748,6 +753,14 @@ bool FFriendsAndChatManager::Tick( float Delta )
 		{
 			SetState(EFriendsAndManagerState::RequestGameInviteRefresh);
 		}
+	}
+
+	FlushChatAnalyticsCountdown -= Delta;
+	if (FlushChatAnalyticsCountdown <= 0)
+	{
+		Analytics.FlushChatStats();
+		// Reset countdown for new update
+		FlushChatAnalyticsCountdown = CHAT_ANALYTICS_INTERVAL;
 	}
 
 	return true;

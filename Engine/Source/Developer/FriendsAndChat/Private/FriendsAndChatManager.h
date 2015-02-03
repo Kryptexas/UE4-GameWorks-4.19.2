@@ -791,6 +791,7 @@ public:
 private:
 
 	FFriendsAndChatAnalytics Analytics;
+	float FlushChatAnalyticsCountdown;
 	static TSharedPtr< FFriendsAndChatManager > SingletonInstance;
 
 	/** Handle to various registered delegates */
