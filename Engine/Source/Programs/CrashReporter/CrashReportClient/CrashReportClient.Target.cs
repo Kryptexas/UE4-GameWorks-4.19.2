@@ -10,9 +10,9 @@ public class CrashReportClientTarget : TargetRules
 		Type = TargetType.Program;
 	}
 
-	//
-	// TargetRules interface.
-	//
+    //
+    // TargetRules interface.
+    //
 	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 	{
 		OutPlatforms.Add(UnrealTargetPlatform.Win32);
@@ -71,10 +71,10 @@ public class CrashReportClientTarget : TargetRules
 	{
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 
-		// Don't need editor
+        // Don't need editor
 		UEBuildConfiguration.bBuildEditor = false;
 
-		// CrashReportClient doesn't ever compile with the engine linked in
+        // CrashReportClient doesn't ever compile with the engine linked in
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
 		UEBuildConfiguration.bUseLoggingInShipping = true;
@@ -97,18 +97,17 @@ public class CrashReportClientTarget : TargetRules
 
 		OutCPPEnvironmentConfiguration.Definitions.Add( "USE_CHECKS_IN_SHIPPING=1" );
 	}
-    public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, bool bBuildingRocket, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)
+    public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, bool bBuildingRocket, out bool bInternalToolOnly, out bool SeparateNode)
 	{
 		bInternalToolOnly = false;
 		SeparateNode = false;
-		CrossCompile = true;
 		return true;
 	}
 	public override List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)
 	{
 		if (InHostPlatform == UnrealTargetPlatform.Win64)
 		{
-			return new List<UnrealTargetPlatform> { UnrealTargetPlatform.Win64, UnrealTargetPlatform.Win32};
+			return new List<UnrealTargetPlatform> { UnrealTargetPlatform.Win64, UnrealTargetPlatform.Win32, UnrealTargetPlatform.Linux };
 		}
 		return base.GUBP_ToolPlatforms(InHostPlatform);
 	}
