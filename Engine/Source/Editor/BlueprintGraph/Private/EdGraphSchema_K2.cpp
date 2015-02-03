@@ -4956,7 +4956,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 			}
 			else if(EventNode->bOverrideFunction)
 			{
-				FunctionName = EventNode->EventReference.GetMemberName().ToString();
+				FunctionName = EventNode->EventSignatureName.ToString();
 			}
 			else
 			{
