@@ -6133,6 +6133,7 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 	}
 	else if(bIsComponentBlueprint)
 	{
+		// If it is a component blueprint, only allow classes under and including UActorComponent
 		Filter->AllowedChildrenOfClasses.Add( UActorComponent::StaticClass() );
 	}
 	else
