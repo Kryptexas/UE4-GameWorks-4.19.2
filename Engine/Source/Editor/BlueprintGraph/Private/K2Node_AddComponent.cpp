@@ -239,8 +239,7 @@ void UK2Node_AddComponent::PostPasteNode()
 		{
 			ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
 			// Create a new template object and update the template pin to point to it
-			UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass);
-			NewTemplate->SetFlags(RF_ArchetypeObject);
+			UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass, NAME_None, RF_ArchetypeObject|RF_Public);
 			Blueprint->ComponentTemplates.Add(NewTemplate);
 
 			TemplateNamePin->DefaultValue = NewTemplate->GetName();
