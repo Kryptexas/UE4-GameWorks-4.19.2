@@ -1678,7 +1678,7 @@ namespace Manzana
 	internal class MobileDeviceWiniTunes12 : MobileDeviceImpl
 	{
 		//		static readonly int ForceStaticInit = 42;
-		const string DLLName = "MobileDevice.dll";
+		const string DLLName = @"MobileDevice.dll";
 
 		static MobileDeviceWiniTunes12()
 		{
@@ -2457,11 +2457,11 @@ namespace Manzana
 			{
 				string dllPath11 = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string;
 				string dllPath12 = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "MobileDeviceDLL", null) as string;
-				if (String.IsNullOrEmpty(dllPath11) || !File.Exists(dllPath11))
+				if (!String.IsNullOrEmpty(dllPath11) && File.Exists(dllPath11))
 				{
 					DeviceImpl = new MobileDeviceWiniTunes11();
 				}
-				else if (String.IsNullOrEmpty(dllPath12) || !File.Exists(dllPath12))
+				else if (!String.IsNullOrEmpty(dllPath12) && File.Exists(dllPath12))
 				{
 					DeviceImpl = new MobileDeviceWiniTunes12();
 				}
