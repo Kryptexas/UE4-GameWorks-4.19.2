@@ -1135,7 +1135,7 @@ protected:
 public:
 
 	/** Called by owning Character upon successful teleport from AActor::TeleportTo(). */
-	virtual void OnTeleported();
+	virtual void OnTeleported() override;
 
 	/**
 	 * Checks if new capsule size fits (no encroachment), and call CharacterOwner->OnStartCrouch() if successful.

@@ -384,6 +384,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SnapUpdatedComponentToPlane();
 
+	/** Called by owning Actor upon successful teleport from AActor::TeleportTo(). */
+	virtual void OnTeleported() {};
+
 private:
 
 	/** Transient flag indicating whether we are executing OnRegister(). */
