@@ -31,6 +31,18 @@ void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttribute
 	}
 }
 
+float FGameplayAttribute::GetNumericValue(const UAttributeSet* Src) const
+{
+	const UNumericProperty* const NumericPropertyOrNull = Cast<UNumericProperty>(Attribute);
+	if (!NumericPropertyOrNull)
+	{
+		return 0.f;
+	}
+
+	const void* ValuePtr = NumericPropertyOrNull->ContainerPtrToValuePtr<void>(Src);
+	return NumericPropertyOrNull->GetFloatingPointPropertyValue(ValuePtr);
+}
+
 float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const
 {
 	UNumericProperty* NumericProperty = CastChecked<UNumericProperty>(Attribute);

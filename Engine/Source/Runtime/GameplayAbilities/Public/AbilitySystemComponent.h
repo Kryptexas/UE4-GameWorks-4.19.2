@@ -141,7 +141,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	void ApplyModToAttributeUnsafe(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude);
 
 	/** Returns current (final) value of an attribute */
-	float GetNumericAttribute(const FGameplayAttribute &Attribute);
+	float GetNumericAttribute(const FGameplayAttribute &Attribute) const;
+	float GetNumericAttributeChecked(const FGameplayAttribute &Attribute) const;
 
 	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
@@ -904,9 +905,7 @@ protected:
 	// ---------------------------------------------
 
 	/** Array of currently active UAbilityTasks that require ticking */
-	TArray<TWeakObjectPtr<UAbilityTask> >	TickingTasks;	
-
-protected:
+	TArray<TWeakObjectPtr<UAbilityTask> >	TickingTasks;
 
 	virtual void OnRegister() override;
 

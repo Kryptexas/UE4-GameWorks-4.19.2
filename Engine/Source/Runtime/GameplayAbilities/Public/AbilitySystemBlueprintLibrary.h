@@ -27,6 +27,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	// found, the event will not be sent.
 	UFUNCTION(BlueprintCallable, Category = Ability, Meta = (Tooltip = "This function can be used to trigger an ability on the actor in question with useful payload data."))
 	static void SendGameplayEventToActor(AActor* Actor, FGameplayTag EventTag, FGameplayEventData Payload);
+	
+	// -------------------------------------------------------------------------------
+	//		Attribute
+	// -------------------------------------------------------------------------------
+
+	UFUNCTION(BlueprintPure, Category = "Ability|Attribute")
+	static float GetFloatAttribute(const class AActor* Actor, FGameplayAttribute Attribute);
 
 	// -------------------------------------------------------------------------------
 	//		TargetData

@@ -159,7 +159,23 @@ void UAbilitySystemComponent::SetNumericAttribute_Internal(const FGameplayAttrib
 	Attribute.SetNumericValueChecked(NewFloatValue, const_cast<UAttributeSet*>(AttributeSet));
 }
 
-float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Attribute)
+float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Attribute) const
+{
+	if (Attribute.IsSystemAttribute())
+	{
+		return 0.f;
+	}
+
+	const UAttributeSet* const AttributeSetOrNull = GetAttributeSubobject(Attribute.GetAttributeSetClass());
+	if (AttributeSetOrNull == nullptr)
+	{
+		return 0.f;
+	}
+
+	return Attribute.GetNumericValue(AttributeSetOrNull);
+}
+
+float UAbilitySystemComponent::GetNumericAttributeChecked(const FGameplayAttribute &Attribute) const
 {
 	if(Attribute.IsSystemAttribute())
 	{

@@ -46,6 +46,7 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 
 	void SetNumericValueChecked(float NewValue, class UAttributeSet* Dest) const;
 
+	float GetNumericValue(const UAttributeSet* Src) const;
 	float GetNumericValueChecked(const UAttributeSet* Src) const;
 	
 	/** Equality/Inequality operators */
