@@ -392,8 +392,13 @@ public class HTML5Platform : Platform
 
     public override PakType RequiresPak(ProjectParams Params)
     {
-        return PakType.Never;
+        return PakType.Always;
     }
+
+	public override string GetPlatformPakCommandLine()
+	{
+		return " -compress";
+	}
 
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
 	{
