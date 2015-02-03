@@ -6073,6 +6073,7 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 	bool bIsActor = false;
 	bool bIsAnimBlueprint = false;
 	bool bIsLevelScriptActor = false;
+	bool bIsComponentBlueprint = false;
 	TArray<UClass*> BlueprintClasses;
 	for( auto BlueprintIter = Blueprints.CreateConstIterator(); (!bIsActor && !bIsAnimBlueprint) && BlueprintIter; ++BlueprintIter )
 	{
@@ -6080,6 +6081,7 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 		bIsActor |= Blueprint->ParentClass->IsChildOf( AActor::StaticClass() );
 		bIsAnimBlueprint |= Blueprint->IsA(UAnimBlueprint::StaticClass());
 		bIsLevelScriptActor |= Blueprint->ParentClass->IsChildOf( ALevelScriptActor::StaticClass() );
+		bIsComponentBlueprint |= Blueprint->ParentClass->IsChildOf( UActorComponent::StaticClass() );
 		BlueprintClasses.Add(Blueprint->GeneratedClass);
 	}
 
@@ -6128,6 +6130,10 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 	{
 		// If it's an anim blueprint, do not allow conversion to non anim
 		Filter->AllowedChildrenOfClasses.Add( UAnimInstance::StaticClass() );
+	}
+	else if(bIsComponentBlueprint)
+	{
+		Filter->AllowedChildrenOfClasses.Add( UActorComponent::StaticClass() );
 	}
 	else
 	{
