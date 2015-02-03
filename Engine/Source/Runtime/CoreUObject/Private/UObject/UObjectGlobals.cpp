@@ -2215,6 +2215,11 @@ void FObjectInitializer::AssertIfSubobjectSetupIsNotAllowed(const TCHAR* Subobje
 		TEXT("%s.%s: Subobject class setup is only allowed in base class constructor call (in the initialization list)"), Obj ? *Obj->GetFullName() : TEXT("NULL"), SubobjectName);
 }
 
+bool DebugIsClassChildOf_Internal(UClass* Parent, UClass* Child)
+{
+	return Child->IsChildOf(Parent);
+}
+
 UObject* StaticConstructObject
 (
 	UClass*			InClass,
