@@ -139,7 +139,7 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 	// and supported by the device, the first supported format listed will be used. 
 	// eg, ETC1/uncompressed should always be last
 
-	bool bNoCompression = InTexture->CompressionNone								// Code wants the texture uncompressed.
+	bool bNoCompression = InTexture->CompressionNone				// Code wants the texture uncompressed.
 		|| (InTexture->LODGroup == TEXTUREGROUP_ColorLookupTable)	// Textures in certain LOD groups should remain uncompressed.
 		|| (InTexture->LODGroup == TEXTUREGROUP_Bokeh)
 		|| (InTexture->CompressionSettings == TC_EditorIcon)
@@ -157,7 +157,8 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 	{
 		OutFormats.Add(AndroidTexFormat::NameBGRA8);
 	}
-	else if (InTexture->CompressionSettings == TC_HDR)
+	else if (InTexture->CompressionSettings == TC_HDR
+		|| InTexture->CompressionSettings == TC_HDR_Compressed)
 	{
 		OutFormats.Add(AndroidTexFormat::NameRGBA16F);
 	}
@@ -189,7 +190,8 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 	{
 		OutFormats.Add(AndroidTexFormat::NameG8);
 	}
-	else if (InTexture->bForcePVRTC4)
+	else if (InTexture->bForcePVRTC4
+		|| InTexture->CompressionSettings == TC_BC7)
 	{
 		AddTextureFormatIfSupports(AndroidTexFormat::NamePVRTC4, OutFormats);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameDXT5, OutFormats);
