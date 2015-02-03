@@ -35,6 +35,27 @@ FComponentInstanceDataBase::FComponentInstanceDataBase(const UActorComponent* So
 			SourceComponentTypeSerializedIndex = -1;
 		}
 	}
+
+	if (SourceComponent->CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
+	{
+		class FComponentPropertyWriter : public FObjectWriter
+		{
+		public:
+			FComponentPropertyWriter(TArray<uint8>& InBytes)
+				: FObjectWriter(InBytes)
+			{
+			}
+
+			virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
+			{
+				return (    InProperty->HasAnyPropertyFlags(CPF_Transient | CPF_ContainsInstancedReference | CPF_InstancedReference)
+						|| !InProperty->HasAnyPropertyFlags(CPF_Edit | CPF_Interp));
+			}
+
+		} ComponentPropertyWriter(SavedProperties);
+
+		SourceComponentClass->SerializeTaggedProperties(ComponentPropertyWriter, (uint8*)SourceComponent, SourceComponentClass, (uint8*)SourceComponent->GetArchetype());
+	}
 }
 
 bool FComponentInstanceDataBase::MatchesComponent(const UActorComponent* Component) const
@@ -66,6 +87,26 @@ bool FComponentInstanceDataBase::MatchesComponent(const UActorComponent* Compone
 		}
 	}
 	return bMatches;
+}
+
+void FComponentInstanceDataBase::ApplyToComponent(UActorComponent* Component)
+{
+	if (SavedProperties.Num() > 0)
+	{
+		class FComponentPropertyReader : public FObjectReader
+		{
+		public:
+			FComponentPropertyReader(TArray<uint8>& InBytes)
+				: FObjectReader(InBytes)
+			{
+			}
+		} ComponentPropertyReader(SavedProperties);
+
+		UObject* ArchetypeToSearch = Component->GetOuter()->GetArchetype();
+		UClass* Class = Component->GetClass();
+
+		Class->SerializeTaggedProperties(ComponentPropertyReader, (uint8*)Component, Class, nullptr);
+	}
 }
 
 FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
