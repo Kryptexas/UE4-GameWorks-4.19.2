@@ -2728,6 +2728,7 @@ private:
 	FString PlayUsingLauncherDeviceId;
 	FString PlayUsingLauncherDeviceName;
 	bool bPlayUsingLauncherHasCode;
+	bool bPlayUsingLauncherHasCompiler;
 
 	/** List of files we are deferring adding to source control */
 	TArray<FString> DeferredFilesToAddToSourceControl;
