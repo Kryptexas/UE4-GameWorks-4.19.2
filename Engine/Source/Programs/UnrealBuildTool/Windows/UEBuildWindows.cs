@@ -440,6 +440,8 @@ namespace UnrealBuildTool
         {
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WIN32=1");
 
+			// Win32 XP is only supported at this time.
+			SupportWindowsXP = SupportWindowsXPIfAvailable && (GetCPPTargetPlatform(InBuildTarget.Platform) == CPPTargetPlatform.Win32);
 			if (IsWindowsXPSupported())
             {
                 // Windows XP SP3 or higher required
