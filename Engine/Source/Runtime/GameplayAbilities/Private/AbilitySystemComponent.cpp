@@ -416,6 +416,7 @@ void UAbilitySystemComponent::GetOwnedGameplayTags(FGameplayTagContainer& TagCon
 
 bool UAbilitySystemComponent::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_HasMatchingGameplayTag);
 	return GameplayTagCountContainer.HasMatchingGameplayTag(TagToCheck);
 }
 

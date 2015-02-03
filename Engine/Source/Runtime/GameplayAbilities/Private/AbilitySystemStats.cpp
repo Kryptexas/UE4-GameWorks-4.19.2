@@ -20,5 +20,6 @@ DEFINE_STAT(STAT_TickAbilityTasks);
 DEFINE_STAT(STAT_FindAbilitySpecFromHandle);
 DEFINE_STAT(STAT_AggregatorEvaluate);
 DEFINE_STAT(STAT_HasApplicationImmunityToSpec);
+DEFINE_STAT(STAT_HasMatchingGameplayTag);
 
 
