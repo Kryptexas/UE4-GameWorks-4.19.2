@@ -3191,7 +3191,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 
 	EditBlueprintMenuBuilder.AddMenuEntry
 	(
-		LOCTEXT("PromoteToBlueprint", "Convert to Class Blueprint"),
+		LOCTEXT("PromoteToBlueprint", "Convert to Blueprint Class"),
 		LOCTEXT("PromoteToBluerprintTooltip","Converts the existing Blueprint into a new SubClass Blueprint" ),
 		FSlateIcon(),
 		FUIAction(FExecuteAction::CreateSP(this, &SSCSEditor::PromoteToBlueprint))
@@ -3235,7 +3235,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 					.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
 					.ContentPadding(0)
 					.ToolTip(IDocumentation::Get()->CreateToolTip(
-						LOCTEXT("PromoteToBluerprintTooltip","Converts this actor into a reusable Class Blueprint that can have script behavior" ),
+						LOCTEXT("PromoteToBluerprintTooltip","Converts this actor into a reusable Blueprint Class that can have script behavior" ),
 						NULL,
 						TEXT("Shared/LevelEditor"),
 						TEXT("ConvertToBlueprint")))
@@ -3255,7 +3255,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 						[
 							SNew(STextBlock)
 							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
-							.Text( LOCTEXT("PromoteToBlueprint", "Convert to Class Blueprint") )
+							.Text( LOCTEXT("PromoteToBlueprint", "Convert to Blueprint Class") )
 						]
 					]
 				]
@@ -3561,7 +3561,7 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 							{
 								MenuBuilder.AddMenuEntry(
 									FText::Format(LOCTEXT("GoToBlueprintForComponent", "Edit {0}"), FText::FromString(ComponentTemplate->GetClass()->ClassGeneratedBy->GetName())),
-									LOCTEXT("EditBlueprintForComponent_ToolTip", "Edits the class blueprint that defines this component."),
+									LOCTEXT("EditBlueprintForComponent_ToolTip", "Edits the Blueprint Class that defines this component."),
 									FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(ComponentTemplate->GetClass())),
 									FUIAction(
 										FExecuteAction::CreateSP(this, &SSCSEditor::OnEditBlueprint, ComponentTemplate->GetClass()->ClassGeneratedBy),
