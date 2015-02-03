@@ -2059,11 +2059,6 @@ namespace UnrealDocTranslator
                                     }
                                     else
                                     {
-                                        if (PartFileName.Contains("ENGINE/PERFORMANCE"))
-                                        {
-                                            int i = 0;
-                                        }
-
                                         if (FileDetails.ClientPath == null)
                                         {
                                             //log message
