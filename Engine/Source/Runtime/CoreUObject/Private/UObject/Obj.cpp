@@ -828,17 +828,10 @@ void UObject::Serialize( FArchive& Ar )
 	}
 
 	// Serialize object properties which are defined in the class.
-	if( !Class->IsChildOf(UClass::StaticClass()) )
+	// Handle derived UClass objects (exact UClass objects are native only and shouldn't be touched)
+	if (Class != UClass::StaticClass())
 	{
 		SerializeScriptProperties(Ar);
-	}
-	else
-	{
-		// Handle derived UClass objects (exact UClass objects are native only and shouldn't be touched)
-		if (Class != UClass::StaticClass())
-		{
-			SerializeScriptProperties(Ar);
-		}
 	}
 
 	// Keep track of pending kill
