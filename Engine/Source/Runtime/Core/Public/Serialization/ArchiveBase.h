@@ -871,6 +871,14 @@ public:
 	}
 
 	/**
+	 * Checks whether the archive wants to skip the property independent of the other flags
+	 */
+	virtual bool ShouldSkipProperty(const class UProperty* InProperty) const
+	{
+		return false;
+	}
+
+	/**
 	 * Sets the property that is currently being serialized
 	 * 
 	 * @param InProperty Pointer to the property that is currently being serialized
