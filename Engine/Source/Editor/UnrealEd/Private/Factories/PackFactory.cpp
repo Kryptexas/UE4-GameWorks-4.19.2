@@ -496,19 +496,9 @@ UObject* UPackFactory::FactoryCreateBinary
 				{
 					// We can only hot-reload via DoHotReloadFromEditor when we already had code in our project
 					if (!HotReloadSupport.IsCurrentlyCompiling())
-					{					
-						HotReloadSupport.DoHotReloadFromEditor();
-					
-						UE_LOG(LogPackFactory, Warning, TEXT("Starting compile."));
-						// Wait until the compiler finishes
-						while (HotReloadSupport.IsCurrentlyCompiling())
-						{
-							// Tick slate while we wait
-							FSlateApplication::Get().Tick();						
-							// Tick hot reload - or nothing will happen !
-							HotReloadSupport.Tick();
-						}
-						UE_LOG(LogPackFactory, Warning, TEXT("Compile complete."));
+					{
+						const bool bWaitForCompletion = true;
+						HotReloadSupport.DoHotReloadFromEditor(bWaitForCompletion);
 					}
 				}
 				else

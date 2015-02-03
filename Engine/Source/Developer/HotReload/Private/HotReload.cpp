@@ -73,7 +73,7 @@ public:
 	virtual void RequestStopCompilation() override { bRequestCancelCompilation = true; }
 	virtual void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer) override;	
 	virtual ECompilationResult::Type RebindPackages(TArray< UPackage* > Packages, TArray< FName > DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) override;
-	virtual ECompilationResult::Type DoHotReloadFromEditor() override;
+	virtual ECompilationResult::Type DoHotReloadFromEditor(const bool bWaitForCompletion) override;
 	virtual FHotReloadEvent& OnHotReload() override { return HotReloadEvent; }	
 	virtual FModuleCompilerStartedEvent& OnModuleCompilerStarted() override { return ModuleCompilerStartedEvent; }
 	virtual FModuleCompilerFinishedEvent& OnModuleCompilerFinished() override { return ModuleCompilerFinishedEvent; }
@@ -479,7 +479,7 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 	FScopedSlowTask SlowTask(2, StatusUpdate);
 	SlowTask.MakeDialog();
 
-	ModuleCompilerStartedEvent.Broadcast();
+	ModuleCompilerStartedEvent.Broadcast(false); // we never perform an async compile
 
 	// Update our set of known modules, in case we don't already know about this module
 	FModuleManager::Get().AddModule( InModuleName );
@@ -582,14 +582,11 @@ void FHotReloadModule::AddHotReloadFunctionRemap(Native NewFunctionPointer, Nati
 	HotReloadFunctionRemap.Add(OldFunctionPointer, NewFunctionPointer);
 }
 
-ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor()
+ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor(const bool bWaitForCompletion)
 {
 	// Get all game modules we want to compile
 	TArray<FString> GameModuleNames;
 	GetGameModules(GameModuleNames);
-	
-	// Don't wait -- we want compiling to happen asynchronously
-	const bool bWaitForCompletion = false;
 
 	TArray<UPackage*> PackagesToRebind;
 	TArray<FName> DependentModules;
@@ -1054,7 +1051,7 @@ bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames,
 	// NOTE: This method of recompiling always using a rolling file name scheme, since we never want to unload before
 	// we start recompiling, and we need the output DLL to be unlocked before we invoke the compiler
 
-	ModuleCompilerStartedEvent.Broadcast();
+	ModuleCompilerStartedEvent.Broadcast(!bWaitForCompletion); // we perform an async compile providing we're not waiting for completion
 
 	TArray< FModuleToRecompile > ModulesToRecompile;
 

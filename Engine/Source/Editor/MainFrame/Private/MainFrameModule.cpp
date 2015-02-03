@@ -716,7 +716,7 @@ bool FMainFrameModule::ShouldShowProjectDialogAtStartup( ) const
 /* FMainFrameModule event handlers
  *****************************************************************************/
 
-void FMainFrameModule::HandleLevelEditorModuleCompileStarted( )
+void FMainFrameModule::HandleLevelEditorModuleCompileStarted( bool bIsAsyncCompile )
 {
 	ModuleCompileStartTime = FPlatformTime::Seconds();
 
@@ -731,7 +731,12 @@ void FMainFrameModule::HandleLevelEditorModuleCompileStarted( )
 	Info.Image = FEditorStyle::GetBrush(TEXT("LevelEditor.RecompileGameCode"));
 	Info.ExpireDuration = 5.0f;
 	Info.bFireAndForget = false;
-	Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("CancelC++Compilation", "Cancel"), FText(), FSimpleDelegate::CreateRaw(this, &FMainFrameModule::OnCancelCodeCompilationClicked)));
+	
+	// We can only show the cancel button on async builds
+	if (bIsAsyncCompile)
+	{
+		Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("CancelC++Compilation", "Cancel"), FText(), FSimpleDelegate::CreateRaw(this, &FMainFrameModule::OnCancelCodeCompilationClicked)));
+	}
 
 	CompileNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 
