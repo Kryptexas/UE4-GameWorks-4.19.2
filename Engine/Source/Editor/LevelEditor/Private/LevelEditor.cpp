@@ -611,11 +611,6 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::GoToDocsForActor_Clicked )
 		);
 
-	ActionList.MapAction(
-		Commands.AddScriptBehavior,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::AddScriptBehavior_Clicked )
-		);
-
 	ActionList.MapAction( 
 		FGenericCommands::Get().Duplicate, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("DUPLICATE") ) ),
