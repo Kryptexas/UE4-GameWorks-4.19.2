@@ -21,7 +21,6 @@ void AAbilitySystemTestPawn::PostInitializeComponents()
 	static UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
 	Super::PostInitializeComponents();
-	GameplayCueHandler.Owner = this;
 	AbilitySystemComponent->InitStats(UAbilitySystemTestAttributeSet::StaticClass(), NULL);
 
 	/*
