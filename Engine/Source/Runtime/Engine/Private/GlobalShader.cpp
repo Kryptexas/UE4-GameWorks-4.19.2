@@ -112,9 +112,11 @@ FShader* FGlobalShaderType::FinishCompileShader(const FShaderCompileJob& Current
 {
 	if (CurrentJob.bSucceeded)
 	{
+		FShaderType* SpecificType = CurrentJob.ShaderType->LimitShaderResourceToThisType() ? CurrentJob.ShaderType : NULL;
+
 		// Reuse an existing resource with the same key or create a new one based on the compile output
 		// This allows FShaders to share compiled bytecode and RHI shader references
-		FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output);
+		FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType);
 		check(Resource);
 
 		// Find a shader with the same key in memory
@@ -429,7 +431,7 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 
 				if (Shader)
 				{
-					Shader->InitializeResource();
+					Shader->BeginInitializeResources();
 				}
 			}
 		}

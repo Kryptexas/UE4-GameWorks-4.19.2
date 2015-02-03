@@ -56,7 +56,16 @@ public:
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FConvertToUniformMeshVS,TEXT("ConvertToUniformMesh"),TEXT("ConvertToUniformMeshVS"),SF_Vertex); 
 
-FStreamOutElementList GUniformMeshVertexLayout;
+void GetUniformMeshStreamOutLayout(FStreamOutElementList& Layout)
+{
+	Layout.Add(FStreamOutElement(0, "SV_Position", 0, 4, 0));
+	Layout.Add(FStreamOutElement(0, "Tangent", 0, 3, 0));
+	Layout.Add(FStreamOutElement(0, "Tangent", 1, 3, 0));
+	Layout.Add(FStreamOutElement(0, "Tangent", 2, 3, 0));
+	Layout.Add(FStreamOutElement(0, "UV", 0, 2, 0));
+	Layout.Add(FStreamOutElement(0, "UV", 1, 2, 0));
+	Layout.Add(FStreamOutElement(0, "VertexColor", 0, 4, 0));
+}
 
 // In float4's, must match usf
 int32 FSurfelBuffers::InterpolatedVertexDataStride = 6;
@@ -64,22 +73,14 @@ int32 FSurfelBuffers::InterpolatedVertexDataStride = 6;
 /** Returns number of float's in the uniform vertex. */
 int32 ComputeUniformVertexStride()
 {
-	if (GUniformMeshVertexLayout.Num() == 0)
-	{
-		GUniformMeshVertexLayout.Add(FStreamOutElement(0, "SV_Position", 0, 4, 0));
-		GUniformMeshVertexLayout.Add(FStreamOutElement(0, "Tangent", 0, 3, 0));
-		GUniformMeshVertexLayout.Add(FStreamOutElement(0, "Tangent", 1, 3, 0));
-		GUniformMeshVertexLayout.Add(FStreamOutElement(0, "Tangent", 2, 3, 0));
-		GUniformMeshVertexLayout.Add(FStreamOutElement(0, "UV", 0, 2, 0));
-		GUniformMeshVertexLayout.Add(FStreamOutElement(0, "UV", 1, 2, 0));
-		GUniformMeshVertexLayout.Add(FStreamOutElement(0, "VertexColor", 0, 4, 0));
-	}
-
+	FStreamOutElementList Layout;
 	int32 StreamStride = 0;
 
-	for (int32 ElementIndex = 0; ElementIndex < GUniformMeshVertexLayout.Num(); ElementIndex++)
+	GetUniformMeshStreamOutLayout(Layout);
+
+	for (int32 ElementIndex = 0; ElementIndex < Layout.Num(); ElementIndex++)
 	{
-		StreamStride += GUniformMeshVertexLayout[ElementIndex].ComponentCount;
+		StreamStride += Layout[ElementIndex].ComponentCount;
 	}
 
 	// D3D11 stream out buffer element stride must be a factor of 4
@@ -123,6 +124,13 @@ protected:
 				|| FCString::Strstr(VertexFactoryType->GetName(), TEXT("InstancedStaticMeshVertexFactory")) != NULL);
 	}
 
+	static void GetStreamOutElements(FStreamOutElementList& ElementList, TArray<uint32>& StreamStrides, int32& RasterizedStream)
+	{
+		StreamStrides.Add(ComputeUniformVertexStride() * 4);
+		GetUniformMeshStreamOutLayout(ElementList);
+		RasterizedStream = -1;
+	}
+
 public:
 	
 	void SetParameters(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView* View)
@@ -133,13 +141,6 @@ public:
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
 	{
 		FMeshMaterialShader::SetMesh(RHICmdList, (FGeometryShaderRHIParamRef)GetGeometryShader(),VertexFactory,View,Proxy,BatchElement);
-	}
-
-	virtual void GetStreamOutElements(FStreamOutElementList& ElementList, TArray<uint32>& StreamStrides, int32& RasterizedStream) override
-	{
-		StreamStrides.Add(ComputeUniformVertexStride() * 4);
-		ElementList = GUniformMeshVertexLayout;
-		RasterizedStream = -1;
 	}
 };
 

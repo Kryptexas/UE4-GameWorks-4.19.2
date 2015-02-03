@@ -75,13 +75,15 @@ FShaderType::FShaderType(
 	const TCHAR* InSourceFilename,
 	const TCHAR* InFunctionName,
 	uint32 InFrequency,
-	ConstructSerializedType InConstructSerializedRef
+	ConstructSerializedType InConstructSerializedRef,
+	GetStreamOutElementsType InGetStreamOutElementsRef
 	):
 	Name(InName),
 	SourceFilename(InSourceFilename),
 	FunctionName(InFunctionName),
 	Frequency(InFrequency),
 	ConstructSerializedRef(InConstructSerializedRef),
+	GetStreamOutElementsRef(InGetStreamOutElementsRef),
 	GlobalListLink(this)
 {
 	for (int32 Platform = 0; Platform < SP_NumPlatforms; Platform++)
@@ -285,7 +287,8 @@ void FShaderType::Uninitialize()
 TMap<FShaderResourceId, FShaderResource*> FShaderResource::ShaderResourceIdMap;
 
 FShaderResource::FShaderResource()
-	: NumInstructions(0)
+	: SpecificType(NULL)
+	, NumInstructions(0)
 	, NumTextureSamplers(0)
 	, NumRefs(0)
 {
@@ -293,8 +296,9 @@ FShaderResource::FShaderResource()
 }
 
 
-FShaderResource::FShaderResource(const FShaderCompilerOutput& Output) 
-	: NumInstructions(Output.NumInstructions)
+FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderType* InSpecificType) 
+	: SpecificType(InSpecificType)
+	, NumInstructions(Output.NumInstructions)
 	, NumTextureSamplers(Output.NumTextureSamplers)
 	, NumRefs(0)
 	
@@ -329,6 +333,7 @@ void FShaderResource::Register()
 
 void FShaderResource::Serialize(FArchive& Ar)
 {
+	Ar << SpecificType;
 	Ar << Target;
 	Ar << Code;
 	Ar << OutputHash;
@@ -376,14 +381,14 @@ FShaderResource* FShaderResource::FindShaderResourceById(const FShaderResourceId
 }
 
 
-FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompilerOutput& Output)
+FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompilerOutput& Output, FShaderType* SpecificType)
 {
-	const FShaderResourceId ResourceId(Output);
+	const FShaderResourceId ResourceId(Output, SpecificType ? SpecificType->GetName() : NULL);
 	FShaderResource* Resource = FindShaderResourceById(ResourceId);
 
 	if (!Resource)
 	{
-		Resource = new FShaderResource(Output);
+		Resource = new FShaderResource(Output, SpecificType);
 	}
 
 	return Resource;
@@ -470,11 +475,30 @@ void FShaderResource::InitRHI()
 	}
 	else if(Target.Frequency == SF_Geometry)
 	{
-		GeometryShader = ShaderCache ? ShaderCache->GetGeometryShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateGeometryShader(Code);
+		if (SpecificType)
+		{
+			FStreamOutElementList ElementList;
+			TArray<uint32> StreamStrides;
+			int32 RasterizedStream = -1;
+			SpecificType->GetStreamOutElements(ElementList, StreamStrides, RasterizedStream);
+			checkf(ElementList.Num(), *FString::Printf(TEXT("Shader type %s was given GetStreamOutElements implementation that had no elements!"), SpecificType->GetName()));
+
+			//@todo - not using the cache
+			GeometryShader = RHICreateGeometryShaderWithStreamOutput(Code, ElementList, StreamStrides.Num(), StreamStrides.GetData(), RasterizedStream);
+		}
+		else
+		{
+			GeometryShader = ShaderCache ? ShaderCache->GetGeometryShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateGeometryShader(Code);
+		}
 	}
 	else if(Target.Frequency == SF_Compute)
 	{
 		ComputeShader = ShaderCache ? ShaderCache->GetComputeShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateComputeShader(Code);
+	}
+
+	if (Target.Frequency != SF_Geometry)
+	{
+		checkf(!SpecificType, *FString::Printf(TEXT("Only geometry shaders can use GetStreamOutElements, shader type %s"), SpecificType->GetName()));
 	}
 
 	if (!FPlatformProperties::HasEditorOnlyData())
@@ -627,6 +651,14 @@ const FComputeShaderRHIRef& FShaderResource::GetComputeShader()
 	return ComputeShader; 
 }
 
+FShaderResourceId FShaderResource::GetId() const
+{
+	FShaderResourceId ShaderId;
+	ShaderId.Target = Target;
+	ShaderId.OutputHash = OutputHash;
+	ShaderId.SpecificShaderTypeName = SpecificType ? SpecificType->GetName() : NULL;
+	return ShaderId;
+}
 
 FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, FShaderTarget InTarget)
 	: MaterialShaderMapHash(InMaterialShaderMapHash)
@@ -761,7 +793,6 @@ FShader::FShader(const CompiledShaderInitializerType& Initializer):
 
 FShader::~FShader()
 {
-	check(!IsInitialized());
 	check(Canary == ShaderMagic_Uninitialized || Canary == ShaderMagic_Initialized);
 	check(NumRefs == 0);
 	Canary = 0;
@@ -898,8 +929,6 @@ void FShader::Release()
 		// Deregister the shader now to eliminate references to it by the type's ShaderIdMap
 		Deregister();
 
-		BeginReleaseResource(this);
-
 		BeginCleanup(this);
 	}
 }
@@ -945,42 +974,6 @@ void FShader::SetResource(FShaderResource* InResource)
 void FShader::FinishCleanup()
 {
 	delete this;
-}
-
-
-void FShader::InitRHI()
-{
-	checkf(Resource->GetCode().Num() > 0, TEXT("FShader::InitRHI was called with empty bytecode, which can happen if the resource is initialized multiple times on platforms with no editor data."));
-
-	// we can't have this called on the wrong platform's shaders
-	if (!ArePlatformsCompatible(GMaxRHIShaderPlatform, (EShaderPlatform)Target.Platform))
- 	{
- 		if (FPlatformProperties::RequiresCookedData())
- 		{
- 			UE_LOG(LogShaders, Fatal, TEXT("FShader::InitRHI got platform %s but it is not compatible with %s"), 
-				*LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString(), *LegacyShaderPlatformToShaderFormat(GMaxRHIShaderPlatform).ToString());
- 		}
- 		return;
- 	}
-
-	if (Target.Frequency == SF_Geometry)
-	{
-		FStreamOutElementList ElementList;
-		TArray<uint32> StreamStrides;
-		int32 RasterizedStream = -1;
-		GetStreamOutElements(ElementList, StreamStrides, RasterizedStream);
-
-		if (ElementList.Num() > 0)
-		{
-			GeometryShaderWithStreamOutput = RHICreateGeometryShaderWithStreamOutput(Resource->GetCode(), ElementList, StreamStrides.Num(), StreamStrides.GetData(), RasterizedStream);
-		}
-	}
-}
-
-
-void FShader::ReleaseRHI()
-{
-	GeometryShaderWithStreamOutput.SafeRelease();
 }
 
 void FShader::VerifyBoundUniformBufferParameters()

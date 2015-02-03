@@ -29,9 +29,10 @@ public:
 
 	FShaderResourceId() {}
 
-	FShaderResourceId(const FShaderCompilerOutput& Output) :
+	FShaderResourceId(const FShaderCompilerOutput& Output, const TCHAR* InSpecificShaderTypeName) :
 		Target(Output.Target),
-		OutputHash(Output.OutputHash)
+		OutputHash(Output.OutputHash),
+		SpecificShaderTypeName(InSpecificShaderTypeName)
 	{}
 
 	friend inline uint32 GetTypeHash( const FShaderResourceId& Id )
@@ -41,7 +42,10 @@ public:
 
 	friend bool operator==(const FShaderResourceId& X, const FShaderResourceId& Y)
 	{
-		return X.Target == Y.Target && X.OutputHash == Y.OutputHash;
+		return X.Target == Y.Target 
+			&& X.OutputHash == Y.OutputHash 
+			&& ((X.SpecificShaderTypeName == NULL && Y.SpecificShaderTypeName == NULL)
+				|| (FCString::Strcmp(X.SpecificShaderTypeName, Y.SpecificShaderTypeName) == 0));
 	}
 
 	friend bool operator!=(const FShaderResourceId& X, const FShaderResourceId& Y)
@@ -52,6 +56,25 @@ public:
 	friend FArchive& operator<<(FArchive& Ar, FShaderResourceId& Id)
 	{
 		Ar << Id.Target << Id.OutputHash;
+
+		if (Ar.IsSaving())
+		{
+			Id.SpecificShaderTypeStorage = Id.SpecificShaderTypeName ? Id.SpecificShaderTypeName : TEXT("");
+		}
+
+		Ar << Id.SpecificShaderTypeStorage;
+
+		if (Ar.IsLoading())
+		{
+			Id.SpecificShaderTypeName = *Id.SpecificShaderTypeStorage;
+
+			if (FCString::Strcmp(Id.SpecificShaderTypeName, TEXT("")) == 0)
+			{
+				// Store NULL for empty string to be consistent with FShaderResourceId's created at compile time
+				Id.SpecificShaderTypeName = NULL;
+			}
+		}
+
 		return Ar;
 	}
 
@@ -60,6 +83,12 @@ public:
 
 	/** Hash of the compiled shader output, which is used to create the FShaderResource. */
 	FSHAHash OutputHash;
+
+	/** NULL if type doesn't matter, otherwise the name of the type that this was created specifically for, which is used with geometry shader stream out. */
+	const TCHAR* SpecificShaderTypeName;
+
+	/** Stores the memory for SpecificShaderTypeName if this is a standalone Id, otherwise is empty and SpecificShaderTypeName points to an FShaderType name. */
+	FString SpecificShaderTypeStorage;
 };
 
 /** 
@@ -75,7 +104,7 @@ public:
 	SHADERCORE_API FShaderResource();
 
 	/** Constructor used when creating a new shader resource from compiled output. */
-	FShaderResource(const FShaderCompilerOutput& Output);
+	FShaderResource(const FShaderCompilerOutput& Output, FShaderType* InSpecificType);
 
 	~FShaderResource();
 
@@ -116,22 +145,11 @@ public:
 	/** @return the shader's compute shader */
 	const FComputeShaderRHIRef& GetComputeShader();
 
-	FShaderResourceId GetId() const
-	{
-		FShaderResourceId ShaderId;
-		ShaderId.Target = Target;
-		ShaderId.OutputHash = OutputHash;
-		return ShaderId;
-	}
+	SHADERCORE_API FShaderResourceId GetId() const;
 
 	uint32 GetSizeBytes() const
 	{
 		return Code.GetAllocatedSize() + sizeof(FShaderResource);
-	}
-
-	const TArray<uint8>& GetCode() const
-	{
-		return Code;
 	}
 
 	// FRenderResource interface.
@@ -144,8 +162,11 @@ public:
 	/** Finds a matching shader resource in memory if possible. */
 	SHADERCORE_API static FShaderResource* FindShaderResourceById(const FShaderResourceId& Id);
 
-	/** Finds a matching shader resource in memory or creates a new one with the given compiler output. */
-	SHADERCORE_API static FShaderResource* FindOrCreateShaderResource(const FShaderCompilerOutput& Output);
+	/** 
+	 * Finds a matching shader resource in memory or creates a new one with the given compiler output.  
+	 * SpecificType can be NULL
+	 */
+	SHADERCORE_API static FShaderResource* FindOrCreateShaderResource(const FShaderCompilerOutput& Output, class FShaderType* SpecificType);
 
 	/** Return a list of all shader Ids currently known */
 	SHADERCORE_API static void GetAllShaderResourceId(TArray<FShaderResourceId>& Ids);
@@ -171,6 +192,9 @@ private:
 	 * This is used to find existing shader resources in memory or the DDC.
 	 */
 	FSHAHash OutputHash;
+
+	/** If not NULL, the shader type this resource must be used with. */
+	class FShaderType* SpecificType;
 
 	/** The number of instructions the shader takes to execute. */
 	uint32 NumInstructions;
@@ -386,7 +410,7 @@ public:
 class FMaterial;
 
 /** A compiled shader and its parameter bindings. */
-class SHADERCORE_API FShader : public FRenderResource, public FDeferredCleanupInterface
+class SHADERCORE_API FShader : public FDeferredCleanupInterface
 {
 	friend class FShaderType;
 public:
@@ -482,12 +506,7 @@ public:
 	/** @return the shader's geometry shader */
 	const FGeometryShaderRHIRef& GetGeometryShader()
 	{
-		if (!IsInitialized())
-		{
-			InitResourceFromPossiblyParallelRendering();
-		}
-
-		return GeometryShaderWithStreamOutput ? GeometryShaderWithStreamOutput : Resource->GetGeometryShader();
+		return Resource->GetGeometryShader();
 	}
 	/** @return the shader's compute shader */
 	const FComputeShaderRHIRef& GetComputeShader()
@@ -539,14 +558,10 @@ public:
 	// FDeferredCleanupInterface implementation.
 	virtual void FinishCleanup();
 
-	// FRenderResource interface.
-	virtual void InitRHI();
-	virtual void ReleaseRHI();
-
 	/** Implement for geometry shaders that want to use stream out. */
-	virtual void GetStreamOutElements(FStreamOutElementList& ElementList, TArray<uint32>& StreamStrides, int32& RasterizedStream) {}
+	static void GetStreamOutElements(FStreamOutElementList& ElementList, TArray<uint32>& StreamStrides, int32& RasterizedStream) {}
 
-	void InitializeResource()
+	void BeginInitializeResources()
 	{
 		BeginInitResource(Resource);
 	}
@@ -641,8 +656,6 @@ private:
 	/** Reference to the shader resource, which stores the compiled bytecode and the RHI shader resource. */
 	TRefCountPtr<FShaderResource> Resource;
 
-	FGeometryShaderRHIRef GeometryShaderWithStreamOutput;
-
 	/** Hash of the material shader map this shader belongs to, stored so that an FShaderId can be constructed from this shader. */
 	FSHAHash MaterialShaderMapHash;
 
@@ -684,6 +697,7 @@ class SHADERCORE_API FShaderType
 {
 public:
 	typedef class FShader* (*ConstructSerializedType)();
+	typedef void (*GetStreamOutElementsType)(FStreamOutElementList& ElementList, TArray<uint32>& StreamStrides, int32& RasterizedStream);
 
 	/** @return The global shader factory list. */
 	static TLinkedList<FShaderType*>*& GetTypeList();
@@ -709,7 +723,8 @@ public:
 		const TCHAR* InSourceFilename,
 		const TCHAR* InFunctionName,
 		uint32 InFrequency,
-		ConstructSerializedType InConstructSerializedRef);
+		ConstructSerializedType InConstructSerializedRef,
+		GetStreamOutElementsType InGetStreamOutElementsRef);
 
 	virtual ~FShaderType();
 
@@ -792,6 +807,16 @@ public:
 		return ShaderIdMap;
 	}
 
+	bool LimitShaderResourceToThisType()
+	{
+		return GetStreamOutElementsRef != &FShader::GetStreamOutElements;
+	}
+
+	void GetStreamOutElements(FStreamOutElementList& ElementList, TArray<uint32>& StreamStrides, int32& RasterizedStream) 
+	{
+		(*GetStreamOutElementsRef)(ElementList, StreamStrides, RasterizedStream);
+	}
+
 private:
 
 	uint32 HashIndex;
@@ -801,6 +826,7 @@ private:
 	uint32 Frequency;
 
 	ConstructSerializedType ConstructSerializedRef;
+	GetStreamOutElementsType GetStreamOutElementsRef;
 
 	/** A map from shader ID to shader.  A shader will be removed from it when deleted, so this doesn't need to use a TRefCountPtr. */
 	TMap<FShaderId,FShader*> ShaderIdMap;
@@ -859,7 +885,8 @@ private:
 		ShaderClass::ConstructSerializedInstance, \
 		ShaderClass::ConstructCompiledInstance, \
 		ShaderClass::ModifyCompilationEnvironment, \
-		ShaderClass::ShouldCache \
+		ShaderClass::ShouldCache, \
+		ShaderClass::GetStreamOutElements \
 		);
 
 /** A macro to implement a templated shader type, the function name and the source filename comes from the class. */
@@ -873,7 +900,8 @@ private:
 	ShaderClass::ConstructSerializedInstance, \
 	ShaderClass::ConstructCompiledInstance, \
 	ShaderClass::ModifyCompilationEnvironment, \
-	ShaderClass::ShouldCache \
+	ShaderClass::ShouldCache, \
+	ShaderClass::GetStreamOutElements \
 	);
 
 
@@ -887,7 +915,8 @@ private:
 	ShaderClass::ConstructSerializedInstance, \
 	ShaderClass::ConstructCompiledInstance, \
 	ShaderClass::ModifyCompilationEnvironment, \
-	ShaderClass::ShouldCache \
+	ShaderClass::ShouldCache, \
+	ShaderClass::GetStreamOutElements \
 	);
 #endif
 

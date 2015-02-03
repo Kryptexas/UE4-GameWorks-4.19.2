@@ -29,7 +29,7 @@ void ConvertToUniformMeshVS(
 	Output.PixelPosition = WorldPosition;
 }
 
-// Must match GUniformMeshVertexLayout and TRIANGLE_VERTEX_DATA_STRIDE
+// Must match GetUniformMeshStreamOutLayout and TRIANGLE_VERTEX_DATA_STRIDE
 struct FConvertToUniformMeshVertex
 {
 	float4 Position : SV_Position;
