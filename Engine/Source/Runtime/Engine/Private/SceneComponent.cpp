@@ -815,6 +815,12 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 {
 	if(Parent != NULL)
 	{
+		if (Parent == AttachParent && InSocketName == AttachSocketName && Parent->AttachChildren.Contains(this))
+		{
+			// already attached!
+			return;
+		}
+
 		if(Parent == this)
 		{
 			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("AttachToSelfWarning", "AttachTo: '{0}' cannot be attached to itself. Aborting."), 
