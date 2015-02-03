@@ -58,28 +58,6 @@ public class BuildCookRun : BuildCommand
 			RawProjectPath: ProjectPath
 		);
 
-		// Initialize map
-		var Map = ParseParamValue("map");
-		if (Map == null)
-		{
-			LogVerbose("-map command line param not found, trying to find DefaultMap in INI.");
-			Map = GetDefaultMap(Params);
-		}
-
-		if (!String.IsNullOrEmpty(Map))
-		{
-			if (ParseParam("allmaps"))
-			{
-				Log("Cooking all maps");
-			}
-			else
-			{
-				Params.MapsToCook = new ParamList<string>(Map);
-			}
-
-			Params.MapToRun = GetFirstMap(Map);
-		}
-
 		// @rocket hack: non-code projects cannot run in Debug
 		if (Params.Rocket && !ProjectUtils.IsCodeBasedUProjectFile(ProjectPath))
 		{

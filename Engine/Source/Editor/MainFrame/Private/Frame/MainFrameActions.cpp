@@ -315,7 +315,7 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 	}
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -allmaps -%s -ue4exe=%s %s"),
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -%s -ue4exe=%s %s"),
 		FRocketSupport::IsRocket() ? TEXT("-rocket -nocompile") : TEXT("-nocompileeditor"),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
@@ -481,6 +481,27 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -clean");
 	}
 
+	if ( PackagingSettings->bCookAll )
+	{
+		OptionalParams += TEXT(" -CookAll");
+		// maps only flag only affects cook all
+		if ( PackagingSettings->bCookMapsOnly )
+		{
+			OptionalParams += TEXT(" -CookMapsOnly");
+		}
+	}
+	else ( PackagingSettings->MapsToCook.Num() )
+	{
+		OptionalParams += TEXT(" -mapstocook=");
+		for ( const auto& Map : PackagingSettings->MapsToCook )
+		{
+			OptionalParams += FString::Printf(TEXT("%s+"), *Map.FilePath);
+		}
+		OptionalParams.RemoveFromEnd("+");
+	}
+	
+	
+
 	if (PackagingSettings->UsePakFile)
 	{
 	  if (PlatformInfo->TargetPlatformName != FName("HTML5")) 
@@ -560,7 +581,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -allmaps -stage -archive -archivedirectory=\"%s\" -package -%s -clientconfig=%s -ue4exe=%s %s -utf8output"),
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -stage -archive -archivedirectory=\"%s\" -package -%s -clientconfig=%s -ue4exe=%s %s -utf8output"),
 		FRocketSupport::IsRocket() ? TEXT( "-rocket -nocompile" ) : TEXT( "-nocompileeditor" ),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,

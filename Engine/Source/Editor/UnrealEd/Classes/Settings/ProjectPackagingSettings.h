@@ -109,12 +109,30 @@ public:
 	TArray<FString> CulturesToStage;
 
 	/**
+	 * Cook all things in the project content directory
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Cook everything in the project content directory (ignore list of maps below)"))
+	bool bCookAll;
+
+	/**
+	 * Cook only maps (this only affects the cookall flag)
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Cook only maps (this only affects cookall)"))
+	bool bCookMapsOnly;
+	
+	/**
+	 * List of maps to include when no other map list is specified on commandline
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="List of maps to include in a packaged build", RelativeToGameContentDir))
+	TArray<FFilePath> MapsToCook;	
+
+	/**
 	 * Directories containing .uasset files that should always be cooked regardless of whether they're referenced by anything in your project
 	 * Note: These paths are relative to your project Content directory
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Asset Directories to Cook", RelativeToGameContentDir))
 	TArray<FDirectoryPath> DirectoriesToAlwaysCook;
-
+	
 	/**
 	 * Directories containing files that should always be added to the .pak file (if using a .pak file; otherwise they're copied as individual files)
 	 * This is used to stage additional files that you manually load via the UFS (Unreal File System) file IO API
@@ -131,6 +149,8 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy", RelativeToGameContentDir))
 	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;	
 
+
+	
 public:
 
 	// UObject Interface
