@@ -75,7 +75,7 @@ FDragValidationInfo FFolderDropTarget::ValidateDrop(FDragDropPayload& DraggedObj
 		{
 			AActor* Actor = WeakActor.Get();
 
-			if (Actor->GetFolderPath() == DestinationPath)
+			if (Actor->GetFolderPath() == DestinationPath && !Actor->GetAttachParentActor())
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("SourceName"), FText::FromString(Actor->GetActorLabel()));

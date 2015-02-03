@@ -174,7 +174,7 @@ namespace SceneOutliner
 		/** Test whether this tree item passes all filters, and set its interactive state according to the filter it failed (if applicable) */
 		bool TestAndSetInteractiveState(ITreeItem& InItem) const
 		{
-			bool bPassed = false;
+			bool bPassed = true;
 
 			// Default to interactive
 			InItem.Flags.bInteractive = true;

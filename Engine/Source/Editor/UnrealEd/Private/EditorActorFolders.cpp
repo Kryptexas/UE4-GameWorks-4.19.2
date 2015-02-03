@@ -430,7 +430,7 @@ bool FActorFolders::RenameFolderInWorld(UWorld& World, FName OldPath, FName NewP
 		if (Actor->GetFolderPath() == OldPath || PathIsChildOf(OldActorPath.ToString(), OldPathString))
 		{
 			RenamedFolders.Add(OldActorPath);
-			ActorIt->SetFolderPath(OldPathToNewPath(OldPathString, NewPathString, OldActorPath.ToString()));
+			ActorIt->SetFolderPath(OldPathToNewPath(OldPathString, NewPathString, OldActorPath.ToString()), false);
 		}
 	}
 

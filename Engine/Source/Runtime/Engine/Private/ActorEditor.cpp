@@ -576,7 +576,7 @@ const FName& AActor::GetFolderPath() const
 	return FolderPath;
 }
 
-void AActor::SetFolderPath(const FName& NewFolderPath)
+void AActor::SetFolderPath(const FName& NewFolderPath, bool bDetachFromParent)
 {
 	// Detach the actor if it is attached
 	USceneComponent* RootComp = GetRootComponent();
@@ -593,7 +593,7 @@ void AActor::SetFolderPath(const FName& NewFolderPath)
 	FolderPath = NewFolderPath;
 	
 	// Detach the actor if it is attached
-	if (bIsAttached)
+	if (bIsAttached && bDetachFromParent)
 	{
 		AActor* OldParentActor = RootComp->AttachParent->GetOwner();
 		OldParentActor->Modify();
@@ -604,6 +604,19 @@ void AActor::SetFolderPath(const FName& NewFolderPath)
 	if (GEngine)
 	{
 		GEngine->BroadcastLevelActorFolderChanged(this, OldPath);
+	}
+
+	//recursively change folder path for children (but do not detach so they remain as child)
+	if(RootComp)
+	{
+		for(auto ChildSceneComponent : RootComp->AttachChildren)
+		{
+			AActor* ChildActor = ChildSceneComponent ? ChildSceneComponent->GetOwner() : nullptr;
+			if(ChildActor)
+			{
+				ChildActor->SetFolderPath(NewFolderPath, false);
+			}
+		}
 	}
 }
 
