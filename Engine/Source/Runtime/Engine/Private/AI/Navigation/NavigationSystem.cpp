@@ -1210,7 +1210,7 @@ UNavigationPath* UNavigationSystem::FindPathToLocationSynchronously(UObject* Wor
 
 	UNavigationPath* ResultPath = NULL;
 
-	if (World != NULL && World->GetNavigationSystem() != NULL)
+	if (World != NULL && World->GetNavigationSystem() != NULL && World->GetNavigationSystem()->GetMainNavData() != nullptr)
 	{
 		UNavigationSystem* NavSys = World->GetNavigationSystem();
 

@@ -28,6 +28,8 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 										.AllowAudioPlayback(CVS.bAllowAudioPlayback)
 										.CreatePhysicsScene(CVS.bCreatePhysicsScene)
 										.RequiresHitProxies(false)
+										.CreateNavigation(false)
+										.CreateAISystem(false)
 										.ShouldSimulatePhysics(CVS.bShouldSimulatePhysics)
 										.SetTransactional(CVS.bTransactional));
 	PreviewWorld->InitializeActorsForPlay(FURL());
