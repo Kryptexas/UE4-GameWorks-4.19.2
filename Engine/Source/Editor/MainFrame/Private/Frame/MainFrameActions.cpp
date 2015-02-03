@@ -490,7 +490,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			OptionalParams += TEXT(" -CookMapsOnly");
 		}
 	}
-	else ( PackagingSettings->MapsToCook.Num() )
+	else if ( PackagingSettings->MapsToCook.Num() )
 	{
 		OptionalParams += TEXT(" -mapstocook=");
 		for ( const auto& Map : PackagingSettings->MapsToCook )
