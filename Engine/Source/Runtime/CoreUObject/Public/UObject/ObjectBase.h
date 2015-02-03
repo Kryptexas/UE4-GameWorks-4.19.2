@@ -971,6 +971,9 @@ namespace UM
 		/// [PropertyMetadata]
 		Multiple,
 
+		/// [PropertyMetadata] Used for FString and FText properties.  Indicates that the edit field should be multi-line, allowing entry of newlines.
+		MultiLine,
+
 		/// [PropertyMetadata] Used for array properties. Indicates that the duplicate icon should not be shown for entries of this array in the property panel.
 		NoElementDuplicate,
 
