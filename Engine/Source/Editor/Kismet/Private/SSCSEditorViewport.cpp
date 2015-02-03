@@ -211,17 +211,10 @@ SSCSEditorViewport::~SSCSEditorViewport()
 	}
 }
 
-
-
 bool SSCSEditorViewport::IsVisible() const
 {
 	// We consider the viewport to be visible if the reference is valid
 	return ViewportWidget.IsValid() && SEditorViewport::IsVisible();
-}
-
-EVisibility SSCSEditorViewport::GetWidgetVisibility() const
-{
-	return IsVisible()? EVisibility::Visible: EVisibility::Collapsed;
 }
 
 TSharedRef<FEditorViewportClient> SSCSEditorViewport::MakeEditorViewportClient()
@@ -242,7 +235,6 @@ TSharedPtr<SWidget> SSCSEditorViewport::MakeViewportToolbar()
 	return 
 		SNew(SSCSEditorViewportToolBar)
 		.EditorViewport(SharedThis(this))
-		.Visibility(this, &SSCSEditorViewport::GetWidgetVisibility)
 		.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute());
 }
 
