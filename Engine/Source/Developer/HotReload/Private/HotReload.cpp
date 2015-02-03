@@ -1375,6 +1375,8 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 					break;
 				}
 
+				SlowTask.EnterProgressFrame(0.0f);
+
 				// Give up a small timeslice if we haven't finished recompiling yet
 				FPlatformProcess::Sleep( 0.01f );
 			}
