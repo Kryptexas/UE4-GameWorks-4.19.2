@@ -4163,8 +4163,7 @@ void FBlueprintEditor::OnCollapseSelectionToFunction()
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( BlueprintObj );
 
-		MyBlueprintWidget->SelectItemByName(FunctionGraph->GetFName(),ESelectInfo::OnMouseClick);
-		MyBlueprintWidget->OnRequestRenameOnActionNode();
+		RenameNewlyAddedAction(FunctionGraph->GetFName());
 	}
 }
 
@@ -4314,8 +4313,7 @@ void FBlueprintEditor::OnCollapseSelectionToMacro()
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( BlueprintObj );
 
-		MyBlueprintWidget->SelectItemByName(MacroGraph->GetFName(),ESelectInfo::OnMouseClick);
-		MyBlueprintWidget->OnRequestRenameOnActionNode();
+		RenameNewlyAddedAction(MacroGraph->GetFName());
 	}
 }
 
@@ -6279,6 +6277,8 @@ void FBlueprintEditor::RenameNewlyAddedAction(FName InActionName)
 
 	if (MyBlueprintWidget.IsValid())
 	{
+		// Force a refresh immediately, the item has to be present in the list for the rename requests to be successful.
+		MyBlueprintWidget->Refresh();
 		MyBlueprintWidget->SelectItemByName(InActionName,ESelectInfo::OnMouseClick);
 		MyBlueprintWidget->OnRequestRenameOnActionNode();
 	}
