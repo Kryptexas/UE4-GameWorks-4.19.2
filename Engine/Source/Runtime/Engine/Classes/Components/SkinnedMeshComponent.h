@@ -386,7 +386,7 @@ public:
 	 * @return	bone name
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	FName GetSocketBoneName(FName InSocketName);
+	FName GetSocketBoneName(FName InSocketName) const;
 
 	/** 
 	 * Change the SkeletalMesh that is rendered for this Component. Will re-initialize the animation tree etc. 
