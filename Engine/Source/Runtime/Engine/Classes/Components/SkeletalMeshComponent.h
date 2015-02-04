@@ -930,6 +930,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void SetAllBodiesSimulatePhysics(bool bNewSimulate);
 
+	/** Update Material Parameters based on AnimInstance */
+	void UpdateMaterialParameters();
+
 	/** This is global set up for setting physics blend weight
 	 * This does multiple things automatically
 	 * If PhysicsBlendWeight == 1.f, it will enable Simulation, and if PhysicsBlendWeight == 0.f, it will disable Simulation. 

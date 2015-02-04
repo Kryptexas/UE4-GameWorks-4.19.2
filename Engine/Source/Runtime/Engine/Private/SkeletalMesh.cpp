@@ -3698,6 +3698,7 @@ void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelInd
 	}
 
 	// Update space bases so new animation position has an effect.
+	SkeletalMeshComponent->UpdateMaterialParameters();
 	SkeletalMeshComponent->RefreshBoneTransforms();
 	SkeletalMeshComponent->RefreshSlaveComponents();
 	SkeletalMeshComponent->UpdateComponentToWorld();

@@ -547,6 +547,7 @@ void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
 			// since this is singlenode instance, if position changes, we can't keep old morphtarget curves
 			// we clear it and evaluate curve here with new asset. 
 			MorphTargetCurves.Empty();
+			MaterialParameterCurves.Empty();
 			// Evaluate Curve data now - even if time did not move, we still need to return curve if it exists
 			SequenceBase->EvaluateCurveData(this, CurrentTime, 1.0);
 		}

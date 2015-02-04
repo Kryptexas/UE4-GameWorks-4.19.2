@@ -479,34 +479,38 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime)
 				}
 
 				//Update material parameters
-				if(AnimScriptInstance->MaterialParameterCurves.Num() > 0)
-				{
-					for( auto Iter = AnimScriptInstance->MaterialParameterCurves.CreateConstIterator(); Iter; ++Iter )
-					{
-						FName ParameterName = Iter.Key();
-						float ParameterValue = Iter.Value();
+				UpdateMaterialParameters();
+			}
+		}
+	}
+}
 
-						for(int32 MaterialIndex = 0; MaterialIndex < GetNumMaterials(); ++MaterialIndex)
+void USkeletalMeshComponent::UpdateMaterialParameters()
+{
+	if(AnimScriptInstance->MaterialParameterCurves.Num() > 0)
+	{
+		for(auto Iter = AnimScriptInstance->MaterialParameterCurves.CreateConstIterator(); Iter; ++Iter)
+		{
+			FName ParameterName = Iter.Key();
+			float ParameterValue = Iter.Value();
+
+			UE_LOG(LogAnimation, Verbose, TEXT("Material Parameter change by Animation (%s : %0.2f)"), *ParameterName.ToString(), ParameterValue);
+			for(int32 MaterialIndex = 0; MaterialIndex < GetNumMaterials(); ++MaterialIndex)
+			{
+				UMaterialInterface* MaterialInterface = GetMaterial(MaterialIndex);
+				if(MaterialInterface)
+				{
+					float TestValue; //not used but needed for GetScalarParameterValue call
+					if(MaterialInterface->GetScalarParameterValue(ParameterName, TestValue))
+					{
+						UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(MaterialInterface);
+						if(!DynamicMaterial) //Is it already a UMaterialInstanceDynamic (ie we used it last tick)
 						{
-							UMaterialInterface* MaterialInterface = GetMaterial(MaterialIndex);
-							if (MaterialInterface)
-							{
-								float TestValue; //not used but needed for GetScalarParameterValue call
-								if(MaterialInterface->GetScalarParameterValue(ParameterName,TestValue))
-								{
-									UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(MaterialInterface);
-									if(!DynamicMaterial) //Is it already a UMaterialInstanceDynamic (ie we used it last tick)
-									{
-										DynamicMaterial = CreateAndSetMaterialInstanceDynamic(MaterialIndex);
-									}
-									DynamicMaterial->SetScalarParameterValue(ParameterName, ParameterValue);
-								
-									//Assume that we only set the parameter on one of the materials, remove this break
-									//if that is no longer desired
-									break;
-								}
-							}
+							DynamicMaterial = CreateAndSetMaterialInstanceDynamic(MaterialIndex);
 						}
+						DynamicMaterial->SetScalarParameterValue(ParameterName, ParameterValue);
+
+						// we don't break here because we can have multiple materials wanted to be driven by same parameter
 					}
 				}
 			}
