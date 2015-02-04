@@ -42,6 +42,10 @@ void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, U
 				}
 
 				Children.AddUnique(ChildBP);
+				if (ChildBP->ParentClass == InOldClass)
+				{
+					ChildBP->ParentClass = NewClass;
+				}
 			}
 			else
 			{
