@@ -305,7 +305,7 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 			{
 				ExportActor( Actor, InMatineeActor ); // Just export the placement of the particle emitter.
 			}
-			else if( Actor->GetClass()->ClassGeneratedBy != NULL )
+			else if( Actor != NULL )
 			{
 				// Export blueprint actors and all their components
 				ExportActor( Actor, InMatineeActor, true );
@@ -824,7 +824,7 @@ void FFbxExporter::ExportSkeletalMesh( USkeletalMesh* SkeletalMesh )
 	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*MeshName));
 	Scene->GetRootNode()->AddChild(MeshNode);
 
-	ExportSkeletalMeshToFbx(*SkeletalMesh, *MeshName, MeshNode);
+	ExportSkeletalMeshToFbx(*SkeletalMesh, NULL, *MeshName, MeshNode);
 }
 
 void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* SkeletalMeshComponent )
@@ -837,7 +837,7 @@ void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* Sk
 	FString FbxNodeName = GetActorNodeName(Actor, NULL);
 
 	FbxNode* FbxActorNode = ExportActor( Actor, NULL );
-	ExportSkeletalMeshToFbx(*SkeletalMesh, *FbxNodeName, FbxActorNode);
+	ExportSkeletalMeshToFbx(*SkeletalMesh, NULL, *FbxNodeName, FbxActorNode);
 }
 
 FbxSurfaceMaterial* FFbxExporter::CreateDefaultMaterial()
@@ -1093,16 +1093,17 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 
 		if( bExportComponents )
 		{
-			TInlineComponentArray<UMeshComponent*> MeshComponents;
-			Actor->GetComponents(MeshComponents);
+			TInlineComponentArray<UActorComponent*> ActorComponents;
+			Actor->GetComponents(ActorComponents);
 
 			TInlineComponentArray<UActorComponent*> ComponentsToExport;
-			for( int32 ComponentIndex = 0; ComponentIndex < MeshComponents.Num(); ++ComponentIndex )
+			for( int32 ComponentIndex = 0; ComponentIndex < ActorComponents.Num(); ++ComponentIndex )
 			{
-				UMeshComponent* Component = MeshComponents[ComponentIndex];
+				UActorComponent* Component = ActorComponents[ComponentIndex];
 
 				UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>( Component );
 				USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>( Component );
+				UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>( Component );
 
 				if( StaticMeshComp && StaticMeshComp->StaticMesh )
 				{
@@ -1111,6 +1112,10 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 				else if( SkelMeshComp && SkelMeshComp->SkeletalMesh )
 				{
 					ComponentsToExport.Add( SkelMeshComp );
+				}
+				else if (ChildActorComp && ChildActorComp->ChildActor)
+				{
+					ComponentsToExport.Add(ChildActorComp);
 				}
 			}
 
@@ -1144,6 +1149,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 
 				UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>( Component );
 				USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>( Component );
+				UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>( Component );
 
 				if (StaticMeshComp && StaticMeshComp->StaticMesh)
 				{
@@ -1161,7 +1167,13 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 				}
 				else if (SkelMeshComp && SkelMeshComp->SkeletalMesh)
 				{
-					ExportSkeletalMeshToFbx( *SkelMeshComp->SkeletalMesh, *SkelMeshComp->GetName(), ExportNode );
+					UAnimSequence* AnimSeq = (SkelMeshComp->GetAnimationMode() == EAnimationMode::AnimationSingleNode)? Cast<UAnimSequence>(SkelMeshComp->AnimationData.AnimToPlay) : NULL;
+					ExportSkeletalMeshToFbx( *SkelMeshComp->SkeletalMesh, AnimSeq, *SkelMeshComp->GetName(), ExportNode);
+				}
+				else if (ChildActorComp && ChildActorComp->ChildActor)
+				{
+					FbxNode* ChildActorNode = ExportActor(ChildActorComp->ChildActor, InMatineeActor, true);
+					FbxActors.Add(ChildActorComp->ChildActor, ChildActorNode);
 				}
 			}
 		}

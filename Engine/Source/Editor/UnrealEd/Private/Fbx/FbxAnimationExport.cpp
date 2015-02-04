@@ -217,7 +217,7 @@ void FFbxExporter::CorrectAnimTrackInterpolation( TArray<FbxNode*>& BoneNodes, F
 }
 
 
-void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, USkeletalMesh* SkelMesh, bool bExportSkelMesh )
+void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, const USkeletalMesh* SkelMesh, bool bExportSkelMesh, const TCHAR* MeshName, FbxNode* ActorRootNode )
 {
 	if( Scene == NULL || AnimSeq == NULL || SkelMesh == NULL )
 	{
@@ -225,7 +225,7 @@ void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, USkeletalMe
 	}
 
 
-	FbxNode* RootNode = Scene->GetRootNode();
+	FbxNode* RootNode = (ActorRootNode)? ActorRootNode : Scene->GetRootNode();
 	// Create the Skeleton
 	TArray<FbxNode*> BoneNodes;
 	FbxNode* SkeletonRootNode = CreateSkeleton(*SkelMesh, BoneNodes);
@@ -250,11 +250,19 @@ void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, USkeletalMe
 	// Optionally export the mesh
 	if(bExportSkelMesh)
 	{
-		FString MeshName;
-		SkelMesh->GetName(MeshName);
+		FString MeshNodeName;
+		
+		if (MeshName)
+		{
+			MeshNodeName = MeshName;
+		}
+		else
+		{
+			SkelMesh->GetName(MeshNodeName);
+		}
 
 		// Add the mesh
-		FbxNode* MeshRootNode = CreateMesh(*SkelMesh, *MeshName);
+		FbxNode* MeshRootNode = CreateMesh(*SkelMesh, *MeshNodeName);
 		if(MeshRootNode)
 		{
 			RootNode->AddChild(MeshRootNode);

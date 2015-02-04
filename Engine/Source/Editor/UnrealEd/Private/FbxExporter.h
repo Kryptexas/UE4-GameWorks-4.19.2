@@ -152,7 +152,7 @@ public:
 	/**
 	 * Exports a single UAnimSequence, and optionally a skeletal mesh
 	 */
-	void ExportAnimSequence( const UAnimSequence* AnimSeq, USkeletalMesh* SkelMesh, bool bExportSkelMesh );
+	void ExportAnimSequence( const UAnimSequence* AnimSeq, const USkeletalMesh* SkelMesh, bool bExportSkelMesh, const TCHAR* MeshNames=NULL, FbxNode* ActorRootNode=NULL);
 
 	/**
 	 * Exports the list of UAnimSequences as a single animation based on the settings in the TrackKeys
@@ -243,7 +243,7 @@ private:
 	/**
 	 * Add the given skeletal mesh to the Fbx scene in preparation for exporting.  Makes all new nodes a child of the given node
 	 */
-	void ExportSkeletalMeshToFbx(const USkeletalMesh& SkelMesh, const TCHAR* MeshName, FbxNode* FbxActor);
+	void ExportSkeletalMeshToFbx(const USkeletalMesh& SkelMesh, const UAnimSequence* AnimSeq, const TCHAR* MeshName, FbxNode* FbxActor);
 
 	/**
 	 * Add the given animation sequence as rotation and translation tracks to the given list of bone nodes

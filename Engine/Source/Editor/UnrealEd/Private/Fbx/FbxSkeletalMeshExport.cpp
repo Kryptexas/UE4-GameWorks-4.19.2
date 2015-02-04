@@ -478,31 +478,38 @@ void FFbxExporter::CreateBindPose(FbxNode* MeshRootNode)
 /**
  * Add the given skeletal mesh to the Fbx scene in preparation for exporting.  Makes all new nodes a child of the given node
  */
-void FFbxExporter::ExportSkeletalMeshToFbx(const USkeletalMesh& SkelMesh, const TCHAR* MeshName, FbxNode* ActorRootNode)
+void FFbxExporter::ExportSkeletalMeshToFbx(const USkeletalMesh& SkelMesh, const UAnimSequence* AnimSeq, const TCHAR* MeshName, FbxNode* ActorRootNode)
 {
-	TArray<FbxNode*> BoneNodes;
-
-	// Add the skeleton to the scene
-	FbxNode* SkeletonRootNode = CreateSkeleton(SkelMesh, BoneNodes);
-	if(SkeletonRootNode)
+	if(AnimSeq)
 	{
-		ActorRootNode->AddChild(SkeletonRootNode);
+		ExportAnimSequence(AnimSeq, &SkelMesh, true, MeshName, ActorRootNode);
 	}
-
-	// Add the mesh
-	FbxNode* MeshRootNode = CreateMesh(SkelMesh, MeshName);
-	if(MeshRootNode)
+	else
 	{
-		ActorRootNode->AddChild(MeshRootNode);
-	}
+		TArray<FbxNode*> BoneNodes;
 
-	if(SkeletonRootNode && MeshRootNode)
-	{
-		// Bind the mesh to the skeleton
-		BindMeshToSkeleton(SkelMesh, MeshRootNode, BoneNodes);
+		// Add the skeleton to the scene
+		FbxNode* SkeletonRootNode = CreateSkeleton(SkelMesh, BoneNodes);
+		if(SkeletonRootNode)
+		{
+			ActorRootNode->AddChild(SkeletonRootNode);
+		}
 
-		// Add the bind pose
-		CreateBindPose(MeshRootNode);
+		// Add the mesh
+		FbxNode* MeshRootNode = CreateMesh(SkelMesh, MeshName);
+		if(MeshRootNode)
+		{
+			ActorRootNode->AddChild(MeshRootNode);
+		}
+
+		if(SkeletonRootNode && MeshRootNode)
+		{
+			// Bind the mesh to the skeleton
+			BindMeshToSkeleton(SkelMesh, MeshRootNode, BoneNodes);
+
+			// Add the bind pose
+			CreateBindPose(MeshRootNode);
+		}
 	}
 }
 
