@@ -172,6 +172,13 @@ public:
 	 */
 	virtual void Tick(float DeltaSeconds) = 0;
 
+	/**
+	 * Gets the time that it took for the server to fully respond to the request.
+	 * 
+	 * @return elapsed time in seconds.
+	 */
+	virtual float GetElapsedTime() = 0;
+
 	/** 
 	 * Destructor for overrides 
 	 */

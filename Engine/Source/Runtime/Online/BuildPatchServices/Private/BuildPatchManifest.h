@@ -576,6 +576,9 @@ public:
 	 */
 	void EnumerateChunkPartInventory(const TArray< FGuid >& ChunksRequired, TMap< FGuid, TArray< FFileChunkPart > >& ChunkPartsAvailable) const;
 
+	/** @return True if this manifest is for the same build, i.e. same ID, Name, and Version */
+	bool IsSameAs(FBuildPatchAppManifestRef InstallManifest) const;
+
 private:
 
 	bool Serialize(FArchive& Ar);

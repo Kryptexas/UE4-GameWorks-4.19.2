@@ -55,7 +55,7 @@ private:
 	const bool bIsChunkData;
 
 	// A flag to store if we are performing a repair
-	const bool bIsRepairing;
+	bool bIsRepairing;
 
 	// A flag storing whether the process was a success
 	bool bSuccess;
@@ -165,6 +165,13 @@ private:
 	bool RunBackupAndMove();
 
 	/**
+	 * Runs the process to setup all file attributes required
+	 * @param bForce		Set true if also removing attributes to force the api calls to be made
+	 * @return    Returns true if there were no errors
+	 */
+	bool RunFileAttributes( bool bForce = false );
+
+	/**
 	 * Runs the verification process
 	 * @param CorruptFiles  OUT     Receives the list of files that failed verification
 	 * @return    Returns true if there were no corrupt files
@@ -220,4 +227,11 @@ private:
 	 * @param Percent	The current process percentage
 	 */
 	void UpdateVerificationProgress( float Percent );
+
+	/**
+	 * Setup file attributes
+	 * @param FilePath		The path to the file to apply attributes on
+	 * @param FileManifest	The manifest for the file
+	 */
+	void SetupFileAttributes( const FString& FilePath, const FFileManifestData& FileManifest );
 };

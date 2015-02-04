@@ -186,7 +186,7 @@ void FCurlHttpManager::AddRequest(const TSharedRef<class IHttpRequest>& Request)
 {
 	FScopeLock ScopeLock(&RequestLock);
 
-	Requests.Add(&Request.Get(), FActiveHttpRequest(FPlatformTime::Seconds(), Request));
+	Requests.Add(Request);
 
 	FCurlHttpRequest* CurlRequest = static_cast< FCurlHttpRequest* >( &Request.Get() );
 	HandlesToRequests.Add(CurlRequest->GetEasyHandle(), Request);
@@ -204,14 +204,7 @@ void FCurlHttpManager::RemoveRequest(const TSharedRef<class IHttpRequest>& Reque
 
 	FCurlHttpRequest* CurlRequest = static_cast< FCurlHttpRequest* >( &Request.Get() );
 	HandlesToRequests.Remove(CurlRequest->GetEasyHandle());
-
-	// add analytics info before removing the event
-	const FActiveHttpRequest* Found = Requests.Find(&Request.Get());
-	if (Found != NULL)
-	{
-		AddAnalytics(FPlatformTime::Seconds() - Found->StartTime, Request);
-	}
-	Requests.Remove(&Request.Get());
+	Requests.Remove(Request);
 }
 
 bool FCurlHttpManager::Tick(float DeltaSeconds)

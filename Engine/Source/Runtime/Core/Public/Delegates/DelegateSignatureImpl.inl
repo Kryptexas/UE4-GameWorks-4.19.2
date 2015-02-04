@@ -104,6 +104,9 @@ class DELEGATE_CLASS
 {
 public:
 
+	/** Type definition for return value type. */
+	FUNC_RETVAL_TYPEDEF
+		
 	/** Type definition for the shared interface of delegate instance types compatible with this delegate class. */
 	typedef DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS> TDelegateInstanceInterface;
 

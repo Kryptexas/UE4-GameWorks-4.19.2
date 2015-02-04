@@ -989,7 +989,7 @@ static void AddCustomFieldsToBuildManifest(const TMap<FString, FVariant>& Custom
 	}
 }
 
-static void AddFileAttributesToBuildManifest(const FString& AttributesList, FBuildPatchAppManifestRef BuildManifest, TMap<FString, FFileAttributes>& FileAttributesMap)
+static void FileAttributesMetaToMap(const FString& AttributesList, TMap<FString, FFileAttributes>& FileAttributesMap)
 {
 	GLog->Logf(TEXT("Parsing file attributes list:-"));
 	checkf(AttributesList.Len() > 0, TEXT("Attributes File List was empty file"));
@@ -1064,7 +1064,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	// Setup custom fields
 	AddCustomFieldsToBuildManifest(Settings.CustomFields, BuildManifest);
 
-	// Setup File Attributes
+	// Get the file attributes
 	FString AttributesList;
 	TMap<FString, FFileAttributes> FileAttributesMap;
 	if (Settings.AttributeListFile.Len() > 0)
@@ -1072,7 +1072,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 		FFileHelper::LoadFileToString(AttributesList, *Settings.AttributeListFile);
 		if (!AttributesList.IsEmpty())
 		{
-			AddFileAttributesToBuildManifest(AttributesList, BuildManifest, FileAttributesMap);
+			FileAttributesMetaToMap(AttributesList, FileAttributesMap);
 		}
 		else
 		{
@@ -1304,6 +1304,22 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 	// Setup custom fields
 	AddCustomFieldsToBuildManifest(Settings.CustomFields, BuildManifest);
 
+	// Get the file attributes
+	FString AttributesList;
+	TMap<FString, FFileAttributes> FileAttributesMap;
+	if (Settings.AttributeListFile.Len() > 0)
+	{
+		FFileHelper::LoadFileToString(AttributesList, *Settings.AttributeListFile);
+		if (!AttributesList.IsEmpty())
+		{
+			FileAttributesMetaToMap(AttributesList, FileAttributesMap);
+		}
+		else
+		{
+			GLog->Logf(TEXT("WARNING: Attributes list file empty"));
+		}
+	}
+
 	// Reset file inventory
 	ExistingFilesEnumerated = false;
 	ExistingFileInventory.Empty();
@@ -1376,6 +1392,28 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 
 	// Fill out lookups
 	BuildManifest->InitLookups();
+
+	// Fill out the file attributes
+	for (const auto& Entry : FileAttributesMap)
+	{
+		const FString& Filename = Entry.Key;
+		const FFileAttributes& Attributes = Entry.Value;
+		if (BuildManifest->FileManifestLookup.Contains(Filename))
+		{
+			FFileManifestData& FileManifest = *BuildManifest->FileManifestLookup[Filename];
+			FileManifest.bIsReadOnly = Attributes.bReadOnly;
+			FileManifest.bIsCompressed = Attributes.bCompressed;
+			// Only overwrite unix exe if true
+			if (Attributes.bUnixExecutable)
+			{
+				FileManifest.bIsUnixExecutable = Attributes.bUnixExecutable;
+			}
+		}
+		else
+		{
+			GLog->Logf(TEXT("File Attributes: File not in build %s"), *Filename);
+		}
+	}
 
 	// Save manifest into the cloud directory
 	FString BaseFilename = FBuildPatchServicesModule::GetCloudDirectory() / FDefaultValueHelper::RemoveWhitespaces(BuildManifest->Data->AppName + BuildManifest->Data->BuildVersion);

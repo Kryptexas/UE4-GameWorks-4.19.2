@@ -80,6 +80,7 @@ public:
 	virtual void SetCloudDirectory( const FString& CloudDir ) override;
 	virtual void SetBackupDirectory( const FString& BackupDir ) override;
 	virtual void SetAnalyticsProvider( TSharedPtr< IAnalyticsProvider > AnalyticsProvider ) override;
+	virtual void SetHttpTracker( TSharedPtr< FHttpServiceTracker > HttpTracker ) override;
 	virtual void RegisterAppInstallation( IBuildManifestRef AppManifest, const FString AppInstallDirectory ) override;
 #if WITH_BUILDPATCHGENERATION
 	virtual bool GenerateChunksManifestFromDirectory( const FBuildPatchSettings& Settings ) override;

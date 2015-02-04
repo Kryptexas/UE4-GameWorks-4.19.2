@@ -45,6 +45,7 @@ public:
 	virtual EHttpRequestStatus::Type GetStatus() override;
 	virtual const FHttpResponsePtr GetResponse() const override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual float GetElapsedTime() override;
 	// End IHttpRequest interface
 
 
@@ -98,6 +99,12 @@ private:
 
 	/** Number of bytes sent to progress update */
 	int32 ProgressBytesSent;
+
+	/** Start of the request */
+	double StartRequestTime;
+
+	/** Time taken to complete/cancel the request. */
+	float ElapsedTime;
 };
 
 

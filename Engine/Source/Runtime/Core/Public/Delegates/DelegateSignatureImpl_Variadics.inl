@@ -18,10 +18,11 @@
 template <typename WrappedRetValType, typename... ParamTypes>
 class TBaseDelegate : public FDelegateBase<>
 {
+public:
+	/** Type definition for return value type. */
 	typedef typename TUnwrapType<WrappedRetValType>::Type RetValType;
 	typedef RetValType TFuncType(ParamTypes...);
 
-public:
 	/** Type definition for the shared interface of delegate instance types compatible with this delegate class. */
 	typedef IBaseDelegateInstance<TFuncType> TDelegateInstanceInterface;
 

@@ -726,6 +726,11 @@ void FCurlHttpRequest::CleanupRequest()
 	}
 }
 
+float FCurlHttpRequest::GetElapsedTime()
+{
+	return ElapsedTime;
+}
+
 
 // FCurlHttpRequest
 

@@ -65,13 +65,6 @@ public:
 	 */
 	virtual void DumpRequests(FOutputDevice& Ar) const;
 
-	/**
-	 * Write http analytics events and clear them out
-	 *
-	 * @param Analytics - provider to use for writing events
-	 */
-	virtual void FlushAnalytics(class IAnalyticsProvider& Analytics);
-
 protected:
 	
 	/** Keep track of an http request while it is being processed */
@@ -88,7 +81,7 @@ protected:
 	};
 
 	/** List of Http requests that are actively being processed */
-	TMap<IHttpRequest*, FActiveHttpRequest> Requests;
+	TArray<TSharedRef<IHttpRequest>> Requests;
 
 	/** Keep track of a request that should be deleted later */
 	class FRequestPendingDestroy
@@ -110,31 +103,6 @@ protected:
 
 	/** Dead requests that need to be destroyed */
 	TArray<FRequestPendingDestroy> PendingDestroyRequests;
-
-	/** Analytics data to keep track of for completed http requests */
-	class FAnalyticsHttpRequest
-	{
-	public:
-		FAnalyticsHttpRequest()
-			: ElapsedTimeTotal(0)
-			, ElapsedTimeMin(0)
-			, ElapsedTimeMax(0)
-			, DownloadRateTotal(0)
-			, Count(0)
-		{}
-
-		void RecordRequest(double ElapsedTime, const TSharedRef<IHttpRequest>& HttpRequest);
-
-		double ElapsedTimeTotal;
-		double ElapsedTimeMin;
-		double ElapsedTimeMax;
-		double DownloadRateTotal;
-		int32 Count;
-		TMap<int32, int32> ResponseCodes;
-	};
-	TMap<FString, FAnalyticsHttpRequest> RequestAnalytics;
-
-	void AddAnalytics(double ElapsedTime, const TSharedRef<IHttpRequest>& HttpRequest);
 
 PACKAGE_SCOPE:
 

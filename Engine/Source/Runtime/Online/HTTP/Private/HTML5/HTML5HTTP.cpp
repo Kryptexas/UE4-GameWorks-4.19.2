@@ -516,6 +516,11 @@ void FHTML5HttpRequest::Tick(float DeltaSeconds)
 	}
 }
 
+float FHTML5HttpRequest::GetElapsedTime()
+{
+	return ElapsedTime;
+}
+
 
 /****************************************************************************
 * FHTML5HttpResponse implementation

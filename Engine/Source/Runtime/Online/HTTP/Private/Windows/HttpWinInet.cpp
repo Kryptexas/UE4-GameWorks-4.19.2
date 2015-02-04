@@ -341,6 +341,7 @@ FHttpRequestWinInet::FHttpRequestWinInet()
 ,	ElapsedTimeSinceLastServerResponse(0)
 ,	ProgressBytesSent(0)
 ,	StartRequestTime(0)
+,	ElapsedTime(0.0f)
 ,	bDebugVerbose(false)
 {
 
@@ -469,6 +470,8 @@ bool FHttpRequestWinInet::ProcessRequest()
 		FHttpModule::Get().GetHttpManager().AddRequest(SharedThis(this));
 		// keep track of time when request was started
 		StartRequestTime = FPlatformTime::Seconds();
+		// reset elapsed time.
+		ElapsedTime = 0.0f;
 		// Try to start the connection and send the Http request
 		bStarted = StartRequest();
 	}
@@ -617,7 +620,7 @@ void FHttpRequestWinInet::FinishedRequest()
 	// Remove from global list since processing is now complete
 	FHttpModule::Get().GetHttpManager().RemoveRequest(Request);
 
-	double ElapsedTime = FPlatformTime::Seconds() - StartRequestTime;
+	ElapsedTime = (float)(FPlatformTime::Seconds() - StartRequestTime);
 	if (Response.IsValid() &&
 		Response->bResponseSucceeded)
 	{
@@ -780,6 +783,11 @@ void FHttpRequestWinInet::Tick(float DeltaSeconds)
 	{
 		FinishedRequest();
 	}
+}
+
+float FHttpRequestWinInet::GetElapsedTime()
+{
+	return ElapsedTime;
 }
 
 // FHttpResponseWinInet

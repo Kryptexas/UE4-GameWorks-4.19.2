@@ -70,6 +70,11 @@ bool FCdnNewsFeedTitleFile::ClearFile(const FString& FileName)
 	return false;
 }
 
+void FCdnNewsFeedTitleFile::DeleteCachedFiles(bool bSkipEnumerated)
+{
+	// not implemented
+}
+
 bool FCdnNewsFeedTitleFile::EnumerateFiles(const FPagedQuery& Page)
 {
 	// Make sure an enumeration request  is not currently pending

@@ -79,8 +79,28 @@ class FTypeContainer
 		virtual TSharedPtr<void> GetInstance() = 0;
 	};
 
-
 	/** Implements an instance provider that forwards instance requests to a factory delegate. */
+	template<class D>
+	struct TDelegateInstanceProvider
+		: public IInstanceProvider
+	{
+		/** Constructor. */
+		TDelegateInstanceProvider(D InDelegate)
+			: Delegate(InDelegate)
+		{ }
+
+		virtual ~TDelegateInstanceProvider() override { }
+
+		virtual TSharedPtr<void> GetInstance() override
+		{
+			return Delegate.Execute();
+		}
+
+		/** Factory function that creates the instances. */
+		D Delegate;
+	};
+
+	/** Implements an instance provider that forwards instance requests to a factory function. */
 	template<class T>
 	struct TFactoryInstanceProvider
 		: public IInstanceProvider
@@ -295,6 +315,23 @@ public:
 
 	/**
 	 * Register a factory delegate for the specified class.
+	 */
+	template<class R, class D>
+	void RegisterDelegate(D Delegate)
+	{
+		static_assert(TAreTypesEqual<typename TSharedPtr<R>, D::RetValType>::Value, "Delegate return type must be TSharedPtr<R>");
+
+		FScopeLock Lock(&CriticalSection);
+		{
+			Providers.Add(
+				R::GetTypeName(),
+				MakeShareable(new TDelegateInstanceProvider<D>(Delegate))
+			);
+		}
+	}
+
+	/**
+	 * Register a factory function for the specified class.
 	 *
 	 * @param R The type of class to register the instance for.
 	 * @param CreateFunc A factory function that will create instances.

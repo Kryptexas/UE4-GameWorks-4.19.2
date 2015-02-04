@@ -9,4 +9,6 @@
 #include "CoreUObject.h"
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
+#include "EditorStyle.h"
+#include "FileHelpers.h"
 #include "SlateBasics.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+ // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
@@ -65,6 +65,8 @@ struct FTwoSmoothies
 	TSharedPtr<ISmoothie> One;
 	TSharedPtr<ISmoothie> Two;
 };
+
+DECLARE_DELEGATE_RetVal(TSharedPtr<IFruit>, FFruitFactoryDelegate);
 
 
 /* Tests
@@ -185,8 +187,17 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 
 	// factory test
 	{
+		struct FLocal
+		{
+			static TSharedPtr<IBerry> MakeStrawberry()
+			{
+				return MakeShareable(new FStrawberry());
+			}
+		};
+
 		FTypeContainer Container;
 		{
+			Container.RegisterFactory<IBerry>(&FLocal::MakeStrawberry);
 			Container.RegisterFactory<IFruit>(
 				[]() -> TSharedPtr<IFruit> {
 					return MakeShareable(new FBanana());
@@ -194,9 +205,36 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 			);
 		}
 
+		auto Berry = Container.GetInstance<IBerry>();
 		auto Fruit = Container.GetInstance<IFruit>();
 
-		TestTrue(TEXT("For delegate classes, an instance must be returned"), Fruit.IsValid());
+		TestTrue(TEXT("For static factory functions, an instance must be returned"), Berry.IsValid());
+		TestTrue(TEXT("For lambda factory functions, an instance must be returned"), Fruit.IsValid());
+	}
+
+	// delegate test
+	{
+		struct FLocal
+		{
+			static TSharedPtr<IFruit> MakeFruit(bool Banana)
+			{
+				if (Banana)
+				{
+					return MakeShareable(new FBanana());
+				}
+
+				return MakeShareable(new FStrawberry());
+			}
+		};
+
+		FTypeContainer Container;
+		{
+			Container.RegisterDelegate<IFruit>(FFruitFactoryDelegate::CreateStatic(&FLocal::MakeFruit, true));
+		}
+
+		auto Fruit = Container.GetInstance<IFruit>();
+
+		TestTrue(TEXT("For factory delegates, an instance must be returned"), Fruit.IsValid());
 	}
 
 	return true;

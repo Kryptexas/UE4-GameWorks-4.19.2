@@ -7,6 +7,105 @@
 
 #include "BuildPatchServicesPrivatePCH.h"
 
+// Required for setting file compression flag
+#if PLATFORM_WINDOWS
+// Start of region that uses windows types
+#include "AllowWindowsPlatformTypes.h"
+
+#include <wtypes.h>
+#include <ioapiset.h>
+#include <winbase.h>
+#include <fileapi.h>
+#include <winioctl.h>
+
+bool SetFileCompressionFlag(const FString& Filepath, bool bIsCompressed)
+{
+	// Get the file handle
+	HANDLE FileHandle = ::CreateFile(
+		*Filepath,								// Path to file
+		GENERIC_READ | GENERIC_WRITE,			// Read and write access
+		FILE_SHARE_READ | FILE_SHARE_WRITE,		// Share access for DeviceIoControl
+		NULL,									// Default security
+		OPEN_EXISTING,							// Open existing file
+		FILE_ATTRIBUTE_NORMAL,					// No specific attributes
+		NULL									// No template file handle
+		);
+	uint32 Error = ::GetLastError();
+	if (FileHandle == NULL || FileHandle == INVALID_HANDLE_VALUE)
+	{
+		GLog->Logf(TEXT("BuildPatchServices: WARNING: Could not open file to set compression flag %d Error:%d File:%s"), bIsCompressed, Error, *Filepath);
+		return false;
+	}
+
+	// Send the compression control code to the device
+	uint16 Message = bIsCompressed ? COMPRESSION_FORMAT_DEFAULT : COMPRESSION_FORMAT_NONE;
+	uint16* pMessage = &Message;
+	DWORD Dummy = 0;
+	LPDWORD pDummy = &Dummy;
+	BOOL bSuccess = ::DeviceIoControl(
+		FileHandle,								// The file handle
+		FSCTL_SET_COMPRESSION,					// Control code
+		pMessage,								// Our message
+		sizeof(uint16),							//
+		NULL,									// Not used
+		0,										// Not used
+		pDummy,									// The value returned will be meaningless, but is required
+		NULL									// No overlap structure, we a running this synchronously
+		);
+	Error = ::GetLastError();
+	const bool bFileSystemUnsupported = Error == ERROR_INVALID_FUNCTION;
+	if (bSuccess == FALSE && bFileSystemUnsupported == false)
+	{
+		GLog->Logf(TEXT("BuildPatchServices: WARNING: Could not set compression flag %d Error:%d File:%s"), bIsCompressed, Error, *Filepath);
+	}
+
+	// Close the open file handle
+	::CloseHandle(FileHandle);
+
+	// We treat unsupported as not being a failure
+	return bSuccess == TRUE || bFileSystemUnsupported;
+}
+
+bool SetExecutableFlag(const FString& Filepath)
+{
+	// Not implemented
+	return true;
+}
+// End of region that uses windows types
+#include "HideWindowsPlatformTypes.h"
+
+#elif PLATFORM_MAC
+bool SetFileCompressionFlag(const FString& Filepath, bool bIsCompressed) 
+{
+	// Not implemented
+	return true;
+}
+
+bool SetExecutableFlag(const FString& Filepath)
+{
+	bool bSuccess = false;
+	// Enable executable permission bit
+	struct stat FileInfo;
+	if (stat(TCHAR_TO_UTF8(*Filepath), &FileInfo) == 0)
+	{
+		bSuccess = chmod(TCHAR_TO_UTF8(*Filepath), FileInfo.st_mode | S_IXUSR | S_IXGRP | S_IXOTH) == 0;
+	}
+	return bSuccess;
+}
+#elif PLATFORM_LINUX
+bool SetFileCompressionFlag(const FString& Filepath, bool bIsCompressed)
+{
+	// Not implemented
+	return true;
+}
+
+bool SetExecutableFlag(const FString& Filepath)
+{
+	// Not implemented
+	return true;
+}
+#endif
+
 #define LOCTEXT_NAMESPACE "BuildPatchInstaller"
 
 #define NUM_DOWNLOAD_READINGS	5
@@ -34,7 +133,6 @@ FBuildPatchInstaller::FBuildPatchInstaller( FBuildPatchBoolManifestDelegate InOn
 	, ThreadLock()
 	, bIsFileData( InstallManifest->IsFileDataManifest() )
 	, bIsChunkData( !bIsFileData )
-	, bIsRepairing( CurrentManifest == InstallManifest )
 	, bSuccess( true )
 	, bIsRunning( false )
 	, bIsInited( false )
@@ -48,6 +146,7 @@ FBuildPatchInstaller::FBuildPatchInstaller( FBuildPatchBoolManifestDelegate InOn
 	, TimePausedAt( 0.0 )
 	, InstallationInfo( InstallationInfoRef )
 {
+	bIsRepairing = CurrentManifest.IsValid() && CurrentManifest->IsSameAs(InstallManifest);
 	// Start thread!
 	const TCHAR* ThreadName = TEXT( "BuildPatchInstallerThread" );
 	Thread = FRunnableThread::Create(this, ThreadName);
@@ -125,6 +224,9 @@ uint32 FBuildPatchInstaller::Run()
 
 		// Backup local changes then move generated files
 		bInstallSuccess = bInstallSuccess && RunBackupAndMove();
+
+		// Setup file attributes
+		bInstallSuccess = bInstallSuccess && RunFileAttributes(bIsRepairing);
 
 		// Run Verification
 		CorruptFiles.Empty();
@@ -528,6 +630,53 @@ bool FBuildPatchInstaller::RunBackupAndMove()
 	}
 	GLog->Logf(TEXT("BuildPatchServices: Relocation complete %d"), bMoveSuccess?1:0);
 	return bMoveSuccess;
+}
+
+bool FBuildPatchInstaller::RunFileAttributes(bool bForce)
+{
+	// We need to set attributes for all files in the new build that require it
+	for (const FFileManifestData& FileManifest : NewBuildManifest->Data->FileManifestList)
+	{
+		// Break if quitting
+		if (FBuildPatchInstallError::HasFatalError())
+		{
+			break;
+		}
+		// Apply
+		const bool bHasAttrib = FileManifest.bIsReadOnly || FileManifest.bIsCompressed || FileManifest.bIsUnixExecutable;
+		if (bHasAttrib || bForce)
+		{
+			FString DestFilename = InstallDirectory / FileManifest.Filename;
+			SetupFileAttributes(DestFilename, FileManifest);
+		}
+	}
+
+	// We also need to check if any attributes have been removed, unless we forced anyway
+	if (CurrentBuildManifest.IsValid() && !bForce)
+	{
+		for (const FFileManifestData& OldFileManifest : CurrentBuildManifest->Data->FileManifestList)
+		{
+			// Break if quitting
+			if (FBuildPatchInstallError::HasFatalError())
+			{
+				break;
+			}
+			const FFileManifestData* const* NewFileManifestPtr = NewBuildManifest->FileManifestLookup.Find(OldFileManifest.Filename);
+			if (NewFileManifestPtr != nullptr)
+			{
+				const FFileManifestData& NewFileManifest = **NewFileManifestPtr;
+				const bool bAttribChanged = (OldFileManifest.bIsReadOnly && !NewFileManifest.bIsReadOnly) || (OldFileManifest.bIsCompressed && !NewFileManifest.bIsCompressed);
+				if (bAttribChanged)
+				{
+					FString DestFilename = InstallDirectory / OldFileManifest.Filename;
+					SetupFileAttributes(DestFilename, NewFileManifest);
+				}
+			}
+		}
+	}
+
+	// We don't fail on this step currently
+	return true;
 }
 
 bool FBuildPatchInstaller::RunVerification(TArray< FString >& CorruptFiles)
@@ -944,6 +1093,22 @@ bool FBuildPatchInstaller::TogglePauseInstall()
 void FBuildPatchInstaller::UpdateVerificationProgress( float Percent )
 {
 	BuildProgress.SetStateProgress( EBuildPatchProgress::BuildVerification, Percent );
+}
+
+void FBuildPatchInstaller::SetupFileAttributes( const FString& FilePath, const FFileManifestData& FileManifest )
+{
+	// File must not be readonly to be able to set attributes
+	IPlatformFile::GetPlatformPhysical().SetReadOnly(*FilePath, false);
+	// Set correct attributes
+	SetFileCompressionFlag(FilePath, FileManifest.bIsCompressed);
+	if (!IPlatformFile::GetPlatformPhysical().SetReadOnly(*FilePath, FileManifest.bIsReadOnly))
+	{
+		GLog->Logf(TEXT("BuildPatchServices: WARNING: Could not set readonly flag %s"), *FilePath);
+	}
+	if (FileManifest.bIsUnixExecutable && !SetExecutableFlag(FilePath))
+	{
+		GLog->Logf(TEXT("BuildPatchServices: WARNING: Could not set executable flag %s"), *FilePath);
+	}
 }
 
 void FBuildPatchInstaller::ExecuteCompleteDelegate()

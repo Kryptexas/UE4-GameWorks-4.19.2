@@ -3,6 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendsViewModel.h"
 #include "FriendListViewModel.h"
+#include "SFriendUserHeader.h"
 #include "SFriendsList.h"
 #include "SFriendsListContainer.h"
 #include "SFriendsContainer.h"
@@ -45,16 +46,34 @@ public:
 			.HAlign(HAlign_Fill)
 			[
 				SNew(SBorder)
+				.Padding(FriendStyle.UserHeaderPadding)
+				.BorderImage(&FriendStyle.Background)
+				.Visibility(FriendStyle.HasUserHeader ? EVisibility::Visible : EVisibility::Collapsed)
+				[
+					SNew(SBox)
+					.WidthOverride(FriendStyle.FriendsListWidth)
+					[
+						SNew(SFriendUserHeader, ViewModel->GetUserViewModel())
+						.FriendStyle(&FriendStyle)
+					]
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Fill)
+			[
+				SNew(SBorder)
 				.Padding(FriendStyle.BorderPadding)
 				.BorderImage(&FriendStyle.FriendContainerHeader)
 				[
 					SNew(SBox)
 					.WidthOverride(FriendStyle.FriendsListWidth)
+					.HeightOverride(FriendStyle.StatusButtonSize.Y)
 					[
 						SNew(SHorizontalBox)
 						+SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Left)
 						.AutoWidth()
 						[
 							SNew(SFriendsStatus, ViewModel->GetStatusViewModel())
@@ -63,68 +82,76 @@ public:
 						]
 						+ SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Right)
+						.FillWidth(1)
+						.Padding(4, 0, 0, 0)
 						[
-							SNew(SBox)
-							.HeightOverride(FriendStyle.StatusButtonSize.Y)
+							SNew(SBorder)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendBoxVisibility)
+							.BorderImage(&FriendStyle.AddFriendEditBorder)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Fill)
 							[
-								SNew(SHorizontalBox)
-								+ SHorizontalBox::Slot()
-								.Padding(4, 0, 0, 0)
+								SAssignNew(FriendNameTextBox, SEditableTextBox)
+								.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
+								.Style(&FriendStyle.AddFriendEditableTextStyle)
+								.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
+							]
+						]
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						.Padding(4, 0, 0, 0)
+						[
+							SNew(SButton)
+							.ToolTip(CreateAddFriendToolTip())
+							.ButtonStyle(&FriendStyle.AddFriendButtonStyle)
+							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
+							.ContentPadding(0)
+							.Cursor(EMouseCursor::Hand)
+							[
+								SNew(SBox)
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+								.WidthOverride(FriendStyle.StatusButtonSize.Y)
+								.HeightOverride(FriendStyle.StatusButtonSize.Y)
 								[
-									SNew(SBorder)
-									.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
-									.BorderImage(&FriendStyle.AddFriendEditBorder)
-									.VAlign(VAlign_Center)
-									.HAlign(HAlign_Fill)
-									[
-										SAssignNew(FriendNameTextBox, SEditableTextBox)
-										.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
-										.Style(&FriendStyle.AddFriendEditableTextStyle)
-										.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
-									]
-								]
-								+ SHorizontalBox::Slot()
-								.Padding(4, 0, 0, 0)
-								.AutoWidth()
-								[
-									SNew(SButton)
-									.ToolTip(CreateAddFriendToolTip())
-									.ButtonStyle(&FriendStyle.AddFriendButtonStyle)
-									.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
-									.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
-									.ContentPadding(0)
-									.Cursor(EMouseCursor::Hand)
-									[
-										SNew(SBox)
-										.HAlign(HAlign_Center)
-										.VAlign(VAlign_Center)
-										.WidthOverride(FriendStyle.StatusButtonSize.Y)
-										.HeightOverride(FriendStyle.StatusButtonSize.Y)
-										[
-											SNew(SImage)
-											.Image(&FriendStyle.AddFriendButtonContentBrush)
-										]
-									]
-								]
-								+ SHorizontalBox::Slot()
-								.Padding(4, 0, 0, 0)
-								.AutoWidth()
-								[
-									SNew(SButton)
-									.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
-									.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
-									.ContentPadding(0)
-									.Cursor(EMouseCursor::Hand)
-									[
-										SNew(SBox)
-										.WidthOverride(FriendStyle.StatusButtonSize.Y)
-										.HeightOverride(FriendStyle.StatusButtonSize.Y)
-									]
+									SNew(SImage)
+									.Image(&FriendStyle.AddFriendButtonContentBrush)
 								]
 							]
 						]
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						.Padding(4, 0, 0, 0)
+						[
+							SNew(SButton)
+							.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendCloseActionVisibility)
+							.ContentPadding(0)
+							.Cursor(EMouseCursor::Hand)
+							[
+								SNew(SBox)
+								.WidthOverride(FriendStyle.StatusButtonSize.Y)
+								.HeightOverride(FriendStyle.StatusButtonSize.Y)
+							]
+						]
 					]
+				]
+			]
+			+ SVerticalBox::Slot()
+			.HAlign(HAlign_Center)
+			.AutoHeight()
+			[
+				SNew(SBorder)
+				.Padding(FriendStyle.BorderPadding)
+				.BorderImage(&FriendStyle.FriendsContainerBackground)
+				.Visibility(this, &SFriendsContainerImpl::GetGlobalChatButtonVisibility)
+				[
+					SNew(SButton)
+					.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
+					.OnClicked(this, &SFriendsContainerImpl::OnGlobalChatButtonClicked)
 				]
 			]
 			+ SVerticalBox::Slot()
@@ -215,7 +242,12 @@ private:
 		}
 	}
 
-	EVisibility AddFriendVisibility() const
+	EVisibility AddFriendBoxVisibility() const
+	{
+		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Hidden;
+	}
+
+	EVisibility AddFriendCloseActionVisibility() const
 	{
 		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Collapsed;
 	}
@@ -235,6 +267,22 @@ private:
 			}
 		}
 		return EVisibility::Visible;
+	}
+
+	FReply OnGlobalChatButtonClicked()
+	{
+		// @todo: open global chat window
+		return FReply::Handled();
+	}
+
+	EVisibility GetGlobalChatButtonVisibility() const
+	{
+		// @todo: global chat window option availability
+		if (FParse::Param(FCommandLine::Get(), TEXT("EnableGlobalChat")))
+		{
+			return EVisibility::Visible;
+		}
+		return EVisibility::Collapsed;
 	}
 
 private:

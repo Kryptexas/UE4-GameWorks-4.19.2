@@ -52,6 +52,10 @@ bool FLocalTitleFile::ClearFile(const FString& DLName)
 	return ClearedFile;
 }
 
+void FLocalTitleFile::DeleteCachedFiles(bool bSkipEnumerated)
+{
+	// not implemented
+}
 
 bool FLocalTitleFile::EnumerateFiles(const FPagedQuery& Page)
 {

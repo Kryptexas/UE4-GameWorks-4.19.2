@@ -15,6 +15,8 @@ FMacHttpRequest::FMacHttpRequest()
 :	Connection(NULL)
 ,	CompletionStatus(EHttpRequestStatus::NotStarted)
 ,	ProgressBytesSent(0)
+,	StartRequestTime(0.0)
+,	ElapsedTime(0.0f)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::FMacHttpRequest()"));
 	Request = [[NSMutableURLRequest alloc] init];
@@ -243,6 +245,9 @@ bool FMacHttpRequest::StartRequest()
 		UE_LOG(LogHttp, Warning, TEXT("ProcessRequest failed. Could not initialize Internet connection."));
 		CompletionStatus = EHttpRequestStatus::Failed;
 	}
+	StartRequestTime = FPlatformTime::Seconds();
+	// reset the elapsed time.
+	ElapsedTime = 0.0f;
 
 	return bStarted;
 }
@@ -250,6 +255,7 @@ bool FMacHttpRequest::StartRequest()
 void FMacHttpRequest::FinishedRequest()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::FinishedRequest()"));
+	ElapsedTime = (float)(FPlatformTime::Seconds() - StartRequestTime);
 	if( Response.IsValid() && Response->IsReady() && !Response->HadError())
 	{
 		UE_LOG(LogHttp, Verbose, TEXT("Request succeeded"));
@@ -338,6 +344,10 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 	}
 }
 
+float FMacHttpRequest::GetElapsedTime()
+{
+	return ElapsedTime;
+}
 
 
 /****************************************************************************

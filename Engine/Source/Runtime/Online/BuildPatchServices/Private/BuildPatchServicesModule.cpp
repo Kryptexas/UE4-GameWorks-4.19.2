@@ -217,6 +217,11 @@ void FBuildPatchServicesModule::SetAnalyticsProvider( TSharedPtr< IAnalyticsProv
 	FBuildPatchAnalytics::SetAnalyticsProvider( AnalyticsProvider );
 }
 
+void FBuildPatchServicesModule::SetHttpTracker( TSharedPtr< FHttpServiceTracker > HttpTracker )
+{
+	FBuildPatchAnalytics::SetHttpTracker( HttpTracker );
+}
+
 void FBuildPatchServicesModule::RegisterAppInstallation(IBuildManifestRef AppManifest, const FString AppInstallDirectory)
 {
 	InstallationInfo.RegisterAppInstallation(AppManifest, AppInstallDirectory);
@@ -229,6 +234,7 @@ void FBuildPatchServicesModule::PreExit()
 
 	// Release our ptr to analytics
 	FBuildPatchAnalytics::SetAnalyticsProvider(NULL);
+	FBuildPatchAnalytics::SetHttpTracker(nullptr);
 
 	// Cleanup installers
 	for (auto& BuildPatchInstaller : BuildPatchInstallers)

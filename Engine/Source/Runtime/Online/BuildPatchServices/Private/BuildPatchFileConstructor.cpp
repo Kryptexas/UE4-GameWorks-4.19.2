@@ -120,6 +120,7 @@ FBuildPatchFileConstructor::FBuildPatchFileConstructor( FBuildPatchAppManifestPt
 	: Thread( NULL )
 	, bIsRunning( false )
 	, bIsInited( false )
+	, bInitFailed( false )
 	, bIsDownloadStarted( false )
 	, ThreadLock()
 	, InstalledManifest( InInstalledManifest )
@@ -157,8 +158,18 @@ FBuildPatchFileConstructor::~FBuildPatchFileConstructor()
 bool FBuildPatchFileConstructor::Init()
 {
 	// We are ready to go if our delegates are bound and directories successfully created
-	bool bReady = IFileManager::Get().DirectoryExists( *StagingDirectory );
-	bReady = bReady && IFileManager::Get().DirectoryExists( *InstallDirectory );
+	bool bStageDirExists = IFileManager::Get().DirectoryExists(*StagingDirectory);
+	if (!bStageDirExists)
+	{
+		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::InitializationError, FString::Printf(TEXT("File Constructor failed init: Stage directory missing %s"), *StagingDirectory));
+	}
+	bool bInstallDirExists = IFileManager::Get().DirectoryExists(*InstallDirectory);
+	if (!bInstallDirExists)
+	{
+		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::InitializationError, FString::Printf(TEXT("File Constructor failed init: Install directory missing %s"), *InstallDirectory));
+	}
+	bool bReady = bStageDirExists && bInstallDirExists;
+	SetInitFailed(!bReady);
 	return bReady;
 }
 
@@ -249,7 +260,7 @@ void FBuildPatchFileConstructor::Wait()
 bool FBuildPatchFileConstructor::IsComplete()
 {
 	FScopeLock Lock( &ThreadLock );
-	return !bIsRunning && bIsInited;
+	return ( !bIsRunning && bIsInited ) || bInitFailed;
 }
 
 void FBuildPatchFileConstructor::GetFilesConstructed( TArray< FString >& ConstructedFiles )
@@ -308,6 +319,12 @@ void FBuildPatchFileConstructor::SetInited( bool bInited )
 {
 	FScopeLock Lock( &ThreadLock );
 	bIsInited = bInited;
+}
+
+void FBuildPatchFileConstructor::SetInitFailed( bool bFailed )
+{
+	FScopeLock Lock( &ThreadLock );
+	bInitFailed = bFailed;
 }
 
 void FBuildPatchFileConstructor::CountBytesProcessed( const int64& ByteCount )

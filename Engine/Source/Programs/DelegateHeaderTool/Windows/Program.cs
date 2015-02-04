@@ -117,6 +117,7 @@ namespace DelegateHeaderTool
 			Output.WriteLine( "" );
 
 			var DefineFuncSuffix = new StringBuilder( "#define FUNC_SUFFIX " );
+            var DefineRetvalTypedef = new StringBuilder( "#define FUNC_RETVAL_TYPEDEF " );
 			var DefineTemplateDecl = new StringBuilder( "#define FUNC_TEMPLATE_DECL " );
 			var DefineTemplateDeclTypename = new StringBuilder( "#define FUNC_TEMPLATE_DECL_TYPENAME " );
 			var DefineTemplateDeclNoShadow = new StringBuilder( "#define FUNC_TEMPLATE_DECL_NO_SHADOW " );
@@ -291,6 +292,7 @@ namespace DelegateHeaderTool
 			{
 				DefineDeclareDelegate.Append( ", RetValType" );
 				DefineDeclareDynamicDelegate.Append( ", RetValType" );
+                DefineRetvalTypedef.Append( " typedef RetValType RetValType" );
 			}
 			else
 			{
@@ -324,6 +326,7 @@ namespace DelegateHeaderTool
 			DefineTemplateArgs.Append( TemplateArgs );
 
 			Output.WriteLine( DefineFuncSuffix );
+            Output.WriteLine( DefineRetvalTypedef );
 			Output.WriteLine( DefineTemplateDecl );
 			Output.WriteLine( DefineTemplateDeclTypename );
             Output.WriteLine( DefineTemplateDeclNoShadow );

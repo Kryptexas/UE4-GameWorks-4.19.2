@@ -479,6 +479,8 @@ void FBuildPatchDownloader::HttpRequestProgress( FHttpRequestPtr Request, int32 
 
 void FBuildPatchDownloader::HttpRequestComplete( FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded )
 {
+	// track the request if we want CDN analytics.
+	FBuildPatchAnalytics::TrackRequest(Request);
 	if ( !FBuildPatchInstallError::HasFatalError() )
 	{
 		FGuid DataGUID;

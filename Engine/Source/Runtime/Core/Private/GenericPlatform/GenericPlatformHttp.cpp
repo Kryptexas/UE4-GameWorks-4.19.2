@@ -36,6 +36,7 @@ public:
 	virtual EHttpRequestStatus::Type GetStatus() override { return EHttpRequestStatus::NotStarted; }
 	virtual const FHttpResponsePtr GetResponse() const override { return nullptr; }
 	virtual void Tick(float DeltaSeconds) override {}
+	virtual float GetElapsedTime() override { return 0.0f; }
 };
 
 

@@ -17,7 +17,6 @@ public class HTTP : ModuleRules
         PrivateDependencyModuleNames.AddRange(
 			new string[] { 
 				"Core",
-				"Analytics"
 			}
 			);
 

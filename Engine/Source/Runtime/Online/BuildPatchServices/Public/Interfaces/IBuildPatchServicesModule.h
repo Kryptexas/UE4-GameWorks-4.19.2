@@ -7,6 +7,7 @@
 #pragma once
 
 class IAnalyticsProvider;
+class FHttpServiceTracker;
 
 /**
  * Delegates that will be accepted and fired of by the implementation
@@ -94,6 +95,13 @@ public:
 	 * @param AnalyticsProvider		Shared ptr to an analytics interface to use. If NULL analytics will be disabled.
 	 */
 	virtual void SetAnalyticsProvider( TSharedPtr< IAnalyticsProvider > AnalyticsProvider ) = 0;
+
+	/**
+	 * Set the Http Service Tracker to be used for tracking Http Service responsiveness.
+	 * Will only track HTTP requests, not file requests.
+	 * @param HttpTracker	Shared ptr to an Http service tracker interface to use. If NULL tracking will be disabled.
+	 */
+	virtual void SetHttpTracker( TSharedPtr< FHttpServiceTracker > HttpTracker ) = 0;
 
 	/**
 	 * Registers an installation on this machine. This information is used to gather a list of install locations that can be used as chunk sources.

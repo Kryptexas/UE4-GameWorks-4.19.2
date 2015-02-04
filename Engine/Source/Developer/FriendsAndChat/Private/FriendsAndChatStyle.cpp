@@ -90,6 +90,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListComboButtonStyle(const
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetComboItemButtonStyle(const FButtonStyle& ButtonStyle)
+{  
+	ComboItemButtonStyle = ButtonStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListItemButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendListItemButtonStyle = ButtonStyle;
@@ -99,6 +105,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListItemButtonStyle(const 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListItemButtonSimpleStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendListItemButtonSimpleStyle = ButtonStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetGlobalChatButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	GlobalChatButtonStyle = ButtonStyle;
 	return *this;
 }
 
@@ -224,6 +236,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleBold(const FSlateFontInf
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleBoldLarge(const FSlateFontInfo& InFontStyle)
+{
+	FriendsFontStyleBoldLarge = InFontStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleSmall(const FSlateFontInfo& FontStyle)
 {
 	FriendsFontStyleSmall = FontStyle;
@@ -272,6 +290,36 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetNetworkChatColor(const FLinearCol
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetComboItemTextColorNormal(const FLinearColor& InColor)
+{
+	ComboItemTextColorNormal = InColor;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetComboItemTextColorHovered(const FLinearColor& InColor)
+{
+	ComboItemTextColorHovered = InColor;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendListCriticalFontColor(const FLinearColor& InColor)
+{
+	FriendListCriticalFontColor = InColor;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendListEmphasisFontColor(const FLinearColor& InColor)
+{
+	FriendListEmphasisFontColor = InColor;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendListActionFontColor(const FLinearColor& InColor)
+{
+	FriendListActionFontColor = InColor;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatGlobalBrush(const FSlateBrush& Brush)
 {
 	ChatGlobalBrush = Brush;
@@ -293,6 +341,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatWhisperBrush(const FSlateBrus
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendEditableTextStyle(const FEditableTextBoxStyle& InEditableTextStyle)
 {
 	AddFriendEditableTextStyle = InEditableTextStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetComboItemTextStyle(const FTextBlockStyle& InTextStyle)
+{
+	ComboItemTextStyle = InTextStyle;
 	return *this;
 }
 
@@ -320,9 +374,21 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetActionComboButtonSize(const FVect
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetUserPresenceImageSize(const FVector2D& InUserPresenceImageSize)
+{
+	UserPresenceImageSize = InUserPresenceImageSize;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetBorderPadding(const FMargin& Padding)
 {
 	BorderPadding = Padding;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetUserHeaderPadding(const FMargin& InUserHeaderPadding)
+{
+	UserHeaderPadding = InUserHeaderPadding;
 	return *this;
 }
 
@@ -367,6 +433,31 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetWindowStyle(const FWindowStyle& I
 	WindowStyle = InStyle;
 	return *this;
 }
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetComboMenuPadding(const FMargin& InPadding)
+{
+	ComboMenuPadding = InPadding;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetComboItemPadding(const FMargin& InPadding)
+{
+	ComboItemPadding = InPadding;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetComboItemContentPadding(const FMargin& InPadding)
+{
+	ComboItemContentPadding = InPadding;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetHasUserHeader(bool InHasUserHeader)
+{
+	HasUserHeader = InHasUserHeader;
+	return *this;
+}
+
 
 const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 {

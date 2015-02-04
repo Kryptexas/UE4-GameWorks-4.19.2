@@ -1514,6 +1514,11 @@ void FBuildPatchAppManifest::EnumerateChunkPartInventory(const TArray<FGuid>& Ch
 	}
 }
 
+bool FBuildPatchAppManifest::IsSameAs(FBuildPatchAppManifestRef Other) const
+{
+	return this == &Other.Get() || (GetAppID() == Other->GetAppID() && GetAppName() == Other->GetAppName() && GetVersionString() == Other->GetVersionString());
+}
+
 void FBuildPatchAppManifest::GetRemovableFiles(FBuildPatchAppManifestRef OldManifest, FBuildPatchAppManifestRef NewManifest, TArray< FString >& RemovableFiles)
 {
 	NewManifest->GetRemovableFiles(OldManifest, RemovableFiles);
