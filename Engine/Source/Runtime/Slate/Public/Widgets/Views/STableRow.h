@@ -785,7 +785,7 @@ public:
 	}
 
 	/** 
-	 * Callback to determine if the row is selected or not
+	 * Callback to determine if the row is selected singularly and has keyboard focus or not
 	 *
 	 * @return		true if selected by owning widget.
 	 */
@@ -800,6 +800,19 @@ public:
 
 		const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
 		return OwnerWidget->Private_IsItemSelected( *MyItem );
+	}
+
+	/**
+	 * Callback to determine if the row is selected or not
+	 *
+	 * @return		true if selected by owning widget.
+	 */
+	bool IsSelected() const
+	{
+		TSharedPtr< ITypedTableView< ItemType > > OwnerWidget = OwnerTablePtr.Pin();
+
+		const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget(this);
+		return OwnerWidget->Private_IsItemSelected(*MyItem);
 	}
 
 	/** Protected constructor; SWidgets should only be instantiated via declarative syntax. */

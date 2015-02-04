@@ -2555,15 +2555,24 @@ void FBlueprintEditor::EditGlobalOptions_Clicked()
 
 bool FBlueprintEditor::IsDetailsPanelEditingClassDefaults() const
 {
-	return CurrentUISelection == FBlueprintEditor::SelectionState_ClassDefaults;
+	UBlueprint* Blueprint = GetBlueprintObj();
+	if ( Blueprint != nullptr )
+	{
+		if ( Blueprint->GeneratedClass != nullptr )
+		{
+			UObject* DefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
+			return Inspector->IsSelected(DefaultObject);
+		}
+	}
+
+	return false;
 }
 
 void FBlueprintEditor::EditClassDefaults_Clicked()
 {
-	UBlueprint* Blueprint = GetBlueprintObj();
-	if ( Blueprint != nullptr )
+	if ( IsEditingSingleBlueprint() )
 	{
-		SetUISelectionState(FBlueprintEditor::SelectionState_ClassDefaults);
+		UBlueprint* Blueprint = GetBlueprintObj();
 		StartEditingDefaults( true, true );
 	}
 }
@@ -2846,15 +2855,15 @@ void FBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJ
 	{
 		DestroyPreview();
 
-		// Refresh the graphs
-		ERefreshBlueprintEditorReason::Type Reason = bIsJustBeingCompiled ? ERefreshBlueprintEditorReason::BlueprintCompiled : ERefreshBlueprintEditorReason::UnknownReason;
-		RefreshEditors(Reason);
-
 		// Notify that the blueprint has been changed (update Content browser, etc)
 		InBlueprint->PostEditChange();
 
 		// Call PostEditChange() on any Actors that are based on this Blueprint
 		FBlueprintEditorUtils::PostEditChangeBlueprintActors(InBlueprint);
+
+		// Refresh the graphs
+		ERefreshBlueprintEditorReason::Type Reason = bIsJustBeingCompiled ? ERefreshBlueprintEditorReason::BlueprintCompiled : ERefreshBlueprintEditorReason::UnknownReason;
+		RefreshEditors(Reason);
 
 		// In case objects were deleted, which should close the tab
 		if (GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
@@ -6221,29 +6230,38 @@ void FBlueprintEditor::OnRepairCorruptedBlueprint()
 
 void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 {
-	const bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor && IsDetailsPanelEditingClassDefaults();
+	SetUISelectionState(FBlueprintEditor::SelectionState_ClassDefaults);
+
+	const bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
 
 	if (IsEditingSingleBlueprint())
 	{
-		if (GetBlueprintObj()->GeneratedClass != NULL)
+		if (GetBlueprintObj()->GeneratedClass != nullptr)
 		{
 			if (bSingleLayoutBPEditor)
 			{
-				UObject* DefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
-
-				// Update the details panel
-				FString Title;
-				DefaultObject->GetName(Title);
-				SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), true);
-				Options.bShowComponents = false;
-
-				Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
-
-				TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
-				if (OwnerTab.IsValid())
+				if ( SCSEditor.IsValid() && GetBlueprintObj()->GeneratedClass->IsChildOf<AActor>() )
 				{
-					OwnerTab->ActivateInParent(ETabActivationCause::SetDirectly);
-					OwnerTab->FlashTab();
+					SCSEditor->SelectRoot();
+				}
+				else
+				{
+					UObject* DefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
+
+					// Update the details panel
+					FString Title;
+					DefaultObject->GetName(Title);
+					SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), true);
+					Options.bShowComponents = false;
+
+					Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
+
+					TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+					if ( OwnerTab.IsValid() )
+					{
+						OwnerTab->ActivateInParent(ETabActivationCause::SetDirectly);
+						OwnerTab->FlashTab();
+					}
 				}
 			}
 			else

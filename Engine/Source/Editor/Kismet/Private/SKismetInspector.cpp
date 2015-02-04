@@ -126,6 +126,19 @@ TSharedPtr<SDockTab> SKismetInspector::GetOwnerTab() const
 	return OwnerTab.Pin();
 }
 
+bool SKismetInspector::IsSelected(UObject* Object) const
+{
+	for ( const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects )
+	{
+		if ( SelectedObject.Get() == Object )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 FText SKismetInspector::GetContextualEditingWidgetTitle() const
 {
 	FText Title = PropertyViewTitle;
