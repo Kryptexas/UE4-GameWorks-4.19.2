@@ -244,8 +244,9 @@ bool UProceduralFoliageComponent::SpawnProceduralContent(TArray <FDesiredFoliage
 		return true;
 	}
 
-	return false;
 #endif
+
+	return false;
 }
 
 void UProceduralFoliageComponent::RemoveProceduralContent()
