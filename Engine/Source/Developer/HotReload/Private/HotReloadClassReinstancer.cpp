@@ -23,6 +23,8 @@ void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, U
 
 	SaveClassFieldMapping(InOldClass);
 
+	ObjectsThatShouldUseOldStuff.Add(InOldClass); //CDO of REINST_ class can be used as archetype
+
 	TArray<UClass*> ChildrenOfClass;
 	GetDerivedClasses(InOldClass, ChildrenOfClass);
 	for (auto ClassIt = ChildrenOfClass.CreateConstIterator(); ClassIt; ++ClassIt)
