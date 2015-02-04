@@ -1298,7 +1298,7 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 			PlatformName = PlatformName.Left(PlatformName.Find(TEXT("NoEditor")));
 		}
 		Arguments.Add(TEXT("PlatformName"), FText::FromString(PlatformName));
-		if (FRocketSupport::IsRocket() || !bPlayUsingLauncherHasCode || !FSourceCodeNavigation::IsCompilerAvailable())
+		if (FRocketSupport::IsRocket() || !bPlayUsingLauncherHasCode || !bPlayerUsingLauncherHasCompiler)
 		{
 			NotificationText = FText::Format(LOCTEXT("LauncherTaskValidateNotification", "Validating Executable for {PlatformName}..."), Arguments);
 		}
@@ -1447,10 +1447,11 @@ void UEditorEngine::PlayUsingLauncher()
 		// does the project have any code?
 		FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 		bPlayUsingLauncherHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
+		bPlayUsingLauncherHasCompiler = FSourceCodeNavigation::IsCompilerAvailable();
 
 		// Setup launch profile, keep the setting here to a minimum.
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
-		LauncherProfile->SetBuildGame(bPlayUsingLauncherHasCode && FSourceCodeNavigation::IsCompilerAvailable());
+		LauncherProfile->SetBuildGame(bPlayUsingLauncherHasCode && bPlayUsingLauncherHasCompiler);
 
 		// select the quickest cook mode based on which in editor cook mode is enabled
 		bool bIncrimentalCooking = true;
