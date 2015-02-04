@@ -814,6 +814,11 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			{
 				break;
 			}
+			if (!Tag.Name.IsValid())
+			{
+				UE_LOG(LogClass, Warning, TEXT("Invalid tag name: struct '%s', archive '%s'"), *GetName(), *Ar.GetArchiveName());
+				break;
+			}
 
 			// Move to the next property to be serialized
 			if( AdvanceProperty && --RemainingArrayDim <= 0 )
