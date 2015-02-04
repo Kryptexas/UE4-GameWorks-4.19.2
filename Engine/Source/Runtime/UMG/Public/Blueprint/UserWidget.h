@@ -741,7 +741,7 @@ T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass)
 		return nullptr;
 	}
 
-	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningGame);
+	UUserWidget* NewWidget = NewObject<UUserWidget>(OwningGame, UserWidgetClass);
 
 	if ( ULocalPlayer* Player = OwningGame->GetFirstGamePlayer() )
 	{
