@@ -1040,7 +1040,7 @@ T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage
  * @return True if Child is a child of Parent, false otherwise.
  *
  **/
-bool DebugIsClassChildOf_Internal(UClass* Parent, UClass* Child);
+COREUOBJECT_API bool DebugIsClassChildOf_Internal(UClass* Parent, UClass* Child);
 
 /**
  * Convenience template for constructing a gameplay object
