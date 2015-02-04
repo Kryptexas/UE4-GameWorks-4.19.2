@@ -259,17 +259,21 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 {
 	UObject* Archetype = nullptr;
 
-	if (SimpleConstructionScript->HasAllFlags(RF_NeedLoad))
+	if (SimpleConstructionScript)
 	{
-		SimpleConstructionScript->PreloadChain();
+		if (SimpleConstructionScript->HasAllFlags(RF_NeedLoad))
+		{
+			SimpleConstructionScript->PreloadChain();
+		}
+
+		USCS_Node* SCSNode = SimpleConstructionScript->FindSCSNode(ArchetypeName);
+		if (SCSNode)
+		{
+			Archetype = SCSNode->ComponentTemplate;
+		}
 	}
 
-	USCS_Node* SCSNode = SimpleConstructionScript->FindSCSNode(ArchetypeName);
-	if (SCSNode)
-	{
-		Archetype = SCSNode->ComponentTemplate;
-	}
-	else
+	if (Archetype == nullptr)
 	{
 		Archetype = FindComponentTemplateByName(ArchetypeName);
 	}

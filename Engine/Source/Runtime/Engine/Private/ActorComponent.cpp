@@ -139,8 +139,8 @@ void UActorComponent::PostLoad()
 
 	if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
 	{
-		UBlueprintGeneratedClass* Class = CastChecked<UBlueprintGeneratedClass>(GetOuter()->GetClass());
-		if (Class->SimpleConstructionScript->FindSCSNode(GetFName()) == nullptr)
+		USimpleConstructionScript* SCS = CastChecked<UBlueprintGeneratedClass>(GetOuter()->GetClass())->SimpleConstructionScript;
+		if (SCS == nullptr || SCS->FindSCSNode(GetFName()) == nullptr)
 		{
 			CreationMethod = EComponentCreationMethod::UserConstructionScript;
 		}
