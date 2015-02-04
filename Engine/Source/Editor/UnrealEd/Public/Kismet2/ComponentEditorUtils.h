@@ -119,6 +119,9 @@ public:
 			UpdatedComponents.Add(InSceneComponent);
 		}
 	}
+
+	// Try to find the correct variable name for a given native component template or instance (which can have a mismatch)
+	static FName FindVariableNameGivenComponentInstance(UActorComponent* ComponentInstance);
 private:
 	static void PropagateTransformInner(class USceneComponent* InstancedSceneComponent, const FTransformData& OldDefaultTransform, const FTransformData& NewDefaultTransform, TSet<class USceneComponent*>& UpdatedComponents);
 
