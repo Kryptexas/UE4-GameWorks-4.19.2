@@ -62,7 +62,10 @@ void UInputSettings::PostInitProperties()
 			break;
 		}
 
-		ConsoleKeys.Add(DefaultConsoleKey);
+		if (DefaultConsoleKey != EKeys::Tilde && DefaultConsoleKey.IsValid())
+		{
+			ConsoleKeys.Add(DefaultConsoleKey);
+		}
 	}
 #endif
 }
