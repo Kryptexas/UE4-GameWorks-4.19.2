@@ -2044,6 +2044,17 @@ namespace UnrealDocTranslator
                                                                                          FileProcessingDetails.State.MoveTo,
                                                                                          IsCheckedOutByOtherUser,
                                                                                          _connectionDetails));
+
+                                            // Even if the most recent perforce action is a MoveAdd, 
+                                            // We need to add this to the file processing dictionary as well, so it can show up in the tool's UI
+                                            INTFileProcessingDictionary.Add(PartFileName,
+                                                                            new FileProcessingDetails(
+                                                                                FileDetails.DepotPath.ToString(),
+                                                                                FileDetails.ClientPath.ToString(),
+                                                                                FileDetails.HeadChange,
+                                                                                FileProcessingDetails.State.NotDeterminedYet,
+                                                                                IsCheckedOutByOtherUser,
+                                                                                _connectionDetails));
                                         }
                                     }
                                     else
