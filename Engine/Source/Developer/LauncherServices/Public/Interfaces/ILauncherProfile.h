@@ -156,6 +156,9 @@ namespace ELauncherProfileValidationErrors
 		
 		/** The platform SDK is not installed but is required. */
 		NoPlatformSDKInstalled,
+
+		/** The profile has unversioned and incrimental specified these are not compatible together */
+		UnversionedAndIncrimental,
 	};
 }
 

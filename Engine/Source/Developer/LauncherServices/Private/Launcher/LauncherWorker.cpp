@@ -357,7 +357,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 			if (InProfile->IsCookingUnversioned())
 			{
-				UATCommand += TEXT(" -Unversioned");
+				UATCommand += TEXT(" -unversionedcookedcontent");
 			}
 
 			FString additionalOptions = InProfile->GetCookOptions();

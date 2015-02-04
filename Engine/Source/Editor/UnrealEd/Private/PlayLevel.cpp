@@ -1480,6 +1480,7 @@ void UEditorEngine::PlayUsingLauncher()
 			bIncrimentalCooking = false;
 		}
 		LauncherProfile->SetCookMode( CurrentLauncherCookMode );
+		LauncherProfile->SetUnversionedCooking(!bIncrimentalCooking);
 		LauncherProfile->SetIncrementalCooking(bIncrimentalCooking);
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
 		LauncherProfile->SetIncrementalDeploying(bIncrimentalCooking);

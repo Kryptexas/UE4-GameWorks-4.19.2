@@ -100,6 +100,14 @@ public partial class Project : CommandUtils
 			if (Params.HasMapsToCook)
 			{
 				Maps = Params.MapsToCook.ToArray();
+                foreach (var M in Maps)
+                {
+                    Log("HasMapsToCook " + M.ToString());
+                }
+                foreach (var M in Params.MapsToCook)
+                {
+                    Log("Params.HasMapsToCook " + M.ToString());
+                }
 			}
 
 			string[] Dirs = null;
@@ -122,7 +130,11 @@ public partial class Project : CommandUtils
 
             try
             {
-                var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
+                var CommandletParams = "-buildmachine -fileopenlog";
+                if (Params.UnversionedCookedContent)
+                {
+                    CommandletParams += " -unversioned";
+                }
                 if (Params.UseDebugParamForEditorExe)
                 {
                     CommandletParams += " -debug";
@@ -135,9 +147,25 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -iterate";
                 }
+                if (Params.CookMapsOnly)
+                {
+                    CommandletParams += " -mapsonly";
+                }
                 if (Params.NewCook)
                 {
                     CommandletParams += " -newcook";
+                }
+                if (Params.OldCook)
+                {
+                    CommandletParams += " -oldcook";
+                }
+                if (Params.CookAll)
+                {
+                    CommandletParams += " -cookall";
+                }
+                if (Params.CookMapsOnly)
+                {
+                    CommandletParams += " -mapsonly";
                 }
                 if (Params.HasCreateReleaseVersion)
                 {
@@ -151,6 +179,7 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -dlcname=" + Params.DLCName;
                 }
+                
                 if (Params.HasAdditionalCookerOptions)
                 {
                     string FormatedAdditionalCookerParams = Params.AdditionalCookerOptions.TrimStart(new char[] { '\"', ' ' }).TrimEnd(new char[] { '\"', ' ' });

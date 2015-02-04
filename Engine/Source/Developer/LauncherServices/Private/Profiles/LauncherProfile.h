@@ -603,7 +603,7 @@ public:
 		CookMode = ELauncherProfileCookModes::OnTheFly;
 		CookOptions = FString();
 		CookIncremental = false;
-		CookUnversioned = false;
+		CookUnversioned = true;
 		CookedCultures.Reset();
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
 		CookedMaps.Reset();
@@ -1007,6 +1007,11 @@ protected:
 					break;
 				}
 			}
+		}
+
+		if ( CookUnversioned && CookIncremental )
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::UnversionedAndIncrimental);
 		}
 
 		// Launch: when launching, all devices that the build is launched on must have content cooked for their platform
