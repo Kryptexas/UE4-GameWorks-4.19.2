@@ -1614,7 +1614,7 @@ FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFami
 
 	View->SpriteCategoryVisibility = SpriteCategoryVisibility;
 	View->bCameraCut = bEditorCameraCut;
-
+	View->bHasSelectedComponents = GEditor->GetSelectedComponentCount() > 0;
 	return View;
 
 }

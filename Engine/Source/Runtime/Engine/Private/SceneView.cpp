@@ -287,6 +287,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
 	, bAllowTranslucentPrimitivesInHitProxy( true )
+	, bHasSelectedComponents( false )
 #endif
 	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GMaxRHIFeatureLevel)
 {

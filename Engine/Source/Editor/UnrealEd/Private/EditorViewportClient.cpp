@@ -705,6 +705,8 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
+	View->SubduedSelectionOutlineColor = GetDefault<UEditorStyleSettings>()->GetSubduedSelectionColor();
+
 	ViewFamily->Views.Add(View);
 
 	View->StartFinalPostprocessSettings(ViewLocation);
