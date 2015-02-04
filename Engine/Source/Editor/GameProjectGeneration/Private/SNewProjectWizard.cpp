@@ -330,13 +330,22 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 		TArray<SDecoratedEnumCombo<int32>::FComboOption> StarterContentInfo;
 		StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
 			0, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.NoStarterContent"), LOCTEXT("NoStarterContent", "No Starter Content")));
-		StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
-			1, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.IncludeStarterContent"), LOCTEXT("IncludeStarterContent", "With Starter Content")));
+		FString RequiredTooltipText = LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template.").ToString();
+		// Only add the option to add starter content if its there to add !
+		if( GameProjectUtils::IsStarterContentAvailableForNewProjects() == true )
+		{
+			StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
+				1, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.IncludeStarterContent"), LOCTEXT("IncludeStarterContent", "With Starter Content")));
+		}
+		else
+		{
+			RequiredTooltipText = LOCTEXT("NoStarterContent_ToolTip", "Starter content is not currently available.").ToString();
+		}
 
 		StartContentCombo = SNew(SDecoratedEnumCombo<int32>, MoveTemp(StarterContentInfo))
 			.SelectedEnum(this, &SNewProjectWizard::GetCopyStarterContentIndex)
 			.OnEnumChanged(this, &SNewProjectWizard::OnSetCopyStarterContent)
-			.ToolTipText( LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template."));
+			.ToolTipText( RequiredTooltipText );
 	}
 
 	const float UniformPadding = 16.f;
@@ -836,11 +845,11 @@ FText SNewProjectWizard::GetStarterContentWarningTooltip() const
 {
 	if (SelectedGraphicsPreset == EGraphicsPreset::Maximum)
 	{
-		return LOCTEXT("StarterContentMobileWarning_Maximum", "Note: Starter content can increase the packaged size significantly, removing the example maps will result in only packaging content that is actually used");
+		return LOCTEXT("StarterContentMobileWarning_Maximum", "Note: Starter content will be inserted first time the project is opened, and can increase the packaged size significantly, removing the example maps will result in only packaging content that is actually used");
 	}
 	else
 	{
-		return LOCTEXT("StarterContentMobileWarning_Scalable", "Warning: Starter content is not optimized for scalable mobile projects");
+		return LOCTEXT("StarterContentMobileWarning_Scalable", "Warning: Starter content content will be inserted first time the project is opened, and is not optimized for scalable mobile projects");
 	}
 }
 

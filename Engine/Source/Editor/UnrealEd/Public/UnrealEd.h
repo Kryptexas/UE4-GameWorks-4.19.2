@@ -30,7 +30,7 @@
 
 #include "MRUList.h"
 #include "Projects.h"
-
+#include "FeaturePack/FeaturePack.h"
 
 //#include "../Private/GeomFitUtils.h"
 

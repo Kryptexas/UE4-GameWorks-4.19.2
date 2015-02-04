@@ -330,4 +330,7 @@ private:
 	FDelegateHandle OnMapChangedDelegateHandle;
 
 	FTimerHandle EditorAnalyticsHeartbeatTimerHandle;
+	
+	/* Handles insertion of feature packs (EG Starter content) at editor startup */
+	FFeaturePack FeaturePackHandler;
 };
