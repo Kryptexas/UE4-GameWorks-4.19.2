@@ -248,7 +248,8 @@ void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &Wi
 		return;
 	}
 	
-	FString Name = WidgetContent.WidgetAnchor.OuterName;
+	const FString Name = WidgetContent.WidgetAnchor.OuterName;
+	const FName ObjectPath = WidgetContent.WidgetAnchor.WrapperIdentifier;
 	int32 NameIndex;
 	Name.FindLastChar(TEXT('.'), NameIndex);
 	FString BlueprintName = Name.RightChop(NameIndex + 1);
@@ -265,13 +266,15 @@ void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &Wi
 			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(GraphNode, false);
 		}
 	}
-	else /*if ( WidgetContent.WidgetAnchor.WrapperIdentifier.IsValid() == true )*/
+	else if ( !ObjectPath.IsNone() )
 	{
-		const FName ObjectPath = WidgetContent.WidgetAnchor.WrapperIdentifier;
-
 		// if we didn't have a blueprint object to focus on, try it with a regular one
 		UObject* FocusObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPath.ToString());
-
+		// If we didn't find it, maybe it just hasn't been loaded yet
+		if( FocusObject == nullptr )
+		{
+			FocusObject = LoadObject<UObject>(nullptr, *ObjectPath.ToString(),nullptr, LOAD_FindIfFail);
+		}
 		// If we found an asset redirector, we need to follow it
 		UObjectRedirector* Redir = dynamic_cast<UObjectRedirector*>(FocusObject);
 		if (Redir)
