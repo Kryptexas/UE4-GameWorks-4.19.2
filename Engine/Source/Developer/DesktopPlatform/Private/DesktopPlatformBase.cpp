@@ -450,7 +450,7 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 			Arguments += " -game";
 
 			// Determine whether or not to include engine source
-			if(IsSourceDistribution(RootDir))
+			if(IsSourceDistribution(RootDir) && !FRocketSupport::IsRocket())
 			{
 				Arguments += " -engine";
 			}
