@@ -770,6 +770,15 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		UE_LOG(LogFileServer, Display, TEXT("\t%s"), *(RootDirectories[DumpIdx]));
 	}
 
+	TArray<FString> DirectoriesToAlwaysStageAsUFS;
+	if ( GConfig->GetArray(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("DirectoriesToAlwaysStageAsUFS"), DirectoriesToAlwaysStageAsUFS, GGameIni) )
+	{
+		for ( const auto& DirectoryToAlwaysStage : DirectoriesToAlwaysStageAsUFS )
+		{
+			RootDirectories.Add( DirectoryToAlwaysStage );
+		}
+	}
+
 	// list of directories to skip
 	TArray<FString> DirectoriesToSkip;
 	TArray<FString> DirectoriesToNotRecurse;
