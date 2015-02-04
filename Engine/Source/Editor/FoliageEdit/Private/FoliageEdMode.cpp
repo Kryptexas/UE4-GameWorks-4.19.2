@@ -1198,7 +1198,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 
 void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 {
-	if (!bBrushTraceValid)
+	if (!bBrushTraceValid || ViewportClient != GCurrentLevelEditingViewportClient)
 	{
 		return;
 	}
