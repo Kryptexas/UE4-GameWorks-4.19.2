@@ -369,7 +369,8 @@ FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPt
 	{
 		FriendlyComponentName = GetSanitizedComponentName(Entry);
 
-		if( Entry->GetComponentNameOverride().IsEmpty() )
+		// Don't try to match up assets for USceneComponent it will match lots of things and doesn't have any nice behavior for asset adds 
+		if (Entry->GetComponentClass() != USceneComponent::StaticClass() && Entry->GetComponentNameOverride().IsEmpty())
 		{
 			// Search the selected assets and look for any that can be used as a source asset for this type of component
 			// If there is one we append the asset name to the component name, if there are many we append "Multiple Assets"
