@@ -133,9 +133,6 @@ private:
 	/** Creates widgets for the graph schema actions */
 	TSharedRef<SWidget> OnCreateWidgetForAction(struct FCreateWidgetForActionData* const InCreateData);
 
-	/** Creates the local variable action list sub-widget */
-	TSharedRef<SWidget> ConstructLocalActionPanel();
-
 	/** Callback used to populate all actions list in SGraphActionMenu */
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
 	void CollectStaticSections(TArray<int32>& StaticSectionIDs);
@@ -152,7 +149,6 @@ private:
 	void OnActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	static void OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAction, UBlueprint* Blueprint, TSharedRef<SKismetInspector> Inspector);
 	void OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
-	void OnLocalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	void OnActionDoubleClicked(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	TSharedPtr<SWidget> OnContextMenuOpening();
 
@@ -233,9 +229,6 @@ private:
 	/** Graph Action Menu for displaying all our variables and functions */
 	TSharedPtr<class SGraphActionMenu> GraphActionMenu;
 
-	/** Graph Action Menu for displaying all local variables */
-	TSharedPtr<class SGraphActionMenu> LocalGraphActionMenu;
-
 	/** The last pin type used (including the function editor last pin type) */
 	FEdGraphPinType LastPinType;
 	FEdGraphPinType LastFunctionPinType;
@@ -245,9 +238,6 @@ private:
 
 	/** The filter box that handles filtering for both graph action menus. */
 	TSharedPtr< SSearchBox > FilterBox;
-
-	/** Contains both the GraphActionMenu and LocalGraphActionMenu */
-	TSharedPtr< SSplitter > ActionMenuContainer;
 
 	/** Enums created from 'blueprint' level */
 	TArray<TWeakObjectPtr<UUserDefinedStruct>> StructsAddedToBlueprint;
