@@ -735,10 +735,10 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 	int32 TotalWeight = 0;
 
 	// Some simple weight figures to help find the most appropriate match	
-	int32 WholeMatchWeightMultiplier = 2;
-	int32 DescriptionWeight = 5;
-	int32 CategoryWeight = 3;
-	int32 NodeTitleWeight = 3;
+	int32 WholeMatchWeightMultiplier = 1;
+	int32 DescriptionWeight = 1;
+	int32 CategoryWeight = 1;
+	int32 NodeTitleWeight = 1;
 
 	// Helper array
 	struct FArrayWithWeight
@@ -762,7 +762,7 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 
 		// First the keywords
 		InCurrentAction.Actions[Action]->Keywords.ParseIntoArray( &EachEntry.Array, TEXT(" "), true );
-		EachEntry.Weight = 1;
+		EachEntry.Weight = 10;
 		WeightedArrayList.Add( EachEntry );
 
 		// The description
@@ -796,9 +796,9 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 				TotalWeight++;
 			}		
 			// Now check the weighted lists	(We could further improve the hit weight by checking consecutive word matches)
-			int32 WeightPerList = 0;
 			for (int32 iFindCount = 0; iFindCount < WeightedArrayList.Num() ; iFindCount++)
 			{
+				int32 WeightPerList = 0;
 				TArray<FString>& KeywordArray = WeightedArrayList[iFindCount].Array;
 				int32 EachWeight = WeightedArrayList[iFindCount].Weight;
 				int32 WholeMatchCount = 0;

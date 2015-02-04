@@ -131,7 +131,7 @@ public:
 	void OnRep_IsActive();
 
 	/** Follow the Outer chain to get the  AActor  that 'Owns' this component */
-	UFUNCTION(BlueprintCallable, Category="Components")
+	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Actor Owning Parent"))
 	class AActor* GetOwner() const;
 
 	virtual class UWorld* GetWorld() const override;
