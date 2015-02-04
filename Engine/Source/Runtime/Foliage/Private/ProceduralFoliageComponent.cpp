@@ -85,7 +85,7 @@ FVector UProceduralFoliageComponent::GetWorldPosition() const
 	return FVector(X1 * ProceduralFoliage->TileSize, Y1 * ProceduralFoliage->TileSize, Brush->Bounds.Origin.Z);
 }
 
-void UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& OutInstances)
+bool UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& OutInstances)
 {
 #if WITH_EDITOR
 	if (ProceduralFoliage && SpawningVolume && SpawningVolume->GetBrushComponent())
@@ -110,20 +110,26 @@ void UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& Ou
 		float HalfHeight;
 		GetTilesLayout(XOffset, YOffset, NumTilesX, NumTilesY, HalfHeight);
 
-		FScopedSlowTask SlowTask(NumTilesX * NumTilesY, LOCTEXT("PlaceProceduralFoliage", "Placing ProceduralFoliage..."));
-		SlowTask.MakeDialog();
-
 		FBodyInstance* VolumeBodyInstance = SpawningVolume->GetBrushComponent()->GetBodyInstance();
 
+		FThreadSafeCounter LastCancel;
+		const int32 LastCanelInit = LastCancel.GetValue();
+		FThreadSafeCounter* LastCancelPtr = &LastCancel;
+
 		const FVector WorldPosition = GetWorldPosition();
+		ProceduralFoliage->SimulateIfNeeded();
 
 		for (int32 X = 0; X < NumTilesX; ++X)
 		{
 			for (int32 Y = 0; Y < NumTilesY; ++Y)
 			{
-				
 				//We have to get the tiles and create new one to build on main thread
 				const UProceduralFoliageTile* Tile = ProceduralFoliage->GetRandomTile(X + XOffset, Y + YOffset);
+				if (Tile == nullptr)	//simulation was cancelled or failed
+				{
+					return false;
+				}
+
 				const UProceduralFoliageTile* RightTile = (X + 1 < NumTilesX) ? ProceduralFoliage->GetRandomTile(X + XOffset + 1, Y + YOffset) : nullptr;
 				const UProceduralFoliageTile* TopTile = (Y + 1 < NumTilesY) ? ProceduralFoliage->GetRandomTile(X + XOffset, Y + YOffset+ 1) : nullptr;
 				const UProceduralFoliageTile* TopRightTile = (RightTile && TopTile) ? ProceduralFoliage->GetRandomTile(X + XOffset + 1, Y + YOffset + 1) : nullptr;
@@ -132,6 +138,11 @@ void UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& Ou
 
 				Futures.Add(Async<TArray<FDesiredFoliageInstance>*>(EAsyncExecution::ThreadPool, [=]()
 				{
+					if (LastCancelPtr->GetValue() != LastCanelInit)
+					{
+						return new TArray<FDesiredFoliageInstance>();
+					}
+
 					const FVector OrientedOffset = FVector(X, Y, 0.f) * FVector(InnerTileSize, InnerTileSize, 0.f);
 					const FTransform TileTM(OrientedOffset + WorldPosition);
 
@@ -176,26 +187,64 @@ void UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& Ou
 			}
 		}
 
+		const FText StatusMessage = LOCTEXT("PlaceProceduralFoliage", "Placing ProceduralFoliage...");
+		const FText CancelMessage = LOCTEXT("PlaceProceduralFoliageCancel", "Cancelling ProceduralFoliage...");
+		GWarn->BeginSlowTask(StatusMessage, true, true);
+
+
 		int32 FutureIdx = 0;
+		bool bCancelled = false;
 		for (int X = 0; X < NumTilesX; ++X)
 		{
 			for (int Y = 0; Y < NumTilesY; ++Y)
 			{
+				bool bFirstTime = true;
+				while (Futures[FutureIdx].WaitFor(FTimespan(0, 0, 0, 0, 100)) == false || bFirstTime)
+				{
+					if (GWarn->ReceivedUserCancel() && bCancelled == false)
+					{
+						LastCancel.Increment();
+						bCancelled = true;
+					}
+
+					if (bCancelled)
+					{
+						GWarn->StatusUpdate(Y + X * NumTilesY, NumTilesX * NumTilesY, CancelMessage);
+					}
+					else
+					{
+						GWarn->StatusUpdate(Y + X * NumTilesY, NumTilesX * NumTilesY, StatusMessage);
+					}
+
+					bFirstTime = false;
+				}
+
 				TArray<FDesiredFoliageInstance>* DesiredInstances = Futures[FutureIdx++].Get();
 				OutInstances.Append(*DesiredInstances);
 				delete DesiredInstances;
-				SlowTask.EnterProgressFrame(1);
 			}
 		}
+
+		GWarn->EndSlowTask();
+
+		return !bCancelled;
 	}
 #endif
+	return false;
+
 }
 
-void UProceduralFoliageComponent::SpawnProceduralContent(TArray <FDesiredFoliageInstance>& OutInstances)
+bool UProceduralFoliageComponent::SpawnProceduralContent(TArray <FDesiredFoliageInstance>& OutInstances)
 {
 #if WITH_EDITOR
-	RemoveProceduralContent();
-	SpawnTiles(OutInstances);
+	
+	if (SpawnTiles(OutInstances))
+	{
+		RemoveProceduralContent();
+		return true;
+	}
+
+	return false;
 #endif
 }
 

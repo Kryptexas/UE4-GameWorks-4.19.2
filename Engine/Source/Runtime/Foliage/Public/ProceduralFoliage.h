@@ -39,6 +39,9 @@ class FOLIAGE_API UProceduralFoliage : public UObject
 
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
 	int32 NumUniqueTiles;
+
+	FThreadSafeCounter LastCancel;
+
 private:
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere)
 	TArray<FProceduralFoliageTypeData> Types;
@@ -63,14 +66,16 @@ public:
 
 	virtual void Serialize(FArchive& Ar);
 
+	/** Simulates tiles if needed */
+	void SimulateIfNeeded();
+
 	/** Takes a tile index and returns a random tile associated with that index. */
 	const UProceduralFoliageTile* GetRandomTile(int32 X, int32 Y);
 
 	/** Creates a temporary empty tile with the appropriate settings created for it. */
 	UProceduralFoliageTile* CreateTempTile();
-private:
-	void GenerateTile(const int32 NumSteps);
 
+private:
 	void CreateProceduralFoliageInstances();
 
 	bool AnyDirty() const;

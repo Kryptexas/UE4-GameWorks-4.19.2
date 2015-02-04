@@ -125,6 +125,7 @@ void UProceduralFoliageTile::AgeSeeds()
 	TArray<FProceduralFoliageInstance*> NewSeeds;
 	for (FProceduralFoliageInstance* Instance : Instances)
 	{
+		if (UserCancelled()){ return; }
 		if (Instance->IsAlive())
 		{
 			const UFoliageType_InstancedStaticMesh* Type = Instance->Type;
@@ -158,6 +159,7 @@ void UProceduralFoliageTile::SpreadSeeds(TArray<FProceduralFoliageInstance*>& Ne
 {
 	for (FProceduralFoliageInstance* Inst : Instances)
 	{
+		if (UserCancelled()){ return; }
 		if (Inst->IsAlive() == false)	//The instance has been killed so don't bother spreading seeds. Note this introduces potential indeterminism if the order of instance traversal changes (implementation details of TSet for example)
 		{
 			continue;
@@ -201,6 +203,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 
 	for (const FProceduralFoliageTypeData& Data : ProceduralFoliage->GetTypes())
 	{
+		if (UserCancelled()){ return; }
 		const UFoliageType_InstancedStaticMesh* Type = Data.TypeInstance;
 		if (Type && Type->bGrowsInShade == bSimulateShadeGrowth)
 		{
@@ -250,6 +253,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 	const int32 LastShadeCastingIndex = InstancesArray.Num() - 1; //when placing shade growth types we want to spawn in shade if possible
 	while (TypesLeftToSeed > 0)
 	{
+		if (UserCancelled()){ return; }
 		TypeIdx = (TypeIdx + 1) % NumTypes;	//keep cycling through the types that we spawn initial seeds for to make sure everyone gets fair chance
 
 		if (const UFoliageType_InstancedStaticMesh* Type = TypesToSeed[TypeIdx])
@@ -368,8 +372,15 @@ void UProceduralFoliageTile::InitSimulation(const UProceduralFoliage* InProcedur
 	Broadphase = FProceduralFoliageBroadphase(ProceduralFoliage->TileSize);
 }
 
+bool UProceduralFoliageTile::UserCancelled() const
+{
+	return ProceduralFoliage->LastCancel.GetValue() != LastCancel;
+}
+
+
 void UProceduralFoliageTile::StepSimulation()
 {
+	if (UserCancelled()){ return; }
 	TArray<FProceduralFoliageInstance*> NewInstances;
 	if (SimulationStep == 0)
 	{
@@ -418,8 +429,9 @@ void UProceduralFoliageTile::StartSimulation(const int32 MaxNumSteps, bool bShad
 	InstancesToArray();
 }
 
-void UProceduralFoliageTile::Simulate(const UProceduralFoliage* InProceduralFoliage, const int32 RandomSeed, const int32 MaxNumSteps)
+void UProceduralFoliageTile::Simulate(const UProceduralFoliage* InProceduralFoliage, const int32 RandomSeed, const int32 MaxNumSteps, const int32 InLastCancel)
 {
+	LastCancel = InLastCancel;
 	InitSimulation(InProceduralFoliage, RandomSeed);
 
 	StartSimulation(MaxNumSteps, false);

@@ -32,14 +32,6 @@ UProceduralFoliageTile* UProceduralFoliage::CreateTempTile()
 	return TmpTile;
 }
 
-void UProceduralFoliage::GenerateTile(const int32 NumSteps)
-{
-	UProceduralFoliageTile* NewTile = NewObject<UProceduralFoliageTile>(this);
-	PrecomputedTiles.Add(NewTile);
-
-	NewTile->Simulate(this, GetRandomNumber(), NumSteps);
-}
-
 void UProceduralFoliage::CreateProceduralFoliageInstances()
 {
 	for(FProceduralFoliageTypeData& TypeData : Types)
@@ -125,13 +117,16 @@ bool UProceduralFoliage::AnyDirty() const
 	return bDirty;
 }
 
-const UProceduralFoliageTile* UProceduralFoliage::GetRandomTile(int32 X, int32 Y)
+void UProceduralFoliage::SimulateIfNeeded()
 {
 	if (AnyDirty())
 	{
 		Simulate();
 	}
+}
 
+const UProceduralFoliageTile* UProceduralFoliage::GetRandomTile(int32 X, int32 Y)
+{
 	if (PrecomputedTiles.Num())
 	{
 		FRandomStream HashStream;	//using this as a hash function
@@ -152,6 +147,8 @@ void UProceduralFoliage::Simulate(int32 NumSteps)
 	RandomStream.Initialize(RandomSeed);
 	CreateProceduralFoliageInstances();
 
+	LastCancel.Increment();
+
 	PrecomputedTiles.Empty();
 	TArray<TFuture< UProceduralFoliageTile* >> Futures;
 
@@ -159,25 +156,47 @@ void UProceduralFoliage::Simulate(int32 NumSteps)
 	{
 		UProceduralFoliageTile* NewTile = NewObject<UProceduralFoliageTile>(this);
 		const int32 RandomNumber = GetRandomNumber();
+		const int32 LastCancelInit = LastCancel.GetValue();
 
 		Futures.Add(Async<UProceduralFoliageTile*>(EAsyncExecution::ThreadPool, [=]()
 		{
-			NewTile->Simulate(this, RandomNumber, NumSteps);
+			NewTile->Simulate(this, RandomNumber, NumSteps, LastCancelInit);
 			return NewTile;
 		}));
 	}
 
-	FScopedSlowTask SlowTask(NumUniqueTiles, LOCTEXT("SimulateProceduralFoliage", "Simulate ProceduralFoliage..."));
-	SlowTask.MakeDialog();
+	const FText StatusMessage = LOCTEXT("SimulateProceduralFoliage", "Simulate ProceduralFoliage...");
+	GWarn->BeginSlowTask(StatusMessage, true, true);
+	
+	const int32 TotalTasks = Futures.Num();
+
+	bool bCancelled = false;
 
 	for (int32 FutureIdx = 0; FutureIdx < Futures.Num(); ++FutureIdx)
 	{
-		PrecomputedTiles.Add(Futures[FutureIdx].Get());
-		SlowTask.EnterProgressFrame(1);
+		while (Futures[FutureIdx].WaitFor(FTimespan(0, 0, 0, 0, 100)) == false)		//sleep for 100ms if not ready. Needed so cancel is responsive
+		{
+			GWarn->StatusUpdate(FutureIdx, TotalTasks, LOCTEXT("SimulateProceduralFoliage", "Simulate ProceduralFoliage..."));
+			if (GWarn->ReceivedUserCancel() && bCancelled == false)	//If the user wants to cancel just increment this. Tiles compare against the original count and cancel if needed
+			{
+				LastCancel.Increment();
+				bCancelled = true;
+			}
+		}
+
+		PrecomputedTiles.Add(Futures[FutureIdx].Get());		//Even if we cancel we block until threads have exited safely to ensure memory isn't GCed
 	}
 
-	SetClean();
-	
+	GWarn->EndSlowTask();
+
+	if (bCancelled)
+	{
+		PrecomputedTiles.Empty();
+	}
+	else
+	{
+		SetClean();
+	}
 }
 
 int32 UProceduralFoliage::GetRandomNumber()

@@ -21,7 +21,7 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 	UPROPERTY()
 	const UProceduralFoliage* ProceduralFoliage;
 
-	void Simulate(const UProceduralFoliage* ProceduralFoliage, const int32 RandomSeed, const int32 MaxNumSteps = -1);
+	void Simulate(const UProceduralFoliage* ProceduralFoliage, const int32 RandomSeed, const int32 MaxNumSteps, const int32 InLastCancel);
 	void RemoveInstances();
 	void RemoveInstance(FProceduralFoliageInstance* Inst);
 
@@ -57,6 +57,8 @@ private:
 
 	void MarkPendingRemoval(FProceduralFoliageInstance* ToRemove);
 	void FlushPendingRemovals();
+
+	bool UserCancelled() const;
 	
 private:
 
@@ -71,6 +73,8 @@ private:
 
 	FRandomStream RandomStream;
 	bool bSimulateShadeGrowth;
+
+	int32 LastCancel;
 
 private:
 	float GetRandomGaussian();

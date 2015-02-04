@@ -71,12 +71,13 @@ FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 			if( !UniqueProceduralFoliages.Contains( Component->ProceduralFoliage ) )
 			{
 				UniqueProceduralFoliages.Add( Component->ProceduralFoliage );
-				Component->ProceduralFoliage->Simulate();
 			}
 
 			TArray <FDesiredFoliageInstance> DesiredFoliageInstances;
-			Component->SpawnProceduralContent(DesiredFoliageInstances);
-			FEdModeFoliage::AddInstances(Component->GetWorld(), DesiredFoliageInstances);
+			if (Component->SpawnProceduralContent(DesiredFoliageInstances))
+			{
+				FEdModeFoliage::AddInstances(Component->GetWorld(), DesiredFoliageInstances);
+			}
 		}
 	}
 	return FReply::Handled();

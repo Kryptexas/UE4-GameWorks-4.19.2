@@ -27,7 +27,7 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	bool bHideDebugTiles;
 #endif
 
-	void SpawnProceduralContent(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
+	bool SpawnProceduralContent(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
 	void RemoveProceduralContent();
 	const FGuid& GetProceduralGuid() const { return ProceduralGuid;  }
 
@@ -38,7 +38,7 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	void GetTilesLayout(int32& MinXIdx, int32& MinYIdx, int32& NumXTiles, int32& NumYTiles, float& HalfHeight) const;
 
 private:
-	void SpawnTiles(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
+	bool SpawnTiles(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
 
 private:
 	UPROPERTY()
