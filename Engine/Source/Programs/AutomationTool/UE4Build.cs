@@ -1123,6 +1123,11 @@ namespace AutomationTool
 
 		public bool CanUseXGE(UnrealBuildTool.UnrealTargetPlatform Platform)
 		{
+			if (!UnrealBuildTool.UEBuildPlatform.BuildPlatformDictionary.ContainsKey(Platform))
+			{
+				return false;
+			}
+
 			return UnrealBuildTool.UEBuildPlatform.GetBuildPlatform(Platform).CanUseXGE();
 		}
 
@@ -1152,6 +1157,11 @@ namespace AutomationTool
 		/// <param name="InForceNoXGE">If true will force XGE off</param>
 		public void Build(BuildAgenda Agenda, bool? InDeleteBuildProducts = null, bool InUpdateVersionFiles = true, bool InForceNoXGE = false, bool InForceNonUnity = false, bool InForceUnity = false, Dictionary<UnrealBuildTool.UnrealTargetPlatform, Dictionary<string, string>> PlatformEnvVars = null)
 		{
+			if (GlobalCommandLine.NoCodeProject)
+			{
+				throw new AutomationException("Building is not supported when -nocodeproject flag is provided.");
+			}
+
 			if (!CmdEnv.HasCapabilityToCompile)
 			{
 				throw new AutomationException("You are attempting to compile on a machine that does not have a supported compiler!");

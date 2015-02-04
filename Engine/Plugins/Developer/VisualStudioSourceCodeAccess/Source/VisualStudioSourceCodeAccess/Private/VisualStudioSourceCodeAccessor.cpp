@@ -79,10 +79,6 @@ void FVisualStudioSourceCodeAccessor::Startup()
 
 	// Preferential order of VS versions
 	AddVisualStudioVersion(12); // Visual Studio 2013
-	if (!FRocketSupport::IsRocket())
-	{
-		AddVisualStudioVersion(11); // Visual Studio 2012
-	}
 }
 
 void FVisualStudioSourceCodeAccessor::Shutdown()

@@ -443,7 +443,7 @@ namespace UnrealBuildTool
             return false;
         }
 
-        public static void RegisterAllUBTClasses()
+        public static void RegisterAllUBTClasses(bool bSkipBuildPlatforms = false)
         {
             // Find and register all tool chains and build platforms that are present
             Assembly UBTAssembly = Assembly.GetExecutingAssembly();
@@ -453,16 +453,19 @@ namespace UnrealBuildTool
 
                 List<System.Type> ProjectGeneratorList = new List<System.Type>();
                 var AllTypes = UBTAssembly.GetTypes();
-                // register all build platforms first, since they implement SDK-switching logic that can set environment variables
-                foreach (var CheckType in AllTypes)
+                if (!bSkipBuildPlatforms)
                 {
-                    if (CheckType.IsClass && !CheckType.IsAbstract)
+                    // register all build platforms first, since they implement SDK-switching logic that can set environment variables
+                    foreach (var CheckType in AllTypes)
                     {
-                        if (Utils.ImplementsInterface<IUEBuildPlatform>(CheckType))
+                        if (CheckType.IsClass && !CheckType.IsAbstract)
                         {
-                            Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
-                            var TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-                            TempInst.RegisterBuildPlatform();
+                            if (Utils.ImplementsInterface<IUEBuildPlatform>(CheckType))
+                            {
+                                Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
+                                var TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+                                TempInst.RegisterBuildPlatform();
+                            }
                         }
                     }
                 }
