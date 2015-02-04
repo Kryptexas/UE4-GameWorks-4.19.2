@@ -117,6 +117,7 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 					{
 						// Serialize all DSO properties too					
 						FCDOWriter DefaultSubobjectWriter(PropertyData, InObj, VisitedObjects, InObj->GetFName());
+						Seek(PropertyData.Bytes.Num());
 					}
 				}
 			}
