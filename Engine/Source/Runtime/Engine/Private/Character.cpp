@@ -370,17 +370,6 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 	}
 }
 
-void ACharacter::TeleportSucceeded(bool bIsATest)
-{
-	if (!bIsATest && CharacterMovement)
-	{
-		CharacterMovement->OnTeleported();
-	}
-
-	Super::TeleportSucceeded(bIsATest);
-}
-
-
 void ACharacter::ClearCrossLevelReferences()
 {
 	if( BasedMovement.MovementBase != NULL && GetOutermost() != BasedMovement.MovementBase->GetOutermost() )
@@ -390,8 +379,6 @@ void ACharacter::ClearCrossLevelReferences()
 
 	Super::ClearCrossLevelReferences();
 }
-
-
 
 namespace MovementBaseUtility
 {

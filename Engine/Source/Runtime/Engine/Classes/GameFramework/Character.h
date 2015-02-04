@@ -344,7 +344,6 @@ public:
 	float JumpMaxHoldTime;
 
 	// Begin AActor Interface.
-	virtual void TeleportSucceeded(bool bIsATest) override;
 	virtual void ClearCrossLevelReferences() override;
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;

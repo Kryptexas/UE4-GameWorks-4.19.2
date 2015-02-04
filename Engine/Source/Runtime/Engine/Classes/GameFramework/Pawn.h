@@ -231,6 +231,7 @@ public:
 	virtual void BecomeViewTarget(APlayerController* PC) override;
 	virtual void EnableInput(APlayerController* PlayerController) override;
 	virtual void DisableInput(APlayerController* PlayerController) override;
+	virtual void TeleportSucceeded(bool bIsATest) override;
 
 	/** Overridden to defer to the RootComponent's CanCharacterStepUpOn setting if it is explicitly Yes or No. If set to Owner, will return Super::CanBeBaseForCharacter(). */
 	virtual bool CanBeBaseForCharacter(APawn* APawn) const override;

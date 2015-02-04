@@ -946,6 +946,18 @@ void APawn::DisableInput(class APlayerController* PlayerController)
 	}
 }
 
+void APawn::TeleportSucceeded(bool bIsATest)
+{
+	if (bIsATest == false)
+	{
+		UMovementComponent* const MoveComponent = GetMovementComponent();
+		if (MoveComponent)
+		{
+			MoveComponent->OnTeleported();
+		}
+	}
+}
+
 void APawn::GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const 
 {
 	GoalOffset = FVector::ZeroVector;
@@ -1067,7 +1079,7 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 
 void APawn::MoveIgnoreActorAdd(AActor* ActorToIgnore)
 {
-	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
+	UPrimitiveComponent* RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
 	{
 		RootPrimitiveComponent->IgnoreActorWhenMoving(ActorToIgnore, true);
@@ -1076,7 +1088,7 @@ void APawn::MoveIgnoreActorAdd(AActor* ActorToIgnore)
 
 void APawn::MoveIgnoreActorRemove(AActor* ActorToIgnore)
 {
-	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
+	UPrimitiveComponent* RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
 	{
 		RootPrimitiveComponent->IgnoreActorWhenMoving(ActorToIgnore, false);
