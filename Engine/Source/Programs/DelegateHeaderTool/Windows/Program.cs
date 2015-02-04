@@ -239,13 +239,13 @@ namespace DelegateHeaderTool
             DefineDeclareEvent.AppendFormat(" ) FUNC_DECLARE_EVENT( OwningType, EventName, {0}", FuncSuffix);
 			if( bSupportsRetVal )
 			{
-				DefineDeclareDynamicDelegate.AppendFormat( " ) FUNC_DECLARE_DYNAMIC_DELEGATE_RETVAL( {0}, {1}, DelegateName, DelegateName##_DelegateWrapper", DynamicDelegateDefaultPtr, FuncSuffix );
+				DefineDeclareDynamicDelegate.AppendFormat(" ) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_DELEGATE) FUNC_DECLARE_DYNAMIC_DELEGATE_RETVAL( {0}, {1}, DelegateName, DelegateName##_DelegateWrapper", DynamicDelegateDefaultPtr, FuncSuffix);
 			}
 			else
 			{
-				DefineDeclareDynamicDelegate.AppendFormat( " ) FUNC_DECLARE_DYNAMIC_DELEGATE( {0}, {1}, DelegateName, DelegateName##_DelegateWrapper", DynamicDelegateDefaultPtr, FuncSuffix );
+				DefineDeclareDynamicDelegate.AppendFormat(" ) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_DELEGATE) FUNC_DECLARE_DYNAMIC_DELEGATE( {0}, {1}, DelegateName, DelegateName##_DelegateWrapper", DynamicDelegateDefaultPtr, FuncSuffix);
 			}
-			DefineDeclareDynamicMulticastDelegate.AppendFormat( " ) FUNC_DECLARE_DYNAMIC_MULTICAST_DELEGATE( {0}, {1}, DelegateName, DelegateName##_DelegateWrapper", DynamicDelegateDefaultPtr, FuncSuffix );
+			DefineDeclareDynamicMulticastDelegate.AppendFormat(" ) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_DELEGATE) FUNC_DECLARE_DYNAMIC_MULTICAST_DELEGATE( {0}, {1}, DelegateName, DelegateName##_DelegateWrapper", DynamicDelegateDefaultPtr, FuncSuffix);
 
 			if( bSupportsRetVal )
 			{
@@ -292,7 +292,7 @@ namespace DelegateHeaderTool
 			{
 				DefineDeclareDelegate.Append( ", RetValType" );
 				DefineDeclareDynamicDelegate.Append( ", RetValType" );
-                DefineRetvalTypedef.Append( " typedef RetValType RetValType" );
+                DefineRetvalTypedef.Append( " typedef RetValType RetValType;" );
 			}
 			else
 			{
