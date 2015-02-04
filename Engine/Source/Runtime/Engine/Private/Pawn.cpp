@@ -956,6 +956,8 @@ void APawn::TeleportSucceeded(bool bIsATest)
 			MoveComponent->OnTeleported();
 		}
 	}
+
+	Super::TeleportSucceeded(bIsATest);
 }
 
 void APawn::GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const 
