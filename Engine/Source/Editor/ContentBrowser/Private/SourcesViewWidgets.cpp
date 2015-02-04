@@ -7,6 +7,7 @@
 
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
+#include "DragDropHandler.h"
 #include "ContentBrowserUtils.h"
 #include "CollectionViewUtils.h"
 #include "SInlineEditableTextBlock.h"
@@ -96,112 +97,47 @@ SAssetTreeItem::~SAssetTreeItem()
 	}
 }
 
+bool SAssetTreeItem::ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) const
+{
+	TSharedPtr<FTreeItem> TreeItemPinned = TreeItem.Pin();
+	return TreeItemPinned.IsValid() && DragDropHandler::ValidateDragDropOnAssetFolder(MyGeometry, DragDropEvent, TreeItemPinned->FolderPath);
+}
+
 void SAssetTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( IsValidAssetPath() )
+	bDraggedOver = false;
+
+	if (ValidateDragDrop(MyGeometry, DragDropEvent))
 	{
-		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-		if (!Operation.IsValid())
-		{
-			return;
-		}
-
-		if (Operation->IsOfType<FAssetDragDropOp>())
-		{
-			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
-			bool bCanDrop = DragDropOp->AssetData.Num() > 0;
-
-			if (bCanDrop)
-			{
-				DragDropOp->SetToolTip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
-				bDraggedOver = true;
-			}
-		}
-		else if (Operation->IsOfType<FAssetPathDragDropOp>())
-		{
-			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>(Operation);
-			bool bCanDrop = DragDropOp->PathNames.Num() > 0;
-
-			if ( DragDropOp->PathNames.Num() == 1 && DragDropOp->PathNames[0] == TreeItem.Pin()->FolderPath )
-			{
-				// You can't drop a single folder onto itself
-				bCanDrop = false;
-			}
-
-			if (bCanDrop)
-			{
-				bDraggedOver = true;
-			}
-		}
-		else if (Operation->IsOfType<FExternalDragOperation>())
-		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(Operation);
-			bool bCanDrop = DragDropOp->HasFiles();
-
-			if (bCanDrop)
-			{
-				bDraggedOver = true;
-			}
-		}
+		bDraggedOver = true;
 	}
 }
 
 void SAssetTreeItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
-	if ( DragDropOp.IsValid() )
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (Operation.IsValid())
 	{
-		DragDropOp->ResetToDefaultToolTip();
+		Operation->SetCursorOverride(TOptional<EMouseCursor::Type>());
+
+		if (Operation->IsOfType<FAssetDragDropOp>())
+		{
+			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
+			DragDropOp->ResetToDefaultToolTip();
+		}
 	}
+
 	bDraggedOver = false;
 }
 
 FReply SAssetTreeItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( IsValidAssetPath() )
+	bDraggedOver = false;
+
+	if (ValidateDragDrop(MyGeometry, DragDropEvent))
 	{
-		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-		if (!Operation.IsValid())
-		{
-			return FReply::Unhandled();
-		}
-
-		if (Operation->IsOfType<FAssetDragDropOp>())
-		{
-			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
-			bool bCanDrop = DragDropOp->AssetData.Num() > 0;
-
-			if (bCanDrop)
-			{
-				return FReply::Handled();
-			}
-		}
-		else if (Operation->IsOfType<FAssetPathDragDropOp>())
-		{
-			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
-			bool bCanDrop = DragDropOp->PathNames.Num() > 0;
-
-			if ( DragDropOp->PathNames.Num() == 1 && DragDropOp->PathNames[0] == TreeItem.Pin()->FolderPath )
-			{
-				// You can't drop a single folder onto itself
-				bCanDrop = false;
-			}
-
-			if (bCanDrop)
-			{
-				return FReply::Handled();
-			}
-		}
-		else if (Operation->IsOfType<FExternalDragOperation>())
-		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
-			bool bCanDrop = DragDropOp->HasFiles();
-
-			if (bCanDrop)
-			{
-				return FReply::Handled();
-			}
-		}
+		bDraggedOver = true;
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
@@ -211,7 +147,7 @@ FReply SAssetTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 {
 	bDraggedOver = false;
 
-	if ( IsValidAssetPath() )
+	if (ValidateDragDrop(MyGeometry, DragDropEvent))
 	{
 		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 		if (!Operation.IsValid())
@@ -222,41 +158,19 @@ FReply SAssetTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 		if (Operation->IsOfType<FAssetDragDropOp>())
 		{
 			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
-
 			OnAssetsDragDropped.ExecuteIfBound(DragDropOp->AssetData, TreeItem.Pin());
-
 			return FReply::Handled();
 		}
 		else if (Operation->IsOfType<FAssetPathDragDropOp>())
 		{
 			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
-
-			bool bCanDrop = DragDropOp->PathNames.Num() > 0;
-
-			if ( DragDropOp->PathNames.Num() == 1 && DragDropOp->PathNames[0] == TreeItem.Pin()->FolderPath )
-			{
-				// You can't drop a single folder onto itself
-				bCanDrop = false;
-			}
-
-			if ( bCanDrop )
-			{
-				OnPathsDragDropped.ExecuteIfBound(DragDropOp->PathNames, TreeItem.Pin());
-			}
-
+			OnPathsDragDropped.ExecuteIfBound(DragDropOp->PathNames, TreeItem.Pin());
 			return FReply::Handled();
 		}
 		else if (Operation->IsOfType<FExternalDragOperation>())
 		{
 			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
-
-			bool bCanDrop = DragDropOp->HasFiles();
-
-			if ( bCanDrop )
-			{
-				OnFilesDragDropped.ExecuteIfBound(DragDropOp->GetFiles(), TreeItem.Pin());
-			}
-
+			OnFilesDragDropped.ExecuteIfBound(DragDropOp->GetFiles(), TreeItem.Pin());
 			return FReply::Handled();
 		}
 	}
