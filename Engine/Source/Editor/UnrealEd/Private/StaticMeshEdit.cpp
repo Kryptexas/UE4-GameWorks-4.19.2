@@ -820,11 +820,13 @@ struct ExistingStaticMeshData
 	FMeshSectionInfoMap			ExistingSectionInfoMap;
 	TArray<FMeshBuildSettings>	ExistingBuildSettings;
 	TArray<FMeshReductionSettings> ExistingReductionSettings;
+	TArray<float>				ExistingScreenSize;
 	
 	TArray<UStaticMeshSocket*>	ExistingSockets;
 
 	bool						ExistingUseMaximumStreamingTexelRatio;
 	bool						ExistingCustomizedCollision;
+	bool						bAutoComputeLODScreenSize;
 
 	int32							ExistingLightMapResolution;
 	int32							ExistingLightMapCoordinateIndex;
@@ -857,12 +859,14 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh)
 		{
 			ExistingMeshDataPtr->ExistingBuildSettings.Add(ExistingMesh->SourceModels[i].BuildSettings);
 			ExistingMeshDataPtr->ExistingReductionSettings.Add(ExistingMesh->SourceModels[i].ReductionSettings);
+			ExistingMeshDataPtr->ExistingScreenSize.Add(ExistingMesh->SourceModels[i].ScreenSize);
 		}
 
 		ExistingMeshDataPtr->ExistingSockets = ExistingMesh->Sockets;
 
 		ExistingMeshDataPtr->ExistingUseMaximumStreamingTexelRatio = ExistingMesh->bUseMaximumStreamingTexelRatio;
 		ExistingMeshDataPtr->ExistingCustomizedCollision = ExistingMesh->bCustomizedCollision;
+		ExistingMeshDataPtr->bAutoComputeLODScreenSize = ExistingMesh->bAutoComputeLODScreenSize;
 
 		ExistingMeshDataPtr->ExistingLightMapResolution = ExistingMesh->LightMapResolution;
 		ExistingMeshDataPtr->ExistingLightMapCoordinateIndex = ExistingMesh->LightMapCoordinateIndex;
@@ -895,12 +899,14 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 		{
 			NewMesh->SourceModels[i].BuildSettings = ExistingMeshDataPtr->ExistingBuildSettings[i];
 			NewMesh->SourceModels[i].ReductionSettings = ExistingMeshDataPtr->ExistingReductionSettings[i];
+			NewMesh->SourceModels[i].ScreenSize = ExistingMeshDataPtr->ExistingScreenSize[i];
 		}
 		for(int32 i=NumCommonLODs; i < ExistingMeshDataPtr->ExistingBuildSettings.Num(); ++i)
 		{
 			FStaticMeshSourceModel* SrcModel = new(NewMesh->SourceModels) FStaticMeshSourceModel();
 			SrcModel->BuildSettings = ExistingMeshDataPtr->ExistingBuildSettings[i];
 			SrcModel->ReductionSettings = ExistingMeshDataPtr->ExistingReductionSettings[i];
+			SrcModel->ScreenSize = ExistingMeshDataPtr->ExistingScreenSize[i];
 		}
 
 		// Assign sockets from old version of this StaticMesh.
@@ -911,6 +917,7 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 
 		NewMesh->bUseMaximumStreamingTexelRatio = ExistingMeshDataPtr->ExistingUseMaximumStreamingTexelRatio;
 		NewMesh->bCustomizedCollision = ExistingMeshDataPtr->ExistingCustomizedCollision;
+		NewMesh->bAutoComputeLODScreenSize = ExistingMeshDataPtr->bAutoComputeLODScreenSize;
 
 		NewMesh->LightMapResolution = ExistingMeshDataPtr->ExistingLightMapResolution;
 		NewMesh->LightMapCoordinateIndex = ExistingMeshDataPtr->ExistingLightMapCoordinateIndex;
@@ -950,6 +957,8 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 			}
 		}
 	}
+
+	delete ExistingMeshDataPtr;
 }
 
 #undef LOCTEXT_NAMESPACE
