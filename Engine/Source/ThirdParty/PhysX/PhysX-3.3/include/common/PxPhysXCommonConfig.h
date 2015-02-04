@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -47,8 +47,10 @@
 		#else
 			#define PX_PHYSX_CORE_API __declspec(dllimport)
 		#endif
-     #else
-		#define PX_PHYSX_CORE_API 
+	#elif defined(PX_UNIX)
+		#define PX_PHYSX_CORE_API PX_UNIX_EXPORT
+    #else
+		#define PX_PHYSX_CORE_API
     #endif
 #endif
 
@@ -58,19 +60,13 @@
 	#else
 		#define PX_PHYSX_COMMON_API __declspec(dllimport)
 	#endif
+#elif defined(PX_UNIX)
+	#define PX_PHYSX_COMMON_API PX_UNIX_EXPORT
 #else
 	#define PX_PHYSX_COMMON_API
 #endif
 
 // Changing these parameters requires recompilation of the SDK
-
-
-// Support GPU PhysX
-#if defined(PX_WINDOWS) &&  !defined(PX_WINMODERN)
-#define PX_SUPPORT_GPU_PHYSX 1
-#else
-#define PX_SUPPORT_GPU_PHYSX 0
-#endif
 
 #ifndef PX_DOXYGEN
 namespace physx

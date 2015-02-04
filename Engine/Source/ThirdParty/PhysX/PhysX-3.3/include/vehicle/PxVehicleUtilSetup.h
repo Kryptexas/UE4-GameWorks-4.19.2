@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -32,6 +32,8 @@
 /** \addtogroup vehicle
   @{
 */
+#include "foundation/PxSimpleTypes.h"
+#include "vehicle/PxVehicleSDK.h"
 
 #ifndef PX_DOXYGEN
 namespace physx
@@ -101,8 +103,8 @@ a value of 1 corresponds to (0,-1,0) and a value of 2 corresponds to (0,0,-1).
 
 \note This function does not update the center of mass of the vehicle actor.  That needs to updated separately with PxRigidBody::setCMassLocalPose
 
-\note The suspension sprung masses are updated so that the natural frequency of the springs are preserved.  This involves altering the stiffness of the 
-suspension springs.
+\note The suspension sprung masses are updated so that the natural frequency and damping ratio of the springs are preserved.  This involves altering the
+stiffness and damping rate of the suspension springs.
 */
 void PxVehicleUpdateCMassLocalPose(const PxTransform& oldCMassLocalPose, const PxTransform& newCMassLocalPose, const PxU32 gravityDirection, PxVehicleWheels* vehicle);
 

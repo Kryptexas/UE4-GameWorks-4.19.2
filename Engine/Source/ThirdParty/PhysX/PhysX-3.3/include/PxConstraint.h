@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -119,6 +119,8 @@ public:
 	/**
 	\brief Releases a PxConstraint instance.
 
+	\note This call does not wake up the connected rigid bodies.
+
 	@see PxPhysics.createConstraint, PxBase.release()
 	*/
 	virtual void				release()														= 0;
@@ -204,6 +206,18 @@ public:
 
 
 	/**
+	\brief whether the constraint is valid. 
+	
+	A constraint is valid if it has at least one dynamic rigid body or articulation link. A constraint that
+	is not valid may not be inserted into a scene, and therefore a static actor to which an invalid constraint
+	is attached may not be inserted into a scene.
+
+	Invalid constraints arise only when an actor to which the constraint is attached has been deleted.
+
+	*/
+	virtual bool				isValid() const													= 0;
+
+	/**
 	\brief Set the break force and torque thresholds for this constraint. 
 	
 	If either the force or torque measured at the constraint exceed these thresholds the constraint will break.
@@ -211,6 +225,7 @@ public:
 	\param[in] linear the linear break threshold
 	\param[in] angular the angular break threshold
 	*/
+
 
 	virtual	void				setBreakForce(PxReal linear, PxReal angular)					= 0;
 

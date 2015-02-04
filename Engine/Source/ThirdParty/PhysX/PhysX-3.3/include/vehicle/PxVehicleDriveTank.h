@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -150,6 +150,12 @@ struct PxVehicleDriveTankControlModel
 */
 class PxVehicleDriveTank : public PxVehicleDrive
 {
+//= ATTENTION! =====================================================================================
+// Changing the data layout of this class breaks the binary serialization format.  See comments for 
+// PX_BINARY_SERIAL_VERSION.  If a modification is required, please adjust the getBinaryMetaData 
+// function.  If the modification is made on a custom branch, please change PX_BINARY_SERIAL_VERSION
+// accordingly.
+//==================================================================================================
 public:
 
 	friend class PxVehicleUpdate;
@@ -183,6 +189,9 @@ public:
 	\param[in] nbDrivenWheels is the number of wheels on the tank.
 	\note It is assumed that the first shapes of the actor are the wheel shapes, followed by the chassis shapes.  To break this assumption use PxVehicleWheelsSimData::setWheelShapeMapping.
 	@see allocate, free, setToRestState, PxVehicleWheelsSimData::setWheelShapeMapping
+	\note nbDrivenWheels must be an even number
+	\note The wheels must be arranged according to PxVehicleDriveTankWheelOrder; that is, 
+	the even wheels are on the left side of the tank and the odd wheels are on the right side of the tank. 
 	*/
 	void setup
 		(PxPhysics* physics, PxRigidDynamic* vehActor, 

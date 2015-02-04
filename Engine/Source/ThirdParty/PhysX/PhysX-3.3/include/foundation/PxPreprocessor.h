@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -163,11 +163,18 @@ Platform define
 DLL export macros
 */
 #if !defined(PX_C_EXPORT) 
-#	if defined(PX_WINDOWS) || defined(PX_WINMODERN)
+#	if defined(PX_WINDOWS) || defined(PX_WINMODERN) // || defined(PX_LINUX) - extern "C" is applied to functions returning C++ types 
+													// (e.g. references) which triggers -Wreturn-type-c-linkage, so cannot be used on Linux
 #		define PX_C_EXPORT extern "C"
 #	else
 #		define PX_C_EXPORT
 #	endif
+#endif
+
+#if (defined(PX_UNIX) && (__GNUC__ >= 4))
+#	define PX_UNIX_EXPORT __attribute__ ((visibility ("default")))
+#else
+#	define PX_UNIX_EXPORT
 #endif
 
 /**
@@ -187,6 +194,8 @@ no definition - this will allow DLLs and libraries to use the exported API from 
 	#else
 		#define PX_FOUNDATION_API __declspec(dllimport)
 	#endif
+#elif defined(PX_UNIX)
+	#define PX_FOUNDATION_API PX_UNIX_EXPORT
 #else
 	#define PX_FOUNDATION_API 
 #endif
@@ -250,14 +259,12 @@ Noinline macro
 #	define PX_NOINLINE 
 #endif
 
-
 /*! restrict macro */
 #if defined(__CUDACC__)
 #	define PX_RESTRICT __restrict__
-#elif (defined(PX_GNUC) || defined(PX_VC) || defined(PX_GHS)) && !defined(PX_PS4) && !defined(PX_HTML5) && !defined(PX_CLANG) // ps4/clang doesn't like restricted functions
-#	define PX_RESTRICT __restrict
 #else
-#	define PX_RESTRICT
+//PX_GNUC, PX_VC and PX_GHS all support restrict.  If adding support for a compiler which does not like restrict, please add an exception for it by in that case defining PX_RESTRICT to naught.
+#	define PX_RESTRICT __restrict
 #endif
 
 #if defined(PX_WINDOWS) || defined(PX_X360) || defined(PX_WINMODERN) || defined(PX_XBOXONE)
@@ -297,7 +304,7 @@ This declaration style is parsed correctly by Visual Assist.
 /**
 Deprecated macro
 - To deprecate a function: Place PX_DEPRECATED at the start of the function header (leftmost word).
-- To deprecate a 'typdef', a 'struct' or a 'class': Place PX_DEPRECATED directly after the keywords ('typdef', 'struct', 'class').
+- To deprecate a 'typedef', a 'struct' or a 'class': Place PX_DEPRECATED directly after the keywords ('typdef', 'struct', 'class').
 */
 #if 0 // set to 1 to create warnings for deprecated functions
 #	define PX_DEPRECATED __declspec(deprecated)
@@ -315,7 +322,11 @@ General defines
 */
 
 // static assert
-#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : 0]
+#if defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 7)))  
+#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1] __attribute__((unused))
+#else 
+#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1]
+#endif
 
 #if defined(PX_GNUC)
 #define PX_OFFSET_OF(X, Y) __builtin_offsetof(X, Y)
@@ -339,6 +350,13 @@ General defines
 #define PX_CUDA_CALLABLE __host__ __device__
 #else
 #define PX_CUDA_CALLABLE
+#endif
+
+// Support GPU PhysX
+#if (defined(PX_WINDOWS) && !defined(PX_WINMODERN)) || defined(PX_LINUX)
+#define PX_SUPPORT_GPU_PHYSX 1
+#else
+#define PX_SUPPORT_GPU_PHYSX 0
 #endif
 
 // avoid unreferenced parameter warning (why not just disable it?)
@@ -410,6 +428,12 @@ PX_COMPILE_TIME_ASSERT(PX_OFFSET_OF(PxPackValidation, a) == 8);
 #define PX_IS_PS3 1
 #else
 #define PX_IS_PS3 0
+#endif
+
+#ifdef PX_NVTX
+#define PX_NVTX 1
+#else
+#define PX_NVTX 0
 #endif
 
 #define PX_IS_PPU (PX_IS_PS3 && !PX_IS_SPU) // PS3 PPU

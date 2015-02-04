@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -34,6 +34,7 @@
 @{
 */
 
+#include "PxPhysXConfig.h"
 #include "common/PxCollection.h"
 
 #ifndef PX_DOXYGEN
@@ -71,36 +72,36 @@ namespace physx
 
 
 		/**
-		\brief Collects all PxPhysics-level objects for serialization.
+		\brief Collects all objects in PxPhysics that are shareable across multiple scenes.
 
-		This function adds all objects managed by the PxPhysics object to the input collection, which can
-		then be serialized. Instances of the following types are included: PxConvexMesh, PxTriangleMesh, 
+		This function creates a new collection from all objects that are shareable across multiple 
+		scenes. Instances of the following types are included: PxConvexMesh, PxTriangleMesh, 
 		PxHeightField, PxShape, PxMaterial and PxClothFabric.
 
-		This is a helper function to easily enumerate all objects managed by PxPhysics. 
-		Users can also manually add a subset of those objects to the collection.
+		This is a helper function to ease the creation of collections for serialization. 
 
-		\param[in] physics Physics SDK to retrieve the objects from. See #PxPhysics
-		\return Collection to which objects will be added. See #PxCollection
+		\param[in] physics The physics SDK instance from which objects are collected. See #PxPhysics
+		\return Collection to which objects are added. See #PxCollection
 
 		@see PxCollection, PxPhysics
 		*/
 		static  PxCollection*	createCollection(PxPhysics& physics);
 	
 		/**
-		\brief Collects all PxScene-level objects for serialization.
+		\brief Collects all objects from a PxScene.
 
-		This function adds all objects managed by the PxScene object to the input collection, which can
-		then be serialized. Instances of the following types are included: PxActor, PxArticulation, 
-		PxAggregate and PxJoint (other PxConstraint types are not included).
+		This function creates a new collection from all objects that where added to the specified 
+		PxScene. Instances of the following types are included: PxActor, PxAggregate, 
+		PxArticulation and PxJoint (other PxConstraint types are not included).
 	
-		This is a helper function to easily enumerate all objects managed by PxScene. 
-		Users can also manually add a subset of those objects to the collection.
+		This is a helper function to ease the creation of collections for serialization. 
+		The function PxSerialization.complete() can be used to complete the collection with required objects prior to 
+		serialization.
 
-		\param[in] scene Scene to retrieve the objects from. See #PxScene
-		\return Collection to which objects will be added. See #PxCollection
+		\param[in] scene The PxScene instance from which objects are collected. See #PxScene
+		\return Collection to which objects are added. See #PxCollection
 
-		@see PxCollection, PxScene
+		@see PxCollection, PxScene, PxSerialization.complete()
 		*/
 		static	PxCollection*	createCollection(PxScene& scene);
 	};

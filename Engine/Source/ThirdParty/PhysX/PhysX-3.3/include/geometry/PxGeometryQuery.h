@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -74,8 +74,8 @@ public:
 	\li PxBoxGeometry vs. {PxSphereGeometry, PxPlaneGeometry, PxCapsuleGeometry, PxBoxGeometry, PxConvexMeshGeometry, PxTriangleMeshGeometry, PxHeightFieldGeometry}
 	\li PxConvexMeshGeometry vs. {PxSphereGeometry, PxPlaneGeometry, PxCapsuleGeometry, PxBoxGeometry, PxConvexMeshGeometry, PxTriangleMeshGeometry, PxHeightFieldGeometry}
 
-	\param[in] unitDir Normalized direction along which object geom0 should be swept.
-	\param[in] distance Sweep distance. Needs to be larger than 0.
+	\param[in] unitDir Normalized direction along which object geom0 should be swept
+	\param[in] maxDist Maximum sweep distance, has to be in the [0, inf) range
 	\param[in] geom0 The geometry object to sweep. Supported geometries are #PxSphereGeometry, #PxCapsuleGeometry, #PxBoxGeometry and #PxConvexMeshGeometry
 	\param[in] pose0 Pose of the geometry object to sweep
 	\param[in] geom1 The geometry object to test the sweep against
@@ -89,7 +89,7 @@ public:
 	@see PxSweepHit PxGeometry PxTransform
 	*/
 	PX_PHYSX_COMMON_API static bool sweep(const PxVec3& unitDir, 
-							const PxReal distance,
+							const PxReal maxDist,
 							const PxGeometry& geom0,
 							const PxTransform& pose0,
 							const PxGeometry& geom1,
@@ -122,11 +122,11 @@ public:
 	/**
 	\brief Raycast test against a geometry object.
 
-	\param[in] rayOrigin The origin of the ray to test the geometry object against
-	\param[in] rayDir The direction of the ray to test the geometry object against
+	\param[in] origin The origin of the ray to test the geometry object against
+	\param[in] unitDir Normalized direction of the ray to test the geometry object against
 	\param[in] geom The geometry object to test the ray against
 	\param[in] pose Pose of the geometry object
-	\param[in] maxDist Maximum ray length
+	\param[in] maxDist Maximum ray length, has to be in the [0, inf) range
 	\param[in] hitFlags Specification of the kind of information to retrieve on hit. Combination of #PxHitFlag flags
 	\param[in] maxHits max number of returned hits = size of 'rayHits' buffer
 	\param[out] rayHits Raycast hits information
@@ -137,8 +137,8 @@ public:
 
 	@see PxRaycastHit PxGeometry PxTransform
 	*/
-	PX_PHYSX_COMMON_API static PxU32 raycast(const PxVec3& rayOrigin,
-							const PxVec3& rayDir,
+	PX_PHYSX_COMMON_API static PxU32 raycast(const PxVec3& origin,
+							const PxVec3& unitDir,
 							const PxGeometry& geom,
 							const PxTransform& pose,
 							PxReal maxDist,

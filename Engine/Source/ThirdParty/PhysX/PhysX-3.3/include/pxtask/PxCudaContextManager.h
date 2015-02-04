@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 
 
 #ifndef PX_CUDA_CONTEXT_MANAGER_H
@@ -97,7 +97,7 @@ public:
      */
 	void	             *graphicsDevice;
 
-#if defined(PX_WINDOWS)
+#if PX_SUPPORT_GPU_PHYSX
 	/**
 	  * \brief Application-specific GUID
 	  *
@@ -149,7 +149,7 @@ public:
 		ctx = NULL;
 		interopMode = PxCudaInteropMode::NO_INTEROP;
 		graphicsDevice = 0;
-#if defined(PX_WINDOWS)
+#if PX_SUPPORT_GPU_PHYSX
 		appGUID  = NULL;
 #endif
 		for(PxU32 i = 0; i < PxCudaBufferMemorySpace::COUNT; i++)
@@ -248,6 +248,7 @@ public:
 	virtual int	getMultiprocessorCount() const = 0; //!< returns cache value of SM unit count
     virtual unsigned int getClockRate() const = 0; //!< returns cached value of SM clock frequency
     virtual int  getSharedMemPerBlock() const = 0; //!< returns total amount of shared memory available per block in bytes
+	virtual unsigned int getMaxThreadsPerBlock() const = 0; //!< returns the maximum number of threads per block
     virtual const char *getDeviceName() const = 0; //!< returns device name retrieved from driver
 	virtual PxCudaInteropMode::Enum getInteropMode() const = 0; //!< interop mode the context was created with
 
@@ -370,7 +371,7 @@ protected:
     PxCudaContextManager* mCtx;
 };
 
-#if defined(PX_WINDOWS) && !defined(PX_WINMODERN)
+#if PX_SUPPORT_GPU_PHYSX
 /**
  * \brief Ask the NVIDIA control panel which GPU has been selected for use by
  * PhysX.  Returns -1 if no PhysX capable GPU is found or GPU PhysX has

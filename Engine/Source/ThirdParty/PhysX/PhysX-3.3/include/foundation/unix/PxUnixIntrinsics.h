@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -46,44 +46,44 @@ namespace physx
 	namespace intrinsics
 {
 	//! \brief platform-specific absolute value
-	PX_FORCE_INLINE float abs(float a)						{	return ::fabs(a);	}
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float abs(float a)						{	return ::fabs(a);	}
 
 	//! \brief platform-specific select float
-	PX_FORCE_INLINE float fsel(float a, float b, float c)	{	return (a >= 0.0f) ? b : c;	}
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float fsel(float a, float b, float c)	{	return (a >= 0.0f) ? b : c;	}
 
 	//! \brief platform-specific sign
-	PX_FORCE_INLINE float sign(float a)						{	return (a >= 0.0f) ? 1.0f : -1.0f; }
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float sign(float a)						{	return (a >= 0.0f) ? 1.0f : -1.0f; }
 
 	//! \brief platform-specific reciprocal
-	PX_FORCE_INLINE float recip(float a)					{	return 1.0f/a;			}
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float recip(float a)					{	return 1.0f/a;			}
 
 	//! \brief platform-specific reciprocal estimate
 	PX_CUDA_CALLABLE PX_FORCE_INLINE float recipFast(float a)	{	return 1.0f/a;			}
 
 	//! \brief platform-specific square root
-	PX_FORCE_INLINE float sqrt(float a)						{	return ::sqrtf(a);	}
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float sqrt(float a)						{	return ::sqrtf(a);	}
 
 	//! \brief platform-specific reciprocal square root
-	PX_FORCE_INLINE float recipSqrt(float a)				{   return 1.0f/::sqrtf(a); }
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float recipSqrt(float a)				{   return 1.0f/::sqrtf(a); }
 
 	PX_CUDA_CALLABLE PX_FORCE_INLINE float recipSqrtFast(float a)	{	return 1.0f/::sqrtf(a); }
 
 	//! \brief platform-specific sine
-	PX_FORCE_INLINE float sin(float a)						{   return ::sinf(a); }
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float sin(float a)						{   return ::sinf(a); }
 
 	//! \brief platform-specific cosine
-	PX_FORCE_INLINE float cos(float a)						{   return ::cosf(a); }
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float cos(float a)						{   return ::cosf(a); }
 
 	//! \brief platform-specific minimum
-	PX_FORCE_INLINE float selectMin(float a, float b)		{	return a<b ? a : b;	}
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float selectMin(float a, float b)		{	return a<b ? a : b;	}
 
 	//! \brief platform-specific maximum
-	PX_FORCE_INLINE float selectMax(float a, float b)		{	return a>b ? a : b; }
+	PX_CUDA_CALLABLE PX_FORCE_INLINE float selectMax(float a, float b)		{	return a>b ? a : b; }
 
 	//! \brief platform-specific float floor
 	PX_FORCE_INLINE float floor(float a)
 	{
-		return floor(a);
+		return ::floor(a);
 	}
 
 	//! \brief platform-specific finiteness check (not INF or NAN)

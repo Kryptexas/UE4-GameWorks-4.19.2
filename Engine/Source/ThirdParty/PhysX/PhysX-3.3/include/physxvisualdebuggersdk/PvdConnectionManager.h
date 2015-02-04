@@ -23,10 +23,10 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 #ifndef PVD_CONNECTION_MANAGER_H
 #define PVD_CONNECTION_MANAGER_H
-#include "physxvisualdebuggersdk/PvdObjectModelBaseTypes.h"
+
 #include "physxvisualdebuggersdk/PvdConnectionFlags.h"
 #include "physxvisualdebuggersdk/PvdNetworkStreams.h"
 #include "physxvisualdebuggersdk/PvdConnection.h"
@@ -40,6 +40,8 @@ namespace physx { namespace debugger {
 
 	class PvdNetworkInStream;
 	class PvdNetworkOutStream;
+	struct PvdColor;
+	typedef const char* String;
 }}
 
 namespace physx { namespace debugger { namespace comm {

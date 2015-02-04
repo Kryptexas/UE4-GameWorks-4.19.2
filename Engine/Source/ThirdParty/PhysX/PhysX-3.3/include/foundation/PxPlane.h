@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -94,6 +94,11 @@ public:
 		n = (p1 - p0).cross(p2 - p0).getNormalized();
 		d = -p0.dot(n);
 	}
+
+	/**
+	\brief returns true if the two planes are exactly equal
+	*/
+	PX_CUDA_CALLABLE PX_INLINE bool operator==(const PxPlane& p) const	{ return n == p.n && d == p.d; }
 
 	PX_CUDA_CALLABLE PX_FORCE_INLINE PxReal distance(const PxVec3& p) const
 	{

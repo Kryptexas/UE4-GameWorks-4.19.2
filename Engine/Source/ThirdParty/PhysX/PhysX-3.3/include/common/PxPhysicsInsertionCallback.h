@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -51,6 +51,9 @@ namespace physx
 	This advised only if real-time cooking is required, using "offline" cooking and
 	streams is highly advised.
 
+	Only default PxPhysicsInsertionCallback implementation must be used. The PxPhysics
+	default callback can be obtained using the PxPhysics::getPhysicsInsertionCallback().
+
 	@see PxCooking PxPhysics
 	*/
 	class PxPhysicsInsertionCallback
@@ -58,7 +61,12 @@ namespace physx
 	public:
 		PxPhysicsInsertionCallback()				{}		
 
-		virtual bool insertObject(PxBase& )			= 0;
+		/**
+		\brief Inserts object (TriangleMesh or HeightfieldMesh) into PxPhysics.		
+
+		\param obj Object to insert.
+		*/
+		virtual bool insertObject(PxBase& obj)			= 0;
 
 	protected:
 		virtual ~PxPhysicsInsertionCallback()		{}

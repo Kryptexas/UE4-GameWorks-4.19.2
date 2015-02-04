@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 
 #ifndef PX_TASK_H
 #define PX_TASK_H
@@ -72,19 +72,27 @@ public:
 	//! \brief Implemented by derived implementation classes
 	virtual PxI32		getReference() const = 0;
 
-    //! \brief Implemented by derived implementation classes
+    /** \brief Implemented by derived implementation classes
+	 *
+	 * A task may assume in its release() method that the task system no longer holds 
+	 * references to it - so it may safely run its destructor, recycle itself, etc.
+	 * provided no additional user references to the task exist
+	 */
+
     virtual void		release() = 0;
 
 	/**
      * \brief Execute user run method with wrapping profiling events.
      *
      * Optional entry point for use by CpuDispatchers.
+	 *
+	 * \param[in] threadId The threadId of the thread that executed the task.
 	 */
-	PX_INLINE void runProfiled()
-	{
-		mTm->emitStartEvent(*this);
+	PX_INLINE void runProfiled(PxU32 threadId=0)
+	{		
+		mTm->emitStartEvent(*this, threadId);
 		run();
-		mTm->emitStopEvent(*this);
+		mTm->emitStopEvent(*this, threadId);
 	}
 
 	/**
@@ -217,7 +225,7 @@ public:
 
 
 protected:
-	PxTaskID				mTaskID;			//!< ID assigned at submission
+	PxTaskID			mTaskID;			//!< ID assigned at submission
 	PxU32				mStreamIndex;		//!< GpuTask CUDA stream index
 	bool				mPreSyncRequired;	//!< GpuTask sync flag
 

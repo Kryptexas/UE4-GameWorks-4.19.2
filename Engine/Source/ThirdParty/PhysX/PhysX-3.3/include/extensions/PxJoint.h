@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -106,6 +106,12 @@ struct PxJointActorIndex
 
 class PxJoint : public PxBase
 {
+//= ATTENTION! =====================================================================================
+// Changing the data layout of this class breaks the binary serialization format.  See comments for 
+// PX_BINARY_SERIAL_VERSION.  If a modification is required, please adjust the getBinaryMetaData 
+// function.  If the modification is made on a custom branch, please change PX_BINARY_SERIAL_VERSION
+// accordingly.
+//==================================================================================================
 public:
 
 	/**
@@ -353,6 +359,8 @@ public:
 
 	/**
 	\brief Deletes the joint.
+
+	\note This call does not wake up the connected rigid bodies.
 	*/
 
 	virtual void				release()														= 0;
@@ -415,6 +423,12 @@ protected:
 
 class PxSpring
 {
+//= ATTENTION! =====================================================================================
+// Changing the data layout of this class breaks the binary serialization format.  See comments for 
+// PX_BINARY_SERIAL_VERSION.  If a modification is required, please adjust the getBinaryMetaData 
+// function.  If the modification is made on a custom branch, please change PX_BINARY_SERIAL_VERSION
+// accordingly.
+//==================================================================================================
 public:
 
 	PxReal					stiffness;			//!< the spring strength of the drive: that is, the force proportional to the position error

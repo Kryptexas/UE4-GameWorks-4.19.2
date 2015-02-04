@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -143,6 +143,12 @@ public:
 	}
 
 	/**
+	\brief returns true if the two quaternions are exactly equal
+	*/
+	PX_CUDA_CALLABLE PX_INLINE bool operator==(const PxQuat&q) const	{ return x == q.x && y == q.y && z == q.z && w == q.w; }
+
+
+	/**
 	\brief converts this quaternion to angle-axis representation
 	*/
 
@@ -254,7 +260,6 @@ public:
 	/** brief computes rotation of x-axis */
 	PX_CUDA_CALLABLE PX_FORCE_INLINE PxVec3 getBasisVector0()	const
 	{	
-//		return rotate(PxVec3(1,0,0));
 		const PxF32 x2 = x*2.0f;
 		const PxF32 w2 = w*2.0f;
 		return PxVec3(	(w * w2) - 1.0f + x*x2,
@@ -265,7 +270,6 @@ public:
 	/** brief computes rotation of y-axis */
 	PX_CUDA_CALLABLE PX_FORCE_INLINE PxVec3 getBasisVector1()	const 
 	{	
-//		return rotate(PxVec3(0,1,0));
 		const PxF32 y2 = y*2.0f;
 		const PxF32 w2 = w*2.0f;
 		return PxVec3(	(-z * w2)       + x*y2,
@@ -277,7 +281,6 @@ public:
 	/** brief computes rotation of z-axis */
 	PX_CUDA_CALLABLE PX_FORCE_INLINE PxVec3 getBasisVector2() const	
 	{	
-//		return rotate(PxVec3(0,0,1));
 		const PxF32 z2 = z*2.0f;
 		const PxF32 w2 = w*2.0f;
 		return PxVec3(	(y * w2)        + x*z2,
@@ -289,7 +292,6 @@ public:
 	rotates passed vec by this (assumed unitary)
 	*/
 	PX_CUDA_CALLABLE PX_FORCE_INLINE const PxVec3 rotate(const PxVec3& v) const
-//	PX_CUDA_CALLABLE PX_INLINE const PxVec3 rotate(const PxVec3& v) const
 	{
 		const PxF32 vx = 2.0f*v.x;
 		const PxF32 vy = 2.0f*v.y;
@@ -302,17 +304,12 @@ public:
 			(vy*w2 + (z * vx - x * vz)*w + y*dot2), 
 			(vz*w2 + (x * vy - y * vx)*w + z*dot2)
 		);
-		/*
-		const PxVec3 qv(x,y,z);
-		return (v*(w*w-0.5f) + (qv.cross(v))*w + qv*(qv.dot(v)))*2;
-		*/
 	}
 
 	/**
 	inverse rotates passed vec by this (assumed unitary)
 	*/
 	PX_CUDA_CALLABLE PX_FORCE_INLINE const PxVec3 rotateInv(const PxVec3& v) const
-//	PX_CUDA_CALLABLE PX_INLINE const PxVec3 rotateInv(const PxVec3& v) const
 	{
 		const PxF32 vx = 2.0f*v.x;
 		const PxF32 vy = 2.0f*v.y;
@@ -325,8 +322,6 @@ public:
 			(vy*w2 - (z * vx - x * vz)*w + y*dot2), 
 			(vz*w2 - (x * vy - y * vx)*w + z*dot2)
 		);
-//		const PxVec3 qv(x,y,z);
-//		return (v*(w*w-0.5f) - (qv.cross(v))*w + qv*(qv.dot(v)))*2;
 	}
 
 	/**

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -46,8 +46,10 @@
 		#else
 			#define PX_PHYSX_CHARACTER_API __declspec(dllimport)
 		#endif
+	#elif defined(PX_UNIX)
+		#define PX_PHYSX_CHARACTER_API PX_UNIX_EXPORT
     #else
-		#define PX_PHYSX_CHARACTER_API 
+		#define PX_PHYSX_CHARACTER_API
     #endif
 #endif
 

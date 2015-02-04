@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -107,7 +107,7 @@ public:
 		mGearDown = false;
 	}
 
-	~PxVehicleDrive4WRawInputData()
+	virtual ~PxVehicleDrive4WRawInputData()
 	{
 	}
 
@@ -320,7 +320,7 @@ class PxVehicleDriveNWRawInputData : public PxVehicleDrive4WRawInputData
 {
 public:
 
-	PxVehicleDriveNWRawInputData() : PxVehicleDrive4WRawInputData(){};
+	PxVehicleDriveNWRawInputData() : PxVehicleDrive4WRawInputData(){}
 	~PxVehicleDriveNWRawInputData(){}
 };
 

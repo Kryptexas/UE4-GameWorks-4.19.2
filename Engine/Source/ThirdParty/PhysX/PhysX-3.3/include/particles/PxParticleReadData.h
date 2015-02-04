@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -67,6 +67,8 @@ struct PxParticleReadDataFlag
 			/**
 			Enables reading per particle rest offsets from the SDK.
 			Per particle rest offsets are never changed by the simulation.
+			This option may only be used on particle systems that have 
+			PxParticleBaseFlag.ePER_PARTICLE_REST_OFFSET enabled.
 			@see PxParticleBaseFlag.ePER_PARTICLE_REST_OFFSET
 			*/
 			eREST_OFFSET_BUFFER			= (1<<2),
@@ -202,7 +204,7 @@ class PxParticleReadData : public PxLockedData
 	/**
 	\brief virtual destructor
 	*/
-	virtual ~PxParticleReadData() {};
+	virtual ~PxParticleReadData() {}
 
 	};
 

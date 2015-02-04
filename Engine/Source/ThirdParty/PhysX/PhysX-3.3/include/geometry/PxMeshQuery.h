@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -137,28 +137,34 @@ public:
 	/**
 	\brief Sweep a specified geometry object in space and test for collision with a set of given triangles.
 
-	\note Only the following geometry types are supported: PxSphereGeometry, PxCapsuleGeometry, PxBoxGeometry
-	\note If a shape from the scene is already overlapping with the query shape in its starting position, the hit is returned unless eASSUME_NO_INITIAL_OVERLAP was specified.
+	This function simply sweeps input geometry against each input triangle. This is an O(N) operation with N = number of input triangles.
+	It does not use any particular acceleration structure.
 
 	\param[in] unitDir Normalized direction of the sweep.
-	\param[in] distance Sweep distance. Needs to be larger than 0.
+	\param[in] distance Sweep distance. Needs to be larger than 0. Clamped to PX_MAX_SWEEP_DISTANCE.
 	\param[in] geom The geometry object to sweep. Supported geometries are #PxSphereGeometry, #PxCapsuleGeometry and #PxBoxGeometry
 	\param[in] pose Pose of the geometry object to sweep.
 	\param[in] triangleCount Number of specified triangles
 	\param[in] triangles Array of triangles to sweep against
-	\param[out] sweepHit The sweep hit information. On hit, both faceID parameters will hold the index of the hit triangle. Only valid if this method returns true.
-	\param[in] hintFlags Specification of the kind of information to retrieve on hit. Combination of #PxHitFlag flags
+	\param[out] sweepHit The sweep hit information. See the notes below for limitations about returned results.
+	\param[in] hintFlags Specification of the kind of information to retrieve on hit. Combination of #PxHitFlag flags. See the notes below for limitations about supported flags.
 	\param[in] cachedIndex Cached triangle index for subsequent calls. Cached triangle is tested first. Optional parameter.
-	\param[in] inflation	This parameter creates a skin around the swept geometry which increases its extents for sweeping. The sweep will register a hit as soon as the skin touches a shape, and will return the corresponding distance and normal.
+	\param[in] inflation This parameter creates a skin around the swept geometry which increases its extents for sweeping. The sweep will register a hit as soon as the skin touches a shape, and will return the corresponding distance and normal.
+	\param[in] doubleSided Counterpart of PxMeshGeometryFlag::eDOUBLE_SIDED for input triangles.
 	\return True if the swept geometry object hits the specified triangles
 
-	/note This function returns a single closest hit across all the input triangles.
-	/note Only PxHitFlag::eASSUME_NO_INITIAL_OVERLAP is supported in hintFlags.
-	/note Unlike scene queries the validity flags in sweepHit are not set by this call and only eDISTANCE and eNORMAL fields are always defined.
-	/note ePOSITION is only defined when there is no initial overlap (sweepHit.hadInitialOverlap() == false)
-	/note The returned normal for initially overlapping sweeps is set to -unitDir.
+	\note Only the following geometry types are currently supported: PxSphereGeometry, PxCapsuleGeometry, PxBoxGeometry
+	\note If a shape from the scene is already overlapping with the query shape in its starting position, the hit is returned unless eASSUME_NO_INITIAL_OVERLAP was specified.
+	\note This function returns a single closest hit across all the input triangles. Multiple hits are not supported.
+	\note Only PxHitFlag::eASSUME_NO_INITIAL_OVERLAP, PxHitFlag::ePRECISE_SWEEP and PxHitFlag::eMESH_BOTH_SIDES are supported in hintFlags.
+	\note Unlike scene queries the validity flags in sweepHit are not set by this call and only eDISTANCE and eNORMAL fields are always defined.
+	\note ePOSITION is only defined when there is no initial overlap (sweepHit.hadInitialOverlap() == false)
+	\note The returned normal for initially overlapping sweeps is set to -unitDir.
+	\note The returned PxSweepHit::faceIndex parameter will hold the index of the hit triangle in input array, i.e. the range is [0; triangleCount). For initially overlapping sweeps, this is the index of overlapping triangle.
+	\note The returned PxSweepHit::actor and PxSweepHit::shape pointers are not filled.
+	\note The inflation parameter is not compatible with PxHitFlag::ePRECISE_SWEEP.
 
-	@see Triangle PxSweepHit PxGeometry PxTransform
+	@see PxTriangle PxSweepHit PxGeometry PxTransform
 	*/
 	PX_PHYSX_COMMON_API static bool sweep(const PxVec3& unitDir,
 							const PxReal distance,
@@ -168,7 +174,9 @@ public:
 							const PxTriangle* triangles,
 							PxSweepHit& sweepHit,
 							PxHitFlags hintFlags = PxHitFlag::eDEFAULT,
-							const PxU32* cachedIndex = NULL, const PxReal inflation = 0.f);
+							const PxU32* cachedIndex = NULL,
+							const PxReal inflation = 0.0f,
+							bool doubleSided = false);
 };
 
 

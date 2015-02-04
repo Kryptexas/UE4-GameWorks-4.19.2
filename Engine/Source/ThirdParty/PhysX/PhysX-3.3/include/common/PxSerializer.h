@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -36,6 +36,7 @@
 
 #include "PxSerialFramework.h"
 #include "PxCollection.h"
+#include "foundation/PxAssert.h"
 
 #ifndef PX_DOXYGEN
 namespace physx
@@ -136,7 +137,7 @@ public:
 
 	//@}
 	/**********************************************************************************************************************/
-	virtual ~PxSerializer() {};
+	virtual ~PxSerializer() {}
 };
 
 
