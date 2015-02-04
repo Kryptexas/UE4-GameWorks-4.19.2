@@ -98,6 +98,7 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 				SNew( SHorizontalBox )
 
 				+SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 14.0f, 0.0f)
 				.AutoWidth()
 				[
 					SNew(SBox)
@@ -106,7 +107,7 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 						SNew( STextBlock )
 						.Text( RightContentText )
 						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14 ) )
-						.ColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 0.3f ) )
+						.ColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 0.4f ) )
 					]
 				]
 // Put the level editor stats/notification widgets on the main window title bar since we don't have a menu bar on OS X
