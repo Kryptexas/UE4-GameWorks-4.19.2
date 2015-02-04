@@ -615,6 +615,13 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 		return StartIndex + 1;
 	}
 
+	const bool bIsDirect = (Path->CastPath<FAbstractNavigationPath>() != NULL);
+	if (bIsDirect)
+	{
+		// can't optimize anything without real corridor
+		return StartIndex + 1;
+	}
+
 	const APawn* MyPawn = MyAI->GetPawn();
 	const float PawnHalfHeight = (MyAI->GetCharacter() && MyAI->GetCharacter()->GetCapsuleComponent()) ? MyAI->GetCharacter()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f;
 	const FVector PawnLocation = MyPawn->GetActorLocation();
