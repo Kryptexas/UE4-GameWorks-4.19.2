@@ -43,8 +43,58 @@ namespace DeploymentServer
             return 25;
         }
     }
-    
-    class DeploymentImplementation : MarshalByRefObject, DeploymentInterface
+
+	class DeploymentProxy : MarshalByRefObject, DeploymentInterface
+	{
+		static public DeploymentImplementation Deployer;
+		public DeploymentProxy()
+		{
+		}
+
+		public string DeviceId { get { return Deployer.DeviceId; } set { Deployer.DeviceId = value; } }
+
+		public void SetReportingInterface(DeployTimeReportingInterface InReporter)
+		{
+			Deployer.SetReportingInterface(InReporter);
+		}
+
+		public bool UninstallIPAOnDevice(string ApplicationIdentifier)
+		{
+			return Deployer.UninstallIPAOnDevice(ApplicationIdentifier);
+		}
+
+		public ConnectedDeviceInfo[] EnumerateConnectedDevices()
+		{
+			return Deployer.EnumerateConnectedDevices();
+		}
+
+		public bool InstallIPAOnDevice(string IPAPath)
+		{
+			return Deployer.InstallIPAOnDevice(IPAPath);
+		}
+
+		public bool InstallFilesOnDevice(string BundleIdentifier, string ManifestFile)
+		{
+			return Deployer.InstallFilesOnDevice(BundleIdentifier, ManifestFile);
+		}
+
+		public bool BackupDocumentsDirectory(string BundleIdentifier, string DestinationDocumentsDirectory)
+		{
+			return Deployer.BackupDocumentsDirectory(BundleIdentifier, DestinationDocumentsDirectory);
+		}
+
+		public bool BackupFiles(string BundleIdentifier, string[] Files)
+		{
+			return Deployer.BackupFiles(BundleIdentifier, Files);
+		}
+
+		public bool ListApplications()
+		{
+			return Deployer.ListApplications();
+		}
+	};
+
+    class DeploymentImplementation : DeploymentInterface
     {
         bool bHaveRegisteredHandlers = false;
 
