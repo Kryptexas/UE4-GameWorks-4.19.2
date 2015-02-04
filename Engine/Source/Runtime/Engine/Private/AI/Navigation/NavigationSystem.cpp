@@ -3257,14 +3257,6 @@ void UNavigationSystem::CleanUp(ECleanupMode Mode)
 
 	DestroyNavOctree();
 	
-	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
-	{
-		if (NavDataSet[NavDataIndex] != NULL)
-		{
-			NavDataSet[NavDataIndex]->CleanUp();
-		}
-	}	
-
 	SetCrowdManager(NULL);
 
 	NavDataSet.Reset();
