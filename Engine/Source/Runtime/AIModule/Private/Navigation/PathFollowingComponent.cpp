@@ -40,7 +40,6 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	bUseBlockDetection = true;
 	bLastMoveReachedGoal = false;
 	bUseVisibilityTestsSimplification = false;
-	bPendingPathStartUpdate = false;
 	bStopMovementOnFinish = true;
 
 	MoveSegmentStartIndex = 0;
@@ -50,8 +49,6 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 
 	bStopOnOverlap = true;
 	Status = EPathFollowingStatus::Idle;
-
-	PathObserver = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &UPathFollowingComponent::OnPathEvent);
 }
 
 void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalActor, const int32 CurrentPathPointGoal)
@@ -124,7 +121,6 @@ void UPathFollowingComponent::OnPathEvent(FNavigationPath* InvalidatedPath, ENav
 		case ENavPathEvent::UpdatedDueToNavigationChanged:
 		{
 			UpdateMove(Path, GetCurrentRequestId());
-			OnPathUpdated();
 		}
 		break;
 	}
@@ -188,9 +184,13 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 
 		// store new data
 		Path = InPath;
-		Path->AddObserver(PathObserver);
-		check(MovementComp->GetOwner() != nullptr);
-		Path->SetSourceActor(*(MovementComp->GetOwner()));
+		Path->AddObserver(FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &UPathFollowingComponent::OnPathEvent));
+		if (MovementComp && MovementComp->GetOwner())
+		{
+			Path->SetSourceActor(*(MovementComp->GetOwner()));
+		}
+
+		PathTimeWhenPaused = 0;
 		OnPathUpdated();
 
 		AcceptanceRadius = InAcceptanceRadius;
@@ -214,7 +214,6 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 
 			// determine with path segment should be followed
 			const uint32 CurrentSegment = DetermineStartingPathPoint(InPath.Get());
-			bPendingPathStartUpdate = false;
 			SetMoveSegment(CurrentSegment);
 		}
 		else
@@ -249,12 +248,7 @@ bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, FAIRequestID 
 		Status = EPathFollowingStatus::Moving;
 
 		const int32 CurrentSegment = DetermineStartingPathPoint(InPath.Get());
-		bPendingPathStartUpdate = false;
 		SetMoveSegment(CurrentSegment);
-	}
-	else if (Status == EPathFollowingStatus::Paused)
-	{
-		bPendingPathStartUpdate = true;
 	}
 
 	return true;
@@ -314,6 +308,7 @@ void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVeloc
 		}
 
 		LocationWhenPaused = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
+		PathTimeWhenPaused = GetWorld()->GetTimeSeconds();
 		Status = EPathFollowingStatus::Paused;
 
 		UpdateMoveFocus();
@@ -333,10 +328,11 @@ void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
 		if (bIsOnPath)
 		{
 			Status = EPathFollowingStatus::Moving;
-			if (bMovedDuringPause || bPendingPathStartUpdate)
+
+			const bool bWasPathUpdatedRecently = Path.IsValid() ? (GetWorld()->GetTimeSeconds() > Path->GetTimeStamp()) : false;
+			if (bMovedDuringPause || bWasPathUpdatedRecently)
 			{
 				const int32 CurrentSegment = DetermineStartingPathPoint(Path.Get());
-				bPendingPathStartUpdate = false;
 				SetMoveSegment(CurrentSegment);
 			}
 			else

@@ -275,6 +275,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 
 	void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
 
+
 protected:
 
 	/** associated movement component */
@@ -293,9 +294,6 @@ protected:
 
 	/** requested path */
 	FNavPathSharedPtr Path;
-
-	/** responsible to handing path's events like "underlying navigation rebuilt" or "goal moved" */
-	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
 
 	/** value based on navigation agent's properties that's used for AcceptanceRadius when DefaultAcceptanceRadius is requested */
 	float MyDefaultAcceptanceRadius;
@@ -333,6 +331,9 @@ protected:
 	/** agent location when movement was paused */
 	FVector LocationWhenPaused;
 
+	/** timestamp of path update when movement was paused */
+	float PathTimeWhenPaused;
+
 	/** set when paths simplification using visibility tests are needed  (disabled by default because of performance) */
 	UPROPERTY(config)
 	uint32 bUseVisibilityTestsSimplification : 1;
@@ -349,10 +350,7 @@ protected:
 	/** set when last move request was finished at goal */
 	uint32 bLastMoveReachedGoal : 1;
 
-	/** set when UpdateMove() is called during paused move, will update path's start segment on resuming */
-	uint32 bPendingPathStartUpdate : 1;
-
-	/** if set, movment will be stopped on finishing path */
+	/** if set, movement will be stopped on finishing path */
 	uint32 bStopMovementOnFinish : 1;
 
 	/** detect blocked movement when distance between center of location samples and furthest one (centroid radius) is below threshold */

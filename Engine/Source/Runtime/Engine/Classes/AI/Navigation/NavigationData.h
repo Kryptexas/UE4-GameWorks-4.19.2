@@ -100,7 +100,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	{
 		return ObserverDelegate;
 	}
-	FORCEINLINE FDelegateHandle AddObserver(FPathObserverDelegate::FDelegate& NewObserver)
+	FORCEINLINE FDelegateHandle AddObserver(FPathObserverDelegate::FDelegate NewObserver)
 	{
 		return ObserverDelegate.Add(NewObserver);
 	}
