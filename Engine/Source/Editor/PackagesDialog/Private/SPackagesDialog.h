@@ -293,6 +293,9 @@ public:
 		/** The warning message of the widget */
 		SLATE_ARGUMENT(FText, Warning)
 
+		/** Called when source control state changes */
+		SLATE_EVENT(FSimpleDelegate, OnSourceControlStateChanged)
+
 	SLATE_END_ARGS()
 	
 	/**
@@ -311,6 +314,11 @@ public:
 	 * @return	The widget which was created
 	 */
 	TSharedRef<SWidget> GenerateWidgetForItemAndColumn( TSharedPtr<FPackageItem> Item, const FName ColumnID ) const;
+
+	/**
+	 * Removes all checkbox items from the dialog
+	 */
+	void RemoveAll();
 
 	/**
 	 * Adds a new checkbox item to the dialog
@@ -520,6 +528,9 @@ private:
 
 	/** Currently selected sorting mode */
 	EColumnSortMode::Type SortMode;
+
+	/** Called when source control state changes */
+	FSimpleDelegate OnSourceControlStateChanged;
 };
 
 /** Widget that represents a row in the PackagesDialog's list view.  Generates widgets for each column on demand. */

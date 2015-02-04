@@ -71,6 +71,7 @@ void SPackagesDialog::Construct(const FArguments& InArgs)
 	bAllowSourceControlConnection = InArgs._AllowSourceControlConnection.Get();
 	Message = InArgs._Message;
 	Warning = InArgs._Warning;
+	OnSourceControlStateChanged = InArgs._OnSourceControlStateChanged;
 	SortByColumn = SPackagesDialogDefs::ColumnID_FileLabel;
 	SortMode = EColumnSortMode::Ascending;
 
@@ -180,6 +181,14 @@ void SPackagesDialog::Construct(const FArguments& InArgs)
 			]
 		]
 	];
+}
+
+/**
+ * Removes all checkbox items from the dialog
+ */
+void SPackagesDialog::RemoveAll()
+{
+	Items.Reset();
 }
 
 /**
@@ -589,6 +598,7 @@ EVisibility SPackagesDialog::GetConnectToSourceControlVisibility() const
 FReply SPackagesDialog::OnConnectToSourceControlClicked() const
 {
 	ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed(), ELoginWindowMode::Modal);
+	OnSourceControlStateChanged.ExecuteIfBound();
 	return FReply::Handled();
 }
 

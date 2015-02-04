@@ -32,13 +32,14 @@ void FPackagesDialogModule::ShutdownModule()
 	}
 }
 
-void FPackagesDialogModule::CreatePackagesDialog(const FText& Title, const FText& Message, bool InReadOnly, bool InAllowSourceControlConnection)
+void FPackagesDialogModule::CreatePackagesDialog(const FText& Title, const FText& Message, bool InReadOnly, bool InAllowSourceControlConnection, const FSimpleDelegate& InOnSourceControlStateChanged)
 {
 	PackageDialogTitle = Title;
 	PackagesDialogWidget = SNew(SPackagesDialog) 
 		.ReadOnly(InReadOnly)
 		.AllowSourceControlConnection(InAllowSourceControlConnection)
-		.Message(Message);
+		.Message(Message)
+		.OnSourceControlStateChanged(InOnSourceControlStateChanged);
 }
 
 /**
@@ -165,6 +166,14 @@ void FPackagesDialogModule::GetResults(OUT TArray<UPackage*>& OutPackages, EChec
 			OutPackages.Add(UndeterminedPackages[PackageIndex]);
 		}
 	}
+}
+
+/**
+ * Removes all package items from the dialog
+ */
+void FPackagesDialogModule::RemoveAllPackageItems()
+{
+	PackagesDialogWidget.Get()->RemoveAll();
 }
 
 /**
