@@ -60,6 +60,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 			if (AudioComponent)
 			{
 				AudioComponent->bIsUISound = true;
+				AudioComponent->bAllowSpatialization = false;
 				AudioComponent->SetVolumeMultiplier(1.5f);
 
 				const FStringAssetReference VoiPSoundClassName = GetDefault<UAudioSettings>()->VoiPSoundClass;
