@@ -3432,13 +3432,11 @@ TSharedRef<ITableRow> SSCSEditor::MakeTableRowWidget( FSCSEditorTreeNodePtrType 
 	// Create the node of the appropriate type
 	if (InNodePtr->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
 	{
-		return SNew(SSCS_RowWidget_ActorRoot, SharedThis(this), InNodePtr, OwnerTable)
-			.AddMetaData<FTutorialMetaData>(TagMeta);
+		return SNew(SSCS_RowWidget_ActorRoot, SharedThis(this), InNodePtr, OwnerTable);
 	}
 	else if (InNodePtr->GetNodeType() == FSCSEditorTreeNode::SeparatorNode)
 	{
-		return SNew(SSCS_RowWidget_Separator, SharedThis(this), InNodePtr, OwnerTable)
-			.AddMetaData<FTutorialMetaData>(TagMeta);
+		return SNew(SSCS_RowWidget_Separator, SharedThis(this), InNodePtr, OwnerTable);
 	}
 
 	return SNew(SSCS_RowWidget, SharedThis(this), InNodePtr, OwnerTable)
