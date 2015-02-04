@@ -277,7 +277,7 @@ bool ContentBrowserUtils::OpenEditorForAsset(const TArray<UObject*>& Assets)
 	return false;
 }
 
-bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths, TArray<UObject*>& LoadedObjects, bool bAllowedToPromptToLoadAssets)
+bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths, TArray<UObject*>& LoadedObjects, bool bAllowedToPromptToLoadAssets, bool bLoadRedirects)
 {
 	bool bAnyObjectsWereLoadedOrUpdated = false;
 
@@ -328,14 +328,15 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 
 		GIsEditorLoadingPackage = true;
 
+		// We usually don't want to follow redirects when loading objects for the Content Browser.  It would
+		// allow a user to interact with a ghost/unverified asset as if it were still alive.
+		// This can be overridden by providing bLoadRedirects = true as a parameter.
+		const ELoadFlags LoadFlags = bLoadRedirects ? LOAD_None : LOAD_NoRedirects;
+
 		bool bSomeObjectsFailedToLoad = false;
 		for (int32 PathIdx = 0; PathIdx < UnloadedObjectPaths.Num(); ++PathIdx)
 		{
 			const FString& ObjectPath = UnloadedObjectPaths[PathIdx];
-
-			// We never want to follow redirects when loading objects for the Content Browser.  It would
-			// allow a user to interact with a ghost/unverified asset as if it were still alive.
-			const ELoadFlags LoadFlags = LOAD_NoRedirects;
 
 			// Load up the object
 			UObject* LoadedObject = LoadObject<UObject>(NULL, *ObjectPath, NULL, LoadFlags, NULL);

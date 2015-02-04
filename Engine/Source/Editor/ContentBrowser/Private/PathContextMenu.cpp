@@ -684,7 +684,9 @@ void FPathContextMenu::ExecuteFixUpRedirectorsInFolder()
 		}
 
 		TArray<UObject*> Objects;
-		if (ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, Objects))
+		const bool bAllowedToPromptToLoadAssets = true;
+		const bool bLoadRedirects = true;
+		if (ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, Objects, bAllowedToPromptToLoadAssets, bLoadRedirects))
 		{
 			// Transform Objects array to ObjectRedirectors array
 			TArray<UObjectRedirector*> Redirectors;
