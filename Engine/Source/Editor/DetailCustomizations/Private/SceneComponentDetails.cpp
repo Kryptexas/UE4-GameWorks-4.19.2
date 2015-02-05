@@ -12,6 +12,7 @@
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "Engine/InheritableComponentHandler.h"
 #include "Components/LightComponentBase.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponentDetails"
@@ -659,6 +660,20 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 					{
 						bShouldShowTransform = false;
 					}
+				}
+			}
+
+			if (bShouldShowTransform && SceneComponent && SceneComponent->HasAnyFlags(RF_InheritableComponentTemplate))
+			{
+				auto OwnerClass = Cast<UClass>(SceneComponent->GetOuter());
+				auto Bluepirnt = UBlueprint::GetBlueprintFromClass(OwnerClass);
+				auto InheritableComponentHandler = Bluepirnt ? Bluepirnt->GetInheritableComponentHandler(false) : nullptr;
+				auto ComponentKey = InheritableComponentHandler ? InheritableComponentHandler->FindKey(SceneComponent) : FComponentKey();
+				auto SCSNode = ComponentKey.FindSCSNode();
+				const bool bProperRootNodeFound = ComponentKey.IsValid() && SCSNode && SCSNode->IsRootNode() && (SCSNode->ParentComponentOrVariableName == NAME_None);
+				if (bProperRootNodeFound)
+				{
+					bShouldShowTransform = false;
 				}
 			}
 		}

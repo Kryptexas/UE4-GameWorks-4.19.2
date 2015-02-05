@@ -246,6 +246,18 @@ bool UInheritableComponentHandler::RenameTemplate(FComponentKey OldKey, FName Ne
 	return false;
 }
 
+FComponentKey UInheritableComponentHandler::FindKey(UActorComponent* ComponentTemplate) const
+{
+	for (auto& Record : Records)
+	{
+		if (Record.ComponentTemplate == ComponentTemplate)
+		{
+			return Record.ComponentKey;
+		}
+	}
+	return FComponentKey();
+}
+
 #endif
 
 UActorComponent* UInheritableComponentHandler::GetOverridenComponentTemplate(FComponentKey Key) const
@@ -286,7 +298,7 @@ bool FComponentKey::Match(const FComponentKey OtherKey) const
 
 USCS_Node* FComponentKey::FindSCSNode() const
 {
-	auto ParentSCS = OwnerClass ? OwnerClass->SimpleConstructionScript : nullptr;
+	auto ParentSCS = (OwnerClass && IsValid()) ? OwnerClass->SimpleConstructionScript : nullptr;
 	return ParentSCS ? ParentSCS->FindSCSNodeByGuid(VariableGuid) : nullptr;
 }
 
