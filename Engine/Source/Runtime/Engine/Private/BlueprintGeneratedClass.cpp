@@ -78,17 +78,6 @@ void UBlueprintGeneratedClass::PostLoad()
 #endif // WITH_EDITORONLY_DATA
 }
 
-#if WITH_EDITOR
-
-UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
-{
-	UBlueprint* GeneratingBP = CastChecked<UBlueprint>(ClassGeneratedBy);
-
-	check(GeneratingBP);
-
-	return (GeneratingBP->GeneratedClass != NULL) ? GeneratingBP->GeneratedClass : this;
-}
-
 void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut)
 {
 	Super::GetRequiredPreloadDependencies(DependenciesOut);
@@ -108,6 +97,17 @@ void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& 
 			DependenciesOut.Add(Component);
 		}
 	}
+}
+
+#if WITH_EDITOR
+
+UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
+{
+	UBlueprint* GeneratingBP = CastChecked<UBlueprint>(ClassGeneratedBy);
+
+	check(GeneratingBP);
+
+	return (GeneratingBP->GeneratedClass != NULL) ? GeneratingBP->GeneratedClass : this;
 }
 
 bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B, bool bCheckPropertiesNames)
