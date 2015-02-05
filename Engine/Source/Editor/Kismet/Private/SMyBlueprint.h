@@ -150,6 +150,7 @@ private:
 	static void OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAction, UBlueprint* Blueprint, TSharedRef<SKismetInspector> Inspector);
 	void OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	void OnActionDoubleClicked(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
+	void ExecuteAction(TSharedPtr<FEdGraphSchemaAction> InAction);
 	TSharedPtr<SWidget> OnContextMenuOpening();
 
 	TSharedRef<SWidget> CreateAddNewMenuWidget();
@@ -159,7 +160,9 @@ private:
 	bool CanRequestRenameOnActionNode(TWeakPtr<struct FGraphActionNode> InSelectedNode) const;
 	FText OnGetSectionTitle( int32 InSectionID );
 	TSharedRef<SWidget> OnGetSectionWidget( TSharedRef<SWidget> RowWidget, int32 InSectionID );
-	EVisibility OnGetSectionTextVisibility(TWeakPtr<SWidget> RowWidget) const;
+	EVisibility OnGetSectionTextVisibility(TWeakPtr<SWidget> RowWidget, int32 InSectionID) const;
+	TSharedRef<SWidget> OnGetFunctionListMenu();
+	void BuildOverridableFunctionsMenu(FMenuBuilder& MenuBuilder);
 	FReply OnAddButtonClickedOnSection(int32 InSectionID);
 
 	/** Support functions for checkbox to manage displaying user variables only */
@@ -181,6 +184,8 @@ private:
 	void OnFocusNode();
 	void OnFocusNodeInNewTab();
 	void OnImplementFunction();
+	void ImplementFunction(TSharedPtr<FEdGraphSchemaAction_K2Graph> GraphAction);
+	void ImplementFunction(FEdGraphSchemaAction_K2Graph* GraphAction);
 	bool CanImplementFunction() const;
 	void OnFindEntry();
 	bool CanFindEntry() const;
@@ -228,6 +233,15 @@ private:
 	
 	/** Graph Action Menu for displaying all our variables and functions */
 	TSharedPtr<class SGraphActionMenu> GraphActionMenu;
+
+	/** The +Function button in the function section */
+	TSharedPtr<SComboButton> FunctionSectionButton;
+
+	/** When we rebuild the view of members, we cache (but don't display) any overridable functions for user in popup menus. */
+	TArray< TSharedPtr<FEdGraphSchemaAction_K2Graph> > OverridableFunctionActions;
+
+	/** When we refresh the list of functions we cache off the implemented ones to ask questions for overridable functions. */
+	TSet<FName> ImplementedFunctionCache;
 
 	/** The last pin type used (including the function editor last pin type) */
 	FEdGraphPinType LastPinType;
