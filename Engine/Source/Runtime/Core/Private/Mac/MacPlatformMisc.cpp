@@ -497,6 +497,7 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 				bChachedMacMenuStateNeedsUpdate = false;
 			}
 
+			MacApplication->InvalidateTextLayouts();
 			MacApplication->CloseQueuedWindows();
 		}
 	}

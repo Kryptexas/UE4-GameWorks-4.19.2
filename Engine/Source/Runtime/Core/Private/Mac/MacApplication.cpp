@@ -460,6 +460,34 @@ void FMacApplication::CloseQueuedWindows()
 	}
 }
 
+void FMacApplication::InvalidateTextLayout(FCocoaWindow* Window)
+{
+	WindowsRequiringTextInvalidation.AddUnique( Window );
+}
+
+void FMacApplication::InvalidateTextLayouts()
+{
+	if( WindowsRequiringTextInvalidation.Num() > 0 )
+	{
+	   MainThreadCall(^{
+		   SCOPED_AUTORELEASE_POOL;
+	
+		   for( FCocoaWindow* CocoaWindow : WindowsRequiringTextInvalidation)
+		   {
+			   if(CocoaWindow && [CocoaWindow openGLView])
+			   {
+				   FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
+				   [[TextView inputContext] invalidateCharacterCoordinates];
+			   }
+		   }
+
+		}, UE4IMEEventMode, true);
+		
+		WindowsRequiringTextInvalidation.Empty();
+	}
+
+}
+
 void FMacApplication::OnWindowDraggingFinished()
 {
 	if( DraggedWindow )
