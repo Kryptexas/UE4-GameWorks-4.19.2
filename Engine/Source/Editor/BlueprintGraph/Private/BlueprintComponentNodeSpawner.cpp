@@ -53,20 +53,22 @@ UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(TSubclass
 		Outer = GetTransientPackage();
 	}
 
+	UClass* const AuthoritativeClass = ComponentClass->GetAuthoritativeClass();
+
 	UBlueprintComponentNodeSpawner* NodeSpawner = NewObject<UBlueprintComponentNodeSpawner>(Outer);
-	NodeSpawner->ComponentClass = ComponentClass;
+	NodeSpawner->ComponentClass = AuthoritativeClass;
 	NodeSpawner->NodeClass      = UK2Node_AddComponent::StaticClass();
 
 	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
-	FText const ComponentTypeName = FText::FromName(ComponentClass->GetFName());
+	FText const ComponentTypeName = AuthoritativeClass->GetDisplayNameText();
 	MenuSignature.MenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), ComponentTypeName);
-	MenuSignature.Category = BlueprintComponentNodeSpawnerImpl::GetDefaultMenuCategory(ComponentClass);
+	MenuSignature.Category = BlueprintComponentNodeSpawnerImpl::GetDefaultMenuCategory(AuthoritativeClass);
 	MenuSignature.Tooltip  = FText::Format(LOCTEXT("AddComponentTooltip", "Spawn a {0}"), ComponentTypeName);
-	MenuSignature.Keywords = ComponentClass->GetMetaData(FBlueprintMetadata::MD_FunctionKeywords);
+	MenuSignature.Keywords = AuthoritativeClass->GetMetaData(FBlueprintMetadata::MD_FunctionKeywords);
 	// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
 	// attempt to query the template node
 	MenuSignature.Keywords.AppendChar(TEXT(' '));
-	MenuSignature.IconName = FClassIconFinder::FindIconNameForClass(ComponentClass);
+	MenuSignature.IconName = FClassIconFinder::FindIconNameForClass(AuthoritativeClass);
 
 	return NodeSpawner;
 }
@@ -118,7 +120,9 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 	if (!bIsTemplateNode)
 	{
 		UBlueprint* Blueprint = NewNode->GetBlueprint();
-		UActorComponent* ComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, ComponentClass);
+
+		FName DesiredComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, ComponentClass, *ComponentClass->GetDisplayNameText().ToString());
+		UActorComponent* ComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, ComponentClass, DesiredComponentName);
 		ComponentTemplate->SetFlags(RF_ArchetypeObject);
 
 		Blueprint->ComponentTemplates.Add(ComponentTemplate);
