@@ -316,6 +316,8 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 				// We only promote non editor-only components to root in instanced mode
 				if (ChildToPromote == nullptr || ChildToPromote->IsEditorOnly())
 				{
+					Rename(NULL, GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
+
 					// Construct a new default root component
 					auto NewRootComponent = NewObject<USceneComponent>(Owner, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 					NewRootComponent->Mobility = Mobility;

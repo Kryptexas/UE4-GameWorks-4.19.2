@@ -563,6 +563,10 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 				bComponentWasDeleted = true;
 			}
 		}
+		if (bComponentWasDeleted)
+		{
+			NoteSelectionChange();
+		}
 		return bComponentWasDeleted;
 	}
 
