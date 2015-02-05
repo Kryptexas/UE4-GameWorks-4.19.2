@@ -488,7 +488,7 @@ public partial class Project : CommandUtils
 			string Dest = CombinePaths(StageDir, Pair.Value);
 			if (Src != Dest)  // special case for things created in the staging directory, like the pak file
 			{
-				CopyFileIncremental(Src, Dest);
+				CopyFileIncremental(Src, Dest, bFilterSpecialLinesFromIniFiles:true);
 			}
 		}
 		if (!String.IsNullOrEmpty(ManifestPath) && Mapping.Count > 0)
