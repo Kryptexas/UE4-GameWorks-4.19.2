@@ -2,6 +2,7 @@
 
 #include "CorePrivatePCH.h"
 
+#include "MacApplication.h"
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
