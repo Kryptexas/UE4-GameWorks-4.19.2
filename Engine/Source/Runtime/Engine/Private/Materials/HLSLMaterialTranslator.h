@@ -199,6 +199,8 @@ protected:
 	// True if the current property requires last frame's time
 	uint32 bUsesPreviousFrameTime : 1;
 	uint32 bUsesPixelDepthOffset : 1;
+	/** True if material will output accurate velocities during base pass rendering. */
+	uint32 bOutputsBasePassVelocities : 1;
 	/** Tracks the number of texture coordinates used by this material. */
 	uint32 NumUserTexCoords;
 	/** Tracks the number of texture coordinates used by the vertex shader in this material. */
@@ -242,6 +244,7 @@ public:
 	,	bUsesTransformVector(false)
 	,	bUsesPreviousFrameTime(false)
 	,	bUsesPixelDepthOffset(false)
+	,	bOutputsBasePassVelocities(true)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
 	{}
@@ -3755,7 +3758,7 @@ protected:
 	*
 	* @return	Code index
 	*/
-	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold) override 
+	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bOutputPreviousPosition) override 
 	{ 
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
@@ -3771,7 +3774,9 @@ protected:
 			bUsesSpeedTree = true;
 
 			NumUserVertexTexCoords = FMath::Max<uint32>(NumUserVertexTexCoords, 8);
-			return AddCodeChunk(MCT_Float3, TEXT("GetSpeedTreeVertexOffset(Parameters, %d, %d, %d, %g)"), GeometryType, WindType, LODType, BillboardThreshold);
+			// Only generate previous frame's computations if required and opted-in
+			const bool bEnablePreviousFrameInformation = bUsesPreviousFrameTime && bOutputPreviousPosition;
+			return AddCodeChunk(MCT_Float3, TEXT("GetSpeedTreeVertexOffset(Parameters, %d, %d, %d, %g, %s)"), GeometryType, WindType, LODType, BillboardThreshold, bEnablePreviousFrameInformation ? TEXT("true") : TEXT("false"));
 		}
 	}
 

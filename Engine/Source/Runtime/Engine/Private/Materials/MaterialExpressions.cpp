@@ -8845,13 +8845,14 @@ UMaterialExpressionSpeedTree::UMaterialExpressionSpeedTree(const FObjectInitiali
 	WindType = STW_None;
 	LODType = STLOD_Pop;
 	BillboardThreshold = 0.9f;
+	bOutputPreviousPosition = true;
 
 	MenuCategories.Add(ConstructorStatics.NAME_SpeedTree);
 }
 
 int32 UMaterialExpressionSpeedTree::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->SpeedTree(GeometryType, WindType, LODType, BillboardThreshold);
+	return Compiler->SpeedTree(GeometryType, WindType, LODType, BillboardThreshold, bOutputPreviousPosition);
 }
 
 void UMaterialExpressionSpeedTree::GetCaption(TArray<FString>& OutCaptions) const

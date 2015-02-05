@@ -686,7 +686,7 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 #if USES_SPEEDTREE
 
 /** Vertex offset for SpeedTree wind and LOD */
-float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold) 
+float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, FSpeedTreeData STData) 
 {
 	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || PARTICLE_MESH_FACTORY
 		return float4(0,0,0);
@@ -773,7 +773,7 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 			{
 				float2 TexCoords = Parameters.TexCoords[0];
 				float4 WindExtra = float4(Parameters.TexCoords[5].x, Parameters.TexCoords[5].y, Parameters.TexCoords[6].x, 0.0);
-				FinalPosition = RippleFrond(FinalPosition, Normal, TexCoords.x, TexCoords.y, WindExtra.x, WindExtra.y, WindExtra.z);
+				FinalPosition = RippleFrond(STData, FinalPosition, Normal, TexCoords.x, TexCoords.y, WindExtra.x, WindExtra.y, WindExtra.z);
 			}
 		}
 
@@ -819,7 +819,7 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 			{
 				float4 WindExtra = float4(Parameters.TexCoords[6].x, Parameters.TexCoords[6].y, Parameters.TexCoords[7].x, Parameters.TexCoords[7].y);
 				float LeafWindTrigOffset = Anchor.x + Anchor.y;
-				FinalPosition = LeafWind(WindExtra.w > 0.0, FinalPosition, Normal, WindExtra.x, float3(0,0,0), WindExtra.y, WindExtra.z, LeafWindTrigOffset, WindType);
+				FinalPosition = LeafWind(STData, WindExtra.w > 0.0, FinalPosition, Normal, WindExtra.x, float3(0,0,0), WindExtra.y, WindExtra.z, LeafWindTrigOffset, WindType);
 			}
 				
 			// move leaf back to anchor
@@ -830,18 +830,28 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 		{
 			// branch wind (applies to all geometry)
 			float2 VertBranchWind = Parameters.TexCoords[2];
-			FinalPosition = BranchWind(FinalPosition, TreePos, float4(VertBranchWind, 0, 0), WindType);
+			FinalPosition = BranchWind(STData, FinalPosition, TreePos, float4(VertBranchWind, 0, 0), WindType);
 		}	
 	}
 
 	// global wind can apply to the whole tree, even billboards
 	if (WindType != SPEEDTREE_WIND_TYPE_NONE)
 	{
-		FinalPosition = GlobalWind(FinalPosition, TreePos, true);
+		FinalPosition = GlobalWind(STData, FinalPosition, TreePos, true);
 	}
 
 	// convert into a world space offset
 	return (FinalPosition - OriginalPosition) * TreeScale;
+}
+
+/** Vertex offset for SpeedTree wind and LOD */
+float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, bool bUsePreviousFrame) 
+{
+	if (bUsePreviousFrame)
+	{
+		return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, GetPreviousSpeedTreeData());
+	}
+	return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, GetCurrentSpeedTreeData());
 }
 
 #endif

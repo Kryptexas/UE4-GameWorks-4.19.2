@@ -68,7 +68,6 @@ bool IsMobileHDR32bpp();
 #include "TextureLayout3d.h"
 #include "ScopedPointer.h"
 #include "ClearQuad.h"
-#include "SpeedTreeWind.h"
 #include "AtmosphereRendering.h"
 
 #if WITH_SLI || PLATFORM_SHOULD_BUFFER_QUERIES
@@ -1231,25 +1230,6 @@ namespace EOcclusionFlags
 	};
 };
 
-/**
- * Holds the info to update SpeedTree wind per unique tree object in the scene, instead of per instance
- */
-struct FSpeedTreeWindComputation
-{
-	explicit FSpeedTreeWindComputation() :
-		ReferenceCount(1)
-	{
-	}
-
-	/** SpeedTree wind object */
-	FSpeedTreeWind Wind;
-
-	/** Uniform buffer shared between trees of the same type. */
-	TUniformBuffer<FSpeedTreeUniformParameters> UniformBuffer;
-
-	int32 ReferenceCount;
-};
-
 /** Information about the primitives that are attached together. */
 class FAttachmentGroupSceneInfo
 {
@@ -1495,7 +1475,7 @@ public:
 	TArray<class FWindSourceSceneProxy*> WindSources;
 
 	/** SpeedTree wind objects in the scene. FLocalVertexFactoryShaderParameters needs to lookup by FVertexFactory, but wind objects are per tree (i.e. per UStaticMesh)*/
-	TMap<const UStaticMesh*, FSpeedTreeWindComputation*> SpeedTreeWindComputationMap;
+	TMap<const UStaticMesh*, struct FSpeedTreeWindComputation*> SpeedTreeWindComputationMap;
 	TMap<FVertexFactory*, const UStaticMesh*> SpeedTreeVertexFactoryMap;
 
 	/** The attachment groups in the scene.  The map key is the attachment group's root primitive. */

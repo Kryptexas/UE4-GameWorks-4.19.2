@@ -14,6 +14,7 @@
 #include "PrecomputedLightVolume.h"
 #include "FXSystem.h"
 #include "DistanceFieldLightingShared.h"
+#include "SpeedTreeWind.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -27,6 +28,26 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDistanceCullFadeUniformShaderParameters,TEXT("P
 TGlobalResource< FGlobalDistanceCullFadeUniformBuffer > GDistanceCullFadedInUniformBuffer;
 
 SIZE_T FStaticMeshDrawListBase::TotalBytesUsed = 0;
+
+/**
+ * Holds the info to update SpeedTree wind per unique tree object in the scene, instead of per instance
+ */
+struct FSpeedTreeWindComputation
+{
+	explicit FSpeedTreeWindComputation() :
+		ReferenceCount(1)
+	{
+	}
+
+	/** SpeedTree wind object */
+	FSpeedTreeWind Wind;
+
+	/** Uniform buffer shared between trees of the same type. */
+	TUniformBuffer<FSpeedTreeUniformParameters> UniformBuffer;
+
+	int32 ReferenceCount;
+};
+
 
 /** Default constructor. */
 FSceneViewState::FSceneViewState()
