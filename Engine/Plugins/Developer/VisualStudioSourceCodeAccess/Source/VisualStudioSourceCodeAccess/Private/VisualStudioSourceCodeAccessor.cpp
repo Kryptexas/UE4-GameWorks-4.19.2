@@ -54,6 +54,8 @@ enum class EAccessVisualStudioResult : uint8
 	VSInstanceIsOpen,
 	/** An instance of Visual Studio is not available */
 	VSInstanceIsNotOpen,
+	/** An instance of Visual Studio is open, but could not be fully queried because it is blocked by a modal operation - this may succeed later */
+	VSInstanceIsBlocked,
 	/** It is unknown whether an instance of Visual Studio is available, as an error occurred when performing the check */
 	VSInstanceUnknown,
 };
@@ -152,6 +154,11 @@ EAccessVisualStudioResult AccessVisualStudioViaDTE(CComPtr<EnvDTE::_DTE>& OutDTE
 									OutDTE = TempDTE;
 									AccessResult = EAccessVisualStudioResult::VSInstanceIsOpen;
 								}
+							}
+							else
+							{
+								UE_LOG(LogVSAccessor, Warning, TEXT("Visual Studio is open but could not be queried - it may be blocked by a modal operation"));
+								AccessResult = EAccessVisualStudioResult::VSInstanceIsBlocked;
 							}
 						}
 						else
@@ -347,6 +354,14 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 					}
 				}
 			}
+		}
+		break;
+
+	case EAccessVisualStudioResult::VSInstanceIsBlocked:
+		{
+			// VS may be open for the solution we want, but we can't query it right now as it's blocked for some reason
+			// Defer this operation so we can try it again later should VS become unblocked
+			bDefer = true;
 		}
 		break;
 
@@ -925,17 +940,17 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 
 void FVisualStudioSourceCodeAccessor::Tick(const float DeltaTime)
 {
-	if (IsVSLaunchInProgress())
+	TArray<FileOpenRequest> TmpDeferredRequests;
 	{
-		TArray<FileOpenRequest> TmpDeferredRequests;
-		{
-			FScopeLock Lock(&DeferredRequestsCriticalSection);
+		FScopeLock Lock(&DeferredRequestsCriticalSection);
 
-			// Copy the DeferredRequests array, as OpenVisualStudioFilesInternal may update it
-			TmpDeferredRequests = DeferredRequests;
-			DeferredRequests.Empty();
-		}
+		// Copy the DeferredRequests array, as OpenVisualStudioFilesInternal may update it
+		TmpDeferredRequests = DeferredRequests;
+		DeferredRequests.Empty();
+	}
 
+	if(TmpDeferredRequests.Num() > 0)
+	{
 		// Try and open any pending files in VS first (this will update the VS launch state appropriately)
 		OpenVisualStudioFilesInternal(TmpDeferredRequests);
 	}
