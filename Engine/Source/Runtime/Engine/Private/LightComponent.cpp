@@ -293,7 +293,9 @@ ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitial
 	CastStaticShadows = true;
 	CastDynamicShadows = true;
 	bPrecomputedLightingIsValid = true;
+#if WITH_EDITOR
 	bVisualizeComponent = true;
+#endif
 }
 
 /**

@@ -320,7 +320,9 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 					auto NewRootComponent = NewObject<USceneComponent>(Owner, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 					NewRootComponent->Mobility = Mobility;
 					NewRootComponent->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
+#if WITH_EDITOR
 					NewRootComponent->bVisualizeComponent = true;
+#endif
 					Owner->AddInstanceComponent(NewRootComponent);
 					NewRootComponent->RegisterComponent();
 

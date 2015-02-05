@@ -17,7 +17,9 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	bAllowSpatialization = true;
 	bStopWhenOwnerDestroyed = true;
 	bNeverNeedsRenderUpdate = true;
+#if WITH_EDITOR
 	bVisualizeComponent = true;
+#endif
 	VolumeMultiplier = 1.f;
 	PitchMultiplier = 1.f;
 	VolumeModulationMin = 1.f;
