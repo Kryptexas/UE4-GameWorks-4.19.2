@@ -142,7 +142,7 @@ protected:
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/PlayerController/
  */
 
-UCLASS(config=Game, BlueprintType, Blueprintable)
+UCLASS(config=Game, BlueprintType, Blueprintable, meta=(ShortTooltip="A Player Controller is an actor responsible for controlling a Pawn used by the player."))
 class ENGINE_API APlayerController : public AController
 {
 	GENERATED_UCLASS_BODY()
