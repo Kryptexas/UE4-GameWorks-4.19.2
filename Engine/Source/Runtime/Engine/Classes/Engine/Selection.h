@@ -472,7 +472,7 @@ public:
 };
 
 /**
- * An iterator used to iterate through selected components which can be editable (not created in a blueprint)
+ * An iterator used to iterate through selected components that are editable (i.e. not created in a blueprint)
  */
 class FSelectedEditableComponentIterator : public TSelectionIterator<FSelectedEditableComponentFilter>
 {

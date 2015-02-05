@@ -758,7 +758,7 @@ public:
 
 	/** Adds a new component instance node to the component Table
 		@param NewInstanceComponent	(In) The component being added to the actor instance
-		@param Asset	(In) Optional asset to assign to the component
+		@param Asset (In) Optional asset to assign to the component
 		@param bSetFocusToNewItem (In) Select the new item and activate the inline rename widget (default is true)
 		@return The reference of the newly created ActorComponent */
 	UActorComponent* AddNewNodeForInstancedComponent(UActorComponent* NewInstanceComponent, UObject* Asset, bool bSetFocusToNewItem = true);
@@ -780,6 +780,10 @@ public:
 	/** Pastes previously copied node(s) */
 	void PasteNodes();
 	bool CanPasteNodes() const;
+
+	/** Callbacks to duplicate the selected component */
+	bool CanDuplicateComponent() const;
+	void OnDuplicateComponent();
 
 	/** Removes existing selected component nodes from the SCS */
 	void OnDeleteNodes();
@@ -905,14 +909,13 @@ protected:
 	/** Called when the level editor requests a component to be renamed. */
 	void OnLevelComponentRequestRename(const UActorComponent* InComponent);
 
+	/** Checks to see if renaming is allowed on the selected component */
+	bool CanRenameComponent() const;
 	/**
 	 * Requests a rename on the selected component
 	 * @param bTransactional Whether or not the rename should be transactional (i.e. undoable)
 	 */
 	void OnRenameComponent(bool bTransactional);
-
-	/** Checks to see if renaming is allowed on the selected component */
-	bool CanRenameComponent() const;
 
 	/**
 	 * Function to create events for the current selection
@@ -938,10 +941,6 @@ protected:
 	 * @param EventData						the event data structure describing the node
 	 */
 	static void ViewEvent(UBlueprint* Blueprint, const FName EventName, const FComponentEventConstructionData EventData);
-
-	/** Callbacks to duplicate the selected component */
-	bool CanDuplicateComponent() const;
-	void OnDuplicateComponent();
 
 	/** Helper method to add a tree node for the given SCS node */
 	FSCSEditorTreeNodePtrType AddTreeNode(USCS_Node* InSCSNode, FSCSEditorTreeNodePtrType InParentNodePtr, const bool bIsInheritedSCS);

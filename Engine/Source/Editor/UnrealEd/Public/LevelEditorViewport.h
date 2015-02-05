@@ -648,10 +648,10 @@ public:
 	bool bDrawBaseInfo;
 
 	/**
-	 * Used for actor drag duplication.  Set to true on Alt+LMB so that the selected
-	 * actors will be duplicated as soon as the widget is displaced.
+	 * Used for drag duplication. Set to true on Alt+LMB so that the selected
+	 * objects (components or actors) will be duplicated as soon as the widget is displaced.
 	 */
-	bool					bDuplicateActorsOnNextDrag;
+	bool					bDuplicateOnNextDrag;
 
 	/**
 	* bDuplicateActorsOnNextDrag will not be set again while bDuplicateActorsInProgress is true.

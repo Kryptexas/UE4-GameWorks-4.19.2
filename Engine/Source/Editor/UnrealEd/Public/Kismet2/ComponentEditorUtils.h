@@ -30,6 +30,52 @@ public:
 	static FString GenerateValidVariableNameFromAsset(UObject* Asset, AActor* ComponentOwner);
 
 	/**
+	 * Copies the selected components to the clipboard
+	 * @param ComponentsToCopy The list of components to copy
+	 */
+	static void CopyComponents(const TArray<UActorComponent*>& ComponentsToCopy);
+
+	/**
+	 * Determines whether the current contents of the clipboard contain paste-able component information
+	 * @param RootComponent The root component of the actor being pasted on
+	 * @param bOverrideCanAttach Optional override declaring that components can be attached and a check is not needed
+	 * @return Whether components can be pasted
+	 */
+	static bool CanPasteComponents(USceneComponent* RootComponent, bool bOverrideCanAttach = false);
+
+	/**
+	 * Attempts to paste components from the clipboard as siblings of the target component
+	 * @param OutPastedComponents List of all the components that were pasted
+	 * @param TargetActor The actor to attach the pasted components to
+	 * @param TargetComponent The component the paste is targeting (will attempt to paste components as siblings). If null, will attach pasted components to the root.
+	 */
+	static void PasteComponents(TArray<UActorComponent*>& OutPastedComponents, AActor* TargetActor, USceneComponent* TargetComponent = nullptr);
+
+	/**
+	 * Gets the copied components from the clipboard without attempting to paste/apply them in any way
+	 * @param OutParentMap Contains the child->parent name relationships of the copied components
+	 * @param OutNewObjectMap Contains the name->instance object mapping of the copied components
+	 */
+	static void GetComponentsFromClipboard(TMap<FName, FName>& OutParentMap, TMap<FName, UActorComponent*>& OutNewObjectMap, bool bGetComponentsAsArchetypes);
+
+	/**
+	 * Deletes the indicated components and identifies the component that should be selected following the operation.
+	 * Note: Does not take care of the actual selection of a new component. It only identifies which component should be selected.
+	 * 
+	 * @param ComponentsToDelete The list of components to delete
+	 * @param OutComponentToSelect The component that should be selected after the deletion
+	 * @return The number of components that were actually deleted
+	 */
+	static int32 DeleteComponents(const TArray<UActorComponent*>& ComponentsToDelete, UActorComponent*& OutComponentToSelect);
+
+	/** 
+	 * Duplicates a component instance and takes care of attachment and registration.
+	 * @param TemplateComponent The component to duplicate
+	 * @return The created clone of the provided TemplateComponent. nullptr if the duplication failed.
+	 */
+	static UActorComponent* DuplicateComponent(UActorComponent* TemplateComponent);
+
+	/**
 	 * Ensures that the selection override delegate is properly bound for the supplied component
 	* This includes any attached editor-only primitive components (such as billboard visualizers)
 	 * 
@@ -124,5 +170,6 @@ public:
 	static FName FindVariableNameGivenComponentInstance(UActorComponent* ComponentInstance);
 private:
 	static void PropagateTransformInner(class USceneComponent* InstancedSceneComponent, const FTransformData& OldDefaultTransform, const FTransformData& NewDefaultTransform, TSet<class USceneComponent*>& UpdatedComponents);
-
+	
+	static USceneComponent* FindClosestParentInList(UActorComponent* ChildComponent, const TArray<UActorComponent*>& ComponentList);
 };

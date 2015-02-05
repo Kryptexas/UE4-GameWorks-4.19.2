@@ -183,6 +183,9 @@ public:
 	 */
 	virtual void BroadcastMapChanged( UWorld* World, EMapChangeType::Type MapChangeType );
 
+	/** Called when an edit command is executed on one or more components in the world */
+	virtual void BroadcastComponentsEdited();
+
 	/** Called when actor selection changes */
 	DECLARE_EVENT_OneParam( FLevelEditorModule, FActorSelectionChangedEvent, const TArray<UObject*>& );
 	virtual FActorSelectionChangedEvent& OnActorSelectionChanged() { return ActorSelectionChangedEvent; }
@@ -194,6 +197,10 @@ public:
 	/** Called when a new map is loaded */
 	DECLARE_EVENT_TwoParams( FLevelEditorModule, FMapChangedEvent, UWorld*, EMapChangeType::Type );
 	virtual FMapChangedEvent& OnMapChanged() { return MapChangedEvent; }
+
+	/** Called when an edit command is executed on components in the world */
+	DECLARE_EVENT(FLevelEditorModule, FComponentsEditedEvent);
+	virtual FComponentsEditedEvent& OnComponentsEdited() { return ComponentsEditedEvent; }
 
 	/** Delegates to be called to extend the level viewport menus */
 	DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<FExtender>, FLevelEditorMenuExtender, const TSharedRef<FUICommandList>);
@@ -263,6 +270,9 @@ private:
 
 	/** Multicast delegate executed when viewports should be redrawn */
 	FRedrawLevelEditingViewportsEvent RedrawLevelEditingViewportsEvent;
+
+	/** Multicast delegate executed after components are edited in the world */
+	FComponentsEditedEvent ComponentsEditedEvent;
 
 	/** Multicast delegate executed when viewports should be redrawn */
 	FTakeHighResScreenShotsEvent TakeHighResScreenShotsEvent;
