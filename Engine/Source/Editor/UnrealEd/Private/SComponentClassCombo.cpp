@@ -363,7 +363,7 @@ FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPt
 	}
 	else if (Entry->GetComponentCreateAction() == EComponentCreateAction::CreateNewBlueprintClass )
 	{
-		FriendlyComponentName = LOCTEXT("NewBlueprintComponentFriendlyName", "New Blueprint Component...").ToString();
+		FriendlyComponentName = LOCTEXT("NewBlueprintComponentFriendlyName", "New Blueprint Script Component...").ToString();
 	}
 	else
 	{

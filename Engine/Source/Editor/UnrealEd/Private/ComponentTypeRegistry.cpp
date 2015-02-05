@@ -143,7 +143,7 @@ void FComponentTypeRegistryData::RefreshComponentList()
 
 	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintableComponents)
 	{
-		FString NewComponentsHeading = LOCTEXT("NewComponentsHeading", "New").ToString();
+		FString NewComponentsHeading = LOCTEXT("NewComponentsHeading", "Scripting").ToString();
 		// Add new C++ component class
 		FComponentClassComboEntryPtr NewClassHeader = MakeShareable(new FComponentClassComboEntry(NewComponentsHeading));
 		ComponentClassList.Add(NewClassHeader);
