@@ -4,7 +4,7 @@
 
 #include "Editor/Kismet/Public/BlueprintEditor.h"
 
-#include "PreviewScene.h"
+#include "AnimationEditorPreviewScene.h"
 
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
@@ -162,7 +162,7 @@ public:
 	void CleanupComponent(USceneComponent* Component);
 
 	/** Returns the editors preview scene */
-	FPreviewScene& GetPreviewScene() { return PreviewScene; }
+	FAnimationEditorPreviewScene& GetPreviewScene() { return PreviewScene; }
 
 	/** Gets called when it's clicked via mode tab - Reinitialize the mode **/
 	void ReinitMode();
@@ -627,7 +627,7 @@ private:
 	TSharedPtr<FExtender> ToolbarExtender;
 
 	/** Preview scene for the editor */
-	FPreviewScene PreviewScene;
+	FAnimationEditorPreviewScene PreviewScene;
 
 	/** Brush to use as a dirty marker for assets */
 	const FSlateBrush* AssetDirtyBrush;

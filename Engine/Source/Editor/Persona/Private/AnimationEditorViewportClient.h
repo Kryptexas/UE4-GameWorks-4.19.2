@@ -5,6 +5,8 @@
 #include "EditorViewportClient.h"
 #include "Engine/WindDirectionalSource.h"
 
+class FAnimationEditorPreviewScene;
+
 //////////////////////////////////////////////////////////////////////////
 // ELocalAxesMode
 
@@ -50,7 +52,7 @@ protected:
 	void DisplayInfo( FCanvas* Canvas, FSceneView* View, bool bDisplayAllInfo );
 
 public:
-	FAnimationViewportClient(FPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport);
+	FAnimationViewportClient(FAnimationEditorPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport);
 	virtual ~FAnimationViewportClient();
 
 	// FEditorViewportClient interface
@@ -272,11 +274,6 @@ private:
 		MaxGridSize	= 50,
 	};
 
-	/** Editor accessory components **/
-	UStaticMeshComponent* EditorFloorComp;
-	UStaticMeshComponent* EditorSkyComp;
-	UExponentialHeightFogComponent* EditorHeightFogComponent;
-
 	/** Wind actor used for preview */
 	TWeakObjectPtr<AWindDirectionalSource> SelectedWindActor;
 
@@ -325,4 +322,6 @@ private:
 	TWeakObjectPtr<class UAnimGraphNode_SkeletalControlBase> SelectedSkelControlAnimGraph;
 	// to check whether we should update literal values in selected AnimGraphNode
 	bool bShouldUpdateDefaultValues;
+
+	FAnimationEditorPreviewScene* GetAnimPreviewScene() const;
 };
