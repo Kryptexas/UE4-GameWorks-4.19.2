@@ -22,6 +22,7 @@ struct FComponentTypeRegistryData
 	/** End implementation of FTickableEditorObject */
 
 	TArray<FComponentClassComboEntryPtr> ComponentClassList;
+	TArray<FComponentTypeEntry> ComponentTypeList;
 	TArray<FAssetData> PendingAssetData;
 	FOnComponentTypeListChanged ComponentListChanged;
 };
@@ -109,6 +110,7 @@ FComponentTypeRegistryData::FComponentTypeRegistryData()
 void FComponentTypeRegistryData::RefreshComponentList()
 {
 	ComponentClassList.Empty();
+	ComponentTypeList.Empty();
 
 	struct SortComboEntry
 	{
@@ -187,6 +189,9 @@ void FComponentTypeRegistryData::RefreshComponentList()
 					SortedClassList.Add(NewEntry);
 				}
 			}
+
+			FComponentTypeEntry Entry = { Class->GetName(), FString(), Class };
+			ComponentTypeList.Add(Entry);
 		}
 	}
 
@@ -224,6 +229,9 @@ void FComponentTypeRegistryData::RefreshComponentList()
 					break;
 				}
 			}
+
+			FComponentTypeEntry Entry = { FixedString, AssetPath.ToString(), nullptr };
+			ComponentTypeList.Add(Entry);
 
 			FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(BlueprintComponents, FixedString, AssetPath, bIncludeInFilter));
 			SortedClassList.Add(NewEntry);
@@ -309,6 +317,13 @@ FOnComponentTypeListChanged& FComponentTypeRegistry::SubscribeToComponentList(TA
 {
 	check(Data);
 	OutComponentList = &Data->ComponentClassList;
+	return Data->ComponentListChanged;
+}
+
+FOnComponentTypeListChanged& FComponentTypeRegistry::SubscribeToComponentList(const TArray<FComponentTypeEntry>*& OutComponentList)
+{
+	check(Data);
+	OutComponentList = &Data->ComponentTypeList;
 	return Data->ComponentListChanged;
 }
 

@@ -87,6 +87,11 @@ public:
 	void RefreshAssetActions(UObject* const AssetObject);
 
 	/**
+	 * Updates all component related actions
+	 */
+	void RefreshComponentActions();
+
+	/**
 	 * Finds the database entry for the specified class and wipes it. The entry 
 	 * won't be rebuilt, unless RefreshAssetActions() is explicitly called after.
 	 * 
@@ -160,4 +165,7 @@ private:
 
 	/** Handle to the registered OnBlueprintChanged delegate. */
 	FDelegateHandle OnBlueprintChangedDelegateHandle;
+
+	/** Pointer to the shared list of currently existing component types */
+	const TArray<struct FComponentTypeEntry>* ComponentTypes;
 };
