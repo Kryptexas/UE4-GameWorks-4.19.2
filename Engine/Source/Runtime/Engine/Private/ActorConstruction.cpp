@@ -604,7 +604,10 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 	UActorComponent* NewActorComp = CreateComponentFromTemplate(Template);
 	if(NewActorComp != nullptr)
 	{
-		// Keep track of the new component during UCS execution
+		// Call function to notify component it has been created
+		NewActorComp->OnComponentCreated();
+
+		// Keep track of the new component during UCS execution. This also does a temporary mobility swap during UCS execution in order to allow attachment and other things to succeed within that context.
 		if(bRunningUserConstructionScript)
 		{
 		FUCSComponentManager::Get().AddComponent(this, NewActorComp);
@@ -629,9 +632,6 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 
 			NewSceneComp->SetRelativeTransform(RelativeTransform);
 		}
-
-		// Call function to notify component it has been created
-		NewActorComp->OnComponentCreated();
 
 		// Register component, which will create physics/rendering state, now component is in correct position
 		NewActorComp->RegisterComponent();

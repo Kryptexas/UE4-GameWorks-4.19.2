@@ -137,6 +137,14 @@ void UPrimitiveComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemory
 	return;
 }
 
+void UPrimitiveComponent::OnComponentCreated()
+{
+	Super::OnComponentCreated();
+
+	// Shadow the current mobility setting for physics scene initialization (since e.g. during UCS execution we temporarily override the base mobility setting)
+	PhysicsMobility = Mobility;
+}
+
 void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) 
 {
 	bHasCachedStaticLighting = false;
@@ -930,6 +938,14 @@ bool UPrimitiveComponent::IsWorldGeometry() const
 	// but then if we disable collision, they just become non world geometry. 
 	// not sure if that would be best way to do this yet
 	return Mobility != EComponentMobility::Movable && GetCollisionObjectType()==ECC_WorldStatic;
+}
+
+void UPrimitiveComponent::SetMobility(EComponentMobility::Type NewMobility)
+{
+	Super::SetMobility(NewMobility);
+
+	// Update the shadowed mobility setting for physics
+	PhysicsMobility = Mobility;
 }
 
 ECollisionChannel UPrimitiveComponent::GetCollisionObjectType() const
