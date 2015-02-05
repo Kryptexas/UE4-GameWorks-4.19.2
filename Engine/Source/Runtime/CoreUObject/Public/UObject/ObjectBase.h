@@ -862,6 +862,16 @@ namespace US
 // Metadata specifiers
 namespace UM
 {
+	// Metadata usable in any UField (UCLASS(), USTRUCT(), UPROPERTY(), UFUNCTION(), etc...)
+	enum
+	{
+		/// Overrides the automatically generated tooltip from the class comment
+		ToolTip,
+
+		/// A short tooltip that is used in some contexts where the full tooltip might be overwhelming (such as the parent class picker dialog)
+		ShortTooltip,
+	};
+
 	// Metadata usable in UCLASS
 	enum
 	{
@@ -895,7 +905,6 @@ namespace UM
 		/// [ClassMetadata] Indicates that when placing blueprint nodes in graphs owned by this class that the hidden world context pin should be visible because the self context of the class cannot
 		///                 provide the world context and it must be wired in manually
 		ShowWorldContextPin,
-
 	};
 
 	// Metadata usable in USTRUCT
@@ -994,9 +1003,6 @@ namespace UM
 
 		// [PropertyMetadata]
 		SliderExponent,
-
-		// [PropertyMetadata] Overrides the automatically generated tooltip from the property comment
-		ToolTip,
 
 		/// [PropertyMetadata] Used for float and integer properties.  Specifies the lowest that the value slider should represent.
 		UIMin,
