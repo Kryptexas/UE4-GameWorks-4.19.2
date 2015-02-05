@@ -48,6 +48,11 @@ using namespace UnFbx;
 
 UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool bSetupAsNormalMap )
 {
+	if( !FbxTexture )
+	{
+		return nullptr;
+	}
+	
 	// create an unreal texture asset
 	UTexture* UnrealTexture = NULL;
 	FString Filename1 = ANSI_TO_TCHAR(FbxTexture->GetFileName());
