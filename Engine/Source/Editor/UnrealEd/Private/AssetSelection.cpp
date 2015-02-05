@@ -8,6 +8,7 @@
 #include "LevelUtils.h"
 #include "EditorLevelUtils.h"
 #include "MainFrame.h"
+#include "ComponentEditorUtils.h"
 
 #include "ComponentAssetBroker.h"
 
@@ -708,7 +709,7 @@ bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMateri
 
 			// Some actors could potentially have multiple mesh components, so we need to store all of the potentially valid ones
 			// (or else perform special cases with IsA checks on the target actor)
-			TArray<UActorComponent*> FoundMeshComponents;
+			TArray<USceneComponent*> FoundMeshComponents;
 
 			// Find which mesh the user clicked on first.
 			TInlineComponentArray<USceneComponent*> SceneComponents;
@@ -735,55 +736,10 @@ bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMateri
 			if ( FoundMeshComponents.Num() > 0 )
 			{
 				// Check each component that was found
-				for ( TArray<UActorComponent*>::TConstIterator MeshCompIter( FoundMeshComponents ); MeshCompIter; ++MeshCompIter )
+				for ( TArray<USceneComponent*>::TConstIterator MeshCompIter( FoundMeshComponents ); MeshCompIter; ++MeshCompIter )
 				{
-					UActorComponent* ActorComp = *MeshCompIter;
-
-					UMeshComponent* FoundMeshComponent = Cast<UMeshComponent>(ActorComp);
-					UDecalComponent* DecalComponent = Cast<UDecalComponent>(ActorComp);
-
-					if(FoundMeshComponent)
-					{
-						// OK, we need to figure out how many material slots this mesh component/static mesh has.
-						// Start with the actor's material count, then drill into the static/skeletal mesh to make sure 
-						// we have the right total.
-						int32 MaterialCount = FMath::Max(FoundMeshComponent->OverrideMaterials.Num(), FoundMeshComponent->GetNumMaterials());
-
-						// Any materials to overwrite?
-						if( MaterialCount > 0 )
-						{
-							const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "DropTarget_UndoSetActorMaterial", "Assign Material (Drag and Drop)") );
-							FoundMeshComponent->Modify();
-
-							// If the material slot is -1 then apply the material to every slot.
-							if ( OptionalMaterialSlot == -1 )
-							{
-								for ( int32 CurMaterialIndex = 0; CurMaterialIndex < MaterialCount; ++CurMaterialIndex )
-								{
-									FoundMeshComponent->SetMaterial(CurMaterialIndex, MaterialToApply);
-								}
-							}
-							else
-							{
-								if( OptionalMaterialSlot < MaterialCount )
-								{
-									FoundMeshComponent->SetMaterial(OptionalMaterialSlot, MaterialToApply);
-								}
-							}
-
-							TargetActor->MarkComponentsRenderStateDirty();
-							bResult = true;
-						}
-					}
-					else if(DecalComponent)
-					{
-						const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "DropTarget_UndoSetActorMaterial", "Assign Material (Drag and Drop)") );
-						DecalComponent->Modify();
-						// set material #0
-						DecalComponent->SetMaterial(0, MaterialToApply);
-						TargetActor->MarkComponentsRenderStateDirty();
-						bResult = true;
-					}
+					USceneComponent* SceneComp = *MeshCompIter;
+					bResult = FComponentEditorUtils::AttemptApplyMaterialToComponent(SceneComp, MaterialToApply, OptionalMaterialSlot);
 				}
 			}
 		}

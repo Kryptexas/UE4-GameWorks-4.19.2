@@ -30,10 +30,24 @@ public:
 	static FString GenerateValidVariableNameFromAsset(UObject* Asset, AActor* ComponentOwner);
 
 	/**
-	* Ensures that the selection override delegate is bound for the supplied component
-	* This includes any attached editor-only primitive components (such as billboard visualizers)
-	*/
-	static void BindComponentSelectionOverride(USceneComponent* SceneComponent);
+	 * Ensures that the selection override delegate is properly bound for the supplied component
+	 * This includes any attached editor-only primitive components (such as billboard visualizers)
+	 * 
+	 * @param SceneComponent The component to set the selection override for
+	 * @param bBind Whether the override should be bound
+	 */
+	static void BindComponentSelectionOverride(USceneComponent* SceneComponent, bool bBind);
+
+	/**
+	 * Attempts to apply a material to a component at the specified slot.
+	 *
+	 * @param SceneComponent The component to which we should attempt to apply the material
+	 * @param MaterialToApply The material to apply to the component
+	 * @param OptionalMaterialSlot The material slot on the component to which the material should be applied. -1 to apply to all slots on the component.
+	 *
+	 * @return	True if the material was successfully applied to the component.
+	 */
+	static bool AttemptApplyMaterialToComponent( USceneComponent* SceneComponent, UMaterialInterface* MaterialToApply, int32 OptionalMaterialSlot = -1 );
 
 	struct FTransformData
 	{

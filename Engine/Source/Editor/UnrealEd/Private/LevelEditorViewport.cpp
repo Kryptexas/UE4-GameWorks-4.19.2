@@ -492,192 +492,187 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 }
 
 /**
+* Helper function that attempts to apply the supplied object to the supplied actor.
+*
+* @param	ObjToUse				Object to attempt to apply as specific asset
+* @param	ComponentToApplyTo		Component to whom the asset should be applied
+* @param	TargetMaterialSlot      When dealing with submeshes this will represent the target section/slot to apply materials to.
+* @param	bTest					Whether to test if the object would be successfully applied without actually doing it.
+*
+* @return	true if the provided object was successfully applied to the provided actor
+*/
+static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* ComponentToApplyTo, int32 TargetMaterialSlot = -1, bool bTest = false)
+{
+	bool bResult = false;
+
+	if (ComponentToApplyTo && ComponentToApplyTo->CreationMethod != EComponentCreationMethod::ConstructionScript)
+	{
+		// MESH/DECAL
+		auto MeshComponent = Cast<UMeshComponent>(ComponentToApplyTo);
+		auto DecalComponent = Cast<UDecalComponent>(ComponentToApplyTo);
+		if (MeshComponent || DecalComponent)
+		{
+			// Dropping a texture?
+			UTexture* DroppedObjAsTexture = Cast<UTexture>(ObjToUse);
+			if (DroppedObjAsTexture != NULL)
+			{
+				if (bTest)
+				{
+					bResult = true;
+				}
+				else
+				{
+					// Turn dropped textures into materials
+					ObjToUse = GetOrCreateMaterialFromTexture(DroppedObjAsTexture);
+				}
+			}
+
+			// Dropping a material?
+			UMaterialInterface* DroppedObjAsMaterial = Cast<UMaterialInterface>(ObjToUse);
+			if (DroppedObjAsMaterial)
+			{
+				if (bTest)
+				{
+					bResult = true;
+				}
+				else
+				{
+					bResult = FComponentEditorUtils::AttemptApplyMaterialToComponent(ComponentToApplyTo, DroppedObjAsMaterial, TargetMaterialSlot);
+				}
+			}
+		}
+
+		// SKELETAL MESH COMPONENT
+		auto SkeletalMeshComponent = Cast<USkeletalMeshComponent>(ComponentToApplyTo);
+		if (SkeletalMeshComponent)
+		{
+			// Dropping an Anim Blueprint?
+			UAnimBlueprint* DroppedObjAsAnimBlueprint = Cast<UAnimBlueprint>(ObjToUse);
+			if (DroppedObjAsAnimBlueprint)
+			{
+				USkeleton* AnimBPSkeleton = DroppedObjAsAnimBlueprint->TargetSkeleton;
+				if (AnimBPSkeleton)
+				{
+					if (bTest)
+					{
+						bResult = true;
+					}
+					else
+					{
+						const FScopedTransaction Transaction(LOCTEXT("DropAnimBlueprintOnObject", "Drop Anim Blueprint On Object"));
+						SkeletalMeshComponent->Modify();
+
+						// If the component doesn't have a mesh or the anim blueprint's skeleton isn't compatible with the existing mesh's skeleton, the mesh should change
+						const bool bShouldChangeMesh = !SkeletalMeshComponent->SkeletalMesh || !AnimBPSkeleton->IsCompatible(SkeletalMeshComponent->SkeletalMesh->Skeleton);
+
+						if (bShouldChangeMesh)
+						{
+							SkeletalMeshComponent->SetSkeletalMesh(AnimBPSkeleton->GetPreviewMesh(true));
+						}
+
+						// Verify that the skeletons are compatible before changing the anim BP
+						if (SkeletalMeshComponent->SkeletalMesh && AnimBPSkeleton->IsCompatible(SkeletalMeshComponent->SkeletalMesh->Skeleton))
+						{
+							SkeletalMeshComponent->SetAnimInstanceClass(DroppedObjAsAnimBlueprint->GeneratedClass);
+							bResult = true;
+						}
+					}
+				}
+			}
+
+			// Dropping an Anim Sequence or Vertex Animation?
+			UAnimSequenceBase* DroppedObjAsAnimSequence = Cast<UAnimSequenceBase>(ObjToUse);
+			UVertexAnimation* DroppedObjAsVertexAnimation = Cast<UVertexAnimation>(ObjToUse);
+			if (DroppedObjAsAnimSequence || DroppedObjAsVertexAnimation)
+			{
+				USkeleton* AnimSkeleton = nullptr;
+				const bool bVertexAnimHasValidMesh = DroppedObjAsVertexAnimation && DroppedObjAsVertexAnimation->BaseSkelMesh;
+
+				if (DroppedObjAsAnimSequence)
+				{
+					AnimSkeleton = DroppedObjAsAnimSequence->GetSkeleton();
+				}
+				else if (bVertexAnimHasValidMesh)
+				{
+					AnimSkeleton = DroppedObjAsVertexAnimation->BaseSkelMesh->Skeleton;
+				}
+
+				if (AnimSkeleton)
+				{
+					if (bTest)
+					{
+						bResult = true;
+					}
+					else
+					{
+						const FScopedTransaction Transaction(LOCTEXT("DropAnimationOnObject", "Drop Animation On Object"));
+						SkeletalMeshComponent->Modify();
+
+						// If the component doesn't have a mesh or the anim blueprint's skeleton isn't compatible with the existing mesh's skeleton, the mesh should change
+						const bool bShouldChangeMesh = !SkeletalMeshComponent->SkeletalMesh || !AnimSkeleton->IsCompatible(SkeletalMeshComponent->SkeletalMesh->Skeleton);
+
+						if (bShouldChangeMesh)
+						{
+							SkeletalMeshComponent->SetSkeletalMesh(AnimSkeleton->GetAssetPreviewMesh(DroppedObjAsAnimSequence));
+						}
+
+						if (DroppedObjAsAnimSequence)
+						{
+							SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+							SkeletalMeshComponent->AnimationData.AnimToPlay = DroppedObjAsAnimSequence;
+
+							// set runtime data
+							SkeletalMeshComponent->SetAnimation(DroppedObjAsAnimSequence);
+						}
+
+						if (DroppedObjAsVertexAnimation)
+						{
+							SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+							SkeletalMeshComponent->AnimationData.VertexAnimToPlay = DroppedObjAsVertexAnimation;
+
+							// set runtime data
+							SkeletalMeshComponent->SetVertexAnimation(DroppedObjAsVertexAnimation);
+						}
+
+						if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
+						{
+							bResult = true;
+							SkeletalMeshComponent->InitAnim(true);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return bResult;
+}
+
+/**
  * Helper function that attempts to apply the supplied object to the supplied actor.
  *
  * @param	ObjToUse				Object to attempt to apply as specific asset
  * @param	ActorToApplyTo			Actor to whom the asset should be applied
  * @param   TargetMaterialSlot      When dealing with submeshes this will represent the target section/slot to apply materials to.
  * @param	bTest					Whether to test if the object would be successfully applied without actually doing it.
- * @param	bCreateDropPreview		Whether this is just a drop preview.
  *
  * @return	true if the provided object was successfully applied to the provided actor
  */
-static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, int32 TargetMaterialSlot = -1, bool bTest = false, bool bCreateDropPreview = false )
+static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, int32 TargetMaterialSlot = -1, bool bTest = false )
 {
 	bool bResult = false;
 
 	if ( ActorToApplyTo )
 	{
-		UTexture* DroppedObjAsTexture = Cast<UTexture>( ObjToUse );
-		if ( DroppedObjAsTexture != NULL )
+		bResult = false;
+
+		TInlineComponentArray<USceneComponent*> SceneComponents;
+		ActorToApplyTo->GetComponents(SceneComponents);
+		for (auto SceneComp : SceneComponents)
 		{
-			if ( bTest || bCreateDropPreview )
-			{
-				bResult = true;
-			}
-			else
-			{
-				ObjToUse = GetOrCreateMaterialFromTexture( DroppedObjAsTexture );
-			}
+			bResult |= AttemptApplyObjToComponent(ObjToUse, SceneComp, TargetMaterialSlot, bTest);
 		}
 
-		// Ensure the provided object is some form of material
-		UMaterialInterface* DroppedObjAsMaterial = Cast<UMaterialInterface>( ObjToUse );
-		if ( DroppedObjAsMaterial )
-		{
-			if (bTest || bCreateDropPreview)
-			{
-				bResult = true;
-			}
-			else
-			{
-				// Apply the material to the actor
-				FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "DragDrop_Transaction_ApplyMaterialToActor", "Apply Material to Actor") );
-				bResult = FActorFactoryAssetProxy::ApplyMaterialToActor( ActorToApplyTo, DroppedObjAsMaterial, TargetMaterialSlot );
-			}
-		}
-
-		USkeletalMesh* DroppedObjAsSkeletalMesh = Cast<USkeletalMesh>( ObjToUse );
-		USkeleton* DroppedObjAsSkeleton = Cast<USkeleton>( ObjToUse );
-		if ( DroppedObjAsSkeletalMesh ||
-			 DroppedObjAsSkeleton )
-		{
-			if ( bTest )
-			{
-				if ( ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()) )
-				{
-					bResult = true;
-				}
-			}
-			else
-			{
-				if ( ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo) )
-				{
-					const FScopedTransaction Transaction( LOCTEXT( "DropSkelMeshOnObject", "Drop Skeletal Mesh On Object" ) );
-					USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->GetSkeletalMeshComponent();
-					SkelMeshComponent->Modify();
-					if ( DroppedObjAsSkeletalMesh )
-					{
-						SkelMeshComponent->SetSkeletalMesh(DroppedObjAsSkeletalMesh);
-					}
-					else if ( DroppedObjAsSkeleton )
-					{
-						SkelMeshComponent->SetSkeletalMesh(DroppedObjAsSkeleton->GetPreviewMesh(true));
-					}
-					bResult = true;
-				}
-			}
-		}
-
-		UAnimBlueprint* DroppedObjAsAnimBlueprint = Cast<UAnimBlueprint>( ObjToUse );
-		if ( DroppedObjAsAnimBlueprint )
-		{
-			USkeleton* NeedsSkeleton = DroppedObjAsAnimBlueprint->TargetSkeleton;
-			if ( NeedsSkeleton )
-			{
-				if(bTest)
-				{
-					if(ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()))
-					{
-						bResult = true;
-					}
-				}
-				else
-				{
-					if(ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo))
-					{
-						const FScopedTransaction Transaction(LOCTEXT("DropAnimBlueprintOnObject", "Drop Anim Blueprint On Object"));
-
-						USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->GetSkeletalMeshComponent();
-						// if anim blueprint skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
-						bool bShouldChangeMesh = (SkelMeshComponent->SkeletalMesh == NULL ||
-								!NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton));
-
-						if(bShouldChangeMesh)
-						{
-							SkelMeshComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
-						}
-
-						// make sure if it's compabile now, if not we're not going to change anim blueprint
-						if(SkelMeshComponent->SkeletalMesh &&
-							NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton))
-						{
-							SkelMeshComponent->SetAnimInstanceClass(DroppedObjAsAnimBlueprint->GeneratedClass);
-							bResult = true;
-						}
-					}
-				}
-			}
-		}
-
-		UAnimationAsset* DroppedObjAsAnimationAsset = Cast<UAnimationAsset>( ObjToUse );
-		UVertexAnimation* DroppedObjAsVertexAnimation = Cast<UVertexAnimation>( ObjToUse );
-		// block anything else than just anim sequence
-		if( DroppedObjAsAnimationAsset != NULL )
-		{
-			if( ! DroppedObjAsAnimationAsset->IsA(UAnimSequenceBase::StaticClass()) )
-			{
-				DroppedObjAsAnimationAsset = NULL;
-			}
-		}
-
-		if ( DroppedObjAsAnimationAsset ||
-			 DroppedObjAsVertexAnimation)
-		{
-			USkeleton* NeedsSkeleton = DroppedObjAsAnimationAsset? DroppedObjAsAnimationAsset->GetSkeleton() :
-				(DroppedObjAsVertexAnimation && DroppedObjAsVertexAnimation->BaseSkelMesh? DroppedObjAsVertexAnimation->BaseSkelMesh->Skeleton : NULL);
-
-			if (NeedsSkeleton)
-			{
-				if(bTest)
-				{
-					if(ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()))
-					{
-						bResult = true;
-					}
-				}
-				else
-				{
-					if(ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo))
-					{
-						const FScopedTransaction Transaction(LOCTEXT("DropAnimationOnObject", "Drop Animation On Object"));
-						USkeletalMeshComponent* SkelComponent = SkelMeshActor->GetSkeletalMeshComponent();
-						SkelComponent->Modify();
-						// if asset skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
-						bool bShouldChangeMesh = SkelComponent->SkeletalMesh == NULL || 
-							!NeedsSkeleton->IsCompatible(SkelComponent->SkeletalMesh->Skeleton);
-
-						if(bShouldChangeMesh)
-						{
-							SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetAssetPreviewMesh(DroppedObjAsAnimationAsset));
-						}
-
-						if(DroppedObjAsAnimationAsset)
-						{
-							SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-							SkelComponent->AnimationData.AnimToPlay = DroppedObjAsAnimationAsset;
-
-							// set runtime data
-							SkelComponent->SetAnimation(DroppedObjAsAnimationAsset);
-						}
-						if(DroppedObjAsVertexAnimation)
-						{
-							SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-							SkelComponent->AnimationData.VertexAnimToPlay = DroppedObjAsVertexAnimation;
-
-							// set runtime data
-							SkelComponent->SetVertexAnimation(DroppedObjAsVertexAnimation);
-						}
-						if(SkelComponent && SkelComponent->SkeletalMesh)
-						{
-							bResult = true;
-							SkelComponent->InitAnim(true);
-						}
-					}
-				}
-			}
-		}
-		
 		// Notification hook for dropping asset onto actor
 		if(!bTest)
 		{
@@ -687,7 +682,6 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 
 	return bResult;
 }
-
 
 /**
  * Helper function that attempts to apply the supplied object as a material to the BSP surface specified by the
@@ -861,8 +855,8 @@ bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cur
 
 	for ( auto DroppedObject : DroppedObjects )
 	{
-		const bool bTest = false;
-		const bool bAppliedToActor = ( FactoryToUse == NULL ) ? AttemptApplyObjToActor( DroppedObject, DroppedUponActor, DroppedUponSlot, bTest, bCreateDropPreview ) : false;
+		const bool bIsTestApplication = bCreateDropPreview;
+		const bool bAppliedToActor = ( FactoryToUse == nullptr ) ? AttemptApplyObjToActor( DroppedObject, DroppedUponActor, DroppedUponSlot, bIsTestApplication ) : false;
 
 		if (!bAppliedToActor)
 		{
@@ -1208,12 +1202,14 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 		else if (HitProxy->IsA(HActor::StaticGetType()) || HitProxy->IsA(HBSPBrushVert::StaticGetType()))
 		{
 			AActor* TargetActor = NULL;
+			UPrimitiveComponent* TargetComponent = nullptr;
 			int32 TargetMaterialSlot = -1;
 
 			if (HitProxy->IsA(HActor::StaticGetType()))
 			{
 				HActor* TargetProxy = static_cast<HActor*>(HitProxy);
 				TargetActor = TargetProxy->Actor;
+				TargetComponent = const_cast<UPrimitiveComponent*>(TargetProxy->PrimComponent);
 				TargetMaterialSlot = TargetProxy->MaterialIndex;
 			}
 			else if (HitProxy->IsA(HBSPBrushVert::StaticGetType()))
@@ -1234,26 +1230,58 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 			{
 				FNavigationLockContext LockNavigationUpdates(TargetActor->GetWorld(), ENavigationLockReason::SpawnOnDragEnter, bCreateDropPreview);
 
-				// if the target actor is selected, we should drop onto all selected items
-				// otherwise, we should drop only onto this object
-				bool bDropOntoSelected = TargetActor->IsSelected();
-
-				if( !bDropOntoSelected || 
-					bOnlyDropOnTarget || 
-					FactoryToUse != NULL ||
-					!AttemptApplyObjToActor(DroppedObjects[0], TargetActor, TargetMaterialSlot, true) )
+				// If more than one actor is selected and the target actor is one of them, we should drop onto all selected actors
+				// otherwise, we should drop only onto the target object
+				const bool bDropOntoSelectedActors = TargetActor->IsSelected() && GEditor->GetSelectedActorCount() > 1;
+				const bool bCanApplyToComponent = AttemptApplyObjToComponent(DroppedObjects[0], TargetComponent, TargetMaterialSlot, true);
+				if (bOnlyDropOnTarget || !bDropOntoSelectedActors || !bCanApplyToComponent)
 				{
-					bResult = DropObjectsOnActor(Cursor, DroppedObjects, TargetActor, TargetMaterialSlot, ObjectFlags, OutNewActors, bCreateDropPreview, SelectActors, FactoryToUse);
+					if (bCanApplyToComponent)
+					{
+						const bool bIsTestAttempt = bCreateDropPreview;
+						bResult = AttemptApplyObjToComponent(DroppedObjects[0], TargetComponent, TargetMaterialSlot, bIsTestAttempt);
+					}
+					else
+					{
+						// Couldn't apply to a component, so try dropping the objects on the hit actor
+						bResult = DropObjectsOnActor(Cursor, DroppedObjects, TargetActor, TargetMaterialSlot, ObjectFlags, OutNewActors, bCreateDropPreview, SelectActors, FactoryToUse);
+					}
 				}
 				else
 				{
-					for ( FSelectionIterator It(*GEditor->GetSelectedActors()) ; It ; ++It )
+					// Are any components selected?
+					if (GEditor->GetSelectedComponentCount() > 0)
 					{
-						TargetActor = static_cast<AActor*>(*It);
-						if( TargetActor )
+						// Is the target component selected?
+						USelection* ComponentSelection = GEditor->GetSelectedComponents();
+						if (ComponentSelection->IsSelected(TargetComponent))
 						{
-							DropObjectsOnActor(Cursor, DroppedObjects, TargetActor, TargetMaterialSlot, ObjectFlags, OutNewActors, bCreateDropPreview, SelectActors, FactoryToUse);
-							bResult = true;
+							// The target component is selected, so try applying the object to every selected component
+							for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+							{
+								auto SceneComponent = Cast<USceneComponent>(*It);
+								AttemptApplyObjToComponent(DroppedObjects[0], SceneComponent, TargetMaterialSlot, bCreateDropPreview);
+								bResult = true;
+							}
+						}
+						else
+						{
+							// The target component is not selected, so apply the object exclusively to it
+							bResult = AttemptApplyObjToComponent(DroppedObjects[0], TargetComponent, TargetMaterialSlot, bCreateDropPreview);
+						}
+					}
+					
+					if (!bResult)
+					{
+						const FScopedTransaction Transaction(LOCTEXT("DropObjectsOnSelectedActors", "Drop Objects on Selected Actors"));
+						for (FSelectionIterator It(*GEditor->GetSelectedActors()); It; ++It)
+						{
+							TargetActor = static_cast<AActor*>( *It );
+							if (TargetActor)
+							{
+								DropObjectsOnActor(Cursor, DroppedObjects, TargetActor, TargetMaterialSlot, ObjectFlags, OutNewActors, bCreateDropPreview, SelectActors, FactoryToUse);
+								bResult = true;
+							}
 						}
 					}
 				}
@@ -1794,13 +1822,15 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			// We want to process the click on the component only if:
 			// 1. The actor clicked is already selected
 			// 2. The actor selected is the only actor selected
-			// 3. No components are already selected and the click was a double click
-			// 4. OR, a component is already selected and the click was NOT a double click
+			// 3. The actor selected is blueprintable
+			// 4. No components are already selected and the click was a double click
+			// 5. OR, a component is already selected and the click was NOT a double click
 			const bool bActorAlreadySelectedExclusively = GEditor->GetSelectedActors()->IsSelected(ActorHitProxy->Actor) && ( GEditor->GetSelectedActorCount() == 1 );
+			const bool bActorIsBlueprintable = FKismetEditorUtilities::CanCreateBlueprintOfClass(ActorHitProxy->Actor->GetClass());
 			const bool bComponentAlreadySelected = GEditor->GetSelectedComponentCount() > 0;
 			const bool bWasDoubleClick = ( Click.GetEvent() == IE_DoubleClick );
 
-			const bool bSelectComponent = bActorAlreadySelectedExclusively && (bComponentAlreadySelected != bWasDoubleClick);
+			const bool bSelectComponent = bActorAlreadySelectedExclusively && bActorIsBlueprintable && (bComponentAlreadySelected != bWasDoubleClick);
 
 			if (bSelectComponent && GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
 			{

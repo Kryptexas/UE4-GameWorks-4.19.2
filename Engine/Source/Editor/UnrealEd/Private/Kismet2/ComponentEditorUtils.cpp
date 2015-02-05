@@ -6,6 +6,7 @@
 #include "Runtime/Engine/Classes/Components/SceneComponent.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "ScopedTransaction.h"
 
 
 USceneComponent* FComponentEditorUtils::GetSceneComponent( UObject* Object, UObject* SubObject /*= NULL*/ )
@@ -184,31 +185,98 @@ void FComponentEditorUtils::AdjustComponentDelta(USceneComponent* Component, FVe
 	}
 }
 
-void FComponentEditorUtils::BindComponentSelectionOverride(USceneComponent* SceneComponent)
+void FComponentEditorUtils::BindComponentSelectionOverride(USceneComponent* SceneComponent, bool bBind)
 {
 	if (SceneComponent)
 	{
-		// If the scene component is a primitive component, ensure the override is bound
+		// Modifying the selection override delegate is purely cosmetic and shouldn't dirty the package
+		const bool bShouldMarkPackageDirty = false;
+
+		// If the scene component is a primitive component, set the override for it
 		auto PrimComponent = Cast<UPrimitiveComponent>(SceneComponent);
-		if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
+		if (PrimComponent && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
 		{
-			PrimComponent->Modify();
-			PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+			PrimComponent->Modify(bShouldMarkPackageDirty);
+			if (bBind)
+			{
+				PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+			}
+			else
+			{
+				PrimComponent->SelectionOverrideDelegate.Unbind();
+			}
 		}
 		else
 		{
-			// Otherwise, make sure the override is bound on any attached primitive components (to make sure we catch any editor-only billboards and the like)
+			// Otherwise, make sure the override is set properly on any attached editor-only primitive components (ex: billboards)
 			for (auto Component : SceneComponent->AttachChildren)
 			{
 				PrimComponent = Cast<UPrimitiveComponent>(Component);
-				if (PrimComponent && !PrimComponent->SelectionOverrideDelegate.IsBound())
+				if (PrimComponent && PrimComponent->IsEditorOnly() && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
 				{
-					PrimComponent->Modify();
-					PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+					PrimComponent->Modify(bShouldMarkPackageDirty);
+					if (bBind)
+					{
+						PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+					}
+					else
+					{
+						PrimComponent->SelectionOverrideDelegate.Unbind();
+					}
 				}
 			}
 		}
 	}
+}
+
+bool FComponentEditorUtils::AttemptApplyMaterialToComponent(USceneComponent* SceneComponent, UMaterialInterface* MaterialToApply, int32 OptionalMaterialSlot)
+{
+	bool bResult = false;
+	
+	auto MeshComponent = Cast<UMeshComponent>(SceneComponent);
+	auto DecalComponent = Cast<UDecalComponent>(SceneComponent);
+
+	// We can only apply a material to a mesh or a decal
+	if (MeshComponent || DecalComponent)
+	{
+		bResult = true;
+		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "DropTarget_UndoSetComponentMaterial", "Assign Material to Component (Drag and Drop)"));
+		SceneComponent->Modify();
+
+		if (MeshComponent)
+		{
+			// OK, we need to figure out how many material slots this mesh component/static mesh has.
+			// Start with the actor's material count, then drill into the static/skeletal mesh to make sure 
+			// we have the right total.
+			int32 MaterialCount = FMath::Max(MeshComponent->OverrideMaterials.Num(), MeshComponent->GetNumMaterials());
+
+			// Do we have an overridable material at the appropriate slot?
+			if (MaterialCount > 0 && OptionalMaterialSlot < MaterialCount)
+			{
+				if (OptionalMaterialSlot == -1)
+				{
+					// Apply the material to every slot.
+					for (int32 CurMaterialIndex = 0; CurMaterialIndex < MaterialCount; ++CurMaterialIndex)
+					{
+						MeshComponent->SetMaterial(CurMaterialIndex, MaterialToApply);
+					}
+				}
+				else
+				{
+					// Apply only to the indicated slot.
+					MeshComponent->SetMaterial(OptionalMaterialSlot, MaterialToApply);
+				}
+			}
+		}
+		else
+		{
+			DecalComponent->SetMaterial(0, MaterialToApply);
+		}
+
+		SceneComponent->MarkRenderStateDirty();
+	}
+
+	return bResult;
 }
 
 void FComponentEditorUtils::PropagateTransformPropertyChange(
