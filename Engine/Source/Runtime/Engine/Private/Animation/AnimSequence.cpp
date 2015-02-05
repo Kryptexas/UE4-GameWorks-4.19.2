@@ -221,9 +221,12 @@ void UAnimSequence::Serialize(FArchive& Ar)
 	{
 		Ar << RawAnimationData;
 #if WITH_EDITORONLY_DATA
-		if (Ar.UE4Ver() >= VER_UE4_ANIMATION_ADD_TRACKCURVES)
+		if (!Ar.IsCooking())
 		{
-			Ar << SourceRawAnimationData;
+			if (Ar.UE4Ver() >= VER_UE4_ANIMATION_ADD_TRACKCURVES)
+			{
+				Ar << SourceRawAnimationData;
+			}
 		}
 #endif // WITH_EDITORONLY_DATA
 	}
