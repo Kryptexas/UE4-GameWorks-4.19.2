@@ -52,7 +52,7 @@ struct FAnalyticsEventAttribute
 		,AttrValue(FString())
 	{
 		// Serialize the array into "value1,value2,..." format
-		for (T& Value : InValueArray)
+		for (const T& Value : InValueArray)
 		{
 			AttrValue += TTypeToString<T>::ToString(Value) + ",";
 		}
