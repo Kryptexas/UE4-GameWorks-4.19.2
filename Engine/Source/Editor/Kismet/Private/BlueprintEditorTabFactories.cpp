@@ -13,6 +13,7 @@
 #include "SSCSEditorViewport.h"
 #include "SBlueprintPalette.h"
 #include "FindInBlueprints.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "SMyBlueprint.h"
 #include "Engine/Blueprint.h"
 #include "Engine/TimelineTemplate.h"
