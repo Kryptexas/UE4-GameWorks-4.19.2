@@ -196,8 +196,8 @@ protected:
 	/** true if the material reads particle color in the pixel shader. */
 	uint32 bUsesParticleColor : 1;
 	uint32 bUsesTransformVector : 1;
-	// True if the current property requires last frame's time
-	uint32 bUsesPreviousFrameTime : 1;
+	// True if the current property requires last frame's information
+	uint32 bCompilingPreviousFrame : 1;
 	uint32 bUsesPixelDepthOffset : 1;
 	/** True if material will output accurate velocities during base pass rendering. */
 	uint32 bOutputsBasePassVelocities : 1;
@@ -242,7 +242,7 @@ public:
 	,	bUsesVertexColor(false)
 	,	bUsesParticleColor(false)
 	,	bUsesTransformVector(false)
-	,	bUsesPreviousFrameTime(false)
+	,	bCompilingPreviousFrame(false)
 	,	bUsesPixelDepthOffset(false)
 	,	bOutputsBasePassVelocities(true)
 	,	NumUserTexCoords(0)
@@ -1097,7 +1097,7 @@ protected:
 		{
 			if (CodeChunk.UniformExpression->IsChangingPerFrame())
 			{
-				if (bUsesPreviousFrameTime)
+				if (bCompilingPreviousFrame)
 				{
 					const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFramePrevUniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
 					FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFramePrevScalarExpression%u"), ScalarInputIndex);
@@ -1130,7 +1130,7 @@ protected:
 
 			if (CodeChunk.UniformExpression->IsChangingPerFrame())
 			{
-				if (bUsesPreviousFrameTime)
+				if (bCompilingPreviousFrame)
 				{
 					const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFramePrevUniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
 					FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFramePrevVectorExpression%u%s"), VectorInputIndex, Mask);
@@ -1292,7 +1292,7 @@ protected:
 			ShaderFrequency = GetMaterialPropertyShaderFrequency(InProperty);
 		}
 
-		bUsesPreviousFrameTime = bUsePreviousFrameTime;
+		bCompilingPreviousFrame = bUsePreviousFrameTime;
 
 		CurrentScopeChunks = &PropertyCodeChunks[MaterialProperty][ShaderFrequency];
 	}
@@ -1631,7 +1631,7 @@ protected:
 	{
 		if (!bPeriodic)
 		{
-			if (bUsesPreviousFrameTime)
+			if (bCompilingPreviousFrame)
 			{
 				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameGameTime"));
 			}
@@ -1656,7 +1656,7 @@ protected:
 	{
 		if (!bPeriodic)
 		{
-			if (bUsesPreviousFrameTime)
+			if (bCompilingPreviousFrame)
 			{
 				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameRealTime"));
 			}
@@ -3758,7 +3758,7 @@ protected:
 	*
 	* @return	Code index
 	*/
-	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bOutputPreviousPosition) override 
+	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) override 
 	{ 
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
@@ -3775,7 +3775,7 @@ protected:
 
 			NumUserVertexTexCoords = FMath::Max<uint32>(NumUserVertexTexCoords, 8);
 			// Only generate previous frame's computations if required and opted-in
-			const bool bEnablePreviousFrameInformation = bUsesPreviousFrameTime && bOutputPreviousPosition;
+			const bool bEnablePreviousFrameInformation = bCompilingPreviousFrame && bAccurateWindVelocities;
 			return AddCodeChunk(MCT_Float3, TEXT("GetSpeedTreeVertexOffset(Parameters, %d, %d, %d, %g, %s)"), GeometryType, WindType, LODType, BillboardThreshold, bEnablePreviousFrameInformation ? TEXT("true") : TEXT("false"));
 		}
 	}

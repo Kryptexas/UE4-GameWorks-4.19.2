@@ -50,8 +50,8 @@ class UMaterialExpressionSpeedTree : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionSpeedTree, meta=(DisplayName = "Billboard Threshold", ToolTip="The threshold for triangles to be removed from the bilboard mesh when not facing the camera (0 = none pass, 1 = all pass).", ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float BillboardThreshold;
 
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionSpeedTree, AdvancedDisplay, meta=(DisplayName = "Support accurate velocities from wind"))
-	bool bOutputPreviousPosition;
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionSpeedTree, AdvancedDisplay, meta=(DisplayName = "Support accurate velocities from wind. This will incur extra cost per vertex."))
+	bool bAccurateWindVelocities;
 
 	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
@@ -65,5 +65,3 @@ class UMaterialExpressionSpeedTree : public UMaterialExpression
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	// End UMaterialExpression Interface
 };
-
-

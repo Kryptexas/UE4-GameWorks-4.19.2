@@ -172,7 +172,7 @@ public:
 	virtual int32 BlackBody( int32 Temp ) = 0;
 	virtual int32 DepthOfFieldFunction(int32 Depth, int32 FunctionValueIndex) = 0;
 	virtual int32 AtmosphericFogColor(int32 WorldPosition) = 0;
-	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bOutputPreviousPosition) = 0;
+	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) = 0;
 	virtual int32 TextureCoordinateOffset() = 0;
 	virtual int32 EyeAdaptation() = 0;
 };
@@ -335,9 +335,9 @@ public:
 		return Compiler->DepthOfFieldFunction(Depth, FunctionValueIndex);
 	}
 
-	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bOutputPreviousPosition) override 
+	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) override 
 	{ 
-		return Compiler->SpeedTree(GeometryType, WindType, LODType, BillboardThreshold, bOutputPreviousPosition); 
+		return Compiler->SpeedTree(GeometryType, WindType, LODType, BillboardThreshold, bAccurateWindVelocities); 
 	}
 
 	virtual int32 AtmosphericFogColor(int32 WorldPosition) override
