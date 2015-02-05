@@ -44,8 +44,10 @@ USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*=
 
 void USceneComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
+#if WITH_EDITORONLY_DATA
 	USceneComponent* This = CastChecked<USceneComponent>(InThis);
 	Collector.AddReferencedObject(This->SpriteComponent);
+#endif
 	Super::AddReferencedObjects(InThis, Collector);
 }
 
