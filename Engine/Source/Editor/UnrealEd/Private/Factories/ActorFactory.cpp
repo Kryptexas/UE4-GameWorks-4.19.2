@@ -1223,7 +1223,7 @@ UActorFactoryCharacter
 UActorFactoryCharacter::UActorFactoryCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	DisplayName = LOCTEXT("ActorFactoryCharacterDisplayName", "Character");
+	DisplayName = LOCTEXT("ActorFactoryCharacterDisplayName", "Empty Character");
 	NewActorClass = ACharacter::StaticClass();
 }
 
@@ -1250,7 +1250,7 @@ UActorFactoryPawn
 UActorFactoryPawn::UActorFactoryPawn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	DisplayName = LOCTEXT("ActorFactoryPawnDisplayName", "Pawn");
+	DisplayName = LOCTEXT("ActorFactoryPawnDisplayName", "Empty Pawn");
 	NewActorClass = APawn::StaticClass();
 }
 
