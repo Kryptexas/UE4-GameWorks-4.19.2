@@ -313,6 +313,10 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 			if (const UClass* ImportClass = FindObject<UClass>(ClassPackage, *Import.ClassName.ToString()))
 			{
 				bool const bIsBlueprintClass = ImportClass->IsChildOf<UClass>();
+				// @TODO: if we could see if the related package is created 
+				//        (without loading it further), AND it already has this 
+				//        import loaded, then we can probably return that rather 
+				//        than allocating a placeholder
 				if (bIsBlueprintClass)
 				{
 					UPackage* PlaceholderOuter = LinkerRoot;

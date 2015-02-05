@@ -3097,6 +3097,16 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			return NULL;
 		}
 
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		// we're going to have troubles if we're attempting to create an export 
+		// for a placeholder class... this means that class serialization lead
+		// to this (non-CDO) export being created, and because of the way we 
+		// guard against cyclic dependencies (with these placeholder classes), 
+		// we need to make sure this export is created BEFORE we start serializing
+		// the class (maybe through ordering in this linker's ExportMap?)
+		check(Cast<ULinkerPlaceholderClass>(LoadClass) == nullptr);
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
 		check(LoadClass);
 		check(dynamic_cast<UClass*>(LoadClass) != NULL);
 

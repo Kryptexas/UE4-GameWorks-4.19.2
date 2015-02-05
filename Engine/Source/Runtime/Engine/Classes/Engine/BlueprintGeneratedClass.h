@@ -486,6 +486,7 @@ public:
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	virtual void Bind() override;
+	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) override;
 	// End UClass interface
 
 	static void AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector);
