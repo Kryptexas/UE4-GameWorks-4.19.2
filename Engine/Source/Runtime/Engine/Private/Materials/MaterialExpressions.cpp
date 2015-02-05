@@ -8845,7 +8845,7 @@ UMaterialExpressionSpeedTree::UMaterialExpressionSpeedTree(const FObjectInitiali
 	WindType = STW_None;
 	LODType = STLOD_Pop;
 	BillboardThreshold = 0.9f;
-	bOutputPreviousPosition = true;
+	bOutputPreviousPosition = false;
 
 	MenuCategories.Add(ConstructorStatics.NAME_SpeedTree);
 }
