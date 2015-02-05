@@ -5,6 +5,7 @@
 
 #include "CompilerResultsLog.h"
 #include "ClassIconFinder.h"
+#include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -480,6 +481,7 @@ void UK2Node_Variable::ReconstructNode()
 	UClass* const VarClass = GetVariableSourceClass();
 	if (VarClass)
 	{
+		bool bRemappedProperty = false;
 		UClass* SearchClass = VarClass;
 		while (SearchClass != NULL)
 		{
@@ -499,11 +501,22 @@ void UK2Node_Variable::ReconstructNode()
 					}
 
 					// found, can break
+					bRemappedProperty = true;
 					break;
 				}
 			}
 
 			SearchClass = SearchClass->GetSuperClass();
+		}
+
+		if (!bRemappedProperty)
+		{
+			if (GetLinkerUE4Version() < VER_UE4_MOVEMENTCOMPONENT_UPDATEDSCENECOMPONENT)
+			{
+				static FName OldVariableName(TEXT("UpdatedComponent"));
+				static FName NewVariableName(TEXT("UpdatedPrimitive"));
+				bRemappedProperty = RemapRestrictedLinkReference(OldVariableName, NewVariableName, UMovementComponent::StaticClass(), UPrimitiveComponent::StaticClass(), true);
+			}
 		}
 	}
 
@@ -526,6 +539,58 @@ void UK2Node_Variable::ReconstructNode()
 
 	Super::ReconstructNode();
 }
+
+
+bool UK2Node_Variable::RemapRestrictedLinkReference(FName OldVariableName, FName NewVariableName, const UClass* MatchInVariableClass, const UClass* RemapIfLinkedToClass, bool bLogWarning)
+{
+	bool bRemapped = false;
+	if (VariableReference.GetMemberName() == OldVariableName)
+	{
+		UClass* const VarClass = GetVariableSourceClass();
+		if (VarClass->IsChildOf(MatchInVariableClass))
+		{
+			UEdGraphPin* VariablePin = GetValuePin();
+			if (VariablePin)
+			{
+				for (UEdGraphPin* OtherPin : VariablePin->LinkedTo)
+				{
+					if (OtherPin != nullptr && VariablePin->PinType.PinCategory == OtherPin->PinType.PinCategory)
+					{
+						// If any other pin we are linked to is a more restricted type, we need to do the remap.
+						const UClass* OtherPinClass = Cast<UClass>(OtherPin->PinType.PinSubCategoryObject.Get());
+						if (OtherPinClass && OtherPinClass->IsChildOf(RemapIfLinkedToClass))
+						{
+							if (VariableReference.IsSelfContext())
+							{
+								VariableReference.SetSelfMember(NewVariableName);
+							}
+							else
+							{
+								VariableReference.SetExternalMember(NewVariableName, VarClass);
+							}
+							bRemapped = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (bRemapped && bLogWarning && GetBlueprint())
+	{
+		FMessageLog("BlueprintLog").Warning(
+			FText::Format(
+			LOCTEXT("RemapRestrictedLinkReference", "{0}: Variable '{1}' was automatically changed to '{2}'. Verify that logic works as intended. (This warning will disappear once the blueprint has been resaved)"),
+			FText::FromString(GetBlueprint()->GetPathName()),
+			FText::FromString(MatchInVariableClass->GetName() + TEXT(".") + OldVariableName.ToString()),
+			FText::FromString(MatchInVariableClass->GetName() + TEXT(".") + NewVariableName.ToString())
+			));
+	}
+
+	return bRemapped;
+}
+
 
 FName UK2Node_Variable::GetCornerIcon() const
 {
