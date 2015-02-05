@@ -1601,13 +1601,13 @@ bool GameProjectUtils::GenerateConfigFiles(const FProjectInformation& InProjectI
 			{
 				if (InProjectInfo.TargetedHardware == EHardwareClass::Mobile)
 				{
-					SpecificEditorStartupMap = TEXT("/Game/MobileStarterContent/Maps/StarterMap");
-					SpecificGameDefaultMap = TEXT("/Game/MobileStarterContent/Maps/StarterMap");
+					SpecificEditorStartupMap = TEXT("/Game/MobileStarterContent/Maps/Minimal_Default");
+					SpecificGameDefaultMap = TEXT("/Game/MobileStarterContent/Maps/Minimal_Default");
 				}
 				else
 				{
-					SpecificEditorStartupMap = TEXT("/Game/StarterContent/StarterMap");
-					SpecificGameDefaultMap = TEXT("/Game/StarterContent/StarterMap");
+					SpecificEditorStartupMap = TEXT("/Game/StarterContent/Maps/Minimal_Default");
+					SpecificGameDefaultMap = TEXT("/Game/StarterContent/Maps/Minimal_Default");
 				}
 			}						
 			
