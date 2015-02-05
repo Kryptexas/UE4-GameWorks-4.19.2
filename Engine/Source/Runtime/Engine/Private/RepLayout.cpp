@@ -2493,7 +2493,7 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 		if ( Parents[i].ArrayIndex == 0 && ( Parents[i].Property->PropertyFlags & CPF_ZeroConstructor ) == 0 )
 		{
 			// If this property needs to be constructed, make sure we do that
-			Parents[i].Property->InitializeValue( (uint8*)Data + Cmds[ Parents[i].CmdStart ].Offset );
+			Parents[i].Property->InitializeValue((uint8*)Data + Parents[i].Property->GetOffset_ForUFunction());
 		}
 
 		if ( Cast<UBoolProperty>( Parents[i].Property ) || Reader.ReadBit() )
