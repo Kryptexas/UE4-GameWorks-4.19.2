@@ -171,6 +171,8 @@ public class Engine : ModuleRules
 			new string[] {
 				"Analytics",
 				"AnalyticsET",
+				"NetworkReplayStreaming",
+				"NullNetworkReplayStreaming",
 				"OnlineSubsystem", 
 				"OnlineSubsystemUtils",
 				"Advertising"

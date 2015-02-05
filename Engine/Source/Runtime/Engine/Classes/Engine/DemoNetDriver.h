@@ -4,7 +4,6 @@
 
 #include "DemoNetDriver.generated.h"
 
-
 /**
  * Simulated network driver for recording and playing back game sessions.
  */
@@ -16,9 +15,6 @@ class UDemoNetDriver
 
 	/** Name of the file to read/write from */
 	FString DemoFilename;
-
-	/** Handle to the archive that will read/write network packets */
-	FArchive* FileAr;
 
 	/** Current record/playback frame number */
 	int32 DemoFrameNum;
@@ -53,6 +49,8 @@ class UDemoNetDriver
 	UPROPERTY(config)
 	FString DemoSpectatorClass;
 
+	TSharedPtr< class INetworkReplayStreamer > ReplayStreamer;
+
 public:
 
 	// UNetDriver interface.
@@ -67,6 +65,8 @@ public:
 	virtual void ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = nullptr );
 	virtual bool IsAvailable() const override { return true; }
 	
+	bool InitConnectInternal( FString& Error );
+
 public:
 
 	// FExec interface
@@ -91,4 +91,6 @@ public:
 	void ResetDemoState();
 
 	void StopDemo();
+
+	void ReplayStreamingReady( bool bSuccess, bool bRecord );
 };

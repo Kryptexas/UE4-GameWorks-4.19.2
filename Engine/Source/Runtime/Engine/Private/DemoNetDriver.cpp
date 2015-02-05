@@ -15,6 +15,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Engine/GameInstance.h"
+#include "Runtime/NetworkReplayStreaming/NetworkReplayStreaming/Public/NetworkReplayStreaming.h"	// Why do I need the full path here?
 
 DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 
@@ -45,6 +46,8 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		EndOfStreamOffset		= 0;
 
 		ResetDemoState();
+
+		ReplayStreamer = FNetworkReplayStreaming::Get().GetFactory().CreateReplayStreamer();
 
 		return true;
 	}
@@ -133,19 +136,29 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 		return false;
 	}
 
-	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
-
 	// handle default initialization
 	if ( !InitBase( true, InNotify, ConnectURL, false, Error ) )
 	{
-		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "InitBase FAILED" ) ) );
+		GetWorld()->GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "InitBase FAILED" ) ) );
 		return false;
 	}
 
+	// Playback, local machine is a client, and the demo stream acts "as if" it's the server.
+	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
+	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
+
+	ReplayStreamer->StartStreaming( DemoFilename, false, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
+
+	return true;
+}
+
+bool UDemoNetDriver::InitConnectInternal( FString& Error )
+{
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+
 	ResetDemoState();
 
-	// open the pre-recorded demo file
-	FileAr = IFileManager::Get().CreateFileReader( *DemoFilename );
+	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
 	if ( !FileAr )
 	{
@@ -154,10 +167,6 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
 		return false;
 	}
-
-	// Playback, local machine is a client, and the demo stream acts "as if" it's the server.
-	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
-	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
 
 	// use the same byte format regardless of platform so that the demos are cross platform
 	// DEMO_FIXME: This is messing up for some reason, investigate
@@ -280,7 +289,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 
 	check( World != NULL );
 
-	class AWorldSettings * WorldSettings = World->GetWorldSettings();
+	class AWorldSettings * WorldSettings = World->GetWorldSettings(); 
 
 	if ( !WorldSettings )
 	{
@@ -292,9 +301,11 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	UDemoNetConnection* Connection = NewObject<UDemoNetConnection>();
 	Connection->InitConnection( this, USOCK_Open, ListenURL, 1000000 );
 	Connection->InitSendBuffer();
-
-	FileAr = IFileManager::Get().CreateFileWriter( *DemoFilename );
 	ClientConnections.Add( Connection );
+
+	ReplayStreamer->StartStreaming( DemoFilename, true, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
+
+	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
 	if( !FileAr )
 	{
@@ -328,6 +339,8 @@ void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 void UDemoNetDriver::TickFlush( float DeltaSeconds )
 {
 	Super::TickFlush( DeltaSeconds );
+
+	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
 	if ( FileAr )
 	{
@@ -416,6 +429,8 @@ void UDemoNetDriver::StopDemo()
 
 	if ( !ServerConnection )
 	{
+		FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
+
 		// Finish writing the header and other information that goes at the end
 		if ( FileAr != NULL && World != NULL )
 		{
@@ -491,8 +506,7 @@ void UDemoNetDriver::StopDemo()
 		ServerConnection = NULL;
 	}
 
-	delete FileAr;
-	FileAr = NULL;
+	ReplayStreamer->StopStreaming();
 
 	check( ClientConnections.Num() == 0 );
 	check( ServerConnection == NULL );
@@ -548,6 +562,8 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	{
 		return;
 	}
+
+	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
 	if ( FileAr == NULL )
 	{
@@ -625,6 +641,8 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 bool UDemoNetDriver::ReadDemoFrame()
 {
+	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
+
 	if ( FileAr->IsError() )
 	{
 		StopDemo();
@@ -830,6 +848,21 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 	Controller->SetPlayer( Connection );
 }
 
+void UDemoNetDriver::ReplayStreamingReady( bool bSuccess, bool bRecord )
+{
+	if ( !bSuccess )
+	{
+		GetWorld()->GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
+		return;
+	}
+
+	if ( !bRecord )
+	{
+		FString Error;
+		InitConnectInternal( Error );
+	}
+}
+
 /*-----------------------------------------------------------------------------
 	UDemoNetConnection.
 -----------------------------------------------------------------------------*/
@@ -869,7 +902,9 @@ void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
 		UE_LOG( LogDemo, Fatal, TEXT( "UDemoNetConnection::LowLevelSend: Count > MAX_DEMO_READ_WRITE_BUFFER." ) );
 	}
 
-	if ( !GetDriver()->ServerConnection && GetDriver()->FileAr )
+	FArchive* FileAr = GetDriver()->ReplayStreamer->GetStreamingArchive();
+
+	if ( !GetDriver()->ServerConnection && FileAr )
 	{
 		// If we're outside of an official demo frame, we need to queue this up or it will throw off the stream
 		if ( !GetDriver()->bIsRecordingDemoFrame )
@@ -880,12 +915,12 @@ void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
 			return;
 		}
 
-		*GetDriver()->FileAr << Count;
-		GetDriver()->FileAr->Serialize( Data, Count );
+		*FileAr << Count;
+		FileAr->Serialize( Data, Count );
 		
 #if DEMO_CHECKSUMS == 1
 		uint32 Checksum = FCrc::MemCrc32( Data, Count, 0 );
-		*GetDriver()->FileAr << Checksum;
+		*FileAr << Checksum;
 #endif
 	}
 }
