@@ -651,6 +651,7 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 			&& Blueprint->BlueprintType != BPTYPE_MacroLibrary)
 		{
 			DefaultSceneRootNode = CreateNode(USceneComponent::StaticClass(), USceneComponent::GetDefaultSceneRootVariableName());
+			CastChecked<USceneComponent>(DefaultSceneRootNode->ComponentTemplate)->bVisualizeComponent = true;
 		}
 	}
 

@@ -1186,13 +1186,13 @@ AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, co
 
 		USceneComponent* RootComponent = NewObject<USceneComponent>(NewActor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 		RootComponent->Mobility = EComponentMobility::Movable;
+		RootComponent->bVisualizeComponent = true;
 		RootComponent->SetWorldLocationAndRotation(Location, Rotation);
+
 		NewActor->SetRootComponent(RootComponent);
-
-		UBillboardComponent* BillboardComponent	= CreateEditorOnlyBillboardComponent(NewActor, RootComponent);
-
 		NewActor->AddInstanceComponent(RootComponent);
-		NewActor->AddInstanceComponent(BillboardComponent);
+
+		RootComponent->RegisterComponent();
 	}
 
 	return NewActor;

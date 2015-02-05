@@ -48,23 +48,7 @@ void UAudioComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	if ( bVisualizeComponent && SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld() )
-	{
-		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
-
-		UpdateSpriteTexture();
-		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-		SpriteComponent->AttachTo(this);
-		SpriteComponent->AlwaysLoadOnClient = false;
-		SpriteComponent->AlwaysLoadOnServer = false;
-		SpriteComponent->SpriteInfo.Category = TEXT("Misc");
-		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Misc", "Misc" );
-		SpriteComponent->CreationMethod = CreationMethod;
-		SpriteComponent->bIsScreenSizeScaled = true;
-		SpriteComponent->bUseInEditorScaling = true;
-
-		SpriteComponent->RegisterComponent();
-	}
+	UpdateSpriteTexture();
 }
 #endif
 
@@ -82,17 +66,6 @@ void UAudioComponent::OnUnregister()
 		Stop();
 	}
 }
-
-#if WITH_EDITORONLY_DATA
-void UAudioComponent::OnComponentDestroyed()
-{
-	Super::OnComponentDestroyed();
-	if (SpriteComponent)
-	{
-		SpriteComponent->DestroyComponent();
-	}
-}
-#endif
 
 void UAudioComponent::SetSound( USoundBase* NewSound )
 {
@@ -324,11 +297,11 @@ void UAudioComponent::UpdateSpriteTexture()
 	{
 		if (bAutoActivate)
 		{
-			SpriteComponent->Sprite = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent_AutoActivate.S_AudioComponent_AutoActivate"));
+			SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent_AutoActivate.S_AudioComponent_AutoActivate")));
 		}
 		else
 		{
-			SpriteComponent->Sprite = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent.S_AudioComponent"));
+			SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent.S_AudioComponent")));
 		}
 	}
 }

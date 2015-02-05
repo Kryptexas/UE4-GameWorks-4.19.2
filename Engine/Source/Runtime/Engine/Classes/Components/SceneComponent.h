@@ -155,8 +155,18 @@ protected:
 	// Transient flag that temporarily disables UpdateOverlaps within DetachFromParent().
 	uint32 bDisableDetachmentUpdateOverlaps:1;
 
-public:
+#if WITH_EDITOR
+protected:
+	/** Editor only component used to display the sprite so as to be able to see the location of the Audio Component  */
+	UPROPERTY(transient)
+	class UBillboardComponent* SpriteComponent;
 
+public:
+	UPROPERTY()
+	uint32 bVisualizeComponent:1;
+#endif
+
+public:
 	/** How often this component is allowed to move, used to make various optimizations. Only safe to set in constructor, use SetMobility() during runtime. */
 	UPROPERTY(Category=Mobility, EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<EComponentMobility::Type> Mobility;
