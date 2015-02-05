@@ -16,7 +16,8 @@
 #include "SMyBlueprint.h"
 #include "Engine/Blueprint.h"
 #include "Engine/TimelineTemplate.h"
-
+#include "EditorClassUtils.h"
+#include "SHyperlink.h"
 
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
@@ -142,7 +143,82 @@ TSharedRef<SWidget> FDefaultsEditorSummoner::CreateTabBody(const FWorkflowTabSpa
 {
 	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
-	return BlueprintEditorPtr->GetDefaultEditor();
+	TSharedRef<SWidget> Message = CreateOptionalDataOnlyMessage();
+
+	return SNew(SVerticalBox)
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(FMargin(0,0,0,1))
+		[
+			Message
+		]
+
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		[
+			BlueprintEditorPtr->GetDefaultEditor()
+		];
+}
+
+TSharedRef<SWidget> FDefaultsEditorSummoner::CreateOptionalDataOnlyMessage() const
+{
+	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
+
+	TSharedRef<SWidget> Message = SNullWidget::NullWidget;
+	if ( UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj() )
+	{
+		if ( FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) )
+		{
+			Message = SNew(SBorder)
+				.Padding(FMargin(5))
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SWrapBox)
+					.UseAllottedWidth(true)
+
+					+ SWrapBox::Slot()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("BoldFont"))
+						.Text(LOCTEXT("DataOnlyMessage_Part1", "NOTE: This is a data only blueprint, so only the default values are shown.  It does not have any script or variables.  If you want to add some, "))
+					]
+
+					+ SWrapBox::Slot()
+					[
+						SNew(SHyperlink)
+						.Style(FEditorStyle::Get(), "EditBPHyperlink")
+						.TextStyle(FEditorStyle::Get(), "DetailsView.EditBlueprintHyperlinkStyle")
+						.OnNavigate(this, &FDefaultsEditorSummoner::OnChangeBlueprintToNotDataOnly)
+						.Text(LOCTEXT("FullEditor", "Open Full Blueprint Editor"))
+						.ToolTipText(LOCTEXT("FullEditorToolTip", "This opens the blueprint in the full editor."))
+					]
+				];
+		}
+	}
+
+	return Message;
+}
+
+void FDefaultsEditorSummoner::OnChangeBlueprintToNotDataOnly()
+{
+	UBlueprint* Blueprint = nullptr;
+
+	{
+		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
+		Blueprint = BlueprintEditorPtr->GetBlueprintObj();
+		if ( Blueprint )
+		{
+			BlueprintEditorPtr->CloseWindow();
+		}
+	}
+
+	if ( Blueprint )
+	{
+		Blueprint->bForceFullEditor = true;
+
+		GEditor->EditObject(Blueprint);
+	}
 }
 
 FConstructionScriptEditorSummoner::FConstructionScriptEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)

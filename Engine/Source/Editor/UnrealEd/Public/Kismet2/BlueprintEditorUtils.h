@@ -343,7 +343,7 @@ public:
 	/** returns if a graph is an intermediate build product */
 	static bool IsGraphIntermediate(const UEdGraph* Graph);
 
-	/** Returns whether or not this blueprint is a data-only blueprint (has no code) */
+	/** @return true if the blueprint does not contain any special logic or variables or other elements that require a full compile. */
 	static bool IsDataOnlyBlueprint(const UBlueprint* Blueprint);
 
 	/** Returns whether or not the blueprint is const during execution */
@@ -1162,6 +1162,7 @@ protected:
 	 * @param InOutVarDesc		The variable description to validate
 	 */
 	static void PostSetupObjectPinType(UBlueprint* InBlueprint, FBPVariableDescription& InOutVarDesc);
+
 public:
 	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
 	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);

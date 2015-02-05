@@ -288,29 +288,30 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 #if WITH_EDITORONLY_DATA
 	/** Whether or not this blueprint is newly created, and hasn't been opened in an editor yet */
 	UPROPERTY(transient)
-	uint32 bIsNewlyCreated:1;
+	uint32 bIsNewlyCreated : 1;
 
 	/** Whether to force opening the full (non data-only) editor for this blueprint. */
 	UPROPERTY(transient)
-	uint32 bForceFullEditor:1;
+	uint32 bForceFullEditor : 1;
+
 	/**whether or not you want to continuously rerun the construction script for an actor as you drag it in the editor, or only when the drag operation is complete*/
-	UPROPERTY(EditAnywhere, Category=BlueprintOption)
-	uint32 bRunConstructionScriptOnDrag:1;
+	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
+	uint32 bRunConstructionScriptOnDrag : 1;
 
 	/** Whether or not this blueprint's class is a const class or not.  Should set CLASS_Const in the KismetCompiler. */
-	UPROPERTY(EditAnywhere, Category=BlueprintOption)
-	uint32 bGenerateConstClass:1;
+	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
+	uint32 bGenerateConstClass : 1;
 
 	/**shows up in the content browser when the blueprint is hovered */
-	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
 	FString BlueprintDescription;
 
 	/** The category of the Blueprint, used to organize this Blueprint class when displayed in palette windows */
-	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
 	FString BlueprintCategory;
 
 	/** Additional HideCategories. The are added to HideCategories from parent. */
-	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
 	TArray<FString> HideCategories;
 
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
@@ -319,7 +320,7 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 
 	/** Guid key for finding searchable data for Blueprint in the DDC */
 	UPROPERTY()
-	FGuid  SearchGuid;
+	FGuid SearchGuid;
 
 	/** Deprecates the Blueprint, marking the generated class with the CLASS_Deprecated flag */
 	UPROPERTY(EditAnywhere, Category=BlueprintOption)

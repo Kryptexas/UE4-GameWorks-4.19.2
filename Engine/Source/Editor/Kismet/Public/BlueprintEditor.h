@@ -856,9 +856,6 @@ protected:
 	/** Callback when properties have finished being handled */
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 
-	/** the string to show for edit defaults*/
-	static FText DefaultEditString();
-
 	/** On starting to rename node */
 	void OnRenameNode();
 	bool CanRenameNodes() const;
