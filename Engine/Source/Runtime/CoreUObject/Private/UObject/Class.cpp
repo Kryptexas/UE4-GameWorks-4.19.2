@@ -3371,10 +3371,6 @@ bool UClass::HotReloadPrivateStaticClass(
 		UClass::GetDefaultPropertiesFeedbackContext().Logf(ELogVerbosity::Warning, TEXT("Property size mismatch. Will not update class %s (was %d, new %d)."), *GetName(), PropertiesSize, InSize);
 		return false;
 	}
-	//We could do this later, but might as well get it before we start corrupting the object
-	UObject* CDO = GetDefaultObject();
-	void* OldVTable = *(void**)CDO;
-
 
 	//@todo safe? ClassFlags = InClassFlags | CLASS_Native;
 	//@todo safe? ClassCastFlags = InClassCastFlags;
@@ -3395,51 +3391,23 @@ bool UClass::HotReloadPrivateStaticClass(
 	ClassWithin = TClass_WithinClass_StaticClass;
 	*/
 
-	UE_LOG(LogClass, Verbose, TEXT("Attempting to change VTable for class %s."),*GetName());
-	ClassWithin = UPackage::StaticClass();  // We are just avoiding error checks with this...we don't care about this temp object other than to get the vtable.
-	UObject* TempObjectForVTable = StaticConstructObject(this, GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject);
-
-	if( !TempObjectForVTable->IsRooted() )
+	int32 CountClass = 0;
+	for (FRawObjectIterator It; It; ++It)
 	{
-		TempObjectForVTable->MarkPendingKill();
-	}
-	else
-	{
-		UE_LOG(LogClass, Warning, TEXT("Hot Reload:  Was not expecting temporary object '%s' for class '%s' to become rooted during construction.  This object cannot be marked pending kill." ), *TempObjectForVTable->GetFName().ToString(), *this->GetName() );
-	}
-
-	ClassWithin = TClass_WithinClass_StaticClass;
-
-	void* NewVTable = *(void**)TempObjectForVTable;
-	if (NewVTable != OldVTable)
-	{
-		int32 Count = 0;
-		int32 CountClass = 0;
-		for ( FRawObjectIterator It; It; ++It )
+		UObject* Target = *It;
+		if (dynamic_cast<UClass*>(Target))
 		{
-			UObject* Target = *It;
-			if (OldVTable == *(void**)Target)
+			UClass *Class = CastChecked<UClass>(Target);
+			if (Class->ClassConstructor == OldClassConstructor)
 			{
-				*(void**)Target = NewVTable;
-				Count++;
-			}
-			else if (dynamic_cast<UClass*>(Target))
-			{
-				UClass *Class = CastChecked<UClass>(Target);
-				if (Class->ClassConstructor == OldClassConstructor)
-				{
-					Class->ClassConstructor = ClassConstructor;
-					Class->ClassAddReferencedObjects = ClassAddReferencedObjects;
-					CountClass++;
-				}
+				Class->ClassConstructor = ClassConstructor;
+				Class->ClassAddReferencedObjects = ClassAddReferencedObjects;
+				CountClass++;
 			}
 		}
-		UE_LOG(LogClass, Verbose, TEXT("Updated the vtable for %d live objects and %d blueprint classes.  %016llx -> %016llx"), Count, CountClass, PTRINT(OldVTable), PTRINT(NewVTable));
 	}
-	else
-	{
-		UE_LOG(LogClass, Error, TEXT("VTable for class %s did not change?"),*GetName());
-	}
+	UE_LOG(LogClass, Verbose, TEXT("Updated the internal methods %d blueprint classes."), CountClass);
+
 	return true;
 }
 
