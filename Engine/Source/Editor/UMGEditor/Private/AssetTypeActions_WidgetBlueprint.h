@@ -14,8 +14,4 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::UI; }
 	virtual FText GetAssetDescription( const FAssetData& AssetData ) const override;
 	// End IAssetTypeActions Implementation
-
-private:
-	/** Returns true if the blueprint is data only */
-	bool ShouldUseDataOnlyEditor(const UBlueprint* Blueprint) const;
 };
