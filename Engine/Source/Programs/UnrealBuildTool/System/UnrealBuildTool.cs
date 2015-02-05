@@ -1231,9 +1231,7 @@ namespace UnrealBuildTool
             // Print some performance info
             Log.TraceVerbose("Execution time: {0}", (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds);
 
-            int RetVal = (Result == ECompilationResult.Succeeded || Result == ECompilationResult.UpToDate) ? 0 : (int)Result;
-
-            return RetVal; 
+            return (int)Result; 
         }
 
 
@@ -1891,6 +1889,12 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		private static bool ShouldDoHotReloadFromIDE(TargetDescriptor TargetDesc)
 		{
+			if (UnrealBuildTool.CommandLineContains("-NoHotReloadFromIDE"))
+			{
+				// Hot reload disabled through command line, possibly running from UAT
+				return false;
+			}
+
 			bool bIsRunning = false;
 			
 			// @todo ubtmake: Kind of cheating here to figure out if an editor target.  At this point we don't have access to the actual target description, and
