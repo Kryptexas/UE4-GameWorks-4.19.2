@@ -381,10 +381,12 @@ void USceneComponent::OnComponentDestroyed()
 {
 	Super::OnComponentDestroyed();
 
+#if WITH_EDITOR
 	if (SpriteComponent)
 	{
 		SpriteComponent->DestroyComponent();
 	}
+#endif
 
 	ScopedMovementStack.Reset();
 
