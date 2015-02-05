@@ -2059,7 +2059,9 @@ UAudioComponent* FAudioDevice::CreateComponent( USoundBase* Sound, UWorld* World
 			AudioComponent->bIsUISound = false;
 			AudioComponent->bAutoDestroy = bPlay;
 			AudioComponent->bStopWhenOwnerDestroyed = bStopWhenOwnerDestroyed;
+#if WITH_EDITORONLY_DATA
 			AudioComponent->bVisualizeComponent	= false;
+#endif
 			AudioComponent->AttenuationSettings = AttenuationSettings;
 			if (Location)
 			{
