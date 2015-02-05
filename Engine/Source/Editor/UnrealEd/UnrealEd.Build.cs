@@ -14,7 +14,8 @@ public class UnrealEd : ModuleRules
 			{
 				"Editor/UnrealEd/Private",
 				"Editor/UnrealEd/Private/Settings",
-				"Editor/PackagesDialog/Public",
+				"Editor/UnrealEd/Private/FeaturePack",
+				"Editor/PackagesDialog/Public",				
 				"Developer/DerivedDataCache/Public",
 				"Developer/TargetPlatform/Public",
 			}
