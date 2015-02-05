@@ -294,9 +294,11 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 	// This API is intended to describe how to handle a potentially new connection to a pin that may already have a connection.
 	// However it also checks all necessary constraints for a valid connection to exist. We rely on the fact that the "disallow"
 	// response will be returned if the pins are not compatible; any other response here then means that the connection is valid.
-	if (Schema->CanCreateConnection(PinA, PinB).Response == CONNECT_RESPONSE_DISALLOW)
+	const FPinConnectionResponse ConnectResponse = Schema->CanCreateConnection(PinA, PinB);
+
+	if (ConnectResponse.Response == CONNECT_RESPONSE_DISALLOW)
 	{
-		MessageLog.Warning(*LOCTEXT("PinTypeMismatch_Error", "Type mismatch between pins @@ and @@").ToString(), PinA, PinB); 
+		MessageLog.Warning(*FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString()), PinA, PinB);
 	}
 }
 
