@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -150,12 +150,6 @@ public:
 		*this = PxMat44(PxMat33(t.q), t.p);
 	}
 
-
-	/**
-	\brief returns true if the two matrices are exactly equal
-	*/
-	PX_CUDA_CALLABLE PX_INLINE bool operator==(const PxMat44& m) const	{ return column0 == m.column0 && column1 == m.column1 && column2 == m.column2 && column3 == m.column3; }
-
 	//! Copy constructor
 	PX_CUDA_CALLABLE PX_INLINE PxMat44(const PxMat44& other)
 		: column0(other.column0), column1(other.column1), column2(other.column2), column3(other.column3)
@@ -265,24 +259,16 @@ public:
 		return *this;
 	}
 
-	//! Equals matrix multiplication
-	PX_CUDA_CALLABLE PX_INLINE PxMat44& operator*=(const PxMat44 &other)
-	{
-		*this = *this * other;
-		return *this;
-	}
-
-
 	//! Element access, mathematical way!
 	PX_CUDA_CALLABLE PX_FORCE_INLINE PxReal operator()(unsigned int row, unsigned int col) const
 	{
-		return (*this)[col][row];
+		return (*this)[(int)col][(int)row];
 	}
 
 	//! Element access, mathematical way!
 	PX_CUDA_CALLABLE PX_FORCE_INLINE PxReal& operator()(unsigned int row, unsigned int col)
 	{
-		return (*this)[col][row];
+		return (*this)[(int)col][(int)row];
 	}
 	
 	//! Transform vector by matrix, equal to v' = M*v
@@ -333,11 +319,8 @@ public:
 		return &column0.x;
 	}
 
-	PX_CUDA_CALLABLE PX_FORCE_INLINE PxVec4& operator[](unsigned int num) {return (&column0)[num];}
-	PX_CUDA_CALLABLE PX_FORCE_INLINE const PxVec4& operator[](unsigned int num) const {return (&column0)[num];}
-
-	PX_DEPRECATED PX_CUDA_CALLABLE PX_FORCE_INLINE PxVec4& operator[](int num) {return (&column0)[num];}
-	PX_DEPRECATED PX_CUDA_CALLABLE PX_FORCE_INLINE const PxVec4& operator[](int num) const {return (&column0)[num];}
+	PX_CUDA_CALLABLE PX_FORCE_INLINE			PxVec4& operator[](int num)			{return (&column0)[num];}
+	PX_CUDA_CALLABLE PX_FORCE_INLINE const	PxVec4& operator[](int num)	const	{return (&column0)[num];}
 
 	PX_CUDA_CALLABLE PX_INLINE void	scale(const PxVec4& p)
 	{

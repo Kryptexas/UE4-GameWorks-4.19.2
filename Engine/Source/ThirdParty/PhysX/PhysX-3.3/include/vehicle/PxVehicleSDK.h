@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -34,7 +34,7 @@
 */
 
 #include "foundation/Px.h"
-#include "common/PxTypeInfo.h"
+
 
 #ifndef PX_DOXYGEN
 namespace physx
@@ -43,7 +43,6 @@ namespace physx
 
 class PxPhysics;
 class PxSerializationRegistry;
-
 /**
 \brief Initialize the PhysXVehicle library. 
 
@@ -58,7 +57,6 @@ Call this before using any of the vehicle functions.
 @see PxCloseVehicleSDK
 */
 PX_C_EXPORT bool PX_CALL_CONV PxInitVehicleSDK(PxPhysics& physics, PxSerializationRegistry* serializationRegistry = NULL);
-
 
 /**
 \brief Shut down the PhysXVehicle library. 
@@ -88,7 +86,6 @@ PX_C_EXPORT void PX_CALL_CONV PxCloseVehicleSDK(PxSerializationRegistry* seriali
 */
 #define PX_DEBUG_VEHICLE_ON (1)
 
-
 /**
 @see PxVehicleDrive4W, PxVehicleDriveTank, PxVehicleDriveNW, PxVehicleNoDrive, PxVehicleWheels::getVehicleType
 */
@@ -107,24 +104,6 @@ struct PxVehicleTypes
 	};
 };
 
-
-/**
-\brief An enumeration of concrete vehicle classes inheriting from PxBase.
-\note This enum can be used to identify a vehicle object stored in a PxCollection.
-@see PxBase, PxTypeInfo, PxBase::getConcreteType
-*/
-struct PxVehicleConcreteType
-{
-	enum Enum
-	{
-		eVehicleNoDrive = PxConcreteType::eFIRST_VEHICLE_EXTENSION,
-		eVehicleDrive4W,
-		eVehicleDriveNW,
-		eVehicleDriveTank
-	};
-};
-
-
 /**
 \brief Set the basis vectors of the vehicle simulation 
 
@@ -133,7 +112,6 @@ Default values PxVec3(0,1,0), PxVec3(0,0,1)
 Call this function before using PxVehicleUpdates unless the default values are correct.
 */
 void PxVehicleSetBasisVectors(const PxVec3& up, const PxVec3& forward);
-
 
 /**
 @see PxVehicleSetUpdateMode
@@ -146,7 +124,6 @@ struct PxVehicleUpdateMode
 		eACCELERATION	
 	};
 };
-
 
 /**
 \brief Set the effect of PxVehicleUpdates to be either to modify each vehicle's rigid body actor

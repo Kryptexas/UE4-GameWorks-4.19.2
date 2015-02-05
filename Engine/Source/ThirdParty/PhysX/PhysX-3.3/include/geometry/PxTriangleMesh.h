@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -198,9 +198,12 @@ class PxTriangleMesh : public PxBase
 	PX_PHYSX_COMMON_API virtual	const PxU32*			getTrianglesRemap()							const	= 0;
 
 
-	/**	
-	\brief Decrements the reference count of a triangle mesh and releases it if the new reference count is zero.	
-	
+	/**
+	\brief Destroys the triangle mesh.
+
+	\note This will decrease the reference count by one.
+
+	Releases the application's reference to the triangle mesh.
 	The mesh is destroyed when the application's reference is released and all shapes referencing the mesh are destroyed.
 	
 	@see PxPhysics.createTriangleMesh()

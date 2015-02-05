@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -116,36 +116,28 @@ public:
 	/**
 	\brief element access
 	*/
-	PX_DEPRECATED PX_CUDA_CALLABLE PX_INLINE PxReal& operator[](int index)
+	PX_CUDA_CALLABLE PX_INLINE PxReal& operator[](int index)
 	{
 		PX_ASSERT(index>=0 && index<=3);
 
 		return reinterpret_cast<PxReal*>(this)[index];
 	}
 	
-	/**
-	\brief element access
-	*/
 	PX_CUDA_CALLABLE PX_INLINE PxReal& operator[](unsigned int index)
 	{
 		PX_ASSERT(index<=3);
 
 		return reinterpret_cast<PxReal*>(this)[index];
 	}
-
 	/**
 	\brief element access
 	*/
-	PX_DEPRECATED PX_CUDA_CALLABLE PX_INLINE const PxReal& operator[](int index) const
+	PX_CUDA_CALLABLE PX_INLINE const PxReal& operator[](int index) const
 	{
 		PX_ASSERT(index>=0 && index<=3);
 
 		return reinterpret_cast<const PxReal*>(this)[index];
 	}
-
-	/**
-	\brief element access
-	*/
 	PX_CUDA_CALLABLE PX_INLINE const PxReal& operator[](unsigned int index) const
 	{
 		PX_ASSERT(index<=3);

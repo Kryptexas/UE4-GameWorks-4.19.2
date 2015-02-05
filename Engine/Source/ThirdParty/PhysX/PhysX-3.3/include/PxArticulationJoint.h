@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -40,29 +40,6 @@
 namespace physx
 {
 #endif
-
-/**
-\brief The type of joint drive to use for the articulation joint.
-
-Two drive models are currently supported. in the TARGET model, the drive spring displacement will be determined 
-as the rotation vector from the relative quaternion beetween child and parent, and the target quaternion.
-
-In the ERROR model, the drive spring displacement will be taken directly from the imaginary part of the relative
-quaternion. This drive model requires more computation on the part of the application, but allows driving the joing
-with a spring displacement that is more than a complete rotation.
-
-@see PxArticulationJoint
-*/
-
-struct PxArticulationJointDriveType
-{
-	enum Enum
-	{
-		eTARGET	= 0,		// use the quaternion as the drive target
-		eERROR	= 1			// use the vector part of the quaternion as the drive error.
-	};
-};
-
 
 /**
 \brief a joint between two links in an articulation.
@@ -163,27 +140,6 @@ public:
 	@see setTargetVelocity()
 	*/
 	virtual		PxVec3			getTargetVelocity() const = 0;
-
-
-	/**
-	\brief set the drive type
-
-	\param[in] driveType the drive type for the joint
-	<b>Default:</b> PxArticulationJointDriveType::eTARGET
-
-	@see getDriveType()
-	*/
-	virtual		void			setDriveType(PxArticulationJointDriveType::Enum driveType) = 0;
-
-	/**
-	\brief get the drive type
-
-	\return the drive type
-
-	@see setDriveType()
-	*/
-	virtual		PxArticulationJointDriveType::Enum
-								getDriveType() const = 0;
 
 
 	/**

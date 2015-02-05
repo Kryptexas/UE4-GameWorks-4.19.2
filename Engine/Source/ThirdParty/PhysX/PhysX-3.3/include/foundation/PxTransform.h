@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -92,25 +92,11 @@ public:
 
 	PX_CUDA_CALLABLE PX_FORCE_INLINE explicit PxTransform(const PxMat44& m);	// defined in PxMat44.h
 	
-	/**
-	\brief returns true if the two transforms are exactly equal
-	*/
-	PX_CUDA_CALLABLE PX_INLINE bool operator==(const PxTransform& t) const	{ return p == t.p && q == t.q; }
-
-
 	PX_CUDA_CALLABLE PX_FORCE_INLINE PxTransform operator*(const PxTransform& x) const
 	{
 		PX_ASSERT(x.isSane());
 		return transform(x);
 	}
-
-	//! Equals matrix multiplication
-	PX_CUDA_CALLABLE PX_INLINE PxTransform& operator*=(PxTransform &other)
-	{
-		*this = *this * other;
-		return *this;
-	}
-
 
 	PX_CUDA_CALLABLE PX_FORCE_INLINE PxTransform getInverse() const
 	{

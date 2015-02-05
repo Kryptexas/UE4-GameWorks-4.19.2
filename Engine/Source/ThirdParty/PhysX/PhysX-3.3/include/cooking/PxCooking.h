@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -120,19 +120,12 @@ struct PxMeshPreprocessingFlag
 		It is recommended to use only meshes that passed during validateTriangleMesh. 
 
 		*/
-		eDISABLE_CLEAN_MESH								=	1 << 3, 
+		eDISABLE_CLEAN_MESH						=	1 << 3, 
 
 		/**
 		\brief When set, active edges are set for each triangle edge. This makes cooking faster but slow up contact generation.
 		*/
-		eDISABLE_ACTIVE_EDGES_PRECOMPUTE				=	1 << 4,
-
-		/**
-		\brief When set, 32-bit indices will always be created regardless of triangle count.
-
-		\note By default mesh will be created with 16-bit indices for triangle count <= 0xFFFF and 32-bit otherwise.
-		*/
-		eFORCE_32BIT_INDICES							=	1 << 5
+		eDISABLE_ACTIVE_EDGES_PRECOMPUTE		=	1 << 4  
 	};
 };
 
@@ -220,8 +213,6 @@ struct PxCookingParams
 
 	/**
 	\brief Tolerance scale is used to check if cooked triangles are not too huge. This check will help with simulation stability.
-
-	\note The PxTolerancesScale values have to match the values used when creating a PxPhysics or PxScene instance.
 
 	@see PxTolerancesScale
 	*/
@@ -362,7 +353,7 @@ public:
 
 	\param[in] desc The triangle mesh descriptor to read the mesh from.
 	\param[in] insertionCallback The insertion interface from PxPhysics.
-	\return PxTriangleMesh pointer on success	
+	\return PxTriangleMesh pointer on success
 
 	@see cookConvexMesh() setParams() PxPhysics.createTriangleMesh() PxPhysicsInsertionCallback
 	*/

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -59,12 +59,6 @@ class PxMaterial;
 
 class PxVehicleWheelsSimData
 {
-//= ATTENTION! =====================================================================================
-// Changing the data layout of this class breaks the binary serialization format.  See comments for 
-// PX_BINARY_SERIAL_VERSION.  If a modification is required, please adjust the getBinaryMetaData 
-// function.  If the modification is made on a custom branch, please change PX_BINARY_SERIAL_VERSION
-// accordingly.
-//==================================================================================================
 public:
 
 	friend class PxVehicleWheels;
@@ -443,16 +437,6 @@ public:
 	PxU32 getNbWheelCentreOffset() const { return mNbActiveWheels;	}
 	PxU32 getNbWheelShapeMapping() const { return mNbActiveWheels; }
 	PxU32 getNbSceneQueryFilterData() const { return mNbActiveWheels; }
-	PxF32 getMinLongSlipDenominator() const {return mMinLongSlipDenominator;}
-	void setThresholdLongSpeed(const PxF32 f) {mThresholdLongitudinalSpeed = f;}
-	PxF32 getThresholdLongSpeed() const {return mThresholdLongitudinalSpeed;}
-	void setLowForwardSpeedSubStepCount(const PxU32 f) {mLowForwardSpeedSubStepCount = f;}
-	PxU32 getLowForwardSpeedSubStepCount() const {return mLowForwardSpeedSubStepCount;}
-	void setHighForwardSpeedSubStepCount(const PxU32 f) {mHighForwardSpeedSubStepCount = f;}
-	PxU32 getHighForwardSpeedSubStepCount() const {return mHighForwardSpeedSubStepCount;}
-	void setWheelEnabledState(const PxU32 wheel, const bool state) {if(state) {enableWheel(wheel);} else {disableWheel(wheel);}}
-	bool getWheelEnabledState(const PxU32 wheel) const {return !getIsWheelDisabled(wheel);}
-	PxU32 getNbWheelEnabledState() const {return mNbActiveWheels;}
 	PxVehicleWheelsSimData(){}
 	~PxVehicleWheelsSimData(){}
 //~serialization
@@ -464,12 +448,6 @@ PX_COMPILE_TIME_ASSERT(0==(sizeof(PxVehicleWheelsSimData) & 15));
 */
 class PxVehicleWheelsDynData
 {
-//= ATTENTION! =====================================================================================
-// Changing the data layout of this class breaks the binary serialization format.  See comments for 
-// PX_BINARY_SERIAL_VERSION.  If a modification is required, please adjust the getBinaryMetaData 
-// function.  If the modification is made on a custom branch, please change PX_BINARY_SERIAL_VERSION
-// accordingly.
-//==================================================================================================
 public:
 
 	friend class PxVehicleWheels;
@@ -601,12 +579,6 @@ PX_COMPILE_TIME_ASSERT(0==(sizeof(PxVehicleWheelsDynData) & 15));
 */
 class PxVehicleWheels : public PxBase
 {
-//= ATTENTION! =====================================================================================
-// Changing the data layout of this class breaks the binary serialization format.  See comments for 
-// PX_BINARY_SERIAL_VERSION.  If a modification is required, please adjust the getBinaryMetaData 
-// function.  If the modification is made on a custom branch, please change PX_BINARY_SERIAL_VERSION
-// accordingly.
-//==================================================================================================
 public:
 
 	friend class PxVehicleUpdate;

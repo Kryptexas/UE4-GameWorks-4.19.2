@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -190,7 +190,7 @@ struct PxContactPairExtraDataIterator
 	\brief Advances the iterator to next set of extra data items.
 	
 	The contact pair extra data stream contains sets of items as requested by the corresponding #PxPairFlag flags
-	#PxPairFlag::ePRE_SOLVER_VELOCITY, #PxPairFlag::ePOST_SOLVER_VELOCITY, #PxPairFlag::eCONTACT_EVENT_POSE. A set can contain one
+	::ePRE_SOLVER_VELOCITY, ::ePOST_SOLVER_VELOCITY, ::eCONTACT_EVENT_POSE. A set can contain one
 	item of each plus the PxContactPairIndex item. This method parses the stream and points the iterator
 	member variables to the corresponding items of the current set, if they are available. If CCD is not enabled,
 	you should only get one set of items. If CCD with multiple passes is enabled, you might get more than one item
@@ -324,11 +324,8 @@ struct PxContactPairHeaderFlag
 {
 	enum Enum
 	{
-		eREMOVED_ACTOR_0				= (1<<0),			//!< The actor with index 0 has been removed from the scene.
-		eREMOVED_ACTOR_1				= (1<<1),			//!< The actor with index 1 has been removed from the scene.
-		PX_DEPRECATED eDELETED_ACTOR_0	= eREMOVED_ACTOR_0,	//!< \deprecated use eREMOVED_ACTOR_0 instead
-		PX_DEPRECATED eDELETED_ACTOR_1	= eREMOVED_ACTOR_1	//!< \deprecated use eREMOVED_ACTOR_1 instead
-		
+		eDELETED_ACTOR_0				= (1<<0),	//!< The actor with index 0 has been deleted.
+		eDELETED_ACTOR_1				= (1<<1)	//!< The actor with index 1 has been deleted.
 	};
 };
 
@@ -398,24 +395,14 @@ struct PxContactPairFlag
 	enum Enum
 	{
 		/**
-		\brief The shape with index 0 has been removed from the actor/scene.
+		\brief The shape with index 0 has been deleted.
 		*/
-		eREMOVED_SHAPE_0				= (1<<0),
+		eDELETED_SHAPE_0				= (1<<0),
 
 		/**
-		\brief The shape with index 1 has been removed from the actor/scene.
+		\brief The shape with index 1 has been deleted.
 		*/
-		eREMOVED_SHAPE_1				= (1<<1),
-
-		/**
-		\deprecated use eREMOVED_SHAPE_0 instead
-		*/
-		PX_DEPRECATED eDELETED_SHAPE_0	= eREMOVED_SHAPE_0,
-
-		/**
-		\deprecated use eREMOVED_SHAPE_1 instead
-		*/
-		PX_DEPRECATED eDELETED_SHAPE_1	= eREMOVED_SHAPE_1,
+		eDELETED_SHAPE_1				= (1<<1),
 		
 		/**
 		\brief First actor pair contact.
@@ -482,7 +469,7 @@ struct PxContactPairPoint
 	PxReal	separation;
 
 	/**
-	\brief The normal of the contacting surfaces at the contact point. The normal direction points from the second shape to the first shape.
+	\brief The normal of the contacting surfaces at the contact point.  
 	*/
 	PxVec3	normal;
 
@@ -689,11 +676,8 @@ struct PxTriggerPairFlag
 {
 	enum Enum
 	{
-		eREMOVED_SHAPE_TRIGGER					= (1<<0),					//!< The trigger shape has been removed from the actor/scene.
-		eREMOVED_SHAPE_OTHER					= (1<<1),					//!< The shape causing the trigger event has been removed from the actor/scene.
-		PX_DEPRECATED eDELETED_SHAPE_TRIGGER	= eREMOVED_SHAPE_TRIGGER,	//!< \deprecated use eREMOVED_SHAPE_TRIGGER instead
-		PX_DEPRECATED eDELETED_SHAPE_OTHER		= eREMOVED_SHAPE_OTHER,		//!< \deprecated use eREMOVED_SHAPE_OTHER instead
-		eNEXT_FREE								= (1<<2)					//!< For internal use only.
+		eDELETED_SHAPE_TRIGGER			= (1<<0),	//!< The trigger shape has been deleted.
+		eDELETED_SHAPE_OTHER			= (1<<1)	//!< The shape causing the trigger event has been deleted.
 	};
 };
 
@@ -727,7 +711,7 @@ struct PxTriggerPair
 	PxShape*				otherShape;		//!< The shape causing the trigger event. If collision between trigger shapes is enabled, then this member might point to a trigger shape as well.
 	PxRigidActor*			otherActor;		//!< The actor to which otherShape is attached
 	PxPairFlag::Enum		status;			//!< Type of trigger event (eNOTIFY_TOUCH_FOUND or eNOTIFY_TOUCH_LOST). eNOTIFY_TOUCH_PERSISTS events are not supported.
-	PxTriggerPairFlags		flags;			//!< Additional information on the pair (see #PxTriggerPairFlag)
+	PxTriggerPairFlags		flags;			//!< Additional information on the pair
 };
 
 
@@ -834,7 +818,7 @@ class PxSimulationEventCallback
 	*/
 	virtual void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) = 0;
 
-	/**
+	/*
 	\brief This is called during PxScene::fetchResults with the current trigger pair events.
 
 	Shapes which have been marked as triggers using PxShapeFlag::eTRIGGER_SHAPE will send events

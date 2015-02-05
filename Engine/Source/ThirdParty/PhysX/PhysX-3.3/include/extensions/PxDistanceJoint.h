@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -79,11 +79,11 @@ struct PxDistanceJointFlag
 typedef PxFlags<PxDistanceJointFlag::Enum, PxU16> PxDistanceJointFlags;
 PX_FLAGS_OPERATORS(PxDistanceJointFlag::Enum, PxU16)
 
-/**
+/*
 \brief a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects
-
-@see PxDistanceJointCreate PxJoint
 */
+
+
 class PxDistanceJoint : public PxJoint
 {
 public:

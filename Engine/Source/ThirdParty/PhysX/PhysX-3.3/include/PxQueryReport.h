@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -69,13 +69,12 @@ struct PxHitFlag
 		eUV							= (1<<3),	//!< "u" and "v" barycentric coordinates of #PxQueryHit are valid. Not applicable to sweep queries.
 		eASSUME_NO_INITIAL_OVERLAP	= (1<<4),	//!< Performance hint flag for sweeps when it is known upfront there's no initial overlap.
 												//!< NOTE: using this flag may cause undefined results if shapes are initially overlapping.
-		eMESH_MULTIPLE				= (1<<5),	//!< Report all hits for meshes rather than just the first. Not applicable to sweep queries.
+		eMESH_MULTIPLE				= (1<<5),	//!< Report all hits for meshes rather than just the first.
 												//!< On SPU the number of reported hits per mesh is limited to 16 in no specific order.
-		eMESH_ANY					= (1<<6),	//!< Report any first hit for meshes. If neither eMESH_MULTIPLE nor eMESH_ANY is specified,
+		eMESH_ANY					= (1<<6),	//!< Report any first hit for meshes. If neither eMESH_MULTIPLE or eMESH_ANY is specified,
 												//!< a single closest hit will be reported for meshes.
-		eMESH_BOTH_SIDES			= (1<<7),	//!< Report hits with back faces of mesh triangles. Also report hits for raycast
-												//!< originating on mesh surface and facing away from the surface normal. Not applicable to sweep queries.
-												//!< Please refer to the user guide for heightfield-specific differences.
+		eMESH_BOTH_SIDES			= (1<<7),	//!< Report hits with back faces of triangles. Also report hits for raycast
+												//!< originating on mesh surface and facing away from the surface normal.
 		ePRECISE_SWEEP				= (1<<8),	//!< Use more accurate but slower narrow phase sweep tests.
 												//!< May provide better compatibility with PhysX 3.2 sweep behavior. Ignored on SPU.
 		eMTD						= (1<<9),	//!< Report the minimum translation depth, normal and contact point. Ignored on SPU.
@@ -128,8 +127,7 @@ struct PxQueryHit : PxActorShape
 	/**
 	Face index of touched triangle, for triangle meshes, convex meshes and height fields.
 
-	\note This index will default to 0xFFFFffff value for overlap queries.
-	\note Please refer to the user guide for more details for sweep queries.
+	\note This index will default to 0xFFFFffff value for overlap queries and sweeps with initial overlap.
 	\note This index is remapped by mesh cooking. Use #PxTriangleMesh::getTrianglesRemap() to convert to original mesh index.
 	\note For convex meshes use #PxConvexMesh::getPolygonData() to retrieve touched polygon data.
 	*/
@@ -177,7 +175,7 @@ struct PxLocationHit : public PxQueryHit
 ::PxHitFlag flags can be passed to raycast function, as an optimization, to cause the SDK to only compute specified members of this
 structure.
 
-Some members like barycentric coordinates are currently only computed for triangle meshes and height fields, but next versions
+Some members like barycentric coordinates are currently only computed for triangle meshes and convexes, but next versions
 might provide them in other cases. The client code should check #flags to make sure returned values are valid.
 
 @see PxScene.raycast PxBatchQuery.raycast PxVolumeCache.raycast

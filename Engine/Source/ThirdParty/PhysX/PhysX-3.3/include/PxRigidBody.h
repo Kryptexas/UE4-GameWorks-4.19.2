@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -90,7 +90,7 @@ struct PxRigidBodyFlag
 		\brief Enables swept integration for the actor.
 
 		If this flag is raised and CCD is enabled on the scene, then this body will be simulated by the CCD system to ensure that collisions are not missed due to 
-		high-speed motion. Note individual shape pairs still need to enable PxPairFlag::eDETECT_CCD_CONTACT in the collision filtering to enable the CCD to respond to 
+		high-speed motion. Note, individual shape pairs still need to enable PxPairFlag::eDETECT_CCD_CONTACT, in the collision filtering to enable the CCD to respond to 
 		individual interactions. 
 		*/
 		eENABLE_CCD					= (1<<2),		//!< Enable CCD for the body.
@@ -101,8 +101,6 @@ struct PxRigidBodyFlag
 		If this flag is raised and CCD is enabled, CCD interactions will simulate friction. By default, friction is disabled in CCD interactions because 
 		CCD friction has been observed to introduce some simulation artifacts. CCD friction was enabled in previous versions of the SDK. Raising this flag will result in behavior 
 		that is a closer match for previous versions of the SDK.
-
-		\note This flag requires PxRigidBodyFlag::eENABLE_CCD to be raised to have any effect.
 		*/
 		eENABLE_CCD_FRICTION			= (1<<3)
 	};

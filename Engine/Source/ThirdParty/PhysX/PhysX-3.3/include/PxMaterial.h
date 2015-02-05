@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -132,8 +132,11 @@ class PxMaterial : public PxBase
 public:
 
 	/**
-	\brief Decrements the reference count of a material and releases it if the new reference count is zero.		
+	\brief Deletes the material.
 	
+	\note This will decrease the reference count by one.
+
+	Releases the application's reference to the material.
 	The material is destroyed when the application's reference is released and all shapes referencing the material are destroyed.
 
 	@see PxPhysics.createMaterial()

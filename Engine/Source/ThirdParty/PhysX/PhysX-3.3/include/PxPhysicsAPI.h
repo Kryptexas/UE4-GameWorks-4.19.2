@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -105,12 +105,19 @@ Alternatively, one can instead directly #include a subset of the below files.
 #include "physxprofilesdk/PxProfileZoneManager.h"
 
 //Connecting to Visual Debugger Directly
+#include "physxvisualdebuggersdk/PvdBits.h"
 #include "physxvisualdebuggersdk/PvdConnection.h"
 #include "physxvisualdebuggersdk/PvdConnectionFlags.h"
 #include "physxvisualdebuggersdk/PvdConnectionManager.h"
 #include "physxvisualdebuggersdk/PvdDataStream.h"
+#include "physxvisualdebuggersdk/PvdDataStreamHelpers.h"
 #include "physxvisualdebuggersdk/PvdErrorCodes.h"
+#include "physxvisualdebuggersdk/PvdImmediateRenderer.h"
 #include "physxvisualdebuggersdk/PvdNetworkStreams.h"
+#include "physxvisualdebuggersdk/PvdObjectModelBaseTypeDefs.h"
+#include "physxvisualdebuggersdk/PvdObjectModelBaseTypes.h"
+#include "physxvisualdebuggersdk/PvdObjectModelMetaData.h"
+#include "physxvisualdebuggersdk/PvdSimpleErrorStream.h"
 
 //Connecting the SDK to Visual Debugger
 #include "pvd/PxVisualDebugger.h"
@@ -232,7 +239,6 @@ Alternatively, one can instead directly #include a subset of the below files.
 #include "extensions/PxStringTableExt.h"
 #include "extensions/PxTriangleMeshExt.h"
 #include "extensions/PxVisualDebuggerExt.h"
-#include "extensions/PxDefaultBufferedProfiler.h"
 
 //Serialization
 #include "extensions/PxSerialization.h"

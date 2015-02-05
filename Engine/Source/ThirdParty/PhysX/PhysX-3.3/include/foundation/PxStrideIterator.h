@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -157,19 +157,10 @@ public:
 	/**
 	\brief Indexing operator.
 	*/
-    PX_INLINE T& operator[](unsigned int i) const
+    PX_INLINE T& operator[](int i) const
     {
         return *byteAdd(mPtr, i * stride());
     }
-
-	/**
-	\brief Indexing operator.
-	*/
-    PX_DEPRECATED PX_INLINE T& operator[](int i) const
-    {
-		PX_ASSERT(i >= 0);
-        return this->operator[]((unsigned int)i);
-	}
 
 	/**
 	\brief Pre-increment operator.
@@ -212,15 +203,7 @@ public:
 	/**
 	\brief Addition operator.
 	*/
-    PX_INLINE PxStrideIterator operator+(unsigned int i) const
-    {	
-        return PxStrideIterator(byteAdd(mPtr, i * stride()), stride());
-    }
-
-	/**
-	\brief Addition operator.
-	*/
-    PX_DEPRECATED PX_INLINE PxStrideIterator operator+(int i) const
+    PX_INLINE PxStrideIterator operator+(int i) const
     {	
         return PxStrideIterator(byteAdd(mPtr, i * stride()), stride());
     }
@@ -228,15 +211,7 @@ public:
 	/**
 	\brief Subtraction operator.
 	*/
-	PX_INLINE PxStrideIterator operator-(unsigned int i) const
-	{
-		return PxStrideIterator(byteSub(mPtr, i * stride()), stride());
-	}
-
-	/**
-	\brief Subtraction operator.
-	*/
-	PX_DEPRECATED PX_INLINE PxStrideIterator operator-(int i) const
+	PX_INLINE PxStrideIterator operator-(int i) const
 	{
 		return PxStrideIterator(byteSub(mPtr, i * stride()), stride());
 	}
@@ -244,16 +219,7 @@ public:
 	/**
 	\brief Addition compound assignment operator.
 	*/
-    PX_INLINE PxStrideIterator& operator+=(unsigned int i)
-    {
-        mPtr = byteAdd(mPtr, i * stride());
-        return *this;
-    }
-
-	/**
-	\brief Addition compound assignment operator.
-	*/
-    PX_DEPRECATED PX_INLINE PxStrideIterator& operator+=(int i)
+    PX_INLINE PxStrideIterator& operator+=(int i)
     {
         mPtr = byteAdd(mPtr, i * stride());
         return *this;
@@ -262,16 +228,7 @@ public:
 	/**
 	\brief Subtraction compound assignment operator.
 	*/
-    PX_INLINE PxStrideIterator& operator-=(unsigned int i)
-    {
-        mPtr = byteSub(mPtr, i * stride());
-        return *this;
-    }
-
-	/**
-	\brief Subtraction compound assignment operator.
-	*/
-    PX_DEPRECATED PX_INLINE PxStrideIterator& operator-=(int i)
+    PX_INLINE PxStrideIterator& operator-=(int i)
     {
         mPtr = byteSub(mPtr, i * stride());
         return *this;

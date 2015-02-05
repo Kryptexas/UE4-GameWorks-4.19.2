@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -86,7 +86,7 @@ public:
 	\param[in] shapeDensities The per shape densities. There must be one entry for each shape which has the PxShapeFlag::eSIMULATION_SHAPE set (or for all shapes if includeNonSimShapes is set to true). Other shapes are ignored. The density values must be greater than 0.
 	\param[in] shapeDensityCount The number of provided density values.
 	\param[in] massLocalPose The center of mass relative to the actor frame.  If set to null then (0,0,0) is assumed.
-	\param[in] includeNonSimShapes True if all kind of shapes (PxShapeFlag::eSCENE_QUERY_SHAPE, PxShapeFlag::eTRIGGER_SHAPE, PxShapeFlag::ePARTICLE_DRAIN) should be taken into account.
+	\param[in] includeNonSimShapes True if all kind of shapes (PxShapeFlag::eSCENE_QUERY_SHAPE, ::eTRIGGER_SHAPE, ::ePARTICLE_DRAIN) should be taken into account.
 	\return Boolean. True on success else false.
 
 	@see PxRigidBody::setMassLocalPose PxRigidBody::setMassSpaceInertia PxRigidBody::setMass
@@ -102,7 +102,7 @@ public:
 	\param[in,out] body The rigid body.
 	\param[in] density The density of the body. Used to compute the mass of the body. The density must be greater than 0. 
 	\param[in] massLocalPose The center of mass relative to the actor frame.  If set to null then (0,0,0) is assumed.
-	\param[in] includeNonSimShapes True if all kind of shapes (PxShapeFlag::eSCENE_QUERY_SHAPE, PxShapeFlag::eTRIGGER_SHAPE, PxShapeFlag::ePARTICLE_DRAIN) should be taken into account.
+	\param[in] includeNonSimShapes True if all kind of shapes (PxShapeFlag::eSCENE_QUERY_SHAPE, ::eTRIGGER_SHAPE, ::ePARTICLE_DRAIN) should be taken into account.
 	\return Boolean. True on success else false.
 
 	@see PxRigidBody::setMassLocalPose PxRigidBody::setMassSpaceInertia PxRigidBody::setMass
@@ -126,7 +126,7 @@ public:
 	\param[in] shapeMasses The per shape mass values. There must be one entry for each shape which has the PxShapeFlag::eSIMULATION_SHAPE set. Other shapes are ignored. The mass values must be greater than 0.
 	\param[in] shapeMassCount The number of provided mass values.
 	\param[in] massLocalPose The center of mass relative to the actor frame. If set to null then (0,0,0) is assumed.
-	\param[in] includeNonSimShapes True if all kind of shapes (PxShapeFlag::eSCENE_QUERY_SHAPE, PxShapeFlag::eTRIGGER_SHAPE, PxShapeFlag::ePARTICLE_DRAIN) should be taken into account.
+	\param[in] includeNonSimShapes True if all kind of shapes (PxShapeFlag::eSCENE_QUERY_SHAPE, ::eTRIGGER_SHAPE, ::ePARTICLE_DRAIN) should be taken into account.
 	\return Boolean. True on success else false.
 
 	@see PxRigidBody::setCMassLocalPose PxRigidBody::setMassSpaceInertia PxRigidBody::setMass
@@ -147,7 +147,7 @@ public:
 	\param[in,out] body The the rigid body for which to set the mass and centre of mass local pose properties.
 	\param[in] mass The mass of the body. Must be greater than 0.
 	\param[in] massLocalPose The center of mass relative to the actor frame. If set to null then (0,0,0) is assumed.
-	\param[in] includeNonSimShapes True if all kind of shapes (PxShapeFlag::eSCENE_QUERY_SHAPE, PxShapeFlag::eTRIGGER_SHAPE, PxShapeFlag::ePARTICLE_DRAIN) should be taken into account.
+	\param[in] includeNonSimShapes True if all kind of shapes (PxShapeFlag::eSCENE_QUERY_SHAPE, ::eTRIGGER_SHAPE, ::ePARTICLE_DRAIN) should be taken into account.
 	\return Boolean. True on success else false.
 
 	@see PxRigidBody::setCMassLocalPose PxRigidBody::setMassSpaceInertia PxRigidBody::setMass
@@ -322,7 +322,7 @@ public:
 	\param[out] closestHit Closest hit result.
 	\param[out] shapeIndex Index of the body shape that caused the closest hit.
 	\param[in] filterData If any word in filterData.data is non-zero then filterData.data will be used for filtering,
-							otherwise shape->getQueryFilterData() will be used instead.
+							otherwise shape->getSimulationFilterData() will be used instead.
 	\param[in] filterCall Custom filtering logic (optional). Only used if the corresponding #PxQueryFlag flags are set. If NULL, all hits are assumed to be blocking.
 	\param[in] cache		Cached hit shape (optional). Ray is tested against cached shape first then against the scene.
 							Note: Filtering is not executed for a cached shape if supplied; instead, if a hit is found, it is assumed to be a blocking hit.
@@ -363,7 +363,7 @@ public:
 	\param[out] blockingShapeIndex	Set to -1 if if a blocking hit was not found, otherwise set to closest blocking hit shape index. The touching hits are reported separately in hitBuffer.
 	\param[out] overflow	Set to true if touchHitBuffer didn't have enough space for all results. Touch hits will be incomplete if overflow occurred. Possible solution is to restart the query with a larger buffer.
 	\param[in] filterData	If any word in filterData.data is non-zero then filterData.data will be used for filtering,
-							otherwise shape->getQueryFilterData() will be used instead.
+							otherwise shape->getSimulationFilterData() will be used instead.
 	\param[in] filterCall	Custom filtering logic (optional). Only used if the corresponding #PxQueryFlag flags are set. If NULL, all hits are assumed to be blocking.
 	\param[in] cache		Cached hit shape (optional). Ray is tested against cached shape first then against the scene.
 							Note: Filtering is not executed for a cached shape if supplied; instead, if a hit is found, it is assumed to be a blocking hit.

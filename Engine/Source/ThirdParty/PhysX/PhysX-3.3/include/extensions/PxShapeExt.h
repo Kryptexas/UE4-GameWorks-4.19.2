@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -82,7 +82,7 @@ public:
 	\param[in] anyHit Set to false if the closest hit point should be computed, else the query aborts as soon as any valid hit point is found.
 	\return Number of hits between the ray and the shape
 
-	@see PxRaycastHit PxTransform
+	@see RaycastHit PxTransform
 	*/
 	static PX_INLINE PxU32				raycast(const PxShape& shape, const PxRigidActor& actor, 
 												const PxVec3& rayOrigin, const PxVec3& rayDir, PxReal maxDist, PxHitFlags hitFlags,

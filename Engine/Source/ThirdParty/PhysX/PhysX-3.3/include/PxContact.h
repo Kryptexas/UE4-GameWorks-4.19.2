@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -56,9 +56,7 @@ struct PxContactHeader
 		eHAS_FACE_INDICES = 1,				//!< Indicates this contact stream has face indices.
 		eMODIFIABLE = 2,					//!< Indicates this contact stream is modifiable.
 		eFORCE_NO_RESPONSE = 4,				//!< Indicates this contact stream is notify-only (no contact response).
-		eHAS_MODIFIED_MASS_RATIOS = 8,		//!< Indicates this contact stream has modified mass ratios
-		eHAS_TARGET_VELOCITY = 16,			//!< Indicates this contact stream has target velocities set
-		eHAS_MAX_IMPULSE = 32				//!< Indicates this contact stream has max impulses set
+		eHAS_MODIFIED_MASS_RATIOS = 8		//!< Indicates this contact stream has modified mass ratios
 	};
 	/**
 	\brief Total contact count for entire compressed contact stream

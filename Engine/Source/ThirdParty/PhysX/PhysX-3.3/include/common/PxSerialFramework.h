@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -263,13 +263,6 @@ public:
 		addr = (addr+alignment-1)&~size_t(alignment-1);
 		mExtraDataAddress = reinterpret_cast<PxU8*>(addr);
 	}
-
-
-	/**
-	\brief Function to return the PX_PHYSX_VERSION value with which the data was originally serialized
-	*/
-
-	virtual		PxU32			getPhysXVersion() const = 0;
 
 protected:
 

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -199,9 +199,9 @@ public:
 	\param[in] stream The triangle mesh stream.
 	\return The new triangle mesh.
 
-	@see PxTriangleMesh PxMeshPreprocessingFlag PxTriangleMesh.release() PxInputStream PxTriangleMeshFlag
+	@see PxTriangleMesh PxTriangleMesh.release() PxInputStream
 	*/
-	virtual PxTriangleMesh*    createTriangleMesh(PxInputStream& stream) = 0;
+	virtual PxTriangleMesh*    createTriangleMesh(PxInputStream& stream)					= 0;
 	
 
 
@@ -856,11 +856,13 @@ PX_C_EXPORT PX_PHYSX_CORE_API void PX_CALL_CONV PxUnregisterPhysicsSerializers(p
 
 
 /**
-\brief Adds collected objects to PxPhysics.
+\brief Adds collected objects to this physics.
 
-This function adds all objects contained in the input collection to the PxPhysics instance. This is used after deserializing 
-the collection, to populate the physics with inplace deserialized objects.
-\param[in] collection Objects to add to the PxPhysics instance.
+This function adds all objects contained in the input collection to this physics. This is
+typically used after deserializing the collection, to populate the physics with deserialized
+objects. Non-physics level objects are ignored.
+
+\param[in] collection Objects to add to this physics.
 
 @see PxCollection
 */

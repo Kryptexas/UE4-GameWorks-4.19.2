@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -54,9 +54,9 @@ struct PxMeshGeometryFlag
 {
 	enum Enum
 	{
-		eDOUBLE_SIDED = (1<<1)	//!< Meshes with this flag set are treated as double-sided.
-								//!< This flag is currently only used for raycasts and sweeps (it is ignored for overlap queries).
-								//!< For detailed specifications of this flag for meshes and heightfields please refer to the Geometry Query section of the user guide.
+		eDOUBLE_SIDED = (1<<1)	//!< The mesh is double-sided. This is currently only used for raycasting and sweeping.
+								//!< Interaction between PxHitFlag::eMESH_BOTH_SIDES and PxMeshGeometryFlag::eDOUBLE_SIDED
+								//!< is defined as a boolean OR of whether either of the flags is set.
 	};
 };
 
@@ -100,11 +100,6 @@ public:
 	\brief Returns true if the geometry is valid.
 
 	\return True if the current settings are valid.
-
-	\note A valid triangle mesh has a positive scale value in each direction (scale.scale.x > 0, scale.scale.y > 0, scale.scale.z > 0).
-	It is illegal to call PxRigidActor::createShape and PxPhysics::createShape with a triangle mesh that has zero extents in any direction.
-
-	@see PxRigidActor::createShape, PxPhysics::createShape
 	*/
 	PX_INLINE bool isValid() const;
 

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -459,7 +459,7 @@ public:
 	virtual bool getParticleAccelerations(PxVec4* particleAccelerationsBuffer) const = 0;
 	/**
 	\brief Returns the number of particle accelerations.
-	\return Number of particle accelerations (same as getNbParticles() if enabled, 0 otherwise).
+	\return Number of particle accelerations (same as getNbPartices() if enabled, 0 otherwise).
 	*/
 	virtual PxU32 getNbParticleAccelerations() const = 0; 
 
@@ -486,7 +486,7 @@ public:
 	virtual bool getMotionConstraints(PxClothParticleMotionConstraint* motionConstraintsBuffer) const = 0;
 	/**
 	\brief Returns the number of motion constraints.
-	\return Number of motion constraints (same as getNbParticles() if enabled, 0 otherwise).
+	\return Number of motion constraints (same as getNbPartices() if enabled, 0 otherwise).
 	*/
 	virtual PxU32 getNbMotionConstraints() const = 0; 
 	/**
@@ -516,7 +516,7 @@ public:
 	virtual bool getSeparationConstraints(PxClothParticleSeparationConstraint* separationConstraintsBuffer) const = 0;
 	/**
 	\brief Returns the number of separation constraints.
-	\return Number of separation constraints (same as getNbParticles() if enabled, 0 otherwise).
+	\return Number of separation constraints (same as getNbPartices() if enabled, 0 otherwise).
 	*/
 	virtual PxU32 getNbSeparationConstraints() const = 0; 
 

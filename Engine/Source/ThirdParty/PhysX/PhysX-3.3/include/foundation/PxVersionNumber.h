@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -52,7 +52,7 @@ sometimes they are stored in a byte.
 
 #define PX_PHYSICS_VERSION_MAJOR 3
 #define PX_PHYSICS_VERSION_MINOR 3
-#define PX_PHYSICS_VERSION_BUGFIX 2
+#define PX_PHYSICS_VERSION_BUGFIX 1
 
 /**
 The constant PX_PHYSICS_VERSION is used when creating certain PhysX module objects.

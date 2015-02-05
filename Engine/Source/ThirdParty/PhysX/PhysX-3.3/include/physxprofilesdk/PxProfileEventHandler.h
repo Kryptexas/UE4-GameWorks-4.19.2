@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 
 #ifndef PX_PROFILE_EVENT_HANDLER_H
 #define PX_PROFILE_EVENT_HANDLER_H
@@ -45,15 +45,6 @@ namespace physx {
 		virtual void onEventValue( const PxProfileEventId& inId, PxU32 threadId, PxU64 contextId, PxI64 inValue ) = 0;
 		virtual void onCUDAProfileBuffer( PxU64 submitTimestamp, PxF32 timeSpanInMilliseconds, const PxU8* cudaData, PxU32 bufLenInBytes, PxU32 bufferVersion ) = 0;
 		static void parseEventBuffer( const PxU8* inBuffer, PxU32 inBufferSize, PxProfileEventHandler& inHandler, bool inSwapBytes );
-
-		/**
-			\brief Translates event duration in timestamp (cycles) into nanoseconds.
-			
-			\param[in] duration Timestamp duration of the event.
-
-			\return event duration in nanoseconds. 
-		 */
-		static PxU64 durationToNanoseconds(PxU64 duration);
 	};
 
 	class PxProfileBulkEventHandler

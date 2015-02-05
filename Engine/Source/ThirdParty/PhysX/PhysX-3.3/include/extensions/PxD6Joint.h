@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -156,37 +156,17 @@ PX_FLAGS_OPERATORS(PxD6JointDriveFlag::Enum, PxU32)
 
 class PxD6JointDrive : public PxSpring
 {
-//= ATTENTION! =====================================================================================
-// Changing the data layout of this class breaks the binary serialization format.  See comments for 
-// PX_BINARY_SERIAL_VERSION.  If a modification is required, please adjust the getBinaryMetaData 
-// function.  If the modification is made on a custom branch, please change PX_BINARY_SERIAL_VERSION
-// accordingly.
-//==================================================================================================
-
 public:
 	PxReal					forceLimit;			//!< the force limit of the drive - may be an impulse or a force depending on PxConstraintFlag::eDRIVE_LIMITS_ARE_FORCES
-	PxD6JointDriveFlags		flags;				//!< the joint drive flags 
+	PxD6JointDriveFlags		flags;
 
+	// only needed for deprecated PxD6JointDesc
+	/** \deprecated */
+	PX_DEPRECATED PxD6JointDrive(): PxSpring(0,0), forceLimit(PX_MAX_F32), flags(0) {}
 
-	/**
-	\brief default constructor for PxD6JointDrive.
-	*/
-
-	PxD6JointDrive(): PxSpring(0,0), forceLimit(PX_MAX_F32), flags(0) {}
-
-	/**
-	\brief constructor a PxD6JointDrive.
-
-	\param[in] driveStiffness the stiffness of the drive spring.
-	\param[in] driveDamping the damping of the drive spring
-	\param[in] driveForceLimit the maximum impulse or force that can be exerted by the drive
-	\param[in] isAcceleration whether the drive is an acceleration drive or a force drive
-	*/
-
-
-	PxD6JointDrive(PxReal driveStiffness, PxReal driveDamping, PxReal driveForceLimit, bool isAcceleration = false)
+	PxD6JointDrive(PxReal driveStiffness, PxReal driveDamping, PxReal _forceLimit, bool isAcceleration = false)
 	: PxSpring(driveStiffness, driveDamping)
-	, forceLimit(driveForceLimit)
+	, forceLimit(_forceLimit)
 	, flags(isAcceleration?(PxU32)PxD6JointDriveFlag::eACCELERATION : 0) 
 	{}
 

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -123,7 +123,7 @@ public:
 	Controls if joint visualization info is sent to pvd.
 	\param inViz true if visualizations info is sent to PVD.
 	*/
-	PX_DEPRECATED void PX_INLINE setVisualizeConstraints( bool inViz )	{ setVisualDebuggerFlag(PxVisualDebuggerFlag::eTRANSMIT_CONSTRAINTS, inViz); }
+	PX_DEPRECATED void PX_INLINE setVisualizeConstraints( bool inViz )	{ setVisualDebuggerFlag(PxVisualDebuggerFlag::eTRANSMIT_CONSTRAINTS, inViz); };
 	/**
 	\deprecated
 	\return True when constraint viz info is sent to PVD.
@@ -152,8 +152,7 @@ public:
 	Updates the pose of a PVD camera.
 	\param name Name of camera to update.
 	\param origin The origin of the camera.
-	\param up The up vector of the camera. It should be the up vector of the game camera for PVD to update the view that matches the game. 
-     The default up vector is the world up vector for a fixed PVD camera view.
+	\param up The up vector of the camera.
 	\param target The target vector of the camera.
 	*/
 	virtual void updateCamera(const char* name, const PxVec3& origin, const PxVec3& up, const PxVec3& target) = 0;

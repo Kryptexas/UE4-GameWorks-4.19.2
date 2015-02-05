@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -36,6 +36,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+
+#if !defined(PX_PS4) && !defined(PX_APPLE_IOS)
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
 
 #ifndef PX_DOXYGEN
 namespace physx
@@ -63,6 +68,10 @@ namespace physx
 
 #ifndef PX_DOXYGEN
 } // namespace physx
+#endif
+
+#if !defined(PX_PS4) && !defined(PX_APPLE_IOS)
+#pragma warning(pop)
 #endif
 
 #endif

@@ -23,9 +23,10 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2013 NVIDIA Corporation. All rights reserved.
 #ifndef PVD_CONNECTION_H
 #define PVD_CONNECTION_H
+#include "physxvisualdebuggersdk/PvdObjectModelBaseTypes.h"
 #include "physxvisualdebuggersdk/PvdConnectionFlags.h"
 
 namespace physx { namespace debugger {
@@ -33,14 +34,14 @@ namespace physx { namespace debugger {
 }}
 
 namespace physx { namespace debugger { namespace renderer {
-	class PvdImmediateRenderer;	
+	class PvdImmediateRenderer;
 }}}
 
 namespace physx { namespace debugger { namespace comm {
 
 	class PvdMetaDataStream;
 	class PvdDataStream;
-	
+
 	class PvdConnection
 	{
 	protected:
