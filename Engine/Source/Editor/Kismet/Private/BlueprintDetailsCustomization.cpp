@@ -4317,9 +4317,12 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 	check(Blueprint != NULL);
 
 	TArray<FSCSEditorTreeNodePtrType> Nodes = Editor->GetSelectedNodes();
-	check(Nodes.Num() > 0);
 
-	if (Nodes.Num() == 1)
+	if (!Nodes.Num())
+	{
+		CachedNodePtr = nullptr;
+	}
+	else if (Nodes.Num() == 1)
 	{
 		CachedNodePtr = Nodes[0];
 	}
@@ -4520,7 +4523,7 @@ UClass* FBlueprintComponentDetails::FindCommonBaseClassFromSelected() const
 				SelectionClasses.Add( Node->GetComponentTemplate()->GetClass() );
 			}
 		}
-		Result = UClass::FindCommonBase( SelectionClasses );
+		Result = SelectionClasses.Num() ? UClass::FindCommonBase(SelectionClasses) : nullptr;
 	}
 	return Result;
 }
