@@ -1390,22 +1390,25 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 
 void FActiveGameplayEffectsContainer::ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
-	for (FActiveGameplayEffect& ActiveEffect : this)
+	GAMEPLAYEFFECT_SCOPE_LOCK();
+	FActiveGameplayEffect* ActiveEffect = GetActiveGameplayEffect(Handle);
+	if (ActiveEffect)
 	{
 		if (UE_LOG_ACTIVE(VLogAbilitySystem, Log))
 		{
-			ABILITY_VLOG(Owner->OwnerActor, Log, TEXT("Executed Periodic Effect %s"), *ActiveEffect.Spec.Def->GetFName().ToString());
-			for (FGameplayModifierInfo Modifier : ActiveEffect.Spec.Def->Modifiers)
+			ABILITY_VLOG(Owner->OwnerActor, Log, TEXT("Executed Periodic Effect %s"), *ActiveEffect->Spec.Def->GetFName().ToString());
+			for (FGameplayModifierInfo Modifier : ActiveEffect->Spec.Def->Modifiers)
 			{
 				float Magnitude = 0.f;
-				Modifier.ModifierMagnitude.AttemptCalculateMagnitude(ActiveEffect.Spec, Magnitude);
+				Modifier.ModifierMagnitude.AttemptCalculateMagnitude(ActiveEffect->Spec, Magnitude);
 				ABILITY_VLOG(Owner->OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 			}
 		}
 
 		// Execute
-		ExecuteActiveEffectsFrom(ActiveEffect.Spec);
+		ExecuteActiveEffectsFrom(ActiveEffect->Spec);
 	}
+
 }
 
 FActiveGameplayEffect* FActiveGameplayEffectsContainer::GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle)
