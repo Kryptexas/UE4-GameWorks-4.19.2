@@ -92,6 +92,8 @@ public:
 #endif
 
 public:
+	FComponentKey FindKey(const FName VariableName) const;
+
 	UActorComponent* GetOverridenComponentTemplate(FComponentKey Key) const;
 
 private:

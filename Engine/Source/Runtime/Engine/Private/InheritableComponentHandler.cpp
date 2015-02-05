@@ -260,6 +260,18 @@ FComponentKey UInheritableComponentHandler::FindKey(UActorComponent* ComponentTe
 
 #endif
 
+FComponentKey UInheritableComponentHandler::FindKey(const FName VariableName) const
+{
+	for (const FComponentOverrideRecord& Record : Records)
+	{
+		if (Record.ComponentKey.VariableName == VariableName)
+		{
+			return Record.ComponentKey;
+		}
+	}
+	return FComponentKey();
+}
+
 UActorComponent* UInheritableComponentHandler::GetOverridenComponentTemplate(FComponentKey Key) const
 {
 	auto Record = FindRecord(Key);
