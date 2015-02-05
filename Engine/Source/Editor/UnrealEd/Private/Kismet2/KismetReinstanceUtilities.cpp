@@ -162,6 +162,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		DuplicatedClass->ClassDefaultObject->SetClass(DuplicatedClass);
 
 		OldCDO->SetClass(DuplicatedClass);
+		ObjectsThatShouldUseOldStuff.Add(DuplicatedClass); //CDO of REINST_ class can be used as archetype
 
 		if( !bIsBytecodeOnly )
 		{
