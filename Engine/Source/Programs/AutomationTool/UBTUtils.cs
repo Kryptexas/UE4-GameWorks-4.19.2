@@ -30,6 +30,8 @@ namespace AutomationTool
 			{
 				CommandLine += " -nocreatestub";
 			}
+			CommandLine += " -NoHotReloadFromIDE";
+
 			CommandUtils.RunAndLog(Env, UBTExecutable, CommandLine, LogName, EnvVars: EnvVars);
 		}
 
