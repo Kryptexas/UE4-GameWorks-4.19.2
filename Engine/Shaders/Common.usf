@@ -1101,3 +1101,16 @@ SafeSaturate_Def(float)
 SafeSaturate_Def(float2)
 SafeSaturate_Def(float3)
 SafeSaturate_Def(float4)
+
+// Experimental way to allow adjusting the OpacityMask for shadow map rendering of masked materials.
+// Can be accessed with a Custom material node. If this turns out to be very useful we can expose as MaterialFunction
+// and potentially expose other queries as well (e.g. SkeletalMesh, HitProxy, ).
+// @return 0:no, 1:yes
+float IsShadowPixelShader()
+{
+#ifdef SHADOW_DEPTH_SHADER
+	return 1;
+#else
+	return 0;
+#endif
+}
