@@ -1290,10 +1290,12 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	AActor* const Actor = GetOwner();
 
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
+	// TODO: Static components without an owner can move, should they be able to?
 	if (Mobility == EComponentMobility::Static && Actor && Actor->bActorInitialized)
-	{
-		// TODO: Static components without an owner can move, should they be able to?
-		UE_LOG(LogPrimitiveComponent, Warning, TEXT("Trying to move static component '%s' after initialization"), *GetFullName());
+	{		
+		FMessageLog("PIE").Warning( FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "),
+				FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()) ));
+
 		if (OutHit)
 		{
 			*OutHit = FHitResult();
