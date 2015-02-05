@@ -61,6 +61,31 @@ public:
 		glFlushRenderAPPLE();
 	}
 	
+	// Workaround Mac-specific MapBuffer issues without exposing the changes to other platforms
+	static FORCEINLINE void* MapBufferRange(GLenum Type, uint32 InOffset, uint32 InSize, EResourceLockMode LockMode)
+	{
+		GLenum Access;
+		switch ( LockMode )
+		{
+			case RLM_ReadOnly:
+				Access = GL_MAP_READ_BIT;
+				break;
+			case RLM_WriteOnly:
+				Access = (GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_WRITE_BIT);
+				break;
+			case RLM_WriteOnlyUnsynchronized: // Invalidate range is only required to avoid UE-7915 and is a workaround, not a fix.
+				Access = (GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+				break;
+			case RLM_WriteOnlyPersistent:
+				Access = (GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+				break;
+			case RLM_ReadWrite:
+			default:
+				Access = (GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+		}
+		return glMapBufferRange(Type, InOffset, InSize, Access);
+	}
+	
 	static void DeleteTextures(GLsizei Number, const GLuint* Textures);
 	
 	static void BufferSubData(GLenum Target, GLintptr Offset, GLsizeiptr Size, const GLvoid* Data);
