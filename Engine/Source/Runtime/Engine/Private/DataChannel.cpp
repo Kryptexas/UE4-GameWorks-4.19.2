@@ -454,13 +454,17 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			//  -ChSequence is next in partial sequence
 			//	-Reliability flag matches
 
-			const bool bReliableSequencesMatches = Bunch.ChSequence == InPartialBunch->ChSequence + 1;
-			const bool bUnreliableSequenceMatches = bReliableSequencesMatches || ( Bunch.ChSequence == InPartialBunch->ChSequence );
+			bool bSequenceMatches = false;
+			if (InPartialBunch)
+			{
+				const bool bReliableSequencesMatches = Bunch.ChSequence == InPartialBunch->ChSequence + 1;
+				const bool bUnreliableSequenceMatches = bReliableSequencesMatches || (Bunch.ChSequence == InPartialBunch->ChSequence);
 
-			// Unreliable partial bunches use the packet sequence, and since we can merge multiple bunches into a single packet,
-			// it's perfectly legal for the ChSequence to match in this case.
-			// Reliable partial bunches must be in consecutive order though
-			const bool bSequenceMatches = InPartialBunch->bReliable ? bReliableSequencesMatches : bUnreliableSequenceMatches;
+				// Unreliable partial bunches use the packet sequence, and since we can merge multiple bunches into a single packet,
+				// it's perfectly legal for the ChSequence to match in this case.
+				// Reliable partial bunches must be in consecutive order though
+				bSequenceMatches = InPartialBunch->bReliable ? bReliableSequencesMatches : bUnreliableSequenceMatches;
+			}
 
 			if ( InPartialBunch && !InPartialBunch->bPartialFinal && bSequenceMatches && InPartialBunch->bReliable == Bunch.bReliable )
 			{
