@@ -1480,7 +1480,10 @@ void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 				else
 				{
 					// Ability is not active, so try to activate it
-					TryActivateAbility(Spec.Handle);
+					if (!TryActivateAbility(Spec.Handle))
+					{
+						Spec.InputPressed = false;
+					}
 				}
 			}
 		}
