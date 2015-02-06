@@ -400,7 +400,7 @@ bool FEdGraphSchemaAction_K2AddEvent::EventHasAlreadyBeenPlaced(UBlueprint const
 	if (Blueprint != NULL)
 	{
 		UK2Node_Event const* EventTemplate = Cast<UK2Node_Event const>(NodeTemplate);
-		ExistingEvent = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, EventTemplate->EventSignatureClass, EventTemplate->EventSignatureName);
+		ExistingEvent = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, EventTemplate->EventReference.GetMemberParentClass(EventTemplate), EventTemplate->EventReference.GetMemberName());
 	}
 
 	if (FoundEventOut != NULL)

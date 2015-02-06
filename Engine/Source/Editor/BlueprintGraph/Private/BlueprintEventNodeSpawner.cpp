@@ -157,8 +157,7 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 			UK2Node_Event* EventNode = CastChecked<UK2Node_Event>(NewNode);
 			if (EventFunc != nullptr)
 			{
-				EventNode->EventSignatureName  = EventName;
-				EventNode->EventSignatureClass = EventFunc->GetOuterUClass()->GetAuthoritativeClass();
+				EventNode->EventReference.SetFromField<UFunction>(EventFunc, false);
 				EventNode->bOverrideFunction   = true;
 			}
 			else if (!bIsTemplateNode)

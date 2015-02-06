@@ -116,7 +116,7 @@ FText UK2Node_ActorBoundEvent::GetTooltipText() const
 
 FString UK2Node_ActorBoundEvent::GetDocumentationLink() const
 {
-	if (EventSignatureClass)
+	if (UClass* EventSignatureClass = EventReference.GetMemberParentClass(this))
 	{
 		return FString::Printf(TEXT("Shared/GraphNodes/Blueprint/%s%s"), EventSignatureClass->GetPrefixCPP(), *EventSignatureClass->GetName());
 	}
@@ -141,9 +141,9 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 	{
 		EventOwner = InEventOwner;
 		DelegatePropertyName = InDelegateProperty->GetFName();
-		EventSignatureName = InDelegateProperty->SignatureFunction->GetFName();
-		EventSignatureClass = CastChecked<UClass>(InDelegateProperty->SignatureFunction->GetOuter())->GetAuthoritativeClass();
-		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventSignatureName.ToString()) );
+		DelegateOwnerClass = CastChecked<UClass>(InDelegateProperty->GetOuter())->GetAuthoritativeClass();
+		EventReference.SetFromField<UFunction>(InDelegateProperty->SignatureFunction, false);
+		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventReference.GetMemberName().ToString()) );
 		bOverrideFunction = false;
 		bInternalEvent = true;
 		CachedNodeTitle.MarkDirty();
@@ -152,23 +152,22 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 
 UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegatePropertyConst() const
 {
-	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(EventSignatureClass, DelegatePropertyName));
+	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
 }
 
 UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty()
 {
-	UMulticastDelegateProperty* TargetDelegateProp = Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(EventSignatureClass, DelegatePropertyName));
+	UMulticastDelegateProperty* TargetDelegateProp = Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
 
 	// If we couldn't find the target delegate, then try to find it in the property remap table
 	if (!TargetDelegateProp)
 	{
-		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FindRemappedField(EventSignatureClass, DelegatePropertyName));
+		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FindRemappedField(DelegateOwnerClass, DelegatePropertyName));
 		if (NewProperty)
 		{
 			// Found a remapped property, update the node
 			TargetDelegateProp = NewProperty;
 			DelegatePropertyName = NewProperty->GetFName();
-			EventSignatureClass = Cast<UClass>(NewProperty->GetOuter());
 			CachedNodeTitle.MarkDirty();
 		}
 	}
@@ -192,8 +191,40 @@ FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate()
 
 bool UK2Node_ActorBoundEvent::IsUsedByAuthorityOnlyDelegate() const
 {
-	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>( EventSignatureClass, DelegatePropertyName ));
+	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>( DelegateOwnerClass, DelegatePropertyName ));
 	return (TargetDelegateProp && TargetDelegateProp->HasAnyPropertyFlags(CPF_BlueprintAuthorityOnly));
+}
+
+void UK2Node_ActorBoundEvent::Serialize(FArchive& Ar)
+{
+	// This deprecation warning suppression is due to the workaround. For more
+	// details read comment in K2Node_Event.h near EventSignatureName property
+	// definition.
+
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+	// Workaround, so fields EventSignatureName and EventSignatureClass work
+	// until ObjectVersion.h lock is lifted.
+	if (Ar.IsSaving())
+	{
+		EventSignatureName = EventReference.GetMemberName();
+		EventSignatureClass = DelegateOwnerClass;
+		Super::Super::Serialize(Ar);
+		return;
+	}
+
+	Super::Serialize(Ar);
+
+	// Fix up legacy nodes that may not yet have a delegate pin
+	if(Ar.IsLoading())
+	{
+		DelegateOwnerClass = EventSignatureClass;
+		UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
+		check(TargetDelegateProp);
+		EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+	}
+
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 #undef LOCTEXT_NAMESPACE

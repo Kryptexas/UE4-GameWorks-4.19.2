@@ -470,8 +470,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 		{
 			// add update event graph
 			UK2Node_Event* EventNode = NewObject<UK2Node_Event>(Graph);
-			EventNode->EventSignatureClass = UAnimInstance::StaticClass();
-			EventNode->EventSignatureName = FName(TEXT("BlueprintUpdateAnimation"));
+			EventNode->EventReference.SetExternalMember(FName(TEXT("BlueprintUpdateAnimation")), UAnimInstance::StaticClass());
 			EventNode->bOverrideFunction=true;
 			EventNode->CreateNewGuid();
 			EventNode->PostPlacedNewNode();

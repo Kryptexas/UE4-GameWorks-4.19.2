@@ -609,8 +609,7 @@ void FK2ActionMenuBuilder::AddEventForFunction(FGraphActionListBuilderBase& Acti
 		const FString EventName = FText::Format( LOCTEXT("EventWithSignatureName", "Event {0}"), FText::FromString(SigName)).ToString();
 
 		UK2Node_Event* EventNodeTemplate = ActionMenuBuilder.CreateTemplateNode<UK2Node_Event>();
-		EventNodeTemplate->EventSignatureName = Function->GetFName();
-		EventNodeTemplate->EventSignatureClass = CastChecked<UClass>(Function->GetOuter());
+		EventNodeTemplate->EventReference.SetFromField<UFunction>(Function, false);
 		EventNodeTemplate->bOverrideFunction = true;
 
 		const FString Category = UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, K2ActionCategories::AddEventCategory);
@@ -1699,9 +1698,8 @@ void FK2ActionMenuBuilder::GetAnimNotifyMenuItems(FBlueprintGraphActionListBuild
 
 				UK2Node_Event* EventNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_Event>();
 				FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
-				EventNode->EventSignatureName = FName(*SignatureName);
-				EventNode->EventSignatureClass = UAnimInstance::StaticClass();
-				EventNode->CustomFunctionName = EventNode->EventSignatureName;
+				EventNode->EventReference.SetExternalMember(FName(*SignatureName), UAnimInstance::StaticClass());
+				EventNode->CustomFunctionName = EventNode->EventReference.GetMemberName();
 				Action->NodeTemplate = EventNode;
 			}
 		}
@@ -1720,9 +1718,8 @@ void FK2ActionMenuBuilder::GetAnimNotifyMenuItems(FBlueprintGraphActionListBuild
 
 					UK2Node_Event* EventNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_Event>();
 					FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
-					EventNode->EventSignatureName = FName(*SignatureName);
-					EventNode->EventSignatureClass = UAnimInstance::StaticClass();
-					EventNode->CustomFunctionName = EventNode->EventSignatureName;
+					EventNode->EventReference.SetExternalMember(FName(*SignatureName), UAnimInstance::StaticClass());
+					EventNode->CustomFunctionName = EventNode->EventReference.GetMemberName();
 					Action->NodeTemplate = EventNode;
 				}
 			}
@@ -2065,7 +2062,7 @@ void FK2ActionMenuBuilder::GetEventsForBlueprint(FBlueprintPaletteListBuilder& A
 		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, AllEvents);
 		for (auto It = AllEvents.CreateConstIterator(); It; It++)
 		{
-			ExistingFuncNames.Add((*It)->EventSignatureName);
+			ExistingFuncNames.Add((*It)->EventReference.GetMemberName());
 		}
 
 		for (TFieldIterator<UFunction> FunctionIt(Blueprint->ParentClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)

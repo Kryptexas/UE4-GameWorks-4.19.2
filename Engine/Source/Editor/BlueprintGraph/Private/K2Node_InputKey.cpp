@@ -268,8 +268,7 @@ void UK2Node_InputKey::CreateInputKeyEvent(FKismetCompilerContext& CompilerConte
 		InputKeyEvent->bExecuteWhenPaused = bExecuteWhenPaused;
 		InputKeyEvent->bOverrideParentBinding = bOverrideParentBinding;
 		InputKeyEvent->InputKeyEvent = KeyEvent;
-		InputKeyEvent->EventSignatureName = TEXT("InputActionHandlerDynamicSignature__DelegateSignature");
-		InputKeyEvent->EventSignatureClass = UInputComponent::StaticClass();
+		InputKeyEvent->EventReference.SetExternalDelegateMember(FName(TEXT("InputActionHandlerDynamicSignature__DelegateSignature")));
 		InputKeyEvent->bInternalEvent = true;
 		InputKeyEvent->AllocateDefaultPins();
 

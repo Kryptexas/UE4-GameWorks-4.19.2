@@ -187,8 +187,7 @@ void UK2Node_InputTouch::ExpandNode(FKismetCompilerContext& CompilerContext, UEd
 			InputTouchEvent->bExecuteWhenPaused = bExecuteWhenPaused;
 			InputTouchEvent->bOverrideParentBinding = bOverrideParentBinding;
 			InputTouchEvent->InputKeyEvent = (*PinIt).EventType;
-			InputTouchEvent->EventSignatureName = TEXT("InputTouchHandlerDynamicSignature__DelegateSignature");
-			InputTouchEvent->EventSignatureClass = UInputComponent::StaticClass();
+			InputTouchEvent->EventReference.SetExternalDelegateMember(FName(TEXT("InputTouchHandlerDynamicSignature__DelegateSignature")));
 			InputTouchEvent->bInternalEvent = true;
 			InputTouchEvent->AllocateDefaultPins();
 
@@ -229,8 +228,7 @@ void UK2Node_InputTouch::ExpandNode(FKismetCompilerContext& CompilerContext, UEd
 			InputTouchEvent->bConsumeInput = bConsumeInput;
 			InputTouchEvent->bExecuteWhenPaused = bExecuteWhenPaused;
 			InputTouchEvent->bOverrideParentBinding = bOverrideParentBinding;
-			InputTouchEvent->EventSignatureName = TEXT("InputTouchHandlerDynamicSignature__DelegateSignature");
-			InputTouchEvent->EventSignatureClass = UInputComponent::StaticClass();
+			InputTouchEvent->EventReference.SetExternalDelegateMember(FName(TEXT("InputTouchHandlerDynamicSignature__DelegateSignature")));
 			InputTouchEvent->bInternalEvent = true;
 			InputTouchEvent->AllocateDefaultPins();
 

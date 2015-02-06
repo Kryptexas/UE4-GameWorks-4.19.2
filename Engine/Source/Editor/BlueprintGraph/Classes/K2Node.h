@@ -520,6 +520,9 @@ public:
 	/** Set to a non-'self' member, so must include reference to class owning the member. */
 	BLUEPRINTGRAPH_API void SetExternalMember(FName InMemberName, TSubclassOf<class UObject> InMemberParentClass);
 
+	/** Set to a non-'self' delegate member, this is not self-context but is not given a parent class */
+	BLUEPRINTGRAPH_API void SetExternalDelegateMember(FName InMemberName);
+
 	/** Set up this reference to a 'self' member name */
 	BLUEPRINTGRAPH_API void SetSelfMember(FName InMemberName);
 

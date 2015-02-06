@@ -714,7 +714,7 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInGraph(const UClass* InClass, const UF
 
 UFunction* UEdGraphSchema_K2::GetCallableParentFunction(UFunction* Function) const
 {
-	if( Function )
+	if( Function && Cast<UClass>(Function->GetOuter()) )
 	{
 		const FName FunctionName = Function->GetFName();
 
@@ -4959,7 +4959,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 			}
 			else if(EventNode->bOverrideFunction)
 			{
-				FunctionName = EventNode->EventSignatureName.ToString();
+				FunctionName = EventNode->EventReference.GetMemberName().ToString();
 			}
 			else
 			{

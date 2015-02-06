@@ -1316,6 +1316,11 @@ void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class U
 	bWasDeprecated = false;
 }
 
+void FMemberReference::SetExternalDelegateMember(FName InMemberName)
+{
+	SetExternalMember(InMemberName, nullptr);
+}
+
 void FMemberReference::SetSelfMember(FName InMemberName)
 {
 	MemberName = InMemberName;

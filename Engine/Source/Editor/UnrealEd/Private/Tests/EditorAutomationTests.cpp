@@ -1792,7 +1792,7 @@ bool FTraceAllTimelinesAutomationTest::RunTest(const FString& BlueprintName)
 			for (int32 EventIndex = 0; EventIndex < AllEventNodes.Num(); ++EventIndex)
 			{
 				UK2Node_Event* Event = AllEventNodes[EventIndex];
-				UFunction* Function = FindField<UFunction>(Event->EventSignatureClass, Event->EventSignatureName);
+				UFunction* Function = Event->FindEventSignatureFunction();
 
 				const bool bIsCosmeticEvent = (Function && Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic)) || Event->IsCosmeticTickEvent();
 				const bool bIsCosmeticChain = UncheckedEventNodes.Contains(Event);

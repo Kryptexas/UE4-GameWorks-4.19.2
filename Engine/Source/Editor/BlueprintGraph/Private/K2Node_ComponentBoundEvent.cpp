@@ -38,9 +38,9 @@ void UK2Node_ComponentBoundEvent::InitializeComponentBoundEventParams(UObjectPro
 	{
 		ComponentPropertyName = InComponentProperty->GetFName();
 		DelegatePropertyName = InDelegateProperty->GetFName();
-		EventSignatureName = InDelegateProperty->SignatureFunction->GetFName();
-		EventSignatureClass = CastChecked<UClass>(InDelegateProperty->SignatureFunction->GetOuter());
-		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InComponentProperty->GetName(), *GetName(), *EventSignatureName.ToString()) );
+		DelegateOwnerClass = CastChecked<UClass>(InDelegateProperty->GetOuter())->GetAuthoritativeClass();
+		EventReference.SetExternalDelegateMember(InDelegateProperty->SignatureFunction->GetFName());
+		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InComponentProperty->GetName(), *GetName(), *EventReference.GetMemberName().ToString()) );
 		bOverrideFunction = false;
 		bInternalEvent = true;
 		CachedNodeTitle.MarkDirty();
@@ -73,7 +73,7 @@ bool UK2Node_ComponentBoundEvent::IsUsedByAuthorityOnlyDelegate() const
 
 UMulticastDelegateProperty* UK2Node_ComponentBoundEvent::GetTargetDelegateProperty() const
 {
-	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(EventSignatureClass, DelegatePropertyName));
+	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
 }
 
 
@@ -92,9 +92,9 @@ FText UK2Node_ComponentBoundEvent::GetTooltipText() const
 
 FString UK2Node_ComponentBoundEvent::GetDocumentationLink() const
 {
-	if (EventSignatureClass)
+	if (DelegateOwnerClass)
 	{
-		return FString::Printf(TEXT("Shared/GraphNodes/Blueprint/%s%s"), EventSignatureClass->GetPrefixCPP(), *EventSignatureClass->GetName());
+		return FString::Printf(TEXT("Shared/GraphNodes/Blueprint/%s%s"), DelegateOwnerClass->GetPrefixCPP(), *EventReference.GetMemberName().ToString());
 	}
 
 	return FString();
@@ -104,5 +104,36 @@ FString UK2Node_ComponentBoundEvent::GetDocumentationExcerptName() const
 {
 	return DelegatePropertyName.ToString();
 }
+
+void UK2Node_ComponentBoundEvent::Serialize(FArchive& Ar)
+{
+	// This deprecation warning suppression is due to the workaround. For more
+	// details read comment in K2Node_Event.h near EventSignatureName property
+	// definition.
+
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	// Workaround, so fields EventSignatureName and EventSignatureClass work
+	// until ObjectVersion.h lock is lifted.
+	if (Ar.IsSaving())
+	{
+		EventSignatureName = EventReference.GetMemberName();
+		EventSignatureClass = DelegateOwnerClass;
+		Super::Super::Serialize(Ar);
+		return;
+	}
+
+	Super::Serialize(Ar);
+
+	// Fix up legacy nodes that may not yet have a delegate pin
+	if(Ar.IsLoading())
+	{
+		DelegateOwnerClass = EventSignatureClass;
+		UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
+		check(TargetDelegateProp);
+		EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
 
 #undef LOCTEXT_NAMESPACE

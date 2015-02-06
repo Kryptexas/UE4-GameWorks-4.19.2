@@ -706,12 +706,11 @@ namespace EditorBuildPromotionTestUtils
 
 		// Make an add component node
 		UK2Node_Event* NewEventNode = NewObject<UK2Node_Event>(TempOuter);
-		NewEventNode->EventSignatureName = "ReceiveBeginPlay";
-		NewEventNode->EventSignatureClass = AActor::StaticClass();
+		NewEventNode->EventReference.SetExternalMember(FName(TEXT("ReceiveBeginPlay")), AActor::StaticClass());
 		NewEventNode->bOverrideFunction = true;
 
 		//Check for existing events
-		UK2Node_Event* ExistingEvent = FBlueprintEditorUtils::FindOverrideForFunction(InBlueprint, NewEventNode->EventSignatureClass, NewEventNode->EventSignatureName);
+		UK2Node_Event* ExistingEvent = FBlueprintEditorUtils::FindOverrideForFunction(InBlueprint, NewEventNode->EventReference.GetMemberParentClass(NewEventNode), NewEventNode->EventReference.GetMemberName());
 
 		if (!ExistingEvent)
 		{

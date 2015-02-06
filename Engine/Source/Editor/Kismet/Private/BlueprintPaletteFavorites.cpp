@@ -79,11 +79,8 @@ static FBlueprintNodeSignature BlueprintPaletteFavoritesImpl::ConstructLegacySig
 		}
 		else if (UK2Node_Event const* EventNode = Cast<UK2Node_Event const>(NodeTemplate))
 		{
-			if (EventNode->EventSignatureClass != nullptr)
-			{
-				SignatureSubObject = FindField<UFunction>(EventNode->EventSignatureClass, EventNode->EventSignatureName);
-				bIsSupported = (SignatureSubObject != nullptr);
-			}
+			SignatureSubObject = EventNode->EventReference.ResolveMember<UFunction>(EventNode);
+			bIsSupported = (SignatureSubObject != nullptr);
 		}
 		else if (UK2Node_MacroInstance const* MacroNode = Cast<UK2Node_MacroInstance const>(NodeTemplate))
 		{

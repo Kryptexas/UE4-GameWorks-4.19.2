@@ -17,8 +17,7 @@ UK2Node_InputAxisEvent::UK2Node_InputAxisEvent(const FObjectInitializer& ObjectI
 	bOverrideParentBinding = true;
 	bInternalEvent = true;
 
-	EventSignatureName = TEXT("InputAxisHandlerDynamicSignature__DelegateSignature");
-	EventSignatureClass = UInputComponent::StaticClass();
+	EventReference.SetExternalDelegateMember(FName(TEXT("InputAxisHandlerDynamicSignature__DelegateSignature")));
 }
 
 void UK2Node_InputAxisEvent::PostLoad()

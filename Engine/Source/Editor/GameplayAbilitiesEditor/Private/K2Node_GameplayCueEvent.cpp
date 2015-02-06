@@ -16,8 +16,7 @@
 UK2Node_GameplayCueEvent::UK2Node_GameplayCueEvent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	EventSignatureName = GAMEPLAYABILITIES_BlueprintCustomHandler;
-	EventSignatureClass = UGameplayCueInterface::StaticClass();
+	EventReference.SetExternalMember(GAMEPLAYABILITIES_BlueprintCustomHandler, UGameplayCueInterface::StaticClass());
 }
 
 FText UK2Node_GameplayCueEvent::GetTooltipText() const

@@ -10,7 +10,7 @@
 UK2Node_InputVectorAxisEvent::UK2Node_InputVectorAxisEvent(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	EventSignatureName = TEXT("InputVectorAxisHandlerDynamicSignature__DelegateSignature");
+	EventReference.SetExternalDelegateMember(FName(TEXT("InputAxisHandlerDynamicSignature__DelegateSignature")));
 }
 
 void UK2Node_InputVectorAxisEvent::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const

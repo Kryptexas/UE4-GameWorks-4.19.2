@@ -348,8 +348,7 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 		UFunction *EventMIDISignature = GetEventMIDISignature();
 		UK2Node_Event* EventNode = CompilerContext.SpawnIntermediateNode<UK2Node_Event>(this, SourceGraph);
 		check(EventNode);
-		EventNode->EventSignatureClass = Cast<UClass>(EventMIDISignature->GetOuter());
-		EventNode->EventSignatureName = EventMIDISignature->GetFName();
+		EventNode->EventReference.SetFromField<UFunction>(EventMIDISignature, false);
 		EventNode->CustomFunctionName = *EventNameGuid;
 		EventNode->bInternalEvent = true;
 		EventNode->AllocateDefaultPins();

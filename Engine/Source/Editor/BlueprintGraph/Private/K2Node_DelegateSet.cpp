@@ -272,8 +272,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 
 			// First, create an event node matching the delegate signature
 			UK2Node_Event* DelegateEvent = CompilerContext.SpawnIntermediateNode<UK2Node_Event>(this, SourceGraph);
-			DelegateEvent->EventSignatureClass = Cast<UClass>(TargetFunction->GetOuter());
-			DelegateEvent->EventSignatureName = TargetFunction->GetFName();
+			DelegateEvent->EventReference.SetFromField<UFunction>(TargetFunction, false);
 			DelegateEvent->CustomFunctionName = GetDelegateTargetEntryPointName();
 			DelegateEvent->bInternalEvent = true;
 			DelegateEvent->AllocateDefaultPins();

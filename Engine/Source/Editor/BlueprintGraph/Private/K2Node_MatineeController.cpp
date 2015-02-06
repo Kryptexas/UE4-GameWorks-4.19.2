@@ -117,8 +117,7 @@ void UK2Node_MatineeController::ExpandNode(FKismetCompilerContext& CompilerConte
 				FName EventFuncName = MatineeActor->GetFunctionNameForEvent( FName(*(MatineePin->PinName)) );
 
 				UK2Node_Event* MatineeEventNode = CompilerContext.SpawnIntermediateNode<UK2Node_Event>(this, SourceGraph);
-				MatineeEventNode->EventSignatureName = MatineeEventSig->GetFName();
-				MatineeEventNode->EventSignatureClass = AMatineeActor::StaticClass();
+				MatineeEventNode->EventReference.SetFromField<UFunction>(MatineeEventSig, false);
 				MatineeEventNode->CustomFunctionName = EventFuncName;
 				MatineeEventNode->bInternalEvent = true;
 				MatineeEventNode->AllocateDefaultPins();

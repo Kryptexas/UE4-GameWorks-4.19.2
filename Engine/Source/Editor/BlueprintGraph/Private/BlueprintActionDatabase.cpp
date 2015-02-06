@@ -248,7 +248,7 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSp
 	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/)
 	{
 		UK2Node_Event* ActorRefNode = CastChecked<UK2Node_Event>(NewNode);
-		ActorRefNode->EventSignatureClass = UAnimInstance::StaticClass();
+		ActorRefNode->EventReference.SetExternalMember(ActorRefNode->CustomFunctionName, UAnimInstance::StaticClass());
 	};
 
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(UK2Node_Event::StaticClass(), SignatureName);
