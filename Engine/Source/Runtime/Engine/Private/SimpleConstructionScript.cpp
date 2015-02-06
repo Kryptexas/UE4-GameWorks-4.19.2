@@ -761,11 +761,10 @@ USCS_Node* USimpleConstructionScript::CreateNode(UClass* NewComponentClass, FNam
 	ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
 
 	FName NewComponentName(NAME_None);
-	if (NewComponentClass->ClassGeneratedBy && NewComponentClass->GetName().EndsWith(TEXT("_C")))
+	if (NewComponentClass->ClassGeneratedBy != nullptr)
 	{
-		const FString NewClassName = NewComponentClass->GetName();
-		const int32 NewStrLen = NewClassName.Len() - 2;
-		NewComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, NewComponentClass, FName(*NewClassName.Left(NewStrLen)));
+		const FString NewClassName = FBlueprintEditorUtils::GetClassNameWithoutSuffix(NewComponentClass);
+		NewComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, NewComponentClass, FName(*NewClassName));
 	}
 
 	auto NewComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, NewComponentClass, NewComponentName);

@@ -1628,13 +1628,7 @@ FText SSCS_RowWidget::GetIntroducedInToolTipText() const
 				}
 				else
 				{
-					FString ClassName = (BestClass != nullptr) ? BestClass->GetName() : TEXT("(unknown)");
-					if ((BestClass != nullptr) && (BestClass->ClassGeneratedBy != nullptr) && ClassName.EndsWith(TEXT("_C")))
-					{
-						ClassName.RemoveFromEnd(TEXT("_C"));
-					}
-
-					IntroducedInTooltip = FText::FromString(ClassName);
+					IntroducedInTooltip = FBlueprintEditorUtils::GetFriendlyClassDisplayName(BestClass);
 				}
 			}
 			else
@@ -2600,21 +2594,17 @@ FText SSCS_RowWidget::GetTooltipText() const
 	else
 	{
 		UClass* Class = ( NodePtr->GetComponentTemplate() != nullptr ) ? NodePtr->GetComponentTemplate()->GetClass() : nullptr;
-		FString ClassName = Class != nullptr ? Class->GetName() : TEXT( "(null)" );
-		if( Class != nullptr && Class->ClassGeneratedBy != nullptr && ClassName.EndsWith( TEXT( "_C" ) ) )
-		{
-			ClassName.RemoveFromEnd( TEXT( "_C" ) );
-		}
+		const FText ClassDisplayName = FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class);
 
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("ClassName"), FText::FromString( ClassName ));
-		Args.Add( TEXT("NodeName"), FText::FromString( NodePtr->GetDisplayString() ) );
+		Args.Add(TEXT("ClassName"), ClassDisplayName);
+		Args.Add(TEXT("NodeName"), FText::FromString(NodePtr->GetDisplayString()));
 
-		if ( NodePtr->IsNative() )
+		if (NodePtr->IsNative())
 		{
-			if(NodePtr->IsInstanced())
+			if (NodePtr->IsInstanced())
 			{
-				if ( NodePtr->GetComponentTemplate() != NULL )
+				if (NodePtr->GetComponentTemplate() != NULL)
 				{
 					return FText::Format( LOCTEXT("RegularToolTip", "{ClassName}"), Args );
 				}
@@ -2623,7 +2613,7 @@ FText SSCS_RowWidget::GetTooltipText() const
 			}
 			else
 			{
-				if(NodePtr->GetComponentTemplate() != NULL)
+				if (NodePtr->GetComponentTemplate() != NULL)
 				{
 					return FText::Format( LOCTEXT("NativeClassToolTip", "Native {ClassName}"), Args );
 				}
@@ -2635,7 +2625,7 @@ FText SSCS_RowWidget::GetTooltipText() const
 		{
 			if (NodePtr->IsInheritedSCS())
 			{
-				if ( NodePtr->GetComponentTemplate() != NULL )
+				if (NodePtr->GetComponentTemplate() != NULL)
 				{
 					return FText::Format( LOCTEXT("InheritedToolTip", "Inherited {ClassName}"), Args );
 				}
@@ -2644,7 +2634,7 @@ FText SSCS_RowWidget::GetTooltipText() const
 			}
 			else
 			{
-				if ( NodePtr->GetComponentTemplate() != NULL )
+				if (NodePtr->GetComponentTemplate() != NULL)
 				{
 					return FText::Format( LOCTEXT("RegularToolTip", "{ClassName}"), Args );
 				}

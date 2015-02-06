@@ -2099,8 +2099,7 @@ void FBehaviorTreeEditor::HandleNewNodeClassPicked(UClass* InClass) const
 {
 	if(BehaviorTree != nullptr)
 	{
-		FString ClassName = InClass->GetName();
-		ClassName.RemoveFromEnd(TEXT("_C"));
+		FString ClassName = FBlueprintEditorUtils::GetClassNameWithoutSuffix(InClass);
 
 		FString PathName = BehaviorTree->GetOutermost()->GetPathName();
 		PathName = FPaths::GetPath(PathName);

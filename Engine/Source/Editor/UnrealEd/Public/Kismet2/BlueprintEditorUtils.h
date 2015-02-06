@@ -1166,4 +1166,14 @@ protected:
 public:
 	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
 	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);
+
+	/**
+	 * Returns a friendly class display name for the specified class (removing things like _C from the end, may localize the class name).  Class can be nullptr.
+	 */
+	static FText GetFriendlyClassDisplayName(const UClass* Class);
+
+	/**
+	 * Returns a class name for the specified class that has no automatic suffixes, but is otherwise unmodified.  Class can be nullptr.
+	 */
+	static FString GetClassNameWithoutSuffix(const UClass* Class);
 };
