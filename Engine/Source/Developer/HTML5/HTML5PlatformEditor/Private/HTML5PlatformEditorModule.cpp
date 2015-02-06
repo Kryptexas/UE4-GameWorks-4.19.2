@@ -47,8 +47,6 @@ class FHTML5PlatformEditorModule
 
 	virtual void ShutdownModule() override
 	{
-		auto* Settings = GetMutableDefault<UHTML5SDKSettings>();
-
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
