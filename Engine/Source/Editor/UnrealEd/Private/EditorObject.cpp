@@ -251,7 +251,7 @@ static const TCHAR* ImportProperties(
 					ULevel* ComponentLevel = CastChecked<ULevel>(SubobjectRoot->GetOuter());
 					if (ComponentLevel->IsCurrentLevel())
 					{
-						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(ComponentLevel->OwningWorld);
+						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(ComponentLevel->OwningWorld, true);
 
 						const TCHAR* StrPtr;
 						FString TextLine;

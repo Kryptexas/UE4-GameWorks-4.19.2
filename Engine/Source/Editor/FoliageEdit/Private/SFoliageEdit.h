@@ -27,7 +27,7 @@ public:
 	void RefreshFullList();
 
 	/** Adds a static mesh to the list of available meshes for foliage. May be called on by the MeshListView items. */
-	void AddItemToScrollbox(FFoliageMeshUIInfo& InFoliageInfoToAdd);
+	void AddItemToScrollbox(TSharedPtr<FFoliageMeshUIInfo>& InFoliageInfoToAdd);
 
 	/** Removes a static mesh from the list of available meshes for foliage. May be called on by the MeshListView items. */
 	void RemoveItemFromScrollbox(const TSharedPtr<SFoliageEditMeshDisplayItem> InWidgetToRemove);
@@ -41,7 +41,6 @@ public:
 	class FEdModeFoliage* GetFoliageEditMode() const { return FoliageEditMode; }
 
 private:
-
 	/** Clears all the tools selection by setting them to false. */
 	void ClearAllToolSelection();
 
@@ -149,7 +148,6 @@ private:
 	/** Checks if the filters should appear. Dependant on the current tool being used. */
 	EVisibility GetVisibility_Filters() const;
 
-
 	/**
 	 * Checks if a static mesh can be added to the list of Static Meshes available.
 	 *
@@ -158,18 +156,10 @@ private:
 	 * @return	Returns true if the static mesh is not currently in the list, false if it is.
 	 */
 	bool CanAddStaticMesh(const UStaticMesh* const InStaticMesh) const;
-
-	/** Callback handler when user changes the active streaming level with the level browser */
-	void NotifyNewCurrentLevel();
-
 private:
 	/** The list view object for displaying Static Meshes to use for foliage. */
 	TSharedPtr<SListView<TSharedPtr<FFoliageMeshUIInfo>>> MeshListView;
-
-	/** List of Static Meshes being used for foliage, adapted from a list retrieved from Foliage Mode and items should only be added to it in NotifyChanged to keep information
-		accurate between it and the Foliage Mode. */
-	TArray<TSharedPtr<FFoliageMeshUIInfo>> MeshList;
-
+	
 	/** Pool for maintaining and rendering thumbnails */
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool;
 

@@ -1536,7 +1536,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 						SNew(SButton)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnReplace)
-						.ToolTipText(NSLOCTEXT("FoliageEdMode", "Replace_Tooltip", "Replace all instances with the Static Mesh currently selected in the Content Browser."))
+						.ToolTipText(NSLOCTEXT("FoliageEdMode", "Replace_Tooltip", "Replace with Static Mesh currently selected in the Content Browser."))
 						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.ReplaceInstances"), "LevelEditorToolbox"))
 						[
 							SNew(SImage)
@@ -1551,7 +1551,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 						SNew(SButton)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnSync)
-						.ToolTipText(NSLOCTEXT("FoliageEdMode", "FindInContentBrowser_Tooltip", "Find this Static Mesh in the Content Browser."))
+						.ToolTipText(NSLOCTEXT("FoliageEdMode", "FindInContentBrowser_Tooltip", "Find this Asset in the Content Browser."))
 						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.FindInBrowser"), "LevelEditorToolbox"))
 						[
 							SNew(SImage)
@@ -1610,8 +1610,9 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 					[
 						SNew(SButton)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnSaveRemoveSettings)
-						.ToolTipText(this, &SFoliageEditMeshDisplayItem::GetSaveRemoveSettingsTooltip)
+						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnSaveSettings)
+						.Visibility(this, &SFoliageEditMeshDisplayItem::IsSaveSettingsVisible)
+						.ToolTipText(this, &SFoliageEditMeshDisplayItem::GetSaveSettingsTooltip)
 						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.SaveSettings"), "LevelEditorToolbox"))
 						[
 							SNew(SImage)
@@ -1816,23 +1817,11 @@ FReply SFoliageEditMeshDisplayItem::OnReplace()
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
 	USelection* SelectedSet = GEditor->GetSelectedSet(UStaticMesh::StaticClass());
 	UStaticMesh* SelectedStaticMesh = Cast<UStaticMesh>(SelectedSet->GetTop(UStaticMesh::StaticClass()));
-	if (SelectedStaticMesh != NULL)
+	if (SelectedStaticMesh != nullptr)
 	{
-		FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Foliage);
-
-		bool bMeshMerged = false;
-		if (Mode->ReplaceStaticMesh(FoliageSettingsPtr, SelectedStaticMesh, bMeshMerged))
-		{
-			// If they were merged, simply remove the current item. Otherwise replace it.
-			if (bMeshMerged)
-			{
-				FoliageEditPtr.Pin()->RemoveItemFromScrollbox(SharedThis(this));
-			}
-			else
-			{
-				FoliageEditPtr.Pin()->ReplaceItem(SharedThis(this), SelectedStaticMesh);
-			}
-		}
+		FoliageSettingsPtr->Modify();
+		FoliageSettingsPtr->SetStaticMesh(SelectedStaticMesh);
+		FoliageSettingsPtr->PostEditChange();
 	}
 
 	return FReply::Handled();
@@ -1861,9 +1850,15 @@ void SFoliageEditMeshDisplayItem::OnSelectionChanged(ECheckBoxState InType)
 FReply SFoliageEditMeshDisplayItem::OnSync()
 {
 	TArray<UObject*> Objects;
-
-	Objects.Add(FoliageSettingsPtr->GetStaticMesh());
-
+	if (FoliageSettingsPtr->IsAsset())
+	{
+		Objects.Add(FoliageSettingsPtr);
+	}
+	else
+	{
+		Objects.Add(FoliageSettingsPtr->GetStaticMesh());
+	}
+	
 	GEditor->SyncBrowserToObjects(Objects);
 
 	return FReply::Handled();
@@ -1873,7 +1868,7 @@ FReply SFoliageEditMeshDisplayItem::OnRemove()
 {
 	FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Foliage);
 
-	if (Mode->RemoveFoliageMesh(FoliageSettingsPtr))
+	if (Mode->RemoveFoliageType(&FoliageSettingsPtr, 1))
 	{
 		FoliageEditPtr.Pin()->RemoveItemFromScrollbox(SharedThis(this));
 	}
@@ -1881,44 +1876,12 @@ FReply SFoliageEditMeshDisplayItem::OnRemove()
 	return FReply::Handled();
 }
 
-FReply SFoliageEditMeshDisplayItem::OnSaveRemoveSettings()
+FReply SFoliageEditMeshDisplayItem::OnSaveSettings()
 {
 	FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Foliage);
 
-	if (FoliageSettingsPtr->GetOuter()->IsA(UPackage::StaticClass()))
-	{
-		UFoliageType* NewSettings = NULL;
-		NewSettings = Mode->CopySettingsObject(FoliageSettingsPtr);
-
-		// Do not replace the current one if NULL is returned, just keep the old one.
-		if (NewSettings)
-		{
-			FoliageSettingsPtr = NewSettings;
-		}
-	}
-	else
-	{
-		// Build default settings asset name and path
-		FString DefaultAsset = FPackageName::GetLongPackagePath(FoliageSettingsPtr->GetStaticMesh()->GetOutermost()->GetName()) + TEXT("/") + FoliageSettingsPtr->GetStaticMesh()->GetName() + TEXT("_settings");
-
-		TSharedRef<SDlgPickAssetPath> SettingDlg =
-			SNew(SDlgPickAssetPath)
-			.Title(LOCTEXT("SettingsDialogTitle", "Choose Location for Foliage Settings Asset"))
-			.DefaultAssetPath(FText::FromString(DefaultAsset));
-
-		if (SettingDlg->ShowModal() != EAppReturnType::Cancel)
-		{
-			UFoliageType* NewSettings = NULL;
-
-			NewSettings = Mode->SaveSettingsObject(SettingDlg->GetFullAssetPath(), FoliageSettingsPtr);
-
-			// Do not replace the current one if NULL is returned, just keep the old one.
-			if (NewSettings)
-			{
-				FoliageSettingsPtr = NewSettings;
-			}
-		}
-	}
+	UFoliageType* NewSettings = Mode->SaveSettingsObject(FoliageSettingsPtr);
+	Mode->PopulateFoliageMeshList();
 
 	return FReply::Handled();
 }
@@ -1938,16 +1901,19 @@ FReply SFoliageEditMeshDisplayItem::OnOpenSettings()
 	return FReply::Handled();
 }
 
-FText SFoliageEditMeshDisplayItem::GetSaveRemoveSettingsTooltip() const
+FText SFoliageEditMeshDisplayItem::GetSaveSettingsTooltip() const
 {
-	// Remove Settings tooltip.
-	if (FoliageSettingsPtr->GetOuter()->IsA(UPackage::StaticClass()))
+	if (!FoliageSettingsPtr->IsAsset())
 	{
-		return NSLOCTEXT("FoliageEdMode", "RemoveSettings_Tooltip", "Do not store the foliage settings in a shared InstancedFoliageSettings object.");
+		return NSLOCTEXT("FoliageEdMode", "SaveSettings_Tooltip", "Save these settings as an shared Asset");
 	}
 
-	// Save settings tooltip.
-	return NSLOCTEXT("FoliageEdMode", "SaveSettings_Tooltip", "Save these settings as an InstancedFoliageSettings object stored in a package.");
+	return FText();
+}
+
+EVisibility SFoliageEditMeshDisplayItem::IsSaveSettingsVisible() const
+{
+	return !FoliageSettingsPtr->IsAsset() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 bool SFoliageEditMeshDisplayItem::IsPropertyVisible(const FPropertyAndParent& PropertyAndParent) const
@@ -1968,7 +1934,17 @@ bool SFoliageEditMeshDisplayItem::IsPropertyVisible(const FPropertyAndParent& Pr
 
 FText SFoliageEditMeshDisplayItem::GetInstanceCountString() const
 {
-	return FText::Format(LOCTEXT("InstanceCount_Value", "Instance Count: {0}"), FText::AsNumber(FoliageMeshUIInfo->MeshInfo ? FoliageMeshUIInfo->MeshInfo->GetInstanceCount() : 0 ));
+	const int32 InsatanceCountTotal = FoliageMeshUIInfo->InstanceCountTotal;
+	const int32 InstanceCountCurrentLevel = FoliageMeshUIInfo->InstanceCountCurrentLevel;
+	
+	if (InsatanceCountTotal != InstanceCountCurrentLevel)
+	{
+		return FText::Format(LOCTEXT("InstanceCount_ValueT", "Instance Count: {0} ({1})"), FText::AsNumber(InstanceCountCurrentLevel), FText::AsNumber(InsatanceCountTotal));
+	}
+	else
+	{
+		return FText::Format(LOCTEXT("InstanceCount_ValueC", "Instance Count: {0}"), FText::AsNumber(InsatanceCountTotal));
+	}
 }
 
 EVisibility SFoliageEditMeshDisplayItem::IsReapplySettingsVisible() const
@@ -2573,11 +2549,6 @@ FReply SFoliageEditMeshDisplayItem::OnMouseDownSelection(const FGeometry& MyGeom
 
 const FSlateBrush* SFoliageEditMeshDisplayItem::GetSaveSettingsBrush() const
 {
-	if (FoliageSettingsPtr->GetOuter()->IsA(UPackage::StaticClass()))
-	{
-		return FEditorStyle::GetBrush(TEXT("FoliageEditMode.DeleteItem"));
-	}
-
 	return FEditorStyle::GetBrush(TEXT("FoliageEditMode.SaveSettings"));
 }
 

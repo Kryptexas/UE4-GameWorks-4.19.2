@@ -202,6 +202,8 @@ struct FFoliageMeshInfo
 	FOLIAGE_API void ReapplyInstancesToComponent();
 
 	FOLIAGE_API void SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& Instances);
+	
+	FOLIAGE_API void SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect);
 
 	// Get the number of placed instances
 	FOLIAGE_API int32 GetInstanceCount() const;
@@ -347,7 +349,6 @@ struct FDesiredFoliageInstance
 {
 	FDesiredFoliageInstance()
 	: FoliageType(nullptr)
-	, MeshInfo(nullptr)
 	, StartTrace(ForceInit)
 	, EndTrace(ForceInit)
 	, Rotation(ForceInit)
@@ -360,7 +361,6 @@ struct FDesiredFoliageInstance
 
 	FDesiredFoliageInstance(const FVector& InStartTrace, const FVector& InEndTrace, const float InTraceRadius = 0.f)
 	: FoliageType(nullptr)
-	, MeshInfo(nullptr)
 	, StartTrace(InStartTrace)
 	, EndTrace(InEndTrace)
 	, Rotation(ForceInit)
@@ -370,9 +370,8 @@ struct FDesiredFoliageInstance
 	{
 	}
 
-	FGuid ProceduralGuid;
 	const UFoliageType* FoliageType;
-	FFoliageMeshInfo* MeshInfo;
+	FGuid ProceduralGuid;
 	FVector StartTrace;
 	FVector EndTrace;
 	FQuat Rotation;
@@ -389,10 +388,8 @@ struct FOLIAGE_API FPotentialInstance
 	FVector HitNormal;
 	UPrimitiveComponent* HitComponent;
 	float HitWeight;
-	FFoliageMeshInfo* MeshInfo;
-	AInstancedFoliageActor* IFA;
 	FDesiredFoliageInstance DesiredInstance;
 
-	FPotentialInstance(FVector InHitLocation, FVector InHitNormal, UPrimitiveComponent* InHitComponent, float InHitWeight, FFoliageMeshInfo* MeshInfo = nullptr, AInstancedFoliageActor* InIFA = nullptr, const FDesiredFoliageInstance& InDesiredInstance = FDesiredFoliageInstance());
-	bool PlaceInstance(const UFoliageType* Settings, FFoliageInstance& Inst, bool bSkipCollision = false);
+	FPotentialInstance(FVector InHitLocation, FVector InHitNormal, UPrimitiveComponent* InHitComponent, float InHitWeight, const FDesiredFoliageInstance& InDesiredInstance = FDesiredFoliageInstance());
+	bool PlaceInstance(const UWorld* InWorld, const UFoliageType* Settings, FFoliageInstance& Inst, bool bSkipCollision = false);
 };

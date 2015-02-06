@@ -25,10 +25,6 @@ class AInstancedFoliageActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The static mesh type that will be used to show the widget */
-	UPROPERTY(transient)
-	UFoliageType* SelectedMesh;
-
 public:
 #if WITH_EDITORONLY_DATA
 	// Cross level references cache for instances base
@@ -43,6 +39,7 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
+	virtual void PostRegisterAllComponents() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface. 
 
@@ -76,7 +73,7 @@ public:
 	* @param bCreateIfNone					Create if doesnt already exist
 	* returns								pointer to foliage object instance
 	*/
-	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone = true);
+	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone = false);
 
 
 	/**
@@ -84,10 +81,10 @@ public:
 	* @param bCreateIfNone					Create if doesnt already exist
 	* returns								pointer to foliage object instance
 	*/
-	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = true);
+	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = false);
 
-	static FOLIAGE_API bool FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, const AInstancedFoliageActor* IgnoreIFA = nullptr, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false);
-	FOLIAGE_API bool CheckCollisionWithWorld(const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation);
+	static FOLIAGE_API bool FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false);
+	static FOLIAGE_API bool CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation);
 
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
@@ -110,6 +107,7 @@ public:
 
 	// Deletes the instances attached to a component
 	FOLIAGE_API void DeleteInstancesForComponent(UActorComponent* InComponent);
+	FOLIAGE_API void DeleteInstancesForComponent(UActorComponent* InComponent, const UFoliageType* InFoliageType);
 
 	// Deletes the instances spawned by a procedural component
 	void DeleteInstancesForProceduralFoliageComponent(const UProceduralFoliageComponent* ProceduralComponent);
@@ -117,13 +115,14 @@ public:
 	// Finds a mesh entry or adds it if it doesn't already exist
 	FOLIAGE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
 
+	FOLIAGE_API UFoliageType* AddFoliageType(const UFoliageType* InType, FFoliageMeshInfo** OutInfo = nullptr);
 	// Add a new static mesh.
 	FOLIAGE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr, const UFoliageType_InstancedStaticMesh* DefaultSettings = nullptr);
 	FOLIAGE_API FFoliageMeshInfo* AddMesh(UFoliageType* InType);
 	FOLIAGE_API FFoliageMeshInfo* UpdateMeshSettings(const UStaticMesh* InMesh, const UFoliageType_InstancedStaticMesh* DefaultSettings);
 
-	// Remove the static mesh from the mesh list, and all its instances.
-	FOLIAGE_API void RemoveMesh(UFoliageType* InFoliageType);
+	// Remove the FoliageType from the list, and all its instances.
+	FOLIAGE_API void RemoveFoliageType(UFoliageType** InFoliageType, int32 Num);
 
 	// Select an individual instance.
 	FOLIAGE_API void SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle);
@@ -131,11 +130,8 @@ public:
 	// Propagate the selected instances to the actual render components
 	FOLIAGE_API void ApplySelectionToComponents(bool bApply);
 
-	// Updates the SelectedMesh property of the actor based on the actual selected instances
-	FOLIAGE_API void CheckSelection();
-
 	// Returns the location for the widget
-	FOLIAGE_API FVector GetSelectionLocation();
+	FOLIAGE_API bool GetSelectionLocation(FVector& OutLocation) const;
 
 	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
 	void NotifyFoliageTypeChanged(UFoliageType* FoliageType);

@@ -104,14 +104,23 @@ public:
 
 struct FFoliageMeshUIInfo
 {
-	UFoliageType* Settings;
-	FFoliageMeshInfo* MeshInfo;
-
-	FFoliageMeshUIInfo(UFoliageType* InSettings, FFoliageMeshInfo* InMeshInfo)
+	UFoliageType*	Settings;
+	int32			InstanceCountCurrentLevel;
+	int32			InstanceCountTotal;
+	
+	FFoliageMeshUIInfo(UFoliageType* InSettings)
 		: Settings(InSettings)
-		, MeshInfo(InMeshInfo)
+		, InstanceCountCurrentLevel(0)
+		, InstanceCountTotal(0)
 	{}
+
+	bool operator == (const FFoliageMeshUIInfo& Other) const
+	{
+		return Settings == Other.Settings;
+	}
 };
+
+typedef TSharedPtr<FFoliageMeshUIInfo> FFoliageMeshUIInfoPtr;
 
 // Snapshot of current MeshInfo state. Created at start of a brush stroke to store the existing instance info.
 class FMeshInfoSnapshot
@@ -177,7 +186,9 @@ public:
 
 	/** Called when the current level changes */
 	void NotifyNewCurrentLevel();
-
+	void NotifyLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);
+	void NotifyLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
+	
 	/** Called when the user changes the current tool in the UI */
 	void NotifyToolChanged();
 
@@ -257,26 +268,32 @@ public:
 	    returns a line segment inside the sphere parallel to the view direction */
 	void GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd);
 
+	/** Setup before call to ApplyBrush */
+	void PreApplyBrush();
+
 	/** Apply brush */
 	void ApplyBrush(FEditorViewportClient* ViewportClient);
 
-	/** Update existing mesh info for current level */
-	void UpdateFoliageMeshList();
+	/** Get list of meshes for current level */
+	TArray<FFoliageMeshUIInfoPtr>& GetFoliageMeshList();
 
-	TArray<struct FFoliageMeshUIInfo>& GetFoliageMeshList();
+	/** Populate mesh with foliage mesh settings found across world */
+	void PopulateFoliageMeshList();
 
-	/** Add a new mesh */
-	void AddFoliageMesh(UStaticMesh* Mesh);
-	void AddFoliageMesh(UFoliageType* Settings);
+	/**  */
+	void OnInstanceCountUpdated(const UFoliageType* FoliageType);
+		
+	/** Whether specified FoliageType can be painted into level */
+	static bool CanPaint(const UFoliageType* FoliageType, const ULevel* InLevel);
 
-	/** Remove a mesh */
-	bool RemoveFoliageMesh(UFoliageType* Settings);
+	/** Add a new asset (FoliageType or StaticMesh) */
+	UFoliageType* AddFoliageAsset(UObject* InAssset);
+	
+	/** Remove a list of Foliage types */
+	bool RemoveFoliageType(UFoliageType** FoliageTypes, int32 Num);
 
 	/** Reapply cluster settings to all the instances */
 	void ReallocateClusters(UFoliageType* Settings);
-
-	/** Replace a mesh with another one */
-	bool ReplaceStaticMesh(UFoliageType* Settings, UStaticMesh* NewStaticMesh, bool& bOutMeshMerged);
 
 	/** Bake meshes to StaticMeshActors */
 	void BakeFoliage(UFoliageType* Settings, bool bSelectedOnly);
@@ -293,54 +310,72 @@ public:
 	/** Replace the settings object for this static mesh with the one specified */
 	void ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageType* NewSettings);
 
-	/**
-	 * Save the settings object
-	 *
-	 * @param InSettingsPackageName		The name for the settings package.
-	 * @param StaticMesh				The static mesh to save the settings of.
-	 *
-	 * @return The settings the static mesh is now using.
-	 */
-	UFoliageType* SaveSettingsObject(const FText& InSettingsPackageName, UFoliageType* Settings);
+	/** Save the settings object as an asset */
+	UFoliageType* SaveSettingsObject(UFoliageType* Settings);
 
 	/** Add desired instances. Uses foliage settings to determine location/scale/rotation and whether instances should be ignored */
 	static void AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances);
-
-	/** Apply paint bucket to actor */
-	void ApplyPaintBucket(AActor* Actor, bool bRemove);
 
 	typedef TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCacheData;
 private:
 
 	/** Add instances inside the brush to match DesiredInstanceCount */
-	void AddInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, const TArray<int32>& ExistingInstances, float Pressure);
+	void AddInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, int32 DesiredInstanceCount, float Pressure);
+	
+	/** Remove instances inside the brush to match DesiredInstanceCount. */
+	void RemoveInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, int32 DesiredInstanceCount, float Pressure);
 
-	/** Common code for adding instances to world based on settings */
-	static void AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const AInstancedFoliageActor* IgnoreIFA = nullptr, const TArray<int32>& ExistingInstances = TArray<int32>(), const float Pressure = 1.f, LandscapeLayerCacheData* LandscapeLayerCaches = nullptr, const FFoliageUISettings* UISettings = nullptr);
-
-	/** Logic for determining which instances can be placed in the world*/
-	static void CalculatePotentialInstances(const UWorld* InWorld, const AInstancedFoliageActor* IFA, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], LandscapeLayerCacheData* LandscaleLayerCachesPtr, const FFoliageUISettings* UISettings);
-
-	/** Similar to CalculatePotentialInstances, but it doesn't do any overlap checks which are much harder to thread. Meant to be run in parallel for placing lots of instances */
-	static void CalculatePotentialInstances_ThreadSafe(const UWorld* InWorld, const AInstancedFoliageActor* IgnoreIFA, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>* DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], const FFoliageUISettings* UISettings, const int32 StartIdx, const int32 LastIdx);
-
-	/** Remove instances inside the brush to match DesiredInstanceCount. NOTE: PotentialInstancesToRemove array is modified by this function. */
-	void RemoveInstancesForBrush(AInstancedFoliageActor* IFA, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& PotentialInstancesToRemove, float Pressure);
+	/** Apply paint bucket to actor */
+	void ApplyPaintBucket_Add(AActor* Actor);
+	void ApplyPaintBucket_Remove(AActor* Actor);
 
 	/** Reapply instance settings to exiting instances */
-	void ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, const TArray<int32>& ExistingInstances);
+	void ReapplyInstancesDensityForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure);
+	void ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere);
+	void ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, const UFoliageType* Settings, FFoliageMeshInfo* MeshInfo, const FSphere& BrushSphere);
 
+	/** Select instances inside the brush. */
+	void SelectInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, bool bSelect);
+	
+	/** Set/Clear selection for all foliage instances */
+	void SelectInstances(UWorld* InWorld, bool bSelect);
+	
+	/** Set/Clear selection for foliage instances of specific type  */
+	void SelectInstances(UWorld* InWorld, const UFoliageType* Settings, bool bSelect);
+
+	/**  Propagate the selected foliage instances to the actual render components */
+	void ApplySelectionToComponents(UWorld* InWorld, bool bApply);
+
+	/**  Applies relative transformation to selected instances */
+	void TransformSelectedInstances(UWorld* InWorld, const FVector& InDrag, const FRotator& InRot, const FVector& InScale, bool bDuplicate);
+
+	/**  Return selected actor and instance location */
+	AInstancedFoliageActor* GetSelectionLocation(UWorld* InWorld, FVector& OutLocation) const;
+	
+	/**  Updates ed mode widget location to currently selected instance */
+	void UpdateWidgetLocationToInstanceSelection();
+
+	/** Remove currently selected instances*/
+	void RemoveSelectedInstances(UWorld* InWorld);
+			
+	/** Snap instance to the ground   */
+	bool SnapInstanceToGround(AInstancedFoliageActor* InIFA, float AlignMaxAngle, FFoliageMeshInfo& Mesh, int32 InstanceIdx);
+	void SnapSelectedInstancesToGround(UWorld* InWorld);
+
+	/** Common code for adding instances to world based on settings */
+	static void AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const TArray<int32>& ExistingInstances = TArray<int32>(), const float Pressure = 1.f, LandscapeLayerCacheData* LandscapeLayerCaches = nullptr, const FFoliageUISettings* UISettings = nullptr);
+
+	/** Logic for determining which instances can be placed in the world*/
+	static void CalculatePotentialInstances(const UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], LandscapeLayerCacheData* LandscaleLayerCachesPtr, const FFoliageUISettings* UISettings);
+
+	/** Similar to CalculatePotentialInstances, but it doesn't do any overlap checks which are much harder to thread. Meant to be run in parallel for placing lots of instances */
+	static void CalculatePotentialInstances_ThreadSafe(const UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>* DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], const FFoliageUISettings* UISettings, const int32 StartIdx, const int32 LastIdx);
+	
 	/** Lookup the vertex color corresponding to a location traced on a static mesh */
 	static bool GetStaticMeshVertexColorForHit(const UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor);
 
 	/** Does a filter based on the vertex color of a static mesh */
 	static bool VertexMaskCheck(const FHitResult& Hit, const UFoliageType* Settings);
-
-	/** 
-	 * Snaps given instance to the ground  
-	 * @return Whether instance was sucessfully snapped
-	 */
-	bool SnapInstanceToGround(AInstancedFoliageActor* InIFA, float AlignMaxAngle, FFoliageMeshInfo& Mesh, int32 InstanceIdx);
 
 	bool bBrushTraceValid;
 	FVector BrushLocation;
@@ -350,15 +385,12 @@ private:
 	// Landscape layer cache data
 	LandscapeLayerCacheData LandscapeLayerCaches;
 
-	// Placed level data
-	TArray<FFoliageMeshUIInfo> FoliageMeshList;
-
 	// Cache of instance positions at the start of the transaction
-	TMap<UFoliageType*, FMeshInfoSnapshot> InstanceSnapshot;
+	TMultiMap<UFoliageType*, FMeshInfoSnapshot> InstanceSnapshot;
 
 	bool bToolActive;
 	bool bCanAltDrag;
 
-	// The actor that owns any currently visible selections
-	AInstancedFoliageActor* SelectionIFA;
+	TArray<FFoliageMeshUIInfoPtr> FoliageMeshList;
 };
+

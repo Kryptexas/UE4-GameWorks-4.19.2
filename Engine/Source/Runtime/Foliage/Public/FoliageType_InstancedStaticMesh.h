@@ -17,4 +17,9 @@ class UFoliageType_InstancedStaticMesh : public UFoliageType
 	{
 		return Mesh;
 	}
+
+	virtual void SetStaticMesh(UStaticMesh* InStaticMesh) override
+	{
+		Mesh = InStaticMesh;
+	}
 };

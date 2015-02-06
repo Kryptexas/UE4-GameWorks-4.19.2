@@ -2620,7 +2620,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 							if (OldFoliageActor)
 							{
 								OldFoliageActor->MoveInstancesToNewComponent(OldCollisionComponent, NewCollisionComponent);
-								AInstancedFoliageActor* NewFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(NewCollisionComponent->GetTypedOuter<ULevel>());
+								AInstancedFoliageActor* NewFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(NewCollisionComponent->GetTypedOuter<ULevel>(), true);
 								NewCollisionComponent->SnapFoliageInstances(*NewFoliageActor, FBox(FVector(-WORLD_MAX), FVector(WORLD_MAX)));
 							}
 						}

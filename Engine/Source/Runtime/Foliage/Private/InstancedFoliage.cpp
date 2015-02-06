@@ -630,9 +630,7 @@ void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArr
 			// Remove the removed item from the removal list
 			InstancesToRemove.Remove(InstanceIndexToRemove);
 		}
-
-		InIFA->CheckSelection();
-
+			
 		CheckValid();
 	}
 }
@@ -847,6 +845,31 @@ bool FFoliageMeshInfo::CheckForOverlappingInstanceExcluding(int32 TestInstanceId
 	return false;
 }
 
+void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect)
+{
+	if (Component)
+	{
+		InIFA->Modify();
+	
+		if (bSelect)
+		{
+			for (int32 i = 0; i < Component->PerInstanceSMData.Num(); ++i)
+			{
+				SelectedIndices.Add(i);
+			}
+		}
+		else
+		{
+			SelectedIndices.Empty();
+		}
+
+		// Apply selections to the component
+		Component->SelectedInstances.Init(bSelect, Component->PerInstanceSMData.Num());
+		Component->ReleasePerInstanceRenderData();
+		Component->MarkRenderStateDirty();
+	}
+}
+
 void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& InInstances)
 {
 	if (InInstances.Num())
@@ -909,47 +932,26 @@ AInstancedFoliageActor::AInstancedFoliageActor(const FObjectInitializer& ObjectI
 
 AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone)
 {
-	for (TActorIterator<AInstancedFoliageActor> It(InWorld); It; ++It)
-	{
-		AInstancedFoliageActor* InstancedFoliageActor = *It;
-		if (InstancedFoliageActor)
-		{
-			if (InstancedFoliageActor->GetLevel()->IsCurrentLevel() && !InstancedFoliageActor->IsPendingKill())
-			{
-				return InstancedFoliageActor;
-			}
-		}
-	}
-
-	return bCreateIfNone ? InWorld->SpawnActor<AInstancedFoliageActor>() : nullptr;
+	return GetInstancedFoliageActorForLevel(InWorld->GetCurrentLevel(), bCreateIfNone);
 }
 
-
-AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ULevel* InLevel, bool bCreateIfNone /* = true */)
+AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ULevel* InLevel, bool bCreateIfNone /* = false */)
 {
-	if (!InLevel)
+	AInstancedFoliageActor* IFA = nullptr;
+	if (InLevel)
 	{
-		return nullptr;
-	}
-
-	for (int32 ActorIndex = 0; ActorIndex < InLevel->Actors.Num(); ++ActorIndex)
-	{
-		AInstancedFoliageActor* InstancedFoliageActor = Cast<AInstancedFoliageActor>(InLevel->Actors[ActorIndex]);
-		if (InstancedFoliageActor && !InstancedFoliageActor->IsPendingKill())
+		IFA = InLevel->InstancedFoliageActor.Get();
+		
+		if (!IFA && bCreateIfNone)
 		{
-			return InstancedFoliageActor;
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.OverrideLevel = InLevel;
+			IFA = InLevel->GetWorld()->SpawnActor<AInstancedFoliageActor>(SpawnParams);
+			InLevel->InstancedFoliageActor = IFA;
 		}
 	}
 
-	if (bCreateIfNone)
-	{
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.OverrideLevel = InLevel;
-
-		return InLevel->GetWorld()->SpawnActor<AInstancedFoliageActor>(SpawnParams);
-	}
-
-	return nullptr;
+	return IFA;
 }
 
 
@@ -1095,21 +1097,40 @@ void AInstancedFoliageActor::MoveInstancesForMovedComponent(UActorComponent* InC
 
 void AInstancedFoliageActor::DeleteInstancesForComponent(UActorComponent* InComponent)
 {
+	const auto BaseId = InstanceBaseCache.GetInstanceBaseId(InComponent);
+	// Instances with empty base has BaseId==InvalidBaseId, we should not delete these
+	if (BaseId == FFoliageInstanceBaseCache::InvalidBaseId)
+	{
+		return;
+	}
+		
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-		const auto BaseId = InstanceBaseCache.GetInstanceBaseId(InComponent);
-
-		// Instances with empty base has BaseId==InvalidBaseId, we should not delete these
-		if (BaseId == FFoliageInstanceBaseCache::InvalidBaseId)
-		{
-			continue;
-		}
-
 		const auto* InstanceSet = MeshInfo.ComponentHash.Find(BaseId);
 		if (InstanceSet)
 		{
 			MeshInfo.RemoveInstances(this, InstanceSet->Array());
+		}
+	}
+}
+
+void AInstancedFoliageActor::DeleteInstancesForComponent(UActorComponent* InComponent, const UFoliageType* FoliageType)
+{
+	const auto BaseId = InstanceBaseCache.GetInstanceBaseId(InComponent);
+	// Instances with empty base has BaseId==InvalidBaseId, we should not delete these
+	if (BaseId == FFoliageInstanceBaseCache::InvalidBaseId)
+	{
+		return;
+	}
+	
+	FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType);
+	if (MeshInfo)
+	{
+		const auto* InstanceSet = MeshInfo->ComponentHash.Find(BaseId);
+		if (InstanceSet)
+		{
+			MeshInfo->RemoveInstances(this, InstanceSet->Array());
 		}
 	}
 }
@@ -1138,7 +1159,7 @@ void AInstancedFoliageActor::DeleteInstancesForProceduralFoliageComponent(const 
 
 void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent)
 {
-	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(InComponent->GetWorld());
+	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(InComponent->GetWorld(), true);
 	const auto SourceBaseId = InstanceBaseCache.GetInstanceBaseId(InComponent);
 	
 	for (auto& MeshPair : FoliageMeshes)
@@ -1171,12 +1192,7 @@ void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorCompo
 
 void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent)
 {
-	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InNewComponent->GetTypedOuter<ULevel>());
-	if (!NewIFA)
-	{
-		NewIFA = InNewComponent->GetWorld()->SpawnActor<AInstancedFoliageActor>();
-	}
-	check(NewIFA);
+	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InNewComponent->GetTypedOuter<ULevel>(), true);
 
 	const auto OldBaseId = this->InstanceBaseCache.GetInstanceBaseId(InOldComponent);
 	const auto NewBaseId = NewIFA->InstanceBaseCache.AddInstanceBaseId(InNewComponent);
@@ -1314,6 +1330,45 @@ FFoliageMeshInfo* AInstancedFoliageActor::UpdateMeshSettings(const UStaticMesh* 
 }
 #endif
 
+UFoliageType* AInstancedFoliageActor::AddFoliageType(const UFoliageType* InType, FFoliageMeshInfo** OutInfo)
+{
+	FFoliageMeshInfo* MeshInfo = nullptr;
+	UFoliageType* FoliageType = const_cast<UFoliageType*>(InType);
+	
+	if (FoliageType->GetOuter() == this || FoliageType->IsAsset())
+	{
+		auto* MeshInfoPtr = FoliageMeshes.Find(FoliageType);
+		if (!MeshInfoPtr)
+		{
+			MarkPackageDirty();
+			MeshInfo = &FoliageMeshes.Add(FoliageType).Get();
+		}
+		else
+		{
+			MeshInfo = &MeshInfoPtr->Get();
+		}
+	}
+	else
+	{
+		// Unique meshes only
+		// Multiple entries for same static mesh can be added using FoliageType as an asset
+		FoliageType = GetSettingsForMesh(FoliageType->GetStaticMesh());
+		if (FoliageType == nullptr)
+		{
+			FoliageType = DuplicateObject<UFoliageType>(FoliageType, this);
+			MarkPackageDirty();
+			MeshInfo = &FoliageMeshes.Add(FoliageType).Get();
+		}
+	}
+
+	if (OutInfo)
+	{
+		*OutInfo = MeshInfo;
+	}
+
+	return FoliageType;
+}
+
 FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings, const UFoliageType_InstancedStaticMesh* DefaultSettings)
 {
 	check(GetSettingsForMesh(InMesh) == nullptr);
@@ -1371,22 +1426,28 @@ FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UFoliageType* InType)
 	return MeshInfo;
 }
 
-void AInstancedFoliageActor::RemoveMesh(UFoliageType* InSettings)
+void AInstancedFoliageActor::RemoveFoliageType(UFoliageType** InFoliageTypes, int32 Num)
 {
 	Modify();
-	MarkPackageDirty();
 	UnregisterAllComponents();
 
 	// Remove all components for this mesh from the Components array.
-	FFoliageMeshInfo* MeshInfo = FindMesh(InSettings);
-	if (MeshInfo && MeshInfo->Component)
+	for (int32 FoliageTypeIdx = 0; FoliageTypeIdx < Num; ++FoliageTypeIdx)
 	{
-		MeshInfo->Component->bAutoRegister = false;
-	}
+		const UFoliageType* FoliageType = InFoliageTypes[FoliageTypeIdx];
+		FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType);
+		if (MeshInfo)
+		{
+			if (MeshInfo->Component)
+			{
+				MeshInfo->Component->bAutoRegister = false;
+			}
 
-	FoliageMeshes.Remove(InSettings);
+			FoliageMeshes.Remove(FoliageType);
+		}
+	}
+		
 	RegisterAllComponents();
-	CheckSelection();
 }
 
 void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InInstanceIndex, bool bToggle)
@@ -1420,54 +1481,47 @@ void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InCom
 		UFoliageType* Type = nullptr;
 		FFoliageMeshInfo* MeshInfo = nullptr;
 
-		Type = GetSettingsForMesh(InComponent->StaticMesh, &MeshInfo);
-
+		for (auto& MeshPair : FoliageMeshes)
+		{
+			if (MeshPair.Value->Component == InComponent)
+			{
+				Type = MeshPair.Key;
+				MeshInfo = &MeshPair.Value.Get();
+			}
+		}
+		
 		if (MeshInfo)
 		{
-			if (InComponent == MeshInfo->Component)
+			bool bIsSelected = MeshInfo->SelectedIndices.Contains(InInstanceIndex);
+
+			// Deselect if it's already selected.
+			if (InInstanceIndex < InComponent->SelectedInstances.Num())
 			{
-				bool bIsSelected = MeshInfo->SelectedIndices.Contains(InInstanceIndex);
+				InComponent->SelectedInstances[InInstanceIndex] = false;
+				InComponent->ReleasePerInstanceRenderData();
+				InComponent->MarkRenderStateDirty();
+			}
 
-				// Deselect if it's already selected.
-				if (InInstanceIndex < InComponent->SelectedInstances.Num())
-				{
-					InComponent->SelectedInstances[InInstanceIndex] = false;
-					InComponent->ReleasePerInstanceRenderData();
-					InComponent->MarkRenderStateDirty();
-				}
+			if (bIsSelected)
+			{
+				MeshInfo->SelectedIndices.Remove(InInstanceIndex);
+			}
 
-				if (bIsSelected)
+			if (!bToggle || !bIsSelected)
+			{
+				// Add the selection
+				if (InComponent->SelectedInstances.Num() < InComponent->PerInstanceSMData.Num())
 				{
-					MeshInfo->SelectedIndices.Remove(InInstanceIndex);
+					InComponent->SelectedInstances.Init(false, InComponent->PerInstanceSMData.Num());
 				}
+				InComponent->SelectedInstances[InInstanceIndex] = true;
+				InComponent->ReleasePerInstanceRenderData();
+				InComponent->MarkRenderStateDirty();
 
-				if (bToggle && bIsSelected)
-				{
-					if (SelectedMesh == Type && MeshInfo->SelectedIndices.Num() == 0)
-					{
-						SelectedMesh = nullptr;
-					}
-				}
-				else
-				{
-					// Add the selection
-					if (InComponent->SelectedInstances.Num() < InComponent->PerInstanceSMData.Num())
-					{
-						InComponent->SelectedInstances.Init(false, InComponent->PerInstanceSMData.Num());
-					}
-					InComponent->SelectedInstances[InInstanceIndex] = true;
-					InComponent->ReleasePerInstanceRenderData();
-					InComponent->MarkRenderStateDirty();
-
-					SelectedMesh = Type;
-					MeshInfo->SelectedIndices.Add(InInstanceIndex);
-				}
+				MeshInfo->SelectedIndices.Add(InInstanceIndex);
 			}
 		}
 	}
-
-	CheckSelection();
-
 }
 
 void AInstancedFoliageActor::PostEditUndo()
@@ -1484,8 +1538,6 @@ void AInstancedFoliageActor::PostEditUndo()
 
 void AInstancedFoliageActor::ApplySelectionToComponents(bool bApply)
 {
-	bool bNeedsUpdate = false;
-
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
@@ -1498,12 +1550,13 @@ void AInstancedFoliageActor::ApplySelectionToComponents(bool bApply)
 
 				// Apply any selections in the component
 				MeshInfo.Component->SelectedInstances.Init(false, MeshInfo.Component->PerInstanceSMData.Num());
-				MeshInfo.Component->ReleasePerInstanceRenderData();
-				MeshInfo.Component->MarkRenderStateDirty();
 				for (int32 i : MeshInfo.SelectedIndices)
 				{
 					MeshInfo.Component->SelectedInstances[i] = true;
 				}
+
+				MeshInfo.Component->ReleasePerInstanceRenderData();
+				MeshInfo.Component->MarkRenderStateDirty();
 			}
 		}
 		else		
@@ -1512,6 +1565,7 @@ void AInstancedFoliageActor::ApplySelectionToComponents(bool bApply)
 			{
 				// remove any selections in the component
 				MeshInfo.Component->SelectedInstances.Empty();
+
 				MeshInfo.Component->ReleasePerInstanceRenderData();
 				MeshInfo.Component->MarkRenderStateDirty();
 			}
@@ -1519,46 +1573,19 @@ void AInstancedFoliageActor::ApplySelectionToComponents(bool bApply)
 	}
 }
 
-void AInstancedFoliageActor::CheckSelection()
+bool AInstancedFoliageActor::GetSelectionLocation(FVector& OutLocation) const
 {
-	// Check if we have to change the selection.
-	if (SelectedMesh != nullptr)
+	for (const auto& MeshPair: FoliageMeshes)
 	{
-		FFoliageMeshInfo* MeshInfo = FindMesh(SelectedMesh);
-		if (MeshInfo && MeshInfo->SelectedIndices.Num() > 0)
+		const FFoliageMeshInfo& MeshInfo = MeshPair.Value.Get();
+		if (MeshInfo.SelectedIndices.Num())
 		{
-			return;
+			const int32 InstanceIdx = (*MeshInfo.SelectedIndices.CreateConstIterator());
+			OutLocation = MeshInfo.Instances[InstanceIdx].Location;
+			return true;
 		}
 	}
-
-	SelectedMesh = nullptr;
-
-	// Try to find a new selection
-	for (auto& MeshPair : FoliageMeshes)
-	{
-		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-		if (MeshInfo.SelectedIndices.Num() > 0)
-		{
-			SelectedMesh = MeshPair.Key;
-			return;
-		}
-	}
-}
-
-FVector AInstancedFoliageActor::GetSelectionLocation()
-{
-	FVector Result(0, 0, 0);
-
-	if (SelectedMesh != nullptr)
-	{
-		FFoliageMeshInfo* MeshInfo = FindMesh(SelectedMesh);
-		if (MeshInfo && MeshInfo->SelectedIndices.Num() > 0)
-		{
-			Result = MeshInfo->Instances[MeshInfo->SelectedIndices.Array()[0]].Location;
-		}
-	}
-
-	return Result;
+	return false;
 }
 
 void AInstancedFoliageActor::MapRebuild()
@@ -1762,6 +1789,8 @@ void AInstancedFoliageActor::PostLoad()
 {
 	Super::PostLoad();
 
+	GetLevel()->InstancedFoliageActor = this;
+
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
@@ -1853,6 +1882,13 @@ void AInstancedFoliageActor::PostLoad()
 #endif
 }
 
+void AInstancedFoliageActor::PostRegisterAllComponents()
+{
+	Super::PostRegisterAllComponents();
+	//
+	GetLevel()->InstancedFoliageActor = this;
+}
+
 #if WITH_EDITOR
 
 void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType)
@@ -1904,10 +1940,6 @@ void AInstancedFoliageActor::OnLevelActorDeleted(AActor* InActor)
 void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	AInstancedFoliageActor* This = CastChecked<AInstancedFoliageActor>(InThis);
-	if (This->SelectedMesh)
-	{
-		Collector.AddReferencedObject(This->SelectedMesh, This);
-	}
 
 	for (auto& MeshPair : This->FoliageMeshes)
 	{
@@ -1919,6 +1951,7 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 			Collector.AddReferencedObject(MeshInfo.Component, This);
 		}
 	}
+	
 	Super::AddReferencedObjects(This, Collector);
 }
 
@@ -1948,9 +1981,9 @@ void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWor
 	}
 }
 
-bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, const AInstancedFoliageActor* IgnoreIFA, FName InTraceTag, bool InbReturnFaceIndex)
+bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex)
 {
-	FCollisionQueryParams QueryParams(InTraceTag, true, IgnoreIFA);
+	FCollisionQueryParams QueryParams(InTraceTag, true);
 	QueryParams.bReturnFaceIndex = InbReturnFaceIndex;
 
 	FVector StartTrace = DesiredInstance.StartTrace;
@@ -2006,21 +2039,20 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 	return false;
 }
 
-bool AInstancedFoliageActor::CheckCollisionWithWorld(const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation)
+bool AInstancedFoliageActor::CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation)
 {
 	FMatrix InstTransform = Inst.GetInstanceWorldTransform().ToMatrixWithScale();
 	FVector LocalHit = InstTransform.InverseTransformPosition(HitLocation);
-
-	UWorld* World = GetWorld();
 
 	if (Settings->CollisionWithWorld)
 	{
 		// Check for overhanging ledge
 		{
-			FVector LocalSamplePos[4] = { FVector(Settings->LowBoundOriginRadius.Z, 0, 0),
-			FVector(-Settings->LowBoundOriginRadius.Z, 0, 0),
-			FVector(0, Settings->LowBoundOriginRadius.Z, 0),
-			FVector(0, -Settings->LowBoundOriginRadius.Z, 0)
+			FVector LocalSamplePos[4] = { 
+				FVector(Settings->LowBoundOriginRadius.Z, 0, 0),
+				FVector(-Settings->LowBoundOriginRadius.Z, 0, 0),
+				FVector(0, Settings->LowBoundOriginRadius.Z, 0),
+				FVector(0, -Settings->LowBoundOriginRadius.Z, 0)
 			};
 
 
@@ -2030,7 +2062,7 @@ bool AInstancedFoliageActor::CheckCollisionWithWorld(const UFoliageType* Setting
 				FVector SamplePos = InstTransform.TransformPosition(FVector(Settings->LowBoundOriginRadius.X, Settings->LowBoundOriginRadius.Y, 2.f) + LocalSamplePos[i]);
 				float WorldRadius = (Settings->LowBoundOriginRadius.Z + 2.f)*FMath::Max(Inst.DrawScale3D.X, Inst.DrawScale3D.Y);
 				FVector NormalVector = Settings->AlignToNormal ? HitNormal : FVector(0, 0, 1);
-				if (AInstancedFoliageActor::FoliageTrace(World, Hit, FDesiredFoliageInstance(SamplePos, SamplePos - NormalVector*WorldRadius), this))
+				if (AInstancedFoliageActor::FoliageTrace(InWorld, Hit, FDesiredFoliageInstance(SamplePos, SamplePos - NormalVector*WorldRadius)))
 				{
 					if (LocalHit.Z - Inst.ZOffset < Settings->LowBoundOriginRadius.Z)
 					{
@@ -2043,33 +2075,31 @@ bool AInstancedFoliageActor::CheckCollisionWithWorld(const UFoliageType* Setting
 
 		// Check collision with Bounding Box
 		{
-		FBox MeshBox = Settings->MeshBounds.GetBox();
-		MeshBox.Min.Z = FMath::Min(MeshBox.Max.Z, LocalHit.Z + Settings->MeshBounds.BoxExtent.Z * 0.05f);
-		FBoxSphereBounds ShrinkBound(MeshBox);
-		FBoxSphereBounds WorldBound = ShrinkBound.TransformBy(InstTransform);
-		//::DrawDebugBox(World, WorldBound.Origin, WorldBound.BoxExtent, FColor::Red, true, 10.f);
-		static FName NAME_FoliageCollisionWithWorld = FName(TEXT("FoliageCollisionWithWorld"));
-		if (World->OverlapTest(WorldBound.Origin, FQuat(Inst.Rotation), FCollisionShape::MakeBox(ShrinkBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale), FCollisionQueryParams(NAME_FoliageCollisionWithWorld, false), FCollisionObjectQueryParams(ECC_WorldStatic)))
-		{
-			return false;
+			FBox MeshBox = Settings->MeshBounds.GetBox();
+			MeshBox.Min.Z = FMath::Min(MeshBox.Max.Z, LocalHit.Z + Settings->MeshBounds.BoxExtent.Z * 0.05f);
+			FBoxSphereBounds ShrinkBound(MeshBox);
+			FBoxSphereBounds WorldBound = ShrinkBound.TransformBy(InstTransform);
+			//::DrawDebugBox(World, WorldBound.Origin, WorldBound.BoxExtent, FColor::Red, true, 10.f);
+			static FName NAME_FoliageCollisionWithWorld = FName(TEXT("FoliageCollisionWithWorld"));
+			if (InWorld->OverlapTest(WorldBound.Origin, FQuat(Inst.Rotation), FCollisionShape::MakeBox(ShrinkBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale), FCollisionQueryParams(NAME_FoliageCollisionWithWorld, false), FCollisionObjectQueryParams(ECC_WorldStatic)))
+			{
+				return false;
+			}
 		}
-	}
 	}
 
 	return true;
 }
 
-FPotentialInstance::FPotentialInstance(FVector InHitLocation, FVector InHitNormal, UPrimitiveComponent* InHitComponent, float InHitWeight, FFoliageMeshInfo* InMeshInfo, AInstancedFoliageActor* InIFA, const FDesiredFoliageInstance& InDesiredInstance)
+FPotentialInstance::FPotentialInstance(FVector InHitLocation, FVector InHitNormal, UPrimitiveComponent* InHitComponent, float InHitWeight, const FDesiredFoliageInstance& InDesiredInstance)
 : HitLocation(InHitLocation)
 , HitNormal(InHitNormal)
 , HitComponent(InHitComponent)
 , HitWeight(InHitWeight)
-, MeshInfo(InMeshInfo)
-, IFA(InIFA)
 , DesiredInstance(InDesiredInstance)
 {}
 
-bool FPotentialInstance::PlaceInstance(const UFoliageType* Settings, FFoliageInstance& Inst, bool bSkipCollision)
+bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType* Settings, FFoliageInstance& Inst, bool bSkipCollision)
 {
 	if (DesiredInstance.PlacementMode != EFoliagePlacementMode::Procedural)
 	{
@@ -2139,11 +2169,7 @@ bool FPotentialInstance::PlaceInstance(const UFoliageType* Settings, FFoliageIns
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
-	Inst.BaseId = IFA->InstanceBaseCache.AddInstanceBaseId(HitComponent);
-#endif//WITH_EDITORONLY_DATA
-
-	return bSkipCollision || IFA->CheckCollisionWithWorld(Settings, Inst, HitNormal, HitLocation);
+	return bSkipCollision || AInstancedFoliageActor::CheckCollisionWithWorld(InWorld, Settings, Inst, HitNormal, HitLocation);
 }
 
 #undef LOCTEXT_NAMESPACE

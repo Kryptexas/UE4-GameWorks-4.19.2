@@ -89,8 +89,6 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 
 	BindCommands();
 
-	FEditorDelegates::NewCurrentLevel.AddSP(this, &SFoliageEdit::NotifyNewCurrentLevel);
-
 	AssetThumbnailPool = MakeShareable(new FAssetThumbnailPool(512, TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SFoliageEdit::IsHovered))));
 
 	// Everything (or almost) uses this padding, change it to expand the padding.
@@ -351,8 +349,9 @@ void SFoliageEdit::RefreshFullList()
 	{
 		RemoveItemFromScrollbox(DisplayItemList[DisplayItemIdx]);
 	}
-
-	TArray<struct FFoliageMeshUIInfo>& FoliageMeshList = FoliageEditMode->GetFoliageMeshList();
+	
+	//FoliageEditMode->PopulateFoliageMeshList();
+	auto& FoliageMeshList = FoliageEditMode->GetFoliageMeshList();
 
 	for (int MeshIdx = 0; MeshIdx < FoliageMeshList.Num(); MeshIdx++)
 	{
@@ -360,16 +359,16 @@ void SFoliageEdit::RefreshFullList()
 	}
 }
 
-void SFoliageEdit::AddItemToScrollbox(struct FFoliageMeshUIInfo& InFoliageInfoToAdd)
+void SFoliageEdit::AddItemToScrollbox(TSharedPtr<FFoliageMeshUIInfo>& InFoliageInfoToAdd)
 {
-	UFoliageType* Settings = InFoliageInfoToAdd.Settings;
+	UFoliageType* Settings = InFoliageInfoToAdd->Settings;
 
 	TSharedRef<SFoliageEditMeshDisplayItem> DisplayItem =
 		SNew(SFoliageEditMeshDisplayItem)
 		.FoliageEditPtr(SharedThis(this))
 		.FoliageSettingsPtr(Settings)
 		.AssetThumbnail(CreateThumbnail(Settings->GetStaticMesh()))
-		.FoliageMeshUIInfo(MakeShareable(new FFoliageMeshUIInfo(InFoliageInfoToAdd)));
+		.FoliageMeshUIInfo(InFoliageInfoToAdd);
 
 	DisplayItemList.Add(DisplayItem);
 
@@ -388,17 +387,17 @@ void SFoliageEdit::RemoveItemFromScrollbox(const TSharedPtr<SFoliageEditMeshDisp
 
 void SFoliageEdit::ReplaceItem(const TSharedPtr<SFoliageEditMeshDisplayItem> InDisplayItemToReplaceIn, UStaticMesh* InNewStaticMesh)
 {
-	TArray<FFoliageMeshUIInfo>& FoliageMeshList = FoliageEditMode->GetFoliageMeshList();
+	TArray<FFoliageMeshUIInfoPtr>& FoliageMeshList = FoliageEditMode->GetFoliageMeshList();
 
-	for (FFoliageMeshUIInfo& UIInfo : FoliageMeshList)
+	for (FFoliageMeshUIInfoPtr& UIInfo : FoliageMeshList)
 	{
-		UFoliageType* Settings = UIInfo.Settings;
+		UFoliageType* Settings = UIInfo->Settings;
 		if (Settings->GetStaticMesh() == InNewStaticMesh)
 		{
 			// This is the info for the new static mesh. Update the display item.
 			InDisplayItemToReplaceIn->Replace(Settings,
 				CreateThumbnail(Settings->GetStaticMesh()),
-				MakeShareable(new FFoliageMeshUIInfo(UIInfo)));
+				UIInfo);
 			break;
 		}
 	}
@@ -609,7 +608,7 @@ EVisibility SFoliageEdit::GetVisibility_FoliageDropTarget() const
 		TArray<FAssetData> DraggedAssets = AssetUtil::ExtractAssetDataFromDrag(FSlateApplication::Get().GetDragDroppingContent());
 		for ( const FAssetData& AssetData : DraggedAssets )
 		{
-			if ( AssetData.IsValid() && AssetData.GetClass()->IsChildOf(UStaticMesh::StaticClass()) )
+			if ( AssetData.IsValid() && (AssetData.GetClass()->IsChildOf(UStaticMesh::StaticClass()) || AssetData.GetClass()->IsChildOf(UFoliageType::StaticClass())) )
 			{
 				return EVisibility::Visible;
 			}
@@ -631,9 +630,11 @@ EVisibility SFoliageEdit::GetVisibility_NonEmptyList() const
 
 bool SFoliageEdit::CanAddStaticMesh(const UStaticMesh* const InStaticMesh) const
 {
-	for (FFoliageMeshUIInfo& UIInfo : FoliageEditMode->GetFoliageMeshList())
+	TArray<FFoliageMeshUIInfoPtr>& FoliageMeshList = FoliageEditMode->GetFoliageMeshList();
+	
+	for (FFoliageMeshUIInfoPtr& UIInfo : FoliageMeshList)
 	{
-		UFoliageType* Settings = UIInfo.Settings;
+		UFoliageType* Settings = UIInfo->Settings;
 
 		if (Settings->GetStaticMesh() == InStaticMesh)
 		{
@@ -650,15 +651,13 @@ FReply SFoliageEdit::OnDrop_ListView(const FGeometry& MyGeometry, const FDragDro
 	for (int32 AssetIdx = 0; AssetIdx < DroppedAssetData.Num(); ++AssetIdx)
 	{
 		GWarn->BeginSlowTask(LOCTEXT("OnDrop_LoadPackage", "Fully Loading Package For Drop"), true, false);
-		UStaticMesh* StaticMesh = Cast<UStaticMesh>(DroppedAssetData[AssetIdx].GetAsset());
+		UObject* Asset = DroppedAssetData[AssetIdx].GetAsset();
 		GWarn->EndSlowTask();
 
-		if (StaticMesh && CanAddStaticMesh(StaticMesh))
+		if (Asset)
 		{
-			FoliageEditMode->AddFoliageMesh(StaticMesh);
-			AddItemToScrollbox(FoliageEditMode->GetFoliageMeshList()[FoliageEditMode->GetFoliageMeshList().Num() - 1]);
+			FoliageEditMode->AddFoliageAsset(Asset);
 		}
-
 	}
 
 	return FReply::Handled();
@@ -743,12 +742,5 @@ EVisibility SFoliageEdit::GetVisibility_Filters() const
 
 	return EVisibility::Visible;
 }
-
-
-void SFoliageEdit::NotifyNewCurrentLevel()
-{
-	RefreshFullList();
-}
-
 
 #undef LOCTEXT_NAMESPACE

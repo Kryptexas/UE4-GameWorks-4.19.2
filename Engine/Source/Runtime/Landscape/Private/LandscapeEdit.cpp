@@ -756,7 +756,10 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		if (OldCollisionComponent && OldCollisionComponent != CollisionComp)
 		{
 			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(OldCollisionComponent->GetWorld());
-			IFA->MoveInstancesToNewComponent(OldCollisionComponent, CollisionComp);
+			if (IFA)
+			{
+				IFA->MoveInstancesToNewComponent(OldCollisionComponent, CollisionComp);
+			}
 		}
 	}
 

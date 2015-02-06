@@ -237,8 +237,9 @@ class UFoliageType : public UObject
 	UPROPERTY(EditAnywhere, Category = Painting, meta = (Subcategory = "Collision", HideObjectType = true))
 	struct FBodyInstance BodyInstance;
 
-	/* Gets the mesh associated with this FoliageType */
+	/* Gets/Sets the mesh associated with this FoliageType */
 	virtual UStaticMesh* GetStaticMesh() const PURE_VIRTUAL(UFoliageType::GetStaticMesh, return nullptr; );
+	virtual void SetStaticMesh(UStaticMesh* InStaticMesh) PURE_VIRTUAL(UFoliageType::SetStaticMesh,);
 
 #if WITH_EDITOR
 	/* Lets subclasses decide if the InstancedFoliageActor should reallocate its instances if the specified property change event occurs */

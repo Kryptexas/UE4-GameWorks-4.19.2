@@ -58,7 +58,7 @@ public:
 	/** Handles clicking on the selection area for the item. */
 	FReply OnMouseDownSelection(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
-	/** Returns the current brush for the Save/Remove settings button. */
+	/** Returns the current brush for the Save settings button. */
 	const FSlateBrush* GetSaveSettingsBrush() const;
 
 private:
@@ -106,12 +106,13 @@ private:
 
 	FReply OnRemove();
 
-	FReply OnSaveRemoveSettings();
+	FReply OnSaveSettings();
 
 	FReply OnOpenSettings();
 
 	/** Returns the tool-tip to use for the save settings button. */
-	FText GetSaveRemoveSettingsTooltip() const;
+	FText GetSaveSettingsTooltip() const;
+	EVisibility IsSaveSettingsVisible() const;
 
 	/** Determines what properties to display in the details panel. */
 	bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent) const;

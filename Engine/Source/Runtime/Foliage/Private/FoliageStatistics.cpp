@@ -21,8 +21,11 @@ int32 UFoliageStatistics::FoliageOverlappingSphereCount(UObject* WorldContextObj
 	{
 		ULevel* Level = *LvlItr;
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
-		const UFoliageType* FoliageType = IFA->GetSettingsForMesh(Mesh);
-		Count += IFA->GetOverlappingSphereCount(FoliageType, Sphere);
+		if (IFA)
+		{
+			const UFoliageType* FoliageType = IFA->GetSettingsForMesh(Mesh);
+			Count += IFA->GetOverlappingSphereCount(FoliageType, Sphere);
+		}
 	}
 
 	return Count;
@@ -37,9 +40,11 @@ int32 UFoliageStatistics::FoliageOverlappingBoxCount(UObject* WorldContextObject
 	{
 		ULevel* Level = *LvlItr;
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
-		const UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh);
-
-		Count += IFA->GetOverlappingBoxCount(Type, Box);
+		if (IFA)
+		{
+			const UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh);
+			Count += IFA->GetOverlappingBoxCount(Type, Box);
+		}
 	}
 
 	return Count;
@@ -53,8 +58,10 @@ void UFoliageStatistics::FoliageOverlappingBoxTransforms(UObject* WorldContextOb
 	{
 		ULevel* Level = *LvlItr;
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
-		const UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh);
-
-		IFA->GetOverlappingBoxTransforms(Type, Box, OutTransforms);
+		if (IFA)
+		{
+			const UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh);
+			IFA->GetOverlappingBoxTransforms(Type, Box, OutTransforms);
+		}
 	}
 }

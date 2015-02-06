@@ -7,6 +7,7 @@
 class ALevelBounds;
 class UTexture2D;
 class UNavigationDataChunk;
+class AInstancedFoliageActor;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -455,6 +456,9 @@ public:
 
 	/** Actor which defines level logical bounding box				*/
 	TWeakObjectPtr<ALevelBounds>				LevelBoundsActor;
+
+	/** Cached pointer to Foliage actor		*/
+	TWeakObjectPtr<AInstancedFoliageActor>		InstancedFoliageActor;
 
 	/** Called when Level bounds actor has been updated */
 	DECLARE_EVENT( ULevel, FLevelBoundsActorUpdatedEvent );

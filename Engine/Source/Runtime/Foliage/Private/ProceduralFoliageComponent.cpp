@@ -259,7 +259,10 @@ void UProceduralFoliageComponent::RemoveProceduralContent()
 		if (Level)
 		{
 			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
-			IFA->DeleteInstancesForProceduralFoliageComponent(this);
+			if (IFA)
+			{
+				IFA->DeleteInstancesForProceduralFoliageComponent(this);
+			}
 		}
 	}
 #endif
