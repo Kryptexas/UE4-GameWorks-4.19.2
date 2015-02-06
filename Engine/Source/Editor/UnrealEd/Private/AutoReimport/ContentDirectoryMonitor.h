@@ -40,6 +40,9 @@ public:
 	/** Get the directory that this monitor applies to */
 	const FString& GetDirectory() const { return Cache.GetDirectory(); }
 
+	/** Get the content mount point that this monitor applies to */
+	const FString& GetMountPoint() const { return MountedContentPath; }
+
 public:
 
 	/** Get the number of outstanding changes that we potentially have to process (when not already processing) */

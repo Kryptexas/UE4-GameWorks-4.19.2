@@ -40,6 +40,9 @@ public:
 	/** The on disk references to this object */
 	TArray<FName> DiskReferences;
 
+	/** Source content files for this pending delete operation */
+	TArray<FString> SourceContentFiles;
+
 	/** In memory references to this object (*excluding* the undo buffer) */
 	FReferencerInformationList MemoryReferences;
 
@@ -159,7 +162,10 @@ public:
 
 	/** Is any of the pending deleted assets being referenced in the undo stack. */
 	bool IsAnythingReferencedInMemoryByUndo() const { return bIsAnythingReferencedInMemoryByUndo; }
-	
+
+	/** Check whether we have any source files residing under monitored, mounted paths to delete */
+	bool HasAnySourceContentFilesToDelete() const { return bHasSourceContentFilesToDelete; }
+
 	/** Goes to the next actor in the loaded level if it is available */
 	bool GoToNextReferenceInLevel() const;
 
@@ -204,6 +210,9 @@ private:
 
 	/** Is any of the pending deleted assets being referenced in the undo stack. */
 	bool bIsAnythingReferencedInMemoryByUndo;
+
+	/** Boolean that specifies whether we have any relevant (in game dir) source content files to remove with the assets */
+	bool bHasSourceContentFilesToDelete;
 
 	/** A tick-to-tick state tracking variable so we know what pending deleted object we checked last. */
 	int32 PendingDeleteIndex;

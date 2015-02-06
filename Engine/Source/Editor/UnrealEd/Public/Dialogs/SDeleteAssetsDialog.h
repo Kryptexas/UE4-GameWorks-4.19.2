@@ -73,6 +73,7 @@ private:
 	FReply Cancel();
 	FReply ForceDelete();
 	FReply ReplaceReferences();
+	void DeleteRelevantSourceContent();
 
 	/** Gets the text to display in the on disk referencing assets section when it is empty. */
 	FText GetReferencingAssetsEmptyText() const;
@@ -82,6 +83,9 @@ private:
 
 	/** Gets the text to display in the header for the 'how to proceed' section */
 	FText GetHandleText() const;
+
+	/** Get the text for the delete source content files tooltip */
+	FText GetDeleteSourceContentTooltip() const;
 
 	/** Returns the visibility of the section showing asset references on disk. */
 	EVisibility GetAssetReferencesVisiblity() const;
@@ -94,6 +98,9 @@ private:
 
 	/** Returns the visibility of the 'Delete' option */
 	EVisibility GetDeleteVisibility() const;
+
+	/** Returns the visibility of the 'Delete source content files' option */
+	EVisibility GetDeleteSourceFilesVisibility() const;
 
 	/** Returns if the 'Replace References' option should be available. */
 	bool CanReplaceReferences() const;
