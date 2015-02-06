@@ -3,6 +3,7 @@
 #pragma once
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "AI/Navigation/NavigationTypes.h"
+#include "AI/NavDataGenerator.h"
 #include "GameFramework/Actor.h"
 #include "UniquePtr.h"
 #include "NavigationData.generated.h"
@@ -413,8 +414,6 @@ class ENGINE_API ANavigationData : public AActor
 	//----------------------------------------------------------------------//
 	// Life cycle                                                                
 	//----------------------------------------------------------------------//
-	/** Dtor */
-	virtual ~ANavigationData();
 
 	// Begin UObject/AActor Interface
 	virtual void PostInitProperties() override;
@@ -423,7 +422,7 @@ class ENGINE_API ANavigationData : public AActor
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	virtual void Destroyed() override;
+	virtual void BeginDestroy() override;
 	// End UObject Interface
 		
 	virtual void CleanUp();
