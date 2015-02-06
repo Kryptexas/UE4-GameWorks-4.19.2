@@ -1227,7 +1227,7 @@ public:
 	{
 		if (!bDelayStart)
 		{
-			SerializeSearchObject();
+			this->SerializeSearchObject();
 		}
 	}
 
