@@ -592,6 +592,9 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 		return false;
 	}
 
+	GWarn->BeginSlowTask( LOCTEXT("OpeningFile", "Reading File"), true);
+	GWarn->StatusForceUpdate(20, 100, LOCTEXT("OpeningFile", "Reading File"));
+
 	int32 SDKMajor,  SDKMinor,  SDKRevision;
 
 	// Create an importer.
@@ -609,6 +612,8 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 	
 	const bool bImportStatus = Importer->Initialize(TCHAR_TO_UTF8(*Filename));
 
+	GWarn->StatusForceUpdate(100, 100, LOCTEXT("OpeningFile", "Reading File"));
+	GWarn->EndSlowTask();
 	if( !bImportStatus )  // Problem with the file to be imported
 	{
 		UE_LOG(LogFbx, Error,TEXT("Call to FbxImporter::Initialize() failed."));
