@@ -126,6 +126,10 @@ void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollec
 void ULandscapeComponent::Serialize(FArchive& Ar)
 {
 #if ENABLE_LANDSCAPE_COOKING && WITH_EDITOR
+	bool bRestoreAfterCooking = false;
+	UMaterialInstanceConstant* BackupMaterialInstance = MaterialInstance;
+	UTexture2D* BackupHeightmapTexture = HeightmapTexture;
+
 	// Saving for cooking path
 	if (Ar.IsCooking() && Ar.IsSaving() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -136,12 +140,21 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 				GeneratePlatformVertexData();
 				MaterialInstance = Cast<UMaterialInstanceConstant>(GeneratePlatformPixelData(WeightmapTextures, true));
 				HeightmapTexture = NULL;
+				bRestoreAfterCooking = true;
 			}
 		}
 	}
 #endif
 
 	Super::Serialize(Ar);
+
+#if ENABLE_LANDSCAPE_COOKING && WITH_EDITOR
+	if (bRestoreAfterCooking)
+	{
+		MaterialInstance = BackupMaterialInstance;
+		HeightmapTexture = BackupHeightmapTexture;
+	}
+#endif
 
 	Ar << LightMap;
 	Ar << ShadowMap;
