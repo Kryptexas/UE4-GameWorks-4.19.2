@@ -33,6 +33,7 @@ public class GameProjectGeneration : ModuleRules
 				"UnrealEd",
 				"DesktopPlatform",
                 "HardwareTargeting",
+                "AssetRegistry"
 			}
 		);
 

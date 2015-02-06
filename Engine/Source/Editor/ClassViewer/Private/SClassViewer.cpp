@@ -1132,7 +1132,11 @@ namespace ClassViewer
 		 */
 		static void OpenCreateCPlusPlusClassWizard(UClass* InCreationClass)
 		{
-			FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(InCreationClass, FString(), FGlobalTabmanager::Get()->GetRootWindow());
+			FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(
+				FAddToProjectConfig()
+				.ParentClass(InCreationClass)
+				.ParentWindow(FGlobalTabmanager::Get()->GetRootWindow())
+			);
 		}
 
 		/**

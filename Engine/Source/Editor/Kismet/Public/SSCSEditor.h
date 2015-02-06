@@ -999,9 +999,6 @@ protected:
 	/** Adds a root component tree node */
 	TSharedPtr<FSCSEditorTreeNode> AddRootComponentTreeNode(UActorComponent* ActorComp);
 
-	/** Given a class, makes up a default prefix and name for a newly created derived class */
-	void MakeDefaultComponentPrefixAndName( TSubclassOf<UActorComponent> ComponentClass, FString& DefaultClassPrefix, FString& DefaultClassName ) const;
-
 	/**
 	 * Creates a new C++ component from the specified class type
 	 * The user will be prompted to pick a new subclass name and code will be recompiled

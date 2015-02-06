@@ -30,7 +30,12 @@ void FAssetTypeActions_Class::GetActions(const TArray<UObject*>& InObjects, FMen
 			BaseClassPath = FPaths::GetPath(BaseClassPath);
 		}
 
-		FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(BaseClass, BaseClassPath, FGlobalTabmanager::Get()->GetRootWindow());
+		FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(
+			FAddToProjectConfig()
+			.ParentClass(BaseClass)
+			.InitialPath(BaseClassPath)
+			.ParentWindow(FGlobalTabmanager::Get()->GetRootWindow())
+		);
 	};
 
 	auto CanCreateDerivedClass = [bIsValidBaseClass]() -> bool

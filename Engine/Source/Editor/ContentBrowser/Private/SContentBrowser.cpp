@@ -1167,7 +1167,11 @@ void SContentBrowser::NewClassRequested(const FString& SelectedPath)
 		NativeClassHierarchy->GetFileSystemPath(SelectedPath, ExistingFolderPath);
 	}
 
-	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(nullptr, ExistingFolderPath, FGlobalTabmanager::Get()->GetRootWindow());
+	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(
+		FAddToProjectConfig()
+		.InitialPath(ExistingFolderPath)
+		.ParentWindow(FGlobalTabmanager::Get()->GetRootWindow())
+	);
 }
 
 void SContentBrowser::NewFolderRequested(const FString& SelectedPath)
