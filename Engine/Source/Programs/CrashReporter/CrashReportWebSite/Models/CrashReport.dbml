@@ -28,9 +28,7 @@
       <Column Name="UserName" Type="System.String" DbType="VarChar(64) NOT NULL" CanBeNull="false" />
       <Column Name="UserGroupId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
       <Association Name="User_Buggs_User" Member="Buggs_Users" ThisKey="Id" OtherKey="UserNameId" Type="Buggs_User" />
-      <Association Name="User_Buggs_User1" Member="Buggs_Users1" ThisKey="Id" OtherKey="UserNameId" Type="Buggs_User" />
       <Association Name="User_Crash" Member="CrashesFromUserId" Storage="_Crashes" ThisKey="Id" OtherKey="UserNameId" Type="Crash" />
-      <Association Name="User_Crash1" Member="CrashesFromName" ThisKey="UserName" OtherKey="UserName" Type="Crash" />
       <Association Name="UserGroup_User" Member="UserGroup" ThisKey="UserGroupId" OtherKey="Id" Type="UserGroup" IsForeignKey="true" />
     </Type>
   </Table>
@@ -55,7 +53,6 @@
       <Column Name="UserName" Type="System.String" DbType="VarChar(64) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
       <Column Name="UserNameId" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Association Name="User_Buggs_User" Member="User" ThisKey="UserNameId" OtherKey="Id" Type="User" IsForeignKey="true" />
-      <Association Name="User_Buggs_User1" Member="User1" ThisKey="UserNameId" OtherKey="Id" Type="User" IsForeignKey="true" />
     </Type>
   </Table>
   <Table Name="dbo.Crashes" Member="Crashes">
@@ -94,7 +91,6 @@
       <Column Name="EngineVersion" Type="System.String" DbType="varchar(64)" CanBeNull="true" />
       <Association Name="Crash_Buggs_Crash" Member="Buggs_Crashes" ThisKey="Id" OtherKey="CrashId" Type="Buggs_Crash" />
       <Association Name="User_Crash" Member="UserById" Storage="_User" ThisKey="UserNameId" OtherKey="Id" Type="User" IsForeignKey="true" />
-      <Association Name="User_Crash1" Member="UserByName" ThisKey="UserName" OtherKey="UserName" Type="User" IsForeignKey="true" />
     </Type>
   </Table>
   <Table Name="dbo.FunctionCalls" Member="FunctionCalls">

@@ -36,7 +36,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				FormHelper FormData = new FormHelper( Request, BuggsForm, "CrashesInTimeFrame" );
+				FormHelper FormData = new FormHelper( Request, BuggsForm, "CrashesInTimeFrameGroup" );
 				BuggsViewModel Results = LocalBuggRepository.GetResults( FormData );
 				return View( "Index", Results );
 			}
@@ -95,7 +95,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					return RedirectToAction( "" );
 				}
 
-				Crashes = Bugg.GetCrashes().ToList();
+				using( FAutoScopedLogTimer GetCrashesTimer = new FAutoScopedLogTimer( "Bugg.GetCrashes().ToList" ) )
+				{
+					Crashes = Bugg.GetCrashes();
+
+					HashSet<string> MachineIds = new HashSet<string>();
+					foreach( Crash Crash in Crashes )
+					{
+						MachineIds.Add( Crash.ComputerName );
+					}
+					Bugg.NumberOfUniqueMachines = MachineIds.Count;
+				}
 
 				// Apply any user settings
 				if( BuggsForm.Count > 0 )
@@ -133,30 +143,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				Crash NewCrash = Model.Crashes.FirstOrDefault();
 				if( NewCrash != null )
 				{
-					CallStackContainer CallStack = new CallStackContainer( NewCrash );
+					using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "CallstackTrimming" ) )
+					{
+						CallStackContainer CallStack = new CallStackContainer( NewCrash );
 
-					// Set callstack properties
-					CallStack.bDisplayModuleNames = DisplayModuleNames;
-					CallStack.bDisplayFunctionNames = DisplayFunctionNames;
-					CallStack.bDisplayFileNames = DisplayFileNames;
-					CallStack.bDisplayFilePathNames = DisplayFilePathNames;
-					CallStack.bDisplayUnformattedCallStack = DisplayUnformattedCallStack;
+						// Set callstack properties
+						CallStack.bDisplayModuleNames = DisplayModuleNames;
+						CallStack.bDisplayFunctionNames = DisplayFunctionNames;
+						CallStack.bDisplayFileNames = DisplayFileNames;
+						CallStack.bDisplayFilePathNames = DisplayFilePathNames;
+						CallStack.bDisplayUnformattedCallStack = DisplayUnformattedCallStack;
 
-					Model.CallStack = CallStack;
+						Model.CallStack = CallStack;
 
-					NewCrash.CallStackContainer = NewCrash.GetCallStack();
+						// Shorten very long function names.
+						foreach( CallStackEntry Entry in Model.CallStack.CallStackEntries )
+						{
+							Entry.FunctionName = Entry.GetTrimmedFunctionName( 128 );
+						}
+
+						Model.SourceContext = NewCrash.SourceContext;
+					}
 				}
 
-				using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "BuggsController.Show.PopulateUserInfo" + "(id=" + id + ")" ) )
+				/*using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "BuggsController.Show.PopulateUserInfo" + "(id=" + id + ")" ) )
 				{
 					// Add in the users for each crash in the Bugg
 					foreach( Crash CrashInstance in Model.Crashes )
 					{
 						LocalCrashRepository.PopulateUserInfo( CrashInstance );
 					}
-				}
+				}*/
 				return View( "Show", Model );
-			}	
+			}
 		}
 	}
 }

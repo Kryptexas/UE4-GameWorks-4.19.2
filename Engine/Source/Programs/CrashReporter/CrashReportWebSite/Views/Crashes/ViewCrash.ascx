@@ -49,7 +49,7 @@
 
 					<input type="submit" name="SetStatusSubmit" value="Set" class="SetButton" />
 
-					<span id="set-ttp" style="">TTP</span>
+					<span id="set-ttp" style="">JIRA</span>
 					<input name="SetTTP" type="text" id="ttp-text-box" />
 					<input type="submit" name="SetTTPSubmit" value="Set" class="SetButton" />
 
@@ -71,7 +71,7 @@
 		<th style='width: 11em;'><%=Url.TableHeader( "Game", "GameName", Model )%></th> 
 		<th style='width: 11em;'><%=Url.TableHeader( "Mode", "EngineMode", Model )%></th> 
 		<th style='width: 16em;'><%=Url.TableHeader( "FixedCL#", "FixedChangeList", Model )%></th>
-		<th style='width: 9em;'><%=Url.TableHeader( "Bug", "TTPID", Model) %></th>
+		<th style='width: 9em;'><%=Url.TableHeader( "JIRA", "TTPID", Model) %></th>
 		<th style='width: 9em;'><%=Url.TableHeader( "Branch", "Branch", Model) %></th>
 		<th>Description</th>
 		<th style='width: 15em'><%=Url.TableHeader( "Message", "Summary", Model )%></th>
@@ -109,7 +109,7 @@
 							if( string.IsNullOrWhiteSpace( CurrentCrash.FixedChangeList ) && string.IsNullOrWhiteSpace( CurrentCrash.TTPID ) )
 							{
 								CrashRowColor = "#FFFF88"; // yellow
-								CrashColorDescription = "This crash has not been fixed or assigned a TTP";
+								CrashColorDescription = "This crash has not been fixed or assigned a JIRA";
 							}
 
 							if( !string.IsNullOrWhiteSpace( CurrentCrash.FixedChangeList ) )
@@ -122,7 +122,7 @@
 							if( ( BuggCrash != null ) && !string.IsNullOrWhiteSpace( CurrentCrash.TTPID ) && string.IsNullOrWhiteSpace( CurrentCrash.FixedChangeList ) )
 							{
 								CrashRowColor = "#D01F3C"; // red
-								CrashColorDescription = "This crash has occurred more than once and been assigned a TTP: " + CurrentCrash.TTPID + " but has not been fixed.";
+								CrashColorDescription = "This crash has occurred more than once and been assigned a JIRA: " + CurrentCrash.TTPID + " but has not been fixed.";
 							}
 
 							if( CurrentCrash.Status == "Tester" )
@@ -175,7 +175,7 @@
 									<td class="Game"><%=CurrentCrash.GameName%></td>
 									<td class="Mode"><%=CurrentCrash.EngineMode%></td>
 									<td class="FixedChangeList"><%=CurrentCrash.FixedChangeList%></td>
-									<td class="Ttp"><%=CurrentCrash.TTPID%>&nbsp;</td>
+									<td class="Jira"> <span><a href="https://jira.ol.epicgames.net/browse/<%=CurrentCrash.TTPID%>" target="_blank"><%=CurrentCrash.TTPID%></a></span>  </td>
 									<td class="Branch"><%=CurrentCrash.Branch%>&nbsp;</td>
 									<td class="Description"><span class="TableData"><%=CurrentCrash.Description%>&nbsp;</span></td>
 									<td class="Summary"><%=CurrentCrash.Summary%></td>

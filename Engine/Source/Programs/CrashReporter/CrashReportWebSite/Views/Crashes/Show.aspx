@@ -188,10 +188,10 @@
 				<dd ><%=Html.DisplayFor(m => Model.Crash.PlatformName) %></dd>
 
 			<dt>Machine Id</dt> 
-				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.ComputerName) %></dd>
+				<dd class='even'><small><%=Html.DisplayFor(m => Model.Crash.ComputerName) %></small></dd>
 
 			<dt>Epic Account Id</dt> 
-				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.EpicAccountId) %></dd>
+				<dd class='even'><small><%=Html.DisplayFor(m => Model.Crash.EpicAccountId) %></small></dd>
 
 			<dt>Allowed to contact</dt> 
 				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.AllowToBeContacted) %></dd>
@@ -205,8 +205,9 @@
 			<dt>Changelist #</dt>
 				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.ChangeListVersion) %></dd>
 
-			<dt>TTP</dt>
-				<dd ><%=Html.DisplayFor(m => Model.Crash.TTPID) %></dd>
+			<dt>JIRA</dt>
+				<%--<dd ><%=Html.DisplayFor(m => Model.Crash.TTPID) %></dd>--%>
+				<dd><a href="https://jira.ol.epicgames.net/browse/<%=Model.Crash.TTPID%>" target="_blank"><%=Model.Crash.TTPID%></a></dd>
 
 			<dt>Status</dt>
 				<dd ><%=Html.DisplayFor(m => Model.Crash.Status) %></dd>

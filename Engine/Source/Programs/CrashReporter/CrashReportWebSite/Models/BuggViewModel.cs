@@ -12,9 +12,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	{
 		/// <summary>The current Bugg to display details of.</summary>
 		public Bugg Bugg { get; set; }
+
 		/// <summary>A container for all the crashes associated with this Bugg.</summary>
 		public IEnumerable<Crash> Crashes { get; set; }
+
 		/// <summary>The callstack common to all crashes in this Bugg.</summary>
 		public CallStackContainer CallStack { get; set; }
+
+		/// <summary></summary>
+		public string SourceContext { get; set; }
 	}
 }
