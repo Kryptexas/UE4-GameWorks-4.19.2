@@ -1548,13 +1548,22 @@ bool FSourceCodeNavigation::OpenSourceFiles(const TArray<FString>& AbsoluteSourc
 	if ( IsCompilerAvailable() )
 	{
 		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
-		SourceCodeAccessModule.GetAccessor().OpenSourceFiles(AbsoluteSourcePaths);
-
-		return true;
+		return SourceCodeAccessModule.GetAccessor().OpenSourceFiles(AbsoluteSourcePaths);
 	}
 
 	// Let others know that we've failed to open some source files.
 	AccessOnCompilerNotFound().Broadcast();
+
+	return false;
+}
+
+bool FSourceCodeNavigation::AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths)
+{
+	if ( IsCompilerAvailable() )
+	{
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		return SourceCodeAccessModule.GetAccessor().AddSourceFiles(AbsoluteSourcePaths, GetSourceFileDatabase().GetModuleNames());
+	}
 
 	return false;
 }
