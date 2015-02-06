@@ -15,7 +15,7 @@ class UAnimCompress : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Default Compression Scheme name */
+	/** Name of Compression Scheme used for this asset*/
 	UPROPERTY(Category=Compression, VisibleAnywhere)
 	FString Description;
 
