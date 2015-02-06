@@ -435,7 +435,7 @@ bool FEdMode::ShouldDrawWidget() const
 	bool bDrawWidget = false;
 	if (GEditor->GetSelectedComponentCount() > 0)
 	{
-		for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
+		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
 		{
 			if (It->IsA<USceneComponent>())
 			{

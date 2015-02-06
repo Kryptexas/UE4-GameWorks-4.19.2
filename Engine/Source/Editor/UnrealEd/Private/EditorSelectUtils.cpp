@@ -277,7 +277,7 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 
 	if (GetSelectedComponentCount() > 0)
 	{
-		for (FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
+		for (FSelectedEditableComponentIterator It(*GetSelectedComponents()); It; ++It)
 		{
 			UActorComponent* Component = CastChecked<UActorComponent>(*It);
 			AActor* ComponentOwner = Component->GetOwner();
