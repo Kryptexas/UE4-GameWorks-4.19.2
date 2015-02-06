@@ -23,6 +23,7 @@ void SComboButton::Construct( const FArguments& InArgs )
 	SMenuAnchor::Construct( SMenuAnchor::FArguments()
 		.Placement(InArgs._MenuPlacement)
 		.Method(InArgs._Method)
+		.OnMenuOpenChanged(InArgs._OnMenuOpenChanged)
 		[
 			SNew( SButton )
 			.ButtonStyle( OurButtonStyle )
