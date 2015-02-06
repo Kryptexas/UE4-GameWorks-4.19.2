@@ -13,6 +13,7 @@
 #include "SWidgetSwitcher.h"
 #include "GameFramework/Volume.h"
 #include "Engine/PostProcessVolume.h"
+#include "AssetToolsModule.h"
 
 /**
  * These are the tab indexes, if the tabs are reorganized you need to adjust the
@@ -41,15 +42,22 @@ public:
 	SLATE_BEGIN_ARGS( SPlacementAssetThumbnail )
 		: _Width( 32 )
 		, _Height( 32 )
+		, _AlwaysUseGenericThumbnail( false )
+		, _AssetTypeColorOverride()
 	{}
 
 	SLATE_ARGUMENT( uint32, Width )
 
 	SLATE_ARGUMENT( uint32, Height )
 
+	SLATE_ARGUMENT( FName, ClassThumbnailBrushOverride )
+
+	SLATE_ARGUMENT( bool, AlwaysUseGenericThumbnail )
+
+	SLATE_ARGUMENT( TOptional<FLinearColor>, AssetTypeColorOverride )
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, const FAssetData& InAsset, bool bAlwaysUseClassThumbnail )
+	void Construct( const FArguments& InArgs, const FAssetData& InAsset)
 	{
 		Asset = InAsset;
 
@@ -59,7 +67,9 @@ public:
 		Thumbnail = MakeShareable(new FAssetThumbnail(Asset, InArgs._Width, InArgs._Height, ThumbnailPool));
 
 		FAssetThumbnailConfig Config;
-		Config.bForceGenericThumbnail = bAlwaysUseClassThumbnail;
+		Config.bForceGenericThumbnail = InArgs._AlwaysUseGenericThumbnail;
+		Config.ClassThumbnailBrushOverride = InArgs._ClassThumbnailBrushOverride;
+		Config.AssetTypeColorOverride = InArgs._AssetTypeColorOverride;
 		ChildSlot
 		[
 			Thumbnail->MakeThumbnailWidget( Config )
@@ -167,7 +177,10 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 					.WidthOverride( 35 )
 					.HeightOverride( 35 )
 					[
-						SNew( SPlacementAssetThumbnail, AssetData, InArgs._UseClassThumbnailForAsset )
+						SNew( SPlacementAssetThumbnail, AssetData )
+						.ClassThumbnailBrushOverride( InArgs._ClassThumbnailBrushOverride )
+						.AlwaysUseGenericThumbnail( InArgs._AlwaysUseGenericThumbnail )
+						.AssetTypeColorOverride( InArgs._AssetTypeColorOverride )
 					]
 				]
 			]
@@ -569,10 +582,14 @@ TSharedRef< SWidget > BuildDraggableAssetWidget( UClass* InAssetClass )
 	return SNew( SPlacementAssetEntry, Factory, AssetData );
 }
 
-TSharedRef< SWidget > BuildDraggableAssetWidget( UClass* InAssetClass, const FAssetData& InAssetData, bool bUseClassThumbnail )
+
+TSharedRef< SWidget > BuildDraggableAssetWidget( UClass* InAssetClass, const FAssetData& InAssetData, FName InClassThumbnailBrushOverride = NAME_None, TOptional<FLinearColor> InAssetTypeColorOverride = TOptional<FLinearColor>() ) 
 {
 	UActorFactory* Factory = GEditor->FindActorFactoryByClass( InAssetClass );
-	return SNew( SPlacementAssetEntry, Factory, InAssetData ).UseClassThumbnailForAsset( bUseClassThumbnail );
+	return SNew( SPlacementAssetEntry, Factory, InAssetData )
+		.ClassThumbnailBrushOverride( InClassThumbnailBrushOverride )
+		.AlwaysUseGenericThumbnail(true)
+		.AssetTypeColorOverride( InAssetTypeColorOverride );
 }
 
 TSharedRef< SWidget > SPlacementModeTools::BuildLightsWidget()
@@ -651,10 +668,19 @@ TSharedRef< SWidget > SPlacementModeTools::BuildVisualWidget()
 
 TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 {
-	TSharedRef<SVerticalBox> VerticalBox = SNew( SVerticalBox )
+	// Get color for basic shapes.  It should appear like all the other basic types
+	TOptional<FLinearColor> BasicShapeColorOverride;
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+	TSharedPtr<IAssetTypeActions> AssetTypeActions;
+	AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(UClass::StaticClass()).Pin();
+	if( AssetTypeActions.IsValid() )
+	{
+		BasicShapeColorOverride = TOptional<FLinearColor>( AssetTypeActions->GetTypeColor() );
+	}
+	
 
 	// Basics
-	
+	TSharedRef<SVerticalBox> VerticalBox = SNew( SVerticalBox )
 	+SVerticalBox::Slot()
 	.AutoHeight()
 	[
@@ -669,25 +695,25 @@ TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 	.AutoHeight()
 	[
 		// Cube
-		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData( LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"))), true )
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData( LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"))), FName("ClassThumbnail.Cube"), BasicShapeColorOverride )
 	]
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		// Sphere
-		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"))), true )
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"))), FName("ClassThumbnail.Sphere"), BasicShapeColorOverride )
 	]
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		// Cylinder
-		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cylinder.Cylinder"))), true )
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cylinder.Cylinder"))), FName("ClassThumbnail.Cylinder"), BasicShapeColorOverride )
 	]
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		// Cone
-		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cone.Cone"))), true )
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cone.Cone"))), FName("ClassThumbnail.Cone"), BasicShapeColorOverride )
 	]
 	+ SVerticalBox::Slot()
 	.AutoHeight()

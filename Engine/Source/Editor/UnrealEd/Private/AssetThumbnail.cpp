@@ -23,6 +23,7 @@ public:
 		, _HighlightedText(FText::GetEmpty())
 		, _HintColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f))
 		, _ClassThumbnailBrushOverride(NAME_None)
+		, _AssetTypeColorOverride()
 		{}
 
 		SLATE_ARGUMENT( FName, Style )
@@ -36,6 +37,7 @@ public:
 		SLATE_ATTRIBUTE( FText, HighlightedText )
 		SLATE_ATTRIBUTE( FLinearColor, HintColorAndOpacity )
 		SLATE_ARGUMENT( FName, ClassThumbnailBrushOverride )
+		SLATE_ARGUMENT( TOptional<FLinearColor>, AssetTypeColorOverride )
 
 	SLATE_END_ARGS()
 
@@ -66,7 +68,11 @@ public:
 		}
 
 		AssetColor = FLinearColor::White;
-		if ( AssetTypeActions.IsValid() )
+		if( InArgs._AssetTypeColorOverride.IsSet() )
+		{
+			AssetColor = InArgs._AssetTypeColorOverride.GetValue();
+		}
+		else if ( AssetTypeActions.IsValid() )
 		{
 			AssetColor = AssetTypeActions->GetTypeColor();
 		}
@@ -773,7 +779,8 @@ TSharedRef<SWidget> FAssetThumbnail::MakeThumbnailWidget( const FAssetThumbnailC
 		.HintColorAndOpacity( InConfig.HintColorAndOpacity )
 		.AllowHintText( InConfig.bAllowHintText )
 		.ClassThumbnailBrushOverride( InConfig.ClassThumbnailBrushOverride )
-		.AllowAssetSpecificThumbnailOverlay( InConfig.bAllowAssetSpecificThumbnailOverlay );
+		.AllowAssetSpecificThumbnailOverlay( InConfig.bAllowAssetSpecificThumbnailOverlay )
+		.AssetTypeColorOverride( InConfig.AssetTypeColorOverride );
 }
 
 void FAssetThumbnail::RefreshThumbnail()
