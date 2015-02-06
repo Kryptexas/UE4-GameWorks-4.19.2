@@ -298,7 +298,6 @@ struct FRootMotionMovementParams
 			Set(InTransform * VBlendWeight);
 			BlendWeight = InBlendWeight;
 		}
-		RootMotionTransform.NormalizeRotation();
 	}
 
 	void AccumulateWithBlend(const FRootMotionMovementParams & MovementParams, float InBlendWeight)
@@ -322,6 +321,7 @@ struct FRootMotionMovementParams
 		{
 			AccumulateWithBlend(FTransform(), WeightLeft);
 		}
+		RootMotionTransform.NormalizeRotation();
 	}
 
 	FRootMotionMovementParams ConsumeRootMotion(float Alpha)
