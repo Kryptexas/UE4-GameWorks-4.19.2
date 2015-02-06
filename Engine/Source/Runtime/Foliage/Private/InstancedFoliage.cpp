@@ -1991,7 +1991,11 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 	TArray<FHitResult> Hits;
 
 	bool bInsideProceduralVolume = false;
-	InWorld->LineTraceMulti(Hits, StartTrace, DesiredInstance.EndTrace, QueryParams, FCollisionObjectQueryParams(ECC_WorldStatic));
+	FCollisionShape SphereShape;
+	SphereShape.SetSphere(DesiredInstance.TraceRadius);
+	InWorld->SweepMulti(Hits, StartTrace, DesiredInstance.EndTrace, FQuat::Identity, SphereShape, QueryParams, FCollisionObjectQueryParams(ECC_WorldStatic));
+
+
 	for (const FHitResult& Hit : Hits)
 	{
 		if (DesiredInstance.PlacementMode == EFoliagePlacementMode::Procedural)
