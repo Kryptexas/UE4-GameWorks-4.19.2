@@ -120,9 +120,15 @@ void SComponentClassCombo::ClearSelection()
 	SearchBox->SetText(FText::GetEmpty());
 
 	PrevSelectedIndex = INDEX_NONE;
-
+	
 	// Clear the selection in such a way as to also clear the keyboard selector
 	ComponentClassListView->SetSelection(NULL, ESelectInfo::OnNavigation);
+
+	// Make sure we scroll to the top
+	if (ComponentClassList->Num() > 0)
+	{
+		ComponentClassListView->RequestScrollIntoView((*ComponentClassList)[0]);
+	}
 }
 
 void SComponentClassCombo::GenerateFilteredComponentList(const FString& InSearchText)
