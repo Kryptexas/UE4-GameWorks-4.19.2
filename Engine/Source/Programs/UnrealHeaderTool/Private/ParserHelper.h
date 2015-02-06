@@ -869,12 +869,8 @@ struct FFuncInfo
 	FString		MarshallAndCallName;
 	/** Name of the actual implementation **/
 	FString		CppImplName;
-	/** Cached info whether CppImplName ends with _Implementation suffix to avoid string comparisons. **/
-	bool		bCppImplNameEndsWith_Implementation;
 	/** Name of the actual validation implementation **/
 	FString		CppValidationImplName;
-	/** Cached info whether CppValidationImplName ends with _Validate suffix to avoid string comparisons. **/
-	bool		bCppValidationImplNameEndsWith_Validate;
 	/** Name for callback-style names **/
 	FString		UnMarshallAndCallName;
 	/** Identifier for an RPC call to a platform service */
@@ -889,17 +885,17 @@ struct FFuncInfo
 
 	/** Constructor. */
 	FFuncInfo()
-	:	Function            ()
-	,	FunctionFlags       (0)
-	,	FunctionExportFlags (0)
-	,	ExpectParms		    (0)
-	,	FunctionReference(NULL)
-	,	bCppImplNameEndsWith_Implementation(false)
-	,	bCppValidationImplNameEndsWith_Validate(false)
-	,	RPCId               (0)
-	,	RPCResponseId       (0)
-	,	bSealedEvent        (false)
-	,	DelegateMacroLine(-1)
+	:	Function				()
+	,	FunctionFlags			(0)
+	,	FunctionExportFlags		(0)
+	,	ExpectParms				(0)
+	,	FunctionReference		(NULL)
+	,	CppImplName				(TEXT(""))
+	,	CppValidationImplName	(TEXT(""))
+	,	RPCId					(0)
+	,	RPCResponseId			(0)
+	,	bSealedEvent			(false)
+	,	DelegateMacroLine		(-1)
 	{}
 
 	FFuncInfo( const FFuncInfo& Other )
@@ -907,8 +903,8 @@ struct FFuncInfo
 	,	FunctionExportFlags(Other.FunctionExportFlags)
 	,	ExpectParms		(Other.ExpectParms)
 	,	FunctionReference(Other.FunctionReference)
-	,	bCppImplNameEndsWith_Implementation(Other.bCppImplNameEndsWith_Implementation)
-	,	bCppValidationImplNameEndsWith_Validate(Other.bCppValidationImplNameEndsWith_Validate)
+	,	CppImplName(Other.CppImplName)
+	,	CppValidationImplName(Other.CppValidationImplName)
 	,	RPCId(Other.RPCId)
 	,	RPCResponseId(Other.RPCResponseId)
 	,	DelegateMacroLine(Other.DelegateMacroLine)
@@ -929,8 +925,7 @@ struct FFuncInfo
 			FunctionName = FunctionName.LeftChop( FString( TEXT( "__DelegateSignature" ) ).Len() );
 		}
 		UnMarshallAndCallName = FString(TEXT("exec")) + FunctionName;
-		CppImplName = FunctionName;
-
+		
 		if (FunctionReference->HasAnyFunctionFlags(FUNC_BlueprintEvent))
 		{
 			MarshallAndCallName = FunctionName;
@@ -939,8 +934,6 @@ struct FFuncInfo
 		{
 			MarshallAndCallName = FString(TEXT("event")) + FunctionName;
 		}
-
-		CppValidationImplName = TEXT("");
 
 		if (FunctionReference->HasAllFunctionFlags(FUNC_Native | FUNC_Net))
 		{
@@ -952,12 +945,22 @@ struct FFuncInfo
 			}
 			else
 			{
-				CppImplName = FunctionReference->GetName() + TEXT("_Implementation");
-				bCppImplNameEndsWith_Implementation = true;
-				if (FunctionReference->HasAllFunctionFlags(FUNC_NetValidate))
+				if (CppImplName.IsEmpty())
+				{
+					CppImplName = FunctionReference->GetName() + TEXT("_Implementation");
+				}
+				else if (CppImplName == FunctionName)
+				{
+					FError::Throwf(TEXT("Native implementation function must be different than original function name."));
+				}
+
+				if (CppValidationImplName.IsEmpty() && FunctionReference->HasAllFunctionFlags(FUNC_NetValidate))
 				{
 					CppValidationImplName = FunctionReference->GetName() + TEXT("_Validate");
-					bCppValidationImplNameEndsWith_Validate = true;
+				}
+				else if(CppValidationImplName == FunctionName)
+				{
+					FError::Throwf(TEXT("Validation function must be different than original function name."));
 				}
 			}
 		}
@@ -971,7 +974,11 @@ struct FFuncInfo
 		{
 			MarshallAndCallName = FunctionName;
 			CppImplName = FunctionReference->GetName() + TEXT("_Implementation");
-			bCppImplNameEndsWith_Implementation = true;
+		}
+
+		if (CppImplName.IsEmpty())
+		{
+			CppImplName = FunctionName;
 		}
 	}
 };

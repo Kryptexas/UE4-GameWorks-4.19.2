@@ -233,6 +233,12 @@ namespace
 
 				FuncInfo.FunctionFlags |= FUNC_Net;
 				FuncInfo.FunctionFlags |= FUNC_NetServer;
+
+				if (Specifier.Values.Num())
+				{
+					FuncInfo.CppImplName = Specifier.Values[0];
+				}
+
 				if( FuncInfo.FunctionFlags & FUNC_Exec )
 				{
 					FError::Throwf(TEXT("Exec functions cannot be replicated!") );
@@ -247,6 +253,11 @@ namespace
 
 				FuncInfo.FunctionFlags |= FUNC_Net;
 				FuncInfo.FunctionFlags |= FUNC_NetClient;
+
+				if (Specifier.Values.Num())
+				{
+					FuncInfo.CppImplName = Specifier.Values[0];
+				}
 			}
 			else if (Specifier.Key == TEXT("NetMulticast"))
 			{
@@ -318,6 +329,11 @@ namespace
 			else if (Specifier.Key == TEXT("WithValidation"))
 			{
 				FuncInfo.FunctionFlags |= FUNC_NetValidate;
+
+				if (Specifier.Values.Num())
+				{
+					FuncInfo.CppValidationImplName = Specifier.Values[0];
+				}
 			}
 			else
 			{
