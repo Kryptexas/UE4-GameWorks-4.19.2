@@ -1551,13 +1551,24 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 			{
 				NewDocument_OnClick(CGT_NewMacroGraph);
 			}
-			else if ( Blueprint->BlueprintType == BPTYPE_Interface)
+			else if ( Blueprint->BlueprintType == BPTYPE_Interface )
 			{
 				NewDocument_OnClick(CGT_NewFunctionGraph);
 			}
 			else if ( Blueprint->BlueprintType == BPTYPE_FunctionLibrary )
 			{
 				NewDocument_OnClick(CGT_NewFunctionGraph);
+			}
+		}
+	}
+
+	if ( UBlueprint* Blueprint = GetBlueprintObj() )
+	{
+		if ( Blueprint->GetClass() == UBlueprint::StaticClass() && Blueprint->BlueprintType == BPTYPE_Normal )
+		{
+			if ( !bShouldOpenInDefaultsMode )
+			{
+				GetToolkitCommands()->ExecuteAction(FFullBlueprintEditorCommands::Get().EditClassDefaults.ToSharedRef());
 			}
 		}
 	}
