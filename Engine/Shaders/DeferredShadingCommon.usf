@@ -380,7 +380,7 @@ FGBufferData DecodeGBufferData(
 	}
 
 	uint PackedAlpha = (uint)( InGBufferA.a * 3.999 );
-	GBuffer.DecalMask = PackedAlpha & 2;
+	GBuffer.DecalMask = (PackedAlpha & 2) != 0;
 	GBuffer.HasDistanceFieldRepresentation = PackedAlpha & 1;
 	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	
