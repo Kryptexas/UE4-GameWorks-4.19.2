@@ -298,6 +298,12 @@ namespace AssetSelectionUtils
 			}
 		}
 
+		// hack when only BSP is selected
+		if( ActorInfo.SharedWorld == nullptr )
+		{
+			ActorInfo.SharedWorld = GWorld;
+		}
+
 		return ActorInfo;
 	}
 
