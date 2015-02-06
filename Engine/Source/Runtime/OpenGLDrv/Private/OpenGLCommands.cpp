@@ -81,6 +81,16 @@ namespace OpenGLConsoleVariables
 		bRebindTextureBuffers,
 		TEXT("If true, rebind GL_TEXTURE_BUFFER's to their GL_TEXTURE name whenever the buffer is modified.")
 		);
+	
+	static TAutoConsoleVariable<int32> CVarUseSeparateShaderObjects(
+		TEXT("OpenGL.UseSeparateShaderObjects"),
+#if PLATFORM_MAC
+		1,
+#else
+		0,
+#endif
+		TEXT("If set to 1, use OpenGL's separate shader objects to eliminate expensive program linking"),
+		ECVF_ReadOnly|ECVF_RenderThreadSafe);
 };
 
 TGlobalResource<FVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
@@ -2398,6 +2408,43 @@ void FOpenGLDynamicRHI::CommitComputeResourceTables(FOpenGLComputeShader* Comput
 	SetResourcesFromTables(ComputeShader);
 }
 
+#if DEBUG_GL_SHADERS
+static void VerifyProgramPipeline()
+{
+	if (FOpenGL::SupportsSeparateShaderObjects())
+	{
+		GLint ProgramPipeline = 0;
+		glGetIntegerv(GL_PROGRAM_PIPELINE_BINDING, &ProgramPipeline);
+		if(ProgramPipeline)
+		{
+			FOpenGL::ValidateProgramPipeline(ProgramPipeline);
+			GLint LinkStatus = GL_FALSE;
+			FOpenGL::GetProgramPipelineiv(ProgramPipeline, GL_VALIDATE_STATUS, &LinkStatus);
+			if(LinkStatus == GL_FALSE)
+			{
+				GLint LogLength = 0;
+				FOpenGL::GetProgramPipelineiv(ProgramPipeline, GL_INFO_LOG_LENGTH, &LogLength);
+				ANSICHAR DefaultLog[] = "No log";
+				ANSICHAR *CompileLog = DefaultLog;
+				if (LogLength > 1)
+				{
+					CompileLog = (ANSICHAR *)FMemory::Malloc(LogLength);
+					FOpenGL::GetProgramPipelineInfoLog(ProgramPipeline, LogLength, NULL, CompileLog);
+				}
+				
+				UE_LOG(LogRHI,Error,TEXT("Failed to validate pipeline %d. Compile log:\n%s"), ProgramPipeline,
+					   ANSI_TO_TCHAR(CompileLog));
+				
+				if (LogLength > 1)
+				{
+					FMemory::Free(CompileLog);
+				}
+			}
+		}
+	}
+}
+#endif
+
 void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexIndex,uint32 NumPrimitives,uint32 NumInstances)
 {
 	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveTime);
@@ -2428,17 +2475,23 @@ void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexI
 	{
 		FOpenGL::PatchParameteri(GL_PATCH_VERTICES, PatchSize);
 	}
+	
+#if DEBUG_GL_SHADERS
+	VerifyProgramPipeline();
+#endif
 
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, VertexCount * NumInstances);
 	if (NumInstances == 1)
 	{
 		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveDriverTime);
+		CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
 		glDrawArrays(DrawMode, 0, NumElements);
 		REPORT_GL_DRAW_ARRAYS_EVENT_FOR_FRAME_DUMP( DrawMode, 0, NumElements );
 	}
 	else
 	{
 		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveDriverTime);
+		CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
 		check( FOpenGL::SupportsInstancing() );
 		FOpenGL::DrawArraysInstanced(DrawMode, 0, NumElements, NumInstances);
 		REPORT_GL_DRAW_ARRAYS_INSTANCED_EVENT_FOR_FRAME_DUMP( DrawMode, 0, NumElements, NumInstances );
@@ -2483,9 +2536,10 @@ void FOpenGLDynamicRHI::RHIDrawPrimitiveIndirect(uint32 PrimitiveType,FVertexBuf
 
 
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, ArgumentBuffer->Resource);
-
-		FOpenGL::DrawArraysIndirect( DrawMode, INDEX_TO_VOID(ArgumentOffset));
-
+		{
+			CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
+			FOpenGL::DrawArraysIndirect( DrawMode, INDEX_TO_VOID(ArgumentOffset));
+		}
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 	else
@@ -2540,10 +2594,12 @@ void FOpenGLDynamicRHI::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef IndexBuff
 
 
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, ArgumentsBuffer->Resource);
-
-		// Offset is based on an index into the list of structures
-		FOpenGL::DrawElementsIndirect( DrawMode, IndexType, INDEX_TO_VOID(DrawArgumentsIndex * 5 *sizeof(uint32)));
-
+		{
+			CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
+	
+			// Offset is based on an index into the list of structures
+			FOpenGL::DrawElementsIndirect( DrawMode, IndexType, INDEX_TO_VOID(DrawArgumentsIndex * 5 *sizeof(uint32)));
+		}
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 	else
@@ -2588,10 +2644,15 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 	GLenum IndexType = IndexBuffer->GetStride() == sizeof(uint32) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
 	StartIndex *= IndexBuffer->GetStride() == sizeof(uint32) ? sizeof(uint32) : sizeof(uint16);
 
+#if DEBUG_GL_SHADERS
+	VerifyProgramPipeline();
+#endif
+
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, NumElements * NumInstances);
 	if (NumInstances > 1)
 	{
 		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveDriverTime);
+		CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
 		check( FOpenGL::SupportsInstancing() );
 		checkf(FirstInstance  == 0, TEXT("FirstInstance is currently unsupported on this RHI"));
 		FOpenGL::DrawElementsInstanced(DrawMode, NumElements, IndexType, INDEX_TO_VOID(StartIndex), NumInstances);
@@ -2600,6 +2661,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 	else
 	{
 		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveDriverTime);
+		CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
 		if ( FOpenGL::SupportsDrawIndexOffset() )
 		{
 			FOpenGL::DrawRangeElements(DrawMode, 0, NumVertices, NumElements, IndexType, INDEX_TO_VOID(StartIndex));
@@ -2654,10 +2716,12 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveType,FIn
 
 
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, ArgumentBuffer->Resource);
-
-		// Offset is based on an index into the list of structures
-		FOpenGL::DrawElementsIndirect( DrawMode, IndexType, INDEX_TO_VOID(ArgumentOffset));
-
+		{
+			CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
+		
+			// Offset is based on an index into the list of structures
+			FOpenGL::DrawElementsIndirect( DrawMode, IndexType, INDEX_TO_VOID(ArgumentOffset));
+		}
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 	else
@@ -2765,10 +2829,16 @@ void FOpenGLDynamicRHI::RHIEndDrawPrimitiveUP()
 	{
 		SetupVertexArraysUP(ContextState, PendingState.UpVertexBuffer, PendingState.UpStride);
 	}
+	
+#if DEBUG_GL_SHADERS
+	VerifyProgramPipeline();
+#endif
 
 	GPUProfilingData.RegisterGPUWork(PendingState.NumPrimitives,PendingState.NumVertices);
-	glDrawArrays(DrawMode, 0, NumElements);
-
+	{
+		CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
+		glDrawArrays(DrawMode, 0, NumElements);
+	}
 	PendingState.NumPrimitives = 0;
 
 	REPORT_GL_DRAW_ARRAYS_EVENT_FOR_FRAME_DUMP( DrawMode, 0, NumElements );
@@ -2892,10 +2962,15 @@ void FOpenGLDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 	{
 		FOpenGL::PatchParameteri(GL_PATCH_VERTICES, PatchSize);
 	}
+	
+#if DEBUG_GL_SHADERS
+	VerifyProgramPipeline();
+#endif
 
 	GPUProfilingData.RegisterGPUWork(PendingState.NumPrimitives,PendingState.NumVertices);
 	if(FOpenGL::SupportsFastBufferData())
 	{
+		CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
 		if ( FOpenGL::SupportsDrawIndexOffset() )
 		{
 			FOpenGL::DrawRangeElements(DrawMode, PendingState.MinVertexIndex, PendingState.MinVertexIndex + PendingState.NumVertices, NumElements, IndexType, INDEX_TO_VOID(DynamicIndexBuffers.GetPendingOffset()));
@@ -2908,6 +2983,7 @@ void FOpenGLDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 	}
 	else
 	{
+		CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderFirstDrawTime, PendingState.BoundShaderState->RequiresDriverInstantiation());
 		glDrawElements(DrawMode, NumElements, IndexType, PendingState.UpIndexBuffer);
 	}
 
