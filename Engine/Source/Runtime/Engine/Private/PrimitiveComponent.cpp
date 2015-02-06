@@ -1264,6 +1264,21 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
 }
 
+bool UPrimitiveComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
+{
+	AActor* Actor = GetOwner();
+	// static things can move before they are registered (e.g. immediately after streaming), but not after.
+	if (Mobility == EComponentMobility::Static && Actor && Actor->bActorInitialized)
+	{
+		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidStaticMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
+			FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
+
+		return true;
+	}
+
+	return false;
+}
+
 bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentTime);
@@ -1291,11 +1306,8 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
 	// TODO: Static components without an owner can move, should they be able to?
-	if (Mobility == EComponentMobility::Static && Actor && Actor->bActorInitialized)
-	{		
-		FMessageLog("PIE").Warning( FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "),
-				FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()) ));
-
+	if (CheckStaticMobilityAndWarn(LOCTEXT("InvalidMove", "move")))
+	{
 		if (OutHit)
 		{
 			*OutHit = FHitResult();
