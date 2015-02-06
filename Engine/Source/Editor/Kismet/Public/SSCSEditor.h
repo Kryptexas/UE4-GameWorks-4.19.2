@@ -432,10 +432,22 @@ private:
 class KISMET_API FSCSEditorTreeNodeRootActor : public FSCSEditorTreeNode
 {
 public:
-	FSCSEditorTreeNodeRootActor()
+	FSCSEditorTreeNodeRootActor(AActor* InActor, bool bInAllowRename)
 		: FSCSEditorTreeNode(FSCSEditorTreeNode::RootActorNode)
+		, Actor(InActor)
+		, bAllowRename(bInAllowRename)
 	{
 	}
+
+	// FSCSEditorTreeNode public interface
+	virtual FName GetVariableName() const override;
+	virtual bool CanRename() const override { return bAllowRename; }
+	virtual void OnCompleteRename(const FText& InNewName) override;
+	// End of FSCSEditorTreeNode public interface
+
+private:
+	AActor* Actor;
+	bool bAllowRename;
 };
 
 class KISMET_API FSCSEditorTreeNodeSeparator : public FSCSEditorTreeNode
@@ -493,12 +505,12 @@ protected:
 
 	static void AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox, const FText& Key, TSharedRef<SWidget> ValueIcon, const TAttribute<FText>& Value, bool bImportant);
 
+	/** Commits the new name of the component */
+	void OnNameTextCommit(const FText& InNewName, ETextCommit::Type InTextCommit);
+
 private:
 	/** Verifies the name of the component when changing it */
 	bool OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage);
-
-	/** Commits the new name of the component */
-	void OnNameTextCommit(const FText& InNewName, ETextCommit::Type InTextCommit);
 
 	/** Builds a context menu popup for dropping a child node onto the scene root node */
 	TSharedPtr<SWidget> BuildSceneRootDropActionMenu(FSCSEditorTreeNodePtrType DroppedNodePtr);
@@ -575,9 +587,13 @@ private:
 	/** Creates a tooltip for this row */
 	TSharedRef<SToolTip> CreateToolTipWidget() const;
 
+	/** Called to validate the actor name */
+	bool OnVerifyActorLabelChanged(const FText& InLabel, FText& OutErrorMessage);
+
 	/** Data accessors */
 	const FSlateBrush* GetActorIcon() const;
 	FText GetActorDisplayText() const;
+	FText GetActorContextText() const;
 	FText GetActorClassNameText() const;
 	FText GetActorSuperClassNameText() const;
 	FText GetActorMobilityText() const;
@@ -880,6 +896,9 @@ protected:
 
 	/** Called to display context menu when right clicking on the widget */
 	TSharedPtr< SWidget > CreateContextMenu();
+
+	/** Called when the level editor requests a component to be renamed. */
+	void OnLevelComponentRequestRename(const UActorComponent* InComponent);
 
 	/**
 	 * Requests a rename on the selected component
