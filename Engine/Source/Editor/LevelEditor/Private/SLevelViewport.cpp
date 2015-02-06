@@ -3317,19 +3317,17 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, 
 
 EVisibility SLevelViewport::GetMouseCaptureLabelVisibility() const
 {
-	EVisibility visibility = EVisibility::Collapsed;
-
 	if (GEditor->PlayWorld)
 	{
 		// Show the label if the local player's PC isn't set to show the cursor
 		auto const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(GEditor->PlayWorld, 0);
 		if (TargetPlayer && TargetPlayer->PlayerController && !TargetPlayer->PlayerController->bShowMouseCursor)
 		{
-			visibility = EVisibility::Visible;
+			return EVisibility::HitTestInvisible;
 		}
 	}
 
-	return visibility;
+	return EVisibility::Collapsed;
 }
 
 FLinearColor SLevelViewport::GetMouseCaptureLabelColorAndOpacity() const
