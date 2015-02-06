@@ -217,7 +217,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 			}
 
 			{	//save the random stream per type
-				RandomStreamPerType.Add(Type, FRandomStream(Type->DistributionSeed));
+				RandomStreamPerType.Add(Type, FRandomStream(Type->DistributionSeed + ProceduralFoliage->RandomSeed));
 			}
 
 			{	//compute the needed offsets for initial seed variance
