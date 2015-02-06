@@ -134,7 +134,14 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 	UEdGraphPin* ReturnPin = NewNode->GetReturnValuePin();
 	if (ReturnPin != nullptr)
 	{
-		ReturnPin->PinType.PinSubCategoryObject = *(ComponentClass ? ComponentClass : UActorComponent::StaticClass());
+		if (ComponentClass != nullptr)
+		{
+			ReturnPin->PinType.PinSubCategoryObject = *ComponentClass;
+		}
+		else
+		{
+			ReturnPin->PinType.PinSubCategoryObject = UActorComponent::StaticClass();
+		}
 	}
 
 	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
