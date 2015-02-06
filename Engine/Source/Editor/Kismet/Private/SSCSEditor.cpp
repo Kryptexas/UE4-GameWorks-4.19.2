@@ -2801,7 +2801,7 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 	TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();
 	if (PinnedEditor.IsValid() && PinnedEditor->GetEditorMode() == EComponentEditorMode::ActorInstance)
 	{
-		PinnedEditor->UpdateTree();
+		PinnedEditor->UpdateTree(false);
 	}
 }
 
@@ -3415,12 +3415,6 @@ TSharedRef<ITableRow> SSCSEditor::MakeTableRowWidget( FSCSEditorTreeNodePtrType 
 			{
 				ItemName = ComponentTemplateOrInstance->GetFName();
 			}
-		}
-
-		if(DeferredRenameRequest == ItemName)
-		{
-			SCSTreeWidget->SetSelection(InNodePtr);
-			OnRenameComponent(false);
 		}
 	}
 
@@ -4598,7 +4592,8 @@ UActorComponent* SSCSEditor::AddNewNodeForInstancedComponent(UActorComponent* Ne
 		OnRenameComponent(false);
 	}
 
-	UpdateTree();
+	UpdateTree(false);
+
 
 	return NewInstanceComponent;
 }
@@ -5033,6 +5028,7 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 			}
 
 			// Destroy the component instance
+			ComponentInstance->Modify();
 			ComponentInstance->DestroyComponent(true);
 		}
 	}
