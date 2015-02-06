@@ -542,8 +542,12 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 						Scalability::FQualityLevels ScalabilityQuality = Scalability::GetQualityLevels();
 						float QualityScale = ( ScalabilityQuality.ResolutionQuality / 100.0f );
 
+						FVector2D FinalScreenLocation = ScreenLocation / QualityScale;
+						FinalScreenLocation.X = FMath::RoundToInt(FinalScreenLocation.X);
+						FinalScreenLocation.Y = FMath::RoundToInt(FinalScreenLocation.Y);
+
 						Widget->SetDesiredSizeInViewport(DrawSize);
-						Widget->SetPositionInViewport(ScreenLocation / QualityScale);
+						Widget->SetPositionInViewport(FinalScreenLocation);
 						Widget->SetAlignmentInViewport(Pivot);
 					}
 					else
