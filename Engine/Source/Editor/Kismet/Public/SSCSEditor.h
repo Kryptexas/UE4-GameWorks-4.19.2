@@ -869,6 +869,9 @@ public:
 
 	/** @return The current editor mode (editing live actors or editing blueprints) */
 	EComponentEditorMode::Type GetEditorMode() const { return EditorMode; }
+
+	/** Try to handle a drag-drop operation */
+	FReply TryHandleAssetDragDropOperation(const FDragDropEvent& DragDropEvent);
 protected:
 	FString GetSelectedClassText() const;
 

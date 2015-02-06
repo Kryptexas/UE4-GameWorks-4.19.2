@@ -46,6 +46,10 @@ public:
 	 */
 	void RequestRefresh(bool bResetCamera = false, bool bRefreshNow = false);
 
+	// SWidget interface
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	// End of SWidget interface
+
 	/**
 	 * Called when the selected component changes in the SCS editor.
 	 */

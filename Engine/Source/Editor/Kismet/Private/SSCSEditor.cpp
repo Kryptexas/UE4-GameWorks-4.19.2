@@ -118,65 +118,72 @@ FReply SSCSEditorDragDropTree::OnDragOver( const FGeometry& MyGeometry, const FD
 	return Handled;
 }
 
-FReply SSCSEditorDragDropTree::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) 
+FReply SSCSEditor::TryHandleAssetDragDropOperation(const FDragDropEvent& DragDropEvent)
 {
-	FReply Handled = FReply::Unhandled();
-
-	if (SCSEditor != nullptr)
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (Operation.IsValid() && (Operation->IsOfType<FExternalDragOperation>() || Operation->IsOfType<FAssetDragDropOp>()))
 	{
-		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-		if (Operation.IsValid() && (Operation->IsOfType<FExternalDragOperation>() || Operation->IsOfType<FAssetDragDropOp>()))
+		TArray< FAssetData > DroppedAssetData = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
+		const int32 NumAssets = DroppedAssetData.Num();
+
+		if (NumAssets > 0)
 		{
-			TArray< FAssetData > DroppedAssetData = AssetUtil::ExtractAssetDataFromDrag( DragDropEvent );
-			const int32 NumAssets = DroppedAssetData.Num();
+			GWarn->BeginSlowTask(LOCTEXT("LoadingComponents", "Loading Component(s)"), true);
 
-			if (NumAssets > 0)
+			for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < NumAssets; ++DroppedAssetIdx)
 			{
-				GWarn->BeginSlowTask( LOCTEXT("LoadingComponents", "Loading Component(s)"), true );
+				const FAssetData& AssetData = DroppedAssetData[DroppedAssetIdx];
 
-				for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < NumAssets; ++DroppedAssetIdx)
+				if (!AssetData.IsAssetLoaded())
 				{
-					const FAssetData& AssetData = DroppedAssetData[DroppedAssetIdx];
-
-					if (!AssetData.IsAssetLoaded())
-					{
-						GWarn->StatusUpdate(DroppedAssetIdx, NumAssets, FText::Format(LOCTEXT("LoadingAsset", "Loading Asset {0}"), FText::FromName(AssetData.AssetName)));
-					}
-
-					UClass* AssetClass = AssetData.GetClass();
-					UObject* Asset = AssetData.GetAsset();
-
-					UBlueprint* BPClass = Cast<UBlueprint>(Asset);
-					UClass* PotentialComponentClass = nullptr;
-					
-					if ((BPClass != nullptr) && (BPClass->GeneratedClass != nullptr) && (BPClass->GeneratedClass->IsChildOf(UActorComponent::StaticClass())))
-					{
-						PotentialComponentClass = BPClass->GeneratedClass;
-					}
-					else if (AssetClass->IsChildOf(UClass::StaticClass()) && CastChecked<UClass>(Asset)->IsChildOf(UActorComponent::StaticClass()))
-					{
-						PotentialComponentClass = Cast<UClass>(Asset);
-					}
-
-					TSubclassOf<UActorComponent>  MatchingComponentClassForAsset = FComponentAssetBrokerage::GetPrimaryComponentForAsset( AssetClass );
-					if (MatchingComponentClassForAsset != nullptr)
-					{
-						SCSEditor->AddNewComponent(MatchingComponentClassForAsset, Asset);
-					}
-					else if ((PotentialComponentClass != nullptr) && (!PotentialComponentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NewerVersionExists)) && PotentialComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
-					{
-						SCSEditor->AddNewComponent(PotentialComponentClass, nullptr);
-					}
+					GWarn->StatusUpdate(DroppedAssetIdx, NumAssets, FText::Format(LOCTEXT("LoadingAsset", "Loading Asset {0}"), FText::FromName(AssetData.AssetName)));
 				}
 
-				GWarn->EndSlowTask();
+				UClass* AssetClass = AssetData.GetClass();
+				UObject* Asset = AssetData.GetAsset();
+
+				UBlueprint* BPClass = Cast<UBlueprint>(Asset);
+				UClass* PotentialComponentClass = nullptr;
+
+				if ((BPClass != nullptr) && (BPClass->GeneratedClass != nullptr) && (BPClass->GeneratedClass->IsChildOf(UActorComponent::StaticClass())))
+				{
+					PotentialComponentClass = BPClass->GeneratedClass;
+				}
+				else if (AssetClass->IsChildOf(UClass::StaticClass()) && CastChecked<UClass>(Asset)->IsChildOf(UActorComponent::StaticClass()))
+				{
+					PotentialComponentClass = Cast<UClass>(Asset);
+				}
+
+				TSubclassOf<UActorComponent>  MatchingComponentClassForAsset = FComponentAssetBrokerage::GetPrimaryComponentForAsset(AssetClass);
+				if (MatchingComponentClassForAsset != nullptr)
+				{
+					AddNewComponent(MatchingComponentClassForAsset, Asset);
+				}
+				else if ((PotentialComponentClass != nullptr) && (!PotentialComponentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NewerVersionExists)) && PotentialComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
+				{
+					AddNewComponent(PotentialComponentClass, nullptr);
+				}
 			}
 
-			Handled = FReply::Handled();
+			GWarn->EndSlowTask();
 		}
+
+		return FReply::Handled();
 	}
 
-	return Handled;
+	return FReply::Unhandled();
+}
+
+FReply SSCSEditorDragDropTree::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) 
+{
+	if (SCSEditor != nullptr)
+	{
+		return SCSEditor->TryHandleAssetDragDropOperation(DragDropEvent);
+	}
+	else
+	{
+		return FReply::Unhandled();
+	}
 }
 
 
