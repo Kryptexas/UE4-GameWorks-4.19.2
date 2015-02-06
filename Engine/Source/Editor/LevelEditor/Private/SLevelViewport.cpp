@@ -464,7 +464,10 @@ void SLevelViewport::OnDragLeave( const FDragDropEvent& DragDropEvent )
 		LevelViewportClient->DestroyDropPreviewActors();
 	}
 
-	DragDropEvent.GetOperation()->SetDecoratorVisibility(true);
+	if (DragDropEvent.GetOperation().IsValid())
+	{
+		DragDropEvent.GetOperation()->SetDecoratorVisibility(true);
+	}
 }
 
 bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
