@@ -929,29 +929,33 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 
 void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 {
-	int32 NumBodies = PerInstanceSMData.Num();
-	InstanceBodies.Init(NumBodies);
-
-	TArray<FTransform> Transforms;
-	Transforms.Reserve(NumBodies);
-
-	for (int32 i = 0; i < NumBodies; ++i)
+	UBodySetup* BodySetup = GetBodySetup();
+	if (BodySetup)
 	{
-		InstanceBodies[i] = new FBodyInstance;
-		FBodyInstance* Instance = InstanceBodies[i];
-		Transforms.Add(FTransform(PerInstanceSMData[i].Transform) * ComponentToWorld);
+		int32 NumBodies = PerInstanceSMData.Num();
+		InstanceBodies.Init(NumBodies);
 
-		Instance->CopyBodyInstancePropertiesFrom(&BodyInstance);
-		Instance->InstanceBodyIndex = i; // Set body index 
-		Instance->bAutoWeld = false;
+		TArray<FTransform> Transforms;
+		Transforms.Reserve(NumBodies);
 
-		// make sure we never enable bSimulatePhysics for ISMComps
-		Instance->bSimulatePhysics = false;
-	}
+		for (int32 i = 0; i < NumBodies; ++i)
+		{
+			InstanceBodies[i] = new FBodyInstance;
+			FBodyInstance* Instance = InstanceBodies[i];
+			Transforms.Add(FTransform(PerInstanceSMData[i].Transform) * ComponentToWorld);
 
-	if(NumBodies > 0)
-	{
-		FBodyInstance::InitBodies(InstanceBodies, Transforms, GetBodySetup(), this, GetWorld()->GetPhysicsScene(), nullptr, true);
+			Instance->CopyBodyInstancePropertiesFrom(&BodyInstance);
+			Instance->InstanceBodyIndex = i; // Set body index 
+			Instance->bAutoWeld = false;
+
+			// make sure we never enable bSimulatePhysics for ISMComps
+			Instance->bSimulatePhysics = false;
+		}
+
+		if (NumBodies > 0)
+		{
+			FBodyInstance::InitBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), nullptr, true);
+		}
 	}
 }
 
