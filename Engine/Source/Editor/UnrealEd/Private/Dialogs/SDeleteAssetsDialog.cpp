@@ -427,15 +427,16 @@ FText SDeleteAssetsDialog::GetDeleteSourceContentTooltip() const
 	const FText RootText = LOCTEXT("DeleteSourceFiles_Tooltip", "When checked, the following source content files will also be deleted along with the assets:\n\n{0}");
 
 	FString AllFiles;
-	for (const auto& PendingDelete : *DeleteModel->GetPendingDeletedAssets())
+	for (const auto& PathAndAssetCount : DeleteModel->GetPendingDeletedSourceFileCounts())
 	{
-		for (const FString& Path : PendingDelete->SourceContentFiles)
+		// If this path is no longer referenced by deleted files, it's toast.
+		if (PathAndAssetCount.Value == 0)
 		{
 			if (!AllFiles.IsEmpty())
 			{
 				AllFiles += TEXT("\n");
 			}
-			AllFiles += Path;
+			AllFiles += PathAndAssetCount.Key;
 		}
 	}
 
