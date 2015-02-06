@@ -700,8 +700,22 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 	// refresh widget
 	if(SCSViewport.IsValid())
 	{
-		// Ignore 'bUpdateNow' if "Components" mode is not current. Otherwise the preview actor might be spawned in as a result, which can lead to a few odd behaviors if the mode is not current.
-		SCSViewport->RequestRefresh(false, bUpdateNow && IsModeCurrent(FBlueprintEditorApplicationModes::BlueprintComponentsMode));
+		if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
+		{
+			TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+			if ( OwnerTab.IsValid() )
+			{
+				bUpdateNow &= OwnerTab->IsForeground();
+			}
+
+			// Only request a refresh immediately if the viewport tab is in the foreground.
+			SCSViewport->RequestRefresh(false, bUpdateNow);
+		}
+		else
+		{
+			// Ignore 'bUpdateNow' if "Components" mode is not current. Otherwise the preview actor might be spawned in as a result, which can lead to a few odd behaviors if the mode is not current.
+			SCSViewport->RequestRefresh(false, bUpdateNow && IsModeCurrent(FBlueprintEditorApplicationModes::BlueprintComponentsMode));
+		}
 	}
 }
 
@@ -2834,6 +2848,8 @@ void FBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJ
 {
 	if (InBlueprint)
 	{
+		DestroyPreview();
+
 		// Refresh the graphs
 		ERefreshBlueprintEditorReason::Type Reason = bIsJustBeingCompiled ? ERefreshBlueprintEditorReason::BlueprintCompiled : ERefreshBlueprintEditorReason::UnknownReason;
 		RefreshEditors(Reason);
@@ -7070,11 +7086,10 @@ void FBlueprintEditor::OnFindInstancesCustomEvent()
 
 AActor* FBlueprintEditor::GetPreviewActor() const
 {
-	//return SCSViewport.IsValid() ? SCSViewport->GetPreviewActor() : nullptr;
-
 	UBlueprint* PreviewBlueprint = GetBlueprintObj();
 
-	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we look to see if we can find the new instance in the preview world and then update the weak ptr.
+	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that 
+	// case we look to see if we can find the new instance in the preview world and then update the weak ptr.
 	if ( PreviewActorPtr.IsStale(true) && PreviewBlueprint )
 	{
 		UWorld* PreviewWorld = PreviewScene.GetWorld();
@@ -7213,6 +7228,8 @@ void FBlueprintEditor::DestroyPreview()
 
 		PreviewBlueprint = nullptr;
 	}
+
+	PreviewActorPtr = nullptr;
 }
 
 

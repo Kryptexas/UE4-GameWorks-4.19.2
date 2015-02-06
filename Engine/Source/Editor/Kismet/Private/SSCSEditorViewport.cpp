@@ -337,7 +337,7 @@ void SSCSEditorViewport::RequestRefresh(bool bResetCamera, bool bRefreshNow)
 void SSCSEditorViewport::OnComponentSelectionChanged()
 {
 	// When the component selection changes, make sure to invalidate hit proxies to sync with the current selection
-	SceneViewport->InvalidateHitProxy();
+	SceneViewport->Invalidate();
 }
 
 void SSCSEditorViewport::OnFocusViewportToSelection()
@@ -348,6 +348,16 @@ void SSCSEditorViewport::OnFocusViewportToSelection()
 bool SSCSEditorViewport::GetIsSimulateEnabled()
 {
 	return ViewportClient->GetIsSimulateEnabled();
+}
+
+void SSCSEditorViewport::SetOwnerTab(TSharedRef<SDockTab> Tab)
+{
+	OwnerTab = Tab;
+}
+
+TSharedPtr<SDockTab> SSCSEditorViewport::GetOwnerTab() const
+{
+	return OwnerTab.Pin();
 }
 
 FReply SSCSEditorViewport::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)

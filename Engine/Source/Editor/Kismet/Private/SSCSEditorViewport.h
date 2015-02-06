@@ -65,6 +65,10 @@ public:
 	 */
 	bool GetIsSimulateEnabled();
 
+	void SetOwnerTab(TSharedRef<SDockTab> Tab);
+
+	TSharedPtr<SDockTab> GetOwnerTab() const;
+
 protected:
 	/**
 	 * Determines if the viewport widget is visible.
@@ -95,4 +99,7 @@ private:
 
 	/** Whether the active timer (for updating the preview) is registered */
 	bool bIsActiveTimerRegistered;
+
+	/** The owner dock tab for this viewport. */
+	TWeakPtr<SDockTab> OwnerTab;
 };
