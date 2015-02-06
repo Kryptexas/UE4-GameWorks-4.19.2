@@ -141,7 +141,7 @@ public class HTML5Platform : Platform
 				{
 					InArguments = InArguments.Replace ("\"", "");
 					string[] Arguments = InArguments.Split(' ');
-					string ArgumentString = IsContentOnly ? "'" + InGameName + "/" + InGameName + ".uproject '," : "";
+					string ArgumentString = IsContentOnly ? "'../../../" + InGameName + "/" + InGameName + ".uproject '," : "";
 					for (int i = 0; i < Arguments.Length - 1; ++i)
 					{
 						ArgumentString += "'";
