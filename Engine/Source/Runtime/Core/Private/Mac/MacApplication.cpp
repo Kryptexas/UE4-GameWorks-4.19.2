@@ -163,7 +163,7 @@ FMacApplication::FMacApplication()
 								}
 
 								// If editor thread doesn't have the focus, don't suck up too much CPU time.
-								if (GIsEditor)
+								if (GIsEditor && !IsRunningCommandlet())
 								{
 									// Boost our priority back to normal.
 									struct sched_param Sched;
@@ -209,7 +209,7 @@ FMacApplication::FMacApplication()
 								}
 
 								// If editor thread doesn't have the focus, don't suck up too much CPU time.
-								if (GIsEditor)
+								if (GIsEditor && !IsRunningCommandlet())
 								{
 									// Drop our priority to speed up whatever is in the foreground.
 									struct sched_param Sched;
