@@ -42,6 +42,20 @@ namespace EMontageNotifyTickType
 	};
 }
 
+/** Filtering method for deciding whether to trigger a notify */
+UENUM()
+namespace ENotifyFilterType
+{
+	enum Type
+	{
+		/** No filtering*/
+		NoFiltering,
+
+		/** Filter By Skeletal Mesh LOD */
+		LOD,
+	};
+}
+
 /**
  * Triggers an animation notify.  Each AnimNotifyEvent contains an AnimNotify object
  * which has its Notify method called and passed to the animation.
@@ -89,6 +103,18 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimNotifyEvent)
 	TEnumAsByte<EMontageNotifyTickType::Type> MontageTickType;
 
+	/** Defines the chance of of this notify triggering, 0 = No Chance, 1 = Always triggers */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings, meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float NotifyTriggerChance;
+
+	/** Defines a method for filtering notifies (stopping them triggering) e.g. by looking at the meshes current LOD */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings)
+	TEnumAsByte<ENotifyFilterType::Type> NotifyFilterType;
+
+	/** LOD to start filtering this notify from.*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings, meta = (ClampMin = "0"))
+	int32 NotifyFilterLOD;
+
 #if WITH_EDITORONLY_DATA
 	/** Color of Notify in editor */
 	UPROPERTY()
@@ -112,6 +138,9 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 		, Duration(0)
 		, bConvertedFromBranchingPoint(false)
 		, MontageTickType(EMontageNotifyTickType::Queued)
+		, NotifyTriggerChance(1.f)
+		, NotifyFilterType(ENotifyFilterType::NoFiltering)
+		, NotifyFilterLOD(0)
 #if WITH_EDITORONLY_DATA
 		, TrackIndex(0)
 #endif // WITH_EDITORONLY_DATA

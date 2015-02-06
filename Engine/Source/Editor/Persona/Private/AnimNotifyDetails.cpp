@@ -109,6 +109,40 @@ void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			}
 		}
 	}
+
+	struct FPropVisPair
+	{
+		const TCHAR* NotifyName;
+		TAttribute<EVisibility> Visibility;
+	};
+
+	TriggerFilterModeHandle = DetailBuilder.GetProperty(TEXT("Event.NotifyFilterType"));
+
+	FPropVisPair TriggerSettingNames[] = { { TEXT("Event.NotifyTriggerChance"), TAttribute<EVisibility>(EVisibility::Visible) }
+										 , { TEXT("Event.NotifyFilterType"), TAttribute<EVisibility>(EVisibility::Visible) }
+										 , { TEXT("Event.NotifyFilterLOD"), TAttribute<EVisibility>(this, &FAnimNotifyDetails::VisibilityForLODFilterMode) } };
+
+
+	IDetailCategoryBuilder& TriggerSettingCategory = DetailBuilder.EditCategory(TEXT("Trigger Settings"), FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+
+	for (FPropVisPair& NotifyPair : TriggerSettingNames)
+	{
+		TSharedRef<IPropertyHandle> NotifyPropHandle = DetailBuilder.GetProperty(NotifyPair.NotifyName);
+		DetailBuilder.HideProperty(NotifyPropHandle);
+		TriggerSettingCategory.AddProperty(NotifyPropHandle).Visibility(NotifyPair.Visibility);
+	}
+}
+
+EVisibility FAnimNotifyDetails::VisibilityForLODFilterMode() const
+{
+	uint8 FilterModeValue = 0;
+	FPropertyAccess::Result Ret = TriggerFilterModeHandle.Get()->GetValue(FilterModeValue);
+	if (Ret == FPropertyAccess::Result::Success)
+	{
+		return (FilterModeValue == ENotifyFilterType::LOD) ? EVisibility::Visible : EVisibility::Hidden;
+	}
+
+	return EVisibility::Hidden; //Hidden if we get fail or MultipleValues from the property
 }
 
 void FAnimNotifyDetails::AddBoneNameProperty(IDetailCategoryBuilder& CategoryBuilder, UObject* Notify,  TSharedPtr<IPropertyHandle> Property)

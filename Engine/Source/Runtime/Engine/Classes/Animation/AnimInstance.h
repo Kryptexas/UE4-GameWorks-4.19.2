@@ -713,6 +713,12 @@ public:
 	/** Add anim notifier **/
 	void AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight);
 
+	/** Should the notifies current filtering mode stop it from triggering */
+	bool PassesFiltering(const FAnimNotifyEvent* Notify) const;
+
+	/** Work out whether this notify should be triggered based on its chance of triggering value */
+	bool PassesChanceOfTriggering(const FAnimNotifyEvent* Event) const;
+
 	/** Queues an Anim Notify from the shared list on our generated class */
 	void AddAnimNotifyFromGeneratedClass(int32 NotifyIndex);
 

@@ -1164,16 +1164,42 @@ bool UAnimInstance::CanTransitionSignature() const
 void UAnimInstance::AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight)
 {
 	// for now there is no filter whatsoever, it just adds everything requested
-	for (auto Iter=NewNotifies.CreateConstIterator(); Iter; ++Iter)
+	for (const FAnimNotifyEvent* Notify : NewNotifies)
 	{
 		// only add if it is over TriggerWeightThreshold
-		if ((*Iter)->TriggerWeightThreshold <= InstanceWeight)
+		if (Notify->TriggerWeightThreshold <= InstanceWeight && PassesFiltering(Notify) && PassesChanceOfTriggering(Notify))
 		{
 			// Only add unique AnimNotifyState instances just once. We can get multiple triggers if looping over an animation.
 			// It is the same state, so just report it once.
-			(*Iter)->NotifyStateClass ? AnimNotifies.AddUnique(*Iter) : AnimNotifies.Add(*Iter);
+			Notify->NotifyStateClass ? AnimNotifies.AddUnique(Notify) : AnimNotifies.Add(Notify);
 		}
 	}
+}
+
+bool UAnimInstance::PassesFiltering(const FAnimNotifyEvent* Notify) const
+{
+	switch (Notify->NotifyFilterType)
+	{
+		case ENotifyFilterType::NoFiltering:
+		{
+			return true;
+		}
+		case ENotifyFilterType::LOD:
+		{
+			USkeletalMeshComponent* Comp = GetSkelMeshComponent();
+			return Comp ? Notify->NotifyFilterLOD > Comp->PredictedLODLevel : true;
+		}
+		default:
+		{
+			ensure(false); // Unknown Filter Type
+		}
+	}
+	return true;
+}
+
+bool UAnimInstance::PassesChanceOfTriggering(const FAnimNotifyEvent* Event) const
+{
+	return Event->NotifyStateClass ? true : FMath::FRandRange(0.f, 1.f) < Event->NotifyTriggerChance;
 }
 
 void UAnimInstance::AddAnimNotifyFromGeneratedClass(int32 NotifyIndex)
