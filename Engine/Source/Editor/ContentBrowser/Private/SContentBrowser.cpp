@@ -364,7 +364,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 			// Sources View
 			+ SSplitter::Slot()
-			.Value(0.3f)
+			.Value(0.1f)
 			[
 				SNew(SVerticalBox)
 				.Visibility( this, &SContentBrowser::GetSourcesViewVisibility )
@@ -419,9 +419,10 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 					// Collection View
 					+ SSplitter::Slot()
-					.Value(0.1f)
+					.Value(0.9f)
 					[
 						SNew(SBorder)
+						.Visibility( this, &SContentBrowser::GetCollectionViewVisibility )
 						.Padding(FMargin(3))
 						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 						[
@@ -560,6 +561,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	AssetContextMenu->SetOnDuplicateRequested( FAssetContextMenu::FOnDuplicateRequested::CreateSP(this, &SContentBrowser::OnDuplicateRequested) );
 	AssetContextMenu->SetOnAssetViewRefreshRequested( FAssetContextMenu::FOnAssetViewRefreshRequested::CreateSP( this, &SContentBrowser::OnAssetViewRefreshRequested) );
 
+
 	// Select /Game by default
 	FSourcesData DefaultSourcesData;
 	TArray<FString> SelectedPaths;
@@ -583,6 +585,16 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	AssetRegistryModule.Get().OnPathRemoved().AddSP(this, &SContentBrowser::HandlePathRemoved);
 
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
+	ContentBrowserModule.GetAllAssetViewViewMenuExtenders().Add( 
+		FContentBrowserMenuExtender::CreateLambda( [&]()
+		{
+			TSharedRef<FExtender> Extender = MakeShareable( new FExtender );
+
+			Extender->AddMenuExtension( FName("Folders"), EExtensionHook::After, nullptr, FMenuExtensionDelegate::CreateSP( this, &SContentBrowser::ExtendAssetViewMenu ) );
+			return Extender;
+		})
+	);
 	// Update the breadcrumb trail path
 	UpdatePath();
 }
@@ -613,6 +625,37 @@ void SContentBrowser::BindCommands()
 	Commands->MapAction( FContentBrowserCommands::Get().DirectoryUp, FUIAction(
 		FExecuteAction::CreateSP( this, &SContentBrowser::OnDirectoryUp )
 		));
+}
+
+void SContentBrowser::ExtendAssetViewMenu( FMenuBuilder& MenuBuilder )
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ShowCollectionOption", "Show Collections"),
+		LOCTEXT("ShowCollectionOptionToolTip", "Show the collections list in the view."),
+		FSlateIcon(),
+		FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::ToggleShowCollections),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SContentBrowser::IsShowingCollections)
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton
+		);
+}
+
+void SContentBrowser::ToggleShowCollections()
+{
+	return GetMutableDefault<UContentBrowserSettings>()->SetDisplayCollections(!GetDefault<UContentBrowserSettings>()->GetDisplayCollections());
+}
+
+bool SContentBrowser::IsShowingCollections() const
+{
+	return GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
+}
+
+EVisibility SContentBrowser::GetCollectionViewVisibility() const
+{
+	return IsShowingCollections() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 FText SContentBrowser::GetHighlightedText() const
