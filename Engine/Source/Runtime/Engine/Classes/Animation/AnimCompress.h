@@ -15,7 +15,7 @@ class UAnimCompress : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** A human-readable name for this modifier; appears in editor UI. */
+	/** Default Compression Scheme name */
 	UPROPERTY(Category=Compression, VisibleAnywhere)
 	FString Description;
 
