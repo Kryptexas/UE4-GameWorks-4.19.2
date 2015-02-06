@@ -70,7 +70,7 @@ void FFeaturePack::ParsePacks()
 			TArray<FString> EachImport;
 			FString FullPath = FPaths::FeaturePackDir() + EachPackData.PackSource;
 			EachImport.Add(FullPath);
-			EachPackData.ImportedObjects = AssetToolsModule.Get().ImportAssets(EachImport, EachPackData.PackName, nullptr);
+			EachPackData.ImportedObjects = AssetToolsModule.Get().ImportAssets(EachImport, EachPackData.PackName, nullptr, false);
 						
 			if (EachPackData.ImportedObjects.Num() == 0)
 			{			

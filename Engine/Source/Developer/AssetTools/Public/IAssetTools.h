@@ -90,8 +90,15 @@ public:
 	/** Opens a file open dialog to choose files to import to the destination path. */
 	virtual TArray<UObject*> ImportAssets(const FString& DestinationPath) = 0;
 
-	/** Imports the specified files to the destination path. */
-	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory = NULL) const = 0;
+	/** 
+	 * Imports the specified files to the destination path. 
+	 *
+	 * @param Files				Files to import
+	 * @param DestinationPath	destination path for imported files
+	 * @param ChosenFactory		Specific factory to use for object creation
+	 * @param bSyncToBrowser	If true sync content browser to first imported asset after import
+	 */
+	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory = NULL, bool bSyncToBrowser = true) const = 0;
 
 	/** Creates a unique package and asset name taking the form InBasePackageName+InSuffix */
 	virtual void CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const = 0;
