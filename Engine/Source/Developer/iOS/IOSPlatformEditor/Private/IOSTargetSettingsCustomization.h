@@ -71,9 +71,11 @@ private:
 	TArray<ProvisionPtr> ProvisionList;
 	TArray<ProvisionPtr> FilteredProvisionList;
 	TSharedPtr<SListView<ProvisionPtr> > ProvisionListView;
+	TSharedPtr<SWidgetSwitcher > ProvisionInfoSwitcher;
 	TArray<CertificatePtr> CertificateList;
 	TArray<CertificatePtr> FilteredCertificateList;
 	TSharedPtr<SListView<CertificatePtr> > CertificateListView;
+	TSharedPtr<SWidgetSwitcher > CertificateInfoSwitcher;
 
 	FString SelectedProvision;
 	FString SelectedFile;
