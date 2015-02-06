@@ -633,6 +633,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetUnderlineStyle(EditBPHyperlinkButton)
 			.SetTextStyle(NormalText)
 			.SetPadding(FMargin(0.0f));
+
 		Set("EditBPHyperlink", EditBPHyperlink);
 
 		// Visible on hover hyper link
@@ -3045,6 +3046,24 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 		Set( "PropertyWindow.WindowBorder", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
 		Set( "DetailsView.NameChangeCommitted", new BOX_BRUSH( "Common/EditableTextSelectionBackground", FMargin(4.f/16.f) ) );
 		Set( "DetailsView.HyperlinkStyle", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) ) );
+
+		FTextBlockStyle BPWarningMessageTextStyle = FTextBlockStyle(NormalText) .SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 8));
+		FTextBlockStyle BPWarningMessageHyperlinkTextStyle = FTextBlockStyle(BPWarningMessageTextStyle).SetColorAndOpacity(FLinearColor(0.25f, 0.5f, 1.0f));
+
+		FButtonStyle EditBPHyperlinkButton = FButtonStyle()
+			.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f), FLinearColor(0.25f, 0.5f, 1.0f)))
+			.SetPressed(FSlateNoResource())
+			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f), FLinearColor(0.25f, 0.5f, 1.0f)));
+
+		FHyperlinkStyle BPWarningMessageHyperlinkStyle = FHyperlinkStyle()
+			.SetUnderlineStyle(EditBPHyperlinkButton)
+			.SetTextStyle(BPWarningMessageHyperlinkTextStyle)
+			.SetPadding(FMargin(0.0f));
+
+		Set("DetailsView.BPMessageHyperlinkStyle", BPWarningMessageHyperlinkStyle);
+		Set("DetailsView.BPMessageTextStyle", BPWarningMessageTextStyle);
+
+
 		Set( "DetailsView.GroupSection", new BOX_BRUSH( "Common/RoundedSelection_16x", FMargin(4.0f/16.0f) ) );
 
 		Set( "DetailsView.PulldownArrow.Down", new IMAGE_BRUSH( "PropertyView/AdvancedButton_Down", FVector2D(10,8) ) );
