@@ -1343,6 +1343,20 @@ bool FMacOpenGL::MustFlushTexStorage(void)
 	return GMacFlushTexStorage || GMacMustFlushTexStorage;
 }
 
+/** Is the current renderer the Intel HD3000? */
+bool FMacOpenGL::IsIntelHD3000()
+{
+	// Get the current renderer ID
+	GLint RendererID = 0;
+	CGLContextObj Current = CGLGetCurrentContext();
+	if (Current)
+	{
+		CGLError Error = CGLGetParameter(Current, kCGLCPCurrentRendererID, &RendererID);
+		check(Error == kCGLNoError && RendererID != 0);
+	}
+	return (RendererID & kCGLRendererIDMatchingMask) == kCGLRendererIntelHDID;
+}
+
 void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
 {
 	TArray<GLuint>& TexturesToDelete = GMacTexturesToDelete[GFrameNumberRenderThread % GMacTexturePoolNum];
