@@ -4089,7 +4089,29 @@ dtStatus dtNavMeshQuery::findWallsInNeighbourhood(dtPolyRef startRef, const floa
 		// add hard edges of poly
 		for (int i = 0; i < curPoly->vertCount; i++)
 		{
-			if (curPoly->neis[i] == 0)
+			bool bStoreEdge = (curPoly->neis[i] == 0);
+			if (curPoly->neis[i] & DT_EXT_LINK)
+			{
+				// check if external edge has valid link
+				bool bConnected = false;
+
+				unsigned int linkIdx = curPoly->firstLink;
+				while (linkIdx != DT_NULL_LINK)
+				{
+					const dtLink& link = m_nav->getLink(curTile, linkIdx);
+					linkIdx = link.next;
+
+					if (link.edge == i)
+					{
+						bConnected = true;
+						break;
+					}
+				}
+
+				bStoreEdge = !bConnected;
+			}
+
+			if (bStoreEdge)
 			{
 				storeWallSegment(curTile, curPoly, i, 
 					curRef, 0, centerPos, radiusSqr, 

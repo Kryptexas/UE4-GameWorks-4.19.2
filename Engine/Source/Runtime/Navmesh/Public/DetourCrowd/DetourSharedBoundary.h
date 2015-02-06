@@ -16,12 +16,12 @@ struct dtSharedBoundaryData
 {
 	float Center[3];
 	float Radius;
+	float AccessTime;
 	dtQueryFilter* Filter;
-	int32 AccessTime;
 	uint8 SingleAreaId;
-
+	
 	TArray<dtSharedBoundaryEdge> Edges;
-	TArray<dtPolyRef> Polys;
+	TSet<dtPolyRef> Polys;
 
 	dtSharedBoundaryData() : Filter(nullptr) {}
 };
@@ -29,7 +29,7 @@ struct dtSharedBoundaryData
 class dtSharedBoundary
 {
 public:
-	TArray<dtSharedBoundaryData> Data;
+	TSparseArray<dtSharedBoundaryData> Data;
 	dtQueryFilter SingleAreaFilter;
 	float CurrentTime;
 	float NextClearTime;
@@ -37,11 +37,16 @@ public:
 	void Initialize();
 	void Tick(float DeltaTime);
 
-	int32 FindData(float* Center, float Radius, dtQueryFilter* NavFilter) const;
-	int32 FindData(float* Center, float Radius, uint8 SingleAreaId) const;
+	int32 FindData(float* Center, float Radius, dtPolyRef ReqPoly, dtQueryFilter* NavFilter) const;
+	int32 FindData(float* Center, float Radius, dtPolyRef ReqPoly, uint8 SingleAreaId) const;
 
 	int32 CacheData(float* Center, float Radius, dtPolyRef CenterPoly, dtNavMeshQuery* NavQuery, dtQueryFilter* NavFilter);
 	int32 CacheData(float* Center, float Radius, dtPolyRef CenterPoly, dtNavMeshQuery* NavQuery, uint8 SingleAreaId);
 
 	void FindEdges(dtSharedBoundaryData& Data, dtPolyRef CenterPoly, dtNavMeshQuery* NavQuery, dtQueryFilter* NavFilter);
+	bool HasSample(int32 Idx) const;
+
+private:
+
+	bool IsValid(int32 Idx, dtNavMeshQuery* NavQuery, dtQueryFilter* NavFilter) const;
 };

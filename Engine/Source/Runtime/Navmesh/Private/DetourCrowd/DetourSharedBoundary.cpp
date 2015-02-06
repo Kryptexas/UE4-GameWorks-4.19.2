@@ -21,15 +21,15 @@ void dtSharedBoundary::Tick(float DeltaTime)
 	// clear unused entries
 	if (CurrentTime > NextClearTime)
 	{
-		const float MaxLifeTime = 3.0f;
+		const float MaxLifeTime = 2.0f;
 		NextClearTime = CurrentTime + MaxLifeTime;
 
-		for (int32 Idx = Data.Num() - 1; Idx >= 0; Idx--)
+		for (TSparseArray<dtSharedBoundaryData>::TIterator It(Data); It; ++It)
 		{
-			const float LastAccess = CurrentTime - Data[Idx].AccessTime;
+			const float LastAccess = CurrentTime - It->AccessTime;
 			if (LastAccess >= MaxLifeTime)
 			{
-				Data.RemoveAt(Idx);
+				It.RemoveCurrent();
 			}
 		}
 	}
@@ -37,51 +37,72 @@ void dtSharedBoundary::Tick(float DeltaTime)
 
 int32 dtSharedBoundary::CacheData(float* Center, float Radius, dtPolyRef CenterPoly, dtNavMeshQuery* NavQuery, dtQueryFilter* NavFilter)
 {
-	Radius *= 1.5f;
-
-	const int32 ExistingIdx = FindData(Center, Radius, NavFilter);
-	if (ExistingIdx >= 0)
+	// bail if requested poly is not valid (e.g. rebuild in progress)
+	if (NavQuery && !NavQuery->isValidPolyRef(CenterPoly, NavFilter))
 	{
-		Data[ExistingIdx].AccessTime = CurrentTime;
-		return ExistingIdx;
+		return -1;
 	}
 
-	dtSharedBoundaryData NewData;
-	dtVcopy(NewData.Center, Center);
-	NewData.Radius = Radius;
-	NewData.Filter = NavFilter;
-	NewData.SingleAreaId = 0;
-	NewData.AccessTime = CurrentTime;
+	Radius *= 1.5f;
 
-	FindEdges(NewData, CenterPoly, NavQuery, NavFilter);
-	const int32 NewIdx = Data.Add(NewData);
-	return NewIdx;
+	int32 DataIdx = FindData(Center, Radius, CenterPoly, NavFilter);
+	const bool bHasValidData = IsValid(DataIdx, NavQuery, NavFilter);
+	if (!bHasValidData)
+	{
+		if (DataIdx >= 0)
+		{
+			// remove in next cleanup
+			Data[DataIdx].AccessTime = 0.0f;
+		}
+
+		dtSharedBoundaryData NewData;
+		dtVcopy(NewData.Center, Center);
+		NewData.Radius = Radius;
+		NewData.Filter = NavFilter;
+		NewData.SingleAreaId = 0;
+
+		FindEdges(NewData, CenterPoly, NavQuery, NavFilter);
+		DataIdx = Data.Add(NewData);
+	}
+
+	Data[DataIdx].AccessTime = CurrentTime;
+	return DataIdx;
 }
 
 int32 dtSharedBoundary::CacheData(float* Center, float Radius, dtPolyRef CenterPoly, dtNavMeshQuery* NavQuery, uint8 SingleAreaId)
 {
-	Radius *= 1.5f;
-
-	const int32 ExistingIdx = FindData(Center, Radius, SingleAreaId);
-	if (ExistingIdx >= 0)
-	{
-		Data[ExistingIdx].AccessTime = CurrentTime;
-		return ExistingIdx;
-	}
-
-	dtSharedBoundaryData NewData;
-	dtVcopy(NewData.Center, Center);
-	NewData.Radius = Radius;
-	NewData.SingleAreaId = SingleAreaId;
-	NewData.AccessTime = CurrentTime;
-
 	SingleAreaFilter.setAreaCost(SingleAreaId, 1.0f);
 
-	FindEdges(NewData, CenterPoly, NavQuery, &SingleAreaFilter);
-	const int32 NewIdx = Data.Add(NewData);
+	// bail if requested poly is not valid (e.g. rebuild in progress)
+	if (NavQuery && !NavQuery->isValidPolyRef(CenterPoly, &SingleAreaFilter))
+	{
+		return -1;
+	}
+
+	Radius *= 1.5f;
+
+	int32 DataIdx = FindData(Center, Radius, CenterPoly, SingleAreaId);
+	const bool bHasValidData = IsValid(DataIdx, NavQuery, &SingleAreaFilter);
+	if (!bHasValidData)
+	{
+		if (DataIdx >= 0)
+		{
+			// remove in next cleanup
+			Data[DataIdx].AccessTime = 0.0f;
+		}
+
+		dtSharedBoundaryData NewData;
+		dtVcopy(NewData.Center, Center);
+		NewData.Radius = Radius;
+		NewData.SingleAreaId = SingleAreaId;
+
+		FindEdges(NewData, CenterPoly, NavQuery, &SingleAreaFilter);
+		DataIdx = Data.Add(NewData);
+	}
 
 	SingleAreaFilter.setAreaCost(SingleAreaId, DT_UNWALKABLE_POLY_COST);
-	return NewIdx;
+	Data[DataIdx].AccessTime = CurrentTime;
+	return DataIdx;
 }
 
 void dtSharedBoundary::FindEdges(dtSharedBoundaryData& Data, dtPolyRef CenterPoly, dtNavMeshQuery* NavQuery, dtQueryFilter* NavFilter)
@@ -116,10 +137,10 @@ void dtSharedBoundary::FindEdges(dtSharedBoundaryData& Data, dtPolyRef CenterPol
 	}
 }
 
-int32 dtSharedBoundary::FindData(float* Center, float Radius, dtQueryFilter* NavFilter) const
+int32 dtSharedBoundary::FindData(float* Center, float Radius, dtPolyRef ReqPoly, dtQueryFilter* NavFilter) const
 {
 	const float RadiusThr = 50.0f;
-	const float DistThrSq = FMath::Square(Radius * 0.4f);
+	const float DistThrSq = FMath::Square(Radius * 0.5f);
 
 	for (int32 Idx = 0; Idx < Data.Num(); Idx++)
 	{
@@ -128,7 +149,10 @@ int32 dtSharedBoundary::FindData(float* Center, float Radius, dtQueryFilter* Nav
 			const float DistSq = dtVdistSqr(Center, Data[Idx].Center);
 			if (DistSq <= DistThrSq && dtAbs(Data[Idx].Radius - Radius) < RadiusThr)
 			{
-				return Idx;
+				if (Data[Idx].Polys.Contains(ReqPoly))
+				{
+					return Idx;
+				}
 			}
 		}
 	}
@@ -136,9 +160,9 @@ int32 dtSharedBoundary::FindData(float* Center, float Radius, dtQueryFilter* Nav
 	return -1;
 }
 
-int32 dtSharedBoundary::FindData(float* Center, float Radius, uint8 SingleAreaId) const
+int32 dtSharedBoundary::FindData(float* Center, float Radius, dtPolyRef ReqPoly, uint8 SingleAreaId) const
 {
-	const float DistThrSq = FMath::Square(Radius * 0.4f);
+	const float DistThrSq = FMath::Square(Radius * 0.5f);
 	const float RadiusThr = 50.0f;
 
 	for (int32 Idx = 0; Idx < Data.Num(); Idx++)
@@ -148,10 +172,38 @@ int32 dtSharedBoundary::FindData(float* Center, float Radius, uint8 SingleAreaId
 			const float DistSq = dtVdistSqr(Center, Data[Idx].Center);
 			if (DistSq <= DistThrSq && dtAbs(Data[Idx].Radius - Radius) < RadiusThr)
 			{
-				return Idx;
+				if (Data[Idx].Polys.Contains(ReqPoly))
+				{
+					return Idx;
+				}
 			}
 		}
 	}
 
 	return -1;
+}
+
+bool dtSharedBoundary::HasSample(int32 Idx) const
+{
+	return (Idx >= 0) && (Idx < Data.GetMaxIndex()) && Data.IsAllocated(Idx);
+}
+
+bool dtSharedBoundary::IsValid(int32 Idx, dtNavMeshQuery* NavQuery, dtQueryFilter* NavFilter) const
+{
+	bool bValid = HasSample(Idx);
+	if (bValid)
+	{
+		for (auto It = Data[Idx].Polys.CreateConstIterator(); It; ++It)
+		{
+			const dtPolyRef TestRef = *It;
+			const bool bValidRef = NavQuery->isValidPolyRef(TestRef, NavFilter);
+			if (!bValidRef)
+			{
+				bValid = false;
+				break;
+			}
+		}
+	}
+
+	return bValid;
 }

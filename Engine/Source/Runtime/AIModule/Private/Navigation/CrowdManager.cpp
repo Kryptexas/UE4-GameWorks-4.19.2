@@ -864,7 +864,6 @@ void UCrowdManager::CreateCrowdManager()
 	{
 		DetourCrowd->init(MaxAgents, MaxAgentRadius, NavMeshPtr);
 		DetourCrowd->setAgentCheckInterval(NavmeshCheckInterval);
-		DetourCrowd->setOffmeshLinkSegmentRemovalRadius(MaxAgentRadius);
 		DetourCrowd->setSingleAreaVisibilityOptimization(bSingleAreaVisibilityOptimization);
 		DetourCrowd->setPruneStartedOffmeshConnections(bPruneStartedOffmeshConnections);
 

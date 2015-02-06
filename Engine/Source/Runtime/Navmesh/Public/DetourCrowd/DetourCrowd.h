@@ -243,8 +243,6 @@ class NAVMESH_API dtCrowd
 
 	// [UE4] time between attempts to restore agents state
 	float m_agentStateCheckInterval;
-	// [UE4] remove segments from local boundary that are too close to offmesh links (disrupts VO)
-	float m_linkRemovalRadius;
 
 	int m_velocitySampleCount;
 
@@ -444,10 +442,6 @@ public:
 	/// @param[in]		path	The path corridor. [(polyRef) * @p npolys]
 	/// @param[in]		npath	The number of polygons in the path.
 	bool setAgentCorridor(const int idx, const dtPolyRef* path, const int npath);
-
-	/// [UE4] Set radius around offmesh link start, that will remove wall segments from boundary
-	/// @param[in]		radius	Radius threshold, remove segments that are closer 
-	void setOffmeshLinkSegmentRemovalRadius(const float radius);
 
 	/// [UE4] Set visibility optimization to use single area raycasts
 	/// This will prevent from cutting through polys marked as different area

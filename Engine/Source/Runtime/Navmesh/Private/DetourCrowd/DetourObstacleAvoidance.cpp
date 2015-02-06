@@ -391,6 +391,12 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 				continue;
 		}
 		
+		// UE4: when sample is too close to segment (navmesh wall) - disable it completely
+		if (htmin < 0.1f)
+		{
+			return -1.0f;
+		}
+
 		// Avoid less when facing walls.
 		htmin *= 2.0f;
 		
@@ -489,7 +495,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityCustom(const float* pos, const float
 		if (dtSqr(vcand[0]) + dtSqr(vcand[2]) > dtSqr((vmax * vmult) + 0.001f)) continue;
 
 		const float penalty = processSample(vcand, 20.0f, pos, rad, vel, dvel, debug);
-		if (penalty < minPenalty)
+		if (penalty < minPenalty && penalty >= 0.0f)
 		{
 			bFoundSample = true;
 			minPenalty = penalty;
@@ -582,7 +588,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 			
 			const float penalty = processSample(vcand,cr/10, pos,rad,vel,dvel, debug);
 			ns++;
-			if (penalty < minPenalty)
+			if (penalty < minPenalty && penalty >= 0.0f)
 			{
 				minPenalty = penalty;
 				dtVcopy(bvel, vcand);
