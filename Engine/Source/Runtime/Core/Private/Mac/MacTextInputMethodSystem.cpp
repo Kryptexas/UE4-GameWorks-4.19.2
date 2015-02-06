@@ -7,6 +7,7 @@
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
+#include "MacApplication.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 
