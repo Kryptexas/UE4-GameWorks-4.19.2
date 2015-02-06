@@ -387,7 +387,7 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 
 	// Load the view mode from config
-	AnimViewportClient->SetViewMode((EViewModeIndex)AnimViewportClient->ConfigOption->ViewModeIndex);
+	AnimViewportClient->SetViewMode(AnimViewportClient->ConfigOption->ViewModeIndex);
 	UpdateShowFlagForMeshEdges();
 
 	UpdateViewportClientPlaybackScale();

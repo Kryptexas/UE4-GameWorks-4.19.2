@@ -701,9 +701,9 @@ enum EViewModeIndex
 //	VMI_VertexDensity = 15,
 	VMI_CollisionPawn = 15, 
 	VMI_CollisionVisibility = 16, 
-	VMI_Max,
+	VMI_Max UMETA(Hidden),
 
-	VMI_Unknown = 255,
+	VMI_Unknown = 255 UMETA(Hidden),
 };
 
 

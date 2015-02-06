@@ -215,6 +215,13 @@ protected:
 			LOCTEXT("ContentEditorsGraphBlueprintSettingsDescription", "Customize Blueprint Editors."),
 			GetMutableDefault<UBlueprintEditorSettings>()
 		);
+
+		// Persona editors
+		SettingsModule.RegisterSettings("Editor", "ContentEditors", "Persona",
+			LOCTEXT("ContentEditorsPersonaSettingsName", "Animation Editor"),
+			LOCTEXT("ContentEditorsPersonaSettingsDescription", "Customize Persona Editor."),
+			GetMutableDefault<UPersonaOptions>()
+		);
 	}
 
 	/** Unregisters all settings. */
@@ -242,6 +249,7 @@ protected:
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "ContentBrowser");
 //			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "DestructableMeshEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "GraphEditor");
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "Persona");
 		}
 	}
 
