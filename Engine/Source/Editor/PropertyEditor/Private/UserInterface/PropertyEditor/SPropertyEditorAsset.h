@@ -103,6 +103,12 @@ private:
 	TSharedRef<SWidget> OnGetMenuContent();
 
 	/**
+	 * Called when the asset menu is closed, we handle this to force the destruction of the asset menu to
+	 * ensure any settings the user set are saved.
+	 */
+	void OnMenuOpenChanged(bool bOpen);
+
+	/**
 	 * Returns whether the actor should be filtered out from selection.
 	 */
 	bool IsFilteredActor( const AActor* const Actor) const;

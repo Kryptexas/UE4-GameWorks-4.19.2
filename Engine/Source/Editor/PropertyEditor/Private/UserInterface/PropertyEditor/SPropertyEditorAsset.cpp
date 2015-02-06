@@ -192,6 +192,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				.ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
 				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 				.OnGetMenuContent( this, &SPropertyEditorAsset::OnGetMenuContent )
+				.OnMenuOpenChanged( this, &SPropertyEditorAsset::OnMenuOpenChanged )
 				.ContentPadding(2.0f)
 				.ButtonContent()
 				[
@@ -341,6 +342,14 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 																	 OnShouldFilterAsset,
 																	 FOnAssetSelected::CreateSP(this, &SPropertyEditorAsset::OnAssetSelected),
 																	 FSimpleDelegate::CreateSP(this, &SPropertyEditorAsset::CloseComboButton));
+	}
+}
+
+void SPropertyEditorAsset::OnMenuOpenChanged(bool bOpen)
+{
+	if ( bOpen == false )
+	{
+		AssetComboButton->SetMenuContent(SNullWidget::NullWidget);
 	}
 }
 
