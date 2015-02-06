@@ -868,7 +868,7 @@ void ULandscapeMeshCollisionComponent::DestroyComponent(bool bPromoteChildren/*=
 		Proxy->CollisionComponents.Remove(this);
 	}
 
-	Super::DestroyComponent();
+	Super::DestroyComponent(bPromoteChildren);
 }
 
 #if WITH_EDITOR
@@ -968,7 +968,7 @@ void ULandscapeHeightfieldCollisionComponent::DestroyComponent(bool bPromoteChil
 		Proxy->CollisionComponents.Remove(this);
 	}
 
-	Super::DestroyComponent();
+	Super::DestroyComponent(bPromoteChildren);
 }
 
 FBoxSphereBounds ULandscapeHeightfieldCollisionComponent::CalcBounds(const FTransform& LocalToWorld) const

@@ -437,7 +437,7 @@ void UWidgetComponent::OnUnregister()
 
 void UWidgetComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
-	Super::DestroyComponent();
+	Super::DestroyComponent(bPromoteChildren);
 
 	Renderer.Reset();
 
