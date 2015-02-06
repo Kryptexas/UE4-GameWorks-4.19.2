@@ -125,7 +125,7 @@ void FContentDirectoryMonitor::ProcessAdditions(TArray<UPackage*>& OutPackagesTo
 		}
 		else if (FindPackage(nullptr, *PackagePath))
 		{
-			Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_ExistingAsset", "Attempted to create a new asset that already exists ({0})."), FText::FromString(PackagePath)));
+			Context.AddMessage(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_ExistingAsset", "Can't create a new asset at {0} - one already exists."), FText::FromString(PackagePath)));
 		}
 		else
 		{
