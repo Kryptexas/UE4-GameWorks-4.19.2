@@ -7,7 +7,7 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/LevelScriptActor.h"
-#
+#include "Engine/InheritableComponentHandler.h"
 
 #if WITH_EDITOR
 #include "BlueprintEditorUtils.h"
