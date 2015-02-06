@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NullNetworkReplayStreaming.h"
+#include "Paths.h"
+#include "EngineVersion.h"
 
 /**
  * Very basic implementation of network replay streaming using the file system
@@ -11,15 +13,45 @@
 
 void FNullNetworkReplayStreamer::StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate )
 {
+	int32 Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec;
+	FPlatformTime::SystemTime( Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec );
+
+	FString DemoName = StreamName;
+
+	DemoName.ReplaceInline( TEXT( "%td" ), *FDateTime::Now().ToString() );
+	DemoName.ReplaceInline( TEXT( "%d" ), *FString::Printf( TEXT( "%i-%i-%i" ), Month, Day, Year ) );
+	DemoName.ReplaceInline( TEXT( "%t" ), *FString::Printf( TEXT( "%i" ), ( ( Hour * 3600 ) + ( Min * 60 ) + Sec ) * 1000 + MSec ) );
+	DemoName.ReplaceInline( TEXT( "%v" ), *FString::Printf( TEXT( "%i" ), GEngineVersion.GetChangelist() ) );
+
+	// replace bad characters with underscores
+	DemoName.ReplaceInline( TEXT( "\\" ),	TEXT( "_" ) );
+	DemoName.ReplaceInline( TEXT( "/" ),	TEXT( "_" ) );
+	DemoName.ReplaceInline( TEXT( "." ),	TEXT( "_" ) );
+	DemoName.ReplaceInline( TEXT( " " ),	TEXT( "_" ) );
+	DemoName.ReplaceInline( TEXT( "%" ),	TEXT( "_" ) );
+
+	// Create a directory for this demo
+	const FString DemoDir = FPaths::Combine(*FPaths::GameSavedDir(), TEXT( "Demos" ), *DemoName);
+
+	IFileManager::Get().MakeDirectory( *DemoDir, true );
+
+	// Demo filename without extension
+	const FString FullDemoBaseName = DemoDir + TEXT("/") + DemoName;
+
+	const FString FullDemoFilename = FullDemoBaseName + TEXT(".demo");
+	const FString FullMetadataFilename = FullDemoBaseName + TEXT(".metadata");
+
 	if ( !bRecord )
 	{
-		// Opne file for reading
-		FileAr = IFileManager::Get().CreateFileReader( *StreamName );
+		// Open file for reading
+		FileAr = IFileManager::Get().CreateFileReader( *FullDemoFilename );
+		MetadataFileAr = IFileManager::Get().CreateFileReader( *FullMetadataFilename );
 	}
 	else
 	{
 		// Open file for writing
-		FileAr = IFileManager::Get().CreateFileWriter( *StreamName );
+		FileAr = IFileManager::Get().CreateFileWriter( *FullDemoFilename );
+		MetadataFileAr = IFileManager::Get().CreateFileWriter( *FullMetadataFilename );
 	}
 
 	// Notify immediately
@@ -30,11 +62,19 @@ void FNullNetworkReplayStreamer::StopStreaming()
 {
 	delete FileAr;
 	FileAr = NULL;
+
+	delete MetadataFileAr;
+	MetadataFileAr = NULL;
 }
 
 FArchive* FNullNetworkReplayStreamer::GetStreamingArchive()
 {
 	return FileAr;
+}
+
+FArchive* FNullNetworkReplayStreamer::GetMetadataArchive()
+{
+	return MetadataFileAr;
 }
 
 IMPLEMENT_MODULE( FNullNetworkReplayStreamingFactory, NullNetworkReplayStreaming )

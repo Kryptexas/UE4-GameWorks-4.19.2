@@ -43,7 +43,6 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		Time					= 0;
 		bIsRecordingDemoFrame	= false;
 		bDemoPlaybackDone		= false;
-		EndOfStreamOffset		= 0;
 
 		ResetDemoState();
 
@@ -74,8 +73,11 @@ FString UDemoNetDriver::LowLevelGetNetworkNumber()
 	return FString( TEXT( "" ) );
 }
 
-#define NETWORK_DEMO_MAGIC			( 0x2CF5A13D )
-#define NETWORK_DEMO_VERSION		( 0 )
+static const uint32 NETWORK_DEMO_MAGIC				= 0x2CF5A13D;
+static const uint32 NETWORK_DEMO_VERSION			= 1;
+
+static const uint32 NETWORK_DEMO_METADATA_MAGIC		= 0x3D06B24E;
+static const uint32 NETWORK_DEMO_METADATA_VERSION	= 0;
 
 struct FNetworkDemoHeader
 {
@@ -83,19 +85,11 @@ struct FNetworkDemoHeader
 	uint32	Version;				// Version number to detect version mismatches.
 	uint32	EngineNetVersion;		// Version of engine networking format
 	FString LevelName;				// Name of level loaded for demo
-	int32	NumFrames;				// Number of total frames in the demo
-	float	TotalTime;				// Number of total time in seconds in demo
-	int32	MetaDataOffset;			// Offset into the file where the meta data is stored for extra information that wasn't known at start of demo
-	int32	NumStreamingLevels;		// Number of streaming levels
-
+	
 	FNetworkDemoHeader() : 
 		Magic( NETWORK_DEMO_MAGIC ), 
 		Version( NETWORK_DEMO_VERSION ),
-		EngineNetVersion( GEngineNetVersion ),
-		NumFrames( 0 ),
-		TotalTime( 0 ),
-		MetaDataOffset( 0 ),
-		NumStreamingLevels( 0 )
+		EngineNetVersion( GEngineNetVersion )
 	{}
 
 	friend FArchive& operator << ( FArchive& Ar, FNetworkDemoHeader& Header )
@@ -103,9 +97,35 @@ struct FNetworkDemoHeader
 		Ar << Header.Magic;
 		Ar << Header.Version;
 		Ar << Header.LevelName;
+
+		return Ar;
+	}
+};
+
+struct FNetworkDemoMetadataHeader
+{
+	uint32	Magic;					// Magic to ensure we're opening the right file.
+	uint32	Version;				// Version number to detect version mismatches.
+	uint32	EngineNetVersion;		// Version of engine networking format
+	int32	NumFrames;				// Number of total frames in the demo
+	float	TotalTime;				// Number of total time in seconds in demo
+	int32	NumStreamingLevels;		// Number of streaming levels
+
+	FNetworkDemoMetadataHeader() : 
+		Magic( NETWORK_DEMO_METADATA_MAGIC ), 
+		Version( NETWORK_DEMO_METADATA_VERSION ),
+		EngineNetVersion( GEngineNetVersion ),
+		NumFrames( 0 ),
+		TotalTime( 0 ),
+		NumStreamingLevels( 0 )
+	{}
+	
+	friend FArchive& operator << ( FArchive& Ar, FNetworkDemoMetadataHeader& Header )
+	{
+		Ar << Header.Magic;
+		Ar << Header.Version;
 		Ar << Header.NumFrames;
 		Ar << Header.TotalTime;
-		Ar << Header.MetaDataOffset;
 		Ar << Header.NumStreamingLevels;
 
 		return Ar;
@@ -197,11 +217,43 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 	// Create fake control channel
 	ServerConnection->CreateChannel( CHTYPE_Control, 1 );
 
-	DemoTotalFrames = DemoHeader.NumFrames;
-	DemoTotalTime	= DemoHeader.TotalTime;
+	// Attempt to read metadata if it exists
+	FArchive* MetadataAr = ReplayStreamer->GetMetadataArchive();
 
-	UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with demo. Filename: %s, Frames: %i, Version %i" ), *DemoFilename, DemoTotalFrames, DemoHeader.Version );
+	FNetworkDemoMetadataHeader MetadataHeader;
 
+	if ( MetadataAr != nullptr )
+	{
+		(*MetadataAr) << MetadataHeader;
+
+		// Check metadata magic value
+		if ( MetadataHeader.Magic != NETWORK_DEMO_METADATA_MAGIC )
+		{
+			Error = FString( TEXT( "Demo metadata file is corrupt" ) );
+			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Corrupt, Error );
+			return false;
+		}
+
+		// Check version
+		if ( MetadataHeader.Version != NETWORK_DEMO_METADATA_VERSION )
+		{
+			Error = FString( TEXT( "Demo metadata file version is incorrect" ) );
+			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::InvalidVersion, Error );
+			return false;
+		}
+
+		DemoTotalFrames = MetadataHeader.NumFrames;
+		DemoTotalTime	= MetadataHeader.TotalTime;
+
+		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with full demo and metadata. Filename: %s, Frames: %i, Version %i" ), *DemoFilename, DemoTotalFrames, DemoHeader.Version );
+	}
+	else
+	{
+		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with streaming demo, metadata file not found. Filename: %s, Version %i" ), *DemoFilename, DemoHeader.Version );
+	}
+	
 	// Bypass UDemoPendingNetLevel
 	FString LoadMapError;
 
@@ -239,14 +291,8 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 	WorldContext->World()->DemoNetDriver = this;
 	WorldContext->PendingNetGame = NULL;
 
-	// Remember where we are
-	const int32 OldPos = FileAr->Tell();
-
-	// Jump to meta data
-	FileAr->Seek( DemoHeader.MetaDataOffset );
-
-	// Read meta data
-	for ( int32 i = 0; i < DemoHeader.NumStreamingLevels; ++i )
+	// Read meta data, if it exists
+	for ( int32 i = 0; i < MetadataHeader.NumStreamingLevels; ++i )
 	{
 		ULevelStreamingKismet* StreamingLevel = static_cast<ULevelStreamingKismet*>(StaticConstructObject(ULevelStreamingKismet::StaticClass(), GetWorld(), NAME_None, RF_NoFlags, NULL ) );
 
@@ -259,9 +305,9 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 		FString PackageName;
 		FString PackageNameToLoad;
 
-		(*FileAr) << PackageName;
-		(*FileAr) << PackageNameToLoad;
-		(*FileAr) << StreamingLevel->LevelTransform;
+		(*MetadataAr) << PackageName;
+		(*MetadataAr) << PackageNameToLoad;
+		(*MetadataAr) << StreamingLevel->LevelTransform;
 
 		StreamingLevel->PackageNameToLoad = FName( *PackageNameToLoad );
 		StreamingLevel->SetWorldAssetByPackageName( FName( *PackageName ) );
@@ -270,12 +316,6 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 		UE_LOG( LogDemo, Log, TEXT( "  Loading streamingLevel: %s, %s" ), *PackageName, *PackageNameToLoad );
 	}
-
-	// Jump back to start of stream
-	FileAr->Seek( OldPos );
-
-	// Remember where the meta data is, this is where we must stop reading the demo stream
-	EndOfStreamOffset = DemoHeader.MetaDataOffset;
 
 	return true;
 }
@@ -319,10 +359,9 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 
 	FNetworkDemoHeader DemoHeader;
 
-	// NOTE - This must be the SAME string we write when we close the demo or it will throw the header off
 	DemoHeader.LevelName = World->GetCurrentLevel()->GetOutermost()->GetName();
 
-	// Write the initial header (a lot of the fields will be placeholder until we fill them in later)
+	// Write the header
 	(*FileAr) << DemoHeader;
 
 	// Spawn the demo recording spectator.
@@ -429,15 +468,15 @@ void UDemoNetDriver::StopDemo()
 
 	if ( !ServerConnection )
 	{
-		FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
+		FArchive* MetadataAr = ReplayStreamer->GetMetadataArchive();
 
-		// Finish writing the header and other information that goes at the end
-		if ( FileAr != NULL && World != NULL )
+		// Finish writing the metadata
+		if ( MetadataAr != NULL && World != NULL )
 		{
 			DemoTotalFrames = DemoFrameNum;
 			DemoTotalTime	= DemoCurrentTime;
 
-			// Get the number of streaming levels so we can update the header with the correct info
+			// Get the number of streaming levels so we can update the metadata with the correct info
 			int32 NumStreamingLevels = 0;
 
 			for ( int32 i = 0; i < World->StreamingLevels.Num(); ++i )
@@ -448,23 +487,18 @@ void UDemoNetDriver::StopDemo()
 				}
 			}
 
-			// Make a new header with updated info
-			FNetworkDemoHeader DemoHeader;
+			// Make a header for the metadata
+			FNetworkDemoMetadataHeader DemoHeader;
 
-			DemoHeader.LevelName			= World->GetCurrentLevel()->GetOutermost()->GetName();
 			DemoHeader.NumFrames			= DemoTotalFrames;
 			DemoHeader.TotalTime			= DemoTotalTime;
-			DemoHeader.MetaDataOffset		= FileAr->Tell();
 			DemoHeader.NumStreamingLevels	= NumStreamingLevels;
 
 			// Seek to beginning
-			FileAr->Seek( 0 );
+			MetadataAr->Seek( 0 );
 
-			// Re-write header with new info
-			(*FileAr) << DemoHeader;
-
-			// Restore file position to end of stream
-			FileAr->Seek( DemoHeader.MetaDataOffset );
+			// Write header
+			(*MetadataAr) << DemoHeader;
 
 			//
 			// Write meta data
@@ -481,9 +515,9 @@ void UDemoNetDriver::StopDemo()
 
 					UE_LOG( LogDemo, Log, TEXT( "  StreamingLevel: %s, %s" ), *PackageName, *PackageNameToLoad );
 
-					(*FileAr) << PackageName;
-					(*FileAr) << PackageNameToLoad;
-					(*FileAr) << World->StreamingLevels[i]->LevelTransform;
+					(*MetadataAr) << PackageName;
+					(*MetadataAr) << PackageNameToLoad;
+					(*MetadataAr) << World->StreamingLevels[i]->LevelTransform;
 				}
 			}
 		}
@@ -649,7 +683,7 @@ bool UDemoNetDriver::ReadDemoFrame()
 		return false;
 	}
 
-	if ( FileAr->AtEnd() || FileAr->Tell() >= EndOfStreamOffset )
+	if ( FileAr->AtEnd() )
 	{
 		bDemoPlaybackDone = true;
 

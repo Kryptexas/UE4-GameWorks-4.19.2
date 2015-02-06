@@ -2528,11 +2528,6 @@ bool UWorld::HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, U
 
 bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	// Attempt to make the dir if it doesn't exist.
-	const FString DemoDir = FPaths::GameSavedDir() + TEXT( "Demos" );
-
-	IFileManager::Get().MakeDirectory( *DemoDir, true );
-
 	FURL DemoURL;
 	FString DemoName;
 
@@ -2544,23 +2539,8 @@ bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 
 	DemoName.ReplaceInline( TEXT( "%m" ), *GetMapName() );
 
-	int32 Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec;
-	FPlatformTime::SystemTime( Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec );
-
-	DemoName.ReplaceInline( TEXT( "%td" ), *FDateTime::Now().ToString() );
-	DemoName.ReplaceInline( TEXT( "%d" ), *FString::Printf( TEXT( "%i-%i-%i" ), Month, Day, Year ) );
-	DemoName.ReplaceInline( TEXT( "%t" ), *FString::Printf( TEXT( "%i" ), ( ( Hour * 3600 ) + ( Min * 60 ) + Sec ) * 1000 + MSec ) );
-	DemoName.ReplaceInline( TEXT( "%v" ), *FString::Printf( TEXT( "%i" ), GEngineVersion.GetChangelist() ) );
-
-	// replace bad characters with underscores
-	DemoName.ReplaceInline( TEXT( "\\" ),	TEXT( "_" ) );
-	DemoName.ReplaceInline( TEXT( "/" ),	TEXT( "_" ) );
-	DemoName.ReplaceInline( TEXT( "." ),	TEXT( "_" ) );
-	DemoName.ReplaceInline( TEXT( " " ),	TEXT( "_" ) );
-	DemoName.ReplaceInline( TEXT( "%" ),	TEXT( "_" ) );
-
 	// replace the current URL's map with a demo extension
-	DemoURL.Map = DemoDir + TEXT( "/" ) + DemoName + TEXT( ".demo" );
+	DemoURL.Map = DemoName;
 
 	DestroyDemoNetDriver();
 
@@ -2604,9 +2584,7 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 		FURL DemoURL;
 		UE_LOG( LogWorld, Log, TEXT( "Attempting to play demo %s" ), *Temp );
 
-		const FString DemoDir = FPaths::GameSavedDir() + TEXT( "Demos" );
-
-		DemoURL.Map = DemoDir + TEXT( "/" ) + Temp + TEXT( ".demo" );
+		DemoURL.Map = Temp;
 
 #if 0
 		UPendingNetGame * NewPendingNetGame = new UDemoPendingNetGame( FObjectInitializer(), DemoURL );

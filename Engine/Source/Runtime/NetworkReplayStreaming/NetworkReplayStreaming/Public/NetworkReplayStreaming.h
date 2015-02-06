@@ -18,6 +18,7 @@ public:
 	virtual void StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate ) = 0;
 	virtual void StopStreaming() = 0;
 	virtual FArchive* GetStreamingArchive() = 0;
+	virtual FArchive* GetMetadataArchive() = 0;
 };
 
 /** Replay streamer factory */

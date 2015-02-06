@@ -119,6 +119,11 @@ FArchive* FHttpNetworkReplayStreamer::GetStreamingArchive()
 	return ( Archive.IsSaving() || Archive.Buffer.Num() >  0 ) ? &Archive : NULL;
 }
 
+FArchive* FHttpNetworkReplayStreamer::GetMetadataArchive()
+{
+	return NULL;
+}
+
 void FHttpNetworkReplayStreamer::HttpRequestFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
 	if ( bSucceeded )
