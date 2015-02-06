@@ -16,7 +16,7 @@ class UAnimCompress : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** A human-readable name for this modifier; appears in editor UI. */
-	UPROPERTY()
+	UPROPERTY(Category=Compression, VisibleAnywhere)
 	FString Description;
 
 	/** Compression algorithms requiring a skeleton should set this value to true. */

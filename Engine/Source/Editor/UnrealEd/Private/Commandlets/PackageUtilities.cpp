@@ -14,6 +14,7 @@
 
 #include "AnimationUtils.h"
 #include "AnimationCompression.h"
+#include "Animation/AnimationSettings.h"
 
 #include "CollectionManagerModule.h"
 #include "GameFramework/WorldSettings.h"
@@ -1510,9 +1511,7 @@ struct CompressAnimationsFunctor
 		}
 
 		// Get version number. Bump this up every time you want to recompress all animations.
-		int32 CompressCommandletVersion = 0;
-		GConfig->GetInt( TEXT("AnimationCompression"), TEXT("CompressCommandletVersion"), (int32&)CompressCommandletVersion, GEngineIni );
-
+		const int32 CompressCommandletVersion = UAnimationSettings::Get()->CompressCommandletVersion;
 
 		// Count the number of animations to provide some limited progress indication
 		int32 NumAnimationsInPackage = 0;

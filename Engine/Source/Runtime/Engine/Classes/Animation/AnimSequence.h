@@ -27,7 +27,7 @@ enum AnimationCompressionFormat
 	ACF_Fixed32NoW,
 	ACF_Float32NoW,
 	ACF_Identity,
-	ACF_MAX,
+	ACF_MAX UMETA(Hidden),
 };
 
 /**

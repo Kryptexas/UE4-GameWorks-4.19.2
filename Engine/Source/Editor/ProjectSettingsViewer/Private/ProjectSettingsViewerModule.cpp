@@ -17,6 +17,7 @@
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 #include "Runtime/AIModule/Classes/Navigation/CrowdManager.h"
+#include "Runtime/Engine/Classes/Animation/AnimationSettings.h"
 #include "AISystem.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
@@ -157,6 +158,13 @@ protected:
 			LOCTEXT("CrowdManagerSettingsDescription", "Settings for the AI Crowd Manager."),
 			GetMutableDefault<UCrowdManager>()
 			);
+
+		// Physics settings
+		SettingsModule.RegisterSettings("Project", "Engine", "Animation",
+			LOCTEXT("EngineAnimationSettingsName", "Animation"),
+			LOCTEXT("ProjectAnimationSettingsDescription", "Default animation settings."),
+			GetMutableDefault<UAnimationSettings>()
+		);
 
 		/*
 		// network settings
