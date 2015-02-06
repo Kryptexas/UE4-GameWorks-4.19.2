@@ -104,8 +104,13 @@ namespace UnrealBuildTool.Android
 			return CachedSDKLevel;
 		}
 
-		public static bool PackageDataInsideApk(ConfigCacheIni Ini=null)
+		public static bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigCacheIni Ini=null)
 		{
+			if (bDisallowPackagingDataInApk)
+			{
+				return false;
+			}
+
 			// make a new one if one wasn't passed in
 			if (Ini == null)
 			{
@@ -438,7 +443,7 @@ namespace UnrealBuildTool.Android
 		}
 
 
-		private string GetAllBuildSettings(string BuildPath, bool bForDistribution, bool bMakeSeparateApks)
+		private string GetAllBuildSettings(string BuildPath, bool bForDistribution, bool bMakeSeparateApks, bool bPackageDataInsideApk)
 		{
 			// make the settings string - this will be char by char compared against last time
 			StringBuilder CurrentSettings = new StringBuilder();
@@ -449,6 +454,7 @@ namespace UnrealBuildTool.Android
 			CurrentSettings.AppendLine(string.Format("SDKVersion={0}", GetSdkApiLevel()));
 			CurrentSettings.AppendLine(string.Format("bForDistribution={0}", bForDistribution));
 			CurrentSettings.AppendLine(string.Format("bMakeSeparateApks={0}", bMakeSeparateApks));
+			CurrentSettings.AppendLine(string.Format("bPackageDataInsideApk={0}", bPackageDataInsideApk));
 
 			// all AndroidRuntimeSettings ini settings in here
 			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
@@ -493,7 +499,8 @@ namespace UnrealBuildTool.Android
 			return CurrentSettings.ToString();
 		}
 
-		private bool CheckDependencies(string ProjectName, string ProjectDirectory, string UE4BuildFilesPath, string GameBuildFilesPath, string EngineDirectory, string CookFlavor, string OutputPath, string UE4BuildPath, bool bMakeSeparateApks)
+		private bool CheckDependencies(string ProjectName, string ProjectDirectory, string UE4BuildFilesPath, string GameBuildFilesPath, string EngineDirectory, 
+			string CookFlavor, string OutputPath, string UE4BuildPath, bool bMakeSeparateApks, bool bPackageDataInsideApk)
 		{
 			string[] Arches = AndroidToolChain.GetAllArchitectures();
 			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
@@ -525,7 +532,7 @@ namespace UnrealBuildTool.Android
 					}
 
 					// rebuild if .pak files exist for  in APK case
-					if (PackageDataInsideApk())
+					if (bPackageDataInsideApk)
 					{
 						string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + "/" + ProjectName + "/Content/Paks";
 						if (Directory.Exists(PAKFileLocation))
@@ -604,7 +611,7 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
-		private string GenerateManifest(string ProjectName, bool bIsForDistribution)
+		private string GenerateManifest(string ProjectName, bool bIsForDistribution, bool bPackageDataInsideApk)
 		{
 			// ini file to get settings from
 			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
@@ -682,7 +689,7 @@ namespace UnrealBuildTool.Android
 			}
 			Text.AppendLine("\t\t</activity>");
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\"{0}\"/>", ConvertDepthBufferIniValue(DepthBufferPreference)));
-			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bPackageDataInsideApk\" android:value=\"{0}\"/>", PackageDataInsideApk(Ini) ? "true" : "false"));
+			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bPackageDataInsideApk\" android:value=\"{0}\"/>", bPackageDataInsideApk ? "true" : "false"));
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.games.APP_ID\"");
 			Text.AppendLine("\t\t           android:value=\"@string/app_id\" />");
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.version\"");
@@ -742,7 +749,7 @@ namespace UnrealBuildTool.Android
 			return Text.ToString();
 		}
 
-		private void MakeApk(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage)
+		private void MakeApk(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage, bool bDisallowPackagingDataInApk)
 		{
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
 
@@ -759,15 +766,18 @@ namespace UnrealBuildTool.Android
 			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
 //			int NumArches = Arches.Length * GPUArchitectures.Length;
 
+			// cache if we want data in the Apk
+			bool bPackageDataInsideApk = PackageDataInsideApk(bDisallowPackagingDataInApk);
+
 			// check to see if any "meta information" is newer than last time we build
-			string CurrentBuildSettings = GetAllBuildSettings(UE4BuildPath, bForDistribution, bMakeSeparateApks);
+			string CurrentBuildSettings = GetAllBuildSettings(UE4BuildPath, bForDistribution, bMakeSeparateApks, bPackageDataInsideApk);
 			string BuildSettingsCacheFile = Path.Combine(UE4BuildPath, "UEBuildSettings.txt");
 
 			// do we match previous build settings?
 			bool bBuildSettingsMatch = false;
 
 			string ManifestFile = Path.Combine(UE4BuildPath, "AndroidManifest.xml");
-			string NewManifest = GenerateManifest(ProjectName, bForDistribution);
+			string NewManifest = GenerateManifest(ProjectName, bForDistribution, bDisallowPackagingDataInApk);
 			string OldManifest = File.Exists(ManifestFile) ? File.ReadAllText(ManifestFile) : "";
 			if (NewManifest == OldManifest) 
 			{
@@ -797,7 +807,7 @@ namespace UnrealBuildTool.Android
 			{
 				// check if so's are up to date against various inputs
 				bool bAllInputsCurrent = CheckDependencies(ProjectName, ProjectDirectory, UE4BuildFilesPath, GameBuildFilesPath, 
-					EngineDirectory, CookFlavor, OutputPath, UE4BuildPath, bMakeSeparateApks);
+					EngineDirectory, CookFlavor, OutputPath, UE4BuildPath, bMakeSeparateApks, bPackageDataInsideApk);
 
 				if (bAllInputsCurrent)
 				{
@@ -828,7 +838,6 @@ namespace UnrealBuildTool.Android
 			}
 
 			// If we are packaging for Amazon then we need to copy the  file to the correct location
-			bool bPackageDataInsideApk = PackageDataInsideApk();
 			Log.TraceInformation("bPackageDataInsideApk = {0}", bPackageDataInsideApk);
 			if (bPackageDataInsideApk)
 			{
@@ -1033,7 +1042,8 @@ namespace UnrealBuildTool.Android
 			string BaseSoName = AndroidToolChain.RemoveArchName(InTarget.OutputPaths[0]);
 
 			// make an apk at the end of compiling, so that we can run without packaging (debugger, cook on the fly, etc)
-			MakeApk(InTarget.AppName, InTarget.ProjectDirectory, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution: false, CookFlavor: "", bMakeSeparateApks:ShouldMakeSeparateApks(), bIncrementalPackage:true);
+			MakeApk(InTarget.AppName, InTarget.ProjectDirectory, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution: false, CookFlavor: "", 
+				bMakeSeparateApks:ShouldMakeSeparateApks(), bIncrementalPackage:true, bDisallowPackagingDataInApk:false);
 
 			// if we made any non-standard .apk files, the generated debugger settings may be wrong
 			if (ShouldMakeSeparateApks() && (InTarget.OutputPaths.Length > 1 || !InTarget.OutputPaths[0].Contains("-armv7-es2")))
@@ -1061,9 +1071,12 @@ namespace UnrealBuildTool.Android
 // 			return bSeparateApks;
 		}
 
-		public override bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor)
+		public override bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
 		{
-			MakeApk(ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution, CookFlavor, ShouldMakeSeparateApks(), bIncrementalPackage:false);
+			// note that we cannot allow the data packaged into the APK if we are doing something like Launch On that will not make an obb
+			// file and instead pushes files directly via deploy
+			MakeApk(ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution:bForDistribution, CookFlavor:CookFlavor, 
+				bMakeSeparateApks:ShouldMakeSeparateApks(), bIncrementalPackage:false, bDisallowPackagingDataInApk:bIsDataDeploy);
 			return true;
 		}
 

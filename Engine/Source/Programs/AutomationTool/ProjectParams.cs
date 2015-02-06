@@ -1879,6 +1879,7 @@ namespace AutomationTool
 				CommandUtils.Log("IsCodeBasedProject={0}", IsCodeBasedProject.ToString());
 				CommandUtils.Log("IsProgramTarget={0}", IsProgramTarget.ToString());
 				CommandUtils.Log("IterativeCooking={0}", IterativeCooking);
+                CommandUtils.Log("Deploy={0}", Deploy);
 				CommandUtils.Log("IterativeDeploy={0}", IterativeDeploy);
 				CommandUtils.Log("LogWindow={0}", LogWindow);
 				CommandUtils.Log("Manifests={0}", Manifests);
@@ -1890,6 +1891,7 @@ namespace AutomationTool
 				CommandUtils.Log("NoXGE={0}", NoXGE);
 				CommandUtils.Log("MapsToCook={0}", MapsToCook.ToString());
 				CommandUtils.Log("Pak={0}", Pak);
+				CommandUtils.Log("Package={0}", Package);
 				CommandUtils.Log("NullRHI={0}", NullRHI);
 				CommandUtils.Log("FakeClient={0}", FakeClient);
                 CommandUtils.Log("EditorTest={0}", EditorTest);
