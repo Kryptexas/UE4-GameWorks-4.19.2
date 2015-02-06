@@ -117,6 +117,28 @@ int32 CaseTest(const TCHAR* CommandLine)
 }
 
 /**
+ * Message box test/
+ */
+int32 MessageBoxTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+	UE_LOG(LogTestPAL, Display, TEXT("Running message box test."));
+	
+	FString Display(TEXT("I am a big big string in a big big game, it's not a big big thing if you print me. But I do do feel that I do do will be displayed wrong, displayed wrong...  or not."));
+	FString Caption(TEXT("I am a big big caption in a big big game, it's not a big big thing if you print me. But I do do feel that I do do will be displayed wrong, displayed wrong... or not."));
+	EAppReturnType::Type Result = FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *Display, *Caption);
+
+	UE_LOG(LogTestPAL, Display, TEXT("MessageBoxExt result: %d."), static_cast<int32>(Result));
+	
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
+
+/**
  * Selects and runs one of test cases.
  *
  * @param ArgC Number of commandline arguments.
@@ -138,6 +160,10 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_CASE_SENSITIVITY_TEST))
 		{
 			return CaseTest(*TestPAL::CommandLine);
+		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_MESSAGEBOX_TEST))
+		{
+			return MessageBoxTest(*TestPAL::CommandLine);
 		}
 	}
 

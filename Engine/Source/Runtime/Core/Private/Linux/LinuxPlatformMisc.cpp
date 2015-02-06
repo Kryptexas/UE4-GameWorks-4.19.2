@@ -442,12 +442,14 @@ EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType
 			break;
 	}
 
+	FTCHARToUTF8 CaptionUTF8(Caption);
+	FTCHARToUTF8 TextUTF8(Text);
 	SDL_MessageBoxData MessageBoxData = 
 	{
 		SDL_MESSAGEBOX_INFORMATION,
 		NULL, // No parent window
-		TCHAR_TO_UTF8(Caption),
-		TCHAR_TO_UTF8(Text),
+		CaptionUTF8.Get(),
+		TextUTF8.Get(),
 		NumberOfButtons,
 		Buttons,
 		NULL // Default color scheme

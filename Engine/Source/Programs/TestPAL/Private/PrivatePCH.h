@@ -8,6 +8,7 @@
 #define ARG_PROC_TEST						"proc"
 #define ARG_PROC_TEST_CHILD					"proc-child"
 #define ARG_CASE_SENSITIVITY_TEST			"case"
+#define ARG_MESSAGEBOX_TEST					"messagebox"
 
 
 // this module headers
