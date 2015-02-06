@@ -114,6 +114,8 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 
 	bCachedAllCollideableDescendantsRelative = false;
 	LastCheckedAllCollideableDescendantsTime = 0.f;
+
+	PhysicsMobility = Mobility;
 }
 
 bool UPrimitiveComponent::UsesOnlyUnlitMaterials() const
