@@ -48,6 +48,7 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 		Args.AssetOverride = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));;
 		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
 		Args.ComponentNameOverride = LOCTEXT("BasicCubeShapeDisplayName", "Cube").ToString();
+		Args.IconOverrideBrushName = FName("ClassIcon.Cube");
 
 		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
 		SortedClassList.Add(NewShape);
@@ -58,6 +59,7 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 		Args.AssetOverride = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));;
 		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
 		Args.ComponentNameOverride = LOCTEXT("BasicSphereShapeDisplayName", "Sphere").ToString();
+		Args.IconOverrideBrushName = FName("ClassIcon.Sphere");
 
 		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
 		SortedClassList.Add(NewShape);
@@ -68,6 +70,7 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 		Args.AssetOverride = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));;
 		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
 		Args.ComponentNameOverride = LOCTEXT("BasicCylinderShapeDisplayName", "Cylinder").ToString();
+		Args.IconOverrideBrushName = FName("ClassIcon.Cylinder");
 
 		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
 		SortedClassList.Add(NewShape);
@@ -78,6 +81,7 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 		Args.AssetOverride = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cone.Cone"));;
 		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
 		Args.ComponentNameOverride = LOCTEXT("BasicConeShapeDisplayName", "Cone").ToString();
+		Args.IconOverrideBrushName = FName("ClassIcon.Cone");
 
 		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
 		SortedClassList.Add(NewShape);
