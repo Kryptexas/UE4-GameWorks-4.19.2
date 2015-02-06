@@ -144,11 +144,34 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 					else if (Key.Contains(TEXT("EndDate")))
 					{
 						FString Date, Time;
-						Value.Split(TEXT(" "), &Date, &Time);
+						Value.Split(TEXT("T"), &Date, &Time);
 						Cert->Expires = Date;
 					}
 				}
-				CertificateList.Add(Cert);
+				CertificatePtr PrevCert = NULL;
+				for (int CIndex = 0; CIndex < CertificateList.Num() && !PrevCert.IsValid(); ++CIndex)
+				{
+					if (CertificateList[CIndex]->Name == Cert->Name)
+					{
+						PrevCert = CertificateList[CIndex];
+						break;
+					}
+				}
+				if (!PrevCert.IsValid())
+				{
+					CertificateList.Add(Cert);
+				}
+				else
+				{
+					FDateTime time1, time2;
+					FDateTime::ParseIso8601(*(PrevCert->Expires), time1);
+					FDateTime::ParseIso8601(*(Cert->Expires), time2);
+					if (time2 > time1)
+					{
+						PrevCert->Expires = Cert->Expires;
+					}
+					Cert = NULL;
+				}
 			}
 			else if (Line.Contains(TEXT("PROVISION-"), ESearchCase::CaseSensitive))
 			{
