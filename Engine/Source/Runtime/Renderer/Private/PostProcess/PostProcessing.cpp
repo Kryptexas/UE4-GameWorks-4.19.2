@@ -429,31 +429,14 @@ static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDe
 
 static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDepthOfFieldStats& Out)
 {
-	float FarSize = Context.View.FinalPostProcessSettings.DepthOfFieldFarBlurSize;
-	float NearSize = Context.View.FinalPostProcessSettings.DepthOfFieldNearBlurSize;
-
-	float MaxSize = CVarDepthOfFieldMaxSize.GetValueOnRenderThread();
-
-	FarSize = FMath::Min(FarSize, MaxSize);
-	NearSize = FMath::Min(NearSize, MaxSize);
-
-	Out.bFar = FarSize >= 0.01f;
-	Out.bNear = NearSize >= GetCachedScalabilityCVars().GaussianDOFNearThreshold;
-
-	if(!Out.bFar && !Out.bNear)
-	{
-		return;
-	}
-
 	if(Context.View.Family->EngineShowFlags.VisualizeDOF)
 	{
 		// no need for this pass
 		return;
 	}
 
-	FRenderingCompositePass* DOFSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFSetup(Out.bNear));
+	FRenderingCompositePass* DOFSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFSetup(false));
 	DOFSetup->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-	// We need the depth to create the near and far mask
 	DOFSetup->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
 
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
@@ -482,52 +465,21 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 		ViewState->bBokehDOFHistory = false;
 	}
 
-	FRenderingCompositePass* DOFInputPass2 = DOFSetup;
-	EPassOutputId DOFInputPassId = ePId_Output1;
-	if( Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA && ViewState )
-	{
-		FRenderingCompositePass* HistoryInput;
-		EPassOutputId DOFInputPassId2 = ePId_Output1;
-		if( ViewState->DOFHistoryRT2 && !ViewState->bBokehDOFHistory2 && !Context.View.bCameraCut )
-		{
-			HistoryInput = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessInput( ViewState->DOFHistoryRT2 ) );
-			DOFInputPassId2 = ePId_Output0;
-		}
-		else
-		{
-			// No history so use current as history
-			HistoryInput = DOFSetup;
-			DOFInputPassId2 = ePId_Output1;
-		}
-
-		FRenderingCompositePass* NodeTemporalAA = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessDOFTemporalAANear );
-		NodeTemporalAA->SetInput( ePId_Input0, FRenderingCompositeOutputRef( DOFSetup, ePId_Output1 ) );
-		NodeTemporalAA->SetInput( ePId_Input1, FRenderingCompositeOutputRef( HistoryInput, DOFInputPassId2 ) );
-		NodeTemporalAA->SetInput( ePId_Input2, FRenderingCompositeOutputRef( HistoryInput, DOFInputPassId2 ) );
-		//NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
-
-		DOFInputPass2 = NodeTemporalAA;
-		ViewState->bBokehDOFHistory2 = false;
-
-		DOFInputPassId = ePId_Output0;
-	}
-
 	FRenderingCompositeOutputRef Far;
 	FRenderingCompositeOutputRef Near;
 
-	FRenderingCompositePass* DOFApply = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOF(Out.bNear));
-	DOFApply->SetInput(ePId_Input0, FRenderingCompositeOutputRef(DOFInputPass, ePId_Output0));
-	Far = FRenderingCompositeOutputRef(DOFApply, ePId_Output0);
-	if(Out.bNear)
-	{
-		DOFApply->SetInput(ePId_Input1, FRenderingCompositeOutputRef(DOFInputPass2, DOFInputPassId));
-		Near = FRenderingCompositeOutputRef(DOFApply, ePId_Output1);
-	}
+	FRenderingCompositePass* DOFNear = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFDilate());
+	DOFNear->SetInput(ePId_Input0, FRenderingCompositeOutputRef(DOFInputPass, ePId_Output0));
+	Near = FRenderingCompositeOutputRef(DOFNear, ePId_Output0);
 
-	FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFRecombine(Out.bNear));
+	FRenderingCompositePass* DOFApply = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOF(false));
+	DOFApply->SetInput(ePId_Input0, FRenderingCompositeOutputRef(DOFInputPass, ePId_Output0));
+	DOFApply->SetInput(ePId_Input1, Near);
+	Far = FRenderingCompositeOutputRef(DOFApply, ePId_Output0);
+
+	FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFRecombine(false));
 	NodeRecombined->SetInput(ePId_Input0, Context.FinalOutput);
 	NodeRecombined->SetInput(ePId_Input1, Far);
-	NodeRecombined->SetInput(ePId_Input2, Near);
 
 	Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
 }

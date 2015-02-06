@@ -71,7 +71,24 @@ private:
 	bool bNearBlurEnabled;
 };
 
-// down sample and setup DOF input
+
+// ePId_Input0: SceneColor
+class FRCPassPostProcessCircleDOFDilate : public TRenderingCompositePassBase<1, 1>
+{
+public:
+
+	FRCPassPostProcessCircleDOFDilate(void) {}
+
+	// interface FRenderingCompositePass ---------
+
+	virtual void Process(FRenderingCompositePassContext& Context);
+	virtual void Release() override { delete this; }
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+};
+
+
+
+
 // ePId_Input0: setup results for far
 // ePId_Input1: setup results for near
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
