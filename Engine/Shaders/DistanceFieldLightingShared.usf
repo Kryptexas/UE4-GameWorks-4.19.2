@@ -216,19 +216,6 @@ void LoadObjectAxes(uint ObjectIndex, out float3 ObjectAxisX, out float3 ObjectA
 	ObjectAxisZ = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 4).xyz;
 }
 
-Buffer<uint> ShadowTileHeadDataUnpacked;
-Buffer<uint> ShadowTileArrayData;
-uint2 ShadowTileListGroupSize;
-
-uint2 GetShadowTileHead(uint2 TileCoordinate)
-{
-	uint TileIndex = TileCoordinate.y * ShadowTileListGroupSize.x + TileCoordinate.x;
-
-	return uint2(
-		ShadowTileHeadDataUnpacked[TileIndex * 2 + 0], 
-		min(ShadowTileHeadDataUnpacked[TileIndex * 2 + 1], (uint)MAX_OBJECTS_PER_TILE)); 
-}
-
 void FindBestAxisVectors2(float3 InZAxis, out float3 OutXAxis, out float3 OutYAxis )
 {
 	float3 UpVector = abs(InZAxis.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
@@ -298,3 +285,29 @@ float3 LoadSurfelEmissiveColor(uint SurfelIndex)
 	return SurfelData[SurfelIndex * SURFEL_DATA_STRIDE + 3].xyz;
 }
 
+float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float AngleBetweenCones)
+{
+	float AngleDifference = abs(ArcLength0 - ArcLength1);
+
+	float Intersection = smoothstep(
+		0,
+		1.0,
+		1.0 - saturate((AngleBetweenCones - AngleDifference) / (ArcLength0 + ArcLength1 - AngleDifference)));
+
+	return Intersection;
+}
+
+float GetVPLOcclusion(float3 BentNormalAO, float3 NormalizedVectorToVPL)
+{
+	float BentNormalLength = length(BentNormalAO);
+	float VPLConeAngle = .5f;
+	float VPLOcclusionStrength = 1;
+	float UnoccludedAngle = BentNormalLength * PI / VPLOcclusionStrength;
+	float AngleBetween = acos(dot(BentNormalAO, NormalizedVectorToVPL) / max(BentNormalLength, .0001f));
+	float Visibility = ApproximateConeConeIntersection(VPLConeAngle, UnoccludedAngle, AngleBetween);
+
+	// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
+	Visibility = lerp(0, Visibility, saturate((UnoccludedAngle - .1f) / .2f));
+
+	return Visibility;
+}

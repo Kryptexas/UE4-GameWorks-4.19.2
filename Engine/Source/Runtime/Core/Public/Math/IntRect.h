@@ -177,6 +177,9 @@ public:
 	 */
 	void Clip( const FIntRect& Other );
 
+	/** Combines the two rectanges. */
+	void Union( const FIntRect& Other);
+
 	/**
 	 * Test whether this rectangle contains a point.
 	 *
@@ -448,6 +451,13 @@ FORCEINLINE void FIntRect::Clip( const FIntRect& R )
 	Max.Y = FMath::Max<int32>(Min.Y, Max.Y);
 }
 
+FORCEINLINE void FIntRect::Union( const FIntRect& R )
+{
+	Min.X = FMath::Min<int32>(Min.X, R.Min.X);
+	Min.Y = FMath::Min<int32>(Min.Y, R.Min.Y);
+	Max.X = FMath::Max<int32>(Max.X, R.Max.X);
+	Max.Y = FMath::Max<int32>(Max.Y, R.Max.Y);
+}
 
 FORCEINLINE bool FIntRect::Contains( FIntPoint P ) const
 {

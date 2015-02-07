@@ -487,13 +487,25 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 
 protected:
 	int8						MaxLOD;
+	/** 
+	 * Number of subsections within the component in each dimension, this can be 1 or 2.  
+	 * Subsections exist to improve the speed at which LOD transitions can take place over distance. 
+	 */
 	int32						NumSubsections;
+	/** Number of unique heights in the subsection. */
 	int32						SubsectionSizeQuads;
+	/** Number of heightmap heights in the subsection.  This includes the duplicate row at the end. */
 	int32						SubsectionSizeVerts;
-	int32						ComponentSizeQuads;	// Size of component in quads
-	int32						ComponentSizeVerts;
+	/** Size of the component in unique heights. */
+	int32						ComponentSizeQuads;	
+	/** 
+	 * ComponentSizeQuads + 1.  
+	 * Note: in the case of multiple subsections, this is not very useful, as there will be an internal duplicate row of heights in addition to the row at the end.
+	 */
+	int32						ComponentSizeVerts; 
 	uint8						StaticLightingLOD;
 	float						StaticLightingResolution;
+	/** Address of the component within the parent Landscape in unique height texels. */
 	FIntPoint					SectionBase;
 	FMatrix						LocalToWorldNoScaling;
 
@@ -576,7 +588,7 @@ public:
 	// FLandcapeSceneProxy
 	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);
 
-	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FVector4& OutHeightfieldScaleBias, FVector4& OutMinMaxUV) override;
+	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FHeightfieldComponentDescription& OutDescription) override;
 };
 
 class FLandscapeDebugMaterialRenderProxy : public FMaterialRenderProxy

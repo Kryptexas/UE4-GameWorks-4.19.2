@@ -19,6 +19,8 @@ const int32 GAODownsampleFactor = 2;
 static const int32 GMaxNumObjectsPerTile = 512;
 extern uint32 UpdateObjectsGroupSize;
 
+extern int32 GDistanceFieldGI;
+
 extern FIntPoint GetBufferSizeForAO();
 
 class FDistanceFieldObjectBuffers

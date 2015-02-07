@@ -15,6 +15,7 @@
 #include "FXSystem.h"
 #include "DistanceFieldLightingShared.h"
 #include "SpeedTreeWind.h"
+#include "HeightfieldLighting.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -84,6 +85,7 @@ FSceneViewState::FSceneViewState()
 	bBokehDOFHistory2 = true;
 
 	LightPropagationVolume = NULL; 
+	HeightfieldLightingAtlas = NULL;
 
 	for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(TranslucencyLightingCacheAllocations); CascadeIndex++)
 	{
@@ -95,6 +97,36 @@ FSceneViewState::FSceneViewState()
 	ShadowOcclusionQueryMaps.Empty(NumBufferedFrames);
 	ShadowOcclusionQueryMaps.AddZeroed(NumBufferedFrames);	
 #endif
+}
+
+void DestroyRenderResource(FRenderResource* RenderResource)
+{
+	if (RenderResource) 
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			DestroySceneViewStateRenderResource,
+			FRenderResource*, RenderResourceRT, RenderResource,
+			{
+				RenderResourceRT->ReleaseResource();
+				delete RenderResourceRT;
+			}
+		);
+	}
+}
+
+FSceneViewState::~FSceneViewState()
+{
+	CachedVisibilityChunk = NULL;
+
+	for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(TranslucencyLightingCacheAllocations); CascadeIndex++)
+	{
+		delete TranslucencyLightingCacheAllocations[CascadeIndex];
+	}
+
+	DestroyRenderResource(HeightfieldLightingAtlas);
+	DestroyRenderResource(AOTileIntersectionResources);
+	AOTileIntersectionResources = NULL;
+	DestroyLightPropagationVolume();
 }
 
 FDistanceFieldSceneData::FDistanceFieldSceneData() 

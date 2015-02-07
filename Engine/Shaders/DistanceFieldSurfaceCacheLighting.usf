@@ -164,8 +164,6 @@ struct FIrradianceCacheSplatVertexOutput
 #endif
 };
 
-Buffer<uint> CompactedRedirect;
-Buffer<uint> IrradianceCacheUsed;
 float InterpolationRadiusScale;
 float2 NormalizedOffsetToPixelCenter;
 float HackExpand;
@@ -687,18 +685,20 @@ void AOUpsamplePS(
 	#endif
 #endif
 
-#if OUTPUT_BENT_NORMAL
-	OutBentNormal = float4(BentNormal, 1);
-	#if SUPPORT_IRRADIANCE
-		OutIrradiance = float4(Irradiance, 1);
-	#endif
+#if OUTPUT_AO
+	OutBentNormal = float4(length(BentNormal).xxx, 1);
 #else
-
-	// Output to RT0 to visualize Irradiance or BentNormal
-	#if SUPPORT_IRRADIANCE
-		OutBentNormal = float4(Irradiance, 1);
+	#if OUTPUT_BENT_NORMAL
+		OutBentNormal = float4(BentNormal, 1);
+		#if SUPPORT_IRRADIANCE
+			OutIrradiance = float4(Irradiance, 1);
+		#endif
 	#else
-		OutBentNormal = float4(length(BentNormal).xxx, 1);
+
+		// Output to RT0 to visualize Irradiance or BentNormal
+		#if SUPPORT_IRRADIANCE
+			OutBentNormal = float4(Irradiance, 1);
+		#endif
 	#endif
 #endif
 }

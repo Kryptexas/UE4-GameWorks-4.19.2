@@ -802,6 +802,8 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 
 			FLightTileIntersectionResources* TileIntersectionResources = LightSceneInfo->TileIntersectionResources;
 
+			View.HeightfieldLightingViewInfo.ComputeRayTracedShadowing(View, RHICmdList, this, TileIntersectionResources, GShadowCulledObjectBuffers);
+
 			TRefCountPtr<IPooledRenderTarget> RayTracedShadowsRT;
 
 			{
@@ -823,6 +825,8 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 
 				{
 					SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows);
+
+					SetRenderTarget(RHICmdList, NULL, NULL);
 
 					if (bDirectionalLight && GShadowScatterTileCulling)
 					{

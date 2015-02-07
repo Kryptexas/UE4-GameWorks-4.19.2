@@ -476,6 +476,9 @@ private:
 	FLightPropagationVolume* LightPropagationVolume;
 
 public:
+
+	FHeightfieldLightingAtlas* HeightfieldLightingAtlas;
+
 	// If Translucency should be rendered into a separate RT and composited without DepthOfField, can be disabled in the materials (affects sorting)
 	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
 	// Temporal AA result of last frame
@@ -556,21 +559,9 @@ public:
 	/** Default constructor. */
 	FSceneViewState();
 
-	void DestroyAOTileResources();
 	void DestroyLightPropagationVolume();
 
-	virtual ~FSceneViewState()
-	{
-		CachedVisibilityChunk = NULL;
-
-		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(TranslucencyLightingCacheAllocations); CascadeIndex++)
-		{
-			delete TranslucencyLightingCacheAllocations[CascadeIndex];
-		}
-
-		DestroyAOTileResources();
-		DestroyLightPropagationVolume();
-	}
+	virtual ~FSceneViewState();
 
 	// called every frame after the view state was updated
 	void UpdateLastRenderTime(const FSceneViewFamily& Family)

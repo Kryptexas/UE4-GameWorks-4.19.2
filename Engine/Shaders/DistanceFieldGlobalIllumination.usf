@@ -9,6 +9,7 @@
 #include "DistanceFieldLightingShared.usf"
 #include "DistanceFieldAOShared.usf"
 #include "DynamicLightingCommon.usf"
+#include "DistanceFieldShadowingShared.usf"
 
 #define USE_SHADOW_CULLING_FOR_VPL_PLACEMENT 1
 
@@ -161,7 +162,6 @@ float3 ComputeDistanceFieldNormal(float3 WorldPosition, uint ObjectIndex)
 /** From light source, into world. */
 float4 LightDirectionAndTraceDistance;
 float4 LightColor;
-float4x4 WorldToShadow;
 float4x4 ShadowToWorld;
 float2 InvPlacementGridSize;
 float VPLPlacementCameraRadius;
@@ -192,16 +192,7 @@ void VPLPlacementCS(
 
 		#if USE_SHADOW_CULLING_FOR_VPL_PLACEMENT
 
-			// Transform into shadow space
-			float4 HomogeneousShadowPosition = mul(float4(CellStartWorldPosition, 1), WorldToShadow);
-			float2 NormalizedShadowPosition = HomogeneousShadowPosition.xy * .5f + .5f;
-			NormalizedShadowPosition.y = 1 - NormalizedShadowPosition.y;
-			// Quantize the shadow position to get our tile position
-			uint2 TilePosition = (uint2)(NormalizedShadowPosition * ShadowTileListGroupSize);
-			// Fetch the tile head information
-			uint2 TileHead = GetShadowTileHead(TilePosition);
-			NumIntersectingObjects = TileHead.y;
-			CulledDataStart = TileHead.x;
+			GetShadowTileCulledData(CellStartWorldPosition, CulledDataStart, NumIntersectingObjects);
 
 		#endif
 
@@ -484,16 +475,8 @@ float3 ComputeVPLFlux(uint SurfelIndex, float4x4 InstanceToWorld)
 
 					#if USE_SHADOW_CULLING_FOR_VPL_PLACEMENT
 
-						// Transform into shadow space
-						float4 HomogeneousShadowPosition = mul(float4(WorldRayStart, 1), WorldToShadow);
-						float2 NormalizedShadowPosition = HomogeneousShadowPosition.xy * .5f + .5f;
-						NormalizedShadowPosition.y = 1 - NormalizedShadowPosition.y;
-						// Quantize the shadow position to get our tile position
-						uint2 TilePosition = (uint2)(NormalizedShadowPosition * ShadowTileListGroupSize);
-						// Fetch the tile head information
-						uint2 TileHead = GetShadowTileHead(TilePosition);
-						NumIntersectingObjects = TileHead.y;
-						CulledDataStart = TileHead.x;
+						uint CulledDataStart;
+						GetShadowTileCulledData(WorldRayStart, CulledDataStart, NumIntersectingObjects);
 
 					#endif
 				}
@@ -511,9 +494,9 @@ float3 ComputeVPLFlux(uint SurfelIndex, float4x4 InstanceToWorld)
 	if (any(AccumulatedLighting > 0))
 	{
 		float3 DiffuseColor = LoadSurfelDiffuseColor(SurfelIndex);
-		float3 EmissiveColor = LoadSurfelDiffuseColor(SurfelIndex);
+		//float3 EmissiveColor = LoadSurfelEmissiveColor(SurfelIndex);
 
-		Flux = (DiffuseColor * AccumulatedLighting + EmissiveColor) * PI * PositionAndRadius.w * PositionAndRadius.w;
+		Flux = (DiffuseColor * AccumulatedLighting/* + EmissiveColor*/) * PI * PositionAndRadius.w * PositionAndRadius.w;
 	}
 
 	return Flux;
@@ -587,6 +570,22 @@ void LightVPLsCS(
 			}
 		}*/
 	}
+}
+
+RWBuffer<float4> RWIrradianceCacheIrradiance;
+
+/**  */
+[numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
+void ClearIrradianceSamplesCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint StartIndex = SavedStartIndex[0];
+	uint NumRecords = ScatterDrawParameters[1];
+	uint RecordIndex = StartIndex + DispatchThreadId.x;
+
+	RWIrradianceCacheIrradiance[RecordIndex] = 0;
 }
 
 float RayTraceThroughGlobalObjects(
@@ -679,33 +678,6 @@ float RayTraceThroughGlobalObjects(
 	}
 
 	return MinVisibility;
-}
-
-float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float AngleBetweenCones)
-{
-	float AngleDifference = abs(ArcLength0 - ArcLength1);
-
-	float Intersection = smoothstep(
-		0,
-		1.0,
-		1.0 - saturate((AngleBetweenCones - AngleDifference) / (ArcLength0 + ArcLength1 - AngleDifference)));
-
-	return Intersection;
-}
-
-float GetVPLOcclusion(float3 BentNormalAO, float3 NormalizedVectorToVPL)
-{
-	float BentNormalLength = length(BentNormalAO);
-	float VPLConeAngle = .5f;
-	float VPLOcclusionStrength = 1;
-	float UnoccludedAngle = BentNormalLength * PI / VPLOcclusionStrength;
-	float AngleBetween = acos(dot(BentNormalAO, NormalizedVectorToVPL) / max(BentNormalLength, .0001f));
-	float Visibility = ApproximateConeConeIntersection(VPLConeAngle, UnoccludedAngle, AngleBetween);
-
-	// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
-	Visibility = lerp(0, Visibility, saturate((UnoccludedAngle - .1f) / .2f));
-
-	return Visibility;
 }
 
 Buffer<float> RecordConeData;
@@ -986,8 +958,6 @@ float3 GatherIrradianceFromVPLs(float3 WorldPosition, float3 WorldNormal, uint R
 
 	return Irradiance;
 }
-
-RWBuffer<float4> RWIrradianceCacheIrradiance;
 
 groupshared float3 SharedThreadIrradiance[FINAL_GATHER_THREADGROUP_SIZE];
 

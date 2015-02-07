@@ -9,6 +9,7 @@
 #include "TextureLayout.h"
 #include "DistortionRendering.h"
 #include "CustomDepthRendering.h"
+#include "HeightfieldLighting.h"
 
 // Forward declarations.
 class FPostprocessContext;
@@ -472,6 +473,8 @@ public:
 	FLinearColor LightShaftColorMask;
 	FLinearColor LightShaftColorApply;
 	bool bLightShaftUse;
+
+	FHeightfieldLightingViewInfo HeightfieldLightingViewInfo;
 
 	TShaderMap<FGlobalShaderType>* ShaderMap;
 

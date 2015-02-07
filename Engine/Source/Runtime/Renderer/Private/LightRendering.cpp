@@ -488,6 +488,12 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			{
 				INC_DWORD_STAT(STAT_NumShadowedLights);
 
+				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+				{
+					const FViewInfo& View = Views[ViewIndex];
+					View.HeightfieldLightingViewInfo.ClearShadowing(View, RHICmdList, LightSceneInfo);
+				}
+
 				// All shadows render with min blending
 				GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList, true);
 
@@ -506,6 +512,12 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					INC_DWORD_STAT(STAT_NumReflectiveShadowMapLights);
 					RenderReflectiveShadowMaps(RHICmdList, &LightSceneInfo );
 				}
+			}
+
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				const FViewInfo& View = Views[ViewIndex];
+				View.HeightfieldLightingViewInfo.ComputeLighting(View, RHICmdList, LightSceneInfo);
 			}
 			
 			// Render light function to the attenuation buffer.

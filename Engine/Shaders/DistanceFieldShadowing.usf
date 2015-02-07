@@ -7,6 +7,7 @@
 #include "Common.usf"
 #include "DeferredShadingCommon.usf"
 #include "DistanceFieldLightingShared.usf"
+#include "DistanceFieldShadowingShared.usf"
 
 RWBuffer<float4> RWCulledObjectBounds;
 RWBuffer<float4> RWCulledObjectData;
@@ -17,8 +18,6 @@ float4 FetchObjectDataFloat4(uint SourceIndex)
 {
 	return float4(ObjectData[4 * SourceIndex + 0], ObjectData[4 * SourceIndex + 1], ObjectData[4 * SourceIndex + 2], ObjectData[4 * SourceIndex + 3]);
 }
-
-float4x4 WorldToShadow;
 
 void CopyCulledObjectData(uint DestIndex, uint SourceIndex)
 {
@@ -303,7 +302,6 @@ float LightSourceRadius;
 float RayStartOffsetDepthScale;
 float2 TanLightAngleAndNormalThreshold;
 int4 ScissorRectMinAndSize;
-float TwoSidedMeshDistanceBias;
 
 /** Min and Max depth for this tile. */
 groupshared uint IntegerTileMinZ;
@@ -316,9 +314,6 @@ groupshared uint IntegerTileMaxZ2;
 /** Number of objects affecting the tile, after culling. */
 groupshared uint TileNumObjects0;
 groupshared uint TileNumObjects1;
-
-#define MAX_INTERSECTING_OBJECTS 256
-groupshared uint IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * 2];
 
 void CullObjectsToTileWithGather(
 	float SceneDepth, 
@@ -498,6 +493,7 @@ void DistanceFieldShadowingCS(
 	float MinDepth = 0;
 
 	uint NumIntersectingObjects = GetCulledNumObjects();
+	uint CulledDataParameter = 0;
 	bool bTileShouldComputeShadowing = SceneDepth > MinDepth;
 
 #define USE_CULLING 1
@@ -505,20 +501,11 @@ void DistanceFieldShadowingCS(
 
 #if SCATTER_TILE_CULLING
 
-	// Transform into shadow space
-	float4 HomogeneousShadowPosition = mul(float4(OpaqueWorldPosition, 1), WorldToShadow);
-	float2 NormalizedShadowPosition = HomogeneousShadowPosition.xy * .5f + .5f;
-	NormalizedShadowPosition.y = 1 - NormalizedShadowPosition.y;
-	// Quantize the shadow position to get our tile position
-	uint2 TilePosition = (uint2)(NormalizedShadowPosition * ShadowTileListGroupSize);
-	// Fetch the tile head information
-	uint2 TileHead = GetShadowTileHead(TilePosition);
-	NumIntersectingObjects = TileHead.y;
+	GetShadowTileCulledData(OpaqueWorldPosition, CulledDataParameter, NumIntersectingObjects);
 
 #else
 
-	uint GroupIndex;
-	CullObjectsToTileWithGather(SceneDepth, ThreadIndex, GroupId.xy, TraceDistance, MinDepth, NumIntersectingObjects, bTileShouldComputeShadowing, GroupIndex);
+	CullObjectsToTileWithGather(SceneDepth, ThreadIndex, GroupId.xy, TraceDistance, MinDepth, NumIntersectingObjects, bTileShouldComputeShadowing, CulledDataParameter);
 
 #endif
 #endif // USE_CULLING
@@ -560,108 +547,29 @@ void DistanceFieldShadowingCS(
 
 			#endif
 
-			float MinRayTime = MaxRayTime;
-			float MinConeVisibility = 1;
-			float3 WorldRayUnitDirection = normalize(WorldRayEnd - WorldRayStart);
+			#if SCATTER_TILE_CULLING
+				bool bUseScatterTileCulling = true;
+			#else
+				bool bUseScatterTileCulling = false;
+			#endif
+		
+			#if USE_CULLING
+				bool bUseCulling = true;
+			#else
+				bool bUseCulling = false;
+			#endif
 
-			LOOP
-			for (uint ListObjectIndex = 0; ListObjectIndex < NumIntersectingObjects && MinRayTime >= MaxRayTime; ListObjectIndex++)
-			{
-				#if USE_CULLING
-					#if SCATTER_TILE_CULLING
-						uint ObjectIndex = ShadowTileArrayData.Load(ListObjectIndex * ShadowTileListGroupSize.x * ShadowTileListGroupSize.y + TileHead.x);
-					#else
-						uint ObjectIndex = IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * GroupIndex + ListObjectIndex];
-					#endif
-				#else
-					uint ObjectIndex = ListObjectIndex;
-				#endif
-
-				float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
-				float ObjectCenterDistanceAlongRay = dot(SphereCenterAndRadius.xyz - WorldRayStart, WorldRayUnitDirection);
-
-				BRANCH
-				if (ObjectCenterDistanceAlongRay > -SphereCenterAndRadius.w)
-				{
-					float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
-					float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
-					bool bGeneratedAsTwoSided;
-					float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex, bGeneratedAsTwoSided);
-					float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
-
-					float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
-					float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
-					float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;
-					float VolumeRayLength = length(VolumeRayDirection);
-					VolumeRayDirection /= VolumeRayLength;
-
-					float WorldToVolumeScale = 1.0f / UVScaleAndVolumeScale.w;
-					float VolumeMinSphereRadius = MinSphereRadius * WorldToVolumeScale;
-					float VolumeMaxSphereRadius = MaxSphereRadius * WorldToVolumeScale;
-					float VolumeTwoSidedMeshDistanceBias = TwoSidedMeshDistanceBias * WorldToVolumeScale;
-
-					// Expand the intersection box by the radius of the cone at the distance of the object along the cone
-					float LocalConeRadiusAtObject = min(TanLightAngle * max(ObjectCenterDistanceAlongRay, 0) * WorldToVolumeScale, VolumeMaxSphereRadius);
-
-					float2 IntersectionTimes = LineBoxIntersect(VolumeRayStart, VolumeRayEnd, -LocalPositionExtent - LocalConeRadiusAtObject, LocalPositionExtent + LocalConeRadiusAtObject);
-
-					BRANCH
-					if (IntersectionTimes.x < IntersectionTimes.y && IntersectionTimes.x < 1)
-					{
-						float SampleRayTime = IntersectionTimes.x * VolumeRayLength;
-						uint MaxSteps = 64;
-						float MinStepSize = 1.0f / (4 * MaxSteps);
-
-						float MinDistance = 1000000;
-						float3 IntersectionPosition = float3(0, 0, 0);
-
-						uint StepIndex = 0;
-
-						LOOP
-						for (; StepIndex < MaxSteps; StepIndex++)
-						{
-							float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
-							float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
-							float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
-							float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-							float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
-
-							FLATTEN
-							if (bGeneratedAsTwoSided)
-							{
-								DistanceField -= VolumeTwoSidedMeshDistanceBias;
-							}
-
-							MinDistance = min(MinDistance, DistanceField);
-							float SphereRadius = clamp(TanLightAngle * SampleRayTime, VolumeMinSphereRadius, VolumeMaxSphereRadius);
-
-							MinConeVisibility = min(MinConeVisibility, saturate(DistanceField / SphereRadius));
-							IntersectionPosition = SampleVolumePosition;
-
-							float StepDistance = max(DistanceField, MinStepSize);
-							SampleRayTime += StepDistance;
-
-							// Terminate the trace if we reached a negative area or went past the end of the ray
-							if (DistanceField < 0 
-								|| SampleRayTime > IntersectionTimes.y * VolumeRayLength)
-							{
-								break;
-							}
-						}
-
-						if (MinDistance < 0 || StepIndex == MaxSteps)
-						{
-							MinConeVisibility = 0;
-							MinRayTime = min(MinRayTime, SampleRayTime * UVScaleAndVolumeScale.w);
-						}
-
-						// Force to shadowed as we approach max steps
-						MinConeVisibility = min(MinConeVisibility, (1 - StepIndex / (float)MaxSteps));
-					}
-				}
-			}
-
-			Result = MinConeVisibility;
+			Result = ShadowRayTraceThroughCulledObjects(
+				WorldRayStart, 
+				WorldRayEnd, 
+				MaxRayTime, 
+				TanLightAngle, 
+				MinSphereRadius, 
+				MaxSphereRadius, 
+				CulledDataParameter, 
+				NumIntersectingObjects,
+				bUseCulling,
+				bUseScatterTileCulling);
 		}
 	}
 

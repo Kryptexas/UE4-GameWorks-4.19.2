@@ -547,11 +547,12 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	float2 SampleCoords = InputPositionLODAdjusted * LandscapeParameters.HeightmapUVScaleBias.xy + LandscapeParameters.HeightmapUVScaleBias.zw + 0.5*LandscapeParameters.HeightmapUVScaleBias.xy + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.xy;
 	float4 SampleValue = Texture2DSampleLevel(HeightmapTexture, HeightmapTextureSampler, SampleCoords, LodValue-LodBias.z);
-	float Height = ((SampleValue.r * 255.0 * 256.0 + SampleValue.g * 255.0) - 32768.0) * TERRAIN_ZSCALE;
+	float Height = DecodePackedHeight(SampleValue.xy);
 
 	float2 SampleCoordsNextLOD = InputPositionNextLOD * LandscapeParameters.HeightmapUVScaleBias.xy + LandscapeParameters.HeightmapUVScaleBias.zw + 0.5*LandscapeParameters.HeightmapUVScaleBias.xy + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.xy;
 	float4 SampleValueNextLOD = Texture2DSampleLevel(HeightmapTexture, HeightmapTextureSampler, SampleCoordsNextLOD, LodValue+1-LodBias.z );
-	float HeightNextLOD = ((SampleValueNextLOD.r * 255.0 * 256.0 + SampleValueNextLOD.g * 255.0) - 32768.0) * TERRAIN_ZSCALE;
+	float HeightNextLOD = DecodePackedHeight(SampleValueNextLOD.xy);
+
 #else
 	// select the height values from the vertex input corresponding to the current and next LOD
 	float SampleLOD = floor(LodValue);
@@ -592,9 +593,10 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 		InputHeightNextLOD	= LOD45[1];	// clamp to last LOD.
 	}
 
-	float MinHeight = (Input.LODHeights[0][0] * 256.0 * 255.0 + Input.LODHeights[0][1] * 255.0 - 32768.0) * TERRAIN_ZSCALE;
-	float MaxHeight = (Input.LODHeights[0][2] * 256.0 * 255.0 + Input.LODHeights[0][3] * 255.0 - 32768.0) * TERRAIN_ZSCALE;
-	
+
+	float MinHeight = DecodePackedHeight(Input.LODHeights[0].xy);
+	float MaxHeight = DecodePackedHeight(Input.LODHeights[0].zw);
+
 	float Height = lerp(MinHeight, MaxHeight, InputHeight);
 	float HeightNextLOD = lerp(MinHeight, MaxHeight, InputHeightNextLOD);
 

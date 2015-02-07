@@ -86,6 +86,24 @@ public:
 	}
 };
 
+/** Information about a heightfield gathered by the renderer for heightfield lighting. */
+class FHeightfieldComponentDescription
+{
+public:
+	FVector4 HeightfieldScaleBias;
+	FVector4 MinMaxUV;
+	FMatrix LocalToWorld;
+	FVector2D LightingAtlasLocation;
+	FIntRect HeightfieldRect;
+
+	int32 NumSubsections;
+	FVector4 SubsectionScaleAndBias;
+
+	FHeightfieldComponentDescription(const FMatrix& InLocalToWorld) :
+		LocalToWorld(InLocalToWorld)
+	{}
+};
+
 namespace EDrawDynamicFlags
 {
 	enum Type
@@ -210,11 +228,9 @@ public:
 		BoundsSurfaceArea = 0;
 	}
 
-	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FVector4& OutHeightfieldScaleBias, FVector4& OutMinMaxUV)
+	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FHeightfieldComponentDescription& OutDescription)
 	{
 		OutHeightmapTexture = NULL;
-		OutHeightfieldScaleBias = FVector4(0, 0, 0, 0);
-		OutMinMaxUV = FVector4(0, 0, 0, 0);
 	}
 
 	/**

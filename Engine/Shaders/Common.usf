@@ -481,8 +481,6 @@ SamplerState	LightAttenuationTextureSampler;
 // We don't use a function so we can avoid type promotion/ coercion.
 #define TangentBias(X) (X * 2.0f - 1.0f)
 
-#define TERRAIN_ZSCALE				(1.0f/128.0f)
-
 float Square( float x )
 {
 	return x*x;
@@ -1113,4 +1111,21 @@ float IsShadowDepthShader()
 #else
 	return 0;
 #endif
+}
+#define TERRAIN_ZSCALE (1.0f/128.0f)
+
+// Decodes a value which was packed into two 8 bit channels
+float DecodePackedTwoChannelValue(float2 PackedHeight)
+{
+	return PackedHeight.x * 255.0 * 256.0 + PackedHeight.y * 255.0;
+}
+
+float DecodeHeightValue(float InValue)
+{
+	return (InValue - 32768.0) * TERRAIN_ZSCALE;
+}
+
+float DecodePackedHeight(float2 PackedHeight)
+{
+	return DecodeHeightValue(DecodePackedTwoChannelValue(PackedHeight));
 }

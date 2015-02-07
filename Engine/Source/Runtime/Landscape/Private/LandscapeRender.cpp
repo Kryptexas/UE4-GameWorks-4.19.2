@@ -2594,24 +2594,22 @@ void FLandscapeComponentSceneProxy::ChangeLODDistanceFactor_RenderThread(float I
 	LODDistance = InLODDistanceFactor;
 }
 
-void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FVector4& OutHeightfieldScaleBias, FVector4& OutMinMaxUV)
+void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FHeightfieldComponentDescription& OutDescription)
 {
 	OutHeightmapTexture = HeightmapTexture;
-	OutHeightfieldScaleBias = HeightmapScaleBias;
+	OutDescription.HeightfieldScaleBias = HeightmapScaleBias;
 
-	check(OutHeightfieldScaleBias.X > 0);
-
-	// CalculateHeightfieldOcclusionCS needs to be fixed up if other values are ever supported
-	check(NumSubsections == 1 || NumSubsections == 2);
-
-	// Store the presence of subsections in the sign bit
-	OutHeightfieldScaleBias.X *= NumSubsections > 1 ? -1 : 1;
-
-	OutMinMaxUV = FVector4(
+	OutDescription.MinMaxUV = FVector4(
 		HeightmapScaleBias.Z, 
 		HeightmapScaleBias.W, 
 		HeightmapScaleBias.Z + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.X, 
 		HeightmapScaleBias.W + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.Y);
+
+	OutDescription.HeightfieldRect = FIntRect(SectionBase.X, SectionBase.Y, SectionBase.X + NumSubsections * SubsectionSizeQuads, SectionBase.Y + NumSubsections * SubsectionSizeQuads);
+
+	OutDescription.NumSubsections = NumSubsections;
+
+	OutDescription.SubsectionScaleAndBias = FVector4(SubsectionSizeQuads, SubsectionSizeQuads, HeightmapSubsectionOffsetU, HeightmapSubsectionOffsetV);
 }
 
 //

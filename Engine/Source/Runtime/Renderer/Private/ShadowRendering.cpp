@@ -3304,6 +3304,23 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 				}
 			}
 
+			
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				const FViewInfo& View = Views[ViewIndex];
+
+				for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
+				{
+					FProjectedShadowInfo* ProjectedShadowInfo = Shadows[ShadowIndex];
+
+					if (ProjectedShadowInfo->bAllocated
+						&& ProjectedShadowInfo->bWholeSceneShadow)
+					{
+						View.HeightfieldLightingViewInfo.ComputeShadowMapShadowing(View, RHICmdList, ProjectedShadowInfo);
+					}
+				}
+			}
+
 			// Mark and count the rendered shadows.
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
 			{

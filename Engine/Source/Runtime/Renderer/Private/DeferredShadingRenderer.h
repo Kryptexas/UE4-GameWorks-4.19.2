@@ -192,7 +192,8 @@ private:
 		const class FDistanceFieldAOParameters& Parameters, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance,
-		bool bApplyToSceneColor);
+		bool bVisualizeAmbientOcclusion,
+		bool bVisualizeGlobalIllumination);
 
 	void RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters);
 
@@ -340,6 +341,7 @@ private:
 	bool ShouldDoReflectionEnvironment() const;
 	
 	bool ShouldRenderDynamicSkyLight() const;
+	bool ShouldRenderDistanceFieldAO() const;
 
 	/** Whether distance field global data structures should be prepared for features that use it. */
 	bool ShouldPrepareForDistanceFieldShadows() const;
