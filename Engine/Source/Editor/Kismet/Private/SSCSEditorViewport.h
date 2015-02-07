@@ -76,7 +76,6 @@ protected:
 	 * @return true if the viewport is visible; false otherwise.
 	 */
 	bool IsVisible() const;
-	EVisibility GetWidgetVisibility() const;
 
 	/** Called when the simulation toggle command is fired */
 	void ToggleIsSimulateEnabled();
