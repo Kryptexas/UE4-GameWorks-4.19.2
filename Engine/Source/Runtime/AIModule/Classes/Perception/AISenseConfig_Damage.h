@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AISenseConfig.h"
+#include "AISense_Damage.h"
 #include "AISenseConfig_Damage.generated.h"
 
 class UAISense_Damage;

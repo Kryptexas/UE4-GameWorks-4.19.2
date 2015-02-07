@@ -548,6 +548,11 @@ float UKismetMathLibrary::FInterpEaseInOut(float A, float B, float Alpha, float 
 	return FMath::InterpEaseInOut<float>(A, B, Alpha, Exponent);
 }
 
+float UKismetMathLibrary::MakePulsatingValue(float InCurrentTime, float InPulsesPerSecond, float InPhase)
+{
+	return FMath::MakePulsatingValue((double)InCurrentTime, InPulsesPerSecond, InPhase);
+}
+
 float UKismetMathLibrary::RandomFloat()
 {
 	return FMath::FRand();
@@ -2030,3 +2035,4 @@ FRandomStream UKismetMathLibrary::MakeRandomStream(int32 InitialSeed)
 {
 	return FRandomStream(InitialSeed);
 }
+

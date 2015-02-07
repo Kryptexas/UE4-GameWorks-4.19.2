@@ -482,6 +482,18 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Math|Float")
 	static float FInterpEaseInOut(float A, float B, float Alpha, float Exponent);
 
+	/**
+	* Simple function to create a pulsating scalar value
+	*
+	* @param  InCurrentTime  Current absolute time
+	* @param  InPulsesPerSecond  How many full pulses per second?
+	* @param  InPhase  Optional phase amount, between 0.0 and 1.0 (to synchronize pulses)
+	*
+	* @return  Pulsating value (0.0-1.0)
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Float")
+	static float MakePulsatingValue(float InCurrentTime, float InPulsesPerSecond = 1.0f, float InPhase = 0.0f);
+
 
 	//
 	// Vector functions.

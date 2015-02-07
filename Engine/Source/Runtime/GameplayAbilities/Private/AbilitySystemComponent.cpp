@@ -1158,6 +1158,12 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 	YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Owned Tags: %s"), *OwnerTags.ToStringSimple()), 4.f, YPos);
 	YPos += YL;
 
+	if (BlockedAbilityTags.GetExplicitGameplayTags().Num() > 0)
+	{
+		YPos += Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("BlockedAbilityTags: %s"), *BlockedAbilityTags.GetExplicitGameplayTags().ToStringSimple()), 4.f, YPos);
+		YPos += YL;
+	}
+
 	TSet<FGameplayAttribute> DrawAttributes;
 
 	const float MaxCharHeight = GEngine->GetTinyFont()->GetMaxCharHeight();
@@ -1327,8 +1333,31 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 			if (AbilitySpec.Ability == nullptr)
 				continue;
 
-			Canvas->SetDrawColor(AbilitySpec.IsActive() ? FColor::Yellow : FColor(128, 128, 128));
-			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s"), *ASC_CleanupName(GetNameSafe(AbilitySpec.Ability))), 4.f, YPos);
+			FString StatusText;
+			FColor AbilityTextColor = FColor(128, 128, 128);
+			if (AbilitySpec.IsActive())
+			{
+				StatusText = TEXT(" (Active)");
+				AbilityTextColor = FColor::Yellow;
+			}
+			else if (BlockedAbilityBindings.IsValidIndex(AbilitySpec.InputID) && BlockedAbilityBindings[AbilitySpec.InputID])
+			{
+				StatusText = TEXT(" (InputBlocked)");
+				AbilityTextColor = FColor::Red;
+			}
+			else if (AbilitySpec.Ability->AbilityTags.MatchesAny(BlockedAbilityTags.GetExplicitGameplayTags(), false))
+			{
+				StatusText = TEXT(" (TagBlocked)");
+				AbilityTextColor = FColor::Red;
+			}
+			else if (AbilitySpec.Ability->CanActivateAbility(AbilitySpec.Handle, AbilityActorInfo.Get()) == false)
+			{
+				StatusText = TEXT(" (CantActivate)");
+				AbilityTextColor = FColor::Red;
+			}
+			
+			Canvas->SetDrawColor(AbilityTextColor);
+			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s"), *ASC_CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText), 4.f, YPos);
 			YPos += YL;
 	
 			if (AbilitySpec.IsActive())
