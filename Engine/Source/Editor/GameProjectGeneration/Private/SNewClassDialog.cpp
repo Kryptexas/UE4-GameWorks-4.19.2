@@ -429,7 +429,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							[
 								SNew(SHyperlink)
 								.Style(FCoreStyle::Get(), "Hyperlink")
-								.TextStyle(FEditorStyle::Get(), "DetailsView.GoToCodeHyperlinkStyle")
+								.TextStyle(FEditorStyle::Get(), "Common.GoToNativeCodeHyperlinkStyle")
 								.OnNavigate(this, &SNewClassDialog::OnEditCodeClicked)
 								.Text(this, &SNewClassDialog::GetSelectedParentClassFilename)
 								.ToolTipText(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in a text editor"))
