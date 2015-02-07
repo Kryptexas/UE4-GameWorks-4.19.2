@@ -2377,6 +2377,12 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 		return false;
 	}
 
+
+	if( Blueprint->ParentClass->IsChildOf( UActorComponent::StaticClass() ) )
+	{
+		return false;
+	}
+
 	// No new variables defined
 	if (Blueprint->NewVariables.Num() > 0)
 	{
