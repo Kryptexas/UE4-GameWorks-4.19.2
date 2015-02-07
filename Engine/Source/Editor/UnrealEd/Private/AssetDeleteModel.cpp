@@ -286,7 +286,7 @@ bool FAssetDeleteModel::ComputeCanReplaceReferences()
 		PendingDeletedObjects.Add(PendingDelete->GetObject());
 	}
 
-	return ObjectTools::AreObjectsOfEquivalantType( PendingDeletedObjects );
+	return ObjectTools::AreObjectsValidForReplace(PendingDeletedObjects) && ObjectTools::AreObjectsValidForReplace(PendingDeletedObjects);
 }
 
 bool FAssetDeleteModel::CanReplaceReferences() const

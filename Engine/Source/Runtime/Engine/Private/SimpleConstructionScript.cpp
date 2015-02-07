@@ -151,16 +151,23 @@ void USimpleConstructionScript::PostLoad()
 
 	int32 NodeIndex;
 	TArray<USCS_Node*> Nodes = GetAllNodes();
-
-	if (GetLinkerUE4Version() < VER_UE4_REMOVE_INPUT_COMPONENTS_FROM_BLUEPRINTS)
+	
+	for (NodeIndex=0; NodeIndex < Nodes.Num(); ++NodeIndex)
 	{
-		for (NodeIndex=0; NodeIndex < Nodes.Num(); ++NodeIndex)
+		USCS_Node* Node = Nodes[NodeIndex];
+		
+		if (GetLinkerUE4Version() < VER_UE4_REMOVE_INPUT_COMPONENTS_FROM_BLUEPRINTS)
 		{
-			USCS_Node* Node = Nodes[NodeIndex];
 			if (!Node->bIsNative_DEPRECATED && Node->ComponentTemplate->IsA<UInputComponent>())
 			{
 				RemoveNodeAndPromoteChildren(Node);
 			}
+		}
+
+		// Couldn't find the template the Blueprint or C++ class must have been deleted out from under us
+		if (Node->ComponentTemplate == nullptr)
+		{
+			RemoveNodeAndPromoteChildren(Node);
 		}
 	}
 
