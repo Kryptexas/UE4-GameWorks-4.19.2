@@ -75,6 +75,5 @@ TSharedPtr<SWidget> SPhATPreviewViewport::MakeViewportToolbar()
 {
 	return SNew(SPhATPreviewViewportToolBar)
 			.PhATPtr(PhATPtr)
-			.Visibility(this, &SPhATPreviewViewport::GetWidgetVisibility)
 			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute());
 }
