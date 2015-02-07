@@ -188,8 +188,7 @@ TSharedRef<SWidget> FDefaultsEditorSummoner::CreateOptionalDataOnlyMessage() con
 					+ SWrapBox::Slot()
 					[
 						SNew(SHyperlink)
-						.Style(FEditorStyle::Get(), "EditBPHyperlink")
-						.TextStyle(FEditorStyle::Get(), "Common.EditBlueprintHyperlinkStyle")
+						.Style(FEditorStyle::Get(), "Common.GotoBlueprintHyperlink")
 						.OnNavigate(this, &FDefaultsEditorSummoner::OnChangeBlueprintToNotDataOnly)
 						.Text(LOCTEXT("FullEditor", "Open Full Blueprint Editor"))
 						.ToolTipText(LOCTEXT("FullEditorToolTip", "This opens the blueprint in the full editor."))
