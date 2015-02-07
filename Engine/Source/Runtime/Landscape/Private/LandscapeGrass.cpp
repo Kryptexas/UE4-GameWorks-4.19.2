@@ -490,6 +490,11 @@ bool ULandscapeComponent::CanRenderGrassMap() const
 		return false;
 	}
 	
+	return true;
+}
+
+bool ULandscapeComponent::AreTexturesStreamedForGrassMapRender() const
+{
 	// Check for valid heightmap that is fully streamed in
 	if (!HeightmapTexture || HeightmapTexture->ResidentMips != HeightmapTexture->GetNumMips()
 		|| !HeightmapTexture->Resource || ((FTexture2DResource*)HeightmapTexture->Resource)->GetCurrentFirstMip() > 0)

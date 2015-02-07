@@ -333,8 +333,11 @@ public:
 	void RenderGrassMap();
 	void RemoveGrassMap();
 
-	/* Can a valid grassmap currently be generated? */
+	/* Could a grassmap currently be generated, disregarding whether our textures are streamed in? */
 	bool CanRenderGrassMap() const;
+
+	/* Are the textures we need to render a grassmap currently streamed in? */
+	bool AreTexturesStreamedForGrassMapRender() const;
 
 	/* Is the grassmap data outdated, eg by a material */
 	bool IsGrassMapOutdated() const;

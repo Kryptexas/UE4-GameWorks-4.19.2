@@ -2855,12 +2855,17 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, bool bForceS
 										}
 
 #if WITH_EDITOR
-											// render grass data if we don't have any
+										// render grass data if we don't have any
 										if (!Component->GrassData->HasData())
-										{
-											// if we can't generate now, force our textures to be streamed in
+										{		
 											if (!Component->CanRenderGrassMap())
 											{
+												// we can't currently render grassmaps (eg shaders not compiled)
+												continue;
+											}
+											else if (!Component->AreTexturesStreamedForGrassMapRender())
+											{
+												// we're ready to generate but our textures need streaming in
 												DesiredForceStreamedTextures.Add(Component->HeightmapTexture);
 												for (auto WeightmapTexture : Component->WeightmapTextures)
 												{
@@ -2970,6 +2975,7 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, bool bForceS
 
 			{
 				int32 NumComponentsRendered = 0;
+				int32 NumComponentsUnableToRender = 0;
 				if (GrassTypes.Num() > 0 && CVarPrerenderGrassmaps.GetValueOnAnyThread() > 0)
 				{
 					// try to render some grassmaps
@@ -2978,23 +2984,30 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, bool bForceS
 					{
 						if (Component->CanRenderGrassMap())
 						{
-							ComponentsToRender.Add(Component);
-							NumComponentsRendered++;
-							// We really want to throttle the number based on component size...
-							if (NumComponentsRendered >= 4)
+							if (Component->AreTexturesStreamedForGrassMapRender())
 							{
-								break;
+								// We really want to throttle the number based on component size.
+								if (NumComponentsRendered <= 4)
+								{
+									ComponentsToRender.Add(Component);
+									NumComponentsRendered++;
+								}
+							}
+							else
+							if (TotalTexturesToStreamForVisibleGrassMapRender == 0)
+							{
+								// Force stream in other heightmaps but only if we're not waiting for the textures 
+								// near the camera to stream in
+								DesiredForceStreamedTextures.Add(Component->HeightmapTexture);
+								for (auto WeightmapTexture : Component->WeightmapTextures)
+								{
+									DesiredForceStreamedTextures.Add(WeightmapTexture);
+								}
 							}
 						}
-						else if (TotalTexturesToStreamForVisibleGrassMapRender == 0)
+						else
 						{
-							// Force stream in other heightmaps but only if we're not waiting for the textures 
-							// near the camera to stream in
-							DesiredForceStreamedTextures.Add(Component->HeightmapTexture);
-							for (auto WeightmapTexture : Component->WeightmapTextures)
-							{
-								DesiredForceStreamedTextures.Add(WeightmapTexture);
-							}
+							NumComponentsUnableToRender++;
 						}
 					}
 					if (ComponentsToRender.Num())
@@ -3005,7 +3018,7 @@ void ALandscapeProxy::UpdateFoliage(const TArray<FVector>& Cameras, bool bForceS
 				}
 
 				TotalComponentsNeedingGrassMapRender -= NumComponentsNeedingGrassMapRender;
-				NumComponentsNeedingGrassMapRender = ComponentsNeedingGrassMapRender.Num() - NumComponentsRendered;
+				NumComponentsNeedingGrassMapRender = ComponentsNeedingGrassMapRender.Num() - NumComponentsRendered - NumComponentsUnableToRender;
 				TotalComponentsNeedingGrassMapRender += NumComponentsNeedingGrassMapRender;
 				
 				// Update resident flags
