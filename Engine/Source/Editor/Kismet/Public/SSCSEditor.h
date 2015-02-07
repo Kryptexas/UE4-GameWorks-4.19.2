@@ -979,7 +979,7 @@ protected:
 	FText OnGetResetToBlueprintDefaultsTooltip() const;
 
 	/** Opens the blueprint editor for the blueprint being viewed by the scseditor */
-	void OnOpenBlueprintEditor() const;
+	void OnOpenBlueprintEditor(bool bForceCodeEditing) const;
 
 	/** Propagates instance changes to the blueprint */
 	void OnApplyChangesToBlueprint() const;
