@@ -299,6 +299,8 @@ public:
 	{
 		return TEXT("FAsyncGrassTask");
 	}
+
+	~FAsyncGrassTask();
 };
 
 UCLASS(NotPlaceable, NotBlueprintable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Lighting, Rendering, "Utilities|Transformation"), MinimalAPI)
@@ -516,15 +518,18 @@ public:
 	void SetLandscapeGuid(const FGuid& Guid) { LandscapeGuid = Guid; }
 	virtual ALandscape* GetLandscapeActor();
 
+	/* Per-frame call to update dynamic grass placement and render grassmaps */
+	void TickGrass();
+
 	/** Flush the grass cache */
-	LANDSCAPE_API void FlushGrassComponents(const TSet<ULandscapeComponent*>* OnlyForComponents = nullptr);
+	LANDSCAPE_API void FlushGrassComponents(const TSet<ULandscapeComponent*>* OnlyForComponents = nullptr, bool bFlushGrassMaps = true);
 
 	/** 
 		Update Grass 
 		* @param Cameras to use for culling, if empty, then NO culling
 		* @param bForceSync if true, block and finish all work
 	*/
-	LANDSCAPE_API void UpdateFoliage(const TArray<FVector>& Cameras, bool bForceSync = false);
+	LANDSCAPE_API void UpdateGrass(const TArray<FVector>& Cameras, bool bForceSync = false);
 
 	/* Get the list of grass types on this landscape */
 	TArray<ULandscapeGrassType*> GetGrassTypes() const;

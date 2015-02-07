@@ -2008,9 +2008,10 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 
 			if (SimplificationDetails.bBakeGrassToLandscape)
 			{
-				Landscape->FlushGrassComponents();
+				/* Flush existing grass components, but not grass maps */
+				Landscape->FlushGrassComponents(nullptr, false);
 				TArray<FVector> Cameras;
-				Landscape->UpdateFoliage(Cameras, true);
+				Landscape->UpdateGrass(Cameras, true);
 			}
 								
 			// This is texture resolution for a landscape mesh, probably needs to be calculated using landscape size
