@@ -87,7 +87,7 @@ public:
 			.Text(RightContentText)
 			.Visibility(EVisibility::HitTestInvisible)
 			.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14))
-			.ColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.3f))
+			.ColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.4f))
 		];
 	}
 	
