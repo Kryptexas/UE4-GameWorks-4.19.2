@@ -184,20 +184,16 @@ void FComponentEditorUtils::BindComponentSelectionOverride(USceneComponent* Scen
 {
 	if (SceneComponent)
 	{
-		// Modifying the selection override delegate is purely cosmetic and shouldn't dirty the package
-		const bool bShouldMarkPackageDirty = false;
-
 		// If the scene component is a primitive component, set the override for it
 		auto PrimComponent = Cast<UPrimitiveComponent>(SceneComponent);
 		if (PrimComponent && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
 		{
-			PrimComponent->Modify(bShouldMarkPackageDirty);
 			if (bBind)
-		{
-			PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
-		}
-		else
-		{
+			{
+				PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+			}
+			else
+			{
 				PrimComponent->SelectionOverrideDelegate.Unbind();
 			}
 		}
@@ -209,20 +205,19 @@ void FComponentEditorUtils::BindComponentSelectionOverride(USceneComponent* Scen
 				PrimComponent = Cast<UPrimitiveComponent>(Component);
 				if (PrimComponent && PrimComponent->IsEditorOnly() && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
 				{
-					PrimComponent->Modify(bShouldMarkPackageDirty);
 					if (bBind)
-				{
-					PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
-				}
+					{
+						PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+					}
 					else
 					{
 						PrimComponent->SelectionOverrideDelegate.Unbind();
 					}
 				}
 			}
-			}
 		}
 	}
+}
 
 bool FComponentEditorUtils::AttemptApplyMaterialToComponent(USceneComponent* SceneComponent, UMaterialInterface* MaterialToApply, int32 OptionalMaterialSlot)
 {
