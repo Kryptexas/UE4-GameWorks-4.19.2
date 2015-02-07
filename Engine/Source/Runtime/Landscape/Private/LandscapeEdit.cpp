@@ -2924,12 +2924,6 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 {
 	static const FName NAME_Hardness = FName(TEXT("Hardness"));
 	static const FName NAME_PhysMaterial = FName(TEXT("PhysMaterial"));
-	static const FName NAME_GrassMesh = FName(TEXT("GrassMesh"));
-	static const FName NAME_GrassDensity = FName(TEXT("GrassDensity"));
-	static const FName NAME_PlacementJitter = FName(TEXT("PlacementJitter"));
-	static const FName NAME_EndCullDistance = FName(TEXT("EndCullDistance"));
-	static const FName NAME_RandomRotation = FName(TEXT("RandomRotation"));
-	static const FName NAME_AlignToSurface = FName(TEXT("AlignToSurface"));
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -2955,33 +2949,6 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 						if (Info->Layers[i].LayerInfoObj == this)
 						{
 							Proxy->ChangedPhysMaterial();
-							break;
-						}
-					}
-				}
-			}
-		}
-		else if (
-			PropertyName == NAME_GrassMesh ||
-			PropertyName == NAME_GrassDensity ||
-			PropertyName == NAME_PlacementJitter ||
-			PropertyName == NAME_EndCullDistance ||
-			PropertyName == NAME_AlignToSurface ||
-			PropertyName == NAME_RandomRotation
-			)
-		{
-			// Only care current world object
-			for (TActorIterator<ALandscapeProxy> It(GWorld); It; ++It)
-			{
-				ALandscapeProxy* Proxy = *It;
-				ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);
-				if (Info)
-				{
-					for (int32 i = 0; i < Info->Layers.Num(); ++i)
-					{
-						if (Info->Layers[i].LayerInfoObj == this)
-						{
-							Proxy->FlushGrassComponents();
 							break;
 						}
 					}

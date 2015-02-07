@@ -524,6 +524,9 @@ public:
 	/** Flush the grass cache */
 	LANDSCAPE_API void FlushGrassComponents(const TSet<ULandscapeComponent*>* OnlyForComponents = nullptr, bool bFlushGrassMaps = true);
 
+	/* Static version to distribute to the appropriate proxy for each component */
+	LANDSCAPE_API static void DistributeFlushGrassComponents(const TSet<ULandscapeComponent*>& Components, bool bFlushGrassMaps = true);
+
 	/** 
 		Update Grass 
 		* @param Cameras to use for culling, if empty, then NO culling

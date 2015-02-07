@@ -1152,6 +1152,20 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	}
 };
 
+/* Static version to distribute to the appropriate proxy for each component */
+void ALandscapeProxy::DistributeFlushGrassComponents(const TSet<ULandscapeComponent*>& Components, bool bFlushGrassMaps)
+{
+	TMap<ALandscapeProxy*, TSet<ULandscapeComponent*>> ByProxy;
+	for (auto Component : Components)
+	{
+		ByProxy.FindOrAdd(Component->GetLandscapeProxy()).Add(Component);
+	}
+	for (auto It = ByProxy.CreateConstIterator(); It; ++It)
+	{
+		It.Key()->FlushGrassComponents(&It.Value(), bFlushGrassMaps);
+	}
+}
+
 void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* OnlyForComponents, bool bFlushGrassMaps)
 {
 	if (OnlyForComponents)
