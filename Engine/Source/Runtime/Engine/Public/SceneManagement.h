@@ -618,7 +618,11 @@ public:
 };
 
 
-/** Encapsulates the data which is used to render a light parallel to the game thread. */
+/** 
+ * Encapsulates the data which is used to render a light by the rendering thread. 
+ * The constructor is called from the game thread, and after that the rendering thread owns the object.
+ * FLightSceneProxy is in the engine module and is subclassed to implement various types of lights.
+ */
 class ENGINE_API FLightSceneProxy
 {
 public:

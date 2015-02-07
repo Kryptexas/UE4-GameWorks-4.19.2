@@ -88,6 +88,7 @@ typedef TOctree<FLightSceneInfoCompact,struct FLightOctreeSemantics> FSceneLight
 
 /**
  * The information used to render a light.  This is the rendering thread's mirror of the game thread's ULightComponent.
+ * FLightSceneInfo is internal to the renderer module and contains internal scene state.
  */
 class FLightSceneInfo : public FRenderResource
 {
