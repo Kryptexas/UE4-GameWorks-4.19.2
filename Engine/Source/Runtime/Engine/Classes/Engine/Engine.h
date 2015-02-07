@@ -1307,6 +1307,10 @@ private:
 	UPROPERTY(transient)
 	FLinearColor SelectionOutlineColor;
 
+	/** Subdued version of the selection outline color. Used for indicating sub-selection of components vs actors */
+	UPROPERTY(transient)
+	FLinearColor SubduedSelectionOutlineColor;
+
 	/** An override to use in some cases instead of the selected material color */
 	UPROPERTY(transient)
 	FLinearColor SelectedMaterialColorOverride;
@@ -1460,6 +1464,8 @@ public:
 
 	const FLinearColor& GetSelectionOutlineColor() const { return SelectionOutlineColor; }
 
+	const FLinearColor& GetSubduedSelectionOutlineColor() const { return SubduedSelectionOutlineColor; }
+
 	const FLinearColor& GetHoveredMaterialColor() const { return GetSelectedMaterialColor(); }
 
 	/**
@@ -1473,6 +1479,7 @@ public:
 
 	void SetSelectionOutlineColor( const FLinearColor& InSelectionOutlineColor ) { SelectionOutlineColor = InSelectionOutlineColor; }
 
+	void SetSubduedSelectionOutlineColor( const FLinearColor& InSubduedSelectionOutlineColor ) { SubduedSelectionOutlineColor = InSubduedSelectionOutlineColor; }
 	/**
 	 * Sets an override color to use instead of the user setting
 	 *
