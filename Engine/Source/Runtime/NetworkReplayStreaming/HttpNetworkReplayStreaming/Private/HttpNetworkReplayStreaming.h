@@ -3,6 +3,7 @@
 
 #include "NetworkReplayStreaming.h"
 #include "HTTP.h"
+#include "Runtime/Engine/Public/Tickable.h"
 
 /**
  * Archive used to buffer stream over http
@@ -24,21 +25,32 @@ public:
 /**
  * Http network replay streaming manager
  */
-class FHttpNetworkReplayStreamer : public INetworkReplayStreamer
+class FHttpNetworkReplayStreamer : public INetworkReplayStreamer, public FTickableGameObject
 {
 public:
-	/** IHttpNetworkReplayStreamer implementation */
-	FHttpNetworkReplayStreamer() {}
+	/** INetworkReplayStreamer implementation */
+	FHttpNetworkReplayStreamer() : StreamFileCount( 0 ), LastFlushTime( 0 ) {}
 	virtual void StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate ) override;
 	virtual void StopStreaming() override;
 	virtual FArchive* GetStreamingArchive() override;
 	virtual FArchive* GetMetadataArchive() override;
 
-	void HttpRequestFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+	/** FHttpNetworkReplayStreamer */
+	void FlushStream();
 
-	FOnStreamReadyDelegate	RememberedDelegate;
-	HttpStreamFArchive		Archive;
-	FString					DemoShortName;
+	void HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+	void HttpStartStreamingUpFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+
+	/** FTickableGameObject */
+	virtual void Tick( float DeltaTime ) override;
+	virtual bool IsTickable() const override;
+	virtual TStatId GetStatId() const override;
+
+	FOnStreamReadyDelegate	RememberedDelegate;		// Delegate passed in to StartStreaming
+	HttpStreamFArchive		StreamArchive;			// Archive used to buffer the stream
+	FString					SessionName;			// Name of the session on the http replay server
+	int32					StreamFileCount;		// Used as a counter to increment the stream.x extension count
+	double					LastFlushTime;
 };
 
 class FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory
