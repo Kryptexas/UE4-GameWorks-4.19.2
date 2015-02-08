@@ -457,7 +457,7 @@ void UDestructibleMesh::LoadDefaultDestructibleParametersFromApexAsset()
 		DefaultDestructibleParameters.DebrisParameters.LoadDefaultDestructibleParametersFromApexAsset(Params);
 		DefaultDestructibleParameters.SpecialHierarchyDepths.LoadDefaultDestructibleParametersFromApexAsset(Params);
 		DefaultDestructibleParameters.AdvancedParameters.LoadDefaultDestructibleParametersFromApexAsset(Params);
-		DefaultDestructibleParameters.DebrisParameters.LoadDefaultDestructibleParametersFromApexAsset(Params);
+		DefaultDestructibleParameters.DamageParameters.LoadDefaultDestructibleParametersFromApexAsset(Params);
 		DefaultDestructibleParameters.Flags.LoadDefaultDestructibleParametersFromApexAsset(Params);
 
 		// Depth parameters
