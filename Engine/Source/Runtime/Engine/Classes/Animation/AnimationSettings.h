@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "AnimSequence.h"
 #include "AnimationSettings.generated.h"
 
 /**
