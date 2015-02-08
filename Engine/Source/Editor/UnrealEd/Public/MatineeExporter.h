@@ -52,7 +52,7 @@ public:
 	/**
 	 * Exports the camera-specific information for a camera actor.
 	 */
-	virtual void ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeActor ) = 0;
+	virtual void ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeActor, bool bExportComponents ) = 0;
 
 	/**
 	 * Exports the mesh and the actor information for a brush actor.

@@ -217,18 +217,18 @@ void FFbxExporter::CorrectAnimTrackInterpolation( TArray<FbxNode*>& BoneNodes, F
 }
 
 
-void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, const USkeletalMesh* SkelMesh, bool bExportSkelMesh, const TCHAR* MeshName, FbxNode* ActorRootNode )
+FbxNode* FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, const USkeletalMesh* SkelMesh, bool bExportSkelMesh, const TCHAR* MeshName, FbxNode* ActorRootNode )
 {
 	if( Scene == NULL || AnimSeq == NULL || SkelMesh == NULL )
 	{
- 		return;
+ 		return NULL;
 	}
 
 
 	FbxNode* RootNode = (ActorRootNode)? ActorRootNode : Scene->GetRootNode();
 	// Create the Skeleton
 	TArray<FbxNode*> BoneNodes;
-	FbxNode* SkeletonRootNode = CreateSkeleton(*SkelMesh, BoneNodes);
+	FbxNode* SkeletonRootNode = CreateSkeleton(SkelMesh, BoneNodes);
 	RootNode->AddChild(SkeletonRootNode);
 
 
@@ -262,7 +262,7 @@ void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, const USkel
 		}
 
 		// Add the mesh
-		FbxNode* MeshRootNode = CreateMesh(*SkelMesh, *MeshNodeName);
+		FbxNode* MeshRootNode = CreateMesh(SkelMesh, *MeshNodeName);
 		if(MeshRootNode)
 		{
 			RootNode->AddChild(MeshRootNode);
@@ -271,12 +271,14 @@ void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, const USkel
 		if(SkeletonRootNode && MeshRootNode)
 		{
 			// Bind the mesh to the skeleton
-			BindMeshToSkeleton(*SkelMesh, MeshRootNode, BoneNodes);
+			BindMeshToSkeleton(SkelMesh, MeshRootNode, BoneNodes);
 
 			// Add the bind pose
 			CreateBindPose(MeshRootNode);
 		}
 	}
+
+	return SkeletonRootNode;
 }
 
 
@@ -299,7 +301,7 @@ void FFbxExporter::ExportAnimSequencesAsSingle( USkeletalMesh* SkelMesh, const A
 
 	// Create the Skeleton
 	TArray<FbxNode*> BoneNodes;
-	FbxNode* SkeletonRootNode = CreateSkeleton(*SkelMesh, BoneNodes);
+	FbxNode* SkeletonRootNode = CreateSkeleton(SkelMesh, BoneNodes);
 	BaseNode->AddChild(SkeletonRootNode);
 
 	bool bAnyObjectMissingSourceData = false;
@@ -339,10 +341,7 @@ void FFbxExporter::ExportAnimSequencesAsSingle( USkeletalMesh* SkelMesh, const A
  */
 void FFbxExporter::ExportMatineeGroup(class AMatineeActor* MatineeActor, USkeletalMeshComponent* SkeletalMeshComponent)
 {
-	static const float SamplingRate = 1.f / DEFAULT_SAMPLERATE;
-
 	float MatineeLength = MatineeActor->MatineeData->InterpLength;
-
 	
 	if (Scene == NULL || MatineeActor == NULL || SkeletalMeshComponent == NULL || MatineeLength == 0)
 	{
@@ -353,23 +352,42 @@ void FFbxExporter::ExportMatineeGroup(class AMatineeActor* MatineeActor, USkelet
 
 	FbxNode* BaseNode = FbxNode::Create(Scene, NodeName);
 	Scene->GetRootNode()->AddChild(BaseNode);
+
 	AActor* Owner = SkeletalMeshComponent->GetOwner();
-	if( Owner && Owner->GetRootComponent() )
+	if(Owner && Owner->GetRootComponent())
 	{
 		// Set the default position of the actor on the transforms
 		// The UE3 transformation is different from FBX's Z-up: invert the Y-axis for translations and the Y/Z angle values in rotations.
-		BaseNode->LclTranslation.Set(Converter.ConvertToFbxPos( Owner->GetActorLocation() ) );
-		BaseNode->LclRotation.Set(Converter.ConvertToFbxRot( Owner->GetActorRotation().Euler() ) ) ;
-		BaseNode->LclScaling.Set(Converter.ConvertToFbxScale( Owner->GetRootComponent()->RelativeScale3D ) );
+		BaseNode->LclTranslation.Set(Converter.ConvertToFbxPos(Owner->GetActorLocation()));
+		BaseNode->LclRotation.Set(Converter.ConvertToFbxRot(Owner->GetActorRotation().Euler()));
+		BaseNode->LclScaling.Set(Converter.ConvertToFbxScale(Owner->GetRootComponent()->RelativeScale3D));
 	}
 	// Create the Skeleton
 	TArray<FbxNode*> BoneNodes;
-	FbxNode* SkeletonRootNode = CreateSkeleton(*SkeletalMeshComponent->SkeletalMesh, BoneNodes);
+	FbxNode* SkeletonRootNode = CreateSkeleton(SkeletalMeshComponent->SkeletalMesh, BoneNodes);
+	FbxSkeletonRoots.Add(SkeletalMeshComponent, SkeletonRootNode);
 	BaseNode->AddChild(SkeletonRootNode);
 
+	ExportAnimTrack(MatineeActor, SkeletalMeshComponent);
+}
+
+void FFbxExporter::ExportAnimTrack(class AMatineeActor* MatineeActor, USkeletalMeshComponent* SkeletalMeshComponent)
+{
+	static const float SamplingRate = 1.f / DEFAULT_SAMPLERATE;
+
+	float MatineeLength = MatineeActor->MatineeData->InterpLength;
 	// show a status update every 1 second worth of samples
 	const float UpdateFrequency = 1.0f;
 	float NextUpdateTime = UpdateFrequency;
+
+	// find root and find the bone array
+	TArray<FbxNode*> BoneNodes;
+
+	if ( FindSkeleton(SkeletalMeshComponent, BoneNodes)==false )
+	{
+		// error
+		return;
+	}
 
 	float SampleTime;
 	for(SampleTime = 0.f; SampleTime <= MatineeLength; SampleTime += SamplingRate)

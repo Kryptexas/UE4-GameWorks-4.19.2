@@ -46,6 +46,8 @@
 #include "Matinee/InterpTrackFloatProp.h"
 #include "Matinee/InterpTrackInstFloatProp.h"
 #include "Matinee/InterpTrackInstMove.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpTrackInstAnimControl.h"
 
 #include "StaticMeshResources.h"
 #include "LandscapeDataAccess.h"
@@ -217,6 +219,7 @@ void FFbxExporter::WriteToFile(const TCHAR* Filename)
 void FFbxExporter::CloseDocument()
 {
 	FbxActors.Reset();
+	FbxSkeletonRoots.Reset();
 	FbxMaterials.Reset();
 	FbxNodeNameToIndexMap.Reset();
 	
@@ -305,6 +308,10 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 			{
 				ExportActor( Actor, InMatineeActor ); // Just export the placement of the particle emitter.
 			}
+			else if(Actor->IsA(ACameraActor::StaticClass()))
+			{
+				ExportCamera(CastChecked<ACameraActor>(Actor), InMatineeActor, true); // Just export the placement of the particle emitter.
+			}
 			else if( Actor != NULL )
 			{
 				// Export blueprint actors and all their components
@@ -381,12 +388,12 @@ void FFbxExporter::ExportLight( ALight* Actor, AMatineeActor* InMatineeActor )
 	FbxActor->SetNodeAttribute(Light);
 }
 
-void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeActor )
+void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeActor, bool bExportComponents )
 {
 	if (Scene == NULL || Actor == NULL) return;
 
 	// Export the basic actor information.
-	FbxNode* FbxActor = ExportActor( Actor, InMatineeActor ); // this is the pivot node
+	FbxNode* FbxActor = ExportActor( Actor, InMatineeActor, bExportComponents ); // this is the pivot node
 	// The real fbx camera node
 	FbxNode* FbxCameraNode = FbxActor->GetParent();
 
@@ -824,7 +831,7 @@ void FFbxExporter::ExportSkeletalMesh( USkeletalMesh* SkeletalMesh )
 	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*MeshName));
 	Scene->GetRootNode()->AddChild(MeshNode);
 
-	ExportSkeletalMeshToFbx(*SkeletalMesh, NULL, *MeshName, MeshNode);
+	ExportSkeletalMeshToFbx(SkeletalMesh, NULL, *MeshName, MeshNode);
 }
 
 void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* SkeletalMeshComponent )
@@ -836,8 +843,7 @@ void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* Sk
 
 	FString FbxNodeName = GetActorNodeName(Actor, NULL);
 
-	FbxNode* FbxActorNode = ExportActor( Actor, NULL );
-	ExportSkeletalMeshToFbx(*SkeletalMesh, NULL, *FbxNodeName, FbxActorNode);
+	ExportActor( Actor, NULL, true );
 }
 
 FbxSurfaceMaterial* FFbxExporter::CreateDefaultMaterial()
@@ -988,13 +994,9 @@ bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 		AActor* Actor = Group->GetGroupActor();
 		if (Group->Group == NULL || Actor == NULL) continue;
 
-		// Look for the class-type of the actor.
-		if (Actor->IsA(ACameraActor::StaticClass()))
-		{
-			ExportCamera( (ACameraActor*) Actor, InMatineeActor );
-		}
-
-		FbxNode* FbxActor = ExportActor( Actor, InMatineeActor );
+		FbxNode* FbxActor = FindActor(Actor); 
+		// now it should export everybody
+		check (FbxActor);
 
 		// Look for the tracks that we currently support
 		int32 TrackCount = FMath::Min(Group->TrackInst.Num(), Group->Group->InterpTracks.Num());
@@ -1013,6 +1015,14 @@ bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 				UInterpTrackInstFloatProp* PropertyTrackInst = (UInterpTrackInstFloatProp*) TrackInst;
 				UInterpTrackFloatProp* PropertyTrack = (UInterpTrackFloatProp*) Track;
 				ExportMatineeTrackFloatProp(FbxActor, PropertyTrack);
+			}
+			else if (TrackInst->IsA(UInterpTrackInstAnimControl::StaticClass()) && Track->IsA(UInterpTrackAnimControl::StaticClass()))
+			{
+				USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(Actor->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+				if ( SkeletalMeshComp )
+				{
+					ExportAnimTrack(InMatineeActor, SkeletalMeshComp);
+				}
 			}
 		}
 	}
@@ -1167,8 +1177,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 				}
 				else if (SkelMeshComp && SkelMeshComp->SkeletalMesh)
 				{
-					UAnimSequence* AnimSeq = (SkelMeshComp->GetAnimationMode() == EAnimationMode::AnimationSingleNode)? Cast<UAnimSequence>(SkelMeshComp->AnimationData.AnimToPlay) : NULL;
-					ExportSkeletalMeshToFbx( *SkelMeshComp->SkeletalMesh, AnimSeq, *SkelMeshComp->GetName(), ExportNode);
+					ExportSkeletalMeshComponent( SkelMeshComp, *SkelMeshComp->GetName(), ExportNode);
 				}
 				else if (ChildActorComp && ChildActorComp->ChildActor)
 				{
@@ -1688,6 +1697,20 @@ FbxNode* FFbxExporter::FindActor(AActor* Actor)
 	}
 }
 
+bool FFbxExporter::FindSkeleton(const USkeletalMeshComponent* SkelComp, TArray<FbxNode*>& BoneNodes)
+{
+	FbxNode** SkelRoot = FbxSkeletonRoots.Find(SkelComp);
+
+	if (SkelRoot)
+	{
+		BoneNodes.Empty();
+		GetSkeleton(*SkelRoot, BoneNodes);
+
+		return true;
+	}
+
+	return false;
+}
 /**
  * Determines the UVS to weld when exporting a Static Mesh
  * 
