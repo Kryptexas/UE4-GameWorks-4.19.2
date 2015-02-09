@@ -61,7 +61,7 @@ enum class EAccessVisualStudioResult : uint8
 };
 
 /** save all open documents in visual studio, when recompiling */
-void SaveVisualStudioDocuments()
+void OnModuleCompileStarted(bool bIsAsyncCompile)
 {
 	FVisualStudioSourceCodeAccessModule& VisualStudioSourceCodeAccessModule = FModuleManager::LoadModuleChecked<FVisualStudioSourceCodeAccessModule>(TEXT("VisualStudioSourceCodeAccess"));
 	VisualStudioSourceCodeAccessModule.GetAccessor().SaveAllOpenDocuments();
@@ -73,7 +73,7 @@ void FVisualStudioSourceCodeAccessor::Startup()
 
 #if WITH_EDITOR
 	// Setup compilation for saving all VS documents upon compilation start
-	SaveVisualStudioDocumentsDelegateHandle = IHotReloadModule::Get().OnModuleCompilerStarted().AddStatic( &SaveVisualStudioDocuments );
+	SaveVisualStudioDocumentsDelegateHandle = IHotReloadModule::Get().OnModuleCompilerStarted().AddStatic( &OnModuleCompileStarted );
 #endif
 
 	// Cache this so we don't have to do it on a background thread

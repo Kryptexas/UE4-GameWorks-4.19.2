@@ -923,7 +923,9 @@ void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	if( !HotReloadSupport.IsCurrentlyCompiling() )
 	{
-		HotReloadSupport.DoHotReloadFromEditor();
+		// Don't wait -- we want compiling to happen asynchronously
+		const bool bWaitForCompletion = false;
+		HotReloadSupport.DoHotReloadFromEditor(bWaitForCompletion);
 	}
 }
 
