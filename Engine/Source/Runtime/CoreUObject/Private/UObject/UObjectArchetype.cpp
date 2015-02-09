@@ -46,7 +46,7 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 			}
 			else
 			{
-				Result = ArchetypeToSearch->GetClass()->FindArchetype(Class, Name);
+				//Result = ArchetypeToSearch->GetClass()->FindArchetype(Class, Name);
 			}
 		}
 
