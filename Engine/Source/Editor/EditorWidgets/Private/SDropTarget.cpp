@@ -20,6 +20,15 @@ void SDropTarget::Construct(const FArguments& InArgs)
 	bAllowDrop = false;
 	bIsDragOver = false;
 
+	ValidColor = InArgs._ValidColor;
+	InvalidColor = InArgs._InvalidColor;
+
+	BackgroundColor = InArgs._BackgroundColor;
+	BackgroundColorHover = InArgs._BackgroundColorHover;
+
+	VerticalImage = InArgs._VerticalImage;
+	HorizontalImage = InArgs._HorizontalImage;
+
 	ChildSlot
 	[
 		SNew(SOverlay)
@@ -31,15 +40,12 @@ void SDropTarget::Construct(const FArguments& InArgs)
 
 		+ SOverlay::Slot()
 		[
-			SNew(SBorder)
+			SNew(SBox)
 			.Visibility(this, &SDropTarget::GetDragOverlayVisibility)
-			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-			.BorderBackgroundColor(this, &SDropTarget::GetDropBorderColor)
 			[
 				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
+				.BorderImage(InArgs._BackgroundImage)
 				.BorderBackgroundColor(this, &SDropTarget::GetBackgroundBrightness)
-				.Padding(15.0f)
 			]
 		]
 	];
@@ -47,7 +53,7 @@ void SDropTarget::Construct(const FArguments& InArgs)
 
 FSlateColor SDropTarget::GetBackgroundBrightness() const
 {
-	return ( bIsDragOver ) ? FLinearColor(1, 1, 1, 0.50f) : FLinearColor(1, 1, 1, 0.25f);
+	return ( bIsDragOver ) ? BackgroundColorHover : BackgroundColor;
 }
 
 EVisibility SDropTarget::GetDragOverlayVisibility() const
@@ -61,13 +67,6 @@ EVisibility SDropTarget::GetDragOverlayVisibility() const
 	}
 
 	return EVisibility::Hidden;
-}
-
-FSlateColor SDropTarget::GetDropBorderColor() const
-{
-	return bIsDragEventRecognized ? 
-		bAllowDrop ? FLinearColor(0,1,0,1) : FLinearColor(1,0,0,1)
-		: FLinearColor::White;
 }
 
 FReply SDropTarget::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
@@ -150,7 +149,7 @@ int32 SDropTarget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeom
 	{
 		if ( bIsDragEventRecognized )
 		{
-			FLinearColor DashColor = bAllowDrop ? FLinearColor(0, 1, 0, 1) : FLinearColor(1, 0, 0, 1);
+			FLinearColor DashColor = bAllowDrop ? ValidColor : InvalidColor;
 
 			const FSlateBrush* HorizontalBrush = FEditorStyle::GetBrush("WideDash.Horizontal");
 			const FSlateBrush* VerticalBrush = FEditorStyle::GetBrush("WideDash.Vertical");
