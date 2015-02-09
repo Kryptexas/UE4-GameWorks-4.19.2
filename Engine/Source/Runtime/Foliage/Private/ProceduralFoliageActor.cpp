@@ -22,6 +22,8 @@ AProceduralFoliageActor::AProceduralFoliageActor(const FObjectInitializer& Objec
 
 bool AProceduralFoliageActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
+	Super::GetReferencedContentObjects(Objects);
+
 	if (ProceduralComponent && ProceduralComponent->ProceduralFoliage)
 	{
 		Objects.Add(ProceduralComponent->ProceduralFoliage);

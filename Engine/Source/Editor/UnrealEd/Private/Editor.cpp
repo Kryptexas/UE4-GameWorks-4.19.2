@@ -3159,7 +3159,7 @@ void UEditorEngine::SyncToContentBrowser()
 }
 
 
-void UEditorEngine::GetReferencedAssetsForEditorSelection( TArray<UObject*>& Objects )
+void UEditorEngine::GetReferencedAssetsForEditorSelection(TArray<UObject*>& Objects, const bool bIgnoreOtherAssetsIfBPReferenced)
 {
 	for ( TSelectedSurfaceIterator<> It(GWorld) ; It ; ++It )
 	{
@@ -3176,7 +3176,25 @@ void UEditorEngine::GetReferencedAssetsForEditorSelection( TArray<UObject*>& Obj
 		AActor* Actor = static_cast<AActor*>( *It );
 		checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-		Actor->GetReferencedContentObjects(Objects);
+		TArray<UObject*> ActorObjects;
+		Actor->GetReferencedContentObjects(ActorObjects);
+
+		// If Blueprint assets should take precedence over any other referenced asset, check if there are any blueprints in this actor's list
+		// and if so, add only those.
+		if (bIgnoreOtherAssetsIfBPReferenced && ActorObjects.ContainsByPredicate([](UObject* Obj) { return Obj->IsA(UBlueprint::StaticClass()); }))
+		{
+			for (UObject* Object : ActorObjects)
+			{
+				if (Object->IsA(UBlueprint::StaticClass()))
+				{
+					Objects.Add(Object);
+				}
+			}
+		}
+		else
+		{
+			Objects.Append(ActorObjects);
+		}
 	}
 }
 
