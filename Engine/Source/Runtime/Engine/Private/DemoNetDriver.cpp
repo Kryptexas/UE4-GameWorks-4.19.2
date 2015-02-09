@@ -178,7 +178,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 	ResetDemoState();
 
-	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
+	FArchive* FileAr = ReplayStreamer->GetHeaderArchive();
 
 	if ( !FileAr )
 	{
@@ -187,10 +187,6 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
 		return false;
 	}
-
-	// use the same byte format regardless of platform so that the demos are cross platform
-	// DEMO_FIXME: This is messing up for some reason, investigate
-	//FileAr->SetByteSwapping( true );
 
 	FNetworkDemoHeader DemoHeader;
 
@@ -345,7 +341,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 
 	ReplayStreamer->StartStreaming( DemoFilename, true, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
 
-	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
+	FArchive* FileAr = ReplayStreamer->GetHeaderArchive();
 
 	if( !FileAr )
 	{
@@ -675,6 +671,11 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 bool UDemoNetDriver::ReadDemoFrame()
 {
+	if ( !ReplayStreamer->IsDataAvailable() )
+	{
+		return false;
+	}
+
 	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
 	if ( FileAr->IsError() )

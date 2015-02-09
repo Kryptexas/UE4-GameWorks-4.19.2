@@ -67,6 +67,11 @@ void FNullNetworkReplayStreamer::StopStreaming()
 	MetadataFileAr = NULL;
 }
 
+FArchive* FNullNetworkReplayStreamer::GetHeaderArchive()
+{
+	return FileAr;
+}
+
 FArchive* FNullNetworkReplayStreamer::GetStreamingArchive()
 {
 	return FileAr;

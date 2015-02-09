@@ -13,8 +13,10 @@ public:
 	FNullNetworkReplayStreamer() : FileAr( NULL ), MetadataFileAr( NULL ) {}
 	virtual void StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate ) override;
 	virtual void StopStreaming() override;
+	virtual FArchive* GetHeaderArchive() override;
 	virtual FArchive* GetStreamingArchive() override;
 	virtual FArchive* GetMetadataArchive() override;
+	virtual bool IsDataAvailable() const override { return true; }
 
 private:
 	/** Handle to the archive that will read/write network packets */

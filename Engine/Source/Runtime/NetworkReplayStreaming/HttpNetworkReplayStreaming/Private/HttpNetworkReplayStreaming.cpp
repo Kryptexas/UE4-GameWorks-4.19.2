@@ -69,6 +69,9 @@ void FHttpNetworkReplayStreamer::StartStreaming( FString& StreamName, bool bReco
 	StreamArchive.ArIsLoading = !bRecord;
 	StreamArchive.ArIsSaving = !StreamArchive.ArIsLoading;
 
+	HeaderArchive.ArIsLoading = !bRecord;
+	HeaderArchive.ArIsSaving = !StreamArchive.ArIsLoading;
+
 	LastFlushTime = FPlatformTime::Seconds();
 
 	const bool bOverrideRecordingSession = true;//false;
@@ -127,7 +130,41 @@ void FHttpNetworkReplayStreamer::StopStreaming()
 
 void FHttpNetworkReplayStreamer::FlushStream()
 {
-	if ( StreamArchive.ArIsSaving && StreamArchive.Buffer.Num() > 0 && !SessionName.IsEmpty() )
+	if ( SessionName.IsEmpty() || !StreamArchive.ArIsSaving )
+	{
+		return;
+	}
+
+	if ( IsBusy() )
+	{
+		return;
+	}
+
+	if ( HeaderArchive.Buffer.Num() > 0 )
+	{
+		// First upload the header
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::FlushStream. Header. StreamFileCount: %i, Size: %i" ), StreamFileCount, StreamArchive.Buffer.Num() );
+
+		// Create the Http request and add to pending request list
+		TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpHeaderUploadFinished );
+
+		StreamState = EStreamState::UploadingStream;
+
+		HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&Filename=replay.header" ), *ServerURL, TEXT( "Test" ), *SessionName ) );
+		HttpRequest->SetVerb( TEXT( "POST" ) );
+		HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
+		HttpRequest->SetContent( HeaderArchive.Buffer );
+
+		HeaderArchive.Buffer.Empty();
+		HeaderArchive.Pos = 0;
+
+		HttpRequest->ProcessRequest();
+
+		LastFlushTime = FPlatformTime::Seconds();
+	}
+	else if ( StreamArchive.Buffer.Num() > 0 )
 	{
 		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::FlushStream. StreamFileCount: %i, Size: %i" ), StreamFileCount, StreamArchive.Buffer.Num() );
 
@@ -143,12 +180,12 @@ void FHttpNetworkReplayStreamer::FlushStream()
 		HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 		HttpRequest->SetContent( StreamArchive.Buffer );
 
-		HttpRequest->ProcessRequest();
+		StreamArchive.Buffer.Empty();
+		StreamArchive.Pos = 0;
 
 		StreamFileCount++;
 
-		StreamArchive.Buffer.Empty();
-		StreamArchive.Pos = 0;
+		HttpRequest->ProcessRequest();
 
 		LastFlushTime = FPlatformTime::Seconds();
 	}
@@ -158,24 +195,51 @@ void FHttpNetworkReplayStreamer::DownloadNextChunk()
 {
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%sdownload?Version=%s&Session=%s&Filename=stream.%i" ), *ServerURL, TEXT( "Test" ), *SessionName, StreamFileCount ) );
-	HttpRequest->SetVerb( TEXT( "GET" ) );
+	if ( HeaderArchive.Buffer.Num() == 0 )
+	{
+		// Download header first
+		HttpRequest->SetURL( FString::Printf( TEXT( "%sdownload?Version=%s&Session=%s&Filename=replay.header" ), *ServerURL, TEXT( "Test" ), *SessionName ) );
+		HttpRequest->SetVerb( TEXT( "GET" ) );
 
-	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadFinished );
+		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished );
+	}
+	else
+	{
+		HttpRequest->SetURL( FString::Printf( TEXT( "%sdownload?Version=%s&Session=%s&Filename=stream.%i" ), *ServerURL, TEXT( "Test" ), *SessionName, StreamFileCount ) );
+		HttpRequest->SetVerb( TEXT( "GET" ) );
+
+		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadFinished );
+	}
 
 	StreamState = EStreamState::DownloadingStream;
 
 	HttpRequest->ProcessRequest();
 }
 
+FArchive* FHttpNetworkReplayStreamer::GetHeaderArchive()
+{
+	return ( StreamArchive.IsSaving() || HeaderArchive.Pos < HeaderArchive.Buffer.Num() ) ? &HeaderArchive : NULL;
+}
+
 FArchive* FHttpNetworkReplayStreamer::GetStreamingArchive()
 {
-	return ( StreamArchive.IsSaving() || ( StreamArchive.Buffer.Num() > 0 && StreamFileCount == NumDownloadChunks && NumDownloadChunks > 0 ) ) ? &StreamArchive : NULL;
+	return ( StreamArchive.IsSaving() || IsDataAvailable() ) ? &StreamArchive : NULL;
 }
 
 FArchive* FHttpNetworkReplayStreamer::GetMetadataArchive()
 {
 	return NULL;
+}
+
+bool FHttpNetworkReplayStreamer::IsDataAvailable() const
+{
+	//if ( StreamArchive.IsLoading() && StreamArchive.Pos < StreamArchive.Buffer.Num() && StreamFileCount == NumDownloadChunks && NumDownloadChunks > 0 )
+	if ( StreamArchive.IsLoading() && StreamArchive.Pos < StreamArchive.Buffer.Num() && NumDownloadChunks > 0 )
+	{
+		return true;
+	}
+	
+	return false;
 }
 
 void FHttpNetworkReplayStreamer::HttpStartUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
@@ -221,6 +285,22 @@ void FHttpNetworkReplayStreamer::HttpStopUploadingFinished( FHttpRequestPtr Http
 	SessionName.Empty();
 }
 
+void FHttpNetworkReplayStreamer::HttpHeaderUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+{
+	check( StreamState == EStreamState::UploadingStream );
+
+	StreamState = EStreamState::Idle;
+
+	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
+	{
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished." ) );
+	}
+	else
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished. FAILED" ) );
+	}
+}
+
 void FHttpNetworkReplayStreamer::HttpUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
 	check( StreamState == EStreamState::UploadingStream );
@@ -262,10 +342,11 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
 		FString NumChunksString = HttpResponse->GetHeader( TEXT( "NumChunks" ) );
+		FString State = HttpResponse->GetHeader( TEXT( "State" ) );
 
 		NumDownloadChunks = FCString::Atoi( *NumChunksString );
 
-		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. NumChunks: %i" ), NumDownloadChunks );
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. State: %s, NumChunks: %i" ), *State, NumDownloadChunks );
 
 		// Download the demo file from the http server
 		if ( NumDownloadChunks > 0 )
@@ -294,34 +375,20 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 	}
 }
 
-void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
 	check( StreamState == EStreamState::DownloadingStream );
+	check( StreamArchive.IsLoading() );
 
 	StreamState = EStreamState::Idle;
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
-		if ( StreamArchive.IsLoading() )
-		{
-			StreamArchive.Buffer.Append( HttpResponse->GetContent() );
-		}
-		
-		StreamFileCount++;
+		HeaderArchive.Buffer.Append( HttpResponse->GetContent() );
 
-		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. %i / %i" ), StreamFileCount, NumDownloadChunks );
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished. Size: %i" ), HeaderArchive.Buffer.Num() );
 
-		if ( StreamFileCount < NumDownloadChunks )
-		{
-			DownloadNextChunk();
-		}
-		else
-		{
-			RememberedDelegate.ExecuteIfBound( true, StreamArchive.IsSaving() );
-
-			// Reset delegate
-			RememberedDelegate = FOnStreamReadyDelegate();
-		}
+		RememberedDelegate.ExecuteIfBound( true, StreamArchive.IsSaving() );
 	}
 	else
 	{
@@ -330,9 +397,33 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 
 		StreamArchive.Buffer.Empty();
 		RememberedDelegate.ExecuteIfBound( false, StreamArchive.IsSaving() );
+	}
 
-		// Reset delegate
-		RememberedDelegate = FOnStreamReadyDelegate();
+	// Reset delegate
+	RememberedDelegate = FOnStreamReadyDelegate();
+}
+
+void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+{
+	check( StreamState == EStreamState::DownloadingStream );
+	check( StreamArchive.IsLoading() );
+
+	StreamState = EStreamState::Idle;
+
+	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
+	{
+		StreamArchive.Buffer.Append( HttpResponse->GetContent() );
+		
+		StreamFileCount++;
+
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. Progress: %i / %i" ), StreamFileCount, NumDownloadChunks );
+	}
+	else
+	{
+		// FAIL
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. FAILED." ) );
+
+		StreamArchive.Buffer.Empty();
 	}
 }
 
@@ -340,11 +431,21 @@ void FHttpNetworkReplayStreamer::Tick( float DeltaTime )
 {
 	if ( !SessionName.IsEmpty() && !IsBusy() )
 	{
-		const double FLUSH_TIME_IN_SECONDS = 10;
-
-		if ( bFinalFlushNeeded || FPlatformTime::Seconds() - LastFlushTime > FLUSH_TIME_IN_SECONDS )
+		if ( StreamArchive.IsSaving() )
 		{
-			FlushStream();
+			const double FLUSH_TIME_IN_SECONDS = 10;
+
+			if ( bFinalFlushNeeded || HeaderArchive.Buffer.Num() > 0 || FPlatformTime::Seconds() - LastFlushTime > FLUSH_TIME_IN_SECONDS )
+			{
+				FlushStream();
+			}
+		}
+		else if ( StreamArchive.IsLoading() )
+		{
+			if ( StreamFileCount < NumDownloadChunks && NumDownloadChunks > 0 && StreamArchive.Pos == StreamArchive.Buffer.Num() )
+			{
+				DownloadNextChunk();
+			}
 		}
 	}
 }
