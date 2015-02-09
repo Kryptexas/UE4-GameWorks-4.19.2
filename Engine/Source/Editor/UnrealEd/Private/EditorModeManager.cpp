@@ -53,8 +53,11 @@ FEditorModeTools::FEditorModeTools()
 	USelection::SelectionChangedEvent.AddRaw(this, &FEditorModeTools::OnEditorSelectionChanged);
 	USelection::SelectObjectEvent.AddRaw(this, &FEditorModeTools::OnEditorSelectionChanged);
 
-	// Register our callback for undo/redo
-	GEditor->RegisterForUndo(this);
+	if( GEditor )
+	{
+		// Register our callback for undo/redo
+		GEditor->RegisterForUndo(this);
+	}
 }
 
 FEditorModeTools::~FEditorModeTools()
