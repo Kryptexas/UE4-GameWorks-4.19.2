@@ -426,6 +426,13 @@ public:
 		FScopeLock Lock(SynchQueue);
 		// Presize the array so there is no extra memory allocated
 		QueuedThreads.Empty(InNumQueuedThreads);
+
+		// Check for stack size override.
+		if( OverrideStackSize > StackSize )
+		{
+			StackSize = OverrideStackSize;
+		}
+
 		// Now create each thread and add it to the array
 		for (uint32 Count = 0; Count < InNumQueuedThreads && bWasSuccessful == true; Count++)
 		{
@@ -573,6 +580,7 @@ public:
 	}
 };
 
+uint32 FQueuedThreadPool::OverrideStackSize = 0;
 
 FQueuedThreadPool* FQueuedThreadPool::Allocate()
 {
