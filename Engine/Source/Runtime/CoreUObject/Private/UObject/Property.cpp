@@ -588,6 +588,9 @@ bool UProperty::ExportText_Direct
 
 bool UProperty::ShouldSerializeValue( FArchive& Ar ) const
 {
+	if (Ar.ShouldSkipProperty(this))
+		return false;
+
 	if (Ar.IsSaveGame() && !(PropertyFlags & CPF_SaveGame))
 		return false;
 
