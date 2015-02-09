@@ -730,6 +730,10 @@ void FWindowsPlatformSplash::Hide()
 }
 
 
+bool FWindowsPlatformSplash::IsShown()
+{
+	return (GSplashScreenThread != nullptr);
+}
 
 /**
  * Sets the text displayed on the splash screen (for startup/loading progress)
@@ -746,11 +750,11 @@ void FWindowsPlatformSplash::SetSplashText( const SplashTextType::Type InType, c
 		// Only allow copyright text displayed while loading the game.  Editor displays all.
 		if( InType == SplashTextType::CopyrightInfo || GIsEditor )
 		{
+			// Take a critical section since the splash thread may already be repainting using this text
+			FScopeLock ScopeLock(&GSplashScreenSynchronizationObject);
+
 			bool bWasUpdated = false;
 			{
-				// Take a critical section since the splash thread may already be repainting using this text
-				FScopeLock ScopeLock( &GSplashScreenSynchronizationObject );
-
 				// Update splash text
 				if( FCString::Strcmp( InText, *GSplashScreenText[ InType ].ToString() ) != 0 )
 				{
