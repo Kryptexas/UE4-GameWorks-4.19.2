@@ -35,6 +35,10 @@ struct UNREALED_API FComponentTypeRegistry
 	FOnComponentTypeListChanged& GetOnComponentTypeListChanged();
 
 private:
+	void OnProjectHotReloaded( bool bWasTriggeredAutomatically );
+
+private:
 	FComponentTypeRegistry();
+	~FComponentTypeRegistry();
 	struct FComponentTypeRegistryData* Data;
 };
