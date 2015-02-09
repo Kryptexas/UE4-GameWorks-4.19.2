@@ -1380,20 +1380,22 @@ TSharedRef<SWidget> SContentBrowser::MakeAddNewContextMenu(bool bShowGetContent,
 	int32 NumAssetPaths, NumClassPaths;
 	ContentBrowserUtils::CountPathTypes(SourcesData.PackagePaths, NumAssetPaths, NumClassPaths);
 
+	// New feature packs don't depend on the current paths, so we always add this item if it was requested
+	FNewAssetOrClassContextMenu::FOnGetContentRequested OnGetContentRequested;
+	if(bShowGetContent)
+	{
+		OnGetContentRequested = FNewAssetOrClassContextMenu::FOnGetContentRequested::CreateSP(this, &SContentBrowser::OnAddContentRequested);
+	}
+
 	// Only the asset items if we have an asset path selected
 	FNewAssetOrClassContextMenu::FOnNewAssetRequested OnNewAssetRequested;
 	FNewAssetOrClassContextMenu::FOnImportAssetRequested OnImportAssetRequested;
-	FNewAssetOrClassContextMenu::FOnGetContentRequested OnGetContentRequested;
 	if(NumAssetPaths > 0)
 	{
 		OnNewAssetRequested = FNewAssetOrClassContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested);
 		if(bShowImport)
 		{
 			OnImportAssetRequested = FNewAssetOrClassContextMenu::FOnImportAssetRequested::CreateSP(this, &SContentBrowser::ImportAsset);
-		}
-		if(bShowGetContent)
-		{
-			OnGetContentRequested = FNewAssetOrClassContextMenu::FOnGetContentRequested::CreateSP(this, &SContentBrowser::OnAddContentRequested);
 		}
 	}
 

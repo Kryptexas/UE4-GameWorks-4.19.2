@@ -221,10 +221,7 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 				LOCTEXT( "GetContentText", "Add Feature or Content Pack..." ),
 				LOCTEXT( "GetContentTooltip", "Add features and content packs to the project." ),
 				FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.AddContent" ),
-				FUIAction(
-					FExecuteAction::CreateStatic( &FNewAssetOrClassContextMenu::ExecuteGetContent, InOnGetContentRequested ),
-					CanExecuteAssetActionsDelegate
-					)
+				FUIAction( FExecuteAction::CreateStatic( &FNewAssetOrClassContextMenu::ExecuteGetContent, InOnGetContentRequested ) )
 				);
 		}
 		MenuBuilder.EndSection();
