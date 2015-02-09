@@ -5052,6 +5052,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("GameMode"),
 			TEXT("GameState"),
 			TEXT("HUD"),
+			TEXT("Interface"),
 			TEXT("InterpData"),
 			TEXT("KillZVolume"),
 			TEXT("Landscape"),
