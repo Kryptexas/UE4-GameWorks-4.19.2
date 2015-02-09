@@ -73,7 +73,7 @@ float3 AccumulateForwardLights(FMaterialPixelParameters Parameters, float3 Diffu
 	// todo: support more than 32 lights
 
 	// loop through all lights specified by this bitmask
-	[allow_uav_condition] while(culling != 0)
+	ALLOW_UAV_CONDITION while (culling != 0)
 	{
 		uint LightIndex = firstbitlow(culling);
 

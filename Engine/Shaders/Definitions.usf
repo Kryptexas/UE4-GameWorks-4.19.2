@@ -163,6 +163,8 @@
 #define IFALL											[ifAll]
 /** Executes the conditional part of an if statement when the condition is true for any thread on which the current shader is running. */
 #define IFANY											[ifAny]
+/** Allows a compute shader loop termination condition to be based off of a UAV read. The loop must not contain synchronization intrinsics. */
+#define ALLOW_UAV_CONDITION								[allow_uav_condition]
 #else
 #ifndef UNROLL
 #define UNROLL
