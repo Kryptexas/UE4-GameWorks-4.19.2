@@ -815,9 +815,6 @@ public:
 	/** Called when 'Go to Documentation for Actor' is clicked */
 	static void GoToDocsForActor_Clicked();
 
-	/** Called when 'Add Script Behavior' is clicked */
-	static void AddScriptBehavior_Clicked();
-
 	/**
 	 * Called when the LockActorMovement command is executed
 	 */

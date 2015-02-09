@@ -300,22 +300,6 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 				}
 				MenuBuilder.EndSection();
 			}
-
-			// If it is in the map then it is already anonymous
-			if (GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing
-				&& SelectedActors.Num() == 1
-				&& !FBlueprintEditorUtils::IsAnonymousBlueprintClass(SelectionInfo.SelectionClass)
-				&& FKismetEditorUtilities::CanCreateBlueprintOfClass(SelectionInfo.SelectionClass))
-			{
-				MenuBuilder.BeginSection("Customize", LOCTEXT("CustomizeHeading", "Customize"));
-				{
-					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().AddScriptBehavior,
-						NAME_None,
-						LOCTEXT("AddScriptBehavior", "Customize Scripting Behavior"),
-						LOCTEXT("AddScriptBehavior_ToolTip", "Click to customize scripting behavior of this Actor"));
-				}
-				MenuBuilder.EndSection();
-			}
 		}
 
 		MenuBuilder.BeginSection("ActorSelectVisibilityLevels");
