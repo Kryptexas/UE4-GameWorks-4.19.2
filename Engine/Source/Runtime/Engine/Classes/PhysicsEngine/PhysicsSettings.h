@@ -37,13 +37,13 @@ namespace EFrictionCombineMode
 {
 	enum Type
 	{
-		//Uses the average friction of materials touching: (a+b) /2
+		//Uses the average value of the materials touching: (a+b) /2
 		Average = 0,	
-		//Uses the minimum friction of materials touching: min(a,b)
+		//Uses the minimum value of the materials touching: min(a,b)
 		Min = 1,		
-		//Uses the product of the friction of materials touching: a*b
+		//Uses the product of the values of the materials touching: a*b
 		Multiply = 2,	
-		//Uses the maximum friction of materials touching: max(a,b)
+		//Uses the maximum value of materials touching: max(a,b)
 		Max = 3
 	};
 }
@@ -106,10 +106,17 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	TEnumAsByte<ESettingsLockedAxis::Type> LockedAxis;
 	
+	/** Minimum relative velocity required for an object to bounce. A typical value for simulation stability is about 0.2 * gravity*/
+	UPROPERTY(config, EditAnywhere, Category = Simulation, meta = (ClampMin = "0", UIMin = "0"))
+	float BounceThresholdVelocity;
 
 	/** Friction combine mode, controls how friction is computed for multiple materials. */
 	UPROPERTY(config, EditAnywhere, Category=Simulation)
 	TEnumAsByte<EFrictionCombineMode::Type> FrictionCombineMode;
+
+	/** Restitution combine mode, controls how restitution is computed for multiple materials. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	TEnumAsByte<EFrictionCombineMode::Type> RestitutionCombineMode;
 
 	/** Max velocity which may be used to depenetrate simulated physics objects. 0 means no maximum. */
 	UPROPERTY(config, EditAnywhere, Category = Simulation)

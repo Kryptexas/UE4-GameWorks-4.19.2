@@ -58,6 +58,14 @@ class ENGINE_API UPhysicalMaterial : public UObject
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicalMaterial, meta = (UIMin=0, UIMax=1, ClampMin=0, ClampMax=1))
 	float Restitution;
 
+	/** Restitution combine mode, controls how restitution is computed for multiple materials. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicalMaterial, meta = (editcondition = "bOverrideRestitutionCombineMode"))
+	TEnumAsByte<EFrictionCombineMode::Type> RestitutionCombineMode;
+
+	/** If set we will use the RestitutionCombineMode of this material, instead of the RestitutionCombineMode found in the project settings. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PhysicalMaterial)
+	bool bOverrideRestitutionCombineMode;
+
 	//
 	// Object properties.
 	//
