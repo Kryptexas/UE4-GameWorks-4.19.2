@@ -728,71 +728,27 @@ void UUnrealEdEngine::SetMapBuildCancelled( bool InCancelled )
 
 FText FClassPickerDefaults::GetName() const
 {
-	static TMap< FString, FText > LocNames;
+	FText Result = LOCTEXT("NullClass", "(null class)");
 
-	if (LocNames.Num() == 0)
+	if (UClass* ItemClass = LoadClass<UObject>(NULL, *ClassName, NULL, LOAD_None, NULL))
 	{
-		LocNames.Add( TEXT("ActorName"), LOCTEXT("ActorName", "Actor") );
-		LocNames.Add( TEXT("PawnName"), LOCTEXT("PawnName", "Pawn") );
-		LocNames.Add( TEXT("CharacterName"), LOCTEXT("CharacterName", "Character") );
-		LocNames.Add( TEXT("PlayerControllerName"), LOCTEXT("PlayerControllerName", "PlayerController") );
-		LocNames.Add( TEXT("GameModeName"), LOCTEXT("GameModeName", "Game Mode") );
+		Result = ItemClass->GetDisplayNameText();
 	}
 
-	if ( LocTextNameID.IsEmpty() )
-	{
-		UClass* ItemClass = LoadClass<UObject>(NULL, *ClassName, NULL, LOAD_None, NULL);
-		check( ItemClass );
-		return FText::FromString(FName::NameToDisplayString(ItemClass->GetName(), false));
-	}
-	
-	const FText* PreExistingName = LocNames.Find( LocTextNameID );
-	if ( PreExistingName )
-	{
-		return *PreExistingName;
-	}
-
-	FText OutName;
-	if ( FText::FindText(TEXT("UnrealEd"), LocTextNameID, OutName) )
-	{
-		return OutName;
-	}
-		
-	return FText::FromString(LocTextNameID);
+	return Result;
 }
 
 
 FText FClassPickerDefaults::GetDescription() const
 {
-	static TMap< FString, FText > LocDescs;
+	FText Result = LOCTEXT("NullClass", "(null class)");
 
-	if (LocDescs.Num() == 0)
+	if (UClass* ItemClass = LoadClass<UObject>(NULL, *ClassName, NULL, LOAD_None, NULL))
 	{
-		LocDescs.Add( TEXT("ActorDesc"), LOCTEXT("ActorDesc", "An Actor is an object that can be placed or spawned in the world.") );
-		LocDescs.Add( TEXT("PawnDesc"), LOCTEXT("PawnDesc", "A Pawn is an actor that can be 'possessed' and receieve input from a controller.") );
-		LocDescs.Add( TEXT("CharacterDesc"), LOCTEXT("CharacterDesc", "A character is a type of Pawn that includes the ability to walk around.") );
-		LocDescs.Add( TEXT("PlayerControllerDesc"), LOCTEXT("PlayerControllerDesc", "A Player Controller is an actor responsible for controlling a Pawn used by the player.") );
-		LocDescs.Add( TEXT("GameModeDesc"), LOCTEXT("GameModeDesc", "Game Mode defines the game being played, its rules, scoring, and other facets of the game type.") );
+		Result = ItemClass->GetToolTipText(/*bShortTooltip=*/ true);
 	}
 
-	if ( LocTextDescriptionID.IsEmpty() )
-	{
-		return LOCTEXT("NoClassPickerDesc", "No Description.");
-	}
-
-	const FText* PreExistingDesc = LocDescs.Find( LocTextDescriptionID );
-	if ( PreExistingDesc )
-	{
-		return *PreExistingDesc;
-	}
-
-	FText OutDesc;
-	if ( FText::FindText(TEXT("UnrealEd"), LocTextDescriptionID, OutDesc) )
-	{
-		return OutDesc;
-	}
-		
-	return FText::FromString(LocTextDescriptionID);
+	return Result;
 }
 
 #undef LOCTEXT_NAMESPACE
