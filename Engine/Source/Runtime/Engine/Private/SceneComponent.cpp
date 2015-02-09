@@ -1165,6 +1165,8 @@ FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* 
 
 void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component)
 {
+	FComponentInstanceDataBase::ApplyToComponent(Component);
+
 	USceneComponent* SceneComponent = CastChecked<USceneComponent>(Component);
 	for (USceneComponent* ChildComponent : AttachedInstanceComponents)
 	{
