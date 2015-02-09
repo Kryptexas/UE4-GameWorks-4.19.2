@@ -438,7 +438,6 @@ void ULinkerLoad::PRIVATE_PatchNewObjectIntoExport(UObject* OldObject, UObject* 
 
 void ULinkerLoad::InvalidateExport(UObject* OldObject)
 {
-	// Cache off the old object's linker and export index.  We'll slide the new object in here.
 	ULinkerLoad* OldObjectLinker = OldObject->GetLinker();
 	const int32 CachedLinkerIndex = OldObject->GetLinkerIndex();
 
@@ -448,6 +447,19 @@ void ULinkerLoad::InvalidateExport(UObject* OldObject)
 		ObjExport.bExportLoadFailed = true;
 	}
 }
+
+void ULinkerLoad::RefreshExportFlags(UObject* Object)
+{
+	ULinkerLoad* ObjectLinker = Object->GetLinker();
+	const int32 CachedLinkerIndex = Object->GetLinkerIndex();
+
+	if (ObjectLinker && ObjectLinker->ExportMap.IsValidIndex(CachedLinkerIndex))
+	{
+		FObjectExport& ObjExport = ObjectLinker->ExportMap[CachedLinkerIndex];
+		ObjExport.ObjectFlags = Object->GetMaskedFlags();
+	}
+}
+
 
 FName ULinkerLoad::FindSubobjectRedirectName(const FName& Name)
 {
