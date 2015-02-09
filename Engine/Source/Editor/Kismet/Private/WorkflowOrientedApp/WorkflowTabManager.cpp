@@ -530,6 +530,8 @@ TSharedPtr<SDockTab> FDocumentTracker::NavigateCurrentTab(TSharedPtr<FTabPayload
 			TSharedPtr<FDocumentTabFactory> Factory = FindSupportingFactory(InPayload.ToSharedRef());
 			// If doing a Quick navigate of the document, do not save history data as it's likely still at the default values. The object is always saved
 			LastEditedTabInfo.Pin()->AddTabHistory(Factory->CreateTabHistoryNode(InPayload), InNavigateCause != QuickNavigateCurrentDocument);
+			// Ensure that the tab appears if the tab isn't currently in the foreground.
+			LastEditedTabInfo.Pin()->GetTab().Pin()->ActivateInParent(ETabActivationCause::SetDirectly);
 		}
 		else if(InNavigateCause == NavigateBackwards)
 		{
