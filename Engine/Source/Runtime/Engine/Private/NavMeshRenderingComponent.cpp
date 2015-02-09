@@ -37,8 +37,12 @@ bool UNavMeshRenderingComponent::NeedsLoadForServer() const
 void UNavMeshRenderingComponent::TimerFunction()
 {
 	bool bShowNavigation = false;
+
+	UWorld* MyWorld = GetWorld();
+	FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(MyWorld);
+
 #if WITH_EDITOR
-	if (GEditor)
+	if (GEditor && WorldContext && WorldContext->WorldType == EWorldType::Editor)
 	{
 		for (FEditorViewportClient* CurrentViewport : GEditor->AllViewportClients)
 		{
@@ -52,9 +56,7 @@ void UNavMeshRenderingComponent::TimerFunction()
 	else
 #endif //WITH_EDITOR
 	{
-		UWorld* World = GetWorld();
-		UGameViewportClient* Viewport = World ? World->GetGameViewport() : nullptr;
-		bShowNavigation = Viewport ? Viewport->EngineShowFlags.Navigation : false;
+		bShowNavigation = WorldContext && WorldContext->GameViewport && WorldContext->GameViewport->EngineShowFlags.Navigation;
 	}
 
 	if (bShowNavigation != !!bCollectNavigationData)
@@ -106,9 +108,12 @@ FPrimitiveSceneProxy* UNavMeshRenderingComponent::CreateSceneProxy()
 #if WITH_RECAST && !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	FPrimitiveSceneProxy* SceneProxy = NULL;
 
+	UWorld* MyWorld = GetWorld();
+	FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(MyWorld);
+
 	bool bShowNavigation = false;
 #if WITH_EDITOR
-	if (GEditor)
+	if (GEditor && WorldContext && WorldContext->WorldType == EWorldType::Editor)
 	{
 		for (FEditorViewportClient* CurrentViewpoer : GEditor->AllViewportClients)
 		{
@@ -122,7 +127,7 @@ FPrimitiveSceneProxy* UNavMeshRenderingComponent::CreateSceneProxy()
 	else
 #endif //WITH_EDITOR
 	{
-		bShowNavigation = GetWorld()->GetGameViewport()->EngineShowFlags.Navigation;
+		bShowNavigation = WorldContext && WorldContext->GameViewport && WorldContext->GameViewport->EngineShowFlags.Navigation;
 	}
 	bCollectNavigationData = bShowNavigation;
 
