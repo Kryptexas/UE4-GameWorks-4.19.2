@@ -359,7 +359,7 @@ ULocalPlayer* UGameInstance::CreateLocalPlayer(int32 ControllerId, FString& OutE
 			UE_LOG(LogPlayerManagement, Warning, TEXT("Controller ID (%d) is unlikely to map to any physical device, so this player will not receive input"), ControllerId);
 		}
 
-		NewPlayer = CastChecked<ULocalPlayer>(StaticConstructObject(GetEngine()->LocalPlayerClass, GetEngine()));
+		NewPlayer = NewObject<ULocalPlayer>(GetEngine(), GetEngine()->LocalPlayerClass);
 		InsertIndex = AddLocalPlayer(NewPlayer, ControllerId);
 		if (bSpawnActor && InsertIndex != INDEX_NONE && GetWorld() != NULL)
 		{

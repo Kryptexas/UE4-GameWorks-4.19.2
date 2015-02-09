@@ -1876,7 +1876,7 @@ void FEdModeMeshPaint::StartPaintingTexture( UMeshComponent* InMeshComponent )
 					TextureData->PaintRenderTargetTexture->GetSurfaceHeight() != TextureHeight )
 				{
 					TextureData->PaintRenderTargetTexture = NULL;
-					TextureData->PaintRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
+					TextureData->PaintRenderTargetTexture = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), NAME_None, RF_Transient);
 					TextureData->PaintRenderTargetTexture->bNeedsTwoCopies = true;
 					const bool bForceLinearGamma = true;
 					TextureData->PaintRenderTargetTexture->InitCustomFormat( TextureWidth, TextureHeight, PF_A16B16G16R16, bForceLinearGamma );
@@ -1897,7 +1897,7 @@ void FEdModeMeshPaint::StartPaintingTexture( UMeshComponent* InMeshComponent )
 					BrushRenderTargetTexture->GetSurfaceHeight() != BrushTargetTextureHeight )
 				{
 					BrushRenderTargetTexture = NULL;
-					BrushRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
+					BrushRenderTargetTexture = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), NAME_None, RF_Transient);
 					const bool bForceLinearGamma = true;
 					BrushRenderTargetTexture->ClearColor = FLinearColor::Black;
 					BrushRenderTargetTexture->bNeedsTwoCopies = true;
@@ -1917,7 +1917,7 @@ void FEdModeMeshPaint::StartPaintingTexture( UMeshComponent* InMeshComponent )
 						BrushMaskRenderTargetTexture->GetSurfaceHeight() != BrushTargetTextureHeight )
 					{
 						BrushMaskRenderTargetTexture = NULL;
-						BrushMaskRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
+						BrushMaskRenderTargetTexture = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), NAME_None, RF_Transient);
 						const bool bForceLinearGamma = true;
 						BrushMaskRenderTargetTexture->ClearColor = FLinearColor::Black;
 						BrushMaskRenderTargetTexture->bNeedsTwoCopies = true;
@@ -1933,7 +1933,7 @@ void FEdModeMeshPaint::StartPaintingTexture( UMeshComponent* InMeshComponent )
 						SeamMaskRenderTargetTexture->GetSurfaceHeight() != TextureHeight )
 					{
 						SeamMaskRenderTargetTexture = NULL;
-						SeamMaskRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
+						SeamMaskRenderTargetTexture = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), NAME_None, RF_Transient);
 						const bool bForceLinearGamma = true;
 						SeamMaskRenderTargetTexture->ClearColor = FLinearColor::Black;
 						SeamMaskRenderTargetTexture->bNeedsTwoCopies = true;

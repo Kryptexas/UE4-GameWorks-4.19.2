@@ -460,13 +460,13 @@ UObject* UFactory::CreateOrOverwriteAsset(UClass* InClass, UObject* InParent, FN
 	UObject* ExistingAsset = StaticFindObject(NULL, InParent, *InName.ToString());
 	if ( !ExistingAsset )
 	{
-		return StaticConstructObject(InClass, InParent, InName, InFlags, InTemplate);
+		return NewObject<UObject>(InParent, InClass, InName, InFlags, InTemplate);
 	}
 
 	// If it does exist then it overwrites it if possible.
 	if ( ExistingAsset->GetClass()->IsChildOf(InClass) )
 	{
-		return StaticConstructObject(InClass, InParent, InName, InFlags, InTemplate);
+		return NewObject<UObject>(InParent, InClass, InName, InFlags, InTemplate);
 	}
 	
 	// If it can not overwrite then it will delete and replace.
@@ -497,7 +497,7 @@ UObject* UFactory::CreateOrOverwriteAsset(UClass* InClass, UObject* InParent, FN
 		else
 		{
 			// We can now create the asset in the package
-			return StaticConstructObject(InClass, InParent, InName, InFlags, InTemplate);
+			return NewObject<UObject>(InParent, InClass, InName, InFlags, InTemplate);
 		}
 	}
 	else

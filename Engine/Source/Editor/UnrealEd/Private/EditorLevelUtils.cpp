@@ -200,7 +200,7 @@ namespace EditorLevelUtils
 
 			const FScopedBusyCursor BusyCursor;
 
-			ULevelStreaming* StreamingLevel = static_cast<ULevelStreaming*>( StaticConstructObject( LevelStreamingClass, InWorld, NAME_None, RF_NoFlags, NULL) );
+			ULevelStreaming* StreamingLevel = NewObject<ULevelStreaming>(InWorld, LevelStreamingClass, NAME_None, RF_NoFlags, NULL);
 
 			// Associate a package name.
 			StreamingLevel->SetWorldAssetByPackageName(LevelPackageName);

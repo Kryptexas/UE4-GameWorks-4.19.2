@@ -288,7 +288,7 @@ namespace
 			const TSharedPtr<IPropertyHandle> TargetObjectPropertyHandle = TargetObjectsArrayPropertyHandle->GetElement(NewEntryIndexToBeInitialized);
 			if (TargetObjectPropertyHandle.IsValid() && TargetObjectPropertyHandle->IsValidHandle())
 			{
-				ULocalizationTarget* const NewTarget = Cast<ULocalizationTarget>(StaticConstructObject(ULocalizationTarget::StaticClass(), Settings));
+				ULocalizationTarget* const NewTarget = NewObject<ULocalizationTarget>(Settings);
 
 				TArray<void*> RawData;
 				TargetObjectsPropertyHandle->AccessRawData(RawData);

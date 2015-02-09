@@ -1403,7 +1403,7 @@ ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 
 #if !UE_BUILD_SHIPPING
 	// Create the viewport's console.
-	ViewportConsole = Cast<UConsole>(StaticConstructObject(GetOuterUEngine()->ConsoleClass, this));
+	ViewportConsole = NewObject<UConsole>(this, GetOuterUEngine()->ConsoleClass);
 	// register console to get all log messages
 	GLog->AddOutputDevice(ViewportConsole);
 #endif // !UE_BUILD_SHIPPING

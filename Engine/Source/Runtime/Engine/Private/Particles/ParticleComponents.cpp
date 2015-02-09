@@ -1938,7 +1938,7 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 		}
 		ColorCurveDist->bIsDirty = true;
 	}
-	ColorModule->AlphaOverLife.Distribution = Cast<UDistributionFloatConstantCurve>(StaticConstructObject(UDistributionFloatConstantCurve::StaticClass(), ColorModule));
+	ColorModule->AlphaOverLife.Distribution = NewObject<UDistributionFloatConstantCurve>(ColorModule);
 	UDistributionFloatConstantCurve* AlphaCurveDist = Cast<UDistributionFloatConstantCurve>(ColorModule->AlphaOverLife.Distribution);
 	if (AlphaCurveDist)
 	{

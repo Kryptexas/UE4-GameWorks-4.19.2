@@ -992,7 +992,7 @@ void APlayerController::AddCheats(bool bForce)
 	// Assuming that this never gets called for NM_Client without bForce=true
 	if ( ((CheatManager == NULL) && (World->GetAuthGameMode() != NULL) && World->GetAuthGameMode()->AllowCheats(this)) || bForce)
 	{
-		CheatManager = Cast<UCheatManager>(StaticConstructObject(CheatClass, this));
+		CheatManager = NewObject<UCheatManager>(this, CheatClass);
 		CheatManager->InitCheatManager();
 	}
 }

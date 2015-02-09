@@ -709,7 +709,7 @@ private:
 	{
 		auto* ClassWithin = Class->ClassWithin;
 		Class->ClassWithin = UPackage::StaticClass(); // We are just avoiding error checks with this... we don't care about this temp object other than to get the vtable.
-		UObject* TempObjectForVTable = StaticConstructObject(Class, GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject);
+		UObject* TempObjectForVTable = StaticConstructObject_Internal(Class, GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject);
 
 		if (!TempObjectForVTable->IsRooted())
 		{

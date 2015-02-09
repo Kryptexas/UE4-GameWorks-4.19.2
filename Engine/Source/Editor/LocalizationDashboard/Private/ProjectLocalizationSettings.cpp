@@ -16,7 +16,7 @@ void UProjectLocalizationSettings::PostInitProperties()
 	TargetObjects.Empty(Targets.Num());
 	for (const FLocalizationTargetSettings& Target : Targets)
 	{
-		ULocalizationTarget* const NewTargetObject = Cast<ULocalizationTarget>(StaticConstructObject(ULocalizationTarget::StaticClass(), this));
+		ULocalizationTarget* const NewTargetObject = NewObject<ULocalizationTarget>(this);
 		NewTargetObject->Settings = Target;
 		TargetObjects.Add(NewTargetObject);
 	}

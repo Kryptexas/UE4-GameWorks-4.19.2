@@ -126,7 +126,7 @@ UTexture2D* FImageUtils::CreateTexture2D(int32 SrcWidth, int32 SrcHeight, const 
 #if WITH_EDITOR
 	UTexture2D* Tex2D;
 
-	Tex2D = CastChecked<UTexture2D>( StaticConstructObject(UTexture2D::StaticClass(), Outer, FName(*Name), Flags) );
+	Tex2D = NewObject<UTexture2D>(Outer, FName(*Name), Flags);
 	Tex2D->Source.Init(SrcWidth, SrcHeight, /*NumSlices=*/ 1, /*NumMips=*/ 1, TSF_BGRA8);
 	
 	// Create base mip for the texture we created.

@@ -137,7 +137,7 @@ UObject* UTexture2DFactoryNew::FactoryCreateNew( UClass* InClass, UObject* InPar
 		return nullptr;
 	}
 
-	UTexture2D* Object = CastChecked<UTexture2D>(StaticConstructObject(InClass,InParent,InName,Flags) );
+	UTexture2D* Object = NewObject<UTexture2D>(InParent, InClass, InName, Flags);
 
 	Object->Source.Init2DWithMipChain(Width, Height, TSF_BGRA8);
 
@@ -170,7 +170,7 @@ UMaterialInstanceConstantFactoryNew::UMaterialInstanceConstantFactoryNew(const F
 
 UObject* UMaterialInstanceConstantFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	UMaterialInstanceConstant* MIC = CastChecked<UMaterialInstanceConstant>(StaticConstructObject(Class,InParent,Name,Flags));
+	auto MIC = NewObject<UMaterialInstanceConstant>(InParent, Class, Name, Flags);
 	
 	if ( MIC )
 	{
@@ -242,7 +242,7 @@ UMaterialFunctionFactoryNew::UMaterialFunctionFactoryNew(const FObjectInitialize
 
 UObject* UMaterialFunctionFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return StaticConstructObject(Class,InParent,Name,Flags);
+	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
 
 
@@ -260,7 +260,7 @@ UMaterialParameterCollectionFactoryNew::UMaterialParameterCollectionFactoryNew(c
 
 UObject* UMaterialParameterCollectionFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return StaticConstructObject(Class,InParent,Name,Flags);
+	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
 
 /*------------------------------------------------------------------------------
@@ -1126,7 +1126,7 @@ UObject* UPackageFactory::FactoryCreateText( UClass* Class, UObject* InParent, F
 					}
 					check(ParentPkg);
 
-					UPackage* NewPackage = Cast<UPackage>(StaticConstructObject(UPackage::StaticClass(), ParentPkg, NewPackageName, RF_NoFlags, Archetype));
+					auto NewPackage = NewObject<UPackage>(ParentPkg, NewPackageName, RF_NoFlags, Archetype);
 					check(NewPackage);
 					NewPackage->SetFlags(RF_Standalone|RF_Public);
 					MapPackages.Add(NewPackageName.ToString(), NewPackage);
@@ -1854,7 +1854,7 @@ UDialogueVoiceFactory::UDialogueVoiceFactory(const FObjectInitializer& ObjectIni
 
 UObject* UDialogueVoiceFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return StaticConstructObject(Class,InParent,Name,Flags);
+	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
 
 /*-----------------------------------------------------------------------------
@@ -1871,7 +1871,7 @@ UDialogueWaveFactory::UDialogueWaveFactory(const FObjectInitializer& ObjectIniti
 
 UObject* UDialogueWaveFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return StaticConstructObject(Class,InParent,Name,Flags);
+	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
 
 /*-----------------------------------------------------------------------------
@@ -2484,7 +2484,7 @@ UParticleSystemFactoryNew::UParticleSystemFactoryNew(const FObjectInitializer& O
 
 UObject* UParticleSystemFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return StaticConstructObject(Class,InParent,Name,Flags);
+	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
 
 /*------------------------------------------------------------------------------
@@ -2501,7 +2501,7 @@ UPhysicalMaterialFactoryNew::UPhysicalMaterialFactoryNew(const FObjectInitialize
 
 UObject* UPhysicalMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return StaticConstructObject(Class,InParent,Name,Flags);
+	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
 
 /*------------------------------------------------------------------------------
@@ -2518,7 +2518,7 @@ UInterpDataFactoryNew::UInterpDataFactoryNew(const FObjectInitializer& ObjectIni
 
 UObject* UInterpDataFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return StaticConstructObject(Class,InParent,Name,Flags);
+	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
 
 /*-----------------------------------------------------------------------------
@@ -2542,7 +2542,7 @@ UTextureRenderTargetFactoryNew::UTextureRenderTargetFactoryNew(const FObjectInit
 UObject* UTextureRenderTargetFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
 	// create the new object
-	UTextureRenderTarget2D* Result = CastChecked<UTextureRenderTarget2D>( StaticConstructObject(Class,InParent,Name,Flags) );
+	UTextureRenderTarget2D* Result = NewObject<UTextureRenderTarget2D>(InParent, Class, Name, Flags);
 	// initialize the resource
 	Result->InitAutoFormat( Width, Height );
 	return( Result );
@@ -2568,7 +2568,7 @@ UTextureRenderTargetCubeFactoryNew::UTextureRenderTargetCubeFactoryNew(const FOb
 UObject* UTextureRenderTargetCubeFactoryNew::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	// create the new object
-	UTextureRenderTargetCube* Result = CastChecked<UTextureRenderTargetCube>(StaticConstructObject(Class, InParent, Name, Flags));
+	UTextureRenderTargetCube* Result = NewObject<UTextureRenderTargetCube>(InParent, Class, Name, Flags);
 
 	// initialize the resource
 	Result->InitAutoFormat(Width);
@@ -6457,7 +6457,7 @@ UObject* UCurveFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName
 	UCurveBase* NewCurve = nullptr;
 	if(CurveClass != nullptr)
 	{
-		NewCurve = CastChecked<UCurveBase>(StaticConstructObject(CurveClass,InParent,Name,Flags));		
+		NewCurve = NewObject<UCurveBase>(InParent, CurveClass, Name, Flags);
 	}
 
 	return NewCurve;
@@ -6540,7 +6540,7 @@ UObject* UCurveImportFactory::FactoryCreateText( UClass* InClass, UObject* InPar
 		// make the curve object and set up the keys
 		if (FloatKeys.Num() > 0)
 		{
-			UCurveFloat* NewCurve = CastChecked<UCurveFloat>(StaticConstructObject(UCurveFloat::StaticClass(),InParent,InName,Flags));
+			UCurveFloat* NewCurve = NewObject<UCurveFloat>(InParent,InName,Flags);
 
 			if (NewCurve)
 			{
@@ -6578,7 +6578,7 @@ UObjectLibraryFactory::UObjectLibraryFactory(const FObjectInitializer& ObjectIni
 
 UObject* UObjectLibraryFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	return CastChecked<UObjectLibrary>(StaticConstructObject(Class,InParent,Name,Flags));
+	return NewObject<UObjectLibrary>(InParent, Class, Name, Flags);
 }
 
 /*------------------------------------------------------------------------------
@@ -6627,13 +6627,13 @@ UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 {
 	if (DataAssetClass != nullptr)
 	{
-		return CastChecked<UDataAsset>(StaticConstructObject(DataAssetClass, InParent, Name, Flags | RF_Transactional));
+		return NewObject<UDataAsset>(InParent, DataAssetClass, Name, Flags | RF_Transactional);
 	}
 	else
 	{
 		// if we have no data asset class, use the passed-in class instead
 		check(Class->IsChildOf(UDataAsset::StaticClass()));
-		return CastChecked<UDataAsset>(StaticConstructObject(Class, InParent, Name, Flags));
+		return NewObject<UDataAsset>(InParent, Class, Name, Flags);
 	}
 }
 
@@ -6909,7 +6909,7 @@ UObject* UBlendSpaceFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent
 {
 	if (TargetSkeleton)
 	{
-		UBlendSpace * BlendSpace = Cast<UBlendSpace>(StaticConstructObject(Class,InParent,Name,Flags));
+		UBlendSpace * BlendSpace = NewObject<UBlendSpace>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
 
@@ -6982,7 +6982,7 @@ UObject* UBlendSpaceFactory1D::FactoryCreateNew(UClass* Class,UObject* InParent,
 {
 	if (TargetSkeleton)
 	{
-		UBlendSpace1D * BlendSpace = Cast<UBlendSpace1D>(StaticConstructObject(Class,InParent,Name,Flags));
+		UBlendSpace1D * BlendSpace = NewObject<UBlendSpace1D>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
 
@@ -7012,7 +7012,7 @@ UObject* UAimOffsetBlendSpaceFactoryNew::FactoryCreateNew(UClass* Class,UObject*
 {
 	if (TargetSkeleton)
 	{
-		UAimOffsetBlendSpace * BlendSpace = Cast<UAimOffsetBlendSpace>(StaticConstructObject(Class,InParent,Name,Flags));
+		UAimOffsetBlendSpace * BlendSpace = NewObject<UAimOffsetBlendSpace>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
 
@@ -7036,7 +7036,7 @@ UObject* UAimOffsetBlendSpaceFactory1D::FactoryCreateNew(UClass* Class,UObject* 
 {
 	if (TargetSkeleton)
 	{
-		UAimOffsetBlendSpace1D * BlendSpace = Cast<UAimOffsetBlendSpace1D>(StaticConstructObject(Class,InParent,Name,Flags));
+		UAimOffsetBlendSpace1D * BlendSpace = NewObject<UAimOffsetBlendSpace1D>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
 
@@ -7175,7 +7175,7 @@ uint32 UCameraAnimFactory::GetMenuCategories() const
 
 UObject* UCameraAnimFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	UCameraAnim* NewCamAnim = CastChecked<UCameraAnim>(StaticConstructObject(Class,InParent,Name,Flags));
+	UCameraAnim* NewCamAnim = NewObject<UCameraAnim>(InParent, Class, Name, Flags);
 	NewCamAnim->CameraInterpGroup = NewObject<UInterpGroupCamera>(NewCamAnim);
 	NewCamAnim->CameraInterpGroup->GroupName = Name;
 	return NewCamAnim;

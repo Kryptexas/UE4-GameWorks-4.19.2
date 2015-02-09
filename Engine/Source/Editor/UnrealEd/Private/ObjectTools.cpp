@@ -810,7 +810,7 @@ namespace ObjectTools
 
 					// Create a redirector with a unique name
 					// It will have the same name as the object that was consolidated after the garbage collect
-					UObjectRedirector* Redirector = Cast<UObjectRedirector>( StaticConstructObject( UObjectRedirector::StaticClass(), CurObjOuter, NAME_None, RF_Standalone | RF_Public ) );
+					UObjectRedirector* Redirector = NewObject<UObjectRedirector>(CurObjOuter, NAME_None, RF_Standalone | RF_Public);
 					check( Redirector );
 
 					// Set the redirector to redirect to the object to consolidate to
@@ -824,13 +824,13 @@ namespace ObjectTools
 					if ( BlueprintToConsolidateTo != NULL && BlueprintToConsolidate != NULL )
 					{
 						// One redirector for the class
-						UObjectRedirector* ClassRedirector = Cast<UObjectRedirector>( StaticConstructObject( UObjectRedirector::StaticClass(), CurObjOuter, NAME_None, RF_Standalone | RF_Public ) );
+						UObjectRedirector* ClassRedirector = NewObject<UObjectRedirector>(CurObjOuter, NAME_None, RF_Standalone | RF_Public);
 						check( ClassRedirector );
 						ClassRedirector->DestinationObject = BlueprintToConsolidateTo->GeneratedClass;
 						RedirectorToObjectNameMap.Add(ClassRedirector, BlueprintToConsolidate->GeneratedClass->GetFName());
 
 						// One redirector for the CDO
-						UObjectRedirector* CDORedirector = Cast<UObjectRedirector>( StaticConstructObject( UObjectRedirector::StaticClass(), CurObjOuter, NAME_None, RF_Standalone | RF_Public ) );
+						UObjectRedirector* CDORedirector = NewObject<UObjectRedirector>(CurObjOuter, NAME_None, RF_Standalone | RF_Public);
 						check( CDORedirector );
 						CDORedirector->DestinationObject = BlueprintToConsolidateTo->GeneratedClass->GetDefaultObject();
 						RedirectorToObjectNameMap.Add(CDORedirector, BlueprintToConsolidate->GeneratedClass->GetDefaultObject()->GetFName());

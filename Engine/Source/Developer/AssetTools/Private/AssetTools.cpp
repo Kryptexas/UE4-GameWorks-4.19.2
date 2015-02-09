@@ -288,7 +288,7 @@ UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& Packa
 	}
 	else if ( AssetClass )
 	{
-		NewObj = StaticConstructObject(ClassToUse, Pkg, FName(*AssetName), Flags);
+		NewObj = NewObject<UObject>(Pkg, ClassToUse, FName(*AssetName), Flags);
 	}
 
 	if( NewObj )

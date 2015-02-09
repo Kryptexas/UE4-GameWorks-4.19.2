@@ -267,7 +267,7 @@ void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMateria
 	ExpressionPreviewMaterial = NULL;
 
 	// Create a temporary material to preview the material function
-	Material = (UMaterial*)StaticConstructObject(UMaterial::StaticClass()); 
+	Material = NewObject<UMaterial>(); 
 	{
 		FArchiveUObject DummyArchive;
 		// Hack: serialize the new material with an archive that does nothing so that its material resources are created
@@ -2739,7 +2739,7 @@ void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpres
 		if( ExpressionPreviewMaterial == NULL )
 		{
 			// Create the expression preview material if it hasnt already been created
-			ExpressionPreviewMaterial = (UMaterial*)StaticConstructObject( UMaterial::StaticClass(), GetTransientPackage(), NAME_None, RF_Public);
+			ExpressionPreviewMaterial = NewObject<UMaterial>(GetTransientPackage(), NAME_None, RF_Public);
 			ExpressionPreviewMaterial->bIsPreviewMaterial = true;
 		}
 

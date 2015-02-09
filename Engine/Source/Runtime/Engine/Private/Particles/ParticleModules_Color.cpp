@@ -415,7 +415,7 @@ void UParticleModuleColorOverLife::Update(FParticleEmitterInstance* Owner, int32
 
 void UParticleModuleColorOverLife::SetToSensibleDefaults(UParticleEmitter* Owner)
 {
-	ColorOverLife.Distribution = Cast<UDistributionVectorConstantCurve>(StaticConstructObject(UDistributionVectorConstantCurve::StaticClass(), this));
+	ColorOverLife.Distribution = NewObject<UDistributionVectorConstantCurve>(this);
 	UDistributionVectorConstantCurve* ColorOverLifeDist = Cast<UDistributionVectorConstantCurve>(ColorOverLife.Distribution);
 	if (ColorOverLifeDist)
 	{
@@ -438,7 +438,7 @@ void UParticleModuleColorOverLife::SetToSensibleDefaults(UParticleEmitter* Owner
 		ColorOverLifeDist->bIsDirty = true;
 	}
 
-	AlphaOverLife.Distribution = Cast<UDistributionFloatConstantCurve>(StaticConstructObject(UDistributionFloatConstantCurve::StaticClass(), this));
+	AlphaOverLife.Distribution = NewObject<UDistributionFloatConstantCurve>(this);
 	UDistributionFloatConstantCurve* AlphaOverLifeDist = Cast<UDistributionFloatConstantCurve>(AlphaOverLife.Distribution);
 	if (AlphaOverLifeDist)
 	{
@@ -629,7 +629,7 @@ void UParticleModuleColorScaleOverLife::Update(FParticleEmitterInstance* Owner, 
 
 void UParticleModuleColorScaleOverLife::SetToSensibleDefaults(UParticleEmitter* Owner)
 {
-	ColorScaleOverLife.Distribution = Cast<UDistributionVectorConstantCurve>(StaticConstructObject(UDistributionVectorConstantCurve::StaticClass(), this));
+	ColorScaleOverLife.Distribution = NewObject<UDistributionVectorConstantCurve>(this);
 	UDistributionVectorConstantCurve* ColorScaleOverLifeDist = Cast<UDistributionVectorConstantCurve>(ColorScaleOverLife.Distribution);
 	if (ColorScaleOverLifeDist)
 	{
@@ -669,7 +669,7 @@ bool UParticleModuleColorScaleOverLife::PerformCustomMenuEntry(int32 InEntryInde
 		if (InEntryIndex == 0)
 		{
 			UE_LOG(LogParticles, Log, TEXT("Setup color scale over life for particle param!"));
-			ColorScaleOverLife.Distribution = Cast<UDistributionVectorParticleParameter>(StaticConstructObject(UDistributionVectorParticleParameter::StaticClass(), this));
+			ColorScaleOverLife.Distribution = NewObject<UDistributionVectorParticleParameter>(this);
 			UDistributionVectorParticleParameter* ColorDist = Cast<UDistributionVectorParticleParameter>(ColorScaleOverLife.Distribution);
 			if (ColorDist)
 			{
@@ -681,7 +681,7 @@ bool UParticleModuleColorScaleOverLife::PerformCustomMenuEntry(int32 InEntryInde
 				ColorDist->bIsDirty = true;
 			}
 
-			AlphaScaleOverLife.Distribution = Cast<UDistributionFloatParticleParameter>(StaticConstructObject(UDistributionFloatParticleParameter::StaticClass(), this));
+			AlphaScaleOverLife.Distribution = NewObject<UDistributionFloatParticleParameter>(this);
 			UDistributionFloatParticleParameter* AlphaDist = Cast<UDistributionFloatParticleParameter>(AlphaScaleOverLife.Distribution);
 			if (AlphaDist)
 			{

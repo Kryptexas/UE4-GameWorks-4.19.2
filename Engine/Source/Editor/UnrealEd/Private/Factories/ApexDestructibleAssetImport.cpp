@@ -991,7 +991,7 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 	if (DestructibleMesh == NULL)
 	{
 		// Create the new UDestructibleMesh object if the one with the same name does not exist
-		DestructibleMesh = CastChecked<UDestructibleMesh>(StaticConstructObject(UDestructibleMesh::StaticClass(), InParent, Name, Flags));
+		DestructibleMesh = NewObject<UDestructibleMesh>(InParent, Name, Flags);
 	}
 	
 	if (!(Options & EDestructibleImportOptions::PreserveSettings))

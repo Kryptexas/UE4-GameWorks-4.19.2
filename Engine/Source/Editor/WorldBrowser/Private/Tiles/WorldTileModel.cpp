@@ -29,11 +29,7 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 	UWorldComposition* WorldComposition = LevelCollectionModel.GetWorld()->WorldComposition;
 
 	// Tile display details object
-	TileDetails = Cast<UWorldTileDetails>(
-		StaticConstructObject(UWorldTileDetails::StaticClass(), 
-			GetTransientPackage(), NAME_None, RF_RootSet|RF_Transient, NULL
-			)
-		);
+	TileDetails = NewObject<UWorldTileDetails>(GetTransientPackage(), NAME_None, RF_RootSet | RF_Transient);
 
 	// Subscribe to tile properties changes
 	TileDetails->PositionChangedEvent.AddRaw(this, &FWorldTileModel::OnPositionPropertyChanged);
@@ -600,9 +596,7 @@ ULevelStreaming* FWorldTileModel::GetAssosiatedStreamingLevel()
 	if (Index == INDEX_NONE)
 	{
 		// Create new streaming level
-		ULevelStreaming* AssociatedStreamingLevel = Cast<ULevelStreaming>(
-			StaticConstructObject(ULevelStreamingKismet::StaticClass(), PersistentWorld, NAME_None, RF_Transient, NULL)
-			);
+		auto AssociatedStreamingLevel = NewObject<ULevelStreamingKismet>(PersistentWorld, NAME_None, RF_Transient);
 
 		//
 		AssociatedStreamingLevel->SetWorldAssetByPackageName(PackageName);

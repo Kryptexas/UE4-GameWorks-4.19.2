@@ -604,7 +604,7 @@ void APlayerCameraManager::ApplyAudioFade()
 
 UCameraModifier* APlayerCameraManager::CreateCameraModifier(TSubclassOf<UCameraModifier> ModifierClass)
 {
-	UCameraModifier* NewMod = Cast<UCameraModifier>(StaticConstructObject(ModifierClass, this));
+	UCameraModifier* NewMod = NewObject<UCameraModifier>(this, ModifierClass);
 	NewMod->Init(this);
 	return NewMod;
 }
@@ -622,7 +622,7 @@ void APlayerCameraManager::PostInitializeComponents()
 	// create CameraAnimInsts in pool
 	for (int32 Idx=0; Idx<MAX_ACTIVE_CAMERA_ANIMS; ++Idx)
 	{
-		AnimInstPool[Idx] = Cast<UCameraAnimInst>(StaticConstructObject(UCameraAnimInst::StaticClass(), this));
+		AnimInstPool[Idx] = NewObject<UCameraAnimInst>(this);
 
 		// add everything to the free list initially
 		FreeAnims.Add(AnimInstPool[Idx]);

@@ -2049,8 +2049,7 @@ void UEditorEngine::CloseEditedWorldAssets(UWorld* InWorld)
 
 UTextureRenderTarget2D* UEditorEngine::GetScratchRenderTarget( uint32 MinSize )
 {
-	UTextureRenderTargetFactoryNew* NewFactory = CastChecked<UTextureRenderTargetFactoryNew>( StaticConstructObject(UTextureRenderTargetFactoryNew::StaticClass()) );
-
+	auto NewFactory = NewObject<UTextureRenderTargetFactoryNew>();
 	UTextureRenderTarget2D* ScratchRenderTarget = NULL;
 
 	// We never allow render targets greater than 2048

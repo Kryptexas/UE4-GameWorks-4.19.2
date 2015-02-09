@@ -641,7 +641,7 @@ void UWorld::AddParameterCollectionInstance(UMaterialParameterCollection* Collec
 		}
 	}
 
-	UMaterialParameterCollectionInstance* NewInstance = (UMaterialParameterCollectionInstance*)StaticConstructObject(UMaterialParameterCollectionInstance::StaticClass());
+	auto NewInstance = NewObject<UMaterialParameterCollectionInstance>();
 	NewInstance->SetCollection(Collection, this);
 
 	if (ExistingIndex != INDEX_NONE)

@@ -388,7 +388,7 @@ UObject* UCloudStorageBase::ParseDocumentAsObject(int32 Index, TSubclassOf<class
 
 	// NOTE: The following should be in shared functionality in UCloudStorageBase
 	// create the object
-	UObject* Obj = StaticConstructObject(ObjectClass);
+	UObject* Obj = NewObject<UObject>(GetTransientPackage(), ObjectClass);
 
 	// serialize the object
 	Obj->Serialize(Ar);

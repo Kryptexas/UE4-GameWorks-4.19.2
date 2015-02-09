@@ -2631,7 +2631,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	if (PlayerPawn && SourceMeshList.Num() >= 2)
 	{
 		// create the composite mesh
-		USkeletalMesh* CompositeMesh = CastChecked<USkeletalMesh>(StaticConstructObject(USkeletalMesh::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient));
+		auto CompositeMesh = NewObject<USkeletalMesh>(GetTransientPackage(), NAME_None, RF_Transient);
 
 		TArray<FSkelMeshMergeSectionMapping> InForceSectionMapping;
 		// create an instance of the FSkeletalMeshMerge utility

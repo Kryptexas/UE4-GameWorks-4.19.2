@@ -1441,7 +1441,7 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 	UObject* DupRootObject = Parameters.DuplicationSeed.FindRef(Parameters.SourceObject);
 	if ( DupRootObject == NULL )
 	{
-		DupRootObject = StaticConstructObject(	Parameters.DestClass,
+		DupRootObject = StaticConstructObject_Internal(	Parameters.DestClass,
 														Parameters.DestOuter,
 														Parameters.DestName,
 														Parameters.ApplyFlags|Parameters.SourceObject->GetMaskedFlags(Parameters.FlagMask),
@@ -2220,7 +2220,7 @@ bool DebugIsClassChildOf_Internal(UClass* Parent, UClass* Child)
 	return Child->IsChildOf(Parent);
 }
 
-UObject* StaticConstructObject
+UObject* StaticConstructObject_Internal
 (
 	UClass*			InClass,
 	UObject*		InOuter								/*=GetTransientPackage()*/,
@@ -2267,6 +2267,20 @@ UObject* StaticConstructObject
 		Result->ClearFlags(RF_PendingKill);
 	}
 	return Result;
+}
+
+UObject* StaticConstructObject
+(
+	UClass*			InClass,
+	UObject*		InOuter								/*=GetTransientPackage()*/,
+	FName			InName								/*=NAME_None*/,
+	EObjectFlags	InFlags								/*=0*/,
+	UObject*		InTemplate							/*=NULL*/,
+	bool			bCopyTransientsFromClassDefaults	/*=false*/, 
+	FObjectInstancingGraph* InInstanceGraph				/*=NULL*/
+)
+{
+	return StaticConstructObject_Internal(InClass, InOuter, InName, InFlags, InTemplate, bCopyTransientsFromClassDefaults, InInstanceGraph);
 }
 
 void FObjectInitializer::AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage)
@@ -2670,7 +2684,7 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 		{
 			UObject* Template = OverrideClass->GetDefaultObject(); // force the CDO to be created if it hasn't already
 			const EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
-			Result = StaticConstructObject(OverrideClass, Outer, SubobjectFName, SubobjectFlags);
+			Result = StaticConstructObject_Internal(OverrideClass, Outer, SubobjectFName, SubobjectFlags);
 			if (!bIsTransient && !Outer->GetArchetype()->GetClass()->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic))
 			{
 				// The archetype of the outer is not native, so we need to copy properties to the subobjects after the C++ constructor chain for the outer has run (because those sets properties on the subobjects)

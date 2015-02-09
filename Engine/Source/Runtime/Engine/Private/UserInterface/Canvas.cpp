@@ -1873,7 +1873,7 @@ TWeakObjectPtr<class UReporterGraph> UCanvas::GetReporterGraph()
 {
 	if (!ReporterGraph)
 	{
-		ReporterGraph = Cast<UReporterGraph>(StaticConstructObject(UReporterGraph::StaticClass(), this));
+		ReporterGraph = NewObject<UReporterGraph>(this);
 	}
 
 	return ReporterGraph;

@@ -2834,7 +2834,7 @@ void FMatinee::ExportCameraAnimationNameCommitted(const FText& InAnimationPackag
 					else
 					{
 						// create it, then copy params into it
-						ExistingObject = StaticConstructObject(UCameraAnim::StaticClass(), ExistingPackage, *ObjectName, RF_Public|RF_Standalone);
+						ExistingObject = NewObject<UCameraAnim>(ExistingPackage, *ObjectName, RF_Public | RF_Standalone);
 						bNewObject = true;
 					}
 				}

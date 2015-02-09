@@ -9,7 +9,7 @@ static UDataTable* CreateGameplayDataTable()
 {
 	FString CSV(TEXT(",Tag,CategoryText,\r\n0,GameplayTagTest.Test1\r\n1,GameplayTagTest.Test2"));
 
-	UDataTable * DataTable = Cast<UDataTable>(StaticConstructObject(UDataTable::StaticClass(), GetTransientPackage(), FName(TEXT("TempDataTable"))));
+	auto DataTable = NewObject<UDataTable>(GetTransientPackage(), FName(TEXT("TempDataTable")));
 	DataTable->RowStruct = FGameplayTagTableRow::StaticStruct();
 	DataTable->CreateTableFromCSVString(CSV);
 

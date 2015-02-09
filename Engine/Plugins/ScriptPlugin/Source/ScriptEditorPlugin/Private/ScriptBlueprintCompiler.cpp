@@ -184,7 +184,7 @@ void FScriptBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	if (ContextProperty)
 	{
 		UObject* CDO = Class->GetDefaultObject();
-		UObject* ContextDefaultSubobject = StaticConstructObject(ContextProperty->PropertyClass, CDO, "ScriptContext", RF_DefaultSubObject|RF_Public);
+		UObject* ContextDefaultSubobject = NewObject<UObject>(CDO, ContextProperty->PropertyClass, "ScriptContext", RF_DefaultSubObject | RF_Public);
 		ContextProperty->SetObjectPropertyValue(ContextProperty->ContainerPtrToValuePtr<UObject*>(CDO), ContextDefaultSubobject);
 	}
 }

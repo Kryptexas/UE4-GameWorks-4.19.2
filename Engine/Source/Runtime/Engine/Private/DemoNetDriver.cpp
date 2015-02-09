@@ -294,7 +294,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 	// Read meta data, if it exists
 	for ( int32 i = 0; i < MetadataHeader.NumStreamingLevels; ++i )
 	{
-		ULevelStreamingKismet* StreamingLevel = static_cast<ULevelStreamingKismet*>(StaticConstructObject(ULevelStreamingKismet::StaticClass(), GetWorld(), NAME_None, RF_NoFlags, NULL ) );
+		ULevelStreamingKismet* StreamingLevel = NewObject<ULevelStreamingKismet>(GetWorld(), NAME_None, RF_NoFlags, NULL);
 
 		StreamingLevel->bShouldBeLoaded		= true;
 		StreamingLevel->bShouldBeVisible	= true;

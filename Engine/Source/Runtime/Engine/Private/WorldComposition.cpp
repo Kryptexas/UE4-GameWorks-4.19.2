@@ -291,7 +291,7 @@ ULevelStreaming* UWorldComposition::CreateStreamingLevel(const FWorldComposition
 {
 	UWorld* OwningWorld = GetWorld();
 	UClass* StreamingClass = ULevelStreamingKismet::StaticClass();
-	ULevelStreaming* StreamingLevel = Cast<ULevelStreaming>(StaticConstructObject(StreamingClass, OwningWorld, NAME_None, RF_Transient, NULL));
+	auto StreamingLevel = NewObject<ULevelStreaming>(OwningWorld, StreamingClass, NAME_None, RF_Transient, NULL);
 		
 	// Associate a package name.
 	StreamingLevel->SetWorldAssetByPackageName(InTile.PackageName);

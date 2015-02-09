@@ -663,7 +663,7 @@ ULevelStreaming* ULevelStreaming::CreateInstance(FString InstanceUniqueName)
 				
 		if (bUniqueName)
 		{
-			StreamingLevelInstance = Cast<ULevelStreaming>(StaticConstructObject(GetClass(), InWorld, NAME_None, RF_Transient, NULL));
+			StreamingLevelInstance = NewObject<ULevelStreaming>(InWorld, GetClass(), NAME_None, RF_Transient, NULL);
 			// new level streaming instance will load the same map package as this object
 			StreamingLevelInstance->PackageNameToLoad = (PackageNameToLoad == NAME_None ? GetWorldAssetPackageFName() : PackageNameToLoad);
 			// under a provided unique name

@@ -1846,7 +1846,7 @@ void UObject::ReinitializeProperties( UObject* SourceObject/*=NULL*/, FObjectIns
 	// the properties for this object ensures that any cleanup required when an object is reinitialized from defaults occurs properly
 	// for example, when re-initializing UPrimitiveComponents, the component must notify the rendering thread that its data structures are
 	// going to be re-initialized
-	StaticConstructObject( GetClass(), GetOuter(), GetFName(), GetFlags(), SourceObject, !HasAnyFlags(RF_ClassDefaultObject), InstanceGraph );
+	StaticConstructObject_Internal( GetClass(), GetOuter(), GetFName(), GetFlags(), SourceObject, !HasAnyFlags(RF_ClassDefaultObject), InstanceGraph );
 }
 
 
@@ -2091,7 +2091,7 @@ UObject* UObject::CreateArchetype( const TCHAR* ArchetypeName, UObject* Archetyp
 		ArchetypeObjectFlags |= RF_Standalone;
 	}
 
-	UObject* ArchetypeObject = StaticConstructObject(GetClass(), ArchetypeOuter, ArchetypeName, ArchetypeObjectFlags, this, true, InstanceGraph);
+	UObject* ArchetypeObject = StaticConstructObject_Internal(GetClass(), ArchetypeOuter, ArchetypeName, ArchetypeObjectFlags, this, true, InstanceGraph);
 	check(ArchetypeObject);
 
 	UObject* NewArchetype = AlternateArchetype == NULL

@@ -355,12 +355,12 @@ UObject* CopyObjectToPackage(UPackage* Package, UObject* Object)
 	FObjectWriter(Object, Bytes);
 
 	// make a new object
-	UObject* NewObject = StaticConstructObject(Object->GetClass(), NewOuter, Object->GetFName(), Object->GetFlags(), Object->GetArchetype(), true);
+	UObject* NewUObject = NewObject<UObject>(NewOuter, Object->GetClass(), Object->GetFName(), Object->GetFlags(), Object->GetArchetype(), true);
 
 	// serialize old objects on top of the new object
-	FObjectReader Reader(NewObject, Bytes);
+	FObjectReader Reader(NewUObject, Bytes);
 
-	return NewObject;
+	return NewUObject;
 }
 
 

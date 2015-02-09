@@ -2567,7 +2567,7 @@ T* ConstructObject(UClass* Class, UObject* Outer, FName Name, EObjectFlags SetFl
 {
 	checkf(Class, TEXT("ConstructObject called with a NULL class object"));
 	checkSlow(Class->IsChildOf(T::StaticClass()));
-	return (T*)StaticConstructObject(Class, Outer, Name, SetFlags, Template, bCopyTransientsFromClassDefaults, InstanceGraph);
+	return (T*)StaticConstructObject_Internal(Class, Outer, Name, SetFlags, Template, bCopyTransientsFromClassDefaults, InstanceGraph);
 }
 
 /**

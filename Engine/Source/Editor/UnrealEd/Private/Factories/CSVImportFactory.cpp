@@ -153,7 +153,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 			}
 
 			// Create/reset table
-			UDataTable* NewTable = CastChecked<UDataTable>(StaticConstructObject(UDataTable::StaticClass(), InParent, InName, Flags));
+			UDataTable* NewTable = NewObject<UDataTable>(InParent, InName, Flags);
 			NewTable->RowStruct = ImportRowStruct;
 			NewTable->ImportPath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewTable);
 			// Go ahead and create table from string
@@ -172,7 +172,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 			}
 
 			// Create/reset table
-			UCurveTable* NewTable = CastChecked<UCurveTable>(StaticConstructObject(UCurveTable::StaticClass(), InParent, InName, Flags));
+			UCurveTable* NewTable = NewObject<UCurveTable>(InParent, InName, Flags);
 			NewTable->ImportPath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewTable);
 
 			// Go ahead and create table from string
@@ -187,7 +187,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 			UClass* CurveClass = GetCurveClass( ImportType );
 
 			// Create/reset curve
-			UCurveBase* NewCurve = CastChecked<UCurveBase>(StaticConstructObject(CurveClass, InParent, InName, Flags));
+			UCurveBase* NewCurve = NewObject<UCurveBase>(InParent, CurveClass, InName, Flags);
 
 			Problems = NewCurve->CreateCurveFromCSVString(String);
 

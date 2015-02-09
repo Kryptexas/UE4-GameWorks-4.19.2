@@ -1111,7 +1111,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	}
 
 	// [from USkeletalMeshFactory::FactoryCreateBinary]
-	USkeletalMesh* SkeletalMesh = CastChecked<USkeletalMesh>( StaticConstructObject( USkeletalMesh::StaticClass(), InParent, Name, Flags ) );
+	USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
 	
 	SkeletalMesh->PreEditChange(NULL);
 	
@@ -1458,7 +1458,7 @@ UObject* UnFbx::FFbxImporter::CreateAssetOfClass(UClass* AssetClass, FString Par
 	{
 		// add it to the set
 		// do not add to the set, now create independent asset
-		Object = StaticConstructObject( AssetClass, Parent, *ObjectName, RF_Public|RF_Standalone  );
+		Object = NewObject<UObject>(Parent, AssetClass, *ObjectName, RF_Public | RF_Standalone);
 		Object->MarkPackageDirty();
 		// Notify the asset registry
 		FAssetRegistryModule::AssetCreated(Object);

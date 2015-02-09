@@ -63,8 +63,7 @@ UObject* FBSPSurfaceStaticLighting::GetMappedObject() const
 {
 	//@todo. THIS WILL SCREW UP IF CALLED MORE THAN ONE TIME!!!!
 	// Create a collection object to allow selection of the surfaces in this mapping
-	ULightmappedSurfaceCollection* MappedObject = CastChecked<ULightmappedSurfaceCollection>(
-		StaticConstructObject(ULightmappedSurfaceCollection::StaticClass()));
+	auto MappedObject = NewObject<ULightmappedSurfaceCollection>();
 	// Set the owner model
 	MappedObject->SourceModel = Model.Get();
 	// Fill in the surface index array

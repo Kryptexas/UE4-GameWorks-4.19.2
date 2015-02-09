@@ -826,7 +826,7 @@ private:
 			}
 			else
 			{
-				New = StaticConstructObject(Obj->GetClass(), Outer, Obj->GetFName(), RF_NoFlags, Obj);
+				New = NewObject<UObject>(Outer, Obj->GetClass(), Obj->GetFName(), RF_NoFlags, Obj);
 				UE_LOG(LogParticles, Verbose, TEXT("      Replacing with New %s"), *GetFullNameSafe(New));
 			}
 			Obj = New;
@@ -1624,7 +1624,7 @@ void UParticleModuleRotationRate::SpawnEx(FParticleEmitterInstance* Owner, int32
 
 void UParticleModuleRotationRate::SetToSensibleDefaults(UParticleEmitter* Owner)
 {
-	StartRotationRate.Distribution = Cast<UDistributionFloatUniform>(StaticConstructObject(UDistributionFloatUniform::StaticClass(), this));
+	StartRotationRate.Distribution = NewObject<UDistributionFloatUniform>(this);
 	UDistributionFloatUniform* StartRotationRateDist = Cast<UDistributionFloatUniform>(StartRotationRate.Distribution);
 	if (StartRotationRateDist)
 	{
@@ -1931,7 +1931,7 @@ float UParticleModuleSubUV::DetermineImageIndex(FParticleEmitterInstance* Owner,
 
 void UParticleModuleSubUV::SetToSensibleDefaults(UParticleEmitter* Owner)
 {
-	SubImageIndex.Distribution = Cast<UDistributionFloatConstantCurve>(StaticConstructObject(UDistributionFloatConstantCurve::StaticClass(), this));
+	SubImageIndex.Distribution = NewObject<UDistributionFloatConstantCurve>(this);
 	UDistributionFloatConstantCurve* SubImageIndexDist = Cast<UDistributionFloatConstantCurve>(SubImageIndex.Distribution);
 	if (SubImageIndexDist)
 	{
@@ -2166,7 +2166,7 @@ void UParticleModuleRotationRateMultiplyLife::Update(FParticleEmitterInstance* O
 
 void UParticleModuleRotationRateMultiplyLife::SetToSensibleDefaults(UParticleEmitter* Owner)
 {
-	LifeMultiplier.Distribution = Cast<UDistributionFloatConstantCurve>(StaticConstructObject(UDistributionFloatConstantCurve::StaticClass(), this));
+	LifeMultiplier.Distribution = NewObject<UDistributionFloatConstantCurve>(this);
 	UDistributionFloatConstantCurve* LifeMultiplierDist = Cast<UDistributionFloatConstantCurve>(LifeMultiplier.Distribution);
 	if (LifeMultiplierDist)
 	{

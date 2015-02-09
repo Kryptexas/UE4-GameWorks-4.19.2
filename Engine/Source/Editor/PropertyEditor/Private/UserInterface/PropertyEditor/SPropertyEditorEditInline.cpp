@@ -203,9 +203,9 @@ void SPropertyEditorEditInline::OnClassPicked(UClass* InClass)
 				{
 					MaskedOuterFlags |= RF_ArchetypeObject;
 				}
-				UObject*		NewObject = StaticConstructObject(InClass, UseOuter, NAME_None, MaskedOuterFlags, NULL);
+				UObject*		NewUObject = NewObject<UObject>(UseOuter, InClass, NAME_None, MaskedOuterFlags, NULL);
 
-				NewValue = NewObject->GetPathName();
+				NewValue = NewUObject->GetPathName();
 			}
 			else
 			{

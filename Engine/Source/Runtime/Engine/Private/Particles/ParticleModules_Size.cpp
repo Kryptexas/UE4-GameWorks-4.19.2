@@ -301,7 +301,7 @@ void UParticleModuleSizeMultiplyLife::Update(FParticleEmitterInstance* Owner, in
 
 void UParticleModuleSizeMultiplyLife::SetToSensibleDefaults(UParticleEmitter* Owner)
 {
-	LifeMultiplier.Distribution = Cast<UDistributionVectorConstantCurve>(StaticConstructObject(UDistributionVectorConstantCurve::StaticClass(), this));
+	LifeMultiplier.Distribution = NewObject<UDistributionVectorConstantCurve>(this);
 	UDistributionVectorConstantCurve* LifeMultiplierDist = Cast<UDistributionVectorConstantCurve>(LifeMultiplier.Distribution);
 	if (LifeMultiplierDist)
 	{

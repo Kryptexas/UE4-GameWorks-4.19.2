@@ -4951,7 +4951,7 @@ bool FixUpBadAnimNotifiers()
 				{
 					// fix animnotifiers
 					UE_LOG(LogEditorServer, Log, TEXT("Animation[%s] Notifier[%s:%d] is being fixed (Current Outer:%s)"), *AnimSeq->GetName(), *AnimSeq->Notifies[I].Notify->GetName(), I, *AnimSeq->Notifies[I].Notify->GetOuter()->GetName());
-					AnimSeq->Notifies[I].Notify = CastChecked<UAnimNotify>( StaticConstructObject(AnimSeq->Notifies[I].Notify->GetClass(), AnimSeq,NAME_None,RF_NoFlags,AnimSeq->Notifies[I].Notify) );
+					AnimSeq->Notifies[I].Notify = NewObject<UAnimNotify>(AnimSeq, AnimSeq->Notifies[I].Notify->GetClass(), NAME_None, RF_NoFlags, AnimSeq->Notifies[I].Notify);
 					UE_LOG(LogEditorServer, Log, TEXT("After fixed (Current Outer:%s)"), *AnimSeq->Notifies[I].Notify->GetOuter()->GetName());
 					AnimSeq->MarkPackageDirty();
 				}

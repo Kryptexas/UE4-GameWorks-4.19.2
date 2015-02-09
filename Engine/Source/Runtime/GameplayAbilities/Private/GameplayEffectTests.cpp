@@ -42,7 +42,7 @@ static UDataTable* CreateGameplayDataTable()
 	CSV.Append(TEXT("\r\n22,SpellDmg.Buff"));
 	CSV.Append(TEXT("\r\n23,GameplayCue.Burning"));
 
-	UDataTable * DataTable = Cast<UDataTable>(StaticConstructObject(UDataTable::StaticClass(), GetTransientPackage(), FName(TEXT("TempDataTable"))));
+	auto DataTable = NewObject<UDataTable>(GetTransientPackage(), FName(TEXT("TempDataTable")));
 	DataTable->RowStruct = FGameplayTagTableRow::StaticStruct();
 	DataTable->CreateTableFromCSVString(CSV);
 
@@ -55,7 +55,7 @@ static UDataTable* CreateGameplayDataTable()
 }
 
 #define GET_FIELD_CHECKED(Class, Field) FindFieldChecked<UProperty>(Class::StaticClass(), GET_MEMBER_NAME_CHECKED(Class, Field))
-#define CONSTRUCT_CLASS(Class, Name) Class * Name = Cast<Class>(StaticConstructObject(Class::StaticClass(), GetTransientPackage(), FName(TEXT(#Name))))
+#define CONSTRUCT_CLASS(Class, Name) Class* Name = NewObject<Class>(GetTransientPackage(), FName(TEXT(#Name)))
 
 class GameplayEffectsTestSuite
 {

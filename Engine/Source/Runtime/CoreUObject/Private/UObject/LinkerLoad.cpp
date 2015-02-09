@@ -3388,7 +3388,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		LoadClass->GetDefaultObject();
 
 
-		Export.Object = StaticConstructObject
+		Export.Object = StaticConstructObject_Internal
 		(
 			LoadClass,
 			ThisParent,
@@ -3401,7 +3401,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		if (NewName != Export.ObjectName)
 		{
 			// create a UObjectRedirector with the same name as the old object we are redirecting
-			UObjectRedirector* Redir = (UObjectRedirector*)StaticConstructObject(UObjectRedirector::StaticClass(), Export.Object->GetOuter(), Export.ObjectName, RF_Standalone | RF_Public);
+			UObjectRedirector* Redir = NewObject<UObjectRedirector>(Export.Object->GetOuter(), Export.ObjectName, RF_Standalone | RF_Public);
 			// point the redirector object to this object
 			Redir->DestinationObject = Export.Object;
 		}

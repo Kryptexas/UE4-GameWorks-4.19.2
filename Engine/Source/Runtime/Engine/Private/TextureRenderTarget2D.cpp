@@ -158,8 +158,7 @@ UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FSt
 	}
 
 	// create the 2d texture
-	Result = CastChecked<UTexture2D>(
-		StaticConstructObject(UTexture2D::StaticClass(), Outer, FName(*NewTexName), ObjectFlags));
+	Result = NewObject<UTexture2D>(Outer, FName(*NewTexName), ObjectFlags);
 	// init to the same size as the 2d texture
 	Result->Source.Init(SizeX, SizeY, 1, 1, TextureFormat);
 

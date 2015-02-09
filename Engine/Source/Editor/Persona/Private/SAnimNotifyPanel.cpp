@@ -3401,7 +3401,7 @@ void SAnimNotifyPanel::OnTrackSelectionChanged()
 		for(int32 Idx : TrackIndices)
 		{
 			FString ObjName = MakeUniqueObjectName(GetTransientPackage(), UEditorNotifyObject::StaticClass()).ToString();
-			UEditorNotifyObject* NewNotifyObject = Cast<UEditorNotifyObject>(StaticConstructObject(UEditorNotifyObject::StaticClass(), GetTransientPackage(), FName(*ObjName), RF_Public|RF_Standalone|RF_Transient));
+			UEditorNotifyObject* NewNotifyObject = NewObject<UEditorNotifyObject>(GetTransientPackage(), FName(*ObjName), RF_Public | RF_Standalone | RF_Transient);
 			NewNotifyObject->InitFromAnim(Sequence, FOnAnimObjectChange::CreateSP(this, &SAnimNotifyPanel::OnNotifyObjectChanged));
 			NewNotifyObject->InitialiseNotify(NotifyAnimTracks.Num() - TrackIdx - 1, Idx);
 			SelectionSet.Add(NewNotifyObject);

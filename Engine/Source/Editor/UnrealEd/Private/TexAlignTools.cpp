@@ -441,10 +441,10 @@ void FTexAlignTools::Init()
 {
 	// Create the list of aligners.
 	Aligners.Empty();
-	Aligners.Add( CastChecked<UTexAligner>(StaticConstructObject(UTexAlignerDefault::StaticClass(),GetTransientPackage(),NAME_None,RF_Public|RF_RootSet|RF_Standalone) ) );
-	Aligners.Add( CastChecked<UTexAligner>(StaticConstructObject(UTexAlignerPlanar::StaticClass(),GetTransientPackage(),NAME_None,RF_Public|RF_RootSet|RF_Standalone) ) );
-	Aligners.Add( CastChecked<UTexAligner>(StaticConstructObject(UTexAlignerBox::StaticClass(),GetTransientPackage(),NAME_None,RF_Public|RF_RootSet|RF_Standalone) ) );
-	Aligners.Add( CastChecked<UTexAligner>(StaticConstructObject(UTexAlignerFit::StaticClass(),GetTransientPackage(),NAME_None,RF_Public|RF_RootSet|RF_Standalone) ) );
+	Aligners.Add(NewObject<UTexAligner>(GetTransientPackage(), NAME_None, RF_Public | RF_RootSet | RF_Standalone));
+	Aligners.Add(NewObject<UTexAligner>(GetTransientPackage(), NAME_None, RF_Public | RF_RootSet | RF_Standalone));
+	Aligners.Add(NewObject<UTexAligner>(GetTransientPackage(), NAME_None, RF_Public | RF_RootSet | RF_Standalone));
+	Aligners.Add(NewObject<UTexAligner>(GetTransientPackage(), NAME_None, RF_Public | RF_RootSet | RF_Standalone));
 	
 	FEditorDelegates::FitTextureToSurface.AddRaw(this, &FTexAlignTools::OnEditorFitTextureToSurface);
 }

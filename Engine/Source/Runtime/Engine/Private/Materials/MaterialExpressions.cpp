@@ -6076,7 +6076,7 @@ UMaterial* UMaterialFunction::GetPreviewMaterial()
 {
 	if( NULL == PreviewMaterial )
 	{
-		PreviewMaterial = (UMaterial*)StaticConstructObject( UMaterial::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient | RF_Public);
+		PreviewMaterial = NewObject<UMaterial>(GetTransientPackage(), NAME_None, RF_Transient | RF_Public);
 
 		PreviewMaterial->Expressions = FunctionExpressions;
 
