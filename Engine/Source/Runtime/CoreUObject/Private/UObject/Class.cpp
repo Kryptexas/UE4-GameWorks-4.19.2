@@ -251,12 +251,32 @@ FText UField::GetDisplayNameText() const
  *
  * @return The tooltip for this object.
  */
-FText UField::GetToolTipText() const
+FText UField::GetToolTipText(bool bShortTooltip) const
 {
+	bool bFoundShortTooltip = false;
+	static const FName NAME_Tooltip(TEXT("Tooltip"));
+	static const FName NAME_ShortTooltip(TEXT("ShortTooltip"));
 	FText LocalizedToolTip;
-	FString NativeToolTip = GetMetaData( TEXT("Tooltip") );
+	FString NativeToolTip;
+	
+	if (bShortTooltip)
+	{
+		NativeToolTip = GetMetaData(NAME_ShortTooltip);
+		if (NativeToolTip.IsEmpty())
+		{
+			NativeToolTip = GetMetaData(NAME_Tooltip);
+		}
+		else
+		{
+			bFoundShortTooltip = true;
+		}
+	}
+	else
+	{
+		NativeToolTip = GetMetaData(NAME_Tooltip);
+	}
 
-	static const FString Namespace = TEXT("UObjectToolTips");
+	const FString Namespace = bFoundShortTooltip ? TEXT("UObjectShortTooltips") : TEXT("UObjectToolTips");
 	const FString Key = GetFullGroupName(true) + TEXT(".") + GetName();
 	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip )) || *FTextInspector::GetSourceString(LocalizedToolTip) != NativeToolTip)
 	{

@@ -82,9 +82,11 @@ class COREUOBJECT_API UField : public UObject
 	/**
 	 * Finds the localized tooltip or native tooltip as a fallback.
 	 *
+	 * @param bShortTooltip Look for a shorter version of the tooltip (falls back to the long tooltip if none was specified)
+	 *
 	 * @return The tooltip for this object.
 	 */
-	FText GetToolTipText() const;
+	FText GetToolTipText(bool bShortTooltip = false) const;
 
 	/**
 	 * Determines if the property has any metadata associated with the key
