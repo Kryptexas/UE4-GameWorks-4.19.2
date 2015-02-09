@@ -3846,7 +3846,9 @@ UActorComponent* SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> C
 		// This adds components according to the type selected in the drop down. If the user
 		// has the appropriate objects selected in the content browser then those are added,
 		// else we go down the previous route of adding components by type.
-		if(Selection->Num() > 0 && !AssetOverride)
+		//
+		// Furthermore don't try to match up assets for USceneComponent it will match lots of things and doesn't have any nice behavior for asset adds 
+		if (Selection->Num() > 0 && !AssetOverride && NewClass != USceneComponent::StaticClass())
 		{
 			for(FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
 			{
