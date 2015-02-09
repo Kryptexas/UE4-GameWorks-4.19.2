@@ -916,38 +916,40 @@ namespace ClickHandlers
 		}
 		else
 		{	
+			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SelectBrushSurface", "Select Brush Surface") );
 			bool bDeselectAlreadyHandled = false;
-			if( GetDefault<ULevelEditorViewportSettings>()->bClickBSPSelectsBrush )
+			
+			// We are going to handle the notification ourselves
+			const bool bNotify = false;
+			if(GetDefault<ULevelEditorViewportSettings>()->bClickBSPSelectsBrush)
 			{
 				// Add to the actor selection set the brush actor that belongs to this BSP surface.
 				// Check Surf.Actor, as it can be NULL after deleting brushes and before rebuilding BSP.
-				if( Surf.Actor )
+				if(Surf.Actor)
 				{
-					const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SelectBrushFromSurface", "Select Brush from Surface") );
-					if( !Click.IsControlDown() )
+					if(!Click.IsControlDown())
 					{
-						GEditor->SelectNone( false, true );
+						GEditor->SelectNone(false, true);
 						bDeselectAlreadyHandled = true;
 					}
 					// If the builder brush is selected, first deselect it.
 					USelection* SelectedActors = GEditor->GetSelectedActors();
-					for ( FSelectionIterator It( *SelectedActors ) ; It ; ++It )
+					for(FSelectionIterator It(*SelectedActors); It; ++It)
 					{
-						ABrush* Brush = Cast<ABrush>( *It );
-						if ( Brush && FActorEditorUtils::IsABuilderBrush( Brush ) )
+						ABrush* Brush = Cast<ABrush>(*It);
+						if(Brush && FActorEditorUtils::IsABuilderBrush(Brush))
 						{
-							GEditor->SelectActor( Brush, false, false );
+							GEditor->SelectActor(Brush, false, bNotify);
 							break;
 						}
 					}
 
-					GEditor->SelectActor( Surf.Actor, true, true );
+					GEditor->SelectActor(Surf.Actor, true, bNotify);
 				}
 			}
+
 			// Select or deselect surfaces.
 			{
-				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SelectSurfaces", "Select Surfaces") );
-
 				if( !Click.IsControlDown() && !bDeselectAlreadyHandled)
 				{
 					GEditor->SelectNone( false, true );
@@ -958,9 +960,12 @@ namespace ClickHandlers
 				// If there are no surfaces selected now, deselect the actor
 				if (!Model->HasSelectedSurfaces())
 				{
-					GEditor->SelectActor(Surf.Actor, false, true);
+					GEditor->SelectActor(Surf.Actor, false, bNotify);
 				}
 			}
+
+
+
 			GEditor->NoteSelectionChange();
 		}
 	}
