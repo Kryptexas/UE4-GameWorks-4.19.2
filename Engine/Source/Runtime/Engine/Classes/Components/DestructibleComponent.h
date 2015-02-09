@@ -200,6 +200,8 @@ public:
 	void OnVisibilityEvent(const physx::apex::NxApexChunkStateEventData & InDamageEvent);
 #endif // WITH_APEX
 
+	bool IsFractured() const;
+
 	// End DestructibleComponent interface.
 
 	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
