@@ -329,12 +329,28 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 /*-----------------------------------------------------------------------------
 UActorFactoryBasicShape
 -----------------------------------------------------------------------------*/
+
+const FName UActorFactoryBasicShape::BasicCube("/Engine/BasicShapes/Cube.Cube");
+const FName UActorFactoryBasicShape::BasicSphere("/Engine/BasicShapes/Sphere.Sphere");
+const FName UActorFactoryBasicShape::BasicCylinder("/Engine/BasicShapes/Cylinder.Cylinder");
+const FName UActorFactoryBasicShape::BasicCone("/Engine/BasicShapes/Cone.Cone");
+
 UActorFactoryBasicShape::UActorFactoryBasicShape(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("UActorFactoryBasicShapeDisplayName", "Basic Shape");
 	NewActorClass = AStaticMeshActor::StaticClass();
 	bUseSurfaceOrientation = true;
+}
+
+bool UActorFactoryBasicShape::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
+{
+	if(AssetData.IsValid() && (AssetData.ObjectPath == BasicCube || AssetData.ObjectPath == BasicSphere || AssetData.ObjectPath == BasicCone || AssetData.ObjectPath == BasicCylinder ) )
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void UActorFactoryBasicShape::PostSpawnActor(UObject* Asset, AActor* NewActor)
@@ -357,6 +373,7 @@ void UActorFactoryBasicShape::PostSpawnActor(UObject* Asset, AActor* NewActor)
 		StaticMeshComponent->RegisterComponent();
 	}
 }
+
 
 /*-----------------------------------------------------------------------------
 UActorFactoryDeferredDecal
