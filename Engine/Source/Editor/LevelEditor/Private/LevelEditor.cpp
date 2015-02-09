@@ -137,6 +137,7 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 				SNew( SHorizontalBox )
 
 				+SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 14.0f, 0.0f)
 				.AutoWidth()
 				[
 					SNew(SLevelEditorWatermark)
