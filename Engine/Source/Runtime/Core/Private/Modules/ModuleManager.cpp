@@ -825,6 +825,17 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 		FindModulePathsInDirectory(EngineBinariesDirectories[Idx], false, NamePattern, OutModulePaths);
 	}
 
+	// If any directory found so far is a plugin directory, skip next step as it would override whatever we 
+	// found so far. Plugins are stored in their binary directory, not in game binary directory.
+	static const FString Plugin = TEXT("Plugins");
+	for (auto Kvp : OutModulePaths)
+	{
+		if (Kvp.Value.Contains(Plugin))
+		{
+			return;
+		}
+	}
+
 	// Search any game directories
 	for (int Idx = 0; Idx < GameBinariesDirectories.Num(); Idx++)
 	{
