@@ -1054,7 +1054,8 @@ void FLevelEditorActionCallbacks::EditAsset_Clicked( const EToolkitMode::Type To
 	if( GEditor->GetSelectedActorCount() > 0 )
 	{
 		TArray< UObject* > ReferencedAssets;
-		GEditor->GetReferencedAssetsForEditorSelection( ReferencedAssets );
+		const bool bIgnoreOtherAssetsIfBPReferenced = true;
+		GEditor->GetReferencedAssetsForEditorSelection( ReferencedAssets, bIgnoreOtherAssetsIfBPReferenced );
 
 		bool bShouldOpenEditors = (ReferencedAssets.Num() == 1);
 
