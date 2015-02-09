@@ -3,6 +3,7 @@
 #include "ContentBrowserPCH.h"
 
 #include "DragAndDrop/AssetPathDragDropOp.h"
+#include "DragDropHandler.h"
 
 #include "PathViewTypes.h"
 #include "ObjectTools.h"
@@ -1251,79 +1252,25 @@ void SPathView::RemoveFolderItem(const TSharedPtr< FTreeItem >& TreeItem)
 
 void SPathView::TreeAssetsDropped(const TArray<FAssetData>& AssetList, const TSharedPtr<FTreeItem>& TreeItem)
 {
-	// Do not display the menu if any of the assets are classes as they cannot be moved or copied
-	for( int32 AssetIndex = 0; AssetIndex < AssetList.Num(); AssetIndex++ )
-	{
-		const FAssetData& Asset = AssetList[AssetIndex];
-		if ( Asset.AssetClass == "Class" )
-		{
-			const FText MessageText = LOCTEXT("AssetTreeDropClassError", "The selection contains one or more 'Class' type assets, these cannot be moved or copied.");
-			FMessageDialog::Open(EAppMsgType::Ok, MessageText);
-			return;
-		}
-	}
-
-	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL);
-	const FText MoveCopyHeaderString = FText::Format( LOCTEXT("AssetTreeDropMenuHeading", "Move/Copy to {0}"), TreeItem->DisplayName );
-	MenuBuilder.BeginSection("PathAssetMoveCopy", MoveCopyHeaderString);
-	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropCopy", "Copy Here"),
-			LOCTEXT("DragDropCopyTooltip", "Creates a copy of all dragged files in this folder."),
-			FSlateIcon(),
-			FUIAction(
-			FExecuteAction::CreateSP( this, &SPathView::ExecuteTreeDropCopy, AssetList, TreeItem ),
-			FCanExecuteAction()
-			)
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropMove", "Move Here"),
-			LOCTEXT("DragDropMoveTooltip", "Moves all dragged files to this folder."),
-			FSlateIcon(),
-			FUIAction(
-			FExecuteAction::CreateSP( this, &SPathView::ExecuteTreeDropMove, AssetList, TreeItem ),
-			FCanExecuteAction()
-			)
-			);
-	}
-	MenuBuilder.EndSection();
-
-	TWeakPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(
-		SharedThis( this ),
-		MenuBuilder.MakeWidget(),
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+	DragDropHandler::HandleAssetsDroppedOnAssetFolder(
+		SharedThis(this), 
+		AssetList, 
+		TreeItem->FolderPath, 
+		TreeItem->DisplayName, 
+		DragDropHandler::FExecuteCopyOrMoveAssets::CreateSP(this, &SPathView::ExecuteTreeDropCopy),
+		DragDropHandler::FExecuteCopyOrMoveAssets::CreateSP(this, &SPathView::ExecuteTreeDropMove)
 		);
 }
 
 void SPathView::TreeFoldersDropped(const TArray<FString>& PathNames, const TSharedPtr<FTreeItem>& TreeItem)
 {
-	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL);
-	const FText MoveCopyHeaderString = FText::Format( LOCTEXT("AssetTreeDropMenuHeading", "Move/Copy to {0}"), TreeItem->DisplayName );
-	MenuBuilder.BeginSection("PathFolderMoveCopy", MoveCopyHeaderString);
-	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropCopyFolder", "Copy Folder Here"),
-			LOCTEXT("DragDropCopyFolderTooltip", "Creates a copy of all assets in the dragged folders to this folder, preserving folder structure."),
-			FSlateIcon(),
-			FUIAction( FExecuteAction::CreateSP( this, &SPathView::ExecuteTreeDropCopyFolder, PathNames, TreeItem ) )
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropMoveFolder", "Move Folder Here"),
-			LOCTEXT("DragDropMoveFolderTooltip", "Moves all assets in the dragged folders to this folder, preserving folder structure."),
-			FSlateIcon(),
-			FUIAction( FExecuteAction::CreateSP( this, &SPathView::ExecuteTreeDropMoveFolder, PathNames, TreeItem ) )
-			);
-	}
-	MenuBuilder.EndSection();
-
-	TWeakPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(
-		SharedThis( this ),
-		MenuBuilder.MakeWidget(),
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+	DragDropHandler::HandleFoldersDroppedOnAssetFolder(
+		SharedThis(this), 
+		PathNames, 
+		TreeItem->FolderPath, 
+		TreeItem->DisplayName, 
+		DragDropHandler::FExecuteCopyOrMoveFolders::CreateSP(this, &SPathView::ExecuteTreeDropCopyFolder),
+		DragDropHandler::FExecuteCopyOrMoveFolders::CreateSP(this, &SPathView::ExecuteTreeDropMoveFolder)
 		);
 }
 
@@ -1343,62 +1290,70 @@ bool SPathView::IsTreeItemSelected(TSharedPtr<FTreeItem> TreeItem) const
 	return TreeViewPtr->IsItemSelected(TreeItem);
 }
 
-void SPathView::ExecuteTreeDropCopy(TArray<FAssetData> AssetList, TSharedPtr<FTreeItem> TreeItem)
+void SPathView::ExecuteTreeDropCopy(TArray<FAssetData> AssetList, FString DestinationPath)
 {
 	TArray<UObject*> DroppedObjects;
 	ContentBrowserUtils::GetObjectsInAssetData(AssetList, DroppedObjects);
 
-	ContentBrowserUtils::CopyAssets(DroppedObjects, TreeItem->FolderPath);
+	ContentBrowserUtils::CopyAssets(DroppedObjects, DestinationPath);
 }
 
-void SPathView::ExecuteTreeDropMove(TArray<FAssetData> AssetList, TSharedPtr<FTreeItem> TreeItem)
+void SPathView::ExecuteTreeDropMove(TArray<FAssetData> AssetList, FString DestinationPath)
 {
 	TArray<UObject*> DroppedObjects;
 	ContentBrowserUtils::GetObjectsInAssetData(AssetList, DroppedObjects);
 
-	ContentBrowserUtils::MoveAssets(DroppedObjects, TreeItem->FolderPath);
+	ContentBrowserUtils::MoveAssets(DroppedObjects, DestinationPath);
 }
 
-void SPathView::ExecuteTreeDropCopyFolder(TArray<FString> PathNames, TSharedPtr<FTreeItem> TreeItem)
+void SPathView::ExecuteTreeDropCopyFolder(TArray<FString> PathNames, FString DestinationPath)
 {
-	ContentBrowserUtils::CopyFolders(PathNames, TreeItem->FolderPath);
+	ContentBrowserUtils::CopyFolders(PathNames, DestinationPath);
 
-	TreeViewPtr->SetItemExpansion(TreeItem, true);
-
-	// Select all the new folders
-	TreeViewPtr->ClearSelection();
-	for ( auto PathIt = PathNames.CreateConstIterator(); PathIt; ++PathIt )
+	TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
+	if (RootItem.IsValid())
 	{
-		const FString SubFolderName = FPackageName::GetLongPackageAssetName(*PathIt);
-		const FString NewPath = TreeItem->FolderPath + TEXT("/") + SubFolderName;
-		
-		TSharedPtr<FTreeItem> Item = FindItemRecursive(NewPath);
-		if ( Item.IsValid() )
+		TreeViewPtr->SetItemExpansion(RootItem, true);
+
+		// Select all the new folders
+		TreeViewPtr->ClearSelection();
+		for ( auto PathIt = PathNames.CreateConstIterator(); PathIt; ++PathIt )
 		{
-			TreeViewPtr->SetItemSelection(Item, true);
-			TreeViewPtr->RequestScrollIntoView(Item);
+			const FString SubFolderName = FPackageName::GetLongPackageAssetName(*PathIt);
+			const FString NewPath = DestinationPath + TEXT("/") + SubFolderName;
+		
+			TSharedPtr<FTreeItem> Item = FindItemRecursive(NewPath);
+			if ( Item.IsValid() )
+			{
+				TreeViewPtr->SetItemSelection(Item, true);
+				TreeViewPtr->RequestScrollIntoView(Item);
+			}
 		}
 	}
 }
 
-void SPathView::ExecuteTreeDropMoveFolder(TArray<FString> PathNames, TSharedPtr<FTreeItem> TreeItem)
+void SPathView::ExecuteTreeDropMoveFolder(TArray<FString> PathNames, FString DestinationPath)
 {
-	ContentBrowserUtils::MoveFolders(PathNames, TreeItem->FolderPath);
+	ContentBrowserUtils::MoveFolders(PathNames, DestinationPath);
 
-	TreeViewPtr->SetItemExpansion(TreeItem, true);
-	
-	// Select all the new folders
-	TreeViewPtr->ClearSelection();
-	for ( auto PathIt = PathNames.CreateConstIterator(); PathIt; ++PathIt )
+	TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
+	if (RootItem.IsValid())
 	{
-		const FString SubFolderName = FPackageName::GetLongPackageAssetName(*PathIt);
-		const FString NewPath = TreeItem->FolderPath + TEXT("/") + SubFolderName;
-
-		TSharedPtr<FTreeItem> Item = FindItemRecursive(NewPath);
-		if ( Item.IsValid() )
+		TreeViewPtr->SetItemExpansion(RootItem, true);
+	
+		// Select all the new folders
+		TreeViewPtr->ClearSelection();
+		for ( auto PathIt = PathNames.CreateConstIterator(); PathIt; ++PathIt )
 		{
-			TreeViewPtr->SetItemSelection(Item, true);
-			TreeViewPtr->RequestScrollIntoView(Item);
+			const FString SubFolderName = FPackageName::GetLongPackageAssetName(*PathIt);
+			const FString NewPath = DestinationPath + TEXT("/") + SubFolderName;
+
+			TSharedPtr<FTreeItem> Item = FindItemRecursive(NewPath);
+			if ( Item.IsValid() )
+			{
+				TreeViewPtr->SetItemSelection(Item, true);
+				TreeViewPtr->RequestScrollIntoView(Item);
+			}
 		}
 	}
 }

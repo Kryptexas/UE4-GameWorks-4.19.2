@@ -6,6 +6,7 @@
 #include "AssetViewTypes.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
+#include "DragDropHandler.h"
 #include "AssetThumbnail.h"
 #include "AssetViewWidgets.h"
 #include "FileHelpers.h"
@@ -3651,78 +3652,25 @@ bool SAssetView::HasSingleCollectionSource() const
 
 void SAssetView::OnAssetsDragDropped(const TArray<FAssetData>& AssetList, const FString& DestinationPath)
 {
-	// Do not display the menu if any of the assets are classes as they cannot be moved or copied
-	for( int32 AssetIndex = 0; AssetIndex < AssetList.Num(); AssetIndex++ )
-	{
-		const FAssetData& Asset = AssetList[AssetIndex];
-		if ( Asset.AssetClass == "Class" )
-		{
-			const FText MessageText = LOCTEXT("AssetTreeDropClassError", "The selection contains one or more 'Class' type assets, these cannot be moved or copied.");
-			FMessageDialog::Open(EAppMsgType::Ok, MessageText);
-			return;
-		}
-	}
-
-	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL);
-	const FText MoveCopyHeaderString = FText::Format( LOCTEXT("AssetViewDropMenuHeading", "Move/Copy to {0}"), FText::FromString( DestinationPath ) );
-	MenuBuilder.BeginSection("PathAssetMoveCopy", MoveCopyHeaderString);
-	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropCopy", "Copy Here"),
-			LOCTEXT("DragDropCopyTooltip", "Creates a copy of all dragged files in this folder."),
-			FSlateIcon(),
-			FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::ExecuteDropCopy, AssetList, DestinationPath ),
-			FCanExecuteAction()
-			)
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropMove", "Move Here"),
-			LOCTEXT("DragDropMoveTooltip", "Moves all dragged files to this folder."),
-			FSlateIcon(),
-			FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::ExecuteDropMove, AssetList, DestinationPath ),
-			FCanExecuteAction()
-			)
-			);
-	}
-	MenuBuilder.EndSection();
-
-	TWeakPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(
-		SharedThis( this ),
-		MenuBuilder.MakeWidget(),
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+	DragDropHandler::HandleAssetsDroppedOnAssetFolder(
+		SharedThis(this), 
+		AssetList, 
+		DestinationPath, 
+		FText::FromString(FPaths::GetCleanFilename(DestinationPath)), 
+		DragDropHandler::FExecuteCopyOrMoveAssets::CreateSP(this, &SAssetView::ExecuteDropCopy),
+		DragDropHandler::FExecuteCopyOrMoveAssets::CreateSP(this, &SAssetView::ExecuteDropMove)
 		);
 }
 
 void SAssetView::OnPathsDragDropped(const TArray<FString>& PathNames, const FString& DestinationPath)
 {
-	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL);
-	MenuBuilder.BeginSection("PathFolderMoveCopy", FText::Format(LOCTEXT("AssetViewDropMenuHeading", "Move/Copy to {0}"), FText::FromString(DestinationPath)));
-	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropCopyFolder", "Copy Folder Here"),
-			LOCTEXT("DragDropCopyFolderTooltip", "Creates a copy of all assets in the dragged folders to this folder, preserving folder structure."),
-			FSlateIcon(),
-			FUIAction( FExecuteAction::CreateSP( this, &SAssetView::ExecuteDropCopyFolder, PathNames, DestinationPath ) )
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropMoveFolder", "Move Folder Here"),
-			LOCTEXT("DragDropMoveFolderTooltip", "Moves all assets in the dragged folders to this folder, preserving folder structure."),
-			FSlateIcon(),
-			FUIAction( FExecuteAction::CreateSP( this, &SAssetView::ExecuteDropMoveFolder, PathNames, DestinationPath ) )
-			);
-	}
-	MenuBuilder.EndSection();
-
-	TWeakPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(
-		SharedThis( this ),
-		MenuBuilder.MakeWidget(),
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+	DragDropHandler::HandleFoldersDroppedOnAssetFolder(
+		SharedThis(this), 
+		PathNames, 
+		DestinationPath, 
+		FText::FromString(FPaths::GetCleanFilename(DestinationPath)), 
+		DragDropHandler::FExecuteCopyOrMoveFolders::CreateSP(this, &SAssetView::ExecuteDropCopyFolder),
+		DragDropHandler::FExecuteCopyOrMoveFolders::CreateSP(this, &SAssetView::ExecuteDropMoveFolder)
 		);
 }
 

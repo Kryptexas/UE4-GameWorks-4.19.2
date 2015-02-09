@@ -198,16 +198,16 @@ private:
 	void GetDroppedObjects(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects);
 
 	/** Handler for the user selecting to copy assets to the specified folder */
-	void ExecuteTreeDropCopy(TArray<FAssetData> AssetList, TSharedPtr<FTreeItem> TreeItem);
+	void ExecuteTreeDropCopy(TArray<FAssetData> AssetList, FString DestinationPath);
 
 	/** Handler for the user selecting to move assets to the specified folder */
-	void ExecuteTreeDropMove(TArray<FAssetData> AssetList, TSharedPtr<FTreeItem> TreeItem);
+	void ExecuteTreeDropMove(TArray<FAssetData> AssetList, FString DestinationPath);
 
 	/** Handler for the user selecting to copy folders to the specified folder */
-	void ExecuteTreeDropCopyFolder(TArray<FString> PathNames, TSharedPtr<FTreeItem> TreeItem);
+	void ExecuteTreeDropCopyFolder(TArray<FString> PathNames, FString DestinationPath);
 
 	/** Handler for the user selecting to move folders to the specified folder */
-	void ExecuteTreeDropMoveFolder(TArray<FString> PathNames, TSharedPtr<FTreeItem> TreeItem);
+	void ExecuteTreeDropMoveFolder(TArray<FString> PathNames, FString DestinationPath);
 
 	/** Handles updating the content browser when an asset path is added to the asset registry */
 	void OnAssetRegistryPathAdded(const FString& Path);

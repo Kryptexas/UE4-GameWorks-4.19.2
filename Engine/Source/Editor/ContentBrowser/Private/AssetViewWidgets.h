@@ -125,6 +125,9 @@ public:
 	virtual void OnToolTipClosing() override;
 
 protected:
+	/** Used by OnDragEnter, OnDragOver, and OnDrop to check and update the validity of the drag operation */
+	bool ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) const;
+
 	/** Handles starting a name change */
 	virtual void HandleBeginNameChange( const FText& OriginalText );
 
