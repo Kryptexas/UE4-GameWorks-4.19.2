@@ -25,7 +25,7 @@ enum class EComponentCreationMethod : uint8
  * @see USceneComponent
  * @see UPrimitiveComponent
  */
-UCLASS(DefaultToInstanced, BlueprintType, abstract, hidecategories=(ComponentReplication))
+UCLASS(DefaultToInstanced, BlueprintType, abstract, hideCategories=(ComponentReplication), meta=(ShortTooltip="An ActorComponent is a reusable component that can be added to any actor."))
 class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
 {
 	GENERATED_BODY()
