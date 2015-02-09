@@ -226,10 +226,7 @@ private:
 	UEdGraph* GetFocusedGraph() const;
 
 	/** Delegate to hook us into non-structural Blueprint object post-change events */
-	void OnObjectPropertyChanged(UObject* InObject, FPropertyChangedEvent& InPropertyChangedEvent)
-	{
-		bNeedsRefresh = (InObject == Blueprint);
-	}
+	void OnObjectPropertyChanged(UObject* InObject, FPropertyChangedEvent& InPropertyChangedEvent);
 private:
 	/** Pointer back to the blueprint editor that owns us */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;

@@ -2047,6 +2047,11 @@ UEdGraph* SMyBlueprint::GetFocusedGraph() const
 	return EdGraph;
 }
 
+void SMyBlueprint::OnObjectPropertyChanged(UObject* InObject, FPropertyChangedEvent& InPropertyChangedEvent)
+{
+	bNeedsRefresh = ( InObject == Blueprint );
+}
+
 void SMyBlueprint::OnDeleteDelegate(FEdGraphSchemaAction_K2Delegate* InDelegateAction)
 {
 	UEdGraph* EdGraph = InDelegateAction->EdGraph;
