@@ -2149,6 +2149,23 @@ TArray<UActorComponent*> AActor::GetComponentsByClass(TSubclassOf<UActorComponen
 	return ValidComponents;
 }
 
+TArray<UActorComponent*> AActor::GetComponentsByTag(TSubclassOf<UActorComponent> ComponentClass, FName Tag) const
+{
+	TArray<UActorComponent*> ComponentsByClass = GetComponentsByClass(ComponentClass);
+
+	TArray<UActorComponent*> ComponentsByTag;
+	ComponentsByTag.Reserve(ComponentsByClass.Num());
+	for (int i = 0; i < ComponentsByClass.Num(); ++i)
+	{
+		if (ComponentsByClass[i]->ComponentHasTag(Tag))
+		{
+			ComponentsByTag.Push(ComponentsByClass[i]);
+		}
+	}
+
+	return ComponentsByTag;
+}
+
 void AActor::DisableComponentsSimulatePhysics()
 {
 	TInlineComponentArray<UPrimitiveComponent*> Components;
