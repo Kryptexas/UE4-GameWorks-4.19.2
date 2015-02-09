@@ -19,6 +19,7 @@
 #include "EdGraph/EdGraphNode.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ContentStreaming.h"
+#include "LandscapeDataAccess.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 

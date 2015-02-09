@@ -2,6 +2,9 @@
 
 #pragma once
 
+// Forward declarations
+class FDetailWidgetRow;
+
 /**
  * A single row for a property in a details panel                                                              
  */
