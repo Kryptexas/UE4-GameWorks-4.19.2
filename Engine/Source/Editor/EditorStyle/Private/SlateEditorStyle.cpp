@@ -101,10 +101,8 @@ void FSlateEditorStyle::FStyle::SyncSettings()
 		SetColor( SelectionColor_Pressed_LinearRef, Settings->PressedSelectionColor );
 
 		// The subdued selection color is derived from the selection color
-		auto SubduedSelectionColor = Settings->SelectionColor.LinearRGBToHSV();
-		SubduedSelectionColor.G *= 0.55f;		// take the saturation 
-		SubduedSelectionColor.B *= 0.8f;		// and brightness down
-		SetColor( SelectionColor_Subdued_LinearRef, SubduedSelectionColor.HSVToLinearRGB() );
+		auto SubduedSelectionColor = Settings->GetSubduedSelectionColor();
+		SetColor( SelectionColor_Subdued_LinearRef, SubduedSelectionColor );
 
 		// Also sync the colors used by FCoreStyle, as FEditorStyle isn't yet being used as an override everywhere
 		FCoreStyle::SetSelectorColor( Settings->KeyboardFocusColor );

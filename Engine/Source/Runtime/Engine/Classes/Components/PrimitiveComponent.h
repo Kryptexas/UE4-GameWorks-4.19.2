@@ -959,6 +959,9 @@ public:
 	/** @return true if the owner is selected and this component is selectable */
 	virtual bool ShouldRenderSelected() const;
 
+	/** Component is directly selected in the editor separate from its parent actor */
+	bool IsComponentIndividuallySelected() const;
+
 	/**  @return True if a primitive's parameters as well as its position is static during gameplay, and can thus use static lighting. */
 	bool HasStaticLighting() const;
 

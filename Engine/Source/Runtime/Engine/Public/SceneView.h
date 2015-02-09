@@ -521,6 +521,10 @@ public:
 	TBitArray<> SpriteCategoryVisibility;
 	/** Selection color for the editor (used by post processing) */
 	FLinearColor SelectionOutlineColor;
+	/** Selection color for use in the editor with inactive primitives */
+	FLinearColor SubduedSelectionOutlineColor;
+	/** True if any components are selected in isolation (independent of actor selection) */
+	bool bHasSelectedComponents;
 #endif
 
 	/**

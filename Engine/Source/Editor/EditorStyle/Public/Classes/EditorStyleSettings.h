@@ -96,6 +96,8 @@ public:
 	DECLARE_EVENT_OneParam(UEditorStyleSettings, FSettingChangedEvent, FName /*PropertyName*/);
 	FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
 
+	/** @return A subdued version of the users selection color (for use with inactive selection)*/
+	FLinearColor GetSubduedSelectionColor() const;
 protected:
 
 	// UObject overrides
