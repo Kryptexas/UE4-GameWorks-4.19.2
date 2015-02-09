@@ -25,7 +25,7 @@
 #include "HotReloadInterface.h"
 #include "SVerbChoiceDialog.h"
 #include "SourceCodeNavigation.h"
-
+///#include "AssetToolsModule.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -536,57 +536,10 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 
 void GameProjectUtils::GetStarterContentFiles(TArray<FString>& OutFilenames)
 {
-	FString const SrcFolder = FPaths::StarterContentDir();
-	FString const ContentFolder = SrcFolder / TEXT("Content");
-
-	// only copying /Content
-	IFileManager::Get().FindFilesRecursive(OutFilenames, *ContentFolder, TEXT("*"), /*Files=*/true, /*Directories=*/false);
+	FString const SrcFolder = FPaths::FeaturePackDir();
+	
+	IFileManager::Get().FindFilesRecursive(OutFilenames, *SrcFolder, TEXT("*.upack"), /*Files=*/true, /*Directories=*/false);
 }
-
-bool GameProjectUtils::CopyStarterContent(const FString& DestProjectFolder, FText& OutFailReason)
-{
-	FString const SrcFolder = FPaths::StarterContentDir();
-
-	TArray<FString> FilesToCopy;
-	GetStarterContentFiles(FilesToCopy);
-
-	FScopedSlowTask SlowTask(FilesToCopy.Num(), LOCTEXT("CreatingProjectStatus_CopyingFiles", "Copying Files {SrcFilename}..."));
-	SlowTask.MakeDialog();
-
-	TArray<FString> CreatedFiles;
-	for (FString SrcFilename : FilesToCopy)
-	{
-		// Update the slow task dialog
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("SrcFilename"), FText::FromString(FPaths::GetCleanFilename(SrcFilename)));
-		SlowTask.EnterProgressFrame(1, FText::Format(LOCTEXT("CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..."), Args));
-
-		FString FileRelPath = FPaths::GetPath(SrcFilename);
-		FPaths::MakePathRelativeTo(FileRelPath, *SrcFolder);
-
-		// Perform the copy. For file collisions, leave existing file.
-		const FString DestFilename = DestProjectFolder + TEXT("/") + FileRelPath + TEXT("/") + FPaths::GetCleanFilename(SrcFilename);
-		if (!FPaths::FileExists(DestFilename))
-		{
-			if (IFileManager::Get().Copy(*DestFilename, *SrcFilename, false) == COPY_OK)
-			{
-				CreatedFiles.Add(DestFilename);
-			}
-			else
-			{
-				FFormatNamedArguments FailArgs;
-				FailArgs.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
-				FailArgs.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
-				OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), FailArgs);
-				DeleteCreatedFiles(DestProjectFolder, CreatedFiles);
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
 
 bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, FText& OutFailReason)
 {
@@ -965,6 +918,9 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		return false;
 	}
 
+	// Insert any required feature packs (EG starter content) into ini file. These will be imported automatically when the editor is first run
+	InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason);
+	
 	// Make the Content folder
 	const FString ContentFolder = NewProjectFolder / TEXT("Content");
 	if ( !IFileManager::Get().MakeDirectory(*ContentFolder) )
@@ -1043,17 +999,6 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	}
 
 	SlowTask.EnterProgressFrame();
-
-	if (InProjectInfo.bCopyStarterContent)
-	{
-		// Copy the starter content
-		if ( !CopyStarterContent(NewProjectFolder, OutFailReason) )
-		{
-			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
-			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
-			return false;
-		}
-	}
 
 	UE_LOG(LogGameProjectGeneration, Log, TEXT("Created new project with %d files (plus project files)"), CreatedFiles.Num());
 	return true;
@@ -1410,6 +1355,9 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		}
 	}
 
+	// Insert any required feature packs (EG starter content) into ini file. These will be imported automatically when the editor is first run
+	InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason);
+	
 	SlowTask.EnterProgressFrame();
 
 	// Generate the project file
@@ -1476,17 +1424,6 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	}
 
 	SlowTask.EnterProgressFrame();
-
-	if (InProjectInfo.bCopyStarterContent)
-	{
-		// Copy the starter content
-		if ( !CopyStarterContent(DestFolder, OutFailReason) )
-		{
-			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
-			DeleteCreatedFiles(DestFolder, CreatedFiles);
-			return false;
-		}
-	}
 
 	if (!TemplateDefs->PostGenerateProject(DestFolder, SrcFolder, InProjectInfo.ProjectFilename, InProjectInfo.TemplateFile, InProjectInfo.bShouldGenerateCode, OutFailReason))
 	{
@@ -1669,66 +1606,23 @@ bool GameProjectUtils::GenerateConfigFiles(const FProjectInformation& InProjectI
 		
 		if (InProjectInfo.bCopyStarterContent)
 		{
-			FString StarterContentContentDir = FPaths::StarterContentDir() + TEXT("Content/");
-
-			TArray<FString> StarterContentMapFiles;
-			const FString FileWildcard = FString(TEXT("*")) + FPackageName::GetMapPackageExtension();
-		
 			FString SpecificEditorStartupMap;
-			FString SpecificGameDefaultMap;	
-			FString FullEditorStartupMapPath;
-			FString FullGameDefaultMapPath;
+			FString SpecificGameDefaultMap;
 
-			// First we check if there are maps specified in the DefaultEngine.ini in our starter content folder			
-			const FString StarterContentDefaultEngineIniFilename = FPaths::StarterContentDir() / TEXT("Config/DefaultEngine.ini");
-			if (FPaths::FileExists(StarterContentDefaultEngineIniFilename))
+			// If we have starter content packs available, specify starter map
+			if( IsStarterContentAvailableForNewProjects() == true )
 			{
-				FString StarterFileContents;
-				if (FFileHelper::LoadFileToString(StarterFileContents, *StarterContentDefaultEngineIniFilename))
+				if (InProjectInfo.TargetedHardware == EHardwareClass::Mobile)
 				{
-					TArray<FString> StarterIniLines;
-					StarterFileContents.ParseIntoArrayLines(&StarterIniLines);
-					for (int32 Line = 0; Line < StarterIniLines.Num();Line++)
-					{
-						FString EachLine = StarterIniLines[Line];
-						if (EachLine.StartsWith(TEXT("EditorStartupMap")))
-						{
-							EachLine.Split("=", nullptr, &SpecificEditorStartupMap);
-							FullEditorStartupMapPath = (StarterContentContentDir / SpecificEditorStartupMap) + FPackageName::GetMapPackageExtension();
-							FullEditorStartupMapPath = FullEditorStartupMapPath.Replace(TEXT("Game/"), TEXT(""));
-						}
-						if (EachLine.StartsWith(TEXT("GameDefaultMap")))
-						{
-							EachLine.Split("=", nullptr, &SpecificGameDefaultMap);
-							FullGameDefaultMapPath = (StarterContentContentDir / SpecificEditorStartupMap) + FPackageName::GetMapPackageExtension();
-							FullGameDefaultMapPath = FullGameDefaultMapPath.Replace(TEXT("Game/"), TEXT(""));
-						}
-					}					
+					SpecificEditorStartupMap = TEXT("/Game/MobileStarterContent/Maps/StarterMap");
+					SpecificGameDefaultMap = TEXT("/Game/MobileStarterContent/Maps/StarterMap");
 				}
-			}
-
-			// Look for maps in the content folder. If we don't specify maps for EditorStartup and GameDefault we will use the first we find in here
-			IFileManager::Get().FindFilesRecursive(StarterContentMapFiles, *FPaths::StarterContentDir(), *FileWildcard, /*Files=*/true, /*Directories=*/false);			
-			FString MapPackagePath;
-			if (StarterContentMapFiles.Num() > 0)
-			{
-				const FString BaseMapFilename = FPaths::GetBaseFilename(StarterContentMapFiles[0]);
-
-				FString MapPathRelToContent = FPaths::GetPath(StarterContentMapFiles[0]);
-				FPaths::MakePathRelativeTo(MapPathRelToContent, *StarterContentContentDir);
-
-				MapPackagePath = FString(TEXT("/Game/")) + MapPathRelToContent + TEXT("/") + BaseMapFilename;
-			}
-
-			// if either the files we specified don't exist or we didn't specify any, use the first map file we found in the content folder.
-			if (SpecificEditorStartupMap.IsEmpty() || FPaths::FileExists(FullEditorStartupMapPath) == false)
-			{
-				SpecificEditorStartupMap = MapPackagePath;
-			}
-			if (SpecificGameDefaultMap.IsEmpty() || FPaths::FileExists(FullGameDefaultMapPath) == false)
-			{
-				SpecificGameDefaultMap = MapPackagePath;
-			}
+				else
+				{
+					SpecificEditorStartupMap = TEXT("/Game/StarterContent/StarterMap");
+					SpecificGameDefaultMap = TEXT("/Game/StarterContent/StarterMap");
+				}
+			}						
 			
 			// Write out the settings for startup map and game default map
 			FileContents += TEXT("[/Script/EngineSettings.GameMapsSettings]") LINE_TERMINATOR;
@@ -1985,8 +1879,9 @@ bool GameProjectUtils::IsStarterContentAvailableForNewProjects()
 {
 	TArray<FString> StarterContentFiles;
 	GetStarterContentFiles(StarterContentFiles);
-
-	return (StarterContentFiles.Num() > 0);
+	
+	bool bHasStaterContent = StarterContentFiles.FindByPredicate([&](const FString& Str){ return Str.Contains("StarterContent"); }) != nullptr;
+	return bHasStaterContent;
 }
 
 TArray<FModuleContextInfo> GameProjectUtils::GetCurrentProjectModules()
@@ -3195,6 +3090,65 @@ void GameProjectUtils::HarvestCursorSyncLocation( FString& FinalOutput, FString&
 
 	// Now remove the cursor focus marker
 	FinalOutput = FinalOutput.Replace(TEXT("%CURSORFOCUSLOCATION%"), TEXT(""), ESearchCase::CaseSensitive);
+}
+
+bool GameProjectUtils::InsertFeaturePacksIntoINIFile(const FProjectInformation& InProjectInfo, FText& OutFailReason)
+{
+	bool bSuccessfullyProcessed = false;
+	const FString ProjectName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
+	const FString TemplateName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
+	const FString SrcFolder = FPaths::GetPath(InProjectInfo.TemplateFile);
+	const FString DestFolder = FPaths::GetPath(InProjectInfo.ProjectFilename);
+
+	const FString ProjectConfigPath = DestFolder / TEXT("Config");
+	const FString IniFilename = ProjectConfigPath / TEXT("DefaultGame.ini");
+
+	TArray<FString> PackList;
+
+	// First the starter content
+	if (InProjectInfo.bCopyStarterContent)
+	{
+		FString StarterPack;
+		if (InProjectInfo.TargetedHardware == EHardwareClass::Mobile)
+		{
+			StarterPack = TEXT("InsertPack=(PackSource=\"MobileStarterContent.upack\",PackName=\"StarterContent\")");
+		}
+		else
+		{
+			StarterPack = TEXT("InsertPack=(PackSource=\"StarterContent.upack\",PackName=\"StarterContent\")");
+		}
+		PackList.Add(StarterPack);
+	}
+
+	// Now any packs specified in the template def.
+	UTemplateProjectDefs* TemplateDefs = LoadTemplateDefs(SrcFolder);
+	if (TemplateDefs != NULL)
+	{
+		for (int32 iPack = 0; iPack < TemplateDefs->PacksToInclude.Num(); ++iPack)
+		{
+			PackList.Add(TemplateDefs->PacksToInclude[iPack]);
+		}
+	}
+
+	FString FileOutput;
+	if (PackList.Num() != 0)
+	{
+		FileOutput = TEXT("[StartupActions]");
+		FileOutput += LINE_TERMINATOR;
+		FileOutput += TEXT("bAddPacks=True");
+		FileOutput += LINE_TERMINATOR;
+		for (int32 iLine = 0; iLine < PackList.Num(); ++iLine)
+		{
+			FileOutput += PackList[iLine] + LINE_TERMINATOR;
+
+		}
+		if (FFileHelper::SaveStringToFile(FileOutput, *IniFilename))
+		{
+			bSuccessfullyProcessed = true;
+		}
+	}
+
+	return bSuccessfullyProcessed;
 }
 
 #undef LOCTEXT_NAMESPACE

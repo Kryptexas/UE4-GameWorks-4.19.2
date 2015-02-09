@@ -256,6 +256,9 @@ void FUnrealEdMisc::OnInit()
 	{
 		bool bMapLoaded = false;
 
+		// Insert any feature packs if required. We need to do this before we try and load a map since any pack may contain a map
+		FeaturePackHandler.ImportPendingPacks();
+
 		FString ParsedMapName;
 		if ( FParse::Token(ParsedCmdLine, ParsedMapName, false) && 
 			 // If it's not a parameter

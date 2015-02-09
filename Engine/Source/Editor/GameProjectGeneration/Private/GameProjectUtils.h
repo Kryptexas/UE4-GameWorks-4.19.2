@@ -305,8 +305,8 @@ private:
 	/** Sets the engine association for a new project. Handles foreign and non-foreign projects. */
 	static bool SetEngineAssociationForForeignProject(const FString& ProjectFileName, FText& OutFailReason);
 
-	/** Copies starter content into the specified project folder. */
-	static bool CopyStarterContent(const FString& DestProjectFolder, FText& OutFailReason);
+	/** Insert any required feature packs into the DefaultGame.ini file */
+	static bool InsertFeaturePacksIntoINIFile(const FProjectInformation& InProjectInfo, FText& OutFailReason);
 
 	/** Returns list of starter content files */
 	static void GetStarterContentFiles(TArray<FString>& OutFilenames);
