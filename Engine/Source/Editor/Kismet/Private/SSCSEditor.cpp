@@ -470,7 +470,7 @@ FSCSEditorTreeNodePtrType FSCSEditorTreeNode::AddChildFromComponent(UActorCompon
 // Tries to find a SCS node that was likely responsible for creating the specified instance component.  Note: This is not always possible to do!
 USCS_Node* FSCSEditorTreeNode::FindSCSNodeForInstance(UActorComponent* InstanceComponent, UClass* ClassToSearch)
 { 
-	if ((ClassToSearch != nullptr) && (InstanceComponent->CreationMethod == EComponentCreationMethod::ConstructionScript))
+	if ((ClassToSearch != nullptr) && InstanceComponent->IsCreatedByConstructionScript())
 	{
 		for (UClass* TestClass = ClassToSearch; TestClass->ClassGeneratedBy != nullptr; TestClass = TestClass->GetSuperClass())
 		{
@@ -1704,7 +1704,7 @@ FText SSCS_RowWidget::GetIntroducedInToolTipText() const
 
 				if (BestClass == nullptr)
 				{
-					ensure(ComponentTemplate->CreationMethod == EComponentCreationMethod::ConstructionScript);
+					ensure(ComponentTemplate->IsCreatedByConstructionScript());
 					IntroducedInTooltip = LOCTEXT("IntroducedInUnknownError", "Unknown Blueprint Class (via an Add Component call)");
 				}
 				else
@@ -3911,7 +3911,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 				UClass* OwnerClass = ActorComponent->GetOwner()->GetActorClass();
 
 				// If the given component is one that's created during Blueprint construction
-				if (ActorComponent->CreationMethod == EComponentCreationMethod::ConstructionScript)
+				if (ActorComponent->IsCreatedByConstructionScript())
 				{
 					// Get the Blueprint object associated with the owner's class
 					UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(OwnerClass);

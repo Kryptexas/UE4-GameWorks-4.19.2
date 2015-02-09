@@ -78,7 +78,7 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 		// Grab per-instance data we want to persist
 		for (UActorComponent* Component : Components)
 		{
-			if (Component->CreationMethod == EComponentCreationMethod::ConstructionScript) // Only cache data from 'created by construction script' components
+			if (Component->IsCreatedByConstructionScript()) // Only cache data from 'created by construction script' components
 			{
 				FComponentInstanceDataBase* ComponentInstanceData = Component->GetComponentInstanceData();
 				if (ComponentInstanceData)
@@ -92,7 +92,7 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 				// If the instance component is attached to a BP component we have to be prepared for the possibility that it will be deleted
 				if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
 				{
-					if (SceneComponent->AttachParent && SceneComponent->AttachParent->CreationMethod == EComponentCreationMethod::ConstructionScript)
+					if (SceneComponent->AttachParent && SceneComponent->AttachParent->IsCreatedByConstructionScript())
 					{
 						InstanceComponentTransformToRootMap.Add(SceneComponent, SceneComponent->GetComponentTransform().GetRelativeTransform(Actor->GetRootComponent()->GetComponentTransform()));
 					}
@@ -120,7 +120,7 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor) const
 		// Apply per-instance data.
 		for (UActorComponent* Component : Components)
 		{
-			if(Component->CreationMethod == EComponentCreationMethod::ConstructionScript) // Only try and apply data to 'created by construction script' components
+			if(Component->IsCreatedByConstructionScript()) // Only try and apply data to 'created by construction script' components
 			{
 				const FName ComponentInstanceDataType = Component->GetComponentInstanceDataType();
 

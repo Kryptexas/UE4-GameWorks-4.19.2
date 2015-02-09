@@ -2001,7 +2001,7 @@ bool FEdModeFoliage::SnapInstanceToGround(AInstancedFoliageActor* InIFA, float A
 		UPrimitiveComponent* HitComponent = Hit.Component.Get();
 
 		// We cannot be based on an a blueprint component as these will disappear when the construction script is re-run
-		if (HitComponent->CreationMethod == EComponentCreationMethod::ConstructionScript)
+		if (HitComponent->IsCreatedByConstructionScript())
 		{
 			HitComponent = nullptr;
 		}

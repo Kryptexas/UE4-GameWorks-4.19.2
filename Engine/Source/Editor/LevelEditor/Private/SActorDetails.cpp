@@ -424,7 +424,7 @@ bool SActorDetails::IsPropertyEditingEnabled() const
 		UActorComponent* ActorComp = Cast<UActorComponent>(Object.Get());
 		if(ActorComp)
 		{
-			bIsEditable = ActorComp->CreationMethod != EComponentCreationMethod::ConstructionScript;
+			bIsEditable = !ActorComp->IsCreatedByConstructionScript();
 			if(!bIsEditable)
 			{
 				break;

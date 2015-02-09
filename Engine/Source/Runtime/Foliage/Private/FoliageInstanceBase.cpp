@@ -85,7 +85,7 @@ FArchive& operator << (FArchive& Ar, FFoliageInstanceBaseCache& InstanceBaseCach
 FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorComponent* InComponent)
 {
 	FFoliageInstanceBaseId BaseId = FFoliageInstanceBaseCache::InvalidBaseId;
-	if (InComponent && InComponent->CreationMethod != EComponentCreationMethod::ConstructionScript)
+	if (InComponent && !InComponent->IsCreatedByConstructionScript())
 	{
 		BaseId = GetInstanceBaseId(InComponent);
 		if (BaseId == FFoliageInstanceBaseCache::InvalidBaseId)

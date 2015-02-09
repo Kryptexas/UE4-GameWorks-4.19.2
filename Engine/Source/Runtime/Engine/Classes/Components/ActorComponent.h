@@ -12,7 +12,8 @@ UENUM()
 enum class EComponentCreationMethod : uint8
 {
 	Native,
-	ConstructionScript,
+	SimpleConstructionScript,
+	UserConstructionScript,
 	Instance,
 };
 
@@ -123,6 +124,8 @@ public:
 
 	UPROPERTY()
 	EComponentCreationMethod CreationMethod;
+
+	bool IsCreatedByConstructionScript() const;
 
 	UFUNCTION()
 	void OnRep_IsActive();

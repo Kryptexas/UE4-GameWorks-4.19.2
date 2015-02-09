@@ -401,7 +401,7 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 	{
 		USceneComponent* SceneComp = NewObject<USceneComponent>(Actor);
 		SceneComp->SetFlags(RF_Transactional);
-		SceneComp->CreationMethod = EComponentCreationMethod::ConstructionScript;
+		SceneComp->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
 		SceneComp->SetWorldTransform(RootTransform);
 		Actor->SetRootComponent(SceneComp);
 		SceneComp->RegisterComponent();

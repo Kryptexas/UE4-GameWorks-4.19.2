@@ -9,6 +9,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/SimpleConstructionScript.h"
 
 #define LOCTEXT_NAMESPACE "ActorComponent"
 
@@ -126,13 +127,23 @@ void UActorComponent::PostLoad()
 {
 	Super::PostLoad();
 
+	// TODO: Wrap all this up with an engine version
 	if (bCreatedByConstructionScript_DEPRECATED)
 	{
-		CreationMethod = EComponentCreationMethod::ConstructionScript;
+		CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
 	}
 	else if (bInstanceComponent_DEPRECATED)
 	{
 		CreationMethod = EComponentCreationMethod::Instance;
+	}
+
+	if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
+	{
+		UBlueprintGeneratedClass* Class = CastChecked<UBlueprintGeneratedClass>(GetOuter()->GetClass());
+		if (Class->SimpleConstructionScript->FindSCSNode(GetFName()) == nullptr)
+		{
+			CreationMethod = EComponentCreationMethod::UserConstructionScript;
+		}
 	}
 
 	if (!HasAllFlags(RF_Public) && GetOuter()->IsA<UBlueprintGeneratedClass>())
@@ -161,6 +172,11 @@ void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 			}
 		}
 	}
+}
+
+bool UActorComponent::IsCreatedByConstructionScript() const
+{
+	return ((CreationMethod == EComponentCreationMethod::SimpleConstructionScript) || (CreationMethod == EComponentCreationMethod::UserConstructionScript));
 }
 
 #if WITH_EDITOR
@@ -665,7 +681,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	}
 
 	// If this is a blueprint created component and it has component children they can miss getting registered in some scenarios
-	if (CreationMethod == EComponentCreationMethod::ConstructionScript)
+	if (IsCreatedByConstructionScript())
 	{
 		TArray<UObject*> Children;
 		GetObjectsWithOuter(this, Children, true, RF_PendingKill);
@@ -735,7 +751,7 @@ void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 	AActor* Owner = GetOwner();
 	if(Owner != NULL)
 	{
-		if (CreationMethod == EComponentCreationMethod::ConstructionScript)
+		if (IsCreatedByConstructionScript())
 		{
 			Owner->BlueprintCreatedComponents.Remove(this);
 		}
