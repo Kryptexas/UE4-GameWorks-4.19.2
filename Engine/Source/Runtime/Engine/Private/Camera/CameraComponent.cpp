@@ -62,6 +62,8 @@ void UCameraComponent::OnRegister()
 	{
 		ProxyMeshComponent = NewObject<UStaticMeshComponent>(GetOuter(), NAME_None, RF_Transactional);
 		ProxyMeshComponent->AttachTo(this);
+		ProxyMeshComponent->AlwaysLoadOnClient = false;
+		ProxyMeshComponent->AlwaysLoadOnServer = false;
 		ProxyMeshComponent->StaticMesh = CameraMesh;
 		ProxyMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 		ProxyMeshComponent->bHiddenInGame = true;
