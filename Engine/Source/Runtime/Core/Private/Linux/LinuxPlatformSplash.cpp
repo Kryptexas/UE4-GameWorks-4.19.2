@@ -917,7 +917,7 @@ void FLinuxPlatformSplash::Show( )
 			else
 			{
 				VersionInfo = FText::Format( NSLOCTEXT( "UnrealEd", "UnrealEdTitleWithVersion_F", "Unreal Editor {0}  -  {1}" ), Version, GameName );
-				AppName = FText::Format( NSLOCTEXT( "UnrealEd", "UnrealEdTitle_F", "Unreal Editor  -  {0}" ), GameName );
+				AppName = FText::Format( NSLOCTEXT( "UnrealEd", "UnrealEdTitle_F", "Unreal Editor - {0}" ), GameName );
 			}
 
 			StartSetSplashText( SplashTextType::VersionInfo1, VersionInfo );
