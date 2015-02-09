@@ -458,36 +458,40 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 	return ParentClass->GetPersistentUberGraphFrame(Obj, FuncToCheck);
 }
 
-void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj) const
+void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty) const
 {
 	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
-		uint8* FrameMemory = NULL;
-		const bool bUberGraphFunctionIsReady = !WITH_EDITOR // no cyclic dependency problems
-			|| UberGraphFunction->HasAllFlags(RF_LoadCompleted); // is fully loaded
-		if (bUberGraphFunctionIsReady)
-		{
-			FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunction->GetStructureSize());
-			FMemory::Memzero(FrameMemory, UberGraphFunction->GetStructureSize());
-			for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
-			{
-				Property->InitializeValue_InContainer(FrameMemory);
-			}
-		}
-		else
-		{
-			UE_LOG(LogBlueprint, Log, TEXT("Function '%s' is not ready to create frame."), *GetPathNameSafe(UberGraphFunction));
-		}
-		
 		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
-		checkSlow(PointerToUberGraphFrame && !PointerToUberGraphFrame->RawPointer);
-		PointerToUberGraphFrame->RawPointer = FrameMemory;
+		check(PointerToUberGraphFrame);
+		check(bCreateOnlyIfEmpty || !PointerToUberGraphFrame->RawPointer);
+		
+		if (!PointerToUberGraphFrame->RawPointer)
+		{
+			uint8* FrameMemory = NULL;
+			const bool bUberGraphFunctionIsReady = UberGraphFunction->HasAllFlags(RF_LoadCompleted); // is fully loaded
+			if (bUberGraphFunctionIsReady)
+			{
+				FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunction->GetStructureSize());
+				FMemory::Memzero(FrameMemory, UberGraphFunction->GetStructureSize());
+				for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
+				{
+					Property->InitializeValue_InContainer(FrameMemory);
+				}
+			}
+			else
+			{
+				UE_LOG(LogBlueprint, Warning, TEXT("Function '%s' is not ready to create frame for '%s'"),
+					*GetPathNameSafe(UberGraphFunction), *GetPathNameSafe(Obj));
+			}
+			PointerToUberGraphFrame->RawPointer = FrameMemory;
+		}
 	}
 
 	auto ParentClass = GetSuperClass();
 	checkSlow(ParentClass);
-	return ParentClass->CreatePersistentUberGraphFrame(Obj);
+	return ParentClass->CreatePersistentUberGraphFrame(Obj, bCreateOnlyIfEmpty);
 }
 
 void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) const
@@ -621,4 +625,14 @@ bool UBlueprintGeneratedClass::UsePersistentUberGraphFrame()
 #else
 	return false;
 #endif
+}
+
+void UBlueprintGeneratedClass::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && 0 == (Ar.GetPortFlags() & PPF_Duplicate))
+	{
+		CreatePersistentUberGraphFrame(ClassDefaultObject, true);
+	}
 }
