@@ -220,8 +220,10 @@ void UK2Node_ActorBoundEvent::Serialize(FArchive& Ar)
 	{
 		DelegateOwnerClass = EventSignatureClass;
 		UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-		check(TargetDelegateProp);
-		EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+		if(TargetDelegateProp)
+		{
+			EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+		}
 	}
 
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS

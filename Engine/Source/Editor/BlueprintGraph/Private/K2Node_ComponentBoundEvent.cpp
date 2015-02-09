@@ -129,8 +129,10 @@ void UK2Node_ComponentBoundEvent::Serialize(FArchive& Ar)
 	{
 		DelegateOwnerClass = EventSignatureClass;
 		UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-		check(TargetDelegateProp);
-		EventReference.SetExternalDelegateMember(TargetDelegateProp->SignatureFunction->GetFName());
+		if (TargetDelegateProp)
+		{
+			EventReference.SetExternalDelegateMember(TargetDelegateProp->SignatureFunction->GetFName());
+		}
 	}
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
