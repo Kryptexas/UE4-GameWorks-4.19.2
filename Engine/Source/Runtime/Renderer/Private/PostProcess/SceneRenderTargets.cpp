@@ -412,6 +412,7 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4 && !IsSimpleDynamicLightingEnabled())
 	{
+		// This needs to match TBasePassPixelShaderBaseType::ModifyCompilationEnvironment()
 		NumGBufferTargets = bAllowStaticLighting ? 6 : 5;
 
 		if (bAllocateVelocityGBuffer)

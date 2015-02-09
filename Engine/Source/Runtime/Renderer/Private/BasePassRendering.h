@@ -337,7 +337,10 @@ public:
 		const bool bOutputVelocity = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputVelocity)
 		{
-			OutEnvironment.SetRenderTargetOutputFormat(6, PF_G16R16);
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+			// This needs to match FSceneRenderTargets::GetNumGBufferTargets()
+			const int32 VelocityIndex = (CVar && CVar->GetValueOnAnyThread() != 0) ? 6 : 5;
+			OutEnvironment.SetRenderTargetOutputFormat(VelocityIndex, PF_G16R16);
 		}
 	}
 

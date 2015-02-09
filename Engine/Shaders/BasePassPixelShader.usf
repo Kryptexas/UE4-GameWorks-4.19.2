@@ -587,9 +587,13 @@ void Main(
 	,out float4 OutGBufferD : SV_Target4
 	#if ALLOW_STATIC_LIGHTING
 		,out float4 OutGBufferE : SV_Target5
-	#endif
-	#if WRITES_VELOCITY_TO_GBUFFER
-		, out float4 OutGBufferVelocity : SV_Target6
+		#if WRITES_VELOCITY_TO_GBUFFER
+			, out float4 OutGBufferVelocity : SV_Target6
+		#endif
+	#else
+		#if WRITES_VELOCITY_TO_GBUFFER
+			, out float4 OutGBufferVelocity : SV_Target5
+		#endif
 	#endif
 #endif
 
