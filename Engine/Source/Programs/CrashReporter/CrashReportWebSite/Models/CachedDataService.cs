@@ -122,7 +122,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				List<string> FunctionCalls = (List<string>)CacheInstance[Key];
 				if( FunctionCalls == null )
 				{
-					string[] Ids = Pattern.Split( "+".ToCharArray() );
+					string[] Ids = Pattern.Split( "+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
 					List<int> IdList = new List<int>();
 					foreach( string id in Ids )
 					{
@@ -132,6 +132,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 							IdList.Add( i );
 						}
 					}
+
+					// These function calls don't add any new information.
+					IdList.Remove( 63039 ); // 63039	KERNELBASE!RaiseException()
+					IdList.Remove( 63138 ); // 63138	UE4Editor_Core!FDebug::EnsureFailed()
+					IdList.Remove( 63137 ); // 63137	UE4Editor_Core!NewReportEnsure()
+					IdList.Remove( 63149 ); // 63149	UE4Editor_Core!FOutputDeviceWindowsError::Serialize()
+					IdList.Remove( 63151 ); // 63151	UE4Editor_Core!FDebug::AssertFailed()
+					IdList.Remove( 63445 ); // 63445	UE4Editor_Core!FDebug::EnsureNotFalseFormatted()
+					IdList.Remove( 64334 ); // 64334	UE4Editor_Core!FOutputDevice::Logf__VA()
+
 
 					FunctionCalls = BuggRepositoryInstance.GetFunctionCalls( IdList );
 					CacheInstance.Insert( Key, FunctionCalls );

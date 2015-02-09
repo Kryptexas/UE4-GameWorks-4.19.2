@@ -47,7 +47,8 @@
 		<th style='width: 12em;'><%=Url.TableHeader( "First Crash", "FirstCrash", Model )%></th> 
 		<th style='width: 8em;'><%=Url.TableHeader( "# of Crashes", "NumberOfCrashes", Model )%></th> 
 		<th style='width: 8em;'><%=Url.TableHeader( "Users Affected", "NumberOfUsers", Model )%></th> 
-		<th style='width: 24em;'><%=Url.TableHeader( "Pattern", "Pattern", Model )%></th> 
+		<th style='width: 24em;'><%=Url.TableHeader( "Pattern", "Pattern", Model )%></th>
+		<th style='width: 8em;'><%=Url.TableHeader( "CrashType", "CrashType", Model )%></th>
 		<th style='width: 8em;'><%=Url.TableHeader( "Status", "Status", Model )%></th>
 		<th style='width: 8em;'><%=Url.TableHeader( "FixedCL#", "FixedChangeList", Model )%></th>
 		<th style='width: 8em;'><%=Url.TableHeader( "JIRA", "TTPID", Model )%></th>
@@ -145,6 +146,7 @@
 					</a>
 				</div>
 			</td>
+			<td><%=CurrentBugg.GetCrashTypeAsString()%></td>
 			<td><%=CurrentBugg.Status%></td>
 			<td><%=CurrentBugg.FixedChangeList%></td>
 			<td> <span><a href="https://jira.ol.epicgames.net/browse/<%=CurrentBugg.TTPID%>" target="_blank"><%=CurrentBugg.TTPID%></a></span>  </td>

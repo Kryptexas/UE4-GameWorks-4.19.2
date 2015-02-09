@@ -708,6 +708,9 @@ th a:visited
 	font-weight: bold;
 	text-align: right;
 	color: #718698;
+
+	/*border:dotted;*/
+	/*border-width:1px;*/
 }
 
 #CrashDataContainer dd
@@ -718,6 +721,9 @@ th a:visited
 	margin: 0.5em 0.5em 0.5em 0.5em;
 	font-weight: normal;
 	color: #C3CAD0;
+
+	/*border:dotted;*/
+	/*border-width:1px;*/
 }
 
 #CallStackContainer

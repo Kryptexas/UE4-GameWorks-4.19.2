@@ -88,25 +88,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 
 		/// <summary>
-		/// Get the id of a function from its name.
+		/// Get the list of id of a function from its name.
 		/// </summary>
 		/// <param name="FunctionCallName">The name of the function to look up.</param>
-		/// <returns>The unique id of the function name, or zero if none is found.</returns>
-		public int GetFunctionCallId( string FunctionCallName )
+		public List<int> GetFunctionCallIds( string FunctionCallName )
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
 				try
 				{
-					FunctionCall FunctionCall = Context.FunctionCalls.Where( FunctionCallInstance => FunctionCallInstance.Call.Contains( FunctionCallName ) ).First();
-					return FunctionCall.Id;
+					return Context.FunctionCalls.Where( FunctionCallInstance => FunctionCallInstance.Call.Contains( FunctionCallName ) ).Select( X => X.Id ).ToList();
 				}
 				catch( Exception Ex )
 				{
 					Debug.WriteLine( "Exception in GetFunctionCallId: " + Ex.ToString() );
 				}
 
-				return 0;
+				return new List<int>();
 			}
 		}
 
@@ -335,17 +333,30 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 					// Take out terms starting with a - 
 					string[] Terms = QueryString.Split( "-, ;+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
-					string TermsToUse = "";
+					HashSet<int> AllFuncionCallIds = new HashSet<int>();
 					foreach( string Term in Terms )
 					{
-						string CallId = GetFunctionCallId( Term ).ToString();
-						if( !TermsToUse.Contains( CallId ) )
+						List<int> FunctionCallIds = GetFunctionCallIds( Term );
+						foreach( int Id in FunctionCallIds )
 						{
-							TermsToUse = TermsToUse + "+" + CallId;
+							AllFuncionCallIds.Add( Id );
+						};
+					}
+
+					HashSet<Bugg> TemporaryResults = new HashSet<Bugg>();
+					// Search for all function ids. OR operation, not very efficient, but for searching for one function should be ok.
+					foreach (int Id in AllFuncionCallIds)
+					{
+						string Pattern = "+" + Id + "+";
+						var BuggsForFunc = Results.Where( X => X.Pattern.Contains( Pattern ) ).ToList();
+						
+						foreach(Bugg Bugg in BuggsForFunc)
+						{
+							TemporaryResults.Add( Bugg );
 						}
 					}
 
-					Buggs = (IEnumerable<Bugg>)Results.AsQueryable().Search( new string[] { "Pattern" }, TermsToUse.Split( "+".ToCharArray() ) );
+					Buggs = TemporaryResults.ToList();
 				}
 				catch( Exception Ex )
 				{
@@ -769,6 +780,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 						case "Pattern":
 							Results = CrashRepository.OrderBy( IntermediateQueryable, BuggCrashInstance => BuggCrashInstance.Pattern, bSortDescending );
+							break;
+
+						case "CrashType":
+							Results = CrashRepository.OrderBy( IntermediateQueryable, BuggCrashInstance => BuggCrashInstance.CrashType, bSortDescending );
 							break;
 
 						case "Status":

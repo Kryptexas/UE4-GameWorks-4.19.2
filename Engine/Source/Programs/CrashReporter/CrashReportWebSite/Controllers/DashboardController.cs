@@ -36,6 +36,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			UserId = Crash.UserNameId.Value;
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="InTimeOfCrash"></param>
+		/// <param name="InUserId"></param>
 		public FCrashMinimal( DateTime InTimeOfCrash, int InUserId )
 		{
 			TimeOfCrash = InTimeOfCrash;
@@ -160,6 +165,53 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
+
+				/*
+				//Temporary code to update pattern in crashes and buggs.
+				DateTime Today11 = DateTime.UtcNow.AddDays(11);
+				DateTime AYear = Today11.AddMonths( -12 );
+
+				var CrashList = CrashRepository.Context.Crashes.Where( X => X.TimeOfCrash >= AYear ).Select( X => X );
+				var BuggList = CrashRepository.Context.Buggs.Select( X => X );
+
+				int Current = 0;
+				foreach(Crash Crash in CrashList)
+				{
+					if( string.IsNullOrEmpty(Crash.Pattern) )
+					{
+						continue;
+					}
+					if( Crash.Pattern[0] != '+' )
+					{
+						Crash.Pattern = "+" + Crash.Pattern + "+";
+					}
+					Current++;
+					if( Current % 16384 == 0 )
+					{
+						CrashRepository.SubmitChanges();
+					}
+				}
+				
+
+				foreach(Bugg Bugg in BuggList)
+				{
+					if( string.IsNullOrEmpty( Bugg.Pattern ) )
+					{
+						continue;
+					}
+
+					if( Bugg.Pattern[0] != '+' )
+					{
+						Bugg.Pattern = "+" + Bugg.Pattern + "+";
+					}
+					Current++;
+					if( Current % 16384 == 0 )
+					{
+						CrashRepository.SubmitChanges();
+					}
+				}
+				*/
+
 				DateTime Today = DateTime.UtcNow;
 				DateTime AfewMonthsAgo = Today.AddMonths( -6 );
 

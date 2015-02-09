@@ -73,6 +73,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary></summary>
 		public int NumberOfUniqueMachines { get; set; }
 
+		/// <summary></summary>
+		public SortedSet<string> AffectedBuilds { get; set; }
 
 		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
 		public override string ToString()
@@ -120,6 +122,46 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				return "Ensure";
 			}
 			return "Unknown";
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
+		public string GetLifeSpan()
+		{
+			TimeSpan LifeSpan = TimeOfLastCrash.Value - TimeOfFirstCrash.Value;
+			// Only to visualize the life span, accuracy not so important here.
+			int NumMonths = LifeSpan.Days / 30;
+			int NumDays = LifeSpan.Days % 30;
+			if( NumMonths > 0 )
+			{
+				return string.Format( "{0} month(s) {1} day(s)", NumMonths, NumDays );
+			}
+			else if( NumDays > 0 )
+			{
+				return string.Format( "{0} day(s)", NumDays );
+
+			}
+			else
+			{
+				return "Less than one day";
+			}
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public string GetAffectedBuilds()
+		{
+			if( AffectedBuilds.Count == 1 )
+			{
+				return AffectedBuilds.Max;
+			}
+			else
+			{
+				return AffectedBuilds.Min + " - " + AffectedBuilds.Max;
+			}
 		}
 
 		/// <summary>
@@ -210,7 +252,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				return bAllowToBeContacted.GetValueOrDefault( false );
 			}
 		}
-			
+
 		/// <summary>
 		/// Return lines of processed callstack entries.
 		/// </summary>

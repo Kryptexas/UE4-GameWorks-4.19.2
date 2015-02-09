@@ -23,6 +23,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// </summary>
 	public class CrashRepository : IDisposable
 	{
+		/// <summary>
+		/// 
+		/// </summary>
 		public CrashReportDataContext Context;
 
 		/// <summary>
@@ -968,21 +971,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 							FunctionCalls.InsertOnSubmit( CurrentFunctionCall );
 						}
 
-// 						int Count = Crash_FunctionCalls.Where( c => c.CrashId == CrashInstance.Id && c.FunctionCallId == CurrentFunctionCall.Id ).Count();
-// 						if( Count < 1 )
-// 						{
-// 							Crash_FunctionCall JoinTable = new Crash_FunctionCall();
-// 							JoinTable.Crash = CrashInstance;
-// 							JoinTable.FunctionCall = CurrentFunctionCall;
-// 							Crash_FunctionCalls.InsertOnSubmit( JoinTable );
-// 						}
-
 						SubmitChanges();
 
 						Pattern.Add( CurrentFunctionCall.Id.ToString() );
 					}
 
-					CrashInstance.Pattern = string.Join( "+", Pattern );
+					CrashInstance.Pattern = "+";
+					CrashInstance.Pattern += string.Join( "+", Pattern );
+					// We need something like this +1+2+3+5+ for searching for exact pattern like +5+
+					CrashInstance.Pattern += "+";
+
 					SubmitChanges();
 				}
 				catch( Exception Ex )

@@ -91,6 +91,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			return FunctionName.Substring( 0, Math.Min( FunctionName.Length, MaxLength ) );
 		}
+
+		/// <summary> </summary>
+		public override string ToString()
+		{
+			return string.Format( "{0}!{1} [{2}:{3}]", this.ModuleName, this.FunctionName, this.FileName, this.LineNumber );
+		}
 	}
 
 	/// <summary>

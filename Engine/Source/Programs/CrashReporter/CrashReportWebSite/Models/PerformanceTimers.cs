@@ -12,7 +12,7 @@ using System.Threading;
 public class FLogger
 {
 	/// <summary>Current log file to write debug progress info to</summary>
-	static public LogWriter Log = new LogWriter( "CrashReportWebSite-" + GetCleanUserName(), "F:/CrashReportWebsiteLogs" );
+	static public LogWriter Log = new LogWriter( "CrashReportWebSite-" + GetCleanUserName(), "f:/CrashReportWebsiteLogs" );
 
 	/// <summary> Returns the user name valid as filename. </summary>
 	static public string GetCleanUserName()

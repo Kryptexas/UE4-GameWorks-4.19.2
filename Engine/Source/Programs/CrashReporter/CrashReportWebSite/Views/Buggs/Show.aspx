@@ -93,18 +93,24 @@
 
 <div id='CrashesShowContainer'>
 	<div id='CrashDataContainer' >
-		<dl style='list-style-type: none; font-weight: bold' >
+		<dl style='list-style-type: none; font-weight: bold;' >
 		<dt>ID</dt>
 			<dd ><%=Html.DisplayFor( m => Model.Bugg.Id )%></dd>
 
-		<dt>Build Version of Latest Crash</dt>
-			<dd><%=Html.DisplayFor( m => Model.Bugg.BuildVersion )%></dd>
+		<%--<dt>Build Version of Latest Crash</dt>
+			<dd><%=Html.DisplayFor( m => Model.Bugg.BuildVersion )%></dd>--%>
+
+		<dt>Affected Build Versions</dt>
+			<dd><%=Model.Bugg.GetAffectedBuilds()%></dd>
 			
 		<dt>Time of Latest Crash</dt> 
 			<dd class='even' style='width:8em'><%=Model.Bugg.TimeOfLastCrash%></dd>
 
 		<dt>Time of First Crash</dt>
 			<dd style='width:8em'><%=Model.Bugg.TimeOfFirstCrash%></dd>
+
+		<dt>Bugg life span</dt>
+			<dd style='width:8em'><%=Model.Bugg.GetLifeSpan()%></dd>
 
 		<dt>Crash type</dt> 
 			<dd class='even' style='width:8em'><%=Model.Bugg.GetCrashTypeAsString()%></dd>

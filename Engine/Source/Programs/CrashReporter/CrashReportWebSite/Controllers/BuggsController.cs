@@ -98,11 +98,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				using( FAutoScopedLogTimer GetCrashesTimer = new FAutoScopedLogTimer( "Bugg.GetCrashes().ToList" ) )
 				{
 					Crashes = Bugg.GetCrashes();
+					Bugg.AffectedBuilds = new SortedSet<string>();
 
 					HashSet<string> MachineIds = new HashSet<string>();
 					foreach( Crash Crash in Crashes )
 					{
 						MachineIds.Add( Crash.ComputerName );
+						// Ignore bad build versions.
+						if( Crash.BuildVersion.StartsWith( "4." ) )
+						{
+							Bugg.AffectedBuilds.Add( Crash.BuildVersion );
+						}
 					}
 					Bugg.NumberOfUniqueMachines = MachineIds.Count;
 				}
