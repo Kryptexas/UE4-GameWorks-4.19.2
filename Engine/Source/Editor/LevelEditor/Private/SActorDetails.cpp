@@ -132,6 +132,7 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 
 SActorDetails::~SActorDetails()
 {
+	GEditor->UnregisterForUndo(this);
 	USelection::SelectionChangedEvent.RemoveAll(this);
 }
 
