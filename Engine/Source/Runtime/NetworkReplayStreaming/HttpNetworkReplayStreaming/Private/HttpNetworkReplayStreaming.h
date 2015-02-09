@@ -25,11 +25,11 @@ public:
 /**
  * Http network replay streaming manager
  */
-class FHttpNetworkReplayStreamer : public INetworkReplayStreamer, public FTickableGameObject
+class FHttpNetworkReplayStreamer : public INetworkReplayStreamer
 {
 public:
 	/** INetworkReplayStreamer implementation */
-	FHttpNetworkReplayStreamer() : StreamFileCount( 0 ), LastFlushTime( 0 ) {}
+	FHttpNetworkReplayStreamer() : StreamFileCount( 0 ), LastFlushTime( 0 ), StreamState( EStreamState::Idle ) {}
 	virtual void StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate ) override;
 	virtual void StopStreaming() override;
 	virtual FArchive* GetStreamingArchive() override;
@@ -40,21 +40,39 @@ public:
 
 	void HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpStartStreamingUpFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+	void HttpUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 
-	/** FTickableGameObject */
-	virtual void Tick( float DeltaTime ) override;
-	virtual bool IsTickable() const override;
-	virtual TStatId GetStatId() const override;
+	void Tick( float DeltaTime );
+
+	bool IsBusy();
+
+	enum class EStreamState
+	{
+		Idle,
+		StartStreamingUp,
+		UploadingStream,
+		DownloadingStream,
+	};
 
 	FOnStreamReadyDelegate	RememberedDelegate;		// Delegate passed in to StartStreaming
 	HttpStreamFArchive		StreamArchive;			// Archive used to buffer the stream
 	FString					SessionName;			// Name of the session on the http replay server
 	int32					StreamFileCount;		// Used as a counter to increment the stream.x extension count
 	double					LastFlushTime;
+	EStreamState			StreamState;
+
 };
 
-class FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory
+class FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory, public FTickableGameObject
 {
 public:
+	/** INetworkReplayStreamingFactory */
 	virtual TSharedPtr< INetworkReplayStreamer > CreateReplayStreamer();
+
+	/** FTickableGameObject */
+	virtual void Tick( float DeltaTime ) override;
+	virtual bool IsTickable() const override;
+	virtual TStatId GetStatId() const override;
+
+	TArray< TSharedPtr< FHttpNetworkReplayStreamer > > HttpStreamers;
 };

@@ -83,6 +83,8 @@ void FHttpNetworkReplayStreamer::StartStreaming( FString& StreamName, bool bReco
 
 		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadFinished );
 
+		StreamState = EStreamState::DownloadingStream;
+
 		StreamFileCount++;
 	}
 	else
@@ -102,6 +104,8 @@ void FHttpNetworkReplayStreamer::StartStreaming( FString& StreamName, bool bReco
 		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpStartStreamingUpFinished );
 
 		SessionName.Empty();
+
+		StreamState = EStreamState::StartStreamingUp;
 	}
 	
 	HttpRequest->ProcessRequest();
@@ -127,9 +131,9 @@ void FHttpNetworkReplayStreamer::FlushStream()
 		// Create the Http request and add to pending request list
 		TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
-		// Currently, the engine free's this streamer as soon as it calls this, so we can't register for a callback here right now
-		// This is ok anyhow, since uploading is fire and forget (we aren't actually streaming it yet)
-		//HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpRequestFinished );
+		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadFinished );
+
+		StreamState = EStreamState::UploadingStream;
 
 		FString ServerURL;
 		GConfig->GetString( TEXT( "HttpNetworkReplayStreaming" ), TEXT( "ServerURL" ), ServerURL, GEngineIni );
@@ -138,6 +142,7 @@ void FHttpNetworkReplayStreamer::FlushStream()
 		HttpRequest->SetVerb( TEXT( "POST" ) );
 		HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 		HttpRequest->SetContent( StreamArchive.Buffer );
+
 		HttpRequest->ProcessRequest();
 
 		StreamFileCount++;
@@ -161,6 +166,8 @@ FArchive* FHttpNetworkReplayStreamer::GetMetadataArchive()
 
 void FHttpNetworkReplayStreamer::HttpStartStreamingUpFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	check( StreamState == EStreamState::StartStreamingUp );
+
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
 		SessionName = HttpResponse->GetHeader( TEXT( "Session" ) );
@@ -169,12 +176,32 @@ void FHttpNetworkReplayStreamer::HttpStartStreamingUpFinished( FHttpRequestPtr H
 	}
 	else
 	{
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpStartStreamingUpFinished. FAILED" ), *SessionName );
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpStartStreamingUpFinished. FAILED" ) );
 	}
+
+	StreamState = EStreamState::Idle;
+}
+
+void FHttpNetworkReplayStreamer::HttpUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+{
+	check( StreamState == EStreamState::UploadingStream );
+
+	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
+	{
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpUploadFinished." ) );
+	}
+	else
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpUploadFinished. FAILED" ) );
+	}
+
+	StreamState = EStreamState::Idle;
 }
 
 void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	check( StreamState == EStreamState::DownloadingStream );
+
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
 		if ( StreamArchive.IsLoading() )
@@ -193,11 +220,13 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 
 	// Reset delegate
 	RememberedDelegate = FOnStreamReadyDelegate();
+
+	StreamState = EStreamState::Idle;
 }
 
 void FHttpNetworkReplayStreamer::Tick( float DeltaTime )
 {
-	if ( !SessionName.IsEmpty() )
+	if ( !SessionName.IsEmpty() && !IsBusy() )
 	{
 		const double FLUSH_TIME_IN_SECONDS = 10;
 
@@ -208,20 +237,42 @@ void FHttpNetworkReplayStreamer::Tick( float DeltaTime )
 	}
 }
 
-bool FHttpNetworkReplayStreamer::IsTickable() const
+bool FHttpNetworkReplayStreamer::IsBusy()
 {
-	return true;
+	return StreamState != EStreamState::Idle;
 }
-
-TStatId FHttpNetworkReplayStreamer::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT( FHttpNetworkReplayStreamer, STATGROUP_Tickables );
-}
-
 
 IMPLEMENT_MODULE( FHttpNetworkReplayStreamingFactory, HttpNetworkReplayStreaming )
 
 TSharedPtr< INetworkReplayStreamer > FHttpNetworkReplayStreamingFactory::CreateReplayStreamer()
 {
-	return TSharedPtr< INetworkReplayStreamer >( new FHttpNetworkReplayStreamer );
+	TSharedPtr< FHttpNetworkReplayStreamer > Streamer( new FHttpNetworkReplayStreamer );
+
+	HttpStreamers.Add( Streamer );
+
+	return Streamer;
+}
+
+void FHttpNetworkReplayStreamingFactory::Tick( float DeltaTime )
+{
+	for ( int i = HttpStreamers.Num() - 1; i >= 0; i-- )
+	{
+		HttpStreamers[i]->Tick( DeltaTime );
+		
+		// If we're the only holder of this streamer, and we're not busy, we can free it
+		if ( HttpStreamers[i].IsUnique() && !HttpStreamers[i]->IsBusy() )
+		{
+			HttpStreamers.RemoveAt( i );
+		}
+	}
+}
+
+bool FHttpNetworkReplayStreamingFactory::IsTickable() const
+{
+	return true;
+}
+
+TStatId FHttpNetworkReplayStreamingFactory::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT( FHttpNetworkReplayStreamingFactory, STATGROUP_Tickables );
 }
