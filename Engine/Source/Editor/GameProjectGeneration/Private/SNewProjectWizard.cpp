@@ -1481,9 +1481,6 @@ void SNewProjectWizard::CreateAndOpenProject( )
 			bool bCanOpenProject = false;
 			if( GetSelectedTemplateItem()->bGenerateCode )
 			{
-			    // Open Visual Studio or Xcode if the user created a project with C++ files.  Even if the project doesn't compile, we'll still open it in the IDE
-				OpenCodeIDE( ProjectFile );
-
 			    // Rocket already has the engine compiled, so we can try to build and open a new project immediately. Non-Rocket might require building
 			    // the engine (especially the case when binaries came from P4), so we only open the IDE for that.
 			    if( FRocketSupport::IsRocket() && GameProjectUtils::BuildCodeProject(ProjectFile) )
@@ -1491,6 +1488,9 @@ void SNewProjectWizard::CreateAndOpenProject( )
 					// Everything compiled OK, so we can go ahead and open the project
 					bCanOpenProject = true;
 			    }
+
+				// Open Visual Studio or Xcode if the user created a project with C++ files.  Even if the project doesn't compile, we'll still open it in the IDE
+				OpenCodeIDE( ProjectFile );
 			}
 			else
 			{
