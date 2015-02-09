@@ -158,7 +158,6 @@ protected:
 #if WITH_EDITORONLY_DATA
 protected:
 	/** Editor only component used to display the sprite so as to be able to see the location of the Audio Component  */
-	UPROPERTY(transient)
 	class UBillboardComponent* SpriteComponent;
 
 public:
@@ -525,6 +524,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 	virtual void BeginDestroy() override;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 
 protected:

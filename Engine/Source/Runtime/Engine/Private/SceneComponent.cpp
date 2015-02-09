@@ -42,6 +42,13 @@ USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*=
 	NetUpdateTransform = false;
 }
 
+void USceneComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	USceneComponent* This = CastChecked<USceneComponent>(InThis);
+	Collector.AddReferencedObject(This->SpriteComponent);
+	Super::AddReferencedObjects(InThis, Collector);
+}
+
 FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent) const
 {
 	Parent = Parent ? Parent : AttachParent;
