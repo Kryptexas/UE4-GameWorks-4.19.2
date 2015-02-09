@@ -109,7 +109,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.Padding(0,0,4,0)
 						[
 							SNew( SComboButton )
-							.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.NewAsset.Style" )
+							.ComboButtonStyle( FEditorStyle::Get(), "ToolbarComboButton" )
 							.ForegroundColor(FLinearColor::White)
 							.ContentPadding(0)
 							.OnGetMenuContent_Lambda( [this]{ return MakeAddNewContextMenu( true, false ); } )
@@ -490,9 +490,25 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserFiltersCombo")))
 							.ButtonContent()
 							[
-								SNew( STextBlock )
-								.TextStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Text" )
-								.Text( LOCTEXT( "Filters", "Filters" ) )
+								SNew(SHorizontalBox)
+
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(STextBlock)
+									.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
+									.Text(FString(TEXT("\xf0b0")) /*fa-filter*/)
+								]
+
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.Padding(2,0,0,0)
+								[
+									SNew(STextBlock)
+									.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+									.Text(LOCTEXT("Filters", "Filters"))
+								]
 							]
 						]
 
