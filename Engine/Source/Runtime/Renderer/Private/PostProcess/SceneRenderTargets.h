@@ -357,6 +357,21 @@ public:
 
 	IPooledRenderTarget* GetGBufferVelocityRT();
 
+	int32 GetGBufferEIndex() const
+	{
+		return bAllowStaticLighting ? 5 : -1;
+	}
+
+	int32 GetGBufferVelocityIndex() const
+	{
+		if (bAllocateVelocityGBuffer)
+		{
+			return bAllowStaticLighting ? 6 : 5;
+		}
+
+		return -1;
+	}
+
 	// @return can be 0 if the feature is disabled
 	IPooledRenderTarget* RequestCustomDepth(bool bPrimitives);
 
