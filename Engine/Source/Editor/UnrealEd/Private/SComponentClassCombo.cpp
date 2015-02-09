@@ -148,6 +148,11 @@ void SComponentClassCombo::GenerateFilteredComponentList(const FString& InSearch
 				}
 			}
 		}
+		if (FilteredComponentClassList.Num() > 0)
+		{
+			FComponentClassComboEntryPtr& FirstEntry = FilteredComponentClassList[0];
+			ComponentClassListView->SetSelection(FirstEntry, ESelectInfo::OnNavigation);
+		}
 	}
 }
 
@@ -265,6 +270,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 	{
 		return 
 			SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
+				.Style(&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.NoHoverTableRow"))
 				.ShowSelection(false)
 			[
 				SNew(SBox)
@@ -280,6 +286,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 	{
 		return 
 			SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
+				.Style(&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.NoHoverTableRow"))
 				.ShowSelection(false)
 			[
 				SNew(SBox)
