@@ -6,6 +6,7 @@
 #include "Engine/TimelineTemplate.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
+#include "Engine/LevelScriptActor.h"
 
 #if WITH_EDITOR
 #include "BlueprintEditorUtils.h"
@@ -266,24 +267,33 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 {
 	UObject* Archetype = nullptr;
 
-	if (SimpleConstructionScript)
+	// There are some rogue LevelScriptActors that still have a SimpleConstructionScript
+	// and since preloading the SCS of a script in a world package is bad news, we need to filter them out
+	if (SimpleConstructionScript && !IsChildOf<ALevelScriptActor>())
 	{
 		if (SimpleConstructionScript->HasAllFlags(RF_NeedLoad))
 		{
 			SimpleConstructionScript->PreloadChain();
 		}
 
-		USCS_Node* SCSNode = SimpleConstructionScript->FindSCSNode(ArchetypeName);
-		if (SCSNode)
+		UBlueprintGeneratedClass* Class = const_cast<UBlueprintGeneratedClass*>(this);
+		while (Class)
 		{
-			Archetype = SCSNode->ComponentTemplate;
+			USCS_Node* SCSNode = Class->SimpleConstructionScript->FindSCSNode(ArchetypeName);
+			if (SCSNode)
+			{
+				Archetype = SCSNode->ComponentTemplate;
+				Class = nullptr;
+			}
+
+			if (Archetype == nullptr)
+			{
+				Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeName));
+				Class = (Archetype ? nullptr : Cast<UBlueprintGeneratedClass>(Class->GetSuperClass()));
+			}
 		}
 	}
 
-	if (Archetype == nullptr)
-	{
-		Archetype = FindComponentTemplateByName(ArchetypeName);
-	}
 
 	return Archetype;
 }
