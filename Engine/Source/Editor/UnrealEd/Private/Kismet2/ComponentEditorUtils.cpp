@@ -328,3 +328,49 @@ void FComponentEditorUtils::PropagateTransformInner(class USceneComponent* Insta
 		PropagateTransformPropertyChange(InstancedSceneComponent, RelativeScale3DProperty, OldDefaultTransform.Scale, NewDefaultTransform.Scale, UpdatedComponents);
 	}
 }
+
+FName FComponentEditorUtils::FindVariableNameGivenComponentInstance(UActorComponent* ComponentInstance)
+{
+	check(ComponentInstance != nullptr);
+
+	// First see if the name just works
+	if (AActor* OwnerActor = ComponentInstance->GetOwner())
+	{
+		UClass* OwnerActorClass = OwnerActor->GetClass();
+		if (UObjectProperty* TestProperty = FindField<UObjectProperty>(OwnerActorClass, ComponentInstance->GetFName()))
+		{
+			if (ComponentInstance->GetClass()->IsChildOf(TestProperty->PropertyClass))
+			{
+				return TestProperty->GetFName();
+			}
+		}
+	}
+
+	// Name mismatch, try finding a differently named variable pointing to the the component (the mismatch should only be possible for native components)
+	if (UActorComponent* Archetype = Cast<UActorComponent>(ComponentInstance->GetArchetype()))
+	{
+		if (AActor* OwnerActor = Archetype->GetOwner())
+		{
+			UClass* OwnerClass = OwnerActor->GetClass();
+			AActor* OwnerCDO = CastChecked<AActor>(OwnerClass->GetDefaultObject());
+			check(OwnerCDO->HasAnyFlags(RF_ClassDefaultObject));
+
+			for (TFieldIterator<UObjectProperty> PropIt(OwnerClass, EFieldIteratorFlags::IncludeSuper); PropIt; ++PropIt)
+			{
+				UObjectProperty* TestProperty = *PropIt;
+				if (Archetype->GetClass()->IsChildOf(TestProperty->PropertyClass))
+				{
+					void* TestPropertyInstanceAddress = TestProperty->ContainerPtrToValuePtr<void>(OwnerCDO);
+					UObject* ObjectPointedToByProperty = TestProperty->GetObjectPropertyValue(TestPropertyInstanceAddress);
+					if (ObjectPointedToByProperty == Archetype)
+					{
+						// This property points to the component archetype, so it's an anchor even if it was named wrong
+						return TestProperty->GetFName();
+					}
+				}
+			}
+		}
+	}
+
+	return NAME_None;
+}

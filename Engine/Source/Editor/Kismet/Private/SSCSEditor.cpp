@@ -189,7 +189,7 @@ FReply SSCSEditorDragDropTree::OnDrop( const FGeometry& MyGeometry, const FDragD
 
 
 //////////////////////////////////////////////////////////////////////////
-//
+// FSCSRowDragDropOp - The drag-drop operation triggered when dragging a row in the components tree
 
 class FSCSRowDragDropOp : public FKismetVariableDragDropAction
 {
@@ -656,33 +656,8 @@ FName FSCSEditorTreeNodeComponentBase::GetVariableName() const
 	}
 	else if (ComponentTemplate != NULL)
 	{
-		// If the owner class is a Blueprint class, see if there's a corresponding object property that contains the component template
-		check(ComponentTemplate->GetOwner());
-		UClass* OwnerClass = ComponentTemplate->GetOwner()->GetActorClass();
-		if (OwnerClass != NULL)
-		{
-			UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(OwnerClass);
-			if (Blueprint != NULL)
-			{
-				UClass* StartingClass = IsInstanced() ? Blueprint->GeneratedClass : Blueprint->ParentClass;
-				if (StartingClass != nullptr)
-				{
-					if (UObjectProperty* ObjectProp = FindField<UObjectProperty>(StartingClass, ComponentTemplate->GetFName()))
-					{
-						UObject* CDO = StartingClass->GetDefaultObject();
-						UObject* Object = ObjectProp->GetObjectPropertyValue(ObjectProp->ContainerPtrToValuePtr<void>(CDO));
-
-						if (Object)
-						{
-							if (Object->GetClass() == ComponentTemplate->GetClass())
-							{
-								VariableName = ComponentTemplate->GetFName();
-							}
-						}
-					}
-				}
-			}
-		}
+		// Try to find the component anchor variable name (first looks for an exact match then scans for any matching variable that points to the archetype in the CDO)
+		VariableName = FComponentEditorUtils::FindVariableNameGivenComponentInstance(ComponentTemplate);
 	}
 
 	return VariableName;
@@ -1904,7 +1879,9 @@ FReply SSCS_RowWidget::OnDragDetected( const FGeometry& MyGeometry, const FPoint
 		{
 			UBlueprint* Blueprint = FirstNode->GetBlueprint();
 			const FName VariableName = FirstNode->GetVariableName();
-			TSharedRef<FSCSRowDragDropOp> Operation = FSCSRowDragDropOp::New(VariableName, Blueprint != nullptr ? Blueprint->SkeletonGeneratedClass : nullptr, FNodeCreationAnalytic());
+ 			UStruct* VariableScope = (Blueprint != nullptr) ? Blueprint->SkeletonGeneratedClass : nullptr;
+
+			TSharedRef<FSCSRowDragDropOp> Operation = FSCSRowDragDropOp::New(VariableName, VariableScope, FNodeCreationAnalytic());
 			Operation->SetCtrlDrag(true); // Always put a getter
 			Operation->PendingDropAction = FSCSRowDragDropOp::DropAction_None;
 			Operation->SourceNodes = SelectedNodePtrs;
