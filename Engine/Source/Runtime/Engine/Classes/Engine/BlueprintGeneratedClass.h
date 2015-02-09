@@ -464,7 +464,7 @@ public:
 	static bool GetGeneratedClassesHierarchy(const UClass* InClass, TArray<const UBlueprintGeneratedClass*>& OutBPGClasses);
 
 	/** Find the object in the TemplateObjects array with the supplied name */
-	UActorComponent* FindComponentTemplateByName(const FName& TemplateName);
+	UActorComponent* FindComponentTemplateByName(const FName& TemplateName) const;
 
 	/** Create Timeline objects for this Actor based on the Timelines array*/
 	virtual void CreateComponentsForActor(AActor* Actor) const;
@@ -488,6 +488,7 @@ public:
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	virtual void Bind() override;
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) override;
+	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
 	// End UClass interface
 
 	static void AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector);

@@ -4,6 +4,8 @@
 #include "BlueprintUtilities.h"
 #include "Engine/InputDelegateBinding.h"
 #include "Engine/TimelineTemplate.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
 
 #if WITH_EDITOR
 #include "BlueprintEditorUtils.h"
@@ -253,6 +255,28 @@ bool UBlueprintGeneratedClass::IsFunctionImplementedInBlueprint(FName InFunction
 	return Function && Function->GetOuter() && Function->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 }
 
+UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const
+{
+	UObject* Archetype = nullptr;
+
+	if (SimpleConstructionScript->HasAllFlags(RF_NeedLoad))
+	{
+		SimpleConstructionScript->PreloadChain();
+	}
+
+	USCS_Node* SCSNode = SimpleConstructionScript->FindSCSNode(ArchetypeName);
+	if (SCSNode)
+	{
+		Archetype = SCSNode->ComponentTemplate;
+	}
+	else
+	{
+		Archetype = FindComponentTemplateByName(ArchetypeName);
+	}
+
+	return Archetype;
+}
+
 UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(UClass* Class) const
 {
 	UDynamicBlueprintBinding* DynamicBindingObject = NULL;
@@ -307,7 +331,7 @@ bool UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(const UClass* InClas
 	return bNoErrors;
 }
 
-UActorComponent* UBlueprintGeneratedClass::FindComponentTemplateByName(const FName& TemplateName)
+UActorComponent* UBlueprintGeneratedClass::FindComponentTemplateByName(const FName& TemplateName) const
 {
 	for(int32 i = 0; i < ComponentTemplates.Num(); i++)
 	{

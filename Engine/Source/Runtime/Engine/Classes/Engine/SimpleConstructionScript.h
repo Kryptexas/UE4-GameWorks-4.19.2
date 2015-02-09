@@ -16,6 +16,8 @@ class USimpleConstructionScript : public UObject
 	virtual void PostLoad() override;
 	// End UObject Interface
 
+	void PreloadChain();
+
 	/** Ensures that all root node parent references are still valid and clears the reference if not */
 	ENGINE_API void FixupRootNodeParentReferences();
 
@@ -59,10 +61,10 @@ class USimpleConstructionScript : public UObject
 	ENGINE_API USCS_Node* FindParentNode(USCS_Node* InNode) const;
 
 	/** Find the SCS_Node node by name and return it if found */
-	ENGINE_API USCS_Node* FindSCSNode(FName InName);
+	ENGINE_API USCS_Node* FindSCSNode(const FName InName) const;
 
 	/** Find the SCS_Node node by name and return it if found */
-	ENGINE_API USCS_Node* FindSCSNodeByGuid(FGuid Guid);
+	ENGINE_API USCS_Node* FindSCSNodeByGuid(const FGuid Guid) const;
 
 	/** Checks the root node set for scene components and ensures that it is valid (e.g. after a removal) */
 	ENGINE_API void ValidateSceneRootNodes();

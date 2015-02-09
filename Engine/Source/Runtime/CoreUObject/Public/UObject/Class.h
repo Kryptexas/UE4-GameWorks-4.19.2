@@ -2186,6 +2186,8 @@ public:
 	 */
 	virtual bool HasProperty(UProperty* InProperty) const;
 
+	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const { return nullptr; }
+
 	/**
 	 * On save, we order a package's exports in class dependency order (so that
 	 * on load, we create the class dependencies before we create the class).  

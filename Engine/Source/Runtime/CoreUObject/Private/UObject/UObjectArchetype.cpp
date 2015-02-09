@@ -31,21 +31,22 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 			{
 				Result = MyArchetype; // found that my outers archetype had a matching component, that must be my archetype
 			}
-		}
-
-		if (!Result 
-			&& !!(ObjectFlags&RF_InheritableComponentTemplate)
-			&& Outer && Outer->IsA<UClass>())
-		{
-			for (auto SuperClassArchetype = static_cast<UClass*>(Outer)->GetSuperClass();
-				SuperClassArchetype && SuperClassArchetype->HasAllClassFlags(CLASS_CompiledFromBlueprint);
-				SuperClassArchetype = SuperClassArchetype->GetSuperClass())
+			else if (!!(ObjectFlags&RF_InheritableComponentTemplate) && Outer->IsA<UClass>())
 			{
-				Result = static_cast<UObject*>(FindObjectWithOuter(SuperClassArchetype, Class, Name));
-				if (Result)
+				for (auto SuperClassArchetype = static_cast<UClass*>(Outer)->GetSuperClass();
+					SuperClassArchetype && SuperClassArchetype->HasAllClassFlags(CLASS_CompiledFromBlueprint);
+					SuperClassArchetype = SuperClassArchetype->GetSuperClass())
 				{
-					break;
+					Result = static_cast<UObject*>(FindObjectWithOuter(SuperClassArchetype, Class, Name));
+					if (Result)
+					{
+						break;
+					}
 				}
+			}
+			else
+			{
+				Result = ArchetypeToSearch->GetClass()->FindArchetype(Class, Name);
 			}
 		}
 

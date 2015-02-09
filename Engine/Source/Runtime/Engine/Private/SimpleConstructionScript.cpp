@@ -135,6 +135,16 @@ void USimpleConstructionScript::Serialize(FArchive& Ar)
 	}
 }
 
+void USimpleConstructionScript::PreloadChain()
+{
+	GetLinker()->Preload(this);
+
+	for (USCS_Node* Node : RootNodes)
+	{
+		Node->PreloadChain();
+	}
+}
+
 void USimpleConstructionScript::PostLoad()
 {
 	Super::PostLoad();
@@ -590,7 +600,7 @@ USCS_Node* USimpleConstructionScript::FindParentNode(USCS_Node* InNode) const
 	return NULL;
 }
 
-USCS_Node* USimpleConstructionScript::FindSCSNode(FName InName)
+USCS_Node* USimpleConstructionScript::FindSCSNode(const FName InName) const
 {
 	TArray<USCS_Node*> AllNodes = GetAllNodes();
 	USCS_Node* ReturnSCSNode = nullptr;
@@ -606,7 +616,7 @@ USCS_Node* USimpleConstructionScript::FindSCSNode(FName InName)
 	return ReturnSCSNode;
 }
 
-USCS_Node* USimpleConstructionScript::FindSCSNodeByGuid(FGuid Guid)
+USCS_Node* USimpleConstructionScript::FindSCSNodeByGuid(const FGuid Guid) const
 {
 	TArray<USCS_Node*> AllNodes = GetAllNodes();
 	USCS_Node* ReturnSCSNode = nullptr;
