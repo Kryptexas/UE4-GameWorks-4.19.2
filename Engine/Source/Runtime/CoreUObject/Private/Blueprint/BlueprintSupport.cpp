@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #include "CoreUObjectPrivate.h"
 #include "UObject/LinkerPlaceholderClass.h"
+#include "UObject/LinkerPlaceholderExportObject.h"
 #include "Linker.h"
 #include "PropertyTag.h"
 
@@ -67,6 +69,16 @@ bool FBlueprintSupport::IsDeferredCDOSerializationDisabled()
 	static const FBoolConfigValueHelper NoDeferredCDOLoading(TEXT("Kismet"), TEXT("bForceDisableDeferredCDOLoading"), GEngineIni);
 	return !UseDeferredDependencyLoading() || NoDeferredCDOLoading;
 #else 
+	return false;
+#endif
+}
+
+bool FBlueprintSupport::IsDeferredExportCreationDisabled()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	static const FBoolConfigValueHelper NoDeferredExports(TEXT("Kismet"), TEXT("bForceDisableDeferredExportCreation"), GEngineIni);
+	return NoDeferredExports;
+#else
 	return false;
 #endif
 }
@@ -347,9 +359,54 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
+UObject* ULinkerLoad::DeferExportCreation(const int32 Index)
+{
+	FObjectExport& Export = ExportMap[Index];
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (!FBlueprintSupport::UseDeferredDependencyLoading() || FBlueprintSupport::IsDeferredExportCreationDisabled())
+	{
+		return Export.Object;
+	}
+
+	if (Export.Object != nullptr)
+	{
+		return Export.Object;
+	}
+
+	UClass* LoadClass = GetExportLoadClass(Index);
+	if (LoadClass == nullptr)
+	{
+		return Export.Object;
+	}
+
+	ULinkerPlaceholderClass* AsPlaceholderClass = Cast<ULinkerPlaceholderClass>(LoadClass);
+	bool const bIsPlaceholderClass = (AsPlaceholderClass != nullptr);
+
+	ULinkerLoad* ClassLinker = LoadClass->GetLinker();
+	if ( !bIsPlaceholderClass && ((ClassLinker == nullptr) || !ClassLinker->IsBlueprintFinalizationPending()) )
+	{
+		return Export.Object;
+	}
+
+	UPackage* PlaceholderOuter = LinkerRoot;
+	UClass*   PlaceholderType  = ULinkerPlaceholderExportObject::StaticClass();
+
+	FString ClassName = LoadClass->GetName();
+	//ClassName.RemoveFromEnd("_C");
+	FName PlaceholderName(*FString::Printf(TEXT("PLACEHOLDER-INST_of_%s"), *ClassName));
+	PlaceholderName = MakeUniqueObjectName(PlaceholderOuter, PlaceholderType, PlaceholderName);
+
+	ULinkerPlaceholderExportObject* Placeholder = ConstructObject<ULinkerPlaceholderExportObject>(PlaceholderType, PlaceholderOuter, PlaceholderName, RF_Public | RF_Transient);
+	Export.Object = Placeholder;
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	return Export.Object;
+}
+
 /**
  * This utility struct helps track blueprint structs/linkers that are currently 
- * in the  middle of a call to ResolveDeferredDependencies(). This can be used  
+ * in the middle of a call to ResolveDeferredDependencies(). This can be used  
  * to know if a dependency's resolve needs to be finished (to avoid unwanted 
  * placeholder references ending up in script-code).
  */
@@ -441,6 +498,7 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 	TGuardValue<int32> RecursiveDepthGuard(RecursiveDepth, RecursiveDepth + 1);
 
 	DEFERRED_DEPENDENCY_CHECK( (LoadStruct != nullptr) && (LoadStruct->GetLinker() == this) );
+	DEFERRED_DEPENDENCY_CHECK( LoadStruct->HasAnyFlags(RF_LoadCompleted) );
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	// scoped block to manage the lifetime of ScopedResolveTracker, so that 
@@ -573,16 +631,26 @@ int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* R
 	int32 const ImportIndex = PlaceholderClass->ImportIndex;
 	FObjectImport& Import = ImportMap[ImportIndex];
 
-	DEFERRED_DEPENDENCY_CHECK( (Import.XObject == PlaceholderClass) || (Import.XObject == nullptr) );
 	
-	// clear the placeholder from the import, so that a call to CreateImport()
-	// properly fills it in
-	Import.XObject = nullptr;
-	// NOTE: this is a possible point of recursion... CreateImport() could 
-	//       continue to load a package already started up the stack and you 
-	//       could end up in another ResolveDependencyPlaceholder() for some  
-	//       other placeholder before this one has completely finished resolving
-	UClass* RealClassObj = CastChecked<UClass>(CreateImport(ImportIndex), ECastCheckedType::NullAllowed);
+	UClass* RealClassObj = nullptr;
+	if ((Import.XObject != nullptr) && (Import.XObject != PlaceholderClass))
+	{
+		DEFERRED_DEPENDENCY_CHECK(ResolvingDeferredPlaceholder == PlaceholderIn);
+		RealClassObj = CastChecked<UClass>(Import.XObject);
+	}
+	else 
+	{
+		// clear the placeholder from the import, so that a call to CreateImport()
+		// properly fills it in
+		Import.XObject = nullptr;
+		// NOTE: this is a possible point of recursion... CreateImport() could 
+		//       continue to load a package already started up the stack and you 
+		//       could end up in another ResolveDependencyPlaceholder() for some  
+		//       other placeholder before this one has completely finished resolving
+		RealClassObj = CastChecked<UClass>(CreateImport(ImportIndex), ECastCheckedType::NullAllowed);
+	}
+
+	DEFERRED_DEPENDENCY_CHECK(RealClassObj == nullptr || RealClassObj->HasAnyFlags(RF_LoadCompleted));
 
 	int32 ReplacementCount = 0;
 	if (ReferencingClass != nullptr)
@@ -645,6 +713,7 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	{
 		return;
 	}
+	DEFERRED_DEPENDENCY_CHECK(LoadClass->HasAnyFlags(RF_LoadCompleted));
 
 	//--------------------------------------
 	// Phase 3: Finalize (serialize CDO & regenerate class)
@@ -725,69 +794,49 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	// get fully executed in some nested call
 	if (IsBlueprintFinalizationPending())
 	{
-		DEFERRED_DEPENDENCY_CHECK(DeferredExportIndex != INDEX_NONE);
-		FObjectExport& CDOExport = ExportMap[DeferredExportIndex];
+		ResolveDeferredExports(LoadClass);
 
-		UObject* CDO = CDOExport.Object;
-		DEFERRED_DEPENDENCY_CHECK(CDO != nullptr);
+		FObjectExport& CDOExport = ExportMap[DeferredCDOIndex];
+		// clear this so IsBlueprintFinalizationPending() doesn't report true
+		DeferredCDOIndex = INDEX_NONE;
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-		if (!FBlueprintSupport::IsDeferredCDOSerializationDisabled())
-#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-		{
-			// have to prematurely set the CDO's linker so we can force a Preload()/
-			// Serialization of the CDO before we regenerate the Blueprint class
-			{
-				const EObjectFlags OldFlags = CDO->GetFlags();
-				CDO->ClearFlags(RF_NeedLoad | RF_NeedPostLoad);
-				CDO->SetLinker(this, DeferredExportIndex, /*bShouldDetatchExisting =*/false);
-				CDO->SetFlags(OldFlags);
-			}
-			// should load the CDO (ensuring that it has been serialized in by the 
-			// time we get to class regeneration)
-			//
-			// NOTE: this is point where circular dependencies could reveal 
-			//       themselves, as the CDO could depend on a class not listed in 
-			//       the package's imports
-			//
-			// NOTE: we don't guard against reentrant behavior... if the CDO has
-			//       already been "finalized", then its RF_NeedLoad flag would 
-			//       have been cleared
-			Preload(CDO);
+		// at this point there should not be any instances of the Blueprint 
+		// (else, we'd have to re-instance and that is too expensive an 
+		// operation to have at load time)
+		TArray<UObject*> ClassInstances;
+		GetObjectsOfClass(LoadClass, ClassInstances, /*bIncludeDerivedClasses =*/true);
 
-			DEFERRED_DEPENDENCY_CHECK(CDO->HasAnyFlags(RF_LoadCompleted));
+		for (UObject* ClassInst : ClassInstances)
+		{
+			// in the case that we do end up with instances, use this to find 
+			// where they are referenced (to help sleuth out when/where they 
+			// were created)
+			FReferencerInformationList InstanceReferences;
+			bool const bIsReferenced = IsReferenced(ClassInst, RF_NoFlags, /*bCheckSubObjects =*/false, &InstanceReferences);
+			DEFERRED_DEPENDENCY_CHECK(!bIsReferenced);
 		}
+		DEFERRED_DEPENDENCY_CHECK(ClassInstances.Num() == 0);
 
 		UClass* BlueprintClass = Cast<UClass>(IndexToObject(CDOExport.ClassIndex));
 		DEFERRED_DEPENDENCY_CHECK(BlueprintClass == LoadClass);
 		DEFERRED_DEPENDENCY_CHECK(BlueprintClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
-
-#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-		// at this point there should not be any instances of the Blueprint (else,
-		// we'd have to reinstance and that is too expensive an operation to 
-		// have at load time)
-		TArray<UObject*> ClassInstances;
-		GetObjectsOfClass(BlueprintClass, ClassInstances, /*bIncludeDerivedClasses =*/true);
-		DEFERRED_DEPENDENCY_CHECK(ClassInstances.Num() == 0);
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-
-		// clear this so IsBlueprintFinalizationPending() doesn't report true
-		DeferredExportIndex = INDEX_NONE;
 
 		// just in case we choose to enable the deferred dependency loading for 
 		// cooked builds... we want to keep from regenerating in that scenario
 		if (!LoadClass->bCooked)
 		{
-			UObject* OldCDO = BlueprintClass->ClassDefaultObject;
-			if (RegenerateBlueprintClass(BlueprintClass, CDO))
+			UObject* OldCDO = LoadClass->ClassDefaultObject;
+			if (RegenerateBlueprintClass(LoadClass, CDOExport.Object))
 			{
 				// emulate class CDO serialization (RegenerateBlueprintClass() could 
 				// have a side-effect where it overwrites the class's CDO; so we 
 				// want to make sure that we don't overwrite that new CDO with a 
 				// stale one)
-				if (OldCDO == BlueprintClass->ClassDefaultObject)
+				if (OldCDO == LoadClass->ClassDefaultObject)
 				{
-					BlueprintClass->ClassDefaultObject = CDOExport.Object;
+					LoadClass->ClassDefaultObject = CDOExport.Object;
 				}
 			}
 		}
@@ -795,10 +844,125 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
+void ULinkerLoad::ResolveDeferredExports(UClass* LoadClass)
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	DEFERRED_DEPENDENCY_CHECK(DeferredCDOIndex != INDEX_NONE);
+	FObjectExport& CDOExport = ExportMap[DeferredCDOIndex];
+
+	UObject* BlueprintCDO = CDOExport.Object;
+	DEFERRED_DEPENDENCY_CHECK(BlueprintCDO != nullptr);
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	static TSet<ULinkerLoad*> ResolvingExportsTracker;
+	// the first half of this function CANNOT be re-entrant (specifically for 
+	// this linker)
+	//
+	// if this ends up being a problem, then we have two blueprints that 
+	// rely on an instances of each other... this is an unexpected problem, and 
+	// we'll have to re-instance on load (an operation we'd rather avoid,  
+	// because of how slow it is)
+	DEFERRED_DEPENDENCY_CHECK(!ResolvingExportsTracker.Contains(this));
+	ResolvingExportsTracker.Add(this);
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+	if (!FBlueprintSupport::IsDeferredExportCreationDisabled())
+	{
+		// we may have circumvented an export creation or two to avoid instantiating
+		// an BP object before its class has been finalized (to avoid costly re-
+		// instancing operations when the class ultimately finalizes)... so here, we
+		// find those skipped exports and properly create them (before we finalize 
+		// our own class)
+		for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
+		{
+			FObjectExport& Export = ExportMap[ExportIndex];
+			if (ULinkerPlaceholderExportObject* PlaceholderExport = Cast<ULinkerPlaceholderExportObject>(Export.Object))
+			{
+				DEFERRED_DEPENDENCY_CHECK(Export.ClassIndex.IsImport());
+				UClass* ImportClass = GetExportLoadClass(ExportIndex);
+				DEFERRED_DEPENDENCY_CHECK((ImportClass != nullptr) && !ImportClass->HasAnyClassFlags(CLASS_Intrinsic) && ImportClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
+				ULinkerLoad* ClassLinker = ImportClass->GetLinker();
+				DEFERRED_DEPENDENCY_CHECK((ClassLinker != nullptr) && (ClassLinker != this));
+
+				// make sure this export's class is fully regenerated before we 
+				// instantiate it 
+				if (ClassLinker->HasUnresolvedDependencies())
+				{
+					ClassLinker->ResolveDeferredDependencies(ImportClass);
+				}
+				if (ClassLinker->IsBlueprintFinalizationPending())
+				{
+					ClassLinker->FinalizeBlueprint(ImportClass);
+				}
+
+				// replace the placeholder with the proper object instance
+				Export.Object = nullptr;
+				UObject* ExportObj = CreateExport(ExportIndex);
+
+				// NOTE: we don't count how many references were resolved (and 
+				//       assert on it), because this could have only been created as 
+				//       part of the LoadAllObjects() pass (not for any specific 
+				//       container object).
+				PlaceholderExport->ReplaceReferencingObjectValues(LoadClass, ExportObj);
+				PlaceholderExport->MarkPendingKill();
+
+				// if we hadn't used a ULinkerPlaceholderExportObject in place of 
+				// the expected export, then someone may have wanted it preloaded
+				Preload(ExportObj);
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+				FReferencerInformationList UnresolvedReferences;
+				UObject* PlaceholderObj = PlaceholderExport;
+				bool const bIsReferenced = IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &UnresolvedReferences);
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			}
+		}
+	}
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	// we can be re-entrant from here on (in-fact, we expect to with CDO 
+	// serialization)
+	ResolvingExportsTracker.Remove(this);
+
+	for (TObjectIterator<ULinkerPlaceholderExportObject> PlaceholderIt; PlaceholderIt; ++PlaceholderIt)
+	{
+		ULinkerPlaceholderExportObject* PlaceholderObj = *PlaceholderIt;
+		DEFERRED_DEPENDENCY_CHECK((PlaceholderObj->GetOuter() != LinkerRoot) || PlaceholderObj->IsPendingKill());
+	}
+
+	if (!FBlueprintSupport::IsDeferredCDOSerializationDisabled())
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	{
+		// have to prematurely set the CDO's linker so we can force a Preload()/
+		// Serialization of the CDO before we regenerate the Blueprint class
+		{
+			const EObjectFlags OldFlags = BlueprintCDO->GetFlags();
+			BlueprintCDO->ClearFlags(RF_NeedLoad | RF_NeedPostLoad);
+			BlueprintCDO->SetLinker(this, DeferredCDOIndex, /*bShouldDetatchExisting =*/false);
+			BlueprintCDO->SetFlags(OldFlags);
+		}
+		// should load the CDO (ensuring that it has been serialized in by the 
+		// time we get to class regeneration)
+		//
+		// NOTE: this is point where circular dependencies could reveal 
+		//       themselves, as the CDO could depend on a class not listed in 
+		//       the package's imports
+		//
+		// NOTE: how we don't guard against re-entrant behavior... if the CDO 
+		//       has already been "finalized", then its RF_NeedLoad flag would 
+		//       be cleared (and this will do nothing the 2nd time around)
+		Preload(BlueprintCDO);
+
+		DEFERRED_DEPENDENCY_CHECK(BlueprintCDO->HasAnyFlags(RF_LoadCompleted));
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
+
 bool ULinkerLoad::IsBlueprintFinalizationPending() const
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	return (DeferredExportIndex != INDEX_NONE);
+	return (DeferredCDOIndex != INDEX_NONE);
 #else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	return false;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

@@ -25,6 +25,7 @@ struct FBlueprintSupport
 	static bool UseDeferredDependencyLoading();
 	static bool IsResolvingDeferredDependenciesDisabled();
 	static bool IsDeferredCDOSerializationDisabled();
+	static bool IsDeferredExportCreationDisabled();
 };
 
 #if WITH_EDITOR

@@ -7,6 +7,7 @@
 #include "UObjectToken.h"
 #include "EngineVersion.h"
 #include "LinkerPlaceholderClass.h"
+#include "LinkerPlaceholderExportObject.h"
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
@@ -396,6 +397,37 @@ ULinkerLoad* ULinkerLoad::FindExistingLinkerForPackage(UPackage* Package)
 	return GObjLoaders.FindRef(Package);
 }
 
+ULinkerLoad* ULinkerLoad::FindExistingLinkerForImport(int32 Index) const
+{
+	const FObjectImport& Import = ImportMap[Index];
+	if (Import.SourceLinker != nullptr)
+	{
+		return Import.SourceLinker;
+	}
+	else if (Import.XObject != nullptr)
+	{
+		if (ULinkerLoad* ObjLinker = Import.XObject->GetLinker())
+		{
+			return ObjLinker;
+		}
+	}
+
+	ULinkerLoad* FoundLinker = nullptr;
+	if (Import.OuterIndex.IsNull() && (Import.ClassName == NAME_Package))
+	{
+		FString PackageName = Import.ObjectName.ToString();
+		if (UPackage* FoundPackage = FindObject<UPackage>(/*Outer =*/nullptr, *PackageName))
+		{
+			FoundLinker = ULinkerLoad::FindExistingLinkerForPackage(FoundPackage);
+		}
+	}
+	else if (Import.OuterIndex.IsImport())
+	{
+		FoundLinker = FindExistingLinkerForImport(Import.OuterIndex.ToImport());
+	}
+	return FoundLinker;
+}
+
 /**
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  * CAUTION:  This function is potentially DANGEROUS.  Should only be used when you're really, really sure you know what you're doing.
@@ -649,7 +681,7 @@ ULinkerLoad::ULinkerLoad( const FObjectInitializer& ObjectInitializer, UPackage*
 ,	LoadProgressScope( nullptr )
 #endif // WITH_EDITOR
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-,	DeferredExportIndex(INDEX_NONE)
+,	DeferredCDOIndex(INDEX_NONE)
 ,	ResolvingDeferredPlaceholder(nullptr)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 {
@@ -2509,6 +2541,34 @@ UObject* ULinkerLoad::CreateExportAndPreload(int32 ExportIndex, bool bForcePrelo
 	return Object;
 }
 
+UClass* ULinkerLoad::GetExportLoadClass(int32 Index)
+{
+	FObjectExport& Export = ExportMap[Index];
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	// VerifyImport() runs the risk of loading up another package, and we can't 
+	// have that when we're explicitly trying to block dependency loads...
+	// if this needs a class from another package, IndexToObject() should return 
+	// a ULinkerPlaceholderClass instead
+	if (Export.ClassIndex.IsImport() && !(LoadFlags & LOAD_DeferDependencyLoads))
+#else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (Export.ClassIndex.IsImport())
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	{
+		// @TODO: I believe IndexToObject() -> CreateImport() will verify this  
+		//        for us, if it has to; so is this necessary?
+		VerifyImport(Export.ClassIndex.ToImport());
+	}
+
+	UClass* ExportClass = (UClass*)IndexToObject(Export.ClassIndex);
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	check(!Export.ClassIndex.IsImport() || !(LoadFlags & LOAD_DeferDependencyLoads) || 
+		(ExportClass && ExportClass->HasAnyClassFlags(CLASS_Intrinsic)) || (Cast<ULinkerPlaceholderClass>(ExportClass) != nullptr));
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+	return ExportClass;
+}
+
 int32 ULinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
 {
 	int32 MetaDataIndex = INDEX_NONE;
@@ -2797,6 +2857,9 @@ void ULinkerLoad::Preload( UObject* Object )
 	// being loaded further up the load chain, and this could introduce a 
 	// circular load)
 	check(!bIsBlueprintClass || !Object->HasAnyFlags(RF_NeedLoad) || !(LoadFlags & LOAD_DeferDependencyLoads));
+	// right now there are no known scenarios where someone requests a Preloa() 
+	// on a temporary ULinkerPlaceholderExportObject
+	check(!Object->IsA<ULinkerPlaceholderExportObject>());
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	
@@ -2860,7 +2923,7 @@ void ULinkerLoad::Preload( UObject* Object )
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 							if (!FBlueprintSupport::IsDeferredCDOSerializationDisabled())
 							{
-								check((DeferredExportIndex == INDEX_NONE) || (DeferredExportIndex == ExportIndex));
+								check((DeferredCDOIndex == INDEX_NONE) || (DeferredCDOIndex == ExportIndex));
 #else // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 							{
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -2868,7 +2931,7 @@ void ULinkerLoad::Preload( UObject* Object )
 								// since serializing the CDO can introduce circular 
 								// dependencies, we want to stave that off until 
 								// we're ready to handle those 
-								DeferredExportIndex = ExportIndex;
+								DeferredCDOIndex = ExportIndex;
 								// don't need to actually "consume" the data through
 								// serialization though (since we seek back to 
 								// SavedPos later on)
@@ -2920,7 +2983,7 @@ void ULinkerLoad::Preload( UObject* Object )
 						// the class wouldn't be regenerated there either)... in
 						// this scenario FinalizeBlueprint() essentially does nothing
 						// @TODO: maybe only allow a null ClassGeneratedBy when PIE'ing/running a game?
-						check((DeferredExportIndex != INDEX_NONE) || (ObjectAsClass->ClassGeneratedBy == nullptr) || FBlueprintSupport::IsDeferredCDOSerializationDisabled());
+						check((DeferredCDOIndex != INDEX_NONE) || (ObjectAsClass->ClassGeneratedBy == nullptr) || FBlueprintSupport::IsDeferredCDOSerializationDisabled());
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 						ResolveDeferredDependencies(ObjectAsClass);
@@ -3074,16 +3137,12 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(IsLoading());
 
-		// Get the object's class.
-		if(Export.ClassIndex.IsImport() ) 
-		{
-			VerifyImport(Export.ClassIndex.ToImport()); 
-		}
-		UClass* LoadClass = (UClass*)IndexToObject( Export.ClassIndex );
+		UClass* LoadClass = GetExportLoadClass(Index);
 		if( !LoadClass && !Export.ClassIndex.IsNull() ) // Hack to load packages with classes which do not exist.
 		{
 			return NULL;
 		}
+
 #if WITH_EDITOR
 		// NULL (None) active class redirect.
 		if( !LoadClass && Export.ObjectName.IsNone() && Export.ClassIndex.IsNull() && !Export.OldClassName.IsNone() )
@@ -3108,16 +3167,6 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Outer for resource because its class is a redirector '%s': %s"), *Export.ObjectName.ToString(), *OuterName);
 			return NULL;
 		}
-
-#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-		// we're going to have troubles if we're attempting to create an export 
-		// for a placeholder class... this means that class serialization lead
-		// to this (non-CDO) export being created, and because of the way we 
-		// guard against cyclic dependencies (with these placeholder classes), 
-		// we need to make sure this export is created BEFORE we start serializing
-		// the class (maybe through ordering in this linker's ExportMap?)
-		check(!LoadClass->IsChildOf<ULinkerPlaceholderClass>());
-#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 		check(LoadClass);
 		check(dynamic_cast<UClass*>(LoadClass) != NULL);
@@ -3181,7 +3230,21 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 
 		if ( !LoadClass->HasAnyClassFlags(CLASS_Intrinsic) )
 		{
-			Preload( LoadClass );
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			if (LoadClass->HasAnyFlags(RF_NeedLoad))
+			{
+				Preload(LoadClass);
+			}
+			else if ((Export.Object == nullptr) && !(Export.ObjectFlags & RF_ClassDefaultObject))
+			{
+				if (UObject* PlaceholderObj = DeferExportCreation(Index))
+				{
+					return PlaceholderObj; 
+				}				
+			}
+#else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			Preload(LoadClass);
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 			// Check if the Preload() above caused the class to be regenerated (LoadClass will be out of date), and refresh the LoadClass pointer if that is the case
 			if( LoadClass->HasAnyClassFlags(CLASS_NewerVersionExists) )
@@ -3206,6 +3269,32 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 				}
 			}
 		}
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		else if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(LoadClass))
+		{
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			// this blueprint package's CDO should NOT be using a placeholder 
+			// class (its class should be internal to this package)
+			check(!(Export.ObjectFlags & RF_ClassDefaultObject));
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			if (Export.Object == nullptr)
+			{
+				if (UObject* PlaceholderObj = DeferExportCreation(Index))
+				{
+					return PlaceholderObj;
+				}
+			}
+		}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		// we're going to have troubles if we're attempting to create an export 
+		// for a placeholder class past this point... placeholder-classes should
+		// have generated an export-placeholder in the above 
+		// !LoadClass->HasAnyClassFlags(CLASS_Intrinsic) block (with the call to
+		// DeferExportCreation)
+		check(Cast<ULinkerPlaceholderClass>(LoadClass) == nullptr);
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 		// detect cases where a class has been made transient when there are existing instances of this class in content packages,
 		// and this isn't the class default object; when this happens, it can cause issues which are difficult to debug since they'll
@@ -3435,7 +3524,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 				{
 					// if LOAD_DeferDependencyLoads is set, then we're already
 					// serializing the blueprint's class somewhere up the chain,
-					DeferredExportIndex = Index;
+					DeferredCDOIndex = Index;
 					return Export.Object;
 				}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

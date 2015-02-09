@@ -1790,10 +1790,7 @@ class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 	{
 		return GetPropertyValue(PropertyValueAddress);
 	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override
-	{
-		SetPropertyValue(PropertyValueAddress, Value);
-	}
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override;
 	// End of UObjectPropertyBase interface
 };
 

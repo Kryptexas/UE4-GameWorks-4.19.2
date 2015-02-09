@@ -83,22 +83,29 @@ void UBlueprintGeneratedClass::PostLoad()
 void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut)
 {
 	Super::GetRequiredPreloadDependencies(DependenciesOut);
-	for (UActorComponent* Component : ComponentTemplates)
-	{
-		// because of the linker's way of handling circular dependencies (with 
-		// placeholder blueprint classes), we need to ensure that class owned 
-		// blueprint components are created before the class's  is 
-		// ComponentTemplates member serialized in (otherwise, the component 
-		// would be created as a ULinkerPlaceholderClass instance)
-		//
-		// by returning these in the DependenciesOut array, we're making it 
-		// known that they should be prioritized in the package's ExportMap 
-		// before this class
-		if (Component->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
-		{
-			DependenciesOut.Add(Component);
-		}
-	}
+
+	// the component templates are no longer needed as Preload() dependencies 
+	// (ULinkerLoad now handles these with placeholder export objects instead)...
+	// this change was prompted by a cyclic case, where creating the first
+	// component-template tripped the serialization of its class outer, before 
+	// another second component-template could be created (even though the 
+	// second component was listed in the ExportMap before the class)
+// 	for (UActorComponent* Component : ComponentTemplates)
+// 	{
+// 		// because of the linker's way of handling circular dependencies (with 
+// 		// placeholder blueprint classes), we need to ensure that class owned 
+// 		// blueprint components are created before the class's  is 
+// 		// ComponentTemplates member serialized in (otherwise, the component 
+// 		// would be created as a ULinkerPlaceholderClass instance)
+// 		//
+// 		// by returning these in the DependenciesOut array, we're making it 
+// 		// known that they should be prioritized in the package's ExportMap 
+// 		// before this class
+// 		if (Component->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+// 		{
+// 			DependenciesOut.Add(Component);
+// 		}
+// 	}
 }
 
 #if WITH_EDITOR
