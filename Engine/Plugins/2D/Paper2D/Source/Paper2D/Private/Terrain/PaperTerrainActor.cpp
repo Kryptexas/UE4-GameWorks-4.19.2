@@ -8,9 +8,9 @@
 APaperTerrainActor::APaperTerrainActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	DummyRoot = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent"));
-	SplineComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTerrainSplineComponent>(this, TEXT("SplineComponent"));
- 	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTerrainComponent>(this, TEXT("RenderComponent"));
+	DummyRoot = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	SplineComponent = CreateDefaultSubobject<UPaperTerrainSplineComponent>(TEXT("SplineComponent"));
+ 	RenderComponent = CreateDefaultSubobject<UPaperTerrainComponent>(TEXT("RenderComponent"));
  
 	SplineComponent->AttachParent = DummyRoot;
 	RenderComponent->AttachParent = DummyRoot;

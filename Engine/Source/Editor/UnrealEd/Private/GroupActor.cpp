@@ -15,7 +15,7 @@ AGroupActor::AGroupActor(const FObjectInitializer& ObjectInitializer)
 {
 	bLocked = true;
 
-	USceneComponent* GroupComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("GroupComponent"));
+	USceneComponent* GroupComponent = CreateDefaultSubobject<USceneComponent>(TEXT("GroupComponent"));
 	RootComponent = GroupComponent;
 }
 
