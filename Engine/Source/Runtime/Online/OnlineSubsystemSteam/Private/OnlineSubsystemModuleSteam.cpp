@@ -130,6 +130,7 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 	SteamDLLHandle = FPlatformProcess::GetDllHandle(TEXT("libsteam_api.dylib"));
 #elif PLATFORM_LINUX
 
+#if LOADING_STEAM_LIBRARIES_DYNAMICALLY
 	UE_LOG_ONLINE(Log, TEXT("Loading system libsteam_api.so."));
 	SteamDLLHandle = FPlatformProcess::GetDllHandle(TEXT("libsteam_api.so"));
 	if (SteamDLLHandle == nullptr)
@@ -139,6 +140,9 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 		FString RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Linux/"), STEAM_SDK_VER); 
 		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "libsteam_api.so"));
 	}
+#else
+	UE_LOG_ONLINE(Log, TEXT("libsteam_api.so is linked explicitly and should be already loaded."));
+#endif // LOADING_STEAM_LIBRARIES_DYNAMICALLY
 
 #endif	//PLATFORM_WINDOWS
 }
