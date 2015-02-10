@@ -15,7 +15,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/NetworkReplayStreaming/NetworkReplayStreaming/Public/NetworkReplayStreaming.h"	// Why do I need the full path here?
+#include "NetworkReplayStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 

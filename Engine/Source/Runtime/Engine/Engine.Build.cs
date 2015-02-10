@@ -28,7 +28,8 @@ public class Engine : ModuleRules
 				"TargetPlatform",
 				"ImageWrapper",
 				"HeadMountedDisplay",
-				"Advertising"
+				"Advertising",
+				"NetworkReplayStreaming"
 			}
 		);
 
@@ -173,6 +174,7 @@ public class Engine : ModuleRules
 				"AnalyticsET",
 				"NetworkReplayStreaming",
 				"NullNetworkReplayStreaming",
+				"HttpNetworkReplayStreaming",
 				"OnlineSubsystem", 
 				"OnlineSubsystemUtils",
 				"Advertising"
