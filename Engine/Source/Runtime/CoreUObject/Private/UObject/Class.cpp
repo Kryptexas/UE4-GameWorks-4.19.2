@@ -1231,9 +1231,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			else
 			{
 				uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
+				uint8* DefaultsFromParent = Defaults ? Property->ContainerPtrToValuePtr<uint8>(Defaults, Tag.ArrayIndex) : nullptr;
 
 				// This property is ok.			
-				Tag.SerializeTaggedProperty( Ar, Property, DestAddress, NULL );
+				Tag.SerializeTaggedProperty(Ar, Property, DestAddress, DefaultsFromParent);
 
 				AdvanceProperty = true;
 				continue;

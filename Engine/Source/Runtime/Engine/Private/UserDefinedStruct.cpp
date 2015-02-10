@@ -121,7 +121,7 @@ void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, US
 	}
 	if (bLoadDefaultFirst)
 	{
-		UDDefaultsStruct->CopyScriptStruct(Data, StructDefaultMem.GetStructMemory());
+		UDDefaultsStruct->CopyScriptStruct(Data, Defaults ? Defaults : StructDefaultMem.GetStructMemory());
 	}
 #endif // WITH_EDITOR
 	Super::SerializeTaggedProperties(Ar, Data, DefaultsStruct, Defaults);
