@@ -282,7 +282,7 @@ void UMediaPlayer::InitializePlayer()
 		// finish initialization
 		if (OpenedSuccessfully)
 		{
-			CurrentUrl = FullUrl;
+			CurrentUrl = URL;
 		}
 	}
 
