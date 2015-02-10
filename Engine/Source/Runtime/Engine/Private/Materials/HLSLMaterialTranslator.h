@@ -2093,8 +2093,16 @@ protected:
 		}
 		else
 		{
-			// If not in a pixel shader, only the normal WorldPosition is available
-			return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition"));
+			if (bCompilingPreviousFrame && ShaderFrequency == SF_Vertex)
+			{
+				// Only if not in a pixel shader...
+				return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.PrevWorldPosition"));
+			}
+			else
+			{
+				// If not in a pixel shader, only the normal WorldPosition is available
+				return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition"));
+			}
 		}
 	}
 

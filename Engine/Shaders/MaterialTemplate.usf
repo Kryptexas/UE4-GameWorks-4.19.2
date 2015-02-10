@@ -226,6 +226,7 @@ struct FMaterialTessellationParameters
 struct FMaterialVertexParameters
 {
 	float3 WorldPosition;
+	float3 PrevWorldPosition;
 	// TangentToWorld[2] is WorldVertexNormal
 	half3x3 TangentToWorld;
 #if USE_INSTANCING
