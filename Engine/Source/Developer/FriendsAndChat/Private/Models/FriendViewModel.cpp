@@ -44,12 +44,12 @@ public:
 				{
 					if (FriendItem->IsGameJoinable())
 					{
-						if(!bFromChat || CanPerformAction(EFriendActionType::JoinGame))
+						if(CanPerformAction(EFriendActionType::JoinGame))
 						{
 							Actions.Add(EFriendActionType::JoinGame);
 						}
 					}
-					if (FFriendsAndChatManager::Get()->IsInJoinableGameSession())
+					if (FriendItem->CanInvite() && FFriendsAndChatManager::Get()->IsInJoinableGameSession())
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}

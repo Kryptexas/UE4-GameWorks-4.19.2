@@ -164,6 +164,12 @@ bool FFriendItem::IsGameJoinable() const
 	return false;
 }
 
+bool FFriendItem::CanInvite() const
+{
+	FString FriendsClientID = GetClientId();
+	return FriendsClientID == FFriendsAndChatManager::Get()->GetUserClientId() || FriendsClientID == FFriendItem::LauncherClientId;
+}
+
 FString FFriendItem::GetGameSessionId() const
 {
 	FString SessionId;

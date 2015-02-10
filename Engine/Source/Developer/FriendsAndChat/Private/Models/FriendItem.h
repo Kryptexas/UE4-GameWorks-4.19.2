@@ -109,6 +109,12 @@ public:
 	virtual bool IsGameJoinable() const override;
 
 	/**
+	* Get if the user can join our game if we were to invite them
+	* @return True if we can invite them
+	*/
+	virtual bool CanInvite() const override;
+
+	/**
 	 * Get if the user is online and his game is joinable
 	 * @return The user joinable game state.
 	 */

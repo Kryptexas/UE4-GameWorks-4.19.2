@@ -128,6 +128,9 @@ public:
 	/** Is the player in a game that is joinable */
 	virtual bool IsGameJoinable() const override;
 
+	/** Get if the user can join our game if we were to invite them*/
+	virtual bool CanInvite() const override;
+
 	/** Get if the user is online and his game is joinable */
 	virtual FString GetGameSessionId() const override;
 

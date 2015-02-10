@@ -74,6 +74,12 @@ public:
 	virtual bool IsGameJoinable() const = 0;
 
 	/**
+	 * Get if the user can join our game if we were to invite them
+	 * @return True if we can invite them
+	 */
+	virtual bool CanInvite() const = 0;
+
+	/**
 	 * Get game session id that this friend is currently in
 	 * @return The id of the game session
 	 */
