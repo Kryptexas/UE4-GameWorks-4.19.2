@@ -10,6 +10,12 @@
 #include "DistanceFieldAOShared.usf"
 #include "DynamicLightingCommon.usf"
 #include "DistanceFieldShadowingShared.usf"
+#include "ReflectionEnvironmentShared.usf"
+
+#if APPLY_LIGHT_FUNCTION
+#include "Material.usf"
+#include "LightFunctionCommon.usf"
+#endif
 
 Texture2D HeightfieldTexture;
 SamplerState HeightfieldSampler;
@@ -320,6 +326,10 @@ void RayTracedShadowHeightfieldsPS(
 
 float3 LightColor;
 
+#if APPLY_LIGHT_FUNCTION
+
+float4x4 WorldToLight;
+
 Texture2D HeightfieldShadowing;
 SamplerState HeightfieldShadowingSampler;
 
@@ -329,14 +339,25 @@ void LightHeightfieldsPS(
 {
 	float3 WorldHeightfieldNormal = GetGlobalHeightfieldNormal(Input.GlobalUV);
 	float3 WorldHeightfieldShadingPosition = GetGlobalHeightfieldWorldPosition(Input.LocalPosition, Input.GlobalUV, GetLocalToWorld(Input.HeightfieldIndex));
+	
+	float4 LightVector = mul(WorldHeightfieldShadingPosition, WorldToLight);
+	LightVector.xyz /= LightVector.w;
+
+	float3 LightFunction = GetLightFunctionColor(LightVector.xyz, WorldHeightfieldShadingPosition);
+	float GreyScaleLightFunction = dot(LightFunction, .3333f);
 
 	float Shadowing = Texture2DSampleLevel(HeightfieldShadowing, HeightfieldShadowingSampler, Input.GlobalUV, 0).x;
 
 	float3 DiffuseColor = .5f;
-	float3 Lighting = (Shadowing * saturate(dot(-LightDirection, WorldHeightfieldNormal))) * DiffuseColor * LightColor;
+	float3 Lighting = (Shadowing * GreyScaleLightFunction * saturate(dot(-LightDirection, WorldHeightfieldNormal))) * LightColor;
 
-	OutColor = float4(Lighting, 0);
+	float3 SkylightDiffuse = GetSkySHDiffuse(WorldHeightfieldNormal) * View.SkyLightColor.rgb;
+	Lighting += SkylightDiffuse;
+
+	OutColor = float4(DiffuseColor * Lighting, 0);
 }
+
+#endif
 
 RWBuffer<float> RWOccluderRadius;
 RWBuffer<float> RWRecordConeVisibility;
