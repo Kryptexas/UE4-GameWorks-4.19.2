@@ -387,6 +387,8 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 
 	BeginStreamingPauseDelegate = NULL;
 	EndStreamingPauseDelegate = NULL;
+
+	bCanBlueprintsTickByDefault = true;
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)
