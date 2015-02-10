@@ -307,8 +307,14 @@ struct FTexturePlatformData
 	/** Serialization. */
 	void Serialize(FArchive& Ar, class UTexture* Owner);
 
-	/** Serialization for cooked builds. */
-	void SerializeCooked(FArchive& Ar, class UTexture* Owner);
+	/** 
+	 * Serialization for cooked builds.
+	 *
+	 * @param Ar Archive to serialize with
+	 * @param Owner Owner texture
+	 * @param bStreamable Store some mips inline, only used during cooking
+	 */
+	void SerializeCooked(FArchive& Ar, class UTexture* Owner, bool bStreamable);
 
 #if WITH_EDITOR
 	void Cache(

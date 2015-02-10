@@ -1102,6 +1102,18 @@ bool FTexturePlatformData::TryLoadMips(int32 FirstMipToLoad, void** OutMipData)
 	BeginLoadDerivedMips(Mips, FirstMipToLoad, AsyncHandles);
 #endif // #if WITH_EDITOR
 
+	// Handle the case where we inlined more mips than we intend to keep resident
+	// Discard unneeded mips
+	for (int32 MipIndex = 0; MipIndex < FirstMipToLoad && MipIndex < Mips.Num(); ++MipIndex)
+	{
+		FTexture2DMipMap& Mip = Mips[MipIndex];
+		if (Mip.BulkData.IsBulkDataLoaded())
+		{
+			Mip.BulkData.Lock(LOCK_READ_ONLY);
+			Mip.BulkData.Unlock();
+		}
+	}
+
 	// Load remaining mips (if any) from bulk data.
 	for (int32 MipIndex = FirstMipToLoad; MipIndex < Mips.Num(); ++MipIndex)
 	{
@@ -1181,9 +1193,10 @@ bool FTexturePlatformData::AreDerivedMipsAvailable() const
 
 static void SerializePlatformData(
 	FArchive& Ar,
-	FTexturePlatformData* PlatformData, 
+	FTexturePlatformData* PlatformData,
 	UTexture* Texture,
-	bool bCooked
+	bool bCooked,
+	bool bStreamable
 	)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("SerializePlatformData"), STAT_Texture_SerializePlatformData, STATGROUP_LoadTime );
@@ -1236,6 +1249,17 @@ static void SerializePlatformData(
 		}
 	}
 
+	// Force resident mips inline
+	if (bCooked && Ar.IsSaving())
+	{
+		int32 MinMipToInline = bStreamable ? NumMips - UTexture2D::GetMinTextureResidentMipCount() : 0;
+		MinMipToInline = FMath::Max(MinMipToInline, 0);
+		for (int32 MipIndex = MinMipToInline; MipIndex < NumMips; ++MipIndex)
+		{
+			PlatformData->Mips[MipIndex + FirstMipToSerialize].BulkData.SetBulkDataFlags(BULKDATA_ForceInlinePayload | BULKDATA_SingleUse);
+		}
+	}
+
 	Ar << NumMips;
 	if (Ar.IsLoading())
 	{
@@ -1254,12 +1278,16 @@ static void SerializePlatformData(
 
 void FTexturePlatformData::Serialize(FArchive& Ar, UTexture* Owner)
 {
-	SerializePlatformData(Ar, this, Owner, false);
+	const bool bCooking = false;
+	const bool bStreamable = false;
+	SerializePlatformData(Ar, this, Owner, bCooking, bStreamable);
 }
 
-void FTexturePlatformData::SerializeCooked(FArchive& Ar, UTexture* Owner)
+// @BLACK_TUSK_CHANGE: BEGIN - romillar@microsoft.com - Pass streamable flag for inlining mips
+void FTexturePlatformData::SerializeCooked(FArchive& Ar, UTexture* Owner, bool bStreamable)
 {
-	SerializePlatformData(Ar, this, Owner, true);
+	SerializePlatformData(Ar, this, Owner, true, bStreamable);
+	// @BLACK_TUSK_CHANGE: END - romillar@microsoft.com 
 	if (Ar.IsLoading() && Mips.Num() > 0)
 	{
 		SizeX = Mips[0].SizeX;
@@ -1726,7 +1754,8 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 				int32 SkipOffsetLoc = Ar.Tell();
 				int32 SkipOffset = 0;
 				Ar << SkipOffset;
-				PlatformDataToSave->SerializeCooked(Ar, this);
+				// Pass streamable flag for inlining mips
+				PlatformDataToSave->SerializeCooked(Ar, this, BuildSettings.bStreamable);
 				SkipOffset = Ar.Tell();
 				Ar.Seek(SkipOffsetLoc);
 				Ar << SkipOffset;
@@ -1761,7 +1790,9 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 			bool bFormatSupported = GPixelFormats[PixelFormat].Supported;
 			if (RunningPlatformData->PixelFormat == PF_Unknown && bFormatSupported)
 			{
-				RunningPlatformData->SerializeCooked(Ar, this);
+				// Extra arg is unused here because we're loading
+				const bool bStreamable = false;
+				RunningPlatformData->SerializeCooked(Ar, this, bStreamable);
 			}
 			else
 			{

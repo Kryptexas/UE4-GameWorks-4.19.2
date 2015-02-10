@@ -691,14 +691,14 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 			
 			Ar << BulkDataOffsetInFile;
 
-			// fix up the file offset 
-			if (Owner != NULL && Owner->GetLinker())
+			// determine whether the payload is stored inline or at the end of the file
+			bool bPayloadInline = !(BulkDataFlags&BULKDATA_PayloadAtEndOfFile);
+
+			// fix up the file offset, but only if not stored inline
+			if (Owner != NULL && Owner->GetLinker() && !bPayloadInline)
 			{
 				BulkDataOffsetInFile += Owner->GetLinker()->Summary.BulkDataStartOffset;
 			}
-
-			// determine whether the payload is stored inline or at the end of the file
-			bool bPayloadInline = !(BulkDataFlags&BULKDATA_PayloadAtEndOfFile);
 
 // 			check( (bPayloadInline && BulkDataOffsetInFile == Ar.Tell()) || 
 // 				   (!bPayloadInline && BulkDataOffsetInFile > Ar.Tell()));
@@ -720,7 +720,15 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 				// only skip over payload, if it's stored inline
 				if (bPayloadInline)
 				{
-					Ar.Seek( Ar.Tell() + BulkDataSizeOnDisk );
+					// Force non-lazy loading of inline bulk data to prevent PostLoad spikes.
+					// Memory for bulk data can come from preallocated GPU-accessible resource memory or default to system memory
+					BulkData = GetBulkDataResourceMemory(Owner, Idx);
+					if (!BulkData)
+					{
+						BulkData = FMemory::Realloc(BulkData, GetBulkDataSize());
+					}
+					// if the payload is stored inline, just serialize it
+					SerializeBulkData(Ar, BulkData);
 				}
 			}
 			// Serialize the bulk data right away.
@@ -1308,6 +1316,8 @@ void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FNam
 				FName Name = It.Key();
 				Ar << Name;
 				FByteBulkData* Bulk = It.Value();
+				// Force this kind of bulk data (physics, etc) to be stored inline for streaming
+				Bulk->SetBulkDataFlags(BULKDATA_ForceInlinePayload | BULKDATA_SingleUse);
 				check(Bulk);
 				Bulk->Serialize(Ar, Owner);
 			}
