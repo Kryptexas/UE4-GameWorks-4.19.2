@@ -276,6 +276,11 @@ private:
 		return FReply::Handled();
 	}
 
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		return FReply::Handled();
+	}
+
 private:
 
 	// Holds the Friends List view model

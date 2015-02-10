@@ -140,7 +140,7 @@ public:
 		{
 			case EFriendActionType::JoinGame:
 			{
-				return FFriendsAndChatManager::Get()->JoinGameAllowed();
+				return FFriendsAndChatManager::Get()->JoinGameAllowed(GetClientId());
 			}
 			case EFriendActionType::AcceptFriendRequest:
 			case EFriendActionType::RemoveFriend:

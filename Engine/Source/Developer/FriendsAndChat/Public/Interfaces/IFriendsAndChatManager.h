@@ -92,9 +92,10 @@ public:
 
 	/** 
 	 * Set the application view model to query and perform actions on.
+	 * @param ClientID The ID of the application
 	 * @param ApplicationViewModel The view model.
 	 */
-	virtual void SetApplicationViewModel(TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) = 0;
+	virtual void AddApplicationViewModel(const FString ClientID, TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) = 0;
 
 	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsNotificationEvent, const bool /*Show or Clear */)
 	virtual FOnFriendsNotificationEvent& OnFriendsNotification() = 0;

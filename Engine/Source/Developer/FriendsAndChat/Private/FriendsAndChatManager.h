@@ -125,7 +125,7 @@ public:
 	virtual void Logout() override;
 	virtual void Login() override;
 	virtual bool IsLoggedIn() override;
-	virtual void SetApplicationViewModel(TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
+	virtual void AddApplicationViewModel(const FString ClientID, TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
 	virtual void CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle) override;
 	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem) override;
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
@@ -167,9 +167,10 @@ public:
 	bool IsInJoinableGameSession() const;
 
 	/**
+	 * @param ClientID ID of the Game we want to join
 	 * @return true if joining a game is allowed
 	 */
-	bool JoinGameAllowed();
+	bool JoinGameAllowed(FString ClientID);
 
 	/**
 	 * @return true if in the launcher
@@ -816,8 +817,8 @@ private:
 	TArray<WhisperChat> WhisperChatWindows;
 
 
-	// Holds the application view model - used for launching and querying
-	TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel;
+	// Holds the application view models - used for launching and querying the games
+	TMap<FString, TSharedPtr<IFriendsApplicationViewModel>> ApplicationViewModels;
 	// Holds the style used to create the Friends List widget
 	FFriendsAndChatStyle Style;
 	// Holds if the Friends list is inited

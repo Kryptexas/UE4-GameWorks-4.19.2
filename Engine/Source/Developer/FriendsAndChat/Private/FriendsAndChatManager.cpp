@@ -36,17 +36,13 @@ FFriendsAndChatManager::FFriendsAndChatManager( )
 	: OnlineSub(nullptr)
 	, MessageManager(FFriendsMessageManagerFactory::Create())
 	, bJoinedGlobalChat(false)
-	, bMultiWindowChat(false)
+	, bMultiWindowChat(true)
 	, ManagerState ( EFriendsAndManagerState::OffLine )
 	, bIsInited( false )
 	, bRequiresListRefresh(false)
 	, bRequiresRecentPlayersRefresh(false)
 	, FlushChatAnalyticsCountdown(CHAT_ANALYTICS_INTERVAL)
 {
-	if (FParse::Param(FCommandLine::Get(), TEXT("ChatMultiWindow")))
-	{
-		bMultiWindowChat = true;
-	}
 }
 
 
@@ -219,9 +215,9 @@ bool FFriendsAndChatManager::IsLoggedIn()
 	return ManagerState != EFriendsAndManagerState::OffLine;
 }
 
-void FFriendsAndChatManager::SetApplicationViewModel(TSharedPtr<IFriendsApplicationViewModel> InApplicationViewModel)
+void FFriendsAndChatManager::AddApplicationViewModel(const FString ClientID, TSharedPtr<IFriendsApplicationViewModel> InApplicationViewModel)
 {
-	ApplicationViewModel = InApplicationViewModel;
+	ApplicationViewModels.Add(ClientID, InApplicationViewModel);
 }
 
 void FFriendsAndChatManager::SetUserSettings(const FFriendsAndChatSettings& UserSettings)
@@ -401,6 +397,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateFriendsListWidget( const F
 
 TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TSharedRef<IChatViewModel> ViewModel)
 {
+	bMultiWindowChat = false;
 	if(!ChatViewModel.IsValid())
 	{
 		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
@@ -803,15 +800,19 @@ bool FFriendsAndChatManager::IsInJoinableGameSession() const
 	return bIsGameJoinable && IsInGameSession();
 }
 
-bool FFriendsAndChatManager::JoinGameAllowed()
+bool FFriendsAndChatManager::JoinGameAllowed(FString ClientID)
 {
 	if (AllowFriendsJoinGame().IsBound())
 	{
 		return AllowFriendsJoinGame().Execute();
 	}
-	else if (ApplicationViewModel.IsValid())
+	else
 	{
-		return ApplicationViewModel->IsAppJoinable();
+		TSharedPtr<IFriendsApplicationViewModel> FriendsApplicationViewModel = *ApplicationViewModels.Find(ClientID);
+		if (FriendsApplicationViewModel.IsValid())
+		{
+			return FriendsApplicationViewModel->IsAppJoinable();
+		}
 	}
 	return false;
 }
@@ -1714,10 +1715,11 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	// notify for further processing of join game request 
 	OnFriendsJoinGame().Broadcast(*FriendItem->GetUniqueID(), FriendItem->GetGameSessionId());
 
-	if(ApplicationViewModel.IsValid())
+	TSharedPtr<IFriendsApplicationViewModel> FriendsApplicationViewModel = *ApplicationViewModels.Find(FriendItem->GetClientId());
+	if (FriendsApplicationViewModel.IsValid())
 	{
 		const FString AdditionalCommandline = TEXT("-invitesession=") + FriendItem->GetGameSessionId() + TEXT(" -invitefrom=") + FriendItem->GetUniqueID()->ToString();
-		ApplicationViewModel->LaunchFriendApp(AdditionalCommandline);
+		FriendsApplicationViewModel->LaunchFriendApp(AdditionalCommandline);
 	}
 
 	Analytics.RecordGameInvite(*FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Accept"));
