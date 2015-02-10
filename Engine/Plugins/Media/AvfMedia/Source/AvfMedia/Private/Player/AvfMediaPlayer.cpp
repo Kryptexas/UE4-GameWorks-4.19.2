@@ -191,7 +191,7 @@ bool FAvfMediaPlayer::IsPaused() const
 
 bool FAvfMediaPlayer::IsPlaying() const
 {
-    return (MediaPlayer != nil) && (1.0f == MediaPlayer.rate) && (Tracks.Num() > 0) && (CurrentTime <= Duration);
+	return (MediaPlayer != nil) && !FMath::IsNearlyZero([MediaPlayer rate]) && (Tracks.Num() > 0) && (CurrentTime <= Duration);
 }
 
 
