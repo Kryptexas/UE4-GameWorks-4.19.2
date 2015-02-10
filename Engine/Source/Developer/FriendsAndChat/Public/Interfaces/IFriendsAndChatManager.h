@@ -2,6 +2,12 @@
 
 #pragma once
 
+class IFriendItem;
+namespace EChatMessageType
+{
+	enum Type : uint8;
+}
+
 /**
  * Interface for the Friends and chat manager.
  */
@@ -18,8 +24,10 @@ public:
 	/**
 	 * Create a chat window.
 	 * @param InStyle The style to use to create the widgets
+	 * @param ChatType The type of chat window to create
+	 * @param FriendItem The friend if this is a whisper chat window
 	 */
-	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle) = 0;
+	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem) = 0;
 
 	/**
 	 * Set the FriendsAndChatUserSettings.
@@ -64,8 +72,14 @@ public:
 
 	/**
 	 * Join a global chat room
+	 * @param RoomName The name of the room
 	 */
 	virtual void JoinPublicChatRoom(const FString& RoomName) = 0;
+
+	/**
+	 * Delegate when the chat room has been joined
+	 */
+	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) = 0;
 
 	/** Log out and kill the friends list window. */
 	virtual void Logout() = 0;
@@ -94,7 +108,7 @@ public:
 	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinGameEvent, const FUniqueNetId& /*FriendId*/, const FString& /*SessionId*/)
 	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() = 0;
 
-	DECLARE_EVENT(IFriendsAndChatManager, FChatMessageReceivedEvent);
+	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FChatMessageReceivedEvent, EChatMessageType::Type /*Type of message received*/, TSharedPtr<IFriendItem> /*Friend if chat type is whisper*/);
 	virtual FChatMessageReceivedEvent& OnChatMessageRecieved() = 0;
 
 	DECLARE_DELEGATE_RetVal(bool, FAllowFriendsJoinGame);

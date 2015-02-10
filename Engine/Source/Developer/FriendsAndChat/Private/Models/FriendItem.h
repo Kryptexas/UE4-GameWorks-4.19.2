@@ -10,6 +10,10 @@ class FFriendItem : public IFriendItem
 {
 public:
 
+	const static FString LauncherClientId;
+	const static FString FortniteClientId;
+	const static FString UnrealTournamentClientId;
+
 	/**
 	 * Constructor takes the required details.
 	 *

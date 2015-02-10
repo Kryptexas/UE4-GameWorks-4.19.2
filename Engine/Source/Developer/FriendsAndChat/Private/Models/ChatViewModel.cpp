@@ -89,6 +89,15 @@ public:
 					FFriendsAndChatManager::Get()->SendGameInvite(*SelectedFriend->SelectedMessage->GetSenderID().Get());
 				}
 			}
+			else if (ActionType == EFriendActionType::Whisper)
+			{
+				TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+				if (FriendItem.IsValid())
+				{
+					FFriendsAndChatManager::Get()->SetChatFriend(FriendItem);					
+				}				
+				CancelAction();
+			}
 		}
 	}
 
@@ -98,41 +107,65 @@ public:
 		SelectedFriend.Reset();
 	}
 
+	virtual void LockChatChannel(bool bLocked) override
+	{
+		bLockedChannel = bLocked;
+		FilterChatList();
+	}
+
+	virtual bool IsChatChannelLocked() const override
+	{
+		return bLockedChannel;
+	}
+	
 	virtual void SetChatChannel(const EChatMessageType::Type NewOption) override
 	{
-		bHasActionPending = false;
-		SelectedChatChannel = NewOption;
-		if(NewOption == EChatMessageType::Global && !bAllowGlobalChat)
+		if (!bLockedChannel)
 		{
-			SetAllowGlobalChat(true);
+			bHasActionPending = false;
+			SelectedChatChannel = NewOption;
+			if (NewOption == EChatMessageType::Global && !bIsDisplayingGlobalChat)
+			{
+				SetDisplayGlobalChat(true);
+			}
+			SelectedFriend.Reset();
 		}
-
-		SelectedFriend.Reset();
 	}
 
 	virtual void SetWhisperChannel(const TSharedPtr<FSelectedFriend> InFriend) override
 	{
-		SelectedChatChannel = EChatMessageType::Whisper;
-		SelectedFriend = InFriend;
-		if(SelectedFriend->UserID.IsValid())
+		if (!bLockedChannel)
 		{
-			SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->UserID.Get());
+			SelectedChatChannel = EChatMessageType::Whisper;
+			SelectedFriend = InFriend;
+			if (SelectedFriend->UserID.IsValid())
+			{
+				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->UserID.Get());
+			}
+			SelectedFriend->MessageType = EChatMessageType::Whisper;
+			bHasActionPending = false;
 		}
-		SelectedFriend->MessageType = EChatMessageType::Whisper;
-		bHasActionPending = false;
 	}
 
 	virtual void SetViewChannel(const EChatMessageType::Type NewOption) override
 	{
-		SelectedViewChannel = NewOption;
-		SelectedChatChannel = NewOption;
-		FilterChatList();
-		bHasActionPending = false;
+		if (!bLockedChannel)
+		{
+		    SelectedViewChannel = NewOption;
+		    SelectedChatChannel = NewOption;
+		    FilterChatList();
+		    bHasActionPending = false;
+	    }
 	}
 
 	virtual const EChatMessageType::Type GetChatChannel() const override
 	{
 		return SelectedChatChannel;
+	}
+
+	virtual bool IsChatChannelValid() const override
+	{
+		return SelectedChatChannel != EChatMessageType::Global || bEnableGlobalChat;
 	}
 
 	virtual void SetChannelUserClicked(const TSharedRef<FChatItemViewModel> ChatItemSelected) override
@@ -151,10 +184,14 @@ public:
 				ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ChatItemSelected->GetSenderID().Get());
 			}
 
-			if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
+			if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted && !bLockedChannel)
 			{
 				bFoundUser = true;
 				SetWhisperChannel(GetRecentFriend(FText::FromString(ExistingFriend->GetName()), ExistingFriend->GetUniqueID()));
+			}
+			if (ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted && !ExistingFriend->IsOnline())
+			{
+				bFoundUser = true;
 			}
 
 			if(!bFoundUser)
@@ -165,6 +202,10 @@ public:
 				SelectedFriend->MessageType = ChatItemSelected->GetMessageType();
 				SelectedFriend->ViewModel = nullptr;
 				SelectedFriend->SelectedMessage = ChatItemSelected;
+				if (ExistingFriend.IsValid())
+				{
+					SelectedFriend->UserID = ExistingFriend->GetUniqueID();
+				}
 				bHasActionPending = true;
 				bAllowJoinGame = FFriendsAndChatManager::Get()->IsInJoinableGameSession();
 			}
@@ -193,7 +234,7 @@ public:
 				break;
 				case EChatMessageType::Global:
 				{
-					if (IsGlobalChatEnabled())
+					if (IsDisplayingGlobalChat())
 					{
 						//@todo samz - send message to specific room (empty room name will send to all rooms)
 						bSuccess = MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
@@ -217,14 +258,45 @@ public:
 		return RecentPlayerList;
 	}
 
+	virtual EVisibility GetFriendRequestVisibility() const override
+	{
+		if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
+		{
+			TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+			if (FriendItem.IsValid())
+			{
+				return EVisibility::Collapsed;
+			}
+		}
+		return EVisibility::Visible;
+	}
+
 	virtual EVisibility GetInviteToGameVisibility() const override
 	{
 		return bAllowJoinGame ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
+	virtual EVisibility GetOpenWhisperVisibility() const override
+	{
+		if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
+		{
+			TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);			
+			if (FriendItem.IsValid() && FriendItem->GetInviteStatus() == EInviteStatus::Accepted && FriendItem->IsOnline())
+			{
+				return EVisibility::Visible;
+			}
+		}
+		return EVisibility::Collapsed;
+	}
+
+	virtual bool IsDisplayingGlobalChat() const override
+	{
+		return bEnableGlobalChat && bIsDisplayingGlobalChat;
+	}
+
 	virtual bool IsGlobalChatEnabled() const override
 	{
-		return bAllowGlobalChat;
+		return bEnableGlobalChat;
 	}
 
 	virtual bool HasValidSelectedFriend() const override
@@ -246,9 +318,15 @@ public:
 		return bHasActionPending;
 	}
 
-	virtual void SetAllowGlobalChat(bool bAllow) override
+	virtual void SetDisplayGlobalChat(bool bAllow) override
 	{
-		bAllowGlobalChat = bAllow;
+		bIsDisplayingGlobalChat = bAllow;
+		FilterChatList();
+	}
+
+	virtual void EnableGlobalChat(bool bEnable) override
+	{
+		bEnableGlobalChat = bEnable;
 		FilterChatList();
 	}
 
@@ -256,7 +334,7 @@ public:
 	{
 		if(bInGame != bInGameSetting)
 		{
-			SetAllowGlobalChat(bInGame);
+			SetDisplayGlobalChat(bInGame);
 			bInGame = bInGameSetting;
 			SetViewChannel(bInGame ? EChatMessageType::Party : EChatMessageType::Global);
 		}
@@ -282,16 +360,36 @@ private:
 		ChatLists = MessageManager.Pin()->GetMessageList();
 
 		bool bAddedItem = true;
-		if(!IsGlobalChatEnabled())
+		if(!IsDisplayingGlobalChat() || bLockedChannel)
 		{
 			FilteredChatLists.Empty();
 			bAddedItem = false;
 			for (const auto& ChatItem : ChatLists)
 			{
-				if(ChatItem->GetMessageType() != EChatMessageType::Global)
+				if (ChatItem->GetMessageType() != EChatMessageType::Global)
 				{
-					FilteredChatLists.Add(ChatItem);
-					bAddedItem = true;
+					// If channel is locked only show chat from current friend
+					if (bLockedChannel && SelectedFriend.IsValid())
+					{
+						if (ChatItem->GetSenderID() != SelectedFriend->UserID)
+						{
+							continue;
+						}
+					}
+					if (!bLockedChannel || SelectedFriend.IsValid())
+				    {
+					    FilteredChatLists.Add(ChatItem);
+					    bAddedItem = true;
+				    }
+			    }
+				else
+				{
+					// If channel is locked only show global chat
+					if (bLockedChannel && !SelectedFriend.IsValid())
+					{
+						FilteredChatLists.Add(ChatItem);
+						bAddedItem = true;
+					}
 				}
 			}
 		}
@@ -321,7 +419,7 @@ private:
 
 	void HandleMessageReceived(const TSharedRef<FChatItemViewModel> NewMessage)
 	{
-		if(IsGlobalChatEnabled() || NewMessage->GetMessageType() != EChatMessageType::Global)
+		if(IsDisplayingGlobalChat() || NewMessage->GetMessageType() != EChatMessageType::Global)
 		{
 			FilterChatList();
 		}
@@ -332,6 +430,10 @@ private:
 		if(ChatFriend.IsValid())
 		{
 			SetWhisperChannel(GetRecentFriend(FText::FromString(ChatFriend->GetName()), ChatFriend->GetUniqueID()));
+		}
+		else if (bIsDisplayingGlobalChat)
+		{
+			SetChatChannel(EChatMessageType::Global);
 		}
 	}
 
@@ -370,9 +472,11 @@ private:
 		, SelectedChatChannel(EChatMessageType::Global)
 		, MessageManager(MessageManager)
 		, bInGame(false)
-		, bAllowGlobalChat(true)
+		, bIsDisplayingGlobalChat(false)
+		, bEnableGlobalChat(true)
 		, bHasActionPending(false)
 		, bAllowJoinGame(false)
+		, bLockedChannel(false)
 	{
 	}
 
@@ -381,9 +485,13 @@ private:
 	EChatMessageType::Type SelectedChatChannel;
 	TWeakPtr<FFriendsMessageManager> MessageManager;
 	bool bInGame;
-	bool bAllowGlobalChat;
+	/** Whether global chat is currently switched on and displayed  */
+	bool bIsDisplayingGlobalChat;
+	/** Whether global chat mode is enabled/disabled - if disabled it can't be selected and isn't an option in the UI */
+	bool bEnableGlobalChat;
 	bool bHasActionPending;
 	bool bAllowJoinGame;
+	bool bLockedChannel;
 
 	TArray<TSharedRef<FChatItemViewModel> > ChatLists;
 	TArray<TSharedRef<FChatItemViewModel> > FilteredChatLists;

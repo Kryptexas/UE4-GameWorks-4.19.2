@@ -23,6 +23,7 @@ namespace EFriendActionType
 		JoinGame,					// Join a Friends game
 		RejectGame,					// Reject a game request
 		InviteToGame,				// Invite to game
+		Whisper,					// Open Whisper window
 		SendFriendRequest,			// Send a friend request
 		Updating,					// Updating;
 		Chat,						// Chat

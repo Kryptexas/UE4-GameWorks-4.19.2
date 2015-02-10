@@ -138,6 +138,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetLauncherImageBrush(const FSlateBr
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetUTImageBrush(const FSlateBrush& Brush)
+{
+	UTImageBrush = Brush;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsComboDropdownImageBrush(const FSlateBrush& Brush)
 {
 	FriendsComboDropdownImageBrush = Brush;
@@ -335,6 +341,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatPartyBrush(const FSlateBrush&
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatWhisperBrush(const FSlateBrush& Brush)
 {
 	ChatWhisperBrush = Brush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatInvalidBrush(const FSlateBrush& Brush)
+{
+	ChatInvalidBrush = Brush;
 	return *this;
 }
 

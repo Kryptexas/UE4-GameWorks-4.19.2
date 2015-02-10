@@ -147,7 +147,7 @@ public:
 				SNew(SBorder)
 				.Padding(FriendStyle.BorderPadding)
 				.BorderImage(&FriendStyle.FriendsContainerBackground)
-				.Visibility(this, &SFriendsContainerImpl::GetGlobalChatButtonVisibility)
+				.Visibility(FFriendsAndChatManager::Get()->HasPermission(TEXT("fortnite:play")) ? EVisibility::Visible : EVisibility::Collapsed)
 				[
 					SNew(SButton)
 					.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
@@ -271,18 +271,9 @@ private:
 
 	FReply OnGlobalChatButtonClicked()
 	{
-		// @todo: open global chat window
+		FFriendsAndChatManager::Get()->JoinPublicChatRoom(TEXT("Fortnite"));
+		FFriendsAndChatManager::Get()->OpenGlobalChat();
 		return FReply::Handled();
-	}
-
-	EVisibility GetGlobalChatButtonVisibility() const
-	{
-		// @todo: global chat window option availability
-		if (FParse::Param(FCommandLine::Get(), TEXT("EnableGlobalChat")))
-		{
-			return EVisibility::Visible;
-		}
-		return EVisibility::Collapsed;
 	}
 
 private:

@@ -249,7 +249,7 @@ private:
 
 	void StartChat()
 	{
-		if (FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid())
+		if (FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() && FriendItem->IsOnline())
 		{
 			FFriendsAndChatManager::Get()->SetChatFriend(FriendItem);
 		}

@@ -146,6 +146,11 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FSlateBrush LauncherImageBrush;
 	FFriendsAndChatStyle& SetLauncherImageBrush(const FSlateBrush& BrushStyle);
 
+	/** UnrealTournament Image brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush UTImageBrush;
+	FFriendsAndChatStyle& SetUTImageBrush(const FSlateBrush& BrushStyle);
+
 	/** Friend combo dropdown Image */
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush FriendsComboDropdownImageBrush;
@@ -298,6 +303,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush ChatWhisperBrush;
 	FFriendsAndChatStyle& SetChatWhisperBrush(const FSlateBrush& Brush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChatInvalidBrush;
+	FFriendsAndChatStyle& SetChatInvalidBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FEditableTextBoxStyle AddFriendEditableTextStyle;
