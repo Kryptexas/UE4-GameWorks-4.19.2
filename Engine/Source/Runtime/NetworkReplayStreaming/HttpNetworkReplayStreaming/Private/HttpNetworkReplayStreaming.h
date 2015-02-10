@@ -29,7 +29,7 @@ class FHttpNetworkReplayStreamer : public INetworkReplayStreamer
 {
 public:
 	/** INetworkReplayStreamer implementation */
-	FHttpNetworkReplayStreamer() : StreamFileCount( 0 ), LastFlushTime( 0 ), StreamState( EStreamState::Idle ), bFinalFlushNeeded( false ), NumDownloadChunks( 0 ) {}
+	FHttpNetworkReplayStreamer() : StreamFileCount( 0 ), LastFlushTime( 0 ), HttpState( EHttptate::Idle ), StreamerState( EStreamerState::Idle ), bStopStreamingCalled( false ), NumDownloadChunks( 0 ) {}
 	virtual void StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate ) override;
 	virtual void StopStreaming() override;
 	virtual FArchive* GetHeaderArchive() override;
@@ -38,7 +38,9 @@ public:
 	virtual bool IsDataAvailable() const override;
 
 	/** FHttpNetworkReplayStreamer */
+	void UploadHeader();
 	void FlushStream();
+	void DownloadHeader();
 	void DownloadNextChunk();
 
 	void HttpStartDownloadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
@@ -51,16 +53,29 @@ public:
 
 	void Tick( float DeltaTime );
 
-	bool IsBusy();
+	bool IsHttpBusy() const;
+	bool IsStreaming() const;
 
-	enum class EStreamState
+	enum class EHttptate
 	{
 		Idle,
 		StartUploading,
+		UploadingHeader,
 		UploadingStream,
 		StopUploading,
 		StartDownloading,
+		DownloadingHeader,
 		DownloadingStream,
+	};
+
+	enum class EStreamerState
+	{
+		Idle,
+		NeedToUploadHeader,
+		NeedToDownloadHeader,
+		StreamingUp,
+		StreamingDown,
+		StreamingUpFinal,
 	};
 
 	FOnStreamReadyDelegate	RememberedDelegate;		// Delegate passed in to StartStreaming
@@ -70,8 +85,9 @@ public:
 	FString					ServerURL;
 	int32					StreamFileCount;		// Used as a counter to increment the stream.x extension count
 	double					LastFlushTime;
-	EStreamState			StreamState;
-	bool					bFinalFlushNeeded;
+	EStreamerState			StreamerState;
+	EHttptate				HttpState;
+	bool					bStopStreamingCalled;
 	int32					NumDownloadChunks;
 };
 
