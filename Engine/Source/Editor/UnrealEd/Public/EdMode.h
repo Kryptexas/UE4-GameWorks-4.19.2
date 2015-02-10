@@ -78,7 +78,7 @@ public:
 	virtual bool GetCursor(EMouseCursor::Type& OutCursor) const { return false; }
 
 	virtual bool ShouldDrawBrushWireframe( AActor* InActor ) const { return true; }
-	virtual bool GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void* InData ) { return 0; }
+	virtual bool GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void* InData);
 	virtual bool GetCustomInputCoordinateSystem( FMatrix& InMatrix, void* InData ) { return 0; }
 
 	/** If Rotation Snap should be enabled for this mode*/ 

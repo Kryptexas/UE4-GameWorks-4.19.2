@@ -426,6 +426,33 @@ FVector FEdMode::GetWidgetLocation() const
 	return Owner->PivotLocation;
 }
 
+bool FEdMode::GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void* InData)
+{
+	if (UsesPropertyWidgets())
+	{
+		AActor* SelectedActor = GetFirstSelectedActorInstance();
+		if (SelectedActor != NULL)
+		{
+			if (EditedPropertyName != TEXT(""))
+			{
+				if (bEditedPropertyIsTransform)
+				{
+					FTransform LocalTM = GetPropertyValueByName<FTransform>(SelectedActor, EditedPropertyName, EditedPropertyIndex);
+					InMatrix = FRotationMatrix::Make((LocalTM * SelectedActor->GetTransform()).GetRotation());
+					return true;
+				}
+				else
+				{
+					InMatrix = FRotationMatrix::Make(SelectedActor->GetTransform().GetRotation());
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 /**
  * Lets the mode determine if it wants to draw the widget or not.
  */
