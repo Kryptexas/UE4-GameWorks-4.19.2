@@ -1352,9 +1352,10 @@ UFoliageType* AInstancedFoliageActor::AddFoliageType(const UFoliageType* InType,
 	{
 		// Unique meshes only
 		// Multiple entries for same static mesh can be added using FoliageType as an asset
-		FoliageType = GetSettingsForMesh(FoliageType->GetStaticMesh());
+		FoliageType = GetSettingsForMesh(FoliageType->GetStaticMesh(), &MeshInfo);
 		if (FoliageType == nullptr)
 		{
+			//TODO: Duplicating a null object seems wrong. Am I missing something?
 			FoliageType = DuplicateObject<UFoliageType>(FoliageType, this);
 			MarkPackageDirty();
 			MeshInfo = &FoliageMeshes.Add(FoliageType).Get();
