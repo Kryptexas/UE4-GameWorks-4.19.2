@@ -1709,7 +1709,9 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 
 		if( Count > 0 )
 		{
-			ClickLocation = Center / Count;
+			FVector CenterLocation = Center / Count;
+			UnsnappedClickLocation = CenterLocation;
+			ClickLocation = CenterLocation;
 			ClickPlane = FPlane(0.f,0.f,0.f,0.f);
 
 			SetPivot( ClickLocation, false, false );

@@ -337,6 +337,9 @@ class UNREALED_API UEditorEngine : public UEngine
 	class UPackage* ParentContext;
 
 	UPROPERTY()
+	FVector UnsnappedClickLocation;
+
+	UPROPERTY()
 	FVector ClickLocation;
 
 	UPROPERTY()
