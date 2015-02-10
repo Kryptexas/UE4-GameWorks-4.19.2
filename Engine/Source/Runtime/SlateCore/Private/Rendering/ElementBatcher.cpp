@@ -1606,8 +1606,8 @@ void FSlateElementBatcher::FillBatchBuffers( FSlateWindowElementList& WindowElem
 					OutRenderBatches.Add( FSlateRenderBatch( ElementBatch ) );
 
 					// Done with the batch
-					BatchVertices.Empty();
-					BatchIndices.Empty();
+					BatchVertices.Empty(BatchVertices.Num());
+					BatchIndices.Empty(BatchIndices.Num());
 				}
 
 			}
