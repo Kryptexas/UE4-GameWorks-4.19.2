@@ -97,6 +97,7 @@
 #include "Components/BrushComponent.h"
 #include "GameFramework/GameUserSettings.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/UserInterfaceSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -1451,6 +1452,9 @@ void UEngine::InitializeObjectReferences()
 
 		checkf(DefaultPreviewPawnClass != NULL, TEXT("Engine config value DefaultPreviewPawnClass is not a valid class name."));
 	}
+
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+	UISettings->LoadCursors();
 }
 
 //
