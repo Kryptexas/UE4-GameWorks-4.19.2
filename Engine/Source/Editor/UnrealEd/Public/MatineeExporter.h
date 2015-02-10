@@ -39,6 +39,11 @@ public:
 		bBakeKeys = bBakeTransforms;
 	}
 
+	void SetKeepHierarchy(bool bInKeepHierarchy)
+	{
+		bKeepHierarchy = bInKeepHierarchy;
+	}
+
 	/**
 	 * Exports the basic scene information to a file.
 	 */
@@ -106,6 +111,8 @@ protected:
 
 	/** When true, a key will exported per frame at the set frames-per-second (FPS). */
 	bool bBakeKeys;
+	/** When true, we'll export with hierarchical relation of attachment with relative transform */
+	bool bKeepHierarchy;
 };
 
 #endif // __MATINEEEXPORTER_H__

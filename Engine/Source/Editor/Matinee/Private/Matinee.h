@@ -403,7 +403,17 @@ public:
 	 * Updates the checked-menu item for baking transforms
 	 */
 	bool IsBakeTransformsToggled();
+	
+	/**
+	 * Called when the user toggles the ability to export with current hierarchy
+	 */
+	void OnToggleKeepHierarchy();
 
+	/**
+	 * Updates the checked-menu item for baking transforms
+	 */
+	bool IsKeepHierarchyToggled();
+	
 	/** Called when the 'Export Sound Cue Info' command is issued */
 	void OnExportSoundCueInfoCommand();
 	
@@ -1310,6 +1320,9 @@ protected:
 
 	/** When true, a key will be exported every frame instead of just the keys that user created. */
 	bool bBakeTransforms;
+
+	/** When true, the hierarchical relationship of objects will be kept when exported. */
+	bool bKeepHierarchy;
 
 	/** If true, clicking on a keyframe bar (such as one representing the duration of an audio cue, etc.) will cause a selection */
 	bool bAllowKeyframeBarSelection;

@@ -39,6 +39,7 @@ void FMatineeCommands::RegisterCommands()
 	UI_COMMAND(ExportSoundCueInfo, "Export Sound Cue Info", "Exports Sound Cue info", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(ExportAnimInfo, "Export Animation Track Info", "Exports Animation Track info", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(FileExportBakeTransforms, "Bake Transforms on Export", "Exports a key every frame, instead of just user created keys", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	UI_COMMAND(FileExportKeepHierarchy, "Keep Hierarchy on Export", "Exports all objects to be in the same hierarchy in engine", EUserInterfaceActionType::ToggleButton, FInputGesture());
 
 	UI_COMMAND(DeleteSelectedKeys, "Delete Keys", "Deletes selected keys", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(DuplicateKeys, "Duplicate Keys", "Duplicates selected keys", EUserInterfaceActionType::Button, FInputGesture());

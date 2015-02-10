@@ -1580,6 +1580,7 @@ void FMatinee::OnContextTrackExportAnimFBX()
 					// Export the Matinee information to a COLLADA document.
 					Exporter->CreateDocument();
 					Exporter->SetTrasformBaking(bBakeTransforms);
+					Exporter->SetKeepHierarchy(bKeepHierarchy);
 
 					// Export the anim sequences
 					TArray<UAnimSequence*> AnimSequences;
@@ -1970,6 +1971,7 @@ void FMatinee::OnContextGroupExportAnimFBX()
 							// Export the Matinee information to an FBX document.
 							Exporter->CreateDocument();
 							Exporter->SetTrasformBaking(bBakeTransforms);
+							Exporter->SetKeepHierarchy(bKeepHierarchy);
 
 							// Export the animation sequences in the group by sampling the skeletal mesh over the
 							// duration of the matinee sequence
@@ -3840,6 +3842,7 @@ void FMatinee::OnMenuExport()
 				// Export the Matinee information to an FBX file
 				Exporter->CreateDocument();
 				Exporter->SetTrasformBaking(bBakeTransforms);
+				Exporter->SetKeepHierarchy(bKeepHierarchy);
 
 				const bool bSelectedOnly = false;
 				// Export the persistent level and all of it's actors
@@ -4217,6 +4220,23 @@ bool FMatinee::IsBakeTransformsToggled()
 {
 	return bBakeTransforms;
 }
+
+/**
+ * Called when the user toggles the ability to export a key every frame. 
+ */
+void FMatinee::OnToggleKeepHierarchy()
+{
+	bKeepHierarchy = !bKeepHierarchy;
+}
+
+/**
+ * Updates the checked-menu item for baking transforms
+ */
+bool FMatinee::IsKeepHierarchyToggled()
+{
+	return bKeepHierarchy;
+}
+
 
 void FMatinee::OnMenuReduceKeys()
 {
@@ -4990,9 +5010,10 @@ void FMatinee::ExtendDefaultToolbarMenu()
 			}
 			InMenuBarBuilder.EndSection();
 
-			InMenuBarBuilder.BeginSection("FileBake");
+			InMenuBarBuilder.BeginSection("Export");
 			{
 				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().FileExportBakeTransforms);
+				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().FileExportKeepHierarchy);
 			}
 			InMenuBarBuilder.EndSection();
 		}

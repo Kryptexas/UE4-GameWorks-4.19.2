@@ -1067,16 +1067,42 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 		}
 
 		ActorNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*FbxNodeName));
-		Scene->GetRootNode()->AddChild(ActorNode);
+		
 
+		AActor* ParentActor = Actor->GetAttachParentActor();
+		FbxNode* ParentNode;
+		FVector ActorLocation, ActorRotation, ActorScale;
+		if (bKeepHierarchy && ParentActor)
+		{
+			// this doesn't work with skeletalmeshcomponent
+			ParentNode = FindActor(ParentActor);
+			check (ParentNode);
+
+			// Set the default position of the actor on the transforms
+			// The transformation is different from FBX's Z-up: invert the Y-axis for translations and the Y/Z angle values in rotations.
+			const FTransform RelativeTransform = Actor->GetTransform().GetRelativeTransform(ParentActor->GetTransform());
+			ActorLocation = RelativeTransform.GetTranslation();
+			ActorRotation = RelativeTransform.GetRotation().Euler();
+			ActorScale = RelativeTransform.GetScale3D();
+		}
+		else
+		{
+			ParentNode = Scene->GetRootNode();
+			// Set the default position of the actor on the transforms
+			// The transformation is different from FBX's Z-up: invert the Y-axis for translations and the Y/Z angle values in rotations.
+			ActorLocation = Actor->GetActorLocation();
+			ActorRotation = Actor->GetActorRotation().Euler();
+			ActorScale = Actor->GetRootComponent() ? Actor->GetRootComponent()->RelativeScale3D : FVector(1.f,1.f,1.f);
+		}
+
+		ParentNode->AddChild(ActorNode);
 		FbxActors.Add(Actor, ActorNode);
 
 		// Set the default position of the actor on the transforms
 		// The transformation is different from FBX's Z-up: invert the Y-axis for translations and the Y/Z angle values in rotations.
-		ActorNode->LclTranslation.Set(Converter.ConvertToFbxPos(Actor->GetActorLocation()));
-		ActorNode->LclRotation.Set(Converter.ConvertToFbxRot(Actor->GetActorRotation().Euler()));
-		const FVector DrawScale3D = Actor->GetRootComponent() ? Actor->GetRootComponent()->RelativeScale3D : FVector(1.f,1.f,1.f);
-		ActorNode->LclScaling.Set(Converter.ConvertToFbxScale(DrawScale3D));
+		ActorNode->LclTranslation.Set(Converter.ConvertToFbxPos(ActorLocation));
+		ActorNode->LclRotation.Set(Converter.ConvertToFbxRot(ActorRotation));
+		ActorNode->LclScaling.Set(Converter.ConvertToFbxScale(ActorScale));
 	
 		// For cameras and lights: always add a Y-pivot rotation to get the correct coordinate system.
 		if (Actor->IsA(ACameraActor::StaticClass()) || Actor->IsA(ALight::StaticClass()))
@@ -1411,22 +1437,36 @@ void FFbxExporter::ExportAnimatedVector(FbxAnimCurve* FbxCurve, const char* Chan
 				KeyRotation = FRotator( FQuat::MakeFromEuler(MoveTrack->EulerTrack.Points[KeyIndex].OutVal) );
 			}
 
-			FVector WorldSpacePos;
-			FRotator WorldSpaceRotator;
-			MoveTrack->ComputeWorldSpaceKeyTransform(
-				MoveTrackInst,
-				KeyPosition,
-				KeyRotation,
-				WorldSpacePos,			// Out
-				WorldSpaceRotator );	// Out
-
-			if( bPosCurve )
+			if (bKeepHierarchy)
 			{
-				FinalOutVec = WorldSpacePos;
+				if(bPosCurve)
+				{
+					FinalOutVec = KeyPosition;
+				}
+				else
+				{
+					FinalOutVec = KeyRotation.Euler();
+				}
 			}
 			else
 			{
-				FinalOutVec = WorldSpaceRotator.Euler();
+				FVector WorldSpacePos;
+				FRotator WorldSpaceRotator;
+				MoveTrack->ComputeWorldSpaceKeyTransform(
+					MoveTrackInst,
+					KeyPosition,
+					KeyRotation,
+					WorldSpacePos,			// Out
+					WorldSpaceRotator);	// Out
+
+				if(bPosCurve)
+				{
+					FinalOutVec = WorldSpacePos;
+				}
+				else
+				{
+					FinalOutVec = WorldSpaceRotator.Euler();
+				}
 			}
 		}
 

@@ -430,6 +430,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	bEditingCrosshairEnabled = false;
 	bEditingGridEnabled = false;
 	bBakeTransforms = false;
+	bKeepHierarchy = false;
 	bAllowKeyframeBarSelection = false;
 	bAllowKeyframeTextSelection = false;
 	bLockCameraPitch = true;
@@ -1074,6 +1075,11 @@ void FMatinee::BindCommands()
 		FExecuteAction::CreateSP(this, &FMatinee::OnToggleBakeTransforms),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FMatinee::IsBakeTransformsToggled)
+		);
+	ToolkitCommands->MapAction(Commands.FileExportKeepHierarchy,
+		FExecuteAction::CreateSP(this, &FMatinee::OnToggleKeepHierarchy),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FMatinee::IsKeepHierarchyToggled)
 		);
 	
 	ToolkitCommands->MapAction( Commands.DeleteSelectedKeys, FExecuteAction::CreateSP(this, &FMatinee::OnDeleteSelectedKeys) );
