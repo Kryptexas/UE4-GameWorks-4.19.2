@@ -28,14 +28,23 @@ public:
 class FHttpNetworkReplayStreamer : public INetworkReplayStreamer
 {
 public:
+	FHttpNetworkReplayStreamer() : 
+		StreamFileCount( 0 ), 
+		LastChunkTime( 0 ), 
+		StreamerState( EStreamerState::Idle ), 
+		HttpState( EHttptate::Idle ), 
+		bStopStreamingCalled( false ), 
+		bStreamIsLive( false ),
+		NumDownloadChunks( 0 ) 
+	{}
+
 	/** INetworkReplayStreamer implementation */
-	FHttpNetworkReplayStreamer() : StreamFileCount( 0 ), LastFlushTime( 0 ), StreamerState( EStreamerState::Idle ), HttpState( EHttptate::Idle ), bStopStreamingCalled( false ), NumDownloadChunks( 0 ) {}
-	virtual void StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate ) override;
-	virtual void StopStreaming() override;
-	virtual FArchive* GetHeaderArchive() override;
-	virtual FArchive* GetStreamingArchive() override;
-	virtual FArchive* GetMetadataArchive() override;
-	virtual bool IsDataAvailable() const override;
+	virtual void		StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate ) override;
+	virtual void		StopStreaming() override;
+	virtual FArchive*	GetHeaderArchive() override;
+	virtual FArchive*	GetStreamingArchive() override;
+	virtual FArchive*	GetMetadataArchive() override;
+	virtual bool		IsDataAvailable() const override;
 
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();
@@ -43,6 +52,7 @@ public:
 	void DownloadHeader();
 	void DownloadNextChunk();
 
+	/** Delegates */
 	void HttpStartDownloadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpDownloadHeaderFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
@@ -52,42 +62,44 @@ public:
 	void HttpUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 
 	void Tick( float DeltaTime );
+	bool IsHttpBusy() const;		// True if we are waiting on http request response
+	bool IsStreaming() const;		// True if we are streaming a replay up or down
 
-	bool IsHttpBusy() const;
-	bool IsStreaming() const;
-
+	/** EHttptate - If not idle, there is a http request in flight */
 	enum class EHttptate
 	{
-		Idle,
-		StartUploading,
-		UploadingHeader,
-		UploadingStream,
-		StopUploading,
-		StartDownloading,
-		DownloadingHeader,
-		DownloadingStream,
+		Idle,						// There is no http request in flight
+		StartUploading,				// We have made a request to start uploading a replay
+		UploadingHeader,			// We are uploading the replay header
+		UploadingStream,			// We are in the process of uploading the replay stream
+		StopUploading,				// We have made the request to stop uploading a live replay stream
+		StartDownloading,			// We have made the request to start downloading a replay stream
+		DownloadingHeader,			// We are downloading the replay header
+		DownloadingStream,			// We are in the process of downloading the replay stream
 	};
 
+	/** EStreamerState - Overall state of the streamer */
 	enum class EStreamerState
 	{
-		Idle,
-		NeedToUploadHeader,
-		NeedToDownloadHeader,
-		StreamingUp,
-		StreamingDown,
-		StreamingUpFinal,
+		Idle,						// The streamer is idle. Either we haven't started streaming yet, or we are done
+		NeedToUploadHeader,			// We are waiting to upload the header
+		NeedToDownloadHeader,		// We are waiting to download the header
+		StreamingUp,				// We are in the process of streaming a replay to the http server
+		StreamingDown,				// We are in the process of streaming a replay from the http server
+		StreamingUpFinal,			// We are uploading the final stream
 	};
 
 	FOnStreamReadyDelegate	RememberedDelegate;		// Delegate passed in to StartStreaming
 	HttpStreamFArchive		HeaderArchive;			// Archive used to buffer the header stream
 	HttpStreamFArchive		StreamArchive;			// Archive used to buffer the data stream
 	FString					SessionName;			// Name of the session on the http replay server
-	FString					ServerURL;
+	FString					ServerURL;				// The address of the server
 	int32					StreamFileCount;		// Used as a counter to increment the stream.x extension count
-	double					LastFlushTime;
-	EStreamerState			StreamerState;
-	EHttptate				HttpState;
+	double					LastChunkTime;			// The last time we uploaded/downloaded a chunk
+	EStreamerState			StreamerState;			// Overall state of the streamer
+	EHttptate				HttpState;				// If not idle, there is a http request in flight
 	bool					bStopStreamingCalled;
+	bool					bStreamIsLive;			// If true, we are viewing a live stream
 	int32					NumDownloadChunks;
 };
 

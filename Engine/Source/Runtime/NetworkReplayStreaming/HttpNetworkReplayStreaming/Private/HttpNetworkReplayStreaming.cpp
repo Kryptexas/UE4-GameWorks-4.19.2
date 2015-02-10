@@ -58,9 +58,15 @@ void FHttpNetworkReplayStreamer::StartStreaming( FString& StreamName, bool bReco
 		return;
 	}
 
+	if ( IsStreaming() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::StartStreaming. IsStreaming == true." ) );
+		return;
+	}
+
 	if ( IsHttpBusy() )
 	{
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::StartStreaming. BUSY" ) );
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::StartStreaming. IsHttpBusy == true." ) );
 		return;
 	}
 
@@ -74,7 +80,7 @@ void FHttpNetworkReplayStreamer::StartStreaming( FString& StreamName, bool bReco
 	HeaderArchive.ArIsLoading = !bRecord;
 	HeaderArchive.ArIsSaving = !StreamArchive.ArIsLoading;
 
-	LastFlushTime = FPlatformTime::Seconds();
+	LastChunkTime = FPlatformTime::Seconds();
 
 	const bool bOverrideRecordingSession = true;//false;
 
@@ -166,6 +172,8 @@ void FHttpNetworkReplayStreamer::UploadHeader()
 		return;
 	}
 
+	check( StreamFileCount == 0 );
+
 	// First upload the header
 	UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::UploadHeader. Header. StreamFileCount: %i, Size: %i" ), StreamFileCount, StreamArchive.Buffer.Num() );
 
@@ -176,7 +184,7 @@ void FHttpNetworkReplayStreamer::UploadHeader()
 
 	HttpState = EHttptate::UploadingHeader;
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&Filename=replay.header" ), *ServerURL, TEXT( "Test" ), *SessionName ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Filename=replay.header" ), *ServerURL, TEXT( "Test" ), *SessionName, StreamFileCount ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 	HttpRequest->SetContent( HeaderArchive.Buffer );
@@ -187,7 +195,7 @@ void FHttpNetworkReplayStreamer::UploadHeader()
 
 	HttpRequest->ProcessRequest();
 
-	LastFlushTime = FPlatformTime::Seconds();
+	LastChunkTime = FPlatformTime::Seconds();
 }
 
 void FHttpNetworkReplayStreamer::FlushStream()
@@ -214,7 +222,7 @@ void FHttpNetworkReplayStreamer::FlushStream()
 
 	HttpState = EHttptate::UploadingStream;
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&Filename=stream.%i" ), *ServerURL, TEXT( "Test" ), *SessionName, StreamFileCount ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Filename=stream.%i" ), *ServerURL, TEXT( "Test" ), *SessionName, StreamFileCount + 1, StreamFileCount ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 	HttpRequest->SetContent( StreamArchive.Buffer );
@@ -226,7 +234,7 @@ void FHttpNetworkReplayStreamer::FlushStream()
 
 	HttpRequest->ProcessRequest();
 
-	LastFlushTime = FPlatformTime::Seconds();
+	LastChunkTime = FPlatformTime::Seconds();
 }
 
 void FHttpNetworkReplayStreamer::DownloadHeader()
@@ -246,9 +254,25 @@ void FHttpNetworkReplayStreamer::DownloadHeader()
 
 void FHttpNetworkReplayStreamer::DownloadNextChunk()
 {
-	if ( StreamFileCount >= NumDownloadChunks || NumDownloadChunks == 0 || StreamArchive.Pos < StreamArchive.Buffer.Num() )
+	const bool bMoreChunksDefinitelyAvilable = StreamFileCount < NumDownloadChunks;
+	const bool bMoreChunksMayBeAvilable = bStreamIsLive;
+
+	if ( !bMoreChunksDefinitelyAvilable && !bMoreChunksMayBeAvilable )
 	{
-		// We don't need to download the next chunk yet
+		StreamerState = EStreamerState::Idle;
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::DownloadNextChunk. Done streaming." ) );
+		return;
+	}
+
+	// We don't need to download the next chunk yet
+	const double CHECK_FOR_NEXT_CHUNK_IN_SECONDS = 5;
+
+	const bool bTimeToDownloadChunk = ( FPlatformTime::Seconds() - LastChunkTime > CHECK_FOR_NEXT_CHUNK_IN_SECONDS );
+	const bool bReallyNeedToDownloadChunk = StreamArchive.Pos >= StreamArchive.Buffer.Num() && bMoreChunksDefinitelyAvilable;
+
+	if ( !bTimeToDownloadChunk && !bReallyNeedToDownloadChunk )
+	{
+		// Not time yet
 		return;
 	}
 
@@ -263,6 +287,8 @@ void FHttpNetworkReplayStreamer::DownloadNextChunk()
 	HttpState = EHttptate::DownloadingStream;
 
 	HttpRequest->ProcessRequest();
+
+	LastChunkTime = FPlatformTime::Seconds();
 }
 
 FArchive* FHttpNetworkReplayStreamer::GetHeaderArchive()
@@ -404,6 +430,8 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 		FString NumChunksString = HttpResponse->GetHeader( TEXT( "NumChunks" ) );
 		FString State = HttpResponse->GetHeader( TEXT( "State" ) );
 
+		bStreamIsLive = State == TEXT( "Live" );
+
 		NumDownloadChunks = FCString::Atoi( *NumChunksString );
 
 		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. State: %s, NumChunks: %i" ), *State, NumDownloadChunks );
@@ -480,18 +508,39 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
-		StreamArchive.Buffer.Append( HttpResponse->GetContent() );
-		
-		StreamFileCount++;
+		FString NumChunksString = HttpResponse->GetHeader( TEXT( "NumChunks" ) );
+		FString State = HttpResponse->GetHeader( TEXT( "State" ) );
 
-		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. Progress: %i / %i" ), StreamFileCount, NumDownloadChunks );
+		bStreamIsLive = State == TEXT( "Live" );
+
+		NumDownloadChunks = FCString::Atoi( *NumChunksString );
+
+		if ( HttpResponse->GetContent().Num() > 0 || bStreamIsLive )
+		{
+			if ( HttpResponse->GetContent().Num() > 0 )
+			{
+				StreamArchive.Buffer.Append( HttpResponse->GetContent() );
+				StreamFileCount++;
+			}
+
+			UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. State: %s, Progress: %i / %i" ), *State, StreamFileCount, NumDownloadChunks );
+		}
+		else
+		{
+			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. FAILED." ) );
+			StreamArchive.Buffer.Empty();
+			StreamerState = EStreamerState::Idle;
+
+			// FIXME: Report error to engine
+		}		
 	}
 	else
 	{
-		// FAIL
 		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. FAILED." ) );
-
 		StreamArchive.Buffer.Empty();
+		StreamerState = EStreamerState::Idle;
+
+		// FIXME: Report error to engine
 	}
 }
 
@@ -514,13 +563,13 @@ void FHttpNetworkReplayStreamer::Tick( float DeltaTime )
 		if ( StreamerState == EStreamerState::StreamingUp )
 		{
 			StreamerState = EStreamerState::StreamingUpFinal;
+			bStopStreamingCalled = false;
 		}
 		else if ( StreamerState == EStreamerState::StreamingDown )
 		{
 			StreamerState = EStreamerState::Idle;	// FIXME: Implement StopDownloading
+			bStopStreamingCalled = false;
 		}
-
-		bStopStreamingCalled = false;
 	}
 
 	if ( StreamerState == EStreamerState::NeedToUploadHeader )
@@ -532,7 +581,7 @@ void FHttpNetworkReplayStreamer::Tick( float DeltaTime )
 	{
 		const double FLUSH_TIME_IN_SECONDS = 10;
 
-		if ( FPlatformTime::Seconds() - LastFlushTime > FLUSH_TIME_IN_SECONDS )
+		if ( FPlatformTime::Seconds() - LastChunkTime > FLUSH_TIME_IN_SECONDS )
 		{
 			FlushStream();
 		}
@@ -580,8 +629,13 @@ void FHttpNetworkReplayStreamingFactory::Tick( float DeltaTime )
 		HttpStreamers[i]->Tick( DeltaTime );
 		
 		// We can release our hold when streaming is completely done
-		if ( HttpStreamers[i].IsUnique() && !HttpStreamers[i]->IsStreaming() )
+		if ( HttpStreamers[i].IsUnique() && !HttpStreamers[i]->IsHttpBusy() && !HttpStreamers[i]->bStopStreamingCalled )
 		{
+			if ( HttpStreamers[i]->IsStreaming() )
+			{
+				UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamingFactory::Tick. Stream was stopped early." ) );
+			}
+
 			HttpStreamers.RemoveAt( i );
 		}
 	}
