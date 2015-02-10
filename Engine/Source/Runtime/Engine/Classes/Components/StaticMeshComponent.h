@@ -206,6 +206,9 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UFUNCTION(BlueprintCallable, Category="Components|StaticMesh")
 	virtual bool SetStaticMesh(class UStaticMesh* NewMesh);
 
+	UFUNCTION(BlueprintCallable, Category="Rendering|LOD")
+	void SetForcedLodModel(int32 NewForcedLodModel);
+
 	/** 
 	 * Get Local bounds
 	 */

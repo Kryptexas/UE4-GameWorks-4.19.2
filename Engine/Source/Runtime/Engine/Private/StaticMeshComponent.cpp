@@ -1216,6 +1216,15 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 	return true;
 }
 
+void UStaticMeshComponent::SetForcedLodModel(int32 NewForcedLodModel)
+{
+	if (ForcedLodModel != NewForcedLodModel)
+	{
+		ForcedLodModel = NewForcedLodModel;
+		MarkRenderStateDirty();
+	}
+}
+
 void UStaticMeshComponent::GetLocalBounds(FVector& Min, FVector& Max) const
 {
 	if (StaticMesh)
