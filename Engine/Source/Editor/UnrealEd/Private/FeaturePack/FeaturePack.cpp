@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "FeaturePack/FeaturePack.h"
+#include "FeaturePack.h"
 #include "AssetToolsModule.h"
 #include "AssetEditorManager.h"
 #include "AssetRegistryModule.h"
