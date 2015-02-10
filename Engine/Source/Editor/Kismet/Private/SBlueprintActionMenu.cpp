@@ -405,10 +405,22 @@ void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAll
 	{
 		FilterContext.Pins = DraggedFromPins;
 		
+		// Get selection from the "My Blueprint" view.
 		FEdGraphSchemaAction_K2Var* SelectedVar = BlueprintEditor->GetMyBlueprintWidget()->SelectionAsVar();
 		if ((SelectedVar != nullptr) && (SelectedVar->GetProperty() != nullptr))
 		{
 			FilterContext.SelectedObjects.Add(SelectedVar->GetProperty());
+		}
+		// If the selection come from the SCS editor, add it to the filter context.
+		else if ( Blueprint->SkeletonGeneratedClass )
+		{
+			TArray<FSCSEditorTreeNodePtrType> Nodes = BlueprintEditor->GetSCSEditor()->GetSelectedNodes();
+			if ( Nodes.Num() == 1 && Nodes[0]->GetNodeType() == FSCSEditorTreeNode::ComponentNode )
+			{
+				FName PropertyName = Nodes[0]->GetVariableName();
+				UObjectProperty* VariableProperty = FindField<UObjectProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
+				FilterContext.SelectedObjects.Add(VariableProperty);
+			}
 		}
 	}
 	
