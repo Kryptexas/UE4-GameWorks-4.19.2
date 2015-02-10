@@ -4,15 +4,15 @@
 
 
 /**
- * Structure for intervals of floating-point numbers.
+ * Template for interval of numbers.
  */
-struct FInterval
+template<typename ElementType> struct TInterval
 {
 	/** Holds the lower bound of the interval. */
-	float Min;
+	ElementType Min;
 	
 	/** Holds the upper bound of the interval. */
-	float Max;
+	ElementType Max;
 	
 	/** Holds a flag indicating whether the interval is empty. */
 	bool bIsEmpty;
@@ -24,9 +24,9 @@ public:
 	 *
 	 * The interval is initialized to [0, 0].
 	 */
-	FInterval()
-		: Min(0.0f)
-		, Max(0.0f)
+	TInterval()
+		: Min(0)
+		, Max(0)
 		, bIsEmpty(true)
 	{ }
 
@@ -36,7 +36,7 @@ public:
 	 * @param InMin The lower bound of the constructed interval.
 	 * @param InMax The upper bound of the constructed interval.
 	 */
-	FInterval( float InMin, float InMax )
+	TInterval( ElementType InMin, ElementType InMax )
 		: Min(InMin)
 		, Max(InMax)
 		, bIsEmpty(InMin >= InMax)
@@ -49,7 +49,7 @@ public:
 	 *
 	 * @param X The offset.
 	 */
-	void operator+= ( float X )
+	void operator+= ( ElementType X )
 	{
 		if (!bIsEmpty)
 		{
@@ -63,7 +63,7 @@ public:
 	 *
 	 * @param X The offset.
 	 */
-	void operator-= ( float X )
+	void operator-= ( ElementType X )
 	{
 		if (!bIsEmpty)
 		{
@@ -79,7 +79,7 @@ public:
 	 *
 	 * @param ExpandAmount The amount to expand by.
 	 */
-	void Expand( float ExpandAmount )
+	void Expand( ElementType ExpandAmount )
 	{
 		if (!bIsEmpty)
 		{
@@ -93,7 +93,27 @@ public:
 	 *
 	 * @param X The element to include.
 	 */
-	FORCEINLINE void Include( float X );
+	void Include( ElementType X )
+	{
+		if (bIsEmpty)
+		{
+			Min = X;
+			Max = X;
+			bIsEmpty = false;
+		}
+		else
+		{
+			if (X < Min)
+			{
+				Min = X;
+			}
+
+			if (X > Max)
+			{
+				Max = X;
+			}
+		}
+	}
 
 public:
 
@@ -104,39 +124,20 @@ public:
 	 * @param B The second interval.
 	 * @return The intersection.
 	 */
-	friend FInterval Intersect( const FInterval& A, const FInterval& B )
+	friend TInterval Intersect( const TInterval& A, const TInterval& B )
 	{
 		if (A.bIsEmpty || B.bIsEmpty)
 		{
-			return FInterval();
+			return TInterval();
 		}
 
-		return FInterval(FMath::Max(A.Min, B.Min), FMath::Min(A.Max, B.Max));
+		return TInterval(FMath::Max(A.Min, B.Min), FMath::Min(A.Max, B.Max));
 	}
 };
 
-
-/* FInterval inline functions
+/* Default intervals for built-in types
  *****************************************************************************/
 
-FORCEINLINE void FInterval::Include( float X )
-{
-	if (bIsEmpty)
-	{
-		Min = X;
-		Max = X;
-		bIsEmpty = false;
-	}
-	else
-	{
-		if (X < Min)
-		{
-			Min = X;
-		}
-
-		if (X > Max)
-		{
-			Max = X;
-		}
-	}
-}
+typedef TInterval<float> FInterval;
+typedef TInterval<float> FFloatInterval;
+typedef TInterval<int32> FInt32Interval;
