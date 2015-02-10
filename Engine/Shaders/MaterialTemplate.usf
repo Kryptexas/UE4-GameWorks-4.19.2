@@ -848,11 +848,15 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 /** Vertex offset for SpeedTree wind and LOD */
 float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, bool bUsePreviousFrame) 
 {
+#if VF_SUPPORTS_SPEEDTREE_WIND
 	if (bUsePreviousFrame)
 	{
 		return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, GetPreviousSpeedTreeData());
 	}
 	return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, GetCurrentSpeedTreeData());
+#else
+	return 0;
+#endif
 }
 
 #endif
