@@ -230,6 +230,9 @@ private:
 
 	/** Delegate to hook us into non-structural Blueprint object post-change events */
 	void OnObjectPropertyChanged(UObject* InObject, FPropertyChangedEvent& InPropertyChangedEvent);
+
+	/** Helper function indicating whehter we're in editing mode, and can modify the target blueprint */
+	bool IsEditingMode() const;
 private:
 	/** Pointer back to the blueprint editor that owns us */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
