@@ -13,6 +13,10 @@
 #include "Engine/PackageMapClient.h"
 #include "GameFramework/GameMode.h"
 
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
+
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
 -----------------------------------------------------------------------------*/
