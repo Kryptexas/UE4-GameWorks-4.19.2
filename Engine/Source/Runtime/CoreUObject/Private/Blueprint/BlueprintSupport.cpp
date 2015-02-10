@@ -46,7 +46,14 @@ bool FBlueprintSupport::UseDeferredDependencyLoading()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	static const FBoolConfigValueHelper DeferDependencyLoads(TEXT("Kismet"), TEXT("bDeferDependencyLoads"), GEngineIni);
-	return DeferDependencyLoads;
+	bool bUseDeferredDependencyLoading = DeferDependencyLoads;
+
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		static const FBoolConfigValueHelper DisableCookedBuildDefering(TEXT("Kismet"), TEXT("bForceDisableCookedDependencyDeferring"), GEngineIni);
+		bUseDeferredDependencyLoading &= !((bool)DisableCookedBuildDefering);
+	}
+	return bUseDeferredDependencyLoading;
 #else
 	return false;
 #endif
