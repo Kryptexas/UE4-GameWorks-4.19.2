@@ -250,7 +250,7 @@ public:
 	 * @param	OutKeys	- Upon return, contains the set of unique keys in this map.
 	 * @return The number of unique keys in the map.
 	 */
-	int32 GetKeys(TArray<KeyType>& OutKeys) const
+	template<typename Allocator> int32 GetKeys(TArray<KeyType, Allocator>& OutKeys) const
 	{
 		TSet<KeyType> VisitedKeys;
 		for(typename PairSetType::TConstIterator It(Pairs);It;++It)
@@ -502,7 +502,7 @@ public:
 	/**
 	 * Generates an array from the keys in this map.
 	 */
-	void GenerateKeyArray(TArray<KeyType>& OutArray) const
+	template<typename Allocator> void GenerateKeyArray(TArray<KeyType, Allocator>& OutArray) const
 	{
 		OutArray.Empty(Pairs.Num());
 		for(typename PairSetType::TConstIterator PairIt(Pairs);PairIt;++PairIt)
@@ -514,7 +514,7 @@ public:
 	/**
 	 * Generates an array from the values in this map.
 	 */
-	void GenerateValueArray(TArray<ValueType>& OutArray) const
+	template<typename Allocator> void GenerateValueArray(TArray<ValueType, Allocator>& OutArray) const
 	{
 		OutArray.Empty(Pairs.Num());
 		for(typename PairSetType::TConstIterator PairIt(Pairs);PairIt;++PairIt)
@@ -970,7 +970,7 @@ public:
 	 * @param OutValues - Upon return, contains the values associated with the key.
 	 * @param bMaintainOrder - true if the Values array should be in the same order as the map's pairs.
 	 */
-	void MultiFind(KeyInitType Key,TArray<ValueType>& OutValues,bool bMaintainOrder = false) const
+	template<typename Allocator> void MultiFind(KeyInitType Key,TArray<ValueType, Allocator>& OutValues,bool bMaintainOrder = false) const
 	{
 		for(typename Super::PairSetType::TConstKeyIterator It(Super::Pairs,Key);It;++It)
 		{
@@ -980,7 +980,7 @@ public:
 		if(bMaintainOrder)
 		{
 			// Create an array with the values in reverse enumerated order; i.e. the order they were inserted in the map.
-			TArray<ValueType> OrderedValues;
+			TArray<ValueType, Allocator> OrderedValues;
 			OrderedValues.Empty(OutValues.Num());
 			for(int32 Index = OutValues.Num() - 1;Index >= 0;Index--)
 			{
