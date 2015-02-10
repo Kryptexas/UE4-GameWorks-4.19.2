@@ -2034,7 +2034,7 @@ FName UK2Node_CallFunction::GetPaletteIcon(FLinearColor& OutColor) const
 
 bool UK2Node_CallFunction::ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins)
 {
-	if (bIsPureFunc)
+	if (IsNodePure())
 	{
 		// look for an old exec pin
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
