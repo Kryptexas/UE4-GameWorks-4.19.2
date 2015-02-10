@@ -2658,7 +2658,7 @@ public class GUBP : BuildCommand
         }
         public override int CISFrequencyQuantumShift(GUBP bp)
         {
-            return base.CISFrequencyQuantumShift(bp) + 3 + (bIsMassive ? 1 : 0);
+            return base.CISFrequencyQuantumShift(bp) + 4 + (bIsMassive ? 1 : 0);
         }
         public override float Priority()
         {
