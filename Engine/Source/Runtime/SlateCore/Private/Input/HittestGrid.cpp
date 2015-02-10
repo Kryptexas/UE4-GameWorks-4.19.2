@@ -228,7 +228,7 @@ void FHittestGrid::ClearGridForNewFrame( const FSlateRect& HittestArea )
 	GridOrigin = HittestArea.GetTopLeft();
 	const FVector2D GridSize = HittestArea.GetSize();
 	NumCells = FIntPoint( FMath::CeilToInt(GridSize.X / CellSize.X), FMath::CeilToInt(GridSize.Y / CellSize.Y) );
-	WidgetsCachedThisFrame->Empty();
+	WidgetsCachedThisFrame->Empty(WidgetsCachedThisFrame->Num());
 	Cells.Reset( NumCells.X * NumCells.Y );	
 	Cells.SetNum( NumCells.X * NumCells.Y );
 }
