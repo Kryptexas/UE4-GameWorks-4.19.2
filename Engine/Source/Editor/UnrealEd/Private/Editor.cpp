@@ -5132,7 +5132,8 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 		AActor* NewActor = NULL;
 
 		const FName OldActorName = OldActor->GetFName();
-		OldActor->Rename(*FString::Printf(TEXT("%s_REPLACED"), *OldActorName.ToString()));
+		const FName RenamedActorName = MakeUniqueObjectName( OldActor->GetOuter(), OldActor->GetClass(), *FString::Printf(TEXT("%s_REPLACED"), *OldActorName.ToString()) );
+		OldActor->Rename(*RenamedActorName.ToString());
 
 		const FTransform OldTransform = OldActor->ActorToWorld();
 
