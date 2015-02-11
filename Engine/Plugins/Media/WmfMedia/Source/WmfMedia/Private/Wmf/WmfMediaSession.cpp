@@ -12,7 +12,6 @@ FWmfMediaSession::FWmfMediaSession( const FTimespan& InDuration, const TComPtr<I
 	, ChangeRequested(false)
 	, CurrentRate(0.0f)
 	, Duration(InDuration)
-	, LastError(S_OK)
 	, Looping(false)
 	, RefCount(0)
 	, RequestedPosition(FTimespan::MinValue())
@@ -211,7 +210,8 @@ STDMETHODIMP FWmfMediaSession::Invoke( IMFAsyncResult* AsyncResult )
 		}
 		else if (EventType == MEError)
 		{
-			LastError = EventResult;
+			ErrorEvent.Broadcast(EventResult);
+			UpdateState(EMediaStates::Error);
 		}
 		else
 		{
