@@ -49,9 +49,9 @@ void FGraphEditorSummoner::SaveState(TSharedPtr<SDockTab> Tab, TSharedPtr<FTabPa
 	float ZoomAmount;
 	GraphEditor->GetViewLocation(ViewLocation, ZoomAmount);
 
-	UEdGraph* Graph = FTabPayload_UObject::CastChecked<UEdGraph>(Payload);
+	UEdGraph* Graph = Payload->IsValid() ? FTabPayload_UObject::CastChecked<UEdGraph>(Payload) : nullptr;
 
-	if (BlueprintEditorPtr.Pin()->IsGraphInCurrentBlueprint(Graph))
+	if (Graph && BlueprintEditorPtr.Pin()->IsGraphInCurrentBlueprint(Graph))
 	{
 		// Don't save references to external graphs.
 		BlueprintEditorPtr.Pin()->GetBlueprintObj()->LastEditedDocuments.Add(FEditedDocumentInfo(Graph, ViewLocation, ZoomAmount));
