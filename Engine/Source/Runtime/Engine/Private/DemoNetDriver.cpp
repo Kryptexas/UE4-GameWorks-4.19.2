@@ -16,6 +16,7 @@
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Engine/GameInstance.h"
 #include "NetworkReplayStreaming.h"
+#include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 
@@ -167,7 +168,9 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
 	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
 
-	ReplayStreamer->StartStreaming( DemoFilename, false, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
+	FString VersionString = FString::Printf( TEXT( "%s_%u" ), FApp::GetGameName(), FNetworkVersion::GetLocalNetworkVersion() );
+
+	ReplayStreamer->StartStreaming( DemoFilename, false, VersionString, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
 
 	return true;
 }
@@ -339,7 +342,9 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	Connection->InitSendBuffer();
 	ClientConnections.Add( Connection );
 
-	ReplayStreamer->StartStreaming( DemoFilename, true, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
+	FString VersionString = FString::Printf( TEXT( "%s_%u" ), FApp::GetGameName(), FNetworkVersion::GetLocalNetworkVersion() );
+
+	ReplayStreamer->StartStreaming( DemoFilename, true, VersionString, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
 
 	FArchive* FileAr = ReplayStreamer->GetHeaderArchive();
 

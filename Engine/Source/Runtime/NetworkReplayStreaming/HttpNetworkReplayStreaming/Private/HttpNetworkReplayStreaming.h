@@ -39,7 +39,7 @@ public:
 	{}
 
 	/** INetworkReplayStreamer implementation */
-	virtual void		StartStreaming( FString& StreamName, bool bRecord, const FOnStreamReadyDelegate& Delegate ) override;
+	virtual void		StartStreaming( const FString& StreamName, bool bRecord, const FString& VersionString, const FOnStreamReadyDelegate& Delegate ) override;
 	virtual void		StopStreaming() override;
 	virtual FArchive*	GetHeaderArchive() override;
 	virtual FArchive*	GetStreamingArchive() override;
@@ -93,6 +93,7 @@ public:
 	HttpStreamFArchive		HeaderArchive;			// Archive used to buffer the header stream
 	HttpStreamFArchive		StreamArchive;			// Archive used to buffer the data stream
 	FString					SessionName;			// Name of the session on the http replay server
+	FString					SessionVersion;			// Version of the session
 	FString					ServerURL;				// The address of the server
 	int32					StreamFileCount;		// Used as a counter to increment the stream.x extension count
 	double					LastChunkTime;			// The last time we uploaded/downloaded a chunk
