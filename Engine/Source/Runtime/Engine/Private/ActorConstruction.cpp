@@ -467,7 +467,7 @@ void AActor::RerunConstructionScripts()
 			}
 		}
 
-		if (OldToNewComponentMapping.Num() > 0)
+		if (GEditor && (OldToNewComponentMapping.Num() > 0))
 		{
 			GEditor->NotifyToolsOfObjectReplacement(OldToNewComponentMapping);
 		}
