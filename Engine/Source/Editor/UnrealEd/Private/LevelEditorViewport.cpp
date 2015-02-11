@@ -1232,9 +1232,9 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 			{
 				FNavigationLockContext LockNavigationUpdates(TargetActor->GetWorld(), ENavigationLockReason::SpawnOnDragEnter, bCreateDropPreview);
 
-				// If more than one actor is selected and the target actor is one of them, we should drop onto all selected actors
+				// If the target actor is selected, we should drop onto all selected actors
 				// otherwise, we should drop only onto the target object
-				const bool bDropOntoSelectedActors = TargetActor->IsSelected() && GEditor->GetSelectedActorCount() > 1;
+				const bool bDropOntoSelectedActors = TargetActor->IsSelected();
 				const bool bCanApplyToComponent = AttemptApplyObjToComponent(DroppedObjects[0], TargetComponent, TargetMaterialSlot, true);
 				if (bOnlyDropOnTarget || !bDropOntoSelectedActors || !bCanApplyToComponent)
 				{
