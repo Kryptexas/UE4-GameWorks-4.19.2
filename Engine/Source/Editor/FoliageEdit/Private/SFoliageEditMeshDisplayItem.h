@@ -112,7 +112,7 @@ private:
 
 	/** Returns the tool-tip to use for the save settings button. */
 	FText GetSaveSettingsTooltip() const;
-	EVisibility IsSaveSettingsVisible() const;
+	bool IsSaveSettingsEnabled() const;
 
 	/** Determines what properties to display in the details panel. */
 	bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent) const;

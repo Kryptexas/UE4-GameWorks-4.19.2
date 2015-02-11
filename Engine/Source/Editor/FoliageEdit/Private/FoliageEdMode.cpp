@@ -420,7 +420,7 @@ void FEdModeFoliage::GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd)
 static bool CheckLocationForPotentialInstance_ThreadSafe(const UFoliageType* Settings, const FVector& Location, const FVector& Normal)
 {
 	// Check height range
-	if (Location.Z < Settings->HeightMin || Location.Z > Settings->HeightMax)
+	if (!Settings->Height.Contains(Location.Z))
 	{
 		return false;
 	}
@@ -1280,7 +1280,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 			{
 				if (Settings->ReapplyScaleX)
 				{
-					float Scale = Settings->ScaleMinX + FMath::FRand() * (Settings->ScaleMaxX - Settings->ScaleMinX);
+					float Scale = Settings->ScaleX.Interpolate(FMath::FRand());
 					Instance.DrawScale3D = FVector(Scale, Scale, Scale);
 					bUpdated = true;
 				}
@@ -1289,17 +1289,17 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 			{
 				float LockRand;
 				// If we're doing axis scale locking, get an existing scale for a locked axis that we're not changing, for use as the locked scale value.
-				if (Settings->LockScaleX && !Settings->ReapplyScaleX && (Settings->ScaleMaxX - Settings->ScaleMinX) > KINDA_SMALL_NUMBER)
+				if (Settings->LockScaleX && !Settings->ReapplyScaleX && Settings->ScaleX.Size() > KINDA_SMALL_NUMBER)
 				{
-					LockRand = (Instance.DrawScale3D.X - Settings->ScaleMinX) / (Settings->ScaleMaxX - Settings->ScaleMinX);
+					LockRand = (Instance.DrawScale3D.X - Settings->ScaleX.Min) / Settings->ScaleX.Size();
 				}
-				else if (Settings->LockScaleY && !Settings->ReapplyScaleY && (Settings->ScaleMaxY - Settings->ScaleMinY) > KINDA_SMALL_NUMBER)
+				else if (Settings->LockScaleY && !Settings->ReapplyScaleY && Settings->ScaleY.Size() > KINDA_SMALL_NUMBER)
 				{
-					LockRand = (Instance.DrawScale3D.Y - Settings->ScaleMinY) / (Settings->ScaleMaxY - Settings->ScaleMinY);
+					LockRand = (Instance.DrawScale3D.Y - Settings->ScaleY.Min) / Settings->ScaleY.Size();
 				}
-				else if (Settings->LockScaleZ && !Settings->ReapplyScaleZ && (Settings->ScaleMaxZ - Settings->ScaleMinZ) > KINDA_SMALL_NUMBER)
+				else if (Settings->LockScaleZ && !Settings->ReapplyScaleZ && Settings->ScaleZ.Size() > KINDA_SMALL_NUMBER)
 				{
-					LockRand = (Instance.DrawScale3D.Z - Settings->ScaleMinZ) / (Settings->ScaleMaxZ - Settings->ScaleMinZ);
+					LockRand = (Instance.DrawScale3D.Z - Settings->ScaleZ.Min) / Settings->ScaleZ.Size();
 				}
 				else
 				{
@@ -1308,26 +1308,26 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 
 				if (Settings->ReapplyScaleX)
 				{
-					Instance.DrawScale3D.X = Settings->ScaleMinX + (Settings->LockScaleX ? LockRand : FMath::FRand()) * (Settings->ScaleMaxX - Settings->ScaleMinX);
+					Instance.DrawScale3D.X = Settings->ScaleX.Interpolate(Settings->LockScaleX ? LockRand : FMath::FRand());
 					bUpdated = true;
 				}
 
 				if (Settings->ReapplyScaleY)
 				{
-					Instance.DrawScale3D.Y = Settings->ScaleMinY + (Settings->LockScaleY ? LockRand : FMath::FRand()) * (Settings->ScaleMaxY - Settings->ScaleMinY);
+					Instance.DrawScale3D.Y = Settings->ScaleY.Interpolate(Settings->LockScaleY ? LockRand : FMath::FRand());
 					bUpdated = true;
 				}
 
 				if (Settings->ReapplyScaleZ)
 				{
-					Instance.DrawScale3D.Z = Settings->ScaleMinZ + (Settings->LockScaleZ ? LockRand : FMath::FRand()) * (Settings->ScaleMaxZ - Settings->ScaleMinZ);
+					Instance.DrawScale3D.Z = Settings->ScaleZ.Interpolate(Settings->LockScaleZ ? LockRand : FMath::FRand());
 					bUpdated = true;
 				}
 			}
 
 			if (Settings->ReapplyZOffset)
 			{
-				Instance.ZOffset = Settings->ZOffsetMin + FMath::FRand() * (Settings->ZOffsetMax - Settings->ZOffsetMin);
+				Instance.ZOffset = Settings->ZOffset.Interpolate(FMath::FRand());
 				bUpdated = true;
 			}
 
@@ -1416,7 +1416,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 			// Cull instances that don't meet the height range
 			if (Settings->ReapplyHeight)
 			{
-				if (Instance.Location.Z < Settings->HeightMin || Instance.Location.Z > Settings->HeightMax)
+				if (!Settings->Height.Contains(Instance.Location.Z))
 				{
 					InstancesToDelete.Add(InstanceIndex);
 					if (bReapplyLocation)

@@ -32,22 +32,16 @@ class UFoliageType : public UObject
 	float Radius;
 
 	UPROPERTY(EditAnywhere, Category=Painting)
-	float ScaleMinX;
+	FFloatInterval ScaleX;
 
 	UPROPERTY(EditAnywhere, Category=Painting)
-	float ScaleMinY;
+	FFloatInterval ScaleY;
 
 	UPROPERTY(EditAnywhere, Category=Painting)
-	float ScaleMinZ;
+	FFloatInterval ScaleZ;
 
 	UPROPERTY(EditAnywhere, Category=Painting)
-	float ScaleMaxX;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
-	float ScaleMaxY;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
-	float ScaleMaxZ;
+	uint32 UniformScale:1;
 
 	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 LockScaleX:1;
@@ -58,48 +52,39 @@ class UFoliageType : public UObject
 	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 LockScaleZ:1;
 
-	UPROPERTY(EditAnywhere, Category=General, meta=(Subcategory = "Placement"))
+	UPROPERTY(EditAnywhere, Category=Painting)
 	float AlignMaxAngle;
 
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	UPROPERTY(EditAnywhere, Category=Painting)
 	float RandomPitchAngle;
 
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	UPROPERTY(EditAnywhere, Category=Painting)
 	float GroundSlope;
 
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	UPROPERTY(EditAnywhere, Category=Painting)
 	float MinGroundSlope;
 
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
-	float HeightMin;
+	UPROPERTY(EditAnywhere, Category=Painting)
+	FFloatInterval Height;
 
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
-	float HeightMax;
-
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	UPROPERTY(EditAnywhere, Category=Painting)
 	TArray<FName> LandscapeLayers;
 
 	UPROPERTY()
 	FName LandscapeLayer_DEPRECATED;
 	
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	UPROPERTY(EditAnywhere, Category=Painting)
 	float MinimumLayerWeight;
 
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 AlignToNormal:1;
 
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Placement"))
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 RandomYaw:1;
 
 	UPROPERTY(EditAnywhere, Category=Painting)
-	uint32 UniformScale:1;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
-	float ZOffsetMin;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
-	float ZOffsetMax;
-
+	FFloatInterval ZOffset;
+	
 	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 CollisionWithWorld:1;
 
@@ -167,17 +152,13 @@ class UFoliageType : public UObject
 	UPROPERTY()
 	uint32 ReapplyVertexColorMask:1;
 
-	/* The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables. */
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Culling"))
-	int32 StartCullDistance;
-
 	/**
-	 * The distance where instances will have completely faded out when using a PerInstanceFadeAmount material node. 0 disables. 
+	 * The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables.
 	 * When the entire cluster is beyond this distance, the cluster is completely culled and not rendered at all.
 	 */
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Culling"))
-	int32 EndCullDistance;
-
+	UPROPERTY(EditAnywhere, Category = General)
+	FInt32Interval CullDistance;
+	
 	UPROPERTY()
 	int32 DisplayOrder;
 
@@ -234,7 +215,7 @@ class UFoliageType : public UObject
 	int32 OverriddenLightMapRes;
 
 	/** Custom collision for foliage */
-	UPROPERTY(EditAnywhere, Category = Painting, meta = (Subcategory = "Collision", HideObjectType = true))
+	UPROPERTY(EditAnywhere, Category = General, meta = (HideObjectType = true))
 	struct FBodyInstance BodyInstance;
 
 	/* Gets/Sets the mesh associated with this FoliageType */
@@ -327,6 +308,45 @@ private:
 	/** The curve used to interpolate the instance scale.*/
 	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth"))
 	FRuntimeFloatCurve ScaleCurve;
+	
+	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	float ScaleMinX_DEPRECATED;
+
+	UPROPERTY()
+	float ScaleMinY_DEPRECATED;
+
+	UPROPERTY()
+	float ScaleMinZ_DEPRECATED;
+
+	UPROPERTY()
+	float ScaleMaxX_DEPRECATED;
+
+	UPROPERTY()
+	float ScaleMaxY_DEPRECATED;
+
+	UPROPERTY()
+	float ScaleMaxZ_DEPRECATED;
+
+	UPROPERTY()
+	float HeightMin_DEPRECATED;
+
+	UPROPERTY()
+	float HeightMax_DEPRECATED;
+
+	UPROPERTY()
+	float ZOffsetMin_DEPRECATED;
+
+	UPROPERTY()
+	float ZOffsetMax_DEPRECATED;
+
+	UPROPERTY()
+	int32 StartCullDistance_DEPRECATED;
+	
+	UPROPERTY()
+	int32 EndCullDistance_DEPRECATED;
+#endif// WITH_EDITORONLY_DATA
 };
 
 

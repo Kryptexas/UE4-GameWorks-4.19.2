@@ -42,6 +42,8 @@ struct FFoliageCustomVersion
 		ProceduralGuid = 4,
 		// Support for cross-level bases 
 		CrossLevelBase = 5,
+		// FoliageType for details customization
+		FoliageTypeCustomization = 6,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -252,19 +254,19 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	AlignToNormal = true;
 	RandomYaw = true;
 	UniformScale = true;
-	ScaleMinX = 1.0f;
-	ScaleMinY = 1.0f;
-	ScaleMinZ = 1.0f;
-	ScaleMaxX = 1.0f;
-	ScaleMaxY = 1.0f;
-	ScaleMaxZ = 1.0f;
+	ScaleX.Min = 1.0f;
+	ScaleY.Min = 1.0f;
+	ScaleZ.Min = 1.0f;
+	ScaleX.Max = 1.0f;
+	ScaleY.Max = 1.0f;
+	ScaleZ.Max = 1.0f;
 	AlignMaxAngle = 0.0f;
 	RandomPitchAngle = 0.0f;
 	GroundSlope = 45.0f;
-	HeightMin = -262144.0f;
-	HeightMax = 262144.0f;
-	ZOffsetMin = 0.0f;
-	ZOffsetMax = 0.0f;
+	Height.Min = -262144.0f;
+	Height.Max = 262144.0f;
+	ZOffset.Min = 0.0f;
+	ZOffset.Max = 0.0f;
 	MinimumLayerWeight = 0.5f;
 	DisplayOrder = 0;
 	IsSelected = false;
@@ -313,17 +315,56 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	Curve->AddKey(1.f, 1.f);
 
 	UpdateGuid = FGuid::NewGuid();
+
+	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
+#if WITH_EDITORONLY_DATA
+	ScaleMinX_DEPRECATED = 1.0f;
+	ScaleMinY_DEPRECATED = 1.0f;
+	ScaleMinZ_DEPRECATED = 1.0f;
+	ScaleMaxX_DEPRECATED = 1.0f;
+	ScaleMaxY_DEPRECATED = 1.0f;
+	ScaleMaxZ_DEPRECATED = 1.0f;
+	HeightMin_DEPRECATED = -262144.0f;
+	HeightMax_DEPRECATED = 262144.0f;
+	ZOffsetMin_DEPRECATED = 0.0f;
+	ZOffsetMax_DEPRECATED = 0.0f;
+#endif// WITH_EDITORONLY_DATA
 }
 
 void UFoliageType::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FFoliageCustomVersion::GUID);
+
 	if (LandscapeLayer_DEPRECATED != NAME_None && LandscapeLayers.Num() == 0)	//we now store an array of names so initialize the array with the old name
 	{
 		LandscapeLayers.Add(LandscapeLayer_DEPRECATED);
 		LandscapeLayer_DEPRECATED = NAME_None;
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (Ar.IsLoading() && Ar.CustomVer(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageTypeCustomization)
+	{
+		ScaleX.Min = ScaleMinX_DEPRECATED;
+		ScaleX.Max = ScaleMaxX_DEPRECATED;
+
+		ScaleY.Min = ScaleMinY_DEPRECATED;
+		ScaleY.Max = ScaleMaxY_DEPRECATED;
+
+		ScaleZ.Min = ScaleMinZ_DEPRECATED;
+		ScaleZ.Max = ScaleMaxZ_DEPRECATED;
+
+		Height.Min = HeightMin_DEPRECATED;
+		Height.Max = HeightMax_DEPRECATED;
+
+		ZOffset.Min = ZOffsetMin_DEPRECATED;
+		ZOffset.Max = ZOffsetMax_DEPRECATED;
+
+		CullDistance.Min = StartCullDistance_DEPRECATED;
+		CullDistance.Max = EndCullDistance_DEPRECATED;
+	}
+#endif// WITH_EDITORONLY_DATA
 }
 
 
@@ -483,8 +524,8 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 	if (Component)
 	{
 		Component->Mobility = InSettings->bEnableStaticLighting ? EComponentMobility::Static : EComponentMobility::Movable;
-		Component->InstanceStartCullDistance = InSettings->StartCullDistance;
-		Component->InstanceEndCullDistance = InSettings->EndCullDistance;
+		Component->InstanceStartCullDistance = InSettings->CullDistance.Min;
+		Component->InstanceEndCullDistance = InSettings->CullDistance.Max;
 
 		Component->CastShadow = InSettings->CastShadow;
 		Component->bCastDynamicShadow = InSettings->bCastDynamicShadow;
@@ -2109,15 +2150,15 @@ bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType
 	{
 		if (Settings->UniformScale)
 		{
-			float Scale = Settings->ScaleMinX + FMath::FRand() * (Settings->ScaleMaxX - Settings->ScaleMinX);
+			float Scale = Settings->ScaleX.Interpolate(FMath::FRand());
 			Inst.DrawScale3D = FVector(Scale, Scale, Scale);
 		}
 		else
 		{
 			float LockRand = FMath::FRand();
-			Inst.DrawScale3D.X = Settings->ScaleMinX + (Settings->LockScaleX ? LockRand : FMath::FRand()) * (Settings->ScaleMaxX - Settings->ScaleMinX);
-			Inst.DrawScale3D.Y = Settings->ScaleMinY + (Settings->LockScaleY ? LockRand : FMath::FRand()) * (Settings->ScaleMaxY - Settings->ScaleMinY);
-			Inst.DrawScale3D.Z = Settings->ScaleMinZ + (Settings->LockScaleZ ? LockRand : FMath::FRand()) * (Settings->ScaleMaxZ - Settings->ScaleMinZ);
+			Inst.DrawScale3D.X = Settings->ScaleX.Interpolate(Settings->LockScaleX ? LockRand : FMath::FRand());
+			Inst.DrawScale3D.Y = Settings->ScaleY.Interpolate(Settings->LockScaleY ? LockRand : FMath::FRand());
+			Inst.DrawScale3D.Z = Settings->ScaleZ.Interpolate(Settings->LockScaleZ ? LockRand : FMath::FRand());
 		}
 	}
 	else
@@ -2126,8 +2167,7 @@ bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType
 		Inst.DrawScale3D = FVector(Settings->GetScaleForAge(DesiredInstance.Age));
 	}
 
-
-	Inst.ZOffset = Settings->ZOffsetMin + FMath::FRand() * (Settings->ZOffsetMax - Settings->ZOffsetMin);
+	Inst.ZOffset = Settings->ZOffset.Interpolate(FMath::FRand());
 
 	Inst.Location = HitLocation;
 

@@ -1611,7 +1611,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 						SNew(SButton)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnSaveSettings)
-						.Visibility(this, &SFoliageEditMeshDisplayItem::IsSaveSettingsVisible)
+						.IsEnabled(this, &SFoliageEditMeshDisplayItem::IsSaveSettingsEnabled)
 						.ToolTipText(this, &SFoliageEditMeshDisplayItem::GetSaveSettingsTooltip)
 						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.SaveSettings"), "LevelEditorToolbox"))
 						[
@@ -1911,9 +1911,14 @@ FText SFoliageEditMeshDisplayItem::GetSaveSettingsTooltip() const
 	return FText();
 }
 
-EVisibility SFoliageEditMeshDisplayItem::IsSaveSettingsVisible() const
+bool SFoliageEditMeshDisplayItem::IsSaveSettingsEnabled() const
 {
-	return !FoliageSettingsPtr->IsAsset() ? EVisibility::Visible : EVisibility::Collapsed;
+	if (!FoliageSettingsPtr->IsAsset() || FoliageSettingsPtr->GetOutermost()->IsDirty())
+	{
+		return true;
+	}
+
+	return false;
 }
 
 bool SFoliageEditMeshDisplayItem::IsPropertyVisible(const FPropertyAndParent& PropertyAndParent) const
@@ -1992,6 +1997,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsDensityReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnDensityChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->Density = InValue;
 }
 
@@ -2002,6 +2008,7 @@ float SFoliageEditMeshDisplayItem::GetDensity() const
 
 void SFoliageEditMeshDisplayItem::OnDensityReapplyChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyDensityAmount = InValue;
 }
 
@@ -2012,6 +2019,7 @@ float SFoliageEditMeshDisplayItem::GetDensityReapply() const
 
 void SFoliageEditMeshDisplayItem::OnRadiusReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyRadius = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2022,6 +2030,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsRadiusReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnRadiusChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->Radius = InValue;
 }
 
@@ -2032,6 +2041,7 @@ float SFoliageEditMeshDisplayItem::GetRadius() const
 
 void SFoliageEditMeshDisplayItem::OnAlignToNormalReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyAlignToNormal = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2042,6 +2052,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsAlignToNormalReapplyChecked() cons
 
 void SFoliageEditMeshDisplayItem::OnAlignToNormal(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	if (InState == ECheckBoxState::Checked)
 	{
 		FoliageSettingsPtr->AlignToNormal = true;
@@ -2064,6 +2075,7 @@ EVisibility SFoliageEditMeshDisplayItem::IsAlignToNormalVisible() const
 
 void SFoliageEditMeshDisplayItem::OnMaxAngleChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->AlignMaxAngle = InValue;
 }
 
@@ -2074,6 +2086,7 @@ float SFoliageEditMeshDisplayItem::GetMaxAngle() const
 
 void SFoliageEditMeshDisplayItem::OnRandomYawReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyRandomYaw = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2084,6 +2097,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsRandomYawReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnRandomYaw(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	if (InState == ECheckBoxState::Checked)
 	{
 		FoliageSettingsPtr->RandomYaw = true;
@@ -2101,12 +2115,13 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsRandomYawChecked() const
 
 void SFoliageEditMeshDisplayItem::OnUniformScale(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	if (InState == ECheckBoxState::Checked)
 	{
 		FoliageSettingsPtr->UniformScale = true;
 
-		FoliageSettingsPtr->ScaleMinY = FoliageSettingsPtr->ScaleMinX;
-		FoliageSettingsPtr->ScaleMinZ = FoliageSettingsPtr->ScaleMinX;
+		FoliageSettingsPtr->ScaleY = FoliageSettingsPtr->ScaleX;
+		FoliageSettingsPtr->ScaleZ = FoliageSettingsPtr->ScaleX;
 	}
 	else
 	{
@@ -2121,6 +2136,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsUniformScaleChecked() const
 
 void SFoliageEditMeshDisplayItem::OnScaleUniformReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyScaleX = InState == ECheckBoxState::Checked ? true : false;
 	FoliageSettingsPtr->ReapplyScaleY = InState == ECheckBoxState::Checked ? true : false;
 	FoliageSettingsPtr->ReapplyScaleZ = InState == ECheckBoxState::Checked ? true : false;
@@ -2133,38 +2149,37 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleUniformReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnScaleUniformMinChanged(float InValue)
 {
-	FoliageSettingsPtr->ScaleMinX = InValue;
-	FoliageSettingsPtr->ScaleMinY = InValue;
-	FoliageSettingsPtr->ScaleMinZ = InValue;
-
-	FoliageSettingsPtr->ScaleMaxX = FMath::Max(FoliageSettingsPtr->ScaleMaxX, InValue);
-	FoliageSettingsPtr->ScaleMaxY = FoliageSettingsPtr->ScaleMaxX;
-	FoliageSettingsPtr->ScaleMaxZ = FoliageSettingsPtr->ScaleMaxX;
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ScaleX.Min = InValue;
+	FoliageSettingsPtr->ScaleX.Include(InValue);
+	
+	FoliageSettingsPtr->ScaleY = FoliageSettingsPtr->ScaleX;
+	FoliageSettingsPtr->ScaleZ = FoliageSettingsPtr->ScaleX;
 }
 
 float SFoliageEditMeshDisplayItem::GetScaleUniformMin() const
 {
-	return FoliageSettingsPtr->ScaleMinX;
+	return FoliageSettingsPtr->ScaleX.Min;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleUniformMaxChanged(float InValue)
 {
-	FoliageSettingsPtr->ScaleMaxX = InValue;
-	FoliageSettingsPtr->ScaleMaxY = InValue;
-	FoliageSettingsPtr->ScaleMaxZ = InValue;
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ScaleX.Max = InValue;
+	FoliageSettingsPtr->ScaleX.Include(InValue);
 
-	FoliageSettingsPtr->ScaleMinX = FMath::Min(FoliageSettingsPtr->ScaleMinX, InValue);
-	FoliageSettingsPtr->ScaleMinY = FoliageSettingsPtr->ScaleMinX;
-	FoliageSettingsPtr->ScaleMinZ = FoliageSettingsPtr->ScaleMinX;
+	FoliageSettingsPtr->ScaleY = FoliageSettingsPtr->ScaleX;
+	FoliageSettingsPtr->ScaleZ = FoliageSettingsPtr->ScaleX;
 }
 
 float SFoliageEditMeshDisplayItem::GetScaleUniformMax() const
 {
-	return FoliageSettingsPtr->ScaleMaxX;
+	return FoliageSettingsPtr->ScaleX.Max;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleXReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyScaleX = InState == ECheckBoxState::Checked;
 }
 
@@ -2175,26 +2190,26 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleXReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnScaleXMinChanged(float InValue)
 {
-	FoliageSettingsPtr->ScaleMinX = InValue;
-
-	FoliageSettingsPtr->ScaleMaxX = FMath::Max(FoliageSettingsPtr->ScaleMaxX, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ScaleX.Min = InValue;
+	FoliageSettingsPtr->ScaleX.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetScaleXMin() const
 {
-	return FoliageSettingsPtr->ScaleMinX;
+	return FoliageSettingsPtr->ScaleX.Min;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleXMaxChanged(float InValue)
 {
-	FoliageSettingsPtr->ScaleMaxX = InValue;
-
-	FoliageSettingsPtr->ScaleMinX = FMath::Min(FoliageSettingsPtr->ScaleMinX, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ScaleX.Max = InValue;
+	FoliageSettingsPtr->ScaleX.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetScaleXMax() const
 {
-	return FoliageSettingsPtr->ScaleMaxX;
+	return FoliageSettingsPtr->ScaleX.Max;
 }
 
 ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleXLockedChecked() const
@@ -2204,11 +2219,13 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleXLockedChecked() const
 
 void SFoliageEditMeshDisplayItem::OnScaleXLocked(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->LockScaleX = InState == ECheckBoxState::Checked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleYReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyScaleY = InState == ECheckBoxState::Checked;
 }
 
@@ -2219,26 +2236,26 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleYReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnScaleYMinChanged(float InValue)
 {
-	FoliageSettingsPtr->ScaleMinY = InValue;
-
-	FoliageSettingsPtr->ScaleMaxY = FMath::Max(FoliageSettingsPtr->ScaleMaxY, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ScaleY.Min = InValue;
+	FoliageSettingsPtr->ScaleY.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetScaleYMin() const
 {
-	return FoliageSettingsPtr->ScaleMinY;
+	return FoliageSettingsPtr->ScaleY.Min;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleYMaxChanged(float InValue)
 {
-	FoliageSettingsPtr->ScaleMaxY = InValue;
-
-	FoliageSettingsPtr->ScaleMinY = FMath::Min(FoliageSettingsPtr->ScaleMinY, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ScaleY.Max = InValue;
+	FoliageSettingsPtr->ScaleY.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetScaleYMax() const
 {
-	return FoliageSettingsPtr->ScaleMaxY;
+	return FoliageSettingsPtr->ScaleY.Max;
 }
 
 ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleYLockedChecked() const
@@ -2248,11 +2265,13 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleYLockedChecked() const
 
 void SFoliageEditMeshDisplayItem::OnScaleYLocked(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->LockScaleY = InState == ECheckBoxState::Checked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleZReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyScaleZ = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2263,26 +2282,26 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleZReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnScaleZMinChanged(float InValue)
 {
-	FoliageSettingsPtr->ScaleMinZ = InValue;
-
-	FoliageSettingsPtr->ScaleMaxZ = FMath::Max(FoliageSettingsPtr->ScaleMaxZ, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ScaleZ.Min = InValue;
+	FoliageSettingsPtr->ScaleZ.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetScaleZMin() const
 {
-	return FoliageSettingsPtr->ScaleMinZ;
+	return FoliageSettingsPtr->ScaleZ.Min;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleZMaxChanged(float InValue)
 {
-	FoliageSettingsPtr->ScaleMaxZ = InValue;
-
-	FoliageSettingsPtr->ScaleMinZ = FMath::Min(FoliageSettingsPtr->ScaleMinZ, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ScaleZ.Max = InValue;
+	FoliageSettingsPtr->ScaleZ.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetScaleZMax() const
 {
-	return FoliageSettingsPtr->ScaleMaxZ;
+	return FoliageSettingsPtr->ScaleZ.Max;
 }
 
 ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleZLockedChecked() const
@@ -2292,11 +2311,13 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleZLockedChecked() const
 
 void SFoliageEditMeshDisplayItem::OnScaleZLocked(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->LockScaleZ = InState == ECheckBoxState::Checked;
 }
 
 void SFoliageEditMeshDisplayItem::OnZOffsetReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyZOffset = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2307,30 +2328,31 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsZOffsetReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnZOffsetMin(float InValue)
 {
-	FoliageSettingsPtr->ZOffsetMin = InValue;
-
-	FoliageSettingsPtr->ZOffsetMax = FMath::Max(FoliageSettingsPtr->ZOffsetMax, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ZOffset.Min = InValue;
+	FoliageSettingsPtr->ZOffset.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetZOffsetMin() const
 {
-	return FoliageSettingsPtr->ZOffsetMin;
+	return FoliageSettingsPtr->ZOffset.Min;
 }
 
 void SFoliageEditMeshDisplayItem::OnZOffsetMax(float InValue)
 {
-	FoliageSettingsPtr->ZOffsetMax = InValue;
-
-	FoliageSettingsPtr->ZOffsetMin = FMath::Min(FoliageSettingsPtr->ZOffsetMin, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->ZOffset.Max = InValue;
+	FoliageSettingsPtr->ZOffset.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetZOffsetMax() const
 {
-	return FoliageSettingsPtr->ZOffsetMax;
+	return FoliageSettingsPtr->ZOffset.Max;
 }
 
 void SFoliageEditMeshDisplayItem::OnRandomPitchReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyRandomPitchAngle = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2341,6 +2363,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsRandomPitchReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnRandomPitchChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->RandomPitchAngle = InValue;
 }
 
@@ -2351,6 +2374,7 @@ float SFoliageEditMeshDisplayItem::GetRandomPitch() const
 
 void SFoliageEditMeshDisplayItem::OnGroundSlopeReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyGroundSlope = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2361,6 +2385,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsGroundSlopeReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnGroundSlopeChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->GroundSlope = InValue;
 }
 
@@ -2371,6 +2396,7 @@ float SFoliageEditMeshDisplayItem::GetGroundSlope() const
 
 void SFoliageEditMeshDisplayItem::OnHeightReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyHeight = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2381,30 +2407,31 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsHeightReapplyChecked() const
 
 void SFoliageEditMeshDisplayItem::OnHeightMinChanged(float InValue)
 {
-	FoliageSettingsPtr->HeightMin = InValue;
-
-	FoliageSettingsPtr->HeightMax = FMath::Max(FoliageSettingsPtr->HeightMax, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->Height.Min = InValue;
+	FoliageSettingsPtr->Height.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetHeightMin() const
 {
-	return FoliageSettingsPtr->HeightMin;
+	return FoliageSettingsPtr->Height.Min;
 }
 
 void SFoliageEditMeshDisplayItem::OnHeightMaxChanged(float InValue)
 {
-	FoliageSettingsPtr->HeightMax = InValue;
-
-	FoliageSettingsPtr->HeightMin = FMath::Min(FoliageSettingsPtr->HeightMin, InValue);
+	FoliageSettingsPtr->Modify();
+	FoliageSettingsPtr->Height.Max = InValue;
+	FoliageSettingsPtr->Height.Include(InValue);
 }
 
 float SFoliageEditMeshDisplayItem::GetHeightMax() const
 {
-	return FoliageSettingsPtr->HeightMax;
+	return FoliageSettingsPtr->Height.Max;
 }
 
 void SFoliageEditMeshDisplayItem::OnLandscapeLayerReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyLandscapeLayer = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2415,6 +2442,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsLandscapeLayerReapplyChecked() con
 
 void SFoliageEditMeshDisplayItem::OnLandscapeLayerChanged(const FText& InValue)
 {
+	FoliageSettingsPtr->Modify();
 	if (FoliageSettingsPtr->LandscapeLayers.Num() == 0)
 	{
 		FoliageSettingsPtr->LandscapeLayers.AddUninitialized(1);
@@ -2436,6 +2464,7 @@ FText SFoliageEditMeshDisplayItem::GetLandscapeLayer() const
 
 void SFoliageEditMeshDisplayItem::OnCollisionWithWorld(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	if (InState == ECheckBoxState::Checked)
 	{
 		FoliageSettingsPtr->CollisionWithWorld = true;
@@ -2458,6 +2487,7 @@ EVisibility SFoliageEditMeshDisplayItem::IsCollisionWithWorldVisible() const
 
 void SFoliageEditMeshDisplayItem::OnCollisionWithWorldReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyCollisionWithWorld = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2468,16 +2498,19 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsCollisionWithWorldReapplyChecked()
 
 void SFoliageEditMeshDisplayItem::OnCollisionScaleXChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->CollisionScale.X = InValue;
 }
 
 void SFoliageEditMeshDisplayItem::OnCollisionScaleYChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->CollisionScale.Y = InValue;
 }
 
 void SFoliageEditMeshDisplayItem::OnCollisionScaleZChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->CollisionScale.Z = InValue;
 }
 
@@ -2498,6 +2531,7 @@ float SFoliageEditMeshDisplayItem::GetCollisionScaleZ() const
 
 void SFoliageEditMeshDisplayItem::OnVertexColorMask(ECheckBoxState InState, FoliageVertexColorMask Mask)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->VertexColorMask = Mask;
 }
 
@@ -2508,6 +2542,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsVertexColorMaskChecked(FoliageVert
 
 void SFoliageEditMeshDisplayItem::OnVertexColorMaskThresholdChanged(float InValue)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->VertexColorMaskThreshold = InValue;
 }
 
@@ -2523,6 +2558,7 @@ EVisibility SFoliageEditMeshDisplayItem::IsVertexColorMaskThresholdVisible() con
 
 void SFoliageEditMeshDisplayItem::OnVertexColorMaskInvert(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->VertexColorMaskInvert = (InState == ECheckBoxState::Checked);
 }
 
@@ -2533,6 +2569,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsVertexColorMaskInvertChecked() con
 
 void SFoliageEditMeshDisplayItem::OnVertexColorMaskReapply(ECheckBoxState InState)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->ReapplyVertexColorMask = InState == ECheckBoxState::Checked ? true : false;
 }
 
@@ -2543,6 +2580,7 @@ ECheckBoxState SFoliageEditMeshDisplayItem::IsVertexColorMaskReapplyChecked() co
 
 FReply SFoliageEditMeshDisplayItem::OnMouseDownSelection(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	FoliageSettingsPtr->Modify();
 	FoliageSettingsPtr->IsSelected = !FoliageSettingsPtr->IsSelected;
 	return FReply::Handled();
 }
