@@ -8,6 +8,10 @@
 
 // FFriendStruct implementation
 
+const FString FFriendItem::LauncherClientId("f3e80378aed4462498774a7951cd263f");
+const FString FFriendItem::FortniteClientId("300d79839c914445948e3c1100f211db");
+const FString FFriendItem::UnrealTournamentClientId("1252412dc7704a9690f6ea4611bc81ee");
+
 const TSharedPtr< FOnlineFriend > FFriendItem::GetOnlineFriend() const
 {
 	return OnlineFriend;
@@ -114,6 +118,12 @@ bool FFriendItem::IsGameJoinable() const
 		return bIsOnline && bIsJoinable;
 	}
 	return false;
+}
+
+bool FFriendItem::CanInvite() const
+{
+	FString FriendsClientID = GetClientId();
+	return FriendsClientID == FFriendsAndChatManager::Get()->GetUserClientId() || FriendsClientID == FFriendItem::LauncherClientId;
 }
 
 FString FFriendItem::GetGameSessionId() const

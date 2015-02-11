@@ -44,12 +44,12 @@ public:
 				{
 					if (FriendItem->IsGameJoinable())
 					{
-						if(!bFromChat || CanPerformAction(EFriendActionType::JoinGame))
+						if(CanPerformAction(EFriendActionType::JoinGame))
 						{
 							Actions.Add(EFriendActionType::JoinGame);
 						}
 					}
-					if (FFriendsAndChatManager::Get()->IsInJoinableGameSession())
+					if (FriendItem->CanInvite() && FFriendsAndChatManager::Get()->IsInJoinableGameSession())
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}
@@ -140,7 +140,7 @@ public:
 		{
 			case EFriendActionType::JoinGame:
 			{
-				return FFriendsAndChatManager::Get()->JoinGameAllowed();
+				return FFriendsAndChatManager::Get()->JoinGameAllowed(GetClientId());
 			}
 			case EFriendActionType::AcceptFriendRequest:
 			case EFriendActionType::RemoveFriend:
@@ -249,7 +249,7 @@ private:
 
 	void StartChat()
 	{
-		if (FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid())
+		if (FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() && FriendItem->IsOnline())
 		{
 			FFriendsAndChatManager::Get()->SetChatFriend(FriendItem);
 		}

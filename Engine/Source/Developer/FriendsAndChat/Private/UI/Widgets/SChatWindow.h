@@ -19,4 +19,9 @@ public:
 	 * @param InArgs The Slate argument list.
 	 */
 	virtual void Construct(const FArguments& InArgs, const TSharedRef<class FChatDisplayOptionsViewModel>& InDisplayViewModel) = 0;
+
+	// Holds the fade in animation
+	FCurveSequence FadeAnimation;
+	// Holds the fade in curve
+	FCurveHandle FadeCurve;
 };

@@ -92,6 +92,11 @@ bool FFriendRecentPlayerItem::IsGameJoinable() const
 	return false;
 }
 
+bool FFriendRecentPlayerItem::CanInvite() const
+{
+	return false;
+}
+
 FString FFriendRecentPlayerItem::GetGameSessionId() const
 {
 	return FString();

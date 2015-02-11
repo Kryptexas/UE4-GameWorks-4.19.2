@@ -25,6 +25,13 @@ public:
 		ViewModelPtr->OnChatListUpdated().AddSP(this, &SChatWindowImpl::RefreshChatList);
 		TimeTransparency = 0.0f;
 
+		FadeAnimation = FCurveSequence();
+		FadeCurve = FadeAnimation.AddCurve(0.f, 0.5f, ECurveEaseFunction::Linear);
+		if (DisplayViewModel.IsValid())
+		{
+			DisplayViewModel->SetCurve(FadeCurve);
+		}
+		
 		ExternalScrollbar = SNew(SScrollBar)
 		.Thickness(FVector2D(4, 4))
 		.Style(&FriendStyle.ScrollBarStyle)
@@ -78,6 +85,7 @@ public:
 						.Placement(MenuMethod != EPopupMethod::UseCurrentWindow ? EMenuPlacement::MenuPlacement_AboveAnchor : EMenuPlacement::MenuPlacement_BelowAnchor)  	// MenuPlacement_BelowAnchor is a workaround until a workarea bug is fixed in SlateApplication menu placement code
 						.Method(EPopupMethod::UseCurrentWindow)
 						.OnGetMenuContent(this, &SChatWindowImpl::GetMenuContent)
+						.Visibility(this, &SChatWindowImpl::GetChatChannelVisibility)
 						[
 							SNew(SButton)
 							.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
@@ -152,6 +160,7 @@ public:
 								.OnTextCommitted(this, &SChatWindowImpl::HandleChatEntered)
 								.HintText(LOCTEXT("FriendsListSearch", "Enter to chat"))
 								.OnTextChanged(this, &SChatWindowImpl::OnChatTextChanged)
+								.IsEnabled(this, &SChatWindowImpl::IsChatEntryEnabled)
 							]
 						]
 						+SVerticalBox::Slot()
@@ -178,6 +187,7 @@ public:
 								.Padding(0, 0, 5, 0)
 								[
 									SNew(SButton)
+									.Visibility(ViewModelPtr, &FChatViewModel::GetFriendRequestVisibility)
 									.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
 									.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked, EFriendActionType::SendFriendRequest)
 									.ContentPadding(5)
@@ -207,6 +217,25 @@ public:
 										.Font(FriendStyle.FriendsFontStyleSmallBold)
 										.ColorAndOpacity(FriendStyle.DefaultFontColor)
 										.Text(FText::FromString("Invite To Game"))
+									]
+								]
+								+SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(VAlign_Center)
+								.Padding(0, 0, 5, 0)
+								[
+									SNew(SButton)
+									.Visibility(ViewModelPtr, &FChatViewModel::GetOpenWhisperVisibility)
+									.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
+									.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked, EFriendActionType::Whisper)
+									.ContentPadding(5)
+									.VAlign(VAlign_Center)
+									.HAlign(HAlign_Center)
+									[
+										SNew(STextBlock)
+										.Font(FriendStyle.FriendsFontStyleSmallBold)
+										.ColorAndOpacity(FriendStyle.DefaultFontColor)
+										.Text(FText::FromString("Whisper"))
 									]
 								]
 								+ SHorizontalBox::Slot()
@@ -239,21 +268,22 @@ public:
 			RegenerateChatList();
 		}
 
-		static const float BlendSpeed = 2.0f;
-
-		float DesiredBlendSpeed = BlendSpeed * InDeltaTime;
-
 		if(DisplayViewModel.IsValid())
 		{
 			if (IsHovered() || ChatTextBox->HasKeyboardFocus())
 			{
-				TimeTransparency = FMath::Min<float>(TimeTransparency + DesiredBlendSpeed, 1.f);
+				if (FadeCurve.GetLerp() == 0.0f)
+				{
+					FadeAnimation.Play(this->AsShared());
+				}
 			}
 			else
 			{
-				TimeTransparency = FMath::Max<float>(TimeTransparency - DesiredBlendSpeed, 0.f);
+				if (FadeCurve.GetLerp() == 1.0f)
+				{
+					FadeAnimation.PlayReverse(this->AsShared());
+				}
 			}
-			DisplayViewModel->SetTimeDisplayTransparency(TimeTransparency);
 		}
 
 		if(!bUserHasScrolled && ChatList.IsValid() && ChatList->IsUserScrolling())
@@ -331,43 +361,8 @@ private:
 	 */
 	TSharedRef<SWidget> GetMenuContent()
 	{
-		TSharedPtr<SVerticalBox> ChannelSelection;
-
-		TSharedRef<SWidget> Contents =
-		SNew(SUniformGridPanel)
-		+SUniformGridPanel::Slot(0,0)
-		[
-			SNew(SBorder)
-			.BorderImage(&FriendStyle.ChatChannelsBackgroundBrush)
-			[
-				SAssignNew(ChannelSelection, SVerticalBox)
-			]
-		]
-		+SUniformGridPanel::Slot(1,0)
-		[
-			SNew(SBorder)
-			.BorderImage(&FriendStyle.ChatOptionsBackgroundBrush)
-			.Padding(8.0f)
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Top)
-			[
-				SNew(SCheckBox)
-				.Style(&FriendStyle.FriendCheckboxStyle)
-				.OnCheckStateChanged(this, &SChatWindowImpl::OnGlobalOptionChanged)
-				.IsChecked(this, &SChatWindowImpl::GetGlobalOptionState)
-				[
-					SNew(SBox)
-					.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("GlobalChatterCheckBox", "Global Chatter"))
-						.Font(FriendStyle.FriendsFontStyleSmallBold)
-						.ColorAndOpacity(FriendStyle.DefaultFontColor)
-					]
-				]
-			]
-		];
-
+		TSharedPtr<SVerticalBox> ChannelSelection = SNew(SVerticalBox);
+		
 		for( const auto& RecentFriend : SharedChatViewModel->GetRecentOptions())
 		{
 			ChannelSelection->AddSlot()
@@ -443,6 +438,43 @@ private:
 			];
 		};
 
+		TSharedRef<SWidget> Contents =
+		SNew(SUniformGridPanel)
+		+SUniformGridPanel::Slot(0,0)
+		[
+			SNew(SBorder)
+			.BorderImage(&FriendStyle.ChatChannelsBackgroundBrush)
+			.Visibility(ChannelSelection->GetChildren()->Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed)
+			[
+				ChannelSelection.ToSharedRef()
+			]
+		]
+		+SUniformGridPanel::Slot(1,0)
+		[
+			SNew(SBorder)
+			.BorderImage(&FriendStyle.ChatOptionsBackgroundBrush)
+			.Padding(8.0f)
+			.Visibility(SharedChatViewModel->IsGlobalChatEnabled() ? EVisibility::Visible : EVisibility::Collapsed)
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Top)
+			[
+				SNew(SCheckBox)
+				.Style(&FriendStyle.FriendCheckboxStyle)
+				.OnCheckStateChanged(this, &SChatWindowImpl::OnGlobalOptionChanged)
+				.IsChecked(this, &SChatWindowImpl::GetGlobalOptionState)
+				[
+					SNew(SBox)
+					.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("GlobalChatterCheckBox", "Global Chatter"))
+						.Font(FriendStyle.FriendsFontStyleSmallBold)
+						.ColorAndOpacity(FriendStyle.DefaultFontColor)
+					]
+				]
+			]
+		];
+
 		return Contents;
 	}
 
@@ -501,7 +533,10 @@ private:
 	{
 		SharedChatViewModel->PerformFriendAction(ActionType);
 		ChatItemActionMenu->SetIsOpen(false);
-		SetFocus();
+		if (ActionType != EFriendActionType::Whisper)
+		{
+			SetFocus();
+		}		
 		return FReply::Handled();
 	}
 
@@ -529,6 +564,11 @@ private:
 		{
 			SendChatMessage();
 		}
+	}
+
+	bool IsChatEntryEnabled() const
+	{
+		return SharedChatViewModel->IsChatChannelValid();
 	}
 
 	FReply HandleSendClicked()
@@ -588,6 +628,11 @@ private:
 		return DisplayViewModel->GetEntryBarVisibility();
 	}
 
+	EVisibility GetChatChannelVisibility() const
+	{
+		return !SharedChatViewModel->IsChatChannelLocked() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
 	EVisibility GetChatEntryVisibility() const
 	{
 		return DisplayViewModel->GetTextEntryVisibility();
@@ -600,6 +645,11 @@ private:
 
 	const FSlateBrush* GetChatChannelIcon() const
 	{
+		if (!SharedChatViewModel->IsChatChannelValid())
+		{
+			return &FriendStyle.ChatInvalidBrush;
+		}
+
 		switch(SharedChatViewModel->GetChatChannelType())
 		{
 			case EChatMessageType::Global: return &FriendStyle.ChatGlobalBrush; break;
@@ -613,14 +663,14 @@ private:
 	void OnGlobalOptionChanged(ECheckBoxState NewState)
 	{
 		const bool bDisabled = NewState == ECheckBoxState::Unchecked;
-		SharedChatViewModel->SetAllowGlobalChat(!bDisabled);
+		SharedChatViewModel->SetDisplayGlobalChat(!bDisabled);
 
 		FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(TEXT("Global"), !bDisabled, TEXT("Social.Chat.Toggle"));
 	}
 
 	ECheckBoxState GetGlobalOptionState() const
 	{
-		return SharedChatViewModel->IsGlobalChatEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return SharedChatViewModel->IsDisplayingGlobalChat() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	virtual bool SupportsKeyboardFocus() const override
@@ -645,9 +695,7 @@ private:
 
 	FLinearColor GetTimedFadeColor() const
 	{
-		FLinearColor Color = FLinearColor::White;
-		DisplayViewModel->IsChatHidden() ? Color.A = 0 : Color.A = DisplayViewModel->GetTimeTransparency();
-		return Color;
+		return FLinearColor(1, 1, 1, FadeCurve.GetLerp());
 	}
 
 	void RegenerateChatList()
