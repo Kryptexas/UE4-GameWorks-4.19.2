@@ -689,11 +689,19 @@ void UDestructibleComponent::OnVisibilityEvent(const NxApexChunkStateEventData &
 }
 #endif // WITH_APEX
 
-bool UDestructibleComponent::IsFractured() const
+bool UDestructibleComponent::IsFracturedOrInitiallyStatic() const
 {
+	if (ApexDestructibleActor == nullptr)
+	{
+		return false;
+	}
+
+	bool bInitiallyStatic = false;
 	bool bFractured = false;
 #if WITH_APEX
-	if (ApexDestructibleActor)
+	bInitiallyStatic = !ApexDestructibleActor->isInitiallyDynamic();
+
+	if (bInitiallyStatic == false)
 	{
 		//If we have only one chunk and its index is 0 we are NOT fractured. Otherwise we must have fractured
 		const physx::PxU32 VisibleChunkCount = ApexDestructibleActor->getNumVisibleChunks();
@@ -708,7 +716,7 @@ bool UDestructibleComponent::IsFractured() const
 		}
 	}
 #endif
-	return bFractured;
+	return bFractured || bInitiallyStatic;
 }
 
 void UDestructibleComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
@@ -934,7 +942,7 @@ void UDestructibleComponent::UpdateDestructibleChunkTM(const TArray<const PxRigi
 	{
 		UDestructibleComponent* DestructibleComponent = It.Key();
 		TArray<FUpdateChunksInfo>& UpdateInfos = It.Value();
-		if (DestructibleComponent->IsFractured())
+		if (DestructibleComponent->IsFracturedOrInitiallyStatic())
 		{
 			DestructibleComponent->SetChunksWorldTM(UpdateInfos);
 		}
