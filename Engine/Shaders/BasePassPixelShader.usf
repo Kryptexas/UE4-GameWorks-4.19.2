@@ -573,6 +573,19 @@ uint CustomAlpha2Coverage(inout float4 InOutColor)
 }
 #endif
 
+void ApplyPixelDepthOffsetForBasePass(inout FMaterialPixelParameters MaterialParameters, inout FBasePassInterpolantsVSToPS BasePassInterpolants, out float OutDepth)
+{
+	float PixelDepthOffset = ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, OutDepth);
+
+#if WRITES_VELOCITY_TO_GBUFFER
+	BasePassInterpolants.VelocityPrevScreenPosition.w += PixelDepthOffset;
+
+	#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
+		BasePassInterpolants.VelocityScreenPosition.w += PixelDepthOffset;
+	#endif
+#endif
+}
+
 void Main(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
@@ -624,7 +637,7 @@ void Main(
 #endif
 		
 #if OUTPUT_PIXEL_DEPTH_OFFSET
-	ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, OutDepth);
+	ApplyPixelDepthOffsetForBasePass(MaterialParameters, BasePassInterpolants, OutDepth);
 #endif
 
 	//Clip if the blend mode requires it.
@@ -632,7 +645,6 @@ void Main(
 	{
 		GetMaterialCoverageAndClipping(MaterialParameters);
 	}
-
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor( MaterialParameters );

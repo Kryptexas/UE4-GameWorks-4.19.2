@@ -1499,7 +1499,7 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 	#define OPTIONAL_OutDepth
 #endif
 
-void ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters MaterialParameters, out float OutDepth)
+float ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters MaterialParameters, out float OutDepth)
 {
 	// Can only push into the scene for conservative depth writes
 	float PixelDepthOffset = max(GetMaterialPixelDepthOffset(MaterialParameters), 0);
@@ -1510,4 +1510,6 @@ void ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters Ma
 	MaterialParameters.WorldPosition += MaterialParameters.CameraVector * PixelDepthOffset;
 
 	OutDepth = MaterialParameters.ScreenPosition.z / MaterialParameters.ScreenPosition.w;
+
+	return PixelDepthOffset;
 }
