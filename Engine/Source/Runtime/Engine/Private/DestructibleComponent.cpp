@@ -691,14 +691,14 @@ void UDestructibleComponent::OnVisibilityEvent(const NxApexChunkStateEventData &
 
 bool UDestructibleComponent::IsFracturedOrInitiallyStatic() const
 {
+	bool bInitiallyStatic = false;
+	bool bFractured = false;
+#if WITH_APEX
 	if (ApexDestructibleActor == nullptr)
 	{
 		return false;
 	}
 
-	bool bInitiallyStatic = false;
-	bool bFractured = false;
-#if WITH_APEX
 	bInitiallyStatic = !ApexDestructibleActor->isInitiallyDynamic();
 
 	if (bInitiallyStatic == false)
