@@ -513,19 +513,25 @@ void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 	}
 }
 
-
 void AActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
-	// Do not shift child components
-	if (RootComponent != NULL && RootComponent->AttachParent == NULL)
+	// Attached components will be shifted by parents
+	if (RootComponent != nullptr && RootComponent->AttachParent == nullptr)
 	{
 		RootComponent->ApplyWorldOffset(InOffset, bWorldShift);
+	}
 
-		UNavigationSystem::UpdateNavOctreeBounds(this);
-		UNavigationSystem::UpdateNavOctreeAll(this);
+	// Navigation receives update during component registration. World shift needs a separate path to shift all navigation data
+	// So this normally should happen only in the editor when user moves visible sub-levels
+	if (!bWorldShift && !InOffset.IsZero())
+	{
+		if (RootComponent != nullptr && RootComponent->IsRegistered())
+		{
+			UNavigationSystem::UpdateNavOctreeBounds(this);
+			UNavigationSystem::UpdateNavOctreeAll(this);
+		}
 	}
 }
-
 
 static AActor* GTestRegisterTickFunctions = NULL;
 
