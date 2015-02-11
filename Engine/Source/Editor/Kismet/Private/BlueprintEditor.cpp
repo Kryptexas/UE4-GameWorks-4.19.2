@@ -789,6 +789,15 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 					DefaultActor->GetName(Title);
 					InspectorTitle = FText::FromString(Title);
 					bShowComponents = false;
+
+					// Show the details panel if it doesn't exist.
+					TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+
+					TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+					if ( OwnerTab.IsValid() )
+					{
+						OwnerTab->FlashTab();
+					}
 				}
 				else
 				{
@@ -2570,10 +2579,12 @@ void FBlueprintEditor::EditGlobalOptions_Clicked()
 		// Show details for the Blueprint instance we're editing
 		Inspector->ShowDetailsForSingleObject(Blueprint);
 
+		// Show the details panel if it doesn't exist.
+		TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+
 		TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
 		if ( OwnerTab.IsValid() )
 		{
-			OwnerTab->ActivateInParent(ETabActivationCause::SetDirectly);
 			OwnerTab->FlashTab();
 		}
 	}
@@ -6291,10 +6302,12 @@ void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 
 					Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
 
+					// Show the details panel if it doesn't exist.
+					TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+
 					TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
 					if ( OwnerTab.IsValid() )
 					{
-						OwnerTab->ActivateInParent(ETabActivationCause::SetDirectly);
 						OwnerTab->FlashTab();
 					}
 				}
