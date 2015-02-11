@@ -1750,7 +1750,7 @@ UObject* StaticAllocateObject
 				TEXT("Objects have the same fully qualified name but different paths.\n")
 				TEXT("\tNew Object: %s %s.%s\n")
 				TEXT("\tExisting Object: %s"),
-				*InClass->GetName(), InOuter ? *InOuter->GetPathName() : TEXT(""), *InName.GetPlainNameString(),
+				*InClass->GetName(), InOuter ? *InOuter->GetPathName() : TEXT(""), *InName.ToString(),
 				*Obj->GetFullName());
 		}
 	}
