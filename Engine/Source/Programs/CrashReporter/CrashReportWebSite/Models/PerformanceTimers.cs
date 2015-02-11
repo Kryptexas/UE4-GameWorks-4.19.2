@@ -12,7 +12,23 @@ using System.Threading;
 public class FLogger
 {
 	/// <summary>Current log file to write debug progress info to</summary>
-	static public LogWriter Log = new LogWriter( "CrashReportWebSite-" + GetCleanUserName(), "f:/CrashReportWebsiteLogs" );
+	static public LogWriter Log = CreateSafeLogWriter();
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <returns></returns>
+	static LogWriter CreateSafeLogWriter()
+	{
+		bool bHasDDrive = Directory.Exists( "D:" );
+		bool bHasFDrive = Directory.Exists( "F:" );
+		
+		string LogsPath = bHasFDrive ? "F:/" : (bHasDDrive ? "D:/" : "C:/");
+		LogsPath += "CrashReportWebsiteLogs";
+
+		LogWriter Log = new LogWriter( "CrashReportWebSite-" + GetCleanUserName(), LogsPath );
+		return Log;
+	}
 
 	/// <summary> Returns the user name valid as filename. </summary>
 	static public string GetCleanUserName()
@@ -30,6 +46,17 @@ public class FLogger
 		if( Message != null && Message.Length > 2 )
 		{
 			Log.Print( "[EVENT ] " + Message );
+		}
+	}
+
+	/// <summary>
+	/// Writes an exception status to the log file.
+	/// </summary>
+	static public void WriteException( string Message )
+	{
+		if( Message != null && Message.Length > 2 )
+		{
+			Log.Print( "[EXCEPT] " + Message );
 		}
 	}
 

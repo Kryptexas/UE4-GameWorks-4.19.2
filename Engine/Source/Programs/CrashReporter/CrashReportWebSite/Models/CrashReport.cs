@@ -74,6 +74,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public int NumberOfUniqueMachines { get; set; }
 
 		/// <summary></summary>
+		public int LatestCLAffected { get; set; }
+
+		/// <summary></summary>
+		public string LatestOSAffected { get; set; }
+
+		/// <summary></summary>
 		public SortedSet<string> AffectedBuilds { get; set; }
 
 		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>

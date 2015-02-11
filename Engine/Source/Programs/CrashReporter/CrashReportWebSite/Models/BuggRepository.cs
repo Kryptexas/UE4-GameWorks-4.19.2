@@ -153,6 +153,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary>
 		/// Associate a set of crashes and their owners with a Bugg.
+		/// NOT USED, FIX!
 		/// </summary>
 		/// <param name="Bugg">The Bugg to get the data.</param>
 		/// <param name="Crashes">The set of crashes to add to the Bugg.</param>
@@ -621,7 +622,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				{
 					// Get the group id and grab all buggs for the specified group.
 					int NumResults = Results.Count();
-					HashSet<int> ResultIds = new HashSet<int>( Results.Select( x => x.Id ) );
 					HashSet<string> UserNamesForUserGroup = GetUserNamesFromUserGroups( UserGroup );
 
 
