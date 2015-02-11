@@ -109,6 +109,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						{
 							Bugg.AffectedBuilds.Add( Crash.BuildVersion );
 						}
+
+						if( Crash.User == null )
+						{
+							//??
+						}
 					}
 					Bugg.NumberOfUniqueMachines = MachineIds.Count;
 				}

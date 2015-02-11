@@ -229,7 +229,7 @@
 					{
 						IterationCount++;%>
 			
-						<tr class='CrashRow <%=CrashInstance.User.UserGroup %>'>
+						<tr class='CrashRow'>
 							<td class="Id"><%=Html.ActionLink( CrashInstance.Id.ToString(), "Show", new { controller = "crashes", id = CrashInstance.Id }, null )%></td>
 							<td class="BuildVersion"><%=CrashInstance.BuildVersion%></td>
 							<td class="TimeOfCrash">

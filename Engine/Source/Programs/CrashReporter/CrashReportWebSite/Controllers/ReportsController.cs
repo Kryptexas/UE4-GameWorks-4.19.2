@@ -310,7 +310,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 							foreach( var Crash in CrashesForBugg )
 							{
 								// Only add machine if the number has 32 characters
-								if( Crash.MachineID.Length == 32 )
+								if( Crash.MachineID != null && Crash.MachineID.Length == 32 )
 								{
 									MachineIds.Add( Crash.MachineID );
 								}
@@ -321,7 +321,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 									NewBugg.AffectedBuilds.Add( Crash.BuildVersion );
 								}
 							}
-							NewBugg.BuildVersion = NewBugg.AffectedBuilds.Last();	// Latest Version Affected
+
+							if( NewBugg.AffectedBuilds.Count > 0 )
+							{
+								NewBugg.BuildVersion = NewBugg.AffectedBuilds.Last();	// Latest Version Affected
+							}
+
 							NewBugg.NumberOfUniqueMachines = MachineIds.Count;		// # Affected Users
 							string LatestCLAffected = CrashesForBugg.				// CL of the latest build
 								Where( Crash => Crash.BuildVersion == NewBugg.BuildVersion ).
