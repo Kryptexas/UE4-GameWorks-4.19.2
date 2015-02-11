@@ -278,6 +278,7 @@ protected:
 	TArray<uint16> ValueOffsets;
 
 	/** instanced keys with custom data allocations */
+	UPROPERTY(transient)
 	TArray<UBlackboardKeyType*> KeyInstances;
 
 	/** observers registered for blackboard keys */
