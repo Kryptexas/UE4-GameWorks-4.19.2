@@ -2,11 +2,10 @@
 
 using UnrealBuildTool;
 
-public class MetalRHI : ModuleRules
-{	
-	public MetalRHI(TargetInfo Target)
+public class UtilityShaders : ModuleRules
+{
+	public UtilityShaders(TargetInfo Target)
 	{
-
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
@@ -14,10 +13,7 @@ public class MetalRHI : ModuleRules
 				"RHI",
 				"RenderCore",
 				"ShaderCore",
-				"UtilityShaders",
 			}
-			);
-			
-		PublicWeakFrameworks.Add("Metal");
+		);
 	}
 }

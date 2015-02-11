@@ -264,31 +264,6 @@ void FD3D11DynamicRHI::ClearAllShaderResources()
 	ClearAllShaderResourcesForFrequency<SF_Compute>();
 }
 
-class FLongGPUTaskPS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FLongGPUTaskPS,Global);
-public:
-	FLongGPUTaskPS( )	{ }
-	FLongGPUTaskPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		:	FGlobalShader( Initializer )
-	{
-	}
-
-	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		return bShaderHasOutdatedParameters;
-	}
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-};
-
-IMPLEMENT_SHADER_TYPE(,FLongGPUTaskPS,TEXT("OneColorShader"),TEXT("MainLongGPUTask"),SF_Pixel);
-
 FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 
 void FD3D11DynamicRHI::IssueLongGPUTask()

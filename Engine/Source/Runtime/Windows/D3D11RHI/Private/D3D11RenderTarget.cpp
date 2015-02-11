@@ -8,126 +8,7 @@
 #include "BatchedElements.h"
 #include "ScreenRendering.h"
 #include "RHIStaticStates.h"
-
-namespace
-{
-	struct FDummyResolveParameter {};
-
-	class FResolveDepthPS : public FGlobalShader
-	{
-		DECLARE_SHADER_TYPE(FResolveDepthPS,Global);
-	public:
-
-		typedef FDummyResolveParameter FParameter;
-
-		static bool ShouldCache(EShaderPlatform Platform) { return Platform == SP_PCD3D_SM5; }
-
-		FResolveDepthPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-			FGlobalShader(Initializer)
-		{
-			UnresolvedSurface.Bind(Initializer.ParameterMap,TEXT("UnresolvedSurface"), SPF_Mandatory);
-		}
-		FResolveDepthPS() {}
-
-		void SetParameters(FRHICommandList& RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
-		{
-		}
-
-		virtual bool Serialize(FArchive& Ar)
-		{
-			bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-			Ar << UnresolvedSurface;
-			return bShaderHasOutdatedParameters;
-		}
-
-		FShaderResourceParameter UnresolvedSurface;
-	};
-	IMPLEMENT_SHADER_TYPE(,FResolveDepthPS,TEXT("ResolvePixelShader"),TEXT("MainDepth"),SF_Pixel);
-
-
-	class FResolveDepthNonMSPS : public FGlobalShader
-	{
-		DECLARE_SHADER_TYPE(FResolveDepthNonMSPS,Global);
-	public:
-
-		typedef FDummyResolveParameter FParameter;
-
-		static bool ShouldCache(EShaderPlatform Platform) { return GetMaxSupportedFeatureLevel(Platform) <= ERHIFeatureLevel::SM4; }
-
-		FResolveDepthNonMSPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		FGlobalShader(Initializer)
-		{
-			UnresolvedSurface.Bind(Initializer.ParameterMap,TEXT("UnresolvedSurfaceNonMS"), SPF_Mandatory);
-		}
-		FResolveDepthNonMSPS() {}
-
-		void SetParameters(FRHICommandList& RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
-		{
-		}
-
-		virtual bool Serialize(FArchive& Ar)
-		{
-			bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-			Ar << UnresolvedSurface;
-			return bShaderHasOutdatedParameters;
-		}
-
-		FShaderResourceParameter UnresolvedSurface;
-	};
-	IMPLEMENT_SHADER_TYPE(,FResolveDepthNonMSPS,TEXT("ResolvePixelShader"),TEXT("MainDepthNonMS"),SF_Pixel);
-
-	class FResolveSingleSamplePS : public FGlobalShader
-	{
-		DECLARE_SHADER_TYPE(FResolveSingleSamplePS,Global);
-	public:
-
-		typedef uint32 FParameter;
-
-		static bool ShouldCache(EShaderPlatform Platform) { return Platform == SP_PCD3D_SM5; }
-
-		FResolveSingleSamplePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-			FGlobalShader(Initializer)
-		{
-			UnresolvedSurface.Bind(Initializer.ParameterMap,TEXT("UnresolvedSurface"), SPF_Mandatory);
-			SingleSampleIndex.Bind(Initializer.ParameterMap,TEXT("SingleSampleIndex"), SPF_Mandatory);
-		}
-		FResolveSingleSamplePS() {}
-
-		void SetParameters(FRHICommandList& RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,uint32 SingleSampleIndexValue)
-		{
-			SetShaderValue(RHICmdList, GetPixelShader(),SingleSampleIndex,SingleSampleIndexValue);
-		}
-
-		virtual bool Serialize(FArchive& Ar)
-		{
-			bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-			Ar << UnresolvedSurface;
-			Ar << SingleSampleIndex;
-			return bShaderHasOutdatedParameters;
-		}
-
-		FShaderResourceParameter UnresolvedSurface;
-		FShaderParameter SingleSampleIndex;
-	};
-	IMPLEMENT_SHADER_TYPE(,FResolveSingleSamplePS,TEXT("ResolvePixelShader"),TEXT("MainSingleSample"),SF_Pixel);
-
-	/**
-	 * A vertex shader for rendering a textured screen element.
-	 */
-	class FResolveVS : public FGlobalShader
-	{
-		DECLARE_SHADER_TYPE(FResolveVS,Global);
-	public:
-
-		static bool ShouldCache(EShaderPlatform Platform) { return true; }
-
-		FResolveVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-			FGlobalShader(Initializer)
-		{}
-		FResolveVS() {}
-	};
-	IMPLEMENT_SHADER_TYPE(,FResolveVS,TEXT("ResolveVertexShader"),TEXT("Main"),SF_Vertex);
-}
+#include "ResolveShader.h"
 
 static inline DXGI_FORMAT ConvertTypelessToUnorm(DXGI_FORMAT Format)
 {
@@ -254,7 +135,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	TShaderMapRef<TPixelShader> ResolvePixelShader(ShaderMap);
 	SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 
-	ResolvePixelShader->SetParameters(RHICmdList, Direct3DDeviceContext,PixelShaderParameter);
+	ResolvePixelShader->SetParameters(RHICmdList, PixelShaderParameter);
 	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
 	// Set the source texture.

@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
+#include "UtilityShadersPrivatePCH.h"
 #include "OneColorShader.h"
 
 IMPLEMENT_SHADER_TYPE(template<>,TOneColorVS<true>,TEXT("OneColorShader"),TEXT("MainVertexShader"),SF_Vertex);
@@ -19,3 +19,5 @@ IMPLEMENT_SHADER_TYPE(template<>,TOneColorPixelShaderMRT<7>,TEXT("OneColorShader
 IMPLEMENT_SHADER_TYPE(template<>,TOneColorPixelShaderMRT<8>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
 
 IMPLEMENT_SHADER_TYPE(,FFillTextureCS,TEXT("OneColorShader"),TEXT("MainFillTextureCS"),SF_Compute);
+
+IMPLEMENT_SHADER_TYPE(,FLongGPUTaskPS,TEXT("OneColorShader"),TEXT("MainLongGPUTask"),SF_Pixel);

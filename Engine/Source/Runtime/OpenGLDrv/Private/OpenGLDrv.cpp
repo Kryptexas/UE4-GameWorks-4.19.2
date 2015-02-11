@@ -363,31 +363,6 @@ float FOpenGLEventNode::GetTiming()
 	return Result;
 }
 
-class FOpenGLRHILongGPUTaskPS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FOpenGLRHILongGPUTaskPS,Global);
-public:
-	FOpenGLRHILongGPUTaskPS( )	{ }
-	FOpenGLRHILongGPUTaskPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		:	FGlobalShader( Initializer )
-	{
-	}
-
-	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		return bShaderHasOutdatedParameters;
-	}
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-};
-
-IMPLEMENT_SHADER_TYPE(,FOpenGLRHILongGPUTaskPS,TEXT("OneColorShader"),TEXT("MainLongGPUTask"),SF_Pixel);
-
 static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 
 void FOpenGLDynamicRHI::IssueLongGPUTask()
@@ -420,7 +395,7 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
-		TShaderMapRef<FOpenGLRHILongGPUTaskPS> PixelShader(ShaderMap);
+		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 
 		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, LongGPUTaskBoundShaderState, GOpenGLVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
 

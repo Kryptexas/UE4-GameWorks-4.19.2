@@ -29,7 +29,8 @@ public class Renderer : ModuleRules
 				"CoreUObject", 
 				"RenderCore", 
 				"RHI", 
-				"ShaderCore"
+				"ShaderCore",
+				"UtilityShaders",
 			}
 			);
 

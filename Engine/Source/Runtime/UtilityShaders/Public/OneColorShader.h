@@ -12,7 +12,7 @@
 template<bool bUsingNDCPositions=true>
 class TOneColorVS : public FGlobalShader
 {
-	DECLARE_EXPORTED_SHADER_TYPE(TOneColorVS, Global, ENGINE_API);
+	DECLARE_EXPORTED_SHADER_TYPE(TOneColorVS, Global, UTILITYSHADERS_API);
 
 	/** Default constructor. */
 	TOneColorVS() {}
@@ -40,7 +40,7 @@ public:
  */
 class FOneColorPS : public FGlobalShader
 {
-	DECLARE_EXPORTED_SHADER_TYPE(FOneColorPS,Global,ENGINE_API);
+	DECLARE_EXPORTED_SHADER_TYPE(FOneColorPS,Global,UTILITYSHADERS_API);
 public:
 	FOneColorPS( )	{ }
 	FOneColorPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -71,7 +71,7 @@ public:
 template<int32 NumOutputs>
 class TOneColorPixelShaderMRT : public FOneColorPS
 {
-	DECLARE_EXPORTED_SHADER_TYPE(TOneColorPixelShaderMRT,Global,ENGINE_API);
+	DECLARE_EXPORTED_SHADER_TYPE(TOneColorPixelShaderMRT,Global,UTILITYSHADERS_API);
 public:
 	TOneColorPixelShaderMRT( )	{ }
 	TOneColorPixelShaderMRT(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -100,7 +100,7 @@ public:
  */
 class FFillTextureCS : public FGlobalShader
 {
-	DECLARE_EXPORTED_SHADER_TYPE(FFillTextureCS,Global,ENGINE_API);
+	DECLARE_EXPORTED_SHADER_TYPE(FFillTextureCS,Global,UTILITYSHADERS_API);
 public:
 	FFillTextureCS( )	{ }
 	FFillTextureCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -132,3 +132,27 @@ public:
 	FShaderParameter Params2;	// ExcludeRect X0,Y0 (.xy) - X1,Y1 (.zw)
 	FShaderResourceParameter FillTexture;
 };
+
+class FLongGPUTaskPS : public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FLongGPUTaskPS,Global,UTILITYSHADERS_API);
+public:
+	FLongGPUTaskPS( )	{ }
+	FLongGPUTaskPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	:	FGlobalShader( Initializer )
+	{
+	}
+	
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar)
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		return bShaderHasOutdatedParameters;
+	}
+	
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+	}
+};
+
