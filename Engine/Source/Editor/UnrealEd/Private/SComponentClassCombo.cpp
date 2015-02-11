@@ -24,6 +24,8 @@ FString FComponentClassComboEntry::GetClassName() const
 
 void SComponentClassCombo::Construct(const FArguments& InArgs)
 {
+	bAllowChildActorComponent = InArgs._AllowChildActorComponent;
+
 	PrevSelectedIndex = INDEX_NONE;
 	OnComponentClassSelected = InArgs._OnComponentClassSelected;
 
@@ -132,14 +134,27 @@ void SComponentClassCombo::ClearSelection()
 
 void SComponentClassCombo::GenerateFilteredComponentList(const FString& InSearchText)
 {
+	FilteredComponentClassList.Empty();
 	if ( InSearchText.IsEmpty() )
 	{
-		FilteredComponentClassList = *ComponentClassList;
+		if( !bAllowChildActorComponent )
+		{
+			for(auto& ClassEntry : *ComponentClassList)
+			{
+				UClass* Class = ClassEntry->GetComponentClass();
+				if( !Class || !Class->IsChildOf(UChildActorComponent::StaticClass()) )
+				{
+					FilteredComponentClassList.Add( ClassEntry );
+				}
+			}
+		}
+		else
+		{
+			FilteredComponentClassList = *ComponentClassList;
+		}
 	}
 	else
 	{
-		FilteredComponentClassList.Empty();
-
 		int32 LastHeadingIndex = INDEX_NONE;
 		FComponentClassComboEntryPtr* LastHeadingPtr = nullptr;
 
