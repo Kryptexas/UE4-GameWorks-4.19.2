@@ -56,7 +56,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		
 		// In order to support rounded, shadowed windows set the window to be
 		// titled - we'll set the OpenGL view to cover the whole window
-		WindowStyle |= NSTitledWindowMask | NSTexturedBackgroundWindowMask;
+		WindowStyle |= NSTitledWindowMask | (FPlatformMisc::IsRunningOnMavericks() ? NSTexturedBackgroundWindowMask : NSFullSizeContentViewWindowMask);
 		
 		if( Definition->SupportsMinimize )
 		{
@@ -75,7 +75,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	if( Definition->HasOSWindowBorder )
 	{
 		WindowStyle |= NSTitledWindowMask;
-		WindowStyle &= ~(NSTexturedBackgroundWindowMask);
+		WindowStyle &= FPlatformMisc::IsRunningOnMavericks() ? ~NSTexturedBackgroundWindowMask : ~NSFullSizeContentViewWindowMask;
 	}
 
 	MainThreadCall(^{
@@ -118,12 +118,9 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 				[WindowHandle setHidesOnDeactivate: YES];
 			}
 			
-			// Use of rounded corners will always render with system values for rounding
-			[WindowHandle setRoundedCorners: (Definition->CornerRadius != 0)];
-			
 			if( !Definition->HasOSWindowBorder )
 			{
-				[WindowHandle setBackgroundColor: [NSColor darkGrayColor]];
+				[WindowHandle setBackgroundColor: [NSColor clearColor]];
 				[WindowHandle setHasShadow: YES];
 			}
 
@@ -134,13 +131,9 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 			ReshapeWindow( X, Y, SizeX, SizeY );
 
-			if( Definition->IsRegularWindow )
+			if (Definition->IsRegularWindow)
 			{
-				CFStringRef CFName = FPlatformString::TCHARToCFString( *Definition->Title );
-				[WindowHandle setTitle: ( NSString *)CFName];
-				CFRelease( CFName );
-
-				[NSApp addWindowsItem: WindowHandle title: [WindowHandle title] filename: NO];
+				[NSApp addWindowsItem:WindowHandle title:Definition->Title.GetNSString() filename:NO];
 
 				// Tell Cocoa that we are opting into drag and drop.
 				// Only makes sense for regular windows (windows that last a while.)
@@ -153,19 +146,21 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 				else
 				{
 					[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+
+					if (!FPlatformMisc::IsRunningOnMavericks())
+					{
+						WindowHandle.titlebarAppearsTransparent = YES;
+						WindowHandle.titleVisibility = NSWindowTitleHidden;
+					}
 				}
 			}
 			else if(Definition->AppearsInTaskbar)
 			{
-				if ( !Definition->Title.IsEmpty() )
+				if (!Definition->Title.IsEmpty())
 				{
-					CFStringRef CFName = FPlatformString::TCHARToCFString( *Definition->Title );
-					[WindowHandle setTitle: ( NSString *)CFName];
-					CFRelease( CFName );
-					
-					[NSApp addWindowsItem: WindowHandle title: [WindowHandle title] filename: NO];
+					[NSApp addWindowsItem:WindowHandle title:Definition->Title.GetNSString() filename:NO];
 				}
-				
+
 				[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
 			}
 			else
@@ -173,13 +168,13 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 				[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorTransient|NSWindowCollectionBehaviorIgnoresCycle];
 			}
 
-			if( Definition->TransparencySupport == EWindowTransparency::PerWindow )
+			if (Definition->TransparencySupport == EWindowTransparency::PerWindow)
 			{
-				SetOpacity( Definition->Opacity );
+				SetOpacity(Definition->Opacity);
 			}
 			else
 			{
-				SetOpacity( 1.0f );
+				SetOpacity(1.0f);
 			}
 		}
 		else
@@ -214,9 +209,6 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 	if (WindowHandle)
 	{
 		SCOPED_AUTORELEASE_POOL;
-		
-		const TSharedRef<FGenericApplicationMessageHandler> MessageHandler = OwningApplication->MessageHandler;
-		MessageHandler->BeginReshapingWindow( SharedThis( this ) );
 		
 		if(GetWindowMode() == EWindowMode::Windowed || GetWindowMode() == EWindowMode::WindowedFullscreen)
 		{
@@ -266,8 +258,6 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 				FMacEvent::SendToGameRunLoop([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle], EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 			}
 		}
-		
-		MessageHandler->FinishedReshapingWindow( SharedThis( this ) );
 	}
 }
 
@@ -547,15 +537,15 @@ bool FMacWindow::IsForegroundWindow() const
 
 void FMacWindow::SetText(const TCHAR* const Text)
 {
-	CFStringRef CFName = FPlatformString::TCHARToCFString( Text );
+	CFStringRef CFName = FPlatformString::TCHARToCFString(Text);
 	MainThreadCall(^{
 		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle setTitle: (NSString*)CFName];
-		if(IsRegularWindow())
+		if (IsRegularWindow())
 		{
-			[NSApp changeWindowsItem: WindowHandle title: (NSString*)CFName filename: NO];
+			[NSApp changeWindowsItem:WindowHandle title:(NSString*)CFName filename:NO];
 		}
-		CFRelease( CFName );
+		CFRelease(CFName);
 	}, UE4NilEventMode, true);
 }
 

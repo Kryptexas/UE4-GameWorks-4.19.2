@@ -62,48 +62,6 @@ static FAutoConsoleVariableRef CVarMacMaxTexturesToDeletePerFrame(
 static const uint32 GMacTexturePoolNum = 3;
 static TArray<GLuint> GMacTexturesToDelete[GMacTexturePoolNum];
 
-/** Used to temporarily disable Cocoa screen updates to make window updates happen only on the render thread. */
-bool GMacEnableCocoaScreenUpdates = true;
-
-/*------------------------------------------------------------------------------
-	OpenGL context blit shaders.
-------------------------------------------------------------------------------*/
-
-char const* const CompositedBlitVertexShader = "#version 150\n"
-"const int VertexCount = 6;\n"
-"uniform int TextureDirection;\n"
-"const vec2 Position[VertexCount] = vec2[](\n"
-"	vec2(-1.0,-1.0),\n"
-"	vec2( 1.0,-1.0),\n"
-"	vec2( 1.0, 1.0),\n"
-"	vec2(-1.0,-1.0),\n"
-"	vec2( 1.0, 1.0),\n"
-"	vec2(-1.0, 1.0));\n"
-"const vec2 TexCoords[VertexCount] = vec2[](\n"
-"	vec2(0.0, 1.0),\n"
-"	vec2(1.0, 1.0),\n"
-"	vec2(1.0, 0.0),\n"
-"	vec2(0.0, 1.0),\n"
-"	vec2(1.0, 0.0),\n"
-"	vec2(0.0, 0.0));\n"
-"out vec2 TexCoord;\n"
-"void main()\n"
-"{\n"
-"	TexCoord = TexCoords[gl_VertexID];\n"
-"	if(TextureDirection == 1){ TexCoord.x = (TextureDirection - TexCoords[gl_VertexID].x); }\n"
-"	gl_Position = vec4(Position[gl_VertexID], 0.0, 1.0);\n"
-"}\n";
-
-char const* const CompositedBlitFragmentShader = "#version 150\n"
-"uniform sampler2D WindowTexture;\n"
-"in vec2 TexCoord;\n"
-"out vec4 Color;\n"
-"void main()\n"
-"{\n"
-"	vec4 WindowColor = texture(WindowTexture, TexCoord);\n"
-"	Color = vec4(WindowColor.x, WindowColor.y, WindowColor.z, WindowColor.x);\n"
-"}\n";
-
 /*------------------------------------------------------------------------------
  OpenGL context management.
  ------------------------------------------------------------------------------*/
@@ -153,34 +111,64 @@ private:
 	bool				bSameContext;
 };
 
-void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
+static void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
+static void DrawOpenGLViewport(FPlatformOpenGLContext* const Context, uint32 Width, uint32 Height);
 
 /*------------------------------------------------------------------------------
  OpenGL view.
  ------------------------------------------------------------------------------*/
 
-@interface NSView(NSThemeFramePrivate)
-- (float)roundedCornerRadius;
+@interface FSlateOpenGLLayer : NSOpenGLLayer
+@property (assign) NSOpenGLContext* Context;
+@property (assign) NSOpenGLPixelFormat* PixelFormat;
+@end
+
+@implementation FSlateOpenGLLayer
+
+- (NSOpenGLPixelFormat *)openGLPixelFormatForDisplayMask:(uint32)Mask
+{
+	return self.PixelFormat;
+}
+
+- (NSOpenGLContext *)openGLContextForPixelFormat:(NSOpenGLPixelFormat *)PixelFormat
+{
+	return self.Context;
+}
+
+- (id)initWithContext:(NSOpenGLContext*)context andPixelFormat:(NSOpenGLPixelFormat*)pixelFormat
+{
+	self = [super init];
+	if (self)
+	{
+		self.Context = context;
+		self.PixelFormat = pixelFormat;
+	}
+	return self;
+}
+
 @end
 
 /**
  * Custom view class
  */
 @interface FCocoaOpenGLView : FCocoaTextView
-{
-}
+@property (assign) FPlatformOpenGLContext* Context;
 @property (atomic) bool bNeedsUpdate;
 @end
 
 @implementation FCocoaOpenGLView
 
-@synthesize bNeedsUpdate;
+- (CALayer*)makeBackingLayer
+{
+	return [[FSlateOpenGLLayer alloc] initWithContext:self.Context->OpenGLContext andPixelFormat:self.Context->OpenGLPixelFormat];
+}
 
-- (id)initWithFrame:(NSRect)frameRect
+- (id)initWithFrame:(NSRect)frameRect context:(FPlatformOpenGLContext*)context
 {
 	self = [super initWithFrame:frameRect];
-	if (self != nil)
+	if (self)
 	{
+		self.Context = context;
 		self.bNeedsUpdate = true;
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_surfaceNeedsUpdate:) name:NSViewGlobalFrameDidChangeNotification object:self];
 	}
@@ -193,31 +181,24 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
 	[super dealloc];
 }
 
-- (void) _surfaceNeedsUpdate:(NSNotification*)notification
+- (void)_surfaceNeedsUpdate:(NSNotification*)notification
 {
 	self.bNeedsUpdate = true;
 }
 
 - (void)drawRect:(NSRect)DirtyRect
 {
-	SCOPED_AUTORELEASE_POOL;
-	
-	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
-	if (CocoaWindow)
-	{
-		[CocoaWindow redrawContents];
-	}
+	DrawOpenGLViewport(self.Context, self.frame.size.width, self.frame.size.height);
 }
 
-- (void)renewGState
+- (BOOL)isOpaque
 {
-	if(GMacEnableCocoaScreenUpdates)
-	{
-		GMacEnableCocoaScreenUpdates = false;
-		NSDisableScreenUpdates();
-	}
-	
-	[super renewGState];
+	return YES;
+}
+
+- (BOOL)mouseDownCanMoveWindow
+{
+	return YES;
 }
 
 @end
@@ -227,17 +208,8 @@ extern void OnQueryInvalidation( void );
 struct FPlatformOpenGLDevice
 {
 	FPlatformOpenGLContext	SharedContext;
-	GLuint				SharedContextCompositeVertexShader;
-	GLuint				SharedContextCompositeFragmentShader;
-	GLuint				SharedContextCompositeProgram;
-	GLint				SharedContextWindowTextureUniform;
-	GLint				SharedContextTextureDirectionUniform;
-	GLuint				SharedContextCompositeTexture;
-	uint32              SharedContextCompositeTextureSizeX;
-    uint32              SharedContextCompositeTextureSizeY;
-	
-	FPlatformOpenGLContext	RenderingContext;
 
+	FPlatformOpenGLContext	RenderingContext;
 
 	TArray<FPlatformOpenGLContext*>	FreeOpenGLContexts;
 	int32						NumUsedContexts;
@@ -258,27 +230,6 @@ struct FPlatformOpenGLDevice
 		RenderingContext.Initialise(SharedContext.OpenGLContext);
 		
 		SharedContext.MakeCurrent();
-		
-		SharedContextCompositeVertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(SharedContextCompositeVertexShader, 1, &CompositedBlitVertexShader, NULL);
-		glCompileShader(SharedContextCompositeVertexShader);
-		
-		SharedContextCompositeFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(SharedContextCompositeFragmentShader, 1, &CompositedBlitFragmentShader, NULL);
-		glCompileShader(SharedContextCompositeFragmentShader);
-		
-		SharedContextCompositeProgram = glCreateProgram();
-		glAttachShader(SharedContextCompositeProgram, SharedContextCompositeVertexShader);
-		glAttachShader(SharedContextCompositeProgram, SharedContextCompositeFragmentShader);
-		glBindFragDataLocation(SharedContextCompositeProgram, 0, "Color");
-		glLinkProgram(SharedContextCompositeProgram);
-		glValidateProgram(SharedContextCompositeProgram);
-		SharedContextWindowTextureUniform = glGetUniformLocation(SharedContextCompositeProgram, "WindowTexture");
-		SharedContextTextureDirectionUniform = glGetUniformLocation(SharedContextCompositeProgram, "TextureDirection");
-		
-		glGenTextures(1, &SharedContextCompositeTexture);
-		SharedContextCompositeTextureSizeX = 0;
-		SharedContextCompositeTextureSizeY = 0;
 	}
 
 	~FPlatformOpenGLDevice()
@@ -301,13 +252,7 @@ struct FPlatformOpenGLDevice
 		
 		{
 			FScopeContext Context(SharedContext.OpenGLContext);
-			
-			glDeleteProgram(SharedContextCompositeProgram);
-			glDeleteShader(SharedContextCompositeVertexShader);
-			glDeleteShader(SharedContextCompositeFragmentShader);
-			
-			glDeleteTextures(1, &SharedContextCompositeTexture);
-			
+
 			for(uint32 i = 0; i < GMacTexturePoolNum; i++)
 			{
 				if(GMacTexturesToDelete[i].Num())
@@ -353,18 +298,21 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 		}
 	}
 	check(Context);
+
 	{
 		NSOpenGLContext* PreviousContext = [NSOpenGLContext currentContext];
-		
+
 		Context->Initialise(Device->SharedContext.OpenGLContext);
 		Context->ViewportFramebuffer = 0;	// will be created on demand
 		Context->SyncInterval = 0;
 		Context->WindowHandle = (NSWindow*)InWindowHandle;
-		
-		NSRect ContentRect = [[Context->WindowHandle contentView] frame];
-		Context->OpenGLView = [[FCocoaOpenGLView alloc] initWithFrame: ContentRect];
-		
+
+		NSRect ContentRect = NSMakeRect(0, 0, Context->WindowHandle.frame.size.width, Context->WindowHandle.frame.size.height);
+		Context->OpenGLView = [[FCocoaOpenGLView alloc] initWithFrame:ContentRect context:Context];
+		[Context->OpenGLView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+
 		glFlushRenderAPPLE();
+
 		if (PreviousContext)
 		{
 			[PreviousContext makeCurrentContext];
@@ -375,30 +323,30 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 			[NSOpenGLContext clearCurrentContext];
 		}
 	}
-	
+
 	++Device->NumUsedContexts;
 
-	// Attach the view to the window
-	// Slate windows may require a view that fills the entire window & border frame, not just content
-	if([Context->WindowHandle styleMask] & (NSTexturedBackgroundWindowMask))
+	[Context->OpenGLView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+
+	if (FPlatformMisc::IsRunningOnMavericks() && ([Context->WindowHandle styleMask] & NSTexturedBackgroundWindowMask))
 	{
-		// For windows where we want to hide the titlebar add the view as the uppermost child of the
-		// window's superview.
 		NSView* SuperView = [[Context->WindowHandle contentView] superview];
-		
-		[Context->OpenGLView setFrameSize:[Context->WindowHandle frame].size];
-		[Context->OpenGLView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
-		
 		[SuperView addSubview:Context->OpenGLView];
+		[SuperView setWantsLayer:YES];
+		[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowCloseButton]];
+		[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowMiniaturizeButton]];
+		[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowZoomButton]];
 	}
 	else
 	{
-		// Otherwise, set as the content view to see the title bar.
-		[Context->WindowHandle setContentView: Context->OpenGLView];
+		[Context->OpenGLView setWantsLayer:YES];
+		[Context->WindowHandle setContentView:Context->OpenGLView];
 	}
-	
-	// Attach the context to the view if needed
-	[Context->OpenGLContext setView: Context->OpenGLView];
+
+	[[Context->WindowHandle standardWindowButton:NSWindowCloseButton] setAction:@selector(performClose:)];
+
+	Context->OpenGLView.layer.magnificationFilter = kCAFilterNearest;
+	Context->OpenGLView.layer.minificationFilter = kCAFilterNearest;
 
 	return Context;
 }
@@ -427,210 +375,69 @@ void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 {
 	check(Context && Context->WindowHandle);
 
-	return (void*)Context->WindowHandle;
+	return Context->WindowHandle;
 }
 
-bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
+bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval)
 {
 	FPlatformOpenGLContext* const Context = Viewport.GetGLContext();
 	check(Context && Context->OpenGLView);
+
+	FScopeLock ScopeLock(Device->ContextUsageGuard);
 	{
-		FScopeLock ScopeLock(Device->ContextUsageGuard);
+		FScopeContext ScopeContext(Context->OpenGLContext);
+
+		if(Context->OpenGLView.bNeedsUpdate)
 		{
-			FScopeContext ScopeContext(Context->OpenGLContext);
-			
-			if(Context->OpenGLView.bNeedsUpdate)
+			Context->OpenGLView.bNeedsUpdate = false;
+			[Context->OpenGLContext update];
+		}
+
+		if (bPresent)
+		{
+			int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
+
+			if (Context->SyncInterval != RealSyncInterval)
 			{
-				Context->OpenGLView.bNeedsUpdate = false;
-				[Context->OpenGLContext update];
+				[Context->OpenGLContext setValues: &RealSyncInterval forParameter: NSOpenGLCPSwapInterval];
+				Context->SyncInterval = RealSyncInterval;
 			}
-			
-			if (Viewport.GetCustomPresent())
+
+			[(FCocoaWindow*)Context->WindowHandle startRendering];
+
+			MainThreadCall(^{ [Context->OpenGLView setNeedsDisplay:YES]; }, NSDefaultRunLoopMode, false);
+
+			TArray<GLuint>& TexturesToDelete = GMacTexturesToDelete[(GFrameNumberRenderThread - (GMacTexturePoolNum - 1)) % GMacTexturePoolNum];
+			if(TexturesToDelete.Num() && TexturesToDelete.Num() > GMacMinTexturesToDeletePerFrame)
 			{
-				SCOPED_AUTORELEASE_POOL;
-				
-				// Clear the Alpha channel
-				glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_TRUE);
-				glClearColor(0.f,0.f,0.f,1.f);
-				glClear(GL_COLOR_BUFFER_BIT);
-				glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-				glClearColor(0.f,0.f,0.f,0.f);
-
-				glDisable(GL_FRAMEBUFFER_SRGB);
-				Viewport.GetCustomPresent()->Present(SyncInterval);
-				glEnable(GL_FRAMEBUFFER_SRGB);
-			}
-			else
-			{
-				// OpenGL state necessary for blit is set up in PlatformResizeGLContext(), and should be correct here,
-				// as viewport contexts aren't bound at any other occasion.
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-				glDrawBuffer(GL_BACK);
-				glBindFramebuffer(GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer);
-				glReadBuffer(GL_COLOR_ATTACHMENT0);
-				glDisable(GL_FRAMEBUFFER_SRGB);
-
-				glBlitFramebuffer(
-					0, 0, BackbufferSizeX, BackbufferSizeY,
-					0, BackbufferSizeY, BackbufferSizeX, 0,
-					GL_COLOR_BUFFER_BIT,
-					GL_NEAREST
-				);
-
-				if (bPresent)
-				{
-					SCOPED_AUTORELEASE_POOL;
-
-					// Clear the Alpha channel
-					glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_TRUE);
-					glClearColor(0.f,0.f,0.f,1.f);
-					glClear(GL_COLOR_BUFFER_BIT);
-					glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-					glClearColor(0.f,0.f,0.f,0.f);
-					
-					bool bRoundedBlit = false;
-					
-					NSWindow* Window  = [Context->OpenGLView window];
-					NSView* SuperView = [[Window contentView] superview];
-					FCocoaWindow* CocoaWindow = [Window isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)Window : nil;
-					if([SuperView respondsToSelector:@selector(roundedCornerRadius)] && CocoaWindow)
-					{
-						bool bRoundedCorners = [CocoaWindow roundedCorners];
-						bool bFullWindowRendering = ([CocoaWindow styleMask] & (NSTexturedBackgroundWindowMask));
-						EWindowMode::Type WindowMode = [CocoaWindow windowMode];
-						bRoundedBlit = (WindowMode == EWindowMode::Windowed && bRoundedCorners && bFullWindowRendering);
-					}
-					
-					if(bRoundedBlit)
-					{
-						bool bGenerateTexture = !Device->SharedContextCompositeTextureSizeX && !Device->SharedContextCompositeTextureSizeY;
-						glBindSampler(0, 0);
-						glActiveTexture(GL_TEXTURE0);
-						glBindTexture (GL_TEXTURE_2D, Device->SharedContextCompositeTexture);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-						
-						if(bGenerateTexture)
-						{
-							uint32 Size = 32;
-							Device->SharedContextCompositeTextureSizeX = Size;
-							Device->SharedContextCompositeTextureSizeY = Size;
-							NSImage* MaskImage = [[[NSImage alloc] initWithSize:NSMakeSize(Size*2, Size*2)] autorelease];
-							{
-								[MaskImage lockFocus];
-								{
-									NSGraphicsContext* CurrentContext = [NSGraphicsContext currentContext];
-									[CurrentContext saveGraphicsState];
-									[CurrentContext setShouldAntialias: NO];
-									
-									[[NSColor clearColor] set];
-									[[NSBezierPath bezierPathWithRect:NSMakeRect(0.f, 0.f, Size*2, Size*2)] fill];
-									
-									[[NSColor colorWithDeviceRed:0.0f green:0.0f blue:0.0f alpha:1.0f] set];
-									float Radius = [SuperView roundedCornerRadius] * 1.6f;
-									[[NSBezierPath bezierPathWithRoundedRect:NSMakeRect(0.f, 0.f, Size*2, Size*2) xRadius: Radius yRadius: Radius] fill];
-									
-									[CurrentContext restoreGraphicsState];
-								}
-								[MaskImage unlockFocus];
-							}
-							
-							NSRect SrcRect = NSMakeRect(0, Size, Size, Size);
-							NSRect DestRect = NSMakeRect(0, 0, Size, Size);
-							NSImage* CornerImage = [[[NSImage alloc] initWithSize:DestRect.size] autorelease];
-							{
-								[CornerImage lockFocus];
-								{
-									NSGraphicsContext* CurrentContext = [NSGraphicsContext currentContext];
-									[CurrentContext saveGraphicsState];
-									
-									[[NSColor clearColor] set];
-									[[NSBezierPath bezierPathWithRect:DestRect] fill];
-									
-									[MaskImage drawInRect:DestRect fromRect:SrcRect operation:NSCompositeSourceOver fraction:1 respectFlipped:YES hints:nil];
-									
-									[CurrentContext restoreGraphicsState];
-								}
-								[CornerImage unlockFocus];
-							}
-							
-							CGImageRef CGImage = [CornerImage CGImageForProposedRect:nil context:nil hints:nil];
-							check(CGImage);
-							NSBitmapImageRep* ImageRep = [[[NSBitmapImageRep alloc] initWithCGImage:CGImage] autorelease];
-							check(ImageRep);
-							
-							GLenum format = [ImageRep hasAlpha] ? GL_RGBA : GL_RGB;
-							glTexImage2D (GL_TEXTURE_2D, 0, format, [ImageRep size].width, [ImageRep size].height, 0, format, GL_UNSIGNED_BYTE, [ImageRep bitmapData]);
-						}
-						
-						glUseProgram(Device->SharedContextCompositeProgram);
-						
-						glUniform1i(Device->SharedContextWindowTextureUniform, 0);
-						
-						glUniform1i(Device->SharedContextTextureDirectionUniform, 0);
-						
-						glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_TRUE);
-						
-						glViewport(0, BackbufferSizeY-Device->SharedContextCompositeTextureSizeY, Device->SharedContextCompositeTextureSizeX, Device->SharedContextCompositeTextureSizeY);
-						
-						glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 1);
-						
-						glUniform1i(Device->SharedContextTextureDirectionUniform, 1);
-						
-						glViewport(BackbufferSizeX-Device->SharedContextCompositeTextureSizeX, BackbufferSizeY-Device->SharedContextCompositeTextureSizeY, Device->SharedContextCompositeTextureSizeX, Device->SharedContextCompositeTextureSizeY);
-						
-						glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 1);
-						
-						glViewport(0, 0, BackbufferSizeX, BackbufferSizeY);
-						
-						glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-					}
-
-					int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
-
-					if (Context->SyncInterval != RealSyncInterval)
-					{
-						[Context->OpenGLContext setValues: &RealSyncInterval forParameter: NSOpenGLCPSwapInterval];
-						Context->SyncInterval = RealSyncInterval;
-					}
-					
-					if(!GMacEnableCocoaScreenUpdates)
-					{
-						GMacEnableCocoaScreenUpdates = true;
-						NSEnableScreenUpdates();
-					}
-					
-					[Context->OpenGLContext flushBuffer];
-					
-					TArray<GLuint>& TexturesToDelete = GMacTexturesToDelete[(GFrameNumberRenderThread - (GMacTexturePoolNum - 1)) % GMacTexturePoolNum];
-					if(TexturesToDelete.Num() && TexturesToDelete.Num() > GMacMinTexturesToDeletePerFrame)
-					{
-						uint32 Num = FMath::Min(TexturesToDelete.Num(), GMacMaxTexturesToDeletePerFrame);
-						glDeleteTextures(Num, TexturesToDelete.GetData());
-						TexturesToDelete.RemoveAt(0, Num, false);
-					}
-					
-					glEnable(GL_FRAMEBUFFER_SRGB);
-					
-					REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
-	//				INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
-					
-					if(CocoaWindow)
-					{
-						// Using dispatch was safer - but during loading we aren't responsive on the main thread
-						// this makes it impossible to open the window & so it never appears to play the loading screen.
-						// Just hope that this will work OK...
-						[CocoaWindow performDeferredOrderFront];
-					}
-				}
+				uint32 Num = FMath::Min(TexturesToDelete.Num(), GMacMaxTexturesToDeletePerFrame);
+				glDeleteTextures(Num, TexturesToDelete.GetData());
+				TexturesToDelete.RemoveAt(0, Num, false);
 			}
 		}
 	}
-	return !(Viewport.GetCustomPresent());
+
+	return !Viewport.GetCustomPresent();
+}
+
+void DrawOpenGLViewport(FPlatformOpenGLContext* const Context, uint32 Width, uint32 Height)
+{
+	if ([(FCocoaWindow*)Context->WindowHandle isRenderInitialized])
+	{
+		int32 CurrentReadFramebuffer = 0;
+		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &CurrentReadFramebuffer);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glDisable(GL_FRAMEBUFFER_SRGB);
+		glBlitFramebuffer(0, 0, Width, Height, 0, Height, Width, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glEnable(GL_FRAMEBUFFER_SRGB);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, CurrentReadFramebuffer);
+	}
+	else
+	{
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
 }
 
 void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)
@@ -724,9 +531,10 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 
 		if (Context->ViewportFramebuffer == 0)
 		{
-			glGenFramebuffers(1, &Context->ViewportFramebuffer);
-			check(Context->ViewportFramebuffer);
+		glGenFramebuffers(1, &Context->ViewportFramebuffer);
+		check(Context->ViewportFramebuffer);
 		}
+
 		glBindFramebuffer(GL_FRAMEBUFFER, Context->ViewportFramebuffer);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, BackBufferTarget, BackBufferResource, 0);
 #if UE_BUILD_DEBUG
@@ -738,17 +546,6 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 			UE_LOG(LogRHI, Fatal,TEXT("Framebuffer not complete. Status = 0x%x"), CompleteResult);
 		}
 #endif
-
-		// Clear new buffer to black
-		glViewport(0, 0, SizeX, SizeY);
-		static GLfloat ZeroColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		glClearBufferfv(GL_COLOR, 0, ZeroColor );
-
-		// Set up the state for framebuffer blit
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glDrawBuffer(GL_BACK);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer);
-		glReadBuffer(GL_COLOR_ATTACHMENT0);
 	}
 }
 

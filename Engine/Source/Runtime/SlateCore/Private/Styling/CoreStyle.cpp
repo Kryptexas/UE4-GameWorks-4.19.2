@@ -213,13 +213,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		.SetNormal(FSlateNoResource())
 		.SetHovered(FSlateNoResource())
 		.SetPressed(FSlateNoResource())
-#if PLATFORM_MAC // Disable the shifting behaviour for borderless buttons on Mac OS X - which include the Window close, maximise & minimise.
-		.SetNormalPadding(FMargin(0.0f, 0.0f, 0.0f, 0.0f))
-		.SetPressedPadding(FMargin(0.0f, 0.0f, 0.0f, 0.0f));
-#else
 		.SetNormalPadding(FMargin(0.0f, 0.0f, 0.0f, 1.0f))
 		.SetPressedPadding(FMargin(0.0f, 1.0f, 0.0f, 0.0f));
-#endif
 	{
 		Style->Set("NoBrush", new FSlateNoResource());
 		Style->Set("NoBorder", new FSlateNoResource());
@@ -1062,60 +1057,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	// SWindow defaults...
 	{
-#if PLATFORM_MAC
-		const bool RunningOnMavericks = FPlatformMisc::IsRunningOnMavericks();
-		const FButtonStyle MinimizeButtonStyle = RunningOnMavericks ?
-			FButtonStyle(Button)
-				.SetNormal(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20.0f, 20.0f)))
-				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20.0f, 20.0f)))
-				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20.0f, 20.0f)))
-				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)))
-		:
-			FButtonStyle(Button)
-				.SetNormal(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Minimize_Normal", FVector2D(20.0f, 20.0f)))
-				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Minimize_Hovered", FVector2D(20.0f, 20.0f)))
-				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Minimize_Pressed", FVector2D(20.0f, 20.0f)))
-				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20.0f, 20.0f)));
-
-		const FButtonStyle MaximizeButtonStyle = RunningOnMavericks ?
-			FButtonStyle(Button)
-				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20.0f, 20.0f)))
-				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
-				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
-				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)))
-		:
-			FButtonStyle(Button)
-				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Normal", FVector2D(20.0f, 20.0f)))
-				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
-				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
-				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20.0f, 20.0f)));
-
-		const FButtonStyle RestoreButtonStyle = RunningOnMavericks ?
-			FButtonStyle(Button)
-				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20.0f, 20.0f)))
-				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
-				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
-				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)))
-		:
-			FButtonStyle(Button)
-				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Normal", FVector2D(20.0f, 20.0f)))
-				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
-				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
-				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20.0f, 20.0f)));
-
-		const FButtonStyle CloseButtonStyle = RunningOnMavericks ?
-			FButtonStyle(Button)
-				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Normal", FVector2D(20.0f, 20.0f)))
-				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Hovered", FVector2D(20.0f, 20.0f)))
-				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Pressed", FVector2D(20.0f, 20.0f)))
-				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)))
-		:
-			FButtonStyle(Button)
-				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Close_Normal", FVector2D(20.0f, 20.0f)))
-				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Close_Hovered", FVector2D(20.0f, 20.0f)))
-				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Close_Pressed", FVector2D(20.0f, 20.0f)))
-				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20.0f, 20.0f)));
-#else
+#if !PLATFORM_MAC
 		const FButtonStyle MinimizeButtonStyle = FButtonStyle(Button)
 			.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Minimize_Normal", FVector2D(27.0f, 18.0f)))
 			.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Minimize_Hovered", FVector2D(27.0f, 18.0f)))
@@ -1146,10 +1088,12 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetShadowColorAndOpacity(FLinearColor::Black);
 
 		Style->Set( "Window", FWindowStyle()
+#if !PLATFORM_MAC
 			.SetMinimizeButtonStyle(MinimizeButtonStyle)
 			.SetMaximizeButtonStyle(MaximizeButtonStyle)
 			.SetRestoreButtonStyle(RestoreButtonStyle)
 			.SetCloseButtonStyle(CloseButtonStyle)
+#endif
 			.SetTitleTextStyle(TitleTextStyle)
 			.SetActiveTitleBrush(IMAGE_BRUSH("Common/Window/WindowTitle", Icon32x32, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f), ESlateBrushTileType::Horizontal))
 			.SetInactiveTitleBrush(IMAGE_BRUSH("Common/Window/WindowTitle_Inactive", Icon32x32, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f), ESlateBrushTileType::Horizontal))

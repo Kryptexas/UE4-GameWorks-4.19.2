@@ -244,13 +244,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		.SetNormal(FSlateNoResource())
 		.SetHovered(FSlateNoResource())
 		.SetPressed(FSlateNoResource())
-#if PLATFORM_MAC // Disable the shifting behaviour for borderless buttons on Mac OS X - which include the Window close, maximise & minimise.
-		.SetNormalPadding(FMargin(0,0,0,0))
-		.SetPressedPadding(FMargin(0,0,0,0));
-#else
 		.SetNormalPadding(FMargin(0,0,0,1))
 		.SetPressedPadding(FMargin(0,1,0,0));
-#endif
 	Set( "NoBorder", NoBorder );
 
 	// Buttons that only provide a hover hint.
@@ -2290,94 +2285,7 @@ void FSlateEditorStyle::FStyle::SetupWindowStyles()
 		Set( "Window.Title.Inactive",             new IMAGE_BRUSH( "Old/Window/WindowTitle_Inactive", Icon32x32, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) );
 		Set( "Window.Title.Flash",				  new IMAGE_BRUSH( "Old/Window/WindowTitle_Flashing", Icon24x24, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) );
 
-#if PLATFORM_MAC
-		const bool RunningOnMavericks = FPlatformMisc::IsRunningOnMavericks();
-		FButtonStyle MinimizeButtonStyle, MaximizeButtonStyle, RestoreButtonStyle, CloseButtonStyle;
-		if (RunningOnMavericks)
-		{
-			MinimizeButtonStyle = FButtonStyle(Button)
-				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20, 20) ) )
-				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20, 20) ) )
-				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20, 20) ) )
-				.SetDisabled( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
-
-			Set( "Window.Buttons.Minimize.Normal",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Minimize.Hovered",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Minimize.Pressed",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Minimize.Disabled",  new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
-
-			MaximizeButtonStyle = FButtonStyle(Button)
-				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) )
-				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) )
-				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) )
-				.SetDisabled( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
-
-			Set( "Window.Buttons.Maximize.Normal",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Maximize.Hovered",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Maximize.Pressed",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Maximize.Disabled",  new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
-
-			RestoreButtonStyle = FButtonStyle(Button)
-				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) )
-				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) )
-				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
-
-			Set( "Window.Buttons.Restore.Normal",     new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Restore.Hovered",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Restore.Pressed",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
-
-			CloseButtonStyle = FButtonStyle(Button)
-				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Normal", FVector2D(20, 20) ) )
-				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Hovered", FVector2D(20, 20) ) )
-				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Pressed", FVector2D(20, 20) ) );
-
-			Set( "Window.Buttons.Close.Normal",       new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Normal", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Hovered", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Pressed", FVector2D(20, 20) ) );
-		}
-		else
-		{
-			MinimizeButtonStyle = FButtonStyle(Button)
-				.SetNormal ( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Minimize_Normal", FVector2D(20, 20) ) )
-				.SetHovered( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Minimize_Hovered", FVector2D(20, 20) ) )
-				.SetPressed( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Minimize_Pressed", FVector2D(20, 20) ) )
-				.SetDisabled( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Disabled", FVector2D(20, 20) ) );
-
-			Set( "Window.Buttons.Minimize.Normal",    new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Minimize_Normal", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Minimize.Hovered",   new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Minimize_Hovered", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Minimize.Pressed",   new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Minimize_Pressed", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Minimize.Disabled",  new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Disabled", FVector2D(20, 20) ) );
-
-			MaximizeButtonStyle = FButtonStyle(Button)
-				.SetNormal ( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Normal", FVector2D(20, 20) ) )
-				.SetHovered( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Hovered", FVector2D(20, 20) ) )
-				.SetPressed( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Pressed", FVector2D(20, 20) ) )
-				.SetDisabled( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Disabled", FVector2D(20, 20) ) );
-
-			Set( "Window.Buttons.Maximize.Normal",    new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Normal", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Maximize.Hovered",   new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Hovered", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Maximize.Pressed",   new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Pressed", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Maximize.Disabled",  new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Disabled", FVector2D(20, 20) ) );
-
-			RestoreButtonStyle = FButtonStyle(Button)
-				.SetNormal ( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Normal", FVector2D(20, 20) ) )
-				.SetHovered( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Hovered", FVector2D(20, 20) ) )
-				.SetPressed( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Pressed", FVector2D(20, 20) ) );
-
-			Set( "Window.Buttons.Restore.Normal",     new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Normal", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Restore.Hovered",    new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Hovered", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Restore.Pressed",    new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Maximize_Pressed", FVector2D(20, 20) ) );
-
-			CloseButtonStyle = FButtonStyle(Button)
-				.SetNormal ( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Close_Normal", FVector2D(20, 20) ) )
-				.SetHovered( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Close_Hovered", FVector2D(20, 20) ) )
-				.SetPressed( IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Close_Pressed", FVector2D(20, 20) ) );
-
-			Set( "Window.Buttons.Close.Normal",       new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Close_Normal", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Close_Hovered", FVector2D(20, 20) ) );
-			Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/Mac_Yosemite_Close_Pressed", FVector2D(20, 20) ) );
-		}
-#else
+#if !PLATFORM_MAC
 		const FButtonStyle MinimizeButtonStyle = FButtonStyle(Button)
 			.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Minimize_Normal", FVector2D(27, 18) ) )
 			.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Minimize_Hovered", FVector2D(27, 18) ) )
@@ -2417,12 +2325,12 @@ void FSlateEditorStyle::FStyle::SetupWindowStyles()
 		Set( "Window.Buttons.Close.Normal",       new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Normal", FVector2D(44, 18) ) );
 		Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Hovered", FVector2D(44, 18) ) );
 		Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Pressed", FVector2D(44, 18) ) );
-#endif
 
 		Set( "Window.Buttons.Minimize", MinimizeButtonStyle );
 		Set( "Window.Buttons.Maximize", MaximizeButtonStyle );
 		Set( "Window.Buttons.Restore", RestoreButtonStyle );
 		Set( "Window.Buttons.Close", CloseButtonStyle );
+#endif
 
 		// Title Text
 		const FTextBlockStyle TitleTextStyle = FTextBlockStyle(NormalText)
@@ -2435,10 +2343,12 @@ void FSlateEditorStyle::FStyle::SetupWindowStyles()
 		Set( "ChildWindow.Background",            new IMAGE_BRUSH( "Common/NoiseBackground", FVector2D(64, 64), FLinearColor::White, ESlateBrushTileType::Both) );
 
 		Set( "Window", FWindowStyle()
+#if !PLATFORM_MAC
 			.SetMinimizeButtonStyle( MinimizeButtonStyle )
 			.SetMaximizeButtonStyle( MaximizeButtonStyle )
 			.SetRestoreButtonStyle( RestoreButtonStyle )
 			.SetCloseButtonStyle( CloseButtonStyle )
+#endif
 			.SetTitleTextStyle( TitleTextStyle )
 			.SetActiveTitleBrush( IMAGE_BRUSH( "Old/Window/WindowTitle", Icon32x32, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) )
 			.SetInactiveTitleBrush( IMAGE_BRUSH( "Old/Window/WindowTitle_Inactive", Icon32x32, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) )

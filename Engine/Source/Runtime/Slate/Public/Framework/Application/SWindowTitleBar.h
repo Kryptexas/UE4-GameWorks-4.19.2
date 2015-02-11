@@ -208,38 +208,8 @@ protected:
 
 #if PLATFORM_MAC
 
-		// Mac UI layout
-		OutLeftContent = SNew(SBox)
-			.Visibility(EVisibility::SelfHitTestInvisible)
-			.Padding(FMargin(0.0f, 2.0f, 0.0f, 0.0f))
-			[
-				SNew(SHorizontalBox)
-					.Visibility(EVisibility::SelfHitTestInvisible)
-
-				// Close button
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(FMargin( 4.0f, 0.0f, 0.0f, 0.0f))
-					[
-						CloseButton.ToSharedRef()
-					]
-
-				// Minimize
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						MinimizeButton.ToSharedRef()
-					]
-
-				// Maximize/Restore
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						MaximizeRestoreButton.ToSharedRef()
-					]
-			];
-
-		// No right content on Mac
+		// On Mac we use real window buttons drawn by the OS
+		OutLeftContent = SNew(SSpacer);
 		OutRightContent = SNew(SSpacer);
 
 #else // PLATFORM_MAC
@@ -432,21 +402,11 @@ private:
 			return &Style->CloseButtonStyle.Pressed;
 		}
 
-#if PLATFORM_MAC
-		if (this->MinimizeButton->IsHovered() || MaximizeRestoreButton->IsHovered() || CloseButton->IsHovered())
-#else
 		if (CloseButton->IsHovered())
-#endif
 		{
 			return &Style->CloseButtonStyle.Hovered;
 		}
 
-#if PLATFORM_MAC
-		if (NativeWindow.IsValid() && !NativeWindow->IsForegroundWindow())
-		{
-			return &Style->CloseButtonStyle.Disabled;
-		}
-#endif
 		return &Style->CloseButtonStyle.Normal;
 	}
 
@@ -497,20 +457,10 @@ private:
 			{
 				return &Style->RestoreButtonStyle.Pressed;
 			}
-#if PLATFORM_MAC
-			else if (this->MinimizeButton->IsHovered() || MaximizeRestoreButton->IsHovered() || CloseButton->IsHovered())
-#else
 			else if (MaximizeRestoreButton->IsHovered())
-#endif
 			{
 				return &Style->RestoreButtonStyle.Hovered;
 			}
-#if PLATFORM_MAC
-			else if (NativeWindow.IsValid() && !NativeWindow->IsForegroundWindow())
-			{
-				return &Style->RestoreButtonStyle.Disabled;
-			}
-#endif
 			else
 			{
 				return &Style->RestoreButtonStyle.Normal;
@@ -526,20 +476,10 @@ private:
 			{
 				return &Style->MaximizeButtonStyle.Pressed;
 			}
-#if PLATFORM_MAC
-			else if (this->MinimizeButton->IsHovered() || MaximizeRestoreButton->IsHovered() || CloseButton->IsHovered())
-#else
 			else if (MaximizeRestoreButton->IsHovered())
-#endif
 			{
 				return &Style->MaximizeButtonStyle.Hovered;
 			}
-#if PLATFORM_MAC
-			else if (NativeWindow.IsValid() && !NativeWindow->IsForegroundWindow())
-			{
-				return &Style->MaximizeButtonStyle.Disabled;
-			}
-#endif
 			else
 			{
 				return &Style->MaximizeButtonStyle.Normal;
@@ -585,20 +525,10 @@ private:
 		{
 			return &Style->MinimizeButtonStyle.Pressed;
 		}
-	#if PLATFORM_MAC
-		else if (MinimizeButton->IsHovered() || MaximizeRestoreButton->IsHovered() || CloseButton->IsHovered())
-	#else
 		else if (MinimizeButton->IsHovered())
-	#endif
 		{
 			return &Style->MinimizeButtonStyle.Hovered;
 		}
-	#if PLATFORM_MAC
-		else if (NativeWindow.IsValid() && !NativeWindow->IsForegroundWindow())
-		{
-			return &Style->MinimizeButtonStyle.Disabled;
-		}
-	#endif
 		else
 		{
 			return &Style->MinimizeButtonStyle.Normal;

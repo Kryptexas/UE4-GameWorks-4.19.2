@@ -91,23 +91,26 @@ public:
 public:
 
 	void OnDragEnter(FCocoaWindow* Window, NSPasteboard* InPasteboard);
-	void OnDragOver( FCocoaWindow* Window );
-	void OnDragOut( FCocoaWindow* Window );
-	void OnDragDrop( FCocoaWindow* Window );
+	void OnDragOver(FCocoaWindow* Window);
+	void OnDragOut(FCocoaWindow* Window);
+	void OnDragDrop(FCocoaWindow* Window);
 
-	void OnWindowDidBecomeKey( FCocoaWindow* Window );
-	void OnWindowDidResignKey( FCocoaWindow* Window );
-	void OnWindowWillMove( FCocoaWindow* Window );
-	void OnWindowDidMove( FCocoaWindow* Window );
-	void OnWindowDidResize( FCocoaWindow* Window );
-	void OnWindowRedrawContents( FCocoaWindow* Window );
-	void OnWindowDidClose( FCocoaWindow* Window );
-	bool OnWindowDestroyed( FCocoaWindow* Window );
-	void OnWindowClose( FCocoaWindow* Window );
+	void OnWindowDidBecomeKey(FCocoaWindow* Window);
+	void OnWindowDidResignKey(FCocoaWindow* Window);
+	void OnWindowWillMove(FCocoaWindow* Window);
+	void OnWindowDidMove(FCocoaWindow* Window);
+	void OnWindowWillStartLiveResize(FCocoaWindow* Window);
+	void OnWindowDidEndLiveResize(FCocoaWindow* Window);
+	void OnWindowDidResize(FCocoaWindow* Window);
+	void OnWindowDidClose(FCocoaWindow* Window);
+	bool OnWindowDestroyed(FCocoaWindow* Window);
+	void OnWindowClose(FCocoaWindow* Window);
 
-	void OnMouseCursorLock( bool bLockEnabled );
+	void OnMouseCursorLock(bool bLockEnabled);
 
 	static void ProcessEvent(FMacEvent const* const Event);
+
+	void RedrawWindow(FCocoaWindow* Window);
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
 

@@ -155,13 +155,9 @@ static NSOpenGLContext* CreateContext( NSOpenGLContext* SharedContext )
 			}
 		}
 	}
-	
+
 	int32 SyncInterval = 0;
 	[Context setValues: &SyncInterval forParameter: NSOpenGLCPSwapInterval];
-	
-	// Setup Opacity - can't change it dynamically later!
-	int32 SurfaceOpacity = 0;
-	[Context setValues: &SurfaceOpacity forParameter: NSOpenGLCPSurfaceOpacity];
 
 	extern int32 GMacUseMTGL;
 	if (GMacUseMTGL)
@@ -206,6 +202,7 @@ void MacOpenGLContextReconfigurationCallBack(CGDirectDisplayID Display, CGDispla
 
 FPlatformOpenGLContext::FPlatformOpenGLContext()
 : OpenGLContext(nil)
+, OpenGLPixelFormat(nil)
 , OpenGLView(nil)
 , WindowHandle(nil)
 , EmulatedQueries(nullptr)
@@ -231,7 +228,7 @@ FPlatformOpenGLContext::~FPlatformOpenGLContext()
 		MakeCurrent();
 		bMadeCurrent = true;
 	}
-	
+
 	if (ViewportFramebuffer)
 	{
 		// this can be done from any context, as long as it's not nil.
@@ -280,6 +277,7 @@ void FPlatformOpenGLContext::Initialise( NSOpenGLContext* const SharedContext )
 	if ( !OpenGLContext )
 	{
 		OpenGLContext = CreateContext(SharedContext);
+		OpenGLPixelFormat = PixelFormat;
 	}
 	check(OpenGLContext);
 	
@@ -318,14 +316,14 @@ void FPlatformOpenGLContext::Reset(void)
 		MakeCurrent();
 		bMadeCurrent = true;
 	}
-	
+
 	if (ViewportFramebuffer)
 	{
 		// this can be done from any context, as long as it's not nil.
 		glDeleteFramebuffers(1, &ViewportFramebuffer);
 		ViewportFramebuffer = 0;
 	}
-	
+
 	[OpenGLContext clearDrawable];
 	
 	if ( OpenGLView )
