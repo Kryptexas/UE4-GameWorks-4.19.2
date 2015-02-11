@@ -15,6 +15,7 @@
 #include "BlueprintActionMenuUtils.h"
 #include "BlueprintPaletteFavorites.h"
 #include "IDocumentation.h"
+#include "SSCSEditor.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintGraphContextMenu"
 
