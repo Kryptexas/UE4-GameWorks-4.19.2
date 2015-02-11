@@ -289,7 +289,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				{
 					Bugg NewBugg = new Bugg();
 
-					Bugg RealBugg = RealBuggs.Where( X => X.Pattern == Top.Key ).First();
+					Bugg RealBugg = RealBuggs.Where( X => X.Pattern == Top.Key ).FirstOrDefault();
 					if( RealBugg != null )
 					{
 						using( FAutoScopedLogTimer TopTimer = new FAutoScopedLogTimer( string.Format("{0}:{1}", Buggs.Count+1, RealBugg.Id ) ) )
@@ -370,6 +370,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			{
 				FormHelper FormData = new FormHelper( Request, ReportsForm, "JustReport" );
 				ReportsViewModel Results = GetResults( FormData );
+				Results.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
 				return View( "Index", Results );
 			}
 		}

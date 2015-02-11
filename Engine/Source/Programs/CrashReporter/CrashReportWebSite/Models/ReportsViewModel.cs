@@ -24,20 +24,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The date of the most recent crash in a Bugg.</summary>
 		public long DateTo { get; set; }
 
-		/// <summary>
-		/// 
-		/// </summary>
+		/// <summary></summary>
 		public int TotalAnonymousCrashes { get; set; }
 
-		/// <summary>
-		///		
-		/// </summary>
+		/// <summary></summary>
 		public int TotalUniqueAnonymousCrashes { get; set; }
 
-		/// <summary>
-		/// 
-		/// </summary>
+		/// <summary></summary>
 		public int TotalAffectedUsers { get; set; }
+
+		/// <summary></summary>
+		public string GenerationTime { get; set; }
 
 		/// <summary>User input from the client.</summary>
 		public FormCollection FormCollection { get; set; }

@@ -107,6 +107,12 @@ public class FScopedLogTimer : IDisposable
 		}		
 	}
 
+	/// <summary> Returns the elapsed time as total number of seconds. </summary>
+	public double GetElapsedSeconds()
+	{
+		return Timer.Elapsed.TotalSeconds;
+	}
+
 	/// <summary> Global tag to use for logging. </summary>
 	protected string Description;
 
