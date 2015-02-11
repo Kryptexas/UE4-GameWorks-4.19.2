@@ -1608,6 +1608,12 @@ static TAutoConsoleVariable<int32> CVarMobileHDR32bpp(
 	TEXT("1: Mobile HDR renders to an RGBA8 target."),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarMobileReduceLoadedMips(
+	TEXT("r.MobileReduceLoadedMips"),
+	0,
+	TEXT("Reduce loaded texture mipmaps for nonstreaming mobile platforms.\n"),
+	ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarSetClearSceneMethod(
 	TEXT("r.ClearSceneMethod"),
 	1,

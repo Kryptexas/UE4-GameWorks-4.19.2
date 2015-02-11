@@ -760,7 +760,10 @@ FTextureResource* UTexture2D::CreateResource()
 	int32 NumMips = GetNumMips();
 
 	// Determine whether or not this texture can be streamed.
-	bIsStreamable = IStreamingManager::Get().IsTextureStreamingEnabled() &&
+	bIsStreamable = 
+#if !PLATFORM_ANDROID
+					IStreamingManager::Get().IsTextureStreamingEnabled() &&
+#endif
 					!NeverStream && 
 					(NumMips > 1) && 
 					(LODGroup != TEXTUREGROUP_UI) && 
@@ -820,9 +823,15 @@ FTextureResource* UTexture2D::CreateResource()
 		// Handle streaming textures.
 		if( bIsStreamable )
 		{
+#if PLATFORM_SUPPORTS_TEXTURE_STREAMING
 			// Only request lower miplevels and let texture streaming code load the rest.
 			NumNonStreamingMips = GetNumNonStreamingMips();
 			RequestedMips = NumNonStreamingMips;
+#else
+			static auto* MobileReduceLoadedMipsCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileReduceLoadedMips"));
+			NumNonStreamingMips = GetNumNonStreamingMips();
+			RequestedMips = FMath::Min(NumMips, GMaxTextureMipCount) - MobileReduceLoadedMipsCvar->GetValueOnAnyThread();
+#endif
 		}
 		// Handle non- streaming textures.
 		else
