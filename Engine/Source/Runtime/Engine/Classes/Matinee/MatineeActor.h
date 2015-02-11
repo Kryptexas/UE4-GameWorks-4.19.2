@@ -464,10 +464,10 @@ public:
 	
 
 	/** Try to invoke the event with the given name in the level script */
-	virtual void NotifyEventTriggered(FName EventName, float EventTime);
+	virtual void NotifyEventTriggered(FName EventName, float EventTime, bool bUseCustomEventName=false);
 
 	/** Util to get the name of the function to find for the given event name */
-	ENGINE_API FName GetFunctionNameForEvent(FName EventName);
+	ENGINE_API FName GetFunctionNameForEvent(FName EventName,bool bUseCustomEventName=false);
 
 public:
 #if WITH_EDITORONLY_DATA

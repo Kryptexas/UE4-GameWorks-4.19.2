@@ -371,19 +371,28 @@ AMatineeActor::AMatineeActor(const FObjectInitializer& ObjectInitializer)
 	ReplicationForceIsPlaying = 0;
 }
 
-FName AMatineeActor::GetFunctionNameForEvent(FName EventName)
+FName AMatineeActor::GetFunctionNameForEvent(FName EventName,bool bUseCustomEventName)
 {
-	FString EventFuncName = FString::Printf(TEXT("%s_%s"), *MatineeControllerName.ToString(), *EventName.ToString());
-	return FName(*EventFuncName);
+	FName EventFuncName;
+	if( bUseCustomEventName )
+	{
+		EventFuncName = EventName;
+	}
+	else
+	{
+		EventFuncName = *(FString::Printf(TEXT("%s_%s"), *MatineeControllerName.ToString(), *EventName.ToString()));	
+	}
+
+	return EventFuncName;
 }
 
-void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime)
+void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime, bool bUseCustomEventName)
 {
 	ULevel* Level = GetLevel();
 	ALevelScriptActor* LevelScriptActor = Level->LevelScriptActor;
 	if(LevelScriptActor != NULL)
 	{
-		FName EventFuncName = GetFunctionNameForEvent(EventName);
+		FName EventFuncName = GetFunctionNameForEvent(EventName,bUseCustomEventName);
 		UFunction* EventFunction = LevelScriptActor->FindFunction(EventFuncName);
 		if(EventFunction != NULL)
 		{
@@ -6312,6 +6321,15 @@ void UInterpTrackEvent::RemoveKeyframe(int32 KeyIndex)
 	}
 }
 
+void UInterpTrackEvent::PreviewUpdateTrack(float NewPosition, class UInterpTrackInst* TrInst)
+{
+	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( TrInst->GetOuter() );
+	AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( GrInst->GetOuter() );
+
+	bool bJump = !( MatineeActor->bIsPlaying );
+	UpdateTrack(NewPosition, TrInst, bJump);
+}
+
 void UInterpTrackEvent::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump)
 {
 	UInterpTrackInstEvent* EventInst = CastChecked<UInterpTrackInstEvent>(TrInst);
@@ -6405,7 +6423,7 @@ void UInterpTrackEvent::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 
 			if( bFireThisEvent )
 			{
-				MatineeActor->NotifyEventTriggered(EventTrack[i].EventName, EventTime);
+				MatineeActor->NotifyEventTriggered(EventTrack[i].EventName, EventTime, bUseCustomEventName);
 			}
 		}
 	}
