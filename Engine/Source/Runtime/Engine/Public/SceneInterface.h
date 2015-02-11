@@ -8,6 +8,7 @@ class FMaterialShaderMap;
 class ULightComponent;
 class USkyLightComponent;
 class FAtmosphericFogSceneInfo;
+class FPrimitiveComponentId;
 
 /**
  * An interface to the private scene manager implementation of a scene.  Use GetRendererModule().AllocateScene to create.
@@ -312,6 +313,11 @@ public:
 	{
 		return GetFeatureLevel() >= ERHIFeatureLevel::SM4;
 	}
+
+	/**
+	 * Returns the FPrimitiveComponentId for all primitives in the scene
+	 */
+	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const { return TArray<FPrimitiveComponentId>(); }
 
 protected:
 	virtual ~FSceneInterface() {}

@@ -236,6 +236,14 @@ public:
 	UPROPERTY()
 	FGuid StateId;
 
+	/** The Material Guid that used when baking, to detect material recompilations */
+	UPROPERTY()
+	FGuid BakedTextureMaterialGuid;
+
+	/** Pre-baked Base Color texture for use by distance field GI */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BakedTextures)
+	UTexture2D* GIBakedBaseColorTexture;
+
 #if WITH_EDITORONLY_DATA
 	/** LOD level Bias to use when lighting buidling via lightmass, -1 Means automatic LOD calculation based on ForcedLOD + LODBias */
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)

@@ -37,6 +37,10 @@ Landscape.cpp: Terrain rendering
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 
+#if WITH_EDITOR
+#include "MaterialExportUtils.h"
+#endif
+
 /** Landscape stats */
 
 DEFINE_STAT(STAT_LandscapeDynamicDrawTime);
@@ -2145,6 +2149,15 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 		// the super tick is for an actor tick...
 		//Super::Tick(DeltaSeconds);
 
+#if WITH_EDITOR
+		UWorld* World = GetWorld();
+
+		if (GIsEditor && World && !World->IsPlayInEditor())
+		{
+			UpdateBakedTextures();
+		}
+#endif
+
 		TickGrass();
 	}
 }
@@ -2189,6 +2202,140 @@ ALandscapeMeshProxyActor::ALandscapeMeshProxyActor(const FObjectInitializer& Obj
 ULandscapeMeshProxyComponent::ULandscapeMeshProxyComponent(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
+}
+
+#if WITH_EDITOR
+void ALandscapeProxy::UpdateBakedTextures()
+{
+	// See if we can render
+	UWorld* World = GetWorld();
+	if (!GIsEditor || GUsingNullRHI || !World || World->IsGameWorld() || World->FeatureLevel < ERHIFeatureLevel::SM4)
+	{
+		return;
+	}
+
+	if (UpdateBakedTexturesCountdown-- > 0)
+	{
+		return;
+	}
+
+	// Group components by heightmap texture
+	TMap<UTexture2D*, TArray<ULandscapeComponent*>> ComponentsByHeightmap;
+	for (ULandscapeComponent* Component : LandscapeComponents)
+	{
+		ComponentsByHeightmap.FindOrAdd(Component->HeightmapTexture).Add(Component);
+	}
+
+	TotalComponentsNeedingTextureBaking -= NumComponentsNeedingTextureBaking;
+	NumComponentsNeedingTextureBaking = 0;
+	int32 NumGenerated = 0;
+
+	for (auto It = ComponentsByHeightmap.CreateConstIterator(); It; ++It)
+	{
+		bool bHaveComponentsToUpdate = false;
+		for (ULandscapeComponent* Component : It.Value())
+		{
+			// not registered; ignore this component
+			if (!Component->SceneProxy)
+			{
+				continue;
+			}
+
+			// Check we can render the material
+			UMaterialInstance* MaterialInstance = Component->MaterialInstance;
+
+			if (!MaterialInstance || !MaterialInstance->GetMaterialResource(World->FeatureLevel)->HasValidGameThreadShaderMap())
+			{
+				// Cannot render this component yet as it doesn't have a material; abandon the atlas for this heightmap
+				bHaveComponentsToUpdate = false;
+				break;
+			}
+
+			if (Component->BakedTextureMaterialGuid == MaterialInstance->GetMaterial()->StateId)
+			{
+				// up to date
+				continue;
+			}
+
+			bHaveComponentsToUpdate = true;
+		}
+
+		if (bHaveComponentsToUpdate)
+		{
+			// We throttle, baking only one atlas per frame
+			if (NumGenerated > 0)
+			{
+				NumComponentsNeedingTextureBaking += It.Value().Num();
+			}
+			else
+			{
+				UTexture2D* HeightmapTexture = It.Key();
+				// 1/8 the res of the heightmap
+				FIntPoint AtlasSize(HeightmapTexture->GetSizeX() >> 3, HeightmapTexture->GetSizeY() >> 3);
+
+				TArray<FColor> AtlasSamples;
+				AtlasSamples.AddZeroed(AtlasSize.X * AtlasSize.Y);
+
+				for (ULandscapeComponent* Component : It.Value())
+				{
+					// not registered; ignore this component
+					if (!Component->SceneProxy)
+					{
+						continue;
+					}
+
+					int32 ComponentSamples = (SubsectionSizeQuads + 1) * NumSubsections;
+					check(FMath::IsPowerOfTwo(ComponentSamples));
+
+					int32 BakeSize = ComponentSamples >> 3;
+					TArray<FColor> Samples;
+					if (MaterialExportUtils::ExportBaseColor(Component, BakeSize, Samples))
+					{
+						int32 AtlasOffsetX = FMath::RoundToInt(Component->HeightmapScaleBias.Z * (float)HeightmapTexture->GetSizeX()) >> 3;
+						int32 AtlasOffsetY = FMath::RoundToInt(Component->HeightmapScaleBias.W * (float)HeightmapTexture->GetSizeY()) >> 3;
+						for (int32 y = 0; y < BakeSize; y++)
+						{
+							FMemory::Memcpy(&AtlasSamples[(y + AtlasOffsetY)*AtlasSize.Y + AtlasOffsetX], &Samples[y*BakeSize], sizeof(FColor)* BakeSize);
+						}
+						NumGenerated++;
+					}
+				}
+				UTexture2D* AtlasTexture = MaterialExportUtils::CreateTexture(GetOutermost(), HeightmapTexture->GetName() + TEXT("_BaseColor"), AtlasSize, AtlasSamples, TC_Default, TEXTUREGROUP_World, RF_Public, true);
+				AtlasTexture->MarkPackageDirty();
+
+				for (ULandscapeComponent* Component : It.Value())
+				{
+					Component->BakedTextureMaterialGuid = Component->MaterialInstance->GetMaterial()->StateId;
+					Component->GIBakedBaseColorTexture = AtlasTexture;
+					Component->MarkRenderStateDirty();
+				}
+			}
+		}
+	}
+
+	TotalComponentsNeedingTextureBaking += NumComponentsNeedingTextureBaking;
+
+	if (NumGenerated == 0)
+	{
+		// Don't check if we need to update anything for another 60 frames
+		UpdateBakedTexturesCountdown = 60;
+	}
+}
+#endif
+
+void ALandscapeProxy::InvalidateGeneratedComponentData(const TSet<ULandscapeComponent*>& Components)
+{
+	TMap<ALandscapeProxy*, TSet<ULandscapeComponent*>> ByProxy;
+	for (auto Component : Components)
+	{
+		Component->BakedTextureMaterialGuid.Invalidate();
+
+		ByProxy.FindOrAdd(Component->GetLandscapeProxy()).Add(Component);
+	}
+	for (auto It = ByProxy.CreateConstIterator(); It; ++It)
+	{
+		It.Key()->FlushGrassComponents(&It.Value());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

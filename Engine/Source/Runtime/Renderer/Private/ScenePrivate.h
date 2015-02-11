@@ -1658,6 +1658,11 @@ public:
 		return SkyLight && !SkyLight->bHasStaticLighting && GSupportsRenderTargetFormat_PF_FloatRGBA;
 	}
 
+	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override
+	{
+		return PrimitiveComponentIds;
+	}
+
 private:
 
 	/**

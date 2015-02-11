@@ -524,9 +524,6 @@ public:
 	/** Flush the grass cache */
 	LANDSCAPE_API void FlushGrassComponents(const TSet<ULandscapeComponent*>* OnlyForComponents = nullptr, bool bFlushGrassMaps = true);
 
-	/* Static version to distribute to the appropriate proxy for each component */
-	LANDSCAPE_API static void DistributeFlushGrassComponents(const TSet<ULandscapeComponent*>& Components, bool bFlushGrassMaps = true);
-
 	/** 
 		Update Grass 
 		* @param Cameras to use for culling, if empty, then NO culling
@@ -537,9 +534,18 @@ public:
 	/* Get the list of grass types on this landscape */
 	TArray<ULandscapeGrassType*> GetGrassTypes() const;
 
+	/* Invalidate the precomputed grass and baked texture data for the specified components */
+	LANDSCAPE_API static void InvalidateGeneratedComponentData(const TSet<ULandscapeComponent*>& Components);
+
 #if WITH_EDITOR
 	/** Render grass maps for the specified components */
 	void RenderGrassMaps(const TArray<ULandscapeComponent*>& LandscapeComponents, const TArray<ULandscapeGrassType*>& GrassTypes);
+
+	/** Update any textures baked from the landscape as necessary */
+	void UpdateBakedTextures();
+
+	/** Frame counter to count down to the next time we check to update baked textures, so we don't check every frame */
+	int32 UpdateBakedTexturesCountdown;
 #endif
 
 	// Begin FTickableGameObject interface.
@@ -649,6 +655,9 @@ public:
 	int32 NumTexturesToStreamForVisibleGrassMapRender;
 	LANDSCAPE_API static int32 TotalTexturesToStreamForVisibleGrassMapRender;
 
+	/* For the texture baking notification */
+	int32 NumComponentsNeedingTextureBaking;
+	LANDSCAPE_API static int32 TotalComponentsNeedingTextureBaking;
 #endif
 };
 

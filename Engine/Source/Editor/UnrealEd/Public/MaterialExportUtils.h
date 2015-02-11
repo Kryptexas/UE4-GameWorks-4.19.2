@@ -3,6 +3,7 @@
 
 // Forward declarations
 class ALandscapeProxy;
+class ULandscapeComponent;
 
 namespace MaterialExportUtils
 {
@@ -73,5 +74,29 @@ namespace MaterialExportUtils
 	 * @return						Returns a pointer to the constructed UMaterial object.
 	 */
 	UNREALED_API UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, TArray<UObject*>& OutGeneratedAssets);
+
+
+	/**
+ 	 * Generates a texture from an array of samples 
+	 *
+	 * @param Outer					Outer for the material and texture objects, if NULL new packages will be created for each asset
+	 * @param AssetLongName			Long asset path for the new texture
+	 * @param Size					Resolution of the texture to generate (must match the number of samples)
+	 * @param Samples				Color data for the texture
+	 * @param CompressionSettings	Compression settings for the new texture
+	 * @param LODGroup				LODGroup for the new texture
+	 * @param Flags					ObjectFlags for the new texture
+	 * @param bSRGB					Whether to set the bSRGB flag on the new texture
+	 * @return						The new texture.
+	 */
+	UNREALED_API UTexture2D* CreateTexture(UPackage* Outer, const FString& AssetLongName, FIntPoint Size, const TArray<FColor>& Samples, TextureCompressionSettings CompressionSettings, TextureGroup LODGroup, EObjectFlags Flags, bool bSRGB);
+
+	/**
+	* Creates bakes textures for a ULandscapeComponent
+	*
+	* @param LandscapeComponent		The component to bake textures for
+	* @return						Whether operation was successful
+	*/
+	UNREALED_API bool ExportBaseColor(ULandscapeComponent* LandscapeComponent, int32 TextureSize, TArray<FColor>& OutSamples);
 }
 

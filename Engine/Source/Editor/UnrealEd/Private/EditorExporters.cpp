@@ -3009,4 +3009,48 @@ namespace MaterialExportUtils
 		Material->PostEditChange();
 		return Material;
 	}
+
+	bool ExportBaseColor(ULandscapeComponent* LandscapeComponent, int32 TextureSize, TArray<FColor>& OutSamples)
+	{
+		ALandscapeProxy* LandscapeProxy = LandscapeComponent->GetLandscapeProxy();
+
+		FIntPoint ComponentOrigin = LandscapeComponent->GetSectionBase() - LandscapeProxy->LandscapeSectionOffset;
+		FIntPoint ComponentSize(LandscapeComponent->ComponentSizeQuads, LandscapeComponent->ComponentSizeQuads);
+		FVector MidPoint = FVector(ComponentOrigin, 0.f) + FVector(ComponentSize, 0.f)*0.5f;
+
+		FVector LandscapeCenter = LandscapeProxy->GetTransform().TransformPosition(MidPoint);
+		FVector LandscapeExtent = FVector(ComponentSize, 0.f)*LandscapeProxy->GetActorScale()*0.5f;
+
+		FVector ViewOrigin = LandscapeCenter;
+		FMatrix ViewRotationMatrix = FInverseRotationMatrix(LandscapeProxy->GetActorRotation());
+		ViewRotationMatrix *= FMatrix(FPlane(1, 0, 0, 0),
+			FPlane(0, -1, 0, 0),
+			FPlane(0, 0, -1, 0),
+			FPlane(0, 0, 0, 1));
+
+		const float ZOffset = WORLD_MAX;
+		FMatrix ProjectionMatrix = FReversedZOrthoMatrix(
+			LandscapeExtent.X,
+			LandscapeExtent.Y,
+			0.5f / ZOffset,
+			ZOffset);
+
+		FSceneInterface* Scene = LandscapeProxy->GetWorld()->Scene;
+
+		// Hide all but the component
+		TSet<FPrimitiveComponentId> HiddenPrimitives;
+		for (auto PrimitiveComponentId : Scene->GetScenePrimitiveComponentIds())
+		{
+			HiddenPrimitives.Add(PrimitiveComponentId);
+		}
+		HiddenPrimitives.Remove(LandscapeComponent->SceneProxy->GetPrimitiveComponentId());
+				
+		FIntPoint TargetSize(TextureSize, TextureSize);
+
+		// Render diffuse texture using BufferVisualizationMode=BaseColor
+		static const FName BaseColorName("BaseColor");
+		const float BaseColorGamma = 2.2f;
+		RenderSceneToTexture(Scene, BaseColorName, ViewOrigin, ViewRotationMatrix, ProjectionMatrix, HiddenPrimitives, TargetSize, BaseColorGamma, OutSamples);
+		return true;
+	}
 }
