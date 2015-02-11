@@ -65,6 +65,9 @@ public:
 	/// [ClassMetadata] Used for Actor and Component classes. If the native class cannot tick, Blueprint generated classes based this Actor or Component can never tick even if bCanBlueprintsTickByDefault is true.
 	static const FName MD_ChildCannotTick;
 
+	/// [ClassMetadata] Used to make the first subclass of a class ignore all inherited showCategories and hideCategories commands
+	static const FName MD_IgnoreCategoryKeywordsInSubclasses;
+
 	//    function metadata
 	/** Specifies a UFUNCTION as Kismet protected, which can only be called from itself */
 	static const FName MD_Protected;
