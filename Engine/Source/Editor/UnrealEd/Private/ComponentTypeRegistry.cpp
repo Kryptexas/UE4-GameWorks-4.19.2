@@ -7,31 +7,47 @@
 #include "EdGraphSchema_K2.h"
 #include "KismetEditorUtilities.h"
 #include "HotReloadInterface.h"
+#include "SComponentClassCombo.h"
 
 #define LOCTEXT_NAMESPACE "ComponentTypeRegistry"
+
+//////////////////////////////////////////////////////////////////////////
+// FComponentTypeRegistryData
 
 struct FComponentTypeRegistryData
 	: public FTickableEditorObject
 {
 	FComponentTypeRegistryData();
-	void RefreshComponentList();
+
+	// Force a refresh of the components list right now (also calls the ComponentListChanged delegate to notify watchers)
+	void ForceRefreshComponentList();
+
+	static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& SortedClassList);
 
 	/** Implementation of FTickableEditorObject */
 	virtual void Tick(float) override;
 	virtual bool IsTickable() const override { return true; }
 	virtual TStatId GetStatId() const { RETURN_QUICK_DECLARE_CYCLE_STAT(FTypeDatabaseUpdater, STATGROUP_Tickables); }
+
+	// Request a refresh of the components list next frame
+	void Invalidate()
+	{
+		bNeedsRefreshNextTick = true;
+	}
+public:
 	/** End implementation of FTickableEditorObject */
 	TArray<FComponentClassComboEntryPtr> ComponentClassList;
 	TArray<FComponentTypeEntry> ComponentTypeList;
 	TArray<FAssetData> PendingAssetData;
 	FOnComponentTypeListChanged ComponentListChanged;
+	bool bNeedsRefreshNextTick;
 };
 
 static const FString CommonClassGroup(TEXT("Common"));
 // This has to stay in sync with logic in FKismetCompilerContext::FinishCompilingClass
 static const FString BlueprintComponents(TEXT("Custom"));
 
-static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& SortedClassList)
+void FComponentTypeRegistryData::AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& SortedClassList)
 {
 	FString BasicShapesHeading = LOCTEXT("BasicShapesHeading", "Basic Shapes").ToString();
 
@@ -107,6 +123,7 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 }
 
 FComponentTypeRegistryData::FComponentTypeRegistryData()
+	: bNeedsRefreshNextTick(false)
 {
 	const auto HandleAdded = [](const FAssetData& Data, FComponentTypeRegistryData* Parent)
 	{
@@ -124,7 +141,7 @@ FComponentTypeRegistryData::FComponentTypeRegistryData()
 	AssetRegistryModule.Get().OnAssetRenamed().AddStatic(HandleRenamed, this);
 }
 
-void FComponentTypeRegistryData::RefreshComponentList()
+void FComponentTypeRegistryData::ForceRefreshComponentList()
 {
 	ComponentClassList.Empty();
 	ComponentTypeList.Empty();
@@ -295,11 +312,14 @@ void FComponentTypeRegistryData::RefreshComponentList()
 			ComponentClassList.Add(CurrentEntry);
 		}
 	}
+
+	ComponentListChanged.Broadcast();
 }
 
 void FComponentTypeRegistryData::Tick(float)
 {
-	bool bRequiresRefresh = false;
+	bool bRequiresRefresh = bNeedsRefreshNextTick;
+	bNeedsRefreshNextTick = false;
 
 	if (PendingAssetData.Num() != 0)
 	{
@@ -311,7 +331,7 @@ void FComponentTypeRegistryData::Tick(float)
 
 		for (auto Asset : PendingAssetData)
 		{
-			const FName BPParentClassName(TEXT("ParentClass"));
+			const FName BPParentClassName(GET_MEMBER_NAME_CHECKED(UBlueprint, ParentClass));
 
 			bool FoundBPNotify = false;
 			for (TMap<FName, FString>::TConstIterator TagIt(Asset.TagsAndValues); TagIt; ++TagIt)
@@ -331,10 +351,12 @@ void FComponentTypeRegistryData::Tick(float)
 
 	if (bRequiresRefresh)
 	{
-		RefreshComponentList();
-		ComponentListChanged.Broadcast();
+		ForceRefreshComponentList();
 	}
 }
+
+//////////////////////////////////////////////////////////////////////////
+// FComponentTypeRegistry
 
 FComponentTypeRegistry& FComponentTypeRegistry::Get()
 {
@@ -366,7 +388,7 @@ FComponentTypeRegistry::FComponentTypeRegistry()
 	: Data(nullptr)
 {
 	Data = new FComponentTypeRegistryData();
-	Data->RefreshComponentList();
+	Data->ForceRefreshComponentList();
 
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
 	HotReloadSupport.OnHotReload().AddRaw(this, &FComponentTypeRegistry::OnProjectHotReloaded);
@@ -383,8 +405,13 @@ FComponentTypeRegistry::~FComponentTypeRegistry()
 
 void FComponentTypeRegistry::OnProjectHotReloaded( bool bWasTriggeredAutomatically )
 {
-	Data->RefreshComponentList();
-	Data->ComponentListChanged.Broadcast();
+	Data->ForceRefreshComponentList();
 }
+
+void FComponentTypeRegistry::InvalidateClass(TSubclassOf<UActorComponent> /*ClassToUpdate*/)
+{
+	Data->Invalidate();
+}
+
 
 #undef LOCTEXT_NAMESPACE
