@@ -468,7 +468,7 @@ public:
 	virtual FStatHitchesData* GetStatHitchesData() const override;
 	virtual const TArray<FString>* GetEnabledStats() const override;
 	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override;
-	virtual bool IsStatEnabled(const TCHAR* InName) const override;
+	virtual bool IsStatEnabled(const FString& InName) const override;
 
 	/** FGCObject interface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;

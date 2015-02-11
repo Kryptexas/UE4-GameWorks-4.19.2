@@ -5397,8 +5397,7 @@ bool UEngine::HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportC
 	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
 	{
 		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
-		FString CommandName = EngineStat.CommandName.ToString();
-		if (CommandName.RemoveFromStart(TEXT("STAT_")) && (FParse::Command(&Temp, *CommandName)))
+		if (FParse::Command(&Temp, *EngineStat.CommandNameString))
 		{
 			if (EngineStat.ToggleFunc)
 			{
@@ -10747,8 +10746,7 @@ bool UEngine::IsEngineStat(const FString& InName)
 	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
 	{
 		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
-		FString CommandName = EngineStat.CommandName.ToString();
-		if (CommandName.RemoveFromStart(TEXT("STAT_")) && CommandName == InName)
+		if (EngineStat.CommandNameString == InName)
 		{
 			return true;
 		}
@@ -10779,8 +10777,7 @@ void UEngine::RenderEngineStats(UWorld* World, FViewport* Viewport, FCanvas* Can
 	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
 	{
 		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
-		FString CommandName = EngineStat.CommandName.ToString();
-		if (EngineStat.RenderFunc && CommandName.RemoveFromStart(TEXT("STAT_")) && (!Viewport->GetClient() || Viewport->GetClient()->IsStatEnabled(*CommandName)))
+		if (EngineStat.RenderFunc && (!Viewport->GetClient() || Viewport->GetClient()->IsStatEnabled(EngineStat.CommandNameString)))
 		{
 			// Render the stat either on the left or right hand side of the screen, keeping track of the new Y position
 			const int32 StatX = EngineStat.bIsRHS ? RHSX : LHSX;

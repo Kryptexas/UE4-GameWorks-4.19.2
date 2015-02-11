@@ -381,7 +381,7 @@ void SEditorViewport::ToggleStatCommand(FString CommandName)
 bool SEditorViewport::IsStatCommandVisible(FString CommandName) const
 {
 	// Only if realtime and stats are also enabled should we show the stat as visible
-	return Client->IsRealtime() && Client->ShouldShowStats() && Client->IsStatEnabled(*CommandName);
+	return Client->IsRealtime() && Client->ShouldShowStats() && Client->IsStatEnabled(CommandName);
 }
 
 void SEditorViewport::ToggleShowFlag(uint32 EngineShowFlagIndex)

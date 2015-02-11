@@ -4481,7 +4481,7 @@ void FEditorViewportClient::SetEnabledStats(const TArray<FString>& InEnabledStat
 	EnabledStats = InEnabledStats;
 }
 
-bool FEditorViewportClient::IsStatEnabled(const TCHAR* InName) const
+bool FEditorViewportClient::IsStatEnabled(const FString& InName) const
 {
 	return EnabledStats.Contains(InName);
 }

@@ -2675,6 +2675,9 @@ private:
 		/** The name of the command, e.g. STAT FPS would just have FPS as it's CommandName */
 		FName CommandName;
 
+		/** A string version of CommandName without STAT_ at the beginning. Cached for optimization. */
+		FString CommandNameString;
+
 		/** The category the command falls into (only used by UI) */
 		FName CategoryName;
 
@@ -2695,12 +2698,14 @@ private:
 		/** Constructor */
 		FEngineStatFuncs(const FName& InCommandName, const FName& InCategoryName, const FText& InDescriptionString, EngineStatRender InRenderFunc = nullptr, EngineStatToggle InToggleFunc = nullptr, const bool bInIsRHS = false)
 			: CommandName(InCommandName)
+			, CommandNameString(InCategoryName.ToString())
 			, CategoryName(InCategoryName)
 			, DescriptionString(InDescriptionString)
 			, RenderFunc(InRenderFunc)
 			, ToggleFunc(InToggleFunc)
 			, bIsRHS(bInIsRHS)
 		{
+			CommandNameString.RemoveFromStart(TEXT("STAT_"));
 		}
 	};
 

@@ -885,7 +885,7 @@ public:
 	/**
 	 * Check whether a specific stat is enabled for this viewport
 	 */
-	virtual bool IsStatEnabled(const TCHAR* InName) const { return false; }
+	virtual bool IsStatEnabled(const FString& InName) const { return false; }
 
 	/**
 	 * Get the sound stat flags enabled for this viewport

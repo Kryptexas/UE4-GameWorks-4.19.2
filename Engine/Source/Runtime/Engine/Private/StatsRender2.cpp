@@ -599,7 +599,7 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 		// If the stat isn't enabled for this particular viewport, skip
 		FString StatGroupName = ViewData.GroupNames[GroupIndex].ToString();
 		StatGroupName.RemoveFromStart(TEXT("STATGROUP_"));
-		if (!Viewport->GetClient() || !Viewport->GetClient()->IsStatEnabled(*StatGroupName))
+		if (!Viewport->GetClient() || !Viewport->GetClient()->IsStatEnabled(StatGroupName))
 		{
 			continue;
 		}

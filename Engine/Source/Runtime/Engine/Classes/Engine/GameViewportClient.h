@@ -518,7 +518,7 @@ public:
 	 *
 	 * @param	InName	Name of the stat to check
 	 */
-	virtual bool IsStatEnabled(const TCHAR* InName) const override
+	virtual bool IsStatEnabled(const FString& InName) const override
 	{
 		return EnabledStats.Contains(InName);
 	}
