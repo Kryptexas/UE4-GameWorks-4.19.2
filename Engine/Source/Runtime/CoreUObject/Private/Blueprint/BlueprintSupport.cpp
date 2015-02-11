@@ -84,7 +84,7 @@ bool FBlueprintSupport::IsDeferredExportCreationDisabled()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	static const FBoolConfigValueHelper NoDeferredExports(TEXT("Kismet"), TEXT("bForceDisableDeferredExportCreation"), GEngineIni);
-	return NoDeferredExports;
+	return !UseDeferredDependencyLoading() || NoDeferredExports;
 #else
 	return false;
 #endif
@@ -958,6 +958,7 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		DEFERRED_DEPENDENCY_CHECK(BlueprintClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
+		DEFERRED_DEPENDENCY_CHECK(LoadClass->GetOutermost() != GetTransientPackage());
 		// just in case we choose to enable the deferred dependency loading for 
 		// cooked builds... we want to keep from regenerating in that scenario
 		if (!LoadClass->bCooked)

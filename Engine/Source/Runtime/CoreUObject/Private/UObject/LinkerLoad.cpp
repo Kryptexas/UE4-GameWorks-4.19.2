@@ -3513,26 +3513,30 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		
 		if( Export.Object )
 		{
-			// Check to see if LoadClass is a blueprint, which potentially needs to be refreshed and regenerated.  If so, regenerate and patch it back into the export table
-			if( !LoadClass->bCooked
-				&& LoadClass->ClassGeneratedBy 
-				&& (LoadClass->GetOutermost() != GetTransientPackage()) 
-				&& ((Export.ObjectFlags&RF_ClassDefaultObject) != 0) )
-			{
-#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-				if ( (LoadFlags & LOAD_DeferDependencyLoads) != 0
-#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-					&& !FBlueprintSupport::IsDeferredCDOSerializationDisabled()
-#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-				   )
-				{
-					// if LOAD_DeferDependencyLoads is set, then we're already
-					// serializing the blueprint's class somewhere up the chain,
-					DeferredCDOIndex = Index;
-					return Export.Object;
-				}
-#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			bool const bIsBlueprintCDO = ((Export.ObjectFlags & RF_ClassDefaultObject) != 0) && (LoadClass->ClassGeneratedBy != nullptr);
 
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			bool bDeferCDOSerialization = bIsBlueprintCDO && ((LoadFlags & LOAD_DeferDependencyLoads) != 0);
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			bDeferCDOSerialization &= !FBlueprintSupport::IsDeferredCDOSerializationDisabled();
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS	
+
+			if (bDeferCDOSerialization)			
+			{
+				// if LOAD_DeferDependencyLoads is set, then we're already
+				// serializing the blueprint's class somewhere up the chain... 
+				// we don't want the class regenerated while it in the middle of
+				// serializing
+				DeferredCDOIndex = Index;
+				return Export.Object;
+			}
+			else 
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			// Check to see if LoadClass is a blueprint, which potentially needs 
+			// to be refreshed and regenerated.  If so, regenerate and patch it 
+			// back into the export table
+			if( !LoadClass->bCooked && bIsBlueprintCDO && (LoadClass->GetOutermost() != GetTransientPackage()) )
+			{			
 				{
 					// For classes that are about to be regenerated, make sure we register them with the linker, so future references to this linker index will be valid
 					const EObjectFlags OldFlags = Export.Object->GetFlags();
