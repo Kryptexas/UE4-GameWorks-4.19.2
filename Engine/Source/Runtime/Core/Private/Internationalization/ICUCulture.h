@@ -4,6 +4,7 @@
 #if UE_ENABLE_ICU
 #include "Internationalization/Text.h"
 #include <unicode/locid.h>
+#include <unicode/brkiter.h>
 #include <unicode/coll.h>
 #include <unicode/numfmt.h>
 #include <unicode/decimfmt.h>
@@ -99,10 +100,20 @@ inline icu::DecimalFormat::ERoundingMode UEToICU(const ERoundingMode RoundingMod
 	return Value;
 }
 
+enum class EBreakIteratorType
+{
+	Grapheme,
+	Word,
+	Line,
+	Sentence,
+	Title
+};
+
 class FCulture::FICUCultureImplementation
 {
 	friend FCulture;
 	friend FText;
+	friend class FICUBreakIteratorManager;
 
 	FICUCultureImplementation(const FString& LocaleName);
 
@@ -136,21 +147,27 @@ class FCulture::FICUCultureImplementation
 
 	FString GetVariant() const;
 
-	TSharedRef<const icu::Collator, ESPMode::ThreadSafe> GetCollator(const ETextComparisonLevel::Type ComparisonLevel) const;
-	TSharedRef<const icu::DecimalFormat> GetDecimalFormatter(const FNumberFormattingOptions* const Options = NULL) const;
-	TSharedRef<const icu::DecimalFormat> GetCurrencyFormatter(const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL) const;
-	TSharedRef<const icu::DecimalFormat> GetPercentFormatter(const FNumberFormattingOptions* const Options = NULL) const;
-	TSharedRef<const icu::DateFormat> GetDateFormatter(const EDateTimeStyle::Type DateStyle, const FString& TimeZone) const;
-	TSharedRef<const icu::DateFormat> GetTimeFormatter(const EDateTimeStyle::Type TimeStyle, const FString& TimeZone) const;
-	TSharedRef<const icu::DateFormat> GetDateTimeFormatter(const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone) const;
+	TSharedRef<const icu::BreakIterator> GetBreakIterator(const EBreakIteratorType Type);
+	TSharedRef<const icu::Collator, ESPMode::ThreadSafe> GetCollator(const ETextComparisonLevel::Type ComparisonLevel);
+	TSharedRef<const icu::DecimalFormat> GetDecimalFormatter(const FNumberFormattingOptions* const Options = NULL);
+	TSharedRef<const icu::DecimalFormat> GetCurrencyFormatter(const FString& CurrencyCode = FString(), const FNumberFormattingOptions* const Options = NULL);
+	TSharedRef<const icu::DecimalFormat> GetPercentFormatter(const FNumberFormattingOptions* const Options = NULL);
+	TSharedRef<const icu::DateFormat> GetDateFormatter(const EDateTimeStyle::Type DateStyle, const FString& TimeZone);
+	TSharedRef<const icu::DateFormat> GetTimeFormatter(const EDateTimeStyle::Type TimeStyle, const FString& TimeZone);
+	TSharedRef<const icu::DateFormat> GetDateTimeFormatter(const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone);
 
 	icu::Locale ICULocale;
-	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> ICUCollator;
-	const TSharedRef<const icu::DecimalFormat> ICUDecimalFormat;
-	const TSharedRef<const icu::DecimalFormat> ICUCurrencyFormat;
-	const TSharedRef<const icu::DecimalFormat> ICUPercentFormat;
-	const TSharedRef<const icu::DateFormat> ICUDateFormat;
-	const TSharedRef<const icu::DateFormat> ICUTimeFormat;
-	const TSharedRef<const icu::DateFormat> ICUDateTimeFormat;
+	TSharedPtr<const icu::BreakIterator> ICUGraphemeBreakIterator;
+	TSharedPtr<const icu::BreakIterator> ICUWordBreakIterator;
+	TSharedPtr<const icu::BreakIterator> ICULineBreakIterator;
+	TSharedPtr<const icu::BreakIterator> ICUSentenceBreakIterator;
+	TSharedPtr<const icu::BreakIterator> ICUTitleBreakIterator;
+	TSharedPtr<const icu::Collator, ESPMode::ThreadSafe> ICUCollator;
+	TSharedPtr<const icu::DecimalFormat> ICUDecimalFormat;
+	TSharedPtr<const icu::DecimalFormat> ICUCurrencyFormat;
+	TSharedPtr<const icu::DecimalFormat> ICUPercentFormat;
+	TSharedPtr<const icu::DateFormat> ICUDateFormat;
+	TSharedPtr<const icu::DateFormat> ICUTimeFormat;
+	TSharedPtr<const icu::DateFormat> ICUDateTimeFormat;
 };
 #endif

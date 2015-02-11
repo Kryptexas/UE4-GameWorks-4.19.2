@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "CorePrivatePCH.h"
 #include "ICUInternationalization.h"
 
@@ -284,7 +284,7 @@ FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, con
 		// Confirm if data for the desired culture exists.
 		if (UResourceBundle* ICUResourceBundle = ures_open(nullptr, StringCast<char>(*CanonicalName).Get(), &ICUStatus))
 		{
-			// Make the culture only if it actually has some form of data and doesn't fallback to default "root" data, unless overriden ot allow it.
+			// Make the culture only if it actually has some form of data and doesn't fallback to default "root" data, unless overidden to allow it.
 			if (ICUStatus != U_USING_DEFAULT_WARNING || AllowDefaultFallback)
 			{
 				FCulturePtr NewCulture = FCulture::Create(CanonicalName);

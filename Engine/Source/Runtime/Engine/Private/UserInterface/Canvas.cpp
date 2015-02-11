@@ -23,6 +23,7 @@ DEFINE_STAT(STAT_Canvas_FlushTime);
 DEFINE_STAT(STAT_Canvas_DrawTextureTileTime);
 DEFINE_STAT(STAT_Canvas_DrawMaterialTileTime);
 DEFINE_STAT(STAT_Canvas_DrawStringTime);
+DEFINE_STAT(STAT_Canvas_WordWrappingTime);
 DEFINE_STAT(STAT_Canvas_GetBatchElementsTime);
 DEFINE_STAT(STAT_Canvas_AddTileRenderTime);
 DEFINE_STAT(STAT_Canvas_NumBatchesCreated);
@@ -35,21 +36,25 @@ FCanvasWordWrapper::FCanvasWordWrapper()
 
 void FCanvasWordWrapper::Execute(const TCHAR* const InString, const FTextSizingParameters& InParameters, TArray<FWrappedStringElement>& OutStrings, FWrappedLineData* const OutWrappedLineData)
 {
-	FWrappingState WrappingState(InString, FCString::Strlen(InString), InParameters, OutStrings, OutWrappedLineData);
+	SCOPE_CYCLE_COUNTER(STAT_Canvas_WordWrappingTime);
 
+	FWrappingState WrappingState(InString, FCString::Strlen(InString), InParameters, OutStrings, OutWrappedLineData);
 	if (WrappingState.WrappedLineData)
 	{
 		WrappingState.WrappedLineData->Empty();
 	}
 
-	GraphemeBreakIterator->SetString(WrappingState.String, WrappingState.StringLength);
-	LineBreakIterator->SetString(WrappingState.String, WrappingState.StringLength);
+	if (WrappingState.StringLength > 0)
+	{
+		GraphemeBreakIterator->SetString(WrappingState.String, WrappingState.StringLength);
+		LineBreakIterator->SetString(WrappingState.String, WrappingState.StringLength);
 
-	for(int32 i = 0; i < WrappingState.StringLength; ++i) // Sanity check: Doesn't seem valid to have more lines than code units.
-	{	
-		if( !ProcessLine(WrappingState) )
-		{
-			break;
+		for(int32 i = 0; i < WrappingState.StringLength; ++i) // Sanity check: Doesn't seem valid to have more lines than code units.
+		{	
+			if( !ProcessLine(WrappingState) )
+			{
+				break;
+			}
 		}
 	}
 }
