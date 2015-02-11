@@ -58,6 +58,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 		CrashRepository CrashRepository = new CrashRepository();
 
+		BuggRepository BuggRepository = new BuggRepository();
+
 		/// <summary></summary>
 		public int GetIdFromUserGroup( string UserGroup )
 		{
@@ -246,6 +248,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				Dictionary<DateTime, int> DailyAnonymousResults = GetDailyCountsByGroup( MinimalCrashes, AnonymousUserGroupId );
 				Dictionary<DateTime, int> DailyAllResults = GetDailyCountsByGroup( MinimalCrashes, AllUserGroupId );
 
+				// Get daily buggs stats.
+				List<Bugg> Buggs = BuggRepository.ListAll().Where( Bugg => Bugg.TimeOfFirstCrash >= AfewMonthsAgo ).ToList();
+
+				Dictionary<DateTime, int> BuggDailyAllResults  =
+				(
+					from Bugg in Buggs
+					group Bugg by Bugg.TimeOfFirstCrash.Value.Date into GroupCount
+					orderby GroupCount.Key
+					select new { Count = GroupCount.Count(), Date = GroupCount.Key }
+				).ToDictionary( x => x.Date, y => y.Count );
+				
+
 				string CrashesByWeek = "";
 
 				foreach( KeyValuePair<DateTime, int> Result in AllResults )
@@ -313,7 +327,25 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				CrashesByDay = CrashesByDay.TrimEnd( ", ".ToCharArray() );
 
-				return View( "Index", new DashboardViewModel { CrashesByWeek = CrashesByWeek, CrashesByDay = CrashesByDay } );
+				string BuggsByDay = "";
+				foreach( KeyValuePair<DateTime, int> DailyResult in BuggDailyAllResults )
+				{
+					int Year = DailyResult.Key.Year;
+					int Month = DailyResult.Key.AddMonths( -1 ).Month;
+					if( DailyResult.Key.Month == 13 || DailyResult.Key.Month == 1 )
+					{
+						Month = 0;
+					}
+
+					int Day = DailyResult.Key.Day;
+
+					string Line = "[new Date(" + Year + ", " + Month + ", " + Day + "), " + DailyResult.Value + "], ";
+					BuggsByDay += Line;
+				}
+
+				BuggsByDay = BuggsByDay.TrimEnd( ", ".ToCharArray() );
+
+				return View( "Index", new DashboardViewModel { CrashesByWeek = CrashesByWeek, CrashesByDay = CrashesByDay, BuggsByDay = BuggsByDay } );
 			}
 		}
 	}
