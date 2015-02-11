@@ -382,11 +382,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components")
 	int32 GetNumChildrenComponents() const;
 
-	/** Gets the number of attached children components */
+	/** Gets the attached child component at the specified location */
 	UFUNCTION(BlueprintCallable, Category="Components")
 	class USceneComponent* GetChildComponent(int32 ChildIndex) const;
 
-	/** Gets the number of attached children components */
+	/** 
+	 * Gets all the attached child components
+	 * @param bIncludeAllDescendants Whether to include all descendants in the list of children (i.e. grandchildren, great grandchildren, etc.)
+	 * @param Children The list of attached child components
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components")
 	void GetChildrenComponents(bool bIncludeAllDescendants, TArray<USceneComponent*>& Children) const;
 

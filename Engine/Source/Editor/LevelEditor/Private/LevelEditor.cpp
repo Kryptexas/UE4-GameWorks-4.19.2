@@ -392,6 +392,11 @@ void FLevelEditorModule::BroadcastMapChanged( UWorld* World, EMapChangeType::Typ
 	MapChangedEvent.Broadcast( World, MapChangeType );
 }
 
+void FLevelEditorModule::BroadcastComponentsEdited()
+{
+	ComponentsEditedEvent.Broadcast();
+}
+
 const FLevelEditorCommands& FLevelEditorModule::GetLevelEditorCommands() const
 {
 	return FLevelEditorCommands::Get();

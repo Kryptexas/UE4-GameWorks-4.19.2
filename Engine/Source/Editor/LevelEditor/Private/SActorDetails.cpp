@@ -13,8 +13,10 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 	bSelectionGuard = false;
 	bShowingRootActorNodeSelected = false;
 
-	// Event subscriptions
 	USelection::SelectionChangedEvent.AddRaw(this, &SActorDetails::OnEditorSelectionChanged);
+	
+	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
+	LevelEditor.OnComponentsEdited().AddRaw(this, &SActorDetails::OnComponentsEditedInWorld);
 
 	FPropertyEditorModule& PropPlugin = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FDetailsViewArgs DetailsViewArgs;
@@ -134,6 +136,12 @@ SActorDetails::~SActorDetails()
 {
 	GEditor->UnregisterForUndo(this);
 	USelection::SelectionChangedEvent.RemoveAll(this);
+	
+	auto LevelEditor = FModuleManager::GetModulePtr<FLevelEditorModule>("LevelEditor");
+	if (LevelEditor != nullptr)
+	{
+		LevelEditor->OnComponentsEdited().RemoveAll(this);
+	}
 }
 
 void SActorDetails::SetObjects(const TArray<UObject*>& InObjects)
@@ -172,11 +180,29 @@ void SActorDetails::PostUndo(bool bSuccess)
 	// Refresh the tree and update the selection to match the world
 	SCSEditor->UpdateTree();
 	UpdateComponentTreeFromEditorSelection();
+
+	auto SelectedActor = GetSelectedActorInEditor();
+	if (SelectedActor)
+	{
+		GUnrealEd->SetActorSelectionFlags(SelectedActor);
+	}
 }
 
 void SActorDetails::PostRedo(bool bSuccess)
 {
 	PostUndo(bSuccess);
+}
+
+void SActorDetails::OnComponentsEditedInWorld()
+{
+	if (GetSelectedActorInEditor() == GetActorContext())
+	{
+		// The component composition of the observed actor has changed, so rebuild the node tree
+		TGuardValue<bool> SelectionGuard(bSelectionGuard, true);
+
+		// Refresh the tree and update the selection to match the world
+		SCSEditor->UpdateTree();
+	}
 }
 
 void SActorDetails::OnEditorSelectionChanged(UObject* Object)

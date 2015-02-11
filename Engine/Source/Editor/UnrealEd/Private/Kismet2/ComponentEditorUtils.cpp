@@ -8,6 +8,102 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
+#include "Factories.h"
+#include "UnrealExporter.h"
+
+// Text object factory for pasting components
+struct FComponentObjectTextFactory : public FCustomizableTextObjectFactory
+{
+	// Child->Parent name map
+	TMap<FName, FName> ParentMap;
+
+	// Name->Instance object mapping
+	TMap<FName, UActorComponent*> NewObjectMap;
+
+	// Determine whether or not scene components in the new object set can be attached to the given scene root component
+	bool CanAttachComponentsTo(USceneComponent* InRootComponent)
+	{
+		check(InRootComponent);
+
+		// For each component in the set, check against the given root component and break if we fail to validate
+		bool bCanAttachToRoot = true;
+		for (auto NewComponentIt = NewObjectMap.CreateConstIterator(); NewComponentIt && bCanAttachToRoot; ++NewComponentIt)
+		{
+			// If this is a scene component, and it does not already have a parent within the set
+			USceneComponent* SceneComponent = Cast<USceneComponent>(NewComponentIt->Value);
+			if (SceneComponent != NULL && !ParentMap.Contains(SceneComponent->GetFName()))
+			{
+				// Determine if we are allowed to attach the scene component to the given root component
+				bCanAttachToRoot = InRootComponent->CanAttachAsChild(SceneComponent, NAME_None)
+					&& SceneComponent->Mobility >= InRootComponent->Mobility
+					&& ( !InRootComponent->IsEditorOnly() || SceneComponent->IsEditorOnly() );
+			}
+		}
+
+		return bCanAttachToRoot;
+	}
+
+	// Constructs a new object factory from the given text buffer
+	static TSharedRef<FComponentObjectTextFactory> Get(const FString& InTextBuffer, bool bPasteAsArchetypes = false)
+	{
+		// Construct a new instance
+		TSharedPtr<FComponentObjectTextFactory> FactoryPtr = MakeShareable(new FComponentObjectTextFactory());
+		check(FactoryPtr.IsValid());
+
+		// Create new objects if we're allowed to
+		if (FactoryPtr->CanCreateObjectsFromText(InTextBuffer))
+		{
+			EObjectFlags ObjectFlags = RF_Transactional;
+			if (bPasteAsArchetypes)
+			{
+				ObjectFlags |= RF_ArchetypeObject;
+			}
+
+			// Use the transient package initially for creating the objects, since the variable name is used when copying
+			FactoryPtr->ProcessBuffer(GetTransientPackage(), ObjectFlags, InTextBuffer);
+		}
+
+		return FactoryPtr.ToSharedRef();
+	}
+
+	virtual ~FComponentObjectTextFactory() {}
+
+protected:
+	// Constructor; protected to only allow this class to instance itself
+	FComponentObjectTextFactory()
+		:FCustomizableTextObjectFactory(GWarn)
+	{
+	}
+
+	// FCustomizableTextObjectFactory implementation
+
+	virtual bool CanCreateClass(UClass* ObjectClass) const override
+	{
+		// Only allow actor component types to be created
+		return ObjectClass->IsChildOf(UActorComponent::StaticClass());
+	}
+
+	virtual void ProcessConstructedObject(UObject* NewObject) override
+	{
+		check(NewObject);
+
+		// Add it to the new object map
+		NewObjectMap.Add(NewObject->GetFName(), Cast<UActorComponent>(NewObject));
+
+		// If this is a scene component and it has a parent
+		USceneComponent* SceneComponent = Cast<USceneComponent>(NewObject);
+		if (SceneComponent && SceneComponent->AttachParent)
+		{
+			// Add an entry to the child->parent name map
+			ParentMap.Add(NewObject->GetFName(), SceneComponent->AttachParent->GetFName());
+
+			// Clear this so it isn't used when constructing the new SCS node
+			SceneComponent->AttachParent = NULL;
+		}
+	}
+
+	// FCustomizableTextObjectFactory (end)
+};
 
 USceneComponent* FComponentEditorUtils::GetSceneComponent( UObject* Object, UObject* SubObject /*= NULL*/ )
 {
@@ -159,6 +255,295 @@ FString FComponentEditorUtils::GenerateValidVariableNameFromAsset(UObject* Asset
 	}
 
 	return ComponentInstanceName;
+}
+
+USceneComponent* FComponentEditorUtils::FindClosestParentInList(UActorComponent* ChildComponent, const TArray<UActorComponent*>& ComponentList)
+{
+	USceneComponent* ClosestParentComponent = nullptr;
+	for (auto Component : ComponentList)
+	{
+		auto ChildAsScene = CastChecked<USceneComponent>(ChildComponent);
+		auto SceneComponent = CastChecked<USceneComponent>(Component);
+		if (ChildAsScene && SceneComponent)
+		{
+			// Check to see if any parent is also in the list
+			USceneComponent* Parent = ChildAsScene->GetAttachParent();
+			while (Parent != nullptr)
+			{
+				if (ComponentList.Contains(Parent))
+				{
+					ClosestParentComponent = SceneComponent;
+					break;
+				}
+
+				Parent = Parent->GetAttachParent();
+			}
+		}
+	}
+
+	return ClosestParentComponent;
+}
+
+void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& ComponentsToCopy)
+{
+	FStringOutputDevice Archive;
+	const FExportObjectInnerContext Context;
+
+	// Clear the mark state for saving.
+	UnMarkAllObjects(EObjectMark(OBJECTMARK_TagExp | OBJECTMARK_TagImp));
+
+	// Duplicate the selected component templates into temporary objects that we can modify
+	TMap<FName, FName> ParentMap;
+	TMap<FName, UActorComponent*> ObjectMap;
+	for (auto Component : ComponentsToCopy)
+	{
+		// Duplicate the component into a temporary object
+		UObject* DuplicatedComponent = StaticDuplicateObject(Component, GetTransientPackage(), *Component->GetName(), RF_AllFlags & ~RF_ArchetypeObject);
+		if (DuplicatedComponent)
+		{
+			// Find the closest parent component of the current component within the list of components to copy
+			USceneComponent* ClosestSelectedParent = FindClosestParentInList(Component, ComponentsToCopy);
+			if (ClosestSelectedParent)
+			{
+				// If the parent is included in the list, record it into the node->parent map
+				ParentMap.Add(Component->GetFName(), ClosestSelectedParent->GetFName());
+			}
+
+			// Record the temporary object into the name->object map
+			ObjectMap.Add(Component->GetFName(), CastChecked<UActorComponent>(DuplicatedComponent));
+		}
+	}
+
+	// Export the component object(s) to text for copying
+	for (auto ObjectIt = ObjectMap.CreateIterator(); ObjectIt; ++ObjectIt)
+	{
+		// Get the component object to be copied
+		UActorComponent* ComponentToCopy = ObjectIt->Value;
+		check(ComponentToCopy);
+
+		// If this component object had a parent within the selected set
+		if (ParentMap.Contains(ComponentToCopy->GetFName()))
+		{
+			// Get the name of the parent component
+			FName ParentName = ParentMap[ComponentToCopy->GetFName()];
+			if (ObjectMap.Contains(ParentName))
+			{
+				// Ensure that this component is a scene component
+				USceneComponent* SceneComponent = Cast<USceneComponent>(ComponentToCopy);
+				if (SceneComponent)
+				{
+					// Set the attach parent to the matching parent object in the temporary set. This allows us to preserve hierarchy in the copied set.
+					SceneComponent->AttachParent = Cast<USceneComponent>(ObjectMap[ParentName]);
+				}
+			}
+		}
+
+		// Export the component object to the given string
+		UExporter::ExportToOutputDevice(&Context, ComponentToCopy, NULL, Archive, TEXT("copy"), 0, PPF_ExportsNotFullyQualified | PPF_Copy | PPF_Delimited, false, ComponentToCopy->GetOuter());
+	}
+
+	// Copy text to clipboard
+	FString ExportedText = Archive;
+	FPlatformMisc::ClipboardCopy(*ExportedText);
+}
+
+bool FComponentEditorUtils::CanPasteComponents(USceneComponent* RootComponent, bool bOverrideCanAttach)
+{
+	FString ClipboardContent;
+	FPlatformMisc::ClipboardPaste(ClipboardContent);
+
+	// Obtain the component object text factory for the clipboard content and return whether or not we can use it
+	TSharedRef<FComponentObjectTextFactory> Factory = FComponentObjectTextFactory::Get(ClipboardContent);
+	return Factory->NewObjectMap.Num() > 0 && ( bOverrideCanAttach || Factory->CanAttachComponentsTo(RootComponent) );
+}
+
+void FComponentEditorUtils::PasteComponents(TArray<UActorComponent*>& OutPastedComponents, AActor* TargetActor, USceneComponent* TargetComponent)
+{
+	check(TargetActor);
+
+	// Get the text from the clipboard
+	FString TextToImport;
+	FPlatformMisc::ClipboardPaste(TextToImport);
+
+	// Get a new component object factory for the clipboard content
+	TSharedRef<FComponentObjectTextFactory> Factory = FComponentObjectTextFactory::Get(TextToImport);
+
+	TargetActor->Modify();
+
+	USceneComponent* TargetParent = TargetComponent ? TargetComponent->GetAttachParent() : nullptr;
+	for (auto& NewObjectPair : Factory->NewObjectMap)
+	{
+		// Get the component object instance
+		UActorComponent* NewActorComponent = NewObjectPair.Value;
+		check(NewActorComponent);
+
+		// Relocate the instance from the transient package to the Actor and assign it a unique object name
+		FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(NewActorComponent->GetClass(), TargetActor);
+		NewActorComponent->Rename(*NewComponentName, TargetActor, REN_DontCreateRedirectors | REN_DoNotDirty);
+
+		if (auto NewSceneComponent = Cast<USceneComponent>(NewActorComponent))
+		{
+			// Default to attaching to the target component's parent if possible, otherwise attach to the root
+			USceneComponent* NewComponentParent = TargetParent ? TargetParent : TargetActor->GetRootComponent();
+			
+			// Check to see if there's an entry for the current component in the set of parent components
+			if (Factory->ParentMap.Contains(NewObjectPair.Key))
+			{
+				// Get the parent component name
+				FName ParentName = Factory->ParentMap[NewObjectPair.Key];
+				if (Factory->NewObjectMap.Contains(ParentName))
+				{
+					// The parent should by definition be a scene component
+					NewComponentParent = CastChecked<USceneComponent>(Factory->NewObjectMap[ParentName]);
+				}
+			}
+
+			//So, if we're pasting a component that was the root, we want to attach keeping the world location
+			// Otherwise, we want to attach keeping the relative transform
+			// So how can we tell if a pasted component was a root?
+
+			//NewSceneComponent->UpdateComponentToWorld();
+			if (NewComponentParent)
+			{
+				// Reattach the current node to the parent node
+				NewSceneComponent->AttachTo(NewComponentParent, NAME_None/*, EAttachLocation::KeepWorldPosition*/);
+			}
+			else
+			{
+				// There is no root component and this component isn't the child of another component in the map, so make it the root
+				TargetActor->SetRootComponent(NewSceneComponent);
+			}
+		}
+
+		TargetActor->AddInstanceComponent(NewActorComponent);
+		NewActorComponent->RegisterComponent();
+
+		OutPastedComponents.Add(NewActorComponent);
+	}
+}
+
+void FComponentEditorUtils::GetComponentsFromClipboard(TMap<FName, FName>& OutParentMap, TMap<FName, UActorComponent*>& OutNewObjectMap, bool bGetComponentsAsArchetypes)
+{
+	// Get the text from the clipboard
+	FString TextToImport;
+	FPlatformMisc::ClipboardPaste(TextToImport);
+
+	// Get a new component object factory for the clipboard content
+	TSharedRef<FComponentObjectTextFactory> Factory = FComponentObjectTextFactory::Get(TextToImport, bGetComponentsAsArchetypes);
+
+	// Return the created component mappings
+	OutParentMap = Factory->ParentMap;
+	OutNewObjectMap = Factory->NewObjectMap;
+}
+
+int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& ComponentsToDelete, UActorComponent*& OutComponentToSelect)
+{
+	int32 NumDeletedComponents = 0;
+
+	for (auto ComponentToDelete : ComponentsToDelete)
+	{
+		if (ComponentToDelete->CreationMethod != EComponentCreationMethod::Instance)
+		{
+			// We can only delete instance components, so retain selection on the un-deletable component
+			OutComponentToSelect = ComponentToDelete;
+			continue;
+		}
+
+		// If necessary, determine the component that should be selected following the deletion of the indicated component
+		if (!OutComponentToSelect || ComponentToDelete == OutComponentToSelect)
+		{
+			USceneComponent* RootComponent = ComponentToDelete->GetOwner()->GetRootComponent();
+			if (RootComponent != ComponentToDelete)
+			{
+				// Worst-case, the root can be selected
+				OutComponentToSelect = RootComponent;
+
+				if (auto ComponentToDeleteAsSceneComp = Cast<USceneComponent>(ComponentToDelete))
+				{
+					if (USceneComponent* ParentComponent = ComponentToDeleteAsSceneComp->GetAttachParent())
+					{
+						// The component to delete has a parent, so we select that in the absence of an appropriate sibling
+						OutComponentToSelect = ParentComponent;
+
+						// Try to select the sibling that immediately precedes the component to delete
+						TArray<USceneComponent*> Siblings;
+						ParentComponent->GetChildrenComponents(false, Siblings);
+						for (int32 i = 0; i < Siblings.Num() && ComponentToDelete != Siblings[i]; ++i)
+						{
+							if (!Siblings[i]->IsPendingKill())
+							{
+								OutComponentToSelect = Siblings[i];
+							}
+						}
+					}
+				}
+				else
+				{
+					// For a non-scene component, try to select the preceding non-scene component
+					TInlineComponentArray<UActorComponent*> ActorComponents;
+					ComponentToDelete->GetOwner()->GetComponents(ActorComponents);
+					for (int32 i = 0; i < ActorComponents.Num() && ComponentToDelete != ActorComponents[i]; ++i)
+					{
+						if (!ActorComponents[i]->IsA(USceneComponent::StaticClass()))
+						{
+							OutComponentToSelect = ActorComponents[i];
+						}
+					}
+				}
+			}
+			else
+			{
+				OutComponentToSelect = nullptr;
+			}
+		}
+
+		// Actually delete the component
+		ComponentToDelete->Modify();
+		ComponentToDelete->DestroyComponent(true);
+		NumDeletedComponents++;
+	}
+
+	return NumDeletedComponents;
+}
+
+UActorComponent* FComponentEditorUtils::DuplicateComponent(UActorComponent* TemplateComponent)
+{
+	check(TemplateComponent);
+
+	UActorComponent* NewCloneComponent = nullptr;
+	AActor* Actor = TemplateComponent->GetOwner();
+	if (!TemplateComponent->IsEditorOnly() && Actor)
+	{
+		Actor->Modify();
+		UClass* ComponentClass = TemplateComponent->GetClass();
+		FName NewComponentName = *FComponentEditorUtils::GenerateValidVariableName(ComponentClass, Actor);
+
+		bool bKeepWorldLocationOnAttach = false;
+		NewCloneComponent = ConstructObject<UActorComponent>(ComponentClass, Actor, NewComponentName, RF_Transactional, TemplateComponent);
+		
+		// ComponentToWorld is not a UPROPERTY, so make sure the clone has calculated it properly
+		NewCloneComponent->UpdateComponentToWorld();
+
+		// If the clone is a scene component without an attach parent, attach it to the root (can happen when duplicating the root component)
+		auto NewSceneComponent = Cast<USceneComponent>(NewCloneComponent);
+		if (NewSceneComponent && !NewSceneComponent->GetAttachParent())
+		{
+			USceneComponent* RootComponent = Actor->GetRootComponent();
+
+			// There should be no situation in which a scene component is duplicated when a root doesn't exist
+			check(RootComponent);
+
+			NewSceneComponent->AttachTo(RootComponent, NAME_None, EAttachLocation::KeepWorldPosition);
+		}
+
+		// Add to SerializedComponents array so it gets saved
+		Actor->AddInstanceComponent(NewCloneComponent);
+		
+		// Register the new component
+		NewCloneComponent->RegisterComponent();
+	}
+
+	return NewCloneComponent;
 }
 
 void FComponentEditorUtils::AdjustComponentDelta(USceneComponent* Component, FVector& Drag, FRotator& Rotation)

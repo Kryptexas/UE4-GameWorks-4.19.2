@@ -1480,7 +1480,7 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, bEnableColorScaling(false)
 	, bEditorCameraCut(false)
 	, bDrawBaseInfo(false)
-	, bDuplicateActorsOnNextDrag( false )
+	, bDuplicateOnNextDrag( false )
 	, bDuplicateActorsInProgress( false )
 	, bIsTrackingBrushModification( false )
 	, bLockedCameraView(true)
@@ -2178,16 +2178,15 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 				// If duplicate dragging . . .
 				if ( IsAltPressed() && (LeftMouseButtonDown || RightMouseButtonDown) )
 				{
-					// The widget has been offset, so check if we should duplicate actors.
-					if ( bDuplicateActorsOnNextDrag )
+					// The widget has been offset, so check if we should duplicate the selection.
+					if ( bDuplicateOnNextDrag )
 					{
 						// Only duplicate if we're translating or rotating.
 						if ( !Drag.IsNearlyZero() || !Rot.IsZero() )
 						{
-							// Actors haven't been dragged since ALT+LMB went down.
-							bDuplicateActorsOnNextDrag = false;
-
-							GEditor->edactDuplicateSelected( GetWorld()->GetCurrentLevel(), false );
+							// Widget hasn't been dragged since ALT+LMB went down.
+							bDuplicateOnNextDrag = false;
+							GEditor->edactDuplicateSelected(GetWorld()->GetCurrentLevel(), false);
 						}
 					}
 				}
@@ -2421,13 +2420,13 @@ void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInpu
 			if(Event == IE_Pressed && (Key == EKeys::LeftMouseButton || Key == EKeys::RightMouseButton) && !bDuplicateActorsInProgress)
 			{
 				// Set the flag so that the actors actors will be duplicated as soon as the widget is displaced.
-				bDuplicateActorsOnNextDrag = true;
+				bDuplicateOnNextDrag = true;
 				bDuplicateActorsInProgress = true;
 			}
 		}
 		else
 		{
-			bDuplicateActorsOnNextDrag = false;
+			bDuplicateOnNextDrag = false;
 		}
 	}
 
@@ -2549,7 +2548,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 	const bool MiddleMouseButtonDown = Viewport->KeyState(EKeys::MiddleMouseButton);
 
 	// Only disable the duplicate on next drag flag if we actually dragged the mouse.
-	bDuplicateActorsOnNextDrag = false;
+	bDuplicateOnNextDrag = false;
 
 	// here we check to see if anything of worth actually changed when ending our MouseMovement
 	// If the TransCount > 0 (we changed something of value) so we need to call PostEditMove() on stuff
