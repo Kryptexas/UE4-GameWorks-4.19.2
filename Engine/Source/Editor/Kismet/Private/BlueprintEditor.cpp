@@ -630,12 +630,13 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 		UpdateSCSPreview();
 	}
 
+	// Only force a refresh of the defaults view if we have a standalone defaults viewer.
 	// Note: There is an optimization inside of ShowDetailsForSingleObject() that skips the refresh if the object being selected is the same as the previous object.
 	// The SKismetInspector class is shared between both Defaults mode and Components mode, but in Defaults mode the object selected is always going to be the CDO. Given
 	// that the selection does not really change, we force it to refresh and skip the optimization. Otherwise, some things may not work correctly in Defaults mode. For
 	// example, transform details are customized and the rotation value is cached at customization time; if we don't force refresh here, then after an undo of a previous
 	// rotation edit, transform details won't be re-customized and thus the cached rotation value will be stale, resulting in an invalid rotation value on the next edit.
-	StartEditingDefaults(/*bAutoFocus=*/false, /*bForceRefresh=*/true);
+	RefreshStandAloneDefaultsEditor();
 
 	// Update associated controls like the function editor
 	BroadcastRefresh();
@@ -1497,7 +1498,11 @@ void FBlueprintEditor::SetCurrentMode(FName NewMode)
 	FWorkflowCentricApplication::SetCurrentMode(NewMode);
 }
 
-void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+void FBlueprintEditor::InitBlueprintEditor(
+	const EToolkitMode::Type Mode,
+	const TSharedPtr< IToolkitHost >& InitToolkitHost,
+	const TArray<UBlueprint*>& InBlueprints,
+	bool bShouldOpenInDefaultsMode)
 {
 	check(InBlueprints.Num() == 1 || bShouldOpenInDefaultsMode);
 
@@ -2031,6 +2036,7 @@ FBlueprintEditor::~FBlueprintEditor()
 
 void FBlueprintEditor::FocusInspectorOnGraphSelection(const FGraphPanelSelectionSet& NewSelection, bool bForceRefresh)
 {
+	// If this graph has selected nodes update the details panel to match.
 	if ( NewSelection.Array().Num() > 0 )
 	{
 		SetUISelectionState(FBlueprintEditor::SelectionState_Graph);
@@ -2084,7 +2090,7 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		. IsPropertyEditingEnabledDelegate( IsPropertyEditingEnabledDelegate )
 		. OnFinishedChangingProperties( FOnFinishedChangingProperties::FDelegate::CreateSP(this, &FBlueprintEditor::OnFinishedChangingProperties) );
 
-	if (InBlueprints.Num() > 0)
+	if ( InBlueprints.Num() > 0 )
 	{
 		const bool bShowPublicView = true;
 		const bool bHideNameArea = false;
@@ -2729,6 +2735,13 @@ void FBlueprintEditor::OnActiveTabChanged( TSharedPtr<SDockTab> PreviouslyActive
 	{
 		//UE_LOG(LogBlueprint, Log, TEXT("OnActiveTabChanged: %s"), *NewlyActivated->GetLayoutIdentifier().ToString());
 	}
+
+	if ( NewlyActivated->GetTabRole() == ETabRole::DocumentTab )
+	{
+		FocusedGraphEdPtr = nullptr;
+	}
+
+	MyBlueprintWidget->Refresh();
 }
 
 void FBlueprintEditor::OnGraphEditorFocused(const TSharedRef<SGraphEditor>& InGraphEditor)
@@ -2738,16 +2751,31 @@ void FBlueprintEditor::OnGraphEditorFocused(const TSharedRef<SGraphEditor>& InGr
 	InGraphEditor->SetPinVisibility(PinVisibility);
 
 	// Update the inspector as well, to show selection from the focused graph editor
-	FocusInspectorOnGraphSelection(GetSelectedNodes());
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	FocusInspectorOnGraphSelection(SelectedNodes);
 
 	// During undo, garbage graphs can be temporarily brought into focus, ensure that before a refresh of the MyBlueprint window that the graph is owned by a Blueprint
-	if(FocusedGraphEdPtr.IsValid() && MyBlueprintWidget.IsValid())
+	if ( FocusedGraphEdPtr.IsValid() && MyBlueprintWidget.IsValid() )
 	{
 		// The focused graph can be garbage as well
-		TWeakObjectPtr< UEdGraph > FocusedGraph = FocusedGraphEdPtr.Pin()->GetCurrentGraph();
-		if(FocusedGraph.IsValid() && FBlueprintEditorUtils::FindBlueprintForGraph(FocusedGraph.Get()))
+		TWeakObjectPtr< UEdGraph > FocusedGraphPtr = FocusedGraphEdPtr.Pin()->GetCurrentGraph();
+		UEdGraph* FocusedGraph = FocusedGraphPtr.Get();
+
+		if ( FocusedGraph != nullptr )
 		{
-			MyBlueprintWidget->Refresh();
+			if ( FBlueprintEditorUtils::FindBlueprintForGraph(FocusedGraph) )
+			{
+				MyBlueprintWidget->Refresh();
+			}
+
+			// If this graph doesn't have any selected nodes, but the current selection state is from another graph,
+			// lets just set the focused graph to be the selected one.  We don't want the wrong function context to 
+			// seem relevant when you're looking at a different function.
+			if ( SelectedNodes.Num() == 0 )
+			{
+				SetUISelectionState(FBlueprintEditor::SelectionState_Graph);
+				Inspector->ShowDetailsForSingleObject(FocusedGraph);
+			}
 		}
 	}
 }
@@ -6255,7 +6283,7 @@ void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 					// Update the details panel
 					FString Title;
 					DefaultObject->GetName(Title);
-					SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), true);
+					SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), bForceRefresh);
 					Options.bShowComponents = false;
 
 					Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
@@ -6268,27 +6296,30 @@ void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 					}
 				}
 			}
-			else
-			{
-				DefaultEditor->ShowDetailsForSingleObject(GetBlueprintObj()->GeneratedClass->GetDefaultObject(), SKismetInspector::FShowDetailsOptions(FText::GetEmpty(), bForceRefresh));
-			}
 		}
 	}
-	else if (GetEditingObjects().Num() > 0)
+	
+	RefreshStandAloneDefaultsEditor();
+}
+
+void FBlueprintEditor::RefreshStandAloneDefaultsEditor()
+{
+	// Update the details panel
+	SKismetInspector::FShowDetailsOptions Options(FText::GetEmpty(), true);
+
+	TArray<UObject*> DefaultObjects;
+	for ( int32 i = 0; i < GetEditingObjects().Num(); ++i )
 	{
-		TArray<UObject*> DefaultObjects;
-		for (int32 i = 0; i < GetEditingObjects().Num(); ++i)
+		auto Blueprint = (UBlueprint*)( GetEditingObjects()[i] );
+		if ( Blueprint->GeneratedClass )
 		{
-			auto Blueprint = (UBlueprint*)(GetEditingObjects()[i]);
-			if (Blueprint->GeneratedClass)
-			{
-				DefaultObjects.Add(Blueprint->GeneratedClass->GetDefaultObject());
-			}
+			DefaultObjects.Add(Blueprint->GeneratedClass->GetDefaultObject());
 		}
-		if (DefaultObjects.Num())
-		{
-			DefaultEditor->ShowDetailsForObjects(DefaultObjects);
-		}
+	}
+
+	if ( DefaultObjects.Num() )
+	{
+		DefaultEditor->ShowDetailsForObjects(DefaultObjects);
 	}
 }
 

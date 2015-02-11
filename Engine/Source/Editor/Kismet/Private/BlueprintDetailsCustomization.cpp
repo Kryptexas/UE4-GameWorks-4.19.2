@@ -3903,7 +3903,7 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 
 	AttemptToCreateResultNode();
 
-	UK2Node_EditablePinBase * FunctionResultNode = FunctionResultNodePtr.Get();
+	UK2Node_EditablePinBase* FunctionResultNode = FunctionResultNodePtr.Get();
 	if( FunctionResultNode )
 	{
 		FunctionResultNode->Modify();
@@ -3922,6 +3922,11 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 		FunctionResultNode->CreateUserDefinedPin(NewPinName, PinType);
 		
 		OnParamsChanged(FunctionResultNode, true);
+
+		if ( !PreviousResultNode )
+		{
+			DetailsLayoutPtr->ForceRefreshDetails();
+		}
 	}
 	else
 	{
@@ -4246,15 +4251,17 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		for (TFieldIterator<UProperty> PropertyIt(Blueprint->GetClass(), EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UProperty* Property = *PropertyIt;
-			if(FObjectEditorUtils::GetCategory(Property) != TEXT("BlueprintOptions"))
+			FString Category = FObjectEditorUtils::GetCategory(Property);
+
+			if ( Category != TEXT("BlueprintOptions") && Category != TEXT("ClassOptions") )
 			{
 				DetailLayout.HideProperty(DetailLayout.GetProperty(Property->GetFName()));
 			}
 		}
 
 		// Display the parent class and set up the menu for reparenting
-		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Globals", LOCTEXT("BlueprintGlobalDetailsCategory", "Globals"));
-		Category.AddCustomRow( LOCTEXT("BlueprintGlobalDetailsCategory", "Globals") )
+		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("ClassOptions", LOCTEXT("ClassOptions", "Class Options"));
+		Category.AddCustomRow( LOCTEXT("ClassOptions", "Class Options") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -4305,7 +4312,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		else
 		{
 			// Only display the ability to deprecate a Blueprint on non-level Blueprints.
-			Category.AddCustomRow( LOCTEXT("DeprecateLabel", "Deprecate") )
+			Category.AddCustomRow( LOCTEXT("DeprecateLabel", "Deprecate"), true )
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -4316,10 +4323,10 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 				.ValueContent()
 				[
 					SNew(SCheckBox)
-						.IsEnabled( this, &FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint )
-						.IsChecked( this, &FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint )
-						.OnCheckStateChanged( this, &FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint )
-						.ToolTipText( this, &FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip )
+					.IsEnabled( this, &FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint )
+					.IsChecked( this, &FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint )
+					.OnCheckStateChanged( this, &FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint )
+					.ToolTipText( this, &FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip )
 				];
 		}
 	}

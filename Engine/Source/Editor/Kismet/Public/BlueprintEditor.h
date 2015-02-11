@@ -530,6 +530,9 @@ public:
 protected:
 	/** Called during initialization of the blueprint editor to register any application modes. */
 	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated = false);
+
+	// Updates the selected object used by the stand lone defaults editor widget.
+	void RefreshStandAloneDefaultsEditor();
 	
 	// Zooming to fit the entire graph
 	void ZoomToWindow_Clicked();
