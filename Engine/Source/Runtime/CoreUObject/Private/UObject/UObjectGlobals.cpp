@@ -1205,20 +1205,18 @@ void EndLoad()
 		DissociateImportsAndForcedExports();
 
 		// close any linkers' loaders that were requested to be closed once GObjBeginLoadCount goes to 0
-		for (int32 Index = 0; Index < GDelayedLinkerClosePackages.Num(); Index++)
+		auto PackagesToClose = MoveTemp(GDelayedLinkerClosePackages);
+		for (auto Linker: PackagesToClose)
 		{
-			ULinkerLoad* Linker = GDelayedLinkerClosePackages[Index];
 			if (Linker)
 			{
 				if (Linker->Loader && Linker->LinkerRoot)
 				{
 					ResetLoaders(Linker->LinkerRoot);
 				}
-				delete Linker->Loader;
-				Linker->Loader = NULL;
+				check(Linker->Loader == nullptr);
 			}
 		}
-		GDelayedLinkerClosePackages.Empty();
 	}
 }
 
