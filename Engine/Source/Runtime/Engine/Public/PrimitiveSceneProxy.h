@@ -229,7 +229,7 @@ public:
 		BoundsSurfaceArea = 0;
 	}
 
-	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FHeightfieldComponentDescription& OutDescription)
+	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription)
 	{
 		OutHeightmapTexture = NULL;
 	}

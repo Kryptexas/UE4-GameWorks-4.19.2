@@ -19,6 +19,8 @@
 
 Texture2D HeightfieldTexture;
 SamplerState HeightfieldSampler;
+Texture2D DiffuseColorTexture;
+SamplerState DiffuseColorSampler;
 uint NumHeightfields;
 Buffer<float4> HeightfieldDescriptions;
 
@@ -123,6 +125,7 @@ float3 GetHeightfieldWorldPosition(uint HeightfieldIndex, float2 LocalPosition, 
 
 Texture2D GlobalHeightfieldTexture;
 Texture2D GlobalNormalTexture;
+Texture2D GlobalDiffuseColorTexture;
 SamplerState GlobalHeightfieldSampler;
 
 float3 GetGlobalHeightfieldNormal(float2 GlobalUV)
@@ -130,6 +133,12 @@ float3 GetGlobalHeightfieldNormal(float2 GlobalUV)
 	float2 PackedNormal = Texture2DSampleLevel(GlobalNormalTexture, GlobalHeightfieldSampler, GlobalUV, 0).xy;
 	float2 RescaledNormal = float2(PackedNormal.x, PackedNormal.y) * float2(2.0,2.0) - float2(1.0,1.0);
 	return float3(RescaledNormal, sqrt(max(1.0 - dot(RescaledNormal, RescaledNormal), 0.0)));
+}
+
+float3 GetGlobalDiffuseColor(float2 GlobalUV)
+{
+	float3 EncodedDiffuseColor = Texture2DSampleLevel(GlobalDiffuseColorTexture, GlobalHeightfieldSampler, GlobalUV, 0).xyz;
+	return EncodedDiffuseColor * EncodedDiffuseColor;
 }
 
 // Returns height in local space
@@ -203,11 +212,15 @@ void HeightfieldSubsectionQuadVS(
 void InitializeHeightfieldsPS(
 	in FHeightfieldSubsectionQuadVertexOutput Input, 
 	out float4 OutHeight : SV_Target0,
-	out float4 OutNormal : SV_Target1)
+	out float4 OutNormal : SV_Target1,
+	out float4 OutDiffuseColor : SV_Target2)
 {
 	float4 PackedHeightAndNormal = Texture2DSampleLevel(HeightfieldTexture, HeightfieldSampler, Input.ComponentHeightfieldUV, 0);
 	OutHeight = DecodePackedTwoChannelValue(PackedHeightAndNormal.xy) / 65535.0f;
 	OutNormal = float4(PackedHeightAndNormal.zw, 0, 0);
+
+	float3 DiffuseColor = Texture2DSampleLevel(DiffuseColorTexture, DiffuseColorSampler, Input.ComponentHeightfieldUV, 0).xyz;
+	OutDiffuseColor = float4(sqrt(DiffuseColor), 0);
 }
 
 struct FHeightfieldComponentQuadVertexOutput
@@ -348,9 +361,9 @@ void LightHeightfieldsPS(
 
 	float Shadowing = Texture2DSampleLevel(HeightfieldShadowing, HeightfieldShadowingSampler, Input.GlobalUV, 0).x;
 
-	float3 DiffuseColor = .5f;
+	float3 DiffuseColor = GetGlobalDiffuseColor(Input.GlobalUV);
 	float3 Lighting = (Shadowing * GreyScaleLightFunction * saturate(dot(-LightDirection, WorldHeightfieldNormal))) * LightColor;
-
+	 
 	float3 SkylightDiffuse = GetSkySHDiffuse(WorldHeightfieldNormal) * View.SkyLightColor.rgb;
 	Lighting += SkylightDiffuse;
 
@@ -562,7 +575,7 @@ float3 GatherHeightfieldLighting(
 			float2 SampleUV = MinGatherUV + float2(XOffset, YOffset);
 
 			//@todo - reformulate loop to avoid center region
-			//@todo - try alternate access pattern with all threads reading from the same x row at once
+			//@todo - square access pattern to better match 2d texture cache tiles
 			if (!bUseExcludeRegion || any(SampleUV < ExcludeMinGatherUV || SampleUV > ExcludeMinGatherUV + ExcludeGatherUVSize))
 			{
 				float2 SampleLocalPosition = (SampleUV - GlobalUVScaleBias.zw) / GlobalUVScaleBias.xy;
@@ -630,7 +643,8 @@ void CalculateHeightfieldIrradianceCS(
 				#define VISUALIZE_HEIGHTFIELD_LIGHTING 0
 				#if VISUALIZE_HEIGHTFIELD_LIGHTING
 
-					Lighting = SampleHeightfieldLighting(GlobalUV) / FINAL_GATHER_THREADGROUP_SIZE;
+					//Lighting = SampleHeightfieldLighting(GlobalUV) / FINAL_GATHER_THREADGROUP_SIZE;
+					Lighting = GetGlobalDiffuseColor(GlobalUV) / FINAL_GATHER_THREADGROUP_SIZE;
 					//Lighting = frac(WorldHeightfieldShadingPosition / 1000);
 					//Lighting = abs(WorldHeightfieldShadingPosition.z - WorldPosition.z) / 100.0f;
 					//Lighting = GetGlobalHeightfieldHeight(GlobalUV) / 100000.0f;
@@ -662,7 +676,7 @@ void CalculateHeightfieldIrradianceCS(
 						InnerLightTransferDistance, 
 						ThreadIndex,
 						false);
-					
+
 					Lighting += GatherHeightfieldLighting(
 						WorldPosition, 
 						WorldNormal, 

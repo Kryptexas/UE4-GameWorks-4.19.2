@@ -521,6 +521,7 @@ protected:
 	TArray<UTexture2D*> WeightmapTextures;
 	int8 NumWeightmapLayerAllocations;
 	UTexture2D* NormalmapTexture; // PC : Heightmap, Mobile : Weightmap
+	UTexture2D* BaseColorForGITexture;
 	FVector4 HeightmapScaleBias;
 	float HeightmapSubsectionOffsetU;
 	float HeightmapSubsectionOffsetV;
@@ -588,7 +589,7 @@ public:
 	// FLandcapeSceneProxy
 	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);
 
-	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FHeightfieldComponentDescription& OutDescription) override;
+	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription) override;
 };
 
 class FLandscapeDebugMaterialRenderProxy : public FMaterialRenderProxy

@@ -12,6 +12,7 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget> Height;
 	TRefCountPtr<IPooledRenderTarget> Normal;
+	TRefCountPtr<IPooledRenderTarget> DiffuseColor;
 	TRefCountPtr<IPooledRenderTarget> DirectionalLightShadowing;
 	TRefCountPtr<IPooledRenderTarget> Lighting;
 
@@ -31,6 +32,29 @@ private:
 	FIntPoint AtlasSize;
 };
 
+class FHeightfieldComponentTextures
+{
+public:
+
+	FHeightfieldComponentTextures(UTexture2D* InHeightAndNormal, UTexture2D* InDiffuseColor) :
+		HeightAndNormal(InHeightAndNormal),
+		DiffuseColor(InDiffuseColor)
+	{}
+
+	FORCEINLINE bool operator==(FHeightfieldComponentTextures Other) const
+	{
+		return HeightAndNormal == Other.HeightAndNormal && DiffuseColor == Other.DiffuseColor;
+	}
+
+	FORCEINLINE friend uint32 GetTypeHash(FHeightfieldComponentTextures ComponentTextures)
+	{
+		return GetTypeHash(ComponentTextures.HeightAndNormal);
+	}
+
+	UTexture2D* HeightAndNormal;
+	UTexture2D* DiffuseColor;
+};
+
 class FHeightfieldDescription
 {
 public:
@@ -38,7 +62,7 @@ public:
 	int32 DownsampleFactor;
 	FIntRect DownsampledRect;
 
-	TMap<UTexture2D*, TArray<FHeightfieldComponentDescription>> ComponentDescriptions;
+	TMap<FHeightfieldComponentTextures, TArray<FHeightfieldComponentDescription>> ComponentDescriptions;
 
 	FHeightfieldDescription() :
 		Rect(FIntRect(0, 0, 0, 0)),

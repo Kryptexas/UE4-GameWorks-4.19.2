@@ -547,6 +547,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, WeightmapTextures(InComponent->WeightmapTextures)
 	, NumWeightmapLayerAllocations(InComponent->WeightmapLayerAllocations.Num())
 	, NormalmapTexture(InComponent->HeightmapTexture)
+	, BaseColorForGITexture(InComponent->GIBakedBaseColorTexture)
 	, HeightmapScaleBias(InComponent->HeightmapScaleBias)
 	, XYOffsetmapTexture(InComponent->XYOffsetmapTexture)
 	, SharedBuffersKey(0)
@@ -2594,9 +2595,10 @@ void FLandscapeComponentSceneProxy::ChangeLODDistanceFactor_RenderThread(float I
 	LODDistance = InLODDistanceFactor;
 }
 
-void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FHeightfieldComponentDescription& OutDescription)
+void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription)
 {
 	OutHeightmapTexture = HeightmapTexture;
+	OutDiffuseColorTexture = BaseColorForGITexture;
 	OutDescription.HeightfieldScaleBias = HeightmapScaleBias;
 
 	OutDescription.MinMaxUV = FVector4(
