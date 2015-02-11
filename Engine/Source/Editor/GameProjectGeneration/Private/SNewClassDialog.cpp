@@ -179,7 +179,18 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 
 	ClassViewer = StaticCastSharedRef<SClassViewer>(FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &SNewClassDialog::OnAdvancedClassSelected)));
 
-	SetupParentClassItems(InArgs._FeaturedClasses);
+	// Make sure the featured classes all pass the active class filter
+	TArray<FNewClassInfo> ValidatedFeaturedClasses;
+	ValidatedFeaturedClasses.Reserve(InArgs._FeaturedClasses.Num());
+	for (const FNewClassInfo& FeaturedClassInfo : InArgs._FeaturedClasses)
+	{
+		if (FeaturedClassInfo.ClassType != FNewClassInfo::EClassType::UObject || ClassViewer->IsClassAllowed(FeaturedClassInfo.BaseClass))
+		{
+			ValidatedFeaturedClasses.Add(FeaturedClassInfo);
+		}
+	}
+
+	SetupParentClassItems(ValidatedFeaturedClasses);
 	UpdateInputValidity();
 
 	TSharedRef<SWidget> DocWidget = IDocumentation::Get()->CreateAnchor(TAttribute<FString>(this, &SNewClassDialog::GetSelectedParentDocLink));
