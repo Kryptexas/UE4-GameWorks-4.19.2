@@ -105,7 +105,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	public class CallStackContainer
 	{
 		/// <summary>The maximum number of call stack lines to parse.</summary>
-		private readonly int MaxLinesToParse = 128;
+		public readonly int MaxLinesToParse = 64;
 
 		/// <summary>A list of parse call stack lines.</summary>
 		private List<CallStackEntry> LocalCallStackEntries = new List<CallStackEntry>();
