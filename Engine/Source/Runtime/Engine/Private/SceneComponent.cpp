@@ -1610,7 +1610,7 @@ bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRo
 			// It's only a problem if we're in gameplay, and the owning level is visible
 			if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible)
 			{
-				FMessageLog("Performance").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "),
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "),
 					FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName())));
 				return false;
 			}
