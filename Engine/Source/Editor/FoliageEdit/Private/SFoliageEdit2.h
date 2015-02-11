@@ -9,6 +9,7 @@ struct FFoliageMeshUIInfo;
 class FAssetThumbnailPool;
 class IDetailsView;
 
+typedef TSharedPtr<FFoliageMeshUIInfo> FFoliageMeshUIInfoPtr; //should match typedef in FoliageEdMode.h
 typedef STreeView<FFoliageMeshUIInfoPtr> SFoliageMeshTree;
 
 class SFoliageEdit2 : public SCompoundWidget

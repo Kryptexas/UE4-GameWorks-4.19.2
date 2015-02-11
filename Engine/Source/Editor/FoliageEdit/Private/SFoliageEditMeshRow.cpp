@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "UnrealEd.h"
 #include "FoliageType.h"
+#include "FoliageEdMode.h"
 #include "SFoliageEditMeshRow.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"

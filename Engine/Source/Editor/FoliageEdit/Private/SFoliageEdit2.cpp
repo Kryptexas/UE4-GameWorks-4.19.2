@@ -4,17 +4,17 @@
 
 #include "SScaleBox.h"
 
+#include "FoliageType.h"
+#include "FoliageEdMode.h"
 #include "SFoliageEdit2.h"
 #include "FoliageEditActions.h"
-#include "FoliageEdMode.h"
-#include "FoliageType.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
 #include "Editor/IntroTutorials/Public/IIntroTutorials.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "SFoliageEditMeshDisplayItem.h"
+#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Engine/StaticMesh.h"
 #include "SFoliageEditMeshRow.h"
 

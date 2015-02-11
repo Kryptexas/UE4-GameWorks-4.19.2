@@ -10,7 +10,9 @@ namespace FoliageMeshColumns
 	static const FName ColumnID_Save("Save");
 };
 
+class FEdModeFoliage;
 struct FFoliageMeshUIInfo;
+typedef TSharedPtr<FFoliageMeshUIInfo> FFoliageMeshUIInfoPtr; //should match typedef in FoliageEdMode.h
 
 class SFoliageEditMeshRow
 	: public SMultiColumnTableRow<FFoliageMeshUIInfoPtr>
