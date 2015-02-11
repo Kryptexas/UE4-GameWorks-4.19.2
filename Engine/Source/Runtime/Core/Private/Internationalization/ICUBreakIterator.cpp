@@ -5,6 +5,7 @@
 
 #if UE_ENABLE_ICU
 #include "ICUTextCharacterIterator.h"
+#include "ICUCulture.h"
 
 FICUBreakIteratorManager* FICUBreakIteratorManager::Singleton = nullptr;
 
