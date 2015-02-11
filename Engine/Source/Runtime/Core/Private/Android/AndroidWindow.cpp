@@ -100,6 +100,8 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	const bool bMobileHDR32bpp = (MobileHDRCvar && MobileHDRCvar->GetValueOnAnyThread() == 1)
 		&& (FAndroidMisc::SupportsFloatingPointRenderTargets() == false || (MobileHDR32bppCvar && MobileHDR32bppCvar->GetValueOnAnyThread() == 1));
 
+	UE_LOG(LogAndroid, Log, TEXT("Requires Mosaic: %s"), bMobileHDR32bpp ? TEXT("YES") : TEXT("no"));
+
 	if (bMobileHDR32bpp)
 	{
 		const int32 OldMaxWidth = MaxWidth;

@@ -169,6 +169,7 @@ public:
 	static FORCEINLINE GLint GetFirstComputeTextureUnit()		{ return 0; }
 	static FORCEINLINE GLint GetFirstComputeUAVUnit()			{ return 0; }
 
+	static FORCEINLINE GLint GetMaxVaryingVectors()				{ check(MaxVaryingVectors != -1); return MaxVaryingVectors; }
 	static FORCEINLINE GLint GetMaxPixelUniformComponents()		{ check(MaxPixelUniformComponents != -1); return MaxPixelUniformComponents; }
 	static FORCEINLINE GLint GetMaxVertexUniformComponents()	{ check(MaxVertexUniformComponents != -1); return MaxVertexUniformComponents; }
 	static FORCEINLINE GLint GetMaxGeometryUniformComponents()	{ check(MaxGeometryUniformComponents != -1); return MaxGeometryUniformComponents; }
@@ -356,6 +357,7 @@ protected:
 	static GLint MaxGeometryUniformComponents;
 	static GLint MaxHullUniformComponents;
 	static GLint MaxDomainUniformComponents;
+	static GLint MaxVaryingVectors;
 
 	/** GL_KHR_texture_compression_astc_ldr */
 	static bool bSupportsASTC;

@@ -84,6 +84,7 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
 	static FORCEINLINE bool RequiresTextureCubeLodEXTToTextureCubeLodDefine() { return bRequiresTextureCubeLodEXTToTextureCubeLodDefine; }
 	static FORCEINLINE bool SupportsStandardDerivativesExtension()		{ return true; }
+	static FORCEINLINE bool RequiresGLFragCoordVaryingLimitHack()		{ return bRequiresGLFragCoordVaryingLimitHack; }
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return bES2Fallback ? GL_HALF_FLOAT_OES : GL_HALF_FLOAT; }
 
 
@@ -933,6 +934,9 @@ public:
 
 	/* Some android platforms require textureCubeLod to be used some require textureCubeLodEXT however they either inconsistently or don't use the GL_TextureCubeLodEXT extension definition */
 	static bool bRequiresTextureCubeLodEXTToTextureCubeLodDefine;
+
+	/* This is a hack to remove the gl_FragCoord if shader will fail to link if exceeding the max varying on android platforms */
+	static bool bRequiresGLFragCoordVaryingLimitHack;
 };
 
 // yes they are different between the ES2 extension and ES3.x and GL3.x core

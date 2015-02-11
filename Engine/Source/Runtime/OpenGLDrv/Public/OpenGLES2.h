@@ -128,6 +128,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
 	static FORCEINLINE bool RequiresTextureCubeLodEXTToTextureCubeLodDefine() { return bRequiresTextureCubeLodEXTToTextureCubeLodDefine; }
 	static FORCEINLINE bool SupportsStandardDerivativesExtension()		{ return bSupportsStandardDerivativesExtension; }
+	static FORCEINLINE bool RequiresGLFragCoordVaryingLimitHack()		{ return bRequiresGLFragCoordVaryingLimitHack; }
 
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_HALF_FLOAT_OES; }
 
@@ -478,6 +479,8 @@ public:
 	/* Some android platforms require textureCubeLod to be used some require textureCubeLodEXT however they either inconsistently or don't use the GL_TextureCubeLodEXT extension definition */
 	static bool bRequiresTextureCubeLodEXTToTextureCubeLodDefine;
 
+	/* This is a hack to remove the gl_FragCoord if shader will fail to link if exceeding the max varying on android platforms */
+	static bool bRequiresGLFragCoordVaryingLimitHack;
 };
 
 

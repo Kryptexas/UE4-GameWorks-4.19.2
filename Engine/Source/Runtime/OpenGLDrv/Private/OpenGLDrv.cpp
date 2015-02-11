@@ -424,6 +424,7 @@ GLint FOpenGLBase::MaxVertexTextureImageUnits = -1;
 GLint FOpenGLBase::MaxGeometryTextureImageUnits = -1;
 GLint FOpenGLBase::MaxHullTextureImageUnits = -1;
 GLint FOpenGLBase::MaxDomainTextureImageUnits = -1;
+GLint FOpenGLBase::MaxVaryingVectors = -1;
 GLint FOpenGLBase::MaxVertexUniformComponents = -1;
 GLint FOpenGLBase::MaxPixelUniformComponents = -1;
 GLint FOpenGLBase::MaxGeometryUniformComponents = -1;

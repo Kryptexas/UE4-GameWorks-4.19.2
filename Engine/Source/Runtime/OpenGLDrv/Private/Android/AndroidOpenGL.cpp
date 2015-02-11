@@ -352,9 +352,24 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	bSupportsETC2 = bES30Support;
 	bUseES30ShadingLanguage = bES30Support;
 
-	// Attempt to find ES 3.0 glTexStorage2D if we're on an Adreno device that supports it.
-	if( FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_RENDERER))).Contains(TEXT("Adreno")) )
+	FString RendererString = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_RENDERER)));
+
+	if (RendererString.Contains(TEXT("SGX 540")))
 	{
+		UE_LOG(LogRHI, Warning, TEXT("Disabling support for GL_OES_packed_depth_stencil on SGX 540"));
+		bSupportsPackedDepthStencil = false;
+	}
+
+	if( RendererString.Contains(TEXT("Adreno")) )
+	{
+		// Adreno 2xx doesn't work with packed depth stencil enabled
+		if (RendererString.Contains(TEXT("Adreno (TM) 2")))
+		{
+			UE_LOG(LogRHI, Warning, TEXT("Disabling support for GL_OES_packed_depth_stencil on Adreno 2xx"));
+			bSupportsPackedDepthStencil = false;
+		}
+
+		// Attempt to find ES 3.0 glTexStorage2D if we're on an Adreno device that supports it.
 		glTexStorage2D = (PFNGLTEXSTORAGE2DPROC)((void*)eglGetProcAddress("glTexStorage2D"));
 		if( glTexStorage2D != NULL )
 		{
@@ -382,7 +397,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	bSupportsTextureCubeLodEXT = false;
 
 	// On some Android devices with Mali GPUs textureCubeLod is not available.
-	if( FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_RENDERER))).Contains(TEXT("Mali-400")) )
+	if( RendererString.Contains(TEXT("Mali-400")) )
 	{
 		bSupportsShaderTextureCubeLod = false;
 	}

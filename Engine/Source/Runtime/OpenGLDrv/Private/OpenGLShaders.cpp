@@ -82,7 +82,7 @@ static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode )
 {
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderCompileVerifyTime);
 
-#if UE_BUILD_DEBUG
+#if UE_BUILD_DEBUG || DEBUG_GL_SHADERS
 	if (FOpenGL::SupportsSeparateShaderObjects() && glIsProgram(Shader))
 	{
 		bool const bCompiledOK = VerifyLinkedProgram(Shader);
@@ -310,6 +310,22 @@ namespace
 			++Text;
 		}
 		return true;
+	}
+
+	inline int CStringCountOccurances(TArray<ANSICHAR> & Source, const ANSICHAR * TargetString)
+	{
+		int32 TargetLen = FCStringAnsi::Strlen(TargetString);
+		int Count = 0;
+		int32 FoundIndex = 0;
+		for (const ANSICHAR * FoundPointer = FCStringAnsi::Strstr(Source.GetData(), TargetString);
+			nullptr != FoundPointer;
+			FoundPointer = FCStringAnsi::Strstr(Source.GetData() + FoundIndex, TargetString))
+		{
+			FoundIndex = FoundPointer - Source.GetData();
+			FoundIndex += TargetLen;
+			Count++;
+		}
+		return Count;
 	}
 
 	inline bool MoveHashLines(TArray<ANSICHAR> & Dest, TArray<ANSICHAR> & Source)
@@ -636,6 +652,16 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 					{
 						AppendCString(GlslCode,
 							"#define textureCubeLodEXT textureCubeLod \n");
+					}
+
+					// Deal with gl_FragCoord using one of the varying vectors and shader possibly exceeding the limit
+					if (FOpenGL::RequiresGLFragCoordVaryingLimitHack())
+					{
+						if (CStringCountOccurances(GlslCodeOriginal, "vec4 var_TEXCOORD") >= FOpenGL::GetMaxVaryingVectors())
+						{
+							// It is likely gl_FragCoord is used for mosaic color output so use an appropriate constant
+							ReplaceCString(GlslCodeOriginal, "gl_FragCoord.xy", "vec2(400.5,240.5)");
+						}
 					}
 				}
 			}

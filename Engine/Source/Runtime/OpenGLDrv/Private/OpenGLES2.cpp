@@ -121,6 +121,9 @@ bool FOpenGLES2::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
 /* Some android platforms do not support the GL_OES_standard_derivatives extension */
 bool FOpenGLES2::bSupportsStandardDerivativesExtension = false;
 
+/* This is a hack to remove the gl_FragCoord if shader will fail to link if exceeding the max varying on android platforms */
+bool FOpenGLES2::bRequiresGLFragCoordVaryingLimitHack = false;
+
 bool FOpenGLES2::SupportsDisjointTimeQueries()
 {
 	bool bAllowDisjointTimerQueries = false;
@@ -130,6 +133,7 @@ bool FOpenGLES2::SupportsDisjointTimeQueries()
 
 void FOpenGLES2::ProcessQueryGLInt()
 {
+	LOG_AND_GET_GL_INT(GL_MAX_VARYING_VECTORS, 0, MaxVaryingVectors);
 	LOG_AND_GET_GL_INT(GL_MAX_VERTEX_UNIFORM_VECTORS, 0, MaxVertexUniformComponents);
 	LOG_AND_GET_GL_INT(GL_MAX_FRAGMENT_UNIFORM_VECTORS, 0, MaxPixelUniformComponents);
 

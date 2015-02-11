@@ -941,6 +941,122 @@ static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode, bool I
 }
 #endif
 
+static void CheckVaryingLimit()
+{
+#if PLATFORM_ANDROID
+	FOpenGL::bRequiresGLFragCoordVaryingLimitHack = false;
+	if (IsES2Platform(GMaxRHIShaderPlatform))
+	{
+		// Some mobile GPUs require an available varying vector to support gl_FragCoord.
+		// If there are only 8 supported, it is possible to run out of varyings on these
+		// GPUs so test to see if need to fake gl_FragCoord with the assumption it is
+		// used for mobile HDR mosaic.
+
+		// Do not need to do this check if more than 8 varyings supported
+		if (FOpenGL::GetMaxVaryingVectors() > 8)
+			return;
+
+		// Make sure MobileHDR is on and device needs mosaic
+		static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+		static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
+		const bool bMobileHDR32bpp = (MobileHDRCvar && MobileHDRCvar->GetValueOnAnyThread() == 1)
+			&& (FAndroidMisc::SupportsFloatingPointRenderTargets() == false || (MobileHDR32bppCvar && MobileHDR32bppCvar->GetValueOnAnyThread() == 1));
+		if (!bMobileHDR32bpp)
+			return;
+
+		UE_LOG(LogRHI, Display, TEXT("Testing for gl_FragCoord requiring a varying since mosaic is enabled"));
+		const ANSICHAR* TestVertexProgram = "\n"
+			"#version 100\n"
+			"attribute vec4 in_ATTRIBUTE0;\n"
+			"attribute vec4 in_ATTRIBUTE1;\n"
+			"varying highp vec4 TexCoord0;\n"
+			"varying highp vec4 TexCoord1;\n"
+			"varying highp vec4 TexCoord2;\n"
+			"varying highp vec4 TexCoord3;\n"
+			"varying highp vec4 TexCoord4;\n"
+			"varying highp vec4 TexCoord5;\n"
+			"varying highp vec4 TexCoord6;\n"
+			"varying highp vec4 TexCoord7;\n"
+			"void main()\n"
+			"{\n"
+			"   TexCoord0 = in_ATTRIBUTE1 * vec4(0.1,0.2,0.3,0.4);\n"
+			"   TexCoord1 = in_ATTRIBUTE1 * vec4(0.5,0.6,0.7,0.8);\n"
+			"   TexCoord2 = in_ATTRIBUTE1 * vec4(0.12,0.22,0.32,0.42);\n"
+			"   TexCoord3 = in_ATTRIBUTE1 * vec4(0.52,0.62,0.72,0.82);\n"
+			"   TexCoord4 = in_ATTRIBUTE1 * vec4(0.14,0.24,0.34,0.44);\n"
+			"   TexCoord5 = in_ATTRIBUTE1 * vec4(0.54,0.64,0.74,0.84);\n"
+			"   TexCoord6 = in_ATTRIBUTE1 * vec4(0.16,0.26,0.36,0.46);\n"
+			"   TexCoord7 = in_ATTRIBUTE1 * vec4(0.56,0.66,0.76,0.86);\n"
+			"	gl_Position.xyzw = in_ATTRIBUTE0;\n"
+			"}\n";
+		const ANSICHAR* TestFragmentProgram = "\n"
+			"#version 100\n"
+			"varying highp vec4 TexCoord0;\n"
+			"varying highp vec4 TexCoord1;\n"
+			"varying highp vec4 TexCoord2;\n"
+			"varying highp vec4 TexCoord3;\n"
+			"varying highp vec4 TexCoord4;\n"
+			"varying highp vec4 TexCoord5;\n"
+			"varying highp vec4 TexCoord6;\n"
+			"varying highp vec4 TexCoord7;\n"
+			"void main()\n"
+			"{\n"
+			"   gl_FragColor = TexCoord0 * TexCoord1 * TexCoord2 * TexCoord3 * TexCoord4 * TexCoord5 * TexCoord6 * TexCoord7 * gl_FragCoord.xyxy;"
+			"}\n";
+
+		FOpenGLCodeHeader Header;
+		Header.FrequencyMarker = 0x5653;
+		Header.GlslMarker = 0x474c534c;
+		TArray<uint8> VertexCode;
+		{
+			FMemoryWriter Writer(VertexCode);
+			Writer << Header;
+			Writer.Serialize((void*)(TestVertexProgram), strlen(TestVertexProgram) + 1);
+			Writer.Close();
+		}
+		Header.FrequencyMarker = 0x5053;
+		Header.GlslMarker = 0x474c534c;
+		TArray<uint8> FragmentCode;
+		{
+			FMemoryWriter Writer(FragmentCode);
+			Writer << Header;
+			Writer.Serialize((void*)(TestFragmentProgram), strlen(TestFragmentProgram) + 1);
+			Writer.Close();
+		}
+
+		// Try to compile test shaders
+		TRefCountPtr<FOpenGLVertexShader> VertexShader = (FOpenGLVertexShader*)(RHICreateVertexShader(VertexCode).GetReference());
+		if (!VerifyCompiledShader(VertexShader->Resource, TestVertexProgram, false))
+		{
+			UE_LOG(LogRHI, Warning, TEXT("Vertex shader for varying test failed to compile. Try running anyway."));
+			return;
+		}
+		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(FragmentCode).GetReference());
+		if (!VerifyCompiledShader(PixelShader->Resource, TestFragmentProgram, false))
+		{
+			UE_LOG(LogRHI, Warning, TEXT("Fragment shader for varying test failed to compile. Try running anyway."));
+			return;
+		}
+
+		// Now try linking them.. this is where gl_FragCoord may cause a failure
+		GLuint Program = glCreateProgram();
+		glAttachShader(Program, VertexShader->Resource);
+		glAttachShader(Program, PixelShader->Resource);
+		glLinkProgram(Program);
+		GLint LinkStatus = 0;
+		glGetProgramiv(Program, GL_LINK_STATUS, &LinkStatus);
+		if (LinkStatus != GL_TRUE)
+		{
+			FOpenGL::bRequiresGLFragCoordVaryingLimitHack = true;
+			UE_LOG(LogRHI, Warning, TEXT("gl_FragCoord uses a varying... enabled hack"));
+			return;
+		}
+
+		UE_LOG(LogRHI, Warning, TEXT("gl_FragCoord does not need a varying"));
+	}
+#endif
+}
+
 static void CheckTextureCubeLodSupport()
 {
 #if PLATFORM_ANDROID
@@ -1105,6 +1221,7 @@ void FOpenGLDynamicRHI::Init()
 	GIsRHIInitialized = true;
 
 	CheckTextureCubeLodSupport();
+	CheckVaryingLimit();
 }
 
 void FOpenGLDynamicRHI::Shutdown()
