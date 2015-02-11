@@ -72,7 +72,7 @@ public:
 	 * @param Ar - The archive with which to serialize.
 	 * @returns true if serialization was successful.
 	 */
-	void Serialize(FArchive& Ar);
+	void Serialize(FArchive& Ar, int32 NavMeshVersion);
 
 	/** Debug rendering. */
 	void GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 TileIndex = INDEX_NONE) const;
@@ -227,10 +227,10 @@ public:
 	mutable dtNavMeshQuery SharedNavQuery;
 
 	/** Helper function to serialize a single Recast tile. */
-	static void SerializeRecastMeshTile(FArchive& Ar, unsigned char*& TileData, int32& TileDataSize);
+	static void SerializeRecastMeshTile(FArchive& Ar, int32 NavMeshVersion, unsigned char*& TileData, int32& TileDataSize);
 
 	/** Helper function to serialize a Recast tile compressed data. */
-	static void SerializeCompressedTileCacheData(FArchive& Ar, unsigned char*& CompressedData, int32& CompressedDataSize);
+	static void SerializeCompressedTileCacheData(FArchive& Ar, int32 NavMeshVersion, unsigned char*& CompressedData, int32& CompressedDataSize);
 
 	/** Initialize data for pathfinding */
 	bool InitPathfinding(const FVector& UnrealStart, const FVector& UnrealEnd, 

@@ -61,7 +61,7 @@ public:
 
 private:
 #if WITH_RECAST
-	void SerializeRecastData(FArchive& Ar);
+	void SerializeRecastData(FArchive& Ar, int32 NavMeshVersion);
 #endif//WITH_RECAST
 
 private:

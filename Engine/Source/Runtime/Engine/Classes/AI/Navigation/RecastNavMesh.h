@@ -16,8 +16,9 @@
 #define NAVMESHVER_DYNAMIC_LINKS		7
 #define NAVMESHVER_64BIT				9
 #define NAVMESHVER_CLUSTER_SIMPLIFIED	10
+#define NAVMESHVER_OFFMESH_HEIGHT_BUG	11
 
-#define NAVMESHVER_LATEST				NAVMESHVER_CLUSTER_SIMPLIFIED
+#define NAVMESHVER_LATEST				NAVMESHVER_OFFMESH_HEIGHT_BUG
 #define NAVMESHVER_MIN_COMPATIBLE		NAVMESHVER_CLUSTER_SIMPLIFIED
 
 #define RECAST_MAX_SEARCH_NODES		2048
@@ -677,7 +678,7 @@ public:
 
 protected:
 	/** Serialization helper. */
-	void SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh);
+	void SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh, int32 NavMeshVersion);
 
 	TArray<FIntPoint>& GetActiveTiles(); 
 	virtual void RestrictBuildingToActiveTiles(bool InRestrictBuildingToActiveTiles) override;

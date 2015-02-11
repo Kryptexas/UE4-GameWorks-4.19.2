@@ -68,7 +68,7 @@ void URecastNavMeshDataChunk::Serialize(FArchive& Ar)
 #if WITH_RECAST
 		else if (RecastNavMeshSizeBytes > 4)
 		{
-			SerializeRecastData(Ar);
+			SerializeRecastData(Ar, NavMeshVersion);
 		}
 #endif// WITH_RECAST
 		else
@@ -80,7 +80,7 @@ void URecastNavMeshDataChunk::Serialize(FArchive& Ar)
 	else
 	{
 #if WITH_RECAST
-		SerializeRecastData(Ar);
+		SerializeRecastData(Ar, NavMeshVersion);
 #endif// WITH_RECAST
 
 		if (Ar.IsSaving())
@@ -95,7 +95,7 @@ void URecastNavMeshDataChunk::Serialize(FArchive& Ar)
 }
 
 #if WITH_RECAST
-void URecastNavMeshDataChunk::SerializeRecastData(FArchive& Ar)
+void URecastNavMeshDataChunk::SerializeRecastData(FArchive& Ar, int32 NavMeshVersion)
 {
 	int32 TileNum = Tiles.Num();
 	Ar << TileNum;
@@ -110,7 +110,7 @@ void URecastNavMeshDataChunk::SerializeRecastData(FArchive& Ar)
 
 			// Load tile data 
 			uint8* TileRawData = nullptr;
-			FPImplRecastNavMesh::SerializeRecastMeshTile(Ar, TileRawData, TileDataSize);
+			FPImplRecastNavMesh::SerializeRecastMeshTile(Ar, NavMeshVersion, TileRawData, TileDataSize);
 			
 			if (TileRawData != nullptr)
 			{
@@ -120,7 +120,7 @@ void URecastNavMeshDataChunk::SerializeRecastData(FArchive& Ar)
 				if (Ar.UE4Ver() >= VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION && 
 					Ar.UE4Ver() != VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7) // Merged package from 4.7 branch
 				{
-					FPImplRecastNavMesh::SerializeCompressedTileCacheData(Ar, TileCacheRawData, TileCacheDataSize);
+					FPImplRecastNavMesh::SerializeCompressedTileCacheData(Ar, NavMeshVersion, TileCacheRawData, TileCacheDataSize);
 				}
 				
 				// We are owner of tile raw data
@@ -137,9 +137,9 @@ void URecastNavMeshDataChunk::SerializeRecastData(FArchive& Ar)
 			{
 				// Save tile itself
 				Ar << TileData.TileDataSize;
-				FPImplRecastNavMesh::SerializeRecastMeshTile(Ar, TileData.TileRawData->RawData, TileData.TileDataSize);
+				FPImplRecastNavMesh::SerializeRecastMeshTile(Ar, NavMeshVersion, TileData.TileRawData->RawData, TileData.TileDataSize);
 				// Save compressed tile cache layer
-				FPImplRecastNavMesh::SerializeCompressedTileCacheData(Ar, TileData.TileCacheRawData->RawData, TileData.TileCacheDataSize);
+				FPImplRecastNavMesh::SerializeCompressedTileCacheData(Ar, NavMeshVersion, TileData.TileCacheRawData->RawData, TileData.TileCacheDataSize);
 			}
 		}
 	}

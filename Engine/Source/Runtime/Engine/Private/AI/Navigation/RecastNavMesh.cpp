@@ -676,7 +676,7 @@ void ARecastNavMesh::RestrictBuildingToActiveTiles(bool InRestrictBuildingToActi
 	}
 }
 
-void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh)
+void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh, int32 NavMeshVersion)
 {
 	if (!Ar.IsLoading()	&& NavMesh == NULL)
 	{
@@ -694,7 +694,7 @@ void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& 
 	
 	if (RecastNavMeshImpl)
 	{
-		RecastNavMeshImpl->Serialize(Ar);
+		RecastNavMeshImpl->Serialize(Ar, NavMeshVersion);
 	}	
 }
 
@@ -723,7 +723,7 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 		}
 		else if (RecastNavMeshSizeBytes > 4)
 		{
-			SerializeRecastNavMesh(Ar, RecastNavMeshImpl);
+			SerializeRecastNavMesh(Ar, RecastNavMeshImpl, NavMeshVersion);
 			bWantsUpdate = bForceRebuildOnLoad == true || HasValidNavmesh() == false;
 #if !(UE_BUILD_SHIPPING)
 			RequestDrawingUpdate();
@@ -739,7 +739,7 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 	}
 	else
 	{
-		SerializeRecastNavMesh(Ar, RecastNavMeshImpl);
+		SerializeRecastNavMesh(Ar, RecastNavMeshImpl, NavMeshVersion);
 
 		if (Ar.IsSaving())
 		{

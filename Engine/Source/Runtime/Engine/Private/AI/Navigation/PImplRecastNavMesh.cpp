@@ -271,7 +271,7 @@ void FPImplRecastNavMesh::ReleaseDetourNavMesh()
  * @param Ar - The archive with which to serialize.
  * @returns true if serialization was successful.
  */
-void FPImplRecastNavMesh::Serialize( FArchive& Ar )
+void FPImplRecastNavMesh::Serialize( FArchive& Ar, int32 NavMeshVersion )
 {
 	//@todo: How to handle loading nav meshes saved w/ recast when recast isn't present????
 
@@ -358,7 +358,7 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 
 				unsigned char* TileData = NULL;
 				TileDataSize = 0;
-				SerializeRecastMeshTile(Ar, TileData, TileDataSize);
+				SerializeRecastMeshTile(Ar, NavMeshVersion, TileData, TileDataSize);
 				if (TileData != NULL)
 				{
 					dtMeshHeader* const TileHeader = (dtMeshHeader*)TileData;
@@ -370,7 +370,7 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 					{
 						unsigned char* ComressedTileData = NULL;
 						int32 CompressedTileDataSize = 0;
-						SerializeCompressedTileCacheData(Ar, ComressedTileData, CompressedTileDataSize);
+						SerializeCompressedTileCacheData(Ar, NavMeshVersion, ComressedTileData, CompressedTileDataSize);
 						dtFree(ComressedTileData);
 					}
 				}
@@ -398,7 +398,7 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 				
 				unsigned char* TileData = NULL;
 				TileDataSize = 0;
-				SerializeRecastMeshTile(Ar, TileData, TileDataSize);
+				SerializeRecastMeshTile(Ar, NavMeshVersion, TileData, TileDataSize);
 
 				if (TileData != NULL)
 				{
@@ -411,7 +411,7 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 					{
 						uint8* ComressedTileData = nullptr;
 						int32 CompressedTileDataSize = 0;
-						SerializeCompressedTileCacheData(Ar, ComressedTileData, CompressedTileDataSize);
+						SerializeCompressedTileCacheData(Ar, NavMeshVersion, ComressedTileData, CompressedTileDataSize);
 						
 						if (CompressedTileDataSize > 0)
 						{
@@ -436,7 +436,7 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 			Ar << TileRef << TileDataSize;
 
 			unsigned char* TileData = Tile->data;
-			SerializeRecastMeshTile(Ar, TileData, TileDataSize);
+			SerializeRecastMeshTile(Ar, NavMeshVersion, TileData, TileDataSize);
 
 			// Serialize compressed tile cache layer only if navmesh requires it
 			{
@@ -449,13 +449,13 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 					CompressedDataSize = TileCacheLayer.DataSize;
 				}
 				
-				SerializeCompressedTileCacheData(Ar, CompressedData, CompressedDataSize);
+				SerializeCompressedTileCacheData(Ar, NavMeshVersion, CompressedData, CompressedDataSize);
 			}
 		}
 	}
 }
 
-void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& TileData, int32& TileDataSize)
+void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, int32 NavMeshVersion, unsigned char*& TileData, int32& TileDataSize)
 {
 	// The strategy here is to serialize the data blob that is passed into addTile()
 	// @see dtCreateNavMeshData() for details on how this data is laid out
@@ -639,6 +639,15 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 			Ar << Conn.rad << Conn.poly << Conn.flags << Conn.side << Conn.userId;
 		}
 
+		if (NavMeshVersion >= NAVMESHVER_OFFMESH_HEIGHT_BUG)
+		{
+			for (int32 ConnIdx = 0; ConnIdx < offMeshConCount; ++ConnIdx)
+			{
+				dtOffMeshConnection& Conn = OffMeshCons[ConnIdx];
+				Ar << Conn.height;
+			}
+		}
+
 		for (int32 SegIdx=0; SegIdx < offMeshSegConCount; ++SegIdx)
 		{
 			dtOffMeshSegmentConnection& Seg = OffMeshSegs[SegIdx];
@@ -667,7 +676,7 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 	}
 }
 
-void FPImplRecastNavMesh::SerializeCompressedTileCacheData(FArchive& Ar, unsigned char*& CompressedData, int32& CompressedDataSize)
+void FPImplRecastNavMesh::SerializeCompressedTileCacheData(FArchive& Ar, int32 NavMeshVersion, unsigned char*& CompressedData, int32& CompressedDataSize)
 {
 	Ar << CompressedDataSize;
 
