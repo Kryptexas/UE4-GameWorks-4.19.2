@@ -1338,10 +1338,10 @@ public class GUBP : BuildCommand
             AgentSharingGroup = "FeaturePacks"  + StaticGetHostPlatformSuffix(InHostPlatform);
         }
 
-		public static bool ShouldMakeFeaturePack(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj)
+		public static bool ShouldMakeFeaturePack(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj)
 		{
 			// No obvious way to store this in the project options; it's a property of non-code projects too.
-			if (InHostPlatform == UnrealTargetPlatform.Win64)
+			if (InHostPlatform == UnrealTargetPlatform.Win64 || !bp.HostPlatforms.Contains(UnrealTargetPlatform.Win64))
 			{
 				if(InGameProj.GameName == "StarterContent" || InGameProj.GameName == "MobileStarterContent" || InGameProj.GameName.StartsWith("FP_"))
 				{
@@ -1999,7 +1999,7 @@ public class GUBP : BuildCommand
                 }
 				foreach(var Proj in bp.Branch.AllProjects)
 				{
-					if(MakeFeaturePackNode.ShouldMakeFeaturePack(HostPlatform, Proj))
+					if(MakeFeaturePackNode.ShouldMakeFeaturePack(bp, HostPlatform, Proj))
 					{
 						AddDependency(MakeFeaturePackNode.StaticGetFullName(HostPlatform, Proj));
 					}
@@ -5652,7 +5652,7 @@ public class GUBP : BuildCommand
 			
 			foreach(BranchInfo.BranchUProject Project in Branch.AllProjects)
 			{
-				if(MakeFeaturePackNode.ShouldMakeFeaturePack(HostPlatform, Project))
+				if(MakeFeaturePackNode.ShouldMakeFeaturePack(this, HostPlatform, Project))
 				{
 					AddNode(new MakeFeaturePackNode(this, HostPlatform, Project));
 				}
