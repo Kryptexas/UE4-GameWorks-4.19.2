@@ -72,6 +72,7 @@
 #include "AnimationTransitionGraph.h"
 #include "BlueprintEditorModes.h"
 #include "BlueprintEditorSettings.h"
+#include "K2Node_SwitchString.h"
 
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
@@ -508,11 +509,6 @@ bool FBlueprintEditor::IsCompilingEnabled() const
 {
 	UBlueprint* Blueprint = GetBlueprintObj();
 	return Blueprint && Blueprint->BlueprintType != BPTYPE_MacroLibrary && InEditingMode();
-}
-
-bool FBlueprintEditor::IsPropertyEditingEnabled() const
-{
-	return true;
 }
 
 bool FBlueprintEditor::InDebuggingMode() const
@@ -6605,10 +6601,13 @@ void FBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyCha
 void FBlueprintEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
 {
 	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == TEXT("bHasDefaultPin") ||
-		PropertyName == TEXT("StartIndex") ||
-		PropertyName == TEXT("PinNames") ||
-		PropertyName == TEXT("bIsCaseSensitive"))
+
+	//@TODO: This code does not belong here (might not even be necessary anymore as they seem to have PostEditChangeProperty impls now)!
+	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UK2Node_Switch, bHasDefaultPin)) ||
+		(PropertyName == GET_MEMBER_NAME_CHECKED(UK2Node_SwitchInteger, StartIndex)) ||
+		(PropertyName == GET_MEMBER_NAME_CHECKED(UK2Node_SwitchString, PinNames)) ||
+		(PropertyName == GET_MEMBER_NAME_CHECKED(UK2Node_SwitchName, PinNames)) ||
+		(PropertyName == GET_MEMBER_NAME_CHECKED(UK2Node_SwitchString, bIsCaseSensitive)))
 	{
 		DocumentManager->RefreshAllTabs();
 	}
