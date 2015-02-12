@@ -156,7 +156,7 @@ class UFoliageType : public UObject
 	 * The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables.
 	 * When the entire cluster is beyond this distance, the cluster is completely culled and not rendered at all.
 	 */
-	UPROPERTY(EditAnywhere, Category = General)
+	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Culling"))
 	FInt32Interval CullDistance;
 	
 	UPROPERTY()
@@ -215,7 +215,7 @@ class UFoliageType : public UObject
 	int32 OverriddenLightMapRes;
 
 	/** Custom collision for foliage */
-	UPROPERTY(EditAnywhere, Category = General, meta = (HideObjectType = true))
+	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Collision", HideObjectType = true))
 	struct FBodyInstance BodyInstance;
 
 	/* Gets/Sets the mesh associated with this FoliageType */

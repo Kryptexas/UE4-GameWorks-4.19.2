@@ -267,6 +267,8 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	Height.Max = 262144.0f;
 	ZOffset.Min = 0.0f;
 	ZOffset.Max = 0.0f;
+	CullDistance.Min = 0;
+	CullDistance.Max = 0;
 	MinimumLayerWeight = 0.5f;
 	DisplayOrder = 0;
 	IsSelected = false;
