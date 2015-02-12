@@ -168,8 +168,6 @@ jmethodID FJavaWrapper::AndroidThunkJava_IapQueryInAppPurchases;
 jmethodID FJavaWrapper::AndroidThunkJava_IapBeginPurchase;
 jmethodID FJavaWrapper::AndroidThunkJava_IapIsAllowedToMakePurchases;
 
-ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
-
 //Game-specific crash reporter
 void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 {
