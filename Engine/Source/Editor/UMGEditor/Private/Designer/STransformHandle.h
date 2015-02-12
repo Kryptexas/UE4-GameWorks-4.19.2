@@ -70,5 +70,5 @@ protected:
 	FVector2D MouseDownPosition;
 	FMargin StartingOffsets;
 
-	clsas FScopedTransaction* ScopedTransaction;
+	class FScopedTransaction* ScopedTransaction;
 };
