@@ -192,7 +192,7 @@ void SCommentBubble::UpdateBubble()
 					[
 						SNew(SImage)
 						.Image( FEditorStyle::GetBrush( TEXT("Graph.Node.CommentBubble")) )
-						.ColorAndOpacity( ColorAndOpacity )
+						.ColorAndOpacity( this, &SCommentBubble::GetBubbleColor )
 					]
 					+SOverlay::Slot()
 					.HAlign(HAlign_Left)
@@ -332,6 +332,17 @@ FSlateColor SCommentBubble::GetToggleButtonColor() const
 {
 	const FLinearColor BubbleColor = ColorAndOpacity.Get().GetSpecifiedColor();
 	return FLinearColor( 1.f, 1.f, 1.f, OpacityValue * OpacityValue );
+}
+
+FSlateColor SCommentBubble::GetBubbleColor() const
+{
+	FLinearColor ReturnColor = ColorAndOpacity.Get().GetSpecifiedColor();
+
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnColor.A *= 0.6f;
+	}
+	return ReturnColor;
 }
 
 FSlateColor SCommentBubble::GetTextBackgroundColor() const
