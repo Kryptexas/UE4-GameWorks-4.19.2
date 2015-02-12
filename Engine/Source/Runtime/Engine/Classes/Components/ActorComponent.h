@@ -565,7 +565,6 @@ public:
 	 */
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) {};
 
-	virtual void Serialize(FArchive& Ar) override;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 private:
