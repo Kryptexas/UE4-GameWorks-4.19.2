@@ -8,7 +8,7 @@
 
 #include "Engine/Engine.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 //
 //	FLocalPlayerIterator - Iterates over local players in the game.
