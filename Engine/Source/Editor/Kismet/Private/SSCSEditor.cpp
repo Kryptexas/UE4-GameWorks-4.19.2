@@ -3133,8 +3133,6 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 				.HAlign(HAlign_Left)
 				[
 					SNew(SComponentClassCombo)
-					// Hack 4.7 Child actor components are not allowed to be added via the actor details panel 
-					.AllowChildActorComponent(EditorMode==EComponentEditorMode::BlueprintSCS)
 					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.AddComponent")))
 					.Visibility(bHideComponentClassCombo ? EVisibility::Hidden : EVisibility::Visible)
 					.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)

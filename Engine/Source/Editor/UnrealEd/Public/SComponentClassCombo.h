@@ -150,11 +150,9 @@ class UNREALED_API SComponentClassCombo : public SComboButton
 public:
 	SLATE_BEGIN_ARGS( SComponentClassCombo )
 		: _IncludeText(true)
-		, _AllowChildActorComponent(true)
 	{}
 
 		SLATE_ATTRIBUTE(bool, IncludeText)
-		SLATE_ARGUMENT(bool, AllowChildActorComponent)
 		SLATE_EVENT( FComponentClassSelected, OnComponentClassSelected )
 
 	SLATE_END_ARGS()
@@ -216,7 +214,4 @@ private:
 
 	/** Cached selection index used to skip over unselectable items */
 	int32 PrevSelectedIndex;
-
-	/** Hack 4.7 Child actor components are not allowed to be added via the actor details panel */
-	bool bAllowChildActorComponent;
 };
