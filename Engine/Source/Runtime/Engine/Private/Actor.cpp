@@ -1756,13 +1756,10 @@ float AActor::InternalTakePointDamage(float Damage, FPointDamageEvent const& Poi
 }
 
 /** Util to check if prim comp pointer is valid and still alive */
-static bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp)
-{
-	return (PrimComp != NULL) && !PrimComp->IsPendingKill();
-}
+extern bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp);
 
 /** Used to determine if it is ok to call a notification on this object */
-static bool IsActorValidToNotify(AActor* Actor)
+bool IsActorValidToNotify(AActor* Actor)
 {
 	return (Actor != NULL) && !Actor->IsPendingKill() && !Actor->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists);
 }

@@ -38,8 +38,6 @@
 #include "GameFramework/GameUserSettings.h"
 #include "GameFramework/GameMode.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
-
 ENGINE_API bool GDisallowNetworkTravel = false;
 
 /** Benchmark results to the log */

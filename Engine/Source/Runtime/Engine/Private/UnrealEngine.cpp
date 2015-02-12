@@ -99,7 +99,7 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Engine/UserInterfaceSettings.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
+DEFINE_LOG_CATEGORY(LogEngine);
 
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
