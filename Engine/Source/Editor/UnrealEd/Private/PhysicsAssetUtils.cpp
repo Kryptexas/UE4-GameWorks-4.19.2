@@ -402,7 +402,8 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 	// If the primitive is going to be too small - just use some default numbers and let the user tweak.
 	if( MinRad < MinAllowedSize )
 	{
-		BoxExtent = FVector(DefaultPrimSize, DefaultPrimSize, DefaultPrimSize);
+		// change min allowed size to be min, not DefaultPrimSize
+		BoxExtent = FVector(MinAllowedSize, MinAllowedSize, MinAllowedSize);
 	}
 
 	FVector BoneOrigin = ElementTransform.TransformPosition( BoxCenter );
