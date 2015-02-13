@@ -319,6 +319,24 @@ bool FHttpNetworkReplayStreamer::IsDataAvailable() const
 	return false;
 }
 
+bool FHttpNetworkReplayStreamer::IsLive(const FString& StreamName) const 
+{
+	// Stubbed!
+	return false;
+}
+
+void FHttpNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const
+{
+	// Stubbed!
+	Delegate.ExecuteIfBound(false);
+}
+
+void FHttpNetworkReplayStreamer::EnumerateStreams( const FOnEnumerateStreamsComplete& Delegate ) const
+{
+	// Stubbed!
+	Delegate.ExecuteIfBound(TArray<FNetworkReplayStreamInfo>());
+}
+
 void FHttpNetworkReplayStreamer::HttpStartUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
 	check( HttpState == EHttptate::StartUploading );

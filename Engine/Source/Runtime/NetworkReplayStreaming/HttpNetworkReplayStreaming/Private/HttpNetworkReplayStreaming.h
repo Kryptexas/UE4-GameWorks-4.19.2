@@ -45,6 +45,9 @@ public:
 	virtual FArchive*	GetStreamingArchive() override;
 	virtual FArchive*	GetMetadataArchive() override;
 	virtual bool		IsDataAvailable() const override;
+	virtual bool		IsLive( const FString& StreamName ) const override;
+	virtual void		DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const override;
+	virtual void		EnumerateStreams( const FOnEnumerateStreamsComplete& Delegate ) const override;
 
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();

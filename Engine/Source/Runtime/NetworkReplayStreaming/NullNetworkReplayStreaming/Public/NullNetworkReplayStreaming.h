@@ -5,25 +5,47 @@
 #include "NetworkReplayStreaming.h"
 #include "Core.h"
 #include "ModuleManager.h"
+#include "UniquePtr.h"
 
 /** Default streamer that goes straight to the HD */
 class FNullNetworkReplayStreamer : public INetworkReplayStreamer
 {
 public:
-	FNullNetworkReplayStreamer() : FileAr( NULL ), MetadataFileAr( NULL ) {}
+	FNullNetworkReplayStreamer() :
+		StreamerState( EStreamerState::Idle )
+	{}
+	
+	/** INetworkReplayStreamer implementation */
 	virtual void StartStreaming( const FString& StreamName, bool bRecord, const FString& VersionString, const FOnStreamReadyDelegate& Delegate ) override;
 	virtual void StopStreaming() override;
 	virtual FArchive* GetHeaderArchive() override;
 	virtual FArchive* GetStreamingArchive() override;
 	virtual FArchive* GetMetadataArchive() override;
 	virtual bool IsDataAvailable() const override { return true; }
+	virtual bool IsLive( const FString& StreamName ) const override;
+	virtual void DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate) const override;
+	virtual void EnumerateStreams( const FOnEnumerateStreamsComplete& Delegate ) const override;
 
 private:
 	/** Handle to the archive that will read/write network packets */
-	FArchive* FileAr;
+	TUniquePtr<FArchive> FileAr;
 
 	/* Handle to the archive that will read/write metadata */
-	FArchive* MetadataFileAr;
+	TUniquePtr<FArchive> MetadataFileAr;
+
+	/** EStreamerState - Overall state of the streamer */
+	enum class EStreamerState
+	{
+		Idle,					// The streamer is idle. Either we haven't started streaming yet, or we are done
+		Recording,				// We are in the process of recording a replay to disk
+		Playback,				// We are in the process of playing a replay from disk
+	};
+
+	/** Overall state of the streamer */
+	EStreamerState StreamerState;
+
+	/** Remember the name of the current stream, if any. */
+	FString CurrentStreamName;
 };
 
 class FNullNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory
