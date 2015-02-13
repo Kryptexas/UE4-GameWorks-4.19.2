@@ -3004,7 +3004,7 @@ void ULinkerLoad::Preload( UObject* Object )
 #else  // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 							// just because DeferredCDOIndex wasn't set (in cooked/PIE scenarios) doesn't mean that we don't need it 
 							// (FinalizeBlueprint() relies on it being set), so here we make sure we flag the CDO so it gets resolved
-							if ((DeferredCDOIndex == INDEX_NONE))
+							if (DeferredCDOIndex == INDEX_NONE)
 							{
 								DeferredCDOIndex = FindCDOExportIndex(ObjectAsClass);
 							}
