@@ -393,10 +393,16 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 
 	FVector BoxCenter(0,0,0), BoxExtent(0,0,0);
 
+	FBox TransformedBox = BoneBox;
 	if( BoneBox.IsValid )
+	{
+		// make sure to apply scale to the box size
+		FMatrix BoneMatrix = skelMesh->GetComposedRefPoseMatrix(BoneIndex);
+		TransformedBox = BoneBox.TransformBy(FTransform(BoneMatrix));
 		BoneBox.GetCenterAndExtents(BoxCenter, BoxExtent);
+	}
 
-	float MinRad = BoxExtent.GetMin();
+	float MinRad = TransformedBox.GetExtent().GetMin();
 	float MinAllowedSize = MinPrimSize;
 
 	// If the primitive is going to be too small - just use some default numbers and let the user tweak.

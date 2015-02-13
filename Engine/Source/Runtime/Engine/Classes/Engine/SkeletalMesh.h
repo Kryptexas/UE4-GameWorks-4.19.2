@@ -762,6 +762,7 @@ public:
 	 *	Get the component orientation of a bone or socket. Transforms by parent bones.
 	 */
 	ENGINE_API FMatrix GetComposedRefPoseMatrix( FName InBoneName ) const;
+	ENGINE_API FMatrix GetComposedRefPoseMatrix( int32 InBoneIndex ) const;
 
 	/** Allocate and initialise bone mirroring table for this skeletal mesh. Default is source = destination for each bone. */
 	void InitBoneMirrorInfo();

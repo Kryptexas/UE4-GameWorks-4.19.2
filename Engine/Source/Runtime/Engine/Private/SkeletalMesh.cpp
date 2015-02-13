@@ -2893,36 +2893,41 @@ FMatrix USkeletalMesh::GetComposedRefPoseMatrix( FName InBoneName ) const
 	if ( InBoneName != NAME_None )
 	{
 		int32 BoneIndex = RefSkeleton.FindBoneIndex(InBoneName);
-
-		if ( BoneIndex != INDEX_NONE )
+		if (BoneIndex != INDEX_NONE)
 		{
-			while ( BoneIndex != INDEX_NONE )
-			{
-				LocalPose = LocalPose * GetRefPoseMatrix( BoneIndex );
-				BoneIndex = RefSkeleton.GetParentIndex( BoneIndex );
-			}
+			return GetComposedRefPoseMatrix(BoneIndex);
 		}
 		else
 		{
-			USkeletalMeshSocket const* Socket = FindSocket( InBoneName );
+			USkeletalMeshSocket const* Socket = FindSocket(InBoneName);
 
-			if ( Socket != NULL )
+			if(Socket != NULL)
 			{
-				BoneIndex = RefSkeleton.FindBoneIndex( Socket->BoneName );
+				BoneIndex = RefSkeleton.FindBoneIndex(Socket->BoneName);
 
-				if ( BoneIndex != INDEX_NONE )
+				if(BoneIndex != INDEX_NONE)
 				{
-					const FRotationTranslationMatrix SocketMatrix( Socket->RelativeRotation, Socket->RelativeLocation );
-					LocalPose = SocketMatrix * GetRefPoseMatrix( BoneIndex );
-					BoneIndex = RefSkeleton.GetParentIndex( BoneIndex );
-
-					while ( BoneIndex != INDEX_NONE )
-					{
-						LocalPose = LocalPose * GetRefPoseMatrix( BoneIndex );
-						BoneIndex = RefSkeleton.GetParentIndex( BoneIndex );
-					}
+					const FRotationTranslationMatrix SocketMatrix(Socket->RelativeRotation, Socket->RelativeLocation);
+					LocalPose = SocketMatrix * GetComposedRefPoseMatrix(BoneIndex);
 				}
 			}
+		}
+	}
+
+	return LocalPose;
+}
+
+FMatrix USkeletalMesh::GetComposedRefPoseMatrix(int32 InBoneIndex) const
+{
+	FMatrix LocalPose(FMatrix::Identity);
+	int32 BoneIndex = InBoneIndex;
+
+	if(BoneIndex != INDEX_NONE)
+	{
+		while(BoneIndex != INDEX_NONE)
+		{
+			LocalPose = LocalPose * GetRefPoseMatrix(BoneIndex);
+			BoneIndex = RefSkeleton.GetParentIndex(BoneIndex);
 		}
 	}
 
