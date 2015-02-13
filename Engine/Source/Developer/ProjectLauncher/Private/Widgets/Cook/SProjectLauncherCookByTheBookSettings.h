@@ -73,6 +73,10 @@ private:
 	/** Handles determining the checked state of the 'Incremental' check box. */
 	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
 
+	void HandleCompressedCheckBoxCheckStateChanged( ECheckBoxState NewState );
+
+	ECheckBoxState HandleCompressedCheckBoxIsChecked( ) const;
+	
 	/** Handles generating a row widget in the map list view. */
 	TSharedRef<ITableRow> HandleMapListViewGenerateRow( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable );
 

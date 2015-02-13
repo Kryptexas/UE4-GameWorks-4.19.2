@@ -491,6 +491,11 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -clean");
 	}
 
+	if ( PackagingSettings->bCompressed )
+	{
+		OptionalParams += TEXT(" -compressed");
+	}
+
 	if ( PackagingSettings->bCookAll )
 	{
 		OptionalParams += TEXT(" -CookAll");

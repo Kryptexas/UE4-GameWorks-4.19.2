@@ -333,20 +333,36 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 				SNew(SVerticalBox)
 
 				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					// incremental cook check box
-					SNew(SCheckBox)
-					.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxIsChecked)
-					.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxCheckStateChanged)
-					.Padding(FMargin(4.0f, 0.0f))
-					.ToolTipText(LOCTEXT("IncrementalCheckBoxTooltip", "If checked, only modified content will be cooked, resulting in much faster cooking times. It is recommended to enable this option whenever possible."))
-					.Content()
+					.AutoHeight()
 					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("IncrementalCheckBoxText", "Only cook modified content"))
+						// incremental cook check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxCheckStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("IncrementalCheckBoxTooltip", "If checked, only modified content will be cooked, resulting in much faster cooking times. It is recommended to enable this option whenever possible."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("IncrementalCheckBoxText", "Only cook modified content"))
+						]
 					]
-				]
+
+				+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						// incremental cook check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleCompressedCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleCompressedCheckBoxCheckStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("CompressedCheckboxToolTip", "If checked, content will be generated compressed.  These will be smaller but potentially take longer to load"))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("CompressedCheckBoxText", "Compress content"))
+						]
+					]
 
 				+ SVerticalBox::Slot()
 					.AutoHeight()
@@ -873,7 +889,36 @@ ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxI
 
 	if (SelectedProfile.IsValid())
 	{
-		if (SelectedProfile->IsCookingIncrementally())
+		if (SelectedProfile->IsCompressed())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+
+
+void SProjectLauncherCookByTheBookSettings::HandleCompressedCheckBoxCheckStateChanged( ECheckBoxState NewState )
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetCompressed(NewState == ECheckBoxState::Checked);
+	}
+}
+
+
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleCompressedCheckBoxIsChecked( ) const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsCompressed())
 		{
 			return ECheckBoxState::Checked;
 		}

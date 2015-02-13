@@ -179,7 +179,12 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -dlcname=" + Params.DLCName;
                 }
-                
+                // if we are not going to pak but we specified compressed then compress in the cooker ;)
+                // otherwise compress the pak files
+                if (!Params.Pak && !Params.SkipPak && Params.Compressed)
+                {
+                    CommandletParams += " -compressed";
+                }
                 if (Params.HasAdditionalCookerOptions)
                 {
                     string FormatedAdditionalCookerParams = Params.AdditionalCookerOptions.TrimStart(new char[] { '\"', ' ' }).TrimEnd(new char[] { '\"', ' ' });

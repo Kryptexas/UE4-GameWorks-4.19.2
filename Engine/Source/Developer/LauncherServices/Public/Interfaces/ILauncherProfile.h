@@ -579,6 +579,14 @@ public:
 	virtual bool IsCookingIncrementally( ) const = 0;
 
 	/**
+	 * Checks if compression is enabled
+	 *
+	 * @return true if compression is enabled
+	 * @see SetCompressed
+	 */
+	virtual bool IsCompressed( ) const = 0;
+
+	/**
 	 * Checks whether unversioned cooking is enabled.
 	 *
 	 * @return true if cooking unversioned, false otherwise.
@@ -824,6 +832,14 @@ public:
 	 * @see IsCookingIncrementally
 	 */
 	virtual void SetIncrementalCooking( bool Incremental ) = 0;
+
+	/**
+	 * Sets Compression.
+	 *
+	 * @param Enable compression
+	 * @see IsCompressed
+	 */
+	virtual void SetCompressed( bool Enable ) = 0;
 
 	/**
 	 * Sets incremental deploying.

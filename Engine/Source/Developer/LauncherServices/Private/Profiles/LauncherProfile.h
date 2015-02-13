@@ -414,6 +414,11 @@ public:
 		return false;
 	}
 
+	virtual bool IsCompressed() const override
+	{
+		return Compressed;
+	}
+
 	virtual bool IsCookingUnversioned( ) const override
 	{
 		return CookUnversioned;
@@ -604,6 +609,7 @@ public:
 		CookOptions = FString();
 		CookIncremental = false;
 		CookUnversioned = true;
+		Compressed = false;
 		CookedCultures.Reset();
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
 		CookedMaps.Reset();
@@ -775,6 +781,16 @@ public:
 		if (CookIncremental != Incremental)
 		{
 			CookIncremental = Incremental;
+
+			Validate();
+		}
+	}
+
+	virtual void SetCompressed( bool Enabled ) override
+	{
+		if (Compressed != Enabled)
+		{
+			Compressed = Enabled;
 
 			Validate();
 		}
@@ -1124,6 +1140,9 @@ private:
 
 	// Holds a flag indicating whether UAT should be built
 	bool BuildUAT;
+
+	// Generate compressed content
+	bool Compressed;
 
 	// Holds a flag indicating whether only modified content should be cooked.
 	bool CookIncremental;

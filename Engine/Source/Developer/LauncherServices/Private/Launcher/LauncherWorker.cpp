@@ -424,6 +424,11 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		UATCommand += TEXT(" -iterativecooking");
 	}
 
+	if ( InProfile->IsCompressed() )
+	{
+		UATCommand += TEXT(" -compressed");
+	}
+
 	// stage/package/deploy
 	if (InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy)
 	{

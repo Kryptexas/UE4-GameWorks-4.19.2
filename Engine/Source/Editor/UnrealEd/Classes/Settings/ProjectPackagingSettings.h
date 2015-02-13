@@ -119,6 +119,13 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Cook only maps (this only affects cookall)"))
 	bool bCookMapsOnly;
+
+
+	/**
+	 * Create compressed cooked packages (decreased deployment size)
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Create compressed cooked packages"))
+	bool bCompressed;
 	
 	/**
 	 * List of maps to include when no other map list is specified on commandline
