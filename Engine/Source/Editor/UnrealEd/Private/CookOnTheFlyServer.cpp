@@ -1189,6 +1189,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			{
 				// reque the current task and process it next tick
 				CookRequests.EnqueueUnique(ToBuild, true);
+				Result |= COSR_WaitingOnCache;
 				break; // break out of the package tick loop
 			}
 		}
@@ -2337,6 +2338,12 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FString>& InOutFilesToCook, cons
 { 
 	if (!FPackageName::IsScriptPackage(InFilename))
 	{
+		/*if ( !InOutFilesToCook.Contains(InFilename) )
+		{
+			int Index = FMath::RandRange(0,InOutFilesToCook.Num()-1);
+			InOutFilesToCook.Insert(InFilename, Index );
+		}*/
+
 		InOutFilesToCook.AddUnique(InFilename);
 	}
 }

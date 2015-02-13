@@ -678,6 +678,7 @@ public:
 		COSR_CookedPackage		= 0x00000002,
 		COSR_ErrorLoadingPackage= 0x00000004,
 		COSR_RequiresGC			= 0x00000008,
+		COSR_WaitingOnCache		= 0x00000010,
 	};
 
 

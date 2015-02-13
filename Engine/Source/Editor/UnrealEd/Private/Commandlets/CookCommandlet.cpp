@@ -24,6 +24,7 @@
 #include "PhysicsPublic.h"
 #include "CookerSettings.h"
 #include "ShaderCompiler.h"
+#include "MemoryMisc.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
@@ -134,49 +135,60 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 		static const float CookOnTheSideTimeSlice = 10.0f;
 		TickResults = CookOnTheFlyServer->TickCookOnTheSide(CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC);
 
-		bCookedAMapSinceLastGC |= TickResults & UCookOnTheFlyServer::COSR_CookedMap;
-		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
+		bCookedAMapSinceLastGC |= ((TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0);
+		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage | UCookOnTheFlyServer::COSR_WaitingOnCache))
 		{
 			LastCookActionTime = FPlatformTime::Seconds();
 		}
 
+		if (NonMapPackageCountSinceLastGC > 0)
+		{
+			if ( NonMapPackageCountSinceLastGC > PackagesPerGC)
+			{
+				UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has exceeded max number of non map packages since last gc"));
+				bShouldGC |= true;
+			}
+
+			if (((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC))
+			{
+				UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has been idle for long time gc"));
+				bShouldGC |= true;
+			}
+		}
+
+		if ( bCookedAMapSinceLastGC )
+		{
+			UE_LOG(LogCookCommandlet, Display, TEXT("Cooker cooked a map since last gc collecting garbage"));
+			bShouldGC |= true;
+		}
+
+		if ( !bShouldGC && HasExceededMaxMemory() )
+		{
+			UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has exceeded max memory usage collecting garbage"));
+			bShouldGC |= true;
+		}
+
+		// we don't want to gc if we are waiting on cache of objects. this could clean up objects which we will need to reload next frame
+		if (bShouldGC && ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache)==0) )
+		{
+			bShouldGC = false;
+			bCookedAMapSinceLastGC = false;
+			NonMapPackageCountSinceLastGC = 0;
+
+			UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
+
+			CollectGarbage( RF_Native );
+		}
+
+
+		// force at least a tick shader compilation even if we are requesting stuff
+		CookOnTheFlyServer->TickRecompileShaderRequests();
+		GShaderCompilingManager->ProcessAsyncResults(true, false);
+
 
 		while ( (CookOnTheFlyServer->HasCookRequests() == false) && !GIsRequestingExit)
 		{
-				
-			{
-				if (NonMapPackageCountSinceLastGC > 0)
-				{
-					// We should GC if we have packages to collect and we've been idle for some time.
-					bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
-						((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
-				}
-
-				// delay the gc until we process some unsolicited packages
-				if ( bCookedAMapSinceLastGC )
-				{
-					UE_LOG( LogCookCommandlet, Display, TEXT("Delaying map gc because we have unsolicited cook requests") );
-					bShouldGC |= bCookedAMapSinceLastGC;
-				}
-
-				if (bShouldGC)
-				{
-					bShouldGC = false;
-					bCookedAMapSinceLastGC = false;
-					NonMapPackageCountSinceLastGC = 0;
-
-					UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
-
-					CollectGarbage( RF_Native );
-				}
-				else
-				{
-					CookOnTheFlyServer->TickRecompileShaderRequests();
-
-					FPlatformProcess::Sleep(0.0f);
-				}
-			}
-
+			CookOnTheFlyServer->TickRecompileShaderRequests();
 
 			// Shaders need to be updated
 			GShaderCompilingManager->ProcessAsyncResults(true, false);
@@ -509,6 +521,8 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	bCompressed = Switches.Contains(TEXT("COMPRESSED"));
 	bIterativeCooking = Switches.Contains(TEXT("ITERATE"));
 	bSkipEditorContent = Switches.Contains(TEXT("SKIPEDITORCONTENT")); // This won't save out any packages in Engine/COntent/Editor*
+
+	MaxMemoryAllowance = 8LL * 1024LL * 1024LL * 1024LL;
 
 	if (bLeakTest)
 	{
@@ -1213,7 +1227,11 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 
 		bShouldGC |= (TickResults & UCookOnTheFlyServer::COSR_RequiresGC)!=0;
 
-		if (bShouldGC)
+		bShouldGC |= HasExceededMaxMemory();
+
+
+		// don't clean up if we are waiting on cache of cooked data
+		if (bShouldGC && ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache) == 0) )
 		{
 			bShouldGC = false;
 			NonMapPackageCountSinceLastGC = 0;
@@ -1235,11 +1253,20 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	}
 
 	return true;
-
-
-
 }
 
+bool UCookCommandlet::HasExceededMaxMemory() const
+{
+	const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
+
+	uint64 UsedMemory = MemStats.UsedPhysical + MemStats.UsedVirtual;
+	if ( (UsedMemory >= MaxMemoryAllowance) && 
+		(MaxMemoryAllowance > 0u) )
+	{
+		return true;
+	}
+	return false;
+}
 
 void UCookCommandlet::ProcessDeferredCommands()
 {

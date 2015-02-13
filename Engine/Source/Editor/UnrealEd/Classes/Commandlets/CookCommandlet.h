@@ -34,6 +34,8 @@ class UCookCommandlet
 	bool bUnversioned;
 	/** Generate manifests for building streaming install packages */
 	bool bGenerateStreamingInstallManifests;
+	/** Max memory the cooker should use before forcing a gc */
+	uint64 MaxMemoryAllowance;
 	/** All commandline tokens */
 	TArray<FString> Tokens;
 	/** All commandline switches */
@@ -115,6 +117,9 @@ private:
 	TSet<FWeakObjectPtr> LastGCItems;
 
 	void MaybeMarkPackageAsAlreadyLoaded(UPackage *Package);
+
+	/** See if the cooker has exceeded max memory allowance in this case the cooker should force a garbage collection */
+	bool HasExceededMaxMemory() const;
 
 	/** Gets the output directory respecting any command line overrides */
 	FString GetOutputDirectoryOverride() const;
