@@ -624,6 +624,8 @@ void UChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
 			*Bunch << MustBeMappedGuidsInLastBunch[i];
 		}
 
+		NETWORK_PROFILER(GNetworkProfiler.TrackMustBeMappedGuids(NumMustBeMappedGUIDs, Bunch->GetNumBits()));
+
 		// Append the original bunch data at the end
 		Bunch->SerializeBits( TempBunch.GetData(), TempBunch.GetNumBits() );
 
@@ -636,6 +638,15 @@ void UChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
 void UActorChannel::AppendExportBunches( TArray<FOutBunch *>& OutExportBunches )
 {
 	Super::AppendExportBunches( OutExportBunches );
+
+	// Let the profiler know about exported GUID bunches
+	for (const FOutBunch* ExportBunch : QueuedExportBunches )
+	{
+		if (ExportBunch != nullptr)
+		{
+			NETWORK_PROFILER(GNetworkProfiler.TrackExportBunch(ExportBunch->GetNumBits()));
+		}
+	}
 
 	if ( QueuedExportBunches.Num() )
 	{
@@ -2221,6 +2232,8 @@ void UActorChannel::StartBecomingDormant()
 
 void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 {
+	const int NumStartingBits = Bunch.GetNumBits();
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (CVarDoReplicationContextString->GetInt() > 0)
 	{
@@ -2235,6 +2248,7 @@ void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 
 	if ( IsActor )
 	{
+		NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits));
 		return;
 	}
 
@@ -2263,11 +2277,15 @@ void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 		Connection->PackageMap->ClearDebugContextString();
 	}
 #endif
+
+	NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits));
 }
 
 void UActorChannel::BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete )
 {
 	check( Connection->Driver->IsServer() );
+
+	const int NumStartingBits = Bunch.GetNumBits();
 
 	// Send a 0 bit to signify we are dealing with sub-objects
 	Bunch.WriteBit( 0 );
@@ -2285,11 +2303,17 @@ void UActorChannel::BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNet
 	FNetworkGUID InvalidNetGUID;
 	InvalidNetGUID.Reset();
 	Bunch << InvalidNetGUID;
+
+	// Since the subobject has been deleted, we don't have a valid object to pass to the profiler.
+	NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(nullptr, Bunch.GetNumBits() - NumStartingBits));
 }
 
 void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCache* ClassCache )
 {
 	check(Obj);
+
+	const int NumStartingBits = Bunch.GetNumBits();
+
 	if (!ClassCache)
 	{
 		ClassCache = Connection->Driver->NetCache->GetClassNetCache( Obj->GetClass() );
@@ -2297,6 +2321,8 @@ void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCa
 
 	// Write max int to signify done
 	Bunch.WriteIntWrapped(ClassCache->GetMaxIndex(), ClassCache->GetMaxIndex()+1);
+
+	NETWORK_PROFILER(GNetworkProfiler.TrackEndContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits));
 }
 
 UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDeleted)

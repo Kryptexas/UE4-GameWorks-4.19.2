@@ -64,6 +64,14 @@
 			System.Windows.Forms.DataVisualization.Charting.Series series30 = new System.Windows.Forms.DataVisualization.Charting.Series();
 			System.Windows.Forms.DataVisualization.Charting.Series series31 = new System.Windows.Forms.DataVisualization.Charting.Series();
 			System.Windows.Forms.DataVisualization.Charting.Series series32 = new System.Windows.Forms.DataVisualization.Charting.Series();
+			System.Windows.Forms.DataVisualization.Charting.Series series33 = new System.Windows.Forms.DataVisualization.Charting.Series();
+			System.Windows.Forms.DataVisualization.Charting.Series series34 = new System.Windows.Forms.DataVisualization.Charting.Series();
+			System.Windows.Forms.DataVisualization.Charting.Series series35 = new System.Windows.Forms.DataVisualization.Charting.Series();
+			System.Windows.Forms.DataVisualization.Charting.Series series36 = new System.Windows.Forms.DataVisualization.Charting.Series();
+			System.Windows.Forms.DataVisualization.Charting.Series series37 = new System.Windows.Forms.DataVisualization.Charting.Series();
+			System.Windows.Forms.DataVisualization.Charting.Series series38 = new System.Windows.Forms.DataVisualization.Charting.Series();
+			System.Windows.Forms.DataVisualization.Charting.Series series39 = new System.Windows.Forms.DataVisualization.Charting.Series();
+			System.Windows.Forms.DataVisualization.Charting.Series series40 = new System.Windows.Forms.DataVisualization.Charting.Series();
 			this.OpenButton = new System.Windows.Forms.Button();
 			this.NetworkChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
 			this.ChartListBox = new System.Windows.Forms.CheckedListBox();
@@ -78,6 +86,8 @@
 			this.label3 = new System.Windows.Forms.Label();
 			this.tabControl1 = new System.Windows.Forms.TabControl();
 			this.tabPage1 = new System.Windows.Forms.TabPage();
+			this.StackedBunchSizeRadioButton = new System.Windows.Forms.RadioButton();
+			this.LineViewRadioButton = new System.Windows.Forms.RadioButton();
 			this.ActorPerformanceView = new System.Windows.Forms.TreeView();
 			this.panel1 = new System.Windows.Forms.Panel();
 			this.tabPage3 = new System.Windows.Forms.TabPage();
@@ -201,113 +211,153 @@
 			series11.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series11.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series11.Legend = "DefaultLegend";
-			series11.Name = "SendAckCount";
+			series11.Name = "ExportBunchCount";
 			series12.ChartArea = "DefaultChartArea";
 			series12.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series12.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series12.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series12.Legend = "DefaultLegend";
-			series12.Name = "SendAckCountSec";
+			series12.Name = "ExportBunchSize";
 			series13.ChartArea = "DefaultChartArea";
 			series13.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series13.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series13.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series13.Legend = "DefaultLegend";
-			series13.Name = "SendAckSize";
+			series13.Name = "MustBeMappedGuidsCount";
 			series14.ChartArea = "DefaultChartArea";
 			series14.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series14.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series14.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series14.Legend = "DefaultLegend";
-			series14.Name = "SendAckSizeSec";
+			series14.Name = "MustBeMappedGuidsSize";
 			series15.ChartArea = "DefaultChartArea";
 			series15.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series15.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series15.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series15.Legend = "DefaultLegend";
-			series15.Name = "SendBunchCount";
+			series15.Name = "SendAckCount";
 			series16.ChartArea = "DefaultChartArea";
 			series16.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series16.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series16.Legend = "DefaultLegend";
-			series16.Name = "SendBunchCountSec";
+			series16.Name = "SendAckCountSec";
 			series17.ChartArea = "DefaultChartArea";
 			series17.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series17.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series17.Legend = "DefaultLegend";
-			series17.Name = "SendBunchSize";
-			series17.YValuesPerPoint = 2;
+			series17.Name = "SendAckSize";
 			series18.ChartArea = "DefaultChartArea";
 			series18.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series18.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series18.Legend = "DefaultLegend";
-			series18.Name = "SendBunchSizeSec";
+			series18.Name = "SendAckSizeSec";
 			series19.ChartArea = "DefaultChartArea";
 			series19.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series19.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series19.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series19.Legend = "DefaultLegend";
-			series19.Name = "GameSocketSendCount";
+			series19.Name = "ContentBlockHeaderSize";
 			series20.ChartArea = "DefaultChartArea";
 			series20.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series20.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series20.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series20.Legend = "DefaultLegend";
-			series20.Name = "GameSocketSendCountSec";
+			series20.Name = "ContentBlockFooterSize";
 			series21.ChartArea = "DefaultChartArea";
 			series21.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series21.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series21.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series21.Legend = "DefaultLegend";
-			series21.Name = "GameSocketSendSize";
+			series21.Name = "PropertyHandleSize";
 			series22.ChartArea = "DefaultChartArea";
 			series22.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series22.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series22.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series22.Legend = "DefaultLegend";
-			series22.Name = "GameSocketSendSizeSec";
+			series22.Name = "SendBunchHeaderSize";
 			series23.ChartArea = "DefaultChartArea";
 			series23.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series23.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			series23.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series23.Legend = "DefaultLegend";
-			series23.Name = "GameSocketSendSizeAvgSec";
+			series23.Name = "SendBunchCount";
 			series24.ChartArea = "DefaultChartArea";
 			series24.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series24.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series24.Legend = "DefaultLegend";
-			series24.Name = "MiscSocketSendCount";
+			series24.Name = "SendBunchCountSec";
 			series25.ChartArea = "DefaultChartArea";
 			series25.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series25.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series25.Legend = "DefaultLegend";
-			series25.Name = "MiscSocketSendCountSec";
+			series25.Name = "SendBunchSize";
+			series25.YValuesPerPoint = 2;
 			series26.ChartArea = "DefaultChartArea";
 			series26.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series26.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series26.Legend = "DefaultLegend";
-			series26.Name = "MiscSocketSendSize";
+			series26.Name = "SendBunchSizeSec";
 			series27.ChartArea = "DefaultChartArea";
 			series27.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series27.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series27.Legend = "DefaultLegend";
-			series27.Name = "MiscSocketSendSizeSec";
+			series27.Name = "GameSocketSendCount";
 			series28.ChartArea = "DefaultChartArea";
-			series28.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Point;
-			series28.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			series28.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+			series28.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series28.Legend = "DefaultLegend";
-			series28.Name = "Events";
+			series28.Name = "GameSocketSendCountSec";
 			series29.ChartArea = "DefaultChartArea";
 			series29.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series29.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series29.Legend = "DefaultLegend";
-			series29.Name = "OutgoingBandwidthSize";
+			series29.Name = "GameSocketSendSize";
 			series30.ChartArea = "DefaultChartArea";
 			series30.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series30.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series30.Legend = "DefaultLegend";
-			series30.Name = "OutgoingBandwidthSizeSec";
+			series30.Name = "GameSocketSendSizeSec";
 			series31.ChartArea = "DefaultChartArea";
 			series31.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
-			series31.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series31.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			series31.Legend = "DefaultLegend";
-			series31.Name = "OutgoingBandwidthSizeAvgSec";
+			series31.Name = "GameSocketSendSizeAvgSec";
 			series32.ChartArea = "DefaultChartArea";
 			series32.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
 			series32.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			series32.Legend = "DefaultLegend";
-			series32.Name = "ActorReplicateTimeInMS";
+			series32.Name = "MiscSocketSendCount";
+			series33.ChartArea = "DefaultChartArea";
+			series33.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+			series33.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series33.Legend = "DefaultLegend";
+			series33.Name = "MiscSocketSendCountSec";
+			series34.ChartArea = "DefaultChartArea";
+			series34.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+			series34.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series34.Legend = "DefaultLegend";
+			series34.Name = "MiscSocketSendSize";
+			series35.ChartArea = "DefaultChartArea";
+			series35.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+			series35.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series35.Legend = "DefaultLegend";
+			series35.Name = "MiscSocketSendSizeSec";
+			series36.ChartArea = "DefaultChartArea";
+			series36.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Point;
+			series36.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			series36.Legend = "DefaultLegend";
+			series36.Name = "Events";
+			series37.ChartArea = "DefaultChartArea";
+			series37.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+			series37.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series37.Legend = "DefaultLegend";
+			series37.Name = "OutgoingBandwidthSize";
+			series38.ChartArea = "DefaultChartArea";
+			series38.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+			series38.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series38.Legend = "DefaultLegend";
+			series38.Name = "OutgoingBandwidthSizeSec";
+			series39.ChartArea = "DefaultChartArea";
+			series39.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+			series39.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series39.Legend = "DefaultLegend";
+			series39.Name = "OutgoingBandwidthSizeAvgSec";
+			series40.ChartArea = "DefaultChartArea";
+			series40.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+			series40.Font = new System.Drawing.Font("Tahoma", 8.25F);
+			series40.Legend = "DefaultLegend";
+			series40.Name = "ActorReplicateTimeInMS";
 			this.NetworkChart.Series.Add(series1);
 			this.NetworkChart.Series.Add(series2);
 			this.NetworkChart.Series.Add(series3);
@@ -340,6 +390,14 @@
 			this.NetworkChart.Series.Add(series30);
 			this.NetworkChart.Series.Add(series31);
 			this.NetworkChart.Series.Add(series32);
+			this.NetworkChart.Series.Add(series33);
+			this.NetworkChart.Series.Add(series34);
+			this.NetworkChart.Series.Add(series35);
+			this.NetworkChart.Series.Add(series36);
+			this.NetworkChart.Series.Add(series37);
+			this.NetworkChart.Series.Add(series38);
+			this.NetworkChart.Series.Add(series39);
+			this.NetworkChart.Series.Add(series40);
 			this.NetworkChart.Size = new System.Drawing.Size(998, 418);
 			this.NetworkChart.TabIndex = 2;
 			this.NetworkChart.Text = "chart1";
@@ -364,10 +422,18 @@
             "RPC count / sec",
             "RPC size (bytes)",
             "RPC size (bytes / sec)",
+            "ExportBunch count",
+            "ExportBunch size (bytes)",
+            "MustBeMappedGuids count",
+            "MustBeMappedGuids size (bytes)",
             "SendAck count",
             "SendAck count / sec",
             "SendAck size (bytes)",
             "SendAck size (bytes / sec)",
+            "Content block header size",
+            "Content block footer size",
+            "Property handle size",
+            "SendBunch header size (bytes)",
             "SendBunch count",
             "SendBunch count / sec",
             "SendBunch size (bytes)",
@@ -386,9 +452,9 @@
             "Outgoing bandwidth (bytes/ sec)",
             "Outgoing bandwidth (avg/ sec)",
             "Actor replication time (ms)"});
-			this.ChartListBox.Location = new System.Drawing.Point(1019, 6);
+			this.ChartListBox.Location = new System.Drawing.Point(1019, 36);
 			this.ChartListBox.Name = "ChartListBox";
-			this.ChartListBox.Size = new System.Drawing.Size(198, 420);
+			this.ChartListBox.Size = new System.Drawing.Size(198, 390);
 			this.ChartListBox.TabIndex = 3;
 			this.ChartListBox.SelectedValueChanged += new System.EventHandler(this.ChartListBox_SelectedValueChanged);
 			// 
@@ -502,6 +568,8 @@
 			// 
 			// tabPage1
 			// 
+			this.tabPage1.Controls.Add(this.StackedBunchSizeRadioButton);
+			this.tabPage1.Controls.Add(this.LineViewRadioButton);
 			this.tabPage1.Controls.Add(this.ActorPerformanceView);
 			this.tabPage1.Controls.Add(this.panel1);
 			this.tabPage1.Controls.Add(this.NetworkChart);
@@ -515,6 +583,30 @@
 			this.tabPage1.TabIndex = 0;
 			this.tabPage1.Text = "Chart, Filters, Details";
 			this.tabPage1.UseVisualStyleBackColor = true;
+			// 
+			// StackedBunchSizeRadioButton
+			// 
+			this.StackedBunchSizeRadioButton.AutoSize = true;
+			this.StackedBunchSizeRadioButton.Location = new System.Drawing.Point(1096, 7);
+			this.StackedBunchSizeRadioButton.Name = "StackedBunchSizeRadioButton";
+			this.StackedBunchSizeRadioButton.Size = new System.Drawing.Size(119, 17);
+			this.StackedBunchSizeRadioButton.TabIndex = 18;
+			this.StackedBunchSizeRadioButton.Text = "Stacked bunch size";
+			this.StackedBunchSizeRadioButton.UseVisualStyleBackColor = true;
+			this.StackedBunchSizeRadioButton.CheckedChanged += new System.EventHandler(this.StackedBunchSizeRadioButton_CheckChanged);
+			// 
+			// LineViewRadioButton
+			// 
+			this.LineViewRadioButton.AutoSize = true;
+			this.LineViewRadioButton.Checked = true;
+			this.LineViewRadioButton.Location = new System.Drawing.Point(1020, 7);
+			this.LineViewRadioButton.Name = "LineViewRadioButton";
+			this.LineViewRadioButton.Size = new System.Drawing.Size(70, 17);
+			this.LineViewRadioButton.TabIndex = 17;
+			this.LineViewRadioButton.TabStop = true;
+			this.LineViewRadioButton.Text = "Line view";
+			this.LineViewRadioButton.UseVisualStyleBackColor = true;
+			this.LineViewRadioButton.CheckedChanged += new System.EventHandler(this.LineViewRadioButton_CheckChanged);
 			// 
 			// ActorPerformanceView
 			// 
@@ -710,6 +802,7 @@
 			((System.ComponentModel.ISupportInitialize)(this.NetworkChart)).EndInit();
 			this.tabControl1.ResumeLayout(false);
 			this.tabPage1.ResumeLayout(false);
+			this.tabPage1.PerformLayout();
 			this.panel1.ResumeLayout(false);
 			this.panel1.PerformLayout();
 			this.tabPage3.ResumeLayout(false);
@@ -758,6 +851,8 @@
 		private System.Windows.Forms.ColumnHeader columnHeader9;
 		private System.Windows.Forms.ColumnHeader columnHeader10;
 		private System.Windows.Forms.TreeView ActorPerformanceView;
+		private System.Windows.Forms.RadioButton StackedBunchSizeRadioButton;
+		private System.Windows.Forms.RadioButton LineViewRadioButton;
 	}
 }
 

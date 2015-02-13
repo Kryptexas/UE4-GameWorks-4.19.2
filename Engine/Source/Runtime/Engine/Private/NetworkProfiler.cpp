@@ -26,7 +26,9 @@ FNetworkProfiler GNetworkProfiler;
 /** Magic value, determining that file is a network profiler file.				*/
 #define NETWORK_PROFILER_MAGIC						0x1DBF348C
 /** Version of memory profiler. Incremented on serialization changes.			*/
-#define NETWORK_PROFILER_VERSION					6
+#define NETWORK_PROFILER_VERSION					7
+
+static const FString UnknownName("UnknownName");
 
 enum ENetworkProfilingPayloadType
 {
@@ -39,7 +41,13 @@ enum ENetworkProfilingPayloadType
 	NPTYPE_EndOfStreamMarker,			// End of stream marker		
 	NPTYPE_Event,						// Event
 	NPTYPE_RawSocketData,				// Raw socket data being sent
-	NPTYPE_SendAck						// Ack being sent
+	NPTYPE_SendAck,						// Ack being sent
+	NPTYPE_WritePropertyHeader,			// Property header being written
+	NPTYPE_ExportBunch,					// Exported GUIDs
+	NPTYPE_MustBeMappedGuids,			// Must be mapped GUIDs
+	NPTYPE_BeginContentBlock,			// Content block headers
+	NPTYPE_EndContentBlock,				// Content block footers
+	NPTYPE_WritePropertyHandle			// Property handles
 };
 
 
@@ -189,6 +197,49 @@ void FNetworkProfiler::TrackSendRPC( const AActor* Actor, const UFunction* Funct
 		(*FileWriter) << NumHeaderBits;
 		(*FileWriter) << NumParameterBits;
 		(*FileWriter) << NumFooterBits;
+	}
+}
+
+void FNetworkProfiler::TrackQueuedRPC( UNetConnection* Connection, UObject* TargetObject, const AActor* Actor, const UFunction* Function, uint16 NumHeaderBits, uint16 NumParameterBits, uint16 NumFooterBits  )
+{
+	if( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+		
+		FQueuedRPCInfo Info;
+		Info.Connection = Connection;
+		Info.TargetObject = TargetObject;
+		Info.ActorNameIndex = GetNameTableIndex( Actor->GetName() );
+		Info.FunctionNameIndex = GetNameTableIndex( Function->GetName() );
+		Info.NumHeaderBits = NumHeaderBits;
+		Info.NumParameterBits = NumParameterBits;
+		Info.NumFooterBits = NumFooterBits;
+
+		QueuedRPCs.Add(Info);
+	}
+}
+
+void FNetworkProfiler::FlushQueuedRPCs( UNetConnection* Connection, UObject* TargetObject )
+{
+	if( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+
+		for ( int i = QueuedRPCs.Num() - 1; i >= 0; --i )
+		{
+			if (QueuedRPCs[i].Connection == Connection && QueuedRPCs[i].TargetObject == TargetObject)
+			{
+				uint8 Type = NPTYPE_SendRPC;
+				(*FileWriter) << Type;
+				(*FileWriter) << QueuedRPCs[i].ActorNameIndex;
+				(*FileWriter) << QueuedRPCs[i].FunctionNameIndex;
+				(*FileWriter) << QueuedRPCs[i].NumHeaderBits;
+				(*FileWriter) << QueuedRPCs[i].NumParameterBits;
+				(*FileWriter) << QueuedRPCs[i].NumFooterBits;
+
+				QueuedRPCs.RemoveAtSwap(i);
+			}
+		}
 	}
 }
 
@@ -387,6 +438,19 @@ void FNetworkProfiler::TrackReplicateProperty( const UProperty* Property, uint16
 	}
 }
 
+void FNetworkProfiler::TrackWritePropertyHeader( const UProperty* Property, uint16 NumBits )
+{
+	if( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+		uint8 Type = NPTYPE_WritePropertyHeader;
+		(*FileWriter) << Type;
+		int32 NameTableIndex = GetNameTableIndex( Property->GetName() );
+		(*FileWriter) << NameTableIndex;
+		(*FileWriter) << NumBits;
+	}
+}
+
 /**
  * Track event occurring, like e.g. client join/ leave
  *
@@ -514,16 +578,77 @@ void FNetworkProfiler::TrackSessionChange( bool bShouldContinueTracking, const F
 #endif	//#if ALLOW_DEBUG_FILES
 }
 
- void FNetworkProfiler::TrackSendAck( uint16 NumBits )
- {
-	 if ( bIsTrackingEnabled )
-	 {
-		 SCOPE_LOCK_REF(CriticalSection);
-		 uint8 Type = NPTYPE_SendAck;
-		 (*FileWriter) << Type;
-		 (*FileWriter) << NumBits;
+void FNetworkProfiler::TrackSendAck( uint16 NumBits )
+{
+	if ( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+		uint8 Type = NPTYPE_SendAck;
+		(*FileWriter) << Type;
+		(*FileWriter) << NumBits;
+	}
+}
+
+void FNetworkProfiler::TrackMustBeMappedGuids( uint16 NumGuids, uint16 NumBits )
+{
+	if ( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+		uint8 Type = NPTYPE_MustBeMappedGuids;
+		(*FileWriter) << Type;
+		(*FileWriter) << NumGuids;
+		(*FileWriter) << NumBits;
+	}
+}
+
+void FNetworkProfiler::TrackExportBunch( uint16 NumBits )
+{
+	if ( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+		uint8 Type = NPTYPE_ExportBunch;
+		(*FileWriter) << Type;
+		(*FileWriter) << NumBits;
+	}
+}
+
+ 
+void FNetworkProfiler::TrackBeginContentBlock(UObject* Object, uint16 NumBits)
+{
+	if ( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+		uint8 Type = NPTYPE_BeginContentBlock;
+		(*FileWriter) << Type;
+		int32 NameTableIndex = GetNameTableIndex( Object != nullptr ? Object->GetName() : UnknownName );
+		(*FileWriter) << NameTableIndex;
+		(*FileWriter) << NumBits;
 	 }
- }
+}
+
+void FNetworkProfiler::TrackEndContentBlock(UObject* Object, uint16 NumBits)
+{
+	if ( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+		uint8 Type = NPTYPE_EndContentBlock;
+		(*FileWriter) << Type;
+		int32 NameTableIndex = GetNameTableIndex( Object != nullptr ? Object->GetName() : UnknownName );
+		(*FileWriter) << NameTableIndex;
+		(*FileWriter) << NumBits;
+	}
+}
+
+void FNetworkProfiler::TrackWritePropertyHandle(uint16 NumBits)
+{
+	if ( bIsTrackingEnabled )
+	{
+		SCOPE_LOCK_REF(CriticalSection);
+		uint8 Type = NPTYPE_WritePropertyHandle;
+		(*FileWriter) << Type;
+		(*FileWriter) << NumBits;
+	}
+}
 
 /**
  * Processes any network profiler specific exec commands

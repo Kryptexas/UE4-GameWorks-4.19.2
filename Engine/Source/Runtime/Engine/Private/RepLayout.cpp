@@ -927,6 +927,8 @@ bool FRepLayout::ReadyForDormancy( FRepState * RepState ) const
 
 static FORCEINLINE void WritePropertyHandle( FNetBitWriter & Writer, uint16 Handle, bool bDoChecksum )
 {
+	const int NumStartingBits = Writer.GetNumBits();
+
 	uint32 LocalHandle = Handle;
 	Writer.SerializeIntPacked( LocalHandle );
 
@@ -936,6 +938,8 @@ static FORCEINLINE void WritePropertyHandle( FNetBitWriter & Writer, uint16 Hand
 		SerializeGenericChecksum( Writer );
 	}
 #endif
+
+	NETWORK_PROFILER(GNetworkProfiler.TrackWritePropertyHandle( Writer.GetNumBits() - NumStartingBits ));
 }
 
 static bool ShouldSendProperty( FRepWriterState & WriterState, const uint16 Handle )
@@ -1110,6 +1114,8 @@ void FRepLayout::WritePropertyHeader(
 		bContentBlockWritten = true;
 	}
 
+	const int NumStartingBits = Bunch.GetNumBits();
+
 	// Get the network friend property index to replicate
 	// Swap Role/RemoteRole while we're at it
 	FFieldNetCache * FieldCache
@@ -1135,6 +1141,8 @@ void FRepLayout::WritePropertyHeader(
 		Bunch.SerializeIntPacked(idx);
 		LastArrayIndex = ArrayIndex;
 	}
+
+	NETWORK_PROFILER(GNetworkProfiler.TrackWritePropertyHeader(Property, Bunch.GetNumBits() - NumStartingBits));
 }
 
 void FRepLayout::SendProperties( 

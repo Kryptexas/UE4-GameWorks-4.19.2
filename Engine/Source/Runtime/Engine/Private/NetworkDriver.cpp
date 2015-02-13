@@ -828,12 +828,14 @@ void UNetDriver::InternalProcessRemoteFunction
 	{
 		Ch->BeginContentBlock(TargetObj, Bunch);
 	}
-		
+	
+	const int NumStartingHeaderBits = Bunch.GetNumBits();
+
 	//UE_LOG(LogScript, Log, TEXT("   Call %s"),Function->GetFullName());
 	check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
 	Bunch.WriteIntWrapped(FieldCache->FieldNetIndex, ClassCache->GetMaxIndex()+1);
 
-	const int HeaderBits = Bunch.GetNumBits();
+	const int HeaderBits = Bunch.GetNumBits() - NumStartingHeaderBits;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	Bunch.DebugString = FString::Printf(TEXT("%.2f RPC: %s - %s"), Connection->Driver->Time, *Actor->GetName(), *Function->GetName());
@@ -979,7 +981,7 @@ void UNetDriver::InternalProcessRemoteFunction
 				UE_LOG(LogNetTraffic, Log,		TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
 			}
 
-			NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, FooterBits));
+			NETWORK_PROFILER(GNetworkProfiler.TrackQueuedRPC(Connection, TargetObj, Actor, Function, HeaderBits, ParameterBits, FooterBits));
 			Ch->QueueRemoteFunctionBunch(TargetObj, Function, Bunch);
 		}
 		else

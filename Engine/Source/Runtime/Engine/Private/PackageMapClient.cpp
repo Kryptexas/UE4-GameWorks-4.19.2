@@ -878,6 +878,15 @@ bool UPackageMapClient::AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches
 		ExportNetGUIDHeader();
 	}
 
+	// Let the profiler know about exported GUID bunches
+	for (const FOutBunch* ExportBunch : ExportBunches )
+	{
+		if (ExportBunch != nullptr)
+		{
+			NETWORK_PROFILER(GNetworkProfiler.TrackExportBunch(ExportBunch->GetNumBits()));
+		}
+	}
+
 	// Append the bunches we've made to the passed in list reference
 	if (ExportBunches.Num() > 0)
 	{

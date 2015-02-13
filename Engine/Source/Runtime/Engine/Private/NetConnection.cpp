@@ -501,8 +501,6 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 
 		NumPaddingBits += SendBuffer.GetNumBits() - NumBitsPrePadding;
 
-		NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
-
 		// Send now.
 #if DO_ENABLE_NET_TEST
 		// if the connection is closing/being destroyed/etc we need to send immediately regardless of settings
