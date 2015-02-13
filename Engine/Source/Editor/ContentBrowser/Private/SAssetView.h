@@ -18,7 +18,7 @@ public:
 		, _ThumbnailLabel( EThumbnailLabel::ClassName )
 		, _AllowThumbnailHintLabel(true)
 		, _InitialViewType(EAssetViewType::Tile)
-		, _ThumbnailScale(0.25f) // A reasonable scale
+		, _ThumbnailScale(0.1f)
 		, _ShowBottomToolbar(true)
 		, _AllowThumbnailEditMode(false)
 		, _CanShowClasses(true)

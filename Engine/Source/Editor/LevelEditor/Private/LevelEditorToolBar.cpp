@@ -1863,7 +1863,6 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenBlueprintMenuContent( TSh
 			FAssetPickerConfig Config;
 			Config.Filter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
 			Config.InitialAssetViewType = EAssetViewType::List;
-			Config.ThumbnailScale = 0; // make thumbnails as small as possible
 			Config.OnAssetSelected = FOnAssetSelected::CreateStatic(&FBlueprintMenus::OnBPSelected);
 			Config.bAllowDragging = false;
 			// Don't show stuff in Engine
