@@ -530,6 +530,17 @@ void SAnimCurvePanel::Construct(const FArguments& InArgs)
 					]
 
 					+SHorizontalBox::Slot()
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(5,0)
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
+						.Text(FText::FromString(FString::Printf(TEXT(" Total Number : %d "), Sequence->RawCurveData.FloatCurves.Num())))
+					]
+
+					+SHorizontalBox::Slot()
 					.HAlign(HAlign_Right)
 					.Padding( 2.0f, 0.0f )
 					[
