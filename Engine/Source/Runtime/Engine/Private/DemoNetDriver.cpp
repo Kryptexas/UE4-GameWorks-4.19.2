@@ -450,7 +450,13 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 
 void UDemoNetDriver::ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject )
 {
-
+	if (ClientConnections.Num() > 0 && ClientConnections[0] != NULL)
+	{
+		if ((Function->FunctionFlags & FUNC_NetMulticast))
+		{
+			InternalProcessRemoteFunction(Actor, SubObject, ClientConnections[0], Function, Parameters, OutParms, Stack, IsServer());
+		}
+	}
 }
 
 bool UDemoNetDriver::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )

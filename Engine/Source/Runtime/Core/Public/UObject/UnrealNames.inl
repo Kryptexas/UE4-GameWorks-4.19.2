@@ -128,6 +128,7 @@ REGISTER_NAME(282,GameNetDriver)
 REGISTER_NAME(283,PendingNetDriver)
 REGISTER_NAME(284,BeaconNetDriver)
 REGISTER_NAME(285,FlushNetDormancy)
+REGISTER_NAME(286,DemoNetDriver)
 
 // Texture settings.
 REGISTER_NAME(300,Linear)
