@@ -786,14 +786,7 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 					InspectorTitle = FText::FromString(Title);
 					bShowComponents = false;
 
-					// Show the details panel if it doesn't exist.
-					TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
-
-					TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
-					if ( OwnerTab.IsValid() )
-					{
-						OwnerTab->FlashTab();
-					}
+					TryInvokingDetailsTab();
 				}
 				else
 				{
@@ -1984,7 +1977,7 @@ void FBlueprintEditor::SetupViewForBlueprintEditingMode()
 
 	// Make sure the inspector is always on top
 	//@TODO: This is necessary right now because of a bug in restoring layouts not remembering which tab is on top (to get it right initially), but do we want this behavior always?
-	TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+	TryInvokingDetailsTab();
 
 	UBlueprint* Blueprint = GetBlueprintObj();
 	if ((Blueprint != nullptr) && (Blueprint->Status == EBlueprintStatus::BS_Error))
@@ -2578,14 +2571,7 @@ void FBlueprintEditor::EditGlobalOptions_Clicked()
 		// Show details for the Blueprint instance we're editing
 		Inspector->ShowDetailsForSingleObject(Blueprint);
 
-		// Show the details panel if it doesn't exist.
-		TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
-
-		TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
-		if ( OwnerTab.IsValid() )
-		{
-			OwnerTab->FlashTab();
-		}
+		TryInvokingDetailsTab();
 	}
 }
 
@@ -6301,14 +6287,7 @@ void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 
 					Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
 
-					// Show the details panel if it doesn't exist.
-					TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
-
-					TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
-					if ( OwnerTab.IsValid() )
-					{
-						OwnerTab->FlashTab();
-					}
+					TryInvokingDetailsTab();
 				}
 			}
 		}
@@ -6341,7 +6320,7 @@ void FBlueprintEditor::RefreshStandAloneDefaultsEditor()
 void FBlueprintEditor::RenameNewlyAddedAction(FName InActionName)
 {
 	TabManager->InvokeTab(FBlueprintEditorTabs::MyBlueprintID);
-	TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+	TryInvokingDetailsTab(/*Flash*/false);
 
 	if (MyBlueprintWidget.IsValid())
 	{
@@ -7544,10 +7523,26 @@ void FBlueprintEditor::SaveAsset_Execute()
 	IBlueprintEditor::SaveAsset_Execute();
 }
 
-/////////////////////////////////////////////////////
-/////////////////////////////////////////////////////
-/////////////////////////////////////////////////////
+void FBlueprintEditor::TryInvokingDetailsTab(bool bFlash)
+{
+	if ( TabManager->CanSpawnTab(FBlueprintEditorTabs::DetailsID) )
+	{
+		// Show the details panel if it doesn't exist.
+		TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
 
+		if ( bFlash )
+		{
+			TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+			if ( OwnerTab.IsValid() )
+			{
+				OwnerTab->FlashTab();
+			}
+		}
+	}
+}
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE
-
