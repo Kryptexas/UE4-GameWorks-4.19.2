@@ -50,6 +50,7 @@ ADebugCameraController::ADebugCameraController(const FObjectInitializer& ObjectI
 #endif // WITH_EDITORONLY_DATA
 	PrimaryActorTick.bTickEvenWhenPaused = true;
 	bShouldPerformFullTickWhenPaused = true;
+	SetAsLocalPlayerController();
 }
 
 void InitializeDebugCameraInputBindings()
