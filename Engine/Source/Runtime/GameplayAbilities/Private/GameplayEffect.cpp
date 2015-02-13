@@ -2638,11 +2638,6 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FA
 
 void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
 {
-	int32 Count=0;
-	for (const FActiveGameplayEffect& Effect : this)
-	{
-		Count++;
-	}
 	// Manually iterating through in reverse because this is a removal operation
 	for (int32 idx=GetNumGameplayEffects()-1; idx >= 0; --idx)
 	{
