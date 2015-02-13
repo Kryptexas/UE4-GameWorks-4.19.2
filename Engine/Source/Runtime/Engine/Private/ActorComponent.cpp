@@ -165,10 +165,14 @@ void UActorComponent::PostLoad()
 bool UActorComponent::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
 	bRoutedPostRename = false;
+
+	const FName OldName = GetFName();
+	const UObject* OldOuter = GetOuter();
 	
 	const bool bRenameSuccessful = Super::Rename(InName, NewOuter, Flags);
 	
-	if (!bRoutedPostRename)
+	const bool bMoved = (OldName != GetFName()) || (OldOuter != GetOuter());
+	if (!bRoutedPostRename && ((Flags & REN_Test) == 0) && bMoved)
 	{
 		UE_LOG(LogActorComponent, Fatal, TEXT("%s failed to route PostRename.  Please call Super::PostRename() in your <className>::PostRename() function. "), *GetFullName() );
 	}
