@@ -939,10 +939,17 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 	if (TargetSequence && FbxCurve)
 	{
 		FName Name = *CurveName;
-		FSmartNameMapping* NameMapping = TargetSequence->GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
+		USkeleton* Skeleton = TargetSequence->GetSkeleton();
+		FSmartNameMapping* NameMapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
 
 		// Add or retrieve curve
 		USkeleton::AnimCurveUID Uid;
+		if (!NameMapping->Exists(Name))
+		{
+			// mark skeleton dirty
+			Skeleton->Modify();
+		}
+
 		NameMapping->AddOrFindName(Name, Uid);
 
 		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));

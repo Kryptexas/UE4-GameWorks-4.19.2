@@ -470,12 +470,20 @@ void UAnimSequenceBase::VerifyCurveNames(USkeleton* Skeleton, const FName& NameC
 	TArray<DataType*> UnlinkedCurves;
 	for(DataType& Curve : CurveList)
 	{
-		if(!NameMapping->Exists(Curve.LastObservedName))
+		const FSmartNameMapping::UID* UID = NameMapping->FindUID(Curve.LastObservedName);
+		if(!UID)
 		{
 			// The skeleton doesn't know our name. Use the last observed name that was saved with the
 			// curve to create a new name. This can happen if a user saves an animation but not a skeleton
 			// either when updating the assets or editing the curves within.
 			UnlinkedCurves.Add(&Curve);
+		}
+		else if (Curve.CurveUid != *UID)// we verify if UID is correct
+		{
+			// if UID doesn't match, this is suspicious
+			// because same name but different UID is not idea
+			// so we'll fix up UID
+			Curve.CurveUid = *UID;
 		}
 	}
 
