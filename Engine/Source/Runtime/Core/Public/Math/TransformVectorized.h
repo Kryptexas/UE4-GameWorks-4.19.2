@@ -21,7 +21,7 @@
  * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in world space by DeltaRotation.
  */
 
-MS_ALIGN(16) class FTransform
+MS_ALIGN(16) struct FTransform
 {
 #if !defined(COREUOBJECT_API)
 	#define MAYBE_COREUOBJECT_API

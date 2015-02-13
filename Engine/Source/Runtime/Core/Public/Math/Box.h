@@ -9,7 +9,7 @@
  * Boxes describe an axis-aligned extent in three dimensions. They are used for many different things in the
  * Engine and in games, such as bounding volumes, collision detection and visibility calculation.
  */
-class FBox
+struct FBox
 {
 public:
 

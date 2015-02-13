@@ -8,7 +8,7 @@
  *
  * All rotation values are stored in degrees.
  */
-class FRotator
+struct FRotator
 {
 public:
 

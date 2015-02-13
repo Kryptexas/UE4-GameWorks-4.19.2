@@ -2,7 +2,6 @@
 
 #pragma once
 
-
 namespace ERangeBoundTypes
 {
 	/**
@@ -25,7 +24,8 @@ namespace ERangeBoundTypes
 /**
  * Template for range bounds.
  */
-template<typename ElementType> class TRangeBound
+template<typename ElementType>
+class TRangeBound
 {
 public:
 
@@ -313,23 +313,85 @@ private:
 /* Default range bounds for built-in types
  *****************************************************************************/
 
-/** Defines a discrete range bound for dates. */
-typedef TRangeBound<FDateTime> FDateRangeBound;
+#define DEFINE_RANGEBOUND_WRAPPER_STRUCT(Name, ElementType) \
+	struct Name : TRangeBound<ElementType> \
+	{ \
+	private: \
+		typedef TRangeBound<ElementType> Super; \
+	 \
+	public: \
+		Name() \
+			: Super() \
+		{ \
+		} \
+		 \
+		Name(const Super& Other) \
+			: Super( Other ) \
+		{ \
+		} \
+		 \
+		Name( const int64& InValue ) \
+			: Super( InValue ) \
+		{ \
+		} \
+		 \
+		static FORCEINLINE Name Exclusive( const ElementType& Value ) \
+		{ \
+			return static_cast<const Name&>( Super::Exclusive( Value ) ); \
+		} \
+		 \
+		static FORCEINLINE Name Inclusive( const ElementType& Value ) \
+		{ \
+			return static_cast<const Name&>( Super::Inclusive( Value ) ); \
+		} \
+		 \
+		static FORCEINLINE Name Open() \
+		{ \
+			return static_cast<const Name&>( Super::Open() ); \
+		} \
+		 \
+		static FORCEINLINE Name FlipInclusion( const Name& Bound ) \
+		{ \
+			return static_cast<const Name&>( Super::FlipInclusion( Bound ) ); \
+		} \
+		 \
+		static FORCEINLINE const Name& MaxLower( const Name& A, const Name& B ) \
+		{ \
+			return static_cast<const Name&>( Super::MaxLower( A, B ) ); \
+		} \
+		 \
+		static FORCEINLINE const Name& MaxUpper( const Name& A, const Name& B ) \
+		{ \
+			return static_cast<const Name&>( Super::MaxUpper( A, B ) ); \
+		} \
+		 \
+		static FORCEINLINE const Name& MinLower( const Name& A, const Name& B ) \
+		{ \
+			return static_cast<const Name&>( Super::MinLower( A, B ) ); \
+		} \
+		 \
+		static FORCEINLINE const Name& MinUpper( const Name& A, const Name& B ) \
+		{ \
+			return static_cast<const Name&>( Super::MinUpper( A, B ) ); \
+		} \
+	}; \
+	 \
+	template <> \
+	struct TIsBitwiseConstructible<Name, TRangeBound<ElementType>> \
+	{ \
+		enum { Value = true }; \
+	}; \
+	 \
+	template <> \
+	struct TIsBitwiseConstructible<TRangeBound<ElementType>, Name> \
+	{ \
+		enum { Value = true }; \
+	};
 
-/** Defines a discrete range bound for dates. */
-typedef TRangeBound<double> FDoubleRangeBound;
-
-/** Defines a discrete range bound for dates. */
-typedef TRangeBound<float> FFloatRangeBound;
-
-/** Defines a discrete range bound for 8-bit signed integers. */
-typedef TRangeBound<int8> FInt8RangeBound;
-
-/** Defines a discrete range bound for 16-bit signed integers. */
-typedef TRangeBound<int16> FInt16RangeBound;
-
-/** Defines a discrete range bound for 32-bit signed integers. */
-typedef TRangeBound<int32> FInt32RangeBound;
-
-/** Defines a discrete range bound for 64-bit signed integers. */
-typedef TRangeBound<int64> FInt64RangeBound;
+DEFINE_RANGEBOUND_WRAPPER_STRUCT(FDateRangeBound,   FDateTime)
+DEFINE_RANGEBOUND_WRAPPER_STRUCT(FDoubleRangeBound, double)
+DEFINE_RANGEBOUND_WRAPPER_STRUCT(FFloatRangeBound,  float)
+DEFINE_RANGEBOUND_WRAPPER_STRUCT(FInt8RangeBound,   int8)
+DEFINE_RANGEBOUND_WRAPPER_STRUCT(FInt16RangeBound,  int16)
+DEFINE_RANGEBOUND_WRAPPER_STRUCT(FInt32RangeBound,  int32)
+DEFINE_RANGEBOUND_WRAPPER_STRUCT(FInt64RangeBound,  int64)

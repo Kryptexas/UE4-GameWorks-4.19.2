@@ -6,7 +6,7 @@
 /**
  * A 4D homogeneous vector, 4x1 FLOATs, 16-byte aligned.
  */
-MS_ALIGN(16) class FVector4
+MS_ALIGN(16) struct FVector4
 {
 public:
 

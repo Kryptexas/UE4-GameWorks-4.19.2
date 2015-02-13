@@ -204,6 +204,48 @@ public:
 /* Default intervals for built-in types
  *****************************************************************************/
 
-typedef TInterval<float> FInterval;
-typedef TInterval<float> FFloatInterval;
-typedef TInterval<int32> FInt32Interval;
+#define DEFINE_INTERVAL_WRAPPER_STRUCT(Name, ElementType) \
+	struct Name : TInterval<ElementType> \
+	{ \
+	private: \
+		typedef TInterval<ElementType> Super; \
+		 \
+	public:  \
+		Name() \
+			: Super() \
+		{ \
+		} \
+		 \
+		Name( const Super& Other ) \
+			: Super( Other ) \
+		{ \
+		} \
+		 \
+		Name( ElementType InMin, ElementType InMax ) \
+			: Super( InMin, InMax ) \
+		{ \
+		} \
+		 \
+		friend Name Intersect( const Name& A, const Name& B ) \
+		{ \
+			return Intersect( static_cast<const Super&>( A ), static_cast<const Super&>( B ) ); \
+		} \
+	}; \
+	 \
+	template <> \
+	struct TIsBitwiseConstructible<Name, TInterval<ElementType>> \
+	{ \
+		enum { Value = true }; \
+	}; \
+	 \
+	template <> \
+	struct TIsBitwiseConstructible<TInterval<ElementType>, Name> \
+	{ \
+		enum { Value = true }; \
+	};
+
+DEPRECATED(4.8, "FInterval is deprecated, please use FFloatInterval instead.")
+DEFINE_INTERVAL_WRAPPER_STRUCT(FInterval, float)
+
+DEFINE_INTERVAL_WRAPPER_STRUCT(FFloatInterval, float)
+DEFINE_INTERVAL_WRAPPER_STRUCT(FInt32Interval, int32)

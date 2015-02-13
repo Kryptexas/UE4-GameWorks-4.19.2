@@ -277,7 +277,7 @@ public:
 };
 
 
-/* FInterval inline functions
+/* FIntPoint inline functions
  *****************************************************************************/
 
 FORCEINLINE FIntPoint::FIntPoint() { }

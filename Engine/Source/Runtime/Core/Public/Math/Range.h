@@ -6,7 +6,7 @@
 /**
  * Template for ranges.
  *
- * Note: This class is not intended for interval arithmetic (see FInterval for that).
+ * Note: This class is not intended for interval arithmetic (see TInterval for that).
  *
  * A range represents a contiguous set of elements that only stores the set's
  * lower and upper bound values (aka. endpoints) for storage efficiency. Bound
@@ -38,7 +38,7 @@
  * @param ElementType - The type of elements represented by the range
  *
  * @see RangeBound
- * @see FInterval
+ * @see TInterval
  */
 template<typename ElementType> class TRange
 {
@@ -80,7 +80,7 @@ public:
 	 * @param InLowerBound The range's lower bound.
 	 * @param InUpperBound The range's upper bound.
 	 */
-	TRange( const BoundsType& InLowerBound, const BoundsType& InUpperBound )
+	explicit TRange( const BoundsType& InLowerBound, const BoundsType& InUpperBound )
 		: LowerBound(InLowerBound)
 		, UpperBound(InUpperBound)
 	{ }
@@ -669,23 +669,120 @@ private:
 /* Default ranges for built-in types
  *****************************************************************************/
 
-/** Defines a discrete range of dates. */
-typedef TRange<FDateTime> FDateRange;
+#define DEFINE_RANGE_WRAPPER_STRUCT(Name, ElementType) \
+	struct Name : TRange<ElementType> \
+	{ \
+	private: \
+		typedef TRange<ElementType> Super; \
+	 \
+	public: \
+		Name() \
+			: Super() \
+		{ \
+		} \
+		 \
+		Name( const Super& Rhs ) \
+			: Super( Rhs ) \
+		{ \
+		} \
+		 \
+		explicit Name( const ElementType& A ) \
+			: Super( A ) \
+		{ \
+		} \
+		 \
+		explicit Name( const ElementType& A, const ElementType& B ) \
+			: Super( A, B ) \
+		{ \
+		} \
+		 \
+		explicit Name( const TRangeBound<ElementType>& InLowerBound, const TRangeBound<ElementType>& InUpperBound ) \
+			: Super( InLowerBound, InUpperBound ) \
+		{ \
+		} \
+		 \
+		TArray<Name> Split( const ElementType& Element ) const \
+		{ \
+			return TArray<Name>( Super::Split( Element ) ); \
+		} \
+		 \
+		static FORCEINLINE TArray<Name> Difference( const Name& X, const Name& Y ) \
+		{ \
+			return TArray<Name>( Super::Difference( X, Y ) ); \
+		} \
+		 \
+		static FORCEINLINE Name Empty() \
+		{ \
+			return Super::Empty(); \
+		} \
+		 \
+		static FORCEINLINE Name Hull( const Name& X, const Name& Y ) \
+		{ \
+			return Super::Hull( X, Y ); \
+		} \
+		 \
+		static FORCEINLINE Name Hull( const TArray<Name>& Ranges ) \
+		{ \
+			return Super::Hull( reinterpret_cast<const TArray<Super>&>( Ranges ) ); \
+		} \
+		 \
+		static FORCEINLINE Name Intersection( const Name& X, const Name& Y ) \
+		{ \
+			return Super::Intersection( X, Y ); \
+		} \
+		 \
+		static FORCEINLINE Name Intersection( const TArray<Name>& Ranges ) \
+		{ \
+			return Super::Intersection( reinterpret_cast<const TArray<Super>&>( Ranges ) ); \
+		} \
+		 \
+		static FORCEINLINE TArray<Name> Union( const Name& X, const Name& Y ) \
+		{ \
+			return TArray<Name>( Super::Union( X, Y ) ); \
+		} \
+		 \
+		static FORCEINLINE Name All() \
+		{ \
+			return Super::All(); \
+		} \
+		 \
+		static FORCEINLINE Name AtLeast( const ElementType& Value ) \
+		{ \
+			return Super::AtLeast( Value ); \
+		} \
+		 \
+		static FORCEINLINE Name AtMost( const ElementType& Value ) \
+		{ \
+			return Super::AtMost( Value ); \
+		} \
+		 \
+		static FORCEINLINE TRange GreaterThan( const ElementType& Value ) \
+		{ \
+			return Super::GreaterThan( Value ); \
+		} \
+		 \
+		static FORCEINLINE TRange LessThan( const ElementType& Value ) \
+		{ \
+			return Super::LessThan( Value ); \
+		} \
+	}; \
+	 \
+	template <> \
+	struct TIsBitwiseConstructible<Name, TRange<ElementType>> \
+	{ \
+		enum { Value = true }; \
+	}; \
+	 \
+	template <> \
+	struct TIsBitwiseConstructible<TRange<ElementType>, Name> \
+	{ \
+		enum { Value = true }; \
+	};
 
-/** Defines a discrete range of dates. */
-typedef TRange<double> FDoubleRange;
-
-/** Defines a discrete range of dates. */
-typedef TRange<float> FFloatRange;
-
-/** Defines a discrete range of 8-bit signed integers. */
-typedef TRange<int8> FInt8Range;
-
-/** Defines a discrete range of 16-bit signed integers. */
-typedef TRange<int16> FInt16Range;
-
-/** Defines a discrete range of 32-bit signed integers. */
-typedef TRange<int32> FInt32Range;
-
-/** Defines a discrete range of 64-bit signed integers. */
-typedef TRange<int64> FInt64Range;
+DEFINE_RANGE_WRAPPER_STRUCT(FDateRange,   FDateTime)
+DEFINE_RANGE_WRAPPER_STRUCT(FDoubleRange, double)
+DEFINE_RANGE_WRAPPER_STRUCT(FFloatRange,  float)
+DEFINE_RANGE_WRAPPER_STRUCT(FInt8Range,   int8)
+DEFINE_RANGE_WRAPPER_STRUCT(FInt16Range,  int16)
+DEFINE_RANGE_WRAPPER_STRUCT(FInt32Range,  int32)
+DEFINE_RANGE_WRAPPER_STRUCT(FInt64Range,  int64)

@@ -60,7 +60,7 @@ public:
 	 *
 	 * @param Axis The unit vector defining the axis to project the box onto.
 	 */
-	FORCEINLINE FInterval Project(const FVector& Axis) const;
+	FORCEINLINE FFloatInterval Project(const FVector& Axis) const;
 };
 
 
@@ -84,7 +84,7 @@ FORCEINLINE void FOrientedBox::CalcVertices( FVector* Verts ) const
 }
 
 
-FORCEINLINE FInterval FOrientedBox::Project( const FVector& Axis ) const
+FORCEINLINE FFloatInterval FOrientedBox::Project( const FVector& Axis ) const
 {
 	static const float Signs[] = {-1.0f, 1.0f};
 
@@ -94,7 +94,7 @@ FORCEINLINE FInterval FOrientedBox::Project( const FVector& Axis ) const
 	float ProjectedAxisY = Axis | (ExtentY * AxisY);
 	float ProjectedAxisZ = Axis | (ExtentZ * AxisZ);
 
-	FInterval ProjectionInterval;
+	FFloatInterval ProjectionInterval;
 
 	for (int32 i = 0; i < 2; i++)
 	{

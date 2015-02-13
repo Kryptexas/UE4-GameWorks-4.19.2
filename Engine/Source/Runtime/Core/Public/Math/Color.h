@@ -7,8 +7,8 @@
 #include "Serialization/ArchiveBase.h"
 
 
-class FColor;
-class FVector;
+struct FColor;
+struct FVector;
 class FFloat16Color;
 
 
@@ -332,7 +332,7 @@ FORCEINLINE FLinearColor operator*(float Scalar,const FLinearColor& Color)
 //	FColor
 //
 
-class FColor
+struct FColor
 {
 public:
 	// Variables.
