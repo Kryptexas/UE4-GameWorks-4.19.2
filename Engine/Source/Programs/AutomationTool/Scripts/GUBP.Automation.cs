@@ -1547,6 +1547,11 @@ public class GUBP : BuildCommand
 
             string Args = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs();
 
+            if (GUBP.bBuildRocket && (TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64))
+            {
+                Args += " -nodebuginfo";
+            }
+
             foreach (var Kind in BranchInfo.MonolithicKinds)
             {
                 if (GUBP.bBuildRocket && Kind != TargetRules.TargetType.Game)
