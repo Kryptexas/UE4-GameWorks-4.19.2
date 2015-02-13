@@ -1321,9 +1321,6 @@ protected:
 	/** When true, a key will be exported every frame instead of just the keys that user created. */
 	bool bBakeTransforms;
 
-	/** When true, the hierarchical relationship of objects will be kept when exported. */
-	bool bKeepHierarchy;
-
 	/** If true, clicking on a keyframe bar (such as one representing the duration of an audio cue, etc.) will cause a selection */
 	bool bAllowKeyframeBarSelection;
 

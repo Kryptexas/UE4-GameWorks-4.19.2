@@ -1580,6 +1580,7 @@ void FMatinee::OnContextTrackExportAnimFBX()
 					// Export the Matinee information to a COLLADA document.
 					Exporter->CreateDocument();
 					Exporter->SetTrasformBaking(bBakeTransforms);
+					const bool bKeepHierarchy = GEditor->AccessEditorUserSettings().bKeepAttachHierarchy;
 					Exporter->SetKeepHierarchy(bKeepHierarchy);
 
 					// Export the anim sequences
@@ -1971,6 +1972,7 @@ void FMatinee::OnContextGroupExportAnimFBX()
 							// Export the Matinee information to an FBX document.
 							Exporter->CreateDocument();
 							Exporter->SetTrasformBaking(bBakeTransforms);
+							const bool bKeepHierarchy = GEditor->AccessEditorUserSettings().bKeepAttachHierarchy;
 							Exporter->SetKeepHierarchy(bKeepHierarchy);
 
 							// Export the animation sequences in the group by sampling the skeletal mesh over the
@@ -3842,6 +3844,7 @@ void FMatinee::OnMenuExport()
 				// Export the Matinee information to an FBX file
 				Exporter->CreateDocument();
 				Exporter->SetTrasformBaking(bBakeTransforms);
+				const bool bKeepHierarchy = GEditor->AccessEditorUserSettings().bKeepAttachHierarchy;
 				Exporter->SetKeepHierarchy(bKeepHierarchy);
 
 				const bool bSelectedOnly = false;
@@ -4226,7 +4229,7 @@ bool FMatinee::IsBakeTransformsToggled()
  */
 void FMatinee::OnToggleKeepHierarchy()
 {
-	bKeepHierarchy = !bKeepHierarchy;
+	GEditor->AccessEditorUserSettings().bKeepAttachHierarchy = !GEditor->AccessEditorUserSettings().bKeepAttachHierarchy;
 }
 
 /**
@@ -4234,7 +4237,7 @@ void FMatinee::OnToggleKeepHierarchy()
  */
 bool FMatinee::IsKeepHierarchyToggled()
 {
-	return bKeepHierarchy;
+	return GEditor->AccessEditorUserSettings().bKeepAttachHierarchy;
 }
 
 

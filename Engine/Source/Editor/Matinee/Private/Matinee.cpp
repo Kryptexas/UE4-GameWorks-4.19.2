@@ -430,7 +430,6 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	bEditingCrosshairEnabled = false;
 	bEditingGridEnabled = false;
 	bBakeTransforms = false;
-	bKeepHierarchy = false;
 	bAllowKeyframeBarSelection = false;
 	bAllowKeyframeTextSelection = false;
 	bLockCameraPitch = true;

@@ -47,6 +47,10 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(EditAnywhere, config, Category=HotReload)
 	uint32 bAutomaticallyHotReloadNewClasses:1;
 
+	/** If enabled, export level with attachment hierarchy set */
+	UPROPERTY(EditAnywhere, config, Category=Export)
+	uint32 bKeepAttachHierarchy:1;
+
 	/** Select to make Distributions use the curves, not the baked lookup tables. */
 	UPROPERTY(config)
 	uint32 bUseCurvesForDistributions:1; //(GDistributionType == 0)
