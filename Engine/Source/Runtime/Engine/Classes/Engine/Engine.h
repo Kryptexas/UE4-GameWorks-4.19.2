@@ -2698,7 +2698,7 @@ private:
 		/** Constructor */
 		FEngineStatFuncs(const FName& InCommandName, const FName& InCategoryName, const FText& InDescriptionString, EngineStatRender InRenderFunc = nullptr, EngineStatToggle InToggleFunc = nullptr, const bool bInIsRHS = false)
 			: CommandName(InCommandName)
-			, CommandNameString(InCategoryName.ToString())
+			, CommandNameString(InCommandName.ToString())
 			, CategoryName(InCategoryName)
 			, DescriptionString(InDescriptionString)
 			, RenderFunc(InRenderFunc)
