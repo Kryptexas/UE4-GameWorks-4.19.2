@@ -2,14 +2,13 @@
 
 #pragma once
 
-// Forward Declarations
+
 struct FGeometry;
 struct FKeyEvent;
 struct FCharacterEvent;
 struct FPointerEvent;
 class FSlateShaderResource;
 
-DECLARE_MULTICAST_DELEGATE_OneParam( FOnTitleChangedDelegate, FString );
 
 /**
  * Interface for dealing with a Web Browser window
@@ -17,6 +16,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam( FOnTitleChangedDelegate, FString );
 class IWebBrowserWindow
 {
 public:
+
 	/**
 	 * Load the specified URL
 	 *
@@ -132,9 +132,7 @@ public:
 	 */
 	virtual void OnFocus(bool SetFocus) = 0;
 
-	/**
-	 * Called when Capture lost
-	 */
+	/** Called when Capture lost */
 	virtual void OnCaptureLost() = 0;
 
 	/**
@@ -142,9 +140,7 @@ public:
 	 */
 	virtual bool CanGoBack() const = 0;
 
-	/**
-	 * Navigate backwards.
-	 */
+	/** Navigate backwards. */
 	virtual void GoBack() = 0;
 
 	/**
@@ -152,9 +148,7 @@ public:
 	 */
 	virtual bool CanGoForward() const = 0;
 
-	/**
-	 * Navigate forwards.
-	 */
+	/** Navigate forwards. */
 	virtual void GoForward() = 0;
 
 	/**
@@ -162,30 +156,20 @@ public:
 	 */
 	virtual bool IsLoading() const = 0;
 
-	/**
-	 * Reload the current page.
-	 */
+	/** Reload the current page. */
 	virtual void Reload() = 0;
 
-	/**
-	 * Stop loading the page.
-	 */
+	/** Stop loading the page. */
 	virtual void StopLoad() = 0;
 
-	/**
-	 * Accesses a delegate to allow callbacks when a browser title changes
-	 *
-	 * @return A multicast delegate that you can register with
-	 */
-	FOnTitleChangedDelegate& OnTitleChanged() {return OnTitleChangedDelegate;}
+public:
+
+	/** A delegate to allow callbacks when a browser title changes. */
+	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnTitleChanged, FString);
+	virtual FOnTitleChanged& OnTitleChanged() = 0;
 
 protected:
 
-	/**
-	 * Virtual Destructor
-	 */
-	virtual ~IWebBrowserWindow() {};
-
-	/** Delegate for broadcasting title changes */
-	FOnTitleChangedDelegate OnTitleChangedDelegate;
+	/** Virtual Destructor. */
+	virtual ~IWebBrowserWindow() { };
 };
