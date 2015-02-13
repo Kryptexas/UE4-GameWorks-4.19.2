@@ -244,8 +244,7 @@ public:
 		enum { Value = true }; \
 	};
 
-DEPRECATED(4.8, "FInterval is deprecated, please use FFloatInterval instead.")
-DEFINE_INTERVAL_WRAPPER_STRUCT(FInterval, float)
-
 DEFINE_INTERVAL_WRAPPER_STRUCT(FFloatInterval, float)
 DEFINE_INTERVAL_WRAPPER_STRUCT(FInt32Interval, int32)
+
+struct DEPRECATED(4.8, "FInterval is deprecated, please use FFloatInterval instead.") FInterval : public FFloatInterval { } ;
