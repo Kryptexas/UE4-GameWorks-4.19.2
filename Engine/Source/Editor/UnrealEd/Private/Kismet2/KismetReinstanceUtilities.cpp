@@ -432,6 +432,14 @@ struct FActorReplacementHelper
 	{
 		CachedActorData = StaticCastSharedPtr<AActor::FActorTransactionAnnotation>(OldActor->GetTransactionAnnotation());
 		CacheAttachInfo(OldActor);
+
+		for (UActorComponent* OldActorComponent : OldActor->GetComponents())
+		{
+			if (OldActorComponent)
+			{
+				OldActorComponentNameMap.Add(OldActorComponent->GetFName(), OldActorComponent);
+			}
+		}
 	}
 
 	/**
@@ -492,6 +500,8 @@ private:
 
 	/** Holds actor component data, etc. that we use to apply */
 	TSharedPtr<AActor::FActorTransactionAnnotation> CachedActorData;
+
+	TMap<FName, UActorComponent*> OldActorComponentNameMap;
 };
 
 void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
@@ -533,8 +543,21 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 
 	if (bSelectNewActor)
 	{
-		GEditor->SelectActor(NewActor, /*bInSelected =*/true, /*bNotify =*/false);
+		GEditor->SelectActor(NewActor, /*bInSelected =*/true, /*bNotify =*/true);
 	}
+
+	TMap<UObject*, UObject*> ConstructedComponentReplacementMap;
+	for (UActorComponent* NewActorComponent : NewActor->GetComponents())
+	{
+		if (NewActorComponent)
+		{
+			if (UActorComponent** OldActorComponent = OldActorComponentNameMap.Find(NewActorComponent->GetFName()))
+			{
+				ConstructedComponentReplacementMap.Add(*OldActorComponent, NewActorComponent);
+			}
+		}
+	}
+	GEditor->NotifyToolsOfObjectReplacement(ConstructedComponentReplacementMap);
 	
 	// Destroy actor and clear references.
 	NewActor->Modify();
