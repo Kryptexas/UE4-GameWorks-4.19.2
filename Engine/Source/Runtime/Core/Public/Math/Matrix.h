@@ -10,7 +10,7 @@
  * opposed to Res = Mat1 * Mat2.
  * Matrix elements are accessed with M[RowIndex][ColumnIndex].
  */
-class FMatrix
+struct FMatrix
 {
 public:
 	union

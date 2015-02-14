@@ -9,7 +9,7 @@
  * Stores the coeffecients as Ax+By+Cz=D.
  * Note that this is different than many other Plane classes that use Ax+By+Cz+D=0.
  */
-MS_ALIGN(16) class FPlane
+MS_ALIGN(16) struct FPlane
 	: public FVector
 {
 public:

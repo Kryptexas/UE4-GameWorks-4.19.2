@@ -8,7 +8,7 @@
  *
  * Very bad quality in the lower bits. Don't use the modulus (%) operator.
  */
-class FRandomStream
+struct FRandomStream
 {
 #if !defined(COREUOBJECT_API)
 	#define MAYBE_COREUOBJECT_API

@@ -14,7 +14,7 @@
  * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in local space by DeltaRotation.
  * Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in world space by DeltaRotation.
  */
-MS_ALIGN(16) class FQuat 
+MS_ALIGN(16) struct FQuat 
 {
 public:
 

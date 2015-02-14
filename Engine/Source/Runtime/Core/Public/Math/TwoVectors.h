@@ -6,7 +6,7 @@
 /**
  * A pair of 3D vectors.
  */
-class FTwoVectors
+struct FTwoVectors
 {
 public:
 

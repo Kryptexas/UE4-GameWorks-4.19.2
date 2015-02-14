@@ -6,7 +6,7 @@
 /**
  * A vector in 3-D space composed of components (X, Y, Z) with floating point precision.
  */
-class FVector 
+struct FVector 
 {
 public:
 

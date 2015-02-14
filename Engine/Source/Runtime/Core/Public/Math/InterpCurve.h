@@ -570,20 +570,39 @@ void FInterpCurve<T>::CalcBounds(T& OutMin, T& OutMax, const T& Default) const
 /* Common type definitions
  *****************************************************************************/
 
-/** Type definition for floating point interpolation curves. */
-typedef FInterpCurve<float> FInterpCurveFloat;
+#define DEFINE_INTERPCURVE_WRAPPER_STRUCT(Name, ElementType) \
+	struct Name : FInterpCurve<ElementType> \
+	{ \
+	private: \
+		typedef FInterpCurve<ElementType> Super; \
+	 \
+	public: \
+		Name() \
+			: Super() \
+		{ \
+		} \
+		 \
+		Name(const Super& Other) \
+			: Super( Other ) \
+		{ \
+		} \
+	}; \
+	 \
+	template <> \
+	struct TIsBitwiseConstructible<Name, FInterpCurve<ElementType>> \
+	{ \
+		enum { Value = true }; \
+	}; \
+	 \
+	template <> \
+	struct TIsBitwiseConstructible<FInterpCurve<ElementType>, Name> \
+	{ \
+		enum { Value = true }; \
+	};
 
-/** Type definition for 2D vector interpolation curves. */
-typedef FInterpCurve<FVector2D> FInterpCurveVector2D;
-
-/** Type definition for 3D vector interpolation curves. */
-typedef FInterpCurve<FVector> FInterpCurveVector;
-
-/** Type definition for quaternion interpolation curves. */
-typedef FInterpCurve<FQuat> FInterpCurveQuat;
-
-/** Type definition for vector pair interpolation curves. */
-typedef FInterpCurve<FTwoVectors> FInterpCurveTwoVectors;
-
-/** Type definition for color interpolation curves. */
-typedef FInterpCurve<FLinearColor> FInterpCurveLinearColor;
+DEFINE_INTERPCURVE_WRAPPER_STRUCT(FInterpCurveFloat,       float)
+DEFINE_INTERPCURVE_WRAPPER_STRUCT(FInterpCurveVector2D,    FVector2D)
+DEFINE_INTERPCURVE_WRAPPER_STRUCT(FInterpCurveVector,      FVector)
+DEFINE_INTERPCURVE_WRAPPER_STRUCT(FInterpCurveQuat,        FQuat)
+DEFINE_INTERPCURVE_WRAPPER_STRUCT(FInterpCurveTwoVectors,  FTwoVectors)
+DEFINE_INTERPCURVE_WRAPPER_STRUCT(FInterpCurveLinearColor, FLinearColor)
