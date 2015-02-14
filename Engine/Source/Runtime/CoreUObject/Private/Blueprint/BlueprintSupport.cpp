@@ -397,7 +397,7 @@ UObject* ULinkerLoad::DeferExportCreation(const int32 Index)
 	FName PlaceholderName(*FString::Printf(TEXT("PLACEHOLDER-INST_of_%s"), *ClassName));
 	PlaceholderName = MakeUniqueObjectName(PlaceholderOuter, PlaceholderType, PlaceholderName);
 
-	ULinkerPlaceholderExportObject* Placeholder = ConstructObject<ULinkerPlaceholderExportObject>(PlaceholderType, PlaceholderOuter, PlaceholderName, RF_Public | RF_Transient);
+	ULinkerPlaceholderExportObject* Placeholder = NewObject<ULinkerPlaceholderExportObject>(PlaceholderOuter, PlaceholderType, PlaceholderName, RF_Public | RF_Transient);
 	Export.Object = Placeholder;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
