@@ -1656,17 +1656,26 @@ bool FGlobalTabmanager::CanCloseManager( const TSet< TSharedRef<SDockTab> >& Tab
 	}
 
 	return bCanCloseManager;
+}
 
+TSharedPtr<SDockTab> FGlobalTabmanager::GetMajorTabForTabManager(const TSharedRef<FTabManager>& ChildManager)
+{
+	const int32 MajorTabIndex = SubTabManagers.IndexOfByPredicate(FindByManager(ChildManager));
+	if ( MajorTabIndex != INDEX_NONE )
+	{
+		return SubTabManagers[MajorTabIndex].MajorTab.Pin();
+	}
+
+	return TSharedPtr<SDockTab>();
 }
 
 void FGlobalTabmanager::DrawAttentionToTabManager( const TSharedRef<FTabManager>& ChildManager )
 {
-	const int32 MajorTabIndex = SubTabManagers.IndexOfByPredicate(FindByManager(ChildManager));
-	if (MajorTabIndex != INDEX_NONE)
+	TSharedPtr<SDockTab> Tab = GetMajorTabForTabManager(ChildManager);
+	if ( Tab.IsValid() )
 	{
-		this->DrawAttention( SubTabManagers[MajorTabIndex].MajorTab.Pin().ToSharedRef() );
+		this->DrawAttention(Tab.ToSharedRef());
 	}
-	
 }
 
 TSharedRef<FTabManager> FGlobalTabmanager::NewTabManager( const TSharedRef<SDockTab>& InOwnerTab )
