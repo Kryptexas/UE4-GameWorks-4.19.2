@@ -1,12 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealMathUtility.h: Unreal math utility routines
-=============================================================================*/
-
 #pragma once
+
 #include "HAL/Platform.h"
 #include "HAL/PlatformMath.h"
+
 
 //#define IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 

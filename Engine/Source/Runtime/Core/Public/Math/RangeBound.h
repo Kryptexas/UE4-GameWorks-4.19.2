@@ -1,9 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RangeBound.h: Declares the TRangeBound template.
-=============================================================================*/
-
 #pragma once
 
 
@@ -38,7 +34,7 @@ public:
 	 *
 	 * @see Exclusive, Inclusive, Open
 	 */
-	TRangeBound( )
+	TRangeBound()
 		: Type(ERangeBoundTypes::Open)
 		, Value()
 	{ }
@@ -88,7 +84,7 @@ public:
 	 * @return Bound value.
 	 * @see IsOpen
 	 */
-	const ElementType& GetValue( ) const
+	const ElementType& GetValue() const
 	{
 		check(Type != ERangeBoundTypes::Open);
 
@@ -100,7 +96,7 @@ public:
 	 *
 	 * @return true if the bound is closed, false otherwise.
 	 */
-	bool IsClosed( ) const
+	bool IsClosed() const
 	{
 		return (Type != ERangeBoundTypes::Open);
 	}
@@ -110,7 +106,7 @@ public:
 	 *
 	 * @return true if the bound is exclusive, false otherwise.
 	 */
-	bool IsExclusive( ) const
+	bool IsExclusive() const
 	{
 		return (Type == ERangeBoundTypes::Exclusive);
 	}
@@ -120,7 +116,7 @@ public:
 	 *
 	 * @return true if the bound is inclusive, false otherwise.
 	 */
-	bool IsInclusive( ) const
+	bool IsInclusive() const
 	{
 		return (Type == ERangeBoundTypes::Inclusive);
 	}
@@ -130,7 +126,7 @@ public:
 	 *
 	 * @return true if the bound is open, false otherwise.
 	 */
-	bool IsOpen( ) const
+	bool IsOpen() const
 	{
 		return (Type == ERangeBoundTypes::Open);
 	}
@@ -199,7 +195,7 @@ public:
 	 *
 	 * @return An open bound.
 	 */
-	static FORCEINLINE TRangeBound Open( )
+	static FORCEINLINE TRangeBound Open()
 	{
 		TRangeBound Result;
 
@@ -317,37 +313,23 @@ private:
 /* Default range bounds for built-in types
  *****************************************************************************/
 
-/**
- * Defines a discrete range bound for dates.
- */
+/** Defines a discrete range bound for dates. */
 typedef TRangeBound<FDateTime> FDateRangeBound;
 
-/**
- * Defines a discrete range bound for dates.
- */
+/** Defines a discrete range bound for dates. */
 typedef TRangeBound<double> FDoubleRangeBound;
 
-/**
- * Defines a discrete range bound for dates.
- */
+/** Defines a discrete range bound for dates. */
 typedef TRangeBound<float> FFloatRangeBound;
 
-/**
- * Defines a discrete range bound for 8-bit signed integers.
- */
+/** Defines a discrete range bound for 8-bit signed integers. */
 typedef TRangeBound<int8> FInt8RangeBound;
 
-/**
- * Defines a discrete range bound for 16-bit signed integers.
- */
+/** Defines a discrete range bound for 16-bit signed integers. */
 typedef TRangeBound<int16> FInt16RangeBound;
 
-/**
- * Defines a discrete range bound for 32-bit signed integers.
- */
+/** Defines a discrete range bound for 32-bit signed integers. */
 typedef TRangeBound<int32> FInt32RangeBound;
 
-/**
- * Defines a discrete range bound for 64-bit signed integers.
- */
+/** Defines a discrete range bound for 64-bit signed integers. */
 typedef TRangeBound<int64> FInt64RangeBound;

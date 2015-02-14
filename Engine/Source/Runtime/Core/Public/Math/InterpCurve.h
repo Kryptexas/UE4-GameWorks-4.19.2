@@ -1,9 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	InterpCurve.h: Declares the FInterpCurve class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,10 +19,8 @@ public:
 
 public:
 
-	/**
-	 * Default constructor (no initialization).
-	 */
-	FInterpCurve( ) { }
+	/** Default constructor (no initialization). */
+	FInterpCurve() { }
 
 public:
 
@@ -35,7 +29,6 @@ public:
 	 *
 	 * @param InVal
 	 * @param OutVal
-	 *
 	 * @return The index of the new key.
 	 */
 	int32 AddPoint( const float InVal, const T &OutVal );
@@ -51,9 +44,7 @@ public:
 	 */
 	int32 MovePoint( int32 PointIndex, float NewInVal );
 
-	/**
-	 * Clears all keypoints from InterpCurve.
-	 */
+	/** Clears all keypoints from InterpCurve. */
 	void Reset();
 
 	/** 

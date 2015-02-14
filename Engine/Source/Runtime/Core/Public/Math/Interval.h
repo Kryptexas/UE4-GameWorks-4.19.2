@@ -1,9 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Interval.h: Declares the FInterval structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,7 +24,7 @@ public:
 	 *
 	 * The interval is initialized to [0, 0].
 	 */
-	FInterval( )
+	FInterval()
 		: Min(0.0f)
 		, Max(0.0f)
 		, bIsEmpty(true)
@@ -106,7 +102,6 @@ public:
 	 *
 	 * @param A The first interval.
 	 * @param B The second interval.
-	 *
 	 * @return The intersection.
 	 */
 	friend FInterval Intersect( const FInterval& A, const FInterval& B )
