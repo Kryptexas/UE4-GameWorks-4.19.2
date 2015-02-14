@@ -603,14 +603,50 @@ void FBlueprintEditor::AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 
 
 void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason)
 {
-	if( Reason != ERefreshBlueprintEditorReason::BlueprintCompiled )
+	bool bForceFocusOnSelectedNodes = false;
+
+	if (CurrentUISelection == SelectionState_MyBlueprint)
+	{
+		// Handled below, here to avoid tripping the ensure
+	}
+	else if (CurrentUISelection == SelectionState_Components)
+	{
+		if (SCSEditor.IsValid())
+		{
+			SCSEditor->RefreshSelectionDetails();
+		}
+	}
+	else if (CurrentUISelection == SelectionState_Graph)
+	{
+		bForceFocusOnSelectedNodes = true;
+	}
+	else if (CurrentUISelection == SelectionState_ClassSettings)
+	{
+		// No need for a refresh, the Blueprint object didn't change
+	}
+	else if (CurrentUISelection == SelectionState_ClassDefaults)
+	{
+		StartEditingDefaults(/*bAutoFocus=*/ false, true);
+	}
+	else
+	{
+		ensureMsgf(false, TEXT("Unknown UI selection state in FBlueprintEditor::RefreshEditors"));
+	}
+
+	//@TODO: Should determine when we need to do the invalid/refresh business and if the graph node selection change
+	// under non-compiles is necessary (except when the selection mode is appropriate, as already detected above)
+	if (Reason != ERefreshBlueprintEditorReason::BlueprintCompiled)
 	{
 		DocumentManager->CleanInvalidTabs();
 
 		DocumentManager->RefreshAllTabs();
 
-		// The workflow manager only tracks document tabs.
-		FocusInspectorOnGraphSelection(GetSelectedNodes(), true);
+		bForceFocusOnSelectedNodes = true;
+	}
+
+	if (bForceFocusOnSelectedNodes)
+	{
+		FocusInspectorOnGraphSelection(GetSelectedNodes(), /*bForceRefresh=*/ true);
 	}
 
 	if (MyBlueprintWidget.IsValid())
@@ -618,7 +654,7 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 		MyBlueprintWidget->Refresh();
 	}
 
-	if(SCSEditor.IsValid())
+	if (SCSEditor.IsValid())
 	{
 		SCSEditor->UpdateTree();
 		
@@ -631,14 +667,8 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 	// that the selection does not really change, we force it to refresh and skip the optimization. Otherwise, some things may not work correctly in Defaults mode. For
 	// example, transform details are customized and the rotation value is cached at customization time; if we don't force refresh here, then after an undo of a previous
 	// rotation edit, transform details won't be re-customized and thus the cached rotation value will be stale, resulting in an invalid rotation value on the next edit.
-	if ( CurrentUISelection == FBlueprintEditor::SelectionState_ClassDefaults )
-	{
-		StartEditingDefaults(/*bAutoFocus=*/ false, true);
-	}
-	else
-	{
-		RefreshStandAloneDefaultsEditor();
-	}
+	//@TODO: Probably not always necessary
+	RefreshStandAloneDefaultsEditor();
 
 	// Update associated controls like the function editor
 	BroadcastRefresh();
