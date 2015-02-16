@@ -148,11 +148,14 @@ public:
 					// The color is multiplied by 10 because this value is normally expected to be blended
 					// additively, this is not how the sprites work and therefore need an extra boost
 					// to appear the same color as previously
+#if WITH_EDITOR
 					if( View->bHasSelectedComponents && !IsIndividuallySelected() )
 					{
 						ColorToUse = FLinearColor::White + (GEngine->GetSubduedSelectionOutlineColor() * GEngine->SelectionHighlightIntensityBillboards * 10);
 					}
-					else if (IsSelected())
+					else 
+#endif
+					if (IsSelected())
 					{
 						ColorToUse = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10);
 					}

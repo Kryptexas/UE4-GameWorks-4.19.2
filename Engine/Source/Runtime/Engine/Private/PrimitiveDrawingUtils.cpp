@@ -1461,11 +1461,13 @@ FLinearColor GetSelectionColor(const FLinearColor& BaseColor,bool bSelected,bool
 FLinearColor GetViewSelectionColor(const FLinearColor& BaseColor, const FSceneView& View, bool bSelected, bool bHovered, bool bUseOverlayIntensity, bool bIndividuallySelected)
 {
 	FLinearColor FinalColor = BaseColor;
+#if WITH_EDITOR
 	if (View.bHasSelectedComponents && !bIndividuallySelected)
 	{
 		FinalColor = GEngine->GetSubduedSelectionOutlineColor();
 	}
 	else
+#endif
 	{
 		FinalColor = GEngine->GetSelectedMaterialColor();
 	}
