@@ -191,11 +191,6 @@ public:
 	/** Returns a component name without the substring "Component" and sanitized for display */
 	static FString GetSanitizedComponentName(FComponentClassComboEntryPtr Entry);
 
-protected:
-
-	/** Called when a project is hot reloaded to refresh the components list */
-	void OnProjectHotReloaded( bool bWasTriggeredAutomatically );
-
 private:
 
 	FText GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const;

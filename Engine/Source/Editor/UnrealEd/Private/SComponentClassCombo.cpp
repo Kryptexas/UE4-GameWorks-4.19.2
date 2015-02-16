@@ -8,7 +8,6 @@
 #include "ComponentTypeRegistry.h"
 #include "EditorClassUtils.h"
 #include "Engine/Selection.h"
-#include "HotReloadInterface.h"
 #include "IDocumentation.h"
 #include "KismetEditorUtilities.h"
 #include "SComponentClassCombo.h"
@@ -31,9 +30,6 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 	FComponentTypeRegistry::Get().SubscribeToComponentList(ComponentClassList).AddRaw(this, &SComponentClassCombo::UpdateComponentClassList);
 
 	UpdateComponentClassList();
-
-	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-	HotReloadSupport.OnHotReload().AddSP( this, &SComponentClassCombo::OnProjectHotReloaded );
 
 	SAssignNew(ComponentClassListView, SListView<FComponentClassComboEntryPtr>)
 		.ListItemsSource(&FilteredComponentClassList)
@@ -349,14 +345,6 @@ void SComponentClassCombo::UpdateComponentClassList()
 {
 	GenerateFilteredComponentList(CurrentSearchString.ToString());
 }
-
-void SComponentClassCombo::OnProjectHotReloaded( bool bWasTriggeredAutomatically )
-{
-	UpdateComponentClassList();
-
-	ComponentClassListView->RequestListRefresh();
-}
-
 
 FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const
 {

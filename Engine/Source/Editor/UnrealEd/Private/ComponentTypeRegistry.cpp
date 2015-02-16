@@ -6,6 +6,7 @@
 #include "ComponentTypeRegistry.h"
 #include "EdGraphSchema_K2.h"
 #include "KismetEditorUtilities.h"
+#include "HotReloadInterface.h"
 
 #define LOCTEXT_NAMESPACE "ComponentTypeRegistry"
 
@@ -20,7 +21,6 @@ struct FComponentTypeRegistryData
 	virtual bool IsTickable() const override { return true; }
 	virtual TStatId GetStatId() const { RETURN_QUICK_DECLARE_CYCLE_STAT(FTypeDatabaseUpdater, STATGROUP_Tickables); }
 	/** End implementation of FTickableEditorObject */
-
 	TArray<FComponentClassComboEntryPtr> ComponentClassList;
 	TArray<FComponentTypeEntry> ComponentTypeList;
 	TArray<FAssetData> PendingAssetData;
@@ -364,6 +364,24 @@ FComponentTypeRegistry::FComponentTypeRegistry()
 {
 	Data = new FComponentTypeRegistryData();
 	Data->RefreshComponentList();
+
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	HotReloadSupport.OnHotReload().AddRaw(this, &FComponentTypeRegistry::OnProjectHotReloaded);
+}
+
+FComponentTypeRegistry::~FComponentTypeRegistry()
+{
+	if( FModuleManager::Get().IsModuleLoaded("HotReload") )
+	{
+		IHotReloadInterface& HotReloadSupport = FModuleManager::GetModuleChecked<IHotReloadInterface>("HotReload");
+		HotReloadSupport.OnHotReload().RemoveAll(this);
+	}
+}
+
+void FComponentTypeRegistry::OnProjectHotReloaded( bool bWasTriggeredAutomatically )
+{
+	Data->RefreshComponentList();
+	Data->ComponentListChanged.Broadcast();
 }
 
 #undef LOCTEXT_NAMESPACE
