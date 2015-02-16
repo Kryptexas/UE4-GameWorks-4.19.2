@@ -474,12 +474,12 @@ FStatsThreadState::FStatsThreadState(int32 InHistoryFrames)
 	, MinFrameSeen(-1)
 	, LastFullFrameMetaAndNonFrame(-1)
 	, LastFullFrameProcessed(-1)
-	, CurrentGameFrame(1)
-	, CurrentRenderFrame(1)
 	, MaxNumStatMessages(0)
 	, TotalNumStatMessages(0)
 	, bWasLoaded(false)
 	, bFindMemoryExtensiveStats(false)
+	, CurrentGameFrame(1)
+	, CurrentRenderFrame(1)
 {
 }
 
