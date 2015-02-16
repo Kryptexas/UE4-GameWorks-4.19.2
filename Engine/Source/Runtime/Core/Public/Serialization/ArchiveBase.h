@@ -5,7 +5,7 @@
 #include "Containers/EnumAsByte.h"
 #include "HAL/PlatformProperties.h"
 #include "Misc/Compression.h"
-
+#include "Misc/EngineVersionBase.h"
 
 class FAssetPtr;
 class FCustomVersionContainer;
@@ -547,6 +547,11 @@ public:
 		return ArLicenseeUE4Ver;
 	}
 
+	FORCEINLINE FEngineVersionBase EngineVer() const
+	{
+		return ArEngineVer;
+	}
+
 	/**
 	 * Registers the custom version to the archive.  This is used to inform the archive that custom version information is about to be stored.
 	 * There is no effect when the archive is being loaded from.
@@ -706,7 +711,7 @@ public:
 	}
 
 	/**
-	 * Sets the archive licensee version number. Used by the code that makes sure that ULinkerLoad's 
+	 * Sets the archive version number. Used by the code that makes sure that ULinkerLoad's 
 	 * internal archive versions match the file reader it creates.
 	 *
 	 * @param UE4Ver	new version number
@@ -725,6 +730,17 @@ public:
 	void SetLicenseeUE4Ver(int32 InVer)
 	{
 		ArLicenseeUE4Ver = InVer;
+	}
+
+	/**
+	* Sets the archive engine version. Used by the code that makes sure that ULinkerLoad's
+	* internal archive versions match the file reader it creates.
+	*
+	* @param InVer	new version number
+	*/
+	void SetEngineVer(const FEngineVersionBase& InVer)
+	{
+		ArEngineVer = InVer;
 	}
 
 	/**
@@ -918,6 +934,9 @@ protected:
 	
 	/** Holds the archive version for licensees. */
 	int32 ArLicenseeUE4Ver;
+
+	/** Holds the engine version. */
+	FEngineVersionBase ArEngineVer;
 
 private:
 

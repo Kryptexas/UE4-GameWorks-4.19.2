@@ -831,10 +831,11 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 		}
 
 		// Set status info.
-		ArUE4Ver		= GPackageFileUE4Version;
-		ArLicenseeUE4Ver	= GPackageFileLicenseeUE4Version;
-		ArIsLoading		= true;
-		ArIsPersistent	= true;
+		ArUE4Ver = GPackageFileUE4Version;
+		ArLicenseeUE4Ver = GPackageFileLicenseeUE4Version;
+		ArEngineVer = GEngineVersion;
+		ArIsLoading = true;
+		ArIsPersistent = true;
 
 		// Reset all custom versions
 		ResetCustomVersions();
@@ -972,9 +973,11 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 		// Loader needs to be the same version.
 		Loader->SetUE4Ver(Summary.GetFileVersionUE4());
 		Loader->SetLicenseeUE4Ver(Summary.GetFileVersionLicenseeUE4());
+		Loader->SetEngineVer(Summary.EngineVersion);
 
 		ArUE4Ver = Summary.GetFileVersionUE4();
 		ArLicenseeUE4Ver = Summary.GetFileVersionLicenseeUE4();
+		ArEngineVer = Summary.EngineVersion;
 
 		const FCustomVersionContainer& SummaryVersions = Summary.GetCustomVersionContainer();
 		Loader->SetCustomVersions(SummaryVersions);
