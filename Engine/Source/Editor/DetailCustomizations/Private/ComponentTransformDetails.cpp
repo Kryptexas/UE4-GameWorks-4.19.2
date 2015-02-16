@@ -1204,10 +1204,15 @@ void FComponentTransformDetails::OnSetRotation( float NewValue, bool bCommitted,
 							}
 						}
 
-						AActor* ObjectAsActor = Cast<AActor>( Object );
-						if( ObjectAsActor && !bIsEditingTemplateObject )
+						AActor* EditedActor = Cast<AActor>( Object );
+						if( !EditedActor && SceneComponent )
 						{
-							ObjectAsActor->ReregisterAllComponents();
+							EditedActor = SceneComponent->GetOwner();
+						}
+
+						if( EditedActor && !bIsEditingTemplateObject )
+						{
+							EditedActor->ReregisterAllComponents();
 						}
 
 						// If it's a template, propagate the change out to any current instances of the object
