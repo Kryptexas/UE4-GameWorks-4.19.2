@@ -78,7 +78,7 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 				EngineVersionComponents++;
 			}
 
-			/*const FXmlNode* Parameter8Node = ProblemSignaturesNode->FindChildNode( TEXT( "Parameter8" ) );
+			const FXmlNode* Parameter8Node = ProblemSignaturesNode->FindChildNode( TEXT( "Parameter8" ) );
 			if( Parameter8Node )
 			{
 				const FString Parameter8Value = Parameter8Node->GetContent();
@@ -95,7 +95,7 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 				{
 					ErrorMessage.Add( ParsedParameters8[2] );
 				}
-			}*/
+			}
 
 			const FXmlNode* Parameter9Node = ProblemSignaturesNode->FindChildNode( TEXT( "Parameter9" ) );
 			if( Parameter9Node )

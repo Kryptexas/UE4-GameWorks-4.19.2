@@ -72,6 +72,19 @@ FReply FCrashReportClient::Submit()
 	return FReply::Handled();
 }
 
+FReply FCrashReportClient::SubmitAndRestart()
+{
+	Submit();
+
+	const FString CrashedAppPath = ErrorReport.FindCrashedAppPath();
+	const FCrashDescription& CrashDescription = GetCrashDescription();
+	const FString CommandLineArguments = CrashDescription.CommandLine;
+
+	FPlatformProcess::CreateProc(*CrashedAppPath, *CommandLineArguments, true, false, false, NULL, 0, NULL, NULL);
+
+	return FReply::Handled();
+}
+
 FReply FCrashReportClient::CopyCallstack()
 {
 	FPlatformMisc::ClipboardCopy(*DiagnosticText.ToString());

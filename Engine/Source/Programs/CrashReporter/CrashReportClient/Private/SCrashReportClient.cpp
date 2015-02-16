@@ -24,10 +24,6 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 {
 	CrashReportClient = Client;
 
-	TSharedPtr<SScrollBar> HiddenScrollbar;
-	SAssignNew( HiddenScrollbar, SScrollBar );
-	HiddenScrollbar->SetVisibility( EVisibility::Collapsed );
-
 	auto CrashedAppName = CrashReportClient->GetCrashedAppName();
 
 	// Set the text displaying the name of the crashed app, if available
@@ -87,86 +83,93 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 			]
 
 			+SVerticalBox::Slot()
-			.FillHeight(0.3f)
-			.Padding( FMargin( 4, 10, 4, 4 ) )
+			.Padding(FMargin(4, 10, 4, 4))
 			[
-				SNew( SOverlay )
-
-				+ SOverlay::Slot()
+				SNew(SSplitter)
+				.Orientation(Orient_Vertical)
+				+SSplitter::Slot()
+				.Value(0.3f)
 				[
-					SAssignNew( CrashDetailsInformation, SMultiLineEditableTextBox )
-					.Style( &FCrashReportClientStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>( "NormalEditableTextBox" ) )
-					.OnTextCommitted( CrashReportClient.ToSharedRef(), &FCrashReportClient::UserCommentChanged )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 9 ) )
-					.AutoWrapText( true )
-					.BackgroundColor( FSlateColor( FLinearColor::Black ) )
-					.ForegroundColor( FSlateColor( FLinearColor::White * 0.8f ) )
+					SNew( SOverlay )
+					+ SOverlay::Slot()
+					[
+						SAssignNew( CrashDetailsInformation, SMultiLineEditableTextBox )
+						.Style( &FCrashReportClientStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>( "NormalEditableTextBox" ) )
+						.OnTextCommitted( CrashReportClient.ToSharedRef(), &FCrashReportClient::UserCommentChanged )
+						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 9 ) )
+						.AutoWrapText( true )
+						.BackgroundColor( FSlateColor( FLinearColor::Black ) )
+						.ForegroundColor( FSlateColor( FLinearColor::White * 0.8f ) )
+					]
+
+					// HintText is not implemented in SMultiLineEditableTextBox, so this is a workaround.
+					+ SOverlay::Slot()
+					[
+						SNew(STextBlock)
+						.Margin( FMargin(4,2,0,0) )
+						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Testing/Fonts/Roboto-Italic.ttf" ), 9 ) )
+						.ColorAndOpacity( FSlateColor( FLinearColor::White * 0.5f ) )
+						.Text( LOCTEXT( "CrashProvide", "Please provide detailed information about what you were doing when the crash occurred." ) )
+						.Visibility( this, &SCrashReportClient::IsHintTextVisible )
+					]	
 				]
 
-				// HintText is not implemented in SMultiLineEditableTextBox, so this is a workaround.
-				+ SOverlay::Slot()
-				
+				+SSplitter::Slot()
+				.Value(0.7f)
 				[
-					SNew(STextBlock)
-					.Margin( FMargin(4,2,0,0) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Testing/Fonts/Roboto-Italic.ttf" ), 9 ) )
-					.ColorAndOpacity( FSlateColor( FLinearColor::White * 0.5f ) )
-					.Text( LOCTEXT( "CrashProvide", "Please provide detailed information about what you were doing when the crash occurred." ) )
-					.Visibility( this, &SCrashReportClient::IsHintTextVisible )
-				]	
-			]
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(FMargin(4, 10, 4, 0))
+					[
+						SNew(SOverlay)
 
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding( FMargin( 4, 10, 4, 0 ) )
-			[
-				SNew( SOverlay )
+						+ SOverlay::Slot()			
+						[
+							SNew(SColorBlock)
+							.Color(FLinearColor::Black)
+						]
 
-				+ SOverlay::Slot()			
-				[
-					SNew( SColorBlock )
-					.Color( FLinearColor::Black )
-				]
+						+ SOverlay::Slot()
+						[
+							SNew(STextBlock)
+							.Margin(FMargin(4, 2, 0, 8))
+							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Testing/Fonts/Roboto-Italic.ttf"), 9))
+							.Text(LOCTEXT("CrashReportData", "Crash report data:"))
+							.ColorAndOpacity(FSlateColor(FLinearColor::White * 0.5f))
+							.AutoWrapText(false)
+						]
+					]
 
-				+ SOverlay::Slot()
-				[
-					SNew( STextBlock )
-					.Margin( FMargin( 4, 2, 0, 8 ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Testing/Fonts/Roboto-Italic.ttf" ), 9 ) )
-					.Text( LOCTEXT( "CrashReportData", "Crash report data:" ) )
-					.ColorAndOpacity( FSlateColor( FLinearColor::White * 0.5f ) )
-					.AutoWrapText( false )
-				]
-			]
-
-			+SVerticalBox::Slot()
-			.FillHeight(0.7f)
-			.Padding( FMargin( 4, 0 ) )
-			[
-				SNew(SOverlay)
+					+ SVerticalBox::Slot()
+					.FillHeight(0.7f)
+					.Padding(FMargin(4, 0))
+					[
+						SNew(SOverlay)
 		
-				+SOverlay::Slot()
-				[
-					SNew( SMultiLineEditableTextBox )
-					.Style( &FCrashReportClientStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>( "NormalEditableTextBox" ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 8 ) )
-					.AutoWrapText( false )
-					.IsReadOnly( true )
-					.ReadOnlyForegroundColor( FSlateColor( FLinearColor::Black ) )
-					.BackgroundColor( FSlateColor( FLinearColor::Black ) )
-					.ForegroundColor( FSlateColor( FLinearColor::White * 0.8f ) )
-					.Text( Client, &FCrashReportClient::GetDiagnosticText )
-					.HScrollBar( HiddenScrollbar )
-				]
+						+ SOverlay::Slot()
+						[
+							SNew( SMultiLineEditableTextBox )
+							.Style( &FCrashReportClientStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>( "NormalEditableTextBox" ) )
+							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 8 ) )
+							.AutoWrapText( false )
+							.IsReadOnly( true )
+							.ReadOnlyForegroundColor( FSlateColor( FLinearColor::Black ) )
+							.BackgroundColor( FSlateColor( FLinearColor::Black ) )
+							.ForegroundColor( FSlateColor( FLinearColor::White * 0.8f ) )
+							.Text( Client, &FCrashReportClient::GetDiagnosticText )
+						]
 
 
-				+SOverlay::Slot()
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SThrobber)
-					.Visibility(CrashReportClient.ToSharedRef(), &FCrashReportClient::IsThrobberVisible)
-					.NumPieces(5)
+						+ SOverlay::Slot()
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						[
+							SNew(SThrobber)
+							.Visibility(CrashReportClient.ToSharedRef(), &FCrashReportClient::IsThrobberVisible)
+							.NumPieces(5)
+						]
+					]
 				]
 			]
 
@@ -209,6 +212,18 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 				.Padding(0)
 				[			
 					SNew(SSpacer)
+				]
+
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding( FMargin(6) )
+				[
+					SNew(SButton)
+					.ContentPadding( FMargin(8,2) )
+					.Text(LOCTEXT("SendAndRestartEditor", "Send and Restart Editor"))
+					.OnClicked(Client, &FCrashReportClient::SubmitAndRestart)
 				]
 
 				+SHorizontalBox::Slot()

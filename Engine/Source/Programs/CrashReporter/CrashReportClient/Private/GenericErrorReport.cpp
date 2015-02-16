@@ -224,7 +224,18 @@ bool FGenericErrorReport::FindFirstReportFileWithExtension(FString& OutFilename,
 
 FString FGenericErrorReport::FindCrashedAppName() const
 {
-	UE_LOG( LogTemp, Warning, TEXT( "FGenericPlatformMemory::Init not implemented on this platform" ) );
-	return FString( TEXT( "GenericAppName" ) );
+	FString AppPath = FindCrashedAppPath();
+	if (!AppPath.IsEmpty())
+	{
+		return FPaths::GetCleanFilename(AppPath);
+	}
+
+	return AppPath;
+}
+
+FString FGenericErrorReport::FindCrashedAppPath() const
+{
+	UE_LOG( LogTemp, Warning, TEXT( "FGenericErrorReport::FindCrashedAppPath not implemented on this platform" ) );
+	return FString( TEXT( "GenericAppPath" ) );
 }
 

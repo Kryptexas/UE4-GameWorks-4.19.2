@@ -73,6 +73,11 @@ void FWindowsErrorReport::ShutDown()
 	CrashHelperModule->ShutdownModule();
 }
 
+FString FWindowsErrorReport::FindCrashedAppPath() const
+{
+	return FWindowsReportParser::Find(ReportDirectory, TEXT("AppPath="));
+}
+
 FText FWindowsErrorReport::DiagnoseReport() const
 {
 	// Should check if there are local PDBs before doing anything

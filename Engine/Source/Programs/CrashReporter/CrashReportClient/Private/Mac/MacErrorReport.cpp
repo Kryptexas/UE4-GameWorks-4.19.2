@@ -29,7 +29,7 @@ void FMacErrorReport::ShutDown()
 	CrashHelperModule->ShutdownModule();
 }
 
-FString FMacErrorReport::FindCrashedAppName() const
+FString FMacErrorReport::FindCrashedAppPath() const
 {
 	TArray<uint8> Data;
 	if(FFileHelper::LoadFileToArray(Data, *(ReportDirectory / TEXT("Report.wer"))))
@@ -53,7 +53,7 @@ FString FMacErrorReport::FindCrashedAppName() const
 			{
 				PathData = PathData.Left(LineEnd);
 			}
-			return FPaths::GetCleanFilename(PathData);
+			return PathData;
 		}
 	}
 	else

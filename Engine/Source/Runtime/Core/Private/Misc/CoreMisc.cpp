@@ -545,6 +545,7 @@ bool FFileHelper::LoadANSITextFileToStrings(const TCHAR* InFilename, IFileManage
 
 bool FCommandLine::bIsInitialized = false;
 TCHAR FCommandLine::CmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
+TCHAR FCommandLine::OriginalCmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
 FString FCommandLine::SubprocessCommandLine(TEXT(" -Multiprocess"));
 
 bool FCommandLine::IsInitialized()
@@ -558,8 +559,19 @@ const TCHAR* FCommandLine::Get()
 	return CmdLine;
 }
 
+const TCHAR* FCommandLine::GetOriginal()
+{
+	UE_CLOG(!bIsInitialized, LogInit, Fatal, TEXT("Attempting to get the command line but it hasn't been initialized yet."));
+	return OriginalCmdLine;
+}
+
 bool FCommandLine::Set(const TCHAR* NewCommandLine)
-{		
+{
+	if (!bIsInitialized)
+	{
+		FCString::Strncpy(OriginalCmdLine, NewCommandLine, ARRAY_COUNT(CmdLine));
+	}
+
 	FCString::Strncpy( CmdLine, NewCommandLine, ARRAY_COUNT(CmdLine) );
 	bIsInitialized = true;
 
