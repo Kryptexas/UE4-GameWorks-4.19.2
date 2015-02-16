@@ -226,65 +226,131 @@ void FBlackboardKeySelector::InitSelectedKey(UBlackboardData* BlackboardAsset)
 
 void FBlackboardKeySelector::AddObjectFilter(UObject* Owner, TSubclassOf<UObject> AllowedClass)
 {
-	UBlackboardKeyType_Object* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Object>(TEXT("BlackboardKeyType_Object"));
-	FilterOb->BaseClass = AllowedClass;
-	AllowedTypes.Add(FilterOb);
+	AddObjectFilter(Owner, TEXT("BlackboardKeyType"), AllowedClass);
 }
 
 void FBlackboardKeySelector::AddClassFilter(UObject* Owner, TSubclassOf<UClass> AllowedClass)
 {
-	UBlackboardKeyType_Class* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Class>(TEXT("BlackboardKeyType_Class"));
-	FilterOb->BaseClass = AllowedClass;
-	AllowedTypes.Add(FilterOb);
+	AddClassFilter(Owner, TEXT("BlackboardKeyType"), AllowedClass);
 }
 
 void FBlackboardKeySelector::AddEnumFilter(UObject* Owner, UEnum* AllowedEnum)
 {
-	UBlackboardKeyType_Enum* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Enum>(TEXT("BlackboardKeyType_Enum"));
-	FilterOb->EnumType = AllowedEnum;
-	AllowedTypes.Add(FilterOb);
+	AddEnumFilter(Owner, TEXT("BlackboardKeyType"), AllowedEnum);
 }
 
 void FBlackboardKeySelector::AddNativeEnumFilter(UObject* Owner, const FString& AllowedEnumName)
 {
-	UBlackboardKeyType_NativeEnum* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_NativeEnum>(TEXT("BlackboardKeyType_NativeEnum"));
-	FilterOb->EnumName = AllowedEnumName;
-	AllowedTypes.Add(FilterOb);
+	AddNativeEnumFilter(Owner, TEXT("BlackboardKeyType"), AllowedEnumName);
 }
 
 void FBlackboardKeySelector::AddIntFilter(UObject* Owner)
 {
-	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Int>(TEXT("BlackboardKeyType_Int")));
+	AddIntFilter(Owner, TEXT("BlackboardKeyType"));
 }
 
 void FBlackboardKeySelector::AddFloatFilter(UObject* Owner)
 {
-	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Float>(TEXT("BlackboardKeyType_Float")));
+	AddFloatFilter(Owner, TEXT("BlackboardKeyType"));
 }
 
 void FBlackboardKeySelector::AddBoolFilter(UObject* Owner)
 {
-	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Bool>(TEXT("BlackboardKeyType_Bool")));
+	AddBoolFilter(Owner, TEXT("BlackboardKeyType"));
 }
 
 void FBlackboardKeySelector::AddVectorFilter(UObject* Owner)
 {
-	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Vector>(TEXT("BlackboardKeyType_Vector")));
+	AddVectorFilter(Owner, TEXT("BlackboardKeyType"));
 }
 
 void FBlackboardKeySelector::AddRotatorFilter(UObject* Owner)
 {
-	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Rotator>(TEXT("BlackboardKeyType_Rotator")));
+	AddRotatorFilter(Owner, TEXT("BlackboardKeyType"));
 }
 
 void FBlackboardKeySelector::AddStringFilter(UObject* Owner)
 {
-	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_String>(TEXT("BlackboardKeyType_String")));
+	AddStringFilter(Owner, TEXT("BlackboardKeyType"));
 }
 
 void FBlackboardKeySelector::AddNameFilter(UObject* Owner)
 {
-	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Name>(TEXT("BlackboardKeyType_Name")));
+	AddNameFilter(Owner, TEXT("BlackboardKeyType"));
+}
+
+void FBlackboardKeySelector::AddObjectFilter(UObject* Owner, FName PropertyName, TSubclassOf<UObject> AllowedClass)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Object");
+	UBlackboardKeyType_Object* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Object>(*FilterName);
+	FilterOb->BaseClass = AllowedClass;
+	AllowedTypes.Add(FilterOb);
+}
+
+void FBlackboardKeySelector::AddClassFilter(UObject* Owner, FName PropertyName, TSubclassOf<UClass> AllowedClass)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Class");
+	UBlackboardKeyType_Class* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Class>(*FilterName);
+	FilterOb->BaseClass = AllowedClass;
+	AllowedTypes.Add(FilterOb);
+}
+
+void FBlackboardKeySelector::AddEnumFilter(UObject* Owner, FName PropertyName, UEnum* AllowedEnum)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Enum");
+	UBlackboardKeyType_Enum* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_Enum>(*FilterName);
+	FilterOb->EnumType = AllowedEnum;
+	AllowedTypes.Add(FilterOb);
+}
+
+void FBlackboardKeySelector::AddNativeEnumFilter(UObject* Owner, FName PropertyName, const FString& AllowedEnumName)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_NativeEnum");
+	UBlackboardKeyType_NativeEnum* FilterOb = Owner->CreateDefaultSubobject<UBlackboardKeyType_NativeEnum>(*FilterName);
+	FilterOb->EnumName = AllowedEnumName;
+	AllowedTypes.Add(FilterOb);
+}
+
+void FBlackboardKeySelector::AddIntFilter(UObject* Owner, FName PropertyName)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Int");
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Int>(*FilterName));
+}
+
+void FBlackboardKeySelector::AddFloatFilter(UObject* Owner, FName PropertyName)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Float");
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Float>(*FilterName));
+}
+
+void FBlackboardKeySelector::AddBoolFilter(UObject* Owner, FName PropertyName)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Bool");
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Bool>(*FilterName));
+}
+
+void FBlackboardKeySelector::AddVectorFilter(UObject* Owner, FName PropertyName)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Vector");
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Vector>(*FilterName));
+}
+
+void FBlackboardKeySelector::AddRotatorFilter(UObject* Owner, FName PropertyName)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Rotator");
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Rotator>(*FilterName));
+}
+
+void FBlackboardKeySelector::AddStringFilter(UObject* Owner, FName PropertyName)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_String");
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_String>(*FilterName));
+}
+
+void FBlackboardKeySelector::AddNameFilter(UObject* Owner, FName PropertyName)
+{
+	const FString FilterName = PropertyName.ToString() + TEXT("_Name");
+	AllowedTypes.Add(Owner->CreateDefaultSubobject<UBlackboardKeyType_Name>(*FilterName));
 }
 
 //----------------------------------------------------------------------//

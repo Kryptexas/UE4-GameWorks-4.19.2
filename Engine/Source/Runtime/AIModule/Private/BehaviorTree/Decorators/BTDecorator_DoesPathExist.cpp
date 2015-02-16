@@ -12,10 +12,10 @@ UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const FObjectInitializer&
 	NodeName = "Does path exist";
 
 	// accept only actors and vectors
-	BlackboardKeyA.AddObjectFilter(this, AActor::StaticClass());
-	BlackboardKeyA.AddVectorFilter(this);
-	BlackboardKeyB.AddObjectFilter(this, AActor::StaticClass());
-	BlackboardKeyB.AddVectorFilter(this);
+	BlackboardKeyA.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_DoesPathExist, BlackboardKeyA), AActor::StaticClass());
+	BlackboardKeyA.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_DoesPathExist, BlackboardKeyA));
+	BlackboardKeyB.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_DoesPathExist, BlackboardKeyB), AActor::StaticClass());
+	BlackboardKeyB.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_DoesPathExist, BlackboardKeyB));
 
 	bAllowAbortLowerPri = false;
 	bAllowAbortNone = true;

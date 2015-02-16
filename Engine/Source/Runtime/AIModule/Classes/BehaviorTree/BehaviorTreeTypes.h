@@ -467,16 +467,39 @@ public:
 	FORCEINLINE FBlackboard::FKey GetSelectedKeyID() const { return SelectedKeyID; }
 
 	/** helper functions for setting basic filters */
+	void AddObjectFilter(UObject* Owner, FName PropertyName, TSubclassOf<UObject> AllowedClass);
+	void AddClassFilter(UObject* Owner, FName PropertyName, TSubclassOf<UClass> AllowedClass);
+	void AddEnumFilter(UObject* Owner, FName PropertyName, UEnum* AllowedEnum);
+	void AddNativeEnumFilter(UObject* Owner, FName PropertyName, const FString& AllowedEnumName);
+	void AddIntFilter(UObject* Owner, FName PropertyName);
+	void AddFloatFilter(UObject* Owner, FName PropertyName);
+	void AddBoolFilter(UObject* Owner, FName PropertyName);
+	void AddVectorFilter(UObject* Owner, FName PropertyName);
+	void AddRotatorFilter(UObject* Owner, FName PropertyName);
+	void AddStringFilter(UObject* Owner, FName PropertyName);
+	void AddNameFilter(UObject* Owner, FName PropertyName);
+
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddObjectFilter(UObject* Owner, TSubclassOf<UObject> AllowedClass);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddClassFilter(UObject* Owner, TSubclassOf<UClass> AllowedClass);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddEnumFilter(UObject* Owner, UEnum* AllowedEnum);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddNativeEnumFilter(UObject* Owner, const FString& AllowedEnumName);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddIntFilter(UObject* Owner);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddFloatFilter(UObject* Owner);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddBoolFilter(UObject* Owner);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddVectorFilter(UObject* Owner);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddRotatorFilter(UObject* Owner);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddStringFilter(UObject* Owner);
+	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddNameFilter(UObject* Owner);
 
 	FORCEINLINE bool IsNone() const { return bNoneIsAllowedValue && SelectedKeyID == FBlackboard::InvalidKey; }

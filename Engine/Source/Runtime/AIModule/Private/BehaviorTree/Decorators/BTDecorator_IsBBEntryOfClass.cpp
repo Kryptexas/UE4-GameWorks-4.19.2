@@ -8,7 +8,7 @@ UBTDecorator_IsBBEntryOfClass::UBTDecorator_IsBBEntryOfClass(const FObjectInitia
 {
 	NodeName = TEXT("Is BlackBoard value of given Class");
 	
-	BlackboardKey.AddObjectFilter(this, UObject::StaticClass());
+	BlackboardKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_IsBBEntryOfClass, BlackboardKey), UObject::StaticClass());
 }
 
 // @todo refactor CalculateRawConditionValue to take const UBlackboardComponent& instead

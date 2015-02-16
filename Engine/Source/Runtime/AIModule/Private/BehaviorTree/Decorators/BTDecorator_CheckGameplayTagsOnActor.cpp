@@ -10,7 +10,7 @@ UBTDecorator_CheckGameplayTagsOnActor::UBTDecorator_CheckGameplayTagsOnActor(con
 	NodeName = "Gameplay Tag Condition";
 
 	// Accept only actors
-	ActorToCheck.AddObjectFilter(this, AActor::StaticClass());
+	ActorToCheck.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_CheckGameplayTagsOnActor, ActorToCheck), AActor::StaticClass());
 
 	// Default to using Self Actor
 	ActorToCheck.SelectedKeyName = FBlackboard::KeySelf;
