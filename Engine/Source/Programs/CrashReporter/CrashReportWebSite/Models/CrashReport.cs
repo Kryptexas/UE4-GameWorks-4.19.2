@@ -82,6 +82,22 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary></summary>
 		public SortedSet<string> AffectedBuilds { get; set; }
 
+
+		/// <summary></summary>
+		public string JiraSummary { get; set; }
+
+		/// <summary></summary>
+		public string JiraComponentsText { get; set; }
+
+		/// <summary></summary>
+		public string JiraResolution { get; set; }
+
+		/// <summary></summary>
+		public string JiraFixVersionsText { get; set; }
+
+		/// <summary></summary>
+		public string JiraFixCL { get; set; }
+
 		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
 		public override string ToString()
 		{

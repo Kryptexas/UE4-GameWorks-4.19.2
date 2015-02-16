@@ -54,9 +54,11 @@ NewBugg.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected
 NewBugg.TimeOfFirstCrash = RealBugg.TimeOfFirstCrash;	// First Crash Timestamp	
 
 #From XML JIRA	
-FixVersion
-Status
-FixedCL
+public string JiraSummary { get; set; }
+public string JiraComponentsText { get; set; }
+public string JiraResolution { get; set; }
+public string JiraFixVersionsText { get; set; }
+public int JiraFixCL { get; set; }
 
 
 --%>
@@ -91,6 +93,23 @@ FixedCL
 		</th>
 		<th>
 			First Crash Timestamp
+		</th>
+
+		<%--JIRA--%>
+		<th>
+			JiraSummary
+		</th>
+		<th>
+			JiraComponentsText
+		</th>
+		<th>
+			JiraResolution
+		</th>
+		<th>
+			JiraFixVersionsText
+		</th>
+		<th>
+			JiraFixCL
 		</th>
 	</tr>
 
@@ -140,6 +159,23 @@ FixedCL
 		<td>
 			<%--NewBugg.TimeOfFirstCrash = RealBugg.TimeOfFirstCrash;	// First Crash Timestamp	--%>
 			<%=Bugg.TimeOfFirstCrash%>
+		</td>
+
+		<%--JIRA--%>
+		<td style="max-width: 256px;">
+			<%=Bugg.JiraSummary%>
+		</td>
+		<td>
+			<%=Bugg.JiraComponentsText%>
+		</td>
+		<td>
+			<%=Bugg.JiraResolution%>
+		</td>
+		<td>
+			<%=Bugg.JiraFixVersionsText%>
+		</td>
+		<td>
+			<%=Bugg.JiraFixCL%>
 		</td>
 	</tr>
 	<%
