@@ -50,9 +50,18 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
 		Args.ComponentNameOverride = LOCTEXT("BasicCubeShapeDisplayName", "Cube").ToString();
 		Args.IconOverrideBrushName = FName("ClassIcon.Cube");
+		Args.SortPriority = 2;
 
-		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
-		SortedClassList.Add(NewShape);
+		{
+			FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
+			SortedClassList.Add(NewShape);
+		}
+
+		{
+			//Cube also goes in the common group
+			FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(CommonClassGroup, UStaticMeshComponent::StaticClass(), false, EComponentCreateAction::SpawnExistingClass, Args));
+			SortedClassList.Add(NewShape);
+		}
 	}
 
 	{
@@ -61,9 +70,17 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
 		Args.ComponentNameOverride = LOCTEXT("BasicSphereShapeDisplayName", "Sphere").ToString();
 		Args.IconOverrideBrushName = FName("ClassIcon.Sphere");
+		Args.SortPriority = 2;
+		{
+			FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
+			SortedClassList.Add(NewShape);
+		}
 
-		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
-		SortedClassList.Add(NewShape);
+		{
+			// Sphere also goes in the common group
+			FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(CommonClassGroup, UStaticMeshComponent::StaticClass(), false, EComponentCreateAction::SpawnExistingClass, Args));
+			SortedClassList.Add(NewShape);
+		}
 	}
 
 	{
@@ -72,7 +89,7 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
 		Args.ComponentNameOverride = LOCTEXT("BasicCylinderShapeDisplayName", "Cylinder").ToString();
 		Args.IconOverrideBrushName = FName("ClassIcon.Cylinder");
-
+		Args.SortPriority = 3;
 		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
 		SortedClassList.Add(NewShape);
 	}
@@ -83,7 +100,7 @@ static void AddBasicShapeComponents(TArray<FComponentClassComboEntryPtr>& Sorted
 		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
 		Args.ComponentNameOverride = LOCTEXT("BasicConeShapeDisplayName", "Cone").ToString();
 		Args.IconOverrideBrushName = FName("ClassIcon.Cone");
-
+		Args.SortPriority = 4;
 		FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
 		SortedClassList.Add(NewShape);
 	}
@@ -122,7 +139,14 @@ void FComponentTypeRegistryData::RefreshComponentList()
 			int32 HeadingCompareResult = FCString::Stricmp(*A->GetHeadingText(), *B->GetHeadingText());
 			if (HeadingCompareResult == 0)
 			{
-				bResult = FCString::Stricmp(*A->GetClassName(), *B->GetClassName()) < 0;
+				if( A->GetSortPriority() == 0 && B->GetSortPriority() == 0 )
+				{
+					bResult = FCString::Stricmp(*A->GetClassName(), *B->GetClassName()) < 0;
+				}
+				else
+				{
+					bResult = A->GetSortPriority() < B->GetSortPriority();
+				}
 			}
 			else if (CommonClassGroup == A->GetHeadingText())
 			{
@@ -161,6 +185,9 @@ void FComponentTypeRegistryData::RefreshComponentList()
 	}
 
 	TArray<FComponentClassComboEntryPtr> SortedClassList;
+
+	AddBasicShapeComponents(SortedClassList);
+
 	TArray<FName> InMemoryClasses;
 	for (TObjectIterator<UClass> It; It; ++It)
 	{
@@ -195,7 +222,6 @@ void FComponentTypeRegistryData::RefreshComponentList()
 		}
 	}
 
-	AddBasicShapeComponents(SortedClassList);
 
 	{
 		// make sure that we add any user created classes immediately, generally this will not create anything (because assets have not been discovered yet), but asset discovery
