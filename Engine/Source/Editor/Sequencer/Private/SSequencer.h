@@ -57,14 +57,10 @@ public:
 		SLATE_ATTRIBUTE( TRange<float>, ViewRange )
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
-		/** Whether the clean sequencer view is enabled */
-		SLATE_ATTRIBUTE( bool, CleanViewEnabled )
 		/** Called when the user changes the view range */
 		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
 		/** Called when the user changes the scrub position */
 		SLATE_EVENT( FOnScrubPositionChanged, OnScrubPositionChanged )
-		/** Called when the user toggles auto-key */
-		SLATE_EVENT( FOnToggleBoolOption, OnToggleCleanView )
 	SLATE_END_ARGS()
 
 
@@ -100,33 +96,33 @@ private:
 
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();
-	
-	/** @return The visibility of the clean view button */
-	EVisibility OnGetCleanViewVisibility() const;
+
+	/** Makes the curve editor menu for the toolbar. */
+	TSharedRef<SWidget> MakeCurveEditorMenu();
 
 	/**
-	 * @return The state of the auto-key check box
-	 */
-	ECheckBoxState OnGetCleanViewCheckState() const;
-	
-	/**
-	 * Called when the auto-key checkbox state changes
-	 * 
-	 * @param InState	The new state
-	 */
-	void OnCleanViewChecked( ECheckBoxState InState );	
-
-	/**
-	* @return The value of the current snap interval.
+	* @return The value of the current time snap interval.
 	*/
-	TOptional<float> OnGetSnapInterval() const;
+	float OnGetTimeSnapInterval() const;
 
 	/**
-	* Called when the snap interval slider changes.
+	* Called when the time snap interval changes.
 	*
-	* @param InInterval	The new snap interval
+	* @param InInterval	The new time snap interval
 	*/
-	void OnSnapIntervalChanged(float InInterval);
+	void OnTimeSnapIntervalChanged(float InInterval);
+
+	/**
+	* @return The value of the current value snap interval.
+	*/
+	float OnGetValueSnapInterval() const;
+
+	/**
+	* Called when the value snap interval changes.
+	*
+	* @param InInterval	The new value snap interval
+	*/
+	void OnValueSnapIntervalChanged( float InInterval );
 
 	/**
 	 * Called when the outliner search terms change                                                              
@@ -194,6 +190,12 @@ private:
 	/** Gets the title of the passed in shot section */
 	FText GetShotSectionTitle(UMovieSceneSection* ShotSection) const;
 
+	/** Gets whether or not the breadcrumb trail should be visible. */
+	EVisibility GetBreadcrumbTrailVisibility() const;
+
+	/** Gets whether or not the curve editor toolbar should be visibe. */
+	EVisibility GetCurveEditorToolBarVisibility() const;
+
 private:
 	/** Section area widget */
 	TSharedPtr<class SSequencerTrackArea> TrackArea;
@@ -201,10 +203,8 @@ private:
 	TSharedPtr<class FSequencerNodeTree> SequencerNodeTree;
 	/** The breadcrumb trail widget for this sequencer */
 	TSharedPtr< class SBreadcrumbTrail<FSequencerBreadcrumb> > BreadcrumbTrail;
-	/** Delegate to call when clean view is toggled */
-	FOnToggleBoolOption OnToggleCleanView;
-	/** Whether the clean sequencer view is enabled */
-	TAttribute<bool> CleanViewEnabled;
+	/** Whether or not the breadcrumb trail should be shown. */
+	TAttribute<bool> bShowBreadcrumbTrail;
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
 

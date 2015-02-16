@@ -339,7 +339,7 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 					// always draw selected keys on top of other keys
 					bSelected ? KeyLayer+1 : KeyLayer,
 					// Center the key along Y.  Ensure the middle of the key is at the actual key time
-					KeyAreaGeometry.ToPaintGeometry( FVector2D( KeyPosition - FMath::TruncToFloat(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ), SequencerSectionConstants::KeySize ),
+					KeyAreaGeometry.ToPaintGeometry( FVector2D( KeyPosition - FMath::CeilToFloat(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ), SequencerSectionConstants::KeySize ),
 					KeyBrush,
 					MyClippingRect,
 					ESlateDrawEffect::None,

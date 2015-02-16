@@ -102,7 +102,7 @@ public:
 		return FText::GetEmpty();
 	}
 
-	virtual void OnCurveChanged() override
+	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override
 	{
 	}
 

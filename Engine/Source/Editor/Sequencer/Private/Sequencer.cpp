@@ -75,10 +75,8 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 		SequencerWidget = SNew( SSequencer, SharedThis( this ) )
 			.ViewRange( this, &FSequencer::OnGetViewRange )
 			.ScrubPosition( this, &FSequencer::OnGetScrubPosition )
-			.CleanViewEnabled( this, &FSequencer::IsUsingCleanView )
 			.OnScrubPositionChanged( this, &FSequencer::OnScrubPositionChanged )
-			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged, false )
-			.OnToggleCleanView( this, &FSequencer::OnToggleCleanView );
+			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged, false );
 
 		// When undo occurs, get a notification so we can make sure our view is up to date
 		GEditor->RegisterForUndo(this);
@@ -133,7 +131,6 @@ FSequencer::FSequencer()
 	, LastViewRange(0.f, 5.f)
 	, PlaybackState( EMovieScenePlayerStatus::Stopped )
 	, ScrubPosition( 0.0f )
-	, bCleanViewEnabled( false )
 	, bLoopingEnabled( false )
 	, bAllowAutoKey( false )
 	, bPerspectiveViewportPossessionEnabled( true )
@@ -892,13 +889,6 @@ void FSequencer::OnToggleAutoKey()
 	bAllowAutoKey = !bAllowAutoKey;
 }
 
-void FSequencer::OnToggleCleanView( bool bInCleanViewEnabled )
-{
-	bCleanViewEnabled = bInCleanViewEnabled;
-}
-
-
-
 FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* CounterpartGamePreviewObject )
 {
 	FGuid NewSpawnableGuid;
@@ -1322,11 +1312,6 @@ bool FSequencer::IsShotFilteringOn() const
 	return FilteringShots.Num() > 0;
 }
 
-bool FSequencer::IsUsingCleanView() const
-{
-	return bCleanViewEnabled;
-}
-
 float FSequencer::GetOverlayFadeCurve() const
 {
 	return OverlayCurve.GetLerp();
@@ -1399,7 +1384,7 @@ void FSequencer::BindSequencerCommands()
 		Commands.SetKey,
 		FExecuteAction::CreateSP( this, &FSequencer::SetKey ) );
 
-	USequencerSnapSettings* SnapSettings = GetMutableDefault<USequencerSnapSettings>();
+	USequencerSettings* Settings = GetMutableDefault<USequencerSettings>();
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleAutoKeyEnabled,
@@ -1408,40 +1393,82 @@ void FSequencer::BindSequencerCommands()
 		FIsActionChecked::CreateSP( this, &FSequencer::OnGetAllowAutoKey ) );
 
 	SequencerCommandBindings->MapAction(
+		Commands.ToggleCleanView,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetIsUsingCleanView( !Settings->GetIsUsingCleanView() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetIsUsingCleanView(); } ) );
+
+	SequencerCommandBindings->MapAction(
 		Commands.ToggleIsSnapEnabled,
-		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetIsSnapEnabled( !SnapSettings->GetIsSnapEnabled() ); } ),
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetIsSnapEnabled( !Settings->GetIsSnapEnabled() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetIsSnapEnabled(); } ) );
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetIsSnapEnabled(); } ) );
 
 	SequencerCommandBindings->MapAction(
-		Commands.ToggleSnapKeysToInterval,
-		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapKeysToInterval( !SnapSettings->GetSnapKeysToInterval() ); } ),
+		Commands.ToggleSnapKeyTimesToInterval,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetSnapKeyTimesToInterval( !Settings->GetSnapKeyTimesToInterval() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapKeysToInterval(); } ) );
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetSnapKeyTimesToInterval(); } ) );
 
 	SequencerCommandBindings->MapAction(
-		Commands.ToggleSnapKeysToKeys,
-		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapKeysToKeys( !SnapSettings->GetSnapKeysToKeys() ); } ),
+		Commands.ToggleSnapKeyTimesToKeys,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetSnapKeyTimesToKeys( !Settings->GetSnapKeyTimesToKeys() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapKeysToKeys(); } ) );
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetSnapKeyTimesToKeys(); } ) );
 
 	SequencerCommandBindings->MapAction(
-		Commands.ToggleSnapSectionsToInterval,
-		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapSectionsToInterval( !SnapSettings->GetSnapSectionsToInterval() ); } ),
+		Commands.ToggleSnapSectionTimesToInterval,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetSnapSectionTimesToInterval( !Settings->GetSnapSectionTimesToInterval() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapSectionsToInterval(); } ) );
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetSnapSectionTimesToInterval(); } ) );
 
 	SequencerCommandBindings->MapAction(
-		Commands.ToggleSnapSectionsToSections,
-		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapSectionsToSections( !SnapSettings->GetSnapSectionsToSections() ); } ),
+		Commands.ToggleSnapSectionTimesToSections,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetSnapSectionTimesToSections( !Settings->GetSnapSectionTimesToSections() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapSectionsToSections(); } ) );
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetSnapSectionTimesToSections(); } ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleSnapPlayTimeToInterval,
-		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapPlayTimeToInterval( !SnapSettings->GetSnapPlayTimeToInterval() ); } ),
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetSnapPlayTimeToInterval( !Settings->GetSnapPlayTimeToInterval() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapPlayTimeToInterval(); } ) );
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetSnapPlayTimeToInterval(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleSnapCurveValueToInterval,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetSnapCurveValueToInterval( !Settings->GetSnapCurveValueToInterval() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetSnapCurveValueToInterval(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleShowCurveEditor,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetShowCurveEditor(!Settings->GetShowCurveEditor()); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetShowCurveEditor(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleShowCurveEditorCurveToolTips,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetShowCurveEditorCurveToolTips( !Settings->GetShowCurveEditorCurveToolTips() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetShowCurveEditorCurveToolTips(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetAllCurveVisibility,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetCurveVisibility( ESequencerCurveVisibility::AllCurves ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetCurveVisibility() == ESequencerCurveVisibility::AllCurves; } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetSelectedCurveVisibility,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetCurveVisibility( ESequencerCurveVisibility::SelectedCurves ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetCurveVisibility() == ESequencerCurveVisibility::SelectedCurves; } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetAnimatedCurveVisibility,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetCurveVisibility( ESequencerCurveVisibility::AnimatedCurves ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetCurveVisibility() == ESequencerCurveVisibility::AnimatedCurves; } ) );
 }
 
 void FSequencer::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)

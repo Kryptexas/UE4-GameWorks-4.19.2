@@ -9,10 +9,12 @@ class UNREALED_API SMiniCurveEditor :  public SCompoundWidget,public IAssetEdito
 {
 public:
 	SLATE_BEGIN_ARGS( SMiniCurveEditor )
-		: _CurveOwner(NULL)
+		: _CurveOwner(nullptr)
+		, _OwnerObject(nullptr)
 		{}
 
 	SLATE_ARGUMENT( FCurveOwnerInterface*, CurveOwner )
+	SLATE_ARGUMENT( UObject*, OwnerObject )
 	SLATE_ARGUMENT( TWeakPtr<SWindow>, ParentWindow )
 	SLATE_END_ARGS()
 

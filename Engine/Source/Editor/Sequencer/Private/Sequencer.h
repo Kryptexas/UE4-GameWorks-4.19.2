@@ -234,12 +234,6 @@ public:
 	bool IsShotFilteringOn() const;
 
 	/**
-	 * Returns true if the sequencer is using the 'Clean View' mode
-	 * Clean View simply means no non-global tracks will appear if no shots are filtering
-	 */
-	bool IsUsingCleanView() const;
-
-	/**
 	 * Gets the overlay fading animation curve lerp
 	 */
 	float GetOverlayFadeCurve() const;
@@ -355,13 +349,6 @@ protected:
 	 * @param bInAllowAutoKey	The new auto key state
 	 */
 	void OnToggleAutoKey();
-	
-	/**
-	 * Called when auto-key is toggled by a user
-	 *
-	 * @param bInAllowAutoKey	The new auto key state
-	 */
-	void OnToggleCleanView( bool bInCleanViewEnabled );
 
 	/** Called via UEditorEngine::GetActorRecordingStateEvent to check to see whether we need to record actor state */
 	void GetActorRecordingState( bool& bIsRecording /* In+Out */ ) const;
@@ -450,10 +437,6 @@ private:
 	/** The current scrub position */
 	// @todo sequencer: Should use FTimespan or "double" for Time Cursor Position! (cascades)
 	float ScrubPosition;
-	
-	/** Whether the clean sequencer view is enabled */
-	bool bCleanViewEnabled;
-
 
 	/** Whether looping while playing is enabled for this sequencer */
 	bool bLoopingEnabled;

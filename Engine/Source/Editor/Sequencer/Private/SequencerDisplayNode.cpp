@@ -75,7 +75,7 @@ int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Al
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId+1,
-			AllottedGeometry.ToPaintGeometry(FVector2D(KeyPosition - FMath::TruncToFloat(KeyMarkSize.X/2.f), FMath::TruncToFloat(AllottedGeometry.Size.Y/2.f - KeyMarkSize.Y/2.f)), KeyMarkSize),
+			AllottedGeometry.ToPaintGeometry(FVector2D(KeyPosition - FMath::CeilToFloat(KeyMarkSize.X/2.f), FMath::CeilToFloat(AllottedGeometry.Size.Y/2.f - KeyMarkSize.Y/2.f)), KeyMarkSize),
 			FEditorStyle::GetBrush("Sequencer.KeyMark"),
 			MyClippingRect,
 			ESlateDrawEffect::None,
@@ -298,7 +298,7 @@ bool FSequencerDisplayNode::IsVisible() const
 	// If shot filtering is off on clean view is on, node must be pinned
 	return bCachedShotFilteredVisibility &&
 		(ParentTree.HasActiveFilter() ? ParentTree.IsNodeFiltered(AsShared()) : IsParentExpandedOrIsARootNode()) &&
-		(GetSequencer().IsShotFilteringOn() || !GetSequencer().IsUsingCleanView() || bNodeIsPinned);
+		(GetSequencer().IsShotFilteringOn() || !GetDefault<USequencerSettings>()->GetIsUsingCleanView() || bNodeIsPinned);
 }
 
 bool FSequencerDisplayNode::HasVisibleChildren() const

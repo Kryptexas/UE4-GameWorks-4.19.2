@@ -36,10 +36,10 @@ public:
 	{
 		UMovieSceneColorSection* ColorSection = Cast<UMovieSceneColorSection>(&SectionObject);
 
-		LayoutBuilder.AddKeyArea("R", NSLOCTEXT("FColorPropertySection", "RedArea", "Red"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetRedCurve())));
-		LayoutBuilder.AddKeyArea("G", NSLOCTEXT("FColorPropertySection", "GreenArea", "Green"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetGreenCurve())));
-		LayoutBuilder.AddKeyArea("B", NSLOCTEXT("FColorPropertySection", "BlueArea", "Blue"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetBlueCurve())));
-		LayoutBuilder.AddKeyArea("A", NSLOCTEXT("FColorPropertySection", "OpacityArea", "Opacity"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetAlphaCurve())));
+		LayoutBuilder.AddKeyArea("R", NSLOCTEXT("FColorPropertySection", "RedArea", "Red"), MakeShareable(new FFloatCurveKeyArea(&ColorSection->GetRedCurve(), ColorSection)));
+		LayoutBuilder.AddKeyArea("G", NSLOCTEXT("FColorPropertySection", "GreenArea", "Green"), MakeShareable(new FFloatCurveKeyArea(&ColorSection->GetGreenCurve(), ColorSection)));
+		LayoutBuilder.AddKeyArea("B", NSLOCTEXT("FColorPropertySection", "BlueArea", "Blue"), MakeShareable(new FFloatCurveKeyArea(&ColorSection->GetBlueCurve(), ColorSection)));
+		LayoutBuilder.AddKeyArea("A", NSLOCTEXT("FColorPropertySection", "OpacityArea", "Opacity"), MakeShareable(new FFloatCurveKeyArea(&ColorSection->GetAlphaCurve(), ColorSection)));
 	}
 
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
@@ -166,7 +166,7 @@ public:
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneFloatSection* FloatSection = Cast<UMovieSceneFloatSection>( &SectionObject );
-		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FFloatCurveKeyArea( FloatSection->GetFloatCurve() ) ) );
+		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FFloatCurveKeyArea( &FloatSection->GetFloatCurve(), FloatSection ) ) );
 	}
 };
 
@@ -185,15 +185,15 @@ public:
 		int32 ChannelsUsed = VectorSection->GetChannelsUsed();
 		check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
 
-		LayoutBuilder.AddKeyArea("Vector.X", NSLOCTEXT("FVectorPropertySection", "XArea", "X"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(0))));
-		LayoutBuilder.AddKeyArea("Vector.Y", NSLOCTEXT("FVectorPropertySection", "YArea", "Y"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(1))));
+		LayoutBuilder.AddKeyArea("Vector.X", NSLOCTEXT("FVectorPropertySection", "XArea", "X"), MakeShareable(new FFloatCurveKeyArea(&VectorSection->GetCurve(0), VectorSection)));
+		LayoutBuilder.AddKeyArea("Vector.Y", NSLOCTEXT("FVectorPropertySection", "YArea", "Y"), MakeShareable(new FFloatCurveKeyArea(&VectorSection->GetCurve(1), VectorSection)));
 		if (ChannelsUsed >= 3)
 		{
-			LayoutBuilder.AddKeyArea("Vector.Z", NSLOCTEXT("FVectorPropertySection", "ZArea", "Z"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(2))));
+			LayoutBuilder.AddKeyArea("Vector.Z", NSLOCTEXT("FVectorPropertySection", "ZArea", "Z"), MakeShareable(new FFloatCurveKeyArea(&VectorSection->GetCurve(2), VectorSection)));
 		}
 		if (ChannelsUsed >= 4)
 		{
-			LayoutBuilder.AddKeyArea("Vector.W", NSLOCTEXT("FVectorPropertySection", "WArea", "W"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(3))));
+			LayoutBuilder.AddKeyArea("Vector.W", NSLOCTEXT("FVectorPropertySection", "WArea", "W"), MakeShareable(new FFloatCurveKeyArea(&VectorSection->GetCurve(3), VectorSection)));
 		}
 	}
 };

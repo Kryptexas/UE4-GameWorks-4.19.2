@@ -153,9 +153,9 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 		if ( AbsOffsetNum % Divider == 0 )
 		{
 			FVector2D Offset( XPos, InArgs.TickOffset );
-			FVector2D TickSize( 1.0f, InArgs.MajorTickHeight );
+			FVector2D TickSize( 0.0f, InArgs.MajorTickHeight );
 
-			LinePoints[0] = FVector2D(1.0f,1.0f);
+			LinePoints[0] = FVector2D( 0.0f,1.0f);
 			LinePoints[1] = TickSize;
 
 			// lines should not need anti-aliasing
@@ -170,7 +170,7 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 				InArgs.ClippingRect,
 				InArgs.DrawEffects,
 				InArgs.TickColor,
-				false
+				bAntiAliasLines
 				);
 
 			if( !InArgs.bOnlyDrawMajorTicks )
@@ -200,9 +200,9 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 			const float MinorTickHeight = AbsOffsetNum % HalfDivider == 0 ? 7.0f : 4.0f;
 
 			FVector2D Offset(XPos, InArgs.bMirrorLabels ? 0.0f : FMath::Abs( InArgs.AllottedGeometry.Size.Y - MinorTickHeight ) );
-			FVector2D TickSize(1, MinorTickHeight);
+			FVector2D TickSize(0.0f, MinorTickHeight);
 
-			LinePoints[0] = FVector2D(1.0f,1.0f);
+			LinePoints[0] = FVector2D(0.0f,1.0f);
 			LinePoints[1] = TickSize;
 
 			const bool bAntiAlias = false;
@@ -255,7 +255,7 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 		DrawTicks( OutDrawElements, RangeToScreen, Args );
 
 		const float HandleSize = 13.0f;
-		float HalfSize = FMath::TruncToFloat(HandleSize/2.0f);
+		float HalfSize = FMath::CeilToFloat(HandleSize/2.0f);
 
 		// Draw the scrub handle
 		const float XPos = RangeToScreen.InputToLocalX( TimeSliderArgs.ScrubPosition.Get() );
@@ -334,10 +334,10 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( TSharedRef<SWidget> Widg
 			FVector2D CursorPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
 			float NewValue = RangeToScreen.LocalXToInput(CursorPos.X);
 
-			const USequencerSnapSettings* SnapSettings = GetDefault<USequencerSnapSettings>();
-			if ( SnapSettings->GetIsSnapEnabled() && SnapSettings->GetSnapPlayTimeToInterval() )
+			const USequencerSettings* Settings = GetDefault<USequencerSettings>();
+			if ( Settings->GetIsSnapEnabled() && Settings->GetSnapPlayTimeToInterval() )
 			{
-				NewValue = SnapSettings->SnapToInterval( NewValue );
+				NewValue = Settings->SnapTimeToInterval( NewValue );
 			}
 
 			CommitScrubPosition( NewValue, /*bIsScrubbing=*/false );
@@ -419,10 +419,10 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 				FVector2D CursorPos = MyGeometry.AbsoluteToLocal( MouseEvent.GetLastScreenSpacePosition() );
 				float NewValue = RangeToScreen.LocalXToInput( CursorPos.X );
 
-				const USequencerSnapSettings* SnapSettings = GetDefault<USequencerSnapSettings>();
-				if ( SnapSettings->GetIsSnapEnabled() && SnapSettings->GetSnapPlayTimeToInterval() )
+				const USequencerSettings* Settings = GetDefault<USequencerSettings>();
+				if ( Settings->GetIsSnapEnabled() && Settings->GetSnapPlayTimeToInterval() )
 				{
-					NewValue = SnapSettings->SnapToInterval(NewValue);
+					NewValue = Settings->SnapTimeToInterval(NewValue);
 				}
 
 				CommitScrubPosition( NewValue, /*bIsScrubbing=*/true );
@@ -530,8 +530,8 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 		// Draw a line for the scrub position
 		TArray<FVector2D> LinePoints;
 		LinePoints.AddUninitialized(2);
-		LinePoints[0] = FVector2D( 1.0f, 0.0f );
-		LinePoints[1] = FVector2D( 1.0f, FMath::RoundToFloat( AllottedGeometry.Size.Y ) );
+		LinePoints[0] = FVector2D( 0.0f, 0.0f );
+		LinePoints[1] = FVector2D( 0.0f, FMath::RoundToFloat( AllottedGeometry.Size.Y ) );
 
 		FSlateDrawElement::MakeLines(
 			OutDrawElements,

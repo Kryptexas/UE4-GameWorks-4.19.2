@@ -163,7 +163,7 @@ public:
 		return TCHAR('S');
 	}
 
-	virtual void OnCurveChanged() override
+	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override
 	{
 	}
 

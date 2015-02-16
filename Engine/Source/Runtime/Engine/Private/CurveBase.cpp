@@ -833,7 +833,7 @@ void UCurveBase::MakeTransactional()
 	SetFlags(GetFlags() | RF_Transactional);
 }
 
-void UCurveBase::OnCurveChanged()
+void UCurveBase::OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos)
 {
 
 }

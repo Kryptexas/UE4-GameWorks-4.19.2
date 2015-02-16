@@ -197,6 +197,7 @@ void FSequencerNodeTree::SetSelectionState( TSharedRef<const FSequencerDisplayNo
 		// Not selecting so remove the node from the selection set
 		SelectedNodes.Remove( AffectedNode );
 	}
+	OnSelectionChanged.Broadcast();
 }
 
 bool FSequencerNodeTree::IsNodeSelected( TSharedRef<const FSequencerDisplayNode> Node ) const
@@ -294,4 +295,9 @@ void FSequencerNodeTree::UpdateCachedVisibilityBasedOnShotFiltersChanged()
 	{
 		RootNodes[i]->UpdateCachedShotFilteredVisibility();
 	}
+}
+
+FSequencerNodeTree::FOnSelectionChanged* FSequencerNodeTree::GetOnSelectionChanged()
+{
+	return &OnSelectionChanged;
 }

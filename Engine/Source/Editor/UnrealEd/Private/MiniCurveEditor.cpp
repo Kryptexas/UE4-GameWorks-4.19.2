@@ -32,8 +32,7 @@ void SMiniCurveEditor::Construct(const FArguments& InArgs)
 
 	WidgetWindow = InArgs._ParentWindow;
 
-	UObject* SelectedCurve = InArgs._CurveOwner->GetOwner();
-	FAssetEditorManager::Get().NotifyAssetOpened(SelectedCurve, this);	
+	FAssetEditorManager::Get().NotifyAssetOpened(InArgs._OwnerObject, this);
 }
 
 SMiniCurveEditor::~SMiniCurveEditor()

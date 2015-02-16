@@ -394,7 +394,23 @@ template<class T> struct FRichCurveEditInfoTemplate
 	:	CurveName(InCurveName)
 	,	CurveToEdit(InCurveToEdit)
 	{}
+
+	inline bool operator==(const FRichCurveEditInfoTemplate<T>& Other) const
+	{
+		return Other.CurveName.IsEqual(CurveName) && Other.CurveToEdit == CurveToEdit;
+	}
+
+	uint32 GetTypeHash() const
+	{
+		return HashCombine(::GetTypeHash(CurveName), PointerHash(CurveToEdit));
+	}
 };
+
+template<class T>
+inline uint32 GetTypeHash( const FRichCurveEditInfoTemplate<T>& RichCurveEditInfo )
+{
+	return RichCurveEditInfo.GetTypeHash();
+}
 
 typedef FRichCurveEditInfoTemplate<FRichCurve*>			FRichCurveEditInfo;
 typedef FRichCurveEditInfoTemplate<const FRichCurve*>	FRichCurveEditInfoConst;
@@ -412,17 +428,14 @@ public:
 	/** Returns set of curves to query. Must not release the curves while being edited. */
 	virtual TArray<FRichCurveEditInfo> GetCurves() = 0;
 
-	/** Called to return the Curve UObject  **/
-	virtual UObject* GetOwner() = 0;
-
 	/** Called to modify the owner of the curve */
 	virtual void ModifyOwner() = 0;
 
 	/** Called to make curve owner transactional */
 	virtual void MakeTransactional() = 0;
 
-	/** Called when the curve has been changed */
-	virtual void OnCurveChanged() = 0;
+	/** Called when any of the curves have been changed */
+	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) = 0;
 
 	/** Whether the curve represents a linear color */
 	virtual bool IsLinearColorCurve() const { return false; }
@@ -474,14 +487,9 @@ public:
 		return Curves;
 	}
 
-	virtual UObject* GetOwner() override
-	{
-		return this;
-	}
-
 	virtual void ModifyOwner() override;
 	virtual void MakeTransactional() override;
-	virtual void OnCurveChanged() override;
+	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
 
 	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) { return false; };
 	// End FCurveOwnerInterface

@@ -67,7 +67,7 @@ public:
 	virtual ESequencerNode::Type GetType() const = 0;
 
 	/** @return Whether or not this node can be selected */
-	virtual bool IsSelectable() const { return false; }
+	virtual bool IsSelectable() const { return true; }
 
 	/**
 	 * @return The desired height of the node when displayed
@@ -306,7 +306,6 @@ public:
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Track; }
 	virtual float GetNodeHeight() const override;
 	virtual FText GetDisplayName() const override;
-	virtual bool IsSelectable() const override { return true; }
 	virtual bool GetShotFilteredVisibilityToCache() const override;
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const override;
 
@@ -379,7 +378,6 @@ public:
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Object; }
 	virtual FText GetDisplayName() const override { return DisplayName; }
 	virtual float GetNodeHeight() const override;
-	virtual bool IsSelectable() const override { return true; }
 	virtual bool GetShotFilteredVisibilityToCache() const override;
 	
 	/** @return The object binding on this node */

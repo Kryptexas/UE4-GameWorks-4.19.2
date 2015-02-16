@@ -10,7 +10,7 @@ class FSequencerDragOperation
 public:
 	FSequencerDragOperation()
 	{
-		SnapSettings = GetDefault<USequencerSnapSettings>();
+		Settings = GetDefault<USequencerSettings>();
 	}
 
 	virtual ~FSequencerDragOperation(){}
@@ -75,8 +75,8 @@ protected:
 	 */
 	TOptional<float> SnapToTimes(float InitialTimes, const TArray<float>& SnapTimes, const FTimeToPixel& TimeToPixelConverter);
 
-	/** The current snap settings */
-	const USequencerSnapSettings* SnapSettings;
+	/** The current sequencer settings */
+	const USequencerSettings* Settings;
 };
 
 
