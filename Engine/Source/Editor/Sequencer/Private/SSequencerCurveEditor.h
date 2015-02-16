@@ -16,7 +16,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer );
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer );
 
 	/** Sets the sequencer node tree which supplies the curves. */
 	void SetSequencerNodeTree( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree );

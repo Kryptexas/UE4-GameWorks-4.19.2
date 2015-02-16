@@ -136,6 +136,7 @@ public:
 		, _SnappingEnabled(false)
 		, _TimelineLength(5.0f)
 		, _DesiredSize(FVector2D::ZeroVector)
+		, _ShowCurveToolTips(false)
 		, _DrawCurve(true)
 		, _HideUI(true)
 		, _AllowZoomOutput(true)
@@ -148,7 +149,6 @@ public:
 		, _ShowInputGridNumbers(true)
 		, _ShowOutputGridNumbers(true)
 		, _ShowCurveSelector(true)
-		, _ShowCurveToolTips(false)
 		, _GridColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.3f))
 		{}
 

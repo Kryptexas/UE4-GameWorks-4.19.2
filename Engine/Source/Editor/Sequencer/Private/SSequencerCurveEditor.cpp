@@ -3,7 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "SCurveEditor.h"
 
-#define LOCTEXT_NAMESPACE "SequencerTrackArea"
+#define LOCTEXT_NAMESPACE "SequencerCurveEditor"
 
 void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer )
 {
@@ -113,3 +113,5 @@ SSequencerCurveEditor::~SSequencerCurveEditor()
 		SequencerNodeTree->GetOnSelectionChanged()->Remove( NodeTreeSelectionChangedHandle );
 	}
 }
+
+#undef LOCTEXT_NAMESPACE
