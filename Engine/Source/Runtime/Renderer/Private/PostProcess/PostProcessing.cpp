@@ -1420,7 +1420,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 			}
-#if HAS_MORPHEUS
+#if MORPHEUS_ENGINE_DISTORTION
 			else if(DeviceType == EHMDDeviceType::DT_Morpheus)
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessMorpheus());
