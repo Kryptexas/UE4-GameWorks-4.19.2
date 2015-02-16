@@ -506,6 +506,7 @@ protected:
 	/** FEditorViewportClient Interface*/
 	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) override;
 	virtual ELevelViewportType GetViewportType() const override;
+	virtual void SetViewportType( ELevelViewportType InViewportType ) override;
 	virtual void OverridePostProcessSettings( FSceneView& View ) override;
 	virtual void PerspectiveCameraMoved() override;
 	virtual bool ShouldLockPitch() const override;

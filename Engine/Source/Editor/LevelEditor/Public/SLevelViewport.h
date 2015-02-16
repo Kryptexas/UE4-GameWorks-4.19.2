@@ -195,7 +195,7 @@ public:
 	/**
 	 * Toggles enabling the exact camera view when locking a viewport to a camera
 	 */
-	void ToggleLockedCameraView();
+	void ToggleActorPilotCameraView();
 
 	/**
 	 * Check whether locked camera view is enabled

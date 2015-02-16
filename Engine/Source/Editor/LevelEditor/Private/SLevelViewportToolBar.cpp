@@ -391,142 +391,6 @@ static void OnGenerateClearBookmarkMenu( FMenuBuilder& MenuBuilder , TWeakPtr<cl
 	}
 }
 
-template<typename ActorClass>
-static void OnGenerateActorLockingMenuSection( TWeakPtr<SLevelViewport> Viewport, FMenuBuilder& MenuBuilder )
-{
-	check(ActorClass::StaticClass()->IsChildOf(AActor::StaticClass()));
-
-	// Creates a scene outliner to fill the menu. The outliner lists only actors of class T and its children
-
-	using namespace SceneOutliner;
-
-	SceneOutliner::FInitializationOptions InitOptions;
-	InitOptions.Mode = ESceneOutlinerMode::ActorPicker;			
-	InitOptions.bShowHeaderRow = false;
-
-	InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0) );
-	InitOptions.ColumnMap.Add("LockedToViewport", FColumnInfo(EColumnVisibility::Visible, 10,
-		FCreateSceneOutlinerColumn::CreateSP( Viewport.Pin().ToSharedRef(), &SLevelViewport::CreateActorLockSceneOutlinerColumn )) );
-
-	/** Only show actors that are of the templated type */
-	InitOptions.Filters->AddFilterPredicate( FActorFilterPredicate::CreateStatic([](const AActor* InActor){
-		return InActor && InActor->IsA(ActorClass::StaticClass()) && !InActor->IsPendingKill();
-	}) );
-
-	// Create an outliner with the options from above. It sits in a box with a max height limit to stop it getting too tall when lots of actors are added.
-	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
-	TSharedRef< SWidget > MiniSceneOutliner =
-		SNew( SVerticalBox )
-		+SVerticalBox::Slot()
-		.MaxHeight(400.0f)
-		[
-			SceneOutlinerModule.CreateSceneOutliner(
-				InitOptions,
-				FOnActorPicked::CreateSP( Viewport.Pin().ToSharedRef(), &SLevelViewport::OnActorLockToggleFromMenu ) )
-		];
-
-	// Add the outliner to the menu
-	MenuBuilder.AddWidget(MiniSceneOutliner, FText(), true);
-}
-
-static void OnGenerateCameraActorLockingMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLevelViewport> Viewport )
-{
-	MenuBuilder.BeginSection("LevelViewportCameraActors", LOCTEXT("ActorLockingMenu_CameraActorsHeader", "Camera Actors"));
-	{
-		OnGenerateActorLockingMenuSection<ACameraActor>(Viewport, MenuBuilder);
-	}
-	MenuBuilder.EndSection();
-}
-
-static void OnGenerateLightActorLockingMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLevelViewport> Viewport )
-{
-	MenuBuilder.BeginSection("LevelViewportLightActors", LOCTEXT("ActorLockingMenu_LightActorsHeader", "Light Actors"));
-	{
-		OnGenerateActorLockingMenuSection<ALight>(Viewport, MenuBuilder);
-	}
-	MenuBuilder.EndSection();
-}
-
-static void OnGenerateActorLockingMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLevelViewport> Viewport )
-{
-	const FLevelViewportCommands& Actions = FLevelViewportCommands::Get();
-	FLevelEditorViewportClient& ViewportClient = Viewport.Pin()->GetLevelViewportClient();
-
-	MenuBuilder.AddMenuEntry(Actions.ToggleLockedCameraView);
-
-	bool IsLocked = false;
-	if (ViewportClient.GetActiveActorLock().IsValid())
-	{
-		// Viewport is locked - show the unlock item
-		AActor* Actor = ViewportClient.GetActiveActorLock().Get();
-
-		if (!Actor->IsPendingKill())
-		{
-			MenuBuilder.BeginSection("LevelViewportLocked", LOCTEXT("LockingMenuLocked", "Locked"));
-			{
-				MenuBuilder.AddMenuEntry(
-					Actions.ActorUnlock,
-					NAME_None,
-					FText::Format( LOCTEXT("UnlockMenuItem", "Unlock from {0}"), FText::FromString( Actor->GetActorLabel() ) ) );
-			}
-			MenuBuilder.EndSection();
-
-			IsLocked = true;
-		}
-	}
-
-	if (!IsLocked)
-	{
-		MenuBuilder.BeginSection("LevelViewportNotLocked", LOCTEXT("LockingMenuNotLocked", "Not Locked"));
-		MenuBuilder.EndSection();
-	}
-
-	// If a single actor is selected, show an item to lock the viewport to it
-	USelection* ActorSelection = GEditor->GetSelectedActors();
-	if (1 == ActorSelection->Num() && ActorSelection->GetSelectedObject(0) != NULL)
-	{
-		MenuBuilder.BeginSection("LevelViewportSelectedActor", LOCTEXT("LockingMenuSelectionHeader", "Selected Actor"));
-		{
-
-		    AActor* Actor = CastChecked<AActor>(ActorSelection->GetSelectedObject(0));
-    
-		    if (Viewport.Pin()->IsSelectedActorLocked())
-		    {
-			    MenuBuilder.AddMenuEntry(
-				    Actions.ActorUnlockSelected,
-				    NAME_None,
-				    FText::FromString( Actor->GetActorLabel() ) );
-			}
-			else
-			{
-				MenuBuilder.AddMenuEntry(
-					Actions.ActorLockSelected,
-					NAME_None,
-					FText::FromString( Actor->GetActorLabel() ) );
-			}
-		}
-		MenuBuilder.EndSection();
-	}
-
-	MenuBuilder.BeginSection("LevelViewportCamerasLights");
-	{
-		// Add sub-menu listing camera actors that can be locked
-		MenuBuilder.AddSubMenu( 
-			LOCTEXT("ActorLockingCamerasSubMenu", "Cameras"), 
-			FText::GetEmpty(), 
-			FNewMenuDelegate::CreateStatic( &OnGenerateCameraActorLockingMenu, Viewport )
-			);
-
-		// Add sub-menu listing camera actors that can be locked
-		MenuBuilder.AddSubMenu( 
-			LOCTEXT("ActorLockingLightsSubMenu", "Lights"), 
-			FText::GetEmpty(), 
-			FNewMenuDelegate::CreateStatic( &OnGenerateLightActorLockingMenu, Viewport )
-			);
-	}
-	MenuBuilder.EndSection();
-}
-
 /**
  * Called to generate the bookmark submenu
  */
@@ -598,7 +462,6 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
 
 	const bool bIsPerspective = Viewport.Pin()->GetLevelViewportClient().IsPerspective();
-	const bool bIsLocked = Viewport.Pin()->GetLevelViewportClient().IsAnyActorLocked();
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder OptionsMenuBuilder( bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtender );
 	{
@@ -639,19 +502,6 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 			OptionsMenuBuilder.AddMenuEntry( LevelViewportActions.ToggleImmersive );
 		}
 		OptionsMenuBuilder.EndSection();
-
-		if( (bIsPerspective || bIsLocked) && !Viewport.Pin()->GetLevelViewportClient().IsLockedToMatinee())
-		{
-			OptionsMenuBuilder.BeginSection("LevelViewportActorLocking");
-			{
-				OptionsMenuBuilder.AddSubMenu( 
-					LOCTEXT("ActorLockingSubMenu", "Lock Viewport to Actor"), 
-					LOCTEXT("ActorLockingSubMenu_ToolTip", "Lock Viewport position and orientation to Cameras, Lights or other scene actors"), 
-					FNewMenuDelegate::CreateStatic( &OnGenerateActorLockingMenu, Viewport )
-					);
-			}
-			OptionsMenuBuilder.EndSection();
-		}
 
 		if( bIsPerspective )
 		{

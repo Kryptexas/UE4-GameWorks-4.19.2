@@ -199,12 +199,6 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 		}
 		MenuBuilder.PushExtender(FExtender::Combine(Extenders).ToSharedRef());
 
-		TArray<TWeakObjectPtr<UObject>> LabelObjects;
-		for (FSelectionIterator SelItor(*GEditor->GetSelectedActors()); SelItor; ++SelItor)
-		{
-			LabelObjects.Add(*SelItor);
-		}
-
 		// Check if current selection has any assets that can be browsed to
 		TArray< UObject* > ReferencedAssets;
 		GEditor->GetReferencedAssetsForEditorSelection(ReferencedAssets);
@@ -263,6 +257,34 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().GoHere);
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().SnapCameraToActor);
+
+			if (SelectedActors.Num() == 1)
+			{
+				const FLevelViewportCommands& Actions = FLevelViewportCommands::Get();
+
+				auto Viewport = LevelEditor.Pin()->GetActiveViewport();
+				auto& ViewportClient = Viewport->GetLevelViewportClient();
+
+				if (ViewportClient.IsPerspective() && !ViewportClient.IsLockedToMatinee())
+				{
+				    if (Viewport->IsSelectedActorLocked())
+				    {
+					    MenuBuilder.AddMenuEntry(
+						    Actions.EjectActorPilot,
+						    NAME_None,
+						    FText::Format(LOCTEXT("PilotActor", "Stop piloting '{0}'"), FText::FromString(SelectedActors[0]->GetActorLabel()))
+						    );
+					}
+					else
+					{
+					    MenuBuilder.AddMenuEntry(
+						    Actions.PilotSelectedActor,
+						    NAME_None,
+						    FText::Format(LOCTEXT("PilotActor", "Pilot '{0}'"), FText::FromString(SelectedActors[0]->GetActorLabel()))
+						    );
+					}
+				}
+			}
 		}
 		MenuBuilder.EndSection();
 

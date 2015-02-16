@@ -1635,6 +1635,17 @@ ELevelViewportType FLevelEditorViewportClient::GetViewportType() const
 	}
 }
 
+void FLevelEditorViewportClient::SetViewportType( ELevelViewportType InViewportType )
+{
+	if (InViewportType != LVT_Perspective)
+	{
+		SetActorLock(nullptr);
+		UpdateViewForLockedActor();
+	}
+
+	FEditorViewportClient::SetViewportType(InViewportType);
+}
+
 void FLevelEditorViewportClient::OverridePostProcessSettings( FSceneView& View )
 {
 	const UCameraComponent* CameraComponent = GetCameraComponentForView();
