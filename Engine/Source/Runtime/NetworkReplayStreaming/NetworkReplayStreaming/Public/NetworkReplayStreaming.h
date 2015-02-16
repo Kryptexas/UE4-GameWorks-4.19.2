@@ -68,7 +68,7 @@ public:
 	 *
 	 * @param Delegate A delegate that will be executed if bound when the list of streams is available
 	 */
-	virtual void EnumerateStreams( const FOnEnumerateStreamsComplete& Delegate ) const = 0;
+	virtual void EnumerateStreams( const FString& VersionString, const FOnEnumerateStreamsComplete& Delegate ) = 0;
 };
 
 /** Replay streamer factory */

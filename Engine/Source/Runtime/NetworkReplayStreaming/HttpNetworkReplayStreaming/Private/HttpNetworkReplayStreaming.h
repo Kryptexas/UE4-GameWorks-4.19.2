@@ -28,15 +28,7 @@ public:
 class FHttpNetworkReplayStreamer : public INetworkReplayStreamer
 {
 public:
-	FHttpNetworkReplayStreamer() : 
-		StreamFileCount( 0 ), 
-		LastChunkTime( 0 ), 
-		StreamerState( EStreamerState::Idle ), 
-		HttpState( EHttptate::Idle ), 
-		bStopStreamingCalled( false ), 
-		bStreamIsLive( false ),
-		NumDownloadChunks( 0 ) 
-	{}
+	FHttpNetworkReplayStreamer();
 
 	/** INetworkReplayStreamer implementation */
 	virtual void		StartStreaming( const FString& StreamName, bool bRecord, const FString& VersionString, const FOnStreamReadyDelegate& Delegate ) override;
@@ -47,7 +39,7 @@ public:
 	virtual bool		IsDataAvailable() const override;
 	virtual bool		IsLive( const FString& StreamName ) const override;
 	virtual void		DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const override;
-	virtual void		EnumerateStreams( const FOnEnumerateStreamsComplete& Delegate ) const override;
+	virtual void		EnumerateStreams( const FString& VersionString, const FOnEnumerateStreamsComplete& Delegate ) override;
 
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();
@@ -63,6 +55,7 @@ public:
 	void HttpStopUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpHeaderUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+	void HttpEnumerateSessionsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 
 	void Tick( float DeltaTime );
 	bool IsHttpBusy() const;		// True if we are waiting on http request response
@@ -79,6 +72,7 @@ public:
 		StartDownloading,			// We have made the request to start downloading a replay stream
 		DownloadingHeader,			// We are downloading the replay header
 		DownloadingStream,			// We are in the process of downloading the replay stream
+		EnumeratingSessions,		// We are in the process of downloading the available sessions
 	};
 
 	/** EStreamerState - Overall state of the streamer */
@@ -92,7 +86,6 @@ public:
 		StreamingUpFinal,			// We are uploading the final stream
 	};
 
-	FOnStreamReadyDelegate	RememberedDelegate;		// Delegate passed in to StartStreaming
 	HttpStreamFArchive		HeaderArchive;			// Archive used to buffer the header stream
 	HttpStreamFArchive		StreamArchive;			// Archive used to buffer the data stream
 	FString					SessionName;			// Name of the session on the http replay server
@@ -105,6 +98,9 @@ public:
 	bool					bStopStreamingCalled;
 	bool					bStreamIsLive;			// If true, we are viewing a live stream
 	int32					NumDownloadChunks;
+
+	FOnStreamReadyDelegate			StartStreamingDelegate;		// Delegate passed in to StartStreaming
+	FOnEnumerateStreamsComplete		EnumerateStreamsDelegate;
 };
 
 class FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory, public FTickableGameObject

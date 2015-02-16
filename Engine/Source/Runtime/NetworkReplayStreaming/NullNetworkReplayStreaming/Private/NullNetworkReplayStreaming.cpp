@@ -169,7 +169,7 @@ void FNullNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName
 	Delegate.ExecuteIfBound(DeleteSucceeded);
 }
 
-void FNullNetworkReplayStreamer::EnumerateStreams( const FOnEnumerateStreamsComplete& Delegate ) const
+void FNullNetworkReplayStreamer::EnumerateStreams( const FString& VersionString, const FOnEnumerateStreamsComplete& Delegate )
 {
 	// Simply returns a stream for each folder in the Saved/Demos directory
 	const FString WildCardPath = GetDemoPath() + TEXT( "*" );
