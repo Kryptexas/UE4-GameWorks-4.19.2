@@ -217,11 +217,14 @@ void FComponentTypeRegistryData::RefreshComponentList()
 				}
 			}
 
-			FComponentTypeEntry Entry = { Class->GetName(), FString(), Class };
-			ComponentTypeList.Add(Entry);
+			bool const bOutOfDateClass = Class->HasAnyClassFlags(CLASS_NewerVersionExists);
+			if (!bOutOfDateClass && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
+			{
+				FComponentTypeEntry Entry = { Class->GetName(), FString(), Class };
+				ComponentTypeList.Add(Entry);
+			}
 		}
 	}
-
 
 	{
 		// make sure that we add any user created classes immediately, generally this will not create anything (because assets have not been discovered yet), but asset discovery
