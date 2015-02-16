@@ -75,6 +75,15 @@ namespace EBTExecutionMode
 	};
 }
 
+namespace EBTStopMode
+{
+	enum Type
+	{
+		Safe,
+		Forced,
+	};
+}
+
 namespace EBTMemoryInit
 {
 	enum Type

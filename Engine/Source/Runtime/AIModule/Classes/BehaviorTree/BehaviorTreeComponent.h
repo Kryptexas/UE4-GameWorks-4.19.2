@@ -60,6 +60,15 @@ struct FBTPendingExecutionInfo
 	bool IsSet() const { return NextTask || bOutOfNodes; }
 };
 
+struct FBTPendingInitializeInfo
+{
+	UBehaviorTree* Asset;
+	EBTExecutionMode::Type ExecuteMode;
+
+	FBTPendingInitializeInfo() : Asset(nullptr), ExecuteMode(EBTExecutionMode::Looped) {}
+	bool IsSet() const { return Asset != nullptr; }
+};
+
 UCLASS()
 class AIMODULE_API UBehaviorTreeComponent : public UBrainComponent
 {
@@ -86,10 +95,10 @@ public:
 	// End UActorComponent overrides
 
 	/** starts execution from root */
-	bool StartTree(UBehaviorTree& Asset, EBTExecutionMode::Type ExecuteMode = EBTExecutionMode::Looped);
+	void StartTree(UBehaviorTree& Asset, EBTExecutionMode::Type ExecuteMode = EBTExecutionMode::Looped);
 
 	/** stops execution */
-	void StopTree();
+	void StopTree(EBTStopMode::Type StopMode = EBTStopMode::Safe);
 
 	/** restarts execution from root */
 	void RestartTree();
@@ -205,6 +214,9 @@ protected:
 	/** result of ExecutionRequest, will be applied when current task finish aborting */
 	FBTPendingExecutionInfo PendingExecution;
 
+	/** stored data for starting new tree, waits until previously running finishes aborting */
+	FBTPendingInitializeInfo PendingInitialize;
+
 	/** message observers mapped by instance & execution index */
 	TMultiMap<FBTNodeIndex,FAIMessageObserverHandle> TaskMessageObservers;
 
@@ -236,6 +248,9 @@ protected:
 
 	/** set when execution update is scheduled for next tick */
 	uint8 bRequestedFlowUpdate : 1;
+
+	/** set when tree stop was called */
+	uint8 bRequestedStop : 1;
 
 	/** if set, tree execution is allowed */
 	uint8 bIsRunning : 1;
@@ -288,6 +303,9 @@ protected:
 
 	/** apply pending execution from last task search */
 	void ProcessPendingExecution();
+
+	/** apply pending tree initialization */
+	void ProcessPendingInitialize();
 
 	/** make a snapshot for debugger */
 	void StoreDebuggerExecutionStep(EBTExecutionSnap::Type SnapType);
