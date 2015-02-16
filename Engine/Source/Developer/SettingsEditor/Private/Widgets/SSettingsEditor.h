@@ -24,6 +24,7 @@ class SSettingsEditor
 public:
 
 	SLATE_BEGIN_ARGS(SSettingsEditor) { }
+		SLATE_EVENT( FSimpleDelegate, OnApplicationRestartRequired )
 	SLATE_END_ARGS()
 
 public:
@@ -205,4 +206,7 @@ private:
 
 	/** Holds the details view. */
 	TSharedPtr<IDetailsView> SettingsView;
+
+	/** Delegate called when this settings editor requests that the user be notified that the application needs to be restarted for some setting changes to take effect */
+	FSimpleDelegate OnApplicationRestartRequiredDelegate;
 };

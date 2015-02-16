@@ -33,6 +33,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 {
 	Model = InModel;
 	SettingsContainer = InModel->GetSettingsContainer();
+	OnApplicationRestartRequiredDelegate = InArgs._OnApplicationRestartRequired;
 
 	// initialize settings view
 	FDetailsViewArgs DetailsViewArgs;
@@ -243,6 +244,12 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 		RecordPreferenceChangedAnalytics( SelectedSection, PropertyChangedEvent );
 
 		SelectedSection->Save();
+
+		static const FName ConfigRestartRequiredKey = "ConfigRestartRequired";
+		if (PropertyChangedEvent.Property->GetBoolMetaData(ConfigRestartRequiredKey))
+		{
+			OnApplicationRestartRequiredDelegate.ExecuteIfBound();
+		}
 	}
 }
 

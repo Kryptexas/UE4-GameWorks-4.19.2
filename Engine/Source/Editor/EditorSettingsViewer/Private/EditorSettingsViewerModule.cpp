@@ -109,6 +109,7 @@ protected:
 			RegionAndLanguageSettingsSection->OnImport().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageImport);
 			RegionAndLanguageSettingsSection->OnSaveDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSaveDefaults);
 			RegionAndLanguageSettingsSection->OnResetDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageResetToDefault);
+			GetMutableDefault<UInternationalizationSettingsModel>()->OnSettingChanged().AddRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSettingChanged);
 		}
 
 		// input bindings
@@ -239,6 +240,7 @@ protected:
 			SettingsModule->UnregisterSettings("Editor", "General", "GameAgnostic");
 			SettingsModule->UnregisterSettings("Editor", "General", "UserSettings");
 			SettingsModule->UnregisterSettings("Editor", "General", "AutomationTest");
+			SettingsModule->UnregisterSettings("Editor", "General", "Internationalization");
 			SettingsModule->UnregisterSettings("Editor", "General", "Experimental");
 
 			// level editor settings
@@ -400,6 +402,12 @@ private:
 	{
 		GetMutableDefault<UInternationalizationSettingsModel>()->ResetToDefault();
 		return true;
+	}
+
+	void HandleRegionAndLanguageSettingChanged()
+	{
+		ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
+		SettingsEditorModule.OnApplicationRestartRequired();
 	}
 
 private:

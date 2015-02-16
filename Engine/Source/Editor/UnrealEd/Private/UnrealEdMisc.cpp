@@ -20,6 +20,7 @@
 #include "AssetRegistryModule.h"
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
+#include "ISettingsEditorModule.h"
 #include "LevelEditor.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "UObjectToken.h"
@@ -441,6 +442,10 @@ void FUnrealEdMisc::OnInit()
 	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
 
 	GEditor->GetTimerManager()->SetTimer( EditorAnalyticsHeartbeatTimerHandle, Delegate, Seconds, true );
+
+	// Give the settings editor a way to restart the editor when it needs to
+	ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
+	SettingsEditorModule.SetRestartApplicationCallback(FSimpleDelegate::CreateRaw(this, &FUnrealEdMisc::RestartEditor, false));
 
 	// add handler to notify about navmesh building process
 	NavigationBuildingNotificationHandler = MakeShareable(new FNavigationBuildingNotificationImpl());

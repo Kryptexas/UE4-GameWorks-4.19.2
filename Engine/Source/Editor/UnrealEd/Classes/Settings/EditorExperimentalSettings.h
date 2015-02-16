@@ -42,7 +42,7 @@ public:
 	bool bUnifiedBlueprintEditor;
 
 	/** Enable being able to subclass components in blueprints */
-	UPROPERTY(EditAnywhere, config, Category=Tools)
+	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
 	bool bBlueprintableComponents;
 
 	/** The Messaging Debugger provides a visual utility for debugging the messaging system. */
@@ -78,7 +78,7 @@ public:
 	bool bContextMenuChunkAssignments;
 
 	/** Disable cook in the editor */
-	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Disable Cook In The Editor feature, requires editor restart (cooks from launch on will be run in a separate process if disabled)"))
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Disable Cook In The Editor feature (cooks from launch on will be run in a separate process if disabled)", ConfigRestartRequired=true))
 	bool bDisableCookInEditor;
 
 	/** Enable cook on the side */

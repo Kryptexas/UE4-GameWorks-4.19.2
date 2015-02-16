@@ -44,6 +44,7 @@ public class UnrealEd : ModuleRules
 				"NiagaraEditor",
 				"PlacementMode",
 				"Settings",
+				"SettingsEditor",
 				"SoundClassEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
