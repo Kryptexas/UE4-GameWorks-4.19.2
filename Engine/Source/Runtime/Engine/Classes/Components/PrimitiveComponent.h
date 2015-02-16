@@ -41,7 +41,7 @@ enum ECanBeCharacterBase
 	ECB_MAX,
 };
 
-//UENUM()
+UENUM()
 namespace EHasCustomNavigableGeometry
 {
 	enum Type
@@ -55,7 +55,7 @@ namespace EHasCustomNavigableGeometry
 		// DoCustomNavigableGeometryExport() should be called even if the mesh is non-collidable and wouldn't normally affect the navmesh
 		EvenIfNotCollidable,
 	};
-};
+}
 
 /** Information about the sprite category */
 USTRUCT()
@@ -420,6 +420,7 @@ protected:
 	float LastCheckedAllCollideableDescendantsTime;
 
 	/** If true then DoCustomNavigableGeometryExport will be called to collect navigable geometry of this component. */
+	UPROPERTY()
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> bHasCustomNavigableGeometry;
 
 	/** Next id to be used by a component. */
@@ -681,11 +682,19 @@ public:
 	virtual bool CanEditSimulatePhysics();
 
 	/**
-	 * Sets the specified axis as locked, preventing movement along that axis.
-	 * @param LockedAxis	The axis to lock.
+	* Sets the constraint mode of the component.
+	* @param ConstraintMode	The type of constraint to use.
+	*/
+	DEPRECATED(4.8, "This function is deprecated. Please use SetConstraintMode instead.")
+	UFUNCTION(BlueprintCallable, meta = (DeprecatedFunction, DeprecationMessage = "Use SetConstraintMode instead", Keywords = "set locked axis constraint physics"), Category = Physics)
+	virtual void SetLockedAxis(EDOFMode::Type LockedAxis);
+
+	/**
+	 * Sets the constraint mode of the component.
+	 * @param ConstraintMode	The type of constraint to use.
 	 */
-	UFUNCTION(BlueprintCallable, meta = (FriendlyName = "Set Locked Axis", Keywords = "set locked axis constraint physics"), Category = Physics)
-	virtual void SetLockedAxis(ELockedAxis::Type LockedAxis);
+	UFUNCTION(BlueprintCallable, meta = (FriendlyName = "Set Constraint Mode", Keywords = "set locked axis constraint physics"), Category = Physics)
+	virtual void SetConstraintMode(EDOFMode::Type ConstraintMode);
 
 	/**
 	 *	Add an impulse to a single rigid body. Good for one time instant burst.

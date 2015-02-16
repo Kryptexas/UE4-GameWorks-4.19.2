@@ -333,13 +333,13 @@ FVector UMovementComponent::GetPlaneConstraintNormalFromAxisSetting(EPlaneConstr
 {
 	if (AxisSetting == EPlaneConstraintAxisSetting::UseGlobalPhysicsSetting)
 	{
-		ESettingsLockedAxis::Type GlobalSetting = UPhysicsSettings::Get()->LockedAxis;
+		ESettingsDOF::Type GlobalSetting = UPhysicsSettings::Get()->DefaultDegreesOfFreedom;
 		switch (GlobalSetting)
 		{
-		case ESettingsLockedAxis::None:	return FVector::ZeroVector;
-		case ESettingsLockedAxis::X:	return FVector(1.f, 0.f, 0.f);
-		case ESettingsLockedAxis::Y:	return FVector(0.f, 1.f, 0.f);
-		case ESettingsLockedAxis::Z:	return FVector(0.f, 0.f, 1.f);
+		case ESettingsDOF::Full3D:	return FVector::ZeroVector;
+		case ESettingsDOF::YZPlane:	return FVector(1.f, 0.f, 0.f);
+		case ESettingsDOF::XZPlane:	return FVector(0.f, 1.f, 0.f);
+		case ESettingsDOF::XYPlane:	return FVector(0.f, 0.f, 1.f);
 		default:
 			checkf(false, TEXT("GetPlaneConstraintNormalFromAxisSetting: Unknown global axis setting %d for %s"), int32(GlobalSetting), *GetNameSafe(GetOwner()));
 			return FVector::ZeroVector;

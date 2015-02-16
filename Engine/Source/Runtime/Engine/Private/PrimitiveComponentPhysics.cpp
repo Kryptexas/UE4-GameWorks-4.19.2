@@ -171,7 +171,7 @@ void UPrimitiveComponent::SetSimulatePhysics(bool bSimulate)
 	BodyInstance.SetInstanceSimulatePhysics(bSimulate);
 }
 
-void UPrimitiveComponent::SetLockedAxis(ELockedAxis::Type LockedAxis)
+void UPrimitiveComponent::SetConstraintMode(EDOFMode::Type ConstraintMode)
 {
 	FBodyInstance * RootBI = GetBodyInstance(NAME_None, false);
 
@@ -180,7 +180,12 @@ void UPrimitiveComponent::SetLockedAxis(ELockedAxis::Type LockedAxis)
 		return;
 	}
 
-	RootBI->SetDOFLock(LockedAxis);
+	RootBI->SetDOFLock(ConstraintMode);
+}
+
+void UPrimitiveComponent::SetLockedAxis(EDOFMode::Type LockedAxis)
+{
+	SetConstraintMode(LockedAxis);
 }
 
 void UPrimitiveComponent::AddImpulse(FVector Impulse, FName BoneName, bool bVelChange)

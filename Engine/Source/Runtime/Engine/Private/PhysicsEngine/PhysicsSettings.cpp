@@ -14,6 +14,7 @@ UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
 	, TriangleMeshTriangleMinAreaThreshold(5.0f)
 	, bEnableAsyncScene(false)
 	, bEnable2DPhysics(false)
+	, LockedAxis_DEPRECATED(static_cast<ESettingsLockedAxis::Type>(-1))
 	, BounceThresholdVelocity(200.f)
 	, bSimulateSkeletalMeshOnDedicatedServer(true)
 	, MaxPhysicsDeltaTime(1.f / 30.f)
@@ -33,6 +34,28 @@ void UPhysicsSettings::PostInitProperties()
 #if WITH_EDITOR
 	LoadSurfaceType();
 #endif
+
+	if (LockedAxis_DEPRECATED != static_cast<ESettingsLockedAxis::Type>(-1))
+	{
+		if (LockedAxis_DEPRECATED == ESettingsLockedAxis::None)
+		{
+			DefaultDegreesOfFreedom = ESettingsDOF::Full3D;
+		}
+		else if (LockedAxis_DEPRECATED == ESettingsLockedAxis::X)
+		{
+			DefaultDegreesOfFreedom = ESettingsDOF::YZPlane;
+		}
+		else if (LockedAxis_DEPRECATED == ESettingsLockedAxis::Y)
+		{
+			DefaultDegreesOfFreedom = ESettingsDOF::XZPlane;
+		}
+		else if (LockedAxis_DEPRECATED == ESettingsLockedAxis::Z)
+		{
+			DefaultDegreesOfFreedom = ESettingsDOF::XYPlane;
+		}
+
+		LockedAxis_DEPRECATED = static_cast<ESettingsLockedAxis::Type>(-1);
+	}
 }
 
 #if WITH_EDITOR
@@ -60,7 +83,7 @@ void UPhysicsSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Prop
 	{
 		UPhysicalMaterial::RebuildPhysicalMaterials();
 	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsSettings, LockedAxis))
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsSettings, DefaultDegreesOfFreedom))
 	{
 		UMovementComponent::PhysicsLockedAxisSettingChanged();
 	}

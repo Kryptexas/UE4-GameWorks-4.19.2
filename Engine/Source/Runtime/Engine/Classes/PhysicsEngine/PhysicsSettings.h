@@ -49,6 +49,22 @@ namespace EFrictionCombineMode
 }
 
 UENUM()
+namespace ESettingsDOF
+{
+	enum Type
+	{
+		/*Allows for full 3D movement and rotation*/
+		Full3D,
+		/*Allows 2D movement along the Y-Z plane.*/
+		YZPlane,
+		/*Allows 2D movement along the X-Z plane.*/
+		XZPlane,
+		/*Allows 2D movement along the X-Y plane.*/
+		XYPlane,
+	};
+}
+
+UENUM()
 namespace ESettingsLockedAxis
 {
 	enum Type
@@ -102,9 +118,12 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bEnable2DPhysics;
 
-	/** Locks axis of movement for physical objects. (Useful for making 2D games in a 3D setting) */
+	UPROPERTY(config)
+	TEnumAsByte<ESettingsLockedAxis::Type> LockedAxis_DEPRECATED;
+
+	/** Useful for constraining all objects in the world, for example if you are making a 2D game using 3D environments.*/
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
-	TEnumAsByte<ESettingsLockedAxis::Type> LockedAxis;
+	TEnumAsByte<ESettingsDOF::Type> DefaultDegreesOfFreedom;
 	
 	/** Minimum relative velocity required for an object to bounce. A typical value for simulation stability is about 0.2 * gravity*/
 	UPROPERTY(config, EditAnywhere, Category = Simulation, meta = (ClampMin = "0", UIMin = "0"))

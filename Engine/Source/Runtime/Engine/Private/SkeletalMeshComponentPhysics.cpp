@@ -779,14 +779,22 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 			if (i == RootBodyIndex)
 			{
-				BodyInst->LockedAxisMode = BodyInstance.LockedAxisMode;
-				BodyInst->CustomLockedAxis = BodyInstance.CustomLockedAxis;
+				BodyInst->DOFMode = BodyInstance.DOFMode;
+				BodyInst->CustomDOFPlaneNormal = BodyInstance.CustomDOFPlaneNormal;
+				BodyInst->bLockXTranslation = BodyInstance.bLockXTranslation;
+				BodyInst->bLockYTranslation = BodyInstance.bLockYTranslation;
+				BodyInst->bLockZTranslation = BodyInstance.bLockZTranslation;
+				BodyInst->bLockXRotation = BodyInstance.bLockXRotation;
+				BodyInst->bLockYRotation = BodyInstance.bLockYRotation;
+				BodyInst->bLockZRotation = BodyInstance.bLockZRotation;
+				BodyInst->bLockTranslation = BodyInstance.bLockTranslation;
+				BodyInst->bLockRotation = BodyInstance.bLockRotation;
 
 				BodyInst->COMNudge = BodyInstance.COMNudge;
 			}
 			else
 			{
-				BodyInst->LockedAxisMode = ELockedAxis::None;
+				BodyInst->DOFMode = EDOFMode::None;
 			}
 
 #if WITH_PHYSX
