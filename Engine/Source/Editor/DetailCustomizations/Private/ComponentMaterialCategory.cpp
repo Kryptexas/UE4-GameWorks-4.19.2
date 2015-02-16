@@ -4,6 +4,7 @@
 #include "ComponentMaterialCategory.h"
 #include "AssetThumbnail.h"
 #include "ActorEditorUtils.h"
+#include "IPropertyUtilities.h"
 
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
