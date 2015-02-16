@@ -62,6 +62,7 @@
 #include "Engine/Light.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Editor/Persona/Public/AnimationRecorder.h"
+#include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -1982,7 +1983,7 @@ void FLevelEditorActionCallbacks::OpenLevelBlueprint( TWeakPtr< SLevelEditor > L
 	}
 }
 
-void FLevelEditorActionCallbacks::CreateBlueprintClass()
+void FLevelEditorActionCallbacks::CreateBlankBlueprintClass()
 {
 	// Use the BlueprintFactory to allow the user to pick a parent class for the new Blueprint class
 	UBlueprintFactory* NewFactory = Cast<UBlueprintFactory>(NewObject<UFactory>(GetTransientPackage(), UBlueprintFactory::StaticClass()));
@@ -1992,7 +1993,7 @@ void FLevelEditorActionCallbacks::CreateBlueprintClass()
 		UClass* SelectedClass = NewFactory->ParentClass;
 
 		// Now help the user pick a path and name for the new Blueprint
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateBlueprintClass_Title", "Create Blueprint Class"), SelectedClass);
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateBlankBlueprintClass_Title", "Create Blank Blueprint Class"), SelectedClass);
 
 		if( Blueprint )
 		{
@@ -2003,6 +2004,28 @@ void FLevelEditorActionCallbacks::CreateBlueprintClass()
 				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone);
 		}
 	}
+}
+
+bool FLevelEditorActionCallbacks::CanHarvestSelectedActorsIntoBlueprintClass()
+{
+	return GEditor->GetSelectedActorCount() > 0;
+}
+
+void FLevelEditorActionCallbacks::HarvestSelectedActorsIntoBlueprintClass()
+{
+	const bool bHarvest = true;
+	FCreateBlueprintFromActorDialog::OpenDialog(bHarvest);
+}
+
+bool FLevelEditorActionCallbacks::CanSubclassSelectedActorIntoBlueprintClass()
+{
+	return GEditor->GetSelectedActorCount() == 1;
+}
+
+void FLevelEditorActionCallbacks::SubclassSelectedActorIntoBlueprintClass()
+{
+	const bool bHarvest = false;
+	FCreateBlueprintFromActorDialog::OpenDialog(bHarvest);
 }
 
 void FLevelEditorActionCallbacks::CheckOutProjectSettingsConfig( )
@@ -2902,7 +2925,9 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( OpenLevelBlueprint, "Open Level Blueprint", "Edit the Level Blueprint for the current level", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( CheckOutProjectSettingsConfig, "Check Out", "Checks out the project settings config file so the game mode can be set.", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( CreateBlueprintClass, "New Blueprint Class...", "Create a new Blueprint Class", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( CreateBlankBlueprintClass, "New Empty Blueprint Class...", "Create a new Blueprint Class", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( ConvertSelectionToBlueprintViaHarvest, "Convert Selected Components to Blueprint Class...", "Replace all of the selected actors with a new Blueprint Class based on Actor that contains the components", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( ConvertSelectionToBlueprintViaSubclass, "Convert Selected Actor to Blueprint Class...", "Replace the selected actor with a new Blueprint subclass based on the class of the selected Actor", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( ShowTransformWidget, "Show Transform Widget", "Toggles the visibility of the transform widgets", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( AllowTranslucentSelection, "Allow Translucent Selection", "Allows translucent objects to be selected", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::T) );
