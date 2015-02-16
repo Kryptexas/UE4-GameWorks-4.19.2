@@ -463,6 +463,8 @@ public:
 	 */
 	static bool GetGeneratedClassesHierarchy(const UClass* InClass, TArray<const UBlueprintGeneratedClass*>& OutBPGClasses);
 
+	UInheritableComponentHandler* GetInheritableComponentHandler(const bool bCreateIfNecessary = false);
+
 	/** Find the object in the TemplateObjects array with the supplied name */
 	UActorComponent* FindComponentTemplateByName(const FName& TemplateName) const;
 

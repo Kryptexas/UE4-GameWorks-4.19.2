@@ -1233,15 +1233,14 @@ UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bC
 	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
 	if (!EnableInheritableComponents)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	if (!InheritableComponentHandler && bCreateIfNecessary)
 	{
-		auto BPGC = CastChecked<UBlueprintGeneratedClass>(GeneratedClass);
+		UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(GeneratedClass);
 		ensure(!BPGC->InheritableComponentHandler);
-		InheritableComponentHandler = NewObject<UInheritableComponentHandler>(BPGC, FName(TEXT("InheritableComponentHandler")));
-		BPGC->InheritableComponentHandler = InheritableComponentHandler;
+		InheritableComponentHandler = BPGC->GetInheritableComponentHandler(true);
 	}
 	return InheritableComponentHandler;
 }

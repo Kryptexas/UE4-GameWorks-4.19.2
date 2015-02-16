@@ -7,6 +7,7 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/LevelScriptActor.h"
+#
 
 #if WITH_EDITOR
 #include "BlueprintEditorUtils.h"
@@ -263,6 +264,23 @@ bool UBlueprintGeneratedClass::IsFunctionImplementedInBlueprint(FName InFunction
 	return Function && Function->GetOuter() && Function->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 }
 
+UInheritableComponentHandler* UBlueprintGeneratedClass::GetInheritableComponentHandler(const bool bCreateIfNecessary)
+{
+	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
+	if (!EnableInheritableComponents)
+	{
+		return nullptr;
+	}
+
+	if (!InheritableComponentHandler && bCreateIfNecessary)
+	{
+		InheritableComponentHandler = NewNamedObject<UInheritableComponentHandler>(this, FName(TEXT("InheritableComponentHandler")));
+	}
+
+	return InheritableComponentHandler;
+}
+
+
 UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const
 {
 	UObject* Archetype = nullptr;
@@ -283,13 +301,20 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 			if (SCSNode)
 			{
 				Archetype = SCSNode->ComponentTemplate;
-				Class = nullptr;
+			}
+			else if (UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
+			{
+				Archetype = ICH->GetOverridenComponentTemplate(ICH->FindKey(ArchetypeName));
 			}
 
 			if (Archetype == nullptr)
 			{
 				Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeName));
 				Class = (Archetype ? nullptr : Cast<UBlueprintGeneratedClass>(Class->GetSuperClass()));
+			}
+			else
+			{
+				Class = nullptr;
 			}
 		}
 	}
