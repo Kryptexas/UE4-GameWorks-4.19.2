@@ -1282,6 +1282,7 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 		int32 NumTiles = 0;
 		ArReader << NumTiles;
 
+		int32 IndexesOffset = 0;
 		for (int32 iTile = 0; iTile < NumTiles; iTile++)
 		{
 			NavMeshDebug::FTileData TileData;
@@ -1296,31 +1297,36 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 				Verts.Add(Loc);
 			}
 			CurrentData->Bounds += FBox(Verts);
-
+			
 			for (int32 iArea = 0; iArea < TileData.Areas.Num(); iArea++)
 			{
 				const NavMeshDebug::FAreaPolys& SrcArea = TileData.Areas[iArea];
 				FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
 				DebugMeshData.ClusterColor = SrcArea.Color;
+				DebugMeshData.ClusterColor.A = 128;
+				
+				for (int32 iTri = 0; iTri < SrcArea.Indices.Num(); iTri += 3)
+				{
+					const int32 Index0 = SrcArea.Indices[iTri + 0];
+					const int32 Index1 = SrcArea.Indices[iTri + 1];
+					const int32 Index2 = SrcArea.Indices[iTri + 2];
+
+					FVector V0 = Verts[Index0];
+					FVector V1 = Verts[Index1];
+					FVector V2 = Verts[Index2];
+					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V0 + CurrentData->NavMeshDrawOffset, V1 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
+					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V1 + CurrentData->NavMeshDrawOffset, V2 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
+					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V2 + CurrentData->NavMeshDrawOffset, V0 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
+
+					AddTriangleHelper(DebugMeshData, Index0 + IndexesOffset, Index1 + IndexesOffset, Index2 + IndexesOffset);
+				}
 
 				for (int32 iVert = 0; iVert < Verts.Num(); iVert++)
 				{
 					AddVertexHelper(DebugMeshData, Verts[iVert] + CurrentData->NavMeshDrawOffset);
 				}
-				
-				for (int32 iTri = 0; iTri < SrcArea.Indices.Num(); iTri += 3)
-				{
-					AddTriangleHelper(DebugMeshData, SrcArea.Indices[iTri], SrcArea.Indices[iTri + 1], SrcArea.Indices[iTri + 2]);
-
-					FVector V0 = Verts[SrcArea.Indices[iTri+0]];
-					FVector V1 = Verts[SrcArea.Indices[iTri+1]];
-					FVector V2 = Verts[SrcArea.Indices[iTri+2]];
-					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V0 + CurrentData->NavMeshDrawOffset, V1 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
-					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V1 + CurrentData->NavMeshDrawOffset, V2 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
-					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V2 + CurrentData->NavMeshDrawOffset, V0 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
-				}
-
 				CurrentData->MeshBuilders.Add(DebugMeshData);
+				IndexesOffset += Verts.Num();
 			}
 
 			for (int32 i = 0; i < TileData.Links.Num(); i++)

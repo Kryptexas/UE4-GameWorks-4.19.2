@@ -293,7 +293,7 @@ bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerControl
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.bNoCollisionFail = true;
 	SpawnInfo.Name = *FString::Printf(TEXT("GameplayDebuggingReplicator_%s"), *PlayerController->GetName());
-	AGameplayDebuggingReplicator* DestActor = World->SpawnActor<AGameplayDebuggingReplicator>(SpawnInfo);
+	AGameplayDebuggingReplicator* DestActor = World->SpawnActor<AGameplayDebuggingReplicator>(FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo);
 	if (DestActor != NULL)
 	{
 		DestActor->SetLocalPlayerOwner(PlayerController);
@@ -357,7 +357,7 @@ void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.bNoCollisionFail = true;
 	SpawnInfo.Name = *FString::Printf(TEXT("GameplayDebuggingReplicator_Global"));
-	AGameplayDebuggingReplicator* DestActor = InWorld->SpawnActor<AGameplayDebuggingReplicator>(SpawnInfo);
+	AGameplayDebuggingReplicator* DestActor = InWorld->SpawnActor<AGameplayDebuggingReplicator>(FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo);
 	if (DestActor != NULL)
 	{
 		DestActor->SetLocalPlayerOwner(NULL);
