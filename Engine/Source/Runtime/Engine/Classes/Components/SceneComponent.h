@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "Engine/EngineTypes.h"
 #include "RHIDefinitions.h"
+#include "ComponentInstanceDataCache.h" // for FComponentInstanceDataBase
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
