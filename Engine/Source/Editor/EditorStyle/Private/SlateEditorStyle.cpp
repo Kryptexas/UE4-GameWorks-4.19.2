@@ -622,18 +622,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetPadding(FMargin(0.0f));
 		Set("DarkHyperlink", DarkHyperlink);
 
-		// Edit BP Hyperlink
-		FButtonStyle EditBPHyperlinkButton = FButtonStyle()
-			.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f), FLinearColor(0.25f, 0.5f, 1.0f)))
-			.SetPressed(FSlateNoResource())
-			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f), FLinearColor(0.25f, 0.5f, 1.0f)));
-		FHyperlinkStyle EditBPHyperlink = FHyperlinkStyle()
-			.SetUnderlineStyle(EditBPHyperlinkButton)
-			.SetTextStyle(NormalText)
-			.SetPadding(FMargin(0.0f));
-
-		Set("EditBPHyperlink", EditBPHyperlink);
-
 		// Visible on hover hyper link
 		FButtonStyle HoverOnlyHyperlinkButton = FButtonStyle()
 			.SetNormal(FSlateNoResource() )
@@ -2266,20 +2254,49 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Common styles for blueprint/code references
 	{
-		Set("Common.EditBlueprintHyperlinkStyle", FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
-			.SetColorAndOpacity(InheritedFromBlueprintTextColor)
-		);
-
-		Set("Common.GoToNativeCodeHyperlinkStyle", FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
-			.SetColorAndOpacity(InheritedFromNativeTextColor)
-		);
-
-		Set("Common.InheritedFromBlueprintTextColor", InheritedFromBlueprintTextColor);
-		Set("Common.InheritedFromNativeTextColor", InheritedFromNativeTextColor);
 		Set("Common.IntroducedInThisInstanceTextColor", IntroducedInThisInstanceTextColor);
 		Set("Common.IntroducedInThisBlueprintTextColor", IntroducedInThisBlueprintTextColor);
+
+		// Inherited from blueprint
+		Set("Common.InheritedFromBlueprintTextColor", InheritedFromBlueprintTextColor);
+
+		FTextBlockStyle InheritedFromBlueprintTextStyle = FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
+			.SetColorAndOpacity(InheritedFromBlueprintTextColor);
+
+		Set("Common.InheritedFromBlueprintTextStyle", InheritedFromBlueprintTextStyle);
+
+		// Go to blueprint hyperlink
+		FButtonStyle EditBPHyperlinkButton = FButtonStyle()
+			.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f), InheritedFromBlueprintTextColor))
+			.SetPressed(FSlateNoResource())
+			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f), InheritedFromBlueprintTextColor));
+		FHyperlinkStyle EditBPHyperlinkStyle = FHyperlinkStyle()
+			.SetUnderlineStyle(EditBPHyperlinkButton)
+			.SetTextStyle(InheritedFromBlueprintTextStyle)
+			.SetPadding(FMargin(0.0f));
+
+		Set("Common.GotoBlueprintHyperlink", EditBPHyperlinkStyle);
+
+		// Inherited from native
+		Set("Common.InheritedFromNativeTextColor", InheritedFromNativeTextColor);
+
+		FTextBlockStyle InheritedFromNativeTextStyle = FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
+			.SetColorAndOpacity(InheritedFromNativeTextColor);
+		Set("Common.InheritedFromNativeTextStyle", InheritedFromNativeTextStyle);
+
+		// Go to native class hyperlink
+		FButtonStyle EditNativeHyperlinkButton = FButtonStyle()
+			.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f), InheritedFromNativeTextColor))
+			.SetPressed(FSlateNoResource())
+			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f), InheritedFromNativeTextColor));
+		FHyperlinkStyle EditNativeHyperlinkStyle = FHyperlinkStyle()
+			.SetUnderlineStyle(EditNativeHyperlinkButton)
+			.SetTextStyle(InheritedFromNativeTextStyle)
+			.SetPadding(FMargin(0.0f));
+
+		Set("Common.GotoNativeCodeHyperlink", EditNativeHyperlinkStyle);
 	}
 #endif
 }
