@@ -440,10 +440,7 @@ public:
 	/**
 	 * @return the executable's command line
 	 */
-	FORCEINLINE static TCHAR* GetCommandLine()
-	{
-		return nullptr;
-	}
+	static TCHAR* GetNativeCommandLine();
 
 	/** 
 	 *	Set the value for the given section and key in the platform specific key->value store

@@ -43,9 +43,9 @@ void GCreateMalloc()
 
 	
 #if	STATS
-	const bool bCreateMallocProfiler = FParse::Param( FPlatformMisc::GetCommandLine(), TEXT( "MemoryProfiler" ) );
+	const bool bCreateMallocProfiler = FParse::Param( FPlatformMisc::GetNativeCommandLine(), TEXT( "MemoryProfiler" ) );
 
-	// Create the stats malloc profiler proxy, needs to be enabled separately.
+	// Create the stats malloc profiler proxy.
 	if( bCreateMallocProfiler )
 	{
 		GMalloc = FStatsMallocProfilerProxy::Get();
