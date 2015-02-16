@@ -318,6 +318,9 @@ struct FPostProcessSettings
 	uint32 bOverride_DepthOfFieldFocalDistance:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_DepthOfFieldFstop:1;
+
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_DepthOfFieldFocalRegion:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
@@ -766,6 +769,10 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DepthOfField, meta=(editcondition = "bOverride_DepthOfFieldMethod", DisplayName = "Method"))
 	TEnumAsByte<enum EDepthOfFieldMethod> DepthOfFieldMethod;
 
+	/** CircleDOF only: F-stop number (1/fstop) */
+	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, meta=(ClampMin = "1.0", ClampMax = "32.0", editcondition = "bOverride_DepthOfFieldFstop", DisplayName = "1/Fstop"))
+	float DepthOfFieldFstop;
+
 	/** Distance in which the Depth of Field effect should be sharp, in unreal units (cm) */
 	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, meta=(UIMin = "0.0", UIMax = "10000.0", editcondition = "bOverride_DepthOfFieldFocalDistance", DisplayName = "Focal Distance"))
 	float DepthOfFieldFocalDistance;
@@ -970,6 +977,7 @@ struct FPostProcessSettings
 		IndirectLightingIntensity = 1.0f;
 		ColorGradingIntensity = 1.0f;
 		DepthOfFieldFocalDistance = 1000.0f;
+		DepthOfFieldFstop = 4.0f;
 		DepthOfFieldFocalRegion = 0.0f;
 		DepthOfFieldNearTransitionRegion = 300.0f;
 		DepthOfFieldFarTransitionRegion = 500.0f;
