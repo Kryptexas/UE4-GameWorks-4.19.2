@@ -1302,14 +1302,19 @@ FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
 	if ( ThumbSize.IsSet() )
 	{
 		float Size = ThumbSize.Get();
-		if ( Size < 85 )
+		if ( Size < 50 )
 		{
-			static FName SmallFontName("ContentBrowser.AssetTileViewNameFontSmall");
+			const static FName SmallFontName("ContentBrowser.AssetTileViewNameFontVerySmall");
+			return FEditorStyle::GetFontStyle(SmallFontName);
+		}
+		else if ( Size < 85 )
+		{
+			const static FName SmallFontName("ContentBrowser.AssetTileViewNameFontSmall");
 			return FEditorStyle::GetFontStyle(SmallFontName);
 		}
 	}
 
-	static FName RegularFont("ContentBrowser.AssetTileViewNameFont");
+	const static FName RegularFont("ContentBrowser.AssetTileViewNameFont");
 	return FEditorStyle::GetFontStyle(RegularFont);
 }
 

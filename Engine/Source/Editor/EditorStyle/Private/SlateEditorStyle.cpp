@@ -3877,10 +3877,10 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 
 		Set("SCSEditor.ComponentTooltip.Value", 
 			FTextBlockStyle(NormalText)
- 			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 10))
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 10))
 			.SetColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f))
- 			.SetShadowOffset(FVector2D(1.0f, 1.0f))
- 			.SetShadowColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f))
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f))
 		);
 		Set("SCSEditor.ComponentTooltip.ImportantValue",
 			FTextBlockStyle(NormalText)
@@ -5107,6 +5107,7 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 		// Tile view
 		Set( "ContentBrowser.AssetTileViewNameFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
 		Set( "ContentBrowser.AssetTileViewNameFontSmall", TTF_CORE_FONT( "Fonts/Roboto-Light", 8, EFontHinting::Auto ) );
+		Set( "ContentBrowser.AssetTileViewNameFontVerySmall", TTF_CORE_FONT( "Fonts/Roboto-Light", 7, EFontHinting::Auto ) );
 		Set( "ContentBrowser.AssetTileViewNameFontDirty", TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
 		Set( "ContentBrowser.AssetListView.TableRow", FTableRowStyle()
 			.SetEvenRowBackgroundBrush( FSlateNoResource() )
