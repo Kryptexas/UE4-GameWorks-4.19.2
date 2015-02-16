@@ -6,6 +6,7 @@
 #include "CorePrivatePCH.h"
 #include "Serialization/Archive.h"
 #include "Serialization/CustomVersion.h"
+#include "EngineVersion.h"
 
 /*-----------------------------------------------------------------------------
 	FArchiveProxy implementation.
