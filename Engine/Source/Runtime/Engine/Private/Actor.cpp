@@ -1224,11 +1224,7 @@ void AActor::DetachRootComponentFromParent(bool bMaintainWorldPosition)
 {
 	if(RootComponent)
 	{
-		USceneComponent * RootComponent = GetRootComponent();
-
-
-		GetRootComponent()->DetachFromParent(bMaintainWorldPosition);
-
+		RootComponent->DetachFromParent(bMaintainWorldPosition);
 		AttachmentReplication.AttachParent = NULL;
 	}
 }
