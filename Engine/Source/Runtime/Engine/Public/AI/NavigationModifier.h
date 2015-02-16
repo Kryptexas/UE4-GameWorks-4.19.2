@@ -68,7 +68,7 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 	float Cost;
 	float FixedCost;
 
-	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), AreaClass(NULL), ReplaceAreaClass(NULL), ShapeType(ENavigationShapeType::Unknown) {}
+	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), AreaClass(NULL), ReplaceAreaClass(NULL), ShapeType(ENavigationShapeType::Unknown), bIncludeAgentHeight(false) {}
 	FAreaNavModifier(float Radius, float Height, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);
 	FAreaNavModifier(const FVector& Extent, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);
 	FAreaNavModifier(const FBox& Box, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);

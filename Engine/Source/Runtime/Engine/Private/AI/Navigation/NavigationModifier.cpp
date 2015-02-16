@@ -223,6 +223,7 @@ void FAreaNavModifier::GetConvex(FConvexNavAreaData& Data) const
 
 void FAreaNavModifier::Init(const TSubclassOf<UNavArea> InAreaClass)
 {
+	bIncludeAgentHeight = false;
 	Cost = 0.0f;
 	FixedCost = 0.0f;
 	ReplaceAreaClass = NULL;
