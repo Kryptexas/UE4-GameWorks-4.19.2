@@ -213,7 +213,7 @@ void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
 				if (ConfirmationType == EGameplayTargetingConfirmation::CustomMulti)
 				{
 					//Since multifire is supported, we still need to hook up the callbacks
-					AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+					OnTargetDataReplicatedCallbackDelegateHandle = AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
 					AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 				}
 				else
@@ -223,7 +223,7 @@ void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
 			}
 			else
 			{
-				AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+				OnTargetDataReplicatedCallbackDelegateHandle = AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
 				AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 			}
 		}
