@@ -366,7 +366,7 @@ void FComponentAssetBrokerage::InitializeMap()
 	}
 }
 
-void FComponentAssetBrokerage::RegisterBroker(TSharedPtr<IComponentAssetBroker> Broker, TSubclassOf<UActorComponent> InComponentClass, bool bSetAsPrimary, bool bMapCompnentForAssets)
+void FComponentAssetBrokerage::RegisterBroker(TSharedPtr<IComponentAssetBroker> Broker, TSubclassOf<UActorComponent> InComponentClass, bool bSetAsPrimary, bool bMapComponentForAssets)
 {
 	InitializeMap();
 
@@ -387,7 +387,7 @@ void FComponentAssetBrokerage::RegisterBroker(TSharedPtr<IComponentAssetBroker> 
 		AssetToBrokerMap.FindOrAdd(AssetClass).Add(Broker);
 	}
 
-	if (bMapCompnentForAssets)
+	if (bMapComponentForAssets)
 	{
 		FComponentClassList& ValidComponentTypes = AssetToComponentClassMap.FindOrAdd(AssetClass);
 		if (bSetAsPrimary)
