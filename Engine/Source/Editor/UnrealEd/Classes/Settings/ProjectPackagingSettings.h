@@ -75,7 +75,7 @@ public:
 	 * If disabled, a development build will be created
 	 * Distribution builds are for publishing to the App Store
 	 */
-	UPROPERTY(config, EditAnywhere, Category=Project, AdvancedDisplay)
+	UPROPERTY(config, EditAnywhere, Category=Project)
 	bool ForDistribution;
 
 	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
