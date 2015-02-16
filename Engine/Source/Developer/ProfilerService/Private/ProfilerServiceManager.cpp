@@ -3,6 +3,7 @@
 #include "ProfilerServicePrivatePCH.h"
 
 #include "StatsData.h"
+#include "StatsFile.h"
 #include "SecureHash.h"
 
 
@@ -311,7 +312,6 @@ protected:
 FProfilerServiceManager::FProfilerServiceManager()
 {
 	MetaData.SecondsPerCycle = FPlatformTime::GetSecondsPerCycle();
-	NewMetaData.SecondsPerCycle = FPlatformTime::GetSecondsPerCycle();
 	PingDelegate = FTickerDelegate::CreateRaw(this, &FProfilerServiceManager::HandlePing);
 	DataFrame.Frame = 0;
 }
@@ -354,20 +354,7 @@ void FProfilerServiceManager::SendData(FProfilerCycleGraph& Data)
 void FProfilerServiceManager::StartCapture()
 {
 #if STATS
-	// fire off the equivalent of the stat startfile command
-	if (!Archive.IsValid())
-	{
-		// @TODO yrx 2014-06-05 Needs to be done on the stats thread via the task graph task.
-		FString Filename = CreateProfileFilename( FStatConstants::StatsFileExtension, true );
-		LastStatsFilename = FApp::GetInstanceName() + TEXT("_") + Filename;
-		TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> ArchivePtr = MakeShareable(new FStatsWriteFile());
-		Archive = ArchivePtr;
-		Archive->Start( LastStatsFilename, false );
-		if (!Archive->IsValid())
-		{
-			Archive = nullptr;
-		}
-	}
+	DirectStatsCommand(TEXT("stat startfile"));
 #endif
 }
 
@@ -375,46 +362,11 @@ void FProfilerServiceManager::StartCapture()
 void FProfilerServiceManager::StopCapture()
 {
 #if STATS
-	if (Archive.IsValid())
-	{
-		Archive->Stop();
-	}
-	Archive = nullptr;
+	DirectStatsCommand(TEXT("stat stopfile"),true);
+	// Not thread-safe, but in this case it is ok, because we are waiting for completion.
+	LastStatsFilename = FCommandStatsFile::Get().LastFileSaved;
 #endif
 }
-
-void FProfilerServiceManager::UpdateMetaData()
-{
-	// @TODO yrx 2014-04-13 Obsolete, remove later.
-	// update the thread descriptions only if there has been a change
-	int32 OldCount = FRunnableThread::GetThreadRegistry().GetThreadCount();
-	if (FRunnableThread::GetThreadRegistry().IsUpdated())
-	{
-		FRunnableThread::GetThreadRegistry().Lock();
-		for( auto Iter = FRunnableThread::GetThreadRegistry().CreateConstIterator(); Iter; ++Iter)
-		{
-			if (!MetaData.ThreadDescriptions.Contains(Iter.Key()))
-			{
-				MetaData.ThreadDescriptions.Add(Iter.Key(), Iter.Value()->GetThreadName());
-				NewMetaData.ThreadDescriptions.Add(Iter.Key(), Iter.Value()->GetThreadName());
-			}
-		}
-		FRunnableThread::GetThreadRegistry().ClearUpdated();
-		FRunnableThread::GetThreadRegistry().Unlock();
-	}
-
-	if (MessageEndpoint.IsValid() && PreviewClients.Num() > 0 && (NewMetaData.GroupDescriptions.Num() > 0 || NewMetaData.StatDescriptions.Num() > 0 || NewMetaData.ThreadDescriptions.Num() > 0))
-	{
-		FArrayWriter ArrayWriter(true);
-		ArrayWriter << NewMetaData;
-		MessageEndpoint->Send(new FProfilerServiceMetaData(InstanceId, ArrayWriter), PreviewClients);
-	}
-
-	NewMetaData.GroupDescriptions.Reset();
-	NewMetaData.StatDescriptions.Reset();
-	NewMetaData.ThreadDescriptions.Reset();
-}
-
 
 void FProfilerServiceManager::SendMetaData(const FMessageAddress& client)
 {
@@ -475,28 +427,12 @@ void FProfilerServiceManager::Init()
 		MessageEndpoint->Subscribe<FProfilerServiceUnsubscribe>();
 	}
 
-#if STATS
-	// check to see if we need to capture, specified from the command line
-	Archive = nullptr;
-#endif
-	if (FParse::Param(FCommandLine::Get(), TEXT("StartCapture")))
-	{
-		StartCapture();
-	}
-
 	FileTransferRunnable = new FFileTransferRunnable( MessageEndpoint );
 }
 
 
 void FProfilerServiceManager::Shutdown()
 {
-#if STATS
-	if (Archive.IsValid())
-	{
-		Archive = nullptr;
-	}
-#endif
-
 	delete FileTransferRunnable;
 	FileTransferRunnable = nullptr;
 
@@ -516,10 +452,27 @@ IProfilerServiceManagerPtr FProfilerServiceManager::CreateSharedServiceManager()
 	return ProfilerServiceManager;
 }
 
+void FProfilerServiceManager::AddNewFrameHandleStatsThread()
+{
+#if	STATS
+	const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+	NewFrameDelegateHandle = Stats.NewFrameDelegate.AddRaw( this, &FProfilerServiceManager::HandleNewFrame );
+	StatsMasterEnableAdd();
+#endif // STATS
+}
+
+void FProfilerServiceManager::RemoveNewFrameHandleStatsThread()
+{
+#if	STATS
+	const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+	Stats.NewFrameDelegate.Remove( NewFrameDelegateHandle );
+	StatsMasterEnableSubtract();
+#endif // STATS
+}
+
 void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddress, const bool bRequestedPreviewState )
 {
 #if STATS
-	const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	FClientData* Client = ClientData.Find( ClientAddress );
 	if( Client )
 	{
@@ -532,15 +485,19 @@ void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddr
 				// enable stat capture
 				if (PreviewClients.Num() == 0)
 				{
-					HandleNewFrameDelegateHandle = Stats.NewFrameDelegate.AddRaw( this, &FProfilerServiceManager::HandleNewFrame );
-					StatsMasterEnableAdd();
+					FGraphEventRef CompletionEvent = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+					(
+						FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerServiceManager::AddNewFrameHandleStatsThread ),
+						TStatId(), nullptr,
+						FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread
+					);
 				}
 				PreviewClients.Add(ClientAddress);
 				Client->Preview = true;
 				if (MessageEndpoint.IsValid())
 				{
-					Client->CurrentFrame = Stats.CurrentGameFrame;
-					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId, Stats.CurrentGameFrame ), ClientAddress );
+					Client->CurrentFrame = FStats::GameThreadStatsFrame;
+					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId, FStats::GameThreadStatsFrame ), ClientAddress );
 				}
 				SendMetaData(ClientAddress);
 			}
@@ -553,8 +510,13 @@ void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddr
 				if (PreviewClients.Num() == 0)
 				{
 					// disable stat capture
-					Stats.NewFrameDelegate.Remove( HandleNewFrameDelegateHandle );
-					StatsMasterEnableAdd();
+					FGraphEventRef CompletionEvent = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+					(
+						FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerServiceManager::RemoveNewFrameHandleStatsThread ),
+						TStatId(), nullptr,
+						FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread
+					);
+					
 				}
 			}
 		}
@@ -590,13 +552,6 @@ bool FProfilerServiceManager::HandlePing( float DeltaTime )
 		}
 	}
 
-	if (PreviewClients.Num() == 0)
-	{
-		// disable stat capture
-		FStatsThreadState::GetLocalState().NewFrameDelegate.Remove(HandleNewFrameDelegateHandle);
-		StatsMasterEnableAdd();
-	}
-
 	// send the ping message
 	if (MessageEndpoint.IsValid() && Clients.Num() > 0)
 	{
@@ -611,16 +566,16 @@ void FProfilerServiceManager::HandleServiceCaptureMessage( const FProfilerServic
 {
 #if STATS
 	const bool bRequestedCaptureState = Message.bRequestedCaptureState;
-	const bool bIsCapturing = Archive.IsValid();
+	const bool bIsCapturing = FCommandStatsFile::Get().IsStatFileActive();
 
 	if( bRequestedCaptureState != bIsCapturing )
 	{
-		if( bRequestedCaptureState && !Archive.IsValid() )
+		if( bRequestedCaptureState && !bIsCapturing )
 		{
 			UE_LOG(LogProfile, Log, TEXT("StartCapture") );
 			StartCapture();
 		}
-		else if( !bRequestedCaptureState && Archive.IsValid() )
+		else if( !bRequestedCaptureState && bIsCapturing )
 		{
 			StopCapture();
 		}
@@ -692,7 +647,7 @@ void FProfilerServiceManager::HandleServiceSubscribeMessage( const FProfilerServ
 		FClientData Data;
 		Data.Active = true;
 		Data.Preview = false;
-		Data.StatsWriteFile.WriteHeader( false );
+		Data.StatsWriteFile.WriteHeader();
 
 		// add to the client list
 		ClientData.Add( MsgAddress, Data );
@@ -700,6 +655,7 @@ void FProfilerServiceManager::HandleServiceSubscribeMessage( const FProfilerServ
 		const TArray<uint8>& OutData = ClientData.Find( MsgAddress )->StatsWriteFile.GetOutData();
 		MessageEndpoint->Send( new FProfilerServiceAuthorize2( SessionId, InstanceId, OutData ), MsgAddress );
 
+		// Not thread-safe, but reading the number of elements should be ok.
 		const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 		ClientData.Find( MsgAddress )->MetadataSize = Stats.ShortNameToLongName.Num();
 
@@ -740,6 +696,7 @@ void FProfilerServiceManager::HandleServiceUnsubscribeMessage( const FProfilerSe
 
 void FProfilerServiceManager::HandleNewFrame(int64 Frame)
 {
+	// Called from the stats thread.
 #if STATS
 	// package it up and send to the clients
 	if (MessageEndpoint.IsValid())

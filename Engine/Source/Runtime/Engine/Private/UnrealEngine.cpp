@@ -106,6 +106,8 @@ IMPLEMENT_MODULE( FEngineModule, Engine );
 
 #define LOCTEXT_NAMESPACE "UnrealEngine"
 
+DECLARE_CYCLE_STAT(TEXT("DrawStats"),STAT_DrawStats,STATGROUP_StatSystem);
+
 void FEngineModule::StartupModule()
 {
 	// Setup delegate callback for ProfilingHelpers to access current map name
@@ -8680,8 +8682,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	WorldContext.SeamlessTravelHandler.CancelTravel();
 
 	double	StartTime = FPlatformTime::Seconds();
-	{
-		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading URL"), STAT_LoadMap, STATGROUP_LoadTime);
 
 	UE_LOG(LogLoad, Log,  TEXT("LoadMap: %s"), *URL.ToString() );
 	GInitRunaway();
@@ -9109,7 +9109,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	IStreamingManager::Get().NotifyLevelChange();
 
 	WorldContext.World()->BeginPlay();
-	}
 
 	// send a callback message
 	PostLoadMapCaller.bCalled = true;

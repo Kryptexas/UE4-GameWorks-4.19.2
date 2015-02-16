@@ -1031,7 +1031,7 @@ typedef TChunkedArray<FStatMessage,(uint32)EStatMessagesArrayConstants::MESSAGES
 */
 struct FStatPacket
 {
-	/** Assigned later, this is the frame number this packet is for **/
+	/** Assigned later, this is the frame number this packet is for. @see FStatsThreadState::ScanForAdvance */
 	int64 Frame;
 	/** ThreadId this packet came from **/
 	uint32 ThreadId;
@@ -1061,6 +1061,30 @@ struct FStatPacket
 		, bBrokenCallstacks(false)
 		, StatMessagesPresize(Other.StatMessagesPresize)
 	{
+	}
+
+	/** Initializes thread related properties for the stats packet. */
+	void SetThreadProperties()
+	{
+		ThreadId = FPlatformTLS::GetCurrentThreadId();
+		if (ThreadId == GGameThreadId)
+		{
+			ThreadType = EThreadType::Game;
+		}
+		else if (ThreadId == GRenderThreadId)
+		{
+			ThreadType = EThreadType::Renderer;
+		}
+		else
+		{
+			ThreadType = EThreadType::Other;
+		}
+	}
+
+
+	void AssignFrame( int64 InFrame )
+	{
+		Frame = InFrame;
 	}
 };
 
@@ -1117,21 +1141,21 @@ public:
 	CORE_API void ReturnToPool(FThreadStats* Instance);
 };
 
+/** Fake type to distinguish constructors. */
+enum EConstructor
+{
+	FOR_POOL
+};
+
 /**
 * This is thread-private information about the stats we are acquiring. Pointers to these objects are held in TLS.
 */
-class FThreadStats
+class FThreadStats : FNoncopyable
 {
 	friend class FStatsMallocProfilerProxy;
 	friend class FStatsThreadState;
 	friend class FStatsThread;
 	friend struct FThreadStatsPool;
-
-	enum
-	{
-		PRESIZE_MAX_NUM_ENTRIES = 10,
-		PRESIZE_MAX_SIZE = 256*1024,
-	};
 
 	/** Used to control when we are collecting stats. User of the stats system increment and decrement this counter as they need data. **/
 	CORE_API static FThreadSafeCounter MasterEnableCounter;
@@ -1139,31 +1163,36 @@ class FThreadStats
 	CORE_API static FThreadSafeCounter MasterEnableUpdateNumber;
 	/** while bMasterEnable (or other things affecting stat collection) is chaning, we lock this. This is used to determine frames that have complete data. **/
 	CORE_API static FThreadSafeCounter MasterDisableChangeTagLock;
+	/** TLS slot that holds a FThreadStats. **/
+	CORE_API static uint32 TlsSlot;
 	/** Computed by CheckEnable, the current "master control" for stats collection, based on MasterEnableCounter and a few other things. **/
 	CORE_API static bool bMasterEnable;
 	/** Set to permanently disable the stats system. **/
 	CORE_API static bool bMasterDisableForever;
-	/** TLS slot that holds a FThreadStats. **/
-	CORE_API static uint32 TlsSlot;
+	/** True if we running in the raw stats mode, all stats processing is disabled, captured stats messages are written in timely manner, memory overhead is minimal. */
+	CORE_API static bool bIsRawStatsActive;
 
 	/** The data we are eventually going to send to the stats thread. **/
 	FStatPacket Packet;
 
-	/** Current game frame for this thread stat. */
+	/** Current game frame for this thread stats. */
 	int32 CurrentGameFrame;
 
 	/** Tracks current stack depth for cycle counters. **/
-	uint32 ScopeCount;
+	int32 ScopeCount;
 
 	/** Tracks current stack depth for cycle counters. **/
-	uint32 bWaitForExplicitFlush;
+	int32 bWaitForExplicitFlush;
 
 	/** 
 	 * Tracks the progress of adding a new memory stat message and prevents from using the memory profiler in the scope.
-	 * Mostly related to ignoring all memory allocations in Flush() and AddStatMessage().
+	 * Mostly related to ignoring all memory allocations in AddStatMessage().
 	 * Memory usage of the stats messages is handled by the STAT_StatMessagesMemory.
 	 */
 	int32 MemoryMessageScope;
+
+	/** We have a scoped cycle counter in the FlushRawStats which causes an infinite recursion, ReentranceGuard will solve that issue. */
+	bool bReentranceGuard;
 
 	/** Tracks current stack depth for cycle counters. **/
 	bool bSawExplicitFlush;
@@ -1172,11 +1201,9 @@ class FThreadStats
 	CORE_API FThreadStats();
 
 	/** Constructor used for the pool. */
-	CORE_API FThreadStats(bool);
+	CORE_API FThreadStats(EConstructor);
 
-	/** Copys a packet for sending. !!!CAUTION!!! does not copy packets.**/
-	CORE_API FThreadStats(FThreadStats const& Other);
-
+public:
 	/** Checks the TLS for a thread packet and if it isn't found, it makes a new one. **/
 	static FORCEINLINE_STATS FThreadStats* GetThreadStats()
 	{
@@ -1191,8 +1218,49 @@ class FThreadStats
 	/** This should be called when conditions have changed such that stat collection may now be enabled or not **/
 	static CORE_API void CheckEnable();
 
-	/** Send any outstanding packets to the stats thread **/
-	CORE_API void Flush(bool bHasBrokenCallstacks = false);
+	/**
+	 *	Checks if the game frame has changed and updates the current game frame.
+	 *	Used by the flushing mechanism to optimize the memory usage, only valid for packets from other threads.
+	 *	@return true, if the frame has changed
+	 */
+	FORCEINLINE_STATS bool DetectAndUpdateCurrentGameFrame()
+	{
+		if( Packet.ThreadType == EThreadType::Other )
+		{
+			FPlatformMisc::MemoryBarrier();
+			const bool bFrameHasChanged = FStats::GameThreadStatsFrame > CurrentGameFrame;
+			if( bFrameHasChanged )
+			{
+				CurrentGameFrame = FStats::GameThreadStatsFrame;
+				return true;
+			}
+		}
+				
+		return false;
+	}
+
+	/** Maintains the explicit flush. */
+	FORCEINLINE_STATS void UpdateExplicitFlush()
+	{
+		if (Packet.ThreadType != EThreadType::Other && bSawExplicitFlush)
+		{
+			bSawExplicitFlush = false;
+			bWaitForExplicitFlush = 1;
+			ScopeCount++; // prevent sends until the next explicit flush
+		}
+	}
+
+	/** Send any outstanding packets to the stats thread. **/
+	CORE_API void Flush(bool bHasBrokenCallstacks = false, bool bForceFlush = false);
+
+	/** Flushes the regular stats, the realtime stats. */
+	CORE_API void FlushRegularStats(bool bHasBrokenCallstacks, bool bForceFlush);
+
+	/** Flushes the raw stats, low memory and performance overhead, but not realtime. */
+	CORE_API void FlushRawStats(bool bHasBrokenCallstacks = false, bool bForceFlush = false);
+
+	/** Checks the command line whether we want to enable collecting startup stats. */
+	static CORE_API void CheckForCollectingStartupStats();
 
 	FORCEINLINE_STATS void AddStatMessage( const FStatMessage& StatMessage )
 	{
@@ -1207,7 +1275,8 @@ public:
 		FThreadStats* Stats = (FThreadStats*)FPlatformTLS::GetTlsValue(TlsSlot);
 		if (Stats)
 		{
-			// Flush stats?
+			// Send all remaining messages.
+			Stats->Flush(false, true);
 			FPlatformTLS::SetTlsValue(TlsSlot, nullptr);
 			FThreadStatsPool::Get().ReturnToPool(Stats);
 		}
@@ -1223,6 +1292,11 @@ public:
 		{
 			ThreadStats->ScopeCount++;
 			ThreadStats->AddStatMessage(FStatMessage(InStatName, InStatOperation));
+
+			if( bIsRawStatsActive )
+			{
+				ThreadStats->FlushRawStats();
+			}
 		}
 		else if (InStatOperation == EStatOperation::CycleScopeEnd)
 		{
@@ -1233,6 +1307,10 @@ public:
 				if (!ThreadStats->ScopeCount)
 				{
 					ThreadStats->Flush();
+				}
+				else if( bIsRawStatsActive )
+				{
+					ThreadStats->FlushRawStats();
 				}
 			}
 			// else we dumped this frame without closing scope, so we just drop the closes on the floor
@@ -1250,6 +1328,10 @@ public:
 			if(!ThreadStats->ScopeCount)
 			{
 				ThreadStats->Flush();
+			}
+			else if( bIsRawStatsActive )
+			{
+				ThreadStats->FlushRawStats();
 			}
 		}
 	}
@@ -1344,6 +1426,20 @@ public:
 	{
 		FPlatformMisc::MemoryBarrier();
 		MasterEnableUpdateNumber.Increment();
+		FPlatformMisc::MemoryBarrier();
+	}
+
+	/** Enables the raw stats mode. */
+	static FORCEINLINE_STATS void EnableRawStats()
+	{
+		bIsRawStatsActive = true;
+		FPlatformMisc::MemoryBarrier();
+	}
+
+	/** Disables the raw stats mode. */
+	static FORCEINLINE_STATS void DisableRawStats()
+	{
+		bIsRawStatsActive = false;
 		FPlatformMisc::MemoryBarrier();
 	}
 
@@ -1875,11 +1971,6 @@ DECLARE_STATS_GROUP(TEXT("UObjects"),STATGROUP_UObjects, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("User"),STATGROUP_User, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FrameTime"),STAT_FrameTime,STATGROUP_Engine, CORE_API);
-DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("StatUnit FPS"), STAT_FPS, STATGROUP_Engine, CORE_API);
 
-/** Stats for the stat system */
-
-DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawStats"),STAT_DrawStats,STATGROUP_StatSystem, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Stat Messages"),STAT_StatMessagesMemory,STATGROUP_StatSystem, CORE_API);
 
 #endif

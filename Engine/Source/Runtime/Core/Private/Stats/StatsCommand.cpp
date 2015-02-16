@@ -753,7 +753,7 @@ struct FHUDGroupManager
 		check(NumFrames <= Params.MaxHistoryFrames.Get());
 		if( NumFrames > 0 )
 		{
-			FGameThreadHudData* ToGame = new FGameThreadHudData();
+			FGameThreadHudData* ToGame = new FGameThreadHudData(false);
 
 			// Copy the total stats stack to the history stats stack and clear all nodes' data and set data type to none.
 			// Called to maintain the hierarchy.
@@ -979,96 +979,6 @@ static void DumpCPU(int64 Frame)
 	StatsMasterEnableSubtract();
 }
 
-static void DumpMemory(int64 /*Frame*/)
-{
-	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
-	const TMap<uint64,FAllocationInfo>& Allocations = Stats.GetAllocations();
-	if( Allocations.Num() == 0  )
-	{
-		UE_LOG(LogStats, Warning, TEXT("There are no allocations, make sure memory profiler is enabled") );
-	}
-	else
-	{
-		const TMap<uint64,FAllocationInfoEx>& NonSequentialAllocations = Stats.GetNonSequentialAllocations();
-
-		struct FSizeAndCount
-		{
-			uint64 Size;
-			uint64 Count;
-			FSizeAndCount()
-				: Size(0)
-				, Count(0)
-			{}
-		};
-
-		TMap<FName,FSizeAndCount> ScopedAllocations;
-
-		uint64 TotalAllocatedMemory = 0;
-		for( const auto& It : Allocations )
-		{
-			const FAllocationInfo& Alloc = It.Value;
-			FSizeAndCount& SizeAndCount = ScopedAllocations.FindOrAdd(Alloc.Scope);
-			SizeAndCount.Size += Alloc.Size;
-			SizeAndCount.Count += 1;
-
-			TotalAllocatedMemory += Alloc.Size;
-		}
-
-		// Dump memory to the log.
-		struct FGreater
-		{
-			FORCEINLINE bool operator()(const FSizeAndCount& A, const FSizeAndCount& B) const { return B.Size < A.Size; }
-		};
-
-		ScopedAllocations.ValueSort( FGreater() );
-
-		const float MaxPctDisplayed = 0.99f;
-		int32 CurrentIndex = 0;
-		uint64 DisplayedSoFar = 0;
-		UE_LOG( LogStats, Warning, TEXT("Index, Size (Size MB), Count, Stat desc [ Group ]") );
-		for( const auto& It : ScopedAllocations )
-		{
-			const FName LongName = It.Key;
-			const FSizeAndCount& SizeAndCount = It.Value;
-
-			const FString ShortName = FStatNameAndInfo::GetShortNameFrom(LongName).ToString();
-			const FString Group = FStatNameAndInfo::GetGroupNameFrom(LongName).ToString();
-			FString Desc = FStatNameAndInfo::GetDescriptionFrom(LongName);
-			Desc.Trim();
-
-			if( Desc != ShortName )
-			{
-				if( Desc.Len() )
-				{
-					Desc += TEXT( " - " );
-				}
-				Desc += ShortName;
-			}
-
-			UE_LOG( LogStats, Warning, TEXT("%2i, %llu (%.2f MB), %llu, %s [%s] "), 
-				CurrentIndex, 
-				SizeAndCount.Size, 
-				SizeAndCount.Size/1024.0f/1024.0f,
-				SizeAndCount.Count,
-				*Desc, 
-				*Group );
-
-			CurrentIndex++;
-			DisplayedSoFar += SizeAndCount.Size;
-
-			const float CurrentPct = (float)DisplayedSoFar/(float)TotalAllocatedMemory;
-			if( CurrentPct > MaxPctDisplayed )
-			{
-				break;
-			}
-		}
-
-		UE_LOG(LogStats, Warning, TEXT("Allocated memory: %llu bytes (%.2f MB)"), TotalAllocatedMemory, TotalAllocatedMemory/1024.0f/1024.0f );
-	}
-
-	Stats.NewFrameDelegate.Remove(DumpMemoryDelegateHandle);
-}
-
 static struct FDumpMultiple* DumpMultiple = NULL;
 
 struct FDumpMultiple
@@ -1187,21 +1097,20 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 #endif // WITH_ENGINE
 
 	Ar.Log( TEXT("stat startfile - starts dumping a capture"));
-	Ar.Log( TEXT("stat stopfile - stops dumping a capture"));
+	Ar.Log( TEXT("stat stopfile - stops dumping a capture (regular, raw, memory)"));
 
 	Ar.Log( TEXT("stat startfileraw - starts dumping a raw capture"));
-	Ar.Log( TEXT("stat stopfileraw - stops dumping a raw capture"));
 
 	Ar.Log( TEXT("stat toggledebug - toggles tracking the most memory expensive stats"));
 
-	Ar.Log( TEXT("stat memoryprofiler enable - enables tracking all memory operations, run 'stat startfileraw' before"));
-	Ar.Log( TEXT("stat memoryprofiler disable - disables tracking all memory operations, run 'stat startfileraw' after"));
-	Ar.Log( TEXT("stat dumpmemory - dump basic memory statistics WIP, memoryprofiler must to be enabled"));
+	Ar.Log( TEXT("add -memoryprofiler in the command line to enable the memory profiling"));
+	Ar.Log( TEXT("stat stopfile - stops tracking all memory operations and writes the results to the file"));
 }
 
+// @TODO yrx 2014-12-01 Move to StatsFile.cpp/.h
 static void CommandTestFile()
 {
-	const FString& LastFileSaved = FCommandStatsFile::LastFileSaved;
+	const FString& LastFileSaved = FCommandStatsFile::Get().LastFileSaved;
 
 	FStatsThreadState Loaded( LastFileSaved );
 	if( Loaded.GetLatestValidFrame() < 0 )
@@ -1249,10 +1158,6 @@ static void StatCmd(FString InCmd)
 		StatsMasterEnableAdd();
 		DumpFrameDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpFrame);
 	} 
-	else if( FParse::Command(&Cmd,TEXT("DumpMemory")) )
-	{
-		DumpMemoryDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpMemory);
-	}
 	else if ( FParse::Command(&Cmd,TEXT("DUMPNONFRAME")) )
 	{
 		DumpNonFrame(Stats);
@@ -1326,15 +1231,39 @@ static void StatCmd(FString InCmd)
 	}
 	else if( FParse::Command( &Cmd, TEXT( "STARTFILE" ) ) )
 	{
-		FCommandStatsFile::Start( Cmd );
+		FString Filename;
+		FParse::Token( Cmd, Filename, false );
+		FCommandStatsFile::Get().Start( Filename );
 	}
 	else if( FParse::Command( &Cmd, TEXT( "StartFileRaw" ) ) )
 	{
-		FCommandStatsFile::StartRaw( Cmd );
+		FThreadStats::EnableRawStats();
+		FString Filename;
+		FParse::Token( Cmd, Filename, false );
+		FCommandStatsFile::Get().StartRaw( Filename );
 	}
-	else if( FParse::Command( &Cmd, TEXT( "STOPFILE" ) ) || FParse::Command( &Cmd, TEXT( "StopFileRaw" ) ) )
+	else if( FParse::Command( &Cmd, TEXT( "STOPFILE" ) ) 
+		|| FParse::Command( &Cmd, TEXT( "StopFileRaw" ) ) )
 	{
-		FCommandStatsFile::Stop();
+		// Stop writing to a file.
+		FCommandStatsFile::Get().Stop();
+		FThreadStats::DisableRawStats();
+
+		if( FStatsMallocProfilerProxy::Get()->GetState() )
+		{
+			// Disable memory profiler and restore default stats groups.
+			FStatsMallocProfilerProxy::Get()->SetState( false );		
+			IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("default") );
+		}
+
+		Stats.ResetStatsForRawStats();
+
+		// Disable displaying the raw stats memory overhead.
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+		(
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr),
+			TStatId(), nullptr, ENamedThreads::GameThread
+		);
 	}
 	else if( FParse::Command( &Cmd, TEXT( "TESTFILE" ) ) )
 	{
@@ -1359,11 +1288,11 @@ static void StatCmd(FString InCmd)
 	}
 	else if ( FParse::Command( &Cmd, TEXT( "memoryprofiler" ) ) )
 	{
-		IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("enable LinkerLoad") );
-		IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("enable AsyncLoad") );
-
-		const bool bEnable = FParse::Command( &Cmd, TEXT( "enable" ) ) || FParse::Command( &Cmd, TEXT( "start" ) );
-		FStatsMallocProfilerProxy::Get()->SetState( bEnable );
+		if( FParse::Command( &Cmd, TEXT( "snapshot" ) ) )
+		{
+			// Put a snapshot marker in the raw stats.
+			// @TODO yrx 2014-12-03 
+		}
 	}
 	// @see FStatHierParams
 	else if ( FParse::Command( &Cmd, TEXT( "hier" ) ) )
@@ -1446,9 +1375,6 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			AddArgs += CreateProfileFilename( FStatConstants::StatsFileRawExtension, true );
 		}
 		else if( FParse::Command(&TempCmd,TEXT("DUMPFRAME")) )
-		{
-		}
-		else if( FParse::Command(&TempCmd,TEXT("DumpMemory")) )
 		{
 		}
 		else if ( FParse::Command(&TempCmd,TEXT("DUMPNONFRAME")) )

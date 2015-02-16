@@ -443,7 +443,6 @@ void FServiceConnection::Initialize( const FProfilerServiceAuthorize2& Message, 
 void FProfilerClientManager::HandleServiceMetaDataMessage( const FProfilerServiceMetaData& Message, const IMessageContextRef& Context )
 {
 #if STATS
-	// @TODO yrx 2014-04-14 Not used.
 	if (ActiveSessionId.IsValid() && Connections.Find(Message.InstanceId) != nullptr)
 	{
 		FServiceConnection& Connection = *Connections.Find(Message.InstanceId);

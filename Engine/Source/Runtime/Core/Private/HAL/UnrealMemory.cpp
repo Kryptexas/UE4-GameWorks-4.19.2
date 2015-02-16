@@ -41,11 +41,15 @@ void GCreateMalloc()
 		GMalloc = new FMallocThreadSafeProxy( GMalloc );
 	}
 
-
-
+	
 #if	STATS
+	const bool bCreateMallocProfiler = FParse::Param( FPlatformMisc::GetCommandLine(), TEXT( "MemoryProfiler" ) );
+
 	// Create the stats malloc profiler proxy, needs to be enabled separately.
-	//GMalloc = FStatsMallocProfilerProxy::Get();
+	if( bCreateMallocProfiler )
+	{
+		GMalloc = FStatsMallocProfilerProxy::Get();
+	}
 #endif // STATS
 }
 

@@ -501,19 +501,11 @@ public:
 	 */
 	virtual void SendData(FProfilerCycleGraph& Data) = 0;
 
-	/**
-	 * Determines if we are capturing data for clients.
-	 */
-	virtual bool IsCapturing() const = 0;
-
 	/** Starts a file capture. */
 	virtual void StartCapture() = 0;
 
 	/** Stops a file capture. */
 	virtual void StopCapture() = 0;
-
-	/** Updates the meta data. */
-	virtual void UpdateMetaData() = 0;
 
 	/** Starts a new frame of data and sends the previous if it exists. */
 	virtual void StartFrame(uint32 FrameNumber, double FrameStart) = 0;

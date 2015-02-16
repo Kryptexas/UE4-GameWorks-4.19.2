@@ -47,7 +47,7 @@ void FProfilerCommands::RegisterCommands()
 
 	UI_COMMAND( OpenSettings, "Settings", "Opens the settings for the profiler", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
 
-	UI_COMMAND( ProfilerManager_Load, "Load", "Loads profiler data", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::L ) );
+	UI_COMMAND( ProfilerManager_Load, "Load", "", EUserInterfaceActionType::Button, FInputGesture(/* EModifierKey::Control, EKeys::L */) );
 	UI_COMMAND( ProfilerManager_ToggleLivePreview, "Live preview", "Toggles the real time live preview", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 
 	UI_COMMAND( DataGraph_ToggleViewMode, "Toggle graph view mode", "Toggles the data graph view mode between time based and index based", EUserInterfaceActionType::Button, FInputGesture() );
@@ -413,8 +413,6 @@ void FProfilerActionManager::ToggleDataCapture_Execute( const FGuid SessionInsta
 
 bool FProfilerActionManager::ToggleDataCapture_CanExecute( const FGuid SessionInstanceID ) const
 {
-	// Disabled capture button because current implementation in the profiler service is not thread-safe.
-#if	0
 	// One session instance
 	if( SessionInstanceID.IsValid() )
 	{
@@ -427,7 +425,6 @@ bool FProfilerActionManager::ToggleDataCapture_CanExecute( const FGuid SessionIn
 		const bool bCanExecute = This->ActiveSession.IsValid() && This->ProfilerType == EProfilerSessionTypes::Live && This->GetProfilerInstancesNum() > 0;
 		return bCanExecute;
 	}
-#endif // 0
 
 	return false;
 }

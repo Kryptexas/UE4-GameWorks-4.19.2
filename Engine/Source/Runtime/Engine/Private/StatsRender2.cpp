@@ -669,7 +669,19 @@ void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y)
 		return;
 	}
 	GetStatRenderGlobals().Initialize( Viewport->GetSizeXY() );
-	RenderGroupedWithHierarchy(*ViewData, Viewport, Canvas, X, Y);
+	if( !ViewData->bDrawOnlyRawStats )
+	{
+		RenderGroupedWithHierarchy(*ViewData, Viewport, Canvas, X, Y);
+	}
+	else
+	{
+		// Render all counters.
+		for( int32 RowIndex = 0; RowIndex < ViewData->GroupDescriptions.Num(); ++RowIndex )
+		{
+			Canvas->DrawShadowedString(X, Y, *ViewData->GroupDescriptions[RowIndex], GetStatRenderGlobals().StatFont, GetStatRenderGlobals().StatColor);
+			Y += GetStatRenderGlobals().GetFontHeight();
+		}
+	}
 }
 
 #endif
