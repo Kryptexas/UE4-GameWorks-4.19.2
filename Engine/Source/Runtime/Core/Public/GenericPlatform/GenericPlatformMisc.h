@@ -438,15 +438,11 @@ public:
 	}
 
 	/**
-	 * Rebuild the commandline if needed
-	 *
-	 * @param NewCommandLine The commandline to fill out
-	 *
-	 * @return true if NewCommandLine should be pushed to FCommandLine
+	 * @return the executable's command line
 	 */
-	FORCEINLINE static bool ResetCommandLine(TCHAR NewCommandLine[16384])
+	FORCEINLINE static TCHAR* GetCommandLine()
 	{
-		return 0;
+		return nullptr;
 	}
 
 	/** 

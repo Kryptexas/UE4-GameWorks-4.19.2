@@ -1874,6 +1874,11 @@ uint32 FWindowsPlatformMisc::GetLastError()
 	return (uint32)::GetLastError();
 }
 
+TCHAR* FWindowsPlatformMisc::GetCommandLine()
+{
+	return ::GetCommandLine();
+}
+
 bool FWindowsPlatformMisc::CoInitialize()
 {
 	HRESULT hr = ::CoInitialize(NULL);
