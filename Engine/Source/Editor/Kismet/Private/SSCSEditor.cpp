@@ -1389,7 +1389,7 @@ TSharedRef<SToolTip> SSCS_RowWidget::CreateToolTipWidget() const
 			if (UActorComponent* Template = TreeNode->GetComponentTemplate())
 			{
 				UClass* TemplateClass = Template->GetClass();
-				FText ClassTooltip = TemplateClass->GetToolTipText();
+				FText ClassTooltip = TemplateClass->GetToolTipText(/*bShortTooltip=*/ true);
 
 				InfoBox->AddSlot()
 					.AutoHeight()
