@@ -872,7 +872,7 @@ FString FGenericPlatformMisc::GetOperatingSystemId()
 	return FString();
 }
 
-TCHAR* FGenericPlatformMisc::GetNativeCommandLine()
+const TCHAR* FGenericPlatformMisc::GetNativeCommandLine()
 {
 	return TEXT("");
 }

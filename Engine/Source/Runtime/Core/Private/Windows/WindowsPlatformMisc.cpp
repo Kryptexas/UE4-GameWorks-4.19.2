@@ -1874,7 +1874,7 @@ uint32 FWindowsPlatformMisc::GetLastError()
 	return (uint32)::GetLastError();
 }
 
-TCHAR* FWindowsPlatformMisc::GetNativeCommandLine()
+const TCHAR* FWindowsPlatformMisc::GetNativeCommandLine()
 {
 	return ::GetCommandLine();
 }
