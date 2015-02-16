@@ -3236,7 +3236,8 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "Graph.Node.CommentFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) );
 		Set( "Graph.Node.Comment.BubbleOffset", FMargin(8,0,0,0) );
 		Set( "Graph.Node.Comment.PinIconPadding", FMargin(0,2,0,0) );
-		Set( "Graph.Node.Comment.BubblePadding", FMargin(4,4) );
+		Set( "Graph.Node.Comment.BubblePadding", FVector2D(3,3) );
+		Set( "Graph.Node.Comment.BubbleWidgetMargin", FMargin(4,4) );
 
 		const FCheckBoxStyle CommentTitleButton = FCheckBoxStyle()
 			.SetCheckBoxType( ESlateCheckBoxType::CheckBox )
