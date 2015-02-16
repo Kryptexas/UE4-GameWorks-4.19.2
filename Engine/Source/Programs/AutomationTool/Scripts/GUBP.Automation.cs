@@ -5134,6 +5134,7 @@ public class GUBP : BuildCommand
 		{
 			Log("Updating duration prop for node {0}", NodeToDo);
 			RunECTool(String.Format("setProperty \"/myWorkflow/NodeDuration/{0}\" \"{1}\"", NodeToDo, BuildDuration.ToString()));
+			RunECTool(String.Format("setProperty \"/myJobStep/NodeDuration\" \"{0}\"", BuildDuration.ToString()));
 		}
 		catch (Exception Ex)
 		{
