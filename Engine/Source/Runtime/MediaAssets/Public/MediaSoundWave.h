@@ -7,9 +7,9 @@
 #include "MediaSoundWave.generated.h"
 
 
-// forward declarations
 class FMediaSampleQueue;
 class IMediaPlayer;
+class IMediaTrack;
 class UMediaPlayer;
 
 

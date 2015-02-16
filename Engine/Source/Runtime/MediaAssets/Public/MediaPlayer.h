@@ -5,7 +5,6 @@
 #include "MediaPlayer.generated.h"
 
 
-// forward declarations
 class IMediaPlayer;
 
 
