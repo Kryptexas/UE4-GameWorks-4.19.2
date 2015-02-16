@@ -485,7 +485,7 @@ public:
 	FKeyBind GetExecBind(FString const& ExecCommand);
 
 	/** Execute input commands within the legacy key binding system. */
-	void ExecInputCommands( UWorld* InWorld, const TCHAR* Cmd, class FOutputDevice& Ar);
+	bool ExecInputCommands( UWorld* InWorld, const TCHAR* Cmd, class FOutputDevice& Ar);
 #endif
 
 	/** Returns the list of keys mapped to the specified Action Name */
