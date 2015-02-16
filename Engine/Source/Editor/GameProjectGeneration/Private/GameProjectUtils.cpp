@@ -680,7 +680,7 @@ bool GameProjectUtils::UpdateGameProject(const FString& ProjectFile, const FStri
 void GameProjectUtils::OpenAddToProjectDialog(const FAddToProjectConfig& Config, EClassDomain InDomain)
 {
 	// If we've been given a class then we only show the second page of the dialog, so we can make the window smaller as that page doesn't have as much content
-	const FVector2D WindowSize = (Config._ParentClass) ? FVector2D(940, 380) : FVector2D(940, 540);
+	const FVector2D WindowSize = (Config._ParentClass) ? (InDomain == EClassDomain::Blueprint) ? FVector2D(940, 480) : FVector2D(940, 380) : FVector2D(940, 540);
 
 	FText WindowTitle = Config._WindowTitle;
 	if (WindowTitle.IsEmpty())
