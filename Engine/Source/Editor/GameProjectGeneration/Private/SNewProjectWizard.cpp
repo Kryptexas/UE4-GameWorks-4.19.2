@@ -299,7 +299,7 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 	bLastGlobalValidityCheckSuccessful = true;
 	bLastNameAndLocationValidityCheckSuccessful = true;
 	bPreventPeriodicValidityChecksUntilNextChange = false;
-	bCopyStarterContent = false;
+	bCopyStarterContent = GEditor ? GEditor->AccessGameAgnosticSettings().bCopyStarterContentPreference : true;
 
 	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
 
