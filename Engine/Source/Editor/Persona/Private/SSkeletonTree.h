@@ -535,10 +535,10 @@ private:
 	bool IsAddingSocketsAllowed() const;
 
 	/** Handler for "Show Retargeting Options" check box IsChecked functionality */
-	ECheckBoxState IsShowingRetargetingOptions() const;
+	ECheckBoxState IsShowingAdvancedOptions() const;
 
 	/**  Handler for when we change the "Show Retargeting Options" check box */
-	void OnChangeShowingRetargetingOptions(ECheckBoxState NewState);
+	void OnChangeShowingAdvancedOptions(ECheckBoxState NewState);
 
 	/** This replicates the socket filter to the previewcomponent so that the viewport can use the same settings */
 	void SetPreviewComponentSocketFilter() const;
@@ -597,7 +597,7 @@ private:
 	/** Current type of sockets to show */
 	ESocketFilter::Type SocketFilter;
 
-	bool bShowingRetargetingOptions;
+	bool bShowingAdvancedOptions;
 
 	/** Points to an item that is being requested to be renamed */
 	TSharedPtr<FDisplayedTreeRowInfo> DeferredRenameRequest;

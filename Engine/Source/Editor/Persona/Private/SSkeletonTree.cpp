@@ -792,7 +792,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 
 	BoneFilter = EBoneFilter::All;
 	SocketFilter = ESocketFilter::Active;
-	bShowingRetargetingOptions = false;
+	bShowingAdvancedOptions = false;
 
 	PersonaPtr = InArgs._Persona;
 	IsEditable = InArgs._IsEditable;
@@ -872,12 +872,12 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 			.AutoWidth()
 			[
 				SNew(SCheckBox)
-				.IsChecked(this, &SSkeletonTree::IsShowingRetargetingOptions)
+				.IsChecked(this, &SSkeletonTree::IsShowingAdvancedOptions)
 				.ToolTipText(LOCTEXT("SocketFilterToolTip", "Change which types of sockets are shown"))
-				.OnCheckStateChanged(this, &SSkeletonTree::OnChangeShowingRetargetingOptions)
+				.OnCheckStateChanged(this, &SSkeletonTree::OnChangeShowingAdvancedOptions)
 				[
 					SNew(STextBlock)
-						.Text(LOCTEXT("ShowRetargetingOptions", "Show Retargeting Options"))
+						.Text(LOCTEXT("ShowAdvancedOptions", "Show Advanced Options"))
 				]
 			]
 		]
@@ -1063,7 +1063,7 @@ void SSkeletonTree::CreateTreeColumns()
 		.DefaultLabel(LOCTEXT("SkeletonBoneNameLabel", "Name"))
 		.FillWidth(0.75f);
 
-	if (bShowingRetargetingOptions)
+	if (bShowingAdvancedOptions)
 	{
 		TreeHeaderRow->AddColumn(
 			SHeaderRow::Column(ColumnID_RetargetingLabel)
@@ -1407,7 +1407,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 
 			MenuBuilder.EndSection();
 
-			if(bShowingRetargetingOptions)
+			if(bShowingAdvancedOptions)
 			{
 				MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT("BoneTranslationRetargetingHeader", "Bone Translation Retargeting"));
 				{
@@ -2545,15 +2545,15 @@ void SSkeletonTree::AddAttachedAssets( const FPreviewAssetAttachContainer& Attac
 	}
 }
 
-void SSkeletonTree::OnChangeShowingRetargetingOptions(ECheckBoxState NewState)
+void SSkeletonTree::OnChangeShowingAdvancedOptions(ECheckBoxState NewState)
 {
-	bShowingRetargetingOptions = NewState == ECheckBoxState::Checked;
+	bShowingAdvancedOptions = NewState == ECheckBoxState::Checked;
 	CreateTreeColumns();
 }
 
-ECheckBoxState SSkeletonTree::IsShowingRetargetingOptions() const
+ECheckBoxState SSkeletonTree::IsShowingAdvancedOptions() const
 {
-	return bShowingRetargetingOptions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return bShowingAdvancedOptions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 
