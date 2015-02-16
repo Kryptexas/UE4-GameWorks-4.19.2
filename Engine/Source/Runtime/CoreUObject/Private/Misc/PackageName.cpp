@@ -96,6 +96,7 @@ struct FPathPair
 
 struct FLongPackagePathsSingleton
 {
+	FString ConfigRootPath;
 	FString EngineRootPath;
 	FString GameRootPath;
 	FString ScriptRootPath;
@@ -107,9 +108,11 @@ struct FLongPackagePathsSingleton
 	FString EngineShadersPath;
 	FString EngineShadersPathShort;
 	FString GameContentPath;
+	FString GameConfigPath;
 	FString GameScriptPath;
 	FString GameSavedPath;
 	FString GameContentPathRebased;
+	FString GameConfigPathRebased;
 	FString GameScriptPathRebased;
 	FString GameSavedPathRebased;
 
@@ -132,6 +135,7 @@ struct FLongPackagePathsSingleton
 
 		if (bIncludeReadOnlyRoots)
 		{
+			OutRoots.Add(ConfigRootPath);
 			OutRoots.Add(ScriptRootPath);
 			OutRoots.Add(TempRootPath);
 		}
@@ -185,6 +189,7 @@ struct FLongPackagePathsSingleton
 private:
 	FLongPackagePathsSingleton()
 	{
+		ConfigRootPath = TEXT("/Config/");
 		EngineRootPath = TEXT("/Engine/");
 		GameRootPath   = TEXT("/Game/");
 		ScriptRootPath = TEXT("/Script/");
@@ -195,16 +200,18 @@ private:
 		EngineShadersPath      = FPaths::EngineDir() / TEXT("Shaders/");
 		EngineShadersPathShort = TEXT("../../Shaders/");
 		GameContentPath        = FPaths::GameContentDir();
+		GameConfigPath         = FPaths::GameConfigDir();
 		GameScriptPath         = FPaths::GameDir() / TEXT("Script/");
 		GameSavedPath          = FPaths::GameSavedDir();
 
 		FString RebasedGameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
 
         GameContentPathRebased = RebasedGameDir / TEXT("Content/");
+		GameConfigPathRebased  = RebasedGameDir / TEXT("Config/");
         GameScriptPathRebased  = RebasedGameDir / TEXT("Script/");
         GameSavedPathRebased   = RebasedGameDir / TEXT("Saved/");
 		
-		ContentPathToRoot.Empty(10);
+		ContentPathToRoot.Empty(11);
 		ContentPathToRoot.Emplace(EngineRootPath, EngineContentPath);
 #if IS_MONOLITHIC
 		ContentPathToRoot.Emplace(GameRootPath,   ContentPathShort);
@@ -219,9 +226,9 @@ private:
 		ContentPathToRoot.Emplace(GameRootPath,   GameContentPathRebased);
 		ContentPathToRoot.Emplace(ScriptRootPath, GameScriptPathRebased);
 		ContentPathToRoot.Emplace(TempRootPath,   GameSavedPathRebased);
+		ContentPathToRoot.Emplace(ConfigRootPath, GameConfigPath);
 
-
-		ContentRootToPath.Empty(8);
+		ContentRootToPath.Empty(9);
 		ContentRootToPath.Emplace(EngineRootPath, EngineContentPath);
 		ContentRootToPath.Emplace(EngineRootPath, EngineShadersPath);
 		ContentRootToPath.Emplace(GameRootPath,   GameContentPath);
@@ -230,7 +237,7 @@ private:
 		ContentRootToPath.Emplace(GameRootPath,   GameContentPathRebased);
 		ContentRootToPath.Emplace(ScriptRootPath, GameScriptPathRebased);
 		ContentRootToPath.Emplace(TempRootPath,   GameSavedPathRebased);
-
+		ContentRootToPath.Emplace(ConfigRootPath, GameConfigPathRebased);
 
 		// Allow the plugin manager to mount new content paths by exposing access through a delegate.  PluginManager is 
 		// a Core class, but content path functionality is added at the CoreUObject level.

@@ -75,6 +75,8 @@ FName FSubversionSourceControlState::GetIconName() const
 		}
 	case EWorkingCopyState::NotControlled:
 		return FName("Subversion.NotInDepot");
+	case EWorkingCopyState::Deleted:
+		return FName("Subversion.MarkedForDelete");
 	}
 
 	return NAME_None;
@@ -108,6 +110,8 @@ FName FSubversionSourceControlState::GetSmallIconName() const
 		}
 	case EWorkingCopyState::NotControlled:
 		return FName("Subversion.NotInDepot_Small");
+	case EWorkingCopyState::Deleted:
+		return FName("Subversion.MarkedForDelete_Small");
 	}
 
 	return NAME_None;

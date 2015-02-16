@@ -1508,9 +1508,6 @@ void FAssetContextMenu::ExecuteSCCOpenForAdd()
 
 void FAssetContextMenu::ExecuteSCCCheckIn()
 {
-	TArray<FString> PackageNames;
-	GetSelectedPackageNames(PackageNames);
-
 	TArray<UPackage*> Packages;
 	GetSelectedPackages(Packages);
 
@@ -1522,7 +1519,11 @@ void FAssetContextMenu::ExecuteSCCCheckIn()
 	const bool bShouldProceed = ( UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Success || UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Declined );
 	if ( bShouldProceed )
 	{
-		FSourceControlWindows::PromptForCheckin(PackageNames);
+		TArray<FString> PackageNames;
+		GetSelectedPackageNames(PackageNames);
+
+		const bool bUseSourceControlStateCache = true;
+		FSourceControlWindows::PromptForCheckin(bUseSourceControlStateCache, PackageNames);
 	}
 	else
 	{

@@ -984,7 +984,8 @@ void FLevelCollectionModel::SCCCheckIn(const FLevelModelList& InList)
 								UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Declined;
 	if (bShouldProceed)
 	{
-		FSourceControlWindows::PromptForCheckin(FilenamesToCheckIn);
+		const bool bUseSourceControlStateCache = false;
+		FSourceControlWindows::PromptForCheckin(bUseSourceControlStateCache, FilenamesToCheckIn);
 	}
 	else
 	{

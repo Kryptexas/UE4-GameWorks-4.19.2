@@ -1210,7 +1210,8 @@ void FLevelCollectionViewModel::OnSCCCheckIn()
 	const bool bShouldProceed = ( UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Success || UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Declined );
 	if ( bShouldProceed )
 	{
-		FSourceControlWindows::PromptForCheckin(PackageNames);
+		const bool bUseSourceControlStateCache = false;
+		FSourceControlWindows::PromptForCheckin(bUseSourceControlStateCache, PackageNames);
 	}
 	else
 	{

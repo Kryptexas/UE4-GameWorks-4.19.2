@@ -312,8 +312,7 @@ void SLevelEditorBuildAndSubmit::UpdatePackagesList()
 	FEditorFileUtils::FindAllSubmittablePackageFiles( PackageStates, false );
 	for (TMap<FString, FSourceControlStatePtr>::TConstIterator PackageIter(PackageStates); PackageIter; ++PackageIter)
 	{
-		FString Filename = *PackageIter.Key();
-		FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
+		FString PackageName = *PackageIter.Key();
 		const FSourceControlStatePtr CurPackageSCCState = PackageIter.Value();
 
 		// Only show files in the depot or we have the flag enabled
