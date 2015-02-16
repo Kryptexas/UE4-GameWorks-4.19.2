@@ -511,7 +511,7 @@ void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString&
 	}
 }
 
-TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory) const
+TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory, bool bSyncToBrowser ) const
 {
 	TArray<UObject*> ReturnObjects;
 	TMap< FString, TArray<UFactory*> > ExtensionToFactoriesMap;
@@ -875,7 +875,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	}
 
 	// Sync content browser to the newly created assets
-	if ( ReturnObjects.Num() )
+	if ( ReturnObjects.Num() && (bSyncToBrowser != false ) )
 	{
 		FAssetTools::Get().SyncBrowserToAssets(ReturnObjects);
 	}
