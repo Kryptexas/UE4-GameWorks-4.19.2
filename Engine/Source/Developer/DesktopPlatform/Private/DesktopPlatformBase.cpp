@@ -430,13 +430,13 @@ bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FStr
 bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
 {
 #if PLATFORM_MAC
-	FString Arguments = TEXT("-xcodeprojectfile");
+	FString Arguments = TEXT(" -xcodeprojectfile");
 #elif PLATFORM_LINUX
-	FString Arguments = TEXT(" -makefile -qmakefile -cmakefile ");
+	FString Arguments = TEXT(" -makefile -qmakefile -cmakefile");
 #else
-	FString Arguments = TEXT("-projectfiles");
+	FString Arguments = TEXT(" -projectfiles");
 #endif
-
+	
 	// Build the arguments to pass to UBT. If it's a non-foreign project, just build full project files.
 	if ( !ProjectFileName.IsEmpty() && GetCachedProjectDictionary(RootDir).IsForeignProject(ProjectFileName) )
 	{
@@ -447,20 +447,20 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 			Arguments += FString::Printf(TEXT(" -project=\"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFileName));
 
 			// Always include game source
-			Arguments += " -game";
+			Arguments += TEXT(" -game");
 
 			// Determine whether or not to include engine source
 			if(IsSourceDistribution(RootDir) && !FRocketSupport::IsRocket())
 			{
-				Arguments += " -engine";
+				Arguments += TEXT(" -engine");
 			}
 			else
 			{
-				Arguments += " -rocket";
+				Arguments += TEXT(" -rocket");
 			}
 		}
 	}
-	Arguments += " -progress";
+	Arguments += TEXT(" -progress");
 
 	// Compile UnrealBuildTool if it doesn't exist. This can happen if we're just copying source from somewhere.
 	bool bRes = true;
@@ -474,6 +474,52 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 	{
 		Warn->StatusUpdate(0, 1, LOCTEXT("GeneratingProjectFiles", "Generating project files..."));
 		bRes = RunUnrealBuildTool(LOCTEXT("GeneratingProjectFiles", "Generating project files..."), RootDir, Arguments, Warn);
+	}
+	Warn->EndSlowTask();
+	return bRes;
+}
+
+bool FDesktopPlatformBase::GatherProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
+{
+	// Composes the target, platform, and config (eg, "QAGame Win64 Development")
+	FString Arguments = FString::Printf(TEXT("%s %s %s"), FApp::GetGameName(), FPlatformMisc::GetUBTPlatform(), FModuleManager::GetUBTConfiguration());
+
+	// -editorrecompile tells UBT to work out the editor target name from the game target name we provided (eg, converting "QAGame" to "QAGameEditor")
+	Arguments += TEXT(" -editorrecompile");
+
+	// Build the arguments to pass to UBT. If it's a non-foreign project, just build full project files.
+	if ( !ProjectFileName.IsEmpty() && GetCachedProjectDictionary(RootDir).IsForeignProject(ProjectFileName) )
+	{
+		// Figure out whether it's a foreign project
+		const FUProjectDictionary &ProjectDictionary = GetCachedProjectDictionary(RootDir);
+		if(ProjectDictionary.IsForeignProject(ProjectFileName))
+		{
+			Arguments += FString::Printf(TEXT(" \"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFileName));
+		}
+	}
+	
+	// -gatheronly tells UBT to update its UBT makefiles without building
+	Arguments += TEXT(" -gatheronly");
+
+	Arguments += TEXT(" -progress");
+
+	if (FRocketSupport::IsRocket())
+	{
+		Arguments += TEXT(" -rocket");
+	}
+
+	// Compile UnrealBuildTool if it doesn't exist. This can happen if we're just copying source from somewhere.
+	bool bRes = true;
+	Warn->BeginSlowTask(LOCTEXT("GatheringProjectFiles", "Gathering project files..."), true, true);
+	if(!FPaths::FileExists(GetUnrealBuildToolExecutableFilename(RootDir)))
+	{
+		Warn->StatusUpdate(0, 1, LOCTEXT("BuildingUBT", "Building UnrealBuildTool..."));
+		bRes = BuildUnrealBuildTool(RootDir, *Warn);
+	}
+	if(bRes)
+	{
+		Warn->StatusUpdate(0, 1, LOCTEXT("GatheringProjectFiles", "Gathering project files..."));
+		bRes = RunUnrealBuildTool(LOCTEXT("GatheringProjectFiles", "Gathering project files..."), RootDir, Arguments, Warn);
 	}
 	Warn->EndSlowTask();
 	return bRes;

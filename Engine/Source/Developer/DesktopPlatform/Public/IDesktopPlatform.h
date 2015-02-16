@@ -330,6 +330,16 @@ public:
 	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
 
 	/**
+	* Gather project files for the given project (to update its UBT makefiles without performing a full project generation).
+	*
+	* @param RootDir			Engine root directory for the project to use.
+	* @param ProjectFileName	Filename of the project to update
+	* @param Warn				Feedback context to use for progress updates
+	* @return true if project files were generated successfully.
+	*/
+	virtual bool GatherProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
+
+	/**
 	* Determines whether UnrealBuildTool is available
 	*
 	* @return true if UnrealBuildTool is available

@@ -2956,12 +2956,20 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		CreatedFilesForExternalAppRead.Add( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*CreatedFile) );
 	}
 
+	bool bGenerateProjectFiles = true;
+
 	// First see if we can avoid a full generation by adding the new files to an already open project
 	if ( bProjectHadCodeFiles && FSourceCodeNavigation::AddSourceFiles(CreatedFilesForExternalAppRead) )
 	{
-		// todo: jdale - even if this succeeds, we still need to run UBT with "-gather" to update the makefiles
+		// We successfully added the new files to the solution, but we still need to run UBT with -gather to update any UBT makefiles
+		if ( FDesktopPlatformModule::Get()->GatherProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
+		{
+			// We managed the gather, so we can skip running the full generate
+			bGenerateProjectFiles = false;
+		}
 	}
-	else
+	
+	if ( bGenerateProjectFiles )
 	{
 		// Generate project files if we happen to be using a project file.
 		if ( !FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
