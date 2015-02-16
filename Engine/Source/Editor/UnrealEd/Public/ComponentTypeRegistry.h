@@ -8,7 +8,19 @@ DECLARE_MULTICAST_DELEGATE(FOnComponentTypeListChanged);
 
 typedef TSharedPtr<class FComponentClassComboEntry> FComponentClassComboEntryPtr;
 
-struct FComponentTypeRegistry
+struct FComponentTypeEntry
+{
+	/** Name of the component, as typed by the user */
+	FString ComponentName;
+
+	/** Name of the component, corresponds to asset name for blueprint components */
+	FString ComponentAssetName;
+
+	/** Optional pointer to the UClass, will be nullptr for blueprint components that aren't loaded */
+	class UClass* ComponentClass;
+};
+
+struct UNREALED_API FComponentTypeRegistry
 {
 	static FComponentTypeRegistry& Get();
 
@@ -19,6 +31,7 @@ struct FComponentTypeRegistry
 	*	added or removed from the component type list
 	*/
 	FOnComponentTypeListChanged& SubscribeToComponentList(TArray<FComponentClassComboEntryPtr>*& OutComponentList);
+	FOnComponentTypeListChanged& SubscribeToComponentList(const TArray<FComponentTypeEntry>*& OutComponentList);
 	FOnComponentTypeListChanged& GetOnComponentTypeListChanged();
 
 private:

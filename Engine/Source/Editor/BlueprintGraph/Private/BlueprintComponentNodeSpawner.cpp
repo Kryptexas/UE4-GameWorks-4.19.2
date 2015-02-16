@@ -44,18 +44,41 @@ static FText BlueprintComponentNodeSpawnerImpl::GetDefaultMenuCategory(TSubclass
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(TSubclassOf<UActorComponent> const ComponentClass, UObject* Outer/* = nullptr*/)
+UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(const FComponentTypeEntry& Entry)
 {
-	check(ComponentClass != nullptr);
-
-	if (Outer == nullptr)
+	UClass* ComponentClass = Entry.ComponentClass;
+	if (ComponentClass == nullptr )
 	{
-		Outer = GetTransientPackage();
+		// unloaded class, must be blueprint created. Create an entry. We'll load the class when we spawn the node:
+
+		UBlueprintComponentNodeSpawner* NodeSpawner = NewObject<UBlueprintComponentNodeSpawner>(GetTransientPackage());
+		NodeSpawner->ComponentClass = nullptr;
+		NodeSpawner->NodeClass = UK2Node_AddComponent::StaticClass();
+		NodeSpawner->ComponentName = Entry.ComponentName;
+		NodeSpawner->ComponentAssetName = Entry.ComponentAssetName;
+
+		FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+		FText const ComponentTypeName = FText::FromString(Entry.ComponentName);
+		MenuSignature.MenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), ComponentTypeName);
+		MenuSignature.Category = LOCTEXT("BlueprintComponentCategory", "Custom");
+		MenuSignature.Tooltip = FText::Format(LOCTEXT("AddComponentTooltip", "Spawn a {0}"), ComponentTypeName);
+		// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
+		// attempt to query the template node
+		MenuSignature.Keywords.AppendChar(TEXT(' '));
+		MenuSignature.IconName = FClassIconFinder::FindIconNameForClass(nullptr);
+
+		return NodeSpawner;
+	}
+
+	if (ComponentClass->HasAnyClassFlags(CLASS_Abstract) || !ComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
+	{
+		// loaded class that is marked as abstract or not spawnable, don't create an entry:
+		return nullptr;
 	}
 
 	UClass* const AuthoritativeClass = ComponentClass->GetAuthoritativeClass();
 
-	UBlueprintComponentNodeSpawner* NodeSpawner = NewObject<UBlueprintComponentNodeSpawner>(Outer);
+	UBlueprintComponentNodeSpawner* NodeSpawner = NewObject<UBlueprintComponentNodeSpawner>(GetTransientPackage());
 	NodeSpawner->ComponentClass = AuthoritativeClass;
 	NodeSpawner->NodeClass      = UK2Node_AddComponent::StaticClass();
 
@@ -92,8 +115,6 @@ FBlueprintNodeSignature UBlueprintComponentNodeSpawner::GetSpawnerSignature() co
 // and FEdGraphSchemaAction_K2AddComponent::PerformAction().
 UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
-	check(ComponentClass != nullptr);
-	
 	auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FCustomizeNodeDelegate UserDelegate)
 	{		
 		UK2Node_AddComponent* AddCompNode = CastChecked<UK2Node_AddComponent>(NewNode);
@@ -113,16 +134,33 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 	UEdGraphPin* ReturnPin = NewNode->GetReturnValuePin();
 	if (ReturnPin != nullptr)
 	{
-		ReturnPin->PinType.PinSubCategoryObject = *ComponentClass;
+		ReturnPin->PinType.PinSubCategoryObject = *(ComponentClass ? ComponentClass : UActorComponent::StaticClass());
 	}
 
 	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
 	if (!bIsTemplateNode)
 	{
+		TSubclassOf<UActorComponent> Class = ComponentClass;
+		if (Class == nullptr)
+		{
+			const ELoadFlags LoadFlags = LOAD_None;
+			UBlueprint* LoadedObject = LoadObject<UBlueprint>(NULL, *ComponentAssetName, NULL, LoadFlags, NULL);
+			if (LoadedObject == nullptr)
+			{
+				return nullptr;
+			}
+
+			Class = TSubclassOf<UActorComponent>(Cast<UBlueprintGeneratedClass>(LoadedObject->GeneratedClass));
+			if (Class == nullptr)
+			{
+				return nullptr;
+			}
+		}
+
 		UBlueprint* Blueprint = NewNode->GetBlueprint();
 
-		FName DesiredComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, ComponentClass, *ComponentClass->GetDisplayNameText().ToString());
-		UActorComponent* ComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, ComponentClass, DesiredComponentName);
+		FName DesiredComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, Class, *Class->GetDisplayNameText().ToString());
+		UActorComponent* ComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, Class, DesiredComponentName);
 		ComponentTemplate->SetFlags(RF_ArchetypeObject);
 
 		Blueprint->ComponentTemplates.Add(ComponentTemplate);
@@ -133,6 +171,7 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 		{
 			TemplateNamePin->DefaultValue = ComponentTemplate->GetName();
 		}
+		NewNode->ReconstructNode();
 	}
 
 	// apply bindings, after we've setup the template pin

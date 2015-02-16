@@ -2,6 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintActionDatabase.h"
+#include "ComponentTypeRegistry.h"
 #include "EdGraphSchema_K2.h"       // for CanUserKismetCallFunction()
 #include "EditorCategoryUtils.h"
 #include "KismetEditorUtilities.h"	// for IsClassABlueprintSkeleton(), IsClassABlueprintInterface(), GetBoundsForSelectedNodes(), etc.
@@ -341,16 +342,6 @@ namespace BlueprintActionDatabaseImpl
 	static void AddClassCastActions(UClass* const Class, FActionList& ActionListOut);
 
 	/**
-	 * Evolved from K2ActionMenuBuilder's GetAddComponentClasses(). If the
-	 * specified class is a component type (and can be spawned), then a 
-	 * UK2Node_AddComponent spawner is created and added to ActionListOut.
-	 *
-	 * @param  ComponentClass	The class who you want a spawner for (the component class).
-	 * @param  ActionListOut	The list you want populated with the new spawner.
-	 */
-	static void AddComponentClassActions(TSubclassOf<UActorComponent> const ComponentClass, FActionList& ActionListOut);
-
-	/**
 	 * Adds custom actions to operate on the provided skeleton. Used primarily
 	 * to find AnimNotify event vocabulary
 	 *
@@ -543,11 +534,6 @@ static void BlueprintActionDatabaseImpl::GetClassMemberActions(UClass* const Cla
 	}
 
 	AddClassCastActions(Class, ActionListOut);
-
-	if (Class->IsChildOf<UActorComponent>())
-	{
-		AddComponentClassActions(Class, ActionListOut);
-	}
 }
 
 //------------------------------------------------------------------------------
@@ -684,18 +670,6 @@ static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* Class, FAct
 		UBlueprintNodeSpawner* CastClassNodeSpawner = UBlueprintNodeSpawner::Create<UK2Node_ClassDynamicCast>();
 		CastClassNodeSpawner->CustomizeNodeDelegate = CastObjNodeSpawner->CustomizeNodeDelegate;
 		ActionListOut.Add(CastClassNodeSpawner);
-	}
-}
-
-//------------------------------------------------------------------------------
-static void BlueprintActionDatabaseImpl::AddComponentClassActions(TSubclassOf<UActorComponent> const ComponentClass, FActionList& ActionListOut)
-{
-	if ((ComponentClass != nullptr) && !ComponentClass->HasAnyClassFlags(CLASS_Abstract) && ComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
-	{
-		if (UBlueprintComponentNodeSpawner* NodeSpawner = UBlueprintComponentNodeSpawner::Create(ComponentClass))
-		{
-			ActionListOut.Add(NodeSpawner);
-		}
 	}
 }
 
@@ -1049,6 +1023,10 @@ void FBlueprintActionDatabase::RefreshAll()
 		FActionList& ClassActionList = ActionRegistry.FindOrAdd(*SkeletonIt);
 		BlueprintActionDatabaseImpl::AddSkeletonActions(**SkeletonIt, ClassActionList);
 	}
+
+	// this handles creating entries for components that were loaded before the database was alive:
+	FComponentTypeRegistry::Get().SubscribeToComponentList(ComponentTypes).AddRaw(this, &FBlueprintActionDatabase::RefreshComponentActions);
+	RefreshComponentActions();
 }
 
 //------------------------------------------------------------------------------
@@ -1215,6 +1193,21 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	if (!bIsInitializing)
 	{
 		EntryRefreshDelegate.Broadcast(AssetObject);
+	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionDatabase::RefreshComponentActions()
+{
+	check(ComponentTypes);
+	FActionList& ClassActionList = ActionRegistry.FindOrAdd(UBlueprintComponentNodeSpawner::StaticClass());
+	ClassActionList.Empty(ComponentTypes->Num());
+	for (const auto& ComponentType : *ComponentTypes)
+	{
+		if (UBlueprintComponentNodeSpawner* NodeSpawner = UBlueprintComponentNodeSpawner::Create(ComponentType))
+		{
+			ClassActionList.Add(NodeSpawner);
+		}
 	}
 }
 
