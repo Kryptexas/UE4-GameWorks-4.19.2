@@ -351,6 +351,12 @@ protected:
 	/** Default constructor. */
 	IStatsWriteFile();
 
+public:
+	/** Destructor. */
+	virtual ~IStatsWriteFile()
+	{}
+
+protected:
 	/** NewFrame delegate handle  */
 	FDelegateHandle DataDelegateHandle;
 
