@@ -3874,13 +3874,16 @@ FReply FBaseBlueprintGraphActionDetails::OnAddNewInputClicked()
 
 EVisibility FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility() const
 {
-	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-	if(UEdGraph* Graph = FunctionEntryNode->GetGraph())
+	UK2Node_EditablePinBase* FunctionEntryNode = FunctionEntryNodePtr.Get();
+	if (FunctionEntryNodePtr.IsValid())
 	{
-		// Math expression graphs are read only, do not allow adding or removing of pins
-		if(Cast<UK2Node_MathExpression>(Graph->GetOuter()))
+		if(UEdGraph* Graph = FunctionEntryNode->GetGraph())
 		{
-			return EVisibility::Collapsed;
+			// Math expression graphs are read only, do not allow adding or removing of pins
+			if(Cast<UK2Node_MathExpression>(Graph->GetOuter()))
+			{
+				return EVisibility::Collapsed;
+			}
 		}
 	}
 	return EVisibility::Visible;
