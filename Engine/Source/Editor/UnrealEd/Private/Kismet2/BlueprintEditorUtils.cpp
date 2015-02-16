@@ -6874,6 +6874,11 @@ bool FBlueprintEditorUtils::IsPaletteActionReadOnly(TSharedPtr<FEdGraphSchemaAct
 
 		bIsReadOnly = (AssociatedNode == NULL) || (!AssociatedNode->bCanRenameNode);	
 	}
+	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2InputAction::StaticGetTypeId())
+	{
+		bIsReadOnly = true;
+	}
+
 
 	return bIsReadOnly;
 }

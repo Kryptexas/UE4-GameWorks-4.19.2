@@ -86,6 +86,9 @@ public:
 
 	/** Accessor for getting the current selection as a K2 event */
 	FEdGraphSchemaAction_K2Event* SelectionAsEvent() const;
+	
+	/** Accessor for getting the current selection as a K2 Input Action */
+	FEdGraphSchemaAction_K2InputAction* SelectionAsInputAction() const;
 
 	/** Accessor for getting the current selection as a K2 local var */
 	FEdGraphSchemaAction_K2LocalVar* SelectionAsLocalVar() const;
