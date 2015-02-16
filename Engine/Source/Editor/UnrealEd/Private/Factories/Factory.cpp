@@ -158,9 +158,6 @@ void UFactory::ResetState()
 	// Resets the state of the 'Yes To All / No To All' prompt for overwriting existing objects on import.
 	// After the reset, the next import collision will always display the prompt.
 	OverwriteYesOrNoToAllState = -1;
-
-	// Resets the state of one time warning messages. This will allow the warning message to be shown.
-	bAllowOneTimeWarningMessages = true;
 }
 
 void UFactory::DisplayOverwriteOptionsDialog(const FText& Message)

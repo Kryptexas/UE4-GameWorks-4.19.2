@@ -122,7 +122,6 @@ namespace AutomationEditorCommonUtils
 			//If we are a texture factory suppress some warning dialog that we don't want
 			if (ImportFactory->IsA(UTextureFactory::StaticClass()))
 			{
-				UTextureFactory::SuppressImportResolutionWarningDialog();
 				UTextureFactory::SuppressImportOverwriteDialog();
 			}
 

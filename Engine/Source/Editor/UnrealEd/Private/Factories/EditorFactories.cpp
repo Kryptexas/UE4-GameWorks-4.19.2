@@ -3285,7 +3285,6 @@ UTexture2D* DecompressTGA(
 }
 
 bool UTextureFactory::bSuppressImportOverwriteDialog = false;
-bool UTextureFactory::bSuppressImportResolutionWarnings = false;
 
 UTextureFactory::UTextureFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -3333,11 +3332,6 @@ UTextureCube* UTextureFactory::CreateTextureCube( UObject* InParent, FName Name,
 void UTextureFactory::SuppressImportOverwriteDialog()
 {
 	bSuppressImportOverwriteDialog = true;
-}
-
-void UTextureFactory::SuppressImportResolutionWarningDialog()
-{
-	bSuppressImportResolutionWarnings = true;
 }
 
 /**
@@ -4648,30 +4642,6 @@ bool UTextureFactory::IsImportResolutionValid(int32 Width, int32 Height, bool bA
 		Warn->Logf(ELogVerbosity::Error, *NSLOCTEXT("UnrealEd", "Warning_TextureNotAPowerOfTwo", "Cannot import texture with non-power of two dimensions").ToString() );
 		bValid = false;
 	}
-
-	// If we are allowed to warn about NPT textures and the texture is not a power of two, display a warning.
-	if( bAllowOneTimeWarningMessages && !bSuppressImportResolutionWarnings && bAllowNonPowerOfTwo && !bIsPowerOfTwo && bValid )
-	{
-		bAllowOneTimeWarningMessages = false;
-
-		FText MessageText;
-		if (GetCurrentFilename().IsEmpty())
-		{
-			MessageText = NSLOCTEXT("UnrealEd", "Warning_NPTTexture", "The texture you are importing is not a power of two.  Non power of two textures are never streamed and have no mipmaps. Proceed?");
-		}
-		else
-		{
-			MessageText = FText::Format(NSLOCTEXT("UnrealEd", "Warning_NPTTexture_Filename", "{0} is not a power of two.  Non power of two textures are never streamed and have no mipmaps. Proceed?"), FText::FromString(FPaths::GetCleanFilename(GetCurrentFilename())));
-		}
-
-		if( EAppReturnType::Yes != FMessageDialog::Open( EAppMsgType::YesNo, MessageText ) )
-		{
-			bValid = false;
-		}
-	}
-
-	// Reset the suppression so that future imports can still warn
-	bSuppressImportResolutionWarnings = false;
 	
 	return bValid;
 }
