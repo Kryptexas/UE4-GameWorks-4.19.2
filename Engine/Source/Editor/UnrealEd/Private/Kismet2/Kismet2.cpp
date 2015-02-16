@@ -1394,6 +1394,8 @@ AActor* FKismetEditorUtilities::CreateBlueprintInstanceFromSelection(UBlueprint*
 	// Assume all selected actors are in the same world
 	UWorld* World = SelectedActors[0]->GetWorld();
 
+	GEditor->GetSelectedActors()->Modify();
+
 	for(auto It(SelectedActors.CreateIterator());It;++It)
 	{
 		if (AActor* Actor = Cast<AActor>(*It))
