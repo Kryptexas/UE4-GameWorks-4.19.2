@@ -68,7 +68,7 @@ struct FComponentEventConstructionData
 	// The name of the event handler to create.
 	FName VariableName;
 	// The template component that the handler applies to.
-	TWeakObjectPtr<UActorComponent> Component;
+	TWeakObjectPtr<UObject> Component;
 };
 
 /** The delegate that the caller must supply to BuildComponentActionsSubMenu that returns the currently selected items */

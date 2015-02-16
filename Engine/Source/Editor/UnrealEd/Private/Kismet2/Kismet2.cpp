@@ -1548,21 +1548,29 @@ void FKismetEditorUtilities::CreateNewBoundEventForActor(AActor* Actor, FName Ev
 	}
 }
 
-void FKismetEditorUtilities::CreateNewBoundEventForComponent(UActorComponent* Component, FName EventName, UBlueprint* Blueprint, UObjectProperty* ComponentProperty)
+void FKismetEditorUtilities::CreateNewBoundEventForComponent(UObject* Component, FName EventName, UBlueprint* Blueprint, UObjectProperty* ComponentProperty)
 {
-	if ((Component != NULL) && (EventName != NAME_None) && (Blueprint != NULL) && (ComponentProperty != NULL))
+	if ( Component != nullptr )
+	{
+		CreateNewBoundEventForClass(Component->GetClass(), EventName, Blueprint, ComponentProperty);
+	}
+}
+
+void FKismetEditorUtilities::CreateNewBoundEventForClass(UClass* Class, FName EventName, UBlueprint* Blueprint, UObjectProperty* ComponentProperty)
+{
+	if ( ( Class != nullptr ) && ( EventName != NAME_None ) && ( Blueprint != nullptr ) && ( ComponentProperty != nullptr ) )
 	{
 		// First, find the property we want to bind to
-		UMulticastDelegateProperty* DelegateProperty = FindField<UMulticastDelegateProperty>(Component->GetClass(), EventName);
-		if(DelegateProperty != NULL)
+		UMulticastDelegateProperty* DelegateProperty = FindField<UMulticastDelegateProperty>(Class, EventName);
+		if ( DelegateProperty != nullptr )
 		{
-			UEdGraph* TargetGraph = NULL;
+			UEdGraph* TargetGraph = nullptr;
 			if(Blueprint->UbergraphPages.Num() > 0)
 			{
 				TargetGraph = Blueprint->UbergraphPages[0]; // Just use the first graph
 			}
 
-			if(TargetGraph != NULL)
+			if ( TargetGraph != nullptr )
 			{
 				// Figure out a decent place to stick the node
 				const FVector2D NewNodePos = TargetGraph->GetGoodPlaceForNewNode();
@@ -1574,7 +1582,7 @@ void FKismetEditorUtilities::CreateNewBoundEventForComponent(UActorComponent* Co
 				UK2Node_ComponentBoundEvent* EventNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_ComponentBoundEvent>(TargetGraph, EventNodeTemplate, NewNodePos);
 
 				// Finally, bring up kismet and jump to the new node
-				if (EventNode != NULL)
+				if ( EventNode != nullptr )
 				{
 					BringKismetToFocusAttentionOnObject(EventNode);
 				}
@@ -1610,14 +1618,14 @@ const UK2Node_ActorBoundEvent* FKismetEditorUtilities::FindBoundEventForActor(AA
 const UK2Node_ComponentBoundEvent* FKismetEditorUtilities::FindBoundEventForComponent(const UBlueprint* Blueprint, FName EventName, FName PropertyName)
 {
 	const UK2Node_ComponentBoundEvent* Node = NULL;
-	if (Blueprint && EventName != NAME_None && PropertyName != NAME_None)
+	if ( Blueprint && EventName != NAME_None && PropertyName != NAME_None )
 	{
 		TArray<UK2Node_ComponentBoundEvent*> EventNodes;
 		FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, EventNodes);
-		for(auto NodeIter = EventNodes.CreateIterator(); NodeIter; ++NodeIter)
+		for ( auto NodeIter = EventNodes.CreateIterator(); NodeIter; ++NodeIter )
 		{
 			UK2Node_ComponentBoundEvent* BoundEvent = *NodeIter;
-			if ((BoundEvent->ComponentPropertyName == PropertyName) && (BoundEvent->DelegatePropertyName == EventName))
+			if ( ( BoundEvent->ComponentPropertyName == PropertyName ) && ( BoundEvent->DelegatePropertyName == EventName ) )
 			{
 				Node = *NodeIter;
 				break;

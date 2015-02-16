@@ -798,6 +798,15 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 						InspectorTitle = FText::FromString(NodePtr->GetDisplayString());
 						InspectorObjects.Add(EditableComponent);
 					}
+
+					if ( SCSViewport.IsValid() )
+					{
+						TSharedPtr<SDockTab> OwnerTab = SCSViewport->GetOwnerTab();
+						if ( OwnerTab.IsValid() )
+						{
+							OwnerTab->FlashTab();
+						}
+					}
 				}
 			}
 		}
@@ -2747,14 +2756,16 @@ void FBlueprintEditor::OnActiveTabChanged( TSharedPtr<SDockTab> PreviouslyActive
 		//UE_LOG(LogBlueprint, Log, TEXT("OnActiveTabChanged: %s"), *NewlyActivated->GetLayoutIdentifier().ToString());
 	}
 
+	// If the newly active document tab isn't a graph we want to make sure we clear the focused graph pointer.
+	// Several other UI reads that, like the MyBlueprints view uses it to determine if it should show the "Local Variable" section.
 	if ( NewlyActivated.IsValid() && NewlyActivated->GetTabRole() == ETabRole::DocumentTab )
 	{
 		FocusedGraphEdPtr = nullptr;
-	}
 
-	if (MyBlueprintWidget.IsValid() == true)
-	{
-		MyBlueprintWidget->Refresh();
+		if ( MyBlueprintWidget.IsValid() == true )
+		{
+			MyBlueprintWidget->Refresh();
+		}
 	}
 }
 

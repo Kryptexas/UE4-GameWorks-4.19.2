@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintEditorPrivatePCH.h"
@@ -1806,7 +1806,7 @@ FReply SSCS_RowWidget::OnDragDetected( const FGeometry& MyGeometry, const FPoint
 		{
 			UBlueprint* Blueprint = FirstNode->GetBlueprint();
 			const FName VariableName = FirstNode->GetVariableName();
- 			UStruct* VariableScope = (Blueprint != nullptr) ? Blueprint->SkeletonGeneratedClass : nullptr;
+			UStruct* VariableScope = (Blueprint != nullptr) ? Blueprint->SkeletonGeneratedClass : nullptr;
 
 			TSharedRef<FSCSRowDragDropOp> Operation = FSCSRowDragDropOp::New(VariableName, VariableScope, FNodeCreationAnalytic());
 			Operation->SetCtrlDrag(true); // Always put a getter
@@ -3142,30 +3142,34 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		.Padding(0)
 		[
 			SNew(SBorder)
-			.Padding(2.0f)
+			.Padding(0)
 			.BorderImage(FEditorStyle::GetBrush("DetailsView.CategoryTop"))
 			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
 			.BorderBackgroundColor( FLinearColor( .6,.6,.6, 1.0f ) )
 			[
 				SNew(SHorizontalBox)
+				
 				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
 				.AutoWidth()
+				.HAlign(HAlign_Left)
 				[
 					SNew(SComponentClassCombo)
+					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.AddComponent")))
 					.Visibility(bHideComponentClassCombo ? EVisibility::Hidden : EVisibility::Visible)
 					.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
 					.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Adds a new component to this actor"))
 				]
+
 				+ SHorizontalBox::Slot()
-				.Padding( 4.f, 0.0f )
+				.FillWidth(1.0f)
 				.HAlign(HAlign_Right)
 				[
 					SNew( SButton )
+					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.ConvertToBlueprint")))
 					.Visibility( this, &SSCSEditor::GetPromoteToBlueprintButtonVisibility )
 					.OnClicked( this, &SSCSEditor::OnPromoteToBlueprintClicked )
-					.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-					.ContentPadding(0)
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Primary")
+					.ContentPadding(FMargin(10,0))
 					.ToolTip(IDocumentation::Get()->CreateToolTip(
 						LOCTEXT("PromoteToBluerprintTooltip","Converts this actor into a reusable Blueprint Class that can have script behavior" ),
 						NULL,
@@ -3173,32 +3177,49 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 						TEXT("ConvertToBlueprint")))
 					[
 						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.AutoWidth()
-						.Padding(2.f, 1.f)
-						[
-							SNew(SImage)
-							.Image( FEditorStyle::Get().GetBrush( "ClassIcon.BlueprintCore" ) )
-						]
+						
+						//+SHorizontalBox::Slot()
+						//.VAlign(VAlign_Center)
+						//.AutoWidth()
+						//.Padding(2.f, 1.f)
+						//[
+						//	SNew(SImage)
+						//	.Image( FEditorStyle::Get().GetBrush( "ClassIcon.BlueprintCore" ) )
+						//]
+
 						+ SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
-						.Padding(1.f)
+						.Padding(3.f)
+						.AutoWidth()
 						[
 							SNew(STextBlock)
 							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
-							.Text( LOCTEXT("PromoteToBlueprint", "Convert to Blueprint Class") )
+							.Font( FEditorStyle::Get().GetFontStyle( "FontAwesome.10" ) )
+							.Text(FString(TEXT("\xf085")) /*fa-cogs*/)
+						]
+
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(3.f)
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+							//.Text( LOCTEXT("PromoteToBlueprint", "Add Script") )
+							.Text(LOCTEXT("PromoteToBlueprint", "Convert to Blueprint Class"))
 						]
 					]
 				]
 				+ SHorizontalBox::Slot()
-				.Padding(4.f, 0.0f)
+				.FillWidth(1.0f)
 				.HAlign(HAlign_Right)
 				[
 					SNew(SComboButton)
+					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.EditBlueprint")))
 					.Visibility(this, &SSCSEditor::GetEditBlueprintButtonVisibility)
 					.ContentPadding(FMargin(0))
-					.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.NewAsset.Style")
+					.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Primary")
 					.ForegroundColor(FLinearColor::White)
 					.ButtonContent()
 					[

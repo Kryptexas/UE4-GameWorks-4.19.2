@@ -50,10 +50,12 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 		+SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
 		.AutoWidth()
-		.Padding(2.f,1.f)
+		.Padding(1.f,1.f)
 		[
-			SNew(SImage)
-			.Image(FEditorStyle::GetBrush(TEXT("Plus")))
+			SNew(STextBlock)
+			.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+			.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+			.Text(FString(TEXT("\xf067")) /*fa-plus*/)
 		]
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
@@ -94,8 +96,9 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 		]
 	]
 	.IsFocusable(true)
-	.ContentPadding(FMargin(0))
-	.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.NewAsset.Style")
+	.ContentPadding(FMargin(5, 0))
+	.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+	.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 	.ForegroundColor(FLinearColor::White)
 	.OnComboBoxOpened(this, &SComponentClassCombo::ClearSelection);
 
