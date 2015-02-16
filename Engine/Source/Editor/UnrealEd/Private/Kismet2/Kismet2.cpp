@@ -1149,6 +1149,17 @@ public:
 			{
 				TArray<UActorComponent*> Components;
 				Actor->GetComponents(Components);
+
+				// Exclude any components created by other components
+				for (int32 Index = Components.Num() - 1; Index >= 0; --Index)
+				{
+					UActorComponent* ComponentToConsider = Components[Index];
+					if (ComponentToConsider->IsEditorOnly())
+					{
+						Components.RemoveAt(Index, 1, /*bAllowShrinking=*/ false);
+					}
+				}
+
 				FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Components, /*bHarvesting=*/ true, RootNodeOverride);
 			}
 
