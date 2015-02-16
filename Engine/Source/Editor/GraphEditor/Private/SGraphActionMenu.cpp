@@ -519,6 +519,13 @@ bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type
 
 		if(SelectionNode.IsValid())
 		{
+			// Expand the parent nodes
+			for (TSharedPtr<FGraphActionNode> ParentAction = SelectionNode->GetParentNode().Pin(); ParentAction.IsValid(); ParentAction = ParentAction->GetParentNode().Pin())
+			{
+				TreeView->SetItemExpansion(ParentAction, true);
+			}
+
+			// Select the node
 			TreeView->SetSelection(SelectionNode,SelectInfo);
 			TreeView->RequestScrollIntoView(SelectionNode);
 			return true;
