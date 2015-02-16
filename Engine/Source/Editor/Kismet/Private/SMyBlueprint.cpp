@@ -2525,6 +2525,11 @@ void SMyBlueprint::SelectItemByName(const FName& ItemName, ESelectInfo::Type Sel
 	{
 		ClearGraphActionMenuSelection();
 	}
+	else
+	{
+		// Attempt to select the item in the main graph action menu
+		GraphActionMenu->SelectItemByName(ItemName, SelectInfo, SectionId, bIsCategory);
+	}
 }
 
 void SMyBlueprint::ClearGraphActionMenuSelection()
