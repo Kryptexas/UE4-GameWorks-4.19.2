@@ -7194,10 +7194,14 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 {
 	OutForm = FString();
 	if (!Property || CppForm.IsEmpty())
+	{
 		return false;
+	}
 
 	if (Property->IsA(UClassProperty::StaticClass()) || Property->IsA(UObjectPropertyBase::StaticClass()))
+	{
 		return FDefaultValueHelper::Is(CppForm, TEXT("NULL")) || FDefaultValueHelper::Is(CppForm, TEXT("nullptr")) || FDefaultValueHelper::Is(CppForm, TEXT("0"));
+	}
 
 	if( !Property->IsA(UStructProperty::StaticClass()) )
 	{
