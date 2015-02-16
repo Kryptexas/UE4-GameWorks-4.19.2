@@ -473,17 +473,32 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 	{
 		if (!DisplayMessage.IsEmpty())
 		{
-			// Animate a dot to show progress
-			FFormatOrderedArguments Args;
-			Args.Add(DisplayMessage);
-			Args.Add(int(TotalProgressInterp * 100.f));
+			const int32 DotCount = 4;
+			const float MinTimeBetweenUpdates = 0.2f;
+			static double LastUpdateTime = -100000.0;
+			static int32 DotProgress = 0;
+			const double CurrentTime = FPlatformTime::Seconds();
+			if( CurrentTime - LastUpdateTime >= MinTimeBetweenUpdates )
+			{
+				LastUpdateTime = CurrentTime;
+				DotProgress = ( DotProgress + 1 ) % DotCount;
+			}
 
-			double CurrentTime = FPlatformTime::Seconds() / 5.0;
-			int32 Progress = static_cast<int32>((CurrentTime - FMath::FloorToDouble(CurrentTime)) * 5.0);
-			static const TCHAR Spaces[] = TEXT("     ");
-			FString Dots = FString(Progress, Spaces) + TEXT(".") + FString(5 - Progress, Spaces);
-			Args.Add(FText::FromString(Dots));
-			DisplayMessage = FText::Format(NSLOCTEXT("FeedbackContextEditor", "ProgressDisplayText", "{0}{2} ({1}%)"), Args);
+			FString NewDisplayMessage = DisplayMessage.ToString();
+			NewDisplayMessage.RemoveFromEnd( TEXT( "..." ) );
+			for( int32 DotIndex = 0; DotIndex <= DotCount; ++DotIndex )
+			{
+				if( DotIndex <= DotProgress )
+				{
+					NewDisplayMessage.AppendChar( TCHAR( '.' ) );
+				}
+				else
+				{
+					NewDisplayMessage.AppendChar( TCHAR( ' ' ) );
+				}				
+			}
+			NewDisplayMessage.Append( FString::Printf( TEXT( " %i%%" ), int(TotalProgressInterp * 100.f) ) );
+			DisplayMessage = FText::FromString( NewDisplayMessage );
 		}
 
 		FPlatformSplash::SetSplashText(SplashTextType::StartupProgress, *DisplayMessage.ToString());
