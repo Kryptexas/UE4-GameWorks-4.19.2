@@ -2736,7 +2736,7 @@ void FBlueprintEditor::OnActiveTabChanged( TSharedPtr<SDockTab> PreviouslyActive
 		//UE_LOG(LogBlueprint, Log, TEXT("OnActiveTabChanged: %s"), *NewlyActivated->GetLayoutIdentifier().ToString());
 	}
 
-	if ( NewlyActivated->GetTabRole() == ETabRole::DocumentTab )
+	if ( NewlyActivated.IsValid() && NewlyActivated->GetTabRole() == ETabRole::DocumentTab )
 	{
 		FocusedGraphEdPtr = nullptr;
 	}
