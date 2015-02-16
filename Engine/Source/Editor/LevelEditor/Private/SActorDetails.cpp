@@ -58,6 +58,7 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 
 	SCSEditor = SNew(SSCSEditor)
 		.EditorMode(EComponentEditorMode::ActorInstance)
+		.AllowEditing(this, &SActorDetails::GetAllowComponentTreeEditing)
 		.ActorContext(this, &SActorDetails::GetActorContext)
 		.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)
 		.ActorMenuExtender(InArgs._ActorMenuExtender);
@@ -246,6 +247,11 @@ AActor* SActorDetails::GetSelectedActorInEditor() const
 {
 	//@todo this doesn't work w/ multi-select
 	return GEditor->GetSelectedActors()->GetTop<AActor>();
+}
+
+bool SActorDetails::GetAllowComponentTreeEditing() const
+{
+	return GEditor->PlayWorld == nullptr;
 }
 
 AActor* SActorDetails::GetActorContext() const

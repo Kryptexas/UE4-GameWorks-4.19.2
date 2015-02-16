@@ -29,6 +29,7 @@ public:
 private:
 	AActor* GetSelectedActorInEditor() const;
 	AActor* GetActorContext() const;
+	bool GetAllowComponentTreeEditing() const;
 
 	void OnComponentsEditedInWorld();
 	void OnEditorSelectionChanged(UObject* Object);
