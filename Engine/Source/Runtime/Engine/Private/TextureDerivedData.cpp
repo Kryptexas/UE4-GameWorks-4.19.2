@@ -912,10 +912,9 @@ public:
 		}
 	}
 
-	/** Interface for FAsyncTask. */
-	static const TCHAR* Name()
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("FTextureAsyncCacheDerivedDataTask");
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FTextureCacheDerivedDataWorker, STATGROUP_ThreadPoolAsyncTasks);
 	}
 };
 

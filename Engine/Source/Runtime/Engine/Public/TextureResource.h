@@ -61,12 +61,9 @@ public:
 	 */
 	void DoWork();
 
-	/**
-	 * Name of the async task.
-	 */
-	static const TCHAR* Name()
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("FAsyncStreamDerivedMipTask");
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncStreamDerivedMipWorker, STATGROUP_ThreadPoolAsyncTasks);
 	}
 
 	/**
@@ -130,13 +127,13 @@ public:
 		check(Args.ThreadSafeCounter);
 	}
 
-	static const TCHAR* Name()
-	{
-		return TEXT("FCreateTextureTask");
-	}
-
 	/** Creates the texture. */
 	void DoWork();
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FCreateTextureTask, STATGROUP_ThreadPoolAsyncTasks);
+	}
 
 private:
 	/** Task arguments. */

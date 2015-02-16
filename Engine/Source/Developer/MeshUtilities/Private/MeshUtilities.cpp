@@ -244,9 +244,9 @@ public:
 
 	void DoWork();
 
-	static const TCHAR* Name()
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("MeshDistanceFieldAsyncTask");
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FMeshDistanceFieldAsyncTask, STATGROUP_ThreadPoolAsyncTasks);
 	}
 
 	bool WasNegativeAtBorder() const 

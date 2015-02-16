@@ -359,10 +359,9 @@ public:
 		}
 	}
 
-	/** Interface for FAsyncTask. */
-	static const TCHAR* Name()
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("FStreamedAudioAsyncCacheDerivedDataTask");
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FStreamedAudioCacheDerivedDataWorker, STATGROUP_ThreadPoolAsyncTasks);
 	}
 };
 

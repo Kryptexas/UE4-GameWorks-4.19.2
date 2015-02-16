@@ -1202,13 +1202,9 @@ private:
 		PrioritizedTextures.Sort( FCompareTexturePriority() );
 	}
 
-	/**
-	 * Give the name for external event viewers
-	 * @return	the name to display in external event viewers
-	 */ 
-	static const TCHAR *Name()
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("FAsyncTextureStreaming");
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncTextureStreaming, STATGROUP_ThreadPoolAsyncTasks);
 	}
 
 	/** Reference to the owning streaming manager, for accessing the thread-safe data. */

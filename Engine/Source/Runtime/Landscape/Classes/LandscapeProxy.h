@@ -295,9 +295,10 @@ public:
 	{
 	}
 	void DoWork();
-	static const TCHAR *Name()
+
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("FAsyncGrassTask");
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncGrassTask, STATGROUP_ThreadPoolAsyncTasks);
 	}
 
 	~FAsyncGrassTask();

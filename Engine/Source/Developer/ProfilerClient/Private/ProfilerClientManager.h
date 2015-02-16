@@ -135,9 +135,9 @@ class FProfilerClientManager
 
 		void DoWork();
 
-		static const TCHAR* Name()
+		FORCEINLINE TStatId GetStatId() const
 		{
-			return TEXT("FAsyncReadWorker");
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncReadWorker, STATGROUP_ThreadPoolAsyncTasks);
 		}
 	};
 

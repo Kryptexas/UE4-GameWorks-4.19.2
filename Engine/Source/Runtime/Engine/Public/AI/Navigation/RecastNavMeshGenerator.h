@@ -240,9 +240,9 @@ struct ENGINE_API FRecastTileGeneratorWrapper : public FNonAbandonableTask
 		TileGenerator->DoWork();
 	}
 
-	static const TCHAR *Name()
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("FRecastTileGenerator");
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FRecastTileGenerator, STATGROUP_ThreadPoolAsyncTasks);
 	}
 };
 

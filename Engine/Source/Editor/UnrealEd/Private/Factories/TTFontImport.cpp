@@ -370,12 +370,9 @@ class FTextureAlphaToDistanceField
 		/** Called by the thread pool to do the work in this task */
 		void DoWork(void);
 
-		/** Give the name for external event viewers
-		* @return	the name to display in external event viewers
-		*/
-		static const TCHAR *Name()
+		FORCEINLINE TStatId GetStatId() const
 		{
-			return TEXT("FBuildDistanceFieldTask");
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FBuildDistanceFieldTask, STATGROUP_ThreadPoolAsyncTasks);
 		}
 
 	private:

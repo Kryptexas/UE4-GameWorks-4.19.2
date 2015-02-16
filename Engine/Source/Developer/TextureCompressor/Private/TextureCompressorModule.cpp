@@ -1453,13 +1453,9 @@ public:
 			);
 	}
 
-	/** 
-	 * Give the name for external event viewers
-	 * @return	the name to display in external event viewers
-	 */
-	static const TCHAR* Name()
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("FAsyncCompressionTask");
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncCompressionWorker, STATGROUP_ThreadPoolAsyncTasks);
 	}
 
 	bool GetCompressionResults(FCompressedImage2D& OutCompressedImage) const

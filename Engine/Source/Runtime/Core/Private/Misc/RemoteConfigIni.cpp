@@ -84,11 +84,6 @@ FRemoteConfigAsyncIOInfo& FRemoteConfigAsyncWorker::GetIOInfo()
 }
 
 
-const TCHAR* FRemoteConfigAsyncWorker::Name()
-{
-	return TEXT("FRemoteConfigAsyncWorker");
-}
-
 
 bool FRemoteConfigAsyncWorker::CanAbandon()
 {

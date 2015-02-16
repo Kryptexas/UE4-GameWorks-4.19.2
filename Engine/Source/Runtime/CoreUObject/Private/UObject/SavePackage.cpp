@@ -191,12 +191,10 @@ void AsyncWriteFile(const TArray<uint8>& Data, const TCHAR* Filename, const FDat
 			}
 			OutstandingAsyncWrites.Decrement();
 		}
-		/** Give the name for external event viewers
-		* @return	the name to display in external event viewers
-		*/
-		static const TCHAR *Name()
+
+		FORCEINLINE TStatId GetStatId() const
 		{
-			return TEXT("FAsyncWriteWorker");
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncWriteWorker, STATGROUP_ThreadPoolAsyncTasks);
 		}
 	};
 

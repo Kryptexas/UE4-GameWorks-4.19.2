@@ -1467,6 +1467,11 @@ public:
 
 	/** Function to call once the search result is ready */
 	TFunction<void(const FSearchResult&)> OnResultReady;
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT( FExtractionTask, STATGROUP_ThreadPoolAsyncTasks );
+	}
 };
 
 TArray<FSearchData> FStreamSearch::MakeExtractionBatch() const
