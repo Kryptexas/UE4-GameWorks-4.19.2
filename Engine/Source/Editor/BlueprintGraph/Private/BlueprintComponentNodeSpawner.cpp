@@ -7,6 +7,7 @@
 #include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
 #include "ComponentAssetBroker.h" // for GetComponentsForAsset()/AssignAssetToComponent()
 #include "BlueprintActionFilter.h"	// for FBlueprintActionContext
+#include "ComponentTypeRegistry.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintComponenetNodeSpawner"
 
