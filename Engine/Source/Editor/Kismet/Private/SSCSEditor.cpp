@@ -1712,30 +1712,26 @@ FSlateColor SSCS_RowWidget::GetColorTintForIcon() const
 
 FSlateColor SSCS_RowWidget::GetColorTintForText() const
 {
-	const FLinearColor InheritedBlueprintComponentColor(0.6f, 0.6f, 0.8f);
-	const FLinearColor InstancedInheritedBlueprintComponentColor(InheritedBlueprintComponentColor);
-	const FLinearColor InheritedNativeComponentColor(0.7f, 0.9f, 0.7f);
-	const FLinearColor IntroducedHereColor(FLinearColor::White);
+	const FSlateColor SelectedTextColor(FLinearColor::Black);
 
 	FSCSEditorTreeNodePtrType NodePtr = GetNode();
 	if (NodePtr->IsInherited())
 	{
 		if (NodePtr->IsNative())
 		{
-			return InheritedNativeComponentColor;
-		}
-		else if (NodePtr->IsInstanced())
-		{
-			return InstancedInheritedBlueprintComponentColor;
+			static FSlateColor NativeColor = FEditorStyle::GetSlateColor("Common.InheritedFromNativeTextColor");
+			return IsSelected() ? SelectedTextColor : NativeColor;
 		}
 		else
 		{
-			return InheritedBlueprintComponentColor;
+			static FSlateColor BlueprintColor = FEditorStyle::GetSlateColor("Common.InheritedFromBlueprintTextColor");
+			return IsSelected() ? SelectedTextColor : BlueprintColor;
 		}
 	}
 	else
 	{
-		return IntroducedHereColor;
+		static FSlateColor ThisInstanceColor = FEditorStyle::GetSlateColor("Common.IntroducedInThisInstanceTextColor");
+		return IsSelected() ? SelectedTextColor : ThisInstanceColor;
 	}
 }
 

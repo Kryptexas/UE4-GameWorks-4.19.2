@@ -1776,7 +1776,7 @@ void FBlueprintEditor::PostRegenerateMenusAndToolbars()
 			[
 				SNew(SHyperlink)
 				.Style(FEditorStyle::Get(), "EditBPHyperlink")
-				.TextStyle(FEditorStyle::Get(), "DetailsView.EditBlueprintHyperlinkStyle")
+				.TextStyle(FEditorStyle::Get(), "Common.EditBlueprintHyperlinkStyle")
 				.IsEnabled(this, &FBlueprintEditor::IsNativeParentClassCodeLinkEnabled)
 				.Visibility(this, &FBlueprintEditor::GetNativeParentClassButtonsVisibility)
 				.OnNavigate(this, &FBlueprintEditor::OnEditParentClassNativeCodeClicked)

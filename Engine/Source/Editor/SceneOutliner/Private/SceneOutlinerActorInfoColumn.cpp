@@ -193,11 +193,12 @@ const TSharedRef< SWidget > FActorInfoColumn::ConstructRowWidget( FTreeItemRef T
 		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
+			// Make sure that the hyperlink shows as black (by multiplying black * desired color) when selected so it is readable against the orange background even if blue/green/etc... normally
 			SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
 			.ColorAndOpacity_Static([](TWeakPtr<const STableRow<FTreeItemPtr>> WeakRow)->FLinearColor{
 				auto Row = WeakRow.Pin();
-				return Row.IsValid() && Row->IsSelectedExclusively() ? FLinearColor::Black : FLinearColor::White;
+				return Row.IsValid() && Row->IsSelected() ? FLinearColor::Black : FLinearColor::White;
 			}, TWeakPtr<const STableRow<FTreeItemPtr>>(StaticCastSharedRef<const STableRow<FTreeItemPtr>>(Row.AsShared())))
 			[
 				Hyperlink.ToSharedRef()

@@ -124,6 +124,12 @@ public:
 		const FSlateColor SelectionColor_Inactive;
 		const FSlateColor SelectionColor_Pressed;
 
+		// These are common colors used thruout the editor in mutliple style elements
+		const FSlateColor InheritedFromBlueprintTextColor;
+		const FSlateColor InheritedFromNativeTextColor;
+		const FSlateColor IntroducedInThisInstanceTextColor;
+		const FSlateColor IntroducedInThisBlueprintTextColor;
+
 		FTextBlockStyle NormalText;
 		FEditableTextBoxStyle NormalEditableTextBoxStyle;
 		FTableRowStyle NormalTableRowStyle;
@@ -141,7 +147,7 @@ public:
 		FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(NewStyle, &FSlateEditorStyle::FStyle::SettingsChanged);
 
 		return NewStyle;
-}
+	}
 
 	static TSharedPtr< FSlateEditorStyle::FStyle > StyleInstance;
 	static TWeakObjectPtr< UEditorStyleSettings > Settings;

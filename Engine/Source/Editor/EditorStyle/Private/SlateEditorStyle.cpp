@@ -69,6 +69,11 @@ FSlateEditorStyle::FStyle::FStyle( const TWeakObjectPtr< UEditorStyleSettings >&
 	, SelectionColor_Inactive( SelectionColor_Inactive_LinearRef )
 	, SelectionColor_Pressed( SelectionColor_Pressed_LinearRef )
 
+	, InheritedFromBlueprintTextColor(FLinearColor(0.25f, 0.5f, 1.0f))
+	, InheritedFromNativeTextColor(FLinearColor(0.375f, 1.0f, 0.375f))
+	, IntroducedInThisInstanceTextColor(FLinearColor::White)
+	, IntroducedInThisBlueprintTextColor(FLinearColor::White)
+
 	, Settings( InSettings )
 {
 
@@ -1215,15 +1220,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "SceneOutliner.TableViewRow", FTableRowStyle(NormalTableRowStyle)
 			.SetInactiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Subdued ) )
 		);
-
-		Set( "SceneOutliner.EditBlueprintHyperlinkStyle",
-			FTextBlockStyle( NormalText )
-			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) )
-			.SetColorAndOpacity( FSlateColor::UseForeground() ) );
-		Set( "SceneOutliner.GoToCodeHyperlinkStyle",
-			FTextBlockStyle( NormalText )
-			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) )
-			.SetColorAndOpacity( FSlateColor::UseSubduedForeground() ) );
 	}
 
 	// Socket chooser
@@ -2266,6 +2262,25 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetInactiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
 			);
 	}
+
+
+	// Common styles for blueprint/code references
+	{
+		Set("Common.EditBlueprintHyperlinkStyle", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
+			.SetColorAndOpacity(InheritedFromBlueprintTextColor)
+		);
+
+		Set("Common.GoToNativeCodeHyperlinkStyle", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
+			.SetColorAndOpacity(InheritedFromNativeTextColor)
+		);
+
+		Set("Common.InheritedFromBlueprintTextColor", InheritedFromBlueprintTextColor);
+		Set("Common.InheritedFromNativeTextColor", InheritedFromNativeTextColor);
+		Set("Common.IntroducedInThisInstanceTextColor", IntroducedInThisInstanceTextColor);
+		Set("Common.IntroducedInThisBlueprintTextColor", IntroducedInThisBlueprintTextColor);
+	}
 #endif
 }
 
@@ -2999,9 +3014,6 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 		Set( "DetailsView.AdvancedDropdownBorder.Open", new IMAGE_BRUSH( "Common/ScrollBoxShadowTop", FVector2D(64,8) ) );
 		Set( "DetailsView.CategoryFontStyle", TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
 
-		Set( "DetailsView.EditBlueprintHyperlinkStyle", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) ).SetColorAndOpacity( FLinearColor( 0.25f, 0.5f, 1.0f ) ) );
-		Set( "DetailsView.GoToCodeHyperlinkStyle", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) ).SetColorAndOpacity( FLinearColor( 0.7f, 0.7f, 0.7f ) ) );
-
 		Set( "DetailsView.TreeView.TableRow", FTableRowStyle()
 			.SetEvenRowBackgroundBrush( FSlateNoResource() )
 			.SetEvenRowBackgroundHoveredBrush( FSlateNoResource() )
@@ -3016,7 +3028,7 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 			.SetSelectedTextColor( InvertedForeground )
 			);
 	}
-	}
+}
 
 void FSlateEditorStyle::FStyle::SetupProfilerStyle()
 {
