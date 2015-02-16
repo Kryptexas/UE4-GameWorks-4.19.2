@@ -151,8 +151,6 @@ void FPackageAutoSaver::AttemptAutoSave()
 		const bool bCanAutosave = CanAutoSave();
 		if (bCanAutosave)
 		{
-			// Auto-saving, so close any warning notifications.
-			CloseAutoSaveNotification(true);
 			bAutosaveHandled = true;
 
 			bIsAutoSaving = true;
@@ -168,7 +166,7 @@ void FPackageAutoSaver::AttemptAutoSave()
 			const int32 NewAutoSaveIndex = (AutoSaveIndex + 1) % 10;
 
 			bool bLevelSaved = false;
-			bool bAssetsSaved = false;
+			auto AssetsSaveResults = EAutosaveContentPackagesResult::NothingToDo;
 
 			if (LoadingSavingSettings->bAutoSaveMaps)
 			{
@@ -183,10 +181,16 @@ void FPackageAutoSaver::AttemptAutoSave()
 				// If we weren't saving content packages when we last ran an auto-save, we need to forcibly save any that are dirty
 				// as DirtyPackagesForAutoSave gets cleared each time an auto-save is run, so may not be up-to-date for the new settings
 				const bool bForceSaveContentPackages = !bWasAutoSavingContent && LoadingSavingSettings->bAutoSaveContent;
-				bAssetsSaved = FEditorFileUtils::AutosaveContentPackages(AutoSaveDir, NewAutoSaveIndex, bForceSaveContentPackages, DirtyPackagesForAutoSave);
+				AssetsSaveResults = FEditorFileUtils::AutosaveContentPackagesEx(AutoSaveDir, NewAutoSaveIndex, bForceSaveContentPackages, DirtyPackagesForAutoSave);
 			}
 
-			if (bLevelSaved || bAssetsSaved)
+			// Auto-saved, so close any warning notifications.
+			CloseAutoSaveNotification(
+				AssetsSaveResults == EAutosaveContentPackagesResult::Success ?	ECloseNotification::Success	:
+				AssetsSaveResults == EAutosaveContentPackagesResult::Failure ?	ECloseNotification::Failed	:
+																				ECloseNotification::Postponed);
+
+			if (bLevelSaved || AssetsSaveResults == EAutosaveContentPackagesResult::Success)
 			{
 				// If a level was actually saved, update the auto-save index
 				AutoSaveIndex = NewAutoSaveIndex;
@@ -514,6 +518,11 @@ void FPackageAutoSaver::UpdateAutoSaveNotification()
 
 void FPackageAutoSaver::CloseAutoSaveNotification(const bool Success)
 {
+	CloseAutoSaveNotification(Success ? ECloseNotification::Success : ECloseNotification::Postponed);
+}
+
+void FPackageAutoSaver::CloseAutoSaveNotification(ECloseNotification::Type Type)
+{
 	// If a notification is open close it
 	if(bAutoSaveNotificationLaunched)
 	{
@@ -526,15 +535,20 @@ void FPackageAutoSaver::CloseAutoSaveNotification(const bool Success)
 			FText CloseMessage;
 
 			// Set the test on the notification based on whether it was a successful launch
-			if(Success)
+			if (Type == ECloseNotification::Success)
 			{
 				CloseMessage = NSLOCTEXT("AutoSaveNotify", "AutoSaving", "Saving");
 				CloseState = SNotificationItem::CS_Success;
 			}
-			else
+			else if (Type == ECloseNotification::Postponed)
 			{
 				CloseMessage = NSLOCTEXT("AutoSaveNotify", "AutoSavePostponed", "Autosave postponed");
 				CloseState = SNotificationItem::CS_None; // Set back to none rather than failed, as this is too harsh
+			}
+			else
+			{
+				CloseMessage = NSLOCTEXT("AutoSaveNotify", "AutoSaveFailed", "Auto-save failed. Please check the log for the details.");
+				CloseState = SNotificationItem::CS_Fail;
 			}
 
 			// update notification

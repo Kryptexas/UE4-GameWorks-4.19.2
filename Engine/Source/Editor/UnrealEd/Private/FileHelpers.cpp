@@ -2148,6 +2148,15 @@ bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int
 
 bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)
 {
+	auto Result = AutosaveContentPackagesEx(AbsoluteAutosaveDir, AutosaveIndex, bForceIfNotInList, DirtyPackagesForAutoSave);
+
+	check(Result != EAutosaveContentPackagesResult::Failure);
+
+	return Result == EAutosaveContentPackagesResult::Success;
+}
+
+EAutosaveContentPackagesResult::Type FEditorFileUtils::AutosaveContentPackagesEx(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)
+{
 	const FScopedBusyCursor BusyCursor;
 	double SaveStartTime = FPlatformTime::Seconds();
 	
@@ -2180,7 +2189,10 @@ bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDi
 				}
 
 				const FString AutosaveFilename = GetAutoSaveFilename(CurPackage, AbsoluteAutosaveDir, AutosaveIndex, FPackageName::GetAssetPackageExtension());
-				GUnrealEd->Exec( NULL, *FString::Printf( TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=false AUTOSAVING=true"), *CurPackage->GetName(), *AutosaveFilename ) );
+				if (!GUnrealEd->Exec(nullptr, *FString::Printf(TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=false AUTOSAVING=true"), *CurPackage->GetName(), *AutosaveFilename)))
+				{
+					return EAutosaveContentPackagesResult::Failure;
+				}
 
 				// Re-mark the package as dirty, because autosaving it will have cleared the dirty flag
 				CurPackage->MarkPackageDirty();
@@ -2194,7 +2206,7 @@ bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDi
 		UE_LOG(LogFileHelpers, Log, TEXT("Auto-saving content packages took %.3f"), FPlatformTime::Seconds() - SaveStartTime );
 	}
 
-	return bSavedPkgs;
+	return bSavedPkgs ? EAutosaveContentPackagesResult::Success : EAutosaveContentPackagesResult::NothingToDo;
 }
 /**
  * Actually save a package. Prompting for Save as if necessary

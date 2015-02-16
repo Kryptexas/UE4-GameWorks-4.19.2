@@ -4324,7 +4324,15 @@ bool UEditorEngine::IsPackageOKToSave(UPackage* InPackage, const FString& InFile
 {
 	TArray<FString>	AllStartupPackageNames;
 	appGetAllPotentialStartupPackageNames(AllStartupPackageNames, GEngineIni, false);
-	bool bIsStartupPackage = AllStartupPackageNames.Contains(FPackageName::FilenameToLongPackageName(InFilename));
+
+	FString ConvertedPackageName, ConversionError;
+	if (!FPackageName::TryConvertFilenameToLongPackageName(InFilename, ConvertedPackageName, &ConversionError))
+	{
+		Error->Logf(ELogVerbosity::Error, *FText::Format(NSLOCTEXT("UnrealEd", "CannotConvertPackageName", "Cannot save asset '{0}' as conversion of long package name failed. Reason: '{1}'."), FText::FromString(InFilename), FText::FromString(ConversionError)).ToString());
+		return false;
+	}
+
+	bool bIsStartupPackage = AllStartupPackageNames.Contains(ConvertedPackageName);
 
 	// Make sure that if the package is a startup package, the user indeed wants to save changes
 	if( !IsRunningCommandlet()																		&& // Don't prompt about saving startup packages when running UCC
