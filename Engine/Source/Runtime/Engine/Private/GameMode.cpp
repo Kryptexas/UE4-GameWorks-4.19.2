@@ -285,7 +285,7 @@ void AGameMode::PostLogin( APlayerController* NewPlayer )
 bool AGameMode::ShouldStartInCinematicMode(bool& OutHidePlayer,bool& OutHideHUD,bool& OutDisableMovement,bool& OutDisableTurning)
 {
 	bool StartInCinematicMode = false;
-	if(GEngine->bStartWithMatineeCapture)
+	if(GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture)
 	{
 		GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CinematicMode"), StartInCinematicMode, GEditorUserSettingsIni );
 		if(StartInCinematicMode)

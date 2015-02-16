@@ -95,7 +95,7 @@ void UGameEngine::CreateGameViewportWidget( UGameViewportClient* GameViewportCli
 		SNew( SViewport )
 			// Render directly to the window backbuffer unless capturing a movie or getting screenshots
 			// @todo TEMP
-			.RenderDirectlyToWindow( !GEngine->bStartWithMatineeCapture && GIsDumpingMovie == 0 )
+			.RenderDirectlyToWindow( !GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture && GIsDumpingMovie == 0 )
 			.EnableStereoRendering(true)
 			[
 				SNew(SDPIScaler)
@@ -972,7 +972,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 
 		// Start the movie capture if needed
-		if (bCheckForMovieCapture && GEngine->bStartWithMatineeCapture && GEngine->MatineeCaptureType == EMatineeCaptureType::AVI && GameViewport->Viewport->GetSizeXY() != FIntPoint::ZeroValue )
+		if (bCheckForMovieCapture && GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture && GEngine->MatineeScreenshotOptions.MatineeCaptureType == EMatineeCaptureType::AVI && GameViewport->Viewport->GetSizeXY() != FIntPoint::ZeroValue )
 		{
 			if (AVIWriter)
 			{

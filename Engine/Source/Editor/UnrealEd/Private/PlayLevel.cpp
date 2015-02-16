@@ -1666,9 +1666,6 @@ void UEditorEngine::PlayForMovieCapture()
 	// (we add to EditorCommandLine because the URL is ignored by WindowsTools)
 	EditorCommandLine += TEXT(" -PIEVIACONSOLE");
 	
-	// Disable splash screen
-	EditorCommandLine += TEXT(" -NoSplash");
-	
 	// if we want to start movie capturing right away, then append the argument for that
 	if (bStartMovieCapture)
 	{
@@ -1679,19 +1676,19 @@ void UEditorEngine::PlayForMovieCapture()
 		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d"), GEditor->MatineeCaptureResolutionX);
 		EditorCommandLine += FString::Printf(TEXT(" -ResY=%d"), GEditor->MatineeCaptureResolutionY);
 					
-		if( GUnrealEd->bNoTextureStreaming )
+		if( GUnrealEd->MatineeScreenshotOptions.bNoTextureStreaming )
 		{
 			EditorCommandLine += TEXT(" -NoTextureStreaming");
 		}
 
 		//set fps
-		EditorCommandLine += FString::Printf(TEXT(" -BENCHMARK -FPS=%d"), GEditor->MatineeCaptureFPS);
+		EditorCommandLine += FString::Printf(TEXT(" -BENCHMARK -FPS=%d"), GEditor->MatineeScreenshotOptions.MatineeCaptureFPS);
 	
-		if (GEditor->MatineeCaptureType.GetValue() != EMatineeCaptureType::AVI)
+		if (GEditor->MatineeScreenshotOptions.MatineeCaptureType.GetValue() != EMatineeCaptureType::AVI)
 		{
-			EditorCommandLine += FString::Printf(TEXT(" -MATINEESSCAPTURE=%s"), *GEngine->MatineeCaptureName);//*GEditor->MatineeNameForRecording);
+			EditorCommandLine += FString::Printf(TEXT(" -MATINEESSCAPTURE=%s"), *GEngine->MatineeScreenshotOptions.MatineeCaptureName);//*GEditor->MatineeNameForRecording);
 
-			switch(GEditor->MatineeCaptureType.GetValue())
+			switch(GEditor->MatineeScreenshotOptions.MatineeCaptureType.GetValue())
 			{
 			case EMatineeCaptureType::BMP:
 				EditorCommandLine += TEXT(" -MATINEESSFORMAT=BMP");
@@ -1714,12 +1711,12 @@ void UEditorEngine::PlayForMovieCapture()
 		}
 		else
 		{
-			EditorCommandLine += FString::Printf(TEXT(" -MATINEEAVICAPTURE=%s"), *GEngine->MatineeCaptureName);//*GEditor->MatineeNameForRecording);
+			EditorCommandLine += FString::Printf(TEXT(" -MATINEEAVICAPTURE=%s"), *GEngine->MatineeScreenshotOptions.MatineeCaptureName);//*GEditor->MatineeNameForRecording);
 		}
 					
-		EditorCommandLine += FString::Printf(TEXT(" -MATINEEPACKAGE=%s"), *GEngine->MatineePackageCaptureName);//*GEditor->MatineePackageNameForRecording);
+		EditorCommandLine += FString::Printf(TEXT(" -MATINEEPACKAGE=%s"), *GEngine->MatineeScreenshotOptions.MatineePackageCaptureName);//*GEditor->MatineePackageNameForRecording);
 	
-		if (GEditor->bCompressMatineeCapture == 1)
+		if (GEditor->MatineeScreenshotOptions.bCompressMatineeCapture == 1)
 		{
 			EditorCommandLine += TEXT(" -CompressCapture");
 		}

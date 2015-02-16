@@ -1193,14 +1193,30 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 	{
 		TArray<FColor> Bitmap;
 
+		bool bShowUI = false;
 		TSharedPtr<SWindow> WindowPtr = GetWindow();
 		if (!GIsDumpingMovie && (FScreenshotRequest::ShouldShowUI() && WindowPtr.IsValid()))
 		{
-			TSharedRef<SWindow> WindowRef = WindowPtr.ToSharedRef();
-			FSlateApplication::Get().ForceRedrawWindow(WindowRef);
+			bShowUI = true;
+		}
+		else if( GIsDumpingMovie && WindowPtr.IsValid() && !GEngine->MatineeScreenshotOptions.bHideHud )
+		{
+			bShowUI = true;
 		}
 
-		if (GetViewportScreenShot(InViewport, Bitmap))
+		bool bScreenshotSuccessful = false;
+		if( bShowUI && FSlateApplication::IsInitialized() )
+		{
+			FIntVector Size;
+			TSharedRef<SWidget> WindowRef = WindowPtr.ToSharedRef();
+			bScreenshotSuccessful = FSlateApplication::Get().TakeScreenshot( WindowRef, Bitmap, Size);
+		}
+		else
+		{
+			bScreenshotSuccessful = GetViewportScreenShot(InViewport, Bitmap);
+		}
+
+		if (bScreenshotSuccessful)
 		{
 			if (ScreenshotCapturedDelegate.IsBound())
 			{

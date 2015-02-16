@@ -190,7 +190,7 @@ public:
 			}
 
 			IAMVideoCompression* VideoCompression = NULL;
-			if (GEngine->bCompressMatineeCapture)
+			if (GEngine->MatineeScreenshotOptions.bCompressMatineeCapture)
 			{
 				// Create the filter graph manager and query for interfaces.
 				hr = CoCreateInstance (CLSID_MJPGEnc, NULL, CLSCTX_INPROC, IID_IBaseFilter, ( void ** ) &VideoCompression);
@@ -232,20 +232,20 @@ public:
 				FString OutputDir = FPaths::VideoCaptureDir();
 				IFileManager::Get().MakeDirectory(*OutputDir, true);
 
-				if (GEngine->bStartWithMatineeCapture)
+				if (GEngine->MatineeScreenshotOptions.bCompressMatineeCapture)
 				{
 					bool bFoundUnusedName = false;
 					while (!bFoundUnusedName)
 					{
 						const FString FileNameInfo = FString::Printf( TEXT("_%dfps_%dx%d"), 
-							GEngine->MatineeCaptureFPS, CaptureViewport->GetSizeXY().X, CaptureViewport->GetSizeXY().Y );
-						if (GEngine->bCompressMatineeCapture)
+							GEngine->MatineeScreenshotOptions.MatineeCaptureFPS, CaptureViewport->GetSizeXY().X, CaptureViewport->GetSizeXY().Y );
+						if (GEngine->MatineeScreenshotOptions.bCompressMatineeCapture)
 						{
-							FCString::Sprintf( File, TEXT("%s_%d.avi"), *(OutputDir + TEXT("/") + GEngine->MatineePackageCaptureName + "_" + GEngine->MatineeCaptureName + FileNameInfo + "_compressed"), MovieCaptureIndex );
+							FCString::Sprintf( File, TEXT("%s_%d.avi"), *(OutputDir + TEXT("/") + GEngine->MatineeScreenshotOptions.MatineePackageCaptureName + "_" + GEngine->MatineeScreenshotOptions.MatineeCaptureName + FileNameInfo + "_compressed"), MovieCaptureIndex );
 						}
 						else
 						{
-							FCString::Sprintf( File, TEXT("%s_%d.avi"), *(OutputDir + TEXT("/") + GEngine->MatineePackageCaptureName + "_" + GEngine->MatineeCaptureName + FileNameInfo), MovieCaptureIndex );
+							FCString::Sprintf( File, TEXT("%s_%d.avi"), *(OutputDir + TEXT("/") + GEngine->MatineeScreenshotOptions.MatineePackageCaptureName + "_" + GEngine->MatineeScreenshotOptions.MatineeCaptureName + FileNameInfo), MovieCaptureIndex );
 						}
 						if (IFileManager::Get().FileSize(File) != -1)
 						{
@@ -360,7 +360,7 @@ public:
 	void Update(float DeltaSeconds)
 	{
 		bool bShouldUpdate = true;
-		const float CaptureFrequency = 1.0f/(float)GEngine->MatineeCaptureFPS;
+		const float CaptureFrequency = 1.0f/(float)GEngine->MatineeScreenshotOptions.MatineeCaptureFPS;
 		if (CaptureFrequency > 0.f)
 		{
 			CurrentAccumSeconds += DeltaSeconds;
@@ -385,7 +385,7 @@ public:
 
 		if (bMatineeFinished)
 		{
-			if (GEngine->MatineeCaptureType == 0)
+			if (GEngine->MatineeScreenshotOptions.MatineeCaptureType == 0)
 			{
 				if (CaptureViewport)
 				{

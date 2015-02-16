@@ -214,17 +214,17 @@ FReply SMatineeRecordMovie::OnOK()
 	if ( Mode != NULL && Mode->InterpEd != NULL )
 	{
 		// Store the options for the capture of the Matinee
-		GEngine->MatineeCaptureName = Mode->InterpEd->GetMatineeActor()->GetName();
-		GEngine->MatineePackageCaptureName = FPackageName::GetShortName(Mode->InterpEd->GetMatineeActor()->GetOutermost()->GetName());
+		GEngine->MatineeScreenshotOptions.MatineeCaptureName = Mode->InterpEd->GetMatineeActor()->GetName();
+		GEngine->MatineeScreenshotOptions.MatineePackageCaptureName = FPackageName::GetShortName(Mode->InterpEd->GetMatineeActor()->GetOutermost()->GetName());
 
-		GUnrealEd->bNoTextureStreaming = Options.DisableTextureStreaming;
-		GUnrealEd->MatineeCaptureFPS = Options.CaptureResolutionFPS;
-		GUnrealEd->bCompressMatineeCapture = Options.Compress;
+		GEngine->MatineeScreenshotOptions.bNoTextureStreaming = Options.DisableTextureStreaming;
+		GEngine->MatineeScreenshotOptions.MatineeCaptureFPS = Options.CaptureResolutionFPS;
+		GEngine->MatineeScreenshotOptions.bCompressMatineeCapture = Options.Compress;
 
 		GUnrealEd->MatineeCaptureResolutionX = CaptureWidth;
 		GUnrealEd->MatineeCaptureResolutionY = CaptureHeight;
 
-		GUnrealEd->MatineeCaptureType = (EMatineeCaptureType::Type)Options.CaptureTypeIndex;
+		GEngine->MatineeScreenshotOptions.MatineeCaptureType = (EMatineeCaptureType::Type)Options.CaptureTypeIndex;
 		Mode->InterpEd->StartRecordingMovie();
 		
 		//if Options.CloseEditor == true, Editor will request a close action in UEditorEngine::PlayForMovieCapture

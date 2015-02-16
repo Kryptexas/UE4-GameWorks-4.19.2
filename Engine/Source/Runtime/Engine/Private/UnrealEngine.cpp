@@ -1146,36 +1146,41 @@ void UEngine::ParseCommandline()
 		bDisableAILogging = false;
 	}
 
-	bStartWithMatineeCapture = false;
-	bCompressMatineeCapture = false;
+	MatineeScreenshotOptions.bStartWithMatineeCapture = false;
+	MatineeScreenshotOptions.bCompressMatineeCapture = false;
 #if WITH_EDITOR
-	if (!GIsEditor && FParse::Value(FCommandLine::Get(), TEXT("-MATINEEAVICAPTURE="), MatineeCaptureName))
+	if (!GIsEditor && FParse::Value(FCommandLine::Get(), TEXT("-MATINEEAVICAPTURE="), MatineeScreenshotOptions.MatineeCaptureName))
 	{
-		MatineeCaptureType = EMatineeCaptureType::AVI;
-		bStartWithMatineeCapture = true;
+		MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::AVI;
+		MatineeScreenshotOptions.bStartWithMatineeCapture = true;
 	}
-	else if (!GIsEditor && FParse::Value(FCommandLine::Get(), TEXT("-MATINEESSCAPTURE="), MatineeCaptureName))
+	else if (!GIsEditor && FParse::Value(FCommandLine::Get(), TEXT("-MATINEESSCAPTURE="), MatineeScreenshotOptions.MatineeCaptureName))
 	{
-		MatineeCaptureType = EMatineeCaptureType::BMP;
+		MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::BMP;
 
 		FString MatineeCaptureFormat;
 		if(FParse::Value(FCommandLine::Get(), TEXT("-MATINEESSFORMAT="), MatineeCaptureFormat))
 		{
 			if(MatineeCaptureFormat == TEXT("BMP"))
 			{
-				MatineeCaptureType = EMatineeCaptureType::BMP;
+				MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::BMP;
 			}
 			else if(MatineeCaptureFormat == TEXT("PNG"))
 			{
-				MatineeCaptureType = EMatineeCaptureType::PNG;
+				MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::PNG;
 			}
 			else if(MatineeCaptureFormat == TEXT("JPEG"))
 			{
-				MatineeCaptureType = EMatineeCaptureType::JPEG;
+				MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::JPEG;
 			}
 		}
 
-		bStartWithMatineeCapture = true;
+		MatineeScreenshotOptions.bStartWithMatineeCapture = true;
+	}
+
+	if( !GIsEditor && MatineeScreenshotOptions.bStartWithMatineeCapture )
+	{
+		GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), MatineeScreenshotOptions.bHideHud, GEditorUserSettingsIni );
 	}
 
 	// If we are capturing a matinee movie and we want to dump the buffer visualization shots too, for on all required functionality
@@ -1189,17 +1194,17 @@ void UEngine::ParseCommandline()
 		}
 	}
 
-	if (bStartWithMatineeCapture)
+	if (MatineeScreenshotOptions.bStartWithMatineeCapture)
 	{
-		FParse::Value(FCommandLine::Get(), TEXT("-MATINEEPACKAGE="), MatineePackageCaptureName);
+		FParse::Value(FCommandLine::Get(), TEXT("-MATINEEPACKAGE="), MatineeScreenshotOptions.MatineePackageCaptureName);
 	}
 
 	if ( !GIsEditor && FParse::Param(FCommandLine::Get(), TEXT("COMPRESSCAPTURE")) )
 	{
-		bCompressMatineeCapture = true;
+		MatineeScreenshotOptions.bCompressMatineeCapture = true;
 	}
 #endif
-	MatineeCaptureFPS = 30;
+	MatineeScreenshotOptions.MatineeCaptureFPS = 30;
 }
 
 
@@ -2175,11 +2180,11 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleStatCommand(InWorld, GStatProcessingViewportClient, Cmd, Ar);
 	}
-	else if( FParse::Command(&Cmd,TEXT("STARTMOVIECAPTURE")) && (GEngine->bStartWithMatineeCapture == true || GIsEditor) )
+	else if( FParse::Command(&Cmd,TEXT("STARTMOVIECAPTURE")) && (GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture == true || GIsEditor) )
 	{
 		return HandleStartMovieCaptureCommand( Cmd, Ar );
 	}
-	else if( FParse::Command(&Cmd,TEXT("STOPMOVIECAPTURE")) && (GEngine->bStartWithMatineeCapture == true || GIsEditor) )
+	else if( FParse::Command(&Cmd,TEXT("STOPMOVIECAPTURE")) && (GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture == true || GIsEditor) )
 	{
 		return HandleStopMovieCaptureCommand( Cmd, Ar );
 	}
@@ -10652,7 +10657,7 @@ void UEngine::HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<F
 
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
 
-		switch(MatineeCaptureType.GetValue())
+		switch(MatineeScreenshotOptions.MatineeCaptureType.GetValue())
 		{
 		default:
 		case EMatineeCaptureType::BMP:
