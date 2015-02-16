@@ -495,31 +495,6 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 												.Text(this, &SNewProjectWizard::GetSelectedTemplateProperty<FText>, &FTemplateItem::Description)
 											]
 											
-											// Class types
-											+SVerticalBox::Slot()
-											.AutoHeight()
-											.Padding(FMargin(0.0f, 5.0f, 0.0f, 5.0f))
-											[
-												SNew(SBox)
-												.Visibility(this, &SNewProjectWizard::GetSelectedTemplateClassVisibility)
-												[
-													SNew(SVerticalBox)
-													+SVerticalBox::Slot()
-													[
-														SNew(STextBlock)
-														.TextStyle(FEditorStyle::Get(), "GameProjectDialog.FeatureText")
-														.Text(LOCTEXT("ProjectTemplateClassTypes", "Class Type References:"))
-													]
-													+ SVerticalBox::Slot()
-													.AutoHeight()
-													[
-														SNew(STextBlock)
-														.AutoWrapText(true)
-														.Text(this, &SNewProjectWizard::GetSelectedTemplateClassTypes)
-													]
-												]
-												
-											]
 											// Asset types
 											+ SVerticalBox::Slot()
 											.AutoHeight()
@@ -543,6 +518,31 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 														.Text(this, &SNewProjectWizard::GetSelectedTemplateAssetTypes)
 													]
 												]
+											]
+											// Class types
+											+ SVerticalBox::Slot()
+											.AutoHeight()
+											.Padding(FMargin(0.0f, 5.0f, 0.0f, 5.0f))
+											[
+												SNew(SBox)
+												.Visibility(this, &SNewProjectWizard::GetSelectedTemplateClassVisibility)
+												[
+													SNew(SVerticalBox)
+													+ SVerticalBox::Slot()
+													[
+														SNew(STextBlock)
+														.TextStyle(FEditorStyle::Get(), "GameProjectDialog.FeatureText")
+														.Text(LOCTEXT("ProjectTemplateClassTypes", "Class Type References:"))
+													]
+													+ SVerticalBox::Slot()
+														.AutoHeight()
+														[
+															SNew(STextBlock)
+															.AutoWrapText(true)
+															.Text(this, &SNewProjectWizard::GetSelectedTemplateClassTypes)
+														]
+												]
+
 											]
 										]
 									]
