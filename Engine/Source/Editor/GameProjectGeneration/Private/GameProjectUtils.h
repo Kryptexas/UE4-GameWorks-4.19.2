@@ -5,6 +5,8 @@
 #include "HardwareTargetingModule.h"
 
 struct FModuleContextInfo;
+struct FAddToProjectConfig;
+enum class EClassDomain : uint8;
 
 struct FProjectInformation
 {
@@ -46,95 +48,6 @@ public:
 		Classes,
 	};
 
-	/** Information used when creating a new class via AddCodeToProject */
-	struct FNewClassInfo
-	{
-		/** The type of class we want to create */
-		enum class EClassType : uint8
-		{
-			/** The new class is using a UObject as a base, consult BaseClass for the type */
-			UObject,
-
-			/** The new class should be an empty standard C++ class */
-			EmptyCpp,
-
-			/** The new class should be a Slate widget, deriving from SCompoundWidget */
-			SlateWidget,
-
-			/** The new class should be a Slate widget style, deriving from FSlateWidgetStyle, along with its associated UObject wrapper class */
-			SlateWidgetStyle,
-		};
-
-		/** Default constructor; must produce an object which fails the IsSet check */
-		FNewClassInfo()
-			: ClassType(EClassType::UObject)
-			, BaseClass(nullptr)
-		{
-		}
-
-		/** Convenience constructor so you can construct from a EClassType */
-		explicit FNewClassInfo(const EClassType InClassType)
-			: ClassType(InClassType)
-			, BaseClass(nullptr)
-		{
-		}
-
-		/** Convenience constructor so you can construct from a UClass */
-		explicit FNewClassInfo(const UClass* InBaseClass)
-			: ClassType(EClassType::UObject)
-			, BaseClass(InBaseClass)
-		{
-		}
-
-		/** Check to see if this struct is set to something that could be used to create a new class */
-		bool IsSet() const
-		{
-			return ClassType != EClassType::UObject || BaseClass;
-		}
-
-		/** Get the "friendly" class name to use in the UI */
-		FString GetClassName() const;
-
-		/** Get the class description to use in the UI */
-		FString GetClassDescription() const;
-
-		/** Get the class icon to use in the UI */
-		const FSlateBrush* GetClassIcon() const;
-
-		/** Get the C++ prefix used for this class type */
-		FString GetClassPrefixCPP() const;
-
-		/** Get the C++ class name; this may or may not be prefixed, but will always produce a valid C++ name via GetClassPrefix() + GetClassName() */
-		FString GetClassNameCPP() const;
-
-		/** Some classes may apply a particular suffix; this function returns the class name with those suffixes removed */
-		FString GetCleanClassName(const FString& ClassName) const;
-
-		/** Some classes may apply a particular suffix; this function returns the class name that will ultimately be used should that happen */
-		FString GetFinalClassName(const FString& ClassName) const;
-
-		/** Get the path needed to include this class into another file */
-		bool GetIncludePath(FString& OutIncludePath) const;
-
-		/** Given a class name, generate the header file (.h) that should be used for this class */
-		FString GetHeaderFilename(const FString& ClassName) const;
-
-		/** Given a class name, generate the source file (.cpp) that should be used for this class */
-		FString GetSourceFilename(const FString& ClassName) const;
-
-		/** Get the generation template filename to used based on the current class type */
-		FString GetHeaderTemplateFilename() const;
-
-		/** Get the generation template filename to used based on the current class type */
-		FString GetSourceTemplateFilename() const;
-
-		/** The type of class we want to create */
-		EClassType ClassType;
-
-		/** Base class information; if the ClassType is UObject */
-		const UClass* BaseClass;
-	};
-
 	/** Used as a function return result when a project is duplicated when upgrading project's version in Convert project dialog - Open a copy */
 	enum class EProjectDuplicateResult : uint8
 	{
@@ -173,19 +86,17 @@ public:
 	static bool UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason);
 
 	/** 
-	 * Opens a dialog to add code files to the current project. 
+	 * Opens a dialog to add code files or blueprints to the current project. 
 	 *
-	 * @param	InClass			The class we should force the user to use as their base class type, or null to allow the user to choose their base class in the UI
-	 * @param	InInitialPath		The initial path we should use as the destination for the new class header file, or an empty string to choose a suitable default based upon the module path
-	 * @param	InParentWindow		The parent window the dialog should use, or null to choose a suitable default parent window (the main frame, if available)
-	 * @param	bModal			True if the window should be modal and force the user to make a decision before continuing or false to let the user proceed with other tasks while the window is open
-	 * @param	OnCodeAddedToProject	Callback for when code is successfully added to the project
-	 * @param	InDefaultClassPrefix	Optional argument that specifies the prefix for the new class name.  The user will be able to type their own name if they don't like this name.  Defaults to "My" if not specified or empty
-	 * @param	InDefaultClassName	Optional argument that specifies the default name for the new class being added.  The user will be able to type their own name if they don't like this name.  If empty, defaults to the name of the inherited class.
+	 * @param	Config			Configuration options for the dialog
+	 * @param	InDomain		The domain of the class we're creating (native or blueprint)
 	 */
-	static void OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal = false, FOnCodeAddedToProject OnCodeAddedToProject = FOnCodeAddedToProject(), const FString InDefaultClassPrefix = FString(), const FString InDefaultClassName = FString() );
+	static void OpenAddToProjectDialog(const FAddToProjectConfig& Config, EClassDomain InDomain);
 
 	/** Returns true if the specified class name is properly formed and does not conflict with another class */
+	static bool IsValidClassNameForCreation(const FString& NewClassName, FText& OutFailReason);
+
+	/** Returns true if the specified class name is properly formed and does not conflict with another class, including source/header files */
 	static bool IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, const TSet<FString>& DisallowedHeaderNames, FText& OutFailReason);
 
 	/** Returns true if the specified class is a valid base class for the given module */

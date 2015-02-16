@@ -221,12 +221,19 @@ FString FComponentEditorUtils::GenerateValidVariableName(TSubclassOf<UActorCompo
 	FString ComponentTypeName = FBlueprintEditorUtils::GetClassNameWithoutSuffix(ComponentClass);
 
 	// Strip off 'Component' if the class ends with that.  It just looks better in the UI.
-	const FString SuffixToStrip( TEXT( "Component" ) );
+	FString SuffixToStrip( TEXT( "Component" ) );
 	if( ComponentTypeName.EndsWith( SuffixToStrip ) )
 	{
 		ComponentTypeName = ComponentTypeName.Left( ComponentTypeName.Len() - SuffixToStrip.Len() );
 	}
-	
+
+	// Strip off 'Actor' if the class ends with that so as not to confuse actors with components
+	SuffixToStrip = TEXT( "Actor" );
+	if( ComponentTypeName.EndsWith( SuffixToStrip ) )
+	{
+		ComponentTypeName = ComponentTypeName.Left( ComponentTypeName.Len() - SuffixToStrip.Len() );
+	}
+
 	// Try to create a name without any numerical suffix first
 	int32 Counter = 1;
 	FString ComponentInstanceName = ComponentTypeName;

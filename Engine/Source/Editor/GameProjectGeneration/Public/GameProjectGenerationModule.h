@@ -5,6 +5,7 @@
 
 #include "ModuleInterface.h"
 #include "ModuleDescriptor.h"
+#include "AddToProjectConfig.h"
 
 struct FTemplateCategory;
 
@@ -20,16 +21,6 @@ struct FModuleContextInfo
 	/** Type of this module, eg, Runtime, Editor, etc */
 	enum EHostType::Type ModuleType;
 };
-
-
-/**
- * Delegate called when code is added to the project.  Passes in the created class name and class path
- * 
- * @param ClassName		The created class name
- * @param ClassPath		The created class path
- * @param ModuleName	The name of the module that the class was added to
- */
-DECLARE_DELEGATE_ThreeParams( FOnCodeAddedToProject, const FString& /*ClassName*/, const FString& /*ClassPath*/, const FString& /*ModuleName*/);
 
 /**
  * Game Project Generation module
@@ -67,27 +58,21 @@ public:
 
 	/** Creates a new class dialog for creating classes based on the passed-in class. */
 	virtual TSharedRef<class SWidget> CreateNewClassDialog(const UClass* InClass);
-
+	
 	/** 
 	 * Opens a dialog to add code files to the current project. 
 	 *
-	 * @param	InParentWindow		The parent window the dialog should use, or null to choose a suitable default parent window (the main frame, if available)
+	 * @param	Config		Dialog configuration options
 	 */
-	virtual void OpenAddCodeToProjectDialog(const TSharedPtr<SWindow>& InParentWindow = nullptr);
+	virtual void OpenAddCodeToProjectDialog(const FAddToProjectConfig& Config = FAddToProjectConfig());
 
 	/** 
-	 * Opens a dialog to add code files to the current project. 
+	 * Opens a dialog to add a new blueprint to the current project. 
 	 *
-	 * @param	InClass			The class we should force the user to use as their base class type, or null to allow the user to choose their base class in the UI
-	 * @param	InInitialPath		The initial path we should use as the destination for the new class header file, or an empty string to choose a suitable default based upon the module path
-	 * @param	InParentWindow		The parent window the dialog should use, or null to choose a suitable default parent window (the main frame, if available)
-	 * @param	bModal			True if the window should be modal and force the user to make a decision before continuing or false to let the user proceed with other tasks while the window is open
-	 * @param	OnCodeAddedToProject	Callback for when code is successfully added to the project
-	 * @param	InDefaultClassPrefix	Optional argument that specifies the prefix for the new class name.  The user will be able to type their own name if they don't like this name.  Defaults to "My" if not specified or empty
-	 * @param	InDefaultClassName	Optional argument that specifies the default name for the new class being added.  The user will be able to type their own name if they don't like this name.  If empty, defaults to the name of the inherited class.
+	 * @param	Config		Dialog configuration options
 	 */
-	virtual void OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal = false, FOnCodeAddedToProject OnCodeAddedToProject = FOnCodeAddedToProject(), const FString InDefaultClassPrefix = FString(), const FString InDefaultClassName = FString() );
-
+	virtual void OpenAddBlueprintToProjectDialog(const FAddToProjectConfig& Config);
+	
 	/** Delegate for when the AddCodeToProject dialog is opened */
 	DECLARE_EVENT(FGameProjectGenerationModule, FAddCodeToProjectDialogOpenedEvent);
 	FAddCodeToProjectDialogOpenedEvent& OnAddCodeToProjectDialogOpened() { return AddCodeToProjectDialogOpenedEvent; }

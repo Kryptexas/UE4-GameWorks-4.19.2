@@ -7,6 +7,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "BlueprintUtilities.h"
 #include "ComponentAssetBroker.h"
+#include "Editor/ClassViewer/Public/ClassViewerFilter.h"
 
 #include "SSCSEditor.h"
 #include "SKismetInspector.h"
@@ -42,6 +43,8 @@
 #include "NotificationManager.h"
 
 #include "GameProjectGenerationModule.h"
+#include "FeaturedClasses.inl"
+
 #include "HotReloadInterface.h"
 #include "AssetRegistryModule.h"
 #include "SCreateAssetFromObject.h"
@@ -4218,23 +4221,23 @@ TSharedPtr<FSCSEditorTreeNode> SSCSEditor::AddRootComponentTreeNode(UActorCompon
 	return NewTreeNode;
 }
 
-
-void SSCSEditor::MakeDefaultComponentPrefixAndName( TSubclassOf<UActorComponent> ComponentClass, FString& DefaultClassPrefix, FString& DefaultClassName ) const
+class FClassParentFilter : public IClassViewerFilter
 {
-	// If the class being created inherits directly from UActorComponent, we don't want the default new class name to
-	// be called "NewActorComponent", because this will shw up as "New Actor" in the SCS editor tree which doesn't make
-	// a whole lot of sense in the context of a list of components inside an actor.
-	DefaultClassName = ComponentClass->GetName();
-	if( ComponentClass == UActorComponent::StaticClass() )
+public:
+	FClassParentFilter(const TSubclassOf<UActorComponent>& InComponentClass) : ComponentClass(InComponentClass) {}
+
+	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{
-		// NOTE: This is intentionally not localized because it will become a C++ source file and class name
-		DefaultClassName = TEXT( "Component" );
+		return InClass->IsChildOf(ComponentClass);
 	}
 
-	// NOTE: This is intentionally not localized because it will become a C++ source file and class name
-	DefaultClassPrefix = TEXT( "New" );
-}
+	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
+	{
+		return InUnloadedClassData->IsChildOf(ComponentClass);
+	}
 
+	TSubclassOf<UActorComponent> ComponentClass;
+};
 
 UClass* SSCSEditor::CreateNewCPPComponent( TSubclassOf<UActorComponent> ComponentClass )
 {
@@ -4249,12 +4252,17 @@ UClass* SSCSEditor::CreateNewCPPComponent( TSubclassOf<UActorComponent> Componen
 		}
 	};
 
-	const bool bModal = true;
+	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(
+		FAddToProjectConfig()
+		.WindowTitle(LOCTEXT("AddNewC++Component", "Add C++ Component"))
+		.ParentWindow(ParentWindow)
+		.Modal()
+		.OnAddedToProject(FOnAddedToProject::CreateLambda(OnCodeAddedToProject))
+		.FeatureComponentClasses()
+		.AllowableParents(MakeShareable( new FClassParentFilter(ComponentClass) ))
+		.DefaultClassPrefix(TEXT("New"))
+	);
 
-	FString DefaultClassPrefix, DefaultClassName;
-	MakeDefaultComponentPrefixAndName( ComponentClass, DefaultClassPrefix, DefaultClassName );
-
-	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(ComponentClass, FString(), ParentWindow, bModal, FOnCodeAddedToProject::CreateLambda(OnCodeAddedToProject), DefaultClassPrefix, DefaultClassName);
 
 	return LoadClass<UActorComponent>(nullptr, *AddedClassName, nullptr, LOAD_None, nullptr);
 }
@@ -4263,63 +4271,37 @@ UClass* SSCSEditor::CreateNewBPComponent(TSubclassOf<UActorComponent> ComponentC
 {
 	UClass* NewClass = nullptr;
 
-	TSharedPtr<SWindow> PickBlueprintPathWidget;
-	SAssignNew(PickBlueprintPathWidget, SWindow)
-		.Title(LOCTEXT("SelectPath", "Select Path"))
-		.ToolTipText(LOCTEXT("SelectPathTooltip", "Select the path where the Blueprint will be created"))
-		.ClientSize(FVector2D(400, 400));
-
-
-	FString PackagePath;
-	FString AssetName;
-	auto OnPathPicked = [&PackagePath, &AssetName](const FString& Path)
+	auto OnAddedToProject = [&](const FString& ClassName, const FString& PackagePath, const FString& ModuleName)
 	{
-		PackagePath = Path;
-		AssetName = FPackageName::GetLongPackageAssetName(Path);
-	};
-
-	FString DefaultClassPrefix, DefaultClassName;
-	MakeDefaultComponentPrefixAndName( ComponentClass, DefaultClassPrefix, DefaultClassName );
-
-	TSharedPtr<SCreateAssetFromObject> CreateBlueprintFromActorDialog;
-	PickBlueprintPathWidget->SetContent
-	(
-		SAssignNew(CreateBlueprintFromActorDialog, SCreateAssetFromObject, PickBlueprintPathWidget)
-		.HeadingText(LOCTEXT("CreateBlueprintFromActor_Heading", "Blueprint Name"))
-		.CreateButtonText(LOCTEXT("CreateBlueprintFromActor_ButtonLabel", "Create Blueprint"))
-		.DefaultNameOverride(FText::FromString(DefaultClassPrefix + DefaultClassName))
-		.OnCreateAssetAction(FOnPathChosen::CreateLambda(OnPathPicked))
-	);
-
-
-	FSlateApplication::Get().AddModalWindow(PickBlueprintPathWidget.ToSharedRef(), AsShared());
-
-	if(!PackagePath.IsEmpty() && !AssetName.IsEmpty())
-	{
-		UPackage* Package = CreatePackage(NULL, *PackagePath);
-
-		if(Package)
+		if(!ClassName.IsEmpty() && !PackagePath.IsEmpty())
 		{
-			// Create and init a new Blueprint
-			if(UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(ComponentClass, Package, FName(*AssetName), BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass()))
+			if (UPackage* Package = FindPackage(nullptr, *PackagePath))
 			{
-				// Notify the asset registry
-				FAssetRegistryModule::AssetCreated(NewBP);
+				if (UBlueprint* NewBP = FindObjectFast<UBlueprint>(Package, *ClassName))	
+				{
+					NewClass = NewBP->GeneratedClass;
 
-				// Mark the package dirty...
-				Package->MarkPackageDirty();
+					TArray<UObject*> Objects;
+					Objects.Emplace(NewBP);
+					GEditor->SyncBrowserToObjects(Objects);
 
-				NewClass = NewBP->GeneratedClass;
-
-				TArray<UObject*> Objects;
-				Objects.Add(NewBP);
-				GEditor->SyncBrowserToObjects( Objects );
-
-				// Open the editor for the new blueprint
-				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
+					// Open the editor for the new blueprint
+					FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
+				}
 			}
 		}
-	}
+	};
+
+	FGameProjectGenerationModule::Get().OpenAddBlueprintToProjectDialog(
+		FAddToProjectConfig()
+		.WindowTitle(LOCTEXT("AddNewBlueprintComponent", "Add Blueprint Component"))
+		.ParentWindow(FSlateApplication::Get().FindWidgetWindow(SharedThis(this)))
+		.Modal()
+		.AllowableParents(MakeShareable( new FClassParentFilter(ComponentClass) ))
+		.FeatureComponentClasses()
+		.OnAddedToProject(FOnAddedToProject::CreateLambda(OnAddedToProject))
+		.DefaultClassPrefix(TEXT("New"))
+	);
 
 	return NewClass;
 }

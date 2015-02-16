@@ -6,6 +6,8 @@
 #include "TemplateCategory.h"
 #include "SourceCodeNavigation.h"
 
+#include "MainFrame.h"
+
 IMPLEMENT_MODULE( FGameProjectGenerationModule, GameProjectGeneration );
 DEFINE_LOG_CATEGORY(LogGameProjectGeneration);
 
@@ -54,17 +56,15 @@ TSharedRef<class SWidget> FGameProjectGenerationModule::CreateNewClassDialog(con
 	return SNew(SNewClassDialog).Class(InClass);
 }
 
-
-void FGameProjectGenerationModule::OpenAddCodeToProjectDialog(const TSharedPtr<SWindow>& InParentWindow)
+void FGameProjectGenerationModule::OpenAddCodeToProjectDialog(const FAddToProjectConfig& Config)
 {
-	GameProjectUtils::OpenAddCodeToProjectDialog(nullptr, FString(), InParentWindow);
+	GameProjectUtils::OpenAddToProjectDialog(Config, EClassDomain::Native);
 	AddCodeToProjectDialogOpenedEvent.Broadcast();
 }
 
-void FGameProjectGenerationModule::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal, FOnCodeAddedToProject OnCodeAddedToProject, const FString InDefaultClassPrefix, const FString InDefaultClassName)
+void FGameProjectGenerationModule::OpenAddBlueprintToProjectDialog(const FAddToProjectConfig& Config)
 {
-	GameProjectUtils::OpenAddCodeToProjectDialog(InClass, InInitialPath, InParentWindow, bModal, OnCodeAddedToProject, InDefaultClassPrefix, InDefaultClassName);
-	AddCodeToProjectDialogOpenedEvent.Broadcast();
+	GameProjectUtils::OpenAddToProjectDialog(Config, EClassDomain::Blueprint);
 }
 
 void FGameProjectGenerationModule::TryMakeProjectFileWriteable(const FString& ProjectFile)

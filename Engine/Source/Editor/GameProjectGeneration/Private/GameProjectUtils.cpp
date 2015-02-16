@@ -2,6 +2,9 @@
 
 
 #include "GameProjectGenerationPrivatePCH.h"
+
+#include "FeaturedClasses.inl"
+
 #include "UnrealEdMisc.h"
 #include "ISourceControlModule.h"
 #include "MainFrame.h"
@@ -38,7 +41,7 @@ static_assert(PLATFORM_MAX_FILEPATH_LENGTH - MAX_PROJECT_PATH_BUFFER_SPACE > 0, 
 TWeakPtr<SNotificationItem> GameProjectUtils::UpdateGameProjectNotification = NULL;
 TWeakPtr<SNotificationItem> GameProjectUtils::WarningProjectNameNotification = NULL;
 
-FString GameProjectUtils::FNewClassInfo::GetClassName() const
+FString FNewClassInfo::GetClassName() const
 {
 	switch(ClassType)
 	{
@@ -60,7 +63,7 @@ FString GameProjectUtils::FNewClassInfo::GetClassName() const
 	return TEXT("");
 }
 
-FString GameProjectUtils::FNewClassInfo::GetClassDescription() const
+FString FNewClassInfo::GetClassDescription() const
 {
 	switch(ClassType)
 	{
@@ -98,13 +101,13 @@ FString GameProjectUtils::FNewClassInfo::GetClassDescription() const
 	return TEXT("");
 }
 
-const FSlateBrush* GameProjectUtils::FNewClassInfo::GetClassIcon() const
+const FSlateBrush* FNewClassInfo::GetClassIcon() const
 {
 	// Safe to do even if BaseClass is null, since FindIconForClass will return the default icon
 	return FClassIconFinder::FindIconForClass(BaseClass);
 }
 
-FString GameProjectUtils::FNewClassInfo::GetClassPrefixCPP() const
+FString FNewClassInfo::GetClassPrefixCPP() const
 {
 	switch(ClassType)
 	{
@@ -126,7 +129,7 @@ FString GameProjectUtils::FNewClassInfo::GetClassPrefixCPP() const
 	return TEXT("");
 }
 
-FString GameProjectUtils::FNewClassInfo::GetClassNameCPP() const
+FString FNewClassInfo::GetClassNameCPP() const
 {
 	switch(ClassType)
 	{
@@ -148,7 +151,7 @@ FString GameProjectUtils::FNewClassInfo::GetClassNameCPP() const
 	return TEXT("");
 }
 
-FString GameProjectUtils::FNewClassInfo::GetCleanClassName(const FString& ClassName) const
+FString FNewClassInfo::GetCleanClassName(const FString& ClassName) const
 {
 	FString CleanClassName = ClassName;
 
@@ -176,7 +179,7 @@ FString GameProjectUtils::FNewClassInfo::GetCleanClassName(const FString& ClassN
 	return CleanClassName;
 }
 
-FString GameProjectUtils::FNewClassInfo::GetFinalClassName(const FString& ClassName) const
+FString FNewClassInfo::GetFinalClassName(const FString& ClassName) const
 {
 	const FString CleanClassName = GetCleanClassName(ClassName);
 
@@ -192,7 +195,7 @@ FString GameProjectUtils::FNewClassInfo::GetFinalClassName(const FString& ClassN
 	return CleanClassName;
 }
 
-bool GameProjectUtils::FNewClassInfo::GetIncludePath(FString& OutIncludePath) const
+bool FNewClassInfo::GetIncludePath(FString& OutIncludePath) const
 {
 	switch(ClassType)
 	{
@@ -210,7 +213,7 @@ bool GameProjectUtils::FNewClassInfo::GetIncludePath(FString& OutIncludePath) co
 	return false;
 }
 
-FString GameProjectUtils::FNewClassInfo::GetHeaderFilename(const FString& ClassName) const
+FString FNewClassInfo::GetHeaderFilename(const FString& ClassName) const
 {
 	const FString HeaderFilename = GetFinalClassName(ClassName) + TEXT(".h");
 
@@ -226,7 +229,7 @@ FString GameProjectUtils::FNewClassInfo::GetHeaderFilename(const FString& ClassN
 	return HeaderFilename;
 }
 
-FString GameProjectUtils::FNewClassInfo::GetSourceFilename(const FString& ClassName) const
+FString FNewClassInfo::GetSourceFilename(const FString& ClassName) const
 {
 	const FString SourceFilename = GetFinalClassName(ClassName) + TEXT(".cpp");
 
@@ -242,7 +245,7 @@ FString GameProjectUtils::FNewClassInfo::GetSourceFilename(const FString& ClassN
 	return SourceFilename;
 }
 
-FString GameProjectUtils::FNewClassInfo::GetHeaderTemplateFilename() const
+FString FNewClassInfo::GetHeaderTemplateFilename() const
 {
 	switch(ClassType)
 	{
@@ -278,7 +281,7 @@ FString GameProjectUtils::FNewClassInfo::GetHeaderTemplateFilename() const
 	return TEXT("");
 }
 
-FString GameProjectUtils::FNewClassInfo::GetSourceTemplateFilename() const
+FString FNewClassInfo::GetSourceTemplateFilename() const
 {
 	switch(ClassType)
 	{
@@ -674,29 +677,38 @@ bool GameProjectUtils::UpdateGameProject(const FString& ProjectFile, const FStri
 	return UpdateGameProjectFile(ProjectFile, EngineIdentifier, NULL, OutFailReason);
 }
 
-void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const FString& InInitialPath, const TSharedPtr<SWindow>& InParentWindow, bool bModal, FOnCodeAddedToProject OnCodeAddedToProject, const FString InDefaultClassPrefix, const FString InDefaultClassName )
+void GameProjectUtils::OpenAddToProjectDialog(const FAddToProjectConfig& Config, EClassDomain InDomain)
 {
 	// If we've been given a class then we only show the second page of the dialog, so we can make the window smaller as that page doesn't have as much content
-	const FVector2D WindowSize = (InClass) ? FVector2D(940, 380) : FVector2D(940, 540);
+	const FVector2D WindowSize = (Config._ParentClass) ? FVector2D(940, 380) : FVector2D(940, 540);
+
+	FText WindowTitle = Config._WindowTitle;
+	if (WindowTitle.IsEmpty())
+	{
+		WindowTitle = InDomain == EClassDomain::Native ? LOCTEXT("AddCodeWindowHeader_Native", "Add Code") : LOCTEXT("AddCodeWindowHeader_Blueprint", "Add Blueprint");
+	}
 
 	TSharedRef<SWindow> AddCodeWindow =
 		SNew(SWindow)
-		.Title(LOCTEXT( "AddCodeWindowHeader", "Add Code"))
+		.Title( WindowTitle )
 		.ClientSize( WindowSize )
 		.SizingRule( ESizingRule::FixedSize )
 		.SupportsMinimize(false) .SupportsMaximize(false);
 
 	TSharedRef<SNewClassDialog> NewClassDialog = 
 		SNew(SNewClassDialog)
-		.Class(InClass)
-		.InitialPath(InInitialPath)
-		.OnCodeAddedToProject( OnCodeAddedToProject )
-		.DefaultClassPrefix( InDefaultClassPrefix )
-		.DefaultClassName( InDefaultClassName );
+		.Class(Config._ParentClass)
+		.ClassViewerFilter(Config._AllowableParents)
+		.ClassDomain(InDomain)
+		.FeaturedClasses(Config._FeaturedClasses)
+		.InitialPath(Config._InitialPath)
+		.OnAddedToProject( Config._OnAddedToProject )
+		.DefaultClassPrefix( Config._DefaultClassPrefix )
+		.DefaultClassName( Config._DefaultClassName );
 
 	AddCodeWindow->SetContent( NewClassDialog );
 
-	TSharedPtr<SWindow> ParentWindow = InParentWindow;
+	TSharedPtr<SWindow> ParentWindow = Config._ParentWindow;
 	if (!ParentWindow.IsValid())
 	{
 		static const FName MainFrameModuleName = "MainFrame";
@@ -704,32 +716,21 @@ void GameProjectUtils::OpenAddCodeToProjectDialog(const UClass* InClass, const F
 		ParentWindow = MainFrameModule.GetParentWindow();
 	}
 
-	if (ParentWindow.IsValid())
+	if (Config._bModal)
 	{
-		if( bModal )
-		{
-			FSlateApplication::Get().AddModalWindow(AddCodeWindow, ParentWindow);
-		}
-		else
-		{
-			FSlateApplication::Get().AddWindowAsNativeChild(AddCodeWindow, ParentWindow.ToSharedRef());
-		}
+		FSlateApplication::Get().AddModalWindow(AddCodeWindow, ParentWindow);
+	}
+	else if (ParentWindow.IsValid())
+	{
+		FSlateApplication::Get().AddWindowAsNativeChild(AddCodeWindow, ParentWindow.ToSharedRef());
 	}
 	else
 	{
-		if(bModal)
-		{
-			FSlateApplication::Get().AddModalWindow(AddCodeWindow, nullptr);
-		}
-		else
-		{
-			FSlateApplication::Get().AddWindow(AddCodeWindow);
-		}
-
+		FSlateApplication::Get().AddWindow(AddCodeWindow);
 	}
 }
 
-bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, const TSet<FString>& DisallowedHeaderNames, FText& OutFailReason)
+bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, FText& OutFailReason)
 {
 	if ( NewClassName.IsEmpty() )
 	{
@@ -764,6 +765,16 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 		return false;
 	}
 
+	return true;
+}
+
+bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, const TSet<FString>& DisallowedHeaderNames, FText& OutFailReason)
+{
+	if (!IsValidClassNameForCreation(NewClassName, OutFailReason))
+	{
+		return false;
+	}
+	
 	// Look for a duplicate class in memory
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
