@@ -1430,6 +1430,10 @@ public class GUBP : BuildCommand
             return StaticGetFullName(HostPlatform, GameProj);
         }
 
+		public override int CISFrequencyQuantumShift(GUBP bp)
+		{
+			return base.CISFrequencyQuantumShift(bp) + 3;
+		}
 		public override void DoBuild(GUBP bp)
         {
 			string ContentsFileName = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(GameProj.FilePath), "contents.txt");
