@@ -162,11 +162,14 @@ private:
 
 FComponentMaterialCategory::FComponentMaterialCategory( TArray< TWeakObjectPtr<USceneComponent> >& InSelectedComponents )
 	: SelectedComponents( InSelectedComponents )
+	, NotifyHook( nullptr )
 {
 }
 
 void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 {
+	NotifyHook = DetailBuilder.GetPropertyUtilities()->GetNotifyHook();
+
 	FMaterialListDelegates MaterialListDelegates;
 	MaterialListDelegates.OnGetMaterials.BindSP( this, &FComponentMaterialCategory::OnGetMaterialsForView );
 	MaterialListDelegates.OnMaterialChanged.BindSP( this, &FComponentMaterialCategory::OnMaterialChanged );
@@ -273,7 +276,7 @@ void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMater
 				UObject* EditChangeObject = CurrentComponent;
 				if( CurrentComponent->IsA( UMeshComponent::StaticClass() ) )
 				{
-					MaterialProperty = FindField<UProperty>( UMeshComponent::StaticClass(), "Materials" );
+					MaterialProperty = FindField<UProperty>( UMeshComponent::StaticClass(), "OverrideMaterials" );
 				}
 				else if( CurrentComponent->IsA( UDecalComponent::StaticClass() ) )
 				{
@@ -296,10 +299,20 @@ void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMater
 
 				EditChangeObject->PreEditChange( MaterialProperty );
 
+				if( NotifyHook && MaterialProperty )
+				{
+					NotifyHook->NotifyPreChange( MaterialProperty );
+				}
+
 				It.SwapMaterial( NewMaterial );
 
 				FPropertyChangedEvent PropertyChangedEvent( MaterialProperty );
 				EditChangeObject->PostEditChangeProperty( PropertyChangedEvent );
+
+				if( NotifyHook && MaterialProperty )
+				{
+					NotifyHook->NotifyPostChange( PropertyChangedEvent, MaterialProperty );
+				}
 			}
 		}
 	}
