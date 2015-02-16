@@ -386,7 +386,9 @@ TSharedRef<SWidget> SDeleteAssetsDialog::BuildDeleteDialog()
 						.HAlign( HAlign_Center )
 						.Text( LOCTEXT( "Delete", "Delete" ) )
 						.ToolTipText( LOCTEXT( "DeleteTooltipText", "Perform the delete" ) )
-						.OnClicked( this, &SDeleteAssetsDialog::Delete )
+						.ButtonStyle(FEditorStyle::Get(), "FlatButton.Danger")
+						.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
+						.OnClicked(this, &SDeleteAssetsDialog::Delete)
 					]
 				]
 
@@ -402,6 +404,8 @@ TSharedRef<SWidget> SDeleteAssetsDialog::BuildDeleteDialog()
 						.HAlign( HAlign_Center )
 						.Text( LOCTEXT( "Cancel", "Cancel" ) )
 						.ToolTipText( LOCTEXT( "CancelDeleteTooltipText", "Cancel the delete" ) )
+						.ButtonStyle(FEditorStyle::Get(), "FlatButton.Default")
+						.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
 						.OnClicked( this, &SDeleteAssetsDialog::Cancel )
 					]
 				]
@@ -508,6 +512,8 @@ TSharedRef<SWidget> SDeleteAssetsDialog::BuildReplaceReferencesWidget()
 		.HAlign( HAlign_Center )
 		.Text( LOCTEXT( "Replace References", "Replace References" ) )
 		.OnClicked( this, &SDeleteAssetsDialog::ReplaceReferences )
+		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Danger")
+		.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
 	];
 }
 
@@ -532,7 +538,9 @@ TSharedRef<SWidget> SDeleteAssetsDialog::BuildForceDeleteWidget()
 		.HAlign( HAlign_Center )
 		.Text( LOCTEXT( "ForceDelete", "Force Delete" ) )
 		.ToolTipText( LOCTEXT( "ForceDeleteTooltipText", "Force Delete will obliterate all references to this asset and is dangerous.\n\nUse as a last resort." ) )
-		.OnClicked( this, &SDeleteAssetsDialog::ForceDelete )
+		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Danger")
+		.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
+		.OnClicked(this, &SDeleteAssetsDialog::ForceDelete)
 	];
 }
 
