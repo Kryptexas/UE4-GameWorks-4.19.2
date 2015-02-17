@@ -71,7 +71,6 @@ inline bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter)
 {
 	// See if this is a 'blocking' hit
 	const PxFilterData PShapeFilter = PShape->getQueryFilterData();
-	// word1 is block, word2 is overlap
 	const PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
 	const bool bBlock = (HitType == PxSceneQueryHitType::eBLOCK);
 	return bBlock;
