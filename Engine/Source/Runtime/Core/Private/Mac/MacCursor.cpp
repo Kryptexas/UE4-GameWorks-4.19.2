@@ -109,11 +109,9 @@ FMacCursor::FMacCursor()
 	// Set the default cursor
 	SetType( EMouseCursor::Default );
 
-	CGEventRef Event = CGEventCreate(NULL);
-	CGPoint CursorPos = CGEventGetLocation(Event);
-	CFRelease(Event);
-
-	CurrentPosition = FVector2D(FMath::TruncToFloat(CursorPos.x), FMath::TruncToFloat(CursorPos.y));
+	NSPoint CursorPos = [NSEvent mouseLocation];
+	CursorPos.y--; // The y coordinate of the point returned by mouseLocation starts from a base of 1
+	CurrentPosition = FVector2D(FMath::TruncToFloat(CursorPos.x), FMath::TruncToFloat(FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.y)));
 }
 
 FMacCursor::~FMacCursor()
