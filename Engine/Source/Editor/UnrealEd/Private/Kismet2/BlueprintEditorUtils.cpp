@@ -2440,7 +2440,14 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 	UEdGraph* EventGraph = (Blueprint->UbergraphPages.Num() == 1) ? Blueprint->UbergraphPages[0] : NULL;
 	if( EventGraph && EventGraph->Nodes.Num() > 0 )
 	{
-		return false;
+		for(UEdGraphNode* GraphNode : EventGraph->Nodes)
+		{
+			// If there is an enabled node in the event graph, the Blueprint is not data only
+			if (GraphNode->bIsNodeEnabled)
+			{
+				return false;
+			}
+		}
 	}
 
 	// No implemented interfaces

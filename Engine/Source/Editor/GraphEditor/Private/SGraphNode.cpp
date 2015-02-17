@@ -502,9 +502,47 @@ UObject* SGraphNode::GetObjectBeingDisplayed() const
 
 FSlateColor SGraphNode::GetNodeTitleColor() const
 {
-	FLinearColor NodeTitleColor = GraphNode->IsDeprecated() ? FLinearColor::Red : GetNodeObj()->GetNodeTitleColor();
-	NodeTitleColor.A = FadeCurve.GetLerp();
-	return NodeTitleColor;
+	FLinearColor ReturnTitleColor = GraphNode->IsDeprecated() ? FLinearColor::Red : GetNodeObj()->GetNodeTitleColor();
+
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnTitleColor *= FLinearColor(0.5f, 0.5f, 0.5f, 0.4f);
+	}
+	else
+	{
+		ReturnTitleColor.A = FadeCurve.GetLerp();
+	}
+	return ReturnTitleColor;
+}
+
+FSlateColor SGraphNode::GetNodeBodyColor() const
+{
+	FLinearColor ReturnBodyColor = FLinearColor::White;
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnBodyColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.5f); 
+	}
+	return ReturnBodyColor;
+}
+
+FSlateColor SGraphNode::GetNodeTitleIconColor() const
+{
+	FLinearColor ReturnIconColor = IconColor;
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnIconColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.3f); 
+	}
+	return ReturnIconColor;
+}
+
+FLinearColor SGraphNode::GetNodeTitleTextColor() const
+{
+	FLinearColor ReturnTextColor = FLinearColor::White;
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnTextColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.3f); 
+	}
+	return ReturnTextColor;
 }
 
 FSlateColor SGraphNode::GetNodeCommentColor() const
@@ -615,13 +653,16 @@ void SGraphNode::SetupErrorReporting()
 
 TSharedRef<SWidget> SGraphNode::CreateTitleWidget(TSharedPtr<SNodeTitle> NodeTitle)
 {
-	return SAssignNew(InlineEditableText, SInlineEditableTextBlock)
+	SAssignNew(InlineEditableText, SInlineEditableTextBlock)
 		.Style(FEditorStyle::Get(), "Graph.Node.NodeTitleInlineEditableText")
 		.Text(NodeTitle.Get(), &SNodeTitle::GetHeadTitle)
 		.OnVerifyTextChanged(this, &SGraphNode::OnVerifyNameTextChanged)
 		.OnTextCommitted(this, &SGraphNode::OnNameTextCommited)
 		.IsReadOnly(this, &SGraphNode::IsNameReadOnly)
 		.IsSelected(this, &SGraphNode::IsSelectedExclusively);
+	InlineEditableText->SetColorAndOpacity(TAttribute<FLinearColor>::Create(TAttribute<FLinearColor>::FGetter::CreateSP(this, &SGraphNode::GetNodeTitleTextColor)));
+
+	return InlineEditableText.ToSharedRef();
 }
 
 /**
@@ -654,7 +695,7 @@ void SGraphNode::UpdateGraphNode()
 	TSharedPtr<SNodeTitle> NodeTitle = SNew(SNodeTitle, GraphNode);
 
 	// Get node icon
-	FLinearColor IconColor = FLinearColor::White;
+	IconColor = FLinearColor::White;
 	const FSlateBrush* IconBrush = NULL;
 	if (GraphNode != NULL && GraphNode->ShowPaletteIconOnNode())
 	{
@@ -667,6 +708,7 @@ void SGraphNode::UpdateGraphNode()
 		[
 			SNew(SImage)
 			.Image( FEditorStyle::GetBrush("Graph.Node.TitleGloss") )
+			.ColorAndOpacity( this, &SGraphNode::GetNodeTitleIconColor )
 		]
 		+SOverlay::Slot()
 		.HAlign(HAlign_Left)
@@ -687,7 +729,7 @@ void SGraphNode::UpdateGraphNode()
 				[
 					SNew(SImage)
 					.Image(IconBrush)
-					.ColorAndOpacity(IconColor)
+					.ColorAndOpacity(this, &SGraphNode::GetNodeTitleIconColor)
 				]
 				+ SHorizontalBox::Slot()
 				[
@@ -711,6 +753,7 @@ void SGraphNode::UpdateGraphNode()
 			SNew(SBorder)
 			.Visibility(EVisibility::HitTestInvisible)			
 			.BorderImage( FEditorStyle::GetBrush( "Graph.Node.TitleHighlight" ) )
+			.BorderBackgroundColor( this, &SGraphNode::GetNodeTitleIconColor )
 			[
 				SNew(SSpacer)
 				.Size(FVector2D(20,20))
@@ -763,6 +806,7 @@ void SGraphNode::UpdateGraphNode()
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("Graph.Node.Body"))
+					.ColorAndOpacity(this, &SGraphNode::GetNodeBodyColor)
 				]
 				+SOverlay::Slot()
 				[
