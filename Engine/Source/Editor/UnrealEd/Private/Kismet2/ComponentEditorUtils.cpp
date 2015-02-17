@@ -118,7 +118,8 @@ bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InC
 	if(bIsValid && InComponent != NULL)
 	{
 		// Next test to make sure the string doesn't conflict with the format that MakeUniqueObjectName() generates
-		FString MakeUniqueObjectNamePrefix = FString::Printf(TEXT("%s_"), *InComponent->GetClass()->GetName());
+		const FString ClassNameThatWillBeUsedInGenerator = FBlueprintEditorUtils::GetClassNameWithoutSuffix(InComponent->GetClass());
+		const FString MakeUniqueObjectNamePrefix = FString::Printf(TEXT("%s_"), *ClassNameThatWillBeUsedInGenerator);
 		if(InString.StartsWith(MakeUniqueObjectNamePrefix))
 		{
 			bIsValid = !InString.Replace(*MakeUniqueObjectNamePrefix, TEXT("")).IsNumeric();
