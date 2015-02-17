@@ -17,7 +17,7 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	, bFlattenFavoritesMenus(true)
 	, bFavorPureCastNodes(false)
 	, bAutoCastObjectConnections(false)
-	, bUseLegacyMenuingSystem(false)
+	, bForceLegacyMenuingSystem(false)
 	, bShowViewportOnSimulate(false)
 	, bShowInheritedVariables(false)
 	, bShowEmptySections(true)
