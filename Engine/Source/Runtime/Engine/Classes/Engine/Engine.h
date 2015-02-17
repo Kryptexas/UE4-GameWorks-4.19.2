@@ -1171,6 +1171,14 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints)
 	int32 MaximumLoopIterationCount;
 
+	// Controls whether Blueprint subclasses of actors or components can tick by default.
+	//
+	// Blueprints that derive from native C++ classes that have bCanEverTick=true will always be able to tick
+	// Blueprints that derive from exactly AActor or UActorComponent will always be able to tick
+	// Otherwise, they can tick as long as the parent doesn't have meta=(ChildCannotTick) and either bCanBlueprintsTickByDefault is true or the parent has meta=(ChildCanTick)
+	UPROPERTY(EditAnywhere, config, Category=Blueprints)
+	uint32 bCanBlueprintsTickByDefault:1;
+
 	/** @todo document */
 	UPROPERTY(config)
 	uint32 bEnableEditorPSysRealtimeLOD:1;

@@ -892,8 +892,11 @@ namespace UM
 		/// [ClassMetadata] Used for Actor Component classes. If present indicates that it can be spawned by a Blueprint.
 		BlueprintSpawnableComponent,
 
-		/// [ClassMetadata] Used for Actor classes. If the native class cannot tick, Blueprint generated classes based this Actor can have bCanEverTick flag overridden.
+		/// [ClassMetadata] Used for Actor and Component classes. If the native class cannot tick, Blueprint generated classes based this Actor or Component can have bCanEverTick flag overridden even if bCanBlueprintsTickByDefault is false.
 		ChildCanTick,
+
+		/// [ClassMetadata] Used for Actor and Component classes. If the native class cannot tick, Blueprint generated classes based this Actor or Component can never tick even if bCanBlueprintsTickByDefault is true.
+		ChildCannotTick,
 
 		/// [ClassMetadata] For BehaviorTree nodes indicates that the class is deprecated and will display a warning when compiled.
 		DeprecatedNode,
