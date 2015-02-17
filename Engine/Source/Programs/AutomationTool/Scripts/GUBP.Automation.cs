@@ -114,10 +114,7 @@ public class GUBP : BuildCommand
     public bool bFake = false;
     public static bool bNoIOSOnPC = false;
     public static bool bBuildRocket = false;
-	public static bool bPostedRocketBuild = false;
 	public static bool bBuildOnlySamples = false;
-	public static List<string> Samples = new List<string>();
-	public static string RocketBuild;	
     public static bool bForceIncrementalCompile = false;
     public static string ECProject = null;
     public string EmailHint;
@@ -152,10 +149,6 @@ public class GUBP : BuildCommand
         if (bBuildRocket)
         {
             Args = " -NoSimplygon " + (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket");
-			if(bPostedRocketBuild && bUseRocketInsteadOfBuildRocket)
-			{
-				Args += " -PostedRocket";
-			}
         }
         return Args;
     }
@@ -5243,16 +5236,7 @@ public class GUBP : BuildCommand
 		}
 
 		bBuildRocket = ParseParam("BuildRocket");		
-		string Sample = ParseParamValue("Sample");		
-		if (Sample != null)
-		{
-			Samples = new List<string>(Sample.Split('+'));
-			bBuildOnlySamples = true;
-		}
-		else
-		{
-			bBuildOnlySamples = ParseParam("OnlySamples");
-		}
+		bBuildOnlySamples = ParseParam("OnlySamples");
         bForceIncrementalCompile = ParseParam("ForceIncrementalCompile");
         bool bNoAutomatedTesting = ParseParam("NoAutomatedTesting") || BranchOptions.bNoAutomatedTesting;		
         StoreName = ParseParamValue("Store");
@@ -5261,15 +5245,6 @@ public class GUBP : BuildCommand
         if (bBuildRocket)
         {
             StoreSuffix = StoreSuffix + "-Rkt";
-			if (ParseParam("UsePostedRocket"))
-			{
-				bPostedRocketBuild = true;
-				RocketBuild = ParseParamValue("RocketBuild");
-				if (RocketBuild == null)
-				{
-					RocketBuild = FEngineVersionSupport.FromVersionFile(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Runtime\Launch\Resources\Version.h")).ToString();
-				}
-			}
         }
 		
         if (bPreflightBuild)
@@ -7477,12 +7452,6 @@ public class GUBP : BuildCommand
                     }
                     else
                     {                        
-						if(GUBPNodes[NodeToDo].IsRocketSample() && bPostedRocketBuild)
-						{
-
-							Log("***** Retrieving Build {0} for {1}", RocketBuild, GUBPNodes[NodeToDo].NodeHostPlatform());
-							RetrieveFromPermanentStorage(CmdEnv, "Rocket\\Automated", RocketBuild, GUBPNodes[NodeToDo].NodeHostPlatform());
-						}
 						Log("***** Building GUBP Node {0} for {1}", NodeToDo, NodeStoreName);
 						var StartTime = DateTime.UtcNow;
                         GUBPNodes[NodeToDo].DoBuild(this);
