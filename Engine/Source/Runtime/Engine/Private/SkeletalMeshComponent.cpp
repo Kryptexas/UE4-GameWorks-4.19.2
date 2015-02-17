@@ -1928,6 +1928,20 @@ void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( FDelegateH
 
 void USkeletalMeshComponent::ValidateAnimation()
 {
+	if (SkeletalMesh->Skeleton == NULL)
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("SkeletalMesh %s has no skeleton. This needs to fixed before an animation can be set"), *SkeletalMesh->GetName());
+		if (AnimationMode == EAnimationMode::AnimationSingleNode)
+		{
+			AnimationData.AnimToPlay = NULL;
+		}
+		else
+		{
+			AnimBlueprintGeneratedClass = NULL;
+		}
+		return;
+	}
+
 	if(AnimationMode == EAnimationMode::AnimationSingleNode)
 	{
 		if(AnimationData.AnimToPlay && SkeletalMesh && AnimationData.AnimToPlay->GetSkeleton() != SkeletalMesh->Skeleton)
