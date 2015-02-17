@@ -1429,6 +1429,10 @@ public:
 	/** Returns the mass of this component in kg. */
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual float GetMass() const;
+
+	/** Returns the moment of inertia of this component in kg cm^2. */
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta =(Keywords = "physics moment of inertia tensor MOI"))
+	virtual FVector GetMomentOfInertia(FName BoneName = NAME_None) const;
 	
 	/** Returns the calculated mass in kg. This is not 100% exactly the mass physx will calculate, but it is very close ( difference < 0.1kg ). */
 	virtual float CalculateMass(FName BoneName = NAME_None);

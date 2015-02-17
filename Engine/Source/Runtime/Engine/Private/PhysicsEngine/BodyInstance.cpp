@@ -3058,6 +3058,29 @@ float FBodyInstance::GetBodyMass() const
 	return Retval;
 }
 
+
+FVector FBodyInstance::GetBodyMOI() const
+{
+	FVector Retval = FVector::ZeroVector;
+
+#if WITH_PHYSX
+	if (PxRigidBody* PRigidBody = GetPxRigidBody())
+	{
+		SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
+		Retval = P2UVector(PRigidBody->getMassSpaceInertiaTensor());
+	}
+#endif // WITH_PHYSX
+
+#if WITH_BOX2D
+	if (BodyInstancePtr != nullptr)
+	{
+		Retval = FVector(BodyInstancePtr->GetInertia(), 0.f, 0.f);
+	}
+#endif
+
+	return Retval;
+}
+
 FBox FBodyInstance::GetBodyBounds() const
 {
 	FBox Bounds;
