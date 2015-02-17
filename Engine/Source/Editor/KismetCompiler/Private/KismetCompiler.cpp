@@ -1722,9 +1722,15 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		{
 			static const FName NAME_ClassGroupNames(TEXT("ClassGroupNames"));
 			Class->SetMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent, TEXT("true"));
-			Class->SetMetaData(NAME_ClassGroupNames, *NSLOCTEXT("BlueprintableComponents", "CategoryName", "Custom").ToString());
-		}
 
+			FString ClassGroupCategory = NSLOCTEXT("BlueprintableComponents", "CategoryName", "Custom").ToString();
+			if (!Blueprint->BlueprintCategory.IsEmpty())
+			{
+				ClassGroupCategory = Blueprint->BlueprintCategory;
+			}
+
+			Class->SetMetaData(NAME_ClassGroupNames, *ClassGroupCategory);
+		}
 
 		// Add a category if one has been specified
 		if(Blueprint->BlueprintCategory.Len() > 0)
