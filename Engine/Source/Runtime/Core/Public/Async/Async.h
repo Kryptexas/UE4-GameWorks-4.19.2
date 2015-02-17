@@ -266,7 +266,10 @@ TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Fun
 		{
 			TPromise<FRunnableThread*> ThreadPromise;
 			TAsyncRunnable<ResultType>* Runnable = new TAsyncRunnable<ResultType>(MoveTemp(Function), MoveTemp(Promise), ThreadPromise.GetFuture());
-			FRunnableThread* RunnableThread = FRunnableThread::Create(Runnable, TEXT("TAsync"));
+
+			static FThreadSafeCounter TAsyncThreadIndex;
+			const FString TAsyncThreadName = FString::Printf( TEXT( "TAsync %d" ), TAsyncThreadIndex.Add(1) );
+			FRunnableThread* RunnableThread = FRunnableThread::Create(Runnable, *TAsyncThreadName);
 
 			check(RunnableThread != nullptr);
 
