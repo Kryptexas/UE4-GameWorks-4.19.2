@@ -12,6 +12,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/ScriptDisassembler.h"
+#include "Editor/UnrealEd/Public/ComponentTypeRegistry.h"
 #include "K2Node_PlayMovieScene.h"
 #include "RuntimeMovieScenePlayer.h"
 #include "MovieSceneBindings.h"
@@ -1730,6 +1731,8 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 			}
 
 			Class->SetMetaData(NAME_ClassGroupNames, *ClassGroupCategory);
+
+			FComponentTypeRegistry::Get().InvalidateClass(Class);
 		}
 
 		// Add a category if one has been specified
