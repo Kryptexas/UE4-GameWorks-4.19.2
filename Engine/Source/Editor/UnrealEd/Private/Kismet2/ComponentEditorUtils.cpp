@@ -488,7 +488,7 @@ UActorComponent* FComponentEditorUtils::DuplicateComponent(UActorComponent* Temp
 		FName NewComponentName = *FComponentEditorUtils::GenerateValidVariableName(ComponentClass, Actor);
 
 		bool bKeepWorldLocationOnAttach = false;
-		NewCloneComponent = ConstructObject<UActorComponent>(ComponentClass, Actor, NewComponentName, RF_Transactional, TemplateComponent);
+		NewCloneComponent = NewObject<UActorComponent>(Actor, ComponentClass, NewComponentName, RF_Transactional, TemplateComponent);
 		
 		auto NewSceneComponent = Cast<USceneComponent>(NewCloneComponent);
 		if (NewSceneComponent)
