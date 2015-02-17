@@ -3150,6 +3150,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 				SNew(SHorizontalBox)
 				
 				+ SHorizontalBox::Slot()
+				.Padding( 3.0f, 3.0f )
 				.AutoWidth()
 				.HAlign(HAlign_Left)
 				[
@@ -3163,6 +3164,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
 				.HAlign(HAlign_Right)
+				.Padding( 3.0f, 3.0f )
 				[
 					SNew( SButton )
 					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.ConvertToBlueprint")))
@@ -3206,7 +3208,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 							SNew(STextBlock)
 							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 							//.Text( LOCTEXT("PromoteToBlueprint", "Add Script") )
-							.Text(LOCTEXT("PromoteToBlueprint", "Convert to Blueprint Class"))
+							.Text(LOCTEXT("PromoteToBlueprint", "Blueprint/Add Script"))
 						]
 					]
 				]
