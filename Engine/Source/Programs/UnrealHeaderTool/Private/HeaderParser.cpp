@@ -4194,6 +4194,10 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 		{
 			Class->ClassFlags |= CLASS_Intrinsic;
 		}
+		else if (Specifier == TEXT("ComponentWrapperClass"))
+		{
+			MetaData.Add(TEXT("IgnoreCategoryKeywordsInSubclasses"), TEXT("true"));
+		}
 		else if (Specifier == TEXT("within"))
 		{
 			FString WithinNameStr = RequireExactlyOneSpecifierValue(PropSpecifier);
