@@ -1264,6 +1264,12 @@ AActor* FKismetEditorUtilities::CreateBlueprintInstanceFromSelection(UBlueprint*
 	AActor* NewActor = World->SpawnActor(Blueprint->GeneratedClass, &Location, &Rotator);
 	GEditor->Layers->InitializeNewActorLayers(NewActor);
 
+	// Quietly ensure that no components are selected
+	USelection* ComponentSelection = GEditor->GetSelectedComponents();
+	ComponentSelection->BeginBatchSelectOperation();
+	ComponentSelection->DeselectAll();
+	ComponentSelection->EndBatchSelectOperation(false);
+
 	// Update selection to new actor
 	GEditor->SelectActor( NewActor, /*bSelected=*/ true, /*bNotify=*/ true );
 
