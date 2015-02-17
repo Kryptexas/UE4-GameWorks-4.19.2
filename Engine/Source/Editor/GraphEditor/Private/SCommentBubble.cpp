@@ -47,6 +47,10 @@ void SCommentBubble::Construct( const FArguments& InArgs )
 	HintText				= InArgs._HintText.IsSet() ? InArgs._HintText : NSLOCTEXT( "CommentBubble", "EditCommentHint", "Click to edit" );
 	OpacityValue			= SCommentBubbleDefs::FadeDelay;
 
+	// Cache the comment
+	CachedComment = CommentAttribute.Get();
+	CachedCommentText = FText::FromString( CachedComment );
+
 	// Create Widget
 	UpdateBubble();
 }
@@ -307,11 +311,6 @@ FText SCommentBubble::GetCommentText() const
 	if( CommentAttribute.Get().IsEmpty() )
 	{
 		return HintText.Get();
-	}
-	else if( CachedComment != CommentAttribute.Get() )
-	{
-		CachedComment = CommentAttribute.Get();
-		CachedCommentText = FText::FromString( CachedComment );
 	}
 	return CachedCommentText;
 }

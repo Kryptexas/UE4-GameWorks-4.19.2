@@ -58,15 +58,16 @@ void SGraphNodeComment::Tick( const FGeometry& AllottedGeometry, const double In
 {
 	SGraphNode::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-	const int32 CurrentWidth = static_cast<int32>(UserSize.X);
 	const FString CurrentCommentTitle = GetNodeComment();
-
-	if (( CurrentCommentTitle != CachedCommentTitle ) || ( CurrentWidth != CachedWidth ))
+	if (CurrentCommentTitle != CachedCommentTitle)
 	{
 		CachedCommentTitle = CurrentCommentTitle;
-		CachedWidth = CurrentWidth;
+	}
 
-		UpdateGraphNode();
+	const int32 CurrentWidth = static_cast<int32>(UserSize.X);
+	if (CurrentWidth != CachedWidth)
+	{
+		CachedWidth = CurrentWidth;
 	}
 }
 
