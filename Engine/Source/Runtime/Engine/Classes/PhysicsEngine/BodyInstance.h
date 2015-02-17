@@ -512,8 +512,8 @@ public:
 	float GetBodyMass() const;
 	/** Return bounds of physics representation */
 	FBox GetBodyBounds() const;
-	/** Return the body's moment of inertia */
-	FVector GetBodyMOI() const;
+	/** Return the body's inertia tensor. This is returned in local mass space */
+	FVector GetBodyInertiaTensor() const;
 
 
 	/** Set this body to be fixed (kinematic) or not. */

@@ -1430,10 +1430,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual float GetMass() const;
 
-	/** Returns the moment of inertia of this component in kg cm^2. */
+	/** Returns the inertia tensor of this component in kg cm^2. The inertia tensor is in local component space.*/
 	UFUNCTION(BlueprintCallable, Category = "Physics", meta =(Keywords = "physics moment of inertia tensor MOI"))
-	virtual FVector GetMomentOfInertia(FName BoneName = NAME_None) const;
-	
+	virtual FVector GetInertiaTensor(FName BoneName = NAME_None) const;
+
+	/** Scales the given vector by the world space moment of inertia. Useful for computing the torque needed to rotate an object.*/
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics moment of inertia tensor MOI"))
+	virtual FVector ScaleByMomentOfInertia(FVector InputVector, FName BoneName = NAME_None) const;
+
 	/** Returns the calculated mass in kg. This is not 100% exactly the mass physx will calculate, but it is very close ( difference < 0.1kg ). */
 	virtual float CalculateMass(FName BoneName = NAME_None);
 

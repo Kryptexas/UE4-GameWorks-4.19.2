@@ -453,14 +453,23 @@ float UPrimitiveComponent::GetMass() const
 	return 0.0f;
 }
 
-FVector UPrimitiveComponent::GetMomentOfInertia(FName BoneName /* = NAME_None */) const 
+FVector UPrimitiveComponent::GetInertiaTensor(FName BoneName /* = NAME_None */) const 
 {
 	if(FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
-		return BI->GetBodyMOI();
+		return BI->GetBodyInertiaTensor();
 	}
 
 	return FVector::ZeroVector;
+}
+
+FVector UPrimitiveComponent::ScaleByMomentOfInertia(FVector InputVector, FName BoneName /* = NAME_None */) const
+{
+	const FVector LocalInertiaTensor = GetInertiaTensor(BoneName);
+	const FVector InputVectorLocal = ComponentToWorld.InverseTransformVectorNoScale(InputVector);
+	const FVector LocalScaled = InputVectorLocal * LocalInertiaTensor;
+	const FVector WorldScaled = ComponentToWorld.TransformFVector4NoScale(LocalScaled);
+	return WorldScaled;
 }
 
 float UPrimitiveComponent::CalculateMass(FName)

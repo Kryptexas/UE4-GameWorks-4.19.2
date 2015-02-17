@@ -3059,7 +3059,7 @@ float FBodyInstance::GetBodyMass() const
 }
 
 
-FVector FBodyInstance::GetBodyMOI() const
+FVector FBodyInstance::GetBodyInertiaTensor() const
 {
 	FVector Retval = FVector::ZeroVector;
 
