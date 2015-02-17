@@ -803,6 +803,12 @@ FComponentInstanceDataBase* UInstancedStaticMeshComponent::GetComponentInstanceD
 		StaticMeshInstanceData->SelectedInstances = SelectedInstances;
 	}
 
+	if (InstanceData == nullptr)
+	{
+		// Skip up the hierarchy
+		InstanceData = UPrimitiveComponent::GetComponentInstanceData();
+	}
+
 	return InstanceData;
 #else
 	return nullptr;

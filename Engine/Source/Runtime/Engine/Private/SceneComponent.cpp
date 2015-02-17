@@ -1213,6 +1213,11 @@ FComponentInstanceDataBase* USceneComponent::GetComponentInstanceData() const
 		}
 	}
 
+	if (InstanceData == nullptr)
+	{
+		InstanceData = Super::GetComponentInstanceData();
+	}
+
 	return InstanceData;
 }
 
