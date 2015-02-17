@@ -349,7 +349,7 @@ void InstallSignalHandlers()
 	if (bSuspend)
 	{
 		FAppEntry::Suspend();
-	}wi
+	}
 	else
 	{
 		FAppEntry::Resume();
