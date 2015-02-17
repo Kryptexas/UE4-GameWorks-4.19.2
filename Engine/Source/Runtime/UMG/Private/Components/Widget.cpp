@@ -624,10 +624,12 @@ void UWidget::SynchronizeProperties()
 #endif
 }
 
+#if WITH_EDITOR
 bool UWidget::IsDesignTime() const
 {
 	return bDesignTime;
 }
+#endif
 
 void UWidget::SetIsDesignTime(bool bInDesignTime)
 {
