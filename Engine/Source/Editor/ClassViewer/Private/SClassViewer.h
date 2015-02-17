@@ -42,6 +42,9 @@ public:
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
 	virtual bool SupportsKeyboardFocus() const override;
 
+	/** Test to see whether the given class would be allowed by this class viewer */
+	virtual bool IsClassAllowed(const UClass* InClass) const;
+
 	/** Destroys the internal Class Hierarchy database */
 	static void DestroyClassHierarchy();
 private:

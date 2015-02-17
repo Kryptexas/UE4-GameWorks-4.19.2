@@ -4188,10 +4188,10 @@ TSharedPtr<FSCSEditorTreeNode> SSCSEditor::AddRootComponentTreeNode(UActorCompon
 	return NewTreeNode;
 }
 
-class FClassParentFilter : public IClassViewerFilter
+class FComponentClassParentFilter : public IClassViewerFilter
 {
 public:
-	FClassParentFilter(const TSubclassOf<UActorComponent>& InComponentClass) : ComponentClass(InComponentClass) {}
+	FComponentClassParentFilter(const TSubclassOf<UActorComponent>& InComponentClass) : ComponentClass(InComponentClass) {}
 
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{
@@ -4204,6 +4204,19 @@ public:
 	}
 
 	TSubclassOf<UActorComponent> ComponentClass;
+};
+
+typedef FComponentClassParentFilter FNativeComponentClassParentFilter;
+
+class FBlueprintComponentClassParentFilter : public FComponentClassParentFilter
+{
+public:
+	FBlueprintComponentClassParentFilter(const TSubclassOf<UActorComponent>& InComponentClass) : FComponentClassParentFilter(InComponentClass) {}
+
+	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
+	{
+		return FComponentClassParentFilter::IsClassAllowed(InInitOptions, InClass, InFilterFuncs) && FKismetEditorUtilities::CanCreateBlueprintOfClass(InClass);
+	}
 };
 
 UClass* SSCSEditor::CreateNewCPPComponent( TSubclassOf<UActorComponent> ComponentClass )
@@ -4226,7 +4239,7 @@ UClass* SSCSEditor::CreateNewCPPComponent( TSubclassOf<UActorComponent> Componen
 		.Modal()
 		.OnAddedToProject(FOnAddedToProject::CreateLambda(OnCodeAddedToProject))
 		.FeatureComponentClasses()
-		.AllowableParents(MakeShareable( new FClassParentFilter(ComponentClass) ))
+		.AllowableParents(MakeShareable( new FNativeComponentClassParentFilter(ComponentClass) ))
 		.DefaultClassPrefix(TEXT("New"))
 	);
 
@@ -4264,7 +4277,7 @@ UClass* SSCSEditor::CreateNewBPComponent(TSubclassOf<UActorComponent> ComponentC
 		.WindowTitle(LOCTEXT("AddNewBlueprintComponent", "Add Blueprint Component"))
 		.ParentWindow(FSlateApplication::Get().FindWidgetWindow(SharedThis(this)))
 		.Modal()
-		.AllowableParents(MakeShareable( new FClassParentFilter(ComponentClass) ))
+		.AllowableParents(MakeShareable( new FBlueprintComponentClassParentFilter(ComponentClass) ))
 		.FeatureComponentClasses()
 		.OnAddedToProject(FOnAddedToProject::CreateLambda(OnAddedToProject))
 		.DefaultClassPrefix(TEXT("New"))
