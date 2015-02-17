@@ -20,6 +20,40 @@ class UPanelSlot;
 	:															\
 		TAttribute< ReturnType >(MemberName)
 
+#if WITH_EDITOR
+
+#define GAME_SAFE_OPTIONAL_BINDING(ReturnType, MemberName)			\
+	( MemberName ## Delegate.IsBound() && !IsDesignTime() )			\
+	?																\
+		BIND_UOBJECT_ATTRIBUTE(ReturnType, K2_Gate_ ## MemberName)	\
+	:																\
+		TAttribute< ReturnType >(MemberName)
+
+#define GAME_SAFE_BINDING_IMPLEMENTATION(ReturnType, MemberName)		\
+	ReturnType K2_Cache_ ## MemberName;									\
+	ReturnType K2_Gate_ ## MemberName()									\
+	{																	\
+		if (CanSafelyRouteEvent())										\
+		{																\
+			K2_Cache_ ## MemberName = TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()).Get(); \
+		}																\
+																		\
+		return K2_Cache_ ## MemberName;									\
+	}
+
+#else
+
+#define GAME_SAFE_OPTIONAL_BINDING(ReturnType, MemberName)		\
+	( MemberName ## Delegate.IsBound() && !IsDesignTime() )		\
+	?															\
+		TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()) \
+	:															\
+		TAttribute< ReturnType >(MemberName)
+
+#define GAME_SAFE_BINDING_IMPLEMENTATION(Type, MemberName)
+
+#endif
+
 /**
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget,
  * also allows a conversion function to be provided to convert between the SWidget value and the value exposed to UMG.
@@ -284,8 +318,12 @@ public:
 	 */
 	virtual void SynchronizeProperties();
 
+#if WITH_EDITOR
 	/** Returns if the widget is currently being displayed in the designer, it may want to display different data. */
 	bool IsDesignTime() const;
+#else
+	FORCEINLINE bool IsDesignTime() const { return false; }
+#endif
 	
 	/** Sets that this widget is being designed */
 	virtual void SetIsDesignTime(bool bInDesignTime);
@@ -308,8 +346,18 @@ public:
 	virtual UWorld* GetWorld() const override;
 	virtual void PostLoad() override;
 	// End UObject
-	
+
 #if WITH_EDITOR
+	FORCEINLINE bool CanSafelyRouteEvent()
+	{
+		return !( IsDesignTime() || GIsRoutingPostLoad || GIntraFrameDebuggingGameThread );
+	}
+#else
+	FORCEINLINE bool CanSafelyRouteEvent() { return true; }
+#endif
+
+#if WITH_EDITOR
+
 	/** Is the label generated or provided by the user? */
 	bool IsGeneratedName() const;
 
@@ -416,4 +464,8 @@ protected:
 	TArray<class UPropertyBinding*> NativeBindings;
 
 	static TArray<TSubclassOf<UPropertyBinding>> BinderClasses;
+
+private:
+	GAME_SAFE_BINDING_IMPLEMENTATION(FText, ToolTipText)
+	GAME_SAFE_BINDING_IMPLEMENTATION(bool, bIsEnabled)
 };

@@ -571,12 +571,12 @@ void UWidget::SynchronizeProperties()
 	if ( IsDesignTime() )
 	{
 		SafeWidget->SetEnabled(true);
-		SafeWidget->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UWidget::GetVisibilityInDesigner)));
+		SafeWidget->SetVisibility(BIND_UOBJECT_ATTRIBUTE(EVisibility, GetVisibilityInDesigner));
 	}
 	else
 #endif
 	{
-		SafeWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
+		SafeWidget->SetEnabled(GAME_SAFE_OPTIONAL_BINDING( bool, bIsEnabled ));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
 
@@ -602,7 +602,7 @@ void UWidget::SynchronizeProperties()
 	}
 	else if ( !ToolTipText.IsEmpty() || ToolTipTextDelegate.IsBound() )
 	{
-		SafeWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
+		SafeWidget->SetToolTipText(GAME_SAFE_OPTIONAL_BINDING(FText, ToolTipText));
 	}
 
 	if (Navigation != nullptr)

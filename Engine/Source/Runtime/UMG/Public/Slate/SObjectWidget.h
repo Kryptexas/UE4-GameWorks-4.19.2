@@ -2,7 +2,7 @@
 
 #pragma once
 
-class UUserWidget;
+#include "UserWidget.h"
 
 /**
  * The SObjectWidet allows UMG to insert an SWidget into the hierarchy that manages the lifetime of the
@@ -70,6 +70,14 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 	virtual FReply OnMotionDetected(const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent) override;
 
 private:
+
 	/** The UWidget that created this SObjectWidget who needs to be kept alive. */
 	UUserWidget* WidgetObject;
+
+private:
+
+	FORCEINLINE bool CanRouteEvent() const
+	{
+		return WidgetObject && WidgetObject->CanSafelyRouteEvent();
+	}
 };
