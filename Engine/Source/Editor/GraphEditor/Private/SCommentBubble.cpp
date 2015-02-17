@@ -272,7 +272,11 @@ void SCommentBubble::UpdateBubble()
 
 FVector2D SCommentBubble::GetOffset() const
 {
-	return FVector2D( 0.f, -GetDesiredSize().Y );
+	if( GraphNode->bCommentBubbleVisible || OpacityValue > 0.f )
+	{
+		return FVector2D( 0.f, -GetDesiredSize().Y );
+	}
+	return FVector2D::ZeroVector;
 }
 
 FVector2D SCommentBubble::GetSize() const
