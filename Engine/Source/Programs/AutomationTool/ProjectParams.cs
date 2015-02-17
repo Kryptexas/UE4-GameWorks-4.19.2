@@ -273,6 +273,7 @@ namespace AutomationTool
             this.Compressed = InParams.Compressed;
             this.UseDebugParamForEditorExe = InParams.UseDebugParamForEditorExe;
             this.bUsesSteam = InParams.bUsesSteam;
+			this.bUsesCEF3 = InParams.bUsesCEF3;
 			this.bUsesSlate = InParams.bUsesSlate;
 			this.bUsesSlateEditorStyle = InParams.bUsesSlateEditorStyle;
             this.bDebugBuildsActuallyUseDebugCRT = InParams.bDebugBuildsActuallyUseDebugCRT;
@@ -1038,6 +1039,11 @@ namespace AutomationTool
         /// </summary>
         public bool bUsesSteam;
 
+        /// <summary>
+        /// Whether the project uses CEF3
+        /// </summary>
+        public bool bUsesCEF3;
+
 		/// <summary>
 		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is alway used)
 		/// </summary>
@@ -1271,6 +1277,7 @@ namespace AutomationTool
 			var Properties = ProjectUtils.GetProjectProperties(RawProjectPath);
 
 			bUsesSteam = Properties.bUsesSteam;
+			bUsesCEF3 = Properties.bUsesCEF3;
 			bUsesSlate = Properties.bUsesSlate;
 			bUsesSlateEditorStyle = Properties.bUsesSlateEditorStyle;
             bDebugBuildsActuallyUseDebugCRT = Properties.bDebugBuildsActuallyUseDebugCRT;
@@ -1375,6 +1382,7 @@ namespace AutomationTool
 						bUsesSlate = TargetData.Rules.bUsesSlate;
 						bUsesSlateEditorStyle = TargetData.Rules.bUsesSlateEditorStyle;
 						bUsesSteam = TargetData.Rules.bUsesSteam;
+						bUsesCEF3 = TargetData.Rules.bUsesCEF3;
 						ProjectType = ValidTarget;
 						break;
 					}
@@ -1401,6 +1409,7 @@ namespace AutomationTool
 				bUsesSlate = TargetData.Rules.bUsesSlate;
 				bUsesSlateEditorStyle = TargetData.Rules.bUsesSlateEditorStyle;
 				bUsesSteam = TargetData.Rules.bUsesSteam;
+				bUsesCEF3 = TargetData.Rules.bUsesCEF3;
 				ProjectType = TargetRules.TargetType.Program;
 				ProgramTarget = TargetData.TargetName;
 				GameTarget = TargetData.TargetName;
@@ -1923,6 +1932,7 @@ namespace AutomationTool
 				CommandUtils.Log("SkipStage={0}", SkipStage);
 				CommandUtils.Log("Stage={0}", Stage);
 				CommandUtils.Log("bUsesSteam={0}", bUsesSteam);
+				CommandUtils.Log("bUsesCEF3={0}", bUsesCEF3);
 				CommandUtils.Log("bUsesSlate={0}", bUsesSlate);
                 CommandUtils.Log("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
 				CommandUtils.Log("Project Params **************");
