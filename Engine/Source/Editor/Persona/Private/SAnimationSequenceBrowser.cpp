@@ -444,8 +444,36 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
 	Config.OnAssetToolTipClosing = FOnAssetToolTipClosing::CreateSP( this, &SAnimationSequenceBrowser::OnAssetToolTipClosing );
 
-	TWeakPtr< SMenuAnchor > BackMenuAnchorPtr;
-	TWeakPtr< SMenuAnchor > FwdMenuAnchorPtr;	
+	TSharedRef< SMenuAnchor > BackMenuAnchorPtr = SNew(SMenuAnchor)
+		.Placement(MenuPlacement_BelowAnchor)
+		.OnGetMenuContent(this, &SAnimationSequenceBrowser::CreateHistoryMenu, true)
+		[
+			SNew(SButton)
+			.OnClicked(this, &SAnimationSequenceBrowser::OnGoBackInHistory)
+			.ButtonStyle(FEditorStyle::Get(), "GraphBreadcrumbButton")
+			.IsEnabled(this, &SAnimationSequenceBrowser::CanStepBackwardInHistory)
+			.ToolTipText(LOCTEXT("Backward_Tooltip", "Step backward in the asset history. Right click to see full history."))
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("GraphBreadcrumb.BrowseBack"))
+			]
+		];
+
+	TSharedRef< SMenuAnchor > FwdMenuAnchorPtr = SNew(SMenuAnchor)
+		.Placement(MenuPlacement_BelowAnchor)
+		.OnGetMenuContent(this, &SAnimationSequenceBrowser::CreateHistoryMenu, false)
+		[
+			SNew(SButton)
+			.OnClicked(this, &SAnimationSequenceBrowser::OnGoForwardInHistory)
+			.ButtonStyle(FEditorStyle::Get(), "GraphBreadcrumbButton")
+			.IsEnabled(this, &SAnimationSequenceBrowser::CanStepForwardInHistory)
+			.ToolTipText(LOCTEXT("Forward_Tooltip", "Step forward in the asset history. Right click to see full history."))
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("GraphBreadcrumb.BrowseForward"))
+			]
+		];
+
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -458,33 +486,22 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 		.AutoHeight()
 		[
 			SNew(SSeparator)
+			.Visibility(this, &SAnimationSequenceBrowser::GetNonBlueprintModeVisibility)
 		]
 		+SVerticalBox::Slot()
 		.HAlign(HAlign_Right)
 		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
+			.Visibility(this, &SAnimationSequenceBrowser::GetNonBlueprintModeVisibility)
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, BackMenuAnchorPtr)
+				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, TWeakPtr<SMenuAnchor>(BackMenuAnchorPtr))
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(BackMenuAnchorPtr, SMenuAnchor)
-					.Placement( MenuPlacement_BelowAnchor )
-					.OnGetMenuContent( this, &SAnimationSequenceBrowser::CreateHistoryMenu, true )
-					[
-						SNew(SButton)
-						.OnClicked( this, &SAnimationSequenceBrowser::OnGoBackInHistory )
-						.ButtonStyle( FEditorStyle::Get(), "GraphBreadcrumbButton" )
-						.IsEnabled(this, &SAnimationSequenceBrowser::CanStepBackwardInHistory)
-						.ToolTipText(LOCTEXT("Backward_Tooltip", "Step backward in the asset history. Right click to see full history."))
-						[
-							SNew(SImage)
-							.Image( FEditorStyle::GetBrush("GraphBreadcrumb.BrowseBack") )
-						]
-					]
+					BackMenuAnchorPtr
 				]
 			]
 
@@ -492,23 +509,10 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, FwdMenuAnchorPtr)
+				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, TWeakPtr<SMenuAnchor>(FwdMenuAnchorPtr))
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(FwdMenuAnchorPtr, SMenuAnchor)
-					.Placement( MenuPlacement_BelowAnchor )
-					.OnGetMenuContent( this, &SAnimationSequenceBrowser::CreateHistoryMenu, false )
-					[
-						SNew(SButton)
-						.OnClicked( this, &SAnimationSequenceBrowser::OnGoForwardInHistory )
-						.ButtonStyle( FEditorStyle::Get(), "GraphBreadcrumbButton" )
-						.IsEnabled(this, &SAnimationSequenceBrowser::CanStepForwardInHistory)
-						.ToolTipText(LOCTEXT("Forward_Tooltip", "Step forward in the asset history. Right click to see full history."))
-						[
-							SNew(SImage)
-							.Image( FEditorStyle::GetBrush("GraphBreadcrumb.BrowseForward") )
-						]
-					]
+					FwdMenuAnchorPtr
 				]
 			]
 		]
@@ -989,6 +993,21 @@ bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()
 	}
 	return bVisible;
 }
+
+EVisibility SAnimationSequenceBrowser::GetNonBlueprintModeVisibility() const
+{
+	if (PersonaPtr.IsValid())
+	{
+		if (PersonaPtr.Pin()->GetCurrentMode() == FPersonaModes::AnimBlueprintEditMode)
+		{
+			return EVisibility::Collapsed;
+		}
+	}
+
+	return EVisibility::Visible;
+}
+
+
 
 FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene)
 	: FEditorViewportClient(nullptr, &InPreviewScene)

@@ -275,9 +275,6 @@ public:
 	/** Returns true if able to compile */
 	bool IsCompilingEnabled() const;
 
-	/** Returns true if property editing is allowed */
-	bool IsPropertyEditingEnabled() const;
-
 	/** Returns true if the parent class is also a Blueprint */
 	bool IsParentClassOfObjectABlueprint( const UBlueprint* Blueprint ) const;
 
