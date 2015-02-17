@@ -293,7 +293,7 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 		OutResult.Actor = OwningComponent->GetOwner();
 		OutResult.Component = OwningComponent;
 
-		if (bReturnPhysMat && FaceIndex != InvalidQueryHit.faceIndex)
+		if (bReturnPhysMat)
 		{
 			// @fixme: only do this for InGameThread, otherwise, this will be done in AsyncTrace
 			if ( IsInGameThread() )
