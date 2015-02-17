@@ -1180,6 +1180,12 @@ void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component)
 	FComponentInstanceDataBase::ApplyToComponent(Component);
 
 	USceneComponent* SceneComponent = CastChecked<USceneComponent>(Component);
+
+	if (ContainsSavedProperties())
+	{
+		SceneComponent->UpdateComponentToWorld();
+	}
+
 	for (USceneComponent* ChildComponent : AttachedInstanceComponents)
 	{
 		if (ChildComponent)
