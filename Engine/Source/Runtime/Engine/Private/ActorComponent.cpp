@@ -127,32 +127,35 @@ void UActorComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	// TODO: Wrap all this up with an engine version
-	if (bCreatedByConstructionScript_DEPRECATED)
+	// TODO: Wrap all this up with an engine version, for now just don't do it in cooked builds since we know they are good
+	if (!FPlatformProperties::RequiresCookedData())
 	{
-		CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
-	}
-	else if (bInstanceComponent_DEPRECATED)
-	{
-		CreationMethod = EComponentCreationMethod::Instance;
-	}
-
-	if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
-	{
-		UBlueprintGeneratedClass* Class = Cast/*Checked*/<UBlueprintGeneratedClass>(GetOuter()->GetClass());
-		while (Class)
+		if (bCreatedByConstructionScript_DEPRECATED)
 		{
-			USimpleConstructionScript* SCS = Class->SimpleConstructionScript;
-			if (SCS != nullptr && SCS->FindSCSNode(GetFName()))
+			CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
+		}
+		else if (bInstanceComponent_DEPRECATED)
+		{
+			CreationMethod = EComponentCreationMethod::Instance;
+		}
+
+		if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
+		{
+			UBlueprintGeneratedClass* Class = Cast/*Checked*/<UBlueprintGeneratedClass>(GetOuter()->GetClass());
+			while (Class)
 			{
-				break;
-			}
-			else
-			{
-				Class = Cast<UBlueprintGeneratedClass>(Class->GetSuperClass());
-				if (Class == nullptr)
+				USimpleConstructionScript* SCS = Class->SimpleConstructionScript;
+				if (SCS != nullptr && SCS->FindSCSNode(GetFName()))
 				{
-					CreationMethod = EComponentCreationMethod::UserConstructionScript;
+					break;
+				}
+				else
+				{
+					Class = Cast<UBlueprintGeneratedClass>(Class->GetSuperClass());
+					if (Class == nullptr)
+					{
+						CreationMethod = EComponentCreationMethod::UserConstructionScript;
+					}
 				}
 			}
 		}
