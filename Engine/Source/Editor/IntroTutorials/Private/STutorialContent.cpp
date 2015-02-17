@@ -162,17 +162,7 @@ void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 						SNew(SBorder)
 						.BorderImage(this, &STutorialContent::GetBackButtonBorder)
 						[
-							SNew(SHorizontalBox)
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-							[
-								SNew(STextBlock)
-								.Text(this, &STutorialContent::GetBackButtonLabel)
-								.TextStyle(FEditorStyle::Get(), "Tutorials.Content.NavigationText")
-								.ColorAndOpacity(FLinearColor::White)
-							]
+ 							SNew(SHorizontalBox)
 							+ SHorizontalBox::Slot()
 								.AutoWidth()
 								[
@@ -825,7 +815,7 @@ FText STutorialContent::GetBackButtonLabel() const
 
 const FSlateBrush* STutorialContent::GetBackButtonBorder() const
 {
-	return BackButton->IsHovered() ? &FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationButton").Hovered : &FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationButton").Normal;
+	return BackButton->IsHovered() ? &FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationBackButton").Hovered : &FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationBackButton").Normal;
 }
 
 FReply STutorialContent::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

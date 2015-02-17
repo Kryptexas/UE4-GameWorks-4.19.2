@@ -2622,6 +2622,8 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 		const FLinearColor TutorialSelectionColor = FLinearColor(0.19f, 0.33f, 0.72f);
 		const FLinearColor TutorialNavigationButtonColor = FLinearColor(0.0f, 0.59f, 0.14f, 1.0f);
 		const FLinearColor TutorialNavigationButtonHoverColor = FLinearColor(0.2f, 0.79f, 0.34f, 1.0f);
+		const FLinearColor TutorialNavigationBackButtonColor = FLinearColor(0.4f, 0.4f, 0.4f, 0.75f);
+		const FLinearColor TutorialNavigationBackButtonHoverColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.75f);
 
 		const FTextBlockStyle TutorialText = FTextBlockStyle(DocumentationText)
 			.SetColorAndOpacity(FLinearColor::Black)
@@ -2689,6 +2691,14 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 			.SetDisabled( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), TutorialNavigationButtonColor ) )
 			.SetNormalPadding( FMargin(0,0,0,1))
 			.SetPressedPadding( FMargin(0,1,0,0)));
+
+		Set("Tutorials.Content.NavigationBackButton", FButtonStyle()
+			.SetNormal(BOX_BRUSH("Common/ButtonHoverHint", FMargin(4 / 16.0f), TutorialNavigationBackButtonColor))
+			.SetHovered(BOX_BRUSH("Common/ButtonHoverHint", FMargin(4 / 16.0f), TutorialNavigationBackButtonHoverColor))
+			.SetPressed(BOX_BRUSH("Common/ButtonHoverHint", FMargin(4 / 16.0f), TutorialNavigationBackButtonHoverColor))
+			.SetDisabled(BOX_BRUSH("Common/ButtonHoverHint", FMargin(4 / 16.0f), TutorialNavigationBackButtonColor))
+			.SetNormalPadding(FMargin(0, 0, 0, 1))
+			.SetPressedPadding(FMargin(0, 1, 0, 0)));
 
 		Set( "Tutorials.Content.NavigationText", FTextBlockStyle(TutorialText));
 
