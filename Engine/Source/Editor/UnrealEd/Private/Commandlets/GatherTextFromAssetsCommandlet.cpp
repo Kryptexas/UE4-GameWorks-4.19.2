@@ -558,6 +558,17 @@ void UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 {
 	OutFixed = false;
 
+	// Early out of gathering pin friendly names unless requested to gather them.
+	if (Object->IsA(UEdGraphPin::StaticClass()))
+	{
+		UProperty* const PinFriendlyNameProperty = Cast<UTextProperty>(UEdGraphPin::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UEdGraphPin, PinFriendlyName)));
+		const bool IsPinNameProperty = PinFriendlyNameProperty == InTextProp;
+		if (!ShouldGatherBlueprintPinNames && IsPinNameProperty)
+		{
+			return;
+		}
+	}
+
 	FConflictTracker::FEntry NewEntry;
 	NewEntry.ObjectPath = Object->GetPathName();
 	NewEntry.SourceString = Data->GetSourceString();
@@ -794,7 +805,16 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	}
 
 	//Get whether we should fix broken properties that we find.
-	GetBoolFromConfig(*SectionName, TEXT("bFixBroken"), bFixBroken, GatherTextConfigPath);
+	if (!GetBoolFromConfig(*SectionName, TEXT("bFixBroken"), bFixBroken, GatherTextConfigPath))
+	{
+		bFixBroken = false;
+	}
+
+	// Get whether we should gather pin name properties that we find. Typically only useful for the localization of UE4 itself.
+	if (!GetBoolFromConfig(*SectionName, TEXT("ShouldGatherBlueprintPinNames"), ShouldGatherBlueprintPinNames, GatherTextConfigPath))
+	{
+		ShouldGatherBlueprintPinNames = false;
+	}
 
 	// Add any manifest dependencies if they were provided
 	TArray<FString> ManifestDependenciesList;
