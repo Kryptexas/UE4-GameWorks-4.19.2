@@ -262,14 +262,11 @@ struct FBaseTraceDatum
 	/** User data */
 	uint32	UserData;
 
-	/** single or multi trace. */
-	bool 	bIsMultiTrace;
-
 	FBaseTraceDatum() {};
 
 	/** Set functions for each Shape type */
 	void Set(UWorld * World, const FCollisionShape& InCollisionShape, const FCollisionQueryParams& Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
-		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace, int32 FrameCounter);
+		ECollisionChannel Channel, uint32 InUserData, int32 FrameCounter);
 };
 
 struct FTraceDatum;
@@ -314,13 +311,16 @@ struct FTraceDatum : public FBaseTraceDatum
 	/** Output of the overlap request. Filled up by worker thread */
 	TArray<struct FHitResult> OutHits;
 
+	/** single or multi trace. */
+	bool 	bIsMultiTrace;
+
 	FTraceDatum() {}
 
 	/** Set Trace Datum for each shape type **/
 	FTraceDatum(UWorld * World, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
 		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace,	const FVector& InStart, const FVector& InEnd, FTraceDelegate * InDelegate, int32 FrameCounter)
 	{
-		Set(World, CollisionShape, Param, InResponseParam, InObjectQueryParam, Channel, InUserData, bInIsMultiTrace, FrameCounter);
+		Set(World, CollisionShape, Param, InResponseParam, InObjectQueryParam, Channel, InUserData, FrameCounter);
 		Start = InStart;
 		End = InEnd;
 		if (InDelegate)
@@ -332,6 +332,7 @@ struct FTraceDatum : public FBaseTraceDatum
 			Delegate.Unbind();
 		}
 		OutHits.Reset();
+		bIsMultiTrace = bInIsMultiTrace;
 	}
 };
 
@@ -359,10 +360,10 @@ struct FOverlapDatum : FBaseTraceDatum
 	FOverlapDatum() {}
 
 	FOverlapDatum(UWorld * World, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
-		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace,
+		ECollisionChannel Channel, uint32 InUserData,
 		const FVector& InPos, const FQuat& InRot, FOverlapDelegate * InDelegate, int32 FrameCounter)
 	{
-		Set(World, CollisionShape, Param, InResponseParam, InObjectQueryParam, Channel, InUserData, bInIsMultiTrace, FrameCounter);
+		Set(World, CollisionShape, Param, InResponseParam, InObjectQueryParam, Channel, InUserData, FrameCounter);
 		Pos = InPos;
 		Rot = InRot;
 		if (InDelegate)

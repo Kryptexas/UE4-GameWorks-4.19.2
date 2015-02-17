@@ -841,11 +841,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 
 void ConvertQueryOverlap(const PxShape* PShape, const PxRigidActor* PActor, FOverlapResult& OutOverlap, const PxFilterData& QueryFilter)
 {
-	// See if this is a 'blocking' hit
-	PxFilterData PShapeFilter = PShape->getQueryFilterData();
-	// word1 is block, word2 is overlap
-	PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
-	bool bBlock = (HitType == PxSceneQueryHitType::eBLOCK); 
+	const bool bBlock = IsBlocking(PShape, QueryFilter);
 
 	FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
 	FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);

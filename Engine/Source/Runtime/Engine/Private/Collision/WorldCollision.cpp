@@ -54,7 +54,7 @@ ECollisionChannel DefaultCollisionChannel = (ECollisionChannel) 0;
 
 /* Set functions for each Shape type */
 void FBaseTraceDatum::Set(UWorld * World, const FCollisionShape& InCollisionShape, const FCollisionQueryParams& Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam,
-	ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace, int32 FrameCounter)
+	ECollisionChannel Channel, uint32 InUserData, int32 FrameCounter)
 {
 	ensure(World);
 	CollisionParams.CollisionShape = InCollisionShape;
@@ -63,7 +63,6 @@ void FBaseTraceDatum::Set(UWorld * World, const FCollisionShape& InCollisionShap
 	CollisionParams.ObjectQueryParam = InObjectQueryParam;
 	TraceChannel = Channel;
 	UserData = InUserData;
-	bIsMultiTrace = bInIsMultiTrace;
 	FrameNumber = FrameCounter;
 	PhysWorld = World;
 }
@@ -153,20 +152,41 @@ bool UWorld::SweepMulti(TArray<FHitResult>& OutHits, const FVector& Start, const
 
 bool UWorld::OverlapTest(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
 {
+	return OverlapBlockingTest(Pos, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
+bool UWorld::OverlapBlockingTest(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
+{
+	bool bBlocking = false;
 #if UE_WITH_PHYSICS
-	return GeomOverlapTest(this, CollisionShape, Pos, Rot, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-	return false;
+	bBlocking = GeomOverlapBlockingTest(this, CollisionShape, Pos, Rot, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
 #endif
+	return bBlocking;
+}
+
+bool UWorld::OverlapAnyTest(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
+{
+	bool bBlocking = false;
+#if UE_WITH_PHYSICS
+	bBlocking = GeomOverlapAnyTest(this, CollisionShape, Pos, Rot, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
+#endif
+	return bBlocking;
 }
 
 bool UWorld::OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
 {
+	bool bBlocking = false;
 #if UE_WITH_PHYSICS
-	return GeomOverlapSingle(this, CollisionShape, Pos, Rot, OutOverlap, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-	return false;
+	TArray<FOverlapResult> Overlaps;
+	return GeomOverlapMulti(this, CollisionShape, Pos, Rot, Overlaps, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
+	if (Overlaps.Num())
+	{
+		OutOverlap = Overlaps[0];
+		bBlocking = Overlaps[0].bBlockingHit;
+	}
 #endif
+
+	return bBlocking;
 }
 
 bool UWorld::OverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
@@ -280,20 +300,32 @@ bool UWorld::SweepMulti(TArray<struct FHitResult>& OutHits, const FVector& Start
 
 bool UWorld::OverlapTest(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
+	return OverlapAnyTest(Pos, Rot, CollisionShape, Params, ObjectQueryParams);
+}
+
+bool UWorld::OverlapAnyTest(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+{
+	bool bBlocking = false;
 #if UE_WITH_PHYSICS
-	return GeomOverlapTest(this, CollisionShape, Pos, Rot, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
-#else
-	return false;
+	bBlocking = GeomOverlapAnyTest(this, CollisionShape, Pos, Rot, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
 #endif
+	return bBlocking;
 }
 
 bool UWorld::OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
+	bool bBlocking = false;
 #if UE_WITH_PHYSICS
-	return GeomOverlapSingle(this, CollisionShape, Pos, Rot, OutOverlap, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
-#else
-	return false;
+	TArray<FOverlapResult> Overlaps;
+	GeomOverlapMulti(this, CollisionShape, Pos, Rot, Overlaps, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
+	if (Overlaps.Num() > 0)
+	{
+		OutOverlap = Overlaps[0];
+		bBlocking = true;
+	}
 #endif
+
+	return bBlocking;
 }
 
 // profile interfaces
@@ -367,20 +399,40 @@ bool UWorld::SweepMultiByProfile(TArray<FHitResult>& OutHits, const FVector& Sta
 
 bool UWorld::OverlapTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
 {
-	ECollisionChannel TraceChannel;
-	FCollisionResponseParams ResponseParam;
-	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
-
-	return OverlapTest(Pos, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+	return OverlapBlockingTestByProfile(Pos, Rot, ProfileName, CollisionShape, Params);
 }
 
-bool UWorld::OverlapSingleByProfile(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+bool UWorld::OverlapBlockingTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
 {
 	ECollisionChannel TraceChannel;
 	FCollisionResponseParams ResponseParam;
 	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
 
-	return OverlapSingle(OutOverlap, Pos, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+	return OverlapBlockingTest(Pos, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
+bool UWorld::OverlapAnyTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return OverlapAnyTest(Pos, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
+bool UWorld::OverlapSingleByProfile(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+{
+	TArray<FOverlapResult> Overlaps;
+	OverlapMultiByProfile(Overlaps, Pos, Rot, ProfileName, CollisionShape, Params);
+
+	bool bBlocking = false;
+	if (Overlaps.Num())
+	{
+		bBlocking = Overlaps[0].bBlockingHit;
+		OutOverlap = Overlaps[0];
+	}
+
+	return bBlocking;
 }
 
 bool UWorld::OverlapMultiByProfile(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const

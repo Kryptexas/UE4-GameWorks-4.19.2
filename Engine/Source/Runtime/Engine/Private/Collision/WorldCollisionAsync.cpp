@@ -145,34 +145,16 @@ namespace
 				continue;
 			}
 
-			if (OverlapData.bIsMultiTrace)
-			{
-				GeomOverlapMulti(
-					OverlapData.PhysWorld.Get(),
-					OverlapData.CollisionParams.CollisionShape,
-					OverlapData.Pos,
-					OverlapData.Rot,
-					OverlapData.OutOverlaps,
-					OverlapData.TraceChannel,
-					OverlapData.CollisionParams.CollisionQueryParam,
-					OverlapData.CollisionParams.ResponseParam,
-					OverlapData.CollisionParams.ObjectQueryParam);
-			}
-			else
-			{
-				OverlapData.OutOverlaps.AddZeroed(1);
-
-				GeomOverlapSingle(
-					OverlapData.PhysWorld.Get(),
-					OverlapData.CollisionParams.CollisionShape,
-					OverlapData.Pos,
-					OverlapData.Rot,
-					OverlapData.OutOverlaps[0],
-					OverlapData.TraceChannel,
-					OverlapData.CollisionParams.CollisionQueryParam,
-					OverlapData.CollisionParams.ResponseParam,
-					OverlapData.CollisionParams.ObjectQueryParam);
-			}
+			GeomOverlapMulti(
+				OverlapData.PhysWorld.Get(),
+				OverlapData.CollisionParams.CollisionShape,
+				OverlapData.Pos,
+				OverlapData.Rot,
+				OverlapData.OutOverlaps,
+				OverlapData.TraceChannel,
+				OverlapData.CollisionParams.CollisionQueryParam,
+				OverlapData.CollisionParams.ResponseParam,
+				OverlapData.CollisionParams.ObjectQueryParam);
 		}
 	#endif //UE_WITH_PHYSICS
 	}
@@ -333,14 +315,14 @@ FTraceHandle UWorld::AsyncSweep(const FVector& Start,const FVector& End,const st
 }
 
 // overlap functions
-FTraceHandle UWorld::AsyncOverlap(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel,const struct FCollisionShape & CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam, FOverlapDelegate * InDelegate, uint32 UserData, bool bMultiTrace)
+FTraceHandle UWorld::AsyncOverlap(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel,const struct FCollisionShape & CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam, FOverlapDelegate * InDelegate, uint32 UserData)
 {
-	return StartNewTrace(AsyncTraceState, FOverlapDatum(this, CollisionShape, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam, TraceChannel, UserData, bMultiTrace, Pos, Rot, InDelegate, AsyncTraceState.CurrentFrame));
+	return StartNewTrace(AsyncTraceState, FOverlapDatum(this, CollisionShape, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam, TraceChannel, UserData, Pos, Rot, InDelegate, AsyncTraceState.CurrentFrame));
 }
 
-FTraceHandle UWorld::AsyncOverlap(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape & CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate, uint32 UserData, bool bMultiTrace)
+FTraceHandle UWorld::AsyncOverlap(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape & CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate, uint32 UserData)
 {
-	return StartNewTrace(AsyncTraceState, FOverlapDatum(this, CollisionShape, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams, DefaultCollisionChannel, UserData, bMultiTrace, Pos, Rot, InDelegate, AsyncTraceState.CurrentFrame));
+	return StartNewTrace(AsyncTraceState, FOverlapDatum(this, CollisionShape, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams, DefaultCollisionChannel, UserData, Pos, Rot, InDelegate, AsyncTraceState.CurrentFrame));
 }
 
 bool UWorld::IsTraceHandleValid(const FTraceHandle& Handle, bool bOverlapTrace)

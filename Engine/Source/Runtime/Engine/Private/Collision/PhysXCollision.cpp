@@ -1549,157 +1549,21 @@ bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& Collision
 //////////////////////////////////////////////////////////////////////////
 // GEOM OVERLAP
 
-bool GeomOverlapTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
-{
-	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
-	{
-		return false;
-	}
-	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapAny);
-
-	// Track if we get any 'blocking' hits
-	bool bHaveBlockingHit = false;
-
 #if WITH_PHYSX
-	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
-	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
-	const PxTransform& PGeomPose = ShapeAdaptor.GetGeomPose(Pos);
 
-	// Create filter data used to filter collisions
-	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
-	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
-	FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
-
-	PxOverlapHit POverlapResult;
-	bool bHit = false;
-
-	FPhysScene* PhysScene = World->GetPhysicsScene();
+namespace EQueryInfo
+{
+	//This is used for templatizing code based on the info we're trying to get out.
+	enum Type
 	{
-		// Enable scene locks, in case they are required
-		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
-		SCOPED_SCENE_READ_LOCK(SyncScene);
-
-		bHit = SyncScene->overlapAny(PGeom, PGeomPose, POverlapResult, PQueryFilterData, &PQueryCallback);
-
-		// if we got a hit, need to see if it was a touch or a block
-		// @todo UE4 james remove this once overlapAny only returns blocking hits
-		if (bHit)
-		{
-			FOverlapResult NewOverlap;
-			ConvertQueryOverlap(POverlapResult.shape, POverlapResult.actor, NewOverlap, PFilter);
-			bHaveBlockingHit = NewOverlap.bBlockingHit;
-		}
-	}
-
-	// Test async scene if async tests are requested and there was no blocking hit was found in the sync scene (since no hit info other than a boolean yes/no is recorded)
-	if( !bHaveBlockingHit && Params.bTraceAsyncScene && PhysScene->HasAsyncScene() )
-	{
-		PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-		SCOPED_SCENE_READ_LOCK(AsyncScene);
-
-		PxOverlapHit PAnotherOverlapResult;
-		bHit = AsyncScene->overlapAny(PGeom, PGeomPose,  PAnotherOverlapResult, PQueryFilterData, &PQueryCallback);
-
-		if(bHit)
-		{
-			FOverlapResult NewOverlap;
-			ConvertQueryOverlap( PAnotherOverlapResult.shape, PAnotherOverlapResult.actor, NewOverlap, PFilter);
-			bHaveBlockingHit = NewOverlap.bBlockingHit;
-		}
-	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
-	{
-		TArray<FOverlapResult> Overlaps;
-		DrawGeomOverlaps(World, PGeom, PGeomPose, Overlaps, DebugLineLifetime);
-	}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#endif // WITH_PHYSX
-
-	//@TODO: BOX2D: Implement GeomOverlapTest
-
-	return bHaveBlockingHit;
+		GatherAll,		//get all data and actually return it
+		IsBlocking,		//is any of the data blocking? only return a bool so don't bother collecting
+		IsAnything		//is any of the data blocking or touching? only return a bool so don't bother collecting
+	};
 }
 
-bool GeomOverlapSingle(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, FOverlapResult& OutOverlap, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
-{
-	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
-	{
-		return false;
-	}
-	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapSingle);
-
-	// Track if we get any 'blocking' hits
-	bool bHaveBlockingHit = false;
-	bool bHit = false;
-
-#if WITH_PHYSX
-	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
-	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
-	const PxTransform& PGeomPose = ShapeAdaptor.GetGeomPose(Pos);
-
-	// Create filter data used to filter collisions
-	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
-	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
-	FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
-
-	// Enable scene locks, in case they are required
-	FPhysScene* PhysScene = World->GetPhysicsScene();
-	{
-		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
-		SCOPED_SCENE_READ_LOCK(SyncScene);
-
-		PxOverlapHit POverlapResult;
-		bHit = SyncScene->overlapAny(PGeom, PGeomPose, POverlapResult, PQueryFilterData, &PQueryCallback);
-
-		// if we got a hit, need to see if it was a touch or a block
-		// @todo UE4 james remove this once overlapAny only returns blocking hits
-		if (bHit)
-		{
-			ConvertQueryOverlap( POverlapResult.shape, POverlapResult.actor, OutOverlap, PFilter);
-			bHaveBlockingHit = OutOverlap.bBlockingHit;
-		}
-	}
-
-	// Test async scene if async tests are requested and there was no blocking hit was found in the sync scene (since no hit info other than a boolean yes/no is recorded)
-	if (!bHaveBlockingHit && Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
-	{
-		PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-		SCOPED_SCENE_READ_LOCK(AsyncScene);
-
-		PxOverlapHit PAnotherOverlapResult;
-		bHit = AsyncScene->overlapAny(PGeom, PGeomPose, PAnotherOverlapResult, PQueryFilterData, &PQueryCallback);
-
-		if (bHit)
-		{
-			FOverlapResult NewOverlap;
-			ConvertQueryOverlap(PAnotherOverlapResult.shape, PAnotherOverlapResult.actor, NewOverlap, PFilter);
-			bHaveBlockingHit = NewOverlap.bBlockingHit;
-		}
-	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
-	{
-		TArray<FOverlapResult> Overlaps;
-		if (bHit)
-		{
-			Overlaps.Add(OutOverlap);
-		}
-
-		DrawGeomOverlaps(World, PGeom, PGeomPose, Overlaps, DebugLineLifetime);
-	}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#endif // WITH_PHYSX
-
-	//@TODO: BOX2D: Implement GeomOverlapSingle
-
-	return bHaveBlockingHit;
-}
-
-#if WITH_PHYSX
-bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+template <EQueryInfo::Type InfoType>
+bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
 	bool bHaveBlockingHit = false;
@@ -1708,7 +1572,7 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 	if (PGeom.getType()==PxGeometryType::eSPHERE || PGeom.getType()==PxGeometryType::eCAPSULE || PGeom.getType()==PxGeometryType::eBOX || PGeom.getType()==PxGeometryType::eCONVEXMESH )
 	{
 		// Create filter data used to filter collisions
-		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
+		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, InfoType != EQueryInfo::IsAnything);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 		FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
 
@@ -1723,22 +1587,46 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 		// Create buffer for hits. Note: memory is not initialized (for perf reasons), since API does not require it.
 		TTypeCompatibleBytes<PxOverlapHit> RawPOverlapArray[OVERLAP_BUFFER_SIZE];
 		PxOverlapHit* POverlapArray = (PxOverlapHit*)RawPOverlapArray;
-
-		PxI32 NumHits = SyncScene->overlapMultiple(PGeom, PGeomPose, POverlapArray,  OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES, PQueryFilterData, &PQueryCallback);
 		
-		if (NumHits == -1)
+		PxOverlapHit POverlapResult;	//IsAnything code path only needs one so we use this instead of array. Compiler will optimize out the buffer since code won't use it
+
+		PxI32 NumHits = 0;
+		
+		if (InfoType == EQueryInfo::IsAnything)
 		{
-			UE_LOG(LogCollision, Warning, TEXT("GeomOverlapMulti : Buffer overflow from synchronous scene query"));
-			UE_LOG(LogCollision, Warning, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
-			UE_LOG(LogCollision, Warning, TEXT("--------%s"), *Params.ToString());
-			// overlapMultiple still fills in the buffer with an arbitrary set of overlapping objects, so we have a full buffer of results
-			// we can use, though that is not the entire set
-			NumHits = OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES;
+			if (SyncScene->overlapAny(PGeom, PGeomPose, POverlapResult, PQueryFilterData, &PQueryCallback))
+			{
+				return true;
+			}
 		}
-		else if (NumHits == 0)
+		else
 		{
-			// Not using anything from this scene, so unlock it.
-			SceneLocks.UnlockRead(SyncScene, PST_Sync);
+			NumHits = SyncScene->overlapMultiple(PGeom, PGeomPose, POverlapArray, OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES, PQueryFilterData, &PQueryCallback);
+			if (NumHits == -1)
+			{
+				UE_LOG(LogCollision, Warning, TEXT("GeomOverlapMulti : Buffer overflow from synchronous scene query"));
+				UE_LOG(LogCollision, Warning, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
+				UE_LOG(LogCollision, Warning, TEXT("--------%s"), *Params.ToString());
+				// overlapMultiple still fills in the buffer with an arbitrary set of overlapping objects, so we have a full buffer of results
+				// we can use, though that is not the entire set
+				NumHits = OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES;
+			}
+			else if (NumHits == 0)
+			{
+				// Not using anything from this scene, so unlock it.
+				SceneLocks.UnlockRead(SyncScene, PST_Sync);
+			}
+
+			if (InfoType == EQueryInfo::IsBlocking)	//in the case where we just want to know if we're blocking, quickly check if anything blocks and return
+			{
+				for (PxI32 HitIdx = 0; HitIdx < NumHits; ++HitIdx)
+				{
+					if (IsBlocking(POverlapArray[HitIdx].shape, PFilter))
+					{
+						return true;
+					}
+				}
+			}
 		}
 
 		// Test async scene if async tests are requested and there was no overflow
@@ -1753,37 +1641,63 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 			PxOverlapHit* PAsyncOverlapArray = POverlapArray + NumHits;
 			const PxI32 AsyncBufferSize = (ARRAY_COUNT(RawPOverlapArray) - NumHits);
 			check(AsyncBufferSize > 0);
-			PxI32 NumAsyncHits = AsyncScene->overlapMultiple(PGeom, PGeomPose, PAsyncOverlapArray, AsyncBufferSize, PQueryFilterData, &PQueryCallback);
-
-			if (NumAsyncHits == -1)
+			PxI32 NumAsyncHits = 0;
+			
+			if (InfoType == EQueryInfo::IsAnything)
 			{
-				UE_LOG(LogCollision, Log, TEXT("GeomOverlapMulti : Buffer overflow from asynchronous scene query"));
-				UE_LOG(LogCollision, Warning, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
-				UE_LOG(LogCollision, Warning, TEXT("--------%s"), *Params.ToString());
-				// overlapMultiple still fills in the buffer with an arbitrary set of overlapping objects, so we have a full buffer of results
-				// we can use, though that is not the entire set
-				NumAsyncHits = AsyncBufferSize;
+				if (AsyncScene->overlapAny(PGeom, PGeomPose, POverlapResult, PQueryFilterData, &PQueryCallback))
+				{
+					return true;
+				}
 			}
-			else if (NumAsyncHits == 0)
+			else
 			{
-				// Not using anything from this scene, so unlock it.
-				SceneLocks.UnlockRead(AsyncScene, PST_Async);
-			}
+				NumAsyncHits = AsyncScene->overlapMultiple(PGeom, PGeomPose, PAsyncOverlapArray, AsyncBufferSize, PQueryFilterData, &PQueryCallback);
 
-			NumHits += NumAsyncHits;
+				if (NumAsyncHits == -1)
+				{
+					UE_LOG(LogCollision, Log, TEXT("GeomOverlapMulti : Buffer overflow from asynchronous scene query"));
+					UE_LOG(LogCollision, Warning, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
+					UE_LOG(LogCollision, Warning, TEXT("--------%s"), *Params.ToString());
+					// overlapMultiple still fills in the buffer with an arbitrary set of overlapping objects, so we have a full buffer of results
+					// we can use, though that is not the entire set
+					NumAsyncHits = AsyncBufferSize;
+				}
+				else if (NumAsyncHits == 0)
+				{
+					// Not using anything from this scene, so unlock it.
+					SceneLocks.UnlockRead(AsyncScene, PST_Async);
+				}
+
+				if (InfoType == EQueryInfo::IsBlocking)	//in the case where we just want to know if we're blocking, quickly check if anything blocks and return
+				{
+					for (PxI32 HitIdx = 0; HitIdx < NumAsyncHits; ++HitIdx)
+					{
+						if (IsBlocking(PAsyncOverlapArray[HitIdx].shape, PFilter))
+						{
+							return true;
+						}
+					}
+				}
+
+				NumHits += NumAsyncHits;
+			}
 		}
 
-		if (NumHits > 0)
+		if (InfoType == EQueryInfo::GatherAll)	//if we are gathering all we need to actually convert to UE format
 		{
-			bHaveBlockingHit = ConvertOverlapResults(NumHits, POverlapArray, PFilter, OutOverlaps);
-		}		
-		
+			if (NumHits > 0)
+			{
+				bHaveBlockingHit = ConvertOverlapResults(NumHits, POverlapArray, PFilter, OutOverlaps);
+			}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
-		{
-			DrawGeomOverlaps(World, PGeom, PGeomPose, OutOverlaps, DebugLineLifetime);
-		}
+			if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+			{
+				DrawGeomOverlaps(World, PGeom, PGeomPose, OutOverlaps, DebugLineLifetime);
+			}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		}
 	}
 	else
 	{
@@ -1792,10 +1706,16 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 
 	return bHaveBlockingHit;
 }
+
+bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+{
+	return GeomOverlapMultiImp_PhysX<EQueryInfo::GatherAll>(World, PGeom, PGeomPose, OutOverlaps, TraceChannel, Params, ResponseParams, ObjectParams);
+}
+
 #endif
 
-
-bool GeomOverlapMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+template <EQueryInfo::Type InfoType>
+bool GeomOverlapMultiImp(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
 	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
 	{
@@ -1810,13 +1730,31 @@ bool GeomOverlapMulti(const UWorld* World, const struct FCollisionShape& Collisi
 	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
 	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
 	const PxTransform& PGeomPose = ShapeAdaptor.GetGeomPose(Pos);
-	bHaveBlockingHit = GeomOverlapMulti_PhysX(World, PGeom, PGeomPose, OutOverlaps, TraceChannel, Params, ResponseParams, ObjectParams);
+	bHaveBlockingHit = GeomOverlapMultiImp_PhysX<InfoType>(World, PGeom, PGeomPose, OutOverlaps, TraceChannel, Params, ResponseParams, ObjectParams);
 
 #endif // WITH_PHYSX
 
 	//@TODO: BOX2D: Implement GeomOverlapMulti
 
 	return bHaveBlockingHit;
+}
+
+bool GeomOverlapMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+{
+	OutOverlaps.Empty();
+	return GeomOverlapMultiImp<EQueryInfo::GatherAll>(World, CollisionShape, Pos, Rot, OutOverlaps, TraceChannel, Params, ResponseParams, ObjectParams);
+}
+
+bool GeomOverlapBlockingTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+{
+	TArray<FOverlapResult> Overlaps;	//needed only for template shared code
+	return GeomOverlapMultiImp<EQueryInfo::IsBlocking>(World, CollisionShape, Pos, Rot, Overlaps, TraceChannel, Params, ResponseParams, ObjectParams);
+}
+
+bool GeomOverlapAnyTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+{
+	TArray<FOverlapResult> Overlaps;	//needed only for template shared code
+	return GeomOverlapMultiImp<EQueryInfo::IsAnything>(World, CollisionShape, Pos, Rot, Overlaps, TraceChannel, Params, ResponseParams, ObjectParams);
 }
 #endif //UE_WITH_PHYSICS
 

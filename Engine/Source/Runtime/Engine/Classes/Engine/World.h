@@ -1233,7 +1233,7 @@ public:
 	bool SweepMultiByProfile(TArray<FHitResult>& OutHits, const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
-	 *  Test the collision of an AABB at the supplied location using a specific channel, and return if any blocking overlap is found
+	 *  Test the collision of a shape at the supplied location using a specific channel, and return if any blocking overlap is found
 	 *  @param  Pos             Location of center of box to test against the world
 	 *  @param  TraceChannel    The 'channel' that this query is in, used to determine which components to hit
 	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
@@ -1241,64 +1241,122 @@ public:
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace	 
 	 *  @return TRUE if any blocking results are found
 	 */
+	DEPRECATED(4.8, "Use OverlapBlockingTest instead.")
 	bool OverlapTest(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam) const;
 
 	/**
-	 *  Test the collision of an AABB at the supplied location using object types, and return if any blocking overlap is found
+	*  Test the collision of a shape at the supplied location using a specific channel, and return if any blocking overlap is found
+	*  @param  Pos             Location of center of box to test against the world
+	*  @param  TraceChannel    The 'channel' that this query is in, used to determine which components to hit
+	*  @param  CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	*  @param  Params          Additional parameters used for the trace
+	*  @param  ResponseParam	ResponseContainer to be used for this trace
+	*  @return TRUE if any blocking results are found
+	*/
+	bool OverlapBlockingTest(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam) const;
+
+	/**
+	*  Test the collision of a shape at the supplied location using a specific channel, and return if any blocking or overlapping shape is found
+	*  @param  Pos             Location of center of box to test against the world
+	*  @param  TraceChannel    The 'channel' that this query is in, used to determine which components to hit
+	*  @param  CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	*  @param  Params          Additional parameters used for the trace
+	*  @param  ResponseParam	ResponseContainer to be used for this trace
+	*  @return TRUE if any blocking or overlapping results are found
+	*/
+	bool OverlapAnyTest(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam) const;
+
+	/**
+	 *  Test the collision of a shape at the supplied location using object types, and return if any blocking overlap is found
 	 *  @param  Pos             Location of center of box to test against the world
 	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
 	 *  @param  Params          Additional parameters used for the trace
 	 *	@param	ObjectQueryParams	List of object types it's looking for
-	 *  @return TRUE if any hit is found
+	 *  @return TRUE if any blocking results are found
 	 */
+	DEPRECATED(4.8, "Use OverlapAnyTest instead.")
 	bool OverlapTest(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
-	 *  Test the collision of an AABB at the supplied location using a specific profile, and return if any blocking overlap is found
+	*  Test the collision of a shape at the supplied location using object types, and return if any overlap is found
+	*  @param  Pos             Location of center of box to test against the world
+	*  @param  CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	*  @param  Params          Additional parameters used for the trace
+	*  @param  ObjectQueryParams	List of object types it's looking for
+	*  @return TRUE if any blocking results are found
+	*/
+	bool OverlapAnyTest(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Test the collision of a shape at the supplied location using a specific profile, and return if any blocking overlap is found
 	 *  @param  Pos             Location of center of box to test against the world
 	 *  @param  ProfileName     The 'profile' used to determine which components to hit
 	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
 	 *  @param  Params          Additional parameters used for the trace
 	 *  @return TRUE if any blocking results are found
 	 */
+	DEPRECATED(4.8, "Use OverlapBlockingTestByProfile instead.")
 	bool OverlapTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
-	 *  Test the collision of a sphere at the supplied location using a specific channel, and determine the set of components that it overlaps
-	 *  @param  OutOverlaps     Array of components found to overlap supplied box
+	*  Test the collision of a shape at the supplied location using a specific profile, and return if any blocking overlap is found
+	*  @param  Pos             Location of center of box to test against the world
+	*  @param  ProfileName     The 'profile' used to determine which components to hit
+	*  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	*  @param  Params          Additional parameters used for the trace
+	*  @return TRUE if any blocking results are found
+	*/
+	bool OverlapBlockingTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
+
+	/**
+	*  Test the collision of a shape at the supplied location using a specific profile, and return if any blocking or overlap is found
+	*  @param  Pos             Location of center of box to test against the world
+	*  @param  ProfileName     The 'profile' used to determine which components to hit
+	*  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	*  @param  Params          Additional parameters used for the trace
+	*  @return TRUE if any blocking or overlapping results are found
+	*/
+	bool OverlapAnyTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
+
+	/**
+	 *  Test the collision of a shape at the supplied location using a specific channel, and determine the set of components that it overlaps
+	 *  @param  OutOverlap      Component found to overlap supplied shape
 	 *  @param  Pos             Location of center of sphere to test against the world
 	 *  @param  TraceChannel    The 'channel' that this query is in, used to determine which components to hit
 	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace
-	 *  @return TRUE if OutOverlaps contains any blocking results
+	 *  @return TRUE if OutOverlap is a blocking result
 	 */
+	DEPRECATED(4.8, "Use OverlapMulti instead. Deciding which overlap to use is gameplay specific.")
 	bool OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam) const;
 
 	/**
-	 *  Test the collision of a sphere at the supplied location using object types, and determine the set of components that it overlaps
-	 *  @param  OutOverlaps     Array of components found to overlap supplied box
+	 *  Test the collision of a shape at the supplied location using object types, and determine the set of components that it overlaps
+	 *  @param  OutOverlap      Component found to overlap supplied shape
 	 *  @param  Pos             Location of center of sphere to test against the world
 	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
 	 *  @param  Params          Additional parameters used for the trace
 	 *	@param	ObjectQueryParams	List of object types it's looking for
-	 *  @return TRUE if any hit is found
+	 *  @return TRUE if any overlap is found
 	 */
+	DEPRECATED(4.8, "Use OverlapMulti instead. Deciding which overlap to use is gameplay specific.")
 	bool OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
-	 *  Test the collision of a sphere at the supplied location using a specific profile, and determine the set of components that it overlaps
-	 *  @param  OutOverlaps     Array of components found to overlap supplied box
+	 *  Test the collision of a shape at the supplied location using a specific profile, and determine the set of components that it overlaps
+	 *  @param  OutOverlap      Component found to overlap supplied shape
 	 *  @param  Pos             Location of center of sphere to test against the world
 	 *  @param  ProfileName     The 'profile' used to determine which components to hit
 	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
 	 *  @param  Params          Additional parameters used for the trace
-	 *  @return TRUE if OutOverlaps contains any blocking results
+	 *  @return TRUE if OutOverlap is blocking
 	 */
+	DEPRECATED(4.8, "Use OverlapMultiByProfile instead. Deciding which overlap to use is gameplay specific.")
 	bool OverlapSingleByProfile(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
-	 *  Test the collision of a sphere at the supplied location using a specific channel, and determine the set of components that it overlaps
+	 *  Test the collision of a shape at the supplied location using a specific channel, and determine the set of components that it overlaps
 	 *  @param  OutOverlaps     Array of components found to overlap supplied box
 	 *  @param  Pos             Location of center of sphere to test against the world
 	 *  @param  TraceChannel    The 'channel' that this query is in, used to determine which components to hit
@@ -1310,18 +1368,18 @@ public:
 	bool OverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam) const;
 
 	/**
-	 *  Test the collision of a sphere at the supplied location using object types, and determine the set of components that it overlaps
+	 *  Test the collision of a shape at the supplied location using object types, and determine the set of components that it overlaps
 	 *  @param  OutOverlaps     Array of components found to overlap supplied box
 	 *  @param  Pos             Location of center of sphere to test against the world
 	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
 	 *  @param  Params          Additional parameters used for the trace
 	 *	@param	ObjectQueryParams	List of object types it's looking for
-	 *  @return TRUE if any hit is found
+	 *  @return TRUE if any overlap is found
 	 */
 	bool OverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 	
 	/**
-	 *  Test the collision of a sphere at the supplied location using a specific profile, and determine the set of components that it overlaps
+	 *  Test the collision of a shape at the supplied location using a specific profile, and determine the set of components that it overlaps
 	 *  @param  OutOverlaps     Array of components found to overlap supplied box
 	 *  @param  Pos             Location of center of sphere to test against the world
 	 *  @param  ProfileName     The 'profile' used to determine which components to hit
@@ -1480,9 +1538,8 @@ public:
 	 *							TraceDelegate.BindRaw(this, &MyActor::TraceDone);
 	 * 
 	 *	@param UserData			UserData
-	 *	@param bMultiTrace		true if you'd like to get continuous result from the trace, false if you want single
 	 */ 
-	FTraceHandle	AsyncOverlap(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
+	FTraceHandle	AsyncOverlap(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0);
 
 	/**
 	 * Interface for Async trace
@@ -1503,9 +1560,8 @@ public:
 	 *							TraceDelegate.BindRaw(this, &MyActor::TraceDone);
 	 * 
 	 *	@param UserData			UserData
-	 *	@param bMultiTrace		true if you'd like to get continuous result from the trace, false if you want single
 	 */ 
-	FTraceHandle	AsyncOverlap(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
+	FTraceHandle	AsyncOverlap(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0);
 
 	/**
 	 * Query function 

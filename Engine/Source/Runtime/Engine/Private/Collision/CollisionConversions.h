@@ -60,6 +60,23 @@ bool AddSweepResults(int32 NumHits, const PxSweepHit* Hits, float CheckLength, c
  */
 void ConvertQueryOverlap(const PxShape* PShape, const PxRigidActor* PActor, FOverlapResult& OutOverlap, const PxFilterData& QueryFilter);
 
+/**
+ * Util to determine if a shape is deemed blocking based on the query filter
+ *
+ * @param PShape Shape that overlaps
+ * @QueryFilter Query Filter
+ * @return true if the query filter and shape filter resolve to be blocking
+ */
+inline bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter)
+{
+	// See if this is a 'blocking' hit
+	const PxFilterData PShapeFilter = PShape->getQueryFilterData();
+	// word1 is block, word2 is overlap
+	const PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
+	const bool bBlock = (HitType == PxSceneQueryHitType::eBLOCK);
+	return bBlock;
+}
+
 
 /** 
  * Util to convert a list of overlap hits into FOverlapResult and add them to OutOverlaps, if not already there
