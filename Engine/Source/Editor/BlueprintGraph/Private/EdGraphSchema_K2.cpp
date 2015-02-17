@@ -1923,8 +1923,9 @@ bool UEdGraphSchema_K2::TryCreateConnection(UEdGraphPin* PinA, UEdGraphPin* PinB
 
 	bool bModified = UEdGraphSchema::TryCreateConnection(PinA, PinB);
 
-	if (bModified)
+	if (bModified && !PinA->HasAnyFlags(RF_Transient))
 	{
+		check(!PinB->HasAnyFlags(RF_Transient));
 		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 	}
 

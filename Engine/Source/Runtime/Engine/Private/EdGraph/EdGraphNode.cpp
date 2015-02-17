@@ -70,6 +70,11 @@ UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& Pi
 	NewPin->PinType.bIsConst = bIsConst;
 	NewPin->SetFlags(RF_Transactional);
 
+	if (HasAnyFlags(RF_Transient))
+	{
+		NewPin->SetFlags(RF_Transient);
+	}
+
 	Modify(false);
 	if ( Pins.IsValidIndex( Index ) )
 	{

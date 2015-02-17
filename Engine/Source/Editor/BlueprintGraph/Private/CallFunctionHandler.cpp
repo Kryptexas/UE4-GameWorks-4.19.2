@@ -672,8 +672,7 @@ void FKCHandler_CallFunction::Transform(FKismetFunctionContext& Context, UEdGrap
 		if ((OldOutPin != NULL) && (OldOutPin->LinkedTo.Num() > 0))
 		{
 			// Create a dummy execution sequence that will be the target of the return call from the latent action
-			UK2Node_ExecutionSequence* DummyNode = CallFuncNode->GetGraph()->CreateBlankNode<UK2Node_ExecutionSequence>();
-			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(DummyNode, CallFuncNode);
+			UK2Node_ExecutionSequence* DummyNode = CompilerContext.SpawnIntermediateNode<UK2Node_ExecutionSequence>(CallFuncNode);
 			DummyNode->AllocateDefaultPins();
 
 			// Wire in the dummy node
