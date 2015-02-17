@@ -412,7 +412,7 @@ void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAll
 			FilterContext.SelectedObjects.Add(SelectedVar->GetProperty());
 		}
 		// If the selection come from the SCS editor, add it to the filter context.
-		else if ( Blueprint->SkeletonGeneratedClass )
+		else if ( Blueprint->SkeletonGeneratedClass && BlueprintEditor->GetSCSEditor().IsValid() )
 		{
 			TArray<FSCSEditorTreeNodePtrType> Nodes = BlueprintEditor->GetSCSEditor()->GetSelectedNodes();
 			if ( Nodes.Num() == 1 && Nodes[0]->GetNodeType() == FSCSEditorTreeNode::ComponentNode )
