@@ -654,11 +654,11 @@ public:
 	UPROPERTY()
 	FVector2D DesignTimeSize;
 
-	/** Designer flag used to tell when the user wants to provide their own custom size. */
+	/** A flag that determines if the design time size is used for previewing the widget in the designer. */
 	UPROPERTY()
 	bool bUseDesignTimeSize;
 
-	/** Designer flag used to tell when to just use the desired size of the widget instead of an explicit size. */
+	/** A flag that determines if the widget's desired size is used for previewing the widget in the designer. */
 	UPROPERTY()
 	bool bUseDesiredSizeAtDesignTime;
 

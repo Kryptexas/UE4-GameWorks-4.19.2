@@ -142,6 +142,8 @@ private:
 	void AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const TArray<FPlayScreenResolution>& Resolutions, const FText& SectionName);
 	bool HandleIsCustomResolutionSelected() const;
 	void HandleOnCustomResolutionSelected();
+	bool HandleIsDesiredSizeSelected() const;
+	void HandleOnDesiredSizeSelected();
 	TSharedRef<SWidget> GetAspectMenu();
 
 	EVisibility PIENotification() const;
@@ -245,6 +247,9 @@ private:
 
 	/** The configured Height of the preview area, simulates screen size. */
 	int32 PreviewHeight;
+
+	/** We cache the desired preview desired size to maintain the same size between compiles when it lags a frame behind and no widget is available. */
+	FVector2D CachedPreviewDesiredSize;
 
 	// Resolution Info
 	FString PreviewAspectRatio;
