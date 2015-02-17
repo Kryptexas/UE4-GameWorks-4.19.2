@@ -24,6 +24,7 @@ namespace UnrealBuildTool
 		WinRT_ARM,
 		HTML5,
         Linux,
+		Desktop,
 	}
 
 	public enum UnrealPlatformGroup
@@ -41,7 +42,8 @@ namespace UnrealBuildTool
           *  Note: There's no default group - if the platform is not registered as device or simulator - both are rejected. 
           */
         Device, 
-        Simulator, 
+        Simulator,
+		Desktop,
 	}
 
 	public enum UnrealTargetConfiguration
@@ -787,7 +789,8 @@ namespace UnrealBuildTool
 			ProjectIntermediateDirectory = Path.GetFullPath(Path.Combine(ProjectDirectory, BuildConfiguration.PlatformIntermediateFolder, GetTargetName(), Configuration.ToString()));
 
 			// Build the engine intermediate directory. If we're building agnostic engine binaries, we can use the engine intermediates folder. Otherwise we need to use the project intermediates directory.
-			if (ShouldCompileMonolithic())
+			// If we are building a content project with UE4Game as the base executable, then we don't want to use the Project as the intermediate, it should use UE4's intermedate
+			if (ShouldCompileMonolithic() && AppName != "UE4Game")
 			{
 				EngineIntermediateDirectory = ProjectIntermediateDirectory;
 			}

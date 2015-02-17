@@ -78,6 +78,7 @@ public class TargetPlatform : ModuleRules
 				if (UEBuildConfiguration.bCompileAgainstEngine)
 				{
 					DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
+					DynamicallyLoadedModuleNames.Add("AudioFormatOpus");
 				}
 
 				if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Program)

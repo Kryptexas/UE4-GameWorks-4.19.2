@@ -117,6 +117,7 @@ namespace UnrealBuildTool
 
                 if (bBuildShaderFormats)
                 {
+					InModule.AddDynamicallyLoadedModule("ShaderFormatD3D");
                     InModule.AddDynamicallyLoadedModule("ShaderFormatOpenGL");
                 }
 			}

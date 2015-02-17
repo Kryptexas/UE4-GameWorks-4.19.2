@@ -37,7 +37,7 @@ public:
 	}
 
 #ifdef TEXTURERESOURCE_H_INCLUDED // defined in TextureResource.h, this way we know if UTexture is available, needed for Clang
-	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const
+	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings, bool bSupportDX11TextureFormats ) const
 	{
 		FName TextureFormatName = NAME_None;
 
@@ -155,6 +155,20 @@ public:
 		{
 				TextureFormatName = NameBGRA8;
 		}
+
+		// fallback to non-DX11 formats if one was chosen, but we can't use it
+		if (!bSupportDX11TextureFormats)
+		{
+			if (TextureFormatName == NameBC6H)
+			{
+				TextureFormatName = NameRGBA16F;
+			}
+			else if (TextureFormatName == NameBC7)
+			{
+				TextureFormatName = NameAutoDXT;
+			}
+		}
+
 #endif //WITH_EDITOR
 
 		return TextureFormatName;

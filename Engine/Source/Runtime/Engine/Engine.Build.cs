@@ -142,6 +142,7 @@ public class Engine : ModuleRules
 						"WindowsNoEditorTargetPlatform",
 						"WindowsServerTargetPlatform",
 						"WindowsClientTargetPlatform",
+						"DesktopTargetPlatform",
 					}
 				);
 			}
@@ -152,7 +153,8 @@ public class Engine : ModuleRules
 					    "MacTargetPlatform",
 					    "MacNoEditorTargetPlatform",
 						"MacServerTargetPlatform",
-						"MacClientTargetPlatform"
+						"MacClientTargetPlatform",
+						"DesktopTargetPlatform",
 					}
 				);
 			}
@@ -163,6 +165,7 @@ public class Engine : ModuleRules
 						"LinuxTargetPlatform",
 						"LinuxNoEditorTargetPlatform",
 						"LinuxServerTargetPlatform",
+						"DesktopTargetPlatform",
 					}
 				);
 			}

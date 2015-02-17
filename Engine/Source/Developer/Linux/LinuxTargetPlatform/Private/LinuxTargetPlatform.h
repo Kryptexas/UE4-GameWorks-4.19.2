@@ -161,22 +161,10 @@ public:
 
 	virtual void GetTextureFormats( const UTexture* InTexture, TArray<FName>& OutFormats ) const override
 	{
-		static FName NameBC6H(TEXT("BC6H"));
-		static FName NameBC7(TEXT("BC7"));
-		static FName NameRGBA16F(TEXT("RGBA16F"));
-		static FName NameAutoDXT(TEXT("AutoDXT"));
 		if (!IS_DEDICATED_SERVER)
 		{
 			// just use the standard texture format name for this texture
-			FName TextureFormatName = this->GetDefaultTextureFormatName(InTexture, EngineSettings);
-			if (TextureFormatName == NameBC6H)
-			{
-				TextureFormatName = NameRGBA16F;
-			}
-			else if (TextureFormatName == NameBC7)
-			{
-				TextureFormatName = NameAutoDXT;
-			}
+			FName TextureFormatName = this->GetDefaultTextureFormatName(InTexture, EngineSettings, false);
 			OutFormats.Add(TextureFormatName);
 		}
 	}
