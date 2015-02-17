@@ -422,10 +422,6 @@ public class GUBP : BuildCommand
 		{
 			return false;
 		}
-		public virtual bool IsRocketSample()
-		{
-			return false;
-		}
 		public virtual string NodeHostPlatform()
 		{
 			return "";
