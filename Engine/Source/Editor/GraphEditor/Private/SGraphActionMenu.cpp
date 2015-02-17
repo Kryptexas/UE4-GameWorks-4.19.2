@@ -1056,10 +1056,10 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 			+ SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			[
-				SNew(STextBlock)
+				SNew(SRichTextBlock)
 				.Text(SectionTitle)
-				.Font(FEditorStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
-				.ShadowOffset(FVector2D(1.0f, 1.0f))
+				.DecoratorStyleSet(&FEditorStyle::Get())
+				.TextStyle(FEditorStyle::Get(), "DetailsView.CategoryTextStyle")
 			]
 
 			+ SHorizontalBox::Slot()
