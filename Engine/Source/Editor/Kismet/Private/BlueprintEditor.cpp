@@ -1518,6 +1518,9 @@ void FBlueprintEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& 
 
 void FBlueprintEditor::SetCurrentMode(FName NewMode)
 {
+	// Clear the selection state when the mode changes.
+	SetUISelectionState(NAME_None);
+
 	OnModeSetData.Broadcast( NewMode );
 	FWorkflowCentricApplication::SetCurrentMode(NewMode);
 }
