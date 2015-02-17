@@ -685,17 +685,22 @@ static UPropertyBinding* GenerateBinder(UDelegateProperty* DelegateProperty, UOb
 	FScriptDelegate* ScriptDelegate = DelegateProperty->GetPropertyValuePtr_InContainer(Container);
 	if ( ScriptDelegate )
 	{
-		if ( UProperty* ReturnProperty = DelegateProperty->SignatureFunction->GetReturnProperty() )
+		// Only delegates that take no parameters have native binders.
+		UFunction* SignatureFunction = DelegateProperty->SignatureFunction;
+		if ( SignatureFunction->NumParms == 1 )
 		{
-			TSubclassOf<UPropertyBinding> BinderClass = UWidget::FindBinderClassForDestination(ReturnProperty);
-			if ( BinderClass != nullptr )
+			if ( UProperty* ReturnProperty = SignatureFunction->GetReturnProperty() )
 			{
-				UPropertyBinding* Binder = ConstructObject<UPropertyBinding>(BinderClass, Container);
-				Binder->SourceObject = SourceObject;
-				Binder->SourcePath = BindingPath;
-				Binder->Bind(ReturnProperty, ScriptDelegate);
+				TSubclassOf<UPropertyBinding> BinderClass = UWidget::FindBinderClassForDestination(ReturnProperty);
+				if ( BinderClass != nullptr )
+				{
+					UPropertyBinding* Binder = ConstructObject<UPropertyBinding>(BinderClass, Container);
+					Binder->SourceObject = SourceObject;
+					Binder->SourcePath = BindingPath;
+					Binder->Bind(ReturnProperty, ScriptDelegate);
 
-				return Binder;
+					return Binder;
+				}
 			}
 		}
 	}
