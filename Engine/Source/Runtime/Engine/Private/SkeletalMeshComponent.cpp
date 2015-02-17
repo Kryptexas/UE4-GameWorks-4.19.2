@@ -1928,7 +1928,7 @@ void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( FDelegateH
 
 void USkeletalMeshComponent::ValidateAnimation()
 {
-	if (SkeletalMesh->Skeleton == NULL)
+	if (SkeletalMesh && SkeletalMesh->Skeleton == NULL)
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("SkeletalMesh %s has no skeleton. This needs to fixed before an animation can be set"), *SkeletalMesh->GetName());
 		if (AnimationMode == EAnimationMode::AnimationSingleNode)
