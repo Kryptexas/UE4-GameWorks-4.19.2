@@ -32,6 +32,8 @@
 #include "GameFramework/GameUserSettings.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 
+#define LOCTEXT_NAMESPACE "GameViewport"
+
 /** This variable allows forcing full screen of the first player controller viewport, even if there are multiple controllers plugged in and no cinematic playing. */
 bool GForceFullscreen = false;
 
@@ -553,13 +555,17 @@ void UGameViewportClient::AddCursor(EMouseCursor::Type Cursor, const FStringClas
 	if ( CursorClass.IsValid() )
 	{
 		UClass* Class = CursorClass.TryLoadClass<UUserWidget>();
-		if ( ensure(Class) )
+		if ( Class )
 		{
 			UUserWidget* UserWidget = CreateWidget<UUserWidget>(GetGameInstance(), Class);
 			if ( ensure(UserWidget) )
 			{
 				CursorWidgets.Add(Cursor, UserWidget->TakeWidget());
 			}
+		}
+		else
+		{
+			FMessageLog("PIE").Error(FText::Format(LOCTEXT("CursorClassNotFoundFormat", "The cursor class '{0}' was not found, check your custom cursor settings."), FText::FromString(CursorClass.ToString())));
 		}
 	}
 }
@@ -3019,3 +3025,4 @@ void UGameViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport
 	}
 }
 
+#undef LOCTEXT_NAMESPACE
