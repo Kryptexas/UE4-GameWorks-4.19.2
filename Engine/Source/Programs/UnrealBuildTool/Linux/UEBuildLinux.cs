@@ -327,11 +327,12 @@ namespace UnrealBuildTool
                     InModule.AddDynamicallyLoadedModule("LinuxTargetPlatform");
                     InModule.AddDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
                     InModule.AddDynamicallyLoadedModule("LinuxServerTargetPlatform");
+					InModule.AddDynamicallyLoadedModule("DesktopTargetPlatform");
                 }
 
                 if (bBuildShaderFormats)
                 {
-					InModule.AddDynamicallyLoadedModule("ShaderFormatD3D");
+					// InModule.AddDynamicallyLoadedModule("ShaderFormatD3D");
                     InModule.AddDynamicallyLoadedModule("ShaderFormatOpenGL");
                 }
             }
