@@ -9,6 +9,8 @@
 #include "NamedSlotInterface.h"
 #include "Slate/Anchors.h"
 #include "Engine/LocalPlayer.h"
+#include "Logging/MessageLog.h"
+
 #include "UserWidget.generated.h"
 
 static FGeometry NullGeometry;
@@ -652,9 +654,13 @@ public:
 	UPROPERTY()
 	FVector2D DesignTimeSize;
 
-	/** Stores the design time desired size of the user widget */
+	/** Designer flag used to tell when the user wants to provide their own custom size. */
 	UPROPERTY()
 	bool bUseDesignTimeSize;
+
+	/** Designer flag used to tell when to just use the desired size of the widget instead of an explicit size. */
+	UPROPERTY()
+	bool bUseDesiredSizeAtDesignTime;
 
 	/** The category this widget appears in the palette. */
 	UPROPERTY()
