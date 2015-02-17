@@ -160,9 +160,11 @@ public:
 							SelectionNodeType = IndexPin->PinType.PinCategory;
 						}
 					}
+
+					const UEdGraph* OwningGraph = Context.MessageLog.FindSourceObjectTypeChecked<UEdGraph>( SelectNode->GetGraph() );
 					LiteralStringTerm->Name =
 						FString::Printf(*LOCTEXT("SelectNodeIndexWarning", "Graph %s: Selection Node of type %s failed! Out of bounds indexing of the options. There are only %d options available.").ToString(),
-						(SelectNode && SelectNode->GetGraph()) ? *SelectNode->GetGraph()->GetFullName() : TEXT("NONE"),
+						(OwningGraph) ? *OwningGraph->GetFullName() : TEXT("NONE"),
 						*SelectionNodeType,
 						OptionPins.Num());
 					PrintStatement.RHS.Add(LiteralStringTerm);
