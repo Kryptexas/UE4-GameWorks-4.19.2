@@ -545,7 +545,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 					.Padding( 0 )
 					[
 						SAssignNew(AssetViewPtr, SAssetView)
-						.ThumbnailScale( 0.075f )
+						.ThumbnailScale( 0.18 )
 						.OnPathSelected(this, &SContentBrowser::FolderEntered)
 						.OnAssetSelected(this, &SContentBrowser::OnAssetSelectionChanged)
 						.OnAssetsActivated(this, &SContentBrowser::OnAssetsActivated)
