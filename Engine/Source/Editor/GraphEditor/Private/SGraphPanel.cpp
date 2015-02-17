@@ -1048,6 +1048,7 @@ bool SGraphPanel::IsNodeTitleVisible(const class UEdGraphNode* Node, bool bReque
 			if( bTitleVisible && bRequestRename )
 			{
 				GraphNode.Pin()->RequestRename();
+				SelectAndCenterObject(Node, false);
 			}
 		}
 	}
