@@ -173,10 +173,6 @@ function preRunHandler() {
   document.addEventListener('mozfullscreenchange', fullScreenChange, false);
   document.addEventListener('webkitfullscreenchange', fullScreenChange, false);
   document.addEventListener('MSFullscreenChange', fullScreenChange, false);
-
-  // this needs to die
-  Browser.updateCanvasDimensions = function() { };
-
 }
 
 function loadJavaScriptFile(filename,isAsync){ 
