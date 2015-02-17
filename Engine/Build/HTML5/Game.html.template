@@ -44,16 +44,7 @@ div#display_wrapper {
 }
 
 canvas.main {
-  border: none;
-  background: #444;
-  display: block;
-}
-
-canvas.main:not([fullscreen]) {
-  padding-right: 0;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
+  resize: none;
 }
 
 input[type=button] {
