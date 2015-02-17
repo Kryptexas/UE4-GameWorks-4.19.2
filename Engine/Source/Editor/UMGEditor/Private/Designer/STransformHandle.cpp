@@ -19,6 +19,7 @@ void STransformHandle::Construct(const FArguments& InArgs, IUMGDesigner* InDesig
 	Designer = InDesigner;
 
 	Action = ETransformAction::None;
+	ScopedTransaction = nullptr;
 
 	DragDirection = ComputeDragDirection(InTransformDirection);
 	DragOrigin = ComputeOrigin(InTransformDirection);
@@ -76,6 +77,7 @@ FReply STransformHandle::OnMouseButtonDown(const FGeometry& MyGeometry, const FP
 
 		FWidgetReference SelectedWidget = Designer->GetSelectedWidget();
 		UWidget* Preview = SelectedWidget.GetPreview();
+		UWidget* Template = SelectedWidget.GetTemplate();
 
 		if ( UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(Preview->Slot) )
 		{
@@ -83,6 +85,9 @@ FReply STransformHandle::OnMouseButtonDown(const FGeometry& MyGeometry, const FP
 		}
 
 		MouseDownPosition = MouseEvent.GetScreenSpacePosition();
+
+		ScopedTransaction = new FScopedTransaction(LOCTEXT("ResizeWidget", "Resize Widget"));
+		Template->Modify();
 
 		return FReply::Handled().CaptureMouse(SharedThis(this));
 	}
@@ -96,6 +101,12 @@ FReply STransformHandle::OnMouseButtonUp(const FGeometry& MyGeometry, const FPoi
 	{
 		const bool bRequiresRecompile = false;
 		Designer->MarkDesignModifed(bRequiresRecompile);
+
+		if ( ScopedTransaction )
+		{
+			delete ScopedTransaction;
+			ScopedTransaction = nullptr;
+		}
 
 		Action = ETransformAction::None;
 		return FReply::Handled().ReleaseMouseCapture();
