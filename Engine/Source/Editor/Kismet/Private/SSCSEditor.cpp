@@ -1265,13 +1265,12 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 			ComponentIcon = FClassIconFinder::FindIconForClass( NodePtr->GetComponentTemplate()->GetClass(), TEXT("SCS.Component") );
 		}
 
-		TSharedPtr<SInlineEditableTextBlock> InlineWidget = 
+		InlineWidget =
 			SNew(SInlineEditableTextBlock)
 				.Text(this, &SSCS_RowWidget::GetNameLabel)
 				.OnVerifyTextChanged( this, &SSCS_RowWidget::OnNameTextVerifyChanged )
 				.OnTextCommitted( this, &SSCS_RowWidget::OnNameTextCommit )
 				.IsSelected( this, &SSCS_RowWidget::IsSelectedExclusively )
-				.ColorAndOpacity( this, &SSCS_RowWidget::GetColorTintForText )
 				.IsReadOnly(!NodePtr->CanRename() || (SCSEditor.IsValid() && !SCSEditor.Pin()->IsEditingAllowed()));
 
 		NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
@@ -1707,31 +1706,6 @@ FSlateColor SSCS_RowWidget::GetColorTintForIcon() const
 	else
 	{
 		return IntroducedHereColor;
-	}
-}
-
-FSlateColor SSCS_RowWidget::GetColorTintForText() const
-{
-	const FSlateColor SelectedTextColor(FLinearColor::Black);
-
-	FSCSEditorTreeNodePtrType NodePtr = GetNode();
-	if (NodePtr->IsInherited())
-	{
-		if (NodePtr->IsNative())
-		{
-			static FSlateColor NativeColor = FEditorStyle::GetSlateColor("Common.InheritedFromNativeTextColor");
-			return IsSelected() ? SelectedTextColor : NativeColor;
-		}
-		else
-		{
-			static FSlateColor BlueprintColor = FEditorStyle::GetSlateColor("Common.InheritedFromBlueprintTextColor");
-			return IsSelected() ? SelectedTextColor : BlueprintColor;
-		}
-	}
-	else
-	{
-		static FSlateColor ThisInstanceColor = FEditorStyle::GetSlateColor("Common.IntroducedInThisInstanceTextColor");
-		return IsSelected() ? SelectedTextColor : ThisInstanceColor;
 	}
 }
 
@@ -2576,6 +2550,15 @@ void SSCS_RowWidget::PostDragDropAction(bool bRegenerateTreeNodes)
 
 FText SSCS_RowWidget::GetNameLabel() const
 {
+	if( InlineWidget.IsValid() && !InlineWidget->IsInEditMode() )
+	{
+		FSCSEditorTreeNodePtrType NodePtr = GetNode();
+		if(NodePtr->IsInherited())
+		{
+			return FText::Format(LOCTEXT("NativeComponentFormatString","{0} (Inherited)"), FText::FromString(GetNode()->GetDisplayString()));
+		}
+	}
+
 	// NOTE: Whatever this returns also becomes the variable name
 	return FText::FromString(GetNode()->GetDisplayString());
 }
@@ -3155,6 +3138,8 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 				.HAlign(HAlign_Left)
 				[
 					SNew(SComponentClassCombo)
+					//** Hack 4.7 Child actor components are not allowed to be added via the actor details panel */
+					//.AllowChildActorComponent(EditorMode==EComponentEditorMode::BlueprintSCS)
 					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.AddComponent")))
 					.Visibility(bHideComponentClassCombo ? EVisibility::Hidden : EVisibility::Visible)
 					.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
@@ -3214,6 +3199,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 				]
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
+				.Padding( 3.0f, 3.0f )
 				.HAlign(HAlign_Right)
 				[
 					SNew(SComboButton)

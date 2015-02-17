@@ -574,7 +574,7 @@ private:
 public:
 	/** Pointer back to owning SCSEditor 2 tool */
 	TWeakPtr<SSCSEditor> SCSEditor;
-
+	TSharedPtr<SInlineEditableTextBlock> InlineWidget;
 private:
 	/** Pointer to node we represent */
 	FSCSEditorTreeNodePtrType TreeNodePtr;
