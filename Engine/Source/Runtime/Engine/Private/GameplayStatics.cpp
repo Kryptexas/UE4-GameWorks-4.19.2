@@ -623,9 +623,42 @@ bool UGameplayStatics::AreAnyListenersWithinRange(FVector Location, float Maximu
 	return false;
 }
 
+void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime)
+{
+	if ( Sound == nullptr )
+	{
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if ( ThisWorld == nullptr )
+	{
+		return;
+	}
+
+	if ( GEngine && GEngine->UseSound() && ThisWorld->bAllowAudioPlayback && ThisWorld->GetNetMode() != NM_DedicatedServer )
+	{
+		// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
+		if ( FAudioDevice* AudioDevice = GEngine->GetAudioDevice() )
+		{
+			FActiveSound NewActiveSound;
+			NewActiveSound.Sound = Sound;
+
+			NewActiveSound.VolumeMultiplier = VolumeMultiplier;
+			NewActiveSound.PitchMultiplier = PitchMultiplier;
+
+			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
+
+			NewActiveSound.bIsUISound = true;
+
+			AudioDevice->AddNewActiveSound(NewActiveSound);
+		}
+	}
+}
+
 void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
-	if ( Sound == NULL )
+	if ( Sound == nullptr )
 	{
 		return;
 	}

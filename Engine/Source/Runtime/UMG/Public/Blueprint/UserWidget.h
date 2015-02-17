@@ -578,7 +578,7 @@ public:
 	 *
 	 * @param The sound to play
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Sound")
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Sound", meta=( DeprecatedFunction, DeprecationMessage="Use the global function PlaySound2D instead." ))
 	void PlaySound(class USoundBase* SoundToPlay);
 
 	/** @returns The UObject wrapper for a given SWidget */
