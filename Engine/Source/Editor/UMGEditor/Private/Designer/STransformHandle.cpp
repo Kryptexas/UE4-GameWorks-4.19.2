@@ -7,6 +7,7 @@
 #include "WidgetReference.h"
 #include "Widget.h"
 #include "Components/PanelSlot.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
