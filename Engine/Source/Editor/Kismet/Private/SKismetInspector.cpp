@@ -224,6 +224,7 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 	bShowInspectorPropertyView = true;
 	PublicViewState = ECheckBoxState::Unchecked;
 	bComponenetDetailsCustomizationEnabled = false;
+	bRefreshOnTick = false;
 
 	BlueprintEditorPtr = InArgs._Kismet2;
 	bShowPublicView = InArgs._ShowPublicViewControl;
