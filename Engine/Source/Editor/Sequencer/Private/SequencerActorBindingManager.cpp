@@ -216,7 +216,7 @@ void FSequencerActorBindingManager::SpawnOrDestroyObjectsForInstance( TSharedRef
 						if( NewActor )
 						{
 							// @todo sequencer: We're naming the actor based off of the spawnable's name.  Is that really what we want?
-							GEditor->SetActorLabelUnique( NewActor, Spawnable.GetDisplayName().ToString() );
+							GEditor->SetActorLabelUnique( NewActor, Spawnable.GetName() );
 
 							// Actor was spawned OK!
 

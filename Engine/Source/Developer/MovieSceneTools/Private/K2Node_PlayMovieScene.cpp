@@ -284,7 +284,7 @@ void UK2Node_PlayMovieScene::CreatePinForBoundObject( FMovieSceneBoundObject& Bo
 				if( Possessable.GetGuid() == BoundObject.GetPossessableGuid() )
 				{
 					// Found a name for this possessable
-					PinFriendlyName = Possessable.GetDisplayName();
+					PinFriendlyName = FText::FromString(Possessable.GetName());
 					break;
 				}
 			}

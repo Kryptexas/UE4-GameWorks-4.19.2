@@ -120,7 +120,7 @@ private:
 	 * 
 	 * @param ObjectBinding	The object binding guid
 	 */
-	TSharedRef<FObjectBindingNode> AddObjectBinding( const FText& ObjectName, const FGuid& ObjectBinding );
+	TSharedRef<FObjectBindingNode> AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding );
 private:
 	/** Tools for building movie scene section layouts.  One tool for each track */
 	TMap< class UMovieSceneTrack*, TSharedPtr<FMovieSceneTrackEditor> > EditorMap;

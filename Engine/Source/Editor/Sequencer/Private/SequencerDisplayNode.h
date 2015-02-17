@@ -368,7 +368,7 @@ public:
 	 * @param InParentNode		The parent of this node or NULL if this is a root node
 	 * @param InParentTree		The tree this node is in
 	 */
-	FObjectBindingNode( FName NodeName, const FText& InObjectName, const FGuid& InObjectBinding, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
+	FObjectBindingNode( FName NodeName, const FString& InObjectName, const FGuid& InObjectBinding, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
 		: FSequencerDisplayNode( NodeName, InParentNode, InParentTree )
 		, ObjectBinding( InObjectBinding )
 		, DisplayName( InObjectName )
@@ -376,7 +376,7 @@ public:
 
 	/** FSequencerDisplayNodeInterface */
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Object; }
-	virtual FText GetDisplayName() const override { return DisplayName; }
+	virtual FText GetDisplayName() const override { return FText::FromString(DisplayName); }
 	virtual float GetNodeHeight() const override;
 	virtual bool GetShotFilteredVisibilityToCache() const override;
 	
@@ -390,7 +390,7 @@ private:
 	/** The binding to live objects */
 	FGuid ObjectBinding;
 	/** Display name of the object */
-	FText DisplayName;
+	FString DisplayName;
 };
 
 /**
