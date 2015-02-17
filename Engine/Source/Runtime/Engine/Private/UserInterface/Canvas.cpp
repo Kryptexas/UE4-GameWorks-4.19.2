@@ -839,20 +839,18 @@ void FCanvas::Flush_GameThread(bool bForce)
 	{
 		ViewRect = FIntRect(FIntPoint::ZeroValue, RenderTargetSize);
 	}
-	if (IsScaledToRenderTarget())
-	{
-		ViewRect = FIntRect(0, 0, RenderTargetSize.X, RenderTargetSize.Y);
-	}
 
 	struct FCanvasFlushParameters
 	{
 		FIntRect ViewRect;
 		const FRenderTarget* CanvasRenderTarget;
+		bool bIsScaledToRenderTarget;
 	};
 	FCanvasFlushParameters FlushParameters =
 	{
 		ViewRect,
-		RenderTarget
+		RenderTarget,
+		IsScaledToRenderTarget()
 	};
 	bool bEmitCanvasDrawEvents = GEmitDrawEvents;
 
@@ -866,6 +864,11 @@ void FCanvas::Flush_GameThread(bool bForce)
 		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 		// disable depth test & writes
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+
+		if (Parameters.bIsScaledToRenderTarget)
+		{
+			Parameters.ViewRect = FIntRect(0, 0, Parameters.CanvasRenderTarget->GetRenderTargetTexture()->GetSizeX(), Parameters.CanvasRenderTarget->GetRenderTargetTexture()->GetSizeY());
+		}
 
 		const FIntRect& ViewportRect = Parameters.ViewRect;
 		// set viewport to RT size
