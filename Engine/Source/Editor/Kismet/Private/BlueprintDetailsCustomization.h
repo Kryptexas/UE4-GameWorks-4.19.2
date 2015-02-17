@@ -75,6 +75,8 @@ public:
 		, bIsVarNameInvalid(false)
 	{
 	}
+
+	~FBlueprintVarActionDetails();
 	
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
@@ -176,6 +178,9 @@ private:
 	/** Delegate to build variable events droplist menu */
 	TSharedRef<SWidget> BuildEventsMenuForVariable() const;
 	
+	/** Refreshes cached data that changes after a Blueprint recompile */
+	void OnPostEditorRefresh();
+
 private:
 	/** Pointer back to my parent tab */
 	TWeakPtr<SMyBlueprint> MyBlueprint;
@@ -200,6 +205,12 @@ private:
 
 	/** The listview widget for displaying property flags */
 	TWeakPtr< SListView< TSharedPtr< FString > > > PropertyFlagWidget;
+
+	/** Cached property for the variable we are affecting */
+	TWeakObjectPtr<UProperty> CachedVariableProperty;
+
+	/** Cached name for the variable we are affecting */
+	FName CachedVariableName;
 };
 
 class FBaseBlueprintGraphActionDetails : public IDetailCustomization
