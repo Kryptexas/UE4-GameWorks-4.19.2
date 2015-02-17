@@ -965,6 +965,32 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 				FWidgetStyle(),
 				WindowToDraw->IsEnabled() );
 
+			// Draw drag drop operation if it's windowless.
+			if ( IsDragDropping() && DragDropContent->IsWindowlessOperation() )
+			{
+				TSharedPtr<SWindow> DragDropWindow = DragDropWindowPtr.Pin();
+				if ( DragDropWindow.IsValid() && DragDropWindow == WindowToDraw )
+				{
+					TSharedPtr<SWidget> DecoratorWidget = DragDropContent->GetDefaultDecorator();
+					if ( DecoratorWidget.IsValid() && DecoratorWidget->GetVisibility().IsVisible() )
+					{
+						DecoratorWidget->SetVisibility(EVisibility::HitTestInvisible);
+						DecoratorWidget->SlatePrepass();
+
+						FVector2D DragDropContentInWindowSpace = WindowToDraw->GetWindowGeometryInScreen().AbsoluteToLocal(DragDropContent->GetDecoratorPosition());
+						const FGeometry DragDropContentGeometry = FGeometry::MakeRoot(DecoratorWidget->GetDesiredSize(), FSlateLayoutTransform(DragDropContentInWindowSpace));
+
+						DecoratorWidget->Paint(
+							FPaintArgs(WindowToDraw, *WindowToDraw->GetHittestGrid(), WindowToDraw->GetPositionInScreen(), GetCurrentTime(), GetDeltaTime()),
+							DragDropContentGeometry, WindowToDraw->GetClippingRectangleInWindow(),
+							WindowElementList,
+							++MaxLayerId,
+							FWidgetStyle(),
+							WindowToDraw->IsEnabled());
+					}
+				}
+			}
+
 			// Draw Software Cursor
 			TSharedPtr<SWindow> CursorWindow = CursorWindowPtr.Pin();
 			if (CursorWindow.IsValid() && WindowToDraw == CursorWindow)
@@ -4522,6 +4548,17 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
 		DragDropContent->OnDragged( DragDropEvent );
 
+		// Update the window we're under for rendering the drag drop operation if
+		// it's a windowless drag drop operation.
+		if ( WidgetsUnderCursor.IsValid() )
+		{
+			DragDropWindowPtr = WidgetsUnderCursor.GetWindow();
+		}
+		else
+		{
+			DragDropWindowPtr = nullptr;
+		}
+
 		// check the drag-drop operation for a cursor switch (on Windows, the OS thinks the mouse is
 		// captured so we wont get QueryCursor calls for drag/drops internal to the Slate application)
 		FCursorReply CursorResult = DragDropContent->OnCursorQuery();
@@ -4535,6 +4572,10 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 			// reset the cursor to default for drag-drops
 			PlatformApplication->Cursor->SetType( EMouseCursor::Default );
 		}
+	}
+	else
+	{
+		DragDropWindowPtr = nullptr;
 	}
 
 	WidgetsUnderCursorLastEvent = FWeakWidgetPath( WidgetsUnderCursor );

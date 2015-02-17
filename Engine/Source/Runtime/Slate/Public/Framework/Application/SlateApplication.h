@@ -1401,6 +1401,9 @@ private:
 	/** When not null, the content of the current drag drop operation. */
 	TSharedPtr< FDragDropOperation > DragDropContent;
 
+	/** The window the drag drop content is over. */
+	TWeakPtr< SWindow > DragDropWindowPtr;
+
 	/** Whether or not we are requesting that we leave debugging mode after the tick is complete */
 	bool bRequestLeaveDebugMode;
 	/** Whether or not we need to leave debug mode for single stepping */

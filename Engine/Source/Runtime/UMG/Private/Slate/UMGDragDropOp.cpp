@@ -17,6 +17,11 @@ void FUMGDragDropOp::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(DragOperation);
 }
 
+void FUMGDragDropOp::Construct()
+{
+
+}
+
 void FUMGDragDropOp::OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent )
 {
 	if ( DragOperation )
@@ -96,11 +101,12 @@ void FUMGDragDropOp::OnDragged( const class FDragDropEvent& DragDropEvent )
 	{
 		float T = DeltaTime / AnimationTime;
 		FVector2D LerpPosition = ( Position - StartingScreenPos ) * T;
-		CursorDecoratorWindow->MoveWindowTo(StartingScreenPos + LerpPosition);
+		
+		DecoratorPosition = StartingScreenPos + LerpPosition;
 	}
 	else
 	{
-		CursorDecoratorWindow->MoveWindowTo(Position);
+		DecoratorPosition = Position;
 	}
 }
 
