@@ -12,15 +12,19 @@ void SGraphPinText::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinO
 
 TSharedRef<SWidget>	SGraphPinText::GetDefaultValueWidget()
 {
-	return SNew(SEditableTextBox)
-				.Style( FEditorStyle::Get(), "Graph.EditableTextBox" )
-				.Text( this, &SGraphPinText::GetTypeInValue )
-				.SelectAllTextWhenFocused(true)
-				.MinDesiredWidth( 18.0f )
-				.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
-				.IsReadOnly(this, &SGraphPinText::GetDefaultValueIsReadOnly )
-				.OnTextCommitted( this, &SGraphPinText::SetTypeInValue )
-				.ForegroundColor( FSlateColor::UseForeground() );
+	return SNew(SBox)
+		.MinDesiredWidth(18.0f)
+		[
+			SNew(SMultiLineEditableTextBox)
+			.Style(FEditorStyle::Get(), "Graph.EditableTextBox")
+			.Text(this, &SGraphPinText::GetTypeInValue)
+			.SelectAllTextWhenFocused(true)
+			.Visibility(this, &SGraphPin::GetDefaultValueVisibility)
+			.IsReadOnly(this, &SGraphPinText::GetDefaultValueIsReadOnly)
+			.OnTextCommitted(this, &SGraphPinText::SetTypeInValue)
+			.ForegroundColor(FSlateColor::UseForeground())
+			.ModiferKeyForNewLine(EModifierKey::Shift)
+		];
 }
 
 FText SGraphPinText::GetTypeInValue() const
