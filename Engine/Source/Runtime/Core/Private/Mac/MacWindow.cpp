@@ -537,16 +537,19 @@ bool FMacWindow::IsForegroundWindow() const
 
 void FMacWindow::SetText(const TCHAR* const Text)
 {
-	CFStringRef CFName = FPlatformString::TCHARToCFString(Text);
-	MainThreadCall(^{
-		SCOPED_AUTORELEASE_POOL;
-		[WindowHandle setTitle: (NSString*)CFName];
-		if (IsRegularWindow())
-		{
-			[NSApp changeWindowsItem:WindowHandle title:(NSString*)CFName filename:NO];
-		}
-		CFRelease(CFName);
-	}, UE4NilEventMode, true);
+	if( FString([WindowHandle title]) != FString(Text) )
+	{
+		CFStringRef CFName = FPlatformString::TCHARToCFString( Text );
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
+			[WindowHandle setTitle: (NSString*)CFName];
+			if (IsRegularWindow())
+			{
+				[NSApp changeWindowsItem: WindowHandle title: (NSString*)CFName filename: NO];
+			}
+			CFRelease( CFName );
+		}, UE4NilEventMode, true);
+	}
 }
 
 bool FMacWindow::IsRegularWindow() const
