@@ -188,6 +188,7 @@ FReply SSCSEditor::TryHandleAssetDragDropOperation(const FDragDropEvent& DragDro
 					if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(AddNewComponent(UChildActorComponent::StaticClass(), nullptr)))
 					{
 						ChildActorComponent->ChildActorClass = PotentialActorClass;
+						ChildActorComponent->CreateChildActor();
 					}
 				}
 			}
@@ -4383,6 +4384,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 
 			// Add to SerializedComponents array so it gets saved
 			ActorInstance->AddInstanceComponent(NewInstanceComponent);
+			NewInstanceComponent->OnComponentCreated();
 			NewInstanceComponent->RegisterComponent();
 
 			NewComponent = AddNewNodeForInstancedComponent(NewInstanceComponent, Asset);
