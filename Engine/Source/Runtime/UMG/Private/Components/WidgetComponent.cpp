@@ -603,9 +603,9 @@ public:
 		, RenderTarget( SourceComponent->GetRenderTarget() )
 	{}
 
-	virtual void ApplyToComponent(UActorComponent* Component) override
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
-		FSceneComponentInstanceData::ApplyToComponent(Component);
+		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 		CastChecked<UWidgetComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
@@ -620,7 +620,7 @@ FName UWidgetComponent::GetComponentInstanceDataType() const
 	return InstanceDataName;
 }
 
-FComponentInstanceDataBase* UWidgetComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* UWidgetComponent::GetComponentInstanceData() const
 {
 	return new FWidgetComponentInstanceData( this );
 }

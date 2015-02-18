@@ -332,9 +332,9 @@ FPrimitiveComponentInstanceData::FPrimitiveComponentInstanceData(const UPrimitiv
 {
 }
 
-void FPrimitiveComponentInstanceData::ApplyToComponent(UActorComponent* Component)
+void FPrimitiveComponentInstanceData::ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
 {
-	FSceneComponentInstanceData::ApplyToComponent(Component);
+	FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 
 	if (ContainsSavedProperties() && Component->IsRegistered())
 	{
@@ -347,7 +347,7 @@ bool FPrimitiveComponentInstanceData::ContainsData() const
 	return (ContainsSavedProperties() || AttachedInstanceComponents.Num() > 0);
 }
 
-FComponentInstanceDataBase* UPrimitiveComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* UPrimitiveComponent::GetComponentInstanceData() const
 {
 	FPrimitiveComponentInstanceData* InstanceData = new FPrimitiveComponentInstanceData(this);
 

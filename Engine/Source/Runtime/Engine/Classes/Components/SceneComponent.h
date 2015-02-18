@@ -4,7 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "Engine/EngineTypes.h"
 #include "RHIDefinitions.h"
-#include "ComponentInstanceDataCache.h" // for FComponentInstanceDataBase
+#include "ComponentInstanceDataCache.h" // for FActorComponentInstanceData
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -521,7 +521,7 @@ public:
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
-	virtual class FComponentInstanceDataBase* GetComponentInstanceData() const override;
+	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
 	// End ActorComponent interface
 
@@ -812,7 +812,7 @@ protected:
  *  Component instance cached data base class for scene components. 
  *  Stores a list of instance components attached to the 
  */
-class ENGINE_API FSceneComponentInstanceData : public FComponentInstanceDataBase
+class ENGINE_API FSceneComponentInstanceData : public FActorComponentInstanceData
 {
 public:
 	FSceneComponentInstanceData(const USceneComponent* SourceComponent);
@@ -820,7 +820,7 @@ public:
 	virtual ~FSceneComponentInstanceData()
 	{}
 
-	virtual void ApplyToComponent(UActorComponent* Component) override;
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override;
 	virtual void FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap) override;
 
 	TArray<USceneComponent*> AttachedInstanceComponents;

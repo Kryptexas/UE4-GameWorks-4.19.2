@@ -1163,7 +1163,7 @@ bool USceneComponent::IsAttachedTo(class USceneComponent* TestComp) const
 }
 
 FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* SourceComponent)
-	: FComponentInstanceDataBase(SourceComponent)
+	: FActorComponentInstanceData(SourceComponent)
 {
 	for (int32 i = SourceComponent->AttachChildren.Num()-1; i >= 0; --i)
 	{
@@ -1175,9 +1175,9 @@ FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* 
 	}
 }
 
-void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component)
+void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
 {
-	FComponentInstanceDataBase::ApplyToComponent(Component);
+	FActorComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 
 	USceneComponent* SceneComponent = CastChecked<USceneComponent>(Component);
 
@@ -1206,9 +1206,9 @@ void FSceneComponentInstanceData::FindAndReplaceInstances(const TMap<UObject*, U
 	}
 }
 
-FComponentInstanceDataBase* USceneComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* USceneComponent::GetComponentInstanceData() const
 {
-	FComponentInstanceDataBase* InstanceData = nullptr;
+	FActorComponentInstanceData* InstanceData = nullptr;
 
 	for (USceneComponent* Child : AttachChildren)
 	{

@@ -958,7 +958,7 @@ public:
 	virtual bool IsEditorOnly() const override;
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual bool HasValidPhysicsState() const override;
-	virtual class FComponentInstanceDataBase* GetComponentInstanceData() const override;
+	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
 	// End UActorComponent Interface
 
@@ -1663,7 +1663,7 @@ public:
 	virtual ~FPrimitiveComponentInstanceData()
 	{}
 
-	virtual void ApplyToComponent(UActorComponent* Component) override;
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override;
 
 	bool ContainsData() const;
 };
