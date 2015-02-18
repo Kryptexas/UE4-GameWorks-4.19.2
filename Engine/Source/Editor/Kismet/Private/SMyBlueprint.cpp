@@ -229,6 +229,7 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 			.HasDownArrow(true)
 			.ContentPadding(FMargin(1, 0, 2, 0))
 			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MyBlueprintAddNewCombo")))
+			.IsEnabled(this, &SMyBlueprint::IsEditingMode)
 			.ButtonContent()
 			[
 				SNew(SHorizontalBox)

@@ -3142,6 +3142,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 					.Visibility(bHideComponentClassCombo ? EVisibility::Hidden : EVisibility::Visible)
 					.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
 					.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Adds a new component to this actor"))
+					.IsEnabled(AllowEditing)
 				]
 
 				+ SHorizontalBox::Slot()
