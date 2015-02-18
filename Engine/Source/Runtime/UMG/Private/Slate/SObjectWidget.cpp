@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 
+#include "WidgetLayoutLibrary.h"
 #include "UMGDragDropOp.h"
 
 void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObject)
