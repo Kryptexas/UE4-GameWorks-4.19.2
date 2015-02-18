@@ -67,7 +67,7 @@ public:
 	 * If disabled, only modified files will be built, which can improve iteration time.
 	 * Unless you iterate on packaging, we recommend full rebuilds when packaging.
 	 */
-	UPROPERTY(config, EditAnywhere, Category=Project, AdvancedDisplay)
+	UPROPERTY(config, EditAnywhere, Category=Project)
 	bool FullRebuild;
 
 	/**
@@ -77,6 +77,10 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Project)
 	bool ForDistribution;
+
+	/** If enabled, debug files will be included in the packaged game */
+	UPROPERTY(config, EditAnywhere, Category=Project)
+	bool IncludeDebugFiles;
 
 	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
