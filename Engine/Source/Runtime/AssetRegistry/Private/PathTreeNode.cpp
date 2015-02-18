@@ -163,7 +163,7 @@ const FPathTreeNode* FPathTreeNode::FindNode_Recursive(TArray<FString>& PathElem
 
 void FPathTreeNode::GetSubPaths_Recursive(const FString& CurrentPath, TSet<FName>& OutPaths, bool bRecurse) const
 {
-	FString NewPath = CurrentPath + TEXT("/") + FolderName;
+	FString NewPath = CurrentPath / FolderName;
 	OutPaths.Add(FName(*NewPath));
 
 	if(bRecurse)
