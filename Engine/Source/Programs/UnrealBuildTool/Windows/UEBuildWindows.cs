@@ -40,15 +40,9 @@ namespace UnrealBuildTool
                 }
 
                 // First check if Visual Sudio 2013 is installed.
-                // If both 2012 and 2013 are installed, prefer 2013
                 if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
                 {
                     CachedCompiler = WindowsCompiler.VisualStudio2013;
-                }
-                // Next try Visual Studio 2012
-                else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
-                {
-                    CachedCompiler = WindowsCompiler.VisualStudio2012;
                 }
                 // Finally assume 2013 is installed to defer errors somewhere else like VCToolChain
                 else
@@ -182,13 +176,6 @@ namespace UnrealBuildTool
          */
         protected override void RegisterBuildPlatformInternal()
         {
-			// All the plumbing for VS2012 is still in place to support console toolchains that piggy-back on the VS2012 environment, but we require VS2013 for building the editor
-			// and host tools. We always prefer VS2013 over VS2012, so if we detected VS2012 as the only installed compiler, halt now.
-            if (!Utils.IsRunningOnMono && Compiler == WindowsCompiler.VisualStudio2012)
-            {
-				throw new BuildException("Visual Studio 2012 is no longer supported for building the editor and host platform tools. Please also install Visual Studio 2013.");
-            }
-
             // Register this build platform for both Win64 and Win32
             Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Win64.ToString());
             UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.Win64, this);
