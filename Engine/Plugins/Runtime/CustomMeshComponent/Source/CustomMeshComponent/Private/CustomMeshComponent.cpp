@@ -233,10 +233,27 @@ UCustomMeshComponent::UCustomMeshComponent( const FObjectInitializer& ObjectInit
 bool UCustomMeshComponent::SetCustomMeshTriangles(const TArray<FCustomMeshTriangle>& Triangles)
 {
 	CustomMeshTris = Triangles;
+
 	// Need to recreate scene proxy to send it over
 	MarkRenderStateDirty();
 
 	return true;
+}
+
+void UCustomMeshComponent::AddCustomMeshTriangles(const TArray<FCustomMeshTriangle>& Triangles)
+{
+	CustomMeshTris.Append(Triangles);
+
+	// Need to recreate scene proxy to send it over
+	MarkRenderStateDirty();
+}
+
+void  UCustomMeshComponent::ClearCustomMeshTriangles()
+{
+	CustomMeshTris.Reset();
+
+	// Need to recreate scene proxy to send it over
+	MarkRenderStateDirty();
 }
 
 
