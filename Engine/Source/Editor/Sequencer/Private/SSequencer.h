@@ -100,6 +100,9 @@ private:
 	/** Makes the curve editor menu for the toolbar. */
 	TSharedRef<SWidget> MakeCurveEditorMenu();
 
+	/** Makes and configures a set of the standard UE transport controls. */
+	TSharedRef<SWidget> MakeTransportControls();
+
 	/**
 	* @return The value of the current time snap interval.
 	*/

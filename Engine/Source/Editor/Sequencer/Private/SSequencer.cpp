@@ -24,6 +24,7 @@
 #include "CommonMovieSceneTools.h"
 #include "SSearchBox.h"
 #include "SNumericDropDown.h"
+#include "EditorWidgetsModule.h"
 
 
 #define LOCTEXT_NAMESPACE "Sequencer"
@@ -263,8 +264,9 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 				SNew( SHorizontalBox )
 				+ SHorizontalBox::Slot()
 				.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
+				.HAlign(HAlign_Center)
 				[
-					SNew( SSpacer )
+					MakeTransportControls()
 				]
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
@@ -431,6 +433,24 @@ TSharedRef<SWidget> SSequencer::MakeCurveEditorMenu()
 	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef<SWidget> SSequencer::MakeTransportControls()
+{
+	FEditorWidgetsModule& EditorWidgetsModule = FModuleManager::Get().LoadModuleChecked<FEditorWidgetsModule>( "EditorWidgets" );
+	TSharedRef<FSequencer> SequencerPinned = Sequencer.Pin().ToSharedRef();
+
+	FTransportControlArgs TransportControlArgs;
+	TransportControlArgs.OnBackwardEnd.BindSP( SequencerPinned, &FSequencer::OnStepToBeginning );
+	TransportControlArgs.OnBackwardStep.BindSP( SequencerPinned, &FSequencer::OnStepBackward );
+	TransportControlArgs.OnForwardPlay.BindSP( SequencerPinned, &FSequencer::OnPlay );
+	TransportControlArgs.OnForwardStep.BindSP( SequencerPinned, &FSequencer::OnStepForward );
+	TransportControlArgs.OnForwardEnd.BindSP( SequencerPinned, &FSequencer::OnStepToEnd );
+	TransportControlArgs.OnToggleLooping.BindSP( SequencerPinned, &FSequencer::OnToggleLooping );
+	TransportControlArgs.OnGetLooping.BindSP( SequencerPinned, &FSequencer::IsLooping );
+	TransportControlArgs.OnGetPlaybackMode.BindSP( SequencerPinned, &FSequencer::GetPlaybackMode );
+
+	return EditorWidgetsModule.CreateTransportControl( TransportControlArgs );
 }
 
 SSequencer::~SSequencer()
