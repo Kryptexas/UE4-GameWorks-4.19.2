@@ -24,7 +24,6 @@
 #include "GameFramework/PlayerState.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
-DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

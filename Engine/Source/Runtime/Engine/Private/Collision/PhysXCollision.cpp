@@ -476,7 +476,7 @@ private:
 #define VERIFY_GEOMSWEEPSINGLE 0
 #define VERIFY_GEOMSWEEPMULTI 0
 
-static float DebugLineLifetime = 2.f;
+float DebugLineLifetime = 2.f;
 
 /**
  * Helper to lock/unlock multiple scenes that also makes sure to unlock everything when it goes out of scope.
