@@ -950,10 +950,9 @@ void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimit )
 				GGCObjectsPendingDestruction.Empty( 256 );
 
 				// Destroy has been routed to all objects so it's safe to delete objects now.
-				GObjFinishDestroyHasBeenRoutedToAllObjects		= true;
-				GObjCurrentPurgeObjectIndexNeedsReset			= true;
-				GObjCurrentPurgeObjectIndexResetPastPermanent	= true;
-
+				GObjFinishDestroyHasBeenRoutedToAllObjects = true;
+				GObjCurrentPurgeObjectIndexNeedsReset = true;
+				GObjCurrentPurgeObjectIndexResetPastPermanent = !GExitPurge;
 			}
 		}
 	}		
