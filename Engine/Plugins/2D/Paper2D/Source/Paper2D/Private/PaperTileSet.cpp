@@ -67,36 +67,37 @@ int32 UPaperTileSet::GetTileCountY() const
 
 bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) const
 {
-	//@TODO: Performance: should cache this stuff
-	if (TileSheet != nullptr)
-	{
-		checkSlow((TileWidth > 0) && (TileHeight > 0));
-		const int32 TextureWidth = TileSheet->GetSizeX() - (Margin * 2) + Spacing;
-		const int32 TextureHeight = TileSheet->GetSizeY() - (Margin * 2) + Spacing;
+	const int32 NumCells = GetTileCount();
 
-		const int32 CellsX = TextureWidth / (TileWidth + Spacing);
-		const int32 CellsY = TextureHeight / (TileHeight + Spacing);
-
-		const int32 NumCells = CellsX * CellsY;
-
-		if ((TileIndex < 0) || (TileIndex >= NumCells))
-		{
-			return false;
-		}
-		else
-		{
-			const int32 X = TileIndex % CellsX;
-			const int32 Y = TileIndex / CellsX;
-
-			Out_TileUV.X = X * (TileWidth + Spacing) + Margin;
-			Out_TileUV.Y = Y * (TileHeight + Spacing) + Margin;
-			return true;
-		}
-	}
-	else
+	if ((TileIndex < 0) || (TileIndex >= NumCells))
 	{
 		return false;
 	}
+	else
+	{
+		const int32 CellsX = GetTileCountX();
+
+		const FIntPoint XY(TileIndex % CellsX, TileIndex / CellsX);
+
+		Out_TileUV = GetTileUVFromTileXY(XY);
+		return true;
+	}
+}
+
+FIntPoint UPaperTileSet::GetTileUVFromTileXY(const FIntPoint& TileXY) const
+{
+	return FIntPoint(TileXY.X * (TileWidth + Spacing) + Margin, TileXY.Y * (TileHeight + Spacing) + Margin);
+}
+
+FIntPoint UPaperTileSet::GetTileXYFromTextureUV(const FVector2D& TextureUV, bool bRoundUp) const
+{
+	const float DividendX = TextureUV.X - Margin;
+	const float DividendY = TextureUV.Y - Margin;
+	const float DivisorX = TileWidth + Spacing;
+	const float DivisorY = TileHeight + Spacing;
+	const int32 X = bRoundUp ? FMath::DivideAndRoundUp<int32>(DividendX, DivisorX) : FMath::DivideAndRoundDown<int32>(DividendX, DivisorX);
+	const int32 Y = bRoundUp ? FMath::DivideAndRoundUp<int32>(DividendY, DivisorY) : FMath::DivideAndRoundDown<int32>(DividendY, DivisorY);
+	return FIntPoint(X, Y);
 }
 
 #if WITH_EDITOR

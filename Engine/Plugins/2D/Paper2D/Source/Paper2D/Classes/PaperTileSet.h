@@ -55,4 +55,8 @@ public:
 	int32 GetTileCountY() const;
 
 	bool GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) const;
+	FIntPoint GetTileUVFromTileXY(const FIntPoint& TileXY) const;
+
+	// Converts the texture coordinates into tile coordinates
+	FIntPoint GetTileXYFromTextureUV(const FVector2D& TextureUV, bool bRoundUp) const;
 };

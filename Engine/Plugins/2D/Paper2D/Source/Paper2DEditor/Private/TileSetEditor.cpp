@@ -216,14 +216,16 @@ void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, boo
 	const FVector2D BottomRightUnrounded = Marquee.Rect.GetLowerRight();
 	if ((TopLeftUnrounded != FVector2D::ZeroVector) || Marquee.IsValid())
 	{
+		const int32 TileCountX = TileSetBeingEdited->GetTileCountX();
+		const int32 TileCountY = TileSetBeingEdited->GetTileCountY();
+
 		// Round down the top left corner
-		SelectionTopLeft.X = FMath::Clamp<int>((int)(TopLeftUnrounded.X / TileSetBeingEdited->TileWidth), 0, TileSetBeingEdited->GetTileCountX());
-		SelectionTopLeft.Y = FMath::Clamp<int>((int)(TopLeftUnrounded.Y / TileSetBeingEdited->TileHeight), 0, TileSetBeingEdited->GetTileCountY());
+		const FIntPoint TileTopLeft = TileSetBeingEdited->GetTileXYFromTextureUV(TopLeftUnrounded, false);
+		SelectionTopLeft = FIntPoint(FMath::Clamp<int32>(TileTopLeft.X, 0, TileCountX), FMath::Clamp<int32>(TileTopLeft.Y, 0, TileCountY));
 
 		// Round up the bottom right corner
-		FIntPoint SelectionBottomRight;
-		SelectionBottomRight.X = FMath::Clamp<int>(FMath::DivideAndRoundUp((int)BottomRightUnrounded.X, TileSetBeingEdited->TileWidth), 0, TileSetBeingEdited->GetTileCountX());
-		SelectionBottomRight.Y = FMath::Clamp<int>(FMath::DivideAndRoundUp((int)BottomRightUnrounded.Y, TileSetBeingEdited->TileHeight), 0, TileSetBeingEdited->GetTileCountY());
+		const FIntPoint TileBottomRight = TileSetBeingEdited->GetTileXYFromTextureUV(BottomRightUnrounded, true);
+		const FIntPoint SelectionBottomRight(FMath::Clamp<int32>(TileBottomRight.X, 0, TileCountX), FMath::Clamp<int32>(TileBottomRight.Y, 0, TileCountY));
 
 		// Compute the new selection dimensions
 		SelectionDimensions = SelectionBottomRight - SelectionTopLeft;
@@ -266,11 +268,14 @@ void STileSetSelectorViewport::RefreshSelectionRectangle()
 		const int32 TileIndex = (bHasSelection && (TileSetBeingEdited != nullptr)) ? (SelectionTopLeft.X + SelectionTopLeft.Y * TileSetBeingEdited->GetTileCountX()) : INDEX_NONE;
 		Client->TileIndex = TileIndex;
 
-		if (bHasSelection)
+		if (bHasSelection && (TileSetBeingEdited != nullptr))
 		{
 			Client->ValidPaintRectangle.Color = FLinearColor::White;
-			Client->ValidPaintRectangle.Dimensions = FVector2D(SelectionDimensions.X * TileSetBeingEdited->TileWidth, SelectionDimensions.Y * TileSetBeingEdited->TileHeight);
-			Client->ValidPaintRectangle.TopLeft = FVector2D(SelectionTopLeft.X * TileSetBeingEdited->TileWidth, SelectionTopLeft.Y * TileSetBeingEdited->TileHeight);
+
+			const FIntPoint TopLeft = TileSetBeingEdited->GetTileUVFromTileXY(SelectionTopLeft);
+			const FIntPoint BottomRight = TileSetBeingEdited->GetTileUVFromTileXY(SelectionTopLeft + SelectionDimensions);
+			Client->ValidPaintRectangle.Dimensions = BottomRight - TopLeft;
+			Client->ValidPaintRectangle.TopLeft = TopLeft;
 		}
 	}
 }
