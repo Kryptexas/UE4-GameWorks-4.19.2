@@ -154,10 +154,7 @@ protected:
 
 	/** Helper method for registering client replicated callbacks */
 	
-	bool CallOrAddReplicatedDelegate(EAbilityReplicatedClientEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate)
-	{
-		return AbilitySystemComponent->CallOrAddReplicatedDelegate(Event, GetAbilitySpecHandle(), GetActivationPredictionKey(), Delegate);
-	}
+	bool CallOrAddReplicatedDelegate(EAbilityReplicatedClientEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate);
 };
 
 //For searching through lists of ability instances

@@ -183,3 +183,8 @@ bool UAbilityTask::IsForRemoteClient() const
 
 	return false;
 }
+
+bool UAbilityTask::CallOrAddReplicatedDelegate(EAbilityReplicatedClientEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate)
+{
+	return AbilitySystemComponent->CallOrAddReplicatedDelegate(Event, GetAbilitySpecHandle(), GetActivationPredictionKey(), Delegate);
+}
