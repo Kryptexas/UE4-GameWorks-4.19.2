@@ -1466,7 +1466,7 @@ FLinearColor GetViewSelectionColor(const FLinearColor& BaseColor, const FSceneVi
 	{
 		FinalColor = GEngine->GetSubduedSelectionOutlineColor();
 	}
-	else
+	else if( bSelected )
 #endif
 	{
 		FinalColor = GEngine->GetSelectedMaterialColor();
