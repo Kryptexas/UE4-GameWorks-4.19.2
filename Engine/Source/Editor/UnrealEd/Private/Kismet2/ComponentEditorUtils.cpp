@@ -489,9 +489,18 @@ UActorComponent* FComponentEditorUtils::DuplicateComponent(UActorComponent* Temp
 		FName NewComponentName = *FComponentEditorUtils::GenerateValidVariableName(ComponentClass, Actor);
 
 		bool bKeepWorldLocationOnAttach = false;
-		NewCloneComponent = NewObject<UActorComponent>(Actor, ComponentClass, NewComponentName, RF_Transactional, TemplateComponent);
+
+		const bool bTemplateTransactional = TemplateComponent->HasAllFlags(RF_Transactional);
+		TemplateComponent->SetFlags(RF_Transactional);
+
+		NewCloneComponent = DuplicateObject<UActorComponent>(TemplateComponent, Actor, *NewComponentName.ToString() );
 		
-		auto NewSceneComponent = Cast<USceneComponent>(NewCloneComponent);
+		if (!bTemplateTransactional)
+		{
+			TemplateComponent->ClearFlags(RF_Transactional);
+		}
+			
+		USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewCloneComponent);
 		if (NewSceneComponent)
 		{
 			// Ensure the clone doesn't think it has children
@@ -509,6 +518,8 @@ UActorComponent* FComponentEditorUtils::DuplicateComponent(UActorComponent* Temp
 				NewSceneComponent->AttachTo(RootComponent, NAME_None, EAttachLocation::KeepWorldPosition);
 			}
 		}
+
+		NewCloneComponent->OnComponentCreated();
 
 		// Add to SerializedComponents array so it gets saved
 		Actor->AddInstanceComponent(NewCloneComponent);
