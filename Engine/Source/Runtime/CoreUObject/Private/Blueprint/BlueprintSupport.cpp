@@ -6,7 +6,6 @@
 #include "Linker.h"
 #include "PropertyTag.h"
 
-
 /** 
  * Defined in BlueprintSupport.cpp
  * Duplicates all fields of a class in depth-first order. It makes sure that everything contained
@@ -523,6 +522,24 @@ bool ULinkerLoad::DeferExportCreation(const int32 Index)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 	return true;
+}
+
+int32 ULinkerLoad::FindCDOExportIndex(UClass* LoadClass)
+{
+	DEFERRED_DEPENDENCY_CHECK(LoadClass->GetLinker() == this);
+	int32 const ClassExportIndex = LoadClass->GetLinkerIndex();
+
+	// @TODO: the cdo SHOULD be listed after the class in the ExportMap, so we 
+	//        could start with ClassExportIndex to save on some cycles
+	for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
+	{
+		FObjectExport& Export = ExportMap[ExportIndex];
+		if ((Export.ObjectFlags & RF_ClassDefaultObject) && Export.ClassIndex.IsExport() && (Export.ClassIndex.ToExport() == ClassExportIndex))
+		{
+			return ExportIndex;
+		}
+	}
+	return INDEX_NONE;
 }
 
 /**

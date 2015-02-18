@@ -2989,26 +2989,28 @@ void ULinkerLoad::Preload( UObject* Object )
 							UClass* ObjectAsClass = (UClass*)Object;
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 							check(bIsBlueprintClass);
-							// since class serialization reads in the class's CDO, 
-							// then we can be certain that the CDO export object 
-							// exists (and DeferredExportIndex should reference it);
-							// FinalizeBlueprint() depends on this (and since 
-							// ResolveDeferredDependencies() can recurse into 
-							// FinalizeBlueprint(), we check it here, before the
+							// since class serialization reads in the class's CDO, then we can be certain that the CDO export object exists 
+							// (and DeferredExportIndex should reference it); FinalizeBlueprint() depends on DeferredExportIndex being set 
+							// (and since ResolveDeferredDependencies() can recurse into FinalizeBlueprint(), we check it here, before the 
 							// resolve is handled)
 							//
-							// however, sometimes DeferredExportIndex doesn't get
-							// set at all, and that happens when the class's 
-							// ClassGeneratedBy is serialized in null... this would 
-							// normally be a problem in the editor (we don't end up
-							// regenerating the class), but if we're running the 
-							// game (in PIE or elsewhere) it shouldn't be a concern 
-							// (if it makes you feel better: with the old way of 
-							// doing things, in CreateExport(), you can see that 
-							// the class wouldn't be regenerated there either)... in
-							// this scenario FinalizeBlueprint() essentially does nothing
-							// @TODO: maybe only allow a null ClassGeneratedBy when PIE'ing/running a game?
-							check((DeferredCDOIndex != INDEX_NONE) || (ObjectAsClass->ClassGeneratedBy == nullptr) || FBlueprintSupport::IsDeferredCDOSerializationDisabled());
+							// however, sometimes DeferredExportIndex doesn't get set at all (we have to utilize FindCDOExportIndex() to set
+							// it), and that happens when the class's ClassGeneratedBy is serialized in null... this will happen for cooked 
+							// builds (because Blueprints are editor-only objects)
+							check((DeferredCDOIndex != INDEX_NONE) || FPlatformProperties::RequiresCookedData() || FBlueprintSupport::IsDeferredCDOSerializationDisabled());
+
+							if ((DeferredCDOIndex == INDEX_NONE) && !FBlueprintSupport::IsDeferredCDOSerializationDisabled())
+							{
+								DeferredCDOIndex = FindCDOExportIndex(ObjectAsClass);
+								check(DeferredCDOIndex != INDEX_NONE);
+							}
+#else  // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+							// just because DeferredCDOIndex wasn't set (in cooked/PIE scenarios) doesn't mean that we don't need it 
+							// (FinalizeBlueprint() relies on it being set), so here we make sure we flag the CDO so it gets resolved
+							if ((DeferredCDOIndex == INDEX_NONE))
+							{
+								DeferredCDOIndex = FindCDOExportIndex(ObjectAsClass);
+							}
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 							ResolveDeferredDependencies(ObjectAsClass);
