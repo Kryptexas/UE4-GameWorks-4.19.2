@@ -49,9 +49,12 @@ void UChildActorComponent::PostEditUndo()
 	// to do right now, so this will go away when that is done.
 	for (USceneComponent*& Component : AttachChildren)
 	{
-		if (Component->IsPendingKill() && Component->GetOwner() == ChildActor)
+		if (Component)
 		{
-			Component = ChildActor->GetRootComponent();
+			if (Component->IsPendingKill() && Component->GetOwner() == ChildActor)
+			{
+				Component = ChildActor->GetRootComponent();
+			}
 		}
 	}
 	
@@ -258,7 +261,14 @@ void UChildActorComponent::DestroyChildActor()
 		// if still alive, destroy, otherwise just clear the pointer
 		if(!ChildActor->IsPendingKill())
 		{
+#if WITH_EDITOR
+			if (CachedInstanceData)
+			{
+				delete CachedInstanceData;
+			}
+#else
 			check(!CachedInstanceData);
+#endif
 			CachedInstanceData = new FChildActorComponentInstanceData(this);
 
 			UWorld* World = ChildActor->GetWorld();
