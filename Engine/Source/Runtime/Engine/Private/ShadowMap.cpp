@@ -1035,9 +1035,16 @@ FArchive& operator<<(FArchive& Ar,FShadowMap*& R)
 
 	Ar << ShadowMapType;
 
-	if (Ar.IsLoading() && ShadowMapType == FShadowMap::SMT_2D)
+	if (Ar.IsLoading())
 	{
-		R = new FShadowMap2D();
+		if (ShadowMapType == FShadowMap::SMT_2D)
+		{
+			R = new FShadowMap2D();
+		}
+		else
+		{
+			R = NULL;
+		}
 	}
 
 	if (R != NULL)
