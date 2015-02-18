@@ -701,7 +701,7 @@ void GameProjectUtils::OpenAddToProjectDialog(const FAddToProjectConfig& Config,
 	FText WindowTitle = Config._WindowTitle;
 	if (WindowTitle.IsEmpty())
 	{
-		WindowTitle = InDomain == EClassDomain::Native ? LOCTEXT("AddCodeWindowHeader_Native", "Add Code") : LOCTEXT("AddCodeWindowHeader_Blueprint", "Add Blueprint");
+		WindowTitle = InDomain == EClassDomain::Native ? LOCTEXT("AddCodeWindowHeader_Native", "Add C++ Class") : LOCTEXT("AddCodeWindowHeader_Blueprint", "Add Blueprint Class");
 	}
 
 	TSharedRef<SWindow> AddCodeWindow =
