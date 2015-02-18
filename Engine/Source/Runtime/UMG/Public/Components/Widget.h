@@ -350,7 +350,7 @@ public:
 #if WITH_EDITOR
 	FORCEINLINE bool CanSafelyRouteEvent()
 	{
-		return !( IsDesignTime() || GIsRoutingPostLoad || GIntraFrameDebuggingGameThread );
+		return !( IsDesignTime() || GIsRoutingPostLoad || GIntraFrameDebuggingGameThread || HasAnyFlags(RF_Unreachable) );
 	}
 #else
 	FORCEINLINE bool CanSafelyRouteEvent() { return true; }
