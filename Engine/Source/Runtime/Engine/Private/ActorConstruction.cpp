@@ -296,8 +296,10 @@ void AActor::RerunConstructionScripts()
 				Parent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.Actor.Get();
 				if (Parent)
 				{
-					DetachRootComponentFromParent();
+					USceneComponent* AttachParent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParent.Get();
+					ParentComponent = (AttachParent ? AttachParent : FindObjectFast<USceneComponent>(Parent, ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParentName));
 					SocketName = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.SocketName;
+					DetachRootComponentFromParent();
 				}
 
 				for (const auto& CachedAttachInfo : ActorTransactionAnnotation->RootComponentData.AttachedToInfo)
