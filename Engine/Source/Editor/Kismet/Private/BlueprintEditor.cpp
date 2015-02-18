@@ -628,10 +628,6 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 	{
 		StartEditingDefaults(/*bAutoFocus=*/ false, true);
 	}
-	else if (CurrentUISelection != FName())
-	{
-		ensureMsgf(false, TEXT("Unknown UI selection state in FBlueprintEditor::RefreshEditors"));
-	}
 
 	//@TODO: Should determine when we need to do the invalid/refresh business and if the graph node selection change
 	// under non-compiles is necessary (except when the selection mode is appropriate, as already detected above)
