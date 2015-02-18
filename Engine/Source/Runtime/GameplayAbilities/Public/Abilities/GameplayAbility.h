@@ -635,7 +635,7 @@ protected:
 	//
 	// ----------------------------------------------------------------------------------------------------------------
 	
-	/** Abilities with these tags are canceled when this ability is executed */
+	/** Abilities with these tags are cancelled when this ability is executed */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer CancelAbilitiesWithTag;
 

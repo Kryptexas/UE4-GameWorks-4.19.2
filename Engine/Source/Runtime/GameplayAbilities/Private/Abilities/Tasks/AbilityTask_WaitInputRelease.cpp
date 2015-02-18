@@ -26,6 +26,10 @@ void UAbilityTask_WaitInputRelease::OnReleaseCallback()
 		// Tell the server about this
 		AbilitySystemComponent->ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey);
 	}
+	else
+	{
+		AbilitySystemComponent->ConsumeReplicatedClientEvent(EAbilityReplicatedClientEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey());
+	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
 	OnRelease.Broadcast(ElapsedTime);

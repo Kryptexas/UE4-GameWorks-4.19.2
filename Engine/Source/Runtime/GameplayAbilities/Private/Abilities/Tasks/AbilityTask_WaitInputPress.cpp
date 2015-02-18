@@ -26,6 +26,10 @@ void UAbilityTask_WaitInputPress::OnPressCallback()
 		// Tell the server about this
 		AbilitySystemComponent->ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey);
 	}
+	else
+	{
+		AbilitySystemComponent->ConsumeReplicatedClientEvent(EAbilityReplicatedClientEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey());
+	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
 	OnPress.Broadcast(ElapsedTime);
