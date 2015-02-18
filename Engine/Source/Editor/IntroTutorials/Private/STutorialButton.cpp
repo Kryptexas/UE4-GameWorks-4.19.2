@@ -239,7 +239,7 @@ FReply STutorialButton::OnMouseButtonDown(const FGeometry& MyGeometry, const FPo
 		{
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("DismissReminder", "Don't Remind Me Again"),
-				LOCTEXT("DismissReminderTooltip", "Selection this option will prevent the tutorial blip from being displayed again, even if you choose not to complete the tutorial."),
+				LOCTEXT("DismissReminderTooltip", "Selecting this option will prevent the tutorial blip from being displayed again, even if you choose not to complete the tutorial."),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::DismissAlert))
 				);
