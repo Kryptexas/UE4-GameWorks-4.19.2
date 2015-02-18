@@ -628,7 +628,7 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 	{
 		StartEditingDefaults(/*bAutoFocus=*/ false, true);
 	}
-	else
+	else if (CurrentUISelection != FName())
 	{
 		ensureMsgf(false, TEXT("Unknown UI selection state in FBlueprintEditor::RefreshEditors"));
 	}
