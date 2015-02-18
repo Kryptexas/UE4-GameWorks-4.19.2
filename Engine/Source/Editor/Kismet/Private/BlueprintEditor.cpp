@@ -633,7 +633,7 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 	// rotation edit, transform details won't be re-customized and thus the cached rotation value will be stale, resulting in an invalid rotation value on the next edit.
 	if ( CurrentUISelection == FBlueprintEditor::SelectionState_ClassDefaults )
 	{
-		StartEditingDefaults(true, true);
+		StartEditingDefaults(/*bAutoFocus=*/ false, true);
 	}
 	else
 	{
@@ -6291,7 +6291,10 @@ void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 
 					Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
 
-					TryInvokingDetailsTab();
+					if ( bAutoFocus )
+					{
+						TryInvokingDetailsTab();
+					}
 				}
 			}
 		}
@@ -7532,15 +7535,22 @@ void FBlueprintEditor::TryInvokingDetailsTab(bool bFlash)
 {
 	if ( TabManager->CanSpawnTab(FBlueprintEditorTabs::DetailsID) )
 	{
-		// Show the details panel if it doesn't exist.
-		TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+		TSharedPtr<SDockTab> BlueprintTab = FGlobalTabmanager::Get()->GetMajorTabForTabManager(TabManager.ToSharedRef());
 
-		if ( bFlash )
+		// We don't want to force this tab into existance when the blueprint editor isn't in the foreground and actively
+		// being interacted with.  So we make sure the window it's in is focused and the tab is in the foreground.
+		if ( BlueprintTab.IsValid() && BlueprintTab->IsForeground() && BlueprintTab->GetParentWindow()->HasFocusedDescendants() )
 		{
-			TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
-			if ( OwnerTab.IsValid() )
+			// Show the details panel if it doesn't exist.
+			TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+
+			if ( bFlash )
 			{
-				OwnerTab->FlashTab();
+				TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+				if ( OwnerTab.IsValid() )
+				{
+					OwnerTab->FlashTab();
+				}
 			}
 		}
 	}
