@@ -2724,6 +2724,14 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			UbergraphContext->MarkAsInternalOrCppUseOnly();
 			UbergraphContext->SetExternalNetNameMap(&ClassScopeNetNameMap);
 
+			// We need to stop the old EventGraphs from having the Blueprint as an outer, it impacts renaming.
+			if(!Blueprint->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))
+			{
+				for(UEdGraph* OldEventGraph : Blueprint->EventGraphs)
+				{
+					OldEventGraph->Rename(NULL, GetTransientPackage());
+				}
+			}
 			Blueprint->EventGraphs.Empty();
 
 			// Validate all the nodes in the graph
