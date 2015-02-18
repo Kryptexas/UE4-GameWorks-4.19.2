@@ -28,7 +28,7 @@ void UAbilityTask_WaitInputRelease::OnReleaseCallback()
 	}
 	else
 	{
-		AbilitySystemComponent->ConsumeReplicatedClientEvent(EAbilityReplicatedClientEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey());
+		AbilitySystemComponent->ConsumeClientReplicatedEvent(EAbilityReplicatedClientEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey());
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages

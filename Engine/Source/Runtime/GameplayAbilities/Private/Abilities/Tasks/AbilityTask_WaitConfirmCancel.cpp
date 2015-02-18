@@ -19,7 +19,7 @@ void UAbilityTask_WaitConfirmCancel::OnConfirmCallback()
 	
 	if (AbilitySystemComponent.IsValid())
 	{
-		AbilitySystemComponent->ConsumeReplicatedClientEvent(EAbilityReplicatedClientEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey());
+		AbilitySystemComponent->ConsumeClientReplicatedEvent(EAbilityReplicatedClientEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		OnConfirm.Broadcast();
 		EndTask();
 	}
@@ -29,7 +29,7 @@ void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 {
 	if (AbilitySystemComponent.IsValid())
 	{
-		AbilitySystemComponent->ConsumeReplicatedClientEvent(EAbilityReplicatedClientEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey());
+		AbilitySystemComponent->ConsumeClientReplicatedEvent(EAbilityReplicatedClientEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		OnCancel.Broadcast();
 		EndTask();
 	}

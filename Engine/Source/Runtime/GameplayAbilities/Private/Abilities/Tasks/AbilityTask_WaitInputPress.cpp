@@ -28,7 +28,7 @@ void UAbilityTask_WaitInputPress::OnPressCallback()
 	}
 	else
 	{
-		AbilitySystemComponent->ConsumeReplicatedClientEvent(EAbilityReplicatedClientEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey());
+		AbilitySystemComponent->ConsumeClientReplicatedEvent(EAbilityReplicatedClientEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey());
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
