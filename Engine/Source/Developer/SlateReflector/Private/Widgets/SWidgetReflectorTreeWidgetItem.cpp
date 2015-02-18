@@ -103,7 +103,7 @@ FString SReflectorTreeWidgetItem::GetReadableLocation() const
 	{
 		TSharedPtr<SWidget> SafeWidget = Widget.Pin();
 		TSharedPtr<FReflectionMetaData> MetaData = SafeWidget->GetMetaData<FReflectionMetaData>();
-		if ( MetaData.IsValid() )
+		if ( MetaData.IsValid() && MetaData->Asset.Get() != nullptr )
 		{
 			return MetaData->Asset->GetName() + TEXT(" [") + MetaData->Name.ToString() + TEXT("]");
 		}
@@ -119,7 +119,7 @@ void SReflectorTreeWidgetItem::HandleHyperlinkNavigate()
 	{
 		TSharedPtr<SWidget> SafeWidget = Widget.Pin();
 		TSharedPtr<FReflectionMetaData> MetaData = SafeWidget->GetMetaData<FReflectionMetaData>();
-		if ( MetaData.IsValid() )
+		if ( MetaData.IsValid() && MetaData->Asset.Get() != nullptr )
 		{
 			if ( OnAccessAsset.IsBound() )
 			{
