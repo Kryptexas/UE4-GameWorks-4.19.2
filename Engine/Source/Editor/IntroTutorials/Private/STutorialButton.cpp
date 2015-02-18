@@ -37,18 +37,6 @@ void STutorialButton::Construct(const FArguments& InArgs)
 
 	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
 	LoadingWidget = IntroTutorials.CreateTutorialsLoadingWidget(ContextWindow);
-	/*
-	//LoadingWidget->SetVisibility(EVisibility::Visible);
-
-	if (GEngine)
-	{
-		UGameViewportClient* GVC = GEngine->Viewport;
-		if (GVC)
-		{
-			GVC->AddViewportWidgetContent(LoadingWidgetRef, 100);
-		}
-	}
-	*/
 
 	ChildSlot
 	[
@@ -64,8 +52,6 @@ void STutorialButton::Construct(const FArguments& InArgs)
 			.HeightOverride(16)
 		]
 	];
-
-	//ChildSlot.AttachWidget(LoadingWidgetRef);
 }
 
 EActiveTimerReturnType STutorialButton::OpenTutorialPostConstruct( double InCurrentTime, float InDeltaTime )
