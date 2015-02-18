@@ -273,7 +273,7 @@ static void AddVisualizeBloomOverlay(FPostprocessContext& Context, FRenderingCom
 	Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 }
 
-static void AddPostProcessDepthOfFieldBokeh(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucency)
+static void AddPostProcessDepthOfFieldBokeh(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucency, FRenderingCompositeOutputRef& VelocityInput)
 {
 	// downsample, mask out the in focus part, depth in alpha
 	FRenderingCompositePass* DOFSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBokehDOFSetup());
@@ -300,7 +300,7 @@ static void AddPostProcessDepthOfFieldBokeh(FPostprocessContext& Context, FRende
 		NodeTemporalAA->SetInput( ePId_Input0, DOFSetup );
 		NodeTemporalAA->SetInput( ePId_Input1, FRenderingCompositeOutputRef( HistoryInput ) );
 		NodeTemporalAA->SetInput( ePId_Input2, FRenderingCompositeOutputRef( HistoryInput ) );
-		//NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
+		NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
 
 		DOFInputPass = NodeTemporalAA;
 		ViewState->bBokehDOFHistory = true;
@@ -319,7 +319,7 @@ static void AddPostProcessDepthOfFieldBokeh(FPostprocessContext& Context, FRende
 	Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
 }
 
-static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDepthOfFieldStats& Out)
+static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDepthOfFieldStats& Out, FRenderingCompositeOutputRef& VelocityInput)
 {
 	float FarSize = Context.View.FinalPostProcessSettings.DepthOfFieldFarBlurSize;
 	float NearSize = Context.View.FinalPostProcessSettings.DepthOfFieldNearBlurSize;
@@ -368,7 +368,7 @@ static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDe
 		NodeTemporalAA->SetInput( ePId_Input0, DOFSetup );
 		NodeTemporalAA->SetInput( ePId_Input1, FRenderingCompositeOutputRef( HistoryInput ) );
 		NodeTemporalAA->SetInput( ePId_Input2, FRenderingCompositeOutputRef( HistoryInput ) );
-		//NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
+		NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
 
 		DOFInputPass = NodeTemporalAA;
 		ViewState->bBokehDOFHistory = false;
@@ -396,7 +396,7 @@ static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDe
 		NodeTemporalAA->SetInput( ePId_Input0, FRenderingCompositeOutputRef( DOFSetup, ePId_Output1 ) );
 		NodeTemporalAA->SetInput( ePId_Input1, FRenderingCompositeOutputRef( HistoryInput, DOFInputPassId2 ) );
 		NodeTemporalAA->SetInput( ePId_Input2, FRenderingCompositeOutputRef( HistoryInput, DOFInputPassId2 ) );
-		//NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
+		NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
 
 		DOFInputPass2 = NodeTemporalAA;
 		ViewState->bBokehDOFHistory2 = false;
@@ -427,7 +427,7 @@ static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDe
 	Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
 }
 
-static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDepthOfFieldStats& Out)
+static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDepthOfFieldStats& Out, FRenderingCompositeOutputRef& VelocityInput)
 {
 	if(Context.View.Family->EngineShowFlags.VisualizeDOF)
 	{
@@ -459,7 +459,7 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 		NodeTemporalAA->SetInput( ePId_Input0, DOFSetup );
 		NodeTemporalAA->SetInput( ePId_Input1, FRenderingCompositeOutputRef( HistoryInput ) );
 		NodeTemporalAA->SetInput( ePId_Input2, FRenderingCompositeOutputRef( HistoryInput ) );
-		//NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
+		NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
 
 		DOFInputPass = NodeTemporalAA;
 		ViewState->bBokehDOFHistory = false;
@@ -1025,11 +1025,31 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 				bool bCircleDOF = View.FinalPostProcessSettings.DepthOfFieldMethod == DOFM_CircleDOF;
 				if(!bCircleDOF)
 				{
-					AddPostProcessDepthOfFieldGaussian(Context, DepthOfFieldStat);
+					if(VelocityInput.IsValid())
+					{
+						AddPostProcessDepthOfFieldGaussian(Context, DepthOfFieldStat, VelocityInput);
+					}
+					else
+					{
+						// black is how we clear the velocity buffer so this means no velocity
+						FRenderingCompositePass* NoVelocity = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSystemTextures.BlackDummy));
+						FRenderingCompositeOutputRef NoVelocityRef(NoVelocity);
+						AddPostProcessDepthOfFieldGaussian(Context, DepthOfFieldStat, NoVelocityRef);
+					}
 				}
 				else
 				{
-					AddPostProcessDepthOfFieldCircle(Context, DepthOfFieldStat);
+					if(VelocityInput.IsValid())
+					{
+						AddPostProcessDepthOfFieldCircle(Context, DepthOfFieldStat, VelocityInput);
+					}
+					else
+					{
+						// black is how we clear the velocity buffer so this means no velocity
+						FRenderingCompositePass* NoVelocity = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSystemTextures.BlackDummy));
+						FRenderingCompositeOutputRef NoVelocityRef(NoVelocity);
+						AddPostProcessDepthOfFieldCircle(Context, DepthOfFieldStat, NoVelocityRef);
+					}
 				}
 			}
 
@@ -1040,7 +1060,17 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 			if(bBokehDOF)
 			{
-				AddPostProcessDepthOfFieldBokeh(Context, SeparateTranslucency);
+				if(VelocityInput.IsValid())
+				{
+					AddPostProcessDepthOfFieldBokeh(Context, SeparateTranslucency, VelocityInput);
+				}
+				else
+				{
+					// black is how we clear the velocity buffer so this means no velocity
+					FRenderingCompositePass* NoVelocity = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSystemTextures.BlackDummy));
+					FRenderingCompositeOutputRef NoVelocityRef(NoVelocity);
+					AddPostProcessDepthOfFieldBokeh(Context, SeparateTranslucency, NoVelocityRef);
+				}
 			}
 			else 
 			{

@@ -120,6 +120,10 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_GREEN_AS_LUMA AA_YCOCG
 #endif
 
+// Special adjustments for DOF.
+#ifndef AA_DOF
+	#define AA_DOF 0
+#endif
 
 
 
@@ -559,3 +563,4 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_GREEN_AS_LUMA
 #undef AA_VELOCITY_WEIGHTING
 #undef AA_YCOCG
+#undef AA_DOF
