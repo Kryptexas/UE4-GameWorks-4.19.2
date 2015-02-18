@@ -17,6 +17,10 @@ class UGeomModifier : public UObject
 	UPROPERTY(EditAnywhere, Category=GeomModifier)
 	FText Description;
 
+	/** The tooltip to be displayed for this modifier */
+	UPROPERTY(EditAnywhere, Category = GeomModifier)
+	FText Tooltip;
+
 	/** If true, this modifier should be displayed as a push button instead of a radio button */
 	UPROPERTY(EditAnywhere, Category=GeomModifier)
 	uint32 bPushButton:1;
@@ -37,6 +41,9 @@ public:
 
 	/** @return		The modifier's description string. */
 	const FText& GetModifierDescription() const;
+
+	/** @return		The modifier's tooltip string. */
+	const FText& GetModifierTooltip() const;
 
 	/** @return		true if the key was handled by this editor mode tool. */
 	virtual bool InputKey(class FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event);
