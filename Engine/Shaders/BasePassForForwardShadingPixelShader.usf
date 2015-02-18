@@ -56,7 +56,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 }
 #endif
 
-#if EDITOR_PRIMITIVE_MATERIAL
+#if USE_EDITOR_COMPOSITING
 bool bEnableEditorPrimitiveDepthTest;
 // depth in the red channel in DeviceZ
 Texture2D		FilteredSceneDepthTexture;
@@ -64,7 +64,7 @@ SamplerState	FilteredSceneDepthTextureSampler;
 #endif
 
 
-#if EDITOR_PRIMITIVE_MATERIAL && (ES2_EMULATION)
+#if USE_EDITOR_COMPOSITING && (ES2_EMULATION)
 // @return 0:translucent..1:opaque
 float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 {
@@ -320,7 +320,7 @@ void Main(
 	#endif
 
 	// Editor primitive depth testing
-	#if EDITOR_PRIMITIVE_MATERIAL && (ES2_EMULATION)
+	#if USE_EDITOR_COMPOSITING && (ES2_EMULATION)
 		#if MATERIALBLENDING_MASKED
 			// some material might have a opacity value
 			OutColor.a = GetMaterialMaskInputRaw(MaterialParameters);

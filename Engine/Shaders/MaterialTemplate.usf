@@ -25,6 +25,15 @@
 	#define USE_DITHERED_LOD_TRANSITION 0
 #endif
 
+//Platforms that don't run the editor shouldn't need editor features in the shaders.
+#define PLATFORM_SUPPORTS_EDITOR_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ES31_AEP_PROFILE)
+
+//Tie Editor features to platform support and the COMPILE_SHADERS_FOR_DEVELOPMENT which is set via CVAR.
+#define USE_EDITOR_SHADERS (PLATFORM_SUPPORTS_EDITOR_SHADERS && USE_DEVELOPMENT_SHADERS)
+
+//Materials also have to opt in to these features.
+#define USE_EDITOR_COMPOSITING (USE_EDITOR_SHADERS && EDITOR_PRIMITIVE_MATERIAL)
+
 /**
  * Parameters used by vertex and pixel shaders to access particle properties.
  */
@@ -546,7 +555,7 @@ MaterialFloat2 GetParticleMacroUV(FMaterialPixelParameters Parameters)
 }
 
 #ifndef ES2_EMULATION
-#define ES2_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2) && (!COMPILER_GLSL_ES2 && COMPILE_SHADERS_FOR_DEVELOPMENT && !METAL_PROFILE))
+#define ES2_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2) && (!COMPILER_GLSL_ES2 && USE_DEVELOPMENT_SHADERS && !METAL_PROFILE))
 #endif
 
 MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
@@ -1016,9 +1025,8 @@ half3 GetMaterialNormal(FMaterialPixelParameters Parameters)
 	half3 RetNormal;
 
 	RetNormal = GetMaterialNormalRaw(Parameters);
-	
-	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !(ES2_PROFILE || ES3_1_PROFILE || ES31_AEP_PROFILE)
+		
+	#if USE_EDITOR_SHADERS && !(ES2_PROFILE || ES3_1_PROFILE || ES31_AEP_PROFILE)
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		half3 OverrideNormal = View.NormalOverrideParameter.xyz;
@@ -1099,9 +1107,8 @@ half GetMaterialRoughness(FMaterialPixelParameters Parameters)
 	return clamp( GetMaterialRoughnessRaw(Parameters), 0.12, 1.0 );
 #else
 	half Roughness = saturate(GetMaterialRoughnessRaw(Parameters));
-
-	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
+	
+	#if USE_EDITOR_SHADERS && !ES31_AEP_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		Roughness = Roughness * View.RoughnessOverrideParameter.y + View.RoughnessOverrideParameter.x;

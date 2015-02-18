@@ -55,7 +55,7 @@ float4 PointSkyBentNormal;
 	#define COMPILER_GLSL 0
 #endif
 
-#define EDITOR_ALPHA2COVERAGE (EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
+#define EDITOR_ALPHA2COVERAGE (USE_EDITOR_COMPOSITING && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
 
 
 #if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
@@ -510,7 +510,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	#endif
 }
 
-#if EDITOR_PRIMITIVE_MATERIAL
+#if USE_EDITOR_COMPOSITING
 	bool bEnableEditorPrimitiveDepthTest;
 	int MSAASampleCount;
 
@@ -524,7 +524,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 {
 	float Ret = 1;
 
-#if EDITOR_PRIMITIVE_MATERIAL && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
+#if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
 	// Depth test manually if compositing editor primitives since the depth buffer is different (MSAA only)
 	BRANCH
 	if (bEnableEditorPrimitiveDepthTest)
@@ -630,7 +630,7 @@ void Main(
 #endif
 	);
 
-#if EDITOR_PRIMITIVE_MATERIAL && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
+#if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
 	const bool bEditorWeightedZBuffering = true;
 #else
 	const bool bEditorWeightedZBuffering = false;
@@ -697,8 +697,7 @@ void Main(
 	half3 DiffuseColor = BaseColor - BaseColor * Metallic;
 	half3 SpecularColor = lerp( 0.08 * Specular.xxx, BaseColor, Metallic.xxx );
 
-// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
+#if USE_DEVELOPMENT_SHADERS
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		DiffuseColor = DiffuseColor * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
@@ -763,8 +762,7 @@ void Main(
 
 	half3 Emissive = GetMaterialEmissive(MaterialParameters);
 
-// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
+#if USE_DEVELOPMENT_SHADERS
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 	#if SM5_PROFILE || SM4_PROFILE
 		BRANCH
