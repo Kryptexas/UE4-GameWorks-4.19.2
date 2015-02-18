@@ -162,8 +162,24 @@ void UActorComponent::PostLoad()
 	}
 }
 
+bool UActorComponent::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
+{
+	bRoutedPostRename = false;
+	
+	const bool bRenameSuccessful = Super::Rename(InName, NewOuter, Flags);
+	
+	if (!bRoutedPostRename)
+	{
+		UE_LOG(LogActorComponent, Fatal, TEXT("%s failed to route PostRename.  Please call Super::PostRename() in your <className>::PostRename() function. "), *GetFullName() );
+	}
+
+	return bRenameSuccessful;
+}
+
 void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 {
+	Super::PostRename(OldOuter, OldName);
+
 	if (OldOuter != GetOuter())
 	{
 		AActor* Owner = GetOwner();
@@ -181,6 +197,8 @@ void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 			}
 		}
 	}
+
+	bRoutedPostRename = true;
 }
 
 bool UActorComponent::IsCreatedByConstructionScript() const
