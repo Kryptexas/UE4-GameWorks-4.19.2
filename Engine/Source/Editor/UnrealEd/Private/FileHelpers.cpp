@@ -1644,6 +1644,9 @@ void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsCho
 			// No saved path, just use a reasonable default
 			DefaultPath = TEXT("/Game/Maps");
 		}
+
+		//OpenAssetDialog expects no trailing "/" so remove if necessary
+		DefaultPath.RemoveFromEnd(TEXT("/"));
 	}
 
 	FOpenAssetDialogConfig OpenAssetDialogConfig;
