@@ -45,8 +45,6 @@ public:
 	UFUNCTION()
 	virtual void ConfirmTargeting();
 
-	void NotifyPlayerControllerOfRejectedConfirmation();
-
 	/** Outside code is saying 'stop everything and just forget about it' */
 	UFUNCTION()
 	virtual void CancelTargeting();
@@ -94,4 +92,7 @@ public:
 	/** Draw the debug information (if applicable) for this targeting actor. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, meta = (ExposeOnSpawn = true), Category = Targeting)
 	bool bDebug;
+
+	FDelegateHandle GenericConfirmHandle;
+	FDelegateHandle GenericCancelHandle;
 };

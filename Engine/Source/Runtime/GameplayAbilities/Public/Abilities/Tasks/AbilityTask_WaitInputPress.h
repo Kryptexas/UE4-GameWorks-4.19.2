@@ -20,7 +20,7 @@ class UAbilityTask_WaitInputPress : public UAbilityTask
 	FInputPressDelegate		OnPress;
 
 	UFUNCTION()
-	void OnPressCallback(int32 InputID);
+	void OnPressCallback();
 
 	virtual void Activate() override;
 
@@ -33,5 +33,5 @@ protected:
 	virtual void OnDestroy(bool AbilityEnded) override;
 
 	float StartTime;
-	bool RegisteredCallback;
+	FDelegateHandle DelegateHandle;
 };

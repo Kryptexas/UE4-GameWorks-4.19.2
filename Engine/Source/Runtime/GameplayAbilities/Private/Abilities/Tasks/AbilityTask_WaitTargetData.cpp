@@ -32,7 +32,7 @@ UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetDataUsingAct
 void UAbilityTask_WaitTargetData::Activate()
 {
 	// Need to handle case where target actor was passed into task
-	if (Ability.IsValid() && (TargetClass == NULL))
+	if (Ability.IsValid() && (TargetClass == nullptr))
 	{
 		if (TargetActor.IsValid())
 		{
@@ -82,7 +82,7 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 			if (Class != NULL)
 			{
 				UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-				SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FVector::ZeroVector, FRotator::ZeroRotator, NULL, NULL, true);
+				SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FVector::ZeroVector, FRotator::ZeroRotator, nullptr, nullptr, true);
 			}
 
 			if (SpawnedActor)
@@ -163,21 +163,6 @@ void UAbilityTask_WaitTargetData::FinalizeTargetActor(AGameplayAbilityTargetActo
 		}
 		else if (ConfirmationType == EGameplayTargetingConfirmation::UserConfirmed)
 		{
-			// If not locally controlled, check if we already have a confirm/cancel repped to us
-			if (!Ability->GetCurrentActorInfo()->IsLocallyControlled())
-			{
-				if (AbilitySystemComponent->ReplicatedConfirmAbility)
-				{
-					SpawnedActor->ConfirmTargeting();
-					return;
-				}
-				else if (AbilitySystemComponent->ReplicatedCancelAbility)
-				{
-					SpawnedActor->CancelTargeting();
-					return;
-				}
-			}
-
 			// Bind to the Cancel/Confirm Delegates (called from local confirm or from repped confirm)
 			SpawnedActor->BindToConfirmCancelInputs();
 		}
@@ -206,34 +191,24 @@ void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
 		// Register with the TargetData callbacks if we are expecting client to send them
 		if (!bShouldProduceTargetDataOnServer)
 		{
-			// Problem here - if there's targeting data just sitting around, fire events don't get hooked up because of this if-else, even if we don't end the task.
-			if (AbilitySystemComponent->ReplicatedTargetData.IsValid(0))
-			{
-				ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
-				if (ConfirmationType == EGameplayTargetingConfirmation::CustomMulti)
-				{
-					//Since multifire is supported, we still need to hook up the callbacks
-					OnTargetDataReplicatedCallbackDelegateHandle = AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
-					AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
-				}
-				else
-				{
-					EndTask();
-				}
-			}
-			else
-			{
-				OnTargetDataReplicatedCallbackDelegateHandle = AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
-				AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
-			}
+			FGameplayAbilitySpecHandle	SpecHandle = GetAbilitySpecHandle();
+			FPredictionKey ActivationPredictionKey = GetActivationPredictionKey();
+
+			//Since multifire is supported, we still need to hook up the callbacks
+			AbilitySystemComponent->AbilityTargetDataSetDelegate(SpecHandle, ActivationPredictionKey ).AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+			AbilitySystemComponent->AbilityTargetDataCancelledDelegate(SpecHandle, ActivationPredictionKey ).AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
+
+			AbilitySystemComponent->CallReplicatedTargetDataDelegatesIfSet(SpecHandle, ActivationPredictionKey );
 		}
 	}
 }
 
 /** Valid TargetData was replicated to use (we are server, was sent from client) */
-void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data)
+void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data, FGameplayTag ActivationTag)
 {
 	check(AbilitySystemComponent.IsValid());
+
+	AbilitySystemComponent->ConsumeClientReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey());
 
 	/** 
 	 *  Call into the TargetActor to sanitize/verify the data. If this returns false, we are rejecting
@@ -263,9 +238,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 {
 	check(AbilitySystemComponent.IsValid());
-
 	Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
-	
 	EndTask();
 }
 
@@ -276,9 +249,19 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 
 	FScopedPredictionWindow	ScopedPrediction(AbilitySystemComponent.Get(), ShouldReplicateDataToServer());
 	
-	if (ShouldReplicateDataToServer())
+	const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();
+	if (IsPredictingClient())
 	{
-		AbilitySystemComponent->ServerSetReplicatedTargetData(Data, AbilitySystemComponent->ScopedPredictionKey);
+		if (!TargetActor->ShouldProduceTargetDataOnServer)
+		{
+			FGameplayTag ApplicationTag; // Fixme: where would this be useful?
+			AbilitySystemComponent->ServerSetReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey(), Data, ApplicationTag, AbilitySystemComponent->ScopedPredictionKey);
+		}
+		else if (ConfirmationType == EGameplayTargetingConfirmation::UserConfirmed)
+		{
+			// We aren't going to send the target data, but we will send a generic confirmed message.
+			AbilitySystemComponent->ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey);
+		}
 	}
 
 	ValidData.Broadcast(Data);
@@ -294,9 +277,11 @@ void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbility
 {
 	check(AbilitySystemComponent.IsValid());
 
-	AbilitySystemComponent->ServerSetReplicatedTargetDataCancelled();
+	if (IsPredictingClient())
+	{
+		AbilitySystemComponent->ServerSetReplicatedTargetDataCancelled(GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey );
+	}
 	Cancelled.Broadcast(Data);
-
 	EndTask();
 }
 
@@ -325,12 +310,7 @@ void UAbilityTask_WaitTargetData::ExternalCancel()
 
 void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 {
-	AbilitySystemComponent->ConsumeAbilityTargetData();
-	AbilitySystemComponent->ConsumeAbilityConfirmCancel();
 	AbilitySystemComponent->SetUserAbilityActivationInhibited(false);
-
-	AbilitySystemComponent->ReplicatedTargetDataDelegate.Remove(OnTargetDataReplicatedCallbackDelegateHandle);
-	AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.RemoveDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 
 	if (TargetActor.IsValid())
 	{

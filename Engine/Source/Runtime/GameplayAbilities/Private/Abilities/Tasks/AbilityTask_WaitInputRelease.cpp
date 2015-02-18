@@ -8,23 +8,23 @@ UAbilityTask_WaitInputRelease::UAbilityTask_WaitInputRelease(const FObjectInitia
 	: Super(ObjectInitializer)
 {
 	StartTime = 0.f;
-	RegisteredCallback= false;
 }
 
-void UAbilityTask_WaitInputRelease::OnReleaseCallback(int32 InputID)
+void UAbilityTask_WaitInputRelease::OnReleaseCallback()
 {
 	float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
 
-	if (!Ability.IsValid())
+	if (!Ability.IsValid() || !AbilitySystemComponent.IsValid())
 	{
 		return;
 	}
-	UGameplayAbility* MyAbility = Ability.Get();
-	check(MyAbility->IsInstantiated());
-	if (MyAbility->GetCurrentAbilitySpec()->InputID != InputID)
+
+	AbilitySystemComponent->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey()).Remove(DelegateHandle);
+
+	if (IsPredictingClient())
 	{
-		//This key is for some other ability
-		return;
+		// Tell the server about this
+		AbilitySystemComponent->ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey);
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
@@ -39,33 +39,18 @@ UAbilityTask_WaitInputRelease* UAbilityTask_WaitInputRelease::WaitInputRelease(c
 
 void UAbilityTask_WaitInputRelease::Activate()
 {
+	StartTime = GetWorld()->GetTimeSeconds();
 	if (Ability.IsValid())
 	{
-		FGameplayAbilitySpec* Spec = Ability->GetCurrentAbilitySpec();
-		if (Spec)
+		DelegateHandle = AbilitySystemComponent->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey()).AddUObject(this, &UAbilityTask_WaitInputRelease::OnReleaseCallback);
+		if (IsForRemoteClient())
 		{
-			if (!Spec->InputPressed)
-			{
-				// Input was already released before we got here, we are done.
-				OnRelease.Broadcast(0.f);
-				EndTask();
-			}
-			else
-			{
-				StartTime = GetWorld()->GetTimeSeconds();
-				AbilitySystemComponent->AbilityKeyReleaseCallbacks.AddDynamic(this, &UAbilityTask_WaitInputRelease::OnReleaseCallback);
-				RegisteredCallback = true;
-			}
+			AbilitySystemComponent->CallReplicatedEventDelegateIfSet(EAbilityReplicatedClientEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		}
 	}
 }
 
 void UAbilityTask_WaitInputRelease::OnDestroy(bool AbilityEnded)
 {
-	if (RegisteredCallback && Ability.IsValid())
-	{
-		AbilitySystemComponent->AbilityKeyReleaseCallbacks.RemoveDynamic(this, &UAbilityTask_WaitInputRelease::OnReleaseCallback);
-	}
-
 	Super::OnDestroy(AbilityEnded);
 }

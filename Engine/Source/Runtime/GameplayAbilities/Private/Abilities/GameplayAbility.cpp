@@ -52,6 +52,8 @@ UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 #endif
 
 	bServerRespectsRemoteAbilityCancellation = true;
+	bActivateOnInputHeld = false;
+	bReplicateInputDirectly = false;
 }
 
 int32 UGameplayAbility::GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack)
@@ -119,7 +121,13 @@ bool UGameplayAbility::IsActive() const
 		return bIsActive;
 	}
 
-	// Non-instanced and Instanced-Per-Execution abilities are by definition active unless they are pending kill
+	// this should not be called on NonInstanced warn about it, Should call IsActive on the ability spec instead
+	if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
+	{
+		ABILITY_LOG(Warning, TEXT("UGameplayAbility::IsActive() called on %s NonInstanced ability, call IsActive on the Ability Spec instead"), *GetName());
+	}
+
+	// NonInstanced and Instanced-Per-Execution abilities are by definition active unless they are pending kill
 	return !IsPendingKill();
 }
 
@@ -320,13 +328,22 @@ void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, co
 {
 	if (CanBeCanceled())
 	{
+		// Gives the Ability BP a chance to perform custom logic/cleanup when any active ability states are active
+		UAbilitySystemComponent* Comp = ActorInfo->AbilitySystemComponent.Get();
+		if (Comp && Comp->OnAbilityStateInterrupted.IsBound())
+		{
+			Comp->OnAbilityStateInterrupted.Broadcast();
+		}
+
 		EndAbility(Handle, ActorInfo, ActivationInfo, true);
 	}
 }
 
 void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility)
-{
-	if (IsActive())
+{ 
+	// check to see if this is an NonInstanced or if the ability is active.
+	FGameplayAbilitySpec* Spec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
+	if ((Spec != nullptr) ? Spec->IsActive() : IsActive())
 	{
 		// Give blueprint a chance to react
 		K2_OnEndAbility();
@@ -344,8 +361,9 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		OnGameplayAbilityEnded.Unbind();
 
 		// Tell all our tasks that we are finished and they should cleanup
-		for (TWeakObjectPtr<UAbilityTask> Task : ActiveTasks)
+		for (int32 TaskIdx = ActiveTasks.Num() - 1; TaskIdx >= 0; --TaskIdx)
 		{
+			TWeakObjectPtr<UAbilityTask> Task = ActiveTasks[TaskIdx];
 			if (Task.IsValid())
 			{
 				Task.Get()->AbilityEnded();
@@ -685,15 +703,23 @@ bool UGameplayAbility::K2_CommitAbility()
 	return CommitAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
 }
 
-bool UGameplayAbility::K2_CommitAbilityCooldown()
+bool UGameplayAbility::K2_CommitAbilityCooldown(bool BroadcastCommitEvent)
 {
 	check(CurrentActorInfo);
+	if (BroadcastCommitEvent)
+	{
+		CurrentActorInfo->AbilitySystemComponent->NotifyAbilityCommit(this);
+	}
 	return CommitAbilityCooldown(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
 }
 
-bool UGameplayAbility::K2_CommitAbilityCost()
+bool UGameplayAbility::K2_CommitAbilityCost(bool BroadcastCommitEvent)
 {
 	check(CurrentActorInfo);
+	if (BroadcastCommitEvent)
+	{
+		CurrentActorInfo->AbilitySystemComponent->NotifyAbilityCommit(this);
+	}
 	return CommitAbilityCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
 }
 
@@ -850,6 +876,17 @@ void UGameplayAbility::CancelTaskByInstanceName(FName InstanceName)
 	//Avoid race condition by delaying for one frame
 	CancelTaskInstanceNames.AddUnique(InstanceName);
 	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UGameplayAbility::EndOrCancelTasksByInstanceName);
+}
+
+void UGameplayAbility::EndAbilityState(FName OptionalStateNameToEnd)
+{
+	check(CurrentActorInfo);
+
+	UAbilitySystemComponent* ASC = CurrentActorInfo->AbilitySystemComponent.Get();
+	if (ASC && ASC->OnAbilityStateEnded.IsBound())
+	{
+		ASC->OnAbilityStateEnded.Broadcast(OptionalStateNameToEnd);
+	}
 }
 
 void UGameplayAbility::TaskEnded(UAbilityTask* Task)

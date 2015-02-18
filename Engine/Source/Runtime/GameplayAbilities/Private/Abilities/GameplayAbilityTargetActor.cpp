@@ -46,14 +46,13 @@ void AGameplayAbilityTargetActor::ConfirmTargetingAndContinue()
 	{
 		TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
 	}
-	else
-	{
-		NotifyPlayerControllerOfRejectedConfirmation();
-	}
 }
 
 void AGameplayAbilityTargetActor::ConfirmTargeting()
 {
+	UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get();
+	ASC->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::GenericConfirm, OwningAbility->GetCurrentAbilitySpecHandle(), OwningAbility->GetCurrentActivationInfo().GetActivationPredictionKey() ).Remove(GenericConfirmHandle);
+
 	if (IsConfirmTargetingAllowed())
 	{
 		ConfirmTargetingAndContinue();
@@ -62,29 +61,14 @@ void AGameplayAbilityTargetActor::ConfirmTargeting()
 			Destroy();
 		}
 	}
-	else
-	{
-		NotifyPlayerControllerOfRejectedConfirmation();
-	}
-}
-
-void AGameplayAbilityTargetActor::NotifyPlayerControllerOfRejectedConfirmation()
-{
-	if (OwningAbility && OwningAbility->IsInstantiated() && OwningAbility->GetCurrentActorInfo())
-	{
-		if (UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get())
-		{
-			if (FGameplayAbilitySpec* AbilitySpec = OwningAbility->GetCurrentAbilitySpec())
-			{
-				ASC->ClientAbilityNotifyRejected(AbilitySpec->InputID);
-			}
-		}
-	}
 }
 
 /** Outside code is saying 'stop everything and just forget about it' */
 void AGameplayAbilityTargetActor::CancelTargeting()
 {
+	UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get();
+	ASC->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::GenericCancel, OwningAbility->GetCurrentAbilitySpecHandle(), OwningAbility->GetCurrentActivationInfo().GetActivationPredictionKey() ).Remove(GenericCancelHandle);
+
 	CanceledDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
 	Destroy();
 }
@@ -131,7 +115,31 @@ void AGameplayAbilityTargetActor::BindToConfirmCancelInputs()
 	UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get();
 	if (ASC)
 	{
-		ASC->ConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::ConfirmTargeting);
-		ASC->CancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::CancelTargeting);
+		const FGameplayAbilityActorInfo* Info = OwningAbility->GetCurrentActorInfo();
+
+		if (Info->IsLocallyControlled())
+		{
+			// We have to wait for the callback from the AbilitySystemComponent. Which will always be instigated locally
+			ASC->GenericLocalConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::ConfirmTargeting);	// Tell me if the confirm input is pressed
+			ASC->GenericLocalCancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::CancelTargeting);	// Tell me if the cancel input is pressed
+		}
+		else
+		{	
+			FGameplayAbilitySpecHandle Handle = OwningAbility->GetCurrentAbilitySpecHandle();
+			FPredictionKey PredKey = OwningAbility->GetCurrentActivationInfo().GetActivationPredictionKey();
+
+			GenericConfirmHandle = ASC->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::GenericConfirm, Handle, PredKey ).AddUObject(this, &AGameplayAbilityTargetActor::ConfirmTargeting);
+			GenericCancelHandle = ASC->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::GenericCancel, Handle, PredKey ).AddUObject(this, &AGameplayAbilityTargetActor::CancelTargeting);
+			
+			if (ASC->CallReplicatedEventDelegateIfSet(EAbilityReplicatedClientEvent::GenericConfirm, Handle, PredKey))
+			{
+				return;
+			}
+			
+			if (ASC->CallReplicatedEventDelegateIfSet(EAbilityReplicatedClientEvent::GenericCancel, Handle, PredKey))
+			{
+				return;
+			}
+		}
 	}
 }

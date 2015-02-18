@@ -22,7 +22,7 @@ class GAMEPLAYABILITIES_API UAbilityTask_WaitTargetData: public UAbilityTask
 	FWaitTargetDataDelegate	Cancelled;
 
 	UFUNCTION()
-	void OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data);
+	void OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data, FGameplayTag ActivationTag);
 
 	UFUNCTION()
 	void OnTargetDataReplicatedCancelledCallback();

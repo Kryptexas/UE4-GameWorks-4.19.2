@@ -23,7 +23,7 @@ DECLARE_DELEGATE(FPredictionKeyEvent);
  *	-Ability activation
  *	-Triggered Events
  *	-GameplayEffect application:
- *		-Attribute modification	(EXCEPTIONS: meta attributes such as Damage/Healing and certain cases of ongoing % based modifiers. Explained below)
+ *		-Attribute modification	(EXCEPTIONS: Executions do not currently predict, only attribute modifiers)
  *		-GameplayTag modification
  *	-Gameplay Cue events (both from within predictive gameplay effect and on their own)
  *		
@@ -40,7 +40,7 @@ DECLARE_DELEGATE(FPredictionKeyEvent);
  *	1. "Can I do this?" Basic protocol for prediction.
  *	2. "Undo" How to undo side effects when a prediction fails.
  *	3. "Redo" How to avoid replaying side effects that we predicted locally but that also get replicated from the server.
- *	4. "Completeness" How to be sue we /really/ predicted all side effects.
+ *	4. "Completeness" How to be sure we /really/ predicted all side effects.
  *	5. "Dependencies" How to manage dependent prediction and chains of predicted events.
  *	6. "Override" How to override state predictively that is otherwise replicated/owned by the server.
  *	

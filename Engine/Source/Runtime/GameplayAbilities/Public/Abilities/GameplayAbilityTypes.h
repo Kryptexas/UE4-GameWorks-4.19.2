@@ -392,6 +392,46 @@ struct TStructOpsTypeTraits< FGameplayAbilitySpecContainer > : public TStructOps
 
 // ----------------------------------------------------
 
+USTRUCT()
+struct FGameplayAbilitySpecHandleAndPredictionKey
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilitySpecHandleAndPredictionKey()
+	: PredictionKeyAtCreation(0)
+	{}
+
+	FGameplayAbilitySpecHandleAndPredictionKey(const FGameplayAbilitySpecHandle& HandleRef, const FPredictionKey& PredictionKeyAtCreationRef)
+		: AbilityHandle(HandleRef), PredictionKeyAtCreation(PredictionKeyAtCreationRef.Current)
+	{}
+
+	bool operator==(const FGameplayAbilitySpecHandleAndPredictionKey& Other) const
+	{
+		return AbilityHandle == Other.AbilityHandle && PredictionKeyAtCreation == Other.PredictionKeyAtCreation;
+	}
+
+	bool operator!=(const FGameplayAbilitySpecHandleAndPredictionKey& Other) const
+	{
+		return AbilityHandle != Other.AbilityHandle || PredictionKeyAtCreation != Other.PredictionKeyAtCreation;
+	}
+
+	friend uint32 GetTypeHash(const FGameplayAbilitySpecHandleAndPredictionKey& Handle)
+	{
+		return GetTypeHash(Handle.AbilityHandle) ^ Handle.PredictionKeyAtCreation;
+	}
+
+private:
+
+	UPROPERTY()
+	FGameplayAbilitySpecHandle AbilityHandle;
+
+	UPROPERTY()
+	int32 PredictionKeyAtCreation;
+};
+
+
+// ----------------------------------------------------
+
 
 /** Data about montages that is replicated to simulated clients */
 USTRUCT()

@@ -120,16 +120,7 @@ public:
 	//		EndAbility()			- The ability has ended. This is intended to be called by the ability to end itself.
 	//	
 	// ----------------------------------------------------------------------------------------------------------------
-	
-	/** Input binding stub. */
-	virtual void InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) {};
-
-	/** Input binding stub. */
-	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) {};
-
-	/** If this is set, the ability will try to activate if the input is held. */
-	UPROPERTY(EditDefaultsOnly, Category = Input)
-	bool bActivateOnInputHeld;
+		
 
 	/** Returns true if this ability can be activated right now. Has no side effects */
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const;
@@ -241,6 +232,24 @@ public:
 	/** Called when the avatar actor is set/changes */
 	virtual void OnAvatarSet(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec);
 
+	// --------------------------------------
+	//	Input
+	// --------------------------------------
+
+	/** Input binding stub. */
+	virtual void InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) {};
+
+	/** Input binding stub. */
+	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) {};
+
+	/** If this is set, the ability will try to activate if the input is held. */
+	UPROPERTY(EditDefaultsOnly, Category = Input)
+	bool bActivateOnInputHeld;
+
+	/** If true, this ability will always replicate input press/release events to the server. */
+	UPROPERTY(EditDefaultsOnly, Category = Input)
+	bool bReplicateInputDirectly;
+
 protected:
 
 	// --------------------------------------
@@ -308,15 +317,15 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "CommitAbility")
 	virtual bool K2_CommitAbility();
 
-	/** Attempts to commit the ability's cooldown only. */
+	/** Attempts to commit the ability's cooldown only. If BroadcastCommitEvent is true, it will broadcast the commit event that tasks like WaitAbilityCommit are listening for. */
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "CommitAbilityCooldown")
-	virtual bool K2_CommitAbilityCooldown();
+	virtual bool K2_CommitAbilityCooldown(bool BroadcastCommitEvent=false);
 
-	/** Attempts to commit the ability's cost only. */
+	/** Attempts to commit the ability's cost only. If BroadcastCommitEvent is true, it will broadcast the commit event that tasks like WaitAbilityCommit are listening for. */
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "CommitAbilityCost")
-	virtual bool K2_CommitAbilityCost();
+	virtual bool K2_CommitAbilityCost(bool BroadcastCommitEvent=false);
 
-	/** Checks the ability's cooldown, but does not apply it. */
+	/** Checks the ability's cooldown, but does not apply it.*/
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "CheckAbilityCooldown")
 	virtual bool K2_CheckAbilityCooldown();
 
@@ -351,7 +360,7 @@ protected:
 	//	CancelAbility
 	// --------------------------------------
 
-	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
+	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Any active ability state tasks receive the 'OnAbilityStateInterrupted' event. Non instance abilities - what can we do? */
 	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
@@ -370,6 +379,10 @@ protected:
 	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	void CancelTaskByInstanceName(FName InstanceName);
+
+	/** Ends any active ability state task with the given name. If name is 'None' all active states will be ended (in an arbitrary order). */
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	void EndAbilityState(FName OptionalStateNameToEnd);
 
 	// -------------------------------------
 	//	EndAbility

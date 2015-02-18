@@ -8,23 +8,23 @@ UAbilityTask_WaitInputPress::UAbilityTask_WaitInputPress(const FObjectInitialize
 	: Super(ObjectInitializer)
 {
 	StartTime = 0.f;
-	RegisteredCallback= false;
 }
 
-void UAbilityTask_WaitInputPress::OnPressCallback(int32 InputID)
+void UAbilityTask_WaitInputPress::OnPressCallback()
 {
 	float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
 
-	if (!Ability.IsValid())
+	if (!Ability.IsValid() || !AbilitySystemComponent.IsValid())
 	{
 		return;
 	}
-	UGameplayAbility* MyAbility = Ability.Get();
-	check(MyAbility->IsInstantiated());
-	if (MyAbility->GetCurrentAbilitySpec()->InputID != InputID)
+
+	AbilitySystemComponent->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey()).Remove(DelegateHandle);
+
+	if (IsPredictingClient())
 	{
-		//This key is for some other ability
-		return;
+		// Tell the server about this
+		AbilitySystemComponent->ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey);
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
@@ -39,33 +39,18 @@ UAbilityTask_WaitInputPress* UAbilityTask_WaitInputPress::WaitInputPress(class U
 
 void UAbilityTask_WaitInputPress::Activate()
 {
+	StartTime = GetWorld()->GetTimeSeconds();
 	if (Ability.IsValid())
 	{
-		FGameplayAbilitySpec* Spec = Ability->GetCurrentAbilitySpec();
-		if (Spec)
+		DelegateHandle = AbilitySystemComponent->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey()).AddUObject(this, &UAbilityTask_WaitInputPress::OnPressCallback);
+		if (IsForRemoteClient())
 		{
-			if (Spec->InputPressed)
-			{
-				// Input was already pressed before we got here, we are done.
-				OnPress.Broadcast(0.f);
-				EndTask();
-			}
-			else
-			{
-				StartTime = GetWorld()->GetTimeSeconds();
-				AbilitySystemComponent->AbilityKeyPressCallbacks.AddDynamic(this, &UAbilityTask_WaitInputPress::OnPressCallback);
-				RegisteredCallback = true;
-			}
+			AbilitySystemComponent->CallReplicatedEventDelegateIfSet(EAbilityReplicatedClientEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		}
 	}
 }
 
 void UAbilityTask_WaitInputPress::OnDestroy(bool AbilityEnded)
 {
-	if (RegisteredCallback && Ability.IsValid())
-	{
-		AbilitySystemComponent->AbilityKeyPressCallbacks.RemoveDynamic(this, &UAbilityTask_WaitInputPress::OnPressCallback);
-	}
-
 	Super::OnDestroy(AbilityEnded);
 }

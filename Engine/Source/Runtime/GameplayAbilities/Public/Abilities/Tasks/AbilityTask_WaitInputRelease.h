@@ -20,7 +20,7 @@ class UAbilityTask_WaitInputRelease : public UAbilityTask
 	FInputReleaseDelegate	OnRelease;
 
 	UFUNCTION()
-	void OnReleaseCallback(int32 InputID);
+	void OnReleaseCallback();
 
 	virtual void Activate() override;
 
@@ -33,5 +33,5 @@ protected:
 	virtual void OnDestroy(bool AbilityEnded) override;
 
 	float StartTime;
-	bool RegisteredCallback;
+	FDelegateHandle DelegateHandle;
 };

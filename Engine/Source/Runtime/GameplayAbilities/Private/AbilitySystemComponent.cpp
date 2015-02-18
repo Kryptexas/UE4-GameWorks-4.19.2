@@ -1337,7 +1337,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 			FColor AbilityTextColor = FColor(128, 128, 128);
 			if (AbilitySpec.IsActive())
 			{
-				StatusText = TEXT(" (Active)");
+				StatusText = FString::Printf(TEXT(" (Active %d)"), AbilitySpec.ActiveCount);
 				AbilityTextColor = FColor::Yellow;
 			}
 			else if (BlockedAbilityBindings.IsValidIndex(AbilitySpec.InputID) && BlockedAbilityBindings[AbilitySpec.InputID])
@@ -1355,9 +1355,11 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				StatusText = TEXT(" (CantActivate)");
 				AbilityTextColor = FColor::Red;
 			}
-			
+
+			FString InputPressedStr = AbilitySpec.InputPressed ? TEXT("(InputPressed)") : TEXT("");
+
 			Canvas->SetDrawColor(AbilityTextColor);
-			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s"), *ASC_CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText), 4.f, YPos);
+			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s"), *ASC_CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText, *InputPressedStr), 4.f, YPos);
 			YPos += YL;
 	
 			if (AbilitySpec.IsActive())

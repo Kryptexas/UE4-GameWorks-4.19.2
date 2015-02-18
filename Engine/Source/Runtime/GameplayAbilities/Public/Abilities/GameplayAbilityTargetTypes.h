@@ -168,7 +168,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 		Data.Add(TSharedPtr<FGameplayAbilityTargetData>(DataPtr));
 	}
 
-	TArray<TSharedPtr<FGameplayAbilityTargetData>>	Data;
+	TArray<TSharedPtr<FGameplayAbilityTargetData> >	Data;
 
 	void Clear()
 	{
@@ -587,3 +587,77 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_SingleTargetHit> : public
 
 /** Generic callback for returning when target data is available */
 DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityTargetData, FGameplayAbilityTargetDataHandle);
+
+
+// ----------------------------------------------------
+
+/** Generic callback for returning when target data is available */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAbilityTargetDataSetDelegate, FGameplayAbilityTargetDataHandle, FGameplayTag);
+
+/** These are generic, nonpayload carrying events that the client can send to the server via ServerSetReplicatedClientEvent. */
+UENUM()
+namespace EAbilityReplicatedClientEvent
+{
+	enum Type
+	{	
+		/** A generic confirmation to commit the ability */
+		GenericConfirm = 0,
+		/** A generic cancellation event. Not necessarily a canellation of the ability or targeting. Could be used to cancel out of a channelling portion of ability. */
+		GenericCancel,
+		/** Additional input presses of the ability (Press X to activate ability, press X again while it is active to do other things within the GameplayAbility's logic) */
+		InputPressed,	
+		/** Input release event of the ability */
+		InputReleased,
+
+		MAX
+	};
+}
+
+struct FAbilityReplicatedData
+{
+	FAbilityReplicatedData() : bTriggered(false) {}
+	/** Event has triggered */
+	bool bTriggered;
+
+	FSimpleMulticastDelegate Delegate;
+};
+
+/** Struct defining the cached data for a specific gameplay ability. This data is generally syncronized client->server in a network game. */
+struct FAbilityClientDataCache
+{
+	/** What elements this activation is targeting */
+	FGameplayAbilityTargetDataHandle TargetData;
+
+	/** What tag to pass through when doing an application */
+	FGameplayTag ApplicationTag;
+
+	/** True if we've been positively confirmed our targeting, false if we don't know */
+	bool bTargetConfirmed;
+
+	/** True if we've been positively cancelled our targeting, false if we don't know */
+	bool bTargetCancelled;
+
+	/** Delegate to call whenever this is modified */
+	FAbilityTargetDataSetDelegate TargetSetDelegate;
+
+	/** Delegate to call whenever this is confirmed (without target data) */
+	FSimpleMulticastDelegate TargetCancelledDelegate;
+
+	/** Generic events that contain no payload data */
+	FAbilityReplicatedData	GenericEvents[EAbilityReplicatedClientEvent::MAX];
+
+	FAbilityClientDataCache() : bTargetConfirmed(false), bTargetCancelled(false) {}
+
+	/** Resets any cached data, leaves delegates up */
+	void Reset()
+	{
+		bTargetConfirmed = bTargetCancelled = false;
+		TargetData = FGameplayAbilityTargetDataHandle();
+		ApplicationTag = FGameplayTag();
+		for (int32 i=0; i < (int32) EAbilityReplicatedClientEvent::MAX; ++i)
+		{
+			GenericEvents[i].bTriggered = false;
+		}
+
+	}
+};
