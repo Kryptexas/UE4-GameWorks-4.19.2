@@ -7,6 +7,7 @@
 #include "TypeWrapper.h"
 #include "HAL/Platform.h"
 #include "Templates/UnrealTypeTraits.h"
+#include "UnrealMemory.h"
 
 
 /*-----------------------------------------------------------------------------
@@ -133,13 +134,6 @@ char (&ArrayCountHelper(const T (&)[N]))[N];
 	#define VTABLE_OFFSET( Class, MultipleInheritenceParent )	( ((PTRINT) static_cast<MultipleInheritenceParent*>((Class*)1)) - 1)
 #endif
 
-
-/*-----------------------------------------------------------------------------
-	Allocators.
------------------------------------------------------------------------------*/
-
-template <class T> class TAllocator
-{};
 
 /**
  * works just like std::min_element.
@@ -373,13 +367,14 @@ FORCEINLINE T&& Forward(typename TRemoveReference<T>::Type&& Obj)
 /**
  * Swap two values, using moves if possible
  */
-template< class T > inline void Swap(T& A, T& B)
+template <typename T>
+inline void Swap(T& A, T& B)
 {
-	T Temp = MoveTemp(A);
-	A = MoveTemp(B);
-	B = MoveTemp(Temp);
+	FMemory::Memswap(&A, &B, sizeof(T));
 }
-template< class T > inline void Exchange(T& A, T& B)
+
+template <typename T>
+inline void Exchange(T& A, T& B)
 {
 	Swap(A, B);
 }

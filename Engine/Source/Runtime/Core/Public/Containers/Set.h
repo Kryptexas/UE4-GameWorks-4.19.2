@@ -1148,14 +1148,3 @@ struct TContainerTraits<TSet<ElementType, KeyFuncs, Allocator> > : public TConta
 		TContainerTraits<typename TSet<ElementType, KeyFuncs, Allocator>::ElementArrayType>::MoveWillEmptyContainer &&
 		TAllocatorTraits<typename Allocator::HashAllocator>::SupportsMove };
 };
-
-/** A specialization of the exchange function that avoids reallocating when exchanging two sets. */
-template<
-	typename InElementType,
-	typename KeyFuncs /*= DefaultKeyFuncs<ElementType>*/,
-	typename Allocator /*= FDefaultSetAllocator*/
->
-FORCEINLINE void Exchange(TSet<InElementType,KeyFuncs,Allocator>& A,TSet<InElementType,KeyFuncs,Allocator>& B)
-{
-	FMemory::Memswap(&A,&B,sizeof(TSet<InElementType,KeyFuncs,Allocator>));
-}

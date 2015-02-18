@@ -241,17 +241,3 @@ template <typename T,uint32 TargetBytesPerChunk> void* operator new( size_t Size
 	const int32 Index = ChunkedArray.Add(1);
 	return &ChunkedArray(Index);
 }
-
-
-/**
- * A specialization of the exchange macro that avoids reallocating when
- * exchanging two arrays.
- *
- * @param FirstArrayToExchange First array to exchange.
- * @param SecondArrayToExchange Second array to exchange.
- */
-template <typename T, uint32 TargetBytesPerChunk>
-inline void Exchange(TChunkedArray<T,TargetBytesPerChunk>& FirstArrayToExchange, TChunkedArray<T,TargetBytesPerChunk>& SecondArrayToExchange)
-{
-	FMemory::Memswap(&FirstArrayToExchange, &SecondArrayToExchange, sizeof(TChunkedArray<T,TargetBytesPerChunk>));
-}

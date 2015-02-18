@@ -879,11 +879,3 @@ private:
 		CurrentBitIndex = BaseBitIndex + NumBitsPerDWORD - 1 - FMath::CountLeadingZeros(this->Mask);
 	}
 };
-
-
-/** A specialization of the exchange macro that avoids reallocating when exchanging two bit arrays. */
-template<typename Allocator>
-FORCEINLINE void Exchange(TBitArray<Allocator>& A,TBitArray<Allocator>& B)
-{
-	FMemory::Memswap(&A,&B,sizeof(TBitArray<Allocator>));
-}

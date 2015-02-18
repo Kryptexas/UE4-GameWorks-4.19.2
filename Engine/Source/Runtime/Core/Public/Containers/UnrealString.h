@@ -1404,11 +1404,6 @@ public:
 
 		return Result;
 	}
-
-	FORCEINLINE friend void Exchange(FString& A, FString& B)
-	{
-		Exchange(A.Data, B.Data);
-	}
 };
 
 template<>

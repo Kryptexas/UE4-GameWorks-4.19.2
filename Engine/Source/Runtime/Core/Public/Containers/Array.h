@@ -2609,34 +2609,6 @@ template <typename T,typename Allocator> void* operator new( size_t Size, TArray
 	return &Array[Index];
 }
 
-/**
- * A specialization of the exchange macro that avoids reallocating when
- * exchanging two arrays.
- *
- * @param FirstArrayToExchange First array to exchange.
- * @param SecondArrayToExchange Second array to exchange.
- */
-template <typename T>
-inline void Exchange(TArray<T>& FirstArrayToExchange, TArray<T>& SecondArrayToExchange)
-{
-	FMemory::Memswap(&FirstArrayToExchange, &SecondArrayToExchange, sizeof(TArray<T>));
-}
-
-/**
- * A specialization of the exchange macro that avoids reallocating when
- * exchanging two arrays.
- *
- * Non-default allocator version.
- *
- * @param FirstArrayToExchange First array to exchange.
- * @param SecondArrayToExchange Second array to exchange.
- */
-template<typename ElementType, typename Allocator>
-inline void Exchange(TArray<ElementType, Allocator>& FirstArrayToExchange, TArray<ElementType, Allocator>& SecondArrayToExchange)
-{
-	FMemory::Memswap(&FirstArrayToExchange, &SecondArrayToExchange, sizeof(TArray<ElementType, Allocator>));
-}
-
 /*-----------------------------------------------------------------------------
 	MRU array.
 -----------------------------------------------------------------------------*/
@@ -3324,34 +3296,6 @@ template <typename T,typename Allocator> void* operator new( size_t Size, TIndir
 	check(Size == sizeof(T));
 	Array.Insert((T*)FMemory::Malloc(Size), Index);
 	return &Array[Index];
-}
-
-/**
- * A specialization of the exchange macro that avoids reallocating when
- * exchanging two arrays.
- *
- * @param FirstArrayToExchange First array to exchange.
- * @param SecondArrayToExchange Second array to exchange.
- */
-template <typename T>
-inline void Exchange(TIndirectArray<T>& FirstArrayToExchange, TIndirectArray<T>& SecondArrayToExchange)
-{
-	FMemory::Memswap(&FirstArrayToExchange, &SecondArrayToExchange, sizeof(TIndirectArray<T>));
-}
-
-/**
- * A specialization of the exchange macro that avoids reallocating when
- * exchanging two arrays.
- *
- * Non-default allocator version.
- *
- * @param FirstArrayToExchange First array to exchange.
- * @param SecondArrayToExchange Second array to exchange.
- */
-template<typename ElementType,typename Allocator>
-inline void Exchange(TIndirectArray<ElementType, Allocator>& FirstArrayToExchange, TIndirectArray<ElementType, Allocator>& SecondArrayToExchange)
-{
-	FMemory::Memswap(&FirstArrayToExchange, &SecondArrayToExchange, sizeof(TIndirectArray<ElementType, Allocator>));
 }
 
 /*-----------------------------------------------------------------------------

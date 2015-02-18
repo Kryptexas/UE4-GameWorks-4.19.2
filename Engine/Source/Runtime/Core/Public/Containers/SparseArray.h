@@ -818,14 +818,3 @@ inline void* operator new(size_t Size,const FSparseArrayAllocationInfo& Allocati
 	ASSUME(Allocation.Pointer);
 	return Allocation.Pointer;
 }
-
-/** A specialization of the exchange macro that avoids reallocating when exchanging two arrays. */
-template <typename ElementType,typename Allocator>
-inline void Exchange(
-	TSparseArray<ElementType,Allocator>& A,
-	TSparseArray<ElementType,Allocator>& B
-	)
-{
-	FMemory::Memswap( &A, &B, sizeof(A) );
-}
-
