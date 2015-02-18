@@ -357,6 +357,12 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetPressed(BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, SelectionColor_Pressed))
 			);
 
+		Set("FlatButton", FButtonStyle(Button)
+			.SetNormal(FSlateNoResource())
+			.SetHovered(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, SelectionColor))
+			.SetPressed(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, SelectionColor_Pressed))
+			);
+
 		Set("FlatButton.Dark", FButtonStyle(Button)
 			.SetNormal(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, FLinearColor(0.125f, 0.125f, 0.125f, 0.8f)))
 			.SetHovered(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, SelectionColor))
@@ -386,12 +392,14 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			FLinearColor Hovered;
 			FLinearColor Pressed;
 
-			ButtonColor(const FName& Name, const FLinearColor& Normal) : Name(Name), Normal(Normal)
+			ButtonColor(const FName& Name, const FLinearColor& Color) : Name(Name)
 			{
-				Hovered = Normal * 0.8f;
-				Hovered.A = Normal.A;
-				Pressed = Normal * 0.6f;
-				Pressed.A = Normal.A;
+				Normal = Color * 0.8f;
+				Normal.A = Color.A;
+				Hovered = Color * 1.0f;
+				Hovered.A = Color.A;
+				Pressed = Color * 0.6f;
+				Pressed.A = Color.A;
 			}
 		};
 
@@ -416,6 +424,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set("FontAwesome.10", TTF_FONT("Fonts/FontAwesome", 10));
 		Set("FontAwesome.11", TTF_FONT("Fonts/FontAwesome", 11));
 		Set("FontAwesome.12", TTF_FONT("Fonts/FontAwesome", 12));
+		Set("FontAwesome.14", TTF_FONT("Fonts/FontAwesome", 14));
 
 		/* Create a checkbox style for "ToggleButton" ... */
 		const FCheckBoxStyle ToggleButtonStyle = FCheckBoxStyle()

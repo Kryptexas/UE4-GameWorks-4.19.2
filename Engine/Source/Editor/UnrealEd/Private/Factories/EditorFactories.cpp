@@ -6845,27 +6845,25 @@ UBlendSpaceFactoryNew::UBlendSpaceFactoryNew(const FObjectInitializer& ObjectIni
 		}
 
 bool UBlendSpaceFactoryNew::ConfigureProperties()
-	{
+{
 	// Null the parent class so we can check for selection later
 	TargetSkeleton = nullptr;
 
-		// Load the content browser module to display an asset picker
+	// Load the content browser module to display an asset picker
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
-		FAssetPickerConfig AssetPickerConfig;
+	FAssetPickerConfig AssetPickerConfig;
 
 	/** The asset picker will only show skeletal meshes */
-		AssetPickerConfig.Filter.ClassNames.Add(USkeleton::StaticClass()->GetFName());
-		AssetPickerConfig.Filter.bRecursiveClasses = true;
+	AssetPickerConfig.Filter.ClassNames.Add(USkeleton::StaticClass()->GetFName());
+	AssetPickerConfig.Filter.bRecursiveClasses = true;
 
-		/** The delegate that fires when an asset was selected */
+	/** The delegate that fires when an asset was selected */
 	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateUObject(this, &UBlendSpaceFactoryNew::OnTargetSkeletonSelected);
 
-		/** The default view mode should be a list view */
-		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+	/** The default view mode should be a list view */
+	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 
-		/** The default scale for thumbnails. [0-1] range */
-		AssetPickerConfig.ThumbnailScale = 0.25f;
 
 	PickerWindow = SNew(SWindow)
 	.Title(LOCTEXT("CreateBlendSpaceOptions", "Pick Skeleton"))
@@ -6922,7 +6920,7 @@ bool UBlendSpaceFactory1D::ConfigureProperties()
 	// Null the parent class so we can check for selection later
 	TargetSkeleton = nullptr;
 
-		// Load the content browser module to display an asset picker
+	// Load the content browser module to display an asset picker
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
 	FAssetPickerConfig AssetPickerConfig;
@@ -6936,9 +6934,6 @@ bool UBlendSpaceFactory1D::ConfigureProperties()
 
 	/** The default view mode should be a list view */
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-
-	/** The default scale for thumbnails. [0-1] range */
-	AssetPickerConfig.ThumbnailScale = 0.25f;
 
 	PickerWindow = SNew(SWindow)
 	.Title(LOCTEXT("CreateBlendSpaceOptions", "Pick Skeleton"))

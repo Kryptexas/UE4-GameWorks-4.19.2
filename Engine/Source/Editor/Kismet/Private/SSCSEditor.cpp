@@ -3164,15 +3164,6 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 					[
 						SNew(SHorizontalBox)
 						
-						//+SHorizontalBox::Slot()
-						//.VAlign(VAlign_Center)
-						//.AutoWidth()
-						//.Padding(2.f, 1.f)
-						//[
-						//	SNew(SImage)
-						//	.Image( FEditorStyle::Get().GetBrush( "ClassIcon.BlueprintCore" ) )
-						//]
-
 						+ SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
 						.Padding(3.f)
@@ -3200,34 +3191,36 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 				.FillWidth(1.0f)
 				.Padding( 3.0f, 3.0f )
 				.HAlign(HAlign_Right)
+				.Padding(3.0f, 3.0f)
 				[
 					SNew(SComboButton)
 					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.EditBlueprint")))
 					.Visibility(this, &SSCSEditor::GetEditBlueprintButtonVisibility)
-					.ContentPadding(FMargin(0))
+					.ContentPadding(FMargin(10, 0))
 					.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
 					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Primary")
 					.ForegroundColor(FLinearColor::White)
 					.ButtonContent()
 					[
 						SNew( SHorizontalBox )
+
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
-						.HAlign(HAlign_Center)
 						.VAlign(VAlign_Center)
-						.Padding( 2.0f, 0.0f )
+						.Padding(3.f)
 						[
-							SNew( SImage )
-							.Image( FEditorStyle::Get().GetBrush( "ClassIcon.BlueprintCore" ) )
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+							.Text(FString(TEXT("\xf085")) /*fa-cogs*/)
 						]
-						.Padding( 2.0f, 0.0f )
+						
 						+ SHorizontalBox::Slot()
 						[
 							SNew(STextBlock)
 							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 							.Text(LOCTEXT("EditBlueprint", "Edit Blueprint"))
 						]
-
 					]
 					.MenuContent()
 					[
