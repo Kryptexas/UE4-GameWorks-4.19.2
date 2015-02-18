@@ -50,6 +50,8 @@ public:
 	virtual FArchive* GetHeaderArchive() = 0;
 	virtual FArchive* GetStreamingArchive() = 0;
 	virtual FArchive* GetMetadataArchive() = 0;
+	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) = 0;
+	virtual uint32 GetTotalDemoTime() const = 0;
 	virtual bool IsDataAvailable() const = 0;
 	
 	/** Returns true if the given StreamName is a game currently in progress */

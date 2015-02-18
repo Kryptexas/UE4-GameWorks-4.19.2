@@ -36,6 +36,8 @@ public:
 	virtual FArchive*	GetHeaderArchive() override;
 	virtual FArchive*	GetStreamingArchive() override;
 	virtual FArchive*	GetMetadataArchive() override;
+	virtual void		UpdateTotalDemoTime( uint32 TimeInMS ) override;
+	virtual uint32		GetTotalDemoTime() const override { return DemoTimeInMS; }
 	virtual bool		IsDataAvailable() const override;
 	virtual bool		IsLive( const FString& StreamName ) const override;
 	virtual void		DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const override;
@@ -98,6 +100,7 @@ public:
 	bool					bStopStreamingCalled;
 	bool					bStreamIsLive;			// If true, we are viewing a live stream
 	int32					NumDownloadChunks;
+	uint32					DemoTimeInMS;
 
 	FOnStreamReadyDelegate			StartStreamingDelegate;		// Delegate passed in to StartStreaming
 	FOnEnumerateStreamsComplete		EnumerateStreamsDelegate;

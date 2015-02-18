@@ -57,7 +57,8 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	HttpState( EHttptate::Idle ), 
 	bStopStreamingCalled( false ), 
 	bStreamIsLive( false ),
-	NumDownloadChunks( 0 ) 
+	NumDownloadChunks( 0 ),
+	DemoTimeInMS( 0 )
 {
 	// Initialize the server URL
 	GConfig->GetString( TEXT( "HttpNetworkReplayStreaming" ), TEXT( "ServerURL" ), ServerURL, GEngineIni );
@@ -196,7 +197,7 @@ void FHttpNetworkReplayStreamer::UploadHeader()
 
 	HttpState = EHttptate::UploadingHeader;
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Filename=replay.header" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Time=%i&Filename=replay.header" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount, DemoTimeInMS ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 	HttpRequest->SetContent( HeaderArchive.Buffer );
@@ -234,7 +235,7 @@ void FHttpNetworkReplayStreamer::FlushStream()
 
 	HttpState = EHttptate::UploadingStream;
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Filename=stream.%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount + 1, StreamFileCount ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Time=%i&Filename=stream.%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount + 1, DemoTimeInMS, StreamFileCount ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 	HttpRequest->SetContent( StreamArchive.Buffer );
@@ -316,6 +317,11 @@ FArchive* FHttpNetworkReplayStreamer::GetStreamingArchive()
 FArchive* FHttpNetworkReplayStreamer::GetMetadataArchive()
 {
 	return NULL;
+}
+
+void FHttpNetworkReplayStreamer::UpdateTotalDemoTime( uint32 TimeInMS )
+{
+	DemoTimeInMS = TimeInMS;
 }
 
 bool FHttpNetworkReplayStreamer::IsDataAvailable() const
@@ -451,7 +457,7 @@ void FHttpNetworkReplayStreamer::HttpUploadFinished( FHttpRequestPtr HttpRequest
 
 			HttpState = EHttptate::StopUploading;
 
-			HttpRequest->SetURL( FString::Printf( TEXT( "%sstopuploading?Version=%s&Session=%s&NumChunks=%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount ) );
+			HttpRequest->SetURL( FString::Printf( TEXT( "%sstopuploading?Version=%s&Session=%s&NumChunks=%i&Time=%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount, DemoTimeInMS ) );
 			HttpRequest->SetVerb( TEXT( "POST" ) );
 			HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 
@@ -475,13 +481,15 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
 		FString NumChunksString = HttpResponse->GetHeader( TEXT( "NumChunks" ) );
+		FString DemoTimeString = HttpResponse->GetHeader( TEXT( "Time" ) );
 		FString State = HttpResponse->GetHeader( TEXT( "State" ) );
 
 		bStreamIsLive = State == TEXT( "Live" );
 
 		NumDownloadChunks = FCString::Atoi( *NumChunksString );
+		DemoTimeInMS = FCString::Atoi( *DemoTimeString );
 
-		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. State: %s, NumChunks: %i" ), *State, NumDownloadChunks );
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. State: %s, NumChunks: %i, DemoTime: %2.2f" ), *State, NumDownloadChunks, (float)DemoTimeInMS / 1000 );
 
 		// First, download the header
 		if ( NumDownloadChunks > 0 )
@@ -556,11 +564,13 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
 		FString NumChunksString = HttpResponse->GetHeader( TEXT( "NumChunks" ) );
+		FString DemoTimeString = HttpResponse->GetHeader( TEXT( "Time" ) );
 		FString State = HttpResponse->GetHeader( TEXT( "State" ) );
 
 		bStreamIsLive = State == TEXT( "Live" );
 
 		NumDownloadChunks = FCString::Atoi( *NumChunksString );
+		DemoTimeInMS = FCString::Atoi( *DemoTimeString );
 
 		if ( HttpResponse->GetContent().Num() > 0 || bStreamIsLive )
 		{
@@ -570,7 +580,7 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 				StreamFileCount++;
 			}
 
-			UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. State: %s, Progress: %i / %i" ), *State, StreamFileCount, NumDownloadChunks );
+			UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. State: %s, Progress: %i / %i, DemoTime: %2.2f" ), *State, StreamFileCount, NumDownloadChunks, (float)DemoTimeInMS / 1000 );
 		}
 		else
 		{

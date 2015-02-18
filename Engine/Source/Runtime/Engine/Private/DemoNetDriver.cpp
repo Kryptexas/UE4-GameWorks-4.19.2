@@ -615,6 +615,8 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	DemoDeltaTime += DeltaSeconds;
 	DemoCurrentTime += DeltaSeconds;
 
+	ReplayStreamer->UpdateTotalDemoTime( DemoCurrentTime * 1000 );
+
 	const double CurrentSeconds = FPlatformTime::Seconds();
 
 	const double RECORD_HZ		= CVarDemoRecordHz.GetValueOnGameThread();
@@ -686,6 +688,13 @@ bool UDemoNetDriver::ReadDemoFrame()
 	if ( !ReplayStreamer->IsDataAvailable() )
 	{
 		return false;
+	}
+
+	const uint32 TotalDemoTimeInMS = ReplayStreamer->GetTotalDemoTime();
+
+	if ( TotalDemoTimeInMS > 0 )
+	{
+		DemoTotalTime = (float)TotalDemoTimeInMS / 1000.0f;
 	}
 
 	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
