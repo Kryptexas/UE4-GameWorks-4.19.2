@@ -511,7 +511,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 	if (PackagingSettings->ForDistribution)
 	{
-		OptionalParams += TEXT(" -distribution");
+		OptionalParams += TEXT(" -distribution -nodebuginfo");
 	}
 
 	if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") && PlatformInfo->PlatformFlavor == TEXT("Win32"))
