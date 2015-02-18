@@ -1822,6 +1822,10 @@ FArchive& operator<<(FArchive& Ar,FLightMap*& R)
 		{
 			R = new FLightMap2D();
 		}
+		else
+		{
+			R = NULL;
+		}
 	}
 
 	if(R != NULL)
