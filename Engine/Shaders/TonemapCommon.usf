@@ -5,7 +5,7 @@
 =============================================================================*/
 
 // usually 1/2.2, the .y is used for inverse gamma when "gamma only" mode is not used
-half2 InverseGamma;
+half3 InverseGamma;
 
 // Film tonal and color control.
 half4 ColorMatrixR_ColorCurveCd1;

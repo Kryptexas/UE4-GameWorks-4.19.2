@@ -39,6 +39,7 @@ typedef enum {
 	TonemapperMsaa              = (1<<15),
 	TonemapperPhoto             = (1<<16),
 	Tonemapper709               = (1<<17),
+	TonemapperGamma             = (1<<18),
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -63,6 +64,7 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperMsaa
 	1, //TonemapperPhoto
 	1, //Tonemapper709
+	1, //TonemapperGamma
 };
 
 // Edit the following to add and remove configurations.
@@ -201,8 +203,9 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 	TonemapperGrainQuantization +
 	TonemapperVignette +
 	TonemapperVignetteColor +
+	TonemapperColorFringe +
 	TonemapperPhoto +
-	Tonemapper709 +
+	TonemapperGamma +
 	0,
 
 	TonemapperBloom +
@@ -237,8 +240,9 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 	TonemapperBloom +
 	TonemapperVignette +
 	TonemapperVignetteColor +
+	TonemapperColorFringe +
 	TonemapperPhoto +
-	Tonemapper709 +
+	TonemapperGamma +
 	0,
 
 	TonemapperBloom +
@@ -714,6 +718,17 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 	}
 
 	{
+		static TConsoleVariableData<float>* CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
+		float Value = CVar->GetValueOnRenderThread();
+		if(Value > 0.0f)
+		{
+			// Remove settings not compatible.
+			Bitmask &= ~(TonemapperColorMatrix|TonemapperShadowTint|TonemapperContrast|TonemapperColorGrading|TonemapperMsaa);
+			Bitmask |= TonemapperPhoto | TonemapperGamma;
+		}
+	}
+
+	{
 		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperPhoto"));
 		int32 Value = CVar->GetValueOnRenderThread();
 
@@ -1045,7 +1060,7 @@ void FilmPostSetConstantsPhoto(FVector4* RESTRICT const Constants, const FPostPr
 	// If an LDR display goes from 0-1 this multiply will be 1.
 	// If an HDR display goes from 0-16 this multiply will be 1/16 (the display is 16x brigher).
 	{
-		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperHDR"));
+		static TConsoleVariableData<float>* CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperHDR"));
 		float Value = CVar->GetValueOnRenderThread();
 		if(Value < 1.0f)
 		{
@@ -1104,6 +1119,7 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_GRADING"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorGrading));
 		OutEnvironment.SetDefine(TEXT("USE_PHOTO"),              TonemapperIsDefined(ConfigBitmask, TonemapperPhoto));
 		OutEnvironment.SetDefine(TEXT("USE_709"),                TonemapperIsDefined(ConfigBitmask, Tonemapper709));
+		OutEnvironment.SetDefine(TEXT("USE_GAMMA"),              TonemapperIsDefined(ConfigBitmask, TonemapperGamma));
 
 		if( !IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM5) )
 		{
@@ -1290,9 +1306,18 @@ public:
 		}
 
 		{
-			FVector2D InvDisplayGammaValue;
+			FVector InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Y = 2.2f / ViewFamily.RenderTarget->GetDisplayGamma();
+			{
+				static TConsoleVariableData<float>* CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
+				float Value = CVar->GetValueOnRenderThread();
+				if(Value < 1.0f)
+				{
+					Value = 1.0f;
+				}
+				InvDisplayGammaValue.Z = 1.0f / Value;
+			}
 			SetShaderValue(Context.RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
 		}
 
@@ -1640,9 +1665,10 @@ public:
 		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
 
 		{
-			FVector2D InvDisplayGammaValue;
+			FVector InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Y = 2.2f / ViewFamily.RenderTarget->GetDisplayGamma();
+			InvDisplayGammaValue.Z = 1.0; // Unused on mobile.
 			SetShaderValue(Context.RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
 		}
 

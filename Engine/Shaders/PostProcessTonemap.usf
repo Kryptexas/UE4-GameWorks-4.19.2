@@ -287,9 +287,15 @@ void MainPS(
 				// Didn't profile yet if the branching version would be faster (different linear segment).
 				half3 TonemappedColor = LinearTo709Branchless(FilmColor);
 			#else
-				// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-				// Branching is faster than branchless on AMD on PC.
-				half3 TonemappedColor = LinearToSrgbBranching(FilmColor);
+				#if USE_GAMMA
+					// This is different than the prior "gamma" curve adjustment (but reusing the variable).
+					// For displays set to a gamma colorspace.
+					half3 TonemappedColor = pow(FilmColor.rgb, InverseGamma.z);
+				#else
+					// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
+					// Branching is faster than branchless on AMD on PC.
+					half3 TonemappedColor = LinearToSrgbBranching(FilmColor);
+				#endif
 			#endif
 		#endif
 
