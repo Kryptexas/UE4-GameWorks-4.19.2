@@ -150,7 +150,7 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 		{
 			UBlueprint const* Blueprint = GetBlueprint();
 
-			UClass const* ChildActorClass = ChildActorComponent->ChildActorClass;
+			UClass const* ChildActorClass = ChildActorComponent->GetChildActorClass();
 			if (ChildActorClass == Blueprint->GeneratedClass)
 			{
 				UEdGraph const* ParentGraph = GetGraph();
@@ -314,10 +314,10 @@ FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 				Args.Add(TEXT("AssetName"), FText::FromString(AssociatedAsset->GetName()));
 				CachedAssetTitle = FText::Format(LOCTEXT("AddComponentAssetDescription", "{AssetType} {AssetName}"), Args);
 			}
-			else if ((SubActorComp != nullptr) && (SubActorComp->ChildActorClass != nullptr))
+			else if ((SubActorComp != nullptr) && (SubActorComp->GetChildActorClass() != nullptr))
 			{
 				FFormatNamedArguments Args;
-				Args.Add(TEXT("ComponentClassName"), SubActorComp->ChildActorClass->GetDisplayNameText());
+				Args.Add(TEXT("ComponentClassName"), SubActorComp->GetChildActorClass()->GetDisplayNameText());
 				CachedAssetTitle = FText::Format(LOCTEXT("AddChildActorComponent", "Actor Class {ComponentClassName}"), Args);
 			}
 			else

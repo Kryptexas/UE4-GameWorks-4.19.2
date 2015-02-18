@@ -186,6 +186,16 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 	}
 }
 
+void UChildActorComponent::SetChildActorClass(TSubclassOf<AActor> Class)
+{
+	ChildActorClass = Class;
+	if (IsRegistered())
+	{
+		DestroyChildActor();
+		CreateChildActor();
+	}
+}
+
 void UChildActorComponent::CreateChildActor()
 {
 	// Kill spawned actor if we have one

@@ -225,7 +225,7 @@ public:
 			}
 			if (Class && Class->IsChildOf<AActor>())
 			{
-				ChildActorComp->ChildActorClass = Class;
+				ChildActorComp->SetChildActorClass(Class);
 				return true;
 			}
 		}
@@ -237,7 +237,7 @@ public:
 	{
 		if (UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>(InComponent))
 		{
-			return UBlueprint::GetBlueprintFromClass(*(ChildActorComp->ChildActorClass));
+			return UBlueprint::GetBlueprintFromClass(*(ChildActorComp->GetChildActorClass()));
 		}
 		return NULL;
 	}
