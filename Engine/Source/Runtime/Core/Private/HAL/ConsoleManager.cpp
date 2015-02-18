@@ -1998,6 +1998,16 @@ static TAutoConsoleVariable<int32> CVarTonemapperPhoto(
 	TEXT("1: use new photo post"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarTonemapperHDR(
+	TEXT("r.TonemapperHDR"),
+	1,
+	TEXT("Make tonemapper work with HDR display.\n")
+	TEXT("Requires 'r.TonemapperPhoto 1'.\n")
+	TEXT("1: standard dynamic range\n")
+	TEXT("#: high dynamic range (#=2 for 1 stop more, #=4 for 2 stops more, #=8 for 3 stops more and so on"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+
 static TAutoConsoleVariable<int32> CVarTonemapper709(
 	TEXT("r.Tonemapper709"),
 	0,

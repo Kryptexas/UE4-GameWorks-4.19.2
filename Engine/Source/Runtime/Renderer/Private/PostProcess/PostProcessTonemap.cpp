@@ -1038,6 +1038,22 @@ void FilmPostSetConstantsPhoto(FVector4* RESTRICT const Constants, const FPostPr
 	// Factor in the scale to ensure gamma does not change the 18% midtone.
 	OutTint *= PhotoMid/FMath::Pow(PhotoMid, PhotoGamma);
 
+	// HDR display support provides a secondary exposure adjustment 
+	// which is factored into the tint mulitply in the {Lift, gamma, tint} processing.
+	// This is prior to over-exposure crosstalk (desaturate overexposed color),
+	// and prior to highlight compression.
+	// If an LDR display goes from 0-1 this multiply will be 1.
+	// If an HDR display goes from 0-16 this multiply will be 1/16 (the display is 16x brigher).
+	{
+		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperHDR"));
+		float Value = CVar->GetValueOnRenderThread();
+		if(Value < 1.0f)
+		{
+			Value = 1.0f;
+		}
+		OutTint *= 1.0f/Value;
+	}
+
 	Constants[0] = FVector4(OutMatrixR, OutLift);
 	Constants[1] = FVector4(OutMatrixG, OutLiftScale);
 	Constants[2] = FVector4(OutMatrixB, PhotoGamma); 
