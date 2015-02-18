@@ -126,9 +126,6 @@ public:
 
 		// These are common colors used thruout the editor in mutliple style elements
 		const FSlateColor InheritedFromBlueprintTextColor;
-		const FSlateColor InheritedFromNativeTextColor;
-		const FSlateColor IntroducedInThisInstanceTextColor;
-		const FSlateColor IntroducedInThisBlueprintTextColor;
 
 		FTextBlockStyle NormalText;
 		FEditableTextBoxStyle NormalEditableTextBoxStyle;

@@ -70,9 +70,6 @@ FSlateEditorStyle::FStyle::FStyle( const TWeakObjectPtr< UEditorStyleSettings >&
 	, SelectionColor_Pressed( SelectionColor_Pressed_LinearRef )
 
 	, InheritedFromBlueprintTextColor(FLinearColor(0.25f, 0.5f, 1.0f))
-	, InheritedFromNativeTextColor(FLinearColor(0.375f, 1.0f, 0.375f))
-	, IntroducedInThisInstanceTextColor(FLinearColor::White)
-	, IntroducedInThisBlueprintTextColor(FLinearColor::White)
 
 	, Settings( InSettings )
 {
@@ -2347,9 +2344,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Common styles for blueprint/code references
 	{
-		Set("Common.IntroducedInThisInstanceTextColor", IntroducedInThisInstanceTextColor);
-		Set("Common.IntroducedInThisBlueprintTextColor", IntroducedInThisBlueprintTextColor);
-
 		// Inherited from blueprint
 		Set("Common.InheritedFromBlueprintTextColor", InheritedFromBlueprintTextColor);
 
@@ -2371,19 +2365,17 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		Set("Common.GotoBlueprintHyperlink", EditBPHyperlinkStyle);
 
-		// Inherited from native
-		Set("Common.InheritedFromNativeTextColor", InheritedFromNativeTextColor);
 
 		FTextBlockStyle InheritedFromNativeTextStyle = FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
-			.SetColorAndOpacity(InheritedFromNativeTextColor);
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10));
+
 		Set("Common.InheritedFromNativeTextStyle", InheritedFromNativeTextStyle);
 
 		// Go to native class hyperlink
 		FButtonStyle EditNativeHyperlinkButton = FButtonStyle()
-			.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f), InheritedFromNativeTextColor))
+			.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f)))
 			.SetPressed(FSlateNoResource())
-			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f), InheritedFromNativeTextColor));
+			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f)));
 		FHyperlinkStyle EditNativeHyperlinkStyle = FHyperlinkStyle()
 			.SetUnderlineStyle(EditNativeHyperlinkButton)
 			.SetTextStyle(InheritedFromNativeTextStyle)
