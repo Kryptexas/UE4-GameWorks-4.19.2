@@ -1797,53 +1797,62 @@ void TQuantizedLightSampleBulkData<QuantizedLightSampleType>::SerializeElement( 
 	} 
 };
 
-FArchive& operator<<(FArchive& Ar,FLightMap*& R)
+FArchive& operator<<(FArchive& Ar, FLightMap*& R)
 {
 	uint32 LightMapType = FLightMap::LMT_None;
-	if(Ar.IsSaving())
+
+	if (Ar.IsSaving())
 	{
-		if(R != NULL)
+		if (R != nullptr)
 		{
-			if(R->GetLightMap2D())
+			if (R->GetLightMap2D())
 			{
 				LightMapType = FLightMap::LMT_2D;
 			}
 		}
 	}
+
 	Ar << LightMapType;
 
-	if(Ar.IsLoading())
+	if (Ar.IsLoading())
 	{
-		if(LightMapType == FLightMap::LMT_1D)
+		// explicitly don't call "delete R;",
+		// we expect the calling code to handle that
+		switch (LightMapType)
 		{
+		case FLightMap::LMT_None:
+			R = nullptr;
+			break;
+		case FLightMap::LMT_1D:
 			R = new FLegacyLightMap1D();
-		}
-		else if(LightMapType == FLightMap::LMT_2D)
-		{
+			break;
+		case FLightMap::LMT_2D:
 			R = new FLightMap2D();
-		}
-		else
-		{
-			R = NULL;
+			break;
+		default:
+			check(0);
 		}
 	}
 
-	if(R != NULL)
+	if (R != nullptr)
 	{
 		R->Serialize(Ar);
 
-		// Toss legacy vertex lightmaps
-		if (LightMapType == FLightMap::LMT_1D)
+		if (Ar.IsLoading())
 		{
-			delete R;
-			R = NULL;
-		}
+			// Toss legacy vertex lightmaps
+			if (LightMapType == FLightMap::LMT_1D)
+			{
+				delete R;
+				R = nullptr;
+			}
 
-		// Dump old lightmaps
-		if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES )
-		{
-			delete R;
-			R = NULL;
+			// Dump old lightmaps
+			if (Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES)
+			{
+				delete R; // safe because if we're loading we new'd this above
+				R = nullptr;
+			}
 		}
 	}
 

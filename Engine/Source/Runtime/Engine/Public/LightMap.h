@@ -124,7 +124,10 @@ private:
 
 
 
-/** Lightmap reference serializer */
+/**
+ * Lightmap reference serializer
+ * Intended to be used by TRefCountPtr's serializer, not called directly
+ */
 extern ENGINE_API FArchive& operator<<(FArchive& Ar, FLightMap*& R);
 
 /** 

@@ -360,6 +360,8 @@ private:
 
 
 
-
-/** Shadowmap reference serializer */
+/**
+ * Shadowmap reference serializer
+ * Intended to be used by TRefCountPtr's serializer, not called directly
+ */
 extern ENGINE_API FArchive& operator<<(FArchive& Ar, FShadowMap*& R);

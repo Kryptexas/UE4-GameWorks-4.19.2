@@ -1031,34 +1031,48 @@ FArchive& operator<<(FArchive& Ar,FShadowMap*& R)
 {
 	uint32 ShadowMapType = FShadowMap::SMT_None;
 
-	if (Ar.IsSaving() && R != NULL && R->GetShadowMap2D())
+	if (Ar.IsSaving())
 	{
-		ShadowMapType = FShadowMap::SMT_2D;
+		if (R != nullptr)
+		{
+			if (R->GetShadowMap2D())
+			{
+				ShadowMapType = FShadowMap::SMT_2D;
+			}
+		}
 	}
 
 	Ar << ShadowMapType;
 
 	if (Ar.IsLoading())
 	{
-		if (ShadowMapType == FShadowMap::SMT_2D)
+		// explicitly don't call "delete R;",
+		// we expect the calling code to handle that
+		switch (ShadowMapType)
 		{
+		case FShadowMap::SMT_None:
+			R = nullptr;
+			break;
+		case FShadowMap::SMT_2D:
 			R = new FShadowMap2D();
-		}
-		else
-		{
-			R = NULL;
+			break;
+		default:
+			check(0);
 		}
 	}
 
-	if (R != NULL)
+	if (R != nullptr)
 	{
 		R->Serialize(Ar);
-		
-		// Dump old lightmaps
-		if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES )
+
+		if (Ar.IsLoading())
 		{
-			delete R;
-			R = NULL;
+			// Dump old Shadowmaps
+			if (Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES)
+			{
+				delete R; // safe because if we're loading we new'd this above
+				R = nullptr;
+			}
 		}
 	}
 
