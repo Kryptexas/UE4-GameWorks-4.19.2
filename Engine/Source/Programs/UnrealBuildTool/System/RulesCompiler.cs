@@ -357,6 +357,11 @@ namespace UnrealBuildTool
         /// </summary>
         public bool bUsesSteam;
 
+        /// <summary>
+        /// Whether the target uses CEF3
+        /// </summary>
+        public bool bUsesCEF3;
+
 		/// <summary>
 		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is always used)
 		/// </summary>
