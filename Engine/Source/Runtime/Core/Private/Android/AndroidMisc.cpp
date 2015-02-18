@@ -12,7 +12,7 @@
 #include "MallocCrash.h"
 #include "AndroidJavaMessageBox.h"
 
-ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 void* FAndroidMisc::NativeWindow = NULL;
 

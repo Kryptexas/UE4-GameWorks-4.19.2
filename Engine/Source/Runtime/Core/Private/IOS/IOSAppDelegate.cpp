@@ -15,7 +15,7 @@
 #define GAME_THREAD_STACK_SIZE 1024 * 1024 
 
 DEFINE_LOG_CATEGORY(LogIOSAudioSession);
-ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 extern bool GShowSplashScreen;
 
