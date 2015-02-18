@@ -1802,59 +1802,12 @@ bool UPrimitiveComponent::OverlapComponent(const FVector& Pos, const FQuat& Rot,
 	return BodyInstance.OverlapTest(Pos, Rot, CollisionShape);
 }
 
-bool UPrimitiveComponent::ComputePenetration(FMTDResult & OutMTD, const FCollisionShape & CollisionShape, const FVector & Pos, const FQuat & Rot)
+bool UPrimitiveComponent::ComputePenetration(FMTDResult& OutMTD, const FCollisionShape & CollisionShape, const FVector& Pos, const FQuat& Rot)
 {
-#if WITH_PHYSX
-	UCollision2PGeom GeomStorage0(CollisionShape);
-	PxTransform PGeomPose0 = ConvertToPhysXCapsulePose(FTransform(Rot, Pos));
-	const PxGeometry * PGeom0 = GeomStorage0.GetGeometry();
-
-	check(PGeom0);	//couldn't convert FCollisionShape to PxGeometry - something is wrong
-
-	const PxRigidActor* PRigidBody = BodyInstance.GetPxRigidActor();
-	if (PRigidBody == NULL || PRigidBody->getNbShapes() == 0)
+	if(FBodyInstance* BodyInstance = GetBodyInstance())
 	{
-		return false;
+		return BodyInstance->OverlapTest(Pos, Rot, CollisionShape, &OutMTD);
 	}
-
-	const PxTransform PGlobalPose1 = PRigidBody->getGlobalPose();
-
-	// Get all the shapes from the actor
-	// TODO: we should really pass the shape from the overlap info since doing it this way we do an overlap test twice
-	TArray<PxShape*> PShapes;
-	PShapes.AddZeroed(PRigidBody->getNbShapes());
-	int32 NumTargetShapes = PRigidBody->getShapes(PShapes.GetData(), PShapes.Num());
-
-	for (int32 PShapeIdx = 0; PShapeIdx < PShapes.Num(); ++PShapeIdx)
-	{
-		const PxShape * PShape = PShapes[PShapeIdx];
-		check(PShape);
-
-		// Calc shape global pose
-		PxTransform PGeomPose1 = PGlobalPose1.transform(PShape->getLocalPose());
-		GeometryFromShapeStorage GeomStorage1;
-		PxGeometry * PGeom1 = GetGeometryFromShape(GeomStorage1, PShape, true);
-
-		if (PGeom1)
-		{
-			PxVec3 POutDirection;
-			bool bSuccess = PxGeometryQuery::computePenetration(POutDirection, OutMTD.Distance, *PGeom0, PGeomPose0, *PGeom1, PGeomPose1);
-			if (bSuccess)
-			{
-				if (POutDirection.isFinite())
-				{
-					OutMTD.Direction = P2UVector(POutDirection);
-					return true;
-				}
-				else
-				{
-					UE_LOG(LogPhysics, Warning, TEXT("UPrimitiveComponent::ComputePenetration: MTD returned NaN"));
-					return false;
-				}
-			}
-		}
-	}
-#endif
 
 	return false;
 }
