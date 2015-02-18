@@ -24,7 +24,7 @@ FName ACharacter::CharacterMovementComponentName(TEXT("CharMoveComp"));
 FName ACharacter::CapsuleComponentName(TEXT("CollisionCylinder"));
 
 ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -33,7 +33,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		FText NAME_Characters;
 		FConstructorStatics()
 			: ID_Characters(TEXT("Characters"))
-			, NAME_Characters(NSLOCTEXT( "SpriteCategory", "Characters", "Characters" ))
+			, NAME_Characters(NSLOCTEXT("SpriteCategory", "Characters", "Characters"))
 		{
 		}
 	};
@@ -53,7 +53,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
-	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
+	CapsuleComponent->bCheckAsyncSceneOnMove = false;
 	CapsuleComponent->bCanEverAffectNavigation = false;
 	CapsuleComponent->bDynamicObstacle = true;
 	RootComponent = CapsuleComponent;
@@ -99,7 +99,6 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		Mesh->bCanEverAffectNavigation = false;
 	}
 }
-
 
 void ACharacter::PostInitializeComponents()
 {
