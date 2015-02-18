@@ -826,9 +826,9 @@ public:
 	{
 	}
 
-	virtual void ApplyToComponent(UActorComponent* Component) override
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
-		FSceneComponentInstanceData::ApplyToComponent(Component);
+		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 		CastChecked<USplineMeshComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
@@ -844,9 +844,9 @@ FName USplineMeshComponent::GetComponentInstanceDataType() const
 	return SplineMeshInstanceDataTypeName;
 }
 
-FComponentInstanceDataBase* USplineMeshComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* USplineMeshComponent::GetComponentInstanceData() const
 {
-	FComponentInstanceDataBase* InstanceData = nullptr;
+	FActorComponentInstanceData* InstanceData = nullptr;
 	if (bAllowSplineEditingPerInstance)
 	{
 		FSplineMeshInstanceData *SplineMeshInstanceData = new FSplineMeshInstanceData(this);
