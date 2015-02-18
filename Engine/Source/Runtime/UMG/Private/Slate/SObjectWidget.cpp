@@ -59,7 +59,7 @@ int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 
 	if ( CanRouteEvent() )
 	{
-		FPaintContext Context(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		FPaintContext Context(AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayer, InWidgetStyle, bParentEnabled);
 		WidgetObject->OnPaint(Context);
 
 		return FMath::Max(MaxLayer, Context.MaxLayer);
