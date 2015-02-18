@@ -891,6 +891,15 @@ static void AddUniqueOverlap(TArray<FOverlapResult>& OutOverlaps, const FOverlap
 	OutOverlaps.Add(NewOverlap);
 }
 
+bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter)
+{
+	// See if this is a 'blocking' hit
+	const PxFilterData PShapeFilter = PShape->getQueryFilterData();
+	const PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
+	const bool bBlock = (HitType == PxSceneQueryHitType::eBLOCK);
+	return bBlock;
+}
+
 bool ConvertOverlapResults(int32 NumOverlaps, PxOverlapHit* POverlapResults, const PxFilterData& QueryFilter, TArray<FOverlapResult>& OutOverlaps)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CollisionConvertOverlap);

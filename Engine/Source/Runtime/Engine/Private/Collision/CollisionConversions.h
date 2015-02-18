@@ -67,14 +67,7 @@ void ConvertQueryOverlap(const PxShape* PShape, const PxRigidActor* PActor, FOve
  * @QueryFilter Query Filter
  * @return true if the query filter and shape filter resolve to be blocking
  */
-inline bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter)
-{
-	// See if this is a 'blocking' hit
-	const PxFilterData PShapeFilter = PShape->getQueryFilterData();
-	const PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
-	const bool bBlock = (HitType == PxSceneQueryHitType::eBLOCK);
-	return bBlock;
-}
+bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter);
 
 
 /** 
