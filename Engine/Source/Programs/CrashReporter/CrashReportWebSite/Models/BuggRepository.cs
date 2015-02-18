@@ -21,14 +21,36 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	{
 		private const string DefaultUserGroup = "General";
 
-		private readonly CrashReportDataContext Context;
+		private static readonly CrashReportDataContext Context = new CrashReportDataContext();
+
+		/// <summary> Submits enqueue changes to the database. </summary>
+		public static void SubmitChanges()
+		{
+			Context.SubmitChanges();
+		}
 
 		/// <summary>
-		/// The default constructor to create a data context to access the database.
+		/// Sets the JIRA for all crashes in a Bugg.
 		/// </summary>
-		public BuggRepository()
+		/// <param name="JIRA">A string representing a TTP.</param>
+		/// <param name="BuggId">The id of the Bugg to update the crashes for.</param>
+		public static void SetJIRAForBuggAndCrashes( string JIRA, int BuggId )
 		{
-			Context = new CrashReportDataContext();
+			try
+			{
+				using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( "SetJIRAForBuggAndCrashes (" + BuggId + ")" ) )
+				{
+					string Query = "UPDATE Crashes SET TTPID = {0} WHERE Id IN ( SELECT CrashId FROM Buggs_Crashes WHERE BuggId = {1} )";
+					Context.ExecuteCommand( Query, JIRA, BuggId );
+
+					Query = "UPDATE Buggs SET TTPID = {0} WHERE id = {1}";
+					Context.ExecuteCommand( Query, JIRA, BuggId );
+				}
+			}
+			catch( Exception Ex )
+			{
+				FLogger.WriteException( "SetBuggTTPID: " + Ex.ToString() );
+			}
 		}
 
 		/// <summary>

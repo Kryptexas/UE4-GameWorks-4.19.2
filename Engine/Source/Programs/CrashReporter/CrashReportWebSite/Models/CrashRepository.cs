@@ -162,27 +162,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 
 		/// <summary>
-		/// Sets the TTPID for all crashes in a Bugg.
-		/// </summary>
-		/// <param name="TTPID">A string representing a TTP.</param>
-		/// <param name="BuggId">The id of the Bugg to update the crashes for.</param>
-		public void SetBuggTTPID( string TTPID, int BuggId )
-		{
-			try
-			{
-				string Query = "UPDATE Crashes SET TTPID = {0} WHERE Id IN ( SELECT CrashId FROM Buggs_Crashes WHERE BuggId = {1} )";
-				Context.ExecuteCommand( Query, TTPID, BuggId );
-
-				Query = "UPDATE Buggs SET TTPID = {0} WHERE id = {1}";
-				Context.ExecuteCommand( Query, TTPID, BuggId );
-			}
-			catch( Exception Ex )
-			{
-				FLogger.WriteException( "SetBuggTTPID: " + Ex.ToString() );
-			}
-		}
-
-		/// <summary>
 		/// Sets the UserName and UserGroupName as derived data for a crash.
 		/// </summary>
 		/// <param name="CrashInstance">An instance of a crash we wish to augment with additional data.</param>

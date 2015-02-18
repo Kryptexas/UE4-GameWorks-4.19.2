@@ -101,7 +101,7 @@
 			<dd><%=Html.DisplayFor( m => Model.Bugg.BuildVersion )%></dd>--%>
 
 		<dt>Affected Build Versions</dt>
-			<dd><%=Model.Bugg.GetAffectedBuilds()%></dd>
+			<dd><%=Model.Bugg.GetAffectedVersions()%></dd>
 			
 		<dt>Time of Latest Crash</dt> 
 			<dd class='even' style='width:8em'><%=Model.Bugg.TimeOfLastCrash%></dd>

@@ -95,10 +95,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					return RedirectToAction( "" );
 				}
 
+				// @TODO yrx 2015-02-17 JIRA
 				using( FAutoScopedLogTimer GetCrashesTimer = new FAutoScopedLogTimer( "Bugg.GetCrashes().ToList" ) )
 				{
 					Crashes = Bugg.GetCrashes();
-					Bugg.AffectedBuilds = new SortedSet<string>();
+					Bugg.AffectedVersions = new SortedSet<string>();
 
 					HashSet<string> MachineIds = new HashSet<string>();
 					foreach( Crash Crash in Crashes )
@@ -107,7 +108,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						// Ignore bad build versions.
 						if( Crash.BuildVersion.StartsWith( "4." ) )
 						{
-							Bugg.AffectedBuilds.Add( Crash.BuildVersion );
+							Bugg.AffectedVersions.Add( Crash.BuildVersion );
 						}
 
 						if( Crash.User == null )
@@ -136,7 +137,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					if( !string.IsNullOrEmpty( BuggsForm["SetTTP"] ) )
 					{
 						Bugg.TTPID = BuggsForm["SetTTP"];
-						LocalCrashRepository.SetBuggTTPID( Bugg.TTPID, id );
+						BuggRepository.SetJIRAForBuggAndCrashes( Bugg.TTPID, id );
 					}
 
 					if( !string.IsNullOrEmpty( BuggsForm["Description"] ) )

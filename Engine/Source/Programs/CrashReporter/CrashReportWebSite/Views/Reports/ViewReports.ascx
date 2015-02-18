@@ -17,8 +17,33 @@ table, table tr, table th, table td
 	font-size: 12px;
 }
 
-</style>
+.CopyToJiraStyle
+{
+	/*padding: 0;*/
 
+	cursor:pointer;
+
+	border: solid;
+	border-width: 1px;
+
+	color: white;
+	background-color: black;
+
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-size: 12px;
+
+}
+
+.CopyToJiraStyle:hover
+{
+	color: blue;
+}
+
+</style>
+	
+<body>
+<form runat="server">
+	
 <table >
 	<tr>
 		<td>
@@ -39,29 +64,7 @@ table, table tr, table th, table td
 	</tr>
 </table>
 <br />
-<%--
-	
-Number
-NewBugg.Id = RealBugg.Id;								// CrashGroup URL (a link to the Bugg)
-NewBugg.TTPID = RealBugg.TTPID;							// JIRA
-NewBugg.FixedChangeList = RealBugg.FixedChangeList;		// FixCL
-NewBugg.NumberOfCrashes = Top.Value;					// # Occurrences
-NewBugg.AffectedBuilds = new SortedSet<string>();
-NewBugg.BuildVersion = NewBugg.AffectedBuilds.Last();	// Latest Version Affected
-NewBugg.NumberOfUniqueMachines = MachineIds.Count;		// # Affected Users
-NewBugg.LatestCLAffected = ILatestCLAffected;			// Latest CL Affected
-NewBugg.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected
-NewBugg.TimeOfFirstCrash = RealBugg.TimeOfFirstCrash;	// First Crash Timestamp	
 
-#From XML JIRA	
-public string JiraSummary { get; set; }
-public string JiraComponentsText { get; set; }
-public string JiraResolution { get; set; }
-public string JiraFixVersionsText { get; set; }
-public int JiraFixCL { get; set; }
-
-
---%>
 <table>
 	<tr>
 		<th>
@@ -128,10 +131,24 @@ public int JiraFixCL { get; set; }
 			<%--<a href="https://jira.ol.epicgames.net/browse/<%=Model.Bugg.TTPID%>" target="_blank"><%=Model.Bugg.TTPID%></a>--%>
 			<%=Html.ActionLink( Bugg.Id.ToString(), "Show", new { controller = "Buggs", id = Bugg.Id }, null )%>
 		</td>
-		<td>
-			<%--NewBugg.TTPID = RealBugg.TTPID;							// JIRA--%>
-			<a href="https://jira.ol.epicgames.net/browse/<%=Bugg.TTPID%>" target="_blank"><%=Bugg.TTPID%></a>
-		</td>
+
+		<%if( string.IsNullOrEmpty( Bugg.TTPID ) && !string.IsNullOrEmpty(Bugg.Pattern ) )
+		{ %>
+			<td>
+				<input type="submit" value="CopyToJira" title="<%=Bugg.ToTooltip()%>" id="id <%=Bugg.Id%>" name="<%=Bugg.Id%>" class="CopyToJiraStyle" />
+			</td>
+		<% } else if( string.IsNullOrEmpty( Bugg.TTPID ) && string.IsNullOrEmpty(Bugg.Pattern ) )
+		{ %>
+			<td>
+				No pattern!
+			</td>
+		<% } else { %>
+			<td>
+				<%--NewBugg.TTPID = RealBugg.TTPID;							// JIRA--%>
+				<a href="https://jira.ol.epicgames.net/browse/<%=Bugg.TTPID%>" target="_blank"><%=Bugg.TTPID%></a>
+			</td>
+		<% } %>
+
 		<td>
 			<%--NewBugg.FixedChangeList = RealBugg.FixedChangeList;		// FixCL--%>
 			<%=Bugg.FixedChangeList%>
@@ -141,7 +158,7 @@ public int JiraFixCL { get; set; }
 			<%=Bugg.NumberOfCrashes%>
 		</td>
 		<td>
-			<%--NewBugg.BuildVersion = NewBugg.AffectedBuilds.Last();	// Latest Version Affected--%>
+			<%--NewBugg.BuildVersion = NewBugg.AffectedVersions.Last();	// Latest Version Affected--%>
 			<%=Bugg.BuildVersion%>
 		</td>
 		<td>
@@ -174,9 +191,19 @@ public int JiraFixCL { get; set; }
 		<td>
 			<%=Bugg.JiraFixVersionsText%>
 		</td>
-		<td>
-			<%=Bugg.JiraFixCL%>
-		</td>
+		
+		<%if( !string.IsNullOrEmpty( Bugg.JiraFixCL ) )
+		{ %>
+			<td style="background-color:blue">
+				<%=Bugg.JiraFixCL%>
+			</td>
+		<%}
+		else
+		{%>
+			<td>
+			</td>
+		<%} %>
+
 	</tr>
 	<%
 		}	
@@ -185,3 +212,6 @@ public int JiraFixCL { get; set; }
 </table>
 
 <small>Generated in <%=Model.GenerationTime%> second(s)</small>
+
+</form>
+</body>

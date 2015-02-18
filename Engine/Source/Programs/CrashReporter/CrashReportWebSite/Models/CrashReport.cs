@@ -6,6 +6,7 @@ using System.Linq;
 using System;
 using System.Data.Linq;
 using System.Diagnostics;
+using Tools.DotNETCommon;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
@@ -79,10 +80,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary></summary>
 		public string LatestOSAffected { get; set; }
 
+		/// <summary>  </summary>
+		public SortedSet<string> AffectedPlatforms { get; set; }
+
 		/// <summary></summary>
-		public SortedSet<string> AffectedBuilds { get; set; }
+		public SortedSet<string> AffectedVersions { get; set; }
 
+		/// <summary> 4.4, 4.5 and so. </summary>
+		public SortedSet<string> AffectedMajorVersions { get; set; }
 
+		/// <summary>  </summary>
+		public SortedSet<string> BranchesFoundIn { get; set; }
+		
 		/// <summary></summary>
 		public string JiraSummary { get; set; }
 
@@ -98,10 +107,131 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary></summary>
 		public string JiraFixCL { get; set; }
 
+		/// <summary>The CL of the oldest build when this bugg is occurring</summary>
+		public int ToJiraFirstCLAffected { get; set; }
+
+		/// <summary>The first line of the callstack</summary>
+		public string ToJiraSummary { get; set; }
+
+		/// <summary>Branches in JIRA</summary>
+		public List<object> ToJiraBranches { get; set; }
+
+		/// <summary>Versions in JIRA</summary>
+		public List<object> ToJiraVersions { get; set; }
+
+		/// <summary>Platforms in JIRA</summary>
+		public List<object> ToJiraPlatforms { get; set; }
+
 		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
 		public override string ToString()
 		{
-			return string.Format( "Id={0} NOC={1} NOU={2} TLC={3} BV={4} Game={5}", Id, NumberOfCrashes, NumberOfUsers, TimeOfLastCrash, BuildVersion, Game );
+			return string.Format( "Id={0} NOC={1} TLC={2} BV={3} Pattern={4}", Id, NumberOfCrashes, TimeOfLastCrash, BuildVersion, Pattern != null ? Pattern.Length : 0 );
+		}
+
+		/// <summary>
+		/// Adds the bugg as a new JIRA ticket
+		/// </summary>
+		public void CopyToJira()
+		{
+			var JC = JiraConnection.Get();
+			if( JC.CanBeUsed() && string.IsNullOrEmpty( this.TTPID ) )
+			{
+				Dictionary<string, object> Fields = new Dictionary<string, object>();
+				Fields.Add( "project", new Dictionary<string, object> { { "id", 11205 } } );	// UE
+				Fields.Add( "summary", "[CrashReport] " + ToJiraSummary );						// Call Stack, Line 1
+				Fields.Add( "description", "____________" );									// Description
+				Fields.Add( "issuetype", new Dictionary<string, object> { { "id", "1" } } );	// Bug
+				Fields.Add( "labels", new string[] { "crash" } );								// <label>crash</label>
+				Fields.Add( "customfield_11500", ToJiraFirstCLAffected );						// Changelist # / Found Changelist
+				Fields.Add( "environment", LatestOSAffected );									// Platform
+
+				// Components
+				var SupportComponent = JC.GetNameToComponents()["Support"];
+				Fields.Add( "components", new object[] { SupportComponent } );
+
+				// ToJiraVersions			
+				Fields.Add( "versions", ToJiraVersions );
+
+				// ToJiraBranches
+				Fields.Add( "customfield_11201", ToJiraBranches );
+
+				// ToJiraPlatforms
+				Fields.Add( "customfield_11203", ToJiraPlatforms );
+
+				// Callstack customfield_11807
+				var Callstack = GetFunctionCalls();
+				string JiraCallstack = string.Join( "\r\n", Callstack );
+				Fields.Add( "customfield_11807", JiraCallstack );								// Callstack
+
+				string Key = JC.AddJiraTicket( Fields );
+				if( !string.IsNullOrEmpty( Key ) )
+				{
+					TTPID = Key;
+					BuggRepository.SetJIRAForBuggAndCrashes( Key, Id );
+
+					// Update the JIRA in the bugg.
+					Dictionary<string, object> FieldsToUpdate = new Dictionary<string, object>();			
+					string BuggLink = "http://crashreporter/Buggs/Show/" + Id;
+					FieldsToUpdate.Add( "customfield_11205", BuggLink );									// Additional Info URL / Link to Crash/Bugg
+					JC.UpdateJiraTicket( Key, FieldsToUpdate );
+				}
+
+			}
+		}
+
+		/// <summary> Creates a previews of the bugg, for verifying JIRA's fields. </summary>
+		public string ToTooltip()
+		{
+			string NL = "&#013;";
+
+			string Tooltip = NL;
+			Tooltip += "Project: UE" + NL;
+			Tooltip += "Summary: " + ToJiraSummary + NL;
+			Tooltip += "Description: " + "____________" + NL;
+			Tooltip += "Issuetype: " + "1 (bug)" + NL;
+			Tooltip += "Labels: " + "crash" + NL;
+			Tooltip += "Changelist # / Found Changelist: " + ToJiraFirstCLAffected + NL;
+			Tooltip += "LatestOSAffected: " + LatestOSAffected + NL;
+
+			// "name"
+			string JiraVersions = GetFieldsFrom(ToJiraVersions, "name");
+			Tooltip += "JiraVersions: " + JiraVersions + NL;
+
+			// "value"
+			string JiraBranches = GetFieldsFrom( ToJiraBranches, "value" );
+			Tooltip += "JiraBranches: " + JiraBranches + NL;
+
+			// "value"
+			string JiraPlatforms = GetFieldsFrom( ToJiraPlatforms, "value" );
+			Tooltip += "JiraPlatforms: " + JiraPlatforms + NL;
+
+			var Callstack = GetFunctionCalls();
+			string JiraCallstack = "Callstack:" + NL + string.Join( NL, Callstack ) + NL;
+			Tooltip += JiraCallstack;
+
+			return Tooltip;
+		}
+
+		/// <summary> Returns concatenated string of fields from the specified JIRA list. </summary>
+		public string GetFieldsFrom( List<object> JiraList, string FieldName )
+		{
+			string Results = "";
+
+			foreach( var Obj in JiraList )
+			{
+				Dictionary<string, object> Dict = (Dictionary<string, object>)Obj;
+				try
+				{
+					Results += (string)Dict[FieldName];
+					Results += " ";
+				}
+				catch( System.Exception /*E*/ )
+				{
+					
+				}
+			}
+
+			return Results;
 		}
 
 		/// <summary>
@@ -112,19 +242,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			CrashRepository CrashRepo = new CrashRepository();
 			var CrashList =
-							(
-								from BuggCrash in CrashRepo.Context.Buggs_Crashes
-								where BuggCrash.BuggId == Id
-								select BuggCrash.Crash/*new
-								{
-									Id = BuggCrash.Crash.Id,
-									BuildVersion = BuggCrash.Crash.BuildVersion,
-									TimeofCrash = BuggCrash.Crash.TimeOfCrash.Value,
-									CL = BuggCrash.Crash.ChangeListVersion,
-									UserName = BuggCrash.Crash.UserName,
-									Desc = BuggCrash.Crash.Description
-								}*/
-							).AsEnumerable().ToList();
+				(
+					from BuggCrash in CrashRepo.Context.Buggs_Crashes
+					where BuggCrash.BuggId == Id
+					select BuggCrash.Crash
+				).AsEnumerable().ToList();
 			return CrashList;
 		}
 
@@ -174,15 +296,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// 
 		/// </summary>
-		public string GetAffectedBuilds()
+		public string GetAffectedVersions()
 		{
-			if( AffectedBuilds.Count == 1 )
+			if( AffectedVersions.Count == 1 )
 			{
-				return AffectedBuilds.Max;
+				return AffectedVersions.Max;
 			}
 			else
 			{
-				return AffectedBuilds.Min + " - " + AffectedBuilds.Max;
+				return AffectedVersions.Min + " - " + AffectedVersions.Max;
 			}
 		}
 
