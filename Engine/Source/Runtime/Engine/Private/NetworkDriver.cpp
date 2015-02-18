@@ -2244,9 +2244,8 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				AGameMode const* const GameMode = World->GetAuthGameMode();
 				bool bLowNetBandwidth = !bCPUSaturated && (Connection->CurrentNetSpeed / float(GameMode->NumPlayers + GameMode->NumBots) < 500.f );
 
-				for( j=0; j<ConsiderList.Num(); j++ )
+				for( AActor* Actor : ConsiderList )
 				{
-					AActor* Actor = ConsiderList[j];
 					UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
 
 					// Skip Actor if dormant
@@ -2276,10 +2275,10 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 							bool ShouldGoDormant = true;
 							if (Actor->NetDormancy == DORM_DormantPartial)
 							{
-								float Time  = Channel ? (Connection->Driver->Time - Channel->LastUpdateTime) : Connection->Driver->SpawnPrioritySeconds;
+								float LastReplicationTime  = Channel ? (Connection->Driver->Time - Channel->LastUpdateTime) : Connection->Driver->SpawnPrioritySeconds;
 								for (int32 viewerIdx = 0; viewerIdx < ConnectionViewers.Num(); viewerIdx++)
 								{
-									if (!Actor->GetNetDormancy(ConnectionViewers[viewerIdx].ViewLocation, ConnectionViewers[viewerIdx].ViewDir, ConnectionViewers[viewerIdx].InViewer, Channel, Time, bLowNetBandwidth))
+									if (!Actor->GetNetDormancy(ConnectionViewers[viewerIdx].ViewLocation, ConnectionViewers[viewerIdx].ViewDir, ConnectionViewers[viewerIdx].InViewer, Channel, LastReplicationTime, bLowNetBandwidth))
 									{
 										ShouldGoDormant = false;
 										break;
@@ -2351,9 +2350,8 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				int32 ChildIndex = 0;
 				while (NextConnection != NULL)
 				{
-					for (int32 j = 0; j < NextConnection->OwnedConsiderList.Num(); j++)
+					for (AActor* Actor : NextConnection->OwnedConsiderList)
 					{
-						AActor* Actor = NextConnection->OwnedConsiderList[j];
 						UE_LOG(LogNetTraffic, Log, TEXT("Consider owned %s always relevant %d frequency %f  "),*Actor->GetName(), Actor->bAlwaysRelevant,Actor->NetUpdateFrequency);
 						if (Actor->NetTag != NetTag)
 						{

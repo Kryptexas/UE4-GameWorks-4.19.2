@@ -29,7 +29,7 @@ UNavLinkRenderingComponent::UNavLinkRenderingComponent(const FObjectInitializer&
 	bGenerateOverlapEvents = false;
 }
 
-FBoxSphereBounds UNavLinkRenderingComponent::CalcBounds(const FTransform& LocalToWorld) const
+FBoxSphereBounds UNavLinkRenderingComponent::CalcBounds(const FTransform& InLocalToWorld) const
 {
 	AActor* LinkOwnerActor = Cast<AActor>(GetOwner());
 	INavLinkHostInterface* LinkOwnerHost = Cast<INavLinkHostInterface>(GetOwner());

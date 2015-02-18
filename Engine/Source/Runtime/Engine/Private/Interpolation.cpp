@@ -909,8 +909,6 @@ void AMatineeActor::UpdateInterpForParentMovementTracks( float Time, UInterpGrou
 		UInterpGroupInst* ParentInst = FindGroupInst(Parent);
 		if(ParentInst)
 		{
-			TArray<UInterpTrack*> FoundTracks;
-
 			UInterpTrackInst* ParentTrackInst = nullptr;
 			for(UInterpTrackInst* Inst : ParentInst->TrackInst)
 			{

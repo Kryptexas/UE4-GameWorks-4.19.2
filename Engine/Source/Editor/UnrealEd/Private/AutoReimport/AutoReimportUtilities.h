@@ -39,15 +39,15 @@ struct FImmutableString
 	const FString& Get() const { return String; }
 
 	/** Serialise this string */
-	friend FArchive& operator<<(FArchive& Ar, FImmutableString& String)
+	friend FArchive& operator<<(FArchive& Ar, FImmutableString& InString)
 	{
-		Ar << String.String;
+		Ar << InString.String;
 		if (Ar.IsSaving())
 		{
-			GetTypeHash(String);	
+			GetTypeHash(InString);	
 		}
 		
-		Ar << String.CachedHash;
+		Ar << InString.CachedHash;
 
 		return Ar;
 	}

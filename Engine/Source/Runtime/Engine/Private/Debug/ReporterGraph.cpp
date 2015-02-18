@@ -163,7 +163,6 @@ void UReporterGraph::DrawLegend(UCanvas* Canvas)
 		FVector2D ScreenPos = ToScreenSpace(CurrentTextPos, Canvas);
 		if (LegendPosition == ELegendPosition::Outside)
 		{
-			int32 DummyY, CurrentX;
 			StringSize(Font, CurrentX, DummyY, *CurrentData[i].LineName);
 			LegendWidth = CurrentX + 10;
 		}
@@ -227,7 +226,6 @@ void UReporterGraph::DrawAxis(UCanvas* Canvas, FVector2D Start, FVector2D End, f
 		case EGraphAxisStyle::Lines:
 		{
 			NumNotches = 1;
-			FVector2D NotchDataDelta = (GraphMinMaxData.Max - GraphMinMaxData.Min) / NumNotches;
 			NotchDelta = (Start - End).Size();
 			if(bIsVerticalAxis)
 			{

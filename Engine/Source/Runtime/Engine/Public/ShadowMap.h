@@ -215,8 +215,8 @@ public:
 	{
 	}
 
-	FShadowMap(TArray<FGuid> LightGuids)
-		: LightGuids(MoveTemp(LightGuids))
+	FShadowMap(TArray<FGuid> InLightGuids)
+		: LightGuids(MoveTemp(InLightGuids))
 		, NumRefs(0)
 	{
 	}

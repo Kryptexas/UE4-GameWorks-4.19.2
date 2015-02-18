@@ -236,17 +236,17 @@ private:
 					else if ( UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property) )
 					{
 						// It is an array, now check to see if this is an array of structures
-						if ( UStructProperty* StructProp = Cast<UStructProperty>(ArrayProp->Inner) )
+						if ( UStructProperty* ArrayOfStructsProp = Cast<UStructProperty>(ArrayProp->Inner) )
 						{
 							FScriptArrayHelper_InContainer ArrayHelper(ArrayProp, InContainer);
 							if ( ArrayHelper.IsValidIndex(Segment.ArrayIndex) )
 							{
 								// Recursively call back into this function with the array element and container value
-								return GetValueRecursive(StructProp->Struct, ArrayHelper.GetRawPtr(Segment.ArrayIndex), ArrayIndex, SegmentIndex + 1, OutValue, OutProperty);
+								return GetValueRecursive(ArryayOfStructsProp->Struct, ArrayHelper.GetRawPtr(Segment.ArrayIndex), ArrayIndex, SegmentIndex + 1, OutValue, OutProperty);
 							}
 						}
 						// if it's not an array of structs, maybe it's an array of classes
-						else if ( UObjectProperty* ObjectProperty = Cast<UObjectProperty>(ArrayProp->Inner) )
+						//else if ( UObjectProperty* ObjectProperty = Cast<UObjectProperty>(ArrayProp->Inner) )
 						{
 							//TODO Add support for arrays of objects.
 						}

@@ -2190,12 +2190,12 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 	FNavigationOctreeElement GeneratedData;
 	const FBox ElementBounds = DirtyElement.NavInterface->GetNavigationBounds();
 
-	UObject* ParentNode = DirtyElement.NavInterface->GetNavigationParent();
-	if (ParentNode)
+	UObject* NavigationParent = DirtyElement.NavInterface->GetNavigationParent();
+	if (NavigationParent)
 	{
 		// check if parent node is waiting in queue
-		const FSetElementId ParentRequestId = PendingOctreeUpdates.FindId(FNavigationDirtyElement(ParentNode));
-		const FOctreeElementId* ParentId = GetObjectsNavOctreeId(ParentNode);
+		const FSetElementId ParentRequestId = PendingOctreeUpdates.FindId(FNavigationDirtyElement(NavigationParent));
+		const FOctreeElementId* ParentId = GetObjectsNavOctreeId(NavigationParent);
 		if (ParentRequestId.IsValidId() && ParentId == NULL)
 		{
 			FNavigationDirtyElement& ParentNode = PendingOctreeUpdates[ParentRequestId];
@@ -2205,15 +2205,15 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 			ParentNode.bInvalidRequest = true;
 		}
 
-		const FOctreeElementId* UseParentId = ParentId ? ParentId : GetObjectsNavOctreeId(ParentNode);
+		const FOctreeElementId* UseParentId = ParentId ? ParentId : GetObjectsNavOctreeId(NavigationParent);
 		if (UseParentId)
 		{
-			UE_LOG(LogNavOctree, Log, TEXT("ADD %s to %s"), *GetNameSafe(ElementOwner), *GetNameSafe(ParentNode));
+			UE_LOG(LogNavOctree, Log, TEXT("ADD %s to %s"), *GetNameSafe(ElementOwner), *GetNameSafe(NavigationParent));
 			NavOctree->AppendToNode(*UseParentId, DirtyElement.NavInterface, ElementBounds, GeneratedData);
 		}
 		else 
 		{
-			UE_LOG(LogNavOctree, Warning, TEXT("Can't add node [%s] - parent [%s] not found in octree!"), *GetNameSafe(ElementOwner), *GetNameSafe(ParentNode));
+			UE_LOG(LogNavOctree, Warning, TEXT("Can't add node [%s] - parent [%s] not found in octree!"), *GetNameSafe(ElementOwner), *GetNameSafe(NavigationParent));
 		}
 	}
 	else
