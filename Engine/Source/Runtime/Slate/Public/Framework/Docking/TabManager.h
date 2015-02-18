@@ -628,6 +628,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		/** Clears all categories in the local workspace menu */
 		void ClearLocalWorkspaceMenuCategories();
 
+		/** @return true if the tab has a factory registered for it that allows it to be spawned. */
+		bool CanSpawnTab( FName TabId );
+
 	protected:
 		void InvokeTabForMenu( FName TabId );
 
