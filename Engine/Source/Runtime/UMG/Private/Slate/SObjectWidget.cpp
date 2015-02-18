@@ -251,7 +251,11 @@ FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 			FVector2D ScreenCursorPos = PointerEvent.GetScreenSpacePosition();
 			FVector2D ScreenDrageePosition = MyGeometry.AbsolutePosition;
 
-			return FReply::Handled().BeginDragDrop(FUMGDragDropOp::New(Operation, ScreenCursorPos, ScreenDrageePosition, SharedThis(this)));
+			float DPIScale = UWidgetLayoutLibrary::GetViewportScale(WidgetObject);
+
+			TSharedRef<FUMGDragDropOp> DragDropOp = FUMGDragDropOp::New(Operation, ScreenCursorPos, ScreenDrageePosition, DPIScale, SharedThis(this));
+
+			return FReply::Handled().BeginDragDrop(DragDropOp);
 		}
 	}
 
