@@ -919,6 +919,21 @@ void FScene::SetSkyLight(FSkyLightSceneProxy* LightProxy)
 	});
 }
 
+void FScene::DisableSkyLight(FSkyLightSceneProxy* LightProxy)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		FDisableSkyLightCommand,
+		FScene*,Scene,this,
+		FSkyLightSceneProxy*,LightProxy,LightProxy,
+	{
+		if (Scene->SkyLight == LightProxy)
+		{
+			Scene->SkyLight = NULL;
+			Scene->bScenesPrimitivesNeedStaticMeshElementUpdate = true;
+		}
+	});
+}
+
 void FScene::AddOrRemoveDecal_RenderThread(FDeferredDecalProxy* Proxy, bool bAdd)
 {
 	if(bAdd)
@@ -2301,6 +2316,7 @@ public:
 	virtual void RemoveLight(ULightComponent* Light){}
 	virtual void AddInvisibleLight(ULightComponent* Light){}
 	virtual void SetSkyLight(FSkyLightSceneProxy* Light) {}
+	virtual void DisableSkyLight(FSkyLightSceneProxy* Light) {}
 
 	virtual void AddDecal(UDecalComponent*){}
 	virtual void RemoveDecal(UDecalComponent*){}

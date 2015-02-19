@@ -1516,6 +1516,7 @@ public:
 	virtual void RemoveLight(ULightComponent* Light);
 	virtual void AddInvisibleLight(ULightComponent* Light);
 	virtual void SetSkyLight(FSkyLightSceneProxy* Light);
+	virtual void DisableSkyLight(FSkyLightSceneProxy* Light);
 	virtual void AddDecal(UDecalComponent* Component);
 	virtual void RemoveDecal(UDecalComponent* Component);
 	virtual void UpdateDecalTransform(UDecalComponent* Decal) override;
@@ -1647,7 +1648,11 @@ public:
 
 	virtual void OnLevelAddedToWorld(FName InLevelName) override;
 
-	virtual bool HasAnyLights() const override { return NumVisibleLights > 0 || bHasSkyLight; }
+	virtual bool HasAnyLights() const override 
+	{ 
+		check(IsInGameThread());
+		return NumVisibleLights > 0 || bHasSkyLight; 
+	}
 
 	virtual bool IsEditorScene() const override { return bIsEditorScene; }
 

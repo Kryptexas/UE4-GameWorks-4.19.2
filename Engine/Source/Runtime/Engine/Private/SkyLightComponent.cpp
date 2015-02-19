@@ -219,7 +219,7 @@ void USkyLightComponent::PostInterpChange(UProperty* PropertyThatChanged)
 void USkyLightComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
-	World->Scene->SetSkyLight(NULL);
+	World->Scene->DisableSkyLight(SceneProxy);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		FDestroySkyLightCommand,

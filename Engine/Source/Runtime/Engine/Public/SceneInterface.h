@@ -61,6 +61,7 @@ public:
 	 */
 	virtual void AddInvisibleLight(ULightComponent* Light) = 0;
 	virtual void SetSkyLight(FSkyLightSceneProxy* Light) = 0;
+	virtual void DisableSkyLight(FSkyLightSceneProxy* Light) = 0;
 	/** 
 	 * Adds a new decal component to the scene
 	 * 
