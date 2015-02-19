@@ -473,6 +473,7 @@ void FDynamicMeshBuilder::GetMesh(const FMatrix& LocalToWorld,const FMaterialRen
 			bReceivesDecals,
 			false,
 			false,
+			false,
 			1.0f		// LPV bias
 			);
 
@@ -540,6 +541,7 @@ void FDynamicMeshBuilder::Draw(FPrimitiveDrawInterface* PDI,const FMatrix& Local
 			FBoxSphereBounds(EForceInit::ForceInit),
 			FBoxSphereBounds(EForceInit::ForceInit),
 			bReceivesDecals,
+			false,
 			false,
 			false,
 			1.0f		// LPV bias

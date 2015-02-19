@@ -115,6 +115,7 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 				SceneProxy->GetLocalBounds(),
 				SceneProxy->ReceivesDecals(),
 				false,
+				false,
 				SceneProxy->UseEditorDepthTest()
 				);
 			WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
@@ -369,6 +370,7 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 				SceneProxy->GetBounds(),
 				SceneProxy->GetLocalBounds(),
 				SceneProxy->ReceivesDecals(),
+				false,
 				false,
 				SceneProxy->UseEditorDepthTest()
 				);

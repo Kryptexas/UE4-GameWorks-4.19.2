@@ -2607,6 +2607,12 @@ void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& Ou
 		HeightmapScaleBias.Z + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.X, 
 		HeightmapScaleBias.W + SubsectionSizeVerts * NumSubsections * HeightmapScaleBias.Y);
 
+	if (NumSubsections > 1)
+	{
+		OutDescription.MinMaxUV.Z -= HeightmapScaleBias.X;
+		OutDescription.MinMaxUV.W -= HeightmapScaleBias.Y;
+	}
+
 	OutDescription.HeightfieldRect = FIntRect(SectionBase.X, SectionBase.Y, SectionBase.X + NumSubsections * SubsectionSizeQuads, SectionBase.Y + NumSubsections * SubsectionSizeQuads);
 
 	OutDescription.NumSubsections = NumSubsections;

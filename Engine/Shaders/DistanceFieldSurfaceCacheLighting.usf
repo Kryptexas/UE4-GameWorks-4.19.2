@@ -109,10 +109,7 @@ void ComputeDistanceFieldNormalPS(
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 	FGBufferData GBufferData = GetGBufferData(ScreenUV);
 
-	float3 WorldNormal = GBufferData.WorldNormal;
-	float DepthSign = GBufferData.HasDistanceFieldRepresentation > 0 ? 1 : -1;
-	// Note: Encoding whether the pixel has a distance field representation in the sign bit of the alpha
-	OutColor = float4(WorldNormal, DepthSign * SceneDepth);
+	OutColor = EncodeDownsampledGBuffer(GBufferData, SceneDepth);
 }
 
 RWTexture2D<float4> RWDistanceFieldNormal;
@@ -127,9 +124,7 @@ void ComputeDistanceFieldNormalCS(
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 	FGBufferData GBufferData = GetGBufferData(ScreenUV);
 
-	float3 WorldNormal = GBufferData.WorldNormal;
-	float DepthSign = GBufferData.HasDistanceFieldRepresentation > 0 ? 1 : -1;
-	float4 OutValue = float4(WorldNormal, DepthSign * SceneDepth);
+	float4 OutValue = EncodeDownsampledGBuffer(GBufferData, SceneDepth);
 	RWDistanceFieldNormal[DispatchThreadId.xy] = OutValue;
 }
 
@@ -139,10 +134,15 @@ void WriteDownsampledDepthPS(
 	out float OutDepth : SV_Depth)
 {
 	float2 DistanceFieldUVs = UVAndScreenPos.xy;
-	float Depth = abs(Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, DistanceFieldUVs, 0).w);
+
+	float3 WorldNormal;
+	float SceneDepth;
+	bool bHasDistanceFieldRepresentation;
+	bool bHasHeightfieldRepresentation;
+	GetDownsampledGBuffer(DistanceFieldUVs, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
 
 	OutColor = 0;
-	OutDepth = ConvertToDeviceZ(Depth);
+	OutDepth = ConvertToDeviceZ(SceneDepth);
 }
 
 // For some reason gives innaccurate results at lower resolutions
@@ -216,7 +216,7 @@ void IrradianceCacheSplatVS(
 	VirtualRadius += HackExpand * ViewToCenterLength * 4;
 #endif
 
-	float4 RecordNormalAndTime = IrradianceCacheNormal.Load(JobIndex);
+	float3 RecordNormal = IrradianceCacheNormal.Load(JobIndex).xyz;
 
 	float2 CornerUVs = InUV;
 	float3 CornerPosition = VirtualPosition + (View.ViewRight * CornerUVs.x + View.ViewUp * CornerUVs.y) * VirtualRadius;
@@ -233,7 +233,7 @@ void IrradianceCacheSplatVS(
 	Output.PositionRadius = PositionAndRadius; 
 
 	float Fade = 1;
-	Output.NormalAndFade = float4(RecordNormalAndTime.xyz, Fade);
+	Output.NormalAndFade = float4(RecordNormal, Fade);
 
 #if FINAL_INTERPOLATION_PASS
 	Output.BentNormal = IrradianceCacheBentNormal.Load(JobIndex).xyz;
@@ -264,19 +264,23 @@ void IrradianceCacheSplatPS(
 #endif
 
 	float2 BaseLevelScreenUV = float2((((uint2)SVPos.xy) * DownsampleFactorToBaseLevel + .5f) * BaseLevelTexelSize);
-	float4 DistanceFieldNormalValue = Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, BaseLevelScreenUV, 0);
+
+	float3 WorldNormal;
+	float SceneDepth;
+	bool bHasDistanceFieldRepresentation;
+	bool bHasHeightfieldRepresentation;
+	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
 
 #if USE_SCREENVECTOR_WORLD_POSITION
 
-	float SceneW = abs(DistanceFieldNormalValue.w);
-	float3 OpaqueWorldPosition = View.ViewOrigin.xyz + Input.ScreenVector * SceneW;
+	float3 OpaqueWorldPosition = View.ViewOrigin.xyz + Input.ScreenVector * SceneDepth;
 
 #else
 
 	float2 ScreenUV = float2((((uint2)SVPos.xy) * CurrentLevelDownsampleFactor + View.ViewRectMin.xy + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw);
-	float SceneW = CalcSceneDepth(ScreenUV); 
+	SceneDepth = CalcSceneDepth(ScreenUV); 
 	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
-	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld);
+	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 	float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 
 #endif
@@ -286,9 +290,8 @@ void IrradianceCacheSplatPS(
 	float Weight = 0;
 
 	BRANCH
-	if (DistanceError < 1 && SceneW < AOMaxViewDistance)
+	if (DistanceError < 1 && SceneDepth < AOMaxViewDistance)
 	{ 
-		float3 WorldNormal = DistanceFieldNormalValue.xyz;
 		float3 RecordNormal = Input.NormalAndFade.xyz;
 		float NormalError = InterpolationAngleNormalization * sqrt(saturate(1 - dot(WorldNormal, RecordNormal)));
 
@@ -311,7 +314,7 @@ void IrradianceCacheSplatPS(
 
 #if FINAL_INTERPOLATION_PASS
 		// Pixels without a distance field representation interpolate AO instead of a bent normal
-		float3 InterpolatedValue = DistanceFieldNormalValue.w < 0 ? length(Input.BentNormal).xxx : Input.BentNormal;
+		float3 InterpolatedValue = bHasDistanceFieldRepresentation ? Input.BentNormal : length(Input.BentNormal).xxx;
 		OutBentNormal.rgb = InterpolatedValue * Weight;
 		#if SUPPORT_IRRADIANCE
 			OutIrradiance.rgb = Input.Irradiance * Weight;
@@ -323,7 +326,7 @@ void IrradianceCacheSplatPS(
 	#define VISUALIZE_SPLAT_OVERDRAW 0
 	#if VISUALIZE_SPLAT_OVERDRAW && FINAL_INTERPOLATION_PASS
 		OutBentNormal.rgb = 0;
-		//OutBentNormal.a = Input.Position.w <= SceneW ? .01f : 0.0f;
+		//OutBentNormal.a = Input.Position.w <= SceneDepth ? .01f : 0.0f;
 		OutBentNormal.a = .005f;// + (Weight > .001f ? .01f : 0);
 	#endif
 
@@ -358,8 +361,11 @@ void AOCombinePS(
 	OutIrradiance = 0;
 #endif
 
-	float4 DistanceFieldNormalValue = Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, UVAndScreenPos.xy, 0);
-	float SceneDepth = abs(DistanceFieldNormalValue.w);
+	float3 WorldNormal;
+	float SceneDepth;
+	bool bHasDistanceFieldRepresentation;
+	bool bHasHeightfieldRepresentation;
+	GetDownsampledGBuffer(UVAndScreenPos.xy, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
 
 #define VISUALIZE_ACCUMULATED_WEIGHTS 0
 #if VISUALIZE_ACCUMULATED_WEIGHTS
@@ -376,11 +382,11 @@ void AOCombinePS(
 		OutBentNormal.rgb = BentNormalAccumulation.xyz / BentNormalAccumulation.w;
 		OutBentNormal.a = SceneDepth;
 
-		if (DistanceFieldNormalValue.w < 0)
+		if (!bHasDistanceFieldRepresentation)
 		{
 			// Pixels without a distance field representation interpolate AO instead of a bent normal
 			// Construct a bent normal from the interpolated AO
-			OutBentNormal.rgb = OutBentNormal.r * DistanceFieldNormalValue.xyz;
+			OutBentNormal.rgb = OutBentNormal.r * WorldNormal;
 		}
 
 		#if SUPPORT_IRRADIANCE
@@ -588,7 +594,7 @@ void UpdateHistoryPS(
 	// 0 is stored where camera velocity should be used, which must not be filtered with valid object velocities
 	float2 VelocityN = Texture2DSampleLevel(VelocityTexture, VelocityTextureSampler, FullResTexel, 0).xy;
 
-	if (VelocityN.x > 0 && View.GeneralPurposeTweak > 0)
+	if (VelocityN.x > 0)
 	{
 		MotionVector = float2(-.5f, .5f) * DecodeVelocityFromTexture(VelocityN);
 	}

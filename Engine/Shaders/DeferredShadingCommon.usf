@@ -199,7 +199,7 @@ float AddAngleToRoughness( float Angle, float Roughness )
 // @param Scalar clamped in 0..1 range
 // @param Mask 0..1
 // @return 8bit in range 0..1
-float Encode71(float Scalar, int Mask)
+float Encode71(float Scalar, uint Mask)
 {
 	return
 		127.0f / 255.0f * saturate(Scalar) +
@@ -210,16 +210,11 @@ float Encode71(float Scalar, int Mask)
 // @param Scalar 0..1
 // @param Mask 0..1
 // @return 7bit in 0.1
-float Decode71(float Scalar, out int Mask)
+float Decode71(float Scalar, out uint Mask)
 {
-	Mask = (int)(Scalar > 0.5f);
+	Mask = (uint)(Scalar > 0.5f);
 
 	return (Scalar - 0.5f * Mask) * 2.0f;
-}
-
-uint DecodeShadingModelId(float InPackedChannel)
-{
-	return (uint)( InPackedChannel * 255.999 );
 }
 
 #define SHADINGMODELID_UNLIT				0
@@ -230,6 +225,16 @@ uint DecodeShadingModelId(float InPackedChannel)
 #define SHADINGMODELID_SUBSURFACE_PROFILE	5
 #define SHADINGMODELID_TWOSIDED_FOLIAGE		6
 #define SHADINGMODELID_NUM					7
+
+float EncodeShadingModelId(uint ShadingModelId)
+{
+	return (ShadingModelId + .5f) / (float)SHADINGMODELID_NUM;
+}
+
+uint DecodeShadingModelId(float InPackedChannel)
+{
+	return (uint)( InPackedChannel * SHADINGMODELID_NUM );
+}
 
 bool IsSubsurfaceModel(int ShadingModel)
 {
@@ -268,11 +273,13 @@ struct FGBufferData
 	// 0..1 ambient occlusion  e.g.SSAO, wet surface mask, skylight mask, ...
 	float GBufferAO;
 	// 0..255 
-	int ShadingModelID;
+	uint ShadingModelID;
 	// 0..1 decal receiver mask
 	uint DecalMask;
 	// 0..1
 	uint HasDistanceFieldRepresentation; 
+	// 0..1
+	uint HasHeightfieldRepresentation; 
 	// in world units
 	float CustomDepth;
 	// in unreal units (linear), can be used to reconstruct world position,
@@ -343,7 +350,7 @@ void EncodeGBuffer(
 
 		// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
 		OutGBufferC.a = EncodeIndirectIrradiance(GBuffer.IndirectIrradiance * GBuffer.GBufferAO) + QuantizationBias * (1.0 / 255.0);
-		OutGBufferB.a = GBuffer.ShadingModelID * (1.0 / 255.0);
+		OutGBufferB.a = Encode71(EncodeShadingModelId(GBuffer.ShadingModelID), GBuffer.HasHeightfieldRepresentation);
 
 		OutGBufferD.r = GBuffer.Opacity;
 		OutGBufferD.gba = GBuffer.CustomData;
@@ -382,7 +389,8 @@ FGBufferData DecodeGBufferData(
 	uint PackedAlpha = (uint)( InGBufferA.a * 3.999 );
 	GBuffer.DecalMask = (PackedAlpha & 2) != 0;
 	GBuffer.HasDistanceFieldRepresentation = PackedAlpha & 1;
-	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
+	GBuffer.HasHeightfieldRepresentation = 0;
+	GBuffer.ShadingModelID = DecodeShadingModelId(Decode71(InGBufferB.a, GBuffer.HasHeightfieldRepresentation));
 	
 	GBuffer.BaseColor = DecodeBaseColor(InGBufferC.rgb);
 	GBuffer.Metallic = InGBufferB.r;
@@ -627,8 +635,8 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 // Minimal path for just the lighting model, used to branch around unlit pixels (skybox)
 uint GetShadingModelId(float2 UV)
 {
-	float4 GBufferB = Texture2DSampleLevel(GBuffers.GBufferBTexture, GBuffers.GBufferBTextureSampler, UV, 0);
-	return DecodeShadingModelId(GBufferB.a);
+	bool Unused;
+	return DecodeShadingModelId(Decode71(Texture2DSampleLevel(GBuffers.GBufferBTexture, GBuffers.GBufferBTextureSampler, UV, 0).a, Unused));
 }
 
 // @param UV - UV space in the DBuffer textures (BufferSize resolution)

@@ -393,13 +393,14 @@ void CalculateHeightfieldOcclusionCS(
 	uint RecordIndex = StartIndex + DispatchThreadId.x;
 
 	float4 PositionAndRadius = IrradianceCachePositionRadius[RecordIndex];
+	float4 WorldNormalAndHasHeightfieldRepresentation = IrradianceCacheNormal[RecordIndex];
 
 	// Only compute heightfield occlusion contribution for samples created on a distance field, 
 	// Otherwise we are potentially self-shadowing, the heightfield is not accurate enough for that
 	BRANCH
-	if (RecordIndex < NumRecords && PositionAndRadius.w > 0)
+	if (RecordIndex < NumRecords && WorldNormalAndHasHeightfieldRepresentation.w == 0)
 	{
-		float3 WorldNormal = IrradianceCacheNormal[RecordIndex].xyz;
+		float3 WorldNormal = WorldNormalAndHasHeightfieldRepresentation.xyz;
 		float3 WorldPosition = PositionAndRadius.xyz;
 
 		float3 TangentX;

@@ -6552,6 +6552,7 @@ void FParticleSystemSceneProxy::UpdateWorldSpacePrimitiveUniformBuffer() const
 			GetLocalBounds(),
 			ReceivesDecals(),
 			false,
+			false,
 			UseEditorDepthTest(),
 			1.0f			// LPV bias
 			);

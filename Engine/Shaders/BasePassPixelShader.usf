@@ -818,6 +818,7 @@ void Main(
 		GBuffer.Opacity = Opacity;
 		GBuffer.DecalMask = Primitive.DecalReceiverMask;
 		GBuffer.HasDistanceFieldRepresentation = Primitive.HasDistanceFieldRepresentation;
+		GBuffer.HasHeightfieldRepresentation = Primitive.HasHeightfieldRepresentation;
 
 		#if MATERIAL_SHADINGMODEL_UNLIT
 			GBuffer.ShadingModelID = SHADINGMODELID_UNLIT;

@@ -172,6 +172,7 @@ void MainPS(
 	Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 	Data.DecalMask = 1;
 	Data.HasDistanceFieldRepresentation = 1;
+	Data.HasHeightfieldRepresentation = 1;
 
 	#if DECAL_RENDERSTAGE == 0
 	{
