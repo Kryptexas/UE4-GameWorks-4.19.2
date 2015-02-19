@@ -273,23 +273,75 @@ FBlueprintCompileReinstancer::~FBlueprintCompileReinstancer()
 	}
 }
 
-void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
+void FBlueprintCompileReinstancer::ReinstanceFast()
 {
-	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ReinstanceObjects);
+	UE_LOG(LogBlueprint, Log, TEXT("BlueprintCompileReinstancer: Doing a fast path refresh on class '%s'."), *GetPathNameSafe(ClassToReinstance));
 
-	// Make sure we only reinstance classes once!
-	if( bHasReinstanced )
+	TArray<UObject*> ObjectsToReplace;
+	GetObjectsOfClass(DuplicatedClass, ObjectsToReplace, /*bIncludeDerivedClasses=*/ false);
+
+	const bool bIsActor = ClassToReinstance->IsChildOf<AActor>();
+	const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
+	const bool bIsComponent = ClassToReinstance->IsChildOf<UActorComponent>();
+	for (auto Obj : ObjectsToReplace)
 	{
-		return;
-	}
-	bHasReinstanced = true;
+		UE_LOG(LogBlueprint, Log, TEXT("  Fast path is refreshing (not replacing) %s"), *Obj->GetFullName());
 
+		if ((!Obj->IsTemplate() || bIsComponent) && !Obj->IsPendingKill())
+		{
+			Obj->SetClass(ClassToReinstance);
+
+			if (bIsActor)
+			{
+				auto Actor = CastChecked<AActor>(Obj);
+				Actor->ReregisterAllComponents();
+				Actor->RerunConstructionScripts();
+			}
+
+			if (bIsAnimInstance)
+			{
+				// Initialising the anim instance isn't enough to correctly set up the skeletal mesh again in a
+				// paused world, need to initialise the skeletal mesh component that contains the anim instance.
+				if (USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(Obj->GetOuter()))
+				{
+					SkelComponent->InitAnim(true);
+				}
+			}
+		}
+	}
+
+	TArray<UObject*> SourceObjects;
+	TMap<UObject*, UObject*> OldToNewInstanceMap;
+	TMap<FStringAssetReference, UObject*> ReinstancedObjectsWeakReferenceMap;
+	FReplaceReferenceHelper::IncludeCDO(DuplicatedClass, ClassToReinstance, OldToNewInstanceMap, SourceObjects, OriginalCDO);
+	FReplaceReferenceHelper::FindAndReplaceReferences(SourceObjects, &ObjectsThatShouldUseOldStuff, ObjectsToReplace, OldToNewInstanceMap, ReinstancedObjectsWeakReferenceMap);
+}
+
+void FBlueprintCompileReinstancer::CompileChildren()
+{
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_RecompileChildClasses);
+
+	// Reparent all dependent blueprints, and recompile to ensure that they get reinstanced with the new memory layout
+	for (auto ChildBP = Children.CreateIterator(); ChildBP; ++ChildBP)
+	{
+		UBlueprint* BP = *ChildBP;
+		if (BP->ParentClass == ClassToReinstance || BP->ParentClass == DuplicatedClass)
+		{
+			ReparentChild(BP);
+
+			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection);
+		}
+	}
+}
+
+void FBlueprintCompileReinstancer::ReinstanceInner(bool bForceAlwaysReinstance)
+{
 	if (ClassToReinstance && DuplicatedClass)
 	{
+		static const FBoolConfigValueHelper ReinstanceOnlyWhenNecessary(TEXT("Kismet"), TEXT("bReinstanceOnlyWhenNecessary"), GEngineIni);
 		bool bShouldReinstance = true;
-		
 		// See if we need to do a full reinstance or can do the faster refresh path (when enabled or no values were modified, and the structures match)
-		if (!bAlwaysReinstance)
+		if (ReinstanceOnlyWhenNecessary && !bForceAlwaysReinstance)
 		{
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_ReplaceClassNoReinsancing);
 
@@ -305,48 +357,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 			const bool bAllowedToDoFastPath = (ChangeDefaultValueWithoutReinstancing || bTheSameDefaultValues) && bTheSameLayout;
 			if (bAllowedToDoFastPath)
 			{
-
-				UE_LOG(LogBlueprint, Log, TEXT("BlueprintCompileReinstancer: Doing a fast path refresh on class '%s'."), *GetPathNameSafe(ClassToReinstance));
-
-				TArray<UObject*> ObjectsToReplace;
-				GetObjectsOfClass(DuplicatedClass, ObjectsToReplace, /*bIncludeDerivedClasses=*/ false);
-
-				const bool bIsActor = ClassToReinstance->IsChildOf<AActor>();
-				const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
-				const bool bIsComponent = ClassToReinstance->IsChildOf<UActorComponent>();
-				for (auto Obj : ObjectsToReplace)
-				{
-					UE_LOG(LogBlueprint, Log, TEXT("  Fast path is refreshing (not replacing) %s"), *Obj->GetFullName());
-
-					if ((!Obj->IsTemplate() || bIsComponent) && !Obj->IsPendingKill())
-					{
-						Obj->SetClass(ClassToReinstance);
-
-						if (bIsActor)
-						{
-							auto Actor = CastChecked<AActor>(Obj);
-							Actor->ReregisterAllComponents();
-							Actor->RerunConstructionScripts();
-						}
-
-						if (bIsAnimInstance)
-						{
-							// Initialising the anim instance isn't enough to correctly set up the skeletal mesh again in a
-							// paused world, need to initialise the skeletal mesh component that contains the anim instance.
-							if (USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(Obj->GetOuter()))
-							{
-								SkelComponent->InitAnim(true);
-							}
-						}
-					}
-				}
-
-				TArray<UObject*> SourceObjects;
-				TMap<UObject*, UObject*> OldToNewInstanceMap;
-				TMap<FStringAssetReference, UObject*> ReinstancedObjectsWeakReferenceMap;
-				FReplaceReferenceHelper::IncludeCDO(DuplicatedClass, ClassToReinstance, OldToNewInstanceMap, SourceObjects, OriginalCDO);
-				FReplaceReferenceHelper::FindAndReplaceReferences(SourceObjects, &ObjectsThatShouldUseOldStuff, ObjectsToReplace, OldToNewInstanceMap, ReinstancedObjectsWeakReferenceMap);
-
+				ReinstanceFast();
 				bShouldReinstance = false;
 			}
 		}
@@ -361,24 +372,60 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 			// ReplaceInstancesOfClass() handles this itself, if we had to re-instance
 			ReconstructOwnerInstances(ClassToReinstance);
 		}
+	}
+}
+
+void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance)
+{
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ReinstanceObjects);
 	
-		{ 
-			BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_RecompileChildClasses);
+	static const FBoolConfigValueHelper FirstCompileChildrenThenReinstance(TEXT("Kismet"), TEXT("bFirstCompileChildrenThenReinstance"), GEngineIni);
 
-			// Reparent all dependent blueprints, and recompile to ensure that they get reinstanced with the new memory layout
-			for( auto ChildBP = Children.CreateIterator(); ChildBP; ++ChildBP)
+	if (FirstCompileChildrenThenReinstance)
+	{
+		// Make sure we only reinstance classes once!
+		static TArray<TSharedPtr<FBlueprintCompileReinstancer>> QueueToReinstance;
+		TSharedPtr<FBlueprintCompileReinstancer> SharedThis = AsShared();
+		const bool bAlreadyQueued = QueueToReinstance.Contains(SharedThis);
+		ensure(!bAlreadyQueued);
+		if (bAlreadyQueued)
+		{
+			QueueToReinstance.Push(SharedThis);
+
+			if (ClassToReinstance && DuplicatedClass)
 			{
-				UBlueprint* BP = *ChildBP;
-				if( BP->ParentClass == ClassToReinstance || BP->ParentClass == DuplicatedClass)
-				{
-					ReparentChild(BP);
-
-					FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection);
-				}
+				CompileChildren();
 			}
+		}
+
+		if (QueueToReinstance.Num() && (QueueToReinstance[0] == SharedThis))
+		{
+			// All children were recompiled. It's safe to reinstance.
+			for (int32 Idx = 0; Idx < QueueToReinstance.Num(); ++Idx)
+			{
+				QueueToReinstance[Idx]->ReinstanceInner(bForceAlwaysReinstance);
+			}
+			QueueToReinstance.Empty();
+		}
+	}
+	else
+	{
+		//THE OLD WAY
+		if (bHasReinstanced)
+		{
+			return;
+		}
+		bHasReinstanced = true;
+
+		if (ClassToReinstance && DuplicatedClass)
+		{
+			ReinstanceInner(bForceAlwaysReinstance);
+			CompileChildren();
 		}
 	}
 }
+
+
 
 void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 {

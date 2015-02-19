@@ -10,7 +10,7 @@
 
 DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STATCAT_Advanced);
 
-class UNREALED_API FBlueprintCompileReinstancer
+class UNREALED_API FBlueprintCompileReinstancer : public TSharedFromThis<FBlueprintCompileReinstancer>
 {
 protected:
 
@@ -48,10 +48,12 @@ protected:
 	TSet<UObject*> ObjectsThatShouldUseOldStuff;
 
 public:
-	virtual ~FBlueprintCompileReinstancer();
+	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false)
+	{
+		return MakeShareable(new FBlueprintCompileReinstancer(InClassToReinstance, bIsBytecodeOnly, bSkipGC));
+	}
 
-	/** Sets the reinstancer up to work on every object of the specified class */
-	FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false);
+	virtual ~FBlueprintCompileReinstancer();
 
 	/** Saves a mapping of field names to their UField equivalents, so we can remap any bytecode that references them later */
 	void SaveClassFieldMapping(UClass* InClassToReinstance);
@@ -60,7 +62,7 @@ public:
 	void GenerateFieldMappings(TMap<UObject*, UObject*>& FieldMapping);
 
 	/** Reinstances all objects in the ObjectReinstancingMap */
-	void ReinstanceObjects(bool bAlwaysReinstance = true);
+	void ReinstanceObjects(bool bForceAlwaysReinstance = false);
 
 	/** Updates references to properties and functions of the class that has in the bytecode of dependent blueprints */
 	void UpdateBytecodeReferences();
@@ -81,6 +83,11 @@ public:
 	void VerifyReplacement();
 
 protected:
+	void ReinstanceInner(bool bForceAlwaysReinstance);
+
+	void ReinstanceFast();
+
+	void CompileChildren();
 
 	/** Default constructor, can only be used by derived classes */
 	FBlueprintCompileReinstancer()
@@ -90,6 +97,9 @@ protected:
 		, bHasReinstanced(false)
 		, bSkipGarbageCollection(false)
 	{}
+
+	/** Sets the reinstancer up to work on every object of the specified class */
+	FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false);
 
 	/** Reparents the specified blueprint or class to be the duplicated class in order to allow properties to be copied from the previous CDO to the new one */
 	void ReparentChild(UBlueprint* ChildBP);

@@ -1122,7 +1122,7 @@ void FAnimBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 	else
 	{
 		// Already existed, but wasn't linked in the Blueprint yet due to load ordering issues
-		FBlueprintCompileReinstancer GeneratedClassReinstancer(NewAnimBlueprintClass);
+		FBlueprintCompileReinstancer::Create(NewAnimBlueprintClass);
 	}
 	NewClass = NewAnimBlueprintClass;
 }

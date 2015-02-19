@@ -428,7 +428,7 @@ void FHotReloadClassReinstancer::UpdateDefaultProperties()
 
 void FHotReloadClassReinstancer::ReinstanceObjectsAndUpdateDefaults()
 {
-	ReinstanceObjects();
+	ReinstanceObjects(true);
 	UpdateDefaultProperties();
 }
 

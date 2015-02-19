@@ -700,14 +700,14 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	FCompilerResultsLog LocalResults;
 	FCompilerResultsLog& Results = (pResults != NULL) ? *pResults : LocalResults;
 
-	FBlueprintCompileReinstancer ReinstanceHelper(OldClass);
+	auto ReinstanceHelper = FBlueprintCompileReinstancer::Create(OldClass);
 
 	// Suppress errors/warnings in the log if we're recompiling on load on a build machine
 	Results.bLogInfoOnly = BlueprintObj->bIsRegeneratingOnLoad && GIsBuildMachine;
 
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.bSaveIntermediateProducts = bSaveIntermediateProducts;
-	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, &ReinstanceHelper);
+	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, ReinstanceHelper);
 
 	FBlueprintEditorUtils::UpdateDelegatesInBlueprint(BlueprintObj);
 
@@ -722,7 +722,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		}
 	}
 
-	ReinstanceHelper.UpdateBytecodeReferences();
+	ReinstanceHelper->UpdateBytecodeReferences();
 
 	if (!bIsRegeneratingOnLoad && (OldClass != NULL))
 	{
@@ -736,8 +736,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		}
 
 		// Replace instances of this class
-		static const FBoolConfigValueHelper ReinstanceOnlyWhenNecessary(TEXT("Kismet"), TEXT("bReinstanceOnlyWhenNecessary"), GEngineIni);
-		ReinstanceHelper.ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
+		ReinstanceHelper->ReinstanceObjects();
 
 		// Notify everyone a blueprint has been compiled and reinstanced, but before GC so they can perform any final cleanup.
 		if ( GEditor )
@@ -873,13 +872,13 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
 	FCompilerResultsLog Results;
 
-	FBlueprintCompileReinstancer ReinstanceHelper(BlueprintObj->GeneratedClass, true);
+	auto ReinstanceHelper = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass, true);
 
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.CompileType = EKismetCompileType::BytecodeOnly;
 	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
 
-	ReinstanceHelper.UpdateBytecodeReferences();
+	ReinstanceHelper->UpdateBytecodeReferences();
 
 	if (BlueprintPackage != NULL)
 	{

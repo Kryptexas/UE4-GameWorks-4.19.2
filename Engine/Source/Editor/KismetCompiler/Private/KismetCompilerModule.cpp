@@ -101,7 +101,7 @@ void FKismet2CompilerModule::CompileStructure(class UUserDefinedStruct* Struct, 
 }
 
 // Compiles a blueprint.
-void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, FBlueprintCompileReinstancer* ParentReinstancer, TArray<UObject*>* ObjLoaded)
+void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> ParentReinstancer, TArray<UObject*>* ObjLoaded)
 {
 	SCOPE_SECONDS_COUNTER(GBlueprintCompileTime);
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);
@@ -119,7 +119,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileSkeletonClass);
 
-		FBlueprintCompileReinstancer SkeletonReinstancer(Blueprint->SkeletonGeneratedClass);
+		auto SkeletonReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->SkeletonGeneratedClass);
 
 		FCompilerResultsLog SkeletonResults;
 		SkeletonResults.bSilentMode = true;
@@ -158,20 +158,18 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			// There were errors.  Compile the generated class to have function stubs
 			Blueprint->Status = BS_Error;
 
-			static const FBoolConfigValueHelper ReinstanceOnlyWhenNecessary(TEXT("Kismet"), TEXT("bReinstanceOnlyWhenNecessary"), GEngineIni);
-
 			// Reinstance objects here, so we can preserve their memory layouts to reinstance them again
-			if( ParentReinstancer != NULL )
+			if (ParentReinstancer.IsValid())
 			{
 				ParentReinstancer->UpdateBytecodeReferences();
 
 				if(!Blueprint->bIsRegeneratingOnLoad)
 				{
-					ParentReinstancer->ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
+					ParentReinstancer->ReinstanceObjects();
 				}
 			}
 
-			FBlueprintCompileReinstancer StubReinstancer(Blueprint->GeneratedClass);
+			auto StubReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->GeneratedClass);
 
 			// Toss the half-baked class and generate a stubbed out skeleton class that can be used
 			FCompilerResultsLog StubResults;
@@ -181,10 +179,10 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 			CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, ObjLoaded);
 
-			StubReinstancer.UpdateBytecodeReferences();
+			StubReinstancer->UpdateBytecodeReferences();
 			if( !Blueprint->bIsRegeneratingOnLoad )
 			{
-				StubReinstancer.ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
+				StubReinstancer->ReinstanceObjects();
 			}
 		}
 	}
