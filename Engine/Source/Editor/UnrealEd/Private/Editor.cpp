@@ -5605,7 +5605,7 @@ AActor* UEditorEngine::ConvertBrushesToStaticMesh(const FString& InStaticMeshPac
 	}
 
 	ConversionTempModel->EmptyModel(1, 1);
-
+	GEditor->RebuildAlteredBSP();
 	GEditor->RedrawLevelEditingViewports();
 
 	return NewActor;
