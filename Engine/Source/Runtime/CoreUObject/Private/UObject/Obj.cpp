@@ -828,11 +828,11 @@ void UObject::Serialize( FArchive& Ar )
 	}
 
 	// Serialize object properties which are defined in the class.
-	// Handle derived UClass objects (exact UClass objects are native only and shouldn't be touched)
-	if (Class != UClass::StaticClass())
-	{
-		SerializeScriptProperties(Ar);
-	}
+		// Handle derived UClass objects (exact UClass objects are native only and shouldn't be touched)
+		if (Class != UClass::StaticClass())
+		{
+				SerializeScriptProperties(Ar);
+			}
 
 	// Keep track of pending kill
 	if( Ar.IsTransacting() )
@@ -1167,7 +1167,7 @@ void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	// Add ResourceSize if non-zero. GetResourceSize is not const because many override implementations end up calling Serialize on this pointers.
 	SIZE_T ResourceSize = const_cast<UObject*>(this)->GetResourceSize(EResourceSizeMode::Exclusive);
-	if ( ResourceSize > 0 )
+	if ( ResourceSize != RESOURCE_SIZE_NONE )
 	{
 		OutTags.Add( FAssetRegistryTag("ResourceSize", FString::Printf(TEXT("%0.2f"), ResourceSize / 1024.f), FAssetRegistryTag::TT_Numerical) );
 	}
@@ -3614,9 +3614,9 @@ void StaticExit()
 		UObject* Obj = *It;
 		if (Obj && !Obj->IsA<UField>()) // Skip Structures, properties, etc.. They could be still necessary while GC.
 		{
-			// Mark as unreachable so purge phase will kill it.
+		// Mark as unreachable so purge phase will kill it.
 			It->SetFlags(RF_Unreachable);
-		}
+	}
 	}
 
 	// Fully purge all objects, not using time limit.

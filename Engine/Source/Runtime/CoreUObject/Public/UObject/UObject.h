@@ -200,18 +200,18 @@ public:
 	virtual void PostLoad();
 
 	/**
-	* Instances components for objects being loaded from disk, if necessary.  Ensures that component references
-	* between nested components are fixed up correctly.
-	*
-	* @param	OuterInstanceGraph	when calling this method on subobjects, specifies the instancing graph which contains all instanced
-	*								subobjects and components for a subobject root.
-	*/
+	 * Instances components for objects being loaded from disk, if necessary.  Ensures that component references
+	 * between nested components are fixed up correctly.
+	 *
+	 * @param	OuterInstanceGraph	when calling this method on subobjects, specifies the instancing graph which contains all instanced
+	 *								subobjects and components for a subobject root.
+	 */
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph);
-
+	
 	/**
-	* Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
-	* asynchronous cleanup process.
-	*/
+	 * Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
+	 * asynchronous cleanup process.
+	 */
 	virtual void BeginDestroy();
 
 	/**
@@ -419,18 +419,21 @@ public:
 		return false;
 	}
 
+	/** Special value meaning that the resource size is not defined */
+	static const SIZE_T RESOURCE_SIZE_NONE = static_cast<SIZE_T>(-1);
+
 	/**
 	 * Returns the size of the object/ resource for display to artists/ LDs in the Editor. The
-	 * default behavior is to return 0 which indicates that the resource shouldn't display its
-	 * size which is used to not confuse people by displaying small sizes for e.g. objects like
-	 * materials
+	 * default behavior is to return RESOURCE_SIZE_NONE which indicates that the resource shouldn't
+	 * display its size which is used to not confuse people by displaying small sizes
+	 * e.g. for objects like materials.
 	 *
 	 * @param	Type	Indicates which resource size should be returned
 	 * @return	Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode)
 	{
-		return 0;
+		return RESOURCE_SIZE_NONE;
 	}
 
 	/** 
