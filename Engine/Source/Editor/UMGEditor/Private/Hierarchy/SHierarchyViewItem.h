@@ -32,12 +32,12 @@ public:
 
 	virtual FSlateFontInfo GetFont() const = 0;
 
-	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-
 	virtual FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	virtual void HandleDragEnter(const FDragDropEvent& DragDropEvent);
 	virtual void HandleDragLeave(const FDragDropEvent& DragDropEvent);
-	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent);
+
+	virtual TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone);
+	virtual FReply HandleAcceptDrop(FDragDropEvent const& DragDropEvent, EItemDropZone DropZone);
 
 	virtual bool OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage);
 
@@ -92,11 +92,10 @@ public:
 
 	virtual FSlateFontInfo GetFont() const override;
 
-	virtual void OnSelection();
+	virtual void OnSelection() override;
 
-	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-
-	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent);
+	virtual TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone) override;
+	virtual FReply HandleAcceptDrop(FDragDropEvent const& DragDropEvent, EItemDropZone DropZone) override;
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
@@ -125,8 +124,8 @@ public:
 
 	virtual void OnSelection();
 	
-	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
-	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent) override;
+	virtual TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone) override;
+	virtual FReply HandleAcceptDrop(FDragDropEvent const& DragDropEvent, EItemDropZone DropZone) override;
 	virtual FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
 protected:
@@ -159,11 +158,11 @@ public:
 
 	virtual FSlateFontInfo GetFont() const override;
 
-	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone) override;
 
 	virtual FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void HandleDragLeave(const FDragDropEvent& DragDropEvent) override;
-	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent) override;
+	virtual FReply HandleAcceptDrop(FDragDropEvent const& DragDropEvent, EItemDropZone DropZone) override;
 
 	virtual bool OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage) override;
 
@@ -238,16 +237,17 @@ public:
 
 	// Begin SWidget
 	virtual bool IsHovered() const;
-	void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-	void OnMouseLeave(const FPointerEvent& MouseEvent);
-	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 	// End SWidget
 
 private:
 	FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	void HandleDragEnter(const FDragDropEvent& DragDropEvent);
 	void HandleDragLeave(const FDragDropEvent& DragDropEvent);
-	FReply HandleDrop(FDragDropEvent const& DragDropEvent);
+
+	TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TSharedPtr<FHierarchyModel> TargetItem);
+	FReply HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TSharedPtr<FHierarchyModel> TargetItem);
 
 	/** Called when text is being committed to check for validity */
 	bool OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage);
@@ -265,7 +265,7 @@ private:
 	FReply OnToggleVisibility();
 
 	/** Returns a brush representing the visibility item of the widget's visibility button */
-	const FSlateBrush* GetVisibilityBrushForWidget() const;
+	FText GetVisibilityBrushForWidget() const;
 
 	/* The mode that this tree item represents */
 	TSharedPtr<FHierarchyModel> Model;
