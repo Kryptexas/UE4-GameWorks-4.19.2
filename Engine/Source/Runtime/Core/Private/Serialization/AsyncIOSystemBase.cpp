@@ -30,8 +30,10 @@ uint64 FAsyncIOSystemBase::QueueIORequest(
 	FThreadSafeCounter* Counter,
 	EAsyncIOPriority Priority )
 {
-	FScopeLock ScopeLock( CriticalSection );
-	check( Offset != INDEX_NONE );
+	check(Offset != INDEX_NONE);
+	check(Dest != nullptr || Size == 0);
+
+	FScopeLock ScopeLock(CriticalSection);
 
 	// Create an IO request containing passed in information.
 	FAsyncIORequest IORequest;
