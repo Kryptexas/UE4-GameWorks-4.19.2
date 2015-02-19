@@ -122,10 +122,10 @@ static void DumpStatsEventNode(FGPUProfilerEventNode* Node, float RootResult, in
 		const float UnaccountedTime = FMath::Max(Node->TimingResult - TotalChildTime, 0.0f);
 		const float UnaccountedPercent = UnaccountedTime * 100.0f / (RootResult * 1000.0f);
 
-		// Add an 'Unaccounted' node if necessary to show time spent in the current node that is not in any of its children
+		// Add an 'Other Children' node if necessary to show time spent in the current node that is not in any of its children
 		if (bMatchesFilter && Node->Children.Num() > 0 && TotalChildDraws > 0 && (UnaccountedPercent > 2.0f || UnaccountedTime > .2f))
 		{
-			UE_LOG(LogRHI, Warning, TEXT("%s%4.1f%%%5.2fms Unaccounted"), 
+			UE_LOG(LogRHI, Warning, TEXT("%s%4.1f%%%5.2fms Other Children"), 
 				*FString(TEXT("")).LeftPad((EffectiveDepth + 1) * 3), 
 				UnaccountedPercent,
 				UnaccountedTime);

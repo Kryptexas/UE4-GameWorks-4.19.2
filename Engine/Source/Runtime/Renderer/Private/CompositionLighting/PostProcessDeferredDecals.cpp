@@ -634,8 +634,6 @@ void SetShader(const FRenderingCompositePassContext& Context, const FTransientDe
 
 bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, RenderPreStencil);
-
 	const FSceneView& View = Context.View;
 
 	float Distance = (View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).Size();
