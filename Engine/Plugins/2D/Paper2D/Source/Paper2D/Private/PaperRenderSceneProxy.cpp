@@ -90,26 +90,26 @@ public:
 //static TGlobalResource<FPaperSpriteVertexFactory> GPaperSpriteVertexFactory;
 
 //////////////////////////////////////////////////////////////////////////
-// FTextureOverrideRenderProxy
+// FSpriteTextureOverrideRenderProxy
 
 /**
- * A material render proxy which overrides a named texture parameter.
+ * A material render proxy which overrides various named texture parameters.
  */
-class FTextureOverrideRenderProxy : public FDynamicPrimitiveResource, public FMaterialRenderProxy
+class FSpriteTextureOverrideRenderProxy : public FDynamicPrimitiveResource, public FMaterialRenderProxy
 {
 public:
 	const FMaterialRenderProxy* const Parent;
-	const UTexture* Texture;
-	FName TextureParameterName;
+	const UTexture* BaseTexture;
+	FAdditionalSpriteTextureArray AdditionalTextures;
 
 	/** Initialization constructor. */
-	FTextureOverrideRenderProxy(const FMaterialRenderProxy* InParent, const UTexture* InTexture, const FName& InParameterName)
+	FSpriteTextureOverrideRenderProxy(const FMaterialRenderProxy* InParent, const UTexture* InBaseTexture, FAdditionalSpriteTextureArray InAdditionalTextures)
 		: Parent(InParent)
-		, Texture(InTexture)
-		, TextureParameterName(InParameterName)
+		, BaseTexture(InBaseTexture)
+		, AdditionalTextures(InAdditionalTextures)
 	{}
 
-	virtual ~FTextureOverrideRenderProxy()
+	virtual ~FSpriteTextureOverrideRenderProxy()
 	{
 	}
 
@@ -142,15 +142,29 @@ public:
 	{
 		if (ParameterName == TextureParameterName)
 		{
-			*OutValue = Texture;
+			*OutValue = BaseTexture;
 			return true;
 		}
-		else
+		else if (ParameterName.GetComparisonIndex() == AdditionalTextureParameterRootName.GetComparisonIndex())
 		{
-			return Parent->GetTextureValue(ParameterName, OutValue, Context);
+			const int32 AdditionalSlotIndex = ParameterName.GetNumber() - 1;
+			if (AdditionalTextures.IsValidIndex(AdditionalSlotIndex))
+			{
+				*OutValue = AdditionalTextures[AdditionalSlotIndex];
+				return true;
+			}
 		}
+		
+		return Parent->GetTextureValue(ParameterName, OutValue, Context);
 	}
+
+protected:
+	static const FName TextureParameterName;
+	static const FName AdditionalTextureParameterRootName;
 };
+
+const FName FSpriteTextureOverrideRenderProxy::TextureParameterName(TEXT("SpriteTexture"));
+const FName FSpriteTextureOverrideRenderProxy::AdditionalTextureParameterRootName(TEXT("SpriteAdditionalTexture"));
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperRenderSceneProxy
@@ -330,9 +344,8 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, bool bUse
 	{
 		const FLinearColor EffectiveWireframeColor = (Batch.Material->GetBlendMode() != BLEND_Opaque) ? WireframeColor : FLinearColor::Green;
 		FMaterialRenderProxy* ParentMaterialProxy = Batch.Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(), IsHovered());
-		FTexture* TextureResource = (Batch.Texture != nullptr) ? Batch.Texture->Resource : nullptr;
 
-		if ((TextureResource != nullptr) && (Batch.NumVertices > 0))
+		if (Batch.IsValid())
 		{
 			FMeshBatch& Mesh = Collector.AllocateMesh();
 
@@ -357,7 +370,7 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, bool bUse
 			}
 
 			// Create a texture override material proxy and register it as a dynamic resource so that it won't be deleted until the rendering thread has finished with it
-			FTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FTextureOverrideRenderProxy(ParentMaterialProxy, Batch.Texture, TEXT("SpriteTexture"));
+			FSpriteTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FSpriteTextureOverrideRenderProxy(ParentMaterialProxy, Batch.BaseTexture, Batch.AdditionalTextures);
 			Collector.RegisterOneFrameMaterialProxy(TextureOverrideMaterialProxy);
 
 			Mesh.UseDynamicData = true;
@@ -406,8 +419,7 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, bool bUseOverr
 
 	for (const FSpriteDrawCallRecord& Record : Batch)
 	{
-		FTexture* TextureResource = (Record.Texture != nullptr) ? Record.Texture->Resource : nullptr;
-		if ((TextureResource != nullptr) && (Record.RenderVerts.Num() > 0))
+		if (Record.IsValid())
 		{
 			const FLinearColor SpriteColor = bUseOverrideColor ? OverrideColor : Record.Color;
 			const FVector EffectiveOrigin = Record.Destination;
@@ -454,7 +466,7 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, bool bUseOverr
 			}
 
 			// Create a texture override material proxy and register it as a dynamic resource so that it won't be deleted until the rendering thread has finished with it
-			FTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FTextureOverrideRenderProxy(ParentMaterialProxy, Record.Texture, TEXT("SpriteTexture"));
+			FSpriteTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FSpriteTextureOverrideRenderProxy(ParentMaterialProxy, Record.BaseTexture, Record.AdditionalTextures);
 			Collector.RegisterOneFrameMaterialProxy(TextureOverrideMaterialProxy);
 
 			Mesh.MaterialRenderProxy = TextureOverrideMaterialProxy;

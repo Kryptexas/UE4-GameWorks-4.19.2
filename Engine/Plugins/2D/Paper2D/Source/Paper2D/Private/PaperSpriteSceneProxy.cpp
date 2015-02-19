@@ -96,12 +96,14 @@ void FPaperSpriteSceneProxy::SetSprite_RenderThread(const FSpriteDrawCallRecord&
 		
 		Record.Color = NewDynamicData.Color;
 		Record.Destination = NewDynamicData.Destination;
-		Record.Texture = NewDynamicData.Texture;
+		Record.BaseTexture = NewDynamicData.BaseTexture;
+		Record.AdditionalTextures = NewDynamicData.AdditionalTextures;
 		Record.RenderVerts.Append(NewDynamicData.RenderVerts.GetData(), SplitIndex);
 
 		AltRecord.Color = NewDynamicData.Color;
 		AltRecord.Destination = NewDynamicData.Destination;
-		AltRecord.Texture = NewDynamicData.Texture;
+		AltRecord.BaseTexture = NewDynamicData.BaseTexture;
+		AltRecord.AdditionalTextures = NewDynamicData.AdditionalTextures;
 		AltRecord.RenderVerts.Append(NewDynamicData.RenderVerts.GetData() + SplitIndex, NewDynamicData.RenderVerts.Num() - SplitIndex);
 	}
 	else

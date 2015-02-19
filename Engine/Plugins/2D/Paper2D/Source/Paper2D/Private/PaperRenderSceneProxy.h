@@ -37,16 +37,27 @@ struct PAPER2D_API FPaperSpriteVertex
 
 struct PAPER2D_API FSpriteRenderSection
 {
+	UMaterialInterface* Material;
+	UTexture2D* BaseTexture;
+	FAdditionalSpriteTextureArray AdditionalTextures;
+
 	int32 VertexOffset;
 	int32 NumVertices;
-
-	UMaterialInterface* Material;
-	UTexture2D* Texture;
 
 	FSpriteRenderSection()
 		: VertexOffset(INDEX_NONE)
 		, NumVertices(0)
 	{
+	}
+
+	class FTexture* GetBaseTextureResource() const
+	{
+		return (BaseTexture != nullptr) ? BaseTexture->Resource : nullptr;
+	}
+
+	bool IsValid() const
+	{
+		return (NumVertices > 0) && (GetBaseTextureResource() != nullptr);
 	}
 
 #if 0

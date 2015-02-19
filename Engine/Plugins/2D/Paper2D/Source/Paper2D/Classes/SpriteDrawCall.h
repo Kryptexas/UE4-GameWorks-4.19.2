@@ -15,7 +15,9 @@ public:
 	FVector Destination;
 
 	UPROPERTY(Category=Sprite, EditAnywhere)
-	UTexture2D* Texture;
+	UTexture2D* BaseTexture;
+
+	FAdditionalSpriteTextureArray AdditionalTextures;
 
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	FLinearColor Color;
@@ -27,8 +29,13 @@ public:
 	void BuildFromSprite(const class UPaperSprite* Sprite);
 
 	FSpriteDrawCallRecord()
-		: Texture(nullptr)
+		: BaseTexture(nullptr)
 		, Color(FLinearColor::White)
 	{
+	}
+
+	bool IsValid() const
+	{
+		return (RenderVerts.Num() > 0) && (BaseTexture != nullptr) && (BaseTexture->Resource != nullptr);
 	}
 };

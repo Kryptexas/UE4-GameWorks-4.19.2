@@ -312,7 +312,9 @@ void FSpriteDrawCallRecord::BuildFromSprite(const UPaperSprite* Sprite)
 	if (Sprite != nullptr)
 	{
 		Destination = FVector::ZeroVector;
-		Texture = Sprite->GetBakedTexture();
+		BaseTexture = Sprite->GetBakedTexture();
+		Sprite->GetBakedAdditionalSourceTextures(/*out*/ AdditionalTextures);
+
 		Color = FLinearColor::White;
 
 		RenderVerts = Sprite->BakedRenderData;
@@ -1930,6 +1932,11 @@ void UPaperSprite::PostLoad()
 UTexture2D* UPaperSprite::GetBakedTexture() const
 {
 	return (BakedSourceTexture != nullptr) ? BakedSourceTexture : SourceTexture;
+}
+
+void UPaperSprite::GetBakedAdditionalSourceTextures(FAdditionalSpriteTextureArray& OutTextureList) const
+{
+	OutTextureList = AdditionalSourceTextures;
 }
 
 UMaterialInterface* UPaperSprite::GetMaterial(int32 MaterialIndex) const

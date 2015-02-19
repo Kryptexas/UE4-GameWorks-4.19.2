@@ -291,7 +291,9 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 					if ((SourceTexture != LastSourceTexture) || (CurrentBatch == nullptr))
 					{
 						CurrentBatch = (new (BatchedSprites) FSpriteDrawCallRecord());
-						CurrentBatch->Texture = SourceTexture;
+						CurrentBatch->BaseTexture = SourceTexture;
+						//CurrentBatch->AdditionalTextures = ?; //@TODO: PAPER2D: Need to add multi-texture support to tile sets / tile maps
+						// Probably also need to change the batch check here to TileSet changing to avoid checking each texture in the array
 						CurrentBatch->Color = DrawColor;
 						CurrentBatch->Destination = TopLeftCornerOfTile.ProjectOnTo(PaperAxisZ);
 					}

@@ -32,6 +32,8 @@ struct FPaperSpriteSocket
 	FName SocketName;
 };
 
+typedef TArray<class UTexture2D*, TInlineAllocator<4>> FAdditionalSpriteTextureArray;
+
 /**
  * Sprite Asset
  *
@@ -84,6 +86,10 @@ protected:
 	// The source texture that the sprite comes from
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	UTexture2D* SourceTexture;
+
+	// Additional source textures for other slots
+	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable, meta=(DisplayName="Additional Textures"))
+	TArray<UTexture2D*> AdditionalSourceTextures;
 
 	UPROPERTY()
 	UTexture2D* BakedSourceTexture;
@@ -261,6 +267,9 @@ public:
 
 	// Returns the texture this should be rendered with
 	UTexture2D* GetBakedTexture() const;
+
+	// Returns the list of additional source textures this should be rendered with
+	void GetBakedAdditionalSourceTextures(FAdditionalSpriteTextureArray& OutTextureList) const;
 
 	// Return the default material for this sprite
 	UMaterialInterface* GetDefaultMaterial() const { return DefaultMaterial; }
