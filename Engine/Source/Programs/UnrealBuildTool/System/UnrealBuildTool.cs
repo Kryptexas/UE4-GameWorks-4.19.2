@@ -618,7 +618,6 @@ namespace UnrealBuildTool
         private static int Main(string[] Arguments)
         {
             InitLogging();
-            Log.TraceVerbose(Environment.CommandLine);
 
             try
             {
@@ -629,6 +628,16 @@ namespace UnrealBuildTool
                 Log.TraceError("UnrealBuildTool Exception: " + Exception);
                 return (int) ECompilationResult.OtherCompilationError;
             }
+
+			// Because XmlConfigLoader.Init() will reset all parameter by call LoadDefaults, 
+			// so need to parse verbose argument here.
+			int Verbose;
+			if (Utils.ParseCommandLineFlag(Arguments, "-verbose", out Verbose))
+			{
+				BuildConfiguration.bPrintDebugInfo = true;
+			}
+
+			Log.TraceVerbose(Environment.CommandLine);
 
             InitialEnvironment = Environment.GetEnvironmentVariables();
             if (InitialEnvironment.Count < 1)
@@ -694,6 +703,11 @@ namespace UnrealBuildTool
             // Reset early so we can access BuildConfiguration even before RunUBT() is called
             XmlConfigLoader.Reset<BuildConfiguration>();
             XmlConfigLoader.Reset<UEBuildConfiguration>();
+
+			if (Utils.ParseCommandLineFlag(Arguments, "-verbose", out Verbose))
+			{
+				BuildConfiguration.bPrintDebugInfo = true;
+			}
 
             Log.TraceVerbose("UnrealBuildTool (DEBUG OUTPUT MODE)");
             Log.TraceVerbose("Command-line: {0}", String.Join(" ", Arguments));
