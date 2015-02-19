@@ -188,8 +188,8 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(Replicated)
 	AActor* TargetActor;
 	
-	UFUNCTION(reliable, server, WithValidation)
-	void ServerEnableTargetSelection(bool bEnable);
+	UFUNCTION(Reliable, Client, WithValidation)
+	void ClientEnableTargetSelection(bool bEnable);
 
 	void SetActorToDebug(AActor* Actor);
 	FORCEINLINE AActor* GetSelectedActor() const

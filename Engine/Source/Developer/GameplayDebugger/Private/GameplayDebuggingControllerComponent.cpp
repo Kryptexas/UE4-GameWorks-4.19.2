@@ -66,7 +66,7 @@ void UGameplayDebuggingControllerComponent::BeginDestroy()
 
 	if (GetDebuggingReplicator() && PlayerOwner.IsValid() && !PlayerOwner->IsPendingKill())
 	{
-		APawn* Pawn = PlayerOwner->GetPawn();
+		APawn* Pawn = PlayerOwner->GetPawnOrSpectator();
 		if (Pawn && !Pawn->IsPendingKill())
 		{
 			GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::DeactivateReplilcation, 0);
@@ -209,7 +209,7 @@ void UGameplayDebuggingControllerComponent::CloseDebugTool()
 
 void UGameplayDebuggingControllerComponent::EnableTargetSelection(bool bEnable)
 {
-	GetDebuggingReplicator()->ServerEnableTargetSelection(bEnable, PlayerOwner.Get());
+	GetDebuggingReplicator()->ClientEnableTargetSelection(bEnable, PlayerOwner.Get());
 }
 
 void UGameplayDebuggingControllerComponent::BindAIDebugViewKeys()
@@ -265,7 +265,7 @@ bool UGameplayDebuggingControllerComponent::CanToggleView()
 void UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	APawn* Pawn = PlayerOwner.IsValid() ? PlayerOwner->GetPawn() : NULL;
+	APawn* Pawn = PlayerOwner.IsValid() ? PlayerOwner->GetPawnOrSpectator() : NULL;
 
 	if (PlayerOwner.IsValid() && Pawn && bToolActivated && GetDebuggingReplicator())
 	{
@@ -353,7 +353,7 @@ float UGameplayDebuggingControllerComponent::GetUpdateNavMeshTimeRemaining() con
 
 void UGameplayDebuggingControllerComponent::UpdateNavMeshTimer()
 {
-	const APawn* PlayerPawn = PlayerOwner.IsValid() ? PlayerOwner->GetPawn() : NULL;
+	const APawn* PlayerPawn = PlayerOwner.IsValid() ? PlayerOwner->GetPawnOrSpectator() : NULL;
 	UGameplayDebuggingComponent* DebuggingComponent = GetDebuggingReplicator() ? GetDebuggingReplicator()->GetDebugComponent() : NULL;
 	if (DebuggingComponent)
 	{

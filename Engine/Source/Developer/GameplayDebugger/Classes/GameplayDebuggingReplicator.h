@@ -86,8 +86,8 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	UFUNCTION(reliable, client, WithValidation)
 	void ClientReplicateMessage(class AActor* Actor, uint32 InMessage, uint32 DataView = 0);
 
-	UFUNCTION(reliable, server, WithValidation)
-	void ServerEnableTargetSelection(bool bEnable, APlayerController* Context);
+	UFUNCTION(Reliable, Client, WithValidation)
+	void ClientEnableTargetSelection(bool bEnable, APlayerController* Context);
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -120,7 +120,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	APlayerController* GetLocalPlayerOwner() { return LocalPlayerOwner; }
 
 	FORCEINLINE AActor* GetSelectedActorToDebug() { return LastSelectedActorToDebug; }
-	void SetActorToDebug(AActor* InActor);
+	
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerSetActorToDebug(AActor* InActor);
 
 	/**
 	 * Iterates through the pawn list to find the next pawn of the specified type to debug

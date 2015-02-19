@@ -198,37 +198,24 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME(UGameplayDebuggingComponent, PawnClass);
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingCharacter);
+	DOREPLIFETIME(UGameplayDebuggingComponent, MovementBaseInfo);
+	DOREPLIFETIME(UGameplayDebuggingComponent, MovementModeInfo);
+	DOREPLIFETIME(UGameplayDebuggingComponent, MontageInfo);
+
 	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingPathFollowing);
+	DOREPLIFETIME(UGameplayDebuggingComponent, PathFollowingInfo);
+	DOREPLIFETIME(UGameplayDebuggingComponent, NavDataInfo);
+	DOREPLIFETIME(UGameplayDebuggingComponent, PathPoints);
+	DOREPLIFETIME(UGameplayDebuggingComponent, PathCorridorData);
+	DOREPLIFETIME(UGameplayDebuggingComponent, NextPathPointIndex);
+
 	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingBehaviorTree);
+	DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAITask);
+	DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIState);
+	DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIAssets);
+
 	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingAbilities);
-
-	if (bIsUsingCharacter)
-	{
-		DOREPLIFETIME(UGameplayDebuggingComponent, MovementBaseInfo);
-		DOREPLIFETIME(UGameplayDebuggingComponent, MovementModeInfo);
-		DOREPLIFETIME(UGameplayDebuggingComponent, MontageInfo);
-	}
-
-	if (bIsUsingPathFollowing)
-	{
-		DOREPLIFETIME(UGameplayDebuggingComponent, PathFollowingInfo);
-		DOREPLIFETIME(UGameplayDebuggingComponent, NavDataInfo);
-		DOREPLIFETIME(UGameplayDebuggingComponent, PathPoints);
-		DOREPLIFETIME(UGameplayDebuggingComponent, PathCorridorData);
-		DOREPLIFETIME(UGameplayDebuggingComponent, NextPathPointIndex);
-	}
-
-	if (bIsUsingBehaviorTree)
-	{
-		DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAITask);
-		DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIState);
-		DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIAssets);
-	}
-
-	if (bIsUsingAbilities)
-	{
-		DOREPLIFETIME(UGameplayDebuggingComponent, AbilityInfo);
-	}
+	DOREPLIFETIME(UGameplayDebuggingComponent, AbilityInfo);
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, BrainComponentName);
 	DOREPLIFETIME(UGameplayDebuggingComponent, BrainComponentString);
@@ -242,16 +229,16 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-bool UGameplayDebuggingComponent::ServerEnableTargetSelection_Validate(bool bEnable)
+bool UGameplayDebuggingComponent::ClientEnableTargetSelection_Validate(bool bEnable)
 {
 	return true;
 }
 
-void UGameplayDebuggingComponent::ServerEnableTargetSelection_Implementation(bool bEnable)
+void UGameplayDebuggingComponent::ClientEnableTargetSelection_Implementation(bool bEnable)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bEnabledTargetSelection = bEnable;
-	if (bEnabledTargetSelection && World && World->GetNetMode() < NM_Client)
+	if (bEnabledTargetSelection && World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		NextTargrtSelectionTime = 0;
 	}
@@ -271,7 +258,7 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	if (World && World->GetNetMode() < NM_Client)
+	if (World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		if (bEnabledTargetSelection)
 		{
@@ -284,10 +271,12 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 				}
 			}
 		}
-		CollectDataToReplicate(true);
 	}
 
-	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+	if (World && World->GetNetMode() < NM_Client)
+	{
+		CollectDataToReplicate(true);
+	}
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -300,17 +289,7 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 
 	if (MyPC )
 	{
-		APawn* BestTarget = NULL;
-		if (MyPC->GetViewTarget() != NULL && MyPC->GetViewTarget() != MyPC->GetPawn())
-		{
-			BestTarget = Cast<APawn>(MyPC->GetViewTarget());
-			if (BestTarget && ((BestTarget->PlayerState != NULL && BestTarget->PlayerState->bIsABot == false) || BestTarget->GetActorEnableCollision() == false))
-			{
-				BestTarget = NULL;
-			}
-		}
-
-		float bestAim = 0.f;
+		float bestAim = 0;
 		FVector CamLocation;
 		FRotator CamRotation;
 		check(MyPC->PlayerCameraManager != NULL);
@@ -330,7 +309,7 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 				continue;
 			}
 			
-			if (BestTarget == NULL && (NewTarget != MyPC->GetPawn()))
+			if (NewTarget != MyPC->GetPawn())
 			{
 				// look for best controlled pawn target
 				const FVector AimDir = NewTarget->GetActorLocation() - CamLocation;
@@ -339,8 +318,8 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 				if (FireDist < 625000000.f)
 				{
 					FireDist = FMath::Sqrt(FireDist);
-					float newAim = FireDir | AimDir;
-					newAim = newAim/FireDist;
+					float newAim = FVector::DotProduct(FireDir, AimDir);
+					newAim = newAim / FireDist;
 					if (newAim > bestAim)
 					{
 						PossibleTarget = NewTarget;
@@ -350,16 +329,13 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 			}
 		}
 
-		BestTarget = BestTarget == NULL ? PossibleTarget : BestTarget;
-		if (BestTarget != NULL && BestTarget != GetSelectedActor())
+		if (PossibleTarget != NULL && PossibleTarget != GetSelectedActor())
 		{
 			if (AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner()))
 			{
-				Replicator->SetActorToDebug(Cast<AActor>(BestTarget));
+				Replicator->ServerSetActorToDebug(Cast<AActor>(PossibleTarget));
 			}
 
-			//always update component for best target
-			SetActorToDebug(Cast<AActor>(BestTarget));
 			ServerReplicateData(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
 		}
 	}
@@ -421,9 +397,6 @@ void UGameplayDebuggingComponent::CollectBasicData()
 	AAIController* MyController = Cast<AAIController>(MyPawn->Controller);
 
 	bIsUsingCharacter = MyPawn->IsA(ACharacter::StaticClass());
-	bIsUsingPathFollowing = false;
-	bIsUsingBehaviorTree = false;
-	bIsUsingAbilities = false;
 
 	if (MyController)
 	{
@@ -703,6 +676,7 @@ void UGameplayDebuggingComponent::CollectPathData()
 							ArWriter << Vert;
 						}
 					}
+					PathCorridorData = HelpBuffer;
 				}
 				bRefreshRendering = true;
 			}
@@ -729,8 +703,7 @@ void UGameplayDebuggingComponent::OnRep_PathCorridorData()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (World && World->GetNetMode() != NM_DedicatedServer)
 	{
-		TArray<uint8> HelpBuffer;
-		FMemoryReader ArReader(HelpBuffer);
+		FMemoryReader ArReader(PathCorridorData);
 		int32 NumPolygons = 0;
 		ArReader << NumPolygons;
 		PathCorridorPolygons.Reset(NumPolygons);
@@ -744,6 +717,10 @@ void UGameplayDebuggingComponent::OnRep_PathCorridorData()
 				FVector CurrentVertex;
 				ArReader << CurrentVertex;
 				CurrentPoly.Add(CurrentVertex);
+			}
+			if (NumVerts > 2)
+			{
+				PathCorridorPolygons.Add(CurrentPoly);
 			}
 		}
 		UpdateBounds();

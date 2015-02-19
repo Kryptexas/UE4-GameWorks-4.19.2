@@ -82,7 +82,7 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const FObjectInitiali
 		SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
 		SetReplicates(true);
 
-		AGameplayDebuggingReplicator::OnSelectionChangedDelegate.AddUObject(this, &AGameplayDebuggingReplicator::SetActorToDebug);
+		AGameplayDebuggingReplicator::OnSelectionChangedDelegate.AddUObject(this, &AGameplayDebuggingReplicator::ServerSetActorToDebug);
 	}
 }
 
@@ -292,16 +292,16 @@ class UNetConnection* AGameplayDebuggingReplicator::GetNetConnection()
 	return NULL;
 }
 
-bool AGameplayDebuggingReplicator::ServerEnableTargetSelection_Validate(bool, APlayerController* )
+bool AGameplayDebuggingReplicator::ClientEnableTargetSelection_Validate(bool, APlayerController* )
 {
 	return true;
 }
 
-void AGameplayDebuggingReplicator::ServerEnableTargetSelection_Implementation(bool bEnable, APlayerController* Context)
+void AGameplayDebuggingReplicator::ClientEnableTargetSelection_Implementation(bool bEnable, APlayerController* Context)
 {
 	if (GetDebugComponent())
 	{
-		GetDebugComponent()->ServerEnableTargetSelection(bEnable);
+		GetDebugComponent()->ClientEnableTargetSelection(bEnable);
 	}
 }
 
@@ -325,7 +325,7 @@ void AGameplayDebuggingReplicator::ServerReplicateMessage_Implementation(class  
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if ((EDebugComponentMessage::Type)InMessage == EDebugComponentMessage::DeactivateReplilcation)
 	{
-		SetActorToDebug(NULL);
+		ServerSetActorToDebug(NULL);
 		MarkComponentsRenderStateDirty();
 	}
 
@@ -431,7 +431,12 @@ void AGameplayDebuggingReplicator::TickActor(float DeltaTime, enum ELevelTick Ti
 	}
 }
 
-void AGameplayDebuggingReplicator::SetActorToDebug(AActor* InActor) 
+bool AGameplayDebuggingReplicator::ServerSetActorToDebug_Validate(AActor* InActor)
+{
+	return true;
+}
+
+void AGameplayDebuggingReplicator::ServerSetActorToDebug_Implementation(AActor* InActor)
 { 
 	if (LastSelectedActorToDebug != InActor)
 	{
@@ -516,7 +521,7 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 		}
 
 		const AActor* OldActor = LastSelectedActorToDebug;
-		SetActorToDebug(FullSelectedTarget);
+		ServerSetActorToDebug(FullSelectedTarget);
 		if (FullSelectedTarget)
 		{
 			GetDebugComponent()->CollectDataToReplicate(true);
@@ -575,7 +580,7 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 			AActor* NewTarget = Cast<AActor>(*Iterator);
 			if (NewTarget->IsSelected() && GetSelectedActorToDebug() != NewTarget)
 			{
-				SetActorToDebug(NewTarget);
+				ServerSetActorToDebug(NewTarget);
 			}
 
 			GetDebugComponent()->SetActorToDebug(NewTarget);
@@ -633,7 +638,7 @@ void AGameplayDebuggingReplicator::DebugNextPawn(UClass* CompareClass, APawn* Cu
 		{
 			if (LastSeen == CurrentPawn)
 			{
-				SetActorToDebug(IterPawn);
+				ServerSetActorToDebug(IterPawn);
 				return;
 			}
 			LastSeen = IterPawn;
@@ -646,7 +651,7 @@ void AGameplayDebuggingReplicator::DebugNextPawn(UClass* CompareClass, APawn* Cu
 	// See if we need to wrap around the list
 	if (FirstSeen != nullptr)
 	{
-		SetActorToDebug(FirstSeen);
+		ServerSetActorToDebug(FirstSeen);
 	}
 }
 
@@ -663,7 +668,7 @@ void AGameplayDebuggingReplicator::DebugPrevPawn(UClass* CompareClass, APawn* Cu
 		{
 			if (LastSeen == CurrentPawn && FirstSeen != CurrentPawn)
 			{
-				SetActorToDebug(PrevSeen);
+				ServerSetActorToDebug(PrevSeen);
 				return;
 			}
 			PrevSeen = LastSeen;
@@ -673,7 +678,7 @@ void AGameplayDebuggingReplicator::DebugPrevPawn(UClass* CompareClass, APawn* Cu
 				FirstSeen = IterPawn;
 				if (CurrentPawn == nullptr)
 				{
-					SetActorToDebug(FirstSeen);
+					ServerSetActorToDebug(FirstSeen);
 					return;
 				}
 			}
@@ -682,11 +687,11 @@ void AGameplayDebuggingReplicator::DebugPrevPawn(UClass* CompareClass, APawn* Cu
 	// Wrap from the beginning to the end
 	if (FirstSeen == CurrentPawn)
 	{
-		SetActorToDebug(LastSeen);
+		ServerSetActorToDebug(LastSeen);
 	}
 	// Handle getting the previous to the end
 	else if (LastSeen == CurrentPawn)
 	{
-		SetActorToDebug(PrevSeen);
+		ServerSetActorToDebug(PrevSeen);
 	}
 }
