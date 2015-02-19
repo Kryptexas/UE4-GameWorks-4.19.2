@@ -98,6 +98,9 @@ enum EPropertyPortFlags
 
 	/** Exporting properties for console variables. */
 	PPF_ConsoleVariable				= 0x04000000,
+
+	/** Ignores CPF_Deprecated flag */
+	PPF_UseDeprecatedProperties		= 0x08000000,
 };
 
 enum EPropertyExportCPPFlags

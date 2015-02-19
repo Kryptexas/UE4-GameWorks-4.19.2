@@ -1316,6 +1316,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 						UEditorEngine::FCopyPropertiesForUnrelatedObjectsParams CopyDetails;
 						CopyDetails.bAggressiveDefaultSubobjectReplacement = true;
 						CopyDetails.bDoDelta = false;
+						CopyDetails.bCopyDeprecatedProperties = true;
 						UEditorEngine::CopyPropertiesForUnrelatedObjects(PreviousCDO, NewCDO, CopyDetails);
 					}
 

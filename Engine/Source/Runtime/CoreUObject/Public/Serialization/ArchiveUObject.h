@@ -87,12 +87,13 @@ class FObjectWriter : public FMemoryWriter
 {
 
 public:
-	FObjectWriter(UObject* Obj, TArray<uint8>& InBytes, bool bIgnoreClassRef = false, bool bIgnoreArchetypeRef = false, bool bDoDelta = true)
+	FObjectWriter(UObject* Obj, TArray<uint8>& InBytes, bool bIgnoreClassRef = false, bool bIgnoreArchetypeRef = false, bool bDoDelta = true, uint32 AdditionalPortFlags = 0)
 		: FMemoryWriter(InBytes)
 	{
 		ArIgnoreClassRef = bIgnoreClassRef;
 		ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
 		ArNoDelta = !bDoDelta;
+		ArPortFlags |= AdditionalPortFlags;
 		Obj->Serialize(*this);
 	}
 
