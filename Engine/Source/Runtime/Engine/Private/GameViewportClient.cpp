@@ -1093,11 +1093,11 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 							FVector2D MaxPos(1.f, 1.f);
 							GetSubtitleRegion(MinPos, MaxPos);
 
-							uint32 SizeX = SceneCanvas->GetRenderTarget()->GetSizeXY().X;
-							uint32 SizeY = SceneCanvas->GetRenderTarget()->GetSizeXY().Y;
+							const uint32 SizeX = SceneCanvas->GetRenderTarget()->GetSizeXY().X;
+							const uint32 SizeY = SceneCanvas->GetRenderTarget()->GetSizeXY().Y;
 							FIntRect SubtitleRegion(FMath::TruncToInt(SizeX * MinPos.X), FMath::TruncToInt(SizeY * MinPos.Y), FMath::TruncToInt(SizeX * MaxPos.X), FMath::TruncToInt(SizeY * MaxPos.Y));
-							// We need a world to do this
 							FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( SceneCanvas, SubtitleRegion, GetWorld()->GetAudioTimeSeconds() );
+							bDisplayedSubtitles = true;
 						}
 					}
 				}
