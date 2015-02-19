@@ -168,8 +168,7 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 		UBlueprint* Blueprint = NewNode->GetBlueprint();
 
 		FName DesiredComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, Class, *Class->GetDisplayNameText().ToString());
-		UActorComponent* ComponentTemplate = ConstructObject<UActorComponent>(Class, Blueprint->GeneratedClass, DesiredComponentName);
-		ComponentTemplate->SetFlags(RF_ArchetypeObject);
+		UActorComponent* ComponentTemplate = ConstructObject<UActorComponent>(Class, Blueprint->GeneratedClass, DesiredComponentName, RF_ArchetypeObject | RF_Public);
 
 		Blueprint->ComponentTemplates.Add(ComponentTemplate);
 
