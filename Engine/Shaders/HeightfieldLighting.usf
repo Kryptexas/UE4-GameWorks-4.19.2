@@ -454,8 +454,6 @@ void CalculateHeightfieldOcclusionCS(
 	}
 }
 
-RWBuffer<float4> RWIrradianceCacheIrradiance;
-
 float3 SampleHeightfieldLighting(float2 GlobalUV)
 {
 	return Texture2DSampleLevel(HeightfieldLighting, HeightfieldLightingSampler, GlobalUV, 0).xyz;
@@ -593,6 +591,8 @@ float3 GatherHeightfieldLighting(
 	return Lighting;
 }
 
+RWBuffer<float4> RWHeightfieldIrradiance;
+
 groupshared float3 SharedThreadIrradiance[FINAL_GATHER_THREADGROUP_SIZE];
 
 float InnerLightTransferDistance;
@@ -608,6 +608,7 @@ void CalculateHeightfieldIrradianceCS(
 	uint StartIndex = SavedStartIndex[0];
 	uint NumRecords = ScatterDrawParameters[1];
 	uint RecordIndex = StartIndex + GroupId.x;
+	uint RelativeRecordIndex = GroupId.x;
 	uint ThreadIndex = GroupThreadId.x;
 
 	float4 PositionAndRadius = IrradianceCachePositionRadius[RecordIndex];
@@ -716,6 +717,6 @@ void CalculateHeightfieldIrradianceCS(
 			Irradiance += SharedThreadIrradiance[i];
 		}
 
-		RWIrradianceCacheIrradiance[RecordIndex] = float4(Irradiance, 0);
+		RWHeightfieldIrradiance[RelativeRecordIndex] = float4(Irradiance, 0);
 	}
 }

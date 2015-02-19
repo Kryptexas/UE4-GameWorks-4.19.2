@@ -1472,7 +1472,7 @@ public:
 		AOParameters.Bind(Initializer.ParameterMap);
 		HeightfieldDescriptionParameters.Bind(Initializer.ParameterMap);
 		GlobalHeightfieldParameters.Bind(Initializer.ParameterMap);
-		IrradianceCacheIrradiance.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheIrradiance"));
+		HeightfieldIrradiance.Bind(Initializer.ParameterMap, TEXT("HeightfieldIrradiance"));
 		IrradianceCacheNormal.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheNormal"));
 		IrradianceCachePositionRadius.Bind(Initializer.ParameterMap, TEXT("IrradianceCachePositionRadius"));
 		IrradianceCacheBentNormal.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheBentNormal"));
@@ -1519,7 +1519,7 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 
-		IrradianceCacheIrradiance.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->Irradiance);
+		HeightfieldIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources.HeightfieldIrradiance);
 
 		{
 			FAOSampleData2 AOSampleData;
@@ -1581,7 +1581,7 @@ public:
 
 	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
-		IrradianceCacheIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
+		HeightfieldIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -1590,7 +1590,7 @@ public:
 		Ar << AOParameters;
 		Ar << HeightfieldDescriptionParameters;
 		Ar << GlobalHeightfieldParameters;
-		Ar << IrradianceCacheIrradiance;
+		Ar << HeightfieldIrradiance;
 		Ar << IrradianceCacheNormal;
 		Ar << IrradianceCachePositionRadius;
 		Ar << IrradianceCacheBentNormal;
@@ -1614,7 +1614,7 @@ private:
 	FAOParameters AOParameters;
 	FHeightfieldDescriptionParameters HeightfieldDescriptionParameters;
 	FGlobalHeightfieldParameters GlobalHeightfieldParameters;
-	FRWShaderParameter IrradianceCacheIrradiance;
+	FRWShaderParameter HeightfieldIrradiance;
 	FShaderResourceParameter IrradianceCacheNormal;
 	FShaderResourceParameter IrradianceCachePositionRadius;
 	FShaderResourceParameter IrradianceCacheBentNormal;

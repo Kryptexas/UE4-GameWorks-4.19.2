@@ -572,7 +572,8 @@ void LightVPLsCS(
 	}
 }
 
-RWBuffer<float4> RWIrradianceCacheIrradiance;
+RWBuffer<float4> RWSurfelIrradiance;
+RWBuffer<float4> RWHeightfieldIrradiance;
 
 /**  */
 [numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
@@ -581,11 +582,10 @@ void ClearIrradianceSamplesCS(
 	uint3 DispatchThreadId : SV_DispatchThreadID,
     uint3 GroupThreadId : SV_GroupThreadID) 
 {
-	uint StartIndex = SavedStartIndex[0];
-	uint NumRecords = ScatterDrawParameters[1];
-	uint RecordIndex = StartIndex + DispatchThreadId.x;
+	uint RelativeRecordIndex = DispatchThreadId.x;
 
-	RWIrradianceCacheIrradiance[RecordIndex] = 0;
+	RWSurfelIrradiance[RelativeRecordIndex] = 0;
+	RWHeightfieldIrradiance[RelativeRecordIndex] = 0;
 }
 
 float RayTraceThroughGlobalObjects(
@@ -972,6 +972,7 @@ void ComputeIrradianceCS(
 	uint NumRecords = ScatterDrawParameters[1];
 
 	uint RecordIndex = StartIndex + GroupId.x;
+	uint RelativeRecordIndex = GroupId.x;
 	uint ThreadIndex = GroupThreadId.x;
 
 	float3 Irradiance = 0;
@@ -982,7 +983,7 @@ void ComputeIrradianceCS(
 
 		float4 PositionAndRadius = IrradianceCachePositionRadius[RecordIndex];
 		float3 RecordWorldPosition = PositionAndRadius.xyz;
-		Irradiance = GatherIrradianceFromVPLs(RecordWorldPosition, RecordWorldNormal, GroupId.x, RecordIndex, ThreadIndex);
+		Irradiance = GatherIrradianceFromVPLs(RecordWorldPosition, RecordWorldNormal, RelativeRecordIndex, RecordIndex, ThreadIndex);
 	}
 
 	SharedThreadIrradiance[ThreadIndex] = Irradiance;
@@ -998,6 +999,29 @@ void ComputeIrradianceCS(
 			Irradiance += SharedThreadIrradiance[i];
 		}
 
-		RWIrradianceCacheIrradiance[RecordIndex] = float4(Irradiance, 0);
+		RWSurfelIrradiance[RelativeRecordIndex] = float4(Irradiance, 0);
+	}
+}
+
+RWBuffer<float4> RWIrradianceCacheIrradiance;
+Buffer<float4> SurfelIrradiance;
+Buffer<float4> HeightfieldIrradiance;
+
+/**  */
+[numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
+void CombineIrradianceSamplesCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint StartIndex = SavedStartIndex[0];
+	uint NumRecords = ScatterDrawParameters[1];
+
+	uint RecordIndex = StartIndex + DispatchThreadId.x;
+	uint RelativeRecordIndex = DispatchThreadId.x;
+
+	if (RecordIndex < NumRecords)
+	{
+		RWIrradianceCacheIrradiance[RecordIndex] = SurfelIrradiance[RelativeRecordIndex] + HeightfieldIrradiance[RelativeRecordIndex];
 	}
 }

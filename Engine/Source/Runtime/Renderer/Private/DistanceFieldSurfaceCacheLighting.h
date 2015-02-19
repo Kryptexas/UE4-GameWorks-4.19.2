@@ -435,6 +435,8 @@ public:
 			ConeVisibility.Initialize(sizeof(float), MaxSize * NumConeSampleDirections, PF_R32_FLOAT, BUF_Static);
 			ConeData.Initialize(sizeof(float), MaxSize * NumConeSampleDirections * RecordConeDataStride, PF_R32_FLOAT, BUF_Static);
 			StepBentNormal.Initialize(sizeof(float) * 4, MaxSize * NumVisibilitySteps, PF_A32B32G32R32F, BUF_Static);
+			SurfelIrradiance.Initialize(sizeof(FFloat16Color), MaxSize, PF_FloatRGBA, BUF_Static);
+			HeightfieldIrradiance.Initialize(sizeof(FFloat16Color), MaxSize, PF_FloatRGBA, BUF_Static);
 		}
 	}
 
@@ -443,6 +445,8 @@ public:
 		ConeVisibility.Release();
 		ConeData.Release();
 		StepBentNormal.Release();
+		SurfelIrradiance.Release();
+		HeightfieldIrradiance.Release();
 	}
 
 	size_t GetSizeBytes() const
@@ -453,6 +457,8 @@ public:
 	FRWBuffer ConeVisibility;
 	FRWBuffer ConeData;
 	FRWBuffer StepBentNormal;
+	FRWBuffer SurfelIrradiance;
+	FRWBuffer HeightfieldIrradiance;
 };
 
 extern FRWBuffer* GDebugBuffer2;
