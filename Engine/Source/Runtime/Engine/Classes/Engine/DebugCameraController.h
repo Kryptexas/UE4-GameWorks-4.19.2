@@ -117,6 +117,8 @@ public:
 	virtual FString ConsoleCommand(const FString& Command, bool bWriteToLog = true) override;
 	virtual void AddCheats(bool bForce) override;
 	virtual void EndSpectatingState() override;
+	/** Custom spawn to spawn a default SpectatorPawn, to use as a spectator and initialize it. By default it is spawned at the PC's current location and rotation. */
+	virtual ASpectatorPawn* SpawnSpectatorPawn() override;
 
 protected:
 
