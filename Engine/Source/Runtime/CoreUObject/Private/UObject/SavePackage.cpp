@@ -522,8 +522,8 @@ public:
 	TArray<UObject*> Dependencies;
 	TArray<FString>& StringAssetReferencesMap;
 
-	FArchiveSaveTagImports(ULinkerSave* InLinker, TArray<FString>& StringAssetReferencesMap)
-		: Linker(InLinker), StringAssetReferencesMap(StringAssetReferencesMap)
+	FArchiveSaveTagImports(ULinkerSave* InLinker, TArray<FString>& InStringAssetReferencesMap)
+		: Linker(InLinker), StringAssetReferencesMap(InStringAssetReferencesMap)
 	{
 		ArIsSaving				= true;
 		ArIsPersistent			= true;

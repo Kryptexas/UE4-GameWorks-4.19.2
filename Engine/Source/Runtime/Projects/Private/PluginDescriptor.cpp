@@ -56,10 +56,10 @@ bool FPluginDescriptor::Read( const FJsonObject& Object, FText& OutFailReason )
 	}
 
 	// Check that it's within range
-	EPluginDescriptorVersion::Type FileVersion = (EPluginDescriptorVersion::Type)FileVersionInt32;
-	if ((FileVersion <= EPluginDescriptorVersion::Invalid) || (FileVersion > EPluginDescriptorVersion::Latest))
+	EPluginDescriptorVersion::Type PluginFileVersion = (EPluginDescriptorVersion::Type)FileVersionInt32;
+	if ((PluginFileVersion <= EPluginDescriptorVersion::Invalid) || (PluginFileVersion > EPluginDescriptorVersion::Latest))
 	{
-		FText ReadVersionText = FText::FromString(FString::Printf(TEXT("%d"), (int32)FileVersion));
+		FText ReadVersionText = FText::FromString(FString::Printf(TEXT("%d"), (int32)PluginFileVersion));
 		FText LatestVersionText = FText::FromString(FString::Printf(TEXT("%d"), (int32)EPluginDescriptorVersion::Latest));
 		OutFailReason = FText::Format( LOCTEXT("ProjectFileVersionTooLarge", "File appears to be in a newer version ({0}) of the file format that we can load (max version: {1})."), ReadVersionText, LatestVersionText);
 		return false;
@@ -166,13 +166,13 @@ bool FPluginReferenceDescriptor::ReadArray( const FJsonObject& Object, const TCH
 	{
 		for (const TSharedPtr<FJsonValue> &Item : *Array)
 		{
-			const TSharedPtr<FJsonObject> *Object;
+			const TSharedPtr<FJsonObject> *ObjectPtr;
 
-			if (Item.IsValid() && Item->TryGetObject(Object))
+			if (Item.IsValid() && Item->TryGetObject(ObjectPtr))
 			{
 				FPluginReferenceDescriptor Plugin;
 
-				if (!Plugin.Read(*Object->Get(), OutFailReason))
+				if (!Plugin.Read(*ObjectPtr->Get(), OutFailReason))
 				{
 					return false;
 				}

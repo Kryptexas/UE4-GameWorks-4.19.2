@@ -196,7 +196,7 @@ private:
 	NSAutoreleasePool*	Pool;
 };
 
-#define SCOPED_AUTORELEASE_POOL const FScopeAutoreleasePool Pool;
+#define SCOPED_AUTORELEASE_POOL const FScopeAutoreleasePool Pool##__LINE__;
 
 #endif // __OBJC__
 

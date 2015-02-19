@@ -434,12 +434,12 @@ namespace CrossCompiler
 		auto OriginalToken = Scanner.GetCurrentTokenIndex();
 		bool bPrimitiveFound = false;
 		auto* FullType = new(Allocator) AST::FFullySpecifiedType(Allocator, Scanner.GetCurrentToken()->SourceInfo);
-		auto Result = ParseDeclarationStorageQualifiers(Scanner, Flags, bPrimitiveFound, &FullType->Qualifier);
-		if (Result == EParseResult::Error)
+		auto ParseResult = ParseDeclarationStorageQualifiers(Scanner, Flags, bPrimitiveFound, &FullType->Qualifier);
+		if (ParseResult == EParseResult::Error)
 		{
 			return EParseResult::Error;
 		}
-		bool bCanBeUnmatched = (Result == EParseResult::NotMatched);
+		bool bCanBeUnmatched = (ParseResult == EParseResult::NotMatched);
 
 		auto* DeclaratorList = new(Allocator) AST::FDeclaratorList(Allocator, FullType->SourceInfo);
 		DeclaratorList->Type = FullType;
@@ -1302,7 +1302,7 @@ check(0);
 		bool bDefaultFound = false;
 		while (Parser.Scanner.HasMoreTokens())
 		{
-			auto* Token = Parser.Scanner.GetCurrentToken();
+			Token = Parser.Scanner.GetCurrentToken();
 			if (Parser.Scanner.MatchToken(EHlslToken::RightBrace))
 			{
 				break;

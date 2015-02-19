@@ -2976,8 +2976,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 				if (Errors.Num() > 0)
 				{
-					const FString ErrorStr = FString::Printf(TEXT("Errors for %s"), *Target->GetName());
-					Ar.Logf(*ErrorStr);
+					Ar.Logf(*FString::Printf(TEXT("Errors for %s"), *Target->GetName()));
 
 					for (auto ErrorStr : Errors)
 					{

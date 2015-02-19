@@ -48,7 +48,7 @@ class FTestData
 		 */
 		static bool RemoveRecursive(TArray< TSharedPtr< FTestData > >& RemoveFrom, const TSharedPtr<FTestData>& ItemToRemove)
 		{
-			const int32 ItemIndex = RemoveFrom.Find(ItemToRemove);
+			int32 ItemIndex = RemoveFrom.Find(ItemToRemove);
 			if (ItemIndex != INDEX_NONE)
 			{
 				RemoveFrom.RemoveAt(ItemIndex);
@@ -56,7 +56,7 @@ class FTestData
 			}
 
 			// Did not successfully remove an item. Try all the children.
-			for (int32 ItemIndex = 0; ItemIndex < RemoveFrom.Num(); ++ItemIndex)
+			for (ItemIndex = 0; ItemIndex < RemoveFrom.Num(); ++ItemIndex)
 			{
 				if (RemoveRecursive(RemoveFrom[ItemIndex]->Children, ItemToRemove))
 				{

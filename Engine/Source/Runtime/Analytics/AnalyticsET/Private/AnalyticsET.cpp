@@ -366,7 +366,7 @@ void FAnalyticsProviderET::FlushEvents()
 			// NOTE - This branch is temp, and we will eventually use the DataRouter path exclusively
 
 			// Create/send Http request for an event
-			TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+			HttpRequest = FHttpModule::Get().CreateRequest();
 			HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
 
 			// TODO need agent here??

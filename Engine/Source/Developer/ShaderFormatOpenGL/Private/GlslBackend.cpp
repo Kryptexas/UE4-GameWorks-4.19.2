@@ -3651,7 +3651,7 @@ static ir_rvalue* GenShaderInputSemantic(
 	else
 	{
 		// Array variable, not first pass. It already exists, get it.
-		ir_variable* Variable = ParseState->symbols->get_variable(ralloc_asprintf(ParseState, "in_%s", Semantic));
+		Variable = ParseState->symbols->get_variable(ralloc_asprintf(ParseState, "in_%s", Semantic));
 		check(Variable);
 
 		ir_rvalue* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
