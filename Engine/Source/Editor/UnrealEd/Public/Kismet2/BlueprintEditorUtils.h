@@ -40,6 +40,8 @@ struct UNREALED_API FFunctionFromNodeHelper
 	FFunctionFromNodeHelper(UObject* Obj);
 };
 
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Notify Blueprint Changed"), EKismetCompilerStats_NotifyBlueprintChanged, STATGROUP_KismetCompiler, );
+
 class UNREALED_API FBlueprintEditorUtils
 {
 public:
