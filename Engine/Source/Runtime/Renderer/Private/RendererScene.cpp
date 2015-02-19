@@ -383,8 +383,8 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	UpperDynamicSkylightColor(FLinearColor::Black)
 ,	LowerDynamicSkylightColor(FLinearColor::Black)
 ,	SceneLODHierarchy(this)
-,	NumVisibleLights(0)
-,	bHasSkyLight(false)
+,	NumVisibleLights_GameThread(0)
+,	NumEnabledSkylights_GameThread(0)
 {
 	check(World);
 	World->Scene = this;
@@ -855,7 +855,7 @@ void FScene::AddLight(ULightComponent* Light)
 		INC_DWORD_STAT(STAT_SceneLights);
 
 		// Adding a new light
-		++NumVisibleLights;
+		++NumVisibleLights_GameThread;
 
 		// Send a command to the rendering thread to add the light to the scene.
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -901,7 +901,8 @@ void FScene::AddInvisibleLight(ULightComponent* Light)
 
 void FScene::SetSkyLight(FSkyLightSceneProxy* LightProxy)
 {
-	bHasSkyLight = LightProxy != NULL;
+	check(LightProxy);
+	NumEnabledSkylights_GameThread++;
 
 	// Send a command to the rendering thread to add the light to the scene.
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -909,26 +910,49 @@ void FScene::SetSkyLight(FSkyLightSceneProxy* LightProxy)
 		FScene*,Scene,this,
 		FSkyLightSceneProxy*,LightProxy,LightProxy,
 	{
-		// Mark the scene as needing static draw lists to be recreated if needed
-		// The base pass chooses shaders based on whether there's a skylight in the scene, and that is cached in static draw lists
-		if ((Scene->SkyLight == NULL) != (LightProxy == NULL))
+		check(!Scene->SkyLightStack.Contains(LightProxy));
+		Scene->SkyLightStack.Push(LightProxy);
+		const bool bHadSkylight = Scene->SkyLight != NULL;
+
+		// Use the most recently enabled skylight
+		Scene->SkyLight = LightProxy;
+
+		if (!bHadSkylight)
 		{
+			// Mark the scene as needing static draw lists to be recreated if needed
+			// The base pass chooses shaders based on whether there's a skylight in the scene, and that is cached in static draw lists
 			Scene->bScenesPrimitivesNeedStaticMeshElementUpdate = true;
 		}
-		Scene->SkyLight = LightProxy;
 	});
 }
 
 void FScene::DisableSkyLight(FSkyLightSceneProxy* LightProxy)
 {
+	check(LightProxy);
+	NumEnabledSkylights_GameThread--;
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FDisableSkyLightCommand,
 		FScene*,Scene,this,
 		FSkyLightSceneProxy*,LightProxy,LightProxy,
 	{
-		if (Scene->SkyLight == LightProxy)
+		const bool bHadSkylight = Scene->SkyLight != NULL;
+
+		Scene->SkyLightStack.RemoveSingle(LightProxy);
+
+		if (Scene->SkyLightStack.Num() > 0)
+		{
+			// Use the most recently enabled skylight
+			Scene->SkyLight = Scene->SkyLightStack.Last();
+		}
+		else
 		{
 			Scene->SkyLight = NULL;
+		}
+
+		// Update the scene if we switched skylight enabled states
+		if ((Scene->SkyLight != NULL) != bHadSkylight)
+		{
 			Scene->bScenesPrimitivesNeedStaticMeshElementUpdate = true;
 		}
 	});
@@ -1334,7 +1358,7 @@ void FScene::RemoveLight(ULightComponent* Light)
 		DEC_DWORD_STAT(STAT_SceneLights);
 
 		// Removing one visible light
-		--NumVisibleLights;
+		--NumVisibleLights_GameThread;
 
 		// Disassociate the primitive's render info.
 		Light->SceneProxy = NULL;

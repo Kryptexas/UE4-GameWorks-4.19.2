@@ -125,7 +125,7 @@ FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
 	return NULL;
 }
 
-void USkyLightComponent::SetCaptureIsDirty() 
+void USkyLightComponent::SetCaptureIsDirty()
 { 
 	if (bVisible && bAffectsWorld)
 	{
@@ -160,8 +160,11 @@ void USkyLightComponent::CreateRenderState_Concurrent()
 		// Create the light's scene proxy.
 		SceneProxy = CreateSceneProxy();
 
-		// Add the light to the scene.
-		World->Scene->SetSkyLight(SceneProxy);
+		if (SceneProxy)
+		{
+			// Add the light to the scene.
+			World->Scene->SetSkyLight(SceneProxy);
+		}
 	}
 }
 
@@ -219,16 +222,20 @@ void USkyLightComponent::PostInterpChange(UProperty* PropertyThatChanged)
 void USkyLightComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
-	World->Scene->DisableSkyLight(SceneProxy);
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		FDestroySkyLightCommand,
-		FSkyLightSceneProxy*,LightSceneProxy,SceneProxy,
+	if (SceneProxy)
 	{
-		delete LightSceneProxy;
-	});
+		World->Scene->DisableSkyLight(SceneProxy);
 
-	SceneProxy = NULL;
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			FDestroySkyLightCommand,
+			FSkyLightSceneProxy*,LightSceneProxy,SceneProxy,
+		{
+			delete LightSceneProxy;
+		});
+
+		SceneProxy = NULL;
+	}
 }
 
 #if WITH_EDITOR
@@ -411,7 +418,6 @@ void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 						CaptureComponent->MarkRenderStateDirty();
 					}
 
-					//@todo - defer this until shader compilation is finished, just like reflection captures, otherwise we will capture an incomplete scene.
 					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, false, CaptureComponent->ProcessedSkyTexture, CaptureComponent->IrradianceEnvironmentMap);
 
 					CaptureComponent->MarkRenderStateDirty();
@@ -493,6 +499,18 @@ void USkyLightComponent::SetMinOcclusion(float InMinOcclusion)
 	{
 		MinOcclusion = InMinOcclusion;
 		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetVisibility(bool bNewVisibility, bool bPropagateToChildren)
+{
+	const bool bOldWasVisible = bVisible;
+
+	Super::SetVisibility(bNewVisibility, bPropagateToChildren);
+
+	if (bVisible && !bOldWasVisible)
+	{
+		SetCaptureIsDirty();
 	}
 }
 
