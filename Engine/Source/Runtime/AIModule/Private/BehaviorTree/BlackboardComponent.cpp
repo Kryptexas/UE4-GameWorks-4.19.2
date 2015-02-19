@@ -472,7 +472,7 @@ FString UBlackboardComponent::DescribeKeyValue(FBlackboard::FKey KeyID, EBlackbo
 	if (Key)
 	{
 		const uint8* ValueData = GetKeyRawData(KeyID);
-		FString ValueDesc = Key->KeyType ? *(Key->KeyType->WrappedDescribeValue(*this, ValueData)) : TEXT("empty");
+		FString ValueDesc = Key->KeyType && ValueData ? *(Key->KeyType->WrappedDescribeValue(*this, ValueData)) : TEXT("empty");
 
 		if (Mode == EBlackboardDescription::OnlyValue)
 		{

@@ -198,7 +198,7 @@ void AGameplayDebuggingReplicator::BeginPlay()
 
 #if WITH_EDITOR
 	const UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
-	if (EEngine && (EEngine->bIsSimulatingInEditor || EEngine->EditorWorld) && GetWorld() != EEngine->EditorWorld && !IsGlobalInWorld() && GCurrentLevelEditingViewportClient->EngineShowFlags.DebugAI)
+	if (EEngine && (EEngine->bIsSimulatingInEditor || EEngine->EditorWorld) && GetWorld() != EEngine->EditorWorld && !IsGlobalInWorld() && GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->EngineShowFlags.DebugAI)
 	{
 		SetIsTemporarilyHiddenInEditor(false);
 		SetActorHiddenInGame(false);
