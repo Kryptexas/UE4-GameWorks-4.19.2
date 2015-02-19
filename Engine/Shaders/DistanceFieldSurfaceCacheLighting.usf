@@ -561,7 +561,10 @@ Texture2D IrradianceHistoryTexture;
 SamplerState IrradianceHistorySampler;
 float HistoryWeight;
 
-/** Reprojection the occlusion history, only correct for pixels belonging to static objects (camera motion only). */
+Texture2D VelocityTexture;
+SamplerState VelocityTextureSampler;
+
+/** Reproject the occlusion history. */
 void UpdateHistoryPS(
 	in float4 UVAndScreenPos : TEXCOORD0
 	,out float4 OutBentNormal : SV_Target0
@@ -570,16 +573,27 @@ void UpdateHistoryPS(
 #endif
 	)
 {
+	float2 FullResTexel = UVAndScreenPos.xy - .5f * View.ViewSizeAndSceneTexelSize.zw;
+
 	float3 xyd;
     xyd.xy = UVAndScreenPos.zw * float2(0.5, -0.5) + 0.5;
-    xyd.z = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, UVAndScreenPos.xy, 0).r;
+    xyd.z = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, FullResTexel, 0).r;
 
     float scaleM = 1.0 / (dot(xyd, CameraMotion[0].xyz) + CameraMotion[0].w);
-    float2 mv;
-    mv.x = ((xyd.x * ((CameraMotion[1].x * xyd.y) + (CameraMotion[1].y * xyd.z) + CameraMotion[1].z)) + (CameraMotion[1].w * xyd.y) + (CameraMotion[2].x * xyd.x * xyd.x) + (CameraMotion[2].y * xyd.z) + CameraMotion[2].z) * scaleM;
-    mv.y = ((xyd.y * ((CameraMotion[3].x * xyd.x) + (CameraMotion[3].y * xyd.z) + CameraMotion[3].z)) + (CameraMotion[3].w * xyd.x) + (CameraMotion[4].x * xyd.y * xyd.y) + (CameraMotion[4].y * xyd.z) + CameraMotion[4].z) * scaleM;
+    float2 MotionVector;
+    MotionVector.x = ((xyd.x * ((CameraMotion[1].x * xyd.y) + (CameraMotion[1].y * xyd.z) + CameraMotion[1].z)) + (CameraMotion[1].w * xyd.y) + (CameraMotion[2].x * xyd.x * xyd.x) + (CameraMotion[2].y * xyd.z) + CameraMotion[2].z) * scaleM;
+    MotionVector.y = ((xyd.y * ((CameraMotion[3].x * xyd.x) + (CameraMotion[3].y * xyd.z) + CameraMotion[3].z)) + (CameraMotion[3].w * xyd.x) + (CameraMotion[4].x * xyd.y * xyd.y) + (CameraMotion[4].y * xyd.z) + CameraMotion[4].z) * scaleM;
 
-    float2 OldUV = UVAndScreenPos.xy + mv / float2(0.5, -0.5) * View.ScreenPositionScaleBias.xy;
+	// Note: have to sample from one of the high res texels exactly to avoid filtering of the velocity buffer
+	// 0 is stored where camera velocity should be used, which must not be filtered with valid object velocities
+	float2 VelocityN = Texture2DSampleLevel(VelocityTexture, VelocityTextureSampler, FullResTexel, 0).xy;
+
+	if (VelocityN.x > 0 && View.GeneralPurposeTweak > 0)
+	{
+		MotionVector = float2(-.5f, .5f) * DecodeVelocityFromTexture(VelocityN);
+	}
+
+    float2 OldUV = UVAndScreenPos.xy + MotionVector / float2(0.5, -0.5) * View.ScreenPositionScaleBias.xy;
 	float2 OldScreenPosition = (OldUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 
 	// Distance field AO was computed at 0,0 regardless of viewrect min

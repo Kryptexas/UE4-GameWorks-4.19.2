@@ -878,6 +878,20 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		OcclusionSubmittedFence = FRHICommandListExecutor::RHIThreadFence();
 	}
 
+	TRefCountPtr<IPooledRenderTarget> VelocityRT;
+
+	if (bUseVelocityGBuffer)
+	{
+		VelocityRT = GSceneRenderTargets.GetGBufferVelocityRT();
+	}
+	else if (bShouldRenderVelocities)
+	{
+		// Render the velocities of movable objects
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Velocity));
+		RenderVelocities(RHICmdList, VelocityRT);
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterVelocity));
+	}
+
 	// Render lighting.
 	if (ViewFamily.EngineShowFlags.Lighting
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
@@ -916,7 +930,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 
 		TRefCountPtr<IPooledRenderTarget> DynamicBentNormalAO;
-		RenderDynamicSkyLighting(RHICmdList, DynamicBentNormalAO);
+		RenderDynamicSkyLighting(RHICmdList, VelocityRT, DynamicBentNormalAO);
 
 		//SSR and SSS need the SceneColor finalized as an SRV.
 		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, true);
@@ -1012,7 +1026,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Use the skylight's max distance if there is one, to be consistent with DFAO shadowing on the skylight
 		const float OcclusionMaxDistance = Scene->SkyLight && !Scene->SkyLight->bWantsStaticShadowing ? Scene->SkyLight->OcclusionMaxDistance : 600;
 		TRefCountPtr<IPooledRenderTarget> DummyOutput;
-		RenderDistanceFieldAOSurfaceCache(RHICmdList, FDistanceFieldAOParameters(OcclusionMaxDistance), DummyOutput, DummyOutput, ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO, ViewFamily.EngineShowFlags.VisualizeDistanceFieldGI);
+		RenderDistanceFieldAOSurfaceCache(RHICmdList, FDistanceFieldAOParameters(OcclusionMaxDistance), VelocityRT, DummyOutput, DummyOutput, ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO, ViewFamily.EngineShowFlags.VisualizeDistanceFieldGI);
 	}
 
 	if (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields)
@@ -1022,20 +1036,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Resolve the scene color for post processing.
 	GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
-
-	TRefCountPtr<IPooledRenderTarget> VelocityRT;
-
-	if (bUseVelocityGBuffer)
-	{
-		VelocityRT = GSceneRenderTargets.GetGBufferVelocityRT();
-	}
-	else if (bShouldRenderVelocities)
-	{
-		// Render the velocities of movable objects
-		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Velocity));
-		RenderVelocities(RHICmdList, VelocityRT);
-		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterVelocity));
-	}
 
 	// Finish rendering for each view.
 	if(ViewFamily.bResolveScene)

@@ -713,8 +713,9 @@ bool FDeferredShadingSceneRenderer::ShouldRenderVelocities() const
 
 		bool bTemporalAA = (View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA) && !View.bCameraCut;
 		bool bMotionBlur = IsMotionBlurEnabled(View);
+		bool bDistanceFieldAO = ShouldPrepareForDistanceFieldAO();
 
-		bNeedsVelocity |= bMotionBlur || bTemporalAA;
+		bNeedsVelocity |= bMotionBlur || bTemporalAA || bDistanceFieldAO;
 	}
 
 	return bNeedsVelocity;
