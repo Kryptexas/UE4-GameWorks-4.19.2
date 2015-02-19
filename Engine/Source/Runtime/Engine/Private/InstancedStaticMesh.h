@@ -192,6 +192,7 @@ public:
 		const bool bInstanced = RHISupportsInstancing(Platform);
 		OutEnvironment.SetDefine(TEXT("USE_INSTANCING_EMULATED"), bInstanced ? TEXT("0") : TEXT("1"));
 		OutEnvironment.SetDefine(TEXT("USE_DITHERED_LOD_TRANSITION"), ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES ? TEXT("1") : TEXT("0"));
+		FLocalVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 
 	/**
