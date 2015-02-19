@@ -110,6 +110,7 @@ USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializ
 	bCaptureDirty = false;
 	bLowerHemisphereIsBlack = true;
 	bSavedConstructionScriptValuesValid = true;
+	bHasEverCaptured = false;
 	OcclusionMaxDistance = 1000;
 	MinOcclusion = 0;
 	OcclusionTint = FColor::Black;
@@ -196,6 +197,26 @@ void USkyLightComponent::PostLoad()
 }
 
 /** 
+ * Fast path for updating light properties that doesn't require a re-register,
+ * Which would otherwise cause the scene's static draw lists to be recreated.
+ */
+void USkyLightComponent::UpdateLimitedRenderingStateFast()
+{
+	if (SceneProxy)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			FFastUpdateSkyLightCommand,
+			FSkyLightSceneProxy*,LightSceneProxy,SceneProxy,
+			FLinearColor,LightColor,FLinearColor(LightColor) * Intensity,
+			float,IndirectLightingIntensity,IndirectLightingIntensity,
+		{
+			LightSceneProxy->LightColor = LightColor;
+			LightSceneProxy->IndirectLightingIntensity = IndirectLightingIntensity;
+		});
+	}
+}
+
+/** 
 * This is called when property is modified by InterpPropertyTracks
 *
 * @param PropertyThatChanged	Property that changed
@@ -211,7 +232,7 @@ void USkyLightComponent::PostInterpChange(UProperty* PropertyThatChanged)
 		|| PropertyName == IntensityName
 		|| PropertyName == IndirectLightingIntensityName)
 	{
-		MarkRenderStateDirty();
+		UpdateLimitedRenderingStateFast();
 	}
 	else
 	{
@@ -420,6 +441,7 @@ void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 
 					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, false, CaptureComponent->ProcessedSkyTexture, CaptureComponent->IrradianceEnvironmentMap);
 
+					CaptureComponent->bHasEverCaptured = true;
 					CaptureComponent->MarkRenderStateDirty();
 				}
 
@@ -450,7 +472,7 @@ void USkyLightComponent::SetIntensity(float NewIntensity)
 		&& Intensity != NewIntensity)
 	{
 		Intensity = NewIntensity;
-		MarkRenderStateDirty();
+		UpdateLimitedRenderingStateFast();
 	}
 }
 
@@ -464,7 +486,7 @@ void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 		&& LightColor != NewColor)
 	{
 		LightColor = NewColor;
-		MarkRenderStateDirty();
+		UpdateLimitedRenderingStateFast();
 	}
 }
 
@@ -508,8 +530,9 @@ void USkyLightComponent::SetVisibility(bool bNewVisibility, bool bPropagateToChi
 
 	Super::SetVisibility(bNewVisibility, bPropagateToChildren);
 
-	if (bVisible && !bOldWasVisible)
+	if (bVisible && !bOldWasVisible && !bHasEverCaptured)
 	{
+		// Capture if we are being enabled for the first time
 		SetCaptureIsDirty();
 	}
 }

@@ -201,6 +201,8 @@ protected:
 	/** Indicates whether the cached data stored in GetComponentInstanceData is valid to be applied in ApplyComponentInstanceData. */
 	bool bSavedConstructionScriptValuesValid;
 
+	bool bHasEverCaptured;
+
 	TRefCountPtr<FSkyTextureCubeResource> ProcessedSkyTexture;
 
 	FSHVectorRGB3 IrradianceEnvironmentMap;
@@ -221,6 +223,8 @@ protected:
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
 	// Begin UActorComponent Interface
+
+	void UpdateLimitedRenderingStateFast();
 
 	friend class FSkyLightSceneProxy;
 };
