@@ -611,6 +611,7 @@ public:
 	bool bHasStaticLighting;
 	FLinearColor LightColor;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
+	float IndirectLightingIntensity;
 	float OcclusionMaxDistance;
 	float Contrast;
 	float MinOcclusion;

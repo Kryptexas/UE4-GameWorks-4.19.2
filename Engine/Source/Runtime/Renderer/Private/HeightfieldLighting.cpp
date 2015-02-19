@@ -1077,6 +1077,7 @@ public:
 		GlobalHeightfieldParameters.Bind(Initializer.ParameterMap);
 		LightDirection.Bind(Initializer.ParameterMap, TEXT("LightDirection"));
 		LightColor.Bind(Initializer.ParameterMap, TEXT("LightColor"));
+		SkyLightIndirectScale.Bind(Initializer.ParameterMap, TEXT("SkyLightIndirectScale"));
 		HeightfieldShadowing.Bind(Initializer.ParameterMap, TEXT("HeightfieldShadowing"));
 		HeightfieldShadowingSampler.Bind(Initializer.ParameterMap, TEXT("HeightfieldShadowingSampler"));
 		WorldToLight.Bind(Initializer.ParameterMap, TEXT("WorldToLight"));
@@ -1089,7 +1090,8 @@ public:
 		const FLightSceneInfo& LightSceneInfo, 
 		const FMaterialRenderProxy* MaterialProxy,
 		int32 NumHeightfieldsValue, 
-		const FHeightfieldLightingAtlas& Atlas)
+		const FHeightfieldLightingAtlas& Atlas,
+		float SkyLightIndirectScaleValue)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -1100,6 +1102,8 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, LightDirection, LightSceneInfo.Proxy->GetDirection());
 		SetShaderValue(RHICmdList, ShaderRHI, LightColor, LightSceneInfo.Proxy->GetColor() * LightSceneInfo.Proxy->GetIndirectLightingScale());
+
+		SetShaderValue(RHICmdList, ShaderRHI, SkyLightIndirectScale, SkyLightIndirectScaleValue);
 
 		const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
 		SetTextureParameter(RHICmdList, ShaderRHI, HeightfieldShadowing, HeightfieldShadowingSampler, TStaticSamplerState<SF_Bilinear>::GetRHI(), Atlas.DirectionalLightShadowing->GetRenderTargetItem().ShaderResourceTexture);
@@ -1122,6 +1126,7 @@ public:
 		Ar << GlobalHeightfieldParameters;
 		Ar << LightDirection;
 		Ar << LightColor;
+		Ar << SkyLightIndirectScale;
 		Ar << HeightfieldShadowing;
 		Ar << HeightfieldShadowingSampler;
 		Ar << WorldToLight;
@@ -1135,6 +1140,7 @@ private:
 	FGlobalHeightfieldParameters GlobalHeightfieldParameters;
 	FShaderParameter LightDirection;
 	FShaderParameter LightColor;
+	FShaderParameter SkyLightIndirectScale;
 	FShaderResourceParameter HeightfieldShadowing;
 	FShaderResourceParameter HeightfieldShadowingSampler;
 	FShaderParameter WorldToLight;
@@ -1175,6 +1181,10 @@ void FHeightfieldLightingViewInfo::ComputeLighting(const FViewInfo& View, FRHICo
 			LightSceneInfo.Proxy->GetLightFunctionMaterial() : 
 			UMaterial::GetDefaultMaterial(MD_LightFunction)->GetRenderProxy(false);
 
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+
+		const float SkyLightIndirectScale = ShouldRenderDynamicSkyLight(Scene, *View.Family) ? Scene->SkyLight->IndirectLightingIntensity : 0;
+
 		// Skip rendering if the DefaultLightFunctionMaterial isn't compiled yet
 		if (MaterialProxy->GetMaterial(FeatureLevel)->IsLightFunction())
 		{
@@ -1203,7 +1213,7 @@ void FHeightfieldLightingViewInfo::ComputeLighting(const FViewInfo& View, FRHICo
 					RHICmdList.SetLocalBoundShaderState(BoundShaderState);
 
 					VertexShader->SetParameters(RHICmdList, View, HeightfieldDescriptions.Num());
-					PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, HeightfieldDescriptions.Num(), Atlas);
+					PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, HeightfieldDescriptions.Num(), Atlas, SkyLightIndirectScale);
 
 					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 2, HeightfieldDescriptions.Num());
 				}

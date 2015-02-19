@@ -340,6 +340,7 @@ void RayTracedShadowHeightfieldsPS(
 }
 
 float3 LightColor;
+float SkyLightIndirectScale;
 
 #if APPLY_LIGHT_FUNCTION
 
@@ -366,7 +367,7 @@ void LightHeightfieldsPS(
 	float3 DiffuseColor = GetGlobalDiffuseColor(Input.GlobalUV);
 	float3 Lighting = (Shadowing * GreyScaleLightFunction * saturate(dot(-LightDirection, WorldHeightfieldNormal))) * LightColor;
 	 
-	float3 SkylightDiffuse = GetSkySHDiffuse(WorldHeightfieldNormal) * View.SkyLightColor.rgb;
+	float3 SkylightDiffuse = GetSkySHDiffuse(WorldHeightfieldNormal) * View.SkyLightColor.rgb * SkyLightIndirectScale;
 	Lighting += SkylightDiffuse;
 
 	OutColor = float4(DiffuseColor * Lighting, 0);
@@ -645,8 +646,8 @@ void CalculateHeightfieldIrradianceCS(
 				#define VISUALIZE_HEIGHTFIELD_LIGHTING 0
 				#if VISUALIZE_HEIGHTFIELD_LIGHTING
 
-					//Lighting = SampleHeightfieldLighting(GlobalUV) / FINAL_GATHER_THREADGROUP_SIZE;
-					Lighting = GetGlobalDiffuseColor(GlobalUV) / FINAL_GATHER_THREADGROUP_SIZE;
+					Lighting = SampleHeightfieldLighting(GlobalUV) / FINAL_GATHER_THREADGROUP_SIZE;
+					//Lighting = GetGlobalDiffuseColor(GlobalUV) / FINAL_GATHER_THREADGROUP_SIZE;
 					//Lighting = frac(WorldHeightfieldShadingPosition / 1000);
 					//Lighting = abs(WorldHeightfieldShadingPosition.z - WorldPosition.z) / 100.0f;
 					//Lighting = GetGlobalHeightfieldHeight(GlobalUV) / 100000.0f;

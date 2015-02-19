@@ -79,6 +79,7 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, bPrecomputedLightingIsValid(InLightComponent->bPrecomputedLightingIsValid)
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
+	, IndirectLightingIntensity(InLightComponent->IndirectLightingIntensity)
 	, IrradianceEnvironmentMap(InLightComponent->IrradianceEnvironmentMap)
 	, OcclusionMaxDistance(InLightComponent->OcclusionMaxDistance)
 	, Contrast(InLightComponent->Contrast)

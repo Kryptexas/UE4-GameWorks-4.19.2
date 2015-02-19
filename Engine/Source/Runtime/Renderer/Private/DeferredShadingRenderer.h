@@ -341,7 +341,6 @@ private:
 
 	bool ShouldDoReflectionEnvironment() const;
 	
-	bool ShouldRenderDynamicSkyLight() const;
 	bool ShouldRenderDistanceFieldAO() const;
 
 	/** Whether distance field global data structures should be prepared for features that use it. */

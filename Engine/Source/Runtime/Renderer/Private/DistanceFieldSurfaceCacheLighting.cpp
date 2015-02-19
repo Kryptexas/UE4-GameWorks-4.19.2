@@ -3465,10 +3465,22 @@ bool SupportsDistanceFieldAO(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatfor
 		&& DoesPlatformSupportDistanceFieldAO(ShaderPlatform);
 }
 
+bool ShouldRenderDynamicSkyLight(const FScene* Scene, const FSceneViewFamily& ViewFamily)
+{
+	return Scene->SkyLight
+		&& Scene->SkyLight->ProcessedTexture
+		&& !Scene->SkyLight->bWantsStaticShadowing
+		&& !Scene->SkyLight->bHasStaticLighting
+		&& ViewFamily.EngineShowFlags.SkyLighting
+		&& Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4
+		&& !IsSimpleDynamicLightingEnabled() 
+		&& !ViewFamily.EngineShowFlags.VisualizeLightCulling;
+}
+
 bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldAO() const
 {
 	return SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform())
-		&& ((ShouldRenderDynamicSkyLight() && Scene->SkyLight->bCastShadows && ViewFamily.EngineShowFlags.DistanceFieldAO)
+		&& ((ShouldRenderDynamicSkyLight(Scene, ViewFamily) && Scene->SkyLight->bCastShadows && ViewFamily.EngineShowFlags.DistanceFieldAO)
 			|| ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields
 			|| ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO
 			|| ViewFamily.EngineShowFlags.VisualizeDistanceFieldGI);
@@ -3972,18 +3984,6 @@ IMPLEMENT_SKYLIGHT_PS_TYPE(false, true)
 IMPLEMENT_SKYLIGHT_PS_TYPE(true, false)
 IMPLEMENT_SKYLIGHT_PS_TYPE(false, false)
 
-bool FDeferredShadingSceneRenderer::ShouldRenderDynamicSkyLight() const
-{
-	return Scene->SkyLight
-		&& Scene->SkyLight->ProcessedTexture
-		&& !Scene->SkyLight->bWantsStaticShadowing
-		&& !Scene->SkyLight->bHasStaticLighting
-		&& ViewFamily.EngineShowFlags.SkyLighting
-		&& FeatureLevel >= ERHIFeatureLevel::SM4
-		&& !IsSimpleDynamicLightingEnabled() 
-		&& !ViewFamily.EngineShowFlags.VisualizeLightCulling;
-}
-
 bool FDeferredShadingSceneRenderer::ShouldRenderDistanceFieldAO() const
 {
 	return Scene->SkyLight->bCastShadows
@@ -3995,7 +3995,7 @@ bool FDeferredShadingSceneRenderer::ShouldRenderDistanceFieldAO() const
 
 void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& VelocityTexture, TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
 {
-	if (ShouldRenderDynamicSkyLight())
+	if (ShouldRenderDynamicSkyLight(Scene, ViewFamily))
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, SkyLightDiffuse);
 
