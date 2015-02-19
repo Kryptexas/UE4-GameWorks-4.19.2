@@ -54,8 +54,8 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 
 	// Icon/text to draw on tooltip
 	FSlateColor IconColor = FLinearColor::White;
-	const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("NoBrush")); 
-	FText Message;
+	const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
+	FText Message = LOCTEXT("InvalidDropTarget", "Invalid drop target!");
 
 	UEdGraphPin* PinUnderCursor = GetHoveredPin();
 
