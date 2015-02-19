@@ -1256,7 +1256,7 @@ static bool ShouldIgnoreOverlapResult(const UWorld* World, const AActor* ThisAct
 		return true;
 	}
 
-	if (!World || OtherActor == World->GetWorldSettings() || !OtherActor->bActorInitialized)
+	if (!World || OtherActor == World->GetWorldSettings() || !OtherActor->IsActorInitialized())
 	{
 		return true;
 	}
@@ -1292,7 +1292,7 @@ bool UPrimitiveComponent::CheckStaticMobilityAndWarn(const FText& ActionText) co
 {
 	AActor* Actor = GetOwner();
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
-	if (Mobility == EComponentMobility::Static && Actor && Actor->bActorInitialized)
+	if (Mobility == EComponentMobility::Static && Actor && Actor->IsActorInitialized())
 	{
 		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidStaticMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
 			FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
@@ -2179,7 +2179,7 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 		// if we haven't begun play, we're still setting things up (e.g. we might be inside one of the construction scripts)
 		// so we don't want to generate overlaps yet.
 		AActor* const MyActor = GetOwner();
-		if ( MyActor && MyActor->bActorInitialized )
+		if ( MyActor && MyActor->IsActorInitialized() )
 		{
 			if (PendingOverlaps)
 			{

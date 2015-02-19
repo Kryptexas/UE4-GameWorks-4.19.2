@@ -453,14 +453,21 @@ public:
 	UPROPERTY()
 	TWeakObjectPtr<AActor> ParentComponentActor;	
 
-public:
+private:
 
 	/** 
 	 *	Indicates that PreInitializeComponents/PostInitializeComponents have been called on this Actor 
 	 *	Prevents re-initializing of actors spawned during level startup
 	 */
 	uint32 bActorInitialized:1;
+	
+	/** 
+	 *	Indicates that BeginPlay has been called for this Actor.
+	 *  Set back to false once EndPlay has been called.
+	 */
+	uint32 bActorHasBegunPlay:1;
 
+public:
 	/** Indicates the actor was pulled through a seamless travel.  */
 	UPROPERTY()
 	uint32 bActorSeamlessTraveled:1;
@@ -986,6 +993,12 @@ public:
 
 	/** Event when play begins for this actor. */
 	virtual void BeginPlay();
+
+	/** Returns whether an actor has been initialized */
+	bool IsActorInitialized() const { return bActorInitialized; }
+
+	/** Returns whether an actor has had BeginPlay called on it (and not subsequently had EndPlay called) */
+	bool HasActorBegunPlay() const { return bActorHasBegunPlay; }
 
 	/** Event when this actor takes ANY damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "AnyDamage"), Category="Game|Damage")

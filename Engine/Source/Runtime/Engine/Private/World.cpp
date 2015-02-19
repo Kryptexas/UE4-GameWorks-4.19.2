@@ -2867,7 +2867,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 		}
 
 		// Init the game mode.
-		if (AuthorityGameMode && !AuthorityGameMode->bActorInitialized)
+		if (AuthorityGameMode && !AuthorityGameMode->IsActorInitialized())
 		{
 			AuthorityGameMode->InitGame( FPaths::GetBaseFilename(InURL.Map), Options, Error );
 		}

@@ -1523,9 +1523,14 @@ void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// Dispatch the blueprint events
-	ReceiveEndPlay(EndPlayReason);
-	OnEndPlay.Broadcast(EndPlayReason);
+	if (bActorHasBegunPlay)
+	{
+		bActorHasBegunPlay = false;
+
+		// Dispatch the blueprint events
+		ReceiveEndPlay(EndPlayReason);
+		OnEndPlay.Broadcast(EndPlayReason);
+	}
 
 	// Behaviors specific to an actor being unloaded due to a streaming level removal
 	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
@@ -2435,9 +2440,12 @@ void AActor::ExchangeNetRoles(bool bRemoteOwned)
 
 void AActor::BeginPlay()
 {
+	ensure(!bActorHasBegunPlay);
 	SetLifeSpan( InitialLifeSpan );
 
 	ReceiveBeginPlay();
+
+	bActorHasBegunPlay = true;
 }
 
 void AActor::EnableInput(APlayerController* PlayerController)

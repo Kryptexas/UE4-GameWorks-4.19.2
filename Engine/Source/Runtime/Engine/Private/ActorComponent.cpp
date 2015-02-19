@@ -748,7 +748,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	ExecuteRegisterEvents();
 	RegisterAllComponentTickFunctions(true);
 
-	if (Owner == nullptr || Owner->bActorInitialized)
+	if (Owner == nullptr || Owner->IsActorInitialized())
 	{
 		if (!bHasBeenInitialized && bWantsInitializeComponent)
 		{

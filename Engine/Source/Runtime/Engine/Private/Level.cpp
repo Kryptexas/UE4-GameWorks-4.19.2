@@ -1468,7 +1468,7 @@ void ULevel::InitializeNetworkActors()
 		if( Actor )
 		{
 			// Kill off actors that aren't interesting to the client.
-			if( !Actor->bActorInitialized && !Actor->bActorSeamlessTraveled )
+			if( !Actor->IsActorInitialized() && !Actor->bActorSeamlessTraveled )
 			{
 				// Add to startup list
 				if (Actor->bNetLoadOnClient)
@@ -1522,15 +1522,11 @@ void ULevel::ReleaseRenderingResources()
 void ULevel::RouteActorInitialize()
 {
 	// Send PreInitializeComponents and collect volumes.
-	for( int32 ActorIndex=0; ActorIndex<Actors.Num(); ActorIndex++ )
+	for( AActor* const Actor : Actors )
 	{
-		AActor* const Actor = Actors[ActorIndex];
-		if( Actor )
+		if( Actor && !Actor->IsActorInitialized() )
 		{
-			if( !Actor->bActorInitialized )
-			{
-				Actor->PreInitializeComponents();
-			}
+			Actor->PreInitializeComponents();
 		}
 	}
 
@@ -1538,18 +1534,17 @@ void ULevel::RouteActorInitialize()
 	TArray<AActor *> ActorsToBeginPlay;
 
 	// Send InitializeComponents on components and PostInitializeComponents.
-	for( int32 ActorIndex=0; ActorIndex<Actors.Num(); ActorIndex++ )
+	for( AActor* const Actor : Actors )
 	{
-		AActor* Actor = Actors[ActorIndex];
 		if( Actor )
 		{
-			if( !Actor->bActorInitialized )
+			if( !Actor->IsActorInitialized() )
 			{
 				// Call Initialize on Components.
 				Actor->InitializeComponents();
 
 				Actor->PostInitializeComponents(); // should set Actor->bActorInitialized = true
-				if (!Actor->bActorInitialized && !Actor->IsPendingKill())
+				if (!Actor->IsActorInitialized() && !Actor->IsPendingKill())
 				{
 					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *Actor->GetFullName() );
 				}
