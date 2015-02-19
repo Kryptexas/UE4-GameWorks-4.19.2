@@ -220,10 +220,10 @@ public:
 	 * @param InGraph			The graph to spawn the event node in
 	 * @param InEventName		The name of the event function
 	 * @param InEventClass		The class this event can be found in
-	 * @param InNodePosY		Optional Y-position to spawn the node at to easily spawn in a line
+	 * @param InOutNodePosY		Position to spawn the node at, will return with an offset more suitable to offset the next node
 	 * @return					The K2Node_Event will be returned
 	 */
-	static class UK2Node_Event* AddDefaultEventNode(UBlueprint* InBlueprint, UEdGraph* InGraph, FName InEventName, UClass* InEventClass, int32 InNodePosY = 0);
+	static class UK2Node_Event* AddDefaultEventNode(UBlueprint* InBlueprint, UEdGraph* InGraph, FName InEventName, UClass* InEventClass, int32& InOutNodePosY);
 
 private:
 	/** Stores whether we are already listening for kismet clicks */
