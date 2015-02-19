@@ -82,8 +82,7 @@ private:
 
 	void SetClean();
 private:
-	UPROPERTY()
-	TArray<UProceduralFoliageTile*> PrecomputedTiles;
+	TArray<TWeakObjectPtr<UProceduralFoliageTile>> PrecomputedTiles;
 
 	FRandomStream RandomStream;
 };

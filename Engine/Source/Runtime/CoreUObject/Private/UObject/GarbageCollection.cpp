@@ -1238,17 +1238,6 @@ void UObject::AddReferencedObjects(UObject* This, FReferenceCollector& Collector
 		Collector.AllowEliminatingReferences(true);
 		Collector.AddReferencedObject( Class, This );
 
-		// Serialize object properties which are defined in the class.
-		// Note: This check is intentionally excluding UClass objects but including subclasses like UBlueprintGeneratedClass
-		// @TODO: is it right to also exclude ULinkerPlaceholderClass here (it was causing a crash in here).
-		if (Class != UClass::StaticClass() && Class != ULinkerPlaceholderClass::StaticClass())
-		{
-			// Script properties
-			FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector( This, Collector );
-			ObjectReferenceCollector.SetSerializedProperty(Collector.GetSerializedProperty());
-			This->SerializeScriptProperties( ObjectReferenceCollector );
-		}
-
 #if TEST_ARO_FINDS_ALL_OBJECTS
 		TArray<UObject*> SerializedObjects;
 		AddReferencedObjectsViaSerialization( This, SerializedObjects );
