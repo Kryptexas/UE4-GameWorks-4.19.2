@@ -5359,6 +5359,8 @@ void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FC
 	FuncInfo.FunctionReference = TopFunction;
 	FuncInfo.SetFunctionNames();
 
+	GetCurrentScope()->AddType(TopFunction);
+
 	auto* StoredFuncData = FFunctionData::Add(FuncInfo);
 	if (FuncInfo.FunctionReference->HasAnyFunctionFlags(FUNC_Delegate))
 	{
