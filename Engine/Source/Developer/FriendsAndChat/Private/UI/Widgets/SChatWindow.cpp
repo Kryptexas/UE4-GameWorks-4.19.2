@@ -158,7 +158,7 @@ public:
 								.Style(&FriendStyle.ChatEditableTextStyle)
 								.ClearKeyboardFocusOnCommit(false)
 								.OnTextCommitted(this, &SChatWindowImpl::HandleChatEntered)
-								.HintText(LOCTEXT("FriendsListSearch", "Enter to chat"))
+								.HintText(InArgs._ActivationHintText)
 								.OnTextChanged(this, &SChatWindowImpl::OnChatTextChanged)
 								.IsEnabled(this, &SChatWindowImpl::IsChatEntryEnabled)
 							]
@@ -642,7 +642,7 @@ private:
 	{
 		return DisplayViewModel->GetConfirmationVisibility();
 	}
-
+	
 	const FSlateBrush* GetChatChannelIcon() const
 	{
 		if (!SharedChatViewModel->IsChatChannelValid())
@@ -707,6 +707,7 @@ private:
 			.SelectionMode(ESelectionMode::None)
 			.OnGenerateRow(this, &SChatWindowImpl::MakeChatWidget)
 			.ExternalScrollbar(ExternalScrollbar.ToSharedRef())
+			.ConsumeMouseWheel( EConsumeMouseWheel::Always )
 		);
 
 		if(SharedChatViewModel->GetFilteredChatList().Num())
@@ -761,7 +762,11 @@ private:
 
 	// Holds the window width
 	float WindowWidth;
+
+	static const float CHAT_HINT_UPDATE_THROTTLE;
 };
+
+const float SChatWindowImpl::CHAT_HINT_UPDATE_THROTTLE = 1.0f;
 
 TSharedRef<SChatWindow> SChatWindow::New()
 {

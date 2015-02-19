@@ -54,9 +54,10 @@ public:
 	 * Generate a chat widget.
 	 * @param InStyle The style to use to create the widgets.
 	 * @param The chat view model.
+	 * @param The hint that shows what key activates chat
 	 * @return The chat widget.
 	 */
-	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TSharedRef<IChatViewModel> ViewModel) = 0;
+	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TSharedRef<IChatViewModel> ViewModel, TAttribute<FText> ActivationHintDelegate) = 0;
 
 	/**
 	 * Get the chat system view model for manipulating the chat widget.

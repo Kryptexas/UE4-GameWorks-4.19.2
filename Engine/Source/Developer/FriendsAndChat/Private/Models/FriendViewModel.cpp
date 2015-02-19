@@ -12,6 +12,7 @@ public:
 
 	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false) override
 	{
+		bool bIsFriendInSameSession = FriendItem->GetSessionId() == FFriendsAndChatManager::Get()->GetGameSessionId();
 		if(FriendItem->IsGameRequest())
 		{
 			if (FriendItem->IsGameJoinable())
@@ -42,14 +43,14 @@ public:
 			{
 				case EInviteStatus::Accepted :
 				{
-					if (FriendItem->IsGameJoinable())
+					if (FriendItem->IsOnline() && !bIsFriendInSameSession && FriendItem->IsGameJoinable())
 					{
 						if(CanPerformAction(EFriendActionType::JoinGame))
 						{
 							Actions.Add(EFriendActionType::JoinGame);
 						}
 					}
-					if (FriendItem->CanInvite() && FFriendsAndChatManager::Get()->IsInJoinableGameSession())
+					if (FriendItem->IsOnline() && FriendItem->CanInvite() && !bIsFriendInSameSession && FFriendsAndChatManager::Get()->IsInJoinableGameSession())
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}
@@ -189,6 +190,11 @@ public:
 	virtual bool IsOnline() const override
 	{
 		return FriendItem.IsValid() ? FriendItem->IsOnline() : false;
+	}
+
+	virtual bool IsInGameSession() const override
+	{
+		return FFriendsAndChatManager::Get()->IsInGameSession();
 	}
 
 	virtual EOnlinePresenceState::Type GetOnlineStatus() const override

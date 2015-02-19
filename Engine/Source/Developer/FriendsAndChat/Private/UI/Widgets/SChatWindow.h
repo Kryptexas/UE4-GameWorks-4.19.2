@@ -11,6 +11,10 @@ public:
 		SLATE_ARGUMENT( const FFriendsAndChatStyle*, FriendStyle )
 		SLATE_ARGUMENT(EPopupMethod, Method)
 		SLATE_ARGUMENT(int32, MaxChatLength)
+		
+		// The hint that shows what key activates chat
+		SLATE_ATTRIBUTE(FText, ActivationHintText)
+
 	SLATE_END_ARGS()
 
 	/**

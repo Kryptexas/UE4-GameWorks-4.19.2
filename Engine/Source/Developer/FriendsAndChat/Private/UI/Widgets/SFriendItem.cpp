@@ -301,7 +301,7 @@ private:
 		{
 			EFriendActionType::Type FriendAction = ItemTagToAction(ItemTag);
 
-			if (FriendAction == EFriendActionType::RemoveFriend || FriendAction == EFriendActionType::JoinGame)
+			if (FriendAction == EFriendActionType::RemoveFriend || (FriendAction == EFriendActionType::JoinGame && ViewModel->IsInGameSession()))
 			{
 				PendingAction = FriendAction;
 				FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
@@ -337,14 +337,6 @@ private:
 	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
-	}
-
-	virtual void OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath) override
-	{
-		if (!NewWidgetPath.ContainsWidget(SharedThis(this)))
-		{
-			PendingAction = EFriendActionType::MAX_None;
-		}
 	}
 
 	static bool IsAnyActionMenuOpen()
