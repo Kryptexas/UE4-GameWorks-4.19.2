@@ -15,6 +15,8 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/Selection.h"
 #include "Engine/TextureCube.h"
+#include "ComponentAssetBroker.h"
+
 /** Viewport Client for the preview viewport */
 class FMaterialEditorViewportClient : public FEditorViewportClient
 {
@@ -193,23 +195,23 @@ void SMaterialEditorViewport::Construct(const FArguments& InArgs)
 
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 
+	PreviewMaterial = nullptr;
+	PreviewMeshComponent = nullptr;
 
-	PreviewMeshComponent = NewObject<UMaterialEditorMeshComponent>(GetTransientPackage(), NAME_None, RF_Transient);
-	PreviewSkeletalMeshComponent = NewObject<USkeletalMeshComponent>(GetTransientPackage(), NAME_None, RF_Transient);
-
-	UMaterialInterface* Material = MaterialEditorPtr.Pin()->GetMaterialInterface();
-	if (Material)
+	if (UMaterialInterface* Material = MaterialEditorPtr.Pin()->GetMaterialInterface())
 	{
 		SetPreviewMaterial(Material);
 	}
 
-	SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
+	SetPreviewAsset( GUnrealEd->GetThumbnailManager()->EditorSphere );
 }
 
 SMaterialEditorViewport::~SMaterialEditorViewport()
 {
-	PreviewMeshComponent->OverrideMaterials.Empty();
-	PreviewSkeletalMeshComponent->OverrideMaterials.Empty();
+	if (PreviewMeshComponent != nullptr)
+	{
+		PreviewMeshComponent->OverrideMaterials.Empty();
+	}
 
 	if (EditorViewportClient.IsValid())
 	{
@@ -220,55 +222,57 @@ SMaterialEditorViewport::~SMaterialEditorViewport()
 void SMaterialEditorViewport::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObject( PreviewMeshComponent );
-	Collector.AddReferencedObject( PreviewSkeletalMeshComponent );
+	Collector.AddReferencedObject( PreviewMaterial );
 }
 
 void SMaterialEditorViewport::RefreshViewport()
 {
-	//reregister the preview components, so if the preview material changed it will be propagated to the render thread
-	PreviewMeshComponent->MarkRenderStateDirty();
-	PreviewSkeletalMeshComponent->MarkRenderStateDirty();
+	// reregister the preview components, so if the preview material changed it will be propagated to the render thread
+	if (PreviewMeshComponent != nullptr)
+	{
+		PreviewMeshComponent->MarkRenderStateDirty();
+	}
 	SceneViewport->InvalidateDisplay();
 }
 
-bool SMaterialEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh)
+bool SMaterialEditorViewport::SetPreviewAsset(UObject* InAsset)
 {
-	// Only permit the use of a skeletal mesh if the material has bUsedWithSkeltalMesh.
-	if (!MaterialEditorPtr.Pin()->ApproveSetPreviewMesh(InStaticMesh, InSkeletalMesh))
+	if (!MaterialEditorPtr.Pin()->ApproveSetPreviewAsset(InAsset))
 	{
 		return false;
 	}
-	
-	FTransform Transform = FTransform::Identity;
-	bUseSkeletalMeshAsPreview = InSkeletalMesh != NULL;
-	if ( bUseSkeletalMeshAsPreview )
-	{
-		// Remove the static mesh from the preview scene.
-		PreviewScene.RemoveComponent( PreviewMeshComponent );
-		PreviewScene.AddComponent( PreviewSkeletalMeshComponent, Transform );
-		
-		// Update the toolbar state implicitly through PreviewPrimType.
-		PreviewPrimType = TPT_None;
 
-		// Set the new preview skeletal mesh.
-		PreviewSkeletalMeshComponent->SetSkeletalMesh( InSkeletalMesh );
-	}
-	else
+	// Unregister the current component
+	if (PreviewMeshComponent != nullptr)
 	{
+		PreviewScene.RemoveComponent(PreviewMeshComponent);
+		PreviewMeshComponent = nullptr;
+	}
+
+	FTransform Transform = FTransform::Identity;
+
+	if (UStaticMesh* StaticMesh = Cast<UStaticMesh>(InAsset))
+	{
+		// Special case handling for static meshes, to use more accurate bounds via a subclass
+		UStaticMeshComponent* NewSMComponent = NewObject<UMaterialEditorMeshComponent>(GetTransientPackage(), NAME_None, RF_Transient);
+		NewSMComponent->SetStaticMesh(StaticMesh);
+
+		PreviewMeshComponent = NewSMComponent;
+
 		// Update the toolbar state implicitly through PreviewPrimType.
-		if ( InStaticMesh == GUnrealEd->GetThumbnailManager()->EditorCylinder )
+		if (StaticMesh == GUnrealEd->GetThumbnailManager()->EditorCylinder)
 		{
 			PreviewPrimType = TPT_Cylinder;
 		}
-		else if ( InStaticMesh == GUnrealEd->GetThumbnailManager()->EditorCube )
+		else if (StaticMesh == GUnrealEd->GetThumbnailManager()->EditorCube)
 		{
 			PreviewPrimType = TPT_Cube;
 		}
-		else if ( InStaticMesh == GUnrealEd->GetThumbnailManager()->EditorSphere )
+		else if (StaticMesh == GUnrealEd->GetThumbnailManager()->EditorSphere)
 		{
 			PreviewPrimType = TPT_Sphere;
 		}
-		else if ( InStaticMesh == GUnrealEd->GetThumbnailManager()->EditorPlane )
+		else if (StaticMesh == GUnrealEd->GetThumbnailManager()->EditorPlane)
 		{
 			// Need to rotate the plane so that it faces the camera
 			Transform.SetRotation(FQuat(FRotator(0, 90, 0)));
@@ -278,36 +282,43 @@ bool SMaterialEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh, USkeleta
 		{
 			PreviewPrimType = TPT_None;
 		}
+	}
+	else if (InAsset != nullptr)
+	{
+		// Fall back to the component asset broker
+		if (TSubclassOf<UActorComponent> ComponentClass = FComponentAssetBrokerage::GetPrimaryComponentForAsset(InAsset->GetClass()))
+		{
+			if (ComponentClass->IsChildOf(UMeshComponent::StaticClass()))
+			{
+				PreviewMeshComponent = NewObject<UMeshComponent>(GetTransientPackage(), ComponentClass, NAME_None, RF_Transient);
 
-		// Remove the skeletal mesh from the preview scene.
-		PreviewScene.RemoveComponent( PreviewSkeletalMeshComponent );
-		PreviewScene.AddComponent( PreviewMeshComponent, Transform );
+				FComponentAssetBrokerage::AssignAssetToComponent(PreviewMeshComponent, InAsset);
 
-		// Set the new preview static mesh.
-		FComponentReregisterContext ReregisterContext( PreviewMeshComponent );
-		PreviewMeshComponent->StaticMesh = InStaticMesh;
+				PreviewPrimType = TPT_None;
+			}
+		}
 	}
 
-	return true;
+	// Add the new component to the scene
+	if (PreviewMeshComponent != nullptr)
+	{
+		PreviewScene.AddComponent(PreviewMeshComponent, Transform);
+	}
+
+	// Make sure the preview material is applied to the component
+	SetPreviewMaterial(PreviewMaterial);
+
+	return (PreviewMeshComponent != nullptr);
 }
 
-bool SMaterialEditorViewport::SetPreviewMesh(const TCHAR* InMeshName)
+bool SMaterialEditorViewport::SetPreviewAssetByName(const TCHAR* InAssetName)
 {
 	bool bSuccess = false;
-	if ( InMeshName && FString(InMeshName).Len() > 0 )
+	if ((InAssetName != nullptr) && (*InAssetName != 0))
 	{
-		UStaticMesh* StaticMesh = LoadObject<UStaticMesh>( NULL, InMeshName);
-		if ( StaticMesh )
+		if (UObject* Asset = LoadObject<UObject>(nullptr, InAssetName))
 		{
-			bSuccess = SetPreviewMesh( StaticMesh, NULL );
-		}
-		else
-		{
-			USkeletalMesh* SkeletalMesh = LoadObject<USkeletalMesh>( NULL, InMeshName );
-			if ( SkeletalMesh )
-			{
-				bSuccess = SetPreviewMesh( NULL, SkeletalMesh );
-			}
+			bSuccess = SetPreviewAsset(Asset);
 		}
 	}
 	return bSuccess;
@@ -315,13 +326,13 @@ bool SMaterialEditorViewport::SetPreviewMesh(const TCHAR* InMeshName)
 
 void SMaterialEditorViewport::SetPreviewMaterial(UMaterialInterface* InMaterialInterface)
 {
-	check( PreviewMeshComponent );
-	check( PreviewSkeletalMeshComponent );
+	PreviewMaterial = InMaterialInterface;
 
-	PreviewMeshComponent->OverrideMaterials.Empty();
-	PreviewMeshComponent->OverrideMaterials.Add( InMaterialInterface );
-	PreviewSkeletalMeshComponent->OverrideMaterials.Empty();
-	PreviewSkeletalMeshComponent->OverrideMaterials.Add( InMaterialInterface );
+	if (PreviewMeshComponent != nullptr)
+	{
+		PreviewMeshComponent->OverrideMaterials.Empty();
+		PreviewMeshComponent->OverrideMaterials.Add(PreviewMaterial);
+	}
 }
 
 void SMaterialEditorViewport::ToggleRealtime()
@@ -397,9 +408,9 @@ void SMaterialEditorViewport::BindCommands()
 
 void SMaterialEditorViewport::OnFocusViewportToSelection()
 {
-	if( PreviewMeshComponent || PreviewSkeletalMeshComponent )
+	if( PreviewMeshComponent != nullptr )
 	{
-		EditorViewportClient->FocusViewportOnBounds( bUseSkeletalMeshAsPreview ? PreviewSkeletalMeshComponent->Bounds : PreviewMeshComponent->Bounds );
+		EditorViewportClient->FocusViewportOnBounds( PreviewMeshComponent->Bounds );
 	}
 }
 
@@ -407,7 +418,7 @@ void SMaterialEditorViewport::OnSetPreviewPrimitive(EThumbnailPrimType PrimType)
 {
 	if (SceneViewport.IsValid())
 	{
-		UStaticMesh* Primitive = NULL;
+		UStaticMesh* Primitive = nullptr;
 		switch (PrimType)
 		{
 		case TPT_Cylinder: Primitive = GUnrealEd->GetThumbnailManager()->EditorCylinder; break;
@@ -415,9 +426,10 @@ void SMaterialEditorViewport::OnSetPreviewPrimitive(EThumbnailPrimType PrimType)
 		case TPT_Plane: Primitive = GUnrealEd->GetThumbnailManager()->EditorPlane; break;
 		case TPT_Cube: Primitive = GUnrealEd->GetThumbnailManager()->EditorCube; break;
 		}
-		if (Primitive)
+
+		if (Primitive != nullptr)
 		{
-			SetPreviewMesh(Primitive , NULL );
+			SetPreviewAsset(Primitive);
 			RefreshViewport();
 		}
 	}
@@ -433,35 +445,37 @@ void SMaterialEditorViewport::OnSetPreviewMeshFromSelection()
 	bool bFoundPreviewMesh = false;
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
 
-	// Look for a selected static mesh.
-	UStaticMesh* SelectedStaticMesh = GEditor->GetSelectedObjects()->GetTop<UStaticMesh>();
 	UMaterialInterface* MaterialInterface = MaterialEditorPtr.Pin()->GetMaterialInterface();
-	if ( SelectedStaticMesh )
-	{
-		SetPreviewMesh( SelectedStaticMesh, NULL );
-		MaterialInterface->PreviewMesh = SelectedStaticMesh->GetPathName();
-		bFoundPreviewMesh = true;
-	}
-	else
-	{
-		// No static meshes were selected; look for a selected skeletal mesh.
-		USkeletalMesh* SelectedSkeletalMesh = GEditor->GetSelectedObjects()->GetTop<USkeletalMesh>();
-		if ( SelectedSkeletalMesh )
-		{
-			//Automatically set the usage flag.
-			if( MaterialInterface->GetMaterial() )
-			{
-				bool bNeedsRecompile = false;
-				MaterialInterface->GetMaterial()->SetMaterialUsage( bNeedsRecompile, MATUSAGE_SkeletalMesh );
-			}
 
-			SetPreviewMesh( NULL, SelectedSkeletalMesh );
-			MaterialInterface->PreviewMesh = SelectedSkeletalMesh->GetPathName();
-			bFoundPreviewMesh = true;
+	// Look for a selected asset that can be converted to a mesh component
+	for (FSelectionIterator SelectionIt(*GEditor->GetSelectedObjects()); SelectionIt && !bFoundPreviewMesh; ++SelectionIt)
+	{
+		UObject* TestAsset = *SelectionIt;
+		if (TestAsset->IsAsset())
+		{
+			if (TSubclassOf<UActorComponent> ComponentClass = FComponentAssetBrokerage::GetPrimaryComponentForAsset(TestAsset->GetClass()))
+			{
+				if (ComponentClass->IsChildOf(UMeshComponent::StaticClass()))
+				{
+					if (USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(TestAsset))
+					{
+						// Special case handling for skeletal meshes, sets the material to be usable with them
+						if (MaterialInterface->GetMaterial())
+						{
+							bool bNeedsRecompile = false;
+							MaterialInterface->GetMaterial()->SetMaterialUsage(bNeedsRecompile, MATUSAGE_SkeletalMesh);
+						}
+					}
+
+					SetPreviewAsset(TestAsset);
+					MaterialInterface->PreviewMesh = TestAsset->GetPathName();
+					bFoundPreviewMesh = true;
+				}
+			}
 		}
 	}
 
-	if ( bFoundPreviewMesh )
+	if (bFoundPreviewMesh)
 	{
 		FMaterialEditor::UpdateThumbnailInfoPreviewMesh(MaterialInterface);
 
@@ -470,7 +484,7 @@ void SMaterialEditorViewport::OnSetPreviewMeshFromSelection()
 	}
 	else
 	{
-		FSuppressableWarningDialog::FSetupInfo Info(NSLOCTEXT("UnrealEd", "Warning_NoPreviewMeshFound_Message", "You need to select a mesh in the content browser to preview it."),
+		FSuppressableWarningDialog::FSetupInfo Info(NSLOCTEXT("UnrealEd", "Warning_NoPreviewMeshFound_Message", "You need to select a mesh-based asset in the content browser to preview it."),
 			NSLOCTEXT("UnrealEd", "Warning_NoPreviewMeshFound", "Warning: No Preview Mesh Found"), "Warning_NoPreviewMeshFound");
 		Info.ConfirmText = NSLOCTEXT("UnrealEd", "Warning_NoPreviewMeshFound_Confirm", "Continue");
 		

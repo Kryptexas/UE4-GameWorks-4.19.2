@@ -29,16 +29,16 @@ public:
 	 *
 	 * @return	true if a mesh was set successfully, false otherwise.
 	 */
-	bool SetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh);
+	bool SetPreviewAsset(UObject* InAsset);
 
 	/**
-	 * Sets the preview mesh to the named mesh, if it can be found.  Checks static meshes first, then skeletal meshes.
-	 * Does nothing if the named mesh is not found or if the named mesh is a skeletal mesh but the material has
+	 * Sets the preview asset to the named asset, if it can be found and is convertible into a UMeshComponent subclass.
+	 * Does nothing if the named asset is not found or if the named asset is a skeletal mesh but the material has
 	 * bUsedWithSkeletalMesh=false.
 	 *
-	 * @return	true if the named mesh was found and set successfully, false otherwise.
+	 * @return	true if the named asset was found and set successfully, false otherwise.
 	 */
-	bool SetPreviewMesh(const TCHAR* InMeshName);
+	bool SetPreviewAssetByName(const TCHAR* InAssetName);
 
 	void SetPreviewMaterial(UMaterialInterface* InMaterialInterface);
 	
@@ -47,15 +47,12 @@ public:
 	/** @return The list of commands known by the material editor */
 	TSharedRef<FUICommandList> GetMaterialEditorCommands() const;
 
-	/** If true, use PreviewSkeletalMeshComponent as the preview mesh; if false, use PreviewMeshComponent. */
-	bool bUseSkeletalMeshAsPreview;
+	/** Component for the preview mesh. */
+	UMeshComponent* PreviewMeshComponent;
 
-	/** Component for the preview static mesh. */
-	UMaterialEditorMeshComponent* PreviewMeshComponent;
+	/** Material for the preview mesh */
+	UMaterialInterface* PreviewMaterial;
 	
-	/** Component for the preview skeletal mesh. */
-	USkeletalMeshComponent*	PreviewSkeletalMeshComponent;
-
 	/** The preview primitive we are using. */
 	EThumbnailPrimType PreviewPrimType;
 	

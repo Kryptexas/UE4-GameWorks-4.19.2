@@ -249,8 +249,8 @@ public:
 	void RecenterEditor();
 
 	/** Passes instructions to the preview viewport */
-	bool SetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh);
-	bool SetPreviewMesh(const TCHAR* InMeshName);
+	bool SetPreviewAsset(UObject* InAsset);
+	bool SetPreviewAssetByName(const TCHAR* InAssetName);
 	void SetPreviewMaterial(UMaterialInterface* InMaterialInterface);
 	
 	/**
@@ -436,8 +436,8 @@ private:
 	/** Builds the toolbar widget for the material editor */
 	void ExtendToolbar();
 
-	/** Allows editor to veto the setting of a preview mesh */
-	virtual bool ApproveSetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh) override;
+	/** Allows editor to veto the setting of a preview asset */
+	virtual bool ApproveSetPreviewAsset(UObject* InAsset) override;
 
 	/** Creates all internal widgets for the tabs to point at */
 	void CreateInternalWidgets();

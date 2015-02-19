@@ -66,8 +66,8 @@ public:
 	void DrawSamplerWarningStrings(FCanvas* Canvas, int32& DrawPositionY);
 
 	/** Passes instructions to the preview viewport */
-	bool SetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh);
-	bool SetPreviewMesh(const TCHAR* InMeshName);
+	bool SetPreviewAsset(UObject* InAsset);
+	bool SetPreviewAssetByName(const TCHAR* InMeshName);
 	void SetPreviewMaterial(UMaterialInterface* InMaterialInterface);
 
 	/** Returns true if hidden parameters should be shown */
@@ -121,8 +121,8 @@ private:
 	/** Builds the toolbar widget for the material editor */
 	void ExtendToolbar();
 
-	/** Allows editor to veto the setting of a preview mesh */
-	virtual bool ApproveSetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh) override;
+	// IMaterialEditor interface
+	virtual bool ApproveSetPreviewAsset(UObject* InAsset) override;
 
 	/**	Spawns the preview tab */
 	TSharedRef<SDockTab> SpawnTab_Preview( const FSpawnTabArgs& Args );

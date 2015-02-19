@@ -232,7 +232,7 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 	{
 		InstanceConstant->PreviewMesh = ThumbnailInfoWithPrim->PreviewMesh;
 	}
-	SetPreviewMesh(*InstanceConstant->PreviewMesh.ToString());
+	SetPreviewAssetByName(*InstanceConstant->PreviewMesh.ToString());
 }
 
 FMaterialInstanceEditor::~FMaterialInstanceEditor()
@@ -810,20 +810,20 @@ void FMaterialInstanceEditor::DrawSamplerWarningStrings(FCanvas* Canvas, int32& 
 	}
 }
 
-bool FMaterialInstanceEditor::SetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh)
+bool FMaterialInstanceEditor::SetPreviewAsset(UObject* InAsset)
 {
 	if (PreviewVC.IsValid())
 	{
-		return PreviewVC->SetPreviewMesh(InStaticMesh, InSkeletalMesh);
+		return PreviewVC->SetPreviewAsset(InAsset);
 	}
 	return false;
 }
 
-bool FMaterialInstanceEditor::SetPreviewMesh(const TCHAR* InMeshName)
+bool FMaterialInstanceEditor::SetPreviewAssetByName(const TCHAR* InAssetName)
 {
 	if (PreviewVC.IsValid())
 	{
-		return PreviewVC->SetPreviewMesh(InMeshName);
+		return PreviewVC->SetPreviewAssetByName(InAssetName);
 	}
 	return false;
 }
@@ -934,7 +934,7 @@ UObject* FMaterialInstanceEditor::GetSyncObject()
 	return NULL;
 }
 
-bool FMaterialInstanceEditor::ApproveSetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh)
+bool FMaterialInstanceEditor::ApproveSetPreviewAsset(UObject* InAsset)
 {
 	// Default impl is to always accept.
 	return true;

@@ -430,10 +430,10 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	LoadEditorSettings();
 	
 	// Set the preview mesh for the material.  This call must occur after the toolbar is initialized.
-	if (!SetPreviewMesh(*Material->PreviewMesh.ToString()))
+	if (!SetPreviewAssetByName(*Material->PreviewMesh.ToString()))
 	{
 		// The material preview mesh couldn't be found or isn't loaded.  Default to the one of the primitive types.
-		Viewport->SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
+		SetPreviewAsset( GUnrealEd->GetThumbnailManager()->EditorSphere );
 	}
 
 	// Initialize expression previews.
@@ -798,15 +798,20 @@ UMaterialInterface* FMaterialEditor::GetMaterialInterface() const
 	return Material;
 }
 
-bool FMaterialEditor::ApproveSetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh)
+bool FMaterialEditor::ApproveSetPreviewAsset(UObject* InAsset)
 {
 	bool bApproved = true;
+
 	// Only permit the use of a skeletal mesh if the material has bUsedWithSkeltalMesh.
-	if ( InSkeletalMesh && !Material->bUsedWithSkeletalMesh )
+	if (USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(InAsset))
 	{
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_MaterialEditor_CantPreviewOnSkelMesh", "Can't preview on the specified skeletal mesh because the material has not been compiled with bUsedWithSkeletalMesh.") );
-		bApproved = false;
+		if (!Material->bUsedWithSkeletalMesh)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_MaterialEditor_CantPreviewOnSkelMesh", "Can't preview on the specified skeletal mesh because the material has not been compiled with bUsedWithSkeletalMesh."));
+			bApproved = false;
+		}
 	}
+
 	return bApproved;
 }
 
@@ -1015,20 +1020,20 @@ void FMaterialEditor::RecenterEditor()
 	}
 }
 
-bool FMaterialEditor::SetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh)
+bool FMaterialEditor::SetPreviewAsset(UObject* InAsset)
 {
 	if (Viewport.IsValid())
 	{
-		return Viewport->SetPreviewMesh(InStaticMesh, InSkeletalMesh);
+		return Viewport->SetPreviewAsset(InAsset);
 	}
 	return false;
 }
 
-bool FMaterialEditor::SetPreviewMesh(const TCHAR* InMeshName)
+bool FMaterialEditor::SetPreviewAssetByName(const TCHAR* InAssetName)
 {
 	if (Viewport.IsValid())
 	{
-		return Viewport->SetPreviewMesh(InMeshName);
+		return Viewport->SetPreviewAssetByName(InAssetName);
 	}
 	return false;
 }
@@ -3442,14 +3447,14 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 	if ( PropertyThatChanged )
 	{
 		const FName NameOfPropertyThatChanged( *PropertyThatChanged->GetName() );
-		if ( NameOfPropertyThatChanged == FName(TEXT("PreviewMesh")) ||
-			NameOfPropertyThatChanged == FName(TEXT("bUsedWithSkeletalMesh")) )
+		if ((NameOfPropertyThatChanged == GET_MEMBER_NAME_CHECKED(UMaterialInterface, PreviewMesh)) ||
+			(NameOfPropertyThatChanged == GET_MEMBER_NAME_CHECKED(UMaterial, bUsedWithSkeletalMesh)))
 		{
 			// SetPreviewMesh will return false if the material has bUsedWithSkeletalMesh and
 			// a skeleton was requested, in which case revert to a sphere static mesh.
-			if (!SetPreviewMesh(*Material->PreviewMesh.ToString()))
+			if (!SetPreviewAssetByName(*Material->PreviewMesh.ToString()))
 			{
-				SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
+				SetPreviewAsset(GUnrealEd->GetThumbnailManager()->EditorSphere);
 			}
 		}
 
