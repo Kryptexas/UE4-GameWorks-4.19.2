@@ -168,18 +168,10 @@ protected:
 	/**
 	 * Checks whether the Slate Remote server is supported.
 	 *
-	 * @todo gmp: this should be moved into an Engine module, so it can be shared with other transports
-	 *
 	 * @return true if networked transport is supported, false otherwise.
 	 */
 	bool SupportsSlateRemote( ) const
 	{
-		// disallow in Shipping and Test configurations
-		if ((FApp::GetBuildConfiguration() == EBuildConfigurations::Shipping) || (FApp::GetBuildConfiguration() == EBuildConfigurations::Test))
-		{
-			return false;
-		}
-
 		// disallow for commandlets
 		if (IsRunningCommandlet())
 		{
