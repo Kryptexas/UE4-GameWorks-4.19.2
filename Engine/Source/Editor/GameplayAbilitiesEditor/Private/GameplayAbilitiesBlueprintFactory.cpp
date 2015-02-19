@@ -10,7 +10,7 @@
 #include "GameplayAbilityGraph.h"
 #include "GameplayAbilityGraphSchema.h"
 
-#include "Editor/ClassViewer/Public/ClassViewerFilter.h"
+#include "ClassViewerFilter.h"
 
 #include "GameplayAbilityBlueprintGeneratedClass.h"
 #include "GameplayAbilitiesBlueprintFactory.h"

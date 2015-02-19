@@ -33,7 +33,6 @@ public class DetailCustomizations : ModuleRules
 				"ClassViewer",
 				"TargetPlatform",
 				"ExternalImagePicker",
-				"GameProjectGeneration",
 				"MoviePlayer",
 				"SourceControl",
                 "InternationalizationSettings",
@@ -53,6 +52,7 @@ public class DetailCustomizations : ModuleRules
 				"Landscape",
 				"LandscapeEditor",
 				"PropertyEditor",
+				"GameProjectGeneration",
 			}
 		);
 
@@ -60,6 +60,7 @@ public class DetailCustomizations : ModuleRules
 			new string[] {
 				"Layers",
 				"PropertyEditor",
+				"GameProjectGeneration",
 			}
 		);
 	}

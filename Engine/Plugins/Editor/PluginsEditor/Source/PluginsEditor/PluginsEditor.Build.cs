@@ -22,6 +22,17 @@ namespace UnrealBuildTool.Rules
 					"EditorStyle",
 					"Projects",
 					"UnrealEd",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"GameProjectGeneration",
+				}
+			);
+
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
 					"GameProjectGeneration",
 				}
 			);

@@ -9,6 +9,7 @@ public class LevelEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"AssetTools",
+				"ClassViewer",
 				"MainFrame",
                 "PlacementMode",
 				"ReferenceViewer",

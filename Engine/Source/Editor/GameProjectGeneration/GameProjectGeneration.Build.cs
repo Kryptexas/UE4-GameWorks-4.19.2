@@ -8,7 +8,6 @@ public class GameProjectGeneration : ModuleRules
 	{
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
-				"ClassViewer",
                 "DesktopPlatform",
                 "MainFrame",
             }
@@ -18,6 +17,7 @@ public class GameProjectGeneration : ModuleRules
 			new string[] {
 				"Analytics",
                 "AppFramework",
+				"ClassViewer",
 				"Core",
 				"CoreUObject",
 				"Engine",
@@ -39,7 +39,6 @@ public class GameProjectGeneration : ModuleRules
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
-				"ClassViewer",
                 "DesktopPlatform",
                 "Documentation",
                 "MainFrame",

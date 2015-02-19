@@ -10,7 +10,8 @@ public class ClassViewer : ModuleRules
 			new string[] {
 				"AssetRegistry",
 				"EditorWidgets",
-                "PropertyEditor"
+				"GameProjectGeneration",
+                "PropertyEditor",
 			}
 		);
 
@@ -25,7 +26,6 @@ public class ClassViewer : ModuleRules
                 "EditorStyle",
 				"UnrealEd",
 				"PropertyEditor",
-				"GameProjectGeneration"
 			}
 		);
 
@@ -33,7 +33,8 @@ public class ClassViewer : ModuleRules
 			new string[] {
 				"AssetRegistry",
 				"EditorWidgets",
-				"PropertyEditor"
+				"GameProjectGeneration",
+				"PropertyEditor",
 			}
 		);
 	}

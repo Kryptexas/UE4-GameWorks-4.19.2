@@ -12,6 +12,7 @@ public class ContentBrowser : ModuleRules
 				"AssetTools",
 				"CollectionManager",
 				"EditorWidgets",
+				"GameProjectGeneration",
                 "MainFrame",
 				"SourceControl",
 				"SourceControlWindows",
@@ -26,7 +27,6 @@ public class ContentBrowser : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"Engine",
-				"GameProjectGeneration",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
@@ -47,6 +47,7 @@ public class ContentBrowser : ModuleRules
 				"AssetTools",
 				"CollectionManager",
 				"EditorWidgets",
+				"GameProjectGeneration",
                 "MainFrame",
                 "ReferenceViewer"
 			}

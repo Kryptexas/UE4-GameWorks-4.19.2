@@ -2,8 +2,8 @@
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "SBlueprintLibraryPalette.h"
-#include "Editor/ClassViewer/Public/ClassViewerModule.h" // for FClassViewerInitializationOptions
-#include "Editor/ClassViewer/Public/ClassViewerFilter.h" // for FClassViewerFilterFuncs
+#include "ClassViewerModule.h" // for FClassViewerInitializationOptions
+#include "ClassViewerFilter.h" // for FClassViewerFilterFuncs
 #include "K2ActionMenuBuilder.h"
 #include "BlueprintPaletteFavorites.h"
 #include "BlueprintActionFilter.h"

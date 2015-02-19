@@ -8,8 +8,8 @@
 #include "PropertyEditor.h"
 #include "SPropertyEditorClass.h"
 #include "SPropertyEditorCombo.h"
-#include "Editor/ClassViewer/Public/ClassViewerModule.h"
-#include "Editor/ClassViewer/Public/ClassViewerFilter.h"
+#include "ClassViewerModule.h"
+#include "ClassViewerFilter.h"
 
 #include "PropertyHandle.h"
 

@@ -166,6 +166,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	Options.bShowUnloadedBlueprints = false;
 	Options.bShowNoneOption = false;
 	Options.bShowObjectRootClass = true;
+	Options.bExpandRootNodes = true;
 
 	if (InArgs._ClassViewerFilter.IsValid())
 	{
@@ -175,6 +176,12 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	{
 		// Prevent creating native classes based on blueprint classes
 		Options.ClassFilter = MakeShareable(new FNativeClassParentFilter());
+	}
+
+	// Only show the Object root class if it's a valid base (this helps keep the tree clean)
+	if (Options.ClassFilter.IsValid() && !Options.ClassFilter->IsClassAllowed(Options, UObject::StaticClass(), MakeShareable(new FClassViewerFilterFuncs)))
+	{
+		Options.bShowObjectRootClass = false;
 	}
 
 	ClassViewer = StaticCastSharedRef<SClassViewer>(FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &SNewClassDialog::OnAdvancedClassSelected)));
