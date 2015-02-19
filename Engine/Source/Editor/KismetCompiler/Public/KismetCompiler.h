@@ -103,7 +103,7 @@ public:
 		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode);
 		Result->CreateNewGuid();
-		Result->SetFlags(RF_Transient);
+
 		AutoAssignNodePosition(Result);
 
 		return Result;
