@@ -39,6 +39,12 @@ FKey SGraphPinKey::GetCurrentKey() const
 
 void SGraphPinKey::OnKeyChanged(TSharedPtr<FKey> InSelectedKey)
 {
-	SelectedKey = *InSelectedKey.Get();
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, SelectedKey.ToString());
+	if(SelectedKey != *InSelectedKey.Get())
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeKeyPinValue", "Change Key Pin Value" ) );
+		GraphPinObj->Modify();
+
+		SelectedKey = *InSelectedKey.Get();
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, SelectedKey.ToString());
+	}
 }

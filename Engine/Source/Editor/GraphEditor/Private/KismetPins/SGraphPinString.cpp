@@ -34,7 +34,13 @@ FText SGraphPinString::GetTypeInValue() const
 
 void SGraphPinString::SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type /*CommitInfo*/)
 {
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, NewTypeInValue.ToString());
+	if(GraphPinObj->GetDefaultAsString() != NewTypeInValue.ToString())
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeStringPinValue", "Change String Pin Value" ) );
+		GraphPinObj->Modify();
+
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, NewTypeInValue.ToString());
+	}
 }
 
 bool SGraphPinString::GetDefaultValueIsReadOnly() const

@@ -27,5 +27,11 @@ ECheckBoxState SGraphPinBool::IsDefaultValueChecked() const
 void SGraphPinBool::OnDefaultValueCheckBoxChanged(ECheckBoxState InIsChecked)
 {
 	const FString BoolString = (InIsChecked == ECheckBoxState::Checked) ? TEXT("true") : TEXT("false");
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, BoolString);
+	if(GraphPinObj->GetDefaultAsString() != BoolString)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeBoolPinValue", "Change Bool Pin Value" ) );
+		GraphPinObj->Modify();
+
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, BoolString);
+	}
 }

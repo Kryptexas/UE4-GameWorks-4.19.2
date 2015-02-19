@@ -74,6 +74,13 @@ void SGraphPinColor::OnColorCommitted(FLinearColor InColor)
 {
 	// Update pin object
 	FString ColorString = InColor.ToString();
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, ColorString);
-	OwnerNodePtr.Pin()->UpdateGraphNode();
+
+	if(GraphPinObj->GetDefaultAsString() != ColorString)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeColorPinValue", "Change Color Pin Value" ) );
+		GraphPinObj->Modify();
+		
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, ColorString);
+		OwnerNodePtr.Pin()->UpdateGraphNode();
+	}
 }

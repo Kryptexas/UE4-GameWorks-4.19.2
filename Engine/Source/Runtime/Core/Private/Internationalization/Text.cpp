@@ -647,6 +647,7 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 			default:
 				{
 					Value.History.Reset();
+					Value.DisplayString = FText::GetEmpty().DisplayString;
 				}
 			}
 		}

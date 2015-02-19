@@ -44,7 +44,14 @@ void SGraphPinNameList::ComboBoxSelectionChanged(TSharedPtr<FName> NameItem, ESe
 	FName Name = NameItem.IsValid() ? *NameItem : NAME_None;
 	if (auto Schema = (GraphPinObj ? GraphPinObj->GetSchema() : NULL))
 	{
-		Schema->TrySetDefaultValue(*GraphPinObj, *Name.ToString());
+		FString NameAsString = Name.ToString();
+		if(GraphPinObj->GetDefaultAsString() != NameAsString)
+		{
+			const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeNameListPinValue", "Change Name List Pin Value" ) );
+			GraphPinObj->Modify();
+
+			Schema->TrySetDefaultValue(*GraphPinObj, NameAsString);
+		}
 	}
 }
 

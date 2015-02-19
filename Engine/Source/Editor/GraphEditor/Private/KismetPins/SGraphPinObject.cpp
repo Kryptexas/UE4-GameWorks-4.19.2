@@ -199,11 +199,18 @@ TSharedRef<SWidget> SGraphPinObject::GenerateAssetPicker()
 
 void SGraphPinObject::OnAssetSelectedFromPicker(const class FAssetData& AssetData)
 {
-	// Close the asset picker
-	AssetPickerAnchor->SetIsOpen(false);
+	UObject* AssetObject = AssetData.GetAsset();
+	if(GraphPinObj->DefaultObject != AssetObject)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeObjectPinValue", "Change Object Pin Value" ) );
+		GraphPinObj->Modify();
 
-	// Set the object found from the asset picker
-	GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, AssetData.GetAsset());
+		// Close the asset picker
+		AssetPickerAnchor->SetIsOpen(false);
+
+		// Set the object found from the asset picker
+		GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, AssetObject);
+	}
 }
 
 

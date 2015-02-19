@@ -78,14 +78,20 @@ void SGraphPinCollisionProfile::SetPropertyWithName(const FName& Name)
 {
 	check(GraphPinObj);
 	check(GraphPinObj->PinType.PinSubCategoryObject == FCollisionProfileName::StaticStruct());
-
+	
 	FString PinString = TEXT("(Name=\"");
 	PinString += *Name.ToString();
 	PinString += TEXT("\")");
 
-	if (PinString != GraphPinObj->GetDefaultAsString())
+	if(GraphPinObj->GetDefaultAsString() != PinString)
 	{
-		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, PinString);
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeCollisionProfilePinValue", "Change Collision Profile Pin Value" ) );
+		GraphPinObj->Modify();
+
+		if (PinString != GraphPinObj->GetDefaultAsString())
+		{
+			GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, PinString);
+		}
 	}
 }
 

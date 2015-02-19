@@ -102,8 +102,14 @@ FOnClicked SGraphPinClass::GetOnUseButtonDelegate()
 
 void SGraphPinClass::OnPickedNewClass(UClass* ChosenClass)
 {
-	AssetPickerAnchor->SetIsOpen(false);
-	GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, ChosenClass);
+	if(GraphPinObj->DefaultObject != ChosenClass)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeClassPinValue", "Change Class Pin Value" ) );
+		GraphPinObj->Modify();
+
+		AssetPickerAnchor->SetIsOpen(false);
+		GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, ChosenClass);
+	}
 }
 
 FText SGraphPinClass::GetDefaultComboText() const

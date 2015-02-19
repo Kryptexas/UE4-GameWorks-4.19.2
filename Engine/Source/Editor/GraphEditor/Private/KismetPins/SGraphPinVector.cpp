@@ -222,8 +222,14 @@ void SGraphPinVector::OnChangedValueTextBox_0(float NewValue, ETextCommit::Type 
 		DefaultValue = ValueStr + FString(TEXT(",")) + GetValue(TextBox_1) + FString(TEXT(",")) + GetValue(TextBox_2);
 	}
 
-	//Set new default value
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, DefaultValue);
+	if(GraphPinObj->GetDefaultAsString() != DefaultValue)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeVectorPinValue", "Change Vector Pin Value" ) );
+		GraphPinObj->Modify();
+
+		//Set new default value
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, DefaultValue);
+	}
 }
 
 void SGraphPinVector::OnChangedValueTextBox_1(float NewValue, ETextCommit::Type CommitInfo)
@@ -242,8 +248,14 @@ void SGraphPinVector::OnChangedValueTextBox_1(float NewValue, ETextCommit::Type 
 		DefaultValue = GetValue(TextBox_0) + FString(TEXT(",")) + ValueStr + FString(TEXT(",")) + GetValue(TextBox_2);
 	}
 
-	//Set new default value
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, DefaultValue);
+	if(GraphPinObj->GetDefaultAsString() != DefaultValue)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeVectorPinValue", "Change Vector Pin Value" ) );
+		GraphPinObj->Modify();
+
+		//Set new default value
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, DefaultValue);
+	}
 }
 
 void SGraphPinVector::OnChangedValueTextBox_2(float NewValue, ETextCommit::Type CommitInfo)
@@ -262,8 +274,14 @@ void SGraphPinVector::OnChangedValueTextBox_2(float NewValue, ETextCommit::Type 
 		DefaultValue = GetValue(TextBox_0) + FString(TEXT(",")) + GetValue(TextBox_1) + FString(TEXT(",")) + ValueStr;
 	}
 
-	//Set new default value
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, DefaultValue);
+	if(GraphPinObj->GetDefaultAsString() != DefaultValue)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeVectorPinValue", "Change Vector Pin Value" ) );
+		GraphPinObj->Modify();
+
+		//Set new default value
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, DefaultValue);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

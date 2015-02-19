@@ -122,8 +122,17 @@ void SGraphPinEnum::ComboBoxSelectionChanged( TSharedPtr<int32> NewSelection, ES
 	UEnum* EnumPtr = Cast<UEnum>(GraphPinObj->PinType.PinSubCategoryObject.Get());
 	check(EnumPtr);
 	check(*NewSelection < EnumPtr->NumEnums() - 1);
-	//Set new selection
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, EnumPtr->GetEnumName(*NewSelection));
+
+	FString EnumSelectionString = EnumPtr->GetEnumName(*NewSelection);
+
+	if(GraphPinObj->GetDefaultAsString() != EnumSelectionString)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeEnumPinValue", "Change Enum Pin Value" ) );
+		GraphPinObj->Modify();
+
+		//Set new selection
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, EnumSelectionString);
+	}
 }
 
 FString SGraphPinEnum::OnGetText() const 
