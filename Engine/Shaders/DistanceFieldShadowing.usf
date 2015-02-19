@@ -517,8 +517,6 @@ void DistanceFieldShadowingCS(
 	BRANCH
 	if (bTileShouldComputeShadowing)
 	{
-		FGBufferData GBufferData = GetGBufferData(ScreenUV);
-
 		{
 			// World space offset along the start of the ray to avoid incorrect self-shadowing
 			float RayStartOffset = 2 + RayStartOffsetDepthScale * SceneDepth;
@@ -559,6 +557,20 @@ void DistanceFieldShadowingCS(
 				bool bUseCulling = false;
 			#endif
 
+			FGBufferData GBufferData = GetGBufferData(ScreenUV);
+
+			float SubsurfaceDensity = 0;
+			bool bUseSubsurfaceTransmission = false;
+
+			BRANCH
+			if (IsSubsurfaceModel(GBufferData.ShadingModelID))
+			{
+				// Note: this has to match shadowmap logic
+				// Derive density from a heuristic using opacity, tweaked for useful falloff ranges and to give a linear depth falloff with opacity
+				SubsurfaceDensity = -.05f * log(1 - min(GBufferData.Opacity, .999f));
+				bUseSubsurfaceTransmission = true;
+			}
+
 			Result = ShadowRayTraceThroughCulledObjects(
 				WorldRayStart, 
 				WorldRayEnd, 
@@ -566,10 +578,12 @@ void DistanceFieldShadowingCS(
 				TanLightAngle, 
 				MinSphereRadius, 
 				MaxSphereRadius, 
+				SubsurfaceDensity,
 				CulledDataParameter, 
 				NumIntersectingObjects,
 				bUseCulling,
-				bUseScatterTileCulling);
+				bUseScatterTileCulling,
+				bUseSubsurfaceTransmission);
 		}
 	}
 

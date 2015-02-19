@@ -324,10 +324,12 @@ void RayTracedShadowHeightfieldsPS(
 			TanLightAngle, 
 			MinSphereRadius, 
 			MaxSphereRadius, 
+			0,
 			CulledDataStart, 
 			NumIntersectingObjects,
 			true,
-			true);
+			true,
+			false);
 	}
 	else
 	{

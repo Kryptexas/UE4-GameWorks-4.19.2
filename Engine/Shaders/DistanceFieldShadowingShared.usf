@@ -45,10 +45,12 @@ float ShadowRayTraceThroughCulledObjects(
 	float TanLightAngle, 
 	float MinSphereRadius, 
 	float MaxSphereRadius, 
+	float SubsurfaceDensity,
 	uint CulledDataParameter, 
 	uint NumIntersectingObjects,
 	uniform bool bUseCulling,
-	uniform bool bUseScatterTileCulling)
+	uniform bool bUseScatterTileCulling,
+	bool bUseSubsurfaceTransmission)
 {
 	float MinRayTime = MaxRayTime;
 	float MinConeVisibility = 1;
@@ -113,8 +115,6 @@ float ShadowRayTraceThroughCulledObjects(
 				float MinStepSize = 1.0f / (4 * MaxSteps);
 
 				float MinDistance = 1000000;
-				float3 IntersectionPosition = float3(0, 0, 0);
-
 				uint StepIndex = 0;
 
 				LOOP
@@ -134,22 +134,35 @@ float ShadowRayTraceThroughCulledObjects(
 
 					MinDistance = min(MinDistance, DistanceField);
 					float SphereRadius = clamp(TanLightAngle * SampleRayTime, VolumeMinSphereRadius, VolumeMaxSphereRadius);
+					float StepVisibility = saturate(DistanceField / SphereRadius);
 
-					MinConeVisibility = min(MinConeVisibility, saturate(DistanceField / SphereRadius));
-					IntersectionPosition = SampleVolumePosition;
+					if (bUseSubsurfaceTransmission)
+					{
+						// Determine the distance that the light traveled through the subsurface object
+						// This assumes that anything between this subsurface pixel and the light was also a subsurface material
+						float Thickness = SampleRayTime * UVScaleAndVolumeScale.w;
+						float SubsurfaceVisibility = saturate(exp(-Thickness * SubsurfaceDensity));
 
-					float StepDistance = max(DistanceField, MinStepSize);
+						// Prevent full occlusion in the range that SSS is effective
+						// Note: this may cause the trace to travel through negative regions of the distance field
+						// It also prevents visibility from ever going to 0
+						StepVisibility = max(StepVisibility, SubsurfaceVisibility);
+					}
+
+					MinConeVisibility = min(MinConeVisibility, StepVisibility);
+
+					float StepDistance = max(abs(DistanceField), MinStepSize);
 					SampleRayTime += StepDistance;
 
-					// Terminate the trace if we reached a negative area or went past the end of the ray
-					if (DistanceField < 0 
+					// Terminate the trace if we are fully occluded or went past the end of the ray
+					if (MinConeVisibility < .01f
 						|| SampleRayTime > IntersectionTimes.y * VolumeRayLength)
 					{
 						break;
 					}
 				}
 
-				if (MinDistance < 0 || StepIndex == MaxSteps)
+				if (MinConeVisibility < .01f || StepIndex == MaxSteps)
 				{
 					MinConeVisibility = 0;
 					MinRayTime = min(MinRayTime, SampleRayTime * UVScaleAndVolumeScale.w);
