@@ -4,6 +4,7 @@
 
 #include "WorldTreeItem.h"
 #include "LevelEditor.h"
+#include "EditorActorFolders.h"
 
 #define LOCTEXT_NAMESPACE "SceneOutliner_WorldTreeItem"
 
