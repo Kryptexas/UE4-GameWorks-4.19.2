@@ -841,7 +841,7 @@ float3 ComputeVirtualPointLighting(uint VPLIndex, uint InstancedVPLIndex, uint R
 						StepBentNormalBuffer[RelativeRecordIndex * NUM_VISIBILITY_STEPS + LowerStepIndex + 1].xyz, 
 						saturate(LerpAlpha));
 					
-					float Shadow = GetVPLOcclusion(InterpolatedBentNormal, VPLDirection);
+					float Shadow = GetVPLOcclusion(InterpolatedBentNormal, VPLDirection, .5f, 1);
 
 				#else
 

@@ -2127,6 +2127,7 @@ public:
 		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
 		DebugBuffer.Bind(Initializer.ParameterMap, TEXT("DebugBuffer"));
 		DistanceFadeScale.Bind(Initializer.ParameterMap, TEXT("DistanceFadeScale"));
+		SelfOcclusionReplacement.Bind(Initializer.ParameterMap, TEXT("SelfOcclusionReplacement"));
 	}
 
 	void SetParameters(
@@ -2164,6 +2165,9 @@ public:
 
 		const float DistanceFadeScaleValue = 1.0f / ((1.0f - GAOViewFadeDistanceScale) * GAOMaxViewDistance);
 		SetShaderValue(RHICmdList, ShaderRHI, DistanceFadeScale, DistanceFadeScaleValue);
+
+		extern float GVPLSelfOcclusionReplacement;
+		SetShaderValue(RHICmdList, ShaderRHI, SelfOcclusionReplacement, GVPLSelfOcclusionReplacement);
 	}
 
 	// FShader interface.
@@ -2181,6 +2185,7 @@ public:
 		Ar << DistanceFieldNormalSampler;
 		Ar << DebugBuffer;
 		Ar << DistanceFadeScale;
+		Ar << SelfOcclusionReplacement;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -2197,6 +2202,7 @@ private:
 	FShaderResourceParameter DistanceFieldNormalSampler;
 	FShaderResourceParameter DebugBuffer;
 	FShaderParameter DistanceFadeScale;
+	FShaderParameter SelfOcclusionReplacement;
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldAOCombinePS<true>,TEXT("DistanceFieldSurfaceCacheLighting"),TEXT("AOCombinePS"),SF_Pixel);

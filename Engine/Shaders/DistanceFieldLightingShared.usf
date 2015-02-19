@@ -297,11 +297,9 @@ float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float 
 	return Intersection;
 }
 
-float GetVPLOcclusion(float3 BentNormalAO, float3 NormalizedVectorToVPL)
+float GetVPLOcclusion(float3 BentNormalAO, float3 NormalizedVectorToVPL, float VPLConeAngle, float VPLOcclusionStrength)
 {
 	float BentNormalLength = length(BentNormalAO);
-	float VPLConeAngle = .5f;
-	float VPLOcclusionStrength = 1;
 	float UnoccludedAngle = BentNormalLength * PI / VPLOcclusionStrength;
 	float AngleBetween = acos(dot(BentNormalAO, NormalizedVectorToVPL) / max(BentNormalLength, .0001f));
 	float Visibility = ApproximateConeConeIntersection(VPLConeAngle, UnoccludedAngle, AngleBetween);

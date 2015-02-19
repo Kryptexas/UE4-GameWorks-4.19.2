@@ -89,6 +89,14 @@ FAutoConsoleVariableRef CVarVPLSpreadUpdateOver(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
+float GVPLSelfOcclusionReplacement = .3f;
+FAutoConsoleVariableRef CVarVPLSelfOcclusionReplacement(
+	TEXT("r.VPLSelfOcclusionReplacement"),
+	GVPLSelfOcclusionReplacement,
+	TEXT(""),
+	ECVF_Cheat | ECVF_RenderThreadSafe
+	);
+
 TGlobalResource<FVPLResources> GVPLResources;
 TGlobalResource<FVPLResources> GCulledVPLResources;
 

@@ -347,6 +347,7 @@ Buffer<float4> DebugBuffer;
 
 // 1 / ((1 - FadeDistanceFraction) * AOMaxViewDistance)
 float DistanceFadeScale;
+float SelfOcclusionReplacement;
 
 /** Normalizes the splatted surface cache values, packs depth in alpha. */
 void AOCombinePS(
@@ -391,6 +392,11 @@ void AOCombinePS(
 
 		#if SUPPORT_IRRADIANCE
 			OutIrradiance.rgb = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, UVAndScreenPos.xy, 0).xyz / BentNormalAccumulation.w;
+
+			if (!bHasDistanceFieldRepresentation && !bHasHeightfieldRepresentation)
+			{
+				OutIrradiance.rgb *= SelfOcclusionReplacement;
+			}
 		#endif
 	}
 	else
@@ -416,79 +422,6 @@ void AOCombinePS(
 		OutBentNormal.a = abs(OutBentNormal.a);
 	}
 
-#endif
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define VISUALIZE_SCENE_COLOR_GATHER 0
-#define VISUALIZE_DEBUG 0
-#if VISUALIZE_DEBUG && SUPPORT_IRRADIANCE
-
-	float2 ScreenPosition = (UVAndScreenPos.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
-
-	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
-	float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-	float3 ShadingPosition = DebugBuffer[0].xyz;
-
-	float Distance = length(OpaqueWorldPosition - ShadingPosition);
-	float ScaledDistance = pow(Distance / 20, .01f);
-	OutIrradiance.rgb = 2 * (1 - saturate(ScaledDistance)) * float3(.1f, 1, .1f);
-
-	for (int i = 0; i < 9; i++)
-	{
-		float4 GatheredSceneColorAndVisibility = DebugBuffer[1 + i * 3 + 2];
-
-		for (int j = 0; j < 1; j++)
-		{
-			float4 ClosestPositionAndRadius = DebugBuffer[1 + i * 3 + j];
-			float Distance2 = length(OpaqueWorldPosition - ClosestPositionAndRadius.xyz) / ClosestPositionAndRadius.w;
-			Distance2 = pow(Distance2, .5f);
-
-			if (Distance2 < 1)
-			{
-				//OutIrradiance.rgb += (1 - saturate(Distance2)) * 2 * float3(1, .1f, .1f) * (1 - GatheredSceneColorAndVisibility.w);
-				#if !VISUALIZE_SCENE_COLOR_GATHER
-					//OutIrradiance.rgb += GatheredSceneColorAndVisibility.xyz * (1 - GatheredSceneColorAndVisibility.w);
-				#endif
-			}
-
-			//if (GatheredSceneColorAndVisibility.w < .9f)
-			{
-				OutIrradiance.rgb += (1 - saturate(abs(Distance2 - 1) * 100)) * .4f * float3(1, .1f, .1f);
-			}
-		}
-	}
-
-	#if VISUALIZE_SCENE_COLOR_GATHER
-		
-		float SphereRadius = 50;
-
-		if (Distance < SphereRadius)
-		{
-			float3 ConePositionAtClosestToOccluder = ShadingPosition;
-			float4 ClipPosition = mul(float4(ConePositionAtClosestToOccluder, 1), View.WorldToClip);
-			float2 ScreenUV = ScreenAlignedPosition(ClipPosition).xy;
-			float UVDiskRadius = SphereRadius / ClipPosition.w * View.ViewToClip[0][0] * .5f;
-
-			uint NumSamplesPerCone = 81;
-
-			float3 GatheredColor = 0;
-			float GatheredWeight = .0001f;
-
-			for (uint SampleIndex = 0; SampleIndex < NumSamplesPerCone; SampleIndex++)
-			{
-				float2 Random = Hammersley(SampleIndex, NumSamplesPerCone, uint2(0, 0));
-				float2 UVOffset = UniformSampleDisk(Random);
-				float2 SampleUV = ScreenUV + UVOffset * UVDiskRadius;
-				float3 SampleSceneColor = CalcSceneColor(SampleUV);
-				float SampleSceneDepth = CalcSceneDepth(SampleUV);
-				float Weight = 1 - saturate(abs(SampleSceneDepth - ClipPosition.w) / SphereRadius);
-				GatheredColor += SampleSceneColor * Weight;
-				GatheredWeight += Weight;
-			} 
-		
-			OutIrradiance.rgb = GatheredColor / GatheredWeight;
-		}
-	#endif
 #endif
 }
 

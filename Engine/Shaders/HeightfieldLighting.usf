@@ -356,7 +356,7 @@ void LightHeightfieldsPS(
 	float3 WorldHeightfieldNormal = GetGlobalHeightfieldNormal(Input.GlobalUV);
 	float3 WorldHeightfieldShadingPosition = GetGlobalHeightfieldWorldPosition(Input.LocalPosition, Input.GlobalUV, GetLocalToWorld(Input.HeightfieldIndex));
 	
-	float4 LightVector = mul(WorldHeightfieldShadingPosition, WorldToLight);
+	float4 LightVector = mul(float4(WorldHeightfieldShadingPosition, 1), WorldToLight);
 	LightVector.xyz /= LightVector.w;
 
 	float3 LightFunction = GetLightFunctionColor(LightVector.xyz, WorldHeightfieldShadingPosition);
@@ -536,7 +536,7 @@ float3 ComputeVirtualPointLighting(float3 WorldPosition, float3 WorldNormal, flo
 				#endif
 
 				float CosTheta = DirectionDot / Distance;
-				float Shadow = GetVPLOcclusion(BentNormal, VPLDirection);
+				float Shadow = GetVPLOcclusion(BentNormal, VPLDirection, .5f, .5f);
 				float VPLCosineLobe = saturate(VPLNormalDot / Distance);
 
 				Irradiance += (saturate(CosTheta) * VPLCosineLobe * DistanceAttenuation * Shadow) * VPLFlux;
@@ -550,8 +550,8 @@ float3 ComputeVirtualPointLighting(float3 WorldPosition, float3 WorldNormal, flo
 
 float3 GatherHeightfieldLighting(
 	float3 WorldPosition,
-	float3 BentNormal,
 	float3 WorldNormal,
+	float3 BentNormal,
 	float2 ShadingGlobalUV, 
 	float2 GlobalUVExtents,
 	float2 GlobalTexelSize, 
