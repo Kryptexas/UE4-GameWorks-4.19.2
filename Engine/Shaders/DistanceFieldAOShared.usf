@@ -146,3 +146,28 @@ bool SphereIntersectConeWithDepthRanges(float4 SphereCenterAndRadius, float3 Con
 	return false;
 }
 
+Buffer<float> RecordConeVisibility;
+float BentNormalNormalizeFactor;
+
+float3 ComputeBentNormal(float3 RecordWorldNormal, uint RelativeRecordIndex)
+{
+	float3 TangentX;
+	float3 TangentY;
+	FindBestAxisVectors2(RecordWorldNormal, TangentX, TangentY);
+
+	float3 UnoccludedDirection = 0;
+
+	for (uint ConeIndex = 0; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex++)
+	{
+		float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
+		float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * RecordWorldNormal;
+
+		float ConeVisibility = RecordConeVisibility[RelativeRecordIndex * NUM_CONE_DIRECTIONS + ConeIndex];
+		UnoccludedDirection += ConeVisibility * RotatedConeDirection;
+	}
+
+	float InvNumSamples = 1.0f / (float)NUM_CONE_DIRECTIONS;
+	UnoccludedDirection = UnoccludedDirection * (BentNormalNormalizeFactor * InvNumSamples);
+
+	return UnoccludedDirection;
+}

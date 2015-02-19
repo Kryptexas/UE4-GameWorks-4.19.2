@@ -268,24 +268,76 @@ void ShadowHeightfieldsPS(
 		clip(-1);
 	}
 
-	float4 HomogeneousShadowPosition = mul(float4(WorldHeightfieldShadingPosition, 1), WorldToShadow);
-	float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+	float4x4 WorldToLocal = GetWorldToLocal(Input.HeightfieldIndex);
+	float WorldToLocalScale = length(WorldToLocal[0].xyz);
+	float HeightfieldTexelSize = 1.0f / WorldToLocalScale;
 
-	float Shadow = 1;
+	float3 WorldHeightfieldNormal = GetGlobalHeightfieldNormal(Input.GlobalUV);
+	// Bias away from the surface, mostly to avoid grass shadowing
+	WorldHeightfieldShadingPosition += .3f * HeightfieldTexelSize * WorldHeightfieldNormal;
 
-	// Treat as unshadowed if the texel is outside of the shadow map
-	if (all(ShadowUVs >= ShadowmapMinMax.xy && ShadowUVs <= ShadowmapMinMax.zw))
+#define FILTER_SHADOWMAP_LOOKUP 1
+#if FILTER_SHADOWMAP_LOOKUP
+
+	float3 TangentX;
+	float3 TangentY;
+	FindBestAxisVectors2(WorldHeightfieldNormal, TangentX, TangentY);
+
+	float HalfNumSamples = 1;
+	float Visibility = 0;
+	float TotalWeight = 0;
+
+	for (float YOffset = -HalfNumSamples; YOffset <= HalfNumSamples; YOffset++)
 	{
-		// Sample the shadowmap depth and determine if this texel is shadowed
-		float ShadowDepth = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowUVs, 0).x;
-		Shadow = HomogeneousShadowPosition.z < ShadowDepth + ShadowDepthBias;
+		for (float XOffset = -HalfNumSamples; XOffset <= HalfNumSamples; XOffset++)
+		{
+			float2 SampleOffset = float2(XOffset, YOffset) * (.5f * HeightfieldTexelSize / HalfNumSamples);
+			float3 WorldSamplePosition = WorldHeightfieldShadingPosition + TangentX * SampleOffset.x + TangentY * SampleOffset.y;
+
+			float4 HomogeneousShadowPosition = mul(float4(WorldSamplePosition, 1), WorldToShadow);
+			float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+
+			if (all(ShadowUVs >= ShadowmapMinMax.xy && ShadowUVs <= ShadowmapMinMax.zw))
+			{
+				// Sample the shadowmap depth and determine if this texel is shadowed
+				float ShadowDepth = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowUVs, 0).x;
+				Visibility += HomogeneousShadowPosition.z < ShadowDepth + ShadowDepthBias;
+				TotalWeight++;
+			}
+		}
+	}
+
+	if (TotalWeight > 0)
+	{
+		Visibility /= TotalWeight;
 	}
 	else
 	{
 		clip(-1);
 	}
 
-	OutColor = float4(Shadow, 0, 0, 0);
+#else
+
+	float4 HomogeneousShadowPosition = mul(float4(WorldHeightfieldShadingPosition, 1), WorldToShadow);
+	float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+
+	float Visibility = 1;
+
+	// Treat as unshadowed if the texel is outside of the shadow map
+	if (all(ShadowUVs >= ShadowmapMinMax.xy && ShadowUVs <= ShadowmapMinMax.zw))
+	{
+		// Sample the shadowmap depth and determine if this texel is shadowed
+		float ShadowDepth = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowUVs, 0).x;
+		Visibility = HomogeneousShadowPosition.z < ShadowDepth + ShadowDepthBias;
+	}
+	else
+	{
+		clip(-1);
+	}
+
+#endif
+
+	OutColor = float4(Visibility, 0, 0, 0);
 }
 
 float3 LightDirection;
@@ -301,6 +353,14 @@ void RayTracedShadowHeightfieldsPS(
 
 	if (ViewDistance > CascadeDepthMinMax.x && ViewDistance < CascadeDepthMinMax.y)
 	{
+		float4x4 WorldToLocal = GetWorldToLocal(Input.HeightfieldIndex);
+		float WorldToLocalScale = length(WorldToLocal[0].xyz);
+		float HeightfieldTexelSize = 1.0f / WorldToLocalScale;
+
+		float3 WorldHeightfieldNormal = GetGlobalHeightfieldNormal(Input.GlobalUV);
+		// Bias away from the surface, mostly to avoid grass shadowing
+		OpaqueWorldPosition += .3f * HeightfieldTexelSize * WorldHeightfieldNormal;
+
 		uint NumIntersectingObjects = GetCulledNumObjects();
 		uint CulledDataStart = 0;
 
@@ -459,8 +519,6 @@ float3 SampleHeightfieldLighting(float2 GlobalUV)
 	return Texture2DSampleLevel(HeightfieldLighting, HeightfieldLightingSampler, GlobalUV, 0).xyz;
 }
 
-uint NumHemisphereSamples;
-
 bool RayTraceHeightfield(float3 LocalRayStart, float3 LocalRayEnd, float4 GlobalUVScaleBias, out float IntersectionTime, out float2 IntersectionUV)
 {
 	IntersectionUV = 0;
@@ -535,6 +593,7 @@ float3 ComputeVirtualPointLighting(float3 WorldPosition, float3 WorldNormal, flo
 
 				float CosTheta = DirectionDot / Distance;
 				float Shadow = GetVPLOcclusion(BentNormal, VPLDirection, .5f, .5f);
+
 				float VPLCosineLobe = saturate(VPLNormalDot / Distance);
 
 				Irradiance += (saturate(CosTheta) * VPLCosineLobe * DistanceAttenuation * Shadow) * VPLFlux;
@@ -617,13 +676,7 @@ void CalculateHeightfieldIrradianceCS(
 	BRANCH
 	if (RecordIndex < NumRecords)
 	{
-		float3 WorldNormal = IrradianceCacheNormal[RecordIndex].xyz;
 		float3 WorldPosition = PositionAndRadius.xyz;
-		float3 BentNormal = IrradianceCacheBentNormal[RecordIndex].xyz;
-
-		float3 TangentX;
-		float3 TangentY;
-		FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
 
 		//@todo - constant time grid lookup
 		LOOP
@@ -638,6 +691,10 @@ void CalculateHeightfieldIrradianceCS(
 			if (all(HeightfieldUV > MinMaxHeightfieldUV.xy) 
 				&& all(HeightfieldUV < MinMaxHeightfieldUV.zw))
 			{
+				float3 WorldNormal = IrradianceCacheNormal[RecordIndex].xyz;
+				// Note: can't get this from IrradianceCacheBentNormal as that hasn't been computed yet to avoid heightfield self-occlusion
+				float3 BentNormal = ComputeBentNormal(WorldNormal, RelativeRecordIndex);
+
 				float4 GlobalUVScaleBias = GetHeightfieldGlobalScaleBias(HeightfieldIndex);
 				float2 GlobalUV = LocalPosition.xy * GlobalUVScaleBias.xy + GlobalUVScaleBias.zw;
 				float4x4 LocalToWorld = GetLocalToWorld(HeightfieldIndex);

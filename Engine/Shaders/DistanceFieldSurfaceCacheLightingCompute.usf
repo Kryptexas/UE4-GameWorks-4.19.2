@@ -681,7 +681,6 @@ void PopulateCacheCS(
 	}
 }
 
-float BentNormalNormalizeFactor;
 float TanConeHalfAngle;
 float RecordRadiusScale;
 
@@ -938,7 +937,6 @@ void ConeTraceOcclusionCS(
 }
 
 RWBuffer<float4> RWIrradianceCacheBentNormal;
-Buffer<float> RecordConeVisibility;
 
 /**  */
 [numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
@@ -955,24 +953,7 @@ void CombineConesCS(
 	if (RecordIndex < NumRecords)
 	{
 		float3 RecordWorldNormal = IrradianceCacheNormal[RecordIndex].xyz;
-
-		float3 TangentX;
-		float3 TangentY;
-		FindBestAxisVectors2(RecordWorldNormal, TangentX, TangentY);
-
-		float3 UnoccludedDirection = 0;
-
-		for (uint ConeIndex = 0; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex++)
-		{
-			float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
-			float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * RecordWorldNormal;
-
-			float ConeVisibility = RecordConeVisibility[DispatchThreadId.x * NUM_CONE_DIRECTIONS + ConeIndex];
-			UnoccludedDirection += ConeVisibility * RotatedConeDirection;
-		}
-
-		float InvNumSamples = 1.0f / (float)NUM_CONE_DIRECTIONS;
-		UnoccludedDirection = UnoccludedDirection * (BentNormalNormalizeFactor * InvNumSamples);
+		float3 UnoccludedDirection = ComputeBentNormal(RecordWorldNormal, DispatchThreadId.x);
 
 		RWIrradianceCacheBentNormal[RecordIndex] = float4(UnoccludedDirection, 0);
 	}

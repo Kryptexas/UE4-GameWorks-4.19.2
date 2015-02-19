@@ -3936,6 +3936,20 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(
 					}
 				}
 
+				if (bUseDistanceFieldGI)
+				{
+					extern void ComputeIrradianceForSamples(
+						int32 DepthLevel,
+						FRHICommandListImmediate& RHICmdList,
+						const FViewInfo& View,
+						const FScene* Scene,
+						const FDistanceFieldAOParameters& Parameters,
+						FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources);
+
+					ComputeIrradianceForSamples(DepthLevel, RHICmdList, View, Scene, Parameters, &GTemporaryIrradianceCacheResources);
+				}
+
+				// Compute heightfield occlusion after heightfield GI, otherwise it self-shadows incorrectly
 				View.HeightfieldLightingViewInfo.ComputeOcclusionForSamples(View, RHICmdList, GTemporaryIrradianceCacheResources, DepthLevel, Parameters);
 
 				{	
@@ -3948,6 +3962,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(
 					ComputeShader->UnsetParameters(RHICmdList);
 				}
 
+				// Compute and store the final bent normal now that all occlusion sources have been computed (distance fields, heightfields)
 				{
 					TShaderMapRef<FCombineConesCS> ComputeShader(View.ShaderMap);
 
@@ -3956,19 +3971,6 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(
 					DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
 					ComputeShader->UnsetParameters(RHICmdList);
-				}
-
-				if (bUseDistanceFieldGI)
-				{
-					extern void ComputeIrradianceForSamples(
-						int32 DepthLevel,
-						FRHICommandListImmediate& RHICmdList,
-						const FViewInfo& View,
-						const FScene* Scene,
-						const FDistanceFieldAOParameters& Parameters,
-						FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources);
-
-					ComputeIrradianceForSamples(DepthLevel, RHICmdList, View, Scene, Parameters, &GTemporaryIrradianceCacheResources);
 				}
 			}
 

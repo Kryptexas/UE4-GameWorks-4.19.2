@@ -682,7 +682,6 @@ float RayTraceThroughGlobalObjects(
 
 Buffer<float> RecordConeData;
 RWBuffer<float4> RWStepBentNormal;
-float BentNormalNormalizeFactor;
 
 /**  */
 [numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
