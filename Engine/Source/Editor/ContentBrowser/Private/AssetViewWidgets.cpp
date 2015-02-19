@@ -197,9 +197,9 @@ void SAssetViewItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 	bDraggedOver = false;
 
 	if (ValidateDragDrop(MyGeometry, DragDropEvent))
-		{
-				bDraggedOver = true;
-			}
+	{
+		bDraggedOver = true;
+	}
 }
 	
 void SAssetViewItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
@@ -212,13 +212,13 @@ void SAssetViewItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 			Operation->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
 			if (Operation->IsOfType<FAssetDragDropOp>())
-		{
+			{
 				TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
-			DragDropOp->ResetToDefaultToolTip();
+				DragDropOp->ResetToDefaultToolTip();
+			}
 		}
-	}
 
-	bDraggedOver = false;
+		bDraggedOver = false;
 	}
 
 	bDraggedOver = false;
@@ -229,10 +229,10 @@ FReply SAssetViewItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropE
 	bDraggedOver = false;
 
 	if (ValidateDragDrop(MyGeometry, DragDropEvent))
-		{
-				bDraggedOver = true;
-			return FReply::Handled();
-		}
+	{
+		bDraggedOver = true;
+		return FReply::Handled();
+	}
 
 	return FReply::Unhandled();
 }
@@ -254,13 +254,13 @@ FReply SAssetViewItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 		if (Operation->IsOfType<FExternalDragOperation>())
 		{
 			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(Operation);
-				OnFilesDragDropped.ExecuteIfBound(DragDropOp->GetFiles(), StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
+			OnFilesDragDropped.ExecuteIfBound(DragDropOp->GetFiles(), StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
 			return FReply::Handled();
 		}
 		else if (Operation->IsOfType<FAssetPathDragDropOp>())
 		{
 			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>(Operation);
-				OnPathsDragDropped.ExecuteIfBound(DragDropOp->PathNames, StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
+			OnPathsDragDropped.ExecuteIfBound(DragDropOp->PathNames, StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
 			return FReply::Handled();
 		}
 		else if (Operation->IsOfType<FAssetDragDropOp>())
@@ -724,10 +724,10 @@ void SAssetViewItem::UpdatePackageDirtyState()
 	// Only update the dirty state for non-temporary asset items that aren't a built in script
 	if ( AssetItem.IsValid() && !AssetItem->IsTemporaryItem() && AssetItem->GetType() != EAssetItemType::Folder && !FPackageName::IsScriptPackage(CachedPackageName) )
 	{
-	if ( AssetPackage.IsValid() )
-	{
-		bNewIsDirty = AssetPackage->IsDirty();
-	}
+		if ( AssetPackage.IsValid() )
+		{
+			bNewIsDirty = AssetPackage->IsDirty();
+		}
 	}
 
 	if ( bNewIsDirty != bPackageDirty )
@@ -750,10 +750,10 @@ void SAssetViewItem::UpdateSourceControlState(float InDeltaTime)
 	{
 		// Only update the SCC state for non-temporary asset items that aren't a built in script
 		if ( AssetItem.IsValid() && !AssetItem->IsTemporaryItem() && AssetItem->GetType() != EAssetItemType::Folder && !FPackageName::IsScriptPackage(CachedPackageName) )
-			{
-				// Request the most recent SCC state for this asset
-				ISourceControlModule::Get().QueueStatusUpdate(CachedPackageFileName);
-			}
+		{
+			// Request the most recent SCC state for this asset
+			ISourceControlModule::Get().QueueStatusUpdate(CachedPackageFileName);
+		}
 
 		bSourceControlStateRequested = true;
 	}
