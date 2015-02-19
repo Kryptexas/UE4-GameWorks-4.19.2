@@ -350,7 +350,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 				.AutoWidth()
 				[
 					SNew(SImage)
-					.Image( FClassIconFinder::FindIconForClass( Entry->GetIconOverrideBrushName() == NAME_None ? Entry->GetComponentClass() : nullptr, Entry->GetIconOverrideBrushName() ) )
+					.Image( FClassIconFinder::FindIconForClass( Entry->GetIconOverrideBrushName() == NAME_None ? Entry->GetIconClass() : nullptr, Entry->GetIconOverrideBrushName() ) )
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()

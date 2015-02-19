@@ -79,7 +79,7 @@ public:
 
 		TSharedRef<SOverlay> OverlayWidget = SNew(SOverlay);
 
-		UpdateThumbnailClass(AssetData.AssetName, Class);
+		UpdateThumbnailClass();
 
 		ClassThumbnailBrushOverride = InArgs._ClassThumbnailBrushOverride;
 
@@ -224,38 +224,10 @@ public:
 
 	}
 
-	void UpdateThumbnailClass(const FName& InAssetName, UClass* InAssetClass)
+	void UpdateThumbnailClass()
 	{
-		ThumbnailClass = InAssetClass;
-		bIsClassType = false;
-
-		if( InAssetClass == UClass::StaticClass() )
-		{
-			ThumbnailClass = FindObject<UClass>(ANY_PACKAGE, *InAssetName.ToString());
-			bIsClassType = true;
-		}
-		else if( InAssetClass == UBlueprint::StaticClass() )
-		{
-			static const FName NativeParentClassTag = "NativeParentClass";
-			static const FName ParentClassTag = "ParentClass";
-
-			// We need to use the asset data to get the parent class as the blueprint may not be loaded
-			const FAssetData& AssetData = AssetThumbnail->GetAssetData();
-			const FString* ParentClassNamePtr = AssetData.TagsAndValues.Find(NativeParentClassTag);
-			if(!ParentClassNamePtr)
-			{
-				ParentClassNamePtr = AssetData.TagsAndValues.Find(ParentClassTag);
-			}
-			if(ParentClassNamePtr && !ParentClassNamePtr->IsEmpty())
-			{
-				UObject* Outer = nullptr;
-				FString ParentClassName = *ParentClassNamePtr;
-				ResolveName(Outer, ParentClassName, false, false);
-				ThumbnailClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
-			}
-
-			bIsClassType = true;
-		}
+		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
+		ThumbnailClass = FClassIconFinder::GetIconClassForAssetData(AssetData, &bIsClassType);
 	}
 
 	FSlateColor GetHintBackgroundColor() const
@@ -336,7 +308,7 @@ private:
 			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Class);
 		}
 
-		UpdateThumbnailClass(AssetData.AssetName, Class);
+		UpdateThumbnailClass();
 
 		AssetColor = FLinearColor(1.f, 1.f, 1.f, 1.f);
 		if ( AssetTypeActions.IsValid() )

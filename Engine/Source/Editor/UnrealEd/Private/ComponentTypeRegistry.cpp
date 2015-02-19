@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 
 #include "AssetRegistryModule.h"
+#include "ClassIconFinder.h"
 #include "ComponentTypeRegistry.h"
 #include "EdGraphSchema_K2.h"
 #include "KismetEditorUtilities.h"
@@ -264,22 +265,25 @@ void FComponentTypeRegistryData::ForceRefreshComponentList()
 
 		for (auto OnDiskClass : OnDiskClasses)
 		{
-			FName AssetPath;
+			FAssetData AssetData;
 			FString FixedString = OnDiskClass.ToString();
 			FixedString.RemoveFromEnd(TEXT("_C"));
 			for (auto Blueprint : BlueprintAssetData)
 			{
 				if (Blueprint.AssetName.ToString() == FixedString)
 				{
-					AssetPath = Blueprint.ObjectPath;
+					AssetData = Blueprint;
 					break;
 				}
 			}
 
-			FComponentTypeEntry Entry = { FixedString, AssetPath.ToString(), nullptr };
+			FComponentTypeEntry Entry = { FixedString, AssetData.ObjectPath.ToString(), nullptr };
 			ComponentTypeList.Add(Entry);
 
-			FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(BlueprintComponents, FixedString, AssetPath, bIncludeInFilter));
+			// The blueprint is unloaded, so we need to work out which icon to use for it using its asset data
+			const UClass* BlueprintIconClass = FClassIconFinder::GetIconClassForAssetData(AssetData);
+
+			FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(BlueprintComponents, FixedString, AssetData.ObjectPath, BlueprintIconClass, bIncludeInFilter));
 			SortedClassList.Add(NewEntry);
 		}
 	}
