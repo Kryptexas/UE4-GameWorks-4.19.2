@@ -834,6 +834,20 @@ X11_DispatchEvent(_THIS)
                 SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_CLOSE, 0, 0);
                 break;
             }
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+            else if ((xevent.xclient.message_type == videodata->WM_PROTOCOLS) &&
+                (xevent.xclient.format == 32) &&
+                (xevent.xclient.data.l[0] == videodata->WM_TAKE_FOCUS)) {
+
+#ifdef DEBUG_XEVENTS
+                printf("window %p: WM_TAKE_FOCUS\n", data);
+#endif
+                SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_TAKE_FOCUS, 0, 0);
+                break;
+            }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
         }
         break;
 
@@ -865,6 +879,11 @@ X11_DispatchEvent(_THIS)
             } else {
                 if(xevent.xbutton.button == Button1) {
                     if (ProcessHitTest(_this, data, &xevent)) {
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+                        SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_HIT_TEST, 0, 0);
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
                         break;  /* don't pass this event on to app. */
                     }
                 }

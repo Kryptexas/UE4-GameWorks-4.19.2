@@ -29,6 +29,8 @@ FLinuxWindow::FLinuxWindow()
 	, OLEReferenceCount(0)
 	, bIsVisible( false )
 	, bWasFullscreen( false )
+	, bIsPopupWindow(false)
+	, bIsTooltipWindow(false)
 {
 	PreFullscreenWindowRect.left = PreFullscreenWindowRect.top = PreFullscreenWindowRect.right = PreFullscreenWindowRect.bottom = 0;
 }
@@ -43,6 +45,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 {
 	Definition = InDefinition;
 	OwningApplication = Application;
+	ParentWindow = InParent;
 
 	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
 	{
@@ -93,14 +96,31 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		}
 	}
 
-	if (Definition->AcceptsInput)
-	{
-		WindowStyle |= SDL_WINDOW_ACCEPTS_INPUT;
-	} 
-
 	if ( Definition->HasSizingFrame )
 	{
 		WindowStyle |= SDL_WINDOW_RESIZABLE;
+	}
+
+	// Does this combination tell us that this is a tooltip window? Need to pass information to
+	// SDL2 (WM) about the type of the window for ICCCM compatibility.
+	if( !InParent.IsValid() && !Definition->HasOSWindowBorder && 
+		!Definition->AcceptsInput && Definition->IsTopmostWindow && 
+		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame)
+	{
+		// This here is a tooltip window.
+		WindowStyle |= SDL_WINDOW_TOOLTIP;
+		bIsTooltipWindow = true;
+	} 
+
+	// Does this combination tell us that this is a menu window? Need to pass information to
+	// SDL2 (WM) about the type of the window for ICCCM compatibility.
+	if( InParent.IsValid() && !Definition->HasOSWindowBorder && 
+		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
+		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame)
+	{
+		// This here is a pop up window.
+		WindowStyle |= SDL_WINDOW_POPUP_MENU;
+		bIsPopupWindow = true;
 	}
 
 	//	The SDL window doesn't need to be reshaped.
@@ -133,6 +153,9 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	{
 		SetOpacity( Definition->Opacity );
 	}
+
+	// TODO This can be removed later - for debugging purposes.
+	WindowSDLID = SDL_GetWindowID( HWnd );
 }
 
 SDL_HitTestResult FLinuxWindow::HitTest( SDL_Window *SDLwin, const SDL_Point *point, void *data )
@@ -190,13 +213,14 @@ void FLinuxWindow::MoveWindowTo( int32 X, int32 Y )
  */
 void FLinuxWindow::BringToFront( bool bForce )
 {
-	if (bForce)
+	// TODO Forces the the window to top of z order? Only that? SDL is using XMapRaised which changes the z order
+	// so we do not steal focus here I guess.
+	if(bForce)
 	{
 		SDL_RaiseWindow(HWnd);
 	}
 	else
 	{
-		// FIXME: we don't bring it to front here now
 		SDL_ShowWindow(HWnd);
 	}
 }
@@ -204,8 +228,8 @@ void FLinuxWindow::BringToFront( bool bForce )
 /** Native windows should implement this function by asking the OS to destroy OS-specific resource associated with the window (e.g. Win32 window handle) */
 void FLinuxWindow::Destroy()
 {
-	OwningApplication->RemoveEventWindow( HWnd );
 	SDL_DestroyWindow( HWnd );
+	OwningApplication->SendDestroyEvent(HWnd);
 }
 
 /** Native window should implement this function by performing the equivalent of the Win32 minimize-to-taskbar operation */
@@ -449,7 +473,7 @@ bool FLinuxWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32
 /** Sets focus on the native window */
 void FLinuxWindow::SetWindowFocus()
 {
-	SDL_SetWindowActive( HWnd );
+	SDL_SetWindowInputFocus( HWnd );
 }
 
 /**
@@ -469,8 +493,8 @@ void FLinuxWindow::SetOpacity( const float InOpacity )
  */
 void FLinuxWindow::Enable( bool bEnable )
 {
-	//	SDL2 doesn't offer such functionality...
-	//  Could be added to ds_extenstion
+	// Different WMs handle this in different way.
+	// TODO: figure out if ignoring this causes problems for Slate
 }
 
 /** @return true if native window exists underneath the coordinates */
@@ -503,9 +527,38 @@ void FLinuxWindow::SetText( const TCHAR* const Text )
 	SDL_SetWindowTitle( HWnd, TCHAR_TO_ANSI(Text));
 }
 
-
 bool FLinuxWindow::IsRegularWindow() const
 {
 	return Definition->IsRegularWindow;
 }
 
+bool FLinuxWindow::IsPopupMenuWindow() const
+{
+	return bIsPopupWindow;
+}
+
+bool FLinuxWindow::IsTooltipWindow() const
+{
+	return bIsTooltipWindow;
+}
+
+uint32 FLinuxWindow::GetID() const
+{
+	return WindowSDLID;
+}
+
+void FLinuxWindow::LogInfo() 
+{
+	UE_LOG(LogLinuxWindow, Warning, TEXT("---------- Windows Properties -----------)"));
+	UE_LOG(LogLinuxWindow, Warning, TEXT("InParent: %d"), ParentWindow.IsValid());
+	UE_LOG(LogLinuxWindow, Warning, TEXT("HasOSWindowBorder: %d"), Definition->HasOSWindowBorder);
+	UE_LOG(LogLinuxWindow, Warning, TEXT("IsTopmostWindow: %d"), Definition->IsTopmostWindow);
+	UE_LOG(LogLinuxWindow, Warning, TEXT("HasSizingFrame: %d"), Definition->HasSizingFrame);
+	UE_LOG(LogLinuxWindow, Warning, TEXT("AppearsInTaskbar: %d"), Definition->AppearsInTaskbar);	
+	UE_LOG(LogLinuxWindow, Warning, TEXT("AcceptsInput: %d"), Definition->AcceptsInput);	
+}
+
+const TSharedPtr< FLinuxWindow >& FLinuxWindow::GetParent() const
+{
+	return ParentWindow;
+}

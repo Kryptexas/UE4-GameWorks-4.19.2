@@ -118,7 +118,8 @@ typedef enum
     SDL_WINDOW_TOOLTIP       = 0x04000000,      /**< window should not appear on taskbar nor accept input> */
     SDL_WINDOW_ALWAYS_ON_TOP = 0x02000000,      /**< window should always be above others> */
     SDL_WINDOW_SKIP_TASKBAR  = 0x01000000,      /**< window should not added to the taskbar> */
-    SDL_WINDOW_ACCEPTS_INPUT = 0x00800000       /**< window should accept input> */
+    SDL_WINDOW_ACCEPTS_INPUT = 0x00800000,      /**< window should accept input> */
+    SDL_WINDOW_POPUP_MENU    = 0x00400000       /**< window that represents a drop down menu> */
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */
 
@@ -166,6 +167,14 @@ typedef enum
     SDL_WINDOWEVENT_FOCUS_LOST,     /**< Window has lost keyboard focus */
     SDL_WINDOWEVENT_CLOSE           /**< The window manager requests that the
                                          window be closed */
+    /* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    ,
+    SDL_WINDOWEVENT_TAKE_FOCUS,     /** Window is being offered a focus (should SetInputFocus() on itself or a subwindow, or ignore) */
+    SDL_WINDOWEVENT_HIT_TEST,       /** Window received a mouse press outside the client area (so mouse button press won't be passed otherwise). */
+    SDL_WINDOWEVENT_DESTROY,        /** Window has been destroyed (not currently sent by the library itself). */
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+    /* EG END */    
 } SDL_WindowEventID;
 
 /**
@@ -836,11 +845,21 @@ extern DECLSPEC int SDLCALL SDL_SetWindowActive(SDL_Window * window);
  *  \param modal_window The window that should be modal
  *  \param parent_window The parent window
  * 
- *  \return 0 on success, or -1 if getting the opacity isn't supported.
+ *  \return 0 on success, or -1 otherwise.
  *
  *  \sa SDL_SetWindowInputState()
  */
 extern DECLSPEC int SDLCALL SDL_SetWindowModalFor(SDL_Window * modal_window, SDL_Window * parent_window);
+
+/**
+ *  \brief Explicitly sets input focus to the window (e.g. as a response fo SDL_WINDOW_TAKE_FOCUS message).
+ *
+ *  \param window The window that should get the input focus
+ * 
+ *  \return 0 on success, or -1 otherwise.
+ */
+extern DECLSPEC int SDLCALL SDL_SetWindowInputFocus(SDL_Window * window);
+
 #endif // SDL_WITH_EPIC_EXTENSIONS
 /* EG END */
 

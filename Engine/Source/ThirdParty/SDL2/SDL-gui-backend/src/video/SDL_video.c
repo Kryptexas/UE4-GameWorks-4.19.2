@@ -1185,7 +1185,7 @@ SDL_UpdateFullscreenMode(SDL_Window * window, SDL_bool fullscreen)
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     #define CREATE_FLAGS \
-        (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_ACCEPTS_INPUT | SDL_WINDOW_SKIP_TASKBAR | SDL_WINDOW_UTILITY | SDL_WINDOW_TOOLTIP | SDL_WINDOW_ALWAYS_ON_TOP)
+        (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_POPUP_MENU | SDL_WINDOW_ACCEPTS_INPUT | SDL_WINDOW_SKIP_TASKBAR | SDL_WINDOW_UTILITY | SDL_WINDOW_TOOLTIP | SDL_WINDOW_ALWAYS_ON_TOP)
 #else
     #define CREATE_FLAGS \
         (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
@@ -2083,6 +2083,19 @@ SDL_SetWindowModalFor(SDL_Window * modal_window, SDL_Window * parent_window)
     
     return _this->SetWindowModalFor(_this, modal_window, parent_window);
 }
+
+int 
+SDL_SetWindowInputFocus(SDL_Window * window)
+{
+    CHECK_WINDOW_MAGIC(window, -1);
+
+    if (!_this->SetWindowInputFocus) {
+        return SDL_Unsupported();
+    }
+    
+    return _this->SetWindowInputFocus(_this, window);
+}
+
 #endif // SDL_WITH_EPIC_EXTENSIONS
 /* EG END */
 

@@ -101,6 +101,7 @@ extern int X11_SetWindowOpacity(_THIS, SDL_Window * window, float opacity);
 extern int X11_SetWindowInputState(_THIS, SDL_Window * window, SDL_bool enable);
 extern int X11_SetWindowActive(_THIS, SDL_Window * window);
 extern int X11_SetWindowModalFor(_THIS, SDL_Window * modal_window, SDL_Window * parent_window);
+extern int X11_SetWindowInputFocus(_THIS, SDL_Window * window);
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
 extern void X11_SetWindowSize(_THIS, SDL_Window * window);

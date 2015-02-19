@@ -66,6 +66,8 @@ FLinuxApplication::FLinuxApplication()
 	,	bIsMouseCaptureEnabled(false)
 	,	bHasLoadedInputPlugins(false)
 	,	bInsideOwnWindow(false)
+	,	bIsDragWindowButtonPressed(false)
+	,	bActivateApp(false)
 {
 	bUsingHighPrecisionMouseInput = false;
 	bAllowedToDeferMessageProcessing = true;
@@ -113,8 +115,14 @@ void FLinuxApplication::InitializeWindow(	const TSharedRef< FGenericWindow >& In
 	const TSharedRef< FLinuxWindow > Window = StaticCastSharedRef< FLinuxWindow >( InWindow );
 	const TSharedPtr< FLinuxWindow > ParentWindow = StaticCastSharedPtr< FLinuxWindow >( InParent );
 
-	Windows.Add( Window );
 	Window->Initialize( this, InDefinition, ParentWindow, bShowImmediately );
+	Windows.Add(Window);
+
+	// Add the windows into the focus stack.
+	if (!Window->IsTooltipWindow())
+	{
+		RevertFocusStack.Add(Window);
+	}
 }
 
 void FLinuxApplication::SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
@@ -225,10 +233,9 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 	if (CurrentEventWindow.IsValid())
 	{
-		LastEventWindow = CurrentEventWindow;
 		NativeWindow = CurrentEventWindow->GetHWnd();
 	}
-	if (!NativeWindow)
+	if (!NativeWindow && Event.type != SDL_USEREVENT)
 	{
 		return;
 	}
@@ -356,16 +363,27 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			if (buttonEvent.type == SDL_MOUSEBUTTONUP)
 			{
 				MessageHandler->OnMouseUp(button);
+				bIsDragWindowButtonPressed = false;
 			}
 			else
 			{
+				bIsDragWindowButtonPressed = true;
 				if (buttonEvent.clicks == 2)
 				{
 					MessageHandler->OnMouseDoubleClick(CurrentEventWindow, button);
 				}
 				else
 				{
-					MessageHandler->OnMouseDown(CurrentEventWindow, button);
+					if(CurrentlyActiveWindow != CurrentEventWindow)
+					{
+						CurrentEventWindow->SetWindowFocus();
+
+						SDL_PushEvent(&Event);
+					}
+					else
+					{
+						MessageHandler->OnMouseDown(CurrentEventWindow, button);
+					}
 				}
 			}
 		}
@@ -654,19 +672,48 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					}
 					break;
 
+				case SDL_WINDOWEVENT_DESTROY:
+					{
+						RemoveEventWindow(CurrentEventWindow->GetHWnd());
+
+						// Remove the window from the focus tracker.
+						RemoveRevertFocusWindow(CurrentEventWindow->GetHWnd());
+						
+						MessageHandler->OnWindowClose(CurrentEventWindow.ToSharedRef());
+
+						// After destroying the window we have to decide what to do with the
+						// focus. We should check if the current window has a parent so we can give
+						// the focus to the parent. If not we get a window from the Windows list
+						// and set the focus to the most top one.
+						if (CurrentEventWindow->IsRegularWindow() && CurrentEventWindow->GetParent().IsValid())
+						{
+							CurrentEventWindow->GetParent()->BringToFront();
+							CurrentEventWindow->GetParent()->SetWindowFocus();
+						} 
+						else if (CurrentEventWindow->IsRegularWindow() && RevertFocusStack.Num() > 0)
+						{
+							TSharedPtr< FLinuxWindow > TopmostWindow = RevertFocusStack.Top();
+							if (TopmostWindow.IsValid())
+							{
+								TopmostWindow->BringToFront();
+								TopmostWindow->SetWindowFocus();
+							}
+						}
+					}
+					break;
+
 				case SDL_WINDOWEVENT_SHOWN:
 					{
 						int Width, Height;
 
 						SDL_GetWindowSize(NativeWindow, &Width, &Height);
-						
+
 						MessageHandler->OnSizeChanged(
 							CurrentEventWindow.ToSharedRef(),
 							Width,
 							Height,
 							false
 						);
-					
 					}
 					break;
 
@@ -727,21 +774,58 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					}
 					break;
 
+				case SDL_WINDOWEVENT_HIT_TEST:
+					{
+						if( CurrentEventWindow.IsValid())
+						{
+							CurrentEventWindow->SetWindowFocus();
+						}
+					}
+					break;
+
+				case SDL_WINDOWEVENT_TAKE_FOCUS:
+					{
+						// Check if we have an active (focused) window at all. If not we activate the applicaton.
+						if (!CurrentlyActiveWindow.IsValid() && !bActivateApp)
+						{
+							MessageHandler->OnApplicationActivationChanged(true);
+							UE_LOG(LogLinuxWindow, Verbose, TEXT("WM_ACTIVATEAPP(TF), wParam = 1"));
+							bActivateApp = true;
+						}
+					}
+					break;
+
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
 					{
-						if (CurrentEventWindow.IsValid())
-						{
-							TrackActivationChanges(CurrentEventWindow, EWindowActivation::Activate);                            
-						}
+						PreviousActiveWindow = CurrentlyActiveWindow;
+						
+						MessageHandler->OnWindowActivationChanged(CurrentEventWindow.ToSharedRef(), EWindowActivation::Activate);
+						UE_LOG(LogLinuxWindow, Verbose, TEXT("WM_ACTIVATE(FG),    wParam = WA_ACTIVE       : %d"), CurrentEventWindow->GetID());
+						CurrentlyActiveWindow = CurrentEventWindow;
 					}
 					break;
 
 				case SDL_WINDOWEVENT_FOCUS_LOST:
 					{
-						if (CurrentEventWindow.IsValid())
+						// OK, the active window lost focus. This could mean the app went completely out of
+						// focus. That means the app must be deactivated. To make sure that the user did
+						// not click to another window we delay the deactivation.
+						// TODO Figure out if the delay time may cause problems.
+						if(CurrentlyActiveWindow == CurrentEventWindow)
 						{
-							TrackActivationChanges(CurrentEventWindow, EWindowActivation::Deactivate);
+							// Only do if the application is active.
+							if(bActivateApp)
+							{
+								SDL_Event event;
+								event.type = SDL_USEREVENT;
+								event.user.code = CheckForDeactivation;
+								SDL_PushEvent(&event);
+							}
+
+							CurrentlyActiveWindow = nullptr;
 						}
+						MessageHandler->OnWindowActivationChanged(CurrentEventWindow.ToSharedRef(), EWindowActivation::Deactivate);
+						UE_LOG(LogLinuxWindow, Verbose, TEXT("WM_ACTIVATE(FL),    wParam = WA_INACTIVE     : %d"), CurrentEventWindow->GetID());
 					}
 					break;
 
@@ -750,6 +834,23 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				case SDL_WINDOWEVENT_MINIMIZED:		// intended fall-through
 				default:
 					break;
+			}
+		}
+		break;
+	case SDL_USEREVENT:
+		{
+			if(Event.user.code == CheckForDeactivation)
+			{
+				// If we don't use bIsDragWindowButtonPressed the draged window will be destroyed because we
+				// deactivate the whole appliacton. TODO Is that a bug? Do we have to do something?
+				if (!CurrentlyActiveWindow.IsValid() && !bIsDragWindowButtonPressed)
+				{
+					MessageHandler->OnApplicationActivationChanged( false );
+					UE_LOG(LogLinuxWindow, Verbose, TEXT("WM_ACTIVATEAPP(UE), wParam = 0"));
+
+					CurrentlyActiveWindow = nullptr;
+					bActivateApp = false;
+				}
 			}
 		}
 		break;
@@ -1153,4 +1254,34 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 		OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(DisplayBounds.y, OutDisplayMetrics.VirtualDisplayRect.Top);
 		OutDisplayMetrics.VirtualDisplayRect.Bottom = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Bottom, DisplayBounds.y + DisplayBounds.h);
 	}
+}
+
+void FLinuxApplication::SendDestroyEvent(SDL_Window * HWnd)
+{
+	const TSharedPtr< FLinuxWindow > Window = FindWindowBySDLWindow(HWnd);
+	if (!Window.IsValid())
+	{
+		return;
+	}
+
+	SDL_Event event;
+	SDL_zero(event);
+	event.type = SDL_WINDOWEVENT;
+	event.window.event = SDL_WINDOWEVENT_DESTROY;
+	event.window.windowID = SDL_GetWindowID(Window->GetHWnd());
+	SDL_PushEvent(&event);
+}
+
+void FLinuxApplication::RemoveRevertFocusWindow(SDL_HWindow HWnd)
+{
+	for (int32 WindowIndex=0; WindowIndex < RevertFocusStack.Num(); ++WindowIndex)
+	{
+		TSharedRef< FLinuxWindow > Window = RevertFocusStack[ WindowIndex ];
+
+		if (Window->GetHWnd() == HWnd)
+		{
+			RevertFocusStack.RemoveAt(WindowIndex);
+			return;
+		}
+	}	
 }

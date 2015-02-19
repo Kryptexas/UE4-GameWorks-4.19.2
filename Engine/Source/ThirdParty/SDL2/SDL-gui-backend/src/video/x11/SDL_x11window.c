@@ -140,9 +140,10 @@ X11_SetNetWMState(_THIS, Window xwindow, Uint32 flags)
 #ifdef SDL_WITH_EPIC_EXTENSIONS	
     Atom _NET_WM_STATE_ABOVE = videodata->_NET_WM_STATE_ABOVE;
     Atom _NET_WM_STATE_SKIP_TASKBAR = videodata->_NET_WM_STATE_SKIP_TASKBAR;
+    Atom _NET_WM_STATE_SKIP_PAGER = videodata->_NET_WM_STATE_SKIP_PAGER;
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */	
-    Atom atoms[6];
+    Atom atoms[7];
     int count = 0;
 
     /* The window manager sets this property, we shouldn't set it.
@@ -160,6 +161,7 @@ X11_SetNetWMState(_THIS, Window xwindow, Uint32 flags)
     }
     if (flags & SDL_WINDOW_SKIP_TASKBAR) {
         atoms[count++] = _NET_WM_STATE_SKIP_TASKBAR;
+        atoms[count++] = _NET_WM_STATE_SKIP_PAGER;
     }
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */
@@ -377,10 +379,12 @@ X11_CreateWindow(_THIS, SDL_Window * window)
     Atom _NET_WM_BYPASS_COMPOSITOR;
     Atom _NET_WM_WINDOW_TYPE;
     Atom _NET_WM_WINDOW_TYPE_NORMAL;
+    int compositor = 1;
     /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     Atom _NET_WM_WINDOW_TYPE_UTILITY;
-    Atom _NET_WM_WINDOW_TYPE_DOCK;
+    Atom _NET_WM_WINDOW_TYPE_TOOLTIP;
+    Atom _NET_WM_WINDOW_TYPE_POPUP_MENU;
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */
     
@@ -422,6 +426,13 @@ X11_CreateWindow(_THIS, SDL_Window * window)
     }
 
     xattr.override_redirect = False;
+    /* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    if( (window->flags & SDL_WINDOW_TOOLTIP) || (window->flags & SDL_WINDOW_POPUP_MENU)) {
+        xattr.override_redirect = True;
+    }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+    /* EG END */
     xattr.background_pixmap = None;
     xattr.border_pixel = 0;
 
@@ -569,11 +580,19 @@ X11_CreateWindow(_THIS, SDL_Window * window)
         X11_XChangeProperty(display, w, _NET_WM_WINDOW_TYPE, XA_ATOM, 32,
                             PropModeReplace,
                             (unsigned char *)&_NET_WM_WINDOW_TYPE_UTILITY, 1);
+        compositor = 2;
     } else if (window->flags & SDL_WINDOW_TOOLTIP) {
-        _NET_WM_WINDOW_TYPE_DOCK = X11_XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
+        _NET_WM_WINDOW_TYPE_TOOLTIP = X11_XInternAtom(display, "_NET_WM_WINDOW_TYPE_TOOLTIP", False);
         X11_XChangeProperty(display, w, _NET_WM_WINDOW_TYPE, XA_ATOM, 32,
                             PropModeReplace,
-                            (unsigned char *)&_NET_WM_WINDOW_TYPE_DOCK, 1);
+                            (unsigned char *)&_NET_WM_WINDOW_TYPE_TOOLTIP, 1);
+        compositor = 2;
+    } else if (window->flags & SDL_WINDOW_POPUP_MENU) {
+        _NET_WM_WINDOW_TYPE_POPUP_MENU = X11_XInternAtom(display, "_NET_WM_WINDOW_TYPE_POPUP_MENU", False);
+        X11_XChangeProperty(display, w, _NET_WM_WINDOW_TYPE, XA_ATOM, 32,
+                            PropModeReplace,
+                            (unsigned char *)&_NET_WM_WINDOW_TYPE_POPUP_MENU, 1);
+        compositor = 2;
     } else
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     {
@@ -586,12 +605,18 @@ X11_CreateWindow(_THIS, SDL_Window * window)
     _NET_WM_BYPASS_COMPOSITOR = X11_XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False);
     X11_XChangeProperty(display, w, _NET_WM_BYPASS_COMPOSITOR, XA_CARDINAL, 32,
                     PropModeReplace,
-                    (unsigned char *)&_NET_WM_BYPASS_COMPOSITOR_HINT_ON, 1);
+                    (unsigned char *)&_NET_WM_BYPASS_COMPOSITOR_HINT_ON, compositor);
 
     {
         Atom protocols[] = {
             data->WM_DELETE_WINDOW, /* Allow window to be deleted by the WM */
-            data->_NET_WM_PING, /* Respond so WM knows we're alive */
+            data->_NET_WM_PING /* Respond so WM knows we're alive */
+            /* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+            ,
+            data->WM_TAKE_FOCUS /* Since we will want to set input focus explicitly */
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+            /* EG END */
         };
         X11_XSetWMProtocols(display, w, protocols, sizeof (protocols) / sizeof (protocols[0]));
     }
@@ -1021,6 +1046,26 @@ X11_SetWindowModalFor(_THIS, SDL_Window * modal_window, SDL_Window * parent_wind
 
     X11_XSetTransientForHint(display, data->xwindow, parent_data->xwindow);
     return 0;
+}
+
+int
+X11_SetWindowInputFocus(_THIS, SDL_Window * window) 
+{
+    SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
+    SDL_DisplayData *displaydata =
+        (SDL_DisplayData *) SDL_GetDisplayForWindow(window)->driverdata;
+    Display *display = data->videodata->display;
+    Atom _NET_ACTIVE_WINDOW = data->videodata->_NET_ACTIVE_WINDOW;
+
+    if (X11_IsWindowMapped(_this, window)) {
+        XEvent e;
+
+        X11_XSetInputFocus(display, data->xwindow, RevertToNone, CurrentTime);
+
+        X11_XFlush(display);
+        return 0;
+    }
+    return -1;
 }
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
