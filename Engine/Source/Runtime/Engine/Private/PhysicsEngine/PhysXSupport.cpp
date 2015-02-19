@@ -249,7 +249,7 @@ void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origi
 #endif // WITH_PHYSX
 }
 
-void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff)
+void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange)
 {
 #if WITH_PHYSX
 	if (!(PRigidBody.getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
@@ -279,7 +279,7 @@ void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin,
 
 		// Apply force
 		PxVec3 PImpulse = PDelta * ForceMag;
-		PRigidBody.addForce(PImpulse, PxForceMode::eFORCE);
+		PRigidBody.addForce(PImpulse, bAccelChange ? PxForceMode::eACCELERATION : PxForceMode::eFORCE);
 	}
 #endif // WITH_PHYSX
 }

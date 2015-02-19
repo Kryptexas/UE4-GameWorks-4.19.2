@@ -3657,7 +3657,7 @@ void FBodyInstance::AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhy
 #endif
 }
 
-void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
+void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping, bool bAccelChange)
 {
 #if WITH_PHYSX
 	PxRigidBody* PRigidBody = GetPxRigidBody();
@@ -3665,7 +3665,7 @@ void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 	{
 		const PxScene* PScene = PRigidBody->getScene();
 		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-		PhysScene->AddForce(this, Force, bAllowSubstepping);
+		PhysScene->AddForce(this, Force, bAllowSubstepping, bAccelChange);
 		
 	}
 #endif // WITH_PHYSX
@@ -3676,7 +3676,7 @@ void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 		if (!Force.IsNearlyZero())
 		{
 			const b2Vec2 Force2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Force);
-			BodyInstancePtr->ApplyForceToCenter(Force2D, /*wake=*/ true);
+			BodyInstancePtr->ApplyForceToCenter(bAccelChange ? (BodyInstancePtr->GetMass() * Force2D) : Force2D, /*wake=*/ true);
 		}
 	}
 #endif
@@ -3707,7 +3707,7 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 #endif
 }
 
-void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
+void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping, bool bAccelChange)
 {
 #if WITH_PHYSX
 	PxRigidBody* PRigidBody = GetPxRigidBody();
@@ -3715,14 +3715,14 @@ void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
 	{
 		const PxScene* PScene = PRigidBody->getScene();
 		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-		PhysScene->AddTorque(this, Torque, bAllowSubstepping);
+		PhysScene->AddTorque(this, Torque, bAllowSubstepping, bAccelChange);
 	}
 #endif // WITH_PHYSX
 
 #if WITH_BOX2D
 	if (BodyInstancePtr)
 	{
-		const float Torque1D = FPhysicsIntegration2D::ConvertUnrealTorqueToBox(Torque);
+		const float Torque1D = FPhysicsIntegration2D::ConvertUnrealTorqueToBox(Torque) * (bAccelChange ? BodyInstancePtr->GetInertia() : 1.f);
 		if (!FMath::IsNearlyZero(Torque1D))
 		{
 			BodyInstancePtr->ApplyTorque(Torque1D, /*wake=*/ true);
@@ -3895,20 +3895,20 @@ void FBodyInstance::AddRadialImpulseToBody(const FVector& Origin, float Radius, 
 #endif
 }
 
-void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff)
+void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange)
 {
 #if WITH_PHYSX
 	PxRigidBody* PRigidBody = GetPxRigidBody();
 	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
-		AddRadialForceToPxRigidBody(*PRigidBody, Origin, Radius, Strength, Falloff);
+		AddRadialForceToPxRigidBody(*PRigidBody, Origin, Radius, Strength, Falloff, bAccelChange);
 	}
 #endif // WITH_PHYSX
 
 #if WITH_BOX2D
 	if (BodyInstancePtr)
 	{
-		AddRadialImpulseToBox2DBodyInstance(BodyInstancePtr, Origin, Radius, Strength, static_cast<ERadialImpulseFalloff>(Falloff), /*bImpulse=*/ false, /*bMassIndependent=*/ false);
+		AddRadialImpulseToBox2DBodyInstance(BodyInstancePtr, Origin, Radius, Strength, static_cast<ERadialImpulseFalloff>(Falloff), /*bImpulse=*/ false, /*bMassIndependent=*/ bAccelChange);
 	}
 #endif
 }

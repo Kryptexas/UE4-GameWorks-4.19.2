@@ -456,7 +456,7 @@ void UDestructibleComponent::AddImpulseAtLocation( FVector Impulse, FVector Posi
 #endif
 }
 
-void UDestructibleComponent::AddForce( FVector Force, FName BoneName /*= NAME_None*/ )
+void UDestructibleComponent::AddForce( FVector Force, FName BoneName /*= NAME_None*/, bool bAccelChange /* = false */ )
 {
 #if WITH_APEX
 	int32 ChunkIdx = NxModuleDestructibleConst::INVALID_CHUNK_INDEX;
@@ -470,7 +470,7 @@ void UDestructibleComponent::AddForce( FVector Force, FName BoneName /*= NAME_No
 	{
 		if (ChunkInfos[i].ChunkIndex == ChunkIdx && ChunkInfos[i].Actor)
 		{
-			ChunkInfos[i].Actor->addForce(U2PVector(Force), PxForceMode::eFORCE);
+			ChunkInfos[i].Actor->addForce(U2PVector(Force), bAccelChange ? PxForceMode::eACCELERATION : PxForceMode::eFORCE);
 		}
 	}
 #endif
@@ -545,7 +545,7 @@ void UDestructibleComponent::AddRadialImpulse(FVector Origin, float Radius, floa
 #endif	// #if WITH_APEX
 }
 
-void UDestructibleComponent::AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
+void UDestructibleComponent::AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bAccelChange /* = false */)
 {
 #if WITH_APEX
 	if(bIgnoreRadialForce)
@@ -572,7 +572,7 @@ void UDestructibleComponent::AddRadialForce(FVector Origin, float Radius, float 
 					LockedScene->lockRead();
 				}
 
-				AddRadialForceToPxRigidBody(*PActor, Origin, Radius, Strength, Falloff);
+				AddRadialForceToPxRigidBody(*PActor, Origin, Radius, Strength, Falloff, bAccelChange);
 			}
 
 			if (LockedScene)

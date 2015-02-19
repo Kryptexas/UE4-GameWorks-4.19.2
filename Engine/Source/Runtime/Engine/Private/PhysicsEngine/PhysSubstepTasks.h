@@ -64,6 +64,7 @@ struct FForceTarget
 	FVector Force;
 	FVector Position;
 	bool bPosition;
+	bool bAccelChange;
 };
 
 struct FTorqueTarget
@@ -71,6 +72,7 @@ struct FTorqueTarget
 	FTorqueTarget(){}
 	FTorqueTarget(const FVector& GivenTorque) : Torque(GivenTorque){}
 	FVector Torque;
+	bool bAccelChange;
 };
 
 struct FCustomTarget
@@ -115,9 +117,9 @@ public:
 	void SetKinematicTarget(FBodyInstance* Body, const FTransform& TM);
 	bool GetKinematicTarget(const FBodyInstance* Body, FTransform& OutTM) const;
 	void AddCustomPhysics(FBodyInstance* Body, const FCalculateCustomPhysics& CalculateCustomPhysics);
-	void AddForce(FBodyInstance* Body, const FVector& Force);
+	void AddForce(FBodyInstance* Body, const FVector& Force, bool bAccelChange);
 	void AddForceAtPosition(FBodyInstance* Body, const FVector& Force, const FVector& Position);
-	void AddTorque(FBodyInstance* Body, const FVector& Torque);
+	void AddTorque(FBodyInstance* Body, const FVector& Torque, bool bAccelChange);
 
 	/** Removes a BodyInstance from doing substep work - should only be called when the FBodyInstance is getting destroyed */
 	void RemoveBodyInstance(FBodyInstance* Body);

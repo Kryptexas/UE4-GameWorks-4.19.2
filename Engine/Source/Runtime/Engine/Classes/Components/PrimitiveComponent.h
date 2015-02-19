@@ -736,11 +736,12 @@ public:
 	 *	Add a force to a single rigid body.
 	 *  This is like a 'thruster'. Good for adding a burst over some (non zero) time. Should be called every frame for the duration of the force.
 	 *
-	 *	@param	Force		Force vector to apply. Magnitude indicates strength of force.
-	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
+	 *	@param	Force		 Force vector to apply. Magnitude indicates strength of force.
+	 *	@param	BoneName	 If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
+	 *  @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics")
-	virtual void AddForce(FVector Force, FName BoneName = NAME_None);
+	virtual void AddForce(FVector Force, FName BoneName = NAME_None, bool bAccelChange = false);
 
 	/**
 	 *	Add a force to a single rigid body at a particular location.
@@ -760,17 +761,19 @@ public:
 	 *	@param Radius		Radius within which to apply the force.
 	 *	@param Strength		Strength of force to apply.
 	 *  @param Falloff		Allows you to control the strength of the force as a function of distance from Origin.
+	 *  @param bAccelChange If true, Strength is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics")
-	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff);
+	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bAccelChange = false);
 
 	/**
 	 *	Add a torque to a single rigid body.
 	 *	@param Torque		Torque to apply. Direction is axis of rotation and magnitude is strength of torque.
 	 *	@param BoneName		If a SkeletalMeshComponent, name of body to apply torque to. 'None' indicates root body.
+	 *  @param bAccelChange If true, Torque is taken as a change in angular acceleration instead of a physical torque (i.e. mass will have no affect).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics")
-	void AddTorque(FVector Torque, FName BoneName = NAME_None);
+	void AddTorque(FVector Torque, FName BoneName = NAME_None, bool bAccelChange = false);
 
 	/**
 	 *	Set the linear velocity of a single body.

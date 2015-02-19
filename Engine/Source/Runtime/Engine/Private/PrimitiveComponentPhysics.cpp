@@ -230,12 +230,12 @@ void UPrimitiveComponent::AddRadialImpulse(FVector Origin, float Radius, float S
 }
 
 
-void UPrimitiveComponent::AddForce(FVector Force, FName BoneName)
+void UPrimitiveComponent::AddForce(FVector Force, FName BoneName, bool bAccelChange)
 {
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("AddForce", "AddForce"), BI);
-		BI->AddForce(Force);
+		BI->AddForce(Force, true, bAccelChange);
 	}
 }
 
@@ -248,7 +248,7 @@ void UPrimitiveComponent::AddForceAtLocation(FVector Force, FVector Location, FN
 	}
 }
 
-void UPrimitiveComponent::AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
+void UPrimitiveComponent::AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bAccelChange)
 {
 	if(bIgnoreRadialForce)
 	{
@@ -258,16 +258,16 @@ void UPrimitiveComponent::AddRadialForce(FVector Origin, float Radius, float Str
 	FBodyInstance* BI = GetBodyInstance();
 	if (BI)
 	{
-		BI->AddRadialForceToBody(Origin, Radius, Strength, Falloff);
+		BI->AddRadialForceToBody(Origin, Radius, Strength, Falloff, bAccelChange);
 	}
 }
 
-void UPrimitiveComponent::AddTorque(FVector Torque, FName BoneName)
+void UPrimitiveComponent::AddTorque(FVector Torque, FName BoneName, bool bAccelChange)
 {
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("AddTorque", "AddTorque"), BI);
-		BI->AddTorque(Torque);
+		BI->AddTorque(Torque, true, bAccelChange);
 	}
 }
 

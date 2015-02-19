@@ -477,14 +477,14 @@ void USkeletalMeshComponent::AddRadialImpulse(FVector Origin, float Radius, floa
 	const float StrengthPerMass = Strength / FMath::Max(GetMass(), KINDA_SMALL_NUMBER);
 	for(int32 i=0; i<Bodies.Num(); i++)
 	{
-		const float StrengthPerBody = bVelChange ? Strength : StrengthPerMass * Bodies[i]->GetBodyMass();
+		const float StrengthPerBody = bVelChange ? Strength : (StrengthPerMass * Bodies[i]->GetBodyMass());
 		Bodies[i]->AddRadialImpulseToBody(Origin, Radius, StrengthPerBody, Falloff, bVelChange);
 	}
 }
 
 
 
-void USkeletalMeshComponent::AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
+void USkeletalMeshComponent::AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bAccelChange)
 {
 	if(bIgnoreRadialForce)
 	{
@@ -494,8 +494,8 @@ void USkeletalMeshComponent::AddRadialForce(FVector Origin, float Radius, float 
 	const float StrengthPerMass = Strength / FMath::Max(GetMass(), KINDA_SMALL_NUMBER);
 	for(int32 i=0; i<Bodies.Num(); i++)
 	{
-		const float StrengthPerBody = StrengthPerMass * Bodies[i]->GetBodyMass();
-		Bodies[i]->AddRadialForceToBody(Origin, Radius, StrengthPerBody, Falloff);
+		const float StrengthPerBody = bAccelChange ? Strength : (StrengthPerMass * Bodies[i]->GetBodyMass());
+		Bodies[i]->AddRadialForceToBody(Origin, Radius, StrengthPerBody, Falloff, bAccelChange);
 	}
 
 }
