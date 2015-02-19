@@ -287,6 +287,29 @@ void FPhysScene::AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& 
 #endif
 }
 
+void FPhysScene::AddRadialForceToBody(FBodyInstance* BodyInstance, const FVector& Origin, const float Radius, const float Strength, const uint8 Falloff, bool bAccelChange, bool bAllowSubstepping)
+{
+#if WITH_PHYSX
+
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
+	{
+#if WITH_SUBSTEPPING
+		uint32 BodySceneType = SceneType(BodyInstance);
+		if (bAllowSubstepping && IsSubstepping(BodySceneType))
+		{
+			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
+			PhysSubStepper->AddRadialForceToBody(BodyInstance, Origin, Radius, Strength, Falloff, bAccelChange);
+		}
+		else
+#endif
+		{
+			SCOPED_SCENE_WRITE_LOCK(PRigidBody->getScene());
+			AddRadialForceToPxRigidBody(*PRigidBody, Origin, Radius, Strength, Falloff, bAccelChange);
+		}
+	}
+#endif
+}
+
 void FPhysScene::AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, bool bAllowSubstepping, bool bAccelChange)
 {
 #if WITH_PHYSX

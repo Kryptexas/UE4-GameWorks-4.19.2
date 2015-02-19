@@ -163,6 +163,29 @@ void FPhysSubstepTask::AddTorque(FBodyInstance* Body, const FVector& Torque, boo
 #endif
 }
 
+void FPhysSubstepTask::AddRadialForceToBody(FBodyInstance* Body, const FVector& Origin, const float Radius, const float Strength, const uint8 Falloff, const bool bAccelChange)
+{
+#if WITH_PHYSX
+	check(Body);
+
+	PxRigidBody* PRigidBody = Body->GetPxRigidBody();
+	SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
+	//We should only apply torque on non kinematic actors
+	if (IsRigidBodyNonKinematic(PRigidBody))
+	{
+		FRadialForceTarget RadialForceTarget;
+		RadialForceTarget.Origin = Origin;
+		RadialForceTarget.Radius = Radius;
+		RadialForceTarget.Strength = Strength;
+		RadialForceTarget.Falloff = Falloff;
+		RadialForceTarget.bAccelChange = bAccelChange;
+
+		FPhysTarget & TargetState = PhysTargetBuffers[External].FindOrAdd(Body);
+		TargetState.RadialForces.Add(RadialForceTarget);
+	}
+#endif
+}
+
 /** Applies custom physics - Assumes caller has obtained writer lock */
 void FPhysSubstepTask::ApplyCustomPhysics(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float DeltaTime)
 {
@@ -213,6 +236,22 @@ void FPhysSubstepTask::ApplyTorques(const FPhysTarget& PhysTarget, FBodyInstance
 	}
 #endif
 }
+
+/** Applies radial forces - Assumes caller has obtained writer lock */
+void FPhysSubstepTask::ApplyRadialForces(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance)
+{
+#if WITH_PHYSX
+	/** Apply Torques */
+	PxRigidBody* PRigidBody = BodyInstance->GetPxRigidBody();
+
+	for (int32 i = 0; i < PhysTarget.RadialForces.Num(); ++i)
+	{
+		const FRadialForceTarget& RadialForceTArget= PhysTarget.RadialForces[i];
+		AddRadialForceToPxRigidBody(*PRigidBody, RadialForceTArget.Origin, RadialForceTArget.Radius, RadialForceTArget.Strength, RadialForceTArget.Falloff, RadialForceTArget.bAccelChange);
+	}
+#endif
+}
+
 
 /** Interpolates kinematic actor transform - Assumes caller has obtained writer lock */
 void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float InAlpha)
@@ -274,6 +313,7 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 		ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
 		ApplyForces(PhysTarget, BodyInstance);
 		ApplyTorques(PhysTarget, BodyInstance);
+		ApplyRadialForces(PhysTarget, BodyInstance);
 		InterpolateKinematicActor(PhysTarget, BodyInstance, InAlpha);
 	}
 

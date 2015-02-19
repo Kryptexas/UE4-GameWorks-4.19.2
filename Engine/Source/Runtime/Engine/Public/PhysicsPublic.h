@@ -447,6 +447,9 @@ public:
 	/** Adds a force to a body at a specific position - We need to go through scene to support substepping */
 	void AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping);
 
+	/** Adds a radial force to a body - We need to go through scene to support substepping */
+	void AddRadialForceToBody(FBodyInstance* BodyInstance, const FVector& Origin, const float Radius, const float Strength, const uint8 Falloff, bool bAccelChange, bool bAllowSubstepping);
+
 	/** Adds torque to a body - We need to go through scene to support substepping */
 	void AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, bool bAllowSubstepping, bool bAccelChange);
 

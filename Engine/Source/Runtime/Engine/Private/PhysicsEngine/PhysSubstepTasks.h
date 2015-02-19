@@ -75,6 +75,16 @@ struct FTorqueTarget
 	bool bAccelChange;
 };
 
+struct FRadialForceTarget
+{
+	FRadialForceTarget(){}
+	FVector Origin;
+	float Radius;
+	float Strength;
+	uint8 Falloff;
+	bool bAccelChange;
+};
+
 struct FCustomTarget
 {
 	FCustomTarget(){ }
@@ -89,6 +99,7 @@ struct FPhysTarget
 
 	TArray<FForceTarget>  Forces;	//we can apply force at multiple places
 	TArray<FTorqueTarget> Torques;
+	TArray<FRadialForceTarget> RadialForces;
 	TArray<FCustomTarget> CustomPhysics; //for calculating custom physics forces
 	FKinematicTarget KinematicTarget;
 
@@ -120,6 +131,7 @@ public:
 	void AddForce(FBodyInstance* Body, const FVector& Force, bool bAccelChange);
 	void AddForceAtPosition(FBodyInstance* Body, const FVector& Force, const FVector& Position);
 	void AddTorque(FBodyInstance* Body, const FVector& Torque, bool bAccelChange);
+	void AddRadialForceToBody(FBodyInstance* Body, const FVector& Origin, const float Radius, const float Strength, const uint8 Falloff, const bool bAccelChange);
 
 	/** Removes a BodyInstance from doing substep work - should only be called when the FBodyInstance is getting destroyed */
 	void RemoveBodyInstance(FBodyInstance* Body);
@@ -142,6 +154,7 @@ private:
 	void ApplyCustomPhysics(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float DeltaTime);
 	void ApplyForces(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance);
 	void ApplyTorques(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance);
+	void ApplyRadialForces(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance);
 	void InterpolateKinematicActor(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float Alpha);
 
 	typedef TMap<FBodyInstance*, FPhysTarget> PhysTargetMap;

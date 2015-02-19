@@ -3895,13 +3895,16 @@ void FBodyInstance::AddRadialImpulseToBody(const FVector& Origin, float Radius, 
 #endif
 }
 
-void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange)
+void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 	PxRigidBody* PRigidBody = GetPxRigidBody();
 	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
-		AddRadialForceToPxRigidBody(*PRigidBody, Origin, Radius, Strength, Falloff, bAccelChange);
+		const PxScene* PScene = PRigidBody->getScene();
+		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+		PhysScene->AddRadialForceToBody(this, Origin, Radius, Strength, Falloff, bAccelChange, bAllowSubstepping);
+
 	}
 #endif // WITH_PHYSX
 
