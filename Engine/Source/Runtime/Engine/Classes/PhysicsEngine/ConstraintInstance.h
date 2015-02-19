@@ -7,6 +7,8 @@
 namespace physx
 {
 	class PxD6Joint;
+	class PxRigidActor;
+	class PxScene;
 }
 #endif // WITH_PHYSX
 
@@ -489,6 +491,17 @@ public:
 	//Hacks to easily get zeroed memory for special case when we don't use GC
 	static void Free(FConstraintInstance * Ptr);
 	static FConstraintInstance * Alloc();
+
+
+private:
+#if WITH_PHYSX 
+	bool CreatePxJoint(physx::PxRigidActor* PActor1, physx::PxRigidActor* PActor2, physx::PxScene* PScene, const float Scale);
+	void UpdateConstraintFlags();
+	void UpdateAverageMass(const physx::PxRigidActor* PActor1, const physx::PxRigidActor* PActor2);
+#endif
+
+	void UpdateBreakable();
+	void UpdateDriveTarget();
 };
 
 template<>
