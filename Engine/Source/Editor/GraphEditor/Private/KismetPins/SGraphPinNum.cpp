@@ -6,6 +6,7 @@
 #include "SGraphPinString.h"
 #include "SGraphPinNum.h"
 #include "DefaultValueHelper.h"
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 void SGraphPinNum::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
 {

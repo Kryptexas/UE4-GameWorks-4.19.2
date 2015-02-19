@@ -4,7 +4,7 @@
 #include "GraphEditorCommon.h"
 #include "SGraphPinVector.h"
 #include "SNumericEntryBox.h"
-
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "VectorTextBox"
 

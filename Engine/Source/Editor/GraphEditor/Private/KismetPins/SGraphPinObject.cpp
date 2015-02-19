@@ -5,6 +5,7 @@
 #include "SGraphPinClass.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "AssetData.h"
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "SGraphPinObject"
 

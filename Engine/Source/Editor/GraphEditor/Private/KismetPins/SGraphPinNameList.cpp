@@ -4,6 +4,7 @@
 #include "GraphEditorCommon.h"
 #include "SGraphPinComboBox.h"
 #include "SGraphPinNameList.h"
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 void SGraphPinNameList::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj, const TArray<TSharedPtr<FName>>& InNameList)
 {

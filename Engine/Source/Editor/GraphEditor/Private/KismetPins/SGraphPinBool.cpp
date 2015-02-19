@@ -3,6 +3,7 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphPinBool.h"
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 void SGraphPinBool::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
 {

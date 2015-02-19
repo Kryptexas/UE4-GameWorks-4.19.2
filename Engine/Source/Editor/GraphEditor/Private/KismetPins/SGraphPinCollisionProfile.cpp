@@ -3,7 +3,7 @@
 #include "GraphEditorCommon.h"
 #include "SNameComboBox.h"
 #include "SGraphPinCollisionProfile.h"
-
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 void SGraphPinCollisionProfile::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
 {

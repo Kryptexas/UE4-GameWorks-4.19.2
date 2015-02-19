@@ -4,6 +4,7 @@
 #include "GraphEditorCommon.h"
 #include "SGraphPinEnum.h"
 #include "SGraphPinComboBox.h"
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 //Construct combo box using combo button and combo list
 void SPinComboBox::Construct( const FArguments& InArgs )

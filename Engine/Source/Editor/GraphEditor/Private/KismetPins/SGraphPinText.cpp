@@ -3,7 +3,7 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphPinText.h"
-
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 void SGraphPinText::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
 {

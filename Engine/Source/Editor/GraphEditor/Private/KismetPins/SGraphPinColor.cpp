@@ -5,6 +5,7 @@
 #include "NodeFactory.h"
 #include "KismetPins/SGraphPinColor.h"
 #include "SColorPicker.h"
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 
 void SGraphPinColor::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)

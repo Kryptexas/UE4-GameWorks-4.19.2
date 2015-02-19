@@ -6,6 +6,7 @@
 #include "SGraphPinEnum.h"
 #include "SGraphPinKey.h"
 #include "SKeySelector.h"
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 void SGraphPinKey::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
 {
