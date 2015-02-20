@@ -106,9 +106,9 @@ public:
 	 */
 	void RenderThread_ClearParameters()
 	{
-		VectorParameterArray.Empty();
-		ScalarParameterArray.Empty();
-		TextureParameterArray.Empty();
+		VectorParameterArray.Reset();
+		ScalarParameterArray.Reset();
+		TextureParameterArray.Reset();
 		InvalidateUniformExpressionCache();
 	}
 
