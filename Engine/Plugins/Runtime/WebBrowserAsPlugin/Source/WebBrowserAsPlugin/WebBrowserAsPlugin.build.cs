@@ -10,7 +10,11 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Core",
-					"WebBrowser"
+				    "CoreUObject",
+					"WebBrowser",
+                    "Slate",
+                    "SlateCore",
+					"UMG"
 				}
 			);
 		}
