@@ -39,7 +39,7 @@ public:
 		ChildSlot
 		[
 			SNew(SButton)
-			.ButtonStyle(FEditorStyle::Get(), "RoundButton")
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 			.TextStyle(FEditorStyle::Get(), "NormalText")
 			.HAlign(HAlign_Center)
 			.ForegroundColor(FSlateColor::UseForeground())

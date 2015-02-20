@@ -208,6 +208,8 @@ public:
 					.AutoWidth()
 					[
 						SNew(SButton)
+						.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+						.ForegroundColor(FEditorStyle::Get().GetSlateColor("Foreground"))
 						.ContentPadding(FMargin(2.0f, 1.0f))
 						.OnClicked( this, &SUMGAnimationList::OnNewAnimationClicked )
 						.HAlign(HAlign_Center)
@@ -218,14 +220,18 @@ public:
 							.VAlign(VAlign_Center)
 							.AutoWidth()
 							[
-								SNew( SImage )
-								.Image( FEditorStyle::GetBrush("UMGEditor.AddAnimationIcon")) 
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+								.Text(FString(TEXT("\xf067")) /*fa-plus*/)
 							]
+
 							+ SHorizontalBox::Slot()
 							.Padding( 2.0f, 0.0f )
 							[
 								SNew( STextBlock )
-								.Text( LOCTEXT("NewAnimationButtonText", "New") )
+								.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+								.Text( LOCTEXT("NewAnimationButtonText", "Animation") )
 							]
 						]
 					]
