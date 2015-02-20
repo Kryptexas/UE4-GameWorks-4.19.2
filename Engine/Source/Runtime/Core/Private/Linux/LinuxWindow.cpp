@@ -228,7 +228,6 @@ void FLinuxWindow::BringToFront( bool bForce )
 /** Native windows should implement this function by asking the OS to destroy OS-specific resource associated with the window (e.g. Win32 window handle) */
 void FLinuxWindow::Destroy()
 {
-	SDL_DestroyWindow( HWnd );
 	OwningApplication->SendDestroyEvent(HWnd);
 }
 

@@ -96,14 +96,6 @@ private:
 	 */
 	static bool GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDownEvent);
 
-	/**
-	 * Tracks window activation changes and sends notifications as required
-	 * 
-	 * @param Window window that caused the activation event
-	 * @param Event type of the activation change
-	 */
-	void TrackActivationChanges(const TSharedPtr<FLinuxWindow> Window, EWindowActivation::Type Event);
-
 private:
 
 	struct SDLControllerState
@@ -113,8 +105,6 @@ private:
 		// We need to remember if the "button" was previously pressed so we don't generate extra events
 		bool analogOverThreshold[10];
 	};
-
-// 	static const FIntPoint MinimizedWindowPosition;
 
 	bool bUsingHighPrecisionMouseInput;
 
