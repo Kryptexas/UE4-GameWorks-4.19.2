@@ -229,8 +229,22 @@ void FHittestGrid::ClearGridForNewFrame( const FSlateRect& HittestArea )
 	const FVector2D GridSize = HittestArea.GetSize();
 	NumCells = FIntPoint( FMath::CeilToInt(GridSize.X / CellSize.X), FMath::CeilToInt(GridSize.Y / CellSize.Y) );
 	WidgetsCachedThisFrame->Empty(WidgetsCachedThisFrame->Num());
-	Cells.Reset( NumCells.X * NumCells.Y );	
-	Cells.SetNum( NumCells.X * NumCells.Y );
+
+	const int32 NewTotalCells = NumCells.X * NumCells.Y;
+	if (NewTotalCells != Cells.Num())
+	{
+		Cells.Reset( NewTotalCells );	
+		Cells.SetNum( NewTotalCells );
+	}
+	else
+	{
+		// As an optimization, if the number of cells do not change then we will just reset the index list inside of them
+		// This will leave slack for indices to be re-added without reallocating.
+		for(auto& Cell : Cells)
+		{
+			Cell.CachedWidgetIndexes.Reset();
+		}
+	}
 }
 
 int32 FHittestGrid::InsertWidget( const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect )
