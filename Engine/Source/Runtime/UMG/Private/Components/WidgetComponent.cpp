@@ -311,6 +311,7 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 
 	Space = EWidgetSpace::World;
 	Pivot = FVector2D(0.5, 0.5);
+	ZOrder = -100;
 
 	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 }
