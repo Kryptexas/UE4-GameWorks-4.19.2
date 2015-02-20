@@ -48,11 +48,13 @@ public:
 	void FlushStream();
 	void DownloadHeader();
 	void DownloadNextChunk();
+	void RefreshViewer();
 
 	/** Delegates */
 	void HttpStartDownloadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpDownloadHeaderFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+	void HttpRefreshViewerFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpStartUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpStopUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpHeaderUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
@@ -74,6 +76,7 @@ public:
 		StartDownloading,			// We have made the request to start downloading a replay stream
 		DownloadingHeader,			// We are downloading the replay header
 		DownloadingStream,			// We are in the process of downloading the replay stream
+		RefreshingViewer,			// We are refreshing the server to let it know we're still viewing
 		EnumeratingSessions,		// We are in the process of downloading the available sessions
 	};
 
@@ -85,6 +88,7 @@ public:
 		NeedToDownloadHeader,		// We are waiting to download the header
 		StreamingUp,				// We are in the process of streaming a replay to the http server
 		StreamingDown,				// We are in the process of streaming a replay from the http server
+		StreamingDownFinal,			// We are done streaming (will notify server to remove us as a viewer)
 		StreamingUpFinal,			// We are uploading the final stream
 	};
 
@@ -95,12 +99,14 @@ public:
 	FString					ServerURL;				// The address of the server
 	int32					StreamFileCount;		// Used as a counter to increment the stream.x extension count
 	double					LastChunkTime;			// The last time we uploaded/downloaded a chunk
+	double					LastRefreshViewerTime;	// The last time we refreshed ourselves as an active viewer
 	EStreamerState			StreamerState;			// Overall state of the streamer
 	EHttptate				HttpState;				// If not idle, there is a http request in flight
 	bool					bStopStreamingCalled;
 	bool					bStreamIsLive;			// If true, we are viewing a live stream
 	int32					NumDownloadChunks;
 	uint32					DemoTimeInMS;
+	FString					ViewerName;
 
 	FOnStreamReadyDelegate			StartStreamingDelegate;		// Delegate passed in to StartStreaming
 	FOnEnumerateStreamsComplete		EnumerateStreamsDelegate;
