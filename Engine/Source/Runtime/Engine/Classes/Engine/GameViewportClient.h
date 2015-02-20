@@ -174,7 +174,7 @@ public:
 	bool HandleShowMouseCursorCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif // WITH_EDITOR
 	bool HandlePreCacheCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleToggleFullscreenCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleToggleFullscreenCommand();
 	bool HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleHighresScreenshotCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleHighresScreenshotUICommand( const TCHAR* Cmd, FOutputDevice& Ar );

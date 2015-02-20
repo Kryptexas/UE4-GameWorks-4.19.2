@@ -256,6 +256,12 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		return false;
 	}
 
+	if (Key == EKeys::Enter && EventType == EInputEvent::IE_Pressed && FSlateApplication::Get().GetModifierKeys().IsAltDown() && GetDefault<UInputSettings>()->bAltEnterTogglesFullscreen)
+	{
+		HandleToggleFullscreenCommand();
+		return true;
+	}
+
 	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
@@ -1951,7 +1957,7 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	}
 	else if( FParse::Command(&Cmd,TEXT("TOGGLE_FULLSCREEN")) || FParse::Command(&Cmd,TEXT("FULLSCREEN")) )
 	{
-		return HandleToggleFullscreenCommand( Cmd, Ar );
+		return HandleToggleFullscreenCommand();
 	}	
 	else if( FParse::Command(&Cmd,TEXT("SETRES")) )
 	{
@@ -2580,7 +2586,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, E
 	return true;
 }
 
-bool UGameViewportClient::HandleToggleFullscreenCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+bool UGameViewportClient::HandleToggleFullscreenCommand()
 {
 	auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
 	check(CVar);
