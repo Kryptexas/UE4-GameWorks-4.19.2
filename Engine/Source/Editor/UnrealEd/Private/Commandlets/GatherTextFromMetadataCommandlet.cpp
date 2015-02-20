@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "SourceCodeNavigation.h"
@@ -94,16 +94,6 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 	TArray<FString> ExcludePaths;
 	GetStringArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
 
-	//Required module names
-	TArray<FString> RequiredModuleNames;
-	GetStringArrayFromConfig(*SectionName, TEXT("RequiredModuleNames"), RequiredModuleNames, GatherTextConfigPath);
-
-	// Pre-load all required modules so that UFields from those modules can be guaranteed a chance to have their metadata gathered.
-	for(const FString& RequiredModuleName : RequiredModuleNames)
-	{
-		FModuleManager::Get().LoadModule(*RequiredModuleName);
-	}
-
 	FGatherParameters Arguments;
 	GetStringArrayFromConfig(*SectionName, TEXT("InputKeys"), Arguments.InputKeys, GatherTextConfigPath);
 	GetStringArrayFromConfig(*SectionName, TEXT("OutputNamespaces"), Arguments.OutputNamespaces, GatherTextConfigPath);
@@ -138,6 +128,8 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObjects(const TArray<FStr
 		FString SourceFilePath;
 		FSourceCodeNavigation::FindClassHeaderPath(*It, SourceFilePath);
 		SourceFilePath = FPaths::ConvertRelativePathToFull(SourceFilePath);
+
+		check(!SourceFilePath.IsEmpty());
 
 		// Returns true if in an include path. False otherwise.
 		auto IncludePathLogic = [&]() -> bool
@@ -189,7 +181,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 		for(int32 i = 0; i < Arguments.InputKeys.Num(); ++i)
 		{
 			FFormatNamedArguments PatternArguments;
-			PatternArguments.Add( TEXT("FieldPath"), FText::FromString( Field->GetFullGroupName(true) + TEXT(".") + Field->GetName() ) );
+			PatternArguments.Add( TEXT("FieldPath"), FText::FromString( Field->GetFullGroupName(false) ) );
 
 			if( Field->HasMetaData( *Arguments.InputKeys[i] ) )
 			{
@@ -225,7 +217,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 				for(int32 j = 0; j < Arguments.InputKeys.Num(); ++j)
 				{
 					FFormatNamedArguments PatternArguments;
-					PatternArguments.Add( TEXT("FieldPath"), FText::FromString( Enum->GetFullGroupName(true) + TEXT(".") + Enum->GetName() + TEXT(".") + Enum->GetEnumName(i) ) );
+					PatternArguments.Add( TEXT("FieldPath"), FText::FromString( Enum->GetFullGroupName(false) + TEXT(".") + Enum->GetEnumName(i) ) );
 
 					if( Enum->HasMetaData(*Arguments.InputKeys[j], i) )
 					{

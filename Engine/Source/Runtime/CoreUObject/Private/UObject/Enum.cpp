@@ -289,8 +289,8 @@ FText UEnum::GetDisplayNameText(int32 NameIndex) const
 
 	static const FString Namespace = TEXT("UObjectDisplayNames");
 	const FString Key =	NameIndex == INDEX_NONE
-		?			GetFullGroupName(true) + TEXT(".") + GetName()
-		:			GetFullGroupName(true) + TEXT(".") + GetName() + TEXT(".") + GetEnumName(NameIndex);
+		?			GetFullGroupName(false)
+		:			GetFullGroupName(false) + TEXT(".") + GetEnumName(NameIndex);
 
 
 	FString NativeDisplayName;
@@ -325,8 +325,8 @@ FText UEnum::GetToolTipText(int32 NameIndex) const
 
 	static const FString Namespace = TEXT("UObjectToolTips");
 	FString Key =	NameIndex == INDEX_NONE
-		?			GetFullGroupName(true) + TEXT(".") + GetName()
-		:			GetFullGroupName(true) + TEXT(".") + GetName() + TEXT(".") + GetEnumName(NameIndex);
+		?			GetFullGroupName(false)
+		:			GetFullGroupName(false) + TEXT(".") + GetEnumName(NameIndex);
 		
 	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip )) || *FTextInspector::GetSourceString(LocalizedToolTip) != NativeToolTip)
 	{

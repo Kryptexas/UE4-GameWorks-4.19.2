@@ -186,7 +186,7 @@ FText UField::GetDisplayNameText() const
 	FText LocalizedDisplayName;
 
 	static const FString Namespace = TEXT("UObjectDisplayNames");
-	const FString Key = GetFullGroupName(true) + TEXT(".") + GetName();
+	const FString Key = GetFullGroupName(false);
 
 	FString NativeDisplayName;
 	if( HasMetaData( TEXT("DisplayName") ) )
@@ -237,7 +237,7 @@ FText UField::GetToolTipText(bool bShortTooltip) const
 	}
 
 	const FString Namespace = bFoundShortTooltip ? TEXT("UObjectShortTooltips") : TEXT("UObjectToolTips");
-	const FString Key = GetFullGroupName(true) + TEXT(".") + GetName();
+	const FString Key = GetFullGroupName(false);
 	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip )) || *FTextInspector::GetSourceString(LocalizedToolTip) != NativeToolTip)
 	{
 		if (NativeToolTip.IsEmpty())
