@@ -63,7 +63,7 @@ void UK2Node_EditablePinBase::ExportCustomProperties(FOutputDevice& Out, uint32 
 		const FUserPinInfo& PinInfo = *UserDefinedPins[PinIndex].Get();
 
 		Out.Logf( TEXT("%sCustomProperties UserDefinedPin "), FCString::Spc(Indent));
-		Out.Logf( TEXT("Name=%s "), *PinInfo.PinName);
+		Out.Logf( TEXT("Name=\"%s\" "), *PinInfo.PinName);
 		Out.Logf( TEXT("IsArray=%s "), (PinInfo.PinType.bIsArray ? TEXT("1") : TEXT("0")));
 		Out.Logf( TEXT("IsReference=%s "), (PinInfo.PinType.bIsReference ? TEXT("1") : TEXT("0")));
 		
