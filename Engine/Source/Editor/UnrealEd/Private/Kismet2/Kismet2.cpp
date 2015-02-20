@@ -460,67 +460,71 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 	FKismetCompilerOptions CompileOptions;
 	Compiler.CompileBlueprint(NewBP, CompileOptions, Results);
 
-	//@TODO: ANIMREFACTOR 2: This kind of code should be on a per-blueprint basis; not centralized here
-	if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(NewBP))
+	UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+	if(Settings && Settings->bSpawnDefaultBlueprintNodes)
 	{
-		// add default nodes to event graph
-		UEdGraph* Graph = NewBP->UbergraphPages[0];
-
-		if(Graph->Nodes.Num() == 0)
+		//@TODO: ANIMREFACTOR 2: This kind of code should be on a per-blueprint basis; not centralized here
+		if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(NewBP))
 		{
-			// add update event graph
-			int32 NodePositionY = 0;
-			UK2Node_Event* EventNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, Graph, FName(TEXT("BlueprintUpdateAnimation")), UAnimInstance::StaticClass(), NodePositionY);
-			check(EventNode);
+			// add default nodes to event graph
+			UEdGraph* Graph = NewBP->UbergraphPages[0];
 
-			// add try get owner node
-			UK2Node_CallFunction* GetOwnerNode = NewObject<UK2Node_CallFunction>(Graph);
-			UFunction* MakeNodeFunction = FindObject<UClass>(ANY_PACKAGE, TEXT("AnimInstance"))->FindFunctionByName(TEXT("TryGetPawnOwner"));
-			GetOwnerNode->CreateNewGuid();
-			GetOwnerNode->PostPlacedNewNode();
-			GetOwnerNode->SetFromFunction(MakeNodeFunction);
-			GetOwnerNode->SetFlags(RF_Transactional);
-			GetOwnerNode->AllocateDefaultPins();
-			GetOwnerNode->NodePosX = EventNode->NodePosX;
-			GetOwnerNode->NodePosY = EventNode->NodePosY + EventNode->NodeHeight + 100;
-			UEdGraphSchema_K2::SetNodeMetaData(GetOwnerNode, FNodeMetadata::DefaultGraphNode);
-			GetOwnerNode->bIsNodeEnabled = false;
+			if(Graph->Nodes.Num() == 0)
+			{
+				// add update event graph
+				int32 NodePositionY = 0;
+				UK2Node_Event* EventNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, Graph, FName(TEXT("BlueprintUpdateAnimation")), UAnimInstance::StaticClass(), NodePositionY);
+				check(EventNode);
 
-			Graph->AddNode(GetOwnerNode);
+				// add try get owner node
+				UK2Node_CallFunction* GetOwnerNode = NewObject<UK2Node_CallFunction>(Graph);
+				UFunction* MakeNodeFunction = FindObject<UClass>(ANY_PACKAGE, TEXT("AnimInstance"))->FindFunctionByName(TEXT("TryGetPawnOwner"));
+				GetOwnerNode->CreateNewGuid();
+				GetOwnerNode->PostPlacedNewNode();
+				GetOwnerNode->SetFromFunction(MakeNodeFunction);
+				GetOwnerNode->SetFlags(RF_Transactional);
+				GetOwnerNode->AllocateDefaultPins();
+				GetOwnerNode->NodePosX = EventNode->NodePosX;
+				GetOwnerNode->NodePosY = EventNode->NodePosY + EventNode->NodeHeight + 100;
+				UEdGraphSchema_K2::SetNodeMetaData(GetOwnerNode, FNodeMetadata::DefaultGraphNode);
+				GetOwnerNode->bIsNodeEnabled = false;
+
+				Graph->AddNode(GetOwnerNode);
+			}
 		}
-	}
-	else
-	{
-		// Only add default events if there is an ubergraph and they are supported
-		if(NewBP->UbergraphPages.Num() && FBlueprintEditorUtils::DoesSupportEventGraphs(NewBP))
+		else
 		{
-			// Based on the Blueprint type we are constructing, place some starting events.
-			// Note, this cannot happen in the Factories for constructing these Blueprint types due to the fact that creating child BPs circumvent the factories
-			UClass* WidgetClass = FindObject<UClass>(ANY_PACKAGE, TEXT("UserWidget"));
-			UClass* GameplayAbilityClass = FindObject<UClass>(ANY_PACKAGE, TEXT("GameplayAbility"));
+			// Only add default events if there is an ubergraph and they are supported
+			if(NewBP->UbergraphPages.Num() && FBlueprintEditorUtils::DoesSupportEventGraphs(NewBP))
+			{
+				// Based on the Blueprint type we are constructing, place some starting events.
+				// Note, this cannot happen in the Factories for constructing these Blueprint types due to the fact that creating child BPs circumvent the factories
+				UClass* WidgetClass = FindObject<UClass>(ANY_PACKAGE, TEXT("UserWidget"));
+				UClass* GameplayAbilityClass = FindObject<UClass>(ANY_PACKAGE, TEXT("GameplayAbility"));
 
-			int32 NodePositionY = 0;
+				int32 NodePositionY = 0;
 
-			if(NewBP->GeneratedClass->IsChildOf(AActor::StaticClass()))
-			{
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveBeginPlay")), AActor::StaticClass(), NodePositionY);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveActorBeginOverlap")), AActor::StaticClass(), NodePositionY);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveTick")), AActor::StaticClass(), NodePositionY);
-			}
-			else if(NewBP->GeneratedClass->IsChildOf(UActorComponent::StaticClass()))
-			{
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveTick")), UActorComponent::StaticClass(), NodePositionY);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveInitializeComponent")), UActorComponent::StaticClass(), NodePositionY);
-			}
-			else if(NewBP->GeneratedClass->IsChildOf(WidgetClass))
-			{
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("Construct")), WidgetClass, NodePositionY);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("Tick")), WidgetClass, NodePositionY);
-			}
-			else if(NewBP->GeneratedClass->IsChildOf(GameplayAbilityClass))
-			{
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("K2_ActivateAbility")), GameplayAbilityClass, NodePositionY);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("K2_OnEndAbility")), GameplayAbilityClass, NodePositionY);
+				if(NewBP->GeneratedClass->IsChildOf(AActor::StaticClass()))
+				{
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveBeginPlay")), AActor::StaticClass(), NodePositionY);
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveActorBeginOverlap")), AActor::StaticClass(), NodePositionY);
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveTick")), AActor::StaticClass(), NodePositionY);
+				}
+				else if(NewBP->GeneratedClass->IsChildOf(UActorComponent::StaticClass()))
+				{
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveTick")), UActorComponent::StaticClass(), NodePositionY);
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveInitializeComponent")), UActorComponent::StaticClass(), NodePositionY);
+				}
+				else if(NewBP->GeneratedClass->IsChildOf(WidgetClass))
+				{
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("Construct")), WidgetClass, NodePositionY);
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("Tick")), WidgetClass, NodePositionY);
+				}
+				else if(NewBP->GeneratedClass->IsChildOf(GameplayAbilityClass))
+				{
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("K2_ActivateAbility")), GameplayAbilityClass, NodePositionY);
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("K2_OnEndAbility")), GameplayAbilityClass, NodePositionY);
+				}
 			}
 		}
 	}

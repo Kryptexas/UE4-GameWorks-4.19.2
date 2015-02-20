@@ -21,6 +21,7 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	, bShowViewportOnSimulate(false)
 	, bShowInheritedVariables(false)
 	, bShowEmptySections(true)
+	, bSpawnDefaultBlueprintNodes(true)
 	// Compiler Settings
 	, SaveOnCompile(SoC_Never)
 	, bJumpToNodeErrors(false)

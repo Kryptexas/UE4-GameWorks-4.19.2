@@ -71,6 +71,9 @@ public:
 	UPROPERTY(config)
 	bool bShowEmptySections;
 
+	/** If set will spawn default nodes in new Blueprints */
+	UPROPERTY(EditAnywhere, config, Category=Workflow)
+	bool bSpawnDefaultBlueprintNodes;
 // Compiler Settings
 public:
 	/** Determines when to save Blueprints post-compile */

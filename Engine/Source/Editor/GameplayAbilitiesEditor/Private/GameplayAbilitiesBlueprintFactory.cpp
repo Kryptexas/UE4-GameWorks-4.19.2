@@ -4,6 +4,7 @@
 
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "BlueprintEditorSettings.h"
 
 #include "Abilities/GameplayAbility.h"
 #include "GameplayAbilityBlueprint.h"
@@ -290,9 +291,13 @@ UObject* UGameplayAbilitiesBlueprintFactory::FactoryCreateNew(UClass* Class, UOb
 				NewBP->LastEditedDocuments.Add(NewGraph);
 				NewGraph->bAllowDeletion = false;
 
-				int32 NodePositionY = 0;
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewGraph, FName(TEXT("K2_ActivateAbility")), UGameplayAbility::StaticClass(), NodePositionY);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewGraph, FName(TEXT("K2_OnEndAbility")), UGameplayAbility::StaticClass(), NodePositionY);
+				UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+				if(Settings && Settings->bSpawnDefaultBlueprintNodes)
+				{
+					int32 NodePositionY = 0;
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewGraph, FName(TEXT("K2_ActivateAbility")), UGameplayAbility::StaticClass(), NodePositionY);
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewGraph, FName(TEXT("K2_OnEndAbility")), UGameplayAbility::StaticClass(), NodePositionY);
+				}
 			}
 		}
 
