@@ -760,7 +760,6 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		case WM_NCMOUSEMOVE:
 		case WM_MOUSEMOVE:
 		case WM_MOUSEWHEEL:
-		case WM_SETCURSOR:
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
 				// Handled
@@ -768,6 +767,11 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			}
 			break;
 
+		case WM_SETCURSOR:
+			{
+				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
+			}
+			break;
 		// Mouse Movement
 		case WM_INPUT:
 			{

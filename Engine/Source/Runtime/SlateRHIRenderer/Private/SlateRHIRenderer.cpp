@@ -1212,8 +1212,12 @@ void FSlateRHIRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32
 
 	if( ViewInfo )
 	{
-		ViewInfo->DesiredWidth = NewWidth;
-		ViewInfo->DesiredHeight = NewHeight;
+		if (ViewInfo->DesiredWidth != NewWidth ||
+			ViewInfo->DesiredHeight != NewHeight) {
+			ViewInfo->DesiredWidth = NewWidth;
+			ViewInfo->DesiredHeight = NewHeight;
+			FSystemResolution::RequestResolutionChange(NewWidth, NewHeight, EWindowMode::Windowed);
+		}
 	}
 }
 
