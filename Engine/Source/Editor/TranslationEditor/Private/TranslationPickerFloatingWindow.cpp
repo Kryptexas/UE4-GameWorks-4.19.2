@@ -51,6 +51,16 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 
 			auto TextsBox = SNew(SVerticalBox);
 
+			// Display name of the current language
+			TextsBox->AddSlot()
+				.AutoHeight()
+				.Padding(FMargin(5))
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(FInternationalization::Get().GetCurrentCulture()->GetDisplayName()))
+					.Justification(ETextJustify::Center)
+				];
+
 			// Add a new Translation Picker Edit Widget for each picked text
 			for (FText PickedText : PickedTexts)
 			{
@@ -62,6 +72,7 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 						[
 							SNew(STranslationPickerEditWidget)
 							.PickedText(PickedText)
+							.bAllowEditing(false)
 						]
 					];
 			}
@@ -93,8 +104,16 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EKeyboardFocusCause::SetDirectly);
 	if (ParentWindow.IsValid())
 	{
+		FVector2D WindowSize = ParentWindow.Pin()->GetDesiredSize();
+		FVector2D DesiredPosition = FSlateApplication::Get().GetCursorPos();
+		DesiredPosition.X -= FSlateApplication::Get().GetCursorSize().X;
+		DesiredPosition.Y += FSlateApplication::Get().GetCursorSize().Y;
+
+		// Move to opposite side of the cursor than the tool tip, so they don't overlaps
+		DesiredPosition.X -= WindowSize.X;
+
 		// also kind of a hack, but this is the only way at the moment to get a 'cursor decorator' without using the drag-drop code path
-		ParentWindow.Pin()->MoveWindowTo(FSlateApplication::Get().GetCursorPos() + FSlateApplication::Get().GetCursorSize());
+		ParentWindow.Pin()->MoveWindowTo(DesiredPosition);
 	}
 
 	LastTickHoveringWidgetPath = FWeakWidgetPath(Path);
@@ -156,29 +175,41 @@ FReply STranslationPickerFloatingWindow::OnKeyDown(const FGeometry& MyGeometry, 
 {
 	if (InKeyEvent.GetKey() == EKeys::Escape)
 	{
+		if (PickedTexts.Num() > 0)
 		// Open a different window to allow editing of the translation
-		TSharedRef<SWindow> NewWindow = SNew(SWindow)
-		.Title(LOCTEXT("TranslationPickerEditWindowTitle", "Edit Translation(s)"))
-		.SupportsMaximize(false)
-		.SupportsMinimize(false)
-		.CreateTitleBar(true)
-		.SizingRule(ESizingRule::Autosized);
-		NewWindow->MoveWindowTo(FSlateApplication::Get().GetCursorPos());
-
-		NewWindow->SetContent(
-			SNew(STranslationPickerEditWindow)
-			.ParentWindow(NewWindow)
-			.PickedTexts(PickedTexts)
-			);
-
-		TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
-		if (RootWindow.IsValid())
 		{
-			FSlateApplication::Get().AddWindowAsNativeChild(NewWindow, RootWindow.ToSharedRef());
-		}
-		else
-		{
-			FSlateApplication::Get().AddWindow(NewWindow);
+			TSharedRef<SWindow> NewWindow = SNew(SWindow)
+				.Title(LOCTEXT("TranslationPickerEditWindowTitle", "Edit Translation(s)"))
+				.SupportsMaximize(false)
+				.SupportsMinimize(false)
+				.CreateTitleBar(true)
+				.SizingRule(ESizingRule::Autosized);
+
+			NewWindow->SetContent(
+				SNew(STranslationPickerEditWindow)
+				.ParentWindow(NewWindow)
+				.PickedTexts(PickedTexts)
+				);
+
+			TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+			if (RootWindow.IsValid())
+			{
+				FSlateApplication::Get().AddWindowAsNativeChild(NewWindow, RootWindow.ToSharedRef());
+			}
+			else
+			{
+				FSlateApplication::Get().AddWindow(NewWindow);
+			}
+
+			FVector2D WindowSize = ParentWindow.Pin()->GetDesiredSize();
+			FVector2D DesiredPosition = FSlateApplication::Get().GetCursorPos();
+			DesiredPosition.X -= FSlateApplication::Get().GetCursorSize().X;
+			DesiredPosition.Y += FSlateApplication::Get().GetCursorSize().Y;
+
+			// Open this new Edit window in the same position
+			DesiredPosition.X -= WindowSize.X;
+
+			NewWindow->MoveWindowTo(DesiredPosition);
 		}
 
 		TranslationPickerManager::ClosePickerWindow();

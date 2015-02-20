@@ -16,11 +16,28 @@ void STranslationPickerEditWindow::Construct(const FArguments& InArgs)
 
 	auto TextsBox = SNew(SVerticalBox);
 
+	// Display name of the current language
+	TextsBox->AddSlot()
+		.AutoHeight()
+		.Padding(FMargin(5))
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString(FInternationalization::Get().GetCurrentCulture()->GetDisplayName()))
+			.Justification(ETextJustify::Center)
+		];
+
 	// Add a new Translation Picker Edit Widget for each picked text
 	for (FText PickedText : PickedTexts)
 	{
 		TSharedPtr<SEditableTextBox> TextBox;
 		int32 DefaultPadding = 0.0f;
+
+		TSharedRef<STranslationPickerEditWidget> NewEditWidget = 
+			SNew(STranslationPickerEditWidget)
+			.PickedText(PickedText)
+			.bAllowEditing(true);
+
+		EditWidgets.Add(NewEditWidget);
 
 		TextsBox->AddSlot()
 			.FillHeight(1)
@@ -28,8 +45,7 @@ void STranslationPickerEditWindow::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				[
-					SNew(STranslationPickerEditWidget)
-					.PickedText(PickedText)
+					NewEditWidget
 				]
 			];
 	}
@@ -70,7 +86,7 @@ void STranslationPickerEditWindow::Construct(const FArguments& InArgs)
 							SNew(SButton)
 							.HAlign(HAlign_Center)
 							.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-							.OnClicked(this, &STranslationPickerEditWindow::Close)
+							.OnClicked(this, &STranslationPickerEditWindow::SaveAllAndClose)
 							[
 								SNew(SHorizontalBox)
 								+ SHorizontalBox::Slot()
@@ -126,9 +142,35 @@ FReply STranslationPickerEditWindow::Close()
 	return FReply::Handled();
 }
 
+FReply STranslationPickerEditWindow::SaveAllAndClose()
+{
+	
+	TArray<UTranslationUnit*> TempArray;
+
+	for (TSharedRef<STranslationPickerEditWidget> EditWidget : EditWidgets)
+	{
+		UTranslationUnit* TranslationUnit = EditWidget->GetTranslationUnitWithAnyChanges();
+		if (TranslationUnit != nullptr)
+		{
+			TempArray.Add(TranslationUnit);
+		}
+	}
+
+	if (TempArray.Num() > 0)
+	{
+		// Save the data via translation data manager
+		FTranslationDataManager::SaveSelectedTranslations(TempArray);
+	}
+
+	Close();
+
+	return FReply::Handled();
+}
+
 void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 {
 	PickedText = InArgs._PickedText;
+	bAllowEditing = InArgs._bAllowEditing;
 	int32 DefaultPadding = 0.0f;
 
 	// Get all the data we need and format it properly
@@ -201,6 +243,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 					+ SHorizontalBox::Slot()
 					[
 						SAssignNew(TextBox, SEditableTextBox)
+						.IsEnabled(bAllowEditing && bCanSave)
 						.Text(Translation)
 						.HintText(LOCTEXT("TranslationEditTextBox_HintText", "Enter/edit translation here."))
 					]
@@ -241,6 +284,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(this, &STranslationPickerEditWidget::SaveAndPreview)
 					.IsEnabled(bCanSave)
+					.Visibility(bAllowEditing ? EVisibility::Visible : EVisibility::Collapsed)
 					[
 						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot()
@@ -268,6 +312,19 @@ FReply STranslationPickerEditWidget::SaveAndPreview()
 	FTranslationDataManager::SaveSelectedTranslations(TempArray);
 
 	return FReply::Handled();
+}
+
+UTranslationUnit* STranslationPickerEditWidget::GetTranslationUnitWithAnyChanges()
+{
+	if (TranslationUnit)
+	{
+		// Update translation string from entered text
+		TranslationUnit->Translation = TextBox->GetText().ToString();
+
+		return TranslationUnit;
+	}
+
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE
