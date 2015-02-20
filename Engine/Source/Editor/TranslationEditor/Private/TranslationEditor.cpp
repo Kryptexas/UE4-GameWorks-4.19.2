@@ -796,6 +796,10 @@ void FTranslationEditor::MapActions()
 	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().OpenSearchTab,
 		FExecuteAction::CreateSP(this, &FTranslationEditor::OpenSearchTab_Execute),
 		FCanExecuteAction());
+
+	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().OpenTranslationPicker,
+		FExecuteAction::CreateStatic(&ITranslationEditor::OpenTranslationPicker),
+		FCanExecuteAction());
 }
 
 void FTranslationEditor::ChangeSourceFont()

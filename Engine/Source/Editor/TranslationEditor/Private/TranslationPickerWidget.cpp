@@ -5,16 +5,6 @@
 
 #define LOCTEXT_NAMESPACE "TranslationPicker"
 
-STranslationWidgetPicker::~STranslationWidgetPicker()
-{
-	// kill the picker window as well if this widget is going away - that way we dont get dangling refs to the property
-	if (PickerWindow.IsValid() && FSlateApplication::IsInitialized())
-	{
-		FSlateApplication::Get().RequestDestroyWindow(PickerWindow.Pin().ToSharedRef());
-		PickerWindow.Reset();
-		PickerWindowWidget.Reset();
-	}
-}
 
 void STranslationWidgetPicker::Construct(const FArguments& InArgs)
 {
@@ -85,13 +75,33 @@ void STranslationWidgetPicker::Construct(const FArguments& InArgs)
 
 
 				// Bind the check box's "checked" state to our user interface action
-				.IsChecked(this, &STranslationWidgetPicker::OnIsChecked)
+				.IsChecked(this, &STranslationWidgetPicker::IsChecked)
 
 				.Padding(FEditorStyle::Get().GetMargin(CheckboxStyle))
 		];
 }
 
-FReply STranslationWidgetPicker::OnClicked()
+ECheckBoxState STranslationWidgetPicker::IsChecked() const
+{
+	return TranslationPickerManager::IsPickerWindowOpen() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void STranslationWidgetPicker::OnCheckStateChanged(const ECheckBoxState NewCheckedState)
+{
+	if (TranslationPickerManager::IsPickerWindowOpen())
+	{
+		TranslationPickerManager::ClosePickerWindow();
+	}
+	else
+	{
+		TranslationPickerManager::OpenPickerWindow();
+	}
+}
+
+TSharedPtr<SWindow> TranslationPickerManager::PickerWindow = TSharedPtr<SWindow>();
+TSharedPtr<STranslationPickerFloatingWindow> TranslationPickerManager::PickerWindowWidget = TSharedPtr<STranslationPickerFloatingWindow>();
+
+bool TranslationPickerManager::OpenPickerWindow()
 {
 	// Not picking previously, launch a picker window
 	if (!PickerWindow.IsValid())
@@ -106,43 +116,29 @@ FReply STranslationWidgetPicker::OnClicked()
 			);
 
 		TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
-		check(RootWindow.IsValid());
-		FSlateApplication::Get().AddWindowAsNativeChild(NewWindow, RootWindow.ToSharedRef());
-	}
-	// Was already picking previously, destroy picker window
-	else
-	{
-		FSlateApplication::Get().RequestDestroyWindow(PickerWindow.Pin().ToSharedRef());
-		PickerWindow.Pin().Reset();
-	}
+		if (RootWindow.IsValid())
+		{
+			FSlateApplication::Get().AddWindowAsNativeChild(NewWindow, RootWindow.ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(NewWindow);
+		}
 
-	return FReply::Handled();
-}
-
-bool STranslationWidgetPicker::IsPicking() const
-{
-	if (PickerWindowWidget.IsValid())
-	{
 		return true;
 	}
 
 	return false;
 }
 
-ECheckBoxState STranslationWidgetPicker::OnIsChecked() const
+void TranslationPickerManager::ClosePickerWindow()
 {
-	return IsPicking() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().RequestDestroyWindow(PickerWindow.ToSharedRef());
+	}
+	PickerWindow.Reset(); 
+	PickerWindowWidget.Reset();
 }
-
-void STranslationWidgetPicker::OnCheckStateChanged(const ECheckBoxState NewCheckedState)
-{
-	OnClicked();
-}
-
-
-
 
 #undef LOCTEXT_NAMESPACE
-
-
-

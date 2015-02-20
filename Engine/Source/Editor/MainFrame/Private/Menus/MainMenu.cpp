@@ -14,6 +14,7 @@
 #include "GenericCommands.h"
 #include "ToolboxModule.h"
 
+
 #define LOCTEXT_NAMESPACE "MainFileMenu"
 
 
@@ -237,6 +238,12 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 						LOCTEXT("TranslationEditorSubMenuLabel", "Translation Editor"),
 						LOCTEXT("EditorPreferencesSubMenuToolTip", "Open the Translation Editor for a Given Project and Language"),
 						FNewMenuDelegate::CreateStatic(&FMainFrameTranslationEditorMenu::MakeMainFrameTranslationEditorSubMenu)
+						);
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("TranslationPickerMenuItem", "Translation Picker"),
+						LOCTEXT("TranslationPickerMenuItemToolTip", "Launch the Translation Picker to Modify Editor Translations"),
+						FSlateIcon(),
+						FUIAction(FExecuteAction::CreateStatic(&FMainFrameTranslationEditorMenu::HandleOpenTranslationPicker))
 						);
 				}
 			}

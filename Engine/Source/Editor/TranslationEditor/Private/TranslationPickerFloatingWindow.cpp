@@ -4,19 +4,14 @@
 #include "TranslationPickerFloatingWindow.h"
 #include "Editor/Documentation/Public/SDocumentationToolTip.h"
 #include "TranslationPickerEditWindow.h"
+#include "Editor/TranslationEditor/Private/TranslationPickerWidget.h"
 
 #define LOCTEXT_NAMESPACE "TranslationPicker"
 
 void STranslationPickerFloatingWindow::Construct(const FArguments& InArgs)
 {
 	ParentWindow = InArgs._ParentWindow;
-
-	WindowContents = SNew(SBox);
-
-	WindowContents->SetContent(
-		SNew(SToolTip)
-		.Text(this, &STranslationPickerFloatingWindow::GetPickerStatusText)
-		);
+	WindowContents = SNew(SToolTip);
 
 	ChildSlot
 	[
@@ -26,38 +21,72 @@ void STranslationPickerFloatingWindow::Construct(const FArguments& InArgs)
 
 void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	PickedTexts.Empty();
-	TranslationInfoPreviewText = FText::GetEmpty();
-
 	FWidgetPath Path = FSlateApplication::Get().LocateWindowUnderMouse(FSlateApplication::Get().GetCursorPos(), FSlateApplication::Get().GetInteractiveTopLevelWindows(), true);
 
-	// Search everything under the cursor for any FText we know how to parse
-	for (int32 PathIndex = Path.Widgets.Num() - 1; PathIndex >= 0; PathIndex--)
+	if (Path.IsValid())
 	{
-		// General Widget case
-		TSharedRef<SWidget> PathWidget = Path.Widgets[PathIndex].Widget;
-		FText TextBlockDescription = GetTextDescription(PathWidget);
-
-		if (!TextBlockDescription.IsEmpty())
+		// If the path of widgets we're hovering over changed since last time (or if this is the first tick and LastTickHoveringWidgetPath hasn't been set yet)
+		if (!LastTickHoveringWidgetPath.IsValid() || LastTickHoveringWidgetPath.ToWidgetPath().ToString() != Path.ToString())
 		{
-			TranslationInfoPreviewText = FText::Format(LOCTEXT("TextBlockLocalizationDescription", "{0}\n\n\n\n\nTextBlock info:\n{1}"),
-				TranslationInfoPreviewText, TextBlockDescription);
-		}
+			// Clear all previous text and widgets
+			PickedTexts.Empty();
+			WindowContents->SetContentWidget(SNew(SBox));
 
-		// Tooltip case
-		TSharedPtr<IToolTip> Tooltip = PathWidget->GetToolTip();
-		FText TooltipDescription = FText::GetEmpty();
-
-		if (Tooltip.IsValid() && !Tooltip->IsEmpty())
-		{
-			TooltipDescription = GetTextDescription(Tooltip->AsWidget());
-			if (!TooltipDescription.IsEmpty())
+			// Search everything under the cursor for any FText we know how to parse
+			for (int32 PathIndex = Path.Widgets.Num() - 1; PathIndex >= 0; PathIndex--)
 			{
-				TranslationInfoPreviewText = FText::Format(LOCTEXT("TooltipLocalizationDescription", "{0}\n\n\n\n\nTooltip Info:\n{1}"),
-					TranslationInfoPreviewText, TooltipDescription);
+				// General Widget case
+				TSharedRef<SWidget> PathWidget = Path.Widgets[PathIndex].Widget;
+				GetTextFromWidget(PathWidget);
+
+				// Tooltip case
+				TSharedPtr<IToolTip> Tooltip = PathWidget->GetToolTip();
+				//FText TooltipDescription = FText::GetEmpty();
+
+				if (Tooltip.IsValid() && !Tooltip->IsEmpty())
+				{
+					GetTextFromWidget(Tooltip->AsWidget());
+				}
 			}
+
+			auto TextsBox = SNew(SVerticalBox);
+
+			// Add a new Translation Picker Edit Widget for each picked text
+			for (FText PickedText : PickedTexts)
+			{
+				TextsBox->AddSlot()
+					.FillHeight(1)
+					.Padding(FMargin(5))
+					[
+						SNew(SBorder)
+						[
+							SNew(STranslationPickerEditWidget)
+							.PickedText(PickedText)
+						]
+					];
+			}
+
+			FText Instructions = FText::GetEmpty();
+			if (PickedTexts.Num() >= 1)
+			{
+				Instructions = LOCTEXT("TranslationPickerEscToEdit", "Press Esc to edit this translation");
+			}
+			else
+			{
+				Instructions = LOCTEXT("TranslationPickerHoverToViewEditEscToQuit", "Hover over text to view/edit translation, or press Esc to quit");
+			}
+
+			TextsBox->AddSlot()
+				.AutoHeight()
+				.Padding(FMargin(5))
+				[
+					SNew(STextBlock)
+					.Text(Instructions)
+					.Justification(ETextJustify::Center)
+				];
+
+			WindowContents->SetContentWidget(TextsBox);
 		}
-		
 	}
 
 	// kind of a hack, but we need to maintain keyboard focus otherwise we wont get our keypress to 'pick'
@@ -67,19 +96,19 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 		// also kind of a hack, but this is the only way at the moment to get a 'cursor decorator' without using the drag-drop code path
 		ParentWindow.Pin()->MoveWindowTo(FSlateApplication::Get().GetCursorPos() + FSlateApplication::Get().GetCursorSize());
 	}
+
+	LastTickHoveringWidgetPath = FWeakWidgetPath(Path);
 }
 
-FText STranslationPickerFloatingWindow::GetTextDescription(TSharedRef<SWidget> Widget)
+FText STranslationPickerFloatingWindow::GetTextFromWidget(TSharedRef<SWidget> Widget)
 {
 	FText OriginalText = FText::GetEmpty();
-	FText FormattedText = FText::GetEmpty();
 
 	// Parse STextBlocks
 	STextBlock* TextBlock = (STextBlock*)&Widget.Get();
 	if ((Widget->GetTypeAsString() == "STextBlock" && TextBlock))
 	{
 		OriginalText = TextBlock->GetText();
-		FormattedText = FormatFTextInfo(OriginalText);
 	}
 
 	// Parse SToolTips
@@ -88,15 +117,13 @@ FText STranslationPickerFloatingWindow::GetTextDescription(TSharedRef<SWidget> W
 		SToolTip* ToolTip = ((SToolTip*)&Widget.Get());
 		if (ToolTip != nullptr)
 		{
-			FormattedText = GetTextDescription(ToolTip->GetContentWidget());
-			if (FormattedText.IsEmpty())
+			OriginalText = GetTextFromWidget(ToolTip->GetContentWidget());
+			if (OriginalText.IsEmpty())
 			{
 				OriginalText = ToolTip->GetTextTooltip();
-				FormattedText = FormatFTextInfo(OriginalText);
 			}
 		}
 	}
-
 	// Parse SDocumentationToolTips
 	else if (Widget->GetTypeAsString() == "SDocumentationToolTip")
 	{
@@ -104,46 +131,25 @@ FText STranslationPickerFloatingWindow::GetTextDescription(TSharedRef<SWidget> W
 		if (DocumentationToolTip != nullptr)
 		{
 			OriginalText = DocumentationToolTip->GetTextTooltip();
-			FormattedText = FormatFTextInfo(OriginalText);
 		}
 	}
 	
-	if (!OriginalText.IsEmpty())
+	// Don't show the same text twice
+	bool bAlreadyPicked = false;
+	for (FText PickedText : PickedTexts)
+	{
+		if (OriginalText.EqualTo(PickedText))
+		{
+			bAlreadyPicked = true;
+		}
+	}
+	
+	if (!OriginalText.IsEmpty() && !bAlreadyPicked)
 	{
 		PickedTexts.Add(OriginalText);
 	}
 
-	return FormattedText;
-}
-
-FText STranslationPickerFloatingWindow::FormatFTextInfo(FText TextToFormat)
-{
-	FText OutText = FText::GetEmpty();
-
-	if (FTextInspector::ShouldGatherForLocalization(TextToFormat))
-	{
-		const FString* TextNamespace = FTextInspector::GetNamespace(TextToFormat);
-		const FString* TextKey = FTextInspector::GetKey(TextToFormat);
-		const FString* TextSource = FTextInspector::GetSourceString(TextToFormat);
-		const FString& TextTranslation = FTextInspector::GetDisplayString(TextToFormat);
-
-		TSharedPtr<FString, ESPMode::ThreadSafe> TextTableName = TSharedPtr<FString, ESPMode::ThreadSafe>(nullptr);
-		if (TextNamespace && TextKey)
-		{
-			TextTableName = FTextLocalizationManager::Get().GetTableName(*TextNamespace, *TextKey);
-		}
-
-		FText Namespace = TextNamespace != nullptr ? FText::FromString(*TextNamespace) : FText::GetEmpty();
-		FText Key = TextKey != nullptr ? FText::FromString(*TextKey) : FText::GetEmpty();
-		FText Source = TextSource != nullptr ? FText::FromString(*TextSource) : FText::GetEmpty();
-		FText TableName = TextTableName.IsValid() ? FText::FromString(*(TextTableName.Get())) : FText::GetEmpty();
-		FText Translation = FText::FromString(TextTranslation);
-
-		OutText = FText::Format(LOCTEXT("LocalizationStringDescription", "Text Namespace: {0}\nText Key: {1}\nText Source: {2}\nTable Name: {3}"), Namespace, Key, Source, TableName);
-		OutText = FText::Format(LOCTEXT("LocalizationStringDescription2", "{0}\nTranslation: {1}"), OutText, Translation);
-	}
-
-	return OutText; 
+	return OriginalText;
 }
 
 FReply STranslationPickerFloatingWindow::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
@@ -175,25 +181,12 @@ FReply STranslationPickerFloatingWindow::OnKeyDown(const FGeometry& MyGeometry, 
 			FSlateApplication::Get().AddWindow(NewWindow);
 		}
 
-		Close();
-
-		TranslationInfoPreviewText = FText::GetEmpty();
+		TranslationPickerManager::ClosePickerWindow();
 		
 		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
-}
-
-FReply STranslationPickerFloatingWindow::Close()
-{
-	if (ParentWindow.IsValid())
-	{
-		FSlateApplication::Get().RequestDestroyWindow(ParentWindow.Pin().ToSharedRef());
-		ParentWindow.Reset();
-	}
-
-	return FReply::Handled();
 }
 
 

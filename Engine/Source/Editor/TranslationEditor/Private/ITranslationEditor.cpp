@@ -3,6 +3,7 @@
 
 #include "TranslationEditorPrivatePCH.h"
 #include "ITranslationEditor.h"
+#include "Editor/TranslationEditor/Private/TranslationPickerWidget.h"
 
 /** To keep track of what translation editors are open editing which manifest files */
 TMap<FString, ITranslationEditor*> ITranslationEditor::OpenTranslationEditors = TMap<FString, ITranslationEditor*>();
@@ -21,6 +22,14 @@ void ITranslationEditor::OpenTranslationEditor(const FString& InManifestFile, co
 		// If already editing this archive file, flash the tab that contains the editor that has that file open
 		ITranslationEditor* OpenEditor = *OpenTranslationEditors.Find(InArchiveFile);
 		OpenEditor->FocusWindow();
+	}
+}
+
+void ITranslationEditor::OpenTranslationPicker()
+{
+	if (!TranslationPickerManager::IsPickerWindowOpen())
+	{
+		TranslationPickerManager::OpenPickerWindow();
 	}
 }
 

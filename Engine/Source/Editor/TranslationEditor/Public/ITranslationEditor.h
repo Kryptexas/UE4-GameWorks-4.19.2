@@ -5,6 +5,7 @@
 #include "Toolkits/IToolkit.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "TranslationEditorModule.h"
+#include "../Private/TranslationPickerWidget.h"
 
 
 /** Translation Editor public interface */
@@ -14,6 +15,8 @@ class ITranslationEditor : public FAssetEditorToolkit
 public:
 
 	TRANSLATIONEDITOR_API static void OpenTranslationEditor(const FString& InManifestFile, const FString& InArchiveFile);
+
+	TRANSLATIONEDITOR_API static void OpenTranslationPicker();
 
 	ITranslationEditor(const FString& InManifestFile, const FString& InArchiveFile)
 		: ManifestFilePath(InManifestFile)

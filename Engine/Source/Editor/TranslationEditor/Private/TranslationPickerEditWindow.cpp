@@ -167,6 +167,9 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 	TranslationUnit->Source = SourceString != nullptr ? *SourceString : "";
 	TranslationUnit->Translation = TranslationString;
 	TranslationUnit->LocresPath = LocresFullPath;
+	
+	// Can only save if we have all the required information
+	bool bCanSave = NamespaceString != nullptr && SourceString != nullptr && LocresFullPath.Len() > 0;
 
 	// Layout all our data
 	ChildSlot
@@ -237,6 +240,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(this, &STranslationPickerEditWidget::SaveAndPreview)
+					.IsEnabled(bCanSave)
 					[
 						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot()
@@ -245,7 +249,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 						.AutoWidth()
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("SaveAndPreviewButtonText", "Save and preview"))
+							.Text(bCanSave ? LOCTEXT("SaveAndPreviewButtonText", "Save and preview") : LOCTEXT("SaveAndPreviewButtonDisabledText", "Cannot Save") )
 						]
 					]
 				]

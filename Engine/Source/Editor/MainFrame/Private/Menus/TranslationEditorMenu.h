@@ -166,7 +166,7 @@ public:
 					FText::Format(LOCTEXT("TranslationEditorSubMenuLanguageLabel", "{ArchiveName} Translations"), Arguments),
 					FText::Format(LOCTEXT("TranslationEditorSubMenuLanguageToolTip", "Edit the {ArchiveName} Translations for the {ManifestName} Project"), Arguments),
 					FSlateIcon(),
-					FUIAction(FExecuteAction::CreateStatic(&FMainFrameTranslationEditorMenu::HandleMenuEntryExecute, ManifestFileName, ArchiveFileName))
+					FUIAction(FExecuteAction::CreateStatic(&FMainFrameTranslationEditorMenu::HandleOpenTranslationEditor, ManifestFileName, ArchiveFileName))
 					);
 			}
 		}
@@ -174,10 +174,16 @@ public:
 		MenuBuilder.EndSection();
 	}
 
-	private:
+	// Handles clicking a menu entry.
+	static void HandleOpenTranslationPicker()
+	{
+		FModuleManager::LoadModuleChecked<ITranslationEditor>("TranslationEditor").OpenTranslationPicker();
+	}
+
+private:
 
 	// Handles clicking a menu entry.
-	static void HandleMenuEntryExecute( FString ProjectName, FString Language)
+	static void HandleOpenTranslationEditor( FString ProjectName, FString Language)
 	{
 		FModuleManager::LoadModuleChecked<ITranslationEditor>("TranslationEditor").OpenTranslationEditor(ProjectName, Language);
 	}
