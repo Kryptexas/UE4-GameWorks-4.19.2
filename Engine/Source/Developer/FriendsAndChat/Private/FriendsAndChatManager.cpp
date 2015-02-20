@@ -1691,6 +1691,8 @@ void FFriendsAndChatManager::SendGameInviteNotification(const TSharedPtr<IFriend
 		NotificationMessage->SetMessageType(EFriendsRequestType::GameInvite);
 		OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
 	}
+
+	FriendsListNotificationDelegate.Broadcast(true);
 }
 
 void FFriendsAndChatManager::SendChatMessageReceivedEvent(EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem)
