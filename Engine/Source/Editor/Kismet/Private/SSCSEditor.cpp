@@ -3003,7 +3003,6 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	ActorContext = InArgs._ActorContext;
 	AllowEditing = InArgs._AllowEditing;
 	PreviewActor = InArgs._PreviewActor;
-	ActorMenuExtender = InArgs._ActorMenuExtender;
 	OnSelectionUpdated = InArgs._OnSelectionUpdated;
 	OnItemDoubleClicked = InArgs._OnItemDoubleClicked;
 	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;
@@ -3385,24 +3384,15 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 	if (SelectedNodes.Num() > 0 || CanPasteNodes())
 	{
 		const bool CloseAfterSelection = true;
-		FMenuBuilder MenuBuilder( CloseAfterSelection, CommandList, ActorMenuExtender );
+		FMenuBuilder MenuBuilder( CloseAfterSelection, CommandList );
 
-		bool bShowJustPasteOption = false;
+		bool bOnlyShowPasteOption = false;
 
 		if (SelectedNodes.Num() > 0)
 		{
 			if (SelectedNodes.Num() == 1 && SelectedNodes[0]->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
 			{
-				if (EditorMode == EComponentEditorMode::BlueprintSCS)
-				{
-					bShowJustPasteOption = false;
-				}
-				else
-				{
-					// Display the Actor menu
-					MenuBuilder.BeginSection("MainSection");
-					MenuBuilder.EndSection();
-				}
+				bOnlyShowPasteOption = true;
 			}
 			else
 			{
@@ -3410,11 +3400,11 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 				{
 					if (SelectedNode->GetNodeType() != FSCSEditorTreeNode::ComponentNode)
 					{
-						bShowJustPasteOption = true;
+						bOnlyShowPasteOption = true;
 						break;
 					}
 				}
-				if (!bShowJustPasteOption)
+				if (!bOnlyShowPasteOption)
 				{
 					TArray<UActorComponent*> SelectedComponents;
 					TArray<FSCSEditorTreeNodePtrType> SelectedNodes = GetSelectedNodes();
@@ -3467,12 +3457,12 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 		}
 		else
 		{
-			bShowJustPasteOption = true;
+			bOnlyShowPasteOption = true;
 		}
 
-		if (bShowJustPasteOption)
+		if (bOnlyShowPasteOption)
 		{
-			MenuBuilder.BeginSection("ComponentActions", LOCTEXT("ComponentContextMenu", "Component Actions") );
+			MenuBuilder.BeginSection("PasteComponent", LOCTEXT("EditComponentHeading", "Edit") );
 			{
 				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Paste );
 			}
@@ -4534,7 +4524,7 @@ bool SSCSEditor::CanCopyNodes() const
 		}
 	}
 
-	// Copy the components to the clipboard
+	// Verify that the components can be copied
 	return FComponentEditorUtils::CanCopyComponents(ComponentsToCopy);
 }
 
@@ -4568,7 +4558,7 @@ bool SSCSEditor::CanPasteNodes() const
 		return false;
 	}
 
-	return FComponentEditorUtils::CanPasteComponents(Cast<USceneComponent>(SceneRootNodePtr->GetComponentTemplate()), SceneRootNodePtr->IsDefaultSceneRoot());
+	return FComponentEditorUtils::CanPasteComponents(Cast<USceneComponent>(SceneRootNodePtr->GetComponentTemplate()), SceneRootNodePtr->IsDefaultSceneRoot(), true);
 }
 
 void SSCSEditor::PasteNodes()
@@ -4645,8 +4635,8 @@ void SSCSEditor::PasteNodes()
 	}
 	else    // EComponentEditorMode::ActorInstance
 	{
-		// Determine where in the hierarchy to paste
-		USceneComponent* TargetComponent = nullptr;
+		// Determine where in the hierarchy to paste (default to the root)
+		USceneComponent* TargetComponent = GetActorContext()->GetRootComponent();
 		auto SelectedNodes = GetSelectedNodes();
 		for (int32 i = 0; i < SelectedNodes.Num(); ++i)
 		{

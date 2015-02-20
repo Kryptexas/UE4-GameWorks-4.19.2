@@ -59,8 +59,7 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 		.EditorMode(EComponentEditorMode::ActorInstance)
 		.AllowEditing(this, &SActorDetails::GetAllowComponentTreeEditing)
 		.ActorContext(this, &SActorDetails::GetActorContext)
-		.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)
-		.ActorMenuExtender(InArgs._ActorMenuExtender);
+		.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged);
 		
 	ComponentsBox->SetContent(SCSEditor.ToSharedRef());
 

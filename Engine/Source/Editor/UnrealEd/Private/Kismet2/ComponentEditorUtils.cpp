@@ -266,12 +266,18 @@ void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& Compo
 	// Duplicate the selected component templates into temporary objects that we can modify
 	TMap<FName, FName> ParentMap;
 	TMap<FName, UActorComponent*> ObjectMap;
-	for (auto Component : ComponentsToCopy)
+	for (UActorComponent* Component : ComponentsToCopy)
 	{
 		// Duplicate the component into a temporary object
 		UObject* DuplicatedComponent = StaticDuplicateObject(Component, GetTransientPackage(), *Component->GetName(), RF_AllFlags & ~RF_ArchetypeObject);
 		if (DuplicatedComponent)
 		{
+			// If the duplicated component is a scene component, wipe its attach parent (to prevent log warnings for referencing a private object in an external package)
+			if (auto DuplicatedCompAsSceneComp = Cast<USceneComponent>(DuplicatedComponent))
+			{
+				DuplicatedCompAsSceneComp->AttachParent = nullptr;
+			}
+
 			// Find the closest parent component of the current component within the list of components to copy
 			USceneComponent* ClosestSelectedParent = FindClosestParentInList(Component, ComponentsToCopy);
 			if (ClosestSelectedParent)
@@ -318,13 +324,13 @@ void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& Compo
 	FPlatformMisc::ClipboardCopy(*ExportedText);
 }
 
-bool FComponentEditorUtils::CanPasteComponents(USceneComponent* RootComponent, bool bOverrideCanAttach)
+bool FComponentEditorUtils::CanPasteComponents(USceneComponent* RootComponent, bool bOverrideCanAttach, bool bPasteAsArchetypes)
 {
 	FString ClipboardContent;
 	FPlatformMisc::ClipboardPaste(ClipboardContent);
 
 	// Obtain the component object text factory for the clipboard content and return whether or not we can use it
-	TSharedRef<FComponentObjectTextFactory> Factory = FComponentObjectTextFactory::Get(ClipboardContent);
+	TSharedRef<FComponentObjectTextFactory> Factory = FComponentObjectTextFactory::Get(ClipboardContent, bPasteAsArchetypes);
 	return Factory->NewObjectMap.Num() > 0 && ( bOverrideCanAttach || Factory->CanAttachComponentsTo(RootComponent) );
 }
 

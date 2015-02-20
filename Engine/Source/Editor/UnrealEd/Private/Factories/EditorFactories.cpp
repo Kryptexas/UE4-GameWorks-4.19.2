@@ -5300,10 +5300,12 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 				FParse::Value( Str, TEXT("NAME="), ObjName );
 
 				// Setup archetype
+				UObject* ObjArchetype = nullptr;
 				FString ObjArchetypeName;
-				FParse::Value( Str, TEXT("ARCHETYPE="), ObjArchetypeName );
-				UObject* ObjArchetype;
-				ObjArchetype = LoadObject<UObject>(nullptr, *ObjArchetypeName, nullptr, LOAD_None, nullptr);
+				if (FParse::Value(Str, TEXT("ARCHETYPE="), ObjArchetypeName))
+				{
+					ObjArchetype = LoadObject<UObject>(nullptr, *ObjArchetypeName, nullptr, LOAD_None, nullptr);
+				}
 
 				// Make sure this name is not used by anything else. Will rename other stuff if necessary
 				ClearObjectNameUsage(InParent, ObjName);

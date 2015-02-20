@@ -43,7 +43,7 @@ public:
 	 * @param bOverrideCanAttach Optional override declaring that components can be attached and a check is not needed
 	 * @return Whether components can be pasted
 	 */
-	static bool CanPasteComponents(USceneComponent* RootComponent, bool bOverrideCanAttach = false);
+	static bool CanPasteComponents(USceneComponent* RootComponent, bool bOverrideCanAttach = false, bool bPasteAsArchetypes = false);
 
 	/**
 	 * Attempts to paste components from the clipboard as siblings of the target component

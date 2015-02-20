@@ -1056,6 +1056,19 @@ namespace SceneOutliner
 
 		if (SharedData->Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
+			// Make sure that no components are selected
+			if (GEditor->GetSelectedComponentCount() > 0)
+			{
+				// We want to be able to undo to regain the previous component selection
+				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActorsContextMenu", "Clicking on Actors (context menu)"));
+				USelection* ComponentSelection = GEditor->GetSelectedComponents();
+				ComponentSelection->Modify(false);
+				ComponentSelection->DeselectAll();
+
+				GUnrealEd->UpdatePivotLocationForSelection();
+				GEditor->RedrawLevelEditingViewports(false);
+			}
+
 			return BuildDefaultContextMenu();
 		}
 

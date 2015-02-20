@@ -716,7 +716,6 @@ public:
 		{}
 
 		SLATE_ARGUMENT(EComponentEditorMode::Type, EditorMode)
-		SLATE_ARGUMENT(TSharedPtr<FExtender>, ActorMenuExtender)
 		SLATE_ATTRIBUTE(class AActor*, ActorContext)
 		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
 		SLATE_ATTRIBUTE(bool, AllowEditing)
