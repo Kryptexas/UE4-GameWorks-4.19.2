@@ -52,7 +52,7 @@ void FAssetTypeActions_Blueprint::GetActions( const TArray<UObject*>& InObjects,
 		TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Blueprint_NewDerivedBlueprint", "Create Blueprint based on this"),
+			LOCTEXT("Blueprint_NewDerivedBlueprint", "Create Child Blueprint Class"),
 			DynamicTooltipAttribute,
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.CreateClassBlueprint"),
 			FUIAction(
@@ -206,7 +206,7 @@ FText FAssetTypeActions_Blueprint::GetNewDerivedBlueprintTooltip(TWeakObjectPtr<
 	}
 	else
 	{
-		return LOCTEXT("Blueprint_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint.");
+		return LOCTEXT("Blueprint_NewDerivedBlueprintTooltip", "Creates a Child Blueprint Class based on the current Blueprint, allowing you to create variants easily.");
 	}
 }
 
