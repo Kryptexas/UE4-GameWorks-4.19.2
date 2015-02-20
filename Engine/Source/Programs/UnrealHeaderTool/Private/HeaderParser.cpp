@@ -664,6 +664,8 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 	UEnum* Enum = new(EC_InternalUseOnlyConstructor, SourceFile.GetPackage(), EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
 	Scope->AddType(Enum);
 
+	AddTypeDefinition(SourceFile, Enum, InputLine);
+
 	// Validate the metadata for the enum
 	ValidateMetaDataFormat(Enum, EnumToken.MetaData);
 

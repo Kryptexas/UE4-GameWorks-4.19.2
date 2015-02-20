@@ -37,9 +37,9 @@ enum EAccessSpecifier
  * Add type definition info to global map.
  *
  * @param SourceFile SourceFile in which type was defined.
- * @param Struct Defined type.
+ * @param Field Defined type.
  * @param Line Line on which the type was defined.
  *
  * @returns Type definition info.
  */
-TSharedRef<FUnrealTypeDefinitionInfo> AddTypeDefinition(FUnrealSourceFile& SourceFile, UStruct* Struct, int32 Line);
+TSharedRef<FUnrealTypeDefinitionInfo> AddTypeDefinition(FUnrealSourceFile& SourceFile, UField* Field, int32 Line);

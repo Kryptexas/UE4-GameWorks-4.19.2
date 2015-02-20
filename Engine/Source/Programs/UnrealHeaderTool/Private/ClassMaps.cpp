@@ -16,11 +16,11 @@ TMap<UPackage*,  const FManifestModule*>							GPackageToManifestModuleMap;
 TMap<UField*, uint32>												GGeneratedCodeCRCs;
 TMap<UEnum*,  EPropertyType>										GEnumUnderlyingTypes;
 
-TSharedRef<FUnrealTypeDefinitionInfo> AddTypeDefinition(FUnrealSourceFile& SourceFile, UStruct* Struct, int32 Line)
+TSharedRef<FUnrealTypeDefinitionInfo> AddTypeDefinition(FUnrealSourceFile& SourceFile, UField* Field, int32 Line)
 {
 	TSharedRef<FUnrealTypeDefinitionInfo> DefinitionInfo = MakeShareable(new FUnrealTypeDefinitionInfo(SourceFile, Line));
 
-	GTypeDefinitionInfoMap.Add(Struct, DefinitionInfo);
+	GTypeDefinitionInfoMap.Add(Field, DefinitionInfo);
 
 	return DefinitionInfo;
 }
