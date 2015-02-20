@@ -495,6 +495,12 @@ void UActorComponent::ConsolidatedPostEditChange()
 	{
 		delete ReregisterContext;
 		EditReregisterContexts.Remove(this);
+
+		AActor* Owner = GetOwner();
+		if (Owner && !Owner->IsTemplate())
+		{
+			Owner->RerunConstructionScripts();
+		}
 	}
 
 	// The component or its outer could be pending kill when calling PostEditChange when applying a transaction.

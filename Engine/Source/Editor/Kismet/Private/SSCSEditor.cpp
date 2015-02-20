@@ -2548,6 +2548,14 @@ void SSCS_RowWidget::PostDragDropAction(bool bRegenerateTreeNodes)
 				}
 			}
 		}
+		else
+		{
+			AActor* ActorInstance = PinnedEditor->GetActorContext();
+			if(ActorInstance)
+			{
+				ActorInstance->RerunConstructionScripts();
+			}
+		}
 	}
 }
 
@@ -4378,6 +4386,9 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			ActorInstance->AddInstanceComponent(NewInstanceComponent);
 			NewInstanceComponent->OnComponentCreated();
 			NewInstanceComponent->RegisterComponent();
+
+			// Rerun construction scripts
+			ActorInstance->RerunConstructionScripts();
 
 			NewComponent = AddNewNodeForInstancedComponent(NewInstanceComponent, Asset);
 		}

@@ -394,6 +394,9 @@ void FComponentEditorUtils::PasteComponents(TArray<UActorComponent*>& OutPastedC
 
 		OutPastedComponents.Add(NewActorComponent);
 	}
+
+	// Rerun construction scripts
+	TargetActor->RerunConstructionScripts();
 }
 
 void FComponentEditorUtils::GetComponentsFromClipboard(TMap<FName, FName>& OutParentMap, TMap<FName, UActorComponent*>& OutNewObjectMap, bool bGetComponentsAsArchetypes)
@@ -431,6 +434,8 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 {
 	int32 NumDeletedComponents = 0;
 
+	TArray<AActor*> ActorsToReconstruct;
+
 	for (auto ComponentToDelete : ComponentsToDelete)
 	{
 		if (ComponentToDelete->CreationMethod != EComponentCreationMethod::Instance)
@@ -440,10 +445,13 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 			continue;
 		}
 
+		AActor* Owner = ComponentToDelete->GetOwner();
+		check(Owner != nullptr);
+
 		// If necessary, determine the component that should be selected following the deletion of the indicated component
 		if (!OutComponentToSelect || ComponentToDelete == OutComponentToSelect)
 		{
-			USceneComponent* RootComponent = ComponentToDelete->GetOwner()->GetRootComponent();
+			USceneComponent* RootComponent = Owner->GetRootComponent();
 			if (RootComponent != ComponentToDelete)
 			{
 				// Worst-case, the root can be selected
@@ -472,7 +480,7 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 				{
 					// For a non-scene component, try to select the preceding non-scene component
 					TInlineComponentArray<UActorComponent*> ActorComponents;
-					ComponentToDelete->GetOwner()->GetComponents(ActorComponents);
+					Owner->GetComponents(ActorComponents);
 					for (int32 i = 0; i < ActorComponents.Num() && ComponentToDelete != ActorComponents[i]; ++i)
 					{
 						if (!ActorComponents[i]->IsA(USceneComponent::StaticClass()))
@@ -488,10 +496,19 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 			}
 		}
 
+		// Defer reconstruction
+		ActorsToReconstruct.AddUnique(Owner);
+
 		// Actually delete the component
 		ComponentToDelete->Modify();
 		ComponentToDelete->DestroyComponent(true);
 		NumDeletedComponents++;
+	}
+
+	// Reconstruct owner instance(s) after deletion
+	for(auto ActorToReconstruct : ActorsToReconstruct)
+	{
+		ActorToReconstruct->RerunConstructionScripts();
 	}
 
 	return NumDeletedComponents;
@@ -547,6 +564,9 @@ UActorComponent* FComponentEditorUtils::DuplicateComponent(UActorComponent* Temp
 		
 		// Register the new component
 		NewCloneComponent->RegisterComponent();
+
+		// Rerun construction scripts
+		Actor->RerunConstructionScripts();
 	}
 
 	return NewCloneComponent;
