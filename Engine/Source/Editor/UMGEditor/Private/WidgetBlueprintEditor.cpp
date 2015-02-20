@@ -670,9 +670,9 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 	OnWidgetPreviewUpdated.Broadcast();
 }
 
-FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
+FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance(UEdGraph* InGraph) const
 {
-	FGraphAppearanceInfo AppearanceInfo = FBlueprintEditor::GetGraphAppearance();
+	FGraphAppearanceInfo AppearanceInfo = FBlueprintEditor::GetGraphAppearance(InGraph);
 
 	if ( GetBlueprintObj()->IsA(UWidgetBlueprint::StaticClass()) )
 	{

@@ -879,10 +879,11 @@ protected:
 	virtual void	PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
-	/** Get graph appearance */
-	virtual FGraphAppearanceInfo GetGraphAppearance() const;
-	/** Used to get the apperance of a specific graph, GetGraphAppearance() uses the currently focused graph. */
-	FGraphAppearanceInfo GetGraphAppearance(class UEdGraph* InGraph) const;
+	/** Get the graph appearance of the currently focused graph */
+	FGraphAppearanceInfo GetCurrentGraphAppearance() const;
+
+	/** Get the graph appearance of a specific graph, GetCurrentGraphAppearance() uses the currently focused graph. */
+	virtual FGraphAppearanceInfo GetGraphAppearance(class UEdGraph* InGraph) const;
 
 	/** Attempts to invoke the details tab if it's currently possible to. */
 	void TryInvokingDetailsTab(bool bFlash = true);

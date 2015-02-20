@@ -1958,9 +1958,9 @@ void FPersona::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints)
 	PreviewEditor = SNew(SPersonaPreviewPropertyEditor, SharedThis(this));
 }
 
-FGraphAppearanceInfo FPersona::GetGraphAppearance() const
+FGraphAppearanceInfo FPersona::GetGraphAppearance(UEdGraph* InGraph) const
 {
-	FGraphAppearanceInfo AppearanceInfo = FBlueprintEditor::GetGraphAppearance();
+	FGraphAppearanceInfo AppearanceInfo = FBlueprintEditor::GetGraphAppearance(InGraph);
 
 	if ( GetBlueprintObj()->IsA(UAnimBlueprint::StaticClass()) )
 	{

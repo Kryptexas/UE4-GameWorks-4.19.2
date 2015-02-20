@@ -1201,7 +1201,7 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 	return Editor;
 }
 
-FGraphAppearanceInfo FBlueprintEditor::GetGraphAppearance() const
+FGraphAppearanceInfo FBlueprintEditor::GetCurrentGraphAppearance() const
 {
 	return GetGraphAppearance(GetFocusedGraph());
 }
