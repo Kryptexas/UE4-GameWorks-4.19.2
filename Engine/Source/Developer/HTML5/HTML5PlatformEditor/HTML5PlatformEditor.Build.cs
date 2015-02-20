@@ -24,6 +24,9 @@ public class HTML5PlatformEditor : ModuleRules
 				"SourceControl",
                 "TargetPlatform",
 				"HTML5TargetPlatform",
+				// WITH_EDITOR only?
+				"UnrealEd",
+				"DesktopPlatform",
 			}
 		);
 

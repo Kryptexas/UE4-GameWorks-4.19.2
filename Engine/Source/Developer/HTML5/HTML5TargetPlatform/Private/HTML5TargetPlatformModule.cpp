@@ -59,6 +59,11 @@ public:
 		}
 	}
 
+	virtual void GetInstalledSDKVersions(const TCHAR* SDKDirectory, TArray<FHTML5SDKVersionNumber>& OutSDKs)
+	{
+		FHTML5TargetPlatform::GetInstalledSDKVersions(SDKDirectory, OutSDKs);
+	}
+
 public:
 
 	// Begin IModuleInterface interface

@@ -31,4 +31,10 @@ public:
  	 */
  	UPROPERTY(GlobalConfig, EditAnywhere, Category=Memory, Meta = (DisplayName = "Heap Size (in MB)", ClampMin="1", ClampMax="4096"))
  	int32 HeapSizeShipping;
+
+	/**
+ 	 * Port to use when deploying game from the editor
+ 	 */
+ 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Memory, Meta = (DisplayName = "Port to use when deploying game from the editor", ClampMin="49152", ClampMax="65535"))
+ 	int32 DeployServerPort;
 };

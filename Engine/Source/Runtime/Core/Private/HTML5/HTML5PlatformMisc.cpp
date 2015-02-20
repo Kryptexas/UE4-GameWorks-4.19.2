@@ -11,6 +11,8 @@
 #include "HTML5JavaScriptFx.h"
 #endif 
 
+#include "trace.h"
+
 #include "unicode/locid.h"
 #include "GenericPlatformContext.h"
 #include <SDL.h>
@@ -138,6 +140,10 @@ extern "C"
 	// callback from javascript. 
 	void on_fatal(const char* msg, const char* error)
 	{
+#ifdef __EMSCRIPTEN_TRACING__
+		emscripten_log(EM_LOG_CONSOLE, "Fatal Error: Closing trace!");
+		emscripten_trace_close();
+#endif
 		// !!JM todo: pass msg & error to a crash context? Must be copied?
 		if (GHTML5CrashHandler)
 		{

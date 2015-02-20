@@ -298,6 +298,7 @@ public:
 		{
 			return new FFileHandleHTML5(Handle);
 		}
+
 #if PLATFORM_HTML5_WIN32
 		int err = errno;
 		UE_LOG(LogTemp, Display, TEXT("OpenRead: %s failed, errno %d"), (*fn), err);

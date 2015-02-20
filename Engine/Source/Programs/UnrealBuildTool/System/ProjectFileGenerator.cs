@@ -515,6 +515,8 @@ namespace UnrealBuildTool
 
                     // Add all of the PS4 C# projects
                     AddPS4Projects( ProgramsFolder );
+
+					AddHTML5Projects( ProgramsFolder );
                 }
 
 
@@ -1277,6 +1279,19 @@ namespace UnrealBuildTool
 		/// </summary>
 		private void AddAndroidProjects(MasterProjectFolder Folder)
 		{
+		}
+
+		/// <summary>
+		/// Adds all of the HTML5 C# projects to the master project
+		/// </summary>
+		private void AddHTML5Projects(MasterProjectFolder Folder)
+		{
+			string ProjectFolderName = Path.Combine(EngineRelativePath, "Source", "Programs", "HTML5");
+			DirectoryInfo ProjectFolderInfo = new DirectoryInfo(ProjectFolderName);
+			if (ProjectFolderInfo.Exists)
+			{
+				Folder.ChildProjects.Add(AddSimpleCSharpProject("HTML5/HTML5LaunchHelper", true)); // Build by default; needed for UAT.
+			}
 		}
 		
 

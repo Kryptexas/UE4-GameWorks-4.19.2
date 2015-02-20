@@ -259,8 +259,11 @@ public class HTML5Platform : Platform
 		}
 
 		// open the webpage
-		string directory = Path.GetDirectoryName(ClientApp);
+		Int32 ServerPort = 8000;
+		ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "DeployServerPort", out ServerPort);
+		string WorkingDirectory = Path.GetDirectoryName(ClientApp);
 		string url = Path.GetFileName(ClientApp) +".html";
+		string args = "-m ";
 		// Are we running via cook on the fly server?
 		// find our http url - This is awkward because RunClient doesn't have real information that NFS is running or not.
 		bool IsCookOnTheFly = false;
@@ -281,100 +284,27 @@ public class HTML5Platform : Platform
 		}
 		else
 		{
-			url = "http://127.0.0.1:8000/" + url;
-			// this will be killed UBT instances dies.
-			string input = String.Format(" -m SimpleHTTPServer 8000");
-
-            string PythonPath = HTML5SDKInfo.PythonPath();
-            ProcessResult Result = ProcessManager.CreateProcess(PythonPath, true, "html5server.log");
-            Result.ProcessObject.StartInfo.FileName = PythonPath;
-			Result.ProcessObject.StartInfo.UseShellExecute = false;
-			Result.ProcessObject.StartInfo.RedirectStandardOutput = true;
-			Result.ProcessObject.StartInfo.RedirectStandardInput = true;
-			Result.ProcessObject.StartInfo.WorkingDirectory = directory;
-			Result.ProcessObject.StartInfo.Arguments = input;
-			Result.ProcessObject.Start();
-
-			Result.ProcessObject.OutputDataReceived += delegate(object sender, System.Diagnostics.DataReceivedEventArgs e)
-			{
-				System.Console.WriteLine(e.Data);
-			};
-
-			System.Console.WriteLine("Starting Browser Process");
-
-
-			// safari specific hack.
-			string argument = url; 
-			if (browserPath.Contains ("Safari") && Utils.IsRunningOnMono)
-				argument = "";
-
-			// Chrome issue. Firefox may work like this in the future
-			bool bBrowserWillSpawnProcess = browserPath.Contains("chrome") || (browserPath.Contains("Google Chrome") && Utils.IsRunningOnMono);
-
-			ProcessResult SubProcess = null;
-			ProcessResult ClientProcess = Run(browserPath, argument, null, ClientRunFlags | ERunOptions.NoWaitForExit);
-			var ProcStartTime = ClientProcess.ProcessObject.StartTime;
-			var ProcName = ClientProcess.ProcessObject.ProcessName;
-
-			ClientProcess.ProcessObject.EnableRaisingEvents = true;
-			ClientProcess.ProcessObject.Exited += delegate(System.Object o, System.EventArgs e)
-			{
-				System.Console.WriteLine("Browser Process Ended (PID={0})", ClientProcess.ProcessObject.Id);
-				var bFoundChildProcess = false;
-				if (bBrowserWillSpawnProcess)
-				{
-					// Chrome spawns a process from the tab it opens and then lets the process we spawned die, so
-					// catch that process and attach to that instead.
-					var CurrentProcesses = Process.GetProcesses();
-					foreach (var item in CurrentProcesses)
-					{
-						if (item.Id != ClientProcess.ProcessObject.Id && item.ProcessName == ProcName && item.StartTime >= ProcStartTime && item.StartTime <= ClientProcess.ProcessObject.ExitTime)
-						{
-							var PID = item.Id;
-							System.Console.WriteLine("Found Process {0} with PID {1} which started at {2}. Waiting on that process to end.", item.ProcessName, item.Id, item.StartTime.ToString());
-							SubProcess = new ProcessResult(item.ProcessName, item, true, item.ProcessName);
-							item.EnableRaisingEvents = true;
-							item.Exited += delegate(System.Object o2, System.EventArgs e2)
-							{
-								System.Console.WriteLine("Browser Process Ended (PID={0}) - Killing Webserver", PID);
-								Result.ProcessObject.StandardInput.Close();
-								Result.ProcessObject.Kill();
-							};
-							bFoundChildProcess = true;
-						}
-					}
-				}
-
-				if (!bFoundChildProcess)
-				{
-					System.Console.WriteLine("- Killing Webserver PID({0})", Result.ProcessObject.Id);
-					Result.ProcessObject.StandardInput.Close();
-					Result.ProcessObject.Kill();
-				}
-			};
-
-			if (bBrowserWillSpawnProcess)
-			{
-				//Wait for it to do so...
-				ClientProcess.ProcessObject.WaitForExit();
-				ClientProcess = SubProcess;
-			}
-
-			// safari needs a hack. 
-			// http://superuser.com/questions/689315/run-safari-from-terminal-with-given-url-address-without-open-command
-
-			if (browserPath.Contains ("Safari") && Utils.IsRunningOnMono) 
-			{
-				// ClientProcess.ProcessObject.WaitForInputIdle ();
-				Thread.Sleep (2000);
-				Process.Start("/usr/bin/osascript"," -e 'tell application \"Safari\" to open location \"" + url + "\"'" );
-			}
-
-			return ClientProcess;
+			url = String.Format("http://127.0.0.1:{0}/{1}", ServerPort, url);
+			args += String.Format("-h -s {0} ", ServerPort);
 		}
 
-		System.Console.WriteLine("Browser Path " + browserPath);
-		ProcessResult BrowserProcess = Run(browserPath, url, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+		// Check HTML5LaunchHelper source for command line args
+		var LowerBrowserPath = browserPath.ToLower();
+		args += String.Format("-b \"{0}\" -p \"{1}\" -w \"{2}\" ", browserPath, HTML5SDKInfo.PythonPath(), WorkingDirectory);
+		args += url + " ";
+		var ProfileDirectory = Path.Combine(Utils.GetUserSettingDirectory(), "UE4_HTML5", "user");
+		if (LowerBrowserPath.Contains("chrome"))
+		{
+			args += String.Format("--user-data-dir=\"{0}\" --enable-logging --no-first-run", Path.Combine(ProfileDirectory, "chrome"));
+		}
+		else if (LowerBrowserPath.Contains("firefox"))
+		{
+			args += String.Format("-no-remote -profile \"{0}\" -jsconsole", Path.Combine(ProfileDirectory, "firefox"));
+		}
+		//else if (browserPath.Contains("Safari")) {}
+
+		var LaunchHelperPath = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/HTML5LaunchHelper.exe");
+		ProcessResult BrowserProcess = Run(LaunchHelperPath, args, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 	
 		return BrowserProcess;
 

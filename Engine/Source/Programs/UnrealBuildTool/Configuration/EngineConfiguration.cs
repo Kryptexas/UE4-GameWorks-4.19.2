@@ -545,21 +545,18 @@ namespace UnrealBuildTool
 				}
 			}
 
-			string UserSettingsFolder = null; // Match FPlatformProcess::UserSettingsDir()
+			string UserSettingsFolder = Utils.GetUserSettingDirectory(); // Match FPlatformProcess::UserSettingsDir()
 			string PersonalFolder = null; // Match FPlatformProcess::UserDir()
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
-				UserSettingsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", "Epic");
 				PersonalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents");
 			}
 			else if (Environment.OSVersion.Platform == PlatformID.Unix)
 			{
-				UserSettingsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Epic");
 				PersonalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents");
 			}
 			else
 			{
-				UserSettingsFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 				PersonalFolder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 			}
 

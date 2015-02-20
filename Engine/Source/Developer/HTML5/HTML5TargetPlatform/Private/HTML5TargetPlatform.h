@@ -89,6 +89,8 @@ public:
 
 	// End ITargetPlatform interface
 
+	static void GetInstalledSDKVersions(const TCHAR* SDKDirectory, TArray<FHTML5SDKVersionNumber>& OutSDKs);
+
 private:
 
 	// Holds the HTML5 engine settings.

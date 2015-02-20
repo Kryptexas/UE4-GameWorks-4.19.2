@@ -10,6 +10,7 @@
 #include "HAL/Platform.h"
 #include "HTML5/HTML5DebugLogging.h"
 #include "HTML5/HTML5SystemIncludes.h"
+#include <emscripten.h>
 
 /**
  * HTML5 implementation of the misc OS functions
@@ -49,6 +50,9 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 			__debugbreak();
 #else
 			emscripten_log(255, "DebugBreak() called!");
+			EM_ASM(
+				throw new Error('DebugBreak() called! Check Log for information');
+			);
 #endif
 		}
 	}

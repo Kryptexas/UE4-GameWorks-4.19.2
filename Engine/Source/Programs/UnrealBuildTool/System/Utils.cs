@@ -859,6 +859,25 @@ namespace UnrealBuildTool
 		{
 			return Array.IndexOf(TestType.GetInterfaces(), typeof(InterfaceType)) != -1;
 		}
+
+		/// <summary>
+		/// Returns the User Settings Directory path. This matches FPlatformProcess::UserSettingsDir()
+		/// </summary>
+		public static string GetUserSettingDirectory()
+		{
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+			{
+				return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", "Epic");
+			}
+			else if (Environment.OSVersion.Platform == PlatformID.Unix)
+			{
+				return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Epic");
+			}
+			else
+			{
+				return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+			}
+		}
 	}
 
 	/// <summary>

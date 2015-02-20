@@ -15,9 +15,6 @@
 
 FHTML5TargetPlatform::FHTML5TargetPlatform( )
 {
-	// load the final HTML5 engine settings for this game
-	FConfigCacheIni::LoadLocalIniFile(HTML5EngineSettings, TEXT("Engine"), true, *PlatformName());
-
 	RefreshAvailableDevices();
 
 #if WITH_ENGINE
@@ -69,17 +66,67 @@ bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocu
 	//New style detection of devices
 	if (HTML5EngineSettings.Find("/Script/HTML5PlatformEditor.HTML5SDKSettings"))
 	{
+
 		SDKPaths = HTML5EngineSettings["/Script/HTML5PlatformEditor.HTML5SDKSettings"];
 		for (auto It : SDKPaths)
 		{
 			const FString& Platform = It.Key.ToString();
 			FString Path = It.Value;
+			if (Platform == "EmscriptenRoot")
 			{
-				Path.RemoveFromStart(TEXT("(Path=\""));
-				Path.RemoveFromEnd(TEXT("\")"));
-				if (Platform == "Emscripten" && IFileManager::Get().DirectoryExists(*Path))
+				FString SDKPathString;
+				FString VersionString;
+				auto Index = Path.Find(TEXT("SDKPath="));
+				if (Index != INDEX_NONE)
 				{
-					return true;
+					Index+=9;
+					auto Index2 = Path.Find(TEXT("\""), ESearchCase::IgnoreCase, ESearchDir::FromStart, Index);
+					if (Index2 != INDEX_NONE)
+					{
+						SDKPathString = Path.Mid(Index, Index2-Index);
+					}
+				}
+				Index = Path.Find(TEXT("EmscriptenVersion="));
+				if (Index != INDEX_NONE)
+				{
+					Index += 19;
+					auto Index2 = Path.Find(TEXT("\""), ESearchCase::IgnoreCase, ESearchDir::FromStart, Index);
+					if (Index2 != INDEX_NONE)
+					{
+						VersionString = Path.Mid(Index, Index2 - Index);
+					}
+				}
+				if (!VersionString.IsEmpty() && !SDKPathString.IsEmpty())
+				{
+					bool bFoundSDK = false;
+					FHTML5SDKVersionNumber RequiredVersion;
+					RequiredVersion.VersionNumberFromString(*VersionString);
+					TArray<FHTML5SDKVersionNumber> SDKVersions;
+					GetInstalledSDKVersions(*SDKPathString, SDKVersions);
+
+					if (SDKVersions.Num() > 0 &&
+						RequiredVersion.VersionNumber.Major == -1 &&
+						RequiredVersion.VersionNumber.Minor == -1 &&
+						RequiredVersion.VersionNumber.Revision == -1)
+					{
+						bFoundSDK = true;
+						SDKPathString = SDKVersions.Last().VersionPath;
+					}
+					else
+					{
+						for (const auto& i : SDKVersions)
+						{
+							if (i == RequiredVersion)
+							{
+								SDKPathString = i.VersionPath;
+								bFoundSDK = true;
+								break;
+							}
+						}
+					}
+
+					
+					return bFoundSDK && IFileManager::Get().DirectoryExists(*SDKPathString);
 				}
 			}
 		}
@@ -278,6 +325,9 @@ FName FHTML5TargetPlatform::GetWaveFormat( const USoundWave* Wave ) const
 
 void FHTML5TargetPlatform::RefreshAvailableDevices()
 {
+	// load the final HTML5 engine settings for this game
+	FConfigCacheIni::LoadLocalIniFile(HTML5EngineSettings, TEXT("Engine"), true, *PlatformName());
+
 	//New style detection of devices
 	for (const auto& Device : LocalDevice)
 	{
@@ -319,7 +369,8 @@ void FHTML5TargetPlatform::RefreshAvailableDevices()
 				}
 
 				if (!DeviceName.IsEmpty() && !DevicePath.IsEmpty() &&
-					FPlatformFileManager::Get().GetPlatformFile().FileExists(*DevicePath))
+					(FPlatformFileManager::Get().GetPlatformFile().FileExists(*DevicePath) ||
+                     FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*DevicePath)))
 				{
 					ITargetDevicePtr Device = MakeShareable(new FHTML5TargetDevice(*this, FString::Printf(TEXT("%s on %s"), *DeviceName, FPlatformProcess::ComputerName())));
 					LocalDevice.Add(Device);
@@ -357,4 +408,50 @@ void FHTML5TargetPlatform::RefreshAvailableDevices()
 			}
 		}
 	}
+}
+
+void FHTML5TargetPlatform::GetInstalledSDKVersions(const TCHAR* SDKDirectory, TArray<FHTML5SDKVersionNumber>& OutSDKs)
+{
+	if (!SDKDirectory)
+	{
+		return;
+	}
+
+	struct FVersionSearch : public IPlatformFile::FDirectoryVisitor
+	{
+		IPlatformFile* PlatformFile;
+		TArray<FHTML5SDKVersionNumber>& SDKs;
+		FString VersionFilePath;
+
+		FVersionSearch(IPlatformFile* InPlatformFile, TArray<FHTML5SDKVersionNumber>& InSDKs)
+			: PlatformFile(InPlatformFile)
+			, SDKs(InSDKs)
+		{}
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+		{
+			if (bIsDirectory == true)
+			{
+				VersionFilePath = FPaths::Combine(FilenameOrDirectory, TEXT("emscripten-version.txt"));
+				if (PlatformFile->FileExists(*VersionFilePath))
+				{
+					FString VersionText;
+					FFileHelper::LoadFileToString(VersionText, *VersionFilePath);
+					VersionText.Trim();
+					VersionText.TrimTrailing();
+					FHTML5SDKVersionNumber Ver;
+					Ver.VersionPath = FilenameOrDirectory;
+					Ver.VersionNumberFromString(*VersionText);
+					SDKs.Add(Ver);
+				}
+			}
+			return true;
+		}
+	};
+
+	auto& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	FVersionSearch VersionSearch(&PlatformFile, OutSDKs);
+	FString EmscriptenSDkDir = FPaths::Combine(SDKDirectory, TEXT("emscripten"));
+	PlatformFile.IterateDirectory(*EmscriptenSDkDir, VersionSearch);
+	OutSDKs.Sort();
 }

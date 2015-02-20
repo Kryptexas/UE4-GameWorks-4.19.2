@@ -696,6 +696,16 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		// On Android the same shader is compiled with different hacks to find the right one(s) to apply so don't cache unless successful
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 #endif
+#if PLATFORM_HTML5
+		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
+		if (CompileStatus == GL_FALSE)
+		{
+			char Msg[2048];
+			glGetShaderInfoLog(Resource, 2048, nullptr, Msg);
+			UE_LOG(LogRHI, Error, TEXT("Shader compile failed: %s\n Original Source is (len %d) %s"), ANSI_TO_TCHAR(Msg), GlslCodeLength, ANSI_TO_TCHAR(GlslCodeString));
+		}
+#endif
+
 		if ( CompileStatus == GL_TRUE )
 		{
 			if ( FOpenGL::SupportsSeparateShaderObjects() )

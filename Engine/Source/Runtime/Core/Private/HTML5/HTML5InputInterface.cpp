@@ -7,6 +7,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogHTML5, Log, All);
 DEFINE_LOG_CATEGORY(LogHTML5);
+DEFINE_LOG_CATEGORY_STATIC(LogHTML5Input, Log, All);
 
 
 #if PLATFORM_HTML5_BROWSER
@@ -186,7 +187,6 @@ static bool GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDownEvent)
 		(Sym != SDLK_DOWN && Sym != SDLK_LEFT && Sym != SDLK_RIGHT && Sym != SDLK_UP && Sym != SDLK_DELETE);
 }
 
-
 void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedRef < FGenericWindow>& ApplicationWindow )
 {
 
@@ -206,6 +206,7 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 					const TCHAR Character = ConvertChar(KeyEvent.keysym);
 					MessageHandler->OnKeyChar(Character, bIsRepeated);
 				}
+				UE_LOG(LogHTML5Input, Verbose, TEXT("KeyDown: Code:%d bIsRepeated:%s"), KeyCode, bIsRepeated ? TEXT("TRUE") : TEXT("FALSE"));
 			}
 			break;
 		case SDL_KEYUP:
@@ -216,18 +217,21 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 				const bool IsRepeat = keyEvent.repeat != 0;
 
 				MessageHandler->OnKeyUp( KeyCode, keyEvent.keysym.sym, IsRepeat );
+				UE_LOG(LogHTML5Input, Verbose, TEXT("KeyUp Code:%d"), KeyCode);
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 			{
 				EMouseButtons::Type MouseButton = Event.button.button == 1 ? EMouseButtons::Left : Event.button.button == 2 ? EMouseButtons::Middle : EMouseButtons::Right;
 				MessageHandler->OnMouseDown(ApplicationWindow, MouseButton );
+				UE_LOG(LogHTML5Input, Verbose, TEXT("MouseButtonDown ID:%d"), Event.button.button);
 			}
 			break;
 		case SDL_MOUSEBUTTONUP:
 			{
 				EMouseButtons::Type MouseButton = Event.button.button == 1 ? EMouseButtons::Left : Event.button.button == 2 ? EMouseButtons::Middle : EMouseButtons::Right;
 				MessageHandler->OnMouseUp(MouseButton );
+				UE_LOG(LogHTML5Input, Verbose, TEXT("MouseButtonUp ID:%d"), Event.button.button);
 			}
 			break; 
 		case SDL_MOUSEMOTION:
@@ -235,6 +239,7 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 				Cursor->SetPosition(Event.motion.x, Event.motion.y);
 				MessageHandler->OnRawMouseMove(Event.motion.xrel, Event.motion.yrel);
 				MessageHandler->OnMouseMove(); 
+				UE_LOG(LogHTML5Input, Verbose, TEXT("MouseMotion Pos(%d, %d) XRel:%d YRel:%d"), Event.motion.x, Event.motion.y, Event.motion.xrel, Event.motion.yrel);
 			} 
 			break;
 		case SDL_MOUSEWHEEL:
@@ -242,6 +247,7 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 				SDL_MouseWheelEvent* w = (SDL_MouseWheelEvent*)&Event;
 				const float SpinFactor = 1 / 120.0f;
 				MessageHandler->OnMouseWheel(w->y * SpinFactor);
+				UE_LOG(LogHTML5Input, Verbose, TEXT("MouseWheel %f"), SpinFactor);
 			}
 			break;
 		default:

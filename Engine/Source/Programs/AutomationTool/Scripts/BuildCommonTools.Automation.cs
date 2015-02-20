@@ -147,6 +147,15 @@ public class BuildCommonTools : BuildCommand
 		{
 			Agenda.AddTarget("XboxOnePDBFileUtil", UnrealBuildTool.UnrealTargetPlatform.Win64, UnrealBuildTool.UnrealTargetConfiguration.Development);
 		}
+
+		// HTML5 binaries
+		if (Platforms.Contains(UnrealBuildTool.UnrealTargetPlatform.HTML5))
+		{
+			Agenda.AddTarget("UnrealPak", UnrealBuildTool.UnrealTargetPlatform.Win64, UnrealBuildTool.UnrealTargetConfiguration.Development);
+			
+			Agenda.DotNetProjects.Add(@"Engine/Source/Programs/HTML5LaunchHelper/HTML5LaunchHelper.csproj");
+			ExtraBuildProducts.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/HTML5/HTML5LaunchHelper.exe"));
+		}
 		
 		return Agenda;
 	}

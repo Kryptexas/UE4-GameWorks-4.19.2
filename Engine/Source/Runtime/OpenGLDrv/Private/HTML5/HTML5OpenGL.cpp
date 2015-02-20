@@ -6,6 +6,8 @@
 #include <emscripten.h>
 #endif
 
+DEFINE_LOG_CATEGORY_STATIC(LogHTML5OpenGL, Log, All);
+
 bool FHTML5OpenGL::bCombinedDepthStencilAttachment = false;
 
 
@@ -255,6 +257,7 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 	check(Context);
 	VERIFY_GL_SCOPE();
 
+	UE_LOG(LogHTML5OpenGL, Verbose, TEXT("SDL_SetWindowSize(%d,%d)"), SizeX, SizeY);
 	SDL_SetWindowSize(Device->WindowHandle,SizeX,SizeY); 
 
 	glViewport(0, 0, SizeX, SizeY);
@@ -301,6 +304,7 @@ void PlatformGetBackbufferDimensions( uint32& OutWidth, uint32& OutHeight )
 	check(Surface);
 	OutWidth  = Surface->w;
 	OutHeight = Surface->h;
+	UE_LOG(LogHTML5OpenGL, Verbose, TEXT("PlatformGetBackbufferDimensions(%d, %d)"), OutWidth, OutHeight);
 }
 
 // =============================================================
@@ -312,6 +316,7 @@ bool PlatformContextIsCurrent( uint64 QueryContext )
 
 FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint32 SizeX, uint32 SizeY)
 {
+	UE_LOG(LogHTML5OpenGL, Verbose, TEXT("PlatformCreateBuiltinBackBuffer(%d, %d)"), SizeX, SizeY);
 	uint32 Flags = TexCreate_RenderTargetable;
 	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, 0, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr);
 	OpenGLTextureAllocated(Texture2D, Flags);
@@ -337,7 +342,8 @@ extern "C"
 	// callback from javascript. 
 	void resize_game(int w, int h)
 	{
-      // to-do: remove this separate code path. 
+      	// to-do: remove this separate code path. 
+		UE_LOG(LogHTML5OpenGL, Verbose, TEXT("resize_game(%d, %d) callback"), w, h);
 	}
 #endif 
 }

@@ -110,6 +110,73 @@ namespace UnrealBuildTool
 			return false;
 		}
 
+		private class SDKVersion : IComparable<SDKVersion>
+		{
+			public System.Version Version;
+
+			public string Directory;
+
+			public static bool operator ==(SDKVersion LHS, SDKVersion RHS)
+			{
+				return LHS.Version == RHS.Version;
+			}
+
+			public static bool operator !=(SDKVersion LHS, SDKVersion RHS)
+			{
+				return LHS.Version != RHS.Version;
+			}
+
+			// Override the Object.Equals(object o) method:
+			public override bool Equals(object o)
+			{
+				try
+				{
+					return (bool)(this == (SDKVersion)o);
+				}
+				catch
+				{
+					return false;
+				}
+			}
+
+			// Override the Object.GetHashCode() method:
+			public override int GetHashCode()
+			{
+				return Version.GetHashCode();
+			}
+
+			public int CompareTo(SDKVersion other)
+			{
+				return this.Version.CompareTo(other.Version);
+			}
+		}
+
+		static List<SDKVersion> GetInstalledVersions(string RootPath)
+		{
+			List<SDKVersion> Versions = new List<SDKVersion>();
+			SDKVersion Ver = null;
+			if (!System.IO.Directory.Exists(Path.Combine(RootPath, "emscripten")))
+			{
+				return Versions;
+			}
+
+			string[] Directories = Directory.GetDirectories(Path.Combine(RootPath, "emscripten"), "*", SearchOption.TopDirectoryOnly);
+			foreach (var Dir in Directories)
+			{
+				var VersionFilePath = Path.Combine(Dir, "emscripten-version.txt");
+				if (System.IO.File.Exists(VersionFilePath))
+				{
+					Ver = new SDKVersion();
+					Ver.Version = System.Version.Parse(ReadVersionFile(VersionFilePath));
+					Ver.Directory = Dir;
+					Versions.Add(Ver);
+				}
+			}
+
+			Versions.Sort();
+			return Versions;
+		}
+
 		static void EnsureConfigCacheIsReady()
 		{
 			if (ConfigCache == null)
@@ -132,9 +199,57 @@ namespace UnrealBuildTool
         {
 			EnsureConfigCacheIsReady();
 			// Search the ini file for Emscripten root first
+			string EmscriptenRoot;
 			string EMCCPath;
-			if (ConfigCache.GetPath("/Script/HTML5PlatformEditor.HTML5SDKSettings", "Emscripten", out EMCCPath) && System.IO.Directory.Exists(EMCCPath))
- 				return EMCCPath;
+			if (ConfigCache.GetString("/Script/HTML5PlatformEditor.HTML5SDKSettings", "EmscriptenRoot", out EmscriptenRoot))
+			{
+				string SDKPathString = null;
+				string VersionString = null;
+				var Index = EmscriptenRoot.IndexOf("SDKPath=");
+				if (Index != -1)
+				{
+					Index+=9;
+					var Index2 = EmscriptenRoot.IndexOf("\"", Index);
+					if (Index2 != -1)
+					{
+						SDKPathString = EmscriptenRoot.Substring(Index, Index2 - Index);
+					}
+				}
+				Index = EmscriptenRoot.IndexOf("EmscriptenVersion=");
+				if (Index != -1)
+				{
+					Index += 19;
+					var Index2 = EmscriptenRoot.IndexOf("\"", Index);
+					if (Index2 != -1)
+					{
+						VersionString = EmscriptenRoot.Substring(Index, Index2 - Index);
+					}
+				}
+
+				if (!string.IsNullOrEmpty(SDKPathString) && !string.IsNullOrEmpty(VersionString))
+				{
+					var SDKVersions = GetInstalledVersions(SDKPathString);
+
+					if (VersionString == "-1.-1.-1" && SDKVersions.Count > 0)
+					{
+						var Ver = SDKVersions[SDKVersions.Count - 1];
+						if (System.IO.Directory.Exists(Ver.Directory))
+						{
+							return Ver.Directory;
+						}
+					}
+
+					var RequiredVersion = System.Version.Parse(VersionString);
+					foreach (var i in SDKVersions)
+					{
+ 						if (i.Version == RequiredVersion && System.IO.Directory.Exists(i.Directory))
+						{
+							return i.Directory;
+						}
+					}
+				}
+			}
+
 
 			// Old Method
 			if (bAllowFallbackSDKSettings)
@@ -280,11 +395,16 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		public static string ReadVersionFile(string path)
+		{
+			string VersionInfo = File.ReadAllText(path);
+			VersionInfo = VersionInfo.Trim();
+			return VersionInfo; 
+		}
+
         public static string EmscriptenVersion()
         {
-            string VersionInfo = File.ReadAllText(GetVersionInfoPath());
-            VersionInfo = VersionInfo.Trim();
-            return VersionInfo; 
+			return ReadVersionFile(GetVersionInfoPath());
         }
 
 		static string GetVersionInfoPath()

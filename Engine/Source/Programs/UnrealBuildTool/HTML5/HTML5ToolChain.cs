@@ -13,6 +13,8 @@ namespace UnrealBuildTool
 	{
         static string EMCCPath;
         static string PythonPath;
+        // Debug options -- TODO: add these to SDK/Project setup?
+        static bool   bEnableTracing = false;
 
 		// cache the location of SDK tools
 		public override void RegisterToolChain()
@@ -80,6 +82,11 @@ namespace UnrealBuildTool
             // NOTE: This may slow down the compiler's startup time!
             { 
                 Result += " -s NO_EXIT_RUNTIME=1 --memory-init-file 1";
+            }
+
+            if (bEnableTracing)
+            {
+            	Result += " --tracing";
             }
 
             return Result;
@@ -310,6 +317,11 @@ namespace UnrealBuildTool
 				Arguments += string.Format(" -D{0}", Definition);
 			}
 
+			if (bEnableTracing)
+			{
+				Arguments += string.Format(" -D__EMSCRIPTEN_TRACING__");
+			}
+
         
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 
@@ -349,7 +361,7 @@ namespace UnrealBuildTool
 
 				CompileAction.CommandArguments = EMCCPath + " " + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 
-                System.Console.WriteLine(CompileAction.CommandArguments); 
+                //System.Console.WriteLine(CompileAction.CommandArguments); 
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
 
@@ -459,7 +471,7 @@ namespace UnrealBuildTool
 			// Add the input files to a response file, and pass the response file on the command-line.
 			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
-                System.Console.WriteLine("File  {0} ", InputFile.AbsolutePath);
+                //System.Console.WriteLine("File  {0} ", InputFile.AbsolutePath);
                 LinkAction.CommandArguments += string.Format(" \"{0}\"", InputFile.AbsolutePath);
 				LinkAction.PrerequisiteItems.Add(InputFile);
 			}

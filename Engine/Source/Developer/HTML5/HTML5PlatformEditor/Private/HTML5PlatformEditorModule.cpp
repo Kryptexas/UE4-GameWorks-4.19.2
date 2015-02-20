@@ -21,6 +21,10 @@ class FHTML5PlatformEditorModule
 	virtual void StartupModule() override
 	{
 		// register settings
+		static FName PropertyEditor("PropertyEditor");
+		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
+		PropertyModule.RegisterCustomPropertyTypeLayout("HTML5SDKPath", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FHTML5SDKPathCustomization::MakeInstance));
+
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
