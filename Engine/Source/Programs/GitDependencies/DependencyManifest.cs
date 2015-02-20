@@ -58,6 +58,12 @@ namespace GitDependencies
 
 	public class DependencyManifest
 	{
+		[XmlAttribute]
+		public string BaseUrl;
+
+		[XmlAttribute]
+		public bool IgnoreProxy;
+
 		[XmlArrayItem("File")]
 		public DependencyFile[] Files = new DependencyFile[0];
 
