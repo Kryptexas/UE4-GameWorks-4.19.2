@@ -639,6 +639,7 @@ public:
 		ShadowTileArrayData.Bind(Initializer.ParameterMap, TEXT("ShadowTileArrayData"));
 		ShadowTileListGroupSize.Bind(Initializer.ParameterMap, TEXT("ShadowTileListGroupSize"));
 		WorldToShadow.Bind(Initializer.ParameterMap, TEXT("WorldToShadow"));
+		ShadowObjectIndirectArguments.Bind(Initializer.ParameterMap, TEXT("ShadowObjectIndirectArguments"));
 		ShadowCulledObjectBounds.Bind(Initializer.ParameterMap, TEXT("ShadowCulledObjectBounds"));
 		ShadowCulledObjectData.Bind(Initializer.ParameterMap, TEXT("ShadowCulledObjectData"));
 		ObjectProcessStride.Bind(Initializer.ParameterMap, TEXT("ObjectProcessStride"));
@@ -694,6 +695,7 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, WorldToShadow, WorldToShadowMatrixValue);
 
+		SetSRVParameter(RHICmdList, ShaderRHI, ShadowObjectIndirectArguments, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, ShadowCulledObjectBounds, GShadowCulledObjectBuffers.Buffers.Bounds.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, ShadowCulledObjectData, GShadowCulledObjectBuffers.Buffers.Data.SRV);
 
@@ -722,6 +724,7 @@ public:
 		Ar << ShadowTileArrayData;
 		Ar << ShadowTileListGroupSize;
 		Ar << WorldToShadow;
+		Ar << ShadowObjectIndirectArguments;
 		Ar << ShadowCulledObjectBounds;
 		Ar << ShadowCulledObjectData;
 		Ar << ObjectProcessStride;
@@ -743,6 +746,7 @@ private:
 	FShaderResourceParameter ShadowTileArrayData;
 	FShaderParameter ShadowTileListGroupSize;
 	FShaderParameter WorldToShadow;
+	FShaderResourceParameter ShadowObjectIndirectArguments;
 	FShaderResourceParameter ShadowCulledObjectBounds;
 	FShaderResourceParameter ShadowCulledObjectData;
 	FShaderParameter ObjectProcessStride;

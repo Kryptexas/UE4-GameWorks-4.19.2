@@ -420,6 +420,14 @@ float RayTraceThroughLightTileCulledObjects(
 	return MinConeVisibility;
 }
 
+Buffer<uint> ShadowObjectIndirectArguments;
+
+uint GetShadowCulledNumObjects()
+{
+	// IndexCount, NumInstances, StartIndex, BaseVertexIndex, FirstInstance
+	return ShadowObjectIndirectArguments[1];
+}
+
 float3 ComputeVPLFlux(uint SurfelIndex, float4x4 InstanceToWorld)
 {
 	// Distance for directional lights to trace
@@ -450,7 +458,7 @@ float3 ComputeVPLFlux(uint SurfelIndex, float4x4 InstanceToWorld)
 				float3 WorldRayEnd;
 				float MaxRayTime;
 				float TanLightAngle;
-				uint NumIntersectingObjects = GetCulledNumObjects();
+				uint NumIntersectingObjects = GetShadowCulledNumObjects();
 				uint CulledDataStart = 0;
 
 				if (bIsPointLight)
@@ -475,7 +483,6 @@ float3 ComputeVPLFlux(uint SurfelIndex, float4x4 InstanceToWorld)
 
 					#if USE_SHADOW_CULLING_FOR_VPL_PLACEMENT
 
-						uint CulledDataStart;
 						GetShadowTileCulledData(WorldRayStart, CulledDataStart, NumIntersectingObjects);
 
 					#endif
@@ -496,7 +503,7 @@ float3 ComputeVPLFlux(uint SurfelIndex, float4x4 InstanceToWorld)
 		float3 DiffuseColor = LoadSurfelDiffuseColor(SurfelIndex);
 		//float3 EmissiveColor = LoadSurfelEmissiveColor(SurfelIndex);
 
-		Flux = (DiffuseColor * AccumulatedLighting/* + EmissiveColor*/) * PI * PositionAndRadius.w * PositionAndRadius.w;
+		Flux = (DiffuseColor * AccumulatedLighting/* + EmissiveColor*/);
 	}
 
 	return Flux;
@@ -814,10 +821,18 @@ float3 ComputeVirtualPointLighting(uint VPLIndex, uint InstancedVPLIndex, uint R
 				#define USE_INVERSE_SQUARED_DISK_APPROX 1
 
 				#if USE_INVERSE_SQUARED_DISK_APPROX
-					float EffectiveDiskRadius = VPLPositionAndRadius.w * 1;
-					float DistanceAttenuation = 1.0f / (PI * DistanceSq + PI * EffectiveDiskRadius * EffectiveDiskRadius);
-					//@todo - this is scale dependent
-					DistanceAttenuation = min(DistanceAttenuation, .0001f * RadialAttenuation(VPLToGatherPoint / VPLGatherRadius, 4));
+					float DiskRadiusSq = VPLPositionAndRadius.w * VPLPositionAndRadius.w;
+					float DistanceAttenuation = DiskRadiusSq / (DistanceSq + DiskRadiusSq);
+
+					float MinDistanceAttenuation = DiskRadiusSq / (VPLGatherRadius * VPLGatherRadius + DiskRadiusSq);
+					DistanceAttenuation = max(DistanceAttenuation - MinDistanceAttenuation, 0);
+
+					#define CONSERVE_ENERGY 0
+					#if CONSERVE_ENERGY 
+						float Integral = VPLPositionAndRadius.w * atan(VPLGatherRadius / VPLPositionAndRadius.w);
+						float EnergyConservationScale = Integral / (Integral - MinDistanceAttenuation * VPLGatherRadius);
+						DistanceAttenuation *= EnergyConservationScale;
+					#endif
 				#else
 					float DistanceAttenuation = RadialAttenuation(VPLToGatherPoint / VPLGatherRadius, 8);
 					DistanceAttenuation *= .0001f;
@@ -874,7 +889,7 @@ float3 ComputeVirtualPointLighting(uint VPLIndex, uint InstancedVPLIndex, uint R
 	float DistanceBehindMask = 1 - saturate(DistanceBehindVPL / (.5f * VPLPositionAndRadius.w));
 
 	float EffectiveDiskRadius = VPLPositionAndRadius.w * 1;
-	float DistanceAttenuation = 1.0f / (PI * DistanceSq + PI * EffectiveDiskRadius * EffectiveDiskRadius);
+	float DistanceAttenuation = VPLPositionAndRadius.w * VPLPositionAndRadius.w / (DistanceSq + EffectiveDiskRadius * EffectiveDiskRadius);
 	float3 VPLFlux = LoadVPLFlux(InstancedVPLIndex);
 	float NormalMask = saturate(dot(VPLNormal, WorldNormal));
 

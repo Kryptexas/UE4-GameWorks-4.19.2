@@ -145,7 +145,10 @@ void CullObjectsForShadowCS(
 	uint SourceIndex = ObjectIndex;
 	uint DestIndex = ObjectIndex;
 
-	CopyCulledObjectData(DestIndex, SourceIndex);
+	if (ObjectIndex < NumSceneObjects)
+	{
+		CopyCulledObjectData(DestIndex, SourceIndex);
+	}
 #endif
 }
 
