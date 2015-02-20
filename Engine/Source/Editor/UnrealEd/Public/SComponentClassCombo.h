@@ -202,6 +202,8 @@ private:
 
 	FText GetFriendlyComponentName(FComponentClassComboEntryPtr Entry) const;
 
+	TSharedRef<SToolTip> GetComponentToolTip(FComponentClassComboEntryPtr Entry) const;
+
 	FComponentClassSelected OnComponentClassSelected;
 
 	/** List of component class names used by combo box */
