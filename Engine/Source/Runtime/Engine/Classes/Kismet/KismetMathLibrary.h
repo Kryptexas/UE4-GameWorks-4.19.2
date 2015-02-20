@@ -453,7 +453,11 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Rounds A to the largest previous integer */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Floor"), Category="Math|Float")
 	static int32 FFloor(float A);
-
+	
+	/* Rounds A to an integer with truncation towards zero.  (e.g. -1.7 truncated to -1, 2.8 truncated to 2) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Truncate"), Category="Math|Float")
+	static int32 FTrunc(float A);
+	
 	/* Rounds A to the smallest following integer */
 	UFUNCTION(BlueprintPure, Category="Math|Float")
 	static int32 FCeil(float A);

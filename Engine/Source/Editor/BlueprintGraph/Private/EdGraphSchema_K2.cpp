@@ -1973,7 +1973,7 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 	{
 		if (InputPin->PinType.PinCategory == PC_Int)
 		{
-			TargetFunction = TEXT("FFloor");
+			TargetFunction = TEXT("FTrunc");
 		}
 		else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == VectorStruct))
 		{

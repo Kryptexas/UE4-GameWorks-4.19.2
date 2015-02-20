@@ -483,6 +483,11 @@ int32 UKismetMathLibrary::FFloor(float A)
 	return FMath::FloorToInt(A);
 }	
 
+int32 UKismetMathLibrary::FTrunc(float A)
+{
+	return FMath::TruncToInt(A);
+}	
+
 int32 UKismetMathLibrary::FCeil(float A)
 {
 	return FMath::CeilToInt(A);
