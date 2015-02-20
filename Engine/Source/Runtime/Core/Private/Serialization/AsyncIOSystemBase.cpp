@@ -720,6 +720,8 @@ void FAsyncIOSystemBase::TickSingleThreaded()
 
 void FAsyncIOSystemBase::BlockTillAllRequestsFinished()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FAsyncIOSystemBase::BlockTillAllRequestsFinished" ), STAT_FAsyncIOSystemBase_BlockTillAllRequestsFinished, STATGROUP_AsyncIOSystem );
+
 	// Block till all requests are fulfilled.
 	while( true ) 
 	{
@@ -737,7 +739,7 @@ void FAsyncIOSystemBase::BlockTillAllRequestsFinished()
 			SHUTDOWN_IF_EXIT_REQUESTED;
 
 			//@todo streaming: this should be replaced by waiting for an event.
-			FPlatformProcess::Sleep( 0.001f );
+			FPlatformProcess::SleepNoStats( 0.001f );
 		}
 	}
 }
