@@ -510,7 +510,7 @@ public:
 	// End IInterface_AssetUserData Interface
 
 	/** See if the owning Actor is currently running the UCS */
-	bool IsRunningUserConstructionScript() const;
+	bool IsOwnerRunningUserConstructionScript() const;
 
 	/** See if this component is currently registered */
 	FORCEINLINE bool IsRegistered() const

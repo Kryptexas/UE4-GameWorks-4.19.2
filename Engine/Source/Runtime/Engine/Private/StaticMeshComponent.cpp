@@ -1191,7 +1191,7 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 
 	// Don't allow changing static meshes if "static" and registered
 	AActor* Owner = GetOwner();
-	if(Mobility == EComponentMobility::Static && IsRegistered() && Owner != NULL)
+	if(!AreDynamicDataChangesAllowed() && Owner != NULL)
 	{
 		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("SetMeshOnStatic", "Calling SetStaticMesh on '{0}' but Mobility is Static."), 
 			FText::FromString(GetPathName(this))));

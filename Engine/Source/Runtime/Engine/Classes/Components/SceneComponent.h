@@ -806,6 +806,17 @@ protected:
 
 	/** Called after changing transform, tries to update navigation octree */
 	virtual void UpdateNavigationData();
+
+	/**
+	 * Determine if dynamic data is allowed to be changed.
+	 * 
+	 * @param bIgnoreStationary Whether or not to ignore stationary mobility when checking. Default is true (i.e. - check for static mobility only).
+	 * @return Whether or not dynamic data is allowed to be changed.
+	 */
+	FORCEINLINE bool AreDynamicDataChangesAllowed(bool bIgnoreStationary = true) const
+	{
+		return (IsOwnerRunningUserConstructionScript()) || !(IsRegistered() && (Mobility == EComponentMobility::Static || (!bIgnoreStationary && Mobility == EComponentMobility::Stationary)));
+	}
 };
 
 /** 

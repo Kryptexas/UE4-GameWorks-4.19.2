@@ -172,7 +172,7 @@ USpotLightComponent::USpotLightComponent(const FObjectInitializer& ObjectInitial
 
 void USpotLightComponent::SetInnerConeAngle(float NewInnerConeAngle)
 {
-	if (!(IsRegistered() && (Mobility == EComponentMobility::Static || Mobility == EComponentMobility::Stationary))
+	if (AreDynamicDataChangesAllowed(false)
 		&& NewInnerConeAngle != InnerConeAngle)
 	{
 		InnerConeAngle = NewInnerConeAngle;
@@ -182,7 +182,7 @@ void USpotLightComponent::SetInnerConeAngle(float NewInnerConeAngle)
 
 void USpotLightComponent::SetOuterConeAngle(float NewOuterConeAngle)
 {
-	if (!(IsRegistered() && (Mobility == EComponentMobility::Static || Mobility == EComponentMobility::Stationary))
+	if (AreDynamicDataChangesAllowed(false)
 		&& NewOuterConeAngle != OuterConeAngle)
 	{
 		OuterConeAngle = NewOuterConeAngle;

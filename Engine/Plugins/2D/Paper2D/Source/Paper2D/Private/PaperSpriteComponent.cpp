@@ -283,7 +283,7 @@ UPaperSprite* UPaperSpriteComponent::GetSprite()
 void UPaperSpriteComponent::SetSpriteColor(FLinearColor NewColor)
 {
 	// Can't set color on a static component
-	if (!(IsRegistered() && (Mobility == EComponentMobility::Static)) && (SpriteColor != NewColor))
+	if (AreDynamicDataChangesAllowed() && (SpriteColor != NewColor))
 	{
 		SpriteColor = NewColor;
 

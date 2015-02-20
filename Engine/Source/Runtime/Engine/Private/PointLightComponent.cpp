@@ -127,7 +127,7 @@ FLightSceneProxy* UPointLightComponent::CreateSceneProxy() const
 void UPointLightComponent::SetAttenuationRadius(float NewRadius)
 {
 	// Only movable lights can change their radius at runtime
-	if ((IsRunningUserConstructionScript() || !(IsRegistered() && (Mobility == EComponentMobility::Static || Mobility == EComponentMobility::Stationary)))
+	if (AreDynamicDataChangesAllowed(false)
 		&& NewRadius != AttenuationRadius)
 	{
 		AttenuationRadius = NewRadius;
@@ -137,7 +137,7 @@ void UPointLightComponent::SetAttenuationRadius(float NewRadius)
 
 void UPointLightComponent::SetLightFalloffExponent(float NewLightFalloffExponent)
 {
-	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
+	if (AreDynamicDataChangesAllowed()
 		&& NewLightFalloffExponent != LightFalloffExponent)
 	{
 		LightFalloffExponent = NewLightFalloffExponent;
@@ -147,7 +147,7 @@ void UPointLightComponent::SetLightFalloffExponent(float NewLightFalloffExponent
 
 void UPointLightComponent::SetSourceRadius(float bNewValue)
 {
-	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
+	if (AreDynamicDataChangesAllowed()
 		&& SourceRadius != bNewValue)
 	{
 		SourceRadius = bNewValue;

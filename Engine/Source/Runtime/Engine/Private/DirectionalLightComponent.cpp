@@ -837,7 +837,7 @@ void UDirectionalLightComponent::SetShadowDistanceFadeoutFraction(float NewValue
 
 void UDirectionalLightComponent::SetEnableLightShaftOcclusion(bool bNewValue)
 {
-	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
+	if (AreDynamicDataChangesAllowed()
 		&& bEnableLightShaftOcclusion != bNewValue)
 	{
 		bEnableLightShaftOcclusion = bNewValue;
@@ -847,7 +847,7 @@ void UDirectionalLightComponent::SetEnableLightShaftOcclusion(bool bNewValue)
 
 void UDirectionalLightComponent::SetOcclusionMaskDarkness(float NewValue)
 {
-	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
+	if (AreDynamicDataChangesAllowed()
 		&& OcclusionMaskDarkness != NewValue)
 	{
 		OcclusionMaskDarkness = NewValue;
@@ -857,7 +857,7 @@ void UDirectionalLightComponent::SetOcclusionMaskDarkness(float NewValue)
 
 void UDirectionalLightComponent::SetLightShaftOverrideDirection(FVector NewValue)
 {
-	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
+	if (AreDynamicDataChangesAllowed()
 		&& LightShaftOverrideDirection != NewValue)
 	{
 		LightShaftOverrideDirection = NewValue;

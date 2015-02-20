@@ -1252,7 +1252,7 @@ void UActorComponent::SetTickableWhenPaused(bool bTickableWhenPaused)
 	PrimaryComponentTick.bTickEvenWhenPaused = bTickableWhenPaused;
 }
 
-bool UActorComponent::IsRunningUserConstructionScript() const
+bool UActorComponent::IsOwnerRunningUserConstructionScript() const
 {
 	const AActor* Owner = GetOwner();
 	return Owner != nullptr && Owner->bRunningUserConstructionScript;

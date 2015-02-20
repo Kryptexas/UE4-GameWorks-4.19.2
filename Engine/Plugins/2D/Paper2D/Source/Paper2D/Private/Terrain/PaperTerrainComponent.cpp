@@ -938,7 +938,7 @@ void UPaperTerrainComponent::InsertConvexCollisionDataFromPolygon(const TArray<F
 void UPaperTerrainComponent::SetTerrainColor(FLinearColor NewColor)
 {
 	// Can't set color on a static component
-	if (!(IsRegistered() && (Mobility == EComponentMobility::Static)) && (TerrainColor != NewColor))
+	if (AreDynamicDataChangesAllowed() && (TerrainColor != NewColor))
 	{
 		TerrainColor = NewColor;
 

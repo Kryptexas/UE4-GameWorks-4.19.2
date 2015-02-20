@@ -16,103 +16,6 @@
 DEFINE_LOG_CATEGORY(LogBlueprintUserMessages);
 
 //////////////////////////////////////////////////////////////////////////
-// Local Types
-
-namespace
-{
-	/** Tracks info for components instanced during UCS execution */
-	struct FUCSComponentInfo
-	{
-		EComponentMobility::Type Mobility;
-		TWeakObjectPtr<UActorComponent> ComponentPtr;
-
-		FUCSComponentInfo(UActorComponent* InComponent)
-			: ComponentPtr(InComponent)
-		{
-			ensure(!InComponent || !InComponent->IsPendingKill());
-			USceneComponent* SceneComponent = Cast<USceneComponent>(InComponent);
-			if(SceneComponent != nullptr)
-			{
-				// Save original mobility
-				Mobility = SceneComponent->Mobility;
-
-				// Temporarily set to 'movable' to allow changes during UCS
-				SceneComponent->Mobility = EComponentMobility::Movable;
-			}
-		}
-	};
-
-	/** Helper class to manage components instanced during UCS execution */
-	class FUCSComponentManager
-	{
-		/** Map of actors and any components created during UCS */
-		TMap<const AActor*, TArray<FUCSComponentInfo> > UCSComponentsMap;
-
-	public:
-		/** Called before UCS execution has started for the given Actor */
-		void PreProcessComponents(const AActor* InActor)
-		{
-			TInlineComponentArray<UActorComponent*> ActorComponents;
-			InActor->GetComponents(ActorComponents);
-			for (auto CompIt = ActorComponents.CreateConstIterator(); CompIt; ++CompIt)
-			{
-				AddComponent(InActor, *CompIt);
-			}
-		}
-
-		/** Add a component instance for the given Actor */
-		void AddComponent(const AActor* InActor, UActorComponent* InComponent)
-		{
-			TArray<FUCSComponentInfo>& UCSComponentsList = UCSComponentsMap.FindOrAdd(InActor);
-			UCSComponentsList.Add(FUCSComponentInfo(InComponent));
-		}
-
-		/** Called after UCS execution has finished for the given Actor */
-		void PostProcessComponents(const AActor* InActor)
-		{
-			TArray<FUCSComponentInfo> UCSComponentsList;
-			const bool bFound = UCSComponentsMap.RemoveAndCopyValue(InActor, UCSComponentsList);
-			if (bFound)
-			{
-				for (int32 ComponentIndex = 0; ComponentIndex < UCSComponentsList.Num(); ++ComponentIndex)
-				{
-					const FUCSComponentInfo& UCSComponentInfo = UCSComponentsList[ComponentIndex];
-
-					USceneComponent* SceneComponent = Cast<USceneComponent>(UCSComponentInfo.ComponentPtr.Get());
-					if(SceneComponent != nullptr)
-					{
-						// Restore original mobility after UCS execution
-						SceneComponent->Mobility = UCSComponentInfo.Mobility;
-
-						// A parent component can't be more mobile than its children, so we check for that here and adjust as needed.
-						if(SceneComponent->AttachParent != nullptr && SceneComponent->AttachParent->Mobility > SceneComponent->Mobility)
-						{
-							if(SceneComponent->IsA<UStaticMeshComponent>())
-							{
-								// SMCs can't be stationary, so always set them (and any children) to be movable
-								SceneComponent->SetMobility(EComponentMobility::Movable);
-							}
-							else
-							{
-								// Set the new component (and any children) to be at least as mobile as its parent
-								SceneComponent->SetMobility(SceneComponent->AttachParent->Mobility);
-							}
-						}
-					}
-				}
-			}
-		}
-
-		/** Gets the FUCSComponentManager singleton. */
-		static FUCSComponentManager& Get()
-		{
-			static FUCSComponentManager Singleton;
-			return Singleton;
-		}
-	};
-}
-
-//////////////////////////////////////////////////////////////////////////
 // AActor Blueprint Stuff
 
 static TArray<FRandomStream*> FindRandomStreams(AActor* InActor)
@@ -574,17 +477,31 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 
 void AActor::ProcessUserConstructionScript()
 {
-	// Process components that may have already been instanced before UCS execution.
-	FUCSComponentManager& UCSComponentManager = FUCSComponentManager::Get();
-	UCSComponentManager.PreProcessComponents(this);
-
 	// Set a flag that this actor is currently running UserConstructionScript.
 	bRunningUserConstructionScript = true;
 	UserConstructionScript();
 	bRunningUserConstructionScript = false;
 
-	// Perform any post processing on this Actor's components after UCS execution.
-	UCSComponentManager.PostProcessComponents(this);
+	// Validate component mobility after UCS execution
+	TInlineComponentArray<USceneComponent*> SceneComponents;
+	GetComponents(SceneComponents);
+	for (auto SceneComponent : SceneComponents)
+	{
+		// A parent component can't be more mobile than its children, so we check for that here and adjust as needed.
+		if(SceneComponent != RootComponent && SceneComponent->AttachParent != nullptr && SceneComponent->AttachParent->Mobility > SceneComponent->Mobility)
+		{
+			if(SceneComponent->IsA<UStaticMeshComponent>())
+			{
+				// SMCs can't be stationary, so always set them (and any children) to be movable
+				SceneComponent->SetMobility(EComponentMobility::Movable);
+			}
+			else
+			{
+				// Set the new component (and any children) to be at least as mobile as its parent
+				SceneComponent->SetMobility(SceneComponent->AttachParent->Mobility);
+			}
+		}
+	}
 }
 
 void AActor::FinishAndRegisterComponent(UActorComponent* Component)
@@ -659,7 +576,7 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 	{
 		// Call function to notify component it has been created
 		NewActorComp->OnComponentCreated();
-
+		
 		// The user has the option of doing attachment manually where they have complete control or via the automatic rule
 		// that the first component added becomes the root component, with subsequent components attached to the root.
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewActorComp);
@@ -682,13 +599,6 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 
 		// Register component, which will create physics/rendering state, now component is in correct position
 		NewActorComp->RegisterComponent();
-
-		// Keep track of the new component during UCS execution. This also does a temporary mobility swap during UCS execution in order to allow dynamic data to be changed within that context.
-		// Note: This should only be done AFTER registration.
-		if(bRunningUserConstructionScript)
-		{
-			FUCSComponentManager::Get().AddComponent(this, NewActorComp);
-		}
 	}
 
 	return NewActorComp;
