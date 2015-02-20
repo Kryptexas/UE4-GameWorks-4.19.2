@@ -59,7 +59,7 @@ namespace GitDependencies
 	public class DependencyManifest
 	{
 		[XmlAttribute]
-		public string BaseUrl;
+		public string BaseUrl = "http://cdn.unrealengine.com/dependencies";
 
 		[XmlAttribute]
 		public bool IgnoreProxy;
