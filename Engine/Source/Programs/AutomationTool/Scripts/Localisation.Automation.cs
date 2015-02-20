@@ -128,7 +128,7 @@ class Localise : BuildCommand
 
         if (launcherGroup == null)
         {
-            launcherGroup = new ProjectGroup(GroupName, new CultureInfo("en"));
+            launcherGroup = new ProjectGroup(GroupName, "en");
             oneSkyService.ProjectGroups.Add(launcherGroup);
         }
 
@@ -152,11 +152,11 @@ class Localise : BuildCommand
         return appProject;
     }
 
-    private static void ExportFileToDirectory(UploadedFile file, DirectoryInfo destination, IEnumerable<CultureInfo> cultures)
+    private static void ExportFileToDirectory(UploadedFile file, DirectoryInfo destination, IEnumerable<string> cultures)
     {
         foreach (var culture in cultures)
         {
-            var cultureDirectory = new DirectoryInfo(Path.Combine(destination.FullName, OneSky.LocaleCodeHelper.ConvertToLocaleCode(culture.Name)));
+            var cultureDirectory = new DirectoryInfo(Path.Combine(destination.FullName, culture));
             if (!cultureDirectory.Exists)
             {
                 cultureDirectory.Create();
@@ -173,16 +173,16 @@ class Localise : BuildCommand
                     using (Stream fileStream = File.OpenWrite(exportFile.FullName))
                     {
                         memoryStream.CopyTo(fileStream);
-                        Console.WriteLine("[SUCCESS] Exporting: " + exportFile.FullName + " Locale: " + OneSky.LocaleCodeHelper.ConvertToLocaleCode(culture.Name));
+                        Console.WriteLine("[SUCCESS] Exporting: " + exportFile.FullName + " Locale: " + culture);
                     }
                 }
                 else if (exportTranslationState == UploadedFile.ExportTranslationState.NoContent)
                 {
-                    Console.WriteLine("[WARNING] Exporting: " + exportFile.FullName + " Locale: " + OneSky.LocaleCodeHelper.ConvertToLocaleCode(culture.Name) + " has no translations!");
+                    Console.WriteLine("[WARNING] Exporting: " + exportFile.FullName + " Locale: " + culture + " has no translations!");
                 }
                 else
                 {
-                    Console.WriteLine("[FAILED] Exporting: " + exportFile.FullName + " Locale: " + OneSky.LocaleCodeHelper.ConvertToLocaleCode(culture.Name));
+                    Console.WriteLine("[FAILED] Exporting: " + exportFile.FullName + " Locale: " + culture);
                 }
             }
         }
@@ -209,7 +209,7 @@ class Localise : BuildCommand
                 }
 
                 Console.WriteLine("Uploading: " + currentFile + " Locale: " + localeName);
-                var uploadedFile = project.Upload(Path.GetFileName(currentFile), fileStream, new CultureInfo(OneSky.LocaleCodeHelper.ConvertFromLocaleCode(localeName))).Result;
+                var uploadedFile = project.Upload(Path.GetFileName(currentFile), fileStream, localeName).Result;
 
                 if (uploadedFile == null)
                 {
