@@ -300,43 +300,11 @@ bool USkeleton::IsCompatibleMesh(USkeletalMesh* InSkelMesh) const
 	return (NumOfBoneMatches > 0);
 }
 
-FString USkeleton::GetRetargetingModeString(const EBoneTranslationRetargetingMode::Type & RetargetingMode) const
-{
-	FText ModeNameText;
-
-	switch( RetargetingMode )
-	{
-	case EBoneTranslationRetargetingMode::Animation :
-		ModeNameText = LOCTEXT( "BoneRetargetingModeAnimation", "Animation" );
-		break;
-
-	case EBoneTranslationRetargetingMode::Skeleton :
-		ModeNameText = LOCTEXT( "BoneRetargetingModeSkeleton", "Skeleton" );
-		break;
-
-	case EBoneTranslationRetargetingMode::AnimationScaled :
-		ModeNameText = LOCTEXT( "BoneRetargetingMode", "AnimationScaled" );
-		break;
-
-	case EBoneTranslationRetargetingMode::AnimationRelative:
-		ModeNameText = LOCTEXT("BoneRetargetingModeAnimationRelative", "AnimationRelative");
-		break;
-
-	default:
-		// Unknown mode
-		check( 0 );
-		break;
-	}
-
-	return ModeNameText.ToString();
-}
-
 void USkeleton::ClearCacheData()
 {
 	LinkupCache.Empty();
 	SkelMesh2LinkupCache.Empty();
 }
-
 
 int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
 {

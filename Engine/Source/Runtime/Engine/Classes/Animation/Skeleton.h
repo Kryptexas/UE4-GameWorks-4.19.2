@@ -574,8 +574,6 @@ public:
 		return BoneTree[BoneTreeIdx].TranslationRetargetingMode;
 	}
 
-	ENGINE_API FString GetRetargetingModeString(const EBoneTranslationRetargetingMode::Type & RetargetingMode) const;
-	
 	/** 
 	 * Rebuild Look up between SkelMesh to BoneTree - this should only get called when SkelMesh is re-imported or so, where the mapping may be no longer valid
 	 *
