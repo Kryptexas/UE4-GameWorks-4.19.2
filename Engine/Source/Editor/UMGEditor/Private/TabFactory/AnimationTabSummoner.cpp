@@ -464,7 +464,8 @@ private:
 		{
 			const FScopedTransaction Transaction(LOCTEXT("DeleteAnimationTransaction", "Delete Animation"));
 			WidgetBlueprint->Modify();
-
+			// Rename the animation and move it to the transient package to avoid collisions.
+			SelectedAnimation->Animation->Rename( NULL, GetTransientPackage() );
 			WidgetAnimations.Remove(SelectedAnimation->Animation);
 
 			UpdateAnimationList();
