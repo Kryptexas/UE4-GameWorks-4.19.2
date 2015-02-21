@@ -1089,7 +1089,7 @@ namespace StaticMeshDerivedDataTimings
 		);
 }
 
-FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMeshLODGroup& LODGroup)
+static FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMeshLODGroup& LODGroup)
 {
 	FString KeySuffix(TEXT(""));
 	TArray<uint8> TempBytes;
@@ -1127,7 +1127,7 @@ FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMeshLODGro
 		);
 }
 
-FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
+static FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
 {
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("DIST"),
@@ -2545,7 +2545,38 @@ void UStaticMesh::ConvertLegacyLODDistance()
 	}
 }
 
-#endif // #if WITH_EDITORONLY_DATA
+void UStaticMesh::GenerateLodsInPackage()
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("StaticMeshName"), FText::FromString(GetName()));
+	FStaticMeshStatusMessageContext StatusContext(FText::Format(NSLOCTEXT("Engine", "SavingStaticMeshLODsStatus", "Saving generated LODs for static mesh {StaticMeshName}..."), Args));
+
+	// Get LODGroup info
+	ITargetPlatformManagerModule& TargetPlatformManager = GetTargetPlatformManagerRef();
+	ITargetPlatform* RunningPlatform = TargetPlatformManager.GetRunningTargetPlatform();
+	check(RunningPlatform);
+	const FStaticMeshLODSettings& LODSettings = RunningPlatform->GetStaticMeshLODSettings();
+
+	// Generate the reduced models
+	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
+	if (MeshUtilities.GenerateStaticMeshLODs(SourceModels, LODSettings.GetLODGroup(LODGroup)))
+	{
+		// Clear LOD settings
+		LODGroup = NAME_None;
+		const auto& NewGroup = LODSettings.GetLODGroup(LODGroup);
+		for (int32 Index = 0; Index < SourceModels.Num(); ++Index)
+		{
+			SourceModels[Index].ReductionSettings = NewGroup.GetDefaultSettings(0);
+		}
+
+		Build(true);
+
+		// Raw mesh is now dirty, so the package has to be resaved
+		MarkPackageDirty();
+	}
+}
+
+#endif // #if WITH_EDITOR
 
 UStaticMeshSocket* UStaticMesh::FindSocket(FName InSocketName)
 {

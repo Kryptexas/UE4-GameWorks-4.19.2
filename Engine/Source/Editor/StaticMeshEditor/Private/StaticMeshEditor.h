@@ -197,6 +197,9 @@ private:
 	/** Whether there is a static mesh selected in the content browser to change to*/
 	bool CanChangeMesh() const;
 
+	/** Replace the generated LODs in the original source mesh with the reduced versions.*/
+	void OnSaveGeneratedLODs();
+
 	/** Rebuilds the LOD combo list and sets it to "auto", a safe LOD level. */
 	void RegenerateLODComboList();
 

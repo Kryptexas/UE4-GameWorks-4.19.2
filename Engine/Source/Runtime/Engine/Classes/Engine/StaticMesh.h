@@ -607,6 +607,8 @@ public:
 	 */
 	ENGINE_API static void GetLODGroupsDisplayNames(TArray<FText>& OutLODGroupsDisplayNames);
 
+	ENGINE_API void GenerateLodsInPackage();
+
 private:
 	/**
 	 * Converts legacy LODDistance in the source models to Display Factor

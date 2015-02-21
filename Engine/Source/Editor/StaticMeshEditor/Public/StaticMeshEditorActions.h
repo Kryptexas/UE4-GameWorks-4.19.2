@@ -62,6 +62,8 @@ public:
 
 	TSharedPtr< FUICommandInfo > ChangeMesh;
 
+	TSharedPtr< FUICommandInfo > SaveGeneratedLODs;
+
 	/**
 	 * Initialize commands
 	 */

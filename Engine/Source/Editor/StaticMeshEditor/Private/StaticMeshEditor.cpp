@@ -35,6 +35,17 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogStaticMeshEditor, Log, All);
 
+class FStaticMeshStatusMessageContext : public FScopedSlowTask
+{
+public:
+	explicit FStaticMeshStatusMessageContext(const FText& InMessage)
+		: FScopedSlowTask(0, InMessage)
+	{
+		UE_LOG(LogStaticMesh, Log, TEXT("%s"), *InMessage.ToString());
+		MakeDialog();
+	}
+};
+
 const FName FStaticMeshEditor::ViewportTabId( TEXT( "StaticMeshEditor_Viewport" ) );
 const FName FStaticMeshEditor::PropertiesTabId( TEXT( "StaticMeshEditor_Properties" ) );
 const FName FStaticMeshEditor::SocketManagerTabId( TEXT( "StaticMeshEditor_SocketManager" ) );
@@ -211,6 +222,11 @@ void FStaticMeshEditor::ExtendMenu()
 			InMenuBuilder.BeginSection("MeshChange");
 			{
 				InMenuBuilder.AddMenuEntry(FStaticMeshEditorCommands::Get().ChangeMesh);
+				static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StaticMesh.EnableSaveGeneratedLODsInPackage"));
+				if (CVar && CVar->GetValueOnGameThread() != 0)
+				{
+					InMenuBuilder.AddMenuEntry(FStaticMeshEditorCommands::Get().SaveGeneratedLODs);
+				}
 			}
 			InMenuBuilder.EndSection();
 		}
@@ -421,6 +437,10 @@ void FStaticMeshEditor::BindCommands()
 		Commands.ChangeMesh,
 		FExecuteAction::CreateSP(this, &FStaticMeshEditor::OnChangeMesh),
 		FCanExecuteAction::CreateSP(this, &FStaticMeshEditor::CanChangeMesh));
+
+	UICommandList->MapAction(
+		Commands.SaveGeneratedLODs,
+		FExecuteAction::CreateSP(this, &FStaticMeshEditor::OnSaveGeneratedLODs));
 
 	// Collision Menu
 	UICommandList->MapAction(
@@ -1600,6 +1620,21 @@ bool FStaticMeshEditor::CanChangeMesh() const
 	}
 
 	return CanChange;
+}
+
+void FStaticMeshEditor::OnSaveGeneratedLODs()
+{
+	if (StaticMesh)
+	{
+		StaticMesh->GenerateLodsInPackage();
+
+		// Update editor UI as we modified LOD groups
+		auto Selected = StaticMeshDetailsView->GetSelectedObjects();
+		StaticMeshDetailsView->SetObjects(Selected, true);
+
+		// Update screen
+		Viewport->RefreshViewport();
+	}
 }
 
 void FStaticMeshEditor::DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts)

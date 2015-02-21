@@ -134,6 +134,16 @@ public:
 		const class FStaticMeshLODGroup& LODGroup
 		) = 0;
 
+	/**
+	 * Builds a static mesh using the provided source models and the LOD groups settings, and replaces
+	 * the RawMeshes with the reduced meshes. Does not modify renderable data.
+	 * @returns true if the meshes were built successfully.
+	 */
+	virtual bool GenerateStaticMeshLODs(
+		TArray<struct FStaticMeshSourceModel>& Models,
+		const class FStaticMeshLODGroup& LODGroup
+		) = 0;
+
 	/** Builds a signed distance field volume for the given LODModel. */
 	virtual void GenerateSignedDistanceFieldVolumeData(
 		const FStaticMeshLODResources& LODModel,
