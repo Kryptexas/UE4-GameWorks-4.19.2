@@ -191,7 +191,7 @@ private:
 	void HandleEditorMapChange( uint32 MapChangeFlags );
 
 	/** Called when actors are selected or unselected */
-	void OnActorSelectionChanged( const TArray<UObject*>& NewSelection );
+	void OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh = false);
 private:
 
 	// Tracking the active viewports in this level editor.

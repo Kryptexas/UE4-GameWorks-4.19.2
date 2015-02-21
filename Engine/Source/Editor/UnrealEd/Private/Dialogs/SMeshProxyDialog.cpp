@@ -79,7 +79,7 @@ protected:
 	FReply OnMergeClicked();
 
 	/** Called when actors selection is changed */
-	void OnActorSelectionChanged(const TArray<UObject*>& NewSelection);
+	void OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh = false);
 	
 	/** Generates destination package name using currently selected actors */
 	void GenerateNewProxyPackageName();
@@ -643,7 +643,7 @@ FReply SMeshProxyDialog::OnMergeClicked()
 	
 }
 
-void SMeshProxyDialog::OnActorSelectionChanged(const TArray<UObject*>& NewSelection)
+void SMeshProxyDialog::OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh)
 {
 	GenerateNewProxyPackageName();
 }

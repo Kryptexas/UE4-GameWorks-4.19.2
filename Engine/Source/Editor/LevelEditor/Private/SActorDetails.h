@@ -19,7 +19,7 @@ public:
 	 *
 	 * @param InObjects	The objects to set
 	 */
-	void SetObjects(const TArray<UObject*>& InObjects);
+	void SetObjects(const TArray<UObject*>& InObjects, bool bForceRefresh = false);
 
 	/** FEditorUndoClient Interface */
 	virtual void PostUndo(bool bSuccess) override;

@@ -309,7 +309,7 @@ void SMeshMergingDialog::SetImportVertexColors(ECheckBoxState NewValue)
 	MergingSettings.bImportVertexColors = (ECheckBoxState::Checked == NewValue);
 }
 
-void SMeshMergingDialog::OnActorSelectionChanged(const TArray<UObject*>& NewSelection)
+void SMeshMergingDialog::OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh)
 {
 	GenerateNewPackageName();
 }

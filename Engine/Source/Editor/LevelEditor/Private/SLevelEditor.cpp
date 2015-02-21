@@ -1423,14 +1423,14 @@ void SLevelEditor::HandleEditorMapChange( uint32 MapChangeFlags )
 	}
 }
 
-void SLevelEditor::OnActorSelectionChanged( const TArray<UObject*>& NewSelection )
+void SLevelEditor::OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh)
 {
 	for( auto It = AllActorDetailPanels.CreateIterator(); It; ++It )
 	{
 		TSharedPtr<SActorDetails> ActorDetails = It->Pin();
 		if( ActorDetails.IsValid() )
 		{
-			ActorDetails->SetObjects( NewSelection );
+			ActorDetails->SetObjects(NewSelection, bForceRefresh);
 		}
 		else
 		{

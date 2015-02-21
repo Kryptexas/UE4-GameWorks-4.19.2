@@ -372,9 +372,9 @@ void FLevelEditorModule::FocusViewport()
 	}
 }
 
-void FLevelEditorModule::BroadcastActorSelectionChanged( const TArray<UObject*>& NewSelection )
+void FLevelEditorModule::BroadcastActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh)
 {
-	ActorSelectionChangedEvent.Broadcast( NewSelection );
+	ActorSelectionChangedEvent.Broadcast(NewSelection, bForceRefresh);
 }
 
 void FLevelEditorModule::BroadcastRedrawViewports( bool bInvalidateHitProxies )

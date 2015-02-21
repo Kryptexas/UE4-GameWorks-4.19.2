@@ -2380,7 +2380,7 @@ bool SLevelViewport::IsPlayInEditorViewportActive() const
 	return ActiveViewport->IsPlayInEditorViewport();
 }
 
-void SLevelViewport::OnActorSelectionChanged( const TArray<UObject*>& NewSelection )
+void SLevelViewport::OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh)
 {
 	// On the first actor selection after entering Game View, enable the selection show flag
 	if (IsVisible() && IsInGameView() && NewSelection.Num() != 0)

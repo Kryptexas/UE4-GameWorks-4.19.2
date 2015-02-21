@@ -144,11 +144,11 @@ SActorDetails::~SActorDetails()
 	}
 }
 
-void SActorDetails::SetObjects(const TArray<UObject*>& InObjects)
+void SActorDetails::SetObjects(const TArray<UObject*>& InObjects, bool bForceRefresh)
 {
 	if(!DetailsView->IsLocked())
 	{
-		DetailsView->SetObjects(InObjects);
+		DetailsView->SetObjects(InObjects, bForceRefresh);
 
 		bool bShowingComponents = false;
 

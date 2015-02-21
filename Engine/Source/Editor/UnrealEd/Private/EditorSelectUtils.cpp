@@ -494,7 +494,7 @@ bool UUnrealEdEngine::CanSelectActor(AActor* Actor, bool bInSelected, bool bSele
 	return bSelectionAllowed;
 }
 
-void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden)
+void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden, bool bForceRefresh)
 {
 	const bool bWarnIfLevelLocked = true;
 	if( !CanSelectActor( Actor, bInSelected, bSelectEvenIfHidden, bWarnIfLevelLocked ) )
@@ -599,10 +599,10 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 		}
 		else
 		{
-			if( bNotify )
+			if (bNotify || bForceRefresh)
 			{
 				//reset the property windows.  In case something has changed since previous selection
-				UpdateFloatingPropertyWindows();
+				UpdateFloatingPropertyWindows(bForceRefresh);
 			}
 		}
 	}

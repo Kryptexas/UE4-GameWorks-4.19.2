@@ -142,7 +142,7 @@ public:
 	 * 
 	 * @param NewSelection	List of objects that are now selected
 	 */
-	void OnActorSelectionChanged( const TArray<UObject*>& NewSelection );
+	void OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh=false);
 
 	/**
 	 * Called when game view should be toggled
