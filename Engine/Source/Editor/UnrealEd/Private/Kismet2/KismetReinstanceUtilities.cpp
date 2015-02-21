@@ -388,7 +388,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 		TSharedPtr<FBlueprintCompileReinstancer> SharedThis = AsShared();
 		const bool bAlreadyQueued = QueueToReinstance.Contains(SharedThis);
 		ensure(!bAlreadyQueued);
-		if (bAlreadyQueued)
+		if (!bAlreadyQueued)
 		{
 			QueueToReinstance.Push(SharedThis);
 
