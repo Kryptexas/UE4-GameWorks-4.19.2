@@ -488,7 +488,7 @@ public:
 	ENGINE_API int32 GetNumLODs() const;
 
 	/**
-	 * Returns the number of LODs used by the mesh.
+	 * Returns true if the mesh has data that can be rendered.
 	 */
 	ENGINE_API bool HasValidRenderData() const;
 
