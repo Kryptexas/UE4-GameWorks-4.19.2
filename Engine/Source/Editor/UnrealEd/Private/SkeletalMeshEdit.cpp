@@ -996,6 +996,21 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		}
 	}
 
+	if (ImportOptions->bDeleteExistingMorphTargetCurves)
+	{
+		for (int32 CurveIdx=0; CurveIdx<DestSeq->RawCurveData.FloatCurves.Num(); ++CurveIdx)
+		{
+			auto& Curve = DestSeq->RawCurveData.FloatCurves[CurveIdx];
+			if (Curve.GetCurveTypeFlag(ACF_DrivesMorphTarget))
+			{
+				DestSeq->RawCurveData.FloatCurves.RemoveAt(CurveIdx, 1, false);
+				--CurveIdx;
+			}
+		}
+
+		DestSeq->RawCurveData.FloatCurves.Shrink();
+	}
+
 	//
 	// import blend shape curves
 	//

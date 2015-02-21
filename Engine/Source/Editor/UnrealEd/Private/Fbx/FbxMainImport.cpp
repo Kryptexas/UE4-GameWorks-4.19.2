@@ -244,6 +244,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.AnimationRange.Y = ImportUI->AnimSequenceImportData->EndFrame;
 	InOutImportOptions.AnimationName = ImportUI->AnimationName;
 	InOutImportOptions.bPreserveLocalTransform = ImportUI->bPreserveLocalTransform;
+	InOutImportOptions.bDeleteExistingMorphTargetCurves = ImportUI->bDeleteExistingMorphTargetCurves;
 	InOutImportOptions.bImportCustomAttribute = ImportUI->AnimSequenceImportData->bImportCustomAttribute;
 }
 
