@@ -409,11 +409,11 @@ public:
 
 	/** Play normal animation asset on the slot node. You can only play one asset (whether montage or animsequence) at a time. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	float PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime = 0.25f, float BlendOutTime = 0.25f, float InPlayRate = 1.f);
+	float PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime = 0.25f, float BlendOutTime = 0.25f, float InPlayRate = 1.f, int32 LoopCount = 1);
 
-	/** Stops currently playing slot animation */
+	/** Stops currently playing slot animation slot or all*/
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void StopSlotAnimation(float InBlendOutTime = 0.25f);
+	void StopSlotAnimation(float InBlendOutTime = 0.25f, FName SlotNodeName = NAME_None);
 
 	/** Return true if it's playing the slot animation */
 	UFUNCTION(BlueprintCallable, Category="Animation")
