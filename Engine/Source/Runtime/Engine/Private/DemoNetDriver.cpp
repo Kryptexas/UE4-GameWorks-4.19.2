@@ -572,28 +572,31 @@ static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool I
 	*/
 	if ( Actor != NULL && Actor->GetRemoteRole() != ROLE_None && ( Actor == Connection->PlayerController || Cast< APlayerController >( Actor ) == NULL ) )
 	{
-		// Create a new channel for this actor.
-		const bool StartupActor = Actor->IsNetStartupActor();
-		UActorChannel* Channel = Connection->ActorChannels.FindRef( Actor );
-
-		if ( !Channel && ( !StartupActor || Connection->ClientHasInitializedLevelFor( Actor ) ) )
+		if (Actor->bRelevantForNetworkReplays)
 		{
-			// create a channel if possible
-			Channel = (UActorChannel*)Connection->CreateChannel( CHTYPE_Actor, 1 );
-			if ( Channel != NULL )
+			// Create a new channel for this actor.
+			const bool StartupActor = Actor->IsNetStartupActor();
+			UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
+
+			if (!Channel && (!StartupActor || Connection->ClientHasInitializedLevelFor(Actor)))
 			{
-				Channel->SetChannelActor( Actor );
+				// create a channel if possible
+				Channel = (UActorChannel*)Connection->CreateChannel(CHTYPE_Actor, 1);
+				if (Channel != NULL)
+				{
+					Channel->SetChannelActor(Actor);
+				}
 			}
-		}
 
-		if ( Channel )
-		{
-			// Send it out!
-			check( !Channel->Closing );
-
-			if ( Channel->IsNetReady( 0 ) )
+			if (Channel)
 			{
-				Channel->ReplicateActor();
+				// Send it out!
+				check(!Channel->Closing);
+
+				if (Channel->IsNetReady(0))
+				{
+					Channel->ReplicateActor();
+				}
 			}
 		}
 	}
