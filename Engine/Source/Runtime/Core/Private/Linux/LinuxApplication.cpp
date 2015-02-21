@@ -658,6 +658,11 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 								TopmostWindow->SetWindowFocus();
 							}
 						}
+						else if (CurrentEventWindow->IsPopupMenuWindow() && CurrentEventWindow->GetParent().IsValid() && !bIsDragWindowButtonPressed && bActivateApp)
+						{
+							CurrentEventWindow->GetParent()->BringToFront();
+							CurrentEventWindow->GetParent()->SetWindowFocus();
+						}
 
 						SDL_DestroyWindow(CurrentEventWindow->GetHWnd());
 
