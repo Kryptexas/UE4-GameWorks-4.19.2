@@ -3722,6 +3722,7 @@ void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelInd
 			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName ) == false; 
 			if(bShouldChange)
 			{
+				AnimInst->Montage_Stop(0.f);
 				AnimInst->PlaySlotAnimation(InAnimSequence, SlotName);
 			}
 
