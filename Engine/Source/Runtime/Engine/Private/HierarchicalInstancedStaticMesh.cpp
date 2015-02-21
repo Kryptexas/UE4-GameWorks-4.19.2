@@ -1348,9 +1348,10 @@ void UHierarchicalInstancedStaticMeshComponent::PostLoad()
 	Super::PostLoad();
 
 	// For some reason we don't have a tree. Build one now!
-	if (PerInstanceSMData.Num() > 0 && ClusterTreePtr.IsValid() && ClusterTreePtr->Num() == 0 && !IsAsyncBuilding())
+	if (PerInstanceSMData.Num() > 0 && (!ClusterTreePtr.IsValid() || ClusterTreePtr->Num() == 0))
 	{
-		BuildTreeAsync();
+		check(!IsAsyncBuilding());
+		BuildTree();
 	}
 }
 
