@@ -520,8 +520,6 @@ void FPropertyEditorModule::UpdatePropertyViews( const TArray<UObject*>& NewObje
 
 void FPropertyEditorModule::ReplaceViewedObjects( const TMap<UObject*, UObject*>& OldToNewObjectMap )
 {
-	DestroyColorPicker();
-
 	// Replace objects from detail views
 	for( int32 ViewIndex = 0; ViewIndex < AllDetailViews.Num(); ++ViewIndex )
 	{
