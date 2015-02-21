@@ -1343,6 +1343,17 @@ void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 	ClusterTree.BulkSerialize(Ar);
 }
 
+void UHierarchicalInstancedStaticMeshComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// For some reason we don't have a tree. Build one now!
+	if (PerInstanceSMData.Num() > 0 && ClusterTreePtr.IsValid() && ClusterTreePtr->Num() == 0 && !IsAsyncBuilding())
+	{
+		BuildTreeAsync();
+	}
+}
+
 bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
