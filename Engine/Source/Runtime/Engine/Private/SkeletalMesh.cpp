@@ -27,6 +27,7 @@
 #include "ComponentReregisterContext.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/AssetUserData.h"
+#include "Animation/AnimMontage.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
@@ -3666,8 +3667,11 @@ void ASkeletalMeshActor::PreviewBeginAnimControl(UInterpGroup* InInterpGroup)
 {
 	if (CanPlayAnimation())
 	{
-		SavedAnimationMode = SkeletalMeshComponent->GetAnimationMode();
-		SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+		if (!AnimInst)
+		{
+			SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+		}
 	}
 }
 
@@ -3678,9 +3682,65 @@ void ASkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 	{
 		// if in editor, reset the Animations, makes easier for artist to see them visually and align them
 		// in game, we keep the last pose that matinee kept. If you'd like it to have animation, you'll need to have AnimTree or AnimGraph to handle correctly
-		SkeletalMeshComponent->SetAnimationMode(SavedAnimationMode);
+		if (SkeletalMeshComponent->GetAnimationMode()== EAnimationMode::Type::AnimationBlueprint)
+		{
+			UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+			if(AnimInst)
+			{
+				AnimInst->Montage_Stop(0.f);
+				AnimInst->UpdateAnimation(0.f);
+			}
 
+		}
+		
 		// Update space bases to reset it back to ref pose
+		SkeletalMeshComponent->RefreshBoneTransforms();
+		SkeletalMeshComponent->RefreshSlaveComponents();
+		SkeletalMeshComponent->UpdateComponentToWorld();		
+	}
+}
+
+
+void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime)
+{
+	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+	if (AnimInst && CanPlayAnimation(InAnimSequence))
+	{
+		UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
+		if(SingleNodeInst)
+		{
+			if(SingleNodeInst->CurrentAsset != InAnimSequence)
+			{
+				SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
+			}
+
+			SingleNodeInst->SetLooping(bLooping);
+			SingleNodeInst->SetPosition(InPosition, bFireNotifies);
+		}
+		else
+		{
+			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName ) == false; 
+			if(bShouldChange)
+			{
+				AnimInst->PlaySlotAnimation(InAnimSequence, SlotName);
+			}
+
+			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveMontageInstance();
+			if (AnimMontageInst)
+			{
+				AnimMontageInst->Weight = 1.f;
+				//AnimInst->Montage_Set(bLooping);
+				AnimInst->Montage_SetPosition(NULL, InPosition);
+				AnimInst->UpdateAnimation(DeltaTime);
+			}
+			else
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid Slot Node Name: %s"), *SlotName.ToString() );
+			}
+		}
+
+		// Update space bases so new animation position has an effect.
+		SkeletalMeshComponent->UpdateMaterialParameters();
 		SkeletalMeshComponent->RefreshBoneTransforms();
 		SkeletalMeshComponent->RefreshSlaveComponents();
 		SkeletalMeshComponent->UpdateComponentToWorld();
@@ -3688,36 +3748,14 @@ void ASkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 }
 
 
-void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime)
-{
-	UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
-	if (SingleNodeInst)
-	{
-		if (SingleNodeInst->CurrentAsset != InAnimSequence)
-		{
-			SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
-		}
-
-		SingleNodeInst->SetLooping(bLooping);
-		SingleNodeInst->SetPosition(InPosition, bFireNotifies);
-	}
-
-	// Update space bases so new animation position has an effect.
-	SkeletalMeshComponent->UpdateMaterialParameters();
-	SkeletalMeshComponent->RefreshBoneTransforms();
-	SkeletalMeshComponent->RefreshSlaveComponents();
-	SkeletalMeshComponent->UpdateComponentToWorld();
-}
-
-
 void ASkeletalMeshActor::PreviewSetAnimWeights(TArray<FAnimSlotInfo>& SlotInfos)
 {
-	// do nothing
+	//no support yet
 }
 
 void ASkeletalMeshActor::SetAnimWeights( const TArray<struct FAnimSlotInfo>& SlotInfos )
 {
-	// do nothing
+	//no support yet
 }
 
 /** Check SkeletalMeshActor for errors. */
@@ -3834,36 +3872,64 @@ void ASkeletalMeshActor::BeginAnimControl(UInterpGroup* InInterpGroup)
 {
 	if (CanPlayAnimation())
 	{
-		SavedAnimationMode = SkeletalMeshComponent->GetAnimationMode();
-		SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+		if (!AnimInst)
+		{
+			SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+		}
 	}
 }
 
-bool ASkeletalMeshActor::CanPlayAnimation()
+bool ASkeletalMeshActor::CanPlayAnimation(class UAnimSequenceBase* AnimAssetBase/*=NULL*/) const
 {
-	return (SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Skeleton);
+	return (SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Skeleton && 
+		(!AnimAssetBase || SkeletalMeshComponent->SkeletalMesh->Skeleton->IsCompatible(AnimAssetBase->GetSkeleton())));
 }
 
 // @todo ps4 clang bug: this works around a PS4/clang compiler bug (optimizations)
-void SetAnimPositionInner(USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence *InAnimSequence, float InPosition, bool bLooping)
+void SetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence *InAnimSequence, float InPosition, bool bLooping)
 {
-	UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
-	if (SingleNodeInst)
+	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+	if(AnimInst)
 	{
-		if (SingleNodeInst->CurrentAsset != InAnimSequence)
+		UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
+		if(SingleNodeInst)
 		{
-			SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
-			SingleNodeInst->SetPosition(0.0f);
-			SingleNodeInst->bPlaying = false;
-		}
+			if(SingleNodeInst->CurrentAsset != InAnimSequence)
+			{
+				SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
+				SingleNodeInst->SetPosition(0.0f);
+				SingleNodeInst->bPlaying = false;
+			}
 
-		if (SingleNodeInst->bLooping!=bLooping)
-		{
-			SingleNodeInst->SetLooping(bLooping);
+			if(SingleNodeInst->bLooping!=bLooping)
+			{
+				SingleNodeInst->SetLooping(bLooping);
+			}
+			if(SingleNodeInst->CurrentTime != InPosition)
+			{
+				SingleNodeInst->SetPosition(InPosition);
+			}
 		}
-		if (SingleNodeInst->CurrentTime != InPosition)
+		else
 		{
-			SingleNodeInst->SetPosition(InPosition);
+			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName) == false;
+			if(bShouldChange)
+			{
+				AnimInst->PlaySlotAnimation(InAnimSequence, SlotName, 0.f, 0.f, 0.f);
+			}
+
+			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveMontageInstance();
+			if (AnimMontageInst)
+			{
+				AnimMontageInst->Weight = 1.f;
+				AnimInst->Montage_SetPosition(NULL, InPosition);
+				AnimInst->UpdateAnimation(0.f);
+			}
+			else
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid Slot Node Name: %s"), *SlotName.ToString() );
+			}
 		}
 	}
 }
@@ -3872,20 +3938,28 @@ void SetAnimPositionInner(USkeletalMeshComponent* SkeletalMeshComponent, UAnimSe
 #if !PLATFORM_PS4
 void ASkeletalMeshActor::SetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence *InAnimSequence, float InPosition, bool bFireNotifies, bool bLooping)
 {
-	if (CanPlayAnimation())
+	if (CanPlayAnimation(InAnimSequence))
 	{
-		SetAnimPositionInner(SkeletalMeshComponent, InAnimSequence, InPosition, bLooping);
+		SetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping);
 	}
 }
 #endif
 
 void ASkeletalMeshActor::FinishAnimControl(UInterpGroup* InInterpGroup)
 {
-	if (CanPlayAnimation())
+	if(SkeletalMeshComponent->GetAnimationMode()== EAnimationMode::Type::AnimationBlueprint)
 	{
-		// if in editor, reset the Animations, makes easier for artist to see them visually and align them
-		// in game, we keep the last pose that matinee kept. If you'd like it to have animation, you'll need to have AnimTree or AnimGraph to handle correctly
-		SkeletalMeshComponent->SetAnimationMode(SavedAnimationMode);
+		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+		if(AnimInst)
+		{
+			AnimInst->Montage_Stop(0.f);
+			AnimInst->UpdateAnimation(0.f);
+		}
+
+		// Update space bases to reset it back to ref pose
+		SkeletalMeshComponent->RefreshBoneTransforms();
+		SkeletalMeshComponent->RefreshSlaveComponents();
+		SkeletalMeshComponent->UpdateComponentToWorld();
 	}
 }
 
