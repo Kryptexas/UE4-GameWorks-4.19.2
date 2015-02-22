@@ -4,6 +4,7 @@
 #include "Animation/AnimNode_StateMachine.h"
 #include "Animation/AnimNode_TransitionResult.h"
 #include "Animation/AnimNode_TransitionPoseEvaluator.h"
+#include "Animation/AnimNode_SequencePlayer.h"
 #include "AnimationRuntime.h"
 #include "AnimTree.h"
 
