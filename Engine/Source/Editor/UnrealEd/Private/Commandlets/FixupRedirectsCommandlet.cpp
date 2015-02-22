@@ -8,6 +8,7 @@
 #include "ISourceControlModule.h"
 #include "Engine/UserDefinedEnum.h"
 #include "AutoSaveUtils.h"
+#include "AssetRegistryModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFixupRedirectsCommandlet, Log, All);
 
