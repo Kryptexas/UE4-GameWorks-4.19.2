@@ -185,7 +185,9 @@ protected:
 	/** list of objects we have processed the latent action list for this frame. */	
 	TSet<UObject*> ProcessedThisFrame;
 
-	/** For listed objects all actions will be removed */
-	TArray<TWeakObjectPtr<UObject>> ObjectsToRemove;
+	/**List of actions that will be unconditionally removed at the begin of next tick */
+	typedef TPair<int32, class FPendingLatentAction*> FUuidAndAction;
+	typedef TMap< TWeakObjectPtr<UObject>, TSharedPtr<TArray<FUuidAndAction>>> FActionsForObject;
+	FActionsForObject ActionsToRemoveMap;
 };
 
