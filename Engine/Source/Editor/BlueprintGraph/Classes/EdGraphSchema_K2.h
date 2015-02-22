@@ -682,6 +682,9 @@ public:
 	/** Can this function be called by kismet code */
 	static bool CanUserKismetCallFunction(const UFunction* Function);
 
+	/** Returns if hunction has output parameter(s) */
+	static bool HasFunctionAnyOutputParameter(const UFunction* Function);
+
 	enum EDelegateFilterMode
 	{
 		CannotBeDelegate,

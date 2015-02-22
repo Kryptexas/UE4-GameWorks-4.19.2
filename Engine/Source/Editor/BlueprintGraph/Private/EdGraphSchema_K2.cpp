@@ -744,23 +744,20 @@ bool UEdGraphSchema_K2::CanKismetOverrideFunction(const UFunction* Function)
 		(Function->HasAllFunctionFlags(FUNC_BlueprintEvent) && !Function->HasAllFunctionFlags(FUNC_Delegate) && !Function->GetBoolMetaData(FBlueprintMetadata::MD_BlueprintInternalUseOnly) && !Function->HasMetaData(FBlueprintMetadata::MD_DeprecatedFunction));
 }
 
-struct FNoOutputParametersHelper 
+bool UEdGraphSchema_K2::HasFunctionAnyOutputParameter(const UFunction* InFunction)
 {
-	static bool Check(const UFunction* InFunction)
+	check(InFunction);
+	for (TFieldIterator<UProperty> PropIt(InFunction); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 	{
-		check(InFunction);
-		for (TFieldIterator<UProperty> PropIt(InFunction); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+		UProperty* FuncParam = *PropIt;
+		if (FuncParam->HasAnyPropertyFlags(CPF_ReturnParm) || (FuncParam->HasAnyPropertyFlags(CPF_OutParm) && !FuncParam->HasAnyPropertyFlags(CPF_ReferenceParm) && !FuncParam->HasAnyPropertyFlags(CPF_ConstParm)))
 		{
-			UProperty* FuncParam = *PropIt;
-			if(FuncParam->HasAnyPropertyFlags(CPF_ReturnParm) || (FuncParam->HasAnyPropertyFlags(CPF_OutParm) && !FuncParam->HasAnyPropertyFlags(CPF_ReferenceParm) && !FuncParam->HasAnyPropertyFlags(CPF_ConstParm)))
-			{
-				return false;
-			}
+			return true;
 		}
-
-		return true;
 	}
-};
+
+	return false;
+}
 
 bool UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(const UFunction* InFunction)
 {
@@ -771,7 +768,7 @@ bool UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(const UFunction* InFunction)
 	}
 
 	// Then look to see if we have any output, return, or reference params
-	return FNoOutputParametersHelper::Check(InFunction);
+	return !HasFunctionAnyOutputParameter(InFunction);
 }
 
 bool UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(const UFunction* InFunction)
@@ -784,7 +781,7 @@ bool UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(const UFunction* InFunction)
 		return false;
 	}
 
-	return FNoOutputParametersHelper::Check(InFunction);
+	return true;
 }
 
 FString UEdGraphSchema_K2::GetFriendlySignatureName(const UFunction* Function)

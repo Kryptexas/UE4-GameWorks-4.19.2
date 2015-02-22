@@ -3070,7 +3070,7 @@ void FBlueprintDelegateActionDetails::CollectAvailibleSignatures()
 			for(TFieldIterator<UFunction> It(ScopeClass, EFieldIteratorFlags::IncludeSuper); It; ++It)
 			{
 				UFunction* Func = *It;
-				if (UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(Func))
+				if (UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(Func) && !UEdGraphSchema_K2::HasFunctionAnyOutputParameter(Func))
 				{
 					TSharedPtr<FString> ItemData = MakeShareable(new FString(Func->GetName()));
 					FunctionsToCopySignatureFrom.Add(ItemData);

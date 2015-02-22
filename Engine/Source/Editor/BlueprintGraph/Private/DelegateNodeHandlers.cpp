@@ -216,11 +216,7 @@ void FKCHandler_CreateDelegate::RegisterNets(FKismetFunctionContext& Context, UE
 		return;
 	}
 
-	if(UFunction* SignatureFunc = DelegateNode->GetDelegateSignature())
-	{
-		FKCHandlerDelegateHelper::CheckOutputsParametersInDelegateSignature(SignatureFunc, DelegateNode, CompilerContext.MessageLog);
-	}
-	else
+	if(!DelegateNode->GetDelegateSignature())
 	{
 		const FString ErrorStr = FString::Printf(
 			*LOCTEXT("NoDelegateFunction", "No delegate function '%' @@").ToString(),
