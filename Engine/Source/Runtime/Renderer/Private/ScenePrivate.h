@@ -535,7 +535,10 @@ public:
 
 		TemporalAASampleCount = FMath::Min(SampleCount, (uint32)255);
 		
-		++TemporalAASampleIndex;
+		if( !GRenderingRealtimeClock.GetGamePaused() )
+		{
+			TemporalAASampleIndex++;
+		}
 
 		if(TemporalAASampleIndex >= TemporalAASampleCount)
 		{

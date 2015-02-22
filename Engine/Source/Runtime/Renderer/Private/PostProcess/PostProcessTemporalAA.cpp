@@ -701,9 +701,11 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
-	ViewState->TemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
-	check( ViewState->TemporalAAHistoryRT );
-
+	if( !GRenderingRealtimeClock.GetGamePaused() )
+	{
+		ViewState->TemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
+		check( ViewState->TemporalAAHistoryRT );
+	}
 
 	// TODO draw separate translucency after jitter has been removed
 

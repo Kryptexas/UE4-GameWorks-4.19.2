@@ -1752,11 +1752,12 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				}
 				else
 				{
+					ViewState->PrevViewMatrices = ViewState->PendingPrevViewMatrices;
+
 					// check for pause so we can keep motion blur in paused mode (doesn't work in editor)
 					if(!GRenderingRealtimeClock.GetGamePaused())
 					{
 						// pending is needed as we are in init view and still need to render.
-						ViewState->PrevViewMatrices = ViewState->PendingPrevViewMatrices;
 						ViewState->PendingPrevViewMatrices = View.ViewMatrices;
 					}
 				}

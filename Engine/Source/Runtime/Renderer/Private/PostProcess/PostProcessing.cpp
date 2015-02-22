@@ -926,6 +926,13 @@ bool FPostProcessing::AllowFullPostProcessing(const FViewInfo& View, ERHIFeature
 		&& !View.Family->EngineShowFlags.VisualizeMeshDistanceFields;
 }
 
+static TAutoConsoleVariable<int32> CVarMotionBlurNew(
+	TEXT("r.MotionBlurNew"),
+	0,
+	TEXT(""),
+	ECVF_RenderThreadSafe
+);
+
 void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_PostProcessing_Process );
@@ -1106,53 +1113,80 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 			if(IsMotionBlurEnabled(View) && VelocityInput.IsValid())
 			{
-				// Motionblur is enabled
-				FRenderingCompositeOutputRef SoftEdgeVelocity;
+				// Motion blur
 
-				FRenderingCompositeOutputRef MotionBlurHalfVelocity;
-				FRenderingCompositeOutputRef MotionBlurColorDepth;
-
-				// down sample screen space velocity and extend outside of borders to allows soft edge motion blur
+				if( CVarMotionBlurNew.GetValueOnRenderThread() )
 				{
-					// Down sample and prepare for soft masked blurring
-					FRenderingCompositePass* HalfResVelocity = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMotionBlurSetup());
-					HalfResVelocity->SetInput(ePId_Input0, VelocityInput);
-					HalfResVelocity->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput));
-					// only for Depth of Field we need the depth in the alpha channel
-					HalfResVelocity->SetInput(ePId_Input2, FRenderingCompositeOutputRef(Context.SceneDepth));
-					
-					MotionBlurHalfVelocity = FRenderingCompositeOutputRef(HalfResVelocity, ePId_Output0);
-					MotionBlurColorDepth = FRenderingCompositeOutputRef(HalfResVelocity, ePId_Output1);
+					FRenderingCompositeOutputRef MaxTileVelocity;
+					FRenderingCompositeOutputRef SceneDepth( Context.SceneDepth );
 
-					FRenderingCompositePass* QuarterResVelocity = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_Unknown, 0, TEXT("QuarterResVelocity")));
-					QuarterResVelocity->SetInput(ePId_Input0, HalfResVelocity);
-
-					SoftEdgeVelocity = FRenderingCompositeOutputRef(QuarterResVelocity);
-
-					float MotionBlurSoftEdgeSize = CVarMotionBlurSoftEdgeSize.GetValueOnRenderThread();
-
-					if(MotionBlurSoftEdgeSize > 0.01f)
 					{
-						SoftEdgeVelocity = RenderGaussianBlur(Context, TEXT("VelocityBlurX"), TEXT("VelocityBlurY"), QuarterResVelocity, MotionBlurSoftEdgeSize);
+						FRenderingCompositePass* VelocityFlattenPass = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessVelocityFlatten() );
+						VelocityFlattenPass->SetInput( ePId_Input0, VelocityInput );
+						VelocityFlattenPass->SetInput( ePId_Input1, SceneDepth );
+
+						VelocityInput		= FRenderingCompositeOutputRef( VelocityFlattenPass, ePId_Output0 );
+						MaxTileVelocity		= FRenderingCompositeOutputRef( VelocityFlattenPass, ePId_Output1 );
 					}
-				}
 
-				// doing the actual motion blur sampling, alpha to mask out the blurred areas
-				FRenderingCompositePass* MotionBlurPass;
-
-				if(View.Family->EngineShowFlags.VisualizeMotionBlur)
-				{
-					MotionBlurPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeMotionBlur());
-					bAllowTonemapper = false;
+					{
+						FRenderingCompositePass* MotionBlurPass = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessMotionBlurNew( GetMotionBlurQualityFromCVar() ) );
+						MotionBlurPass->SetInput( ePId_Input0, Context.FinalOutput );
+						MotionBlurPass->SetInput( ePId_Input1, SceneDepth );
+						MotionBlurPass->SetInput( ePId_Input2, VelocityInput );
+						MotionBlurPass->SetInput( ePId_Input3, MaxTileVelocity );
+					
+						Context.FinalOutput = FRenderingCompositeOutputRef( MotionBlurPass );
+					}
 				}
 				else
 				{
-					int32 MotionBlurQuality = GetMotionBlurQualityFromCVar();
+					FRenderingCompositeOutputRef SoftEdgeVelocity;
 
-					MotionBlurPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMotionBlur(MotionBlurQuality));
-				}
+					FRenderingCompositeOutputRef MotionBlurHalfVelocity;
+					FRenderingCompositeOutputRef MotionBlurColorDepth;
 
-				MotionBlurPass->SetInput(ePId_Input0, MotionBlurColorDepth);
+					// down sample screen space velocity and extend outside of borders to allows soft edge motion blur
+					{
+						// Down sample and prepare for soft masked blurring
+						FRenderingCompositePass* HalfResVelocity = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMotionBlurSetup());
+						HalfResVelocity->SetInput(ePId_Input0, VelocityInput);
+						HalfResVelocity->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput));
+						// only for Depth of Field we need the depth in the alpha channel
+						HalfResVelocity->SetInput(ePId_Input2, FRenderingCompositeOutputRef(Context.SceneDepth));
+					
+						MotionBlurHalfVelocity = FRenderingCompositeOutputRef(HalfResVelocity, ePId_Output0);
+						MotionBlurColorDepth = FRenderingCompositeOutputRef(HalfResVelocity, ePId_Output1);
+
+						FRenderingCompositePass* QuarterResVelocity = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_Unknown, 0, TEXT("QuarterResVelocity")));
+						QuarterResVelocity->SetInput(ePId_Input0, HalfResVelocity);
+
+						SoftEdgeVelocity = FRenderingCompositeOutputRef(QuarterResVelocity);
+
+						float MotionBlurSoftEdgeSize = CVarMotionBlurSoftEdgeSize.GetValueOnRenderThread();
+
+						if(MotionBlurSoftEdgeSize > 0.01f)
+						{
+							SoftEdgeVelocity = RenderGaussianBlur(Context, TEXT("VelocityBlurX"), TEXT("VelocityBlurY"), QuarterResVelocity, MotionBlurSoftEdgeSize);
+						}
+					}
+
+					// doing the actual motion blur sampling, alpha to mask out the blurred areas
+					FRenderingCompositePass* MotionBlurPass;
+
+					if(View.Family->EngineShowFlags.VisualizeMotionBlur)
+					{
+						MotionBlurPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeMotionBlur());
+						bAllowTonemapper = false;
+					}
+					else
+					{
+						int32 MotionBlurQuality = GetMotionBlurQualityFromCVar();
+
+						MotionBlurPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMotionBlur(MotionBlurQuality));
+					}
+
+					MotionBlurPass->SetInput(ePId_Input0, MotionBlurColorDepth);
 
 				if(VelocityInput.IsValid())
 				{
@@ -1162,10 +1196,11 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 					MotionBlurPass->SetInput(ePId_Input2, MotionBlurHalfVelocity);
 				}
 
-				FRenderingCompositePass* MotionBlurRecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMotionBlurRecombine());
-				MotionBlurRecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
-				MotionBlurRecombinePass->SetInput(ePId_Input1, FRenderingCompositeOutputRef(MotionBlurPass));
-				Context.FinalOutput = FRenderingCompositeOutputRef(MotionBlurRecombinePass);
+					FRenderingCompositePass* MotionBlurRecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMotionBlurRecombine());
+					MotionBlurRecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
+					MotionBlurRecombinePass->SetInput(ePId_Input1, FRenderingCompositeOutputRef(MotionBlurPass));
+					Context.FinalOutput = FRenderingCompositeOutputRef(MotionBlurRecombinePass);
+				}
 			}
 
 			if(bVisualizeBloom)

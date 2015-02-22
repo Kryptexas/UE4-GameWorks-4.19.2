@@ -18,7 +18,7 @@
 // but adapted for half resolution and not using randomization/noise
 
 // from the paper: We use SOFT Z EXTENT = 1mm to 10cm for our results
-#define SOFT_Z_EXTENT 1
+#define SOFT_Z_EXTENT 0.1
 
 // This,
 //  - Gets the MainPS pass to low cost under no motion.
@@ -622,4 +622,134 @@ void MainRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV
 
 	OutColor.rgb = FullResSceneColor * (1 - Mask) + MotionBlurOutput.rgb;
 	OutColor.a = 0;
+}
+
+
+
+
+
+float2 DepthCmp( float CenterDepth, float SampleDepth, float DepthScale )
+{
+	return saturate( 0.5 + float2( DepthScale, -DepthScale ) * (SampleDepth - CenterDepth) );
+}
+
+float2 SpreadCmp( float OffsetLength, float2 SpreadLength, float PixelToSampleScale )
+{
+	return saturate( PixelToSampleScale * SpreadLength - max( OffsetLength - 1, 0 ) );
+}
+
+float SampleWeight( float CenterDepth, float SampleDepth, float OffsetLength, float CenterSpreadLength, float SampleSpreadLength, float PixelToSampleScale, float DepthScale )
+{
+	float2 DepthWeights = DepthCmp( CenterDepth, SampleDepth, DepthScale );
+	float2 SpreadWeights = SpreadCmp( OffsetLength, float2( CenterSpreadLength, SampleSpreadLength ), PixelToSampleScale );
+	return dot( DepthWeights, SpreadWeights );
+}
+
+// [0, 1]
+float RandFast( uint2 PixelPos, float Magic = 3571.0 )
+{
+	float2 Random = ( 1.0 / 4320.0 ) * PixelPos + float2( 0.25, 0.0 );
+	Random = frac( dot( Random * Random, Magic ) );
+	Random = frac( dot( Random * Random, Magic ) );
+	return Random.x;
+}
+
+
+void MainNewPS( float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0 )
+{
+	// Screen Quad UV 0..1
+	float2 UV = UVAndScreenPos.xy;
+	// screen position in [-1, 1] screen space
+	float2 ScreenSpacePos = UVAndScreenPos.zw;
+
+	OutColor = 0;
+
+	float VelocityScale = MotionBlurParameters.x;
+
+	const uint StepCount = GetStepCountFromQuality() / 2;
+
+#if 1
+	uint2 PixelPos = uint2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
+	float2 PosMod = float2( PixelPos & 1 );
+	float Dither = ( PosMod.x * 2 - 1 ) * ( PosMod.y * 2 - 1 );
+	float Random = RandFast( PixelPos );
+	float Random2 = RandFast( PixelPos, 5521 );
+#endif
+	
+	float2 TileJitter = ( float2( Random, Random2 ) - 0.5 ) * 0.5;
+	
+	float2 MaxVelocity = PostprocessInput3.SampleLevel( PostprocessInput3Sampler, UV + TileJitter * PostprocessInput3Size.zw, 0 ).xy;
+	//float2 MaxVelocity = PostprocessInput3[ PixelPos / 16 ].xy;
+	float2 MaxVelocityScreen = MaxVelocity.xy * VelocityScale;
+	float2 MaxVelocityPixels = MaxVelocityScreen * ScreenPosToPixel.xy;
+
+	float3 CenterColor = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0 ).rgb;
+	float  CenterDepth = PostprocessInput1.SampleLevel( PostprocessInput1Sampler, UV, 0 ).r;
+
+	CenterDepth = ConvertFromDeviceZ( CenterDepth );
+	
+	BRANCH
+	if( length( MaxVelocityPixels ) <= 0.5 )
+	{
+		OutColor.rgb = CenterColor;
+		return;
+	}
+	
+	// in pixels
+	float2 CenterVelocity = PostprocessInput2.SampleLevel( PostprocessInput2Sampler, UV, 0 ).xy;
+	CenterVelocity = DecodeVelocityFromTexture( CenterVelocity ) * VelocityScale * ScreenPosToPixel.xy;
+	float CenterVelocityLength = length( CenterVelocity );
+
+	float4 ColorAccum = 0;
+
+	// converts pixel length to sample steps
+	float PixelToSampleScale = ( StepCount - 0.5 ) / length( MaxVelocityPixels );
+	//float PixelToSampleScale = ( StepCount - 0.5 + (Random - 0.5) ) / length( MaxVelocityPixels );
+
+	// WHY?
+	PixelToSampleScale *= 2;
+
+	UNROLL
+	for( uint i = 0; i < StepCount; i++ )
+	{
+		float2 SampleUV[2];
+		float3 SampleColor[2];
+		float  SampleDepth[2];
+		float  SampleVelocityLength[2];
+		float  Weight[2];
+
+		float OffsetLength = (float)i + 0.5 + (Random - 0.5);
+		float OffsetFraction = OffsetLength / ( StepCount - 0.5 );
+
+		// can be optimized
+		SampleUV[0] = UV + OffsetFraction * MaxVelocityPixels * PostprocessInput0Size.zw;
+		SampleUV[1] = UV - OffsetFraction * MaxVelocityPixels * PostprocessInput0Size.zw;
+
+		UNROLL
+		for( uint j = 0; j < 2; j++ )
+		{
+			SampleColor[j] = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[j], 0 ).rgb;
+			SampleDepth[j] = PostprocessInput1.SampleLevel( PostprocessInput1Sampler, SampleUV[j], 0 ).r;
+
+			SampleDepth[j] = ConvertFromDeviceZ( SampleDepth[j] );
+
+			// in pixels
+			float2 SampleVelocity = PostprocessInput2.SampleLevel( PostprocessInput2Sampler, SampleUV[j], 0 ).xy;
+			SampleVelocity = DecodeVelocityFromTexture( SampleVelocity ) * VelocityScale * ScreenPosToPixel.xy;
+			SampleVelocityLength[j] = length( SampleVelocity );
+
+			Weight[j] = SampleWeight( CenterDepth, SampleDepth[j], OffsetLength, CenterVelocityLength, SampleVelocityLength[j], PixelToSampleScale, SOFT_Z_EXTENT );
+		}
+		
+		bool2 Mirror = bool2( SampleDepth[0] > SampleDepth[1], SampleVelocityLength[1] > SampleVelocityLength[0] );
+		Weight[0] = all( Mirror ) ? Weight[1] : Weight[0];
+		Weight[1] = any( Mirror ) ? Weight[1] : Weight[0];
+
+		ColorAccum += Weight[0] * float4( SampleColor[0].rgb, 1 );
+		ColorAccum += Weight[1] * float4( SampleColor[1].rgb, 1 );
+	}
+
+	ColorAccum *= 0.5 / StepCount;
+	OutColor.rgb = ColorAccum.rgb + ( 1 - ColorAccum.a ) * CenterColor;
+	OutColor.a = 1;
 }

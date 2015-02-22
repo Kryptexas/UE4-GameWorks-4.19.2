@@ -795,8 +795,6 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 	}
 
-	bool WorldWasPaused = false;
-
 	for (int32 WorldIdx = 0; WorldIdx < WorldList.Num(); ++WorldIdx)
 	{
 		FWorldContext &Context = WorldList[WorldIdx];
@@ -804,8 +802,6 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		{
 			continue;
 		}
-
-		WorldWasPaused |= Context.World()->IsPaused();
 
 		GWorld = Context.World();
 
@@ -875,6 +871,16 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			}
 		}
 
+		// tell renderer about GWorld->IsPaused(), before rendering
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+				SetPaused,
+				bool, bGamePaused, Context.World()->IsPaused(),
+			{
+				GRenderingRealtimeClock.SetGamePaused(bGamePaused);
+			});
+		}
+
 		if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
 		{
 			// Render everything.
@@ -936,17 +942,6 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	{
 		GWorld = GetWorldContextFromHandleChecked(OriginalGWorldContext).World();
 	}
-
-	// tell renderer about GWorld->IsPaused(), before rendering
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			SetPaused,
-			bool, bGamePaused, WorldWasPaused,
-		{
-			GRenderingRealtimeClock.SetGamePaused(bGamePaused);
-		});
-	}
-
 
 	// rendering thread commands
 	{
