@@ -442,8 +442,31 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 		}
 		else
 		{
-			// Execute it and see if we can take this rule
-			ResultNode->EvaluateGraphExposedInputs.Execute(Context);
+			bool bStillCallEvaluate = true;
+
+			if (TransitionRule.StateSequencePlayerToQueryIndex != INDEX_NONE)
+			{
+				// Simple automatic rule
+				FAnimNode_SequencePlayer* SequencePlayer = GetNodeFromPropertyIndex<FAnimNode_SequencePlayer>(Context.AnimInstance, AnimBlueprintClass, TransitionRule.StateSequencePlayerToQueryIndex);
+				if ((SequencePlayer != nullptr) && (SequencePlayer->Sequence != nullptr))
+				{
+					const float SequenceLength = SequencePlayer->Sequence->GetMaxCurrentTime();
+					const float PlayerTime = SequencePlayer->InternalTimeAccumulator;
+					const float PlayerTimeLeft = SequenceLength - PlayerTime;
+
+					const FAnimationTransitionBetweenStates& TransitionInfo = GetTransitionInfo(TransitionRule.TransitionIndex);
+
+					ResultNode->bCanEnterTransition = (PlayerTimeLeft <= TransitionInfo.CrossfadeDuration);
+
+					bStillCallEvaluate = false;
+				}
+			}
+
+			if (bStillCallEvaluate)
+			{
+				// Execute it and see if we can take this rule
+				ResultNode->EvaluateGraphExposedInputs.Execute(Context);
+			}
 		}
 
 		if (ResultNode->bCanEnterTransition == TransitionRule.bDesiredTransitionReturnValue)

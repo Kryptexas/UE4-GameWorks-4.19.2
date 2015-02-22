@@ -17,7 +17,7 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	UPROPERTY()
 	class UEdGraph* BoundGraph;
 
-	// The animation graph for this transition if it uses custom blending (reutrning a pose)
+	// The animation graph for this transition if it uses custom blending (returning a pose)
 	UPROPERTY()
 	class UEdGraph* CustomTransitionGraph;
 
@@ -33,6 +33,10 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	// The type of blending to use in the crossfade
 	UPROPERTY(EditAnywhere, Config, Category=Transition)
 	TEnumAsByte<ETransitionBlendMode::Type> CrossfadeMode;
+
+	// Try setting the rule automatically based on the player node remaining time and the CrossfadeDuration, ignoring the internal time
+	UPROPERTY(EditAnywhere, Category=Transition)
+	bool bAutomaticRuleBasedOnSequencePlayerInState;
 
 	// What transition logic to use
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Transition)
