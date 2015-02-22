@@ -88,12 +88,15 @@ UGameEngine::UGameEngine(const FObjectInitializer& ObjectInitializer)
 
 void UGameEngine::CreateGameViewportWidget( UGameViewportClient* GameViewportClient )
 {
+	bool bRenderDirectlyToWindow = !GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture && GIsDumpingMovie == 0; 
 	TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew( SOverlay );
 	TSharedRef<SViewport> GameViewportWidgetRef = 
 		SNew( SViewport )
 			// Render directly to the window backbuffer unless capturing a movie or getting screenshots
 			// @todo TEMP
-			.RenderDirectlyToWindow( !GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture && GIsDumpingMovie == 0 )
+			.RenderDirectlyToWindow(bRenderDirectlyToWindow)
+			//gamma handled by the scene renderer
+			.EnableGammaCorrection(false)
 			.EnableStereoRendering(true)
 			[
 				SNew(SDPIScaler)
