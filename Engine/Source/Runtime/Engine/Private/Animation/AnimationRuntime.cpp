@@ -401,6 +401,8 @@ void FAnimationRuntime::GetPoseFromAnimTrack(
 	TArray<float> SourceWeights;
 	float TotalWeight = 0.f;
 
+	float CurrentTime = FMath::Clamp(ExtractionContext.CurrentTime, 0.f, Track.GetLength());
+
 	// first get all the montage instance weight this slot node has
 	for (int32 I=0; I<Track.AnimSegments.Num(); ++I)
 	{
@@ -408,7 +410,7 @@ void FAnimationRuntime::GetPoseFromAnimTrack(
 
 		float PositionInAnim = 0.f;
 		float Weight = 0.f;
-		UAnimSequenceBase* AnimRef = AnimSegment.GetAnimationData(ExtractionContext.CurrentTime, PositionInAnim, Weight);
+		UAnimSequenceBase* AnimRef = AnimSegment.GetAnimationData(CurrentTime, PositionInAnim, Weight);
 		// make this to be 1 function
 		if( AnimRef && (Weight > ZERO_ANIMWEIGHT_THRESH) )
 		{

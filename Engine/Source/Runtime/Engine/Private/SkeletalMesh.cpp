@@ -3732,16 +3732,18 @@ void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelInd
 					}
 				}
 
-				AnimInst->PlaySlotAnimation(InAnimSequence, SlotName);
+				AnimInst->PlaySlotAnimation(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
 				CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
 			}
 
-			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveMontageInstance();
+			ensure(CurrentlyPlayingMontage.IsValid());
+
+			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 			if (AnimMontageInst)
 			{
 				AnimMontageInst->Weight = 1.f;
 				//AnimInst->Montage_Set(bLooping);
-				AnimInst->Montage_SetPosition(NULL, InPosition);
+				AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);
 				AnimInst->UpdateAnimation(DeltaTime);
 			}
 			else
@@ -3937,16 +3939,17 @@ void SetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshCo
 					}
 				}
 
-				AnimInst->PlaySlotAnimation(InAnimSequence, SlotName, 0.f, 0.f, 0.f);
+				AnimInst->PlaySlotAnimation(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
 				CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
 			}
 
-			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveMontageInstance();
-			if (AnimMontageInst)
+			ensure(CurrentlyPlayingMontage.IsValid());
+
+			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
+			if(AnimMontageInst)
 			{
 				AnimMontageInst->Weight = 1.f;
-				AnimInst->Montage_SetPosition(NULL, InPosition);
-				AnimInst->UpdateAnimation(0.f);
+				AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);
 			}
 			else
 			{
