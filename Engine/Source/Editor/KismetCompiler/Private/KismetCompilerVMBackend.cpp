@@ -638,7 +638,7 @@ public:
 		Writer << EX_EndStructConst;
 	}
 
-	void EmitFunctionCall(FBlueprintCompiledStatement& Statement)
+	void EmitFunctionCall(FKismetCompilerContext& CompilerContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 	{
 		UFunction* FunctionToCall = Statement.FunctionToCall;
 		check(FunctionToCall);
@@ -676,6 +676,25 @@ public:
 			// Overwrite RHS(0) text with the state index to kick off
 			check(Statement.RHS[Statement.UbergraphCallIndex]->bIsLiteral);
 			Statement.RHS[Statement.UbergraphCallIndex]->Name = FString::FromInt(OffsetWithinUbergraph);
+
+#if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
+			// Store optimization data if this is a simple call into the ubergraph
+			if (FunctionContext.bIsSimpleStubGraphWithNoParams)
+			{
+				check(FunctionToCall == CompilerContext.NewClass->UberGraphFunction);
+				check(FunctionToCall->ParmsSize == sizeof(int32));
+
+				if ((FunctionToCall->FirstPropertyToInit == nullptr) && (FunctionToCall->PostConstructLink == nullptr))
+				{
+					FEventGraphFastCallPair& Pair = *new (CompilerContext.NewClass->FastCallPairs) FEventGraphFastCallPair();
+					Pair.FunctionToPatch = FunctionContext.Function;
+					Pair.EventGraphCallOffset = OffsetWithinUbergraph;
+
+					FunctionContext.Function->EventGraphFunction = FunctionToCall;
+					FunctionContext.Function->EventGraphCallOffset = OffsetWithinUbergraph;
+				}
+			}
+#endif
 		}
 
 		// Handle the return value assignment if present
@@ -1233,7 +1252,7 @@ public:
 			Writer << ((Statement.Type == KCST_DebugSite) ? EX_Tracepoint : EX_WireTracepoint);
 			break;
 		case KCST_CallFunction:
-			EmitFunctionCall(Statement);
+			EmitFunctionCall(CompilerContext, FunctionContext, Statement);
 			break;
 		case KCST_CallDelegate:
 			EmitCallDelegate(Statement);

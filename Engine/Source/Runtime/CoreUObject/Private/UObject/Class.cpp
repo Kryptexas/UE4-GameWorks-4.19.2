@@ -3634,7 +3634,11 @@ UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InS
 , RepOffset(InRepOffset)
 , RPCId(0)
 , RPCResponseId(0)
-, FirstPropertyToInit(NULL)
+, FirstPropertyToInit(nullptr)
+#if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
+, EventGraphFunction(nullptr)
+, EventGraphCallOffset(0)
+#endif
 {
 }
 

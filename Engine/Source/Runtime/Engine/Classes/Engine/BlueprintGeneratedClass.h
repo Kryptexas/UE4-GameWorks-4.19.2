@@ -417,6 +417,17 @@ public:
 #endif
 };
 
+USTRUCT()
+struct ENGINE_API FEventGraphFastCallPair
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	UFunction* FunctionToPatch;
+
+	UPROPERTY()
+	int32 EventGraphCallOffset;
+};
 
 UCLASS()
 class ENGINE_API UBlueprintGeneratedClass : public UClass
@@ -453,6 +464,9 @@ public:
 
 	UPROPERTY()
 	UFunction* UberGraphFunction;
+
+	UPROPERTY()
+	TArray<FEventGraphFastCallPair> FastCallPairs;
 
 	/** 
 	 * Gets an array of all BPGeneratedClasses (including InClass as 0th element) parents of given generated class 

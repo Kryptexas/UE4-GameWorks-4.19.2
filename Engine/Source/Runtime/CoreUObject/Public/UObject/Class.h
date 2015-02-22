@@ -1176,6 +1176,14 @@ public:
 	/** pointer to first local struct property in this UFunction that contains defaults */
 	UProperty* FirstPropertyToInit;
 
+#if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
+	// The event graph this function calls in to
+	UFunction* EventGraphFunction;
+
+	// The state offset inside of the event graph
+	int32 EventGraphCallOffset;
+#endif
+
 private:
 	Native Func;
 

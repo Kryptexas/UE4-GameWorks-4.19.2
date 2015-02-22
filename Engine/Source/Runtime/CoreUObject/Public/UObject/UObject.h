@@ -1,11 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	UnObjUObject.h: Unreal object base class
+	UObject.h: Unreal object base class
 =============================================================================*/
 
-#ifndef __UNOBJUOBJECT_H__
-#define __UNOBJUOBJECT_H__
+#pragma once
 
 DECLARE_LOG_CATEGORY_EXTERN(LogObj, Log, All);
 
@@ -1154,6 +1153,3 @@ private:
 	*/
 	UObject* CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UClass* ReturnType, bool bTransient = false);
 };
-
-#endif	// __UNOBJUOBJECT_H__
-

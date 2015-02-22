@@ -626,7 +626,15 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 
 		// Step over the return statement and evaluate the result expression
 		Stack.Code++;
-		Stack.Step(Stack.Object, Result);
+
+		if (*Stack.Code != EX_Nothing)
+		{
+			Stack.Step(Stack.Object, Result);
+		}
+		else
+		{
+			Stack.Code++;
+		}
 
 #if DO_GUARD
 		--Recurse;
@@ -839,6 +847,23 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 	ScriptEntryTag++;
 
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_BlueprintTime, ScriptEntryTag == 1);
+
+#if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
+	// Fast path for ubergraph calls
+	int32 EventGraphParams;
+	if (Function->EventGraphFunction != nullptr)
+	{
+		// Call directly into the event graph, skipping the stub thunk function
+		EventGraphParams = Function->EventGraphCallOffset;
+		Parms = &EventGraphParams;
+		Function = Function->EventGraphFunction;
+
+		// Validate assumptions required for this optimized path (EventGraphFunction should have only been filled out if these held)
+		checkSlow(Function->ParmsSize == sizeof(EventGraphParams));
+		checkSlow(Function->FirstPropertyToInit == nullptr);
+		checkSlow(Function->PostConstructLink == nullptr);
+	}
+#endif
 
 	// Scope required for scoped script stats.
 	{
@@ -1233,7 +1258,7 @@ void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
 
 	Stack.Step(Stack.Object, DestAddress);
 #else
-	checkf(false, TEXT("execLetValueOnPersistentFrame: UberGraphPersistentFrame is not supported by current build!")
+	checkf(false, TEXT("execLetValueOnPersistentFrame: UberGraphPersistentFrame is not supported by current build!"));
 #endif
 }
 IMPLEMENT_VM_FUNCTION(Ex_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);

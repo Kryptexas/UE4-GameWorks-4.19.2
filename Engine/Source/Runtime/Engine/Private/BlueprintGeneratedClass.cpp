@@ -80,6 +80,15 @@ void UBlueprintGeneratedClass::PostLoad()
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
+
+#if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
+	// Patch the fast calls (needed as we can't bump engine version to serialize it directly in UFunction right now)
+	for (const FEventGraphFastCallPair& Pair : FastCallPairs)
+	{
+		Pair.FunctionToPatch->EventGraphFunction = UberGraphFunction;
+		Pair.FunctionToPatch->EventGraphCallOffset = Pair.EventGraphCallOffset;
+	}
+#endif
 }
 
 void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut)
@@ -639,6 +648,10 @@ void UBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
 
 	UberGraphFramePointerProperty = NULL;
 	UberGraphFunction = NULL;
+
+#if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
+	FastCallPairs.Empty();
+#endif
 }
 
 void UBlueprintGeneratedClass::Bind()
