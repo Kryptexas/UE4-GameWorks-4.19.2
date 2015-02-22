@@ -279,6 +279,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetKeyboardFocus();
 
+	/** Gets the focus to this widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasUserFocus(int32 UserIndex) const;
+
+	/** Gets the focus to this widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasAnyUserFocus() const;
+	
+	/** Sets the focus to this widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetUserFocus(int32 UserIndex);
+
 	/** Forces the underlying slate system to perform a pre-pass on the layout of the widget.  This is for advanced users. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ForceLayoutPrepass();

@@ -305,6 +305,39 @@ void UWidget::SetKeyboardFocus()
 	}
 }
 
+bool UWidget::HasUserFocus(int32 UserIndex) const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		TOptional<EFocusCause> FocusCause = SafeWidget->HasUserFocus(UserIndex);
+		return FocusCause.IsSet();
+	}
+
+	return false;
+}
+
+bool UWidget::HasAnyUserFocus() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		TOptional<EFocusCause> FocusCause = SafeWidget->HasAnyUserFocus();
+		return FocusCause.IsSet();
+	}
+
+	return false;
+}
+
+void UWidget::SetUserFocus(int32 UserIndex)
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		FSlateApplication::Get().SetUserFocus(UserIndex, SafeWidget);
+	}
+}
+
 void UWidget::ForceLayoutPrepass()
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
