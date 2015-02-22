@@ -8765,6 +8765,29 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		}
 		WorldContext.World()->RemoveFromRoot();
 
+		// mark everything else contained in the world to be deleted
+		TArray<UWorld*> CurrentWorlds;
+		for (auto LevelIt(WorldContext.World()->GetLevelIterator()); LevelIt; ++LevelIt)
+		{
+			const ULevel* Level = *LevelIt;
+			if (Level)
+			{
+				CurrentWorlds.Add(CastChecked<UWorld>(Level->GetOuter()));
+			}
+		}
+
+		for (TObjectIterator<UObject> It; It; ++It)
+		{
+			for (const UWorld* World : CurrentWorlds)
+			{
+				if (It->IsIn(World))
+				{
+					It->MarkPendingKill();
+					break;
+				}
+			}
+		}
+
 		WorldContext.SetCurrentWorld(NULL);
 	}
 
