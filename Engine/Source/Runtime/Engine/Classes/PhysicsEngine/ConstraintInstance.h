@@ -492,12 +492,12 @@ public:
 	static void Free(FConstraintInstance * Ptr);
 	static FConstraintInstance * Alloc();
 
-
 private:
 #if WITH_PHYSX 
 	bool CreatePxJoint(physx::PxRigidActor* PActor1, physx::PxRigidActor* PActor2, physx::PxScene* PScene, const float Scale);
 	void UpdateConstraintFlags();
 	void UpdateAverageMass(const physx::PxRigidActor* PActor1, const physx::PxRigidActor* PActor2);
+	physx::PxD6Joint* GetUnbrokenJoint() const;
 #endif
 
 	void UpdateBreakable();
