@@ -187,6 +187,8 @@ void FWindowsApplication::DestroyApplication()
 	// Restore accessibility shortcuts and remove the saved state from the .ini
 	AllowAccessibilityShortcutKeys(true);
 	GConfig->EmptySection(TEXT("WindowsApplication.Accessibility"), GEngineIni);
+
+	TaskbarList = nullptr;
 }
 
 void FWindowsApplication::ShutDownAfterError()
@@ -194,6 +196,8 @@ void FWindowsApplication::ShutDownAfterError()
 	// Restore accessibility shortcuts and remove the saved state from the .ini
 	AllowAccessibilityShortcutKeys(true);
 	GConfig->EmptySection(TEXT("WindowsApplication.Accessibility"), GEngineIni);
+
+	TaskbarList = nullptr;
 }
 
 bool FWindowsApplication::RegisterClass( const HINSTANCE HInstance, const HICON HIcon )
