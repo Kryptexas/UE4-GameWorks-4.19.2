@@ -594,7 +594,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 
 FSlateShaderResourceProxy* FSlateRHIResourceManager::GetMaterialResource(const FSlateBrush& InBrush)
 {
-	check(IsInGameThread());
+	check(IsThreadSafeForSlateRendering());
 
 	const FName ResourceName = InBrush.GetResourceName();
 
