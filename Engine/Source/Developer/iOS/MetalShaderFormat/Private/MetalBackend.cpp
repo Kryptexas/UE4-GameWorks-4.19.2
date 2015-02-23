@@ -1,5 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-// .
+// 
 
 #include "MetalShaderFormat.h"
 #include "Core.h"
@@ -20,8 +20,8 @@
 #define _strdup strdup
 #endif
 
-#define GROUP_MEMORY_BARRIER					"GroupMemoryBarrier"
-#define GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC	"GroupMemoryBarrierWithGroupSync"
+#define GROUP_MEMORY_BARRIER						"GroupMemoryBarrier"
+#define GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC		"GroupMemoryBarrierWithGroupSync"
 #define DEVICE_MEMORY_BARRIER					"DeviceMemoryBarrier"
 #define DEVICE_MEMORY_BARRIER_WITH_GROUP_SYNC	"DeviceMemoryBarrierWithGroupSync"
 #define ALL_MEMORY_BARRIER						"AllMemoryBarrier"
