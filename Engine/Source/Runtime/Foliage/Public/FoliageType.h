@@ -7,13 +7,27 @@
 UENUM()
 enum FoliageVertexColorMask
 {
-	FOLIAGEVERTEXCOLORMASK_Disabled,
-	FOLIAGEVERTEXCOLORMASK_Red,
-	FOLIAGEVERTEXCOLORMASK_Green,
-	FOLIAGEVERTEXCOLORMASK_Blue,
-	FOLIAGEVERTEXCOLORMASK_Alpha,
+	FOLIAGEVERTEXCOLORMASK_Disabled UMETA(DisplayName="Disabled"),
+	FOLIAGEVERTEXCOLORMASK_Red		UMETA(DisplayName="Red"),
+	FOLIAGEVERTEXCOLORMASK_Green	UMETA(DisplayName="Green"),
+	FOLIAGEVERTEXCOLORMASK_Blue		UMETA(DisplayName="Blue"),
+	FOLIAGEVERTEXCOLORMASK_Alpha	UMETA(DisplayName="Alpha"),
 };
 
+UENUM()
+enum class EFoliageScaling : uint8
+{
+	// Foliage instances will have uniform X,Y and Z scales
+	Uniform,
+	// Foliage instances will have random X,Y and Z scales
+	Free,
+	// Locks the X and Y axis scale
+	LockXY,
+	// Locks the X and Z axis scale
+	LockXZ,
+	// Locks the Y and Z axis scale
+	LockYZ
+};
 
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI, BlueprintType, Blueprintable)
 class UFoliageType : public UObject
@@ -25,70 +39,75 @@ class UFoliageType : public UObject
 	UPROPERTY()
 	FGuid UpdateGuid;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** Foliage instances will be placed at this density, specified in instances per 1000x1000 unit area */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(DisplayName="Density / 1Kuu", UIMin=0, ClampMin=0))
 	float Density;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** The minimum distance between foliage instances */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(UIMin=0, ClampMin=0))
 	float Radius;
 
+	/** Specified foliage instance scaling behavior */
 	UPROPERTY(EditAnywhere, Category=Painting)
+	EFoliageScaling Scaling;
+
+	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's X Scale property */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(UIMin=0.001))
 	FFloatInterval ScaleX;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's Y Scale property */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(UIMin=0.001))
 	FFloatInterval ScaleY;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's Z Scale property */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(UIMin=0.001))
 	FFloatInterval ScaleZ;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
-	uint32 UniformScale:1;
+	/** Whether foliage instances should have their angle adjusted away from vertical to match the normal of the surface they're painted on */
+	UPROPERTY(EditAnywhere, Category=Placement)
+	uint32 AlignToNormal:1;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
-	uint32 LockScaleX:1;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
-	uint32 LockScaleY:1;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
-	uint32 LockScaleZ:1;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** The maximum angle in degrees that foliage instances will be adjusted away from the vertical */
+	UPROPERTY(EditAnywhere, Category=Placement)
 	float AlignMaxAngle;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** A random pitch adjustment can be applied to each instance, up to the specified angle in degrees, from the original vertical */
+	UPROPERTY(EditAnywhere, Category=Placement)
 	float RandomPitchAngle;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
-	float GroundSlope;
+	/* Foliage instances will only be placed on surfaces sloping in the specified angle range from the horizontal */
+	UPROPERTY(EditAnywhere, Category=Placement, meta=(UIMin=0))
+	FFloatInterval GroundSlopeAngle;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
-	float MinGroundSlope;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/* The valid altitude range where foliage instances will be placed, specified using minimum and maximum world coordinate Z values */
+	UPROPERTY(EditAnywhere, Category=Placement)
 	FFloatInterval Height;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** If a layer name is specified, painting on landscape will limit the foliage to areas of landscape with the specified layer painted */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Placement)
 	TArray<FName> LandscapeLayers;
 
 	UPROPERTY()
 	FName LandscapeLayer_DEPRECATED;
 	
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** Specifies the minimum value above which the landscape layer weight value must be, in order for foliage instances to be placed in a specific area */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Placement)
 	float MinimumLayerWeight;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
-	uint32 AlignToNormal:1;
-
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** If selected, foliage instances will have a random yaw rotation around their vertical axis applied */
+	UPROPERTY(EditAnywhere, Category=Placement)
 	uint32 RandomYaw:1;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** Specifies a range from minimum to maximum of the offset to apply to a foliage instance's Z location */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(DisplayName="Z Offset"))
 	FFloatInterval ZOffset;
 	
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/* If checked, an overlap test with existing world geometry is performed before each instance is placed */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Painting)
 	uint32 CollisionWithWorld:1;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/* The foliage instance's collision bounding box will be scaled by the specified amount before performing the overlap check */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Painting)
 	FVector CollisionScale;
 
 	UPROPERTY()
@@ -98,125 +117,139 @@ class UFoliageType : public UObject
 	UPROPERTY()
 	FVector LowBoundOriginRadius;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** 
+	 *  When painting on static meshes, foliage instance placement can be limited to areas where the static mesh has values in the selected vertex color channel(s). 
+	 *  This allows a static mesh to mask out certain areas to prevent foliage from being placed there
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Painting)
 	TEnumAsByte<enum FoliageVertexColorMask> VertexColorMask;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** Specifies the threshold value above which the static mesh vertex color value must be, in order for foliage instances to be placed in a specific area */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Painting)
 	float VertexColorMaskThreshold;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	/** 
+	 *  When unchecked, foliage instances will be placed only when the vertex color in the specified channel(s) is above the threshold amount. 
+	 *  When checked, the vertex color must be less than the threshold amount 
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Painting)
 	uint32 VertexColorMaskInvert:1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Painting)
 	float ReapplyDensityAmount;
 
-	UPROPERTY()
+	/** If checked, the density of foliage instances already placed will be adjusted. <1 will remove instances to reduce the density, >1 will place extra instances */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyDensity:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances not meeting the new Radius constraint will be removed */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyRadius:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances will have their normal alignment adjusted by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyAlignToNormal:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances will have their yaw adjusted by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyRandomYaw:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances will have their X scale adjusted by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyScaleX:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances will have their Y scale adjusted by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyScaleY:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances will have their Z scale adjusted by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyScaleZ:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances will have their pitch adjusted by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyRandomPitchAngle:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances not meeting the ground slope condition will be removed by the Reapply too */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyGroundSlope:1;
 
-	UPROPERTY()
+	/* If checked, foliage instances not meeting the valid Z height condition will be removed by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyHeight:1;
 
-	UPROPERTY()
+	/* If checked, foliage instances painted on areas that do not have the appopriate landscape layer painted will be removed by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyLandscapeLayer:1;
 
-	UPROPERTY()
+	/** If checked, foliage instances will have their Z offset adjusted by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyZOffset:1;
 
-	UPROPERTY()
+	/* If checked, foliage instances will have an overlap test with the world reapplied, and overlapping instances will be removed by the Reapply tool */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyCollisionWithWorld:1;
 
-	UPROPERTY()
+	/* If checked, foliage instances no longer matching the vertex color constraint will be removed by the Reapply too */
+	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 ReapplyVertexColorMask:1;
 
 	/**
 	 * The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables.
 	 * When the entire cluster is beyond this distance, the cluster is completely culled and not rendered at all.
 	 */
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Culling"))
+	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(UIMin=0))
 	FInt32Interval CullDistance;
+
+	/** Controls whether the foliage should take part in static lighting/shadowing. If false, mesh will not receive or cast static lighting or shadows, regardless of other settings. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
+	uint32 bEnableStaticLighting : 1;
+
+	/** Controls whether the foliage should cast a shadow or not. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
+	uint32 CastShadow:1;
+
+	/** Controls whether the foliage should inject light into the Light Propagation Volume.  This flag is only used if CastShadow is true. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
+	uint32 bAffectDynamicIndirectLighting:1;
+
+	/** Controls whether the primitive should affect dynamic distance field lighting methods.  This flag is only used if CastShadow is true. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta = (EditCondition = "CastShadow"))
+	uint32 bAffectDistanceFieldLighting:1;
+
+	/** Controls whether the foliage should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
+	uint32 bCastDynamicShadow:1;
+
+	/** Whether the foliage should cast a static shadow from shadow casting lights.  This flag is only used if CastShadow is true. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
+	uint32 bCastStaticShadow:1;
+
+	/** Whether this foliage should cast dynamic shadows as if it were a two sided material. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=InstanceSettings)
+	uint32 bCastShadowAsTwoSided:1;
+
+	/** Whether the foliage receives decals. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=InstanceSettings)
+	uint32 bReceivesDecals : 1;
 	
+	/** Whether to override the lightmap resolution defined in the static mesh. */
+	UPROPERTY(BlueprintReadOnly, Category=InstanceSettings)
+	uint32 bOverrideLightMapRes:1;
+
+	/** Overrides the lightmap resolution defined in the static mesh */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta = (DisplayName = "Light Map Resolution", EditCondition = "bOverrideLightMapRes"))
+	int32 OverriddenLightMapRes;
+
+	/** Custom collision for foliage */
+	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta = (HideObjectType = true))
+	struct FBodyInstance BodyInstance;
+
 	UPROPERTY()
 	int32 DisplayOrder;
 
 	UPROPERTY()
 	uint32 IsSelected:1;
-
-	UPROPERTY()
-	uint32 ShowNothing:1;
-
-	UPROPERTY()
-	uint32 ShowPaintSettings:1;
-
-	UPROPERTY()
-	uint32 ShowInstanceSettings:1;
-
-	/** Controls whether the foliage should take part in static lighting/shadowing. If false, mesh will not receive or cast static lighting or shadows, regardless of other settings. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
-	uint32 bEnableStaticLighting : 1;
-
-	/** Controls whether the foliage should cast a shadow or not. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
-	uint32 CastShadow:1;
-
-	/** Controls whether the foliage should inject light into the Light Propagation Volume.  This flag is only used if CastShadow is true. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
-	uint32 bAffectDynamicIndirectLighting:1;
-
-	/** Controls whether the primitive should affect dynamic distance field lighting methods.  This flag is only used if CastShadow is true. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting", EditCondition = "CastShadow"))
-	uint32 bAffectDistanceFieldLighting:1;
-
-	/** Controls whether the foliage should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
-	uint32 bCastDynamicShadow:1;
-
-	/** Whether the foliage should cast a static shadow from shadow casting lights.  This flag is only used if CastShadow is true. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
-	uint32 bCastStaticShadow:1;
-
-	/** Whether this foliage should cast dynamic shadows as if it were a two sided material. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
-	uint32 bCastShadowAsTwoSided:1;
-
-	/** Whether the foliage receives decals. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = General, meta = (Subcategory = "Rendering"))
-	uint32 bReceivesDecals : 1;
-	
-	/** Whether to override the lightmap resolution defined in the static mesh. */
-	UPROPERTY(BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting"))
-	uint32 bOverrideLightMapRes:1;
-
-	/** Overrides the lightmap resolution defined in the static mesh */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = General, meta = (Subcategory = "Lighting", DisplayName = "Light Map Resolution", EditCondition = "bOverrideLightMapRes"))
-	int32 OverriddenLightMapRes;
-
-	/** Custom collision for foliage */
-	UPROPERTY(EditAnywhere, Category = General, meta = (Subcategory = "Collision", HideObjectType = true))
-	struct FBodyInstance BodyInstance;
 
 	/* Gets/Sets the mesh associated with this FoliageType */
 	virtual UStaticMesh* GetStaticMesh() const PURE_VIRTUAL(UFoliageType::GetStaticMesh, return nullptr; );
@@ -303,6 +336,8 @@ class UFoliageType : public UObject
 
 	virtual void Serialize(FArchive& Ar) override;
 
+	FOLIAGE_API FVector GetRandomScale() const;
+
 private:
 
 	/** The curve used to interpolate the instance scale.*/
@@ -346,6 +381,24 @@ private:
 	
 	UPROPERTY()
 	int32 EndCullDistance_DEPRECATED;
+
+	UPROPERTY()
+	uint32 UniformScale_DEPRECATED:1;
+
+	UPROPERTY()
+	uint32 LockScaleX_DEPRECATED:1;
+
+	UPROPERTY()
+	uint32 LockScaleY_DEPRECATED:1;
+
+	UPROPERTY()
+	uint32 LockScaleZ_DEPRECATED:1;
+
+	UPROPERTY()
+	float GroundSlope_DEPRECATED;
+	
+	UPROPERTY()
+	float MinGroundSlope_DEPRECATED;
 #endif// WITH_EDITORONLY_DATA
 };
 

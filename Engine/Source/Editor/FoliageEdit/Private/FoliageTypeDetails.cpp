@@ -11,6 +11,17 @@ TSharedRef<IDetailCustomization> FFoliageTypeDetails::MakeInstance()
 
 }
 
+static void HideFoliageCategory(IDetailLayoutBuilder& DetailBuilder, FName Category)
+{
+	TArray<TSharedRef<IPropertyHandle>> CategoryProperties;
+	DetailBuilder.EditCategory(Category).GetDefaultProperties(CategoryProperties, true, true);
+
+	for (auto& PropertyHandle : CategoryProperties)
+	{
+		DetailBuilder.HideProperty(PropertyHandle);
+	}
+}
+
 void AddSubcategoryProperties(IDetailCategoryBuilder& CategoryBuilder)
 {
 	TArray<TSharedRef<IPropertyHandle>> CategoryProperties;
@@ -47,7 +58,13 @@ void AddSubcategoryProperties(IDetailCategoryBuilder& CategoryBuilder)
 
 void FFoliageTypeDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	AddSubcategoryProperties(DetailBuilder.EditCategory("General"));
-	AddSubcategoryProperties(DetailBuilder.EditCategory("Procedural"));
-	AddSubcategoryProperties(DetailBuilder.EditCategory("Painting"));
+	const static FName PaintingName("Painting");
+	const static FName PlacementName("Placement");
+	const static FName ProceduralName("Procedural");
+	const static FName InstanceSettingsName("InstanceSettings");
+	
+	HideFoliageCategory(DetailBuilder, PaintingName);
+	AddSubcategoryProperties(DetailBuilder.EditCategory(PlacementName));
+	AddSubcategoryProperties(DetailBuilder.EditCategory(ProceduralName));
+	AddSubcategoryProperties(DetailBuilder.EditCategory(InstanceSettingsName));
 }

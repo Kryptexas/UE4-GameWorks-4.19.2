@@ -282,6 +282,9 @@ public:
 
 	/**  */
 	void OnInstanceCountUpdated(const UFoliageType* FoliageType);
+
+	/** Whether any of the selected foliage types can be painted into level */
+	bool CanPaint(const ULevel* InLevel);
 		
 	/** Whether specified FoliageType can be painted into level */
 	static bool CanPaint(const UFoliageType* FoliageType, const ULevel* InLevel);

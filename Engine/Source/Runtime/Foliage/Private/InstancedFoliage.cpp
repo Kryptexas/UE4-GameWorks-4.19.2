@@ -44,6 +44,8 @@ struct FFoliageCustomVersion
 		CrossLevelBase = 5,
 		// FoliageType for details customization
 		FoliageTypeCustomization = 6,
+		// FoliageType for details customization continued
+		FoliageTypeCustomizationScaling = 7,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -253,7 +255,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	Radius = 0.0f;
 	AlignToNormal = true;
 	RandomYaw = true;
-	UniformScale = true;
+	Scaling = EFoliageScaling::Uniform;
 	ScaleX.Min = 1.0f;
 	ScaleY.Min = 1.0f;
 	ScaleZ.Min = 1.0f;
@@ -262,7 +264,8 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	ScaleZ.Max = 1.0f;
 	AlignMaxAngle = 0.0f;
 	RandomPitchAngle = 0.0f;
-	GroundSlope = 45.0f;
+	GroundSlopeAngle.Min = 0.0f;
+	GroundSlopeAngle.Max = 45.0f;
 	Height.Min = -262144.0f;
 	Height.Max = 262144.0f;
 	ZOffset.Min = 0.0f;
@@ -272,9 +275,6 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	MinimumLayerWeight = 0.5f;
 	DisplayOrder = 0;
 	IsSelected = false;
-	ShowNothing = false;
-	ShowPaintSettings = true;
-	ShowInstanceSettings = false;
 	ReapplyDensityAmount = 1.0f;
 	CollisionWithWorld = false;
 	CollisionScale = FVector(0.9f, 0.9f, 0.9f);
@@ -330,6 +330,8 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	HeightMax_DEPRECATED = 262144.0f;
 	ZOffsetMin_DEPRECATED = 0.0f;
 	ZOffsetMax_DEPRECATED = 0.0f;
+	UniformScale_DEPRECATED = true;
+	GroundSlope_DEPRECATED = 45.0f;
 #endif// WITH_EDITORONLY_DATA
 }
 
@@ -346,29 +348,81 @@ void UFoliageType::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITORONLY_DATA
-	if (Ar.IsLoading() && Ar.CustomVer(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageTypeCustomization)
+	if (Ar.IsLoading())
 	{
-		ScaleX.Min = ScaleMinX_DEPRECATED;
-		ScaleX.Max = ScaleMaxX_DEPRECATED;
+		if (Ar.CustomVer(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageTypeCustomization)
+		{
+			ScaleX.Min = ScaleMinX_DEPRECATED;
+			ScaleX.Max = ScaleMaxX_DEPRECATED;
 
-		ScaleY.Min = ScaleMinY_DEPRECATED;
-		ScaleY.Max = ScaleMaxY_DEPRECATED;
+			ScaleY.Min = ScaleMinY_DEPRECATED;
+			ScaleY.Max = ScaleMaxY_DEPRECATED;
 
-		ScaleZ.Min = ScaleMinZ_DEPRECATED;
-		ScaleZ.Max = ScaleMaxZ_DEPRECATED;
+			ScaleZ.Min = ScaleMinZ_DEPRECATED;
+			ScaleZ.Max = ScaleMaxZ_DEPRECATED;
 
-		Height.Min = HeightMin_DEPRECATED;
-		Height.Max = HeightMax_DEPRECATED;
+			Height.Min = HeightMin_DEPRECATED;
+			Height.Max = HeightMax_DEPRECATED;
 
-		ZOffset.Min = ZOffsetMin_DEPRECATED;
-		ZOffset.Max = ZOffsetMax_DEPRECATED;
+			ZOffset.Min = ZOffsetMin_DEPRECATED;
+			ZOffset.Max = ZOffsetMax_DEPRECATED;
 
-		CullDistance.Min = StartCullDistance_DEPRECATED;
-		CullDistance.Max = EndCullDistance_DEPRECATED;
+			CullDistance.Min = StartCullDistance_DEPRECATED;
+			CullDistance.Max = EndCullDistance_DEPRECATED;
+		}
+		
+		if (Ar.CustomVer(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageTypeCustomizationScaling)
+		{
+			Scaling = UniformScale_DEPRECATED ? EFoliageScaling::Uniform : EFoliageScaling::Free;
+			
+			GroundSlopeAngle.Min = MinGroundSlope_DEPRECATED;
+			GroundSlopeAngle.Max = GroundSlope_DEPRECATED;
+		}
 	}
 #endif// WITH_EDITORONLY_DATA
 }
 
+FVector UFoliageType::GetRandomScale() const
+{
+	FVector Result(1.0f);
+	float LockRand = 0.0f;
+
+	switch (Scaling)
+	{
+	case EFoliageScaling::Uniform:
+		Result.X = ScaleX.Interpolate(FMath::FRand());
+		Result.Y = Result.X;
+		Result.Z = Result.X;
+		break;
+	
+	case EFoliageScaling::Free:
+		Result.X = ScaleX.Interpolate(FMath::FRand());
+		Result.Y = ScaleY.Interpolate(FMath::FRand());
+		Result.Z = ScaleZ.Interpolate(FMath::FRand());
+		break;
+	
+	case EFoliageScaling::LockXY:
+		LockRand = FMath::FRand();
+		Result.X = ScaleX.Interpolate(LockRand);
+		Result.Y = ScaleY.Interpolate(LockRand);
+		Result.Z = ScaleZ.Interpolate(FMath::FRand());
+		break;
+	
+	case EFoliageScaling::LockXZ:
+		LockRand = FMath::FRand();
+		Result.X = ScaleX.Interpolate(LockRand);
+		Result.Y = ScaleY.Interpolate(FMath::FRand());
+		Result.Z = ScaleZ.Interpolate(LockRand);
+	
+	case EFoliageScaling::LockYZ:
+		LockRand = FMath::FRand();
+		Result.X = ScaleX.Interpolate(FMath::FRand());
+		Result.Y = ScaleY.Interpolate(LockRand);
+		Result.Z = ScaleZ.Interpolate(LockRand);
+	}
+	
+	return Result;
+}
 
 UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -2150,18 +2204,7 @@ bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType
 {
 	if (DesiredInstance.PlacementMode != EFoliagePlacementMode::Procedural)
 	{
-		if (Settings->UniformScale)
-		{
-			float Scale = Settings->ScaleX.Interpolate(FMath::FRand());
-			Inst.DrawScale3D = FVector(Scale, Scale, Scale);
-		}
-		else
-		{
-			float LockRand = FMath::FRand();
-			Inst.DrawScale3D.X = Settings->ScaleX.Interpolate(Settings->LockScaleX ? LockRand : FMath::FRand());
-			Inst.DrawScale3D.Y = Settings->ScaleY.Interpolate(Settings->LockScaleY ? LockRand : FMath::FRand());
-			Inst.DrawScale3D.Z = Settings->ScaleZ.Interpolate(Settings->LockScaleZ ? LockRand : FMath::FRand());
-		}
+		Inst.DrawScale3D = Settings->GetRandomScale();
 	}
 	else
 	{

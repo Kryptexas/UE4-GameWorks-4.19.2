@@ -134,32 +134,6 @@ FReply SFoliageEditMeshRow::OnSave()
 const FSlateBrush* SFoliageEditMeshRow::GetMeshSaveBrush() const
 {
 	return FEditorStyle::GetBrush("Level.SaveIcon16x");
-	
-	//if (LevelModel->IsLoaded())
-	//{
-	//	if (LevelModel->IsLocked())
-	//	{
-	//		return FEditorStyle::GetBrush( "Level.SaveDisabledIcon16x" );
-	//	}
-	//	else
-	//	{
-	//		if (LevelModel->IsDirty())
-	//		{
-	//			return SaveButton->IsHovered() ? FEditorStyle::GetBrush( "Level.SaveModifiedHighlightIcon16x" ) :
-	//												FEditorStyle::GetBrush( "Level.SaveModifiedIcon16x" );
-	//		}
-	//		else
-	//		{
-	//			return SaveButton->IsHovered() ? FEditorStyle::GetBrush( "Level.SaveHighlightIcon16x" ) :
-	//												FEditorStyle::GetBrush( "Level.SaveIcon16x" );
-	//		}
-	//	}								
-	//}
-	//else
-	//{
-	//	return FEditorStyle::GetBrush( "Level.EmptyIcon16x" );
-	//}	
-
 }
 
 FText SFoliageEditMeshRow::GetMeshInstanceCountText() const

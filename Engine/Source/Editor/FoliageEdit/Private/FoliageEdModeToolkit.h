@@ -26,5 +26,4 @@ public:
 
 private:
 	TSharedPtr< class SFoliageEdit > FoliageEdWidget;
-	TSharedPtr< class SFoliageEdit2 > FoliageEdWidget2;
 };

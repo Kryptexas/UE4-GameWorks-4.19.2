@@ -3,10 +3,11 @@
 #pragma once
 
 // Forwards declarations
-class FAssetThumbnail;
-class SFoliageEditMeshDisplayItem;
 struct FFoliageMeshUIInfo;
-class FAssetThumbnailPool;
+class IDetailsView;
+
+typedef TSharedPtr<FFoliageMeshUIInfo> FFoliageMeshUIInfoPtr; //should match typedef in FoliageEdMode.h
+typedef STreeView<FFoliageMeshUIInfoPtr> SFoliageMeshTree;
 
 class SFoliageEdit : public SCompoundWidget
 {
@@ -20,25 +21,17 @@ public:
 
 	~SFoliageEdit();
 
-	/** Creates the thumbnail for the passed in Static Mesh. Used by the MeshListView items. */
-	TSharedPtr<FAssetThumbnail> CreateThumbnail(UStaticMesh* InStaticMesh);
-
 	/** Does a full refresh on the list. */
 	void RefreshFullList();
-
-	/** Adds a static mesh to the list of available meshes for foliage. May be called on by the MeshListView items. */
-	void AddItemToScrollbox(TSharedPtr<FFoliageMeshUIInfo>& InFoliageInfoToAdd);
-
-	/** Removes a static mesh from the list of available meshes for foliage. May be called on by the MeshListView items. */
-	void RemoveItemFromScrollbox(const TSharedPtr<SFoliageEditMeshDisplayItem> InWidgetToRemove);
-
-	void ReplaceItem(const TSharedPtr<SFoliageEditMeshDisplayItem> InDisplayItemToReplaceIn, UStaticMesh* InNewStaticMesh);
 
 	/** Handles adding a new item to the list and refreshing the list in it's entirety. */
 	FReply OnDrop_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 
 	/** Gets FoliageEditMode. Used by the cluster details to notify changes */
 	class FEdModeFoliage* GetFoliageEditMode() const { return FoliageEditMode; }
+
+	/** @return the SWidget containing the context menu */
+	TSharedPtr<SWidget> ConstructFoliageMeshContextMenu() const;
 
 private:
 	/** Clears all the tools selection by setting them to false. */
@@ -99,10 +92,7 @@ private:
 
 	/** Retrieves the Erase Density for the brush. */
 	float GetEraseDensity() const;
-
-	/** Creates the list item widget that displays the instance settings. */
-	TSharedRef<ITableRow> MakeWidgetFromOption(TSharedPtr<FFoliageMeshUIInfo> InItem, const TSharedRef<STableViewBase>& OwnerTable);
-
+	
 	/** Sets the filter settings for if painting will occur on Landscapes. */
 	void OnCheckStateChanged_Landscape(ECheckBoxState InState);
 
@@ -148,31 +138,37 @@ private:
 	/** Checks if the filters should appear. Dependant on the current tool being used. */
 	EVisibility GetVisibility_Filters() const;
 
-	/**
-	 * Checks if a static mesh can be added to the list of Static Meshes available.
-	 *
-	 * @param InStaticMesh		The static mesh to test.
-	 *
-	 * @return	Returns true if the static mesh is not currently in the list, false if it is.
-	 */
-	bool CanAddStaticMesh(const UStaticMesh* const InStaticMesh) const;
-private:
-	/** The list view object for displaying Static Meshes to use for foliage. */
-	TSharedPtr<SListView<TSharedPtr<FFoliageMeshUIInfo>>> MeshListView;
+	/** Generates a row widget for foliage mesh item */
+	TSharedRef<ITableRow> MeshTreeGenerateRow(FFoliageMeshUIInfoPtr Item, const TSharedRef<STableViewBase>& OwnerTable);
 	
-	/** Pool for maintaining and rendering thumbnails */
-	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool;
+	/** Generates a list of children items for foliage item */
+	void MeshTreeGetChildren(FFoliageMeshUIInfoPtr Item, TArray<FFoliageMeshUIInfoPtr>& OutChildren);
 
+	/** Handler for mesh list view selection changes  */
+	void MeshTreeOnSelectionChanged(FFoliageMeshUIInfoPtr Item, ESelectInfo::Type SelectInfo);
+
+	/** Fills 'Replace' menu command  */
+	void FillReplaceFoliageTypeSubmenu(FMenuBuilder& MenuBuilder);
+	
+	/** Handler for 'Remove' command  */
+	void OnRemoveFoliageType();
+	
+	/** Handler for 'Show in CB' command  */
+	void OnShowFoliageTypeInCB();
+
+	/** Handler for 'Replace' command  */
+	void OnReplaceFoliageTypeSelected(const class FAssetData& AssetData);
+
+private:
+	/** Foliage mesh tree widget  */
+	TSharedPtr<SFoliageMeshTree>	MeshTreeWidget;
+	
+	/** Foliage mesh details widget  */
+	TSharedPtr<IDetailsView>		MeshDetailsWidget;
+	
 	/** Command list for binding functions for the toolbar. */
-	TSharedPtr<FUICommandList> UICommandList;
+	TSharedPtr<FUICommandList>		UICommandList;
 
 	/** Pointer to the foliage edit mode. */
-	FEdModeFoliage* FoliageEditMode;
-
-	/** Scrollbox for slotting foliage items. */
-	TSharedPtr<SScrollBox> ItemScrollBox;
-
-	/** List of items currently being displayed. */
-	TArray<TSharedRef<SFoliageEditMeshDisplayItem>> DisplayItemList;
-
+	FEdModeFoliage*					FoliageEditMode;
 };

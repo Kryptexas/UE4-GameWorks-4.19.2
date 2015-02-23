@@ -354,8 +354,8 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, in
 					(UISettings.bFilterLandscape || !PrimComp->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) &&
 					(UISettings.bFilterStaticMesh || !PrimComp->IsA(UStaticMeshComponent::StaticClass())) &&
 					(UISettings.bFilterBSP || !PrimComp->IsA(UModelComponent::StaticClass())) &&
-					(UISettings.bFilterTranslucent || !Material || !IsTranslucentBlendMode(Material->GetBlendMode()))
-					)
+					(UISettings.bFilterTranslucent || !Material || !IsTranslucentBlendMode(Material->GetBlendMode())) &&
+					(CanPaint(PrimComp->GetComponentLevel())))
 				{
 					// Adjust the sphere brush
 					BrushLocation = Hit.Location;
@@ -426,8 +426,8 @@ static bool CheckLocationForPotentialInstance_ThreadSafe(const UFoliageType* Set
 	}
 
 	// Check slope
-	const float MaxNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->GroundSlope));
-	const float MinNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->MinGroundSlope));
+	const float MaxNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->GroundSlopeAngle.Max));
+	const float MinNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->GroundSlopeAngle.Min));
 	if (MaxNormalAngle > Normal.Z || MinNormalAngle < Normal.Z)	//keep in mind Hit.ImpactNormal.Z is (0,0,1) dot normal. However, ground slope is with relation to plane vector, not plane normal - so we swap comparisons
 	{
 		return false;
@@ -1276,55 +1276,34 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 			}
 
 			// Reapply scale
-			if (Settings->UniformScale)
+			FVector NewScale = Settings->GetRandomScale();
+			
+			if (Settings->ReapplyScaleX)
 			{
-				if (Settings->ReapplyScaleX)
+				if (Settings->Scaling == EFoliageScaling::Uniform)
 				{
-					float Scale = Settings->ScaleX.Interpolate(FMath::FRand());
-					Instance.DrawScale3D = FVector(Scale, Scale, Scale);
-					bUpdated = true;
-				}
-			}
-			else
-			{
-				float LockRand;
-				// If we're doing axis scale locking, get an existing scale for a locked axis that we're not changing, for use as the locked scale value.
-				if (Settings->LockScaleX && !Settings->ReapplyScaleX && Settings->ScaleX.Size() > KINDA_SMALL_NUMBER)
-				{
-					LockRand = (Instance.DrawScale3D.X - Settings->ScaleX.Min) / Settings->ScaleX.Size();
-				}
-				else if (Settings->LockScaleY && !Settings->ReapplyScaleY && Settings->ScaleY.Size() > KINDA_SMALL_NUMBER)
-				{
-					LockRand = (Instance.DrawScale3D.Y - Settings->ScaleY.Min) / Settings->ScaleY.Size();
-				}
-				else if (Settings->LockScaleZ && !Settings->ReapplyScaleZ && Settings->ScaleZ.Size() > KINDA_SMALL_NUMBER)
-				{
-					LockRand = (Instance.DrawScale3D.Z - Settings->ScaleZ.Min) / Settings->ScaleZ.Size();
+					Instance.DrawScale3D = NewScale;
 				}
 				else
 				{
-					LockRand = FMath::FRand();
+					Instance.DrawScale3D.X = NewScale.X;
 				}
-
-				if (Settings->ReapplyScaleX)
-				{
-					Instance.DrawScale3D.X = Settings->ScaleX.Interpolate(Settings->LockScaleX ? LockRand : FMath::FRand());
-					bUpdated = true;
-				}
-
-				if (Settings->ReapplyScaleY)
-				{
-					Instance.DrawScale3D.Y = Settings->ScaleY.Interpolate(Settings->LockScaleY ? LockRand : FMath::FRand());
-					bUpdated = true;
-				}
-
-				if (Settings->ReapplyScaleZ)
-				{
-					Instance.DrawScale3D.Z = Settings->ScaleZ.Interpolate(Settings->LockScaleZ ? LockRand : FMath::FRand());
-					bUpdated = true;
-				}
+				bUpdated = true;
 			}
 
+			if (Settings->ReapplyScaleY)
+			{
+				Instance.DrawScale3D.Y = NewScale.Y;
+				bUpdated = true;
+			}
+
+			if (Settings->ReapplyScaleY)
+			{
+				Instance.DrawScale3D.Z = NewScale.Z;
+				bUpdated = true;
+			}
+
+			// Reapply ZOffset
 			if (Settings->ReapplyZOffset)
 			{
 				Instance.ZOffset = Settings->ZOffset.Interpolate(FMath::FRand());
@@ -1353,8 +1332,9 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 					// Cull instances that don't meet the ground slope check.
 					if (Settings->ReapplyGroundSlope)
 					{
-						if ((Settings->GroundSlope > 0.f && Hit.Normal.Z <= FMath::Cos(PI * Settings->GroundSlope / 180.f) - SMALL_NUMBER) ||
-							(Settings->GroundSlope < 0.f && Hit.Normal.Z >= FMath::Cos(-PI * Settings->GroundSlope / 180.f) + SMALL_NUMBER))
+						const float MaxNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->GroundSlopeAngle.Max));
+						const float MinNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->GroundSlopeAngle.Min));
+						if (MaxNormalAngle > Hit.Normal.Z || MinNormalAngle < Hit.Normal.Z)
 						{
 							InstancesToDelete.Add(InstanceIndex);
 							if (bReapplyLocation)
@@ -1809,8 +1789,9 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 				FFoliagePaintBucketTriangle& Triangle = PotentialTriangles[TriIdx];
 
 				// Check if we can reject this triangle based on normal.
-				if ((Settings->GroundSlope > 0.f && Triangle.WorldNormal.Z <= FMath::Cos(PI * Settings->GroundSlope / 180.f) - SMALL_NUMBER) ||
-					(Settings->GroundSlope < 0.f && Triangle.WorldNormal.Z >= FMath::Cos(-PI * Settings->GroundSlope / 180.f) + SMALL_NUMBER))
+				const float MaxNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->GroundSlopeAngle.Max));
+				const float MinNormalAngle = FMath::Cos(FMath::DegreesToRadians(Settings->GroundSlopeAngle.Min));
+				if (Triangle.WorldNormal.Z < MaxNormalAngle || Triangle.WorldNormal.Z > MinNormalAngle)
 				{
 					continue;
 				}
@@ -2125,6 +2106,19 @@ void FEdModeFoliage::OnInstanceCountUpdated(const UFoliageType* FoliageType)
 	//
 	FoliageMeshList[EntryIndex]->InstanceCountTotal = InstanceCountTotal;
 	FoliageMeshList[EntryIndex]->InstanceCountCurrentLevel = InstanceCountCurrentLevel;
+}
+
+bool FEdModeFoliage::CanPaint(const ULevel* InLevel)
+{
+	for (const auto& MeshUIPtr : FoliageMeshList)
+	{
+		if (MeshUIPtr->Settings->IsSelected && CanPaint(MeshUIPtr->Settings, InLevel))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool FEdModeFoliage::CanPaint(const UFoliageType* FoliageType, const ULevel* InLevel)
