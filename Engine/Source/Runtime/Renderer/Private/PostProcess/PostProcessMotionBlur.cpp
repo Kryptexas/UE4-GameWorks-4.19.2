@@ -7,6 +7,7 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
+#include "PostProcessAmbientOcclusion.h"
 #include "PostProcessMotionBlur.h"
 #include "PostProcessing.h"
 #include "SceneUtils.h"
