@@ -254,7 +254,9 @@ int32 STimelineBar::GetClosestItem(float Time) const
 		}
 	}
 
-	if (BestItemIndex != INDEX_NONE)
+	const float CurrentDist = Entries.IsValidIndex(CurrentItemIndex) ? FMath::Abs(Entries[CurrentItemIndex].Entry.TimeStamp - Time) : MAX_FLT;
+
+	if (BestItemIndex != INDEX_NONE && CurrentDist > BestDistance)
 	{
 		return BestItemIndex;
 	}

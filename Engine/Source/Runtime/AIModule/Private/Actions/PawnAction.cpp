@@ -58,6 +58,8 @@ EPawnActionAbortState::Type UPawnAction::Abort(EAIForceParam::Type ShouldForce)
 	EPawnActionAbortState::Type Result = EPawnActionAbortState::NotBeingAborted;
 	EPawnActionAbortState::Type ChildResult = EPawnActionAbortState::AbortDone;
 
+	SetAbortState(EPawnActionAbortState::MarkPendingAbort);
+
 	if (ChildAction != NULL)
 	{
 		ChildResult = ChildAction->Abort(ShouldForce);
@@ -112,12 +114,12 @@ EPawnActionAbortState::Type UPawnAction::Abort(EAIForceParam::Type ShouldForce)
 	return Result;
 }
 
-APawn* UPawnAction::GetPawn()
+APawn* UPawnAction::GetPawn() const
 {
 	return OwnerComponent ? OwnerComponent->GetControlledPawn() : NULL;
 }
 
-AController* UPawnAction::GetController() 
+AController* UPawnAction::GetController() const
 {
 	return OwnerComponent ? OwnerComponent->GetController() : NULL; 
 }

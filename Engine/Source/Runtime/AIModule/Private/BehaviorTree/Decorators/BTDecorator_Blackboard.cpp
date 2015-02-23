@@ -28,9 +28,12 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent& B
 		UBlackboardKeyType* KeyCDO = BlackboardKey.SelectedKeyType->GetDefaultObject<UBlackboardKeyType>();
 		const uint8* KeyMemory = BlackboardComp.GetKeyRawData(BlackboardKey.GetSelectedKeyID());
 
-		const EBlackboardKeyOperation::Type Op = KeyCDO->GetTestOperation();
-		switch (Op)
+		// KeyMemory can be NULL if the blackboard has its data setup wrong, so we must conditionally handle that case.
+		if (ensure(KeyCDO != NULL) && (KeyMemory != NULL))
 		{
+			const EBlackboardKeyOperation::Type Op = KeyCDO->GetTestOperation();
+			switch (Op)
+			{
 			case EBlackboardKeyOperation::Basic:
 				bResult = KeyCDO->WrappedTestBasicOperation(BlackboardComp, KeyMemory, (EBasicKeyOperation::Type)OperationType);
 				break;
@@ -45,6 +48,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent& B
 
 			default:
 				break;
+			}
 		}
 	}
 

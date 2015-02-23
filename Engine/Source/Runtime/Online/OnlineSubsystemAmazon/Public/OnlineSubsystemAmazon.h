@@ -14,8 +14,7 @@ typedef TSharedPtr<class FOnlineIdentityAmazon, ESPMode::ThreadSafe> FOnlineIden
  * Amazon subsystem
  */
 class ONLINESUBSYSTEMAMAZON_API FOnlineSubsystemAmazon :
-	public FOnlineSubsystemImpl,
-	public FTickerObjectBase
+	public FOnlineSubsystemImpl
 
 {
 	class FOnlineFactoryAmazon* AmazonFactory;
@@ -41,6 +40,10 @@ public:
 	virtual IOnlineFriendsPtr GetFriendsInterface() const override
 	{
 		return NULL;
+	}
+	virtual IOnlineGroupsPtr GetGroupsInterface() const override
+	{
+		return nullptr;
 	}
 	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const override
 	{

@@ -210,6 +210,14 @@ void ACharacter::OnWalkingOffLedge_Implementation()
 {
 }
 
+void ACharacter::NotifyJumpApex()
+{
+	// Call delegate callback
+	if (OnReachedJumpApex.IsBound())
+	{
+		OnReachedJumpApex.Broadcast();
+	}
+}
 
 void ACharacter::Landed(const FHitResult& Hit)
 {

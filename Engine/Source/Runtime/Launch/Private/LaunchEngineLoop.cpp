@@ -48,6 +48,7 @@
 	#include "HotReloadInterface.h"
 	#include "ISessionService.h"
 	#include "ISessionServicesModule.h"
+	#include "Engine/GameInstance.h"
 
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"
@@ -2110,34 +2111,38 @@ void FEngineLoop::Exit()
 	FIOSystem::Shutdown();
 }
 
-void FEngineLoop::ProcessPlayerControllersSlateOperations() const
+void FEngineLoop::ProcessLocalPlayerSlateOperations() const
 {
 	FSlateApplication& SlateApp = FSlateApplication::Get();
 
 	// For all the game worlds drill down to the player controller for each game viewport and process it's slate operation
-	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	for ( const FWorldContext& Context : GEngine->GetWorldContexts() )
 	{
 		UWorld* CurWorld = Context.World();
-		if (CurWorld != nullptr && CurWorld->IsGameWorld())
+		if ( CurWorld && CurWorld->IsGameWorld() )
 		{
-			ULocalPlayer* LocalPlayer = CurWorld->GetFirstLocalPlayerFromController();
 			UGameViewportClient* GameViewportClient = CurWorld->GetGameViewport();
-			if (LocalPlayer != nullptr && GameViewportClient != nullptr)
+			TSharedPtr< SViewport > ViewportWidget = GameViewportClient ? GameViewportClient->GetGameViewportWidget() : nullptr;
+
+			if ( ViewportWidget.IsValid() )
 			{
-				TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
-				if (ViewportWidget.IsValid())
+				for( FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 				{
-					APlayerController* PlayerController = LocalPlayer->PlayerController;
-					if (PlayerController != nullptr)
+					APlayerController* PlayerController = *Iterator;
+					if( PlayerController )
 					{
-						FReply& TheReply = *PlayerController->SlateOperations;
+						ULocalPlayer* LocalPlayer = Cast< ULocalPlayer >( PlayerController->Player );
+						if( LocalPlayer )
+						{
+							FReply& TheReply = LocalPlayer->GetSlateOperations();
 
-						FWidgetPath PathToWidget;
-						SlateApp.GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), PathToWidget);
+							FWidgetPath PathToWidget;
+							SlateApp.GeneratePathToWidgetUnchecked( ViewportWidget.ToSharedRef(), PathToWidget );
 
-						SlateApp.ProcessReply(PathToWidget, TheReply, NULL, NULL);
+							SlateApp.ProcessReply( PathToWidget, TheReply, nullptr, nullptr, LocalPlayer->GetControllerId() );
 
-						TheReply = FReply::Unhandled();
+							TheReply = FReply::Unhandled();
+						}
 					}
 				}
 			}
@@ -2278,7 +2283,7 @@ void FEngineLoop::Tick()
 			check(!IsRunningDedicatedServer());
 			
 			// Process slate operations accumulated in the world ticks.
-			ProcessPlayerControllersSlateOperations();
+			ProcessLocalPlayerSlateOperations();
 
 			// Tick Slate application
 			FSlateApplication::Get().Tick();

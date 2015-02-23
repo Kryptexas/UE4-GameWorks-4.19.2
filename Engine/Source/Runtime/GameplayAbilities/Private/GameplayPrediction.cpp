@@ -196,28 +196,34 @@ void FPredictionKeyDelegates::AddDependency(FPredictionKey::KeyType ThisKey, FPr
 
 FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey)
 {
+	if (!ensure(AbilitySystemComponent != NULL))
+	{
+		return;
+	}
+
 	// This is used to set an already generated prediction key as the current scoped prediction key.
 	// Should be called on the server for logical scopes where a given key is valid. E.g, "client gave me this key, we both are going to run Foo()".
-
-	// If you are hitting this, this FScopedPredictionWindow constructor should only be called from Server RPCs where the client has given us a PredictionKey.
-	ensure(AbilitySystemComponent->IsNetSimulating() == false);
-
-	Owner = AbilitySystemComponent;
-	Owner->ScopedPredictionKey = InPredictionKey;
-	ClearScopedPredictionKey = true;
-	SetReplicatedPredictionKey = true;
+	
+	if (AbilitySystemComponent->IsNetSimulating() == false)
+	{
+		Owner = AbilitySystemComponent;
+		check(Owner.IsValid());
+		Owner->ScopedPredictionKey = InPredictionKey;
+		ClearScopedPredictionKey = true;
+		SetReplicatedPredictionKey = true;
+	}
 }
 
 FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* InAbilitySystemComponent, bool bCanGenerateNewKey)
 {
-	// On the server, this will do nothing since he is authorative and doesnt need a prediction key for anything.
+	// On the server, this will do nothing since he is authoritative and doesn't need a prediction key for anything.
 	// On the client, this will generate a new prediction key if bCanGenerateNewKey is true, and we have a invalid prediction key.
 
 	ClearScopedPredictionKey = false;
 	SetReplicatedPredictionKey = false;
 	Owner = InAbilitySystemComponent;
 
-	if (Owner->IsNetSimulating() == false)
+	if (!ensure(Owner.IsValid()) || Owner->IsNetSimulating() == false)
 	{
 		return;
 	}
@@ -225,6 +231,7 @@ FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* InAbil
 	// InAbilitySystemComponent->GetPredictionKey().IsValidForMorePrediction() == false && 
 	if (bCanGenerateNewKey)
 	{
+		check(InAbilitySystemComponent != NULL); // Should have bailed above with ensure(Owner.IsValid())
 		ClearScopedPredictionKey = true;
 		RestoreKey = InAbilitySystemComponent->ScopedPredictionKey;
 		InAbilitySystemComponent->ScopedPredictionKey.GenerateDependentPredictionKey();

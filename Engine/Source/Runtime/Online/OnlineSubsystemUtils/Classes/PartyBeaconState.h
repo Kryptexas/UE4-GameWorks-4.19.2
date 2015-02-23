@@ -88,6 +88,30 @@ namespace EPartyReservationResult
 		}
 		return TEXT("");
 	}
+
+	inline FText GetDisplayString(EPartyReservationResult::Type Response)
+	{
+		switch (Response)
+		{
+		case EPartyReservationResult::PartyLimitReached:
+			return NSLOCTEXT("EPartyReservationResult", "FullGame", "Game full");
+		case EPartyReservationResult::RequestTimedOut:
+			return NSLOCTEXT("EPartyReservationResult", "NoResponse", "No response");
+		case EPartyReservationResult::ReservationDenied:
+			return NSLOCTEXT("EPartyReservationResult", "DeniedResponse", "Not accepting connections");
+		case EPartyReservationResult::ReservationDenied_Banned:
+			return NSLOCTEXT("EPartyReservationResult", "BannedResponse", "Player Banned");
+		case EPartyReservationResult::GeneralError:
+		case EPartyReservationResult::IncorrectPlayerCount:
+		case EPartyReservationResult::ReservationDuplicate:
+		case EPartyReservationResult::ReservationNotFound:
+			return FText::GetEmpty();
+		case EPartyReservationResult::ReservationAccepted:
+			return NSLOCTEXT("EPartyReservationResult", "Accepted", "Accepted");
+		default:
+			return FText::GetEmpty();
+		}
+	}
 }
 
 /** A single player reservation */

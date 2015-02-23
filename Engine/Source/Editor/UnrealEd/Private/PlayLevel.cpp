@@ -63,6 +63,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 
 #define LOCTEXT_NAMESPACE "PlayLevel"
 
+inline FName GetOnlineIdentifier(const FWorldContext& WorldContext)
+{
+	return FName(*FString::Printf(TEXT(":%s"), *WorldContext.ContextHandle.ToString()));
+}
+
 void UEditorEngine::EndPlayMap()
 {
 	if (GEngine->HMDDevice.IsValid())
@@ -179,7 +184,7 @@ void UEditorEngine::EndPlayMap()
 			TeardownPlaySession(ThisContext);
 			
 			// Cleanup online subsystems instantiated during PIE
-			FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *ThisContext.ContextHandle.ToString()));
+			FName OnlineIdentifier = GetOnlineIdentifier(ThisContext);
 			if (IOnlineSubsystem::DoesInstanceExist(OnlineIdentifier))
 			{
 				IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
@@ -2383,7 +2388,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.NetMode = PlayNetMode;
 
 		// Always get the interface (it will create the subsystem regardless)
-		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
+		FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
 		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for server %s"), *OnlineIdentifier.ToString());
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
 		IOnlineIdentityPtr IdentityInt = OnlineSub->GetIdentityInterface();
@@ -2406,7 +2411,8 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 			Delegate.BindUObject(this, &UEditorEngine::OnLoginPIEComplete, DataStruct);
 
 			// Login first and continue the flow later
-			OnLoginPIECompleteDelegateHandle = IdentityInt->AddOnLoginCompleteDelegate_Handle(0, Delegate);
+			FDelegateHandle DelegateHandle = IdentityInt->AddOnLoginCompleteDelegate_Handle(0, Delegate);
+			OnLoginPIECompleteDelegateHandlesForPIEInstances.Add(OnlineIdentifier, DelegateHandle);
 			IdentityInt->Login(0, AccountCreds);
 
 			ClientNum++;
@@ -2437,7 +2443,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
 		DataStruct.NetMode = EPlayNetMode::PIE_Client;
 
-		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
+		FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
 		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
 		IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 		check(IdentityInt.IsValid());
@@ -2452,7 +2458,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		Delegate.BindUObject(this, &UEditorEngine::OnLoginPIEComplete, DataStruct);
 
 		IdentityInt->ClearOnLoginCompleteDelegate_Handle(0, OnLoginPIECompleteDelegateHandlesForPIEInstances.FindRef(OnlineIdentifier));
-		OnLoginPIECompleteDelegateHandlesForPIEInstances[OnlineIdentifier] = IdentityInt->AddOnLoginCompleteDelegate_Handle(0, Delegate);
+		OnLoginPIECompleteDelegateHandlesForPIEInstances.Add(OnlineIdentifier, IdentityInt->AddOnLoginCompleteDelegate_Handle(0, Delegate));
 		IdentityInt->Login(0, AccountCreds);
 	}
 
@@ -2465,12 +2471,16 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 	UE_LOG(LogOnline, Verbose, TEXT("OnLoginPIEComplete LocalUserNum: %d bSuccess: %d %s"), LocalUserNum, bWasSuccessful, *ErrorString);
 	FWorldContext& PieWorldContext = GetWorldContextFromHandleChecked(DataStruct.WorldContextHandle);
 
-	FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
+	FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 
 	// Cleanup the login delegate before calling create below
-	IdentityInt->ClearOnLoginCompleteDelegate_Handle(0, OnLoginPIECompleteDelegateHandle);
-	OnLoginPIECompleteDelegateHandlesForPIEInstances.Remove(OnlineIdentifier);
+	FDelegateHandle* DelegateHandle = OnLoginPIECompleteDelegateHandlesForPIEInstances.Find(OnlineIdentifier);
+	if (DelegateHandle)
+	{
+		IdentityInt->ClearOnLoginCompleteDelegate_Handle(0, *DelegateHandle);
+		OnLoginPIECompleteDelegateHandlesForPIEInstances.Remove(OnlineIdentifier);
+	}
 
 	// Create the new world
 	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.NetMode, DataStruct);

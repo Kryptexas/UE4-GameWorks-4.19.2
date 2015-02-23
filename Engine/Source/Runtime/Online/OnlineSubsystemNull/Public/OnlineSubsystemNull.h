@@ -21,8 +21,7 @@ typedef TSharedPtr<class FOnlineAchievementsNull, ESPMode::ThreadSafe> FOnlineAc
  *	OnlineSubsystemNull - Implementation of the online subsystem for Null services
  */
 class ONLINESUBSYSTEMNULL_API FOnlineSubsystemNull : 
-	public FOnlineSubsystemImpl,
-	public FTickerObjectBase
+	public FOnlineSubsystemImpl
 {
 
 public:
@@ -35,6 +34,7 @@ public:
 
 	virtual IOnlineSessionPtr GetSessionInterface() const override;
 	virtual IOnlineFriendsPtr GetFriendsInterface() const override;
+	virtual IOnlineGroupsPtr GetGroupsInterface() const override;
 	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const override;
 	virtual IOnlineUserCloudPtr GetUserCloudInterface() const override;
 	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override;

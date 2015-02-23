@@ -359,8 +359,11 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 				// Zero out off-mesh start positions which are not even potentially touching the mesh.
 				if (offMeshConClass[i*2+0] == 0xff)
 				{
-					if (offMeshCon.vertsA0[1] < bmin[1] || offMeshCon.vertsA0[1] > bmax[1])
-						offMeshConClass[i*2+0] = 0;
+					if ((offMeshCon.vertsA0[1] - offMeshCon.snapHeight) < bmin[1] &&
+						(offMeshCon.vertsA0[1] + offMeshCon.snapHeight) > bmax[1])
+					{
+						offMeshConClass[i * 2 + 0] = 0;
+					}
 				}
 
 				// Count how many links should be allocated for off-mesh connections.

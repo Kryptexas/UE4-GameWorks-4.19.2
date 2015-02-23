@@ -614,9 +614,12 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 				// Notify anyone who cares that we've had a fatal error, so we can shut down PIE, etc
 				const FString Desc = FString::Printf(TEXT("Runaway loop detected (over %i iterations)"), GMaximumScriptLoopIterations );
 				FBlueprintExceptionInfo RunawayLoopExceptionInfo(EBlueprintExceptionType::InfiniteLoop, Desc);
-				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, RunawayLoopExceptionInfo);
 
+				// Need to reset Runaway counter BEFORE throwing script exception, because the exception causes a modal dialog,
+				// and other scripts running will then erroneously think they are also "runaway".
 				Runaway = 0;
+
+				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, RunawayLoopExceptionInfo);
 				return;
 			}
 #endif

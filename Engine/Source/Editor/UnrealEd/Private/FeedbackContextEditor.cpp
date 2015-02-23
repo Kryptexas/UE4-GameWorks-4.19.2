@@ -337,6 +337,13 @@ void FFeedbackContextEditor::Serialize( const TCHAR* V, ELogVerbosity::Type Verb
 
 void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelButton )
 {
+	// If we are in PIE, then do not show slow dialog window, it can cause crashes
+	// if there are UMG gadgets open.  This is because they will get a message during
+	// an asset load and that causes an assert.
+	if (GEditor != nullptr && GEditor->PlayWorld != nullptr)
+	{
+		return;
+	}
 	FFeedbackContext::StartSlowTask( Task, bShowCancelButton );
 
 	// Attempt to parent the slow task window to the slate main frame
@@ -347,7 +354,7 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 		ParentWindow = MainFrame.GetParentWindow();
 	}
 
-	if( GIsEditor && ParentWindow.IsValid())
+	if (GIsEditor && ParentWindow.IsValid())
 	{
 		GSlowTaskOccurred = GIsSlowTask;
 

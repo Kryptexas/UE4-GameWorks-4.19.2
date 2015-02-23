@@ -1,12 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
+#include "PartyBeaconHost.h"
+#include "PartyBeaconClient.h"
 
 APartyBeaconHost::APartyBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	State(NULL)
 {
-	BeaconTypeName = TEXT("PartyBeacon");
+	BeaconTypeName = PARTY_BEACON_TYPE;
 	PrimaryActorTick.bCanEverTick = true;
 }
 
@@ -237,7 +239,14 @@ int32 APartyBeaconHost::GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId) co
 
 void APartyBeaconHost::NewPlayerAdded(const FPlayerReservation& NewPlayer)
 {
-	UE_LOG(LogBeacon, Verbose, TEXT("Beacon adding player %s"), *NewPlayer.UniqueId->ToDebugString());
+	if (NewPlayer.UniqueId.IsValid())
+	{
+		UE_LOG(LogBeacon, Verbose, TEXT("Beacon adding player %s"), *NewPlayer.UniqueId->ToDebugString());
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning, TEXT("Beacon adding invalid player!"));
+	}
 	if (State)
 	{
 		State->PlayersPendingJoin.Add(NewPlayer.UniqueId.GetUniqueNetId());
@@ -349,20 +358,58 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 			const int32 ExistingReservationIdx = State->GetExistingReservation(ReservationRequest.PartyLeader);
 			if (ExistingReservationIdx != INDEX_NONE)
 			{
-				const TArray<FPartyReservation>& Reservations = State->GetReservations();
-				const FPartyReservation& ExistingReservation = Reservations[ExistingReservationIdx];
+				TArray<FPartyReservation>& Reservations = State->GetReservations();
+				FPartyReservation& ExistingReservation = Reservations[ExistingReservationIdx];
 				if (ReservationRequest.PartyMembers.Num() == ExistingReservation.PartyMembers.Num())
 				{
-					// Clean up the game entities for these duplicate players
-					DuplicateReservation.ExecuteIfBound(ReservationRequest);
-
-					// Add all players back into the pending join list
-					for (int32 Count = 0; Count < ReservationRequest.PartyMembers.Num(); Count++)
+					// Verify the reservations are the same
+					int32 NumMatchingReservations = 0;
+					for (const FPlayerReservation& NewPlayerRes : ReservationRequest.PartyMembers)
 					{
-						NewPlayerAdded(ReservationRequest.PartyMembers[Count]);
+						FPlayerReservation* PlayerRes = ExistingReservation.PartyMembers.FindByPredicate(
+							[NewPlayerRes](const FPlayerReservation& ExistingPlayerRes)
+								{ 
+									return NewPlayerRes.UniqueId == ExistingPlayerRes.UniqueId; 
+								});
+
+						if (PlayerRes)
+						{
+							NumMatchingReservations++;
+						}
 					}
 
-					Result = EPartyReservationResult::ReservationDuplicate;
+					if (NumMatchingReservations == ExistingReservation.PartyMembers.Num())
+					{
+						for (const FPlayerReservation& NewPlayerRes : ReservationRequest.PartyMembers)
+						{
+							FPlayerReservation* PlayerRes = ExistingReservation.PartyMembers.FindByPredicate(
+								[NewPlayerRes](const FPlayerReservation& ExistingPlayerRes)
+							{
+								return NewPlayerRes.UniqueId == ExistingPlayerRes.UniqueId;
+							});
+
+							if (PlayerRes)
+							{
+								// Update the validation auth strings because they may have changed with a new login 
+								PlayerRes->ValidationStr = NewPlayerRes.ValidationStr;
+							}
+						}
+
+						// Clean up the game entities for these duplicate players
+						DuplicateReservation.ExecuteIfBound(ReservationRequest);
+
+						// Add all players back into the pending join list
+						for (int32 Count = 0; Count < ReservationRequest.PartyMembers.Num(); Count++)
+						{
+							NewPlayerAdded(ReservationRequest.PartyMembers[Count]);
+						}
+
+						Result = EPartyReservationResult::ReservationDuplicate;
+					}
+					else
+					{
+						Result = EPartyReservationResult::IncorrectPlayerCount;
+					}
 				}
 				else
 				{
@@ -422,7 +469,7 @@ void APartyBeaconHost::RemovePartyReservation(const FUniqueNetIdRepl& PartyLeade
 	}
 	else
 	{
-		UE_LOG(LogBeacon, Warning, TEXT("Failed to find reservation to cancel for leader %s:"), *PartyLeader->ToString());
+		UE_LOG(LogBeacon, Warning, TEXT("Failed to find reservation to cancel for leader %s:"), PartyLeader.IsValid() ? *PartyLeader->ToString() : TEXT("INVALID") );
 	}
 }
 

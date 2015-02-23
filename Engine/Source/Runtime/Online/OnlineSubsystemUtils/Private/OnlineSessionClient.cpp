@@ -19,9 +19,16 @@ UOnlineSessionClient::UOnlineSessionClient(const FObjectInitializer& ObjectIniti
 UWorld* UOnlineSessionClient::GetWorld() const
 {
 	ULocalPlayer* LP = Cast<ULocalPlayer>(GetOuter());
-	if (LP != nullptr && LP->PlayerController != nullptr)
+	if (LP != nullptr)
 	{
-		return LP->PlayerController->GetWorld();
+		if (LP->PlayerController != nullptr)
+		{
+			return LP->PlayerController->GetWorld();
+		}
+		else if (LP->ViewportClient != nullptr)
+		{
+			return LP->ViewportClient->GetWorld();
+		}
 	}
 
 	return nullptr;
@@ -54,7 +61,7 @@ TSharedPtr<FUniqueNetId> UOnlineSessionClient::GetUniqueId()
 	ULocalPlayer* LP = Cast<ULocalPlayer>(GetOuter());
 	if (LP != nullptr)
 	{
-		return LP->GetCachedUniqueNetId();
+		return LP->GetPreferredUniqueNetId();
 	}
 
 	return nullptr;

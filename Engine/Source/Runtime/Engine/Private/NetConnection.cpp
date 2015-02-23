@@ -27,7 +27,7 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 :	UPlayer(ObjectInitializer)
 ,	Driver				( NULL )
 ,	PackageMap			( NULL )
-,	Viewer				( NULL )
+,	ViewTarget			( NULL )
 ,   OwningActor			( NULL )
 ,	MaxPacket			( 0 )
 ,	InternalAck			( false )
@@ -500,6 +500,8 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		ValidateSendBuffer();
 
 		NumPaddingBits += SendBuffer.GetNumBits() - NumBitsPrePadding;
+
+		NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
 
 		// Send now.
 #if DO_ENABLE_NET_TEST

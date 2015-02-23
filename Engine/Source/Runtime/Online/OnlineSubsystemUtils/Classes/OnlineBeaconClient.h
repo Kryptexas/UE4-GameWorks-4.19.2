@@ -9,6 +9,11 @@
 #include "OnlineBeaconClient.generated.h"
 
 /**
+ * Delegate triggered on failures to connect to a host beacon
+ */
+DECLARE_DELEGATE(FOnHostConnectionFailure);
+
+/**
  * Base class for any actor that would like to communicate outside the normal Unreal Networking gameplay path
  */
 UCLASS(transient, notplaceable, config=Engine)
@@ -25,6 +30,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	// End FNetworkNotify Interface
 
 	// Begin OnlineBeacon Interface
+	virtual void OnFailure() override;
 	virtual void DestroyBeacon() override;
 	// End OnlineBeacon Interface
 
@@ -42,6 +48,11 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	 * A connection has been made and RPC/replication can begin
 	 */
 	virtual void OnConnected() {};
+
+	/**
+	 * Delegate triggered on failures to connect to a host beacon
+	 */
+	FOnHostConnectionFailure& OnHostConnectionFailure() { return HostConnectionFailure; }
 
 	/**
 	 * Get the owner of this beacon actor, some host that is listening for connections
@@ -64,6 +75,9 @@ protected:
 	/** Owning beacon host of this beacon actor */
 	UPROPERTY()
 	class AOnlineBeaconHostObject* BeaconOwner;
+
+	/** Delegate for host beacon connection failures */
+	FOnHostConnectionFailure HostConnectionFailure;
 
 	/** Handle for efficient management of OnFailure timer */
 	FTimerHandle TimerHandle_OnFailure;

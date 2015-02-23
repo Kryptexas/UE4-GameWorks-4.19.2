@@ -51,20 +51,20 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	Status = EPathFollowingStatus::Idle;
 }
 
-void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalActor, const int32 CurrentPathPointGoal)
+void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavigationPath* LogPath, const AActor* LogGoalActor)
 {
 #if ENABLE_VISUAL_LOG
 	FVisualLogger& Vlog = FVisualLogger::Get();
-	if (Vlog.IsRecording() && 
-		Path.IsValid() && Path->IsValid() && Path->GetPathPoints().Num())
+	if (Vlog.IsRecording() &&
+		LogPath && LogPath->IsValid() && LogPath->GetPathPoints().Num())
 	{
 		FVisualLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner, LogOwner->GetWorld()->TimeSeconds);
-		Path->DescribeSelfToVisLog(Entry);
+		LogPath->DescribeSelfToVisLog(Entry);
 
-		const FVector PathEnd = Path->GetPathPoints().Last().Location;
-		if (GoalActor)
+		const FVector PathEnd = LogPath->GetPathPoints().Last().Location;
+		if (LogGoalActor)
 		{
-			const FVector GoalLoc = GoalActor->GetActorLocation();
+			const FVector GoalLoc = LogGoalActor->GetActorLocation();
 			if (FVector::DistSquared(GoalLoc, PathEnd) > 1.0f)
 			{
 				UE_VLOG_LOCATION(LogOwner, LogPathFollowing, Verbose, GoalLoc, 30, FColor::Green, TEXT("GoalActor"));
@@ -73,6 +73,16 @@ void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalA
 		}
 
 		UE_VLOG_BOX(LogOwner, LogPathFollowing, Verbose, FBox(PathEnd - FVector(30.0f), PathEnd + FVector(30.0f)), FColor::Green, TEXT("PathEnd"));
+	}
+#endif // ENABLE_VISUAL_LOG
+}
+
+void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavPathSharedPtr LogPath, const AActor* LogGoalActor)
+{
+#if ENABLE_VISUAL_LOG
+	if (LogPath.IsValid())
+	{
+		LogPathHelper(LogOwner, LogPath.Get(), LogGoalActor);
 	}
 #endif // ENABLE_VISUAL_LOG
 }
@@ -135,7 +145,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 		*GetNameSafe(InDestinationActor),
 		!InGameData.IsValid() ? TEXT("missing") : TEXT("valid"));
 
-	LogPathHelper(GetOwner(), InPath, InDestinationActor, GetNextPathIndex());
+	LogPathHelper(GetOwner(), InPath, InDestinationActor);
 
 	if (InAcceptanceRadius == UPathFollowingComponent::DefaultAcceptanceRadius)
 	{
@@ -190,7 +200,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 			Path->SetSourceActor(*(MovementComp->GetOwner()));
 		}
 
-		PathTimeWhenPaused = 0;
+		PathTimeWhenPaused = 0.0f;
 		OnPathUpdated();
 
 		AcceptanceRadius = InAcceptanceRadius;
@@ -231,7 +241,7 @@ bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, FAIRequestID 
 		*GetPathDescHelper(InPath),
 		*GetStatusDesc(), RequestID);
 
-	LogPathHelper(GetOwner(), InPath, DestinationActor.Get(), GetNextPathIndex());
+	LogPathHelper(GetOwner(), InPath, DestinationActor.Get());
 
 	if (!InPath.IsValid() || !InPath->IsValid() || Status == EPathFollowingStatus::Idle 
 		|| RequestID.IsEquivalent(GetCurrentRequestId()) == false)
@@ -308,7 +318,7 @@ void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVeloc
 		}
 
 		LocationWhenPaused = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
-		PathTimeWhenPaused = GetWorld()->GetTimeSeconds();
+		PathTimeWhenPaused = Path.IsValid() ? Path->GetTimeStamp() : 0.0f;
 		Status = EPathFollowingStatus::Paused;
 
 		UpdateMoveFocus();
@@ -329,7 +339,7 @@ void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
 		{
 			Status = EPathFollowingStatus::Moving;
 
-			const bool bWasPathUpdatedRecently = Path.IsValid() ? (GetWorld()->GetTimeSeconds() > Path->GetTimeStamp()) : false;
+			const bool bWasPathUpdatedRecently = Path.IsValid() ? (Path->GetTimeStamp() > PathTimeWhenPaused) : false;
 			if (bMovedDuringPause || bWasPathUpdatedRecently)
 			{
 				const int32 CurrentSegment = DetermineStartingPathPoint(Path.Get());

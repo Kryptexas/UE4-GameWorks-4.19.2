@@ -8,9 +8,9 @@
 
 AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	BeaconOwner(NULL)
+	BeaconOwner(nullptr)
 {
-	NetDriverName = FName(TEXT("BeaconDriver"));
+	NetDriverName = FName(TEXT("BeaconDriverClient"));
 	bOnlyRelevantToOwner = true;
 }
 
@@ -37,8 +37,8 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 			{
 				NetDriver->SetWorld(GetWorld());
 				NetDriver->Notify = this;
-				NetDriver->InitialConnectTimeout = BEACON_CONNECTION_INITIAL_TIMEOUT;
-				NetDriver->ConnectionTimeout = BEACON_CONNECTION_INITIAL_TIMEOUT;
+				NetDriver->InitialConnectTimeout = BeaconConnectionInitialTimeout;
+				NetDriver->ConnectionTimeout = BeaconConnectionInitialTimeout;
 
 				// Send initial message.
 				uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
@@ -64,6 +64,13 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 	return bSuccess;
 }
 
+void AOnlineBeaconClient::OnFailure()
+{
+	UE_LOG(LogBeacon, Verbose, TEXT("Client beacon (%s) connection failure, handling connection timeout."), *GetName());
+	HostConnectionFailure.ExecuteIfBound();
+	Super::OnFailure();
+}
+
 void AOnlineBeaconClient::ClientOnConnected_Implementation()
 {
 	Role = ROLE_Authority;
@@ -76,8 +83,8 @@ void AOnlineBeaconClient::ClientOnConnected_Implementation()
 	if (NetDriver)
 	{
 		// Increase timeout while we are connected
-		NetDriver->InitialConnectTimeout = BEACON_CONNECTION_TIMEOUT;
-		NetDriver->ConnectionTimeout = BEACON_CONNECTION_TIMEOUT;
+		NetDriver->InitialConnectTimeout = BeaconConnectionTimeout;
+		NetDriver->ConnectionTimeout = BeaconConnectionTimeout;
 	}
 
 	// Call the overloaded function for this client class

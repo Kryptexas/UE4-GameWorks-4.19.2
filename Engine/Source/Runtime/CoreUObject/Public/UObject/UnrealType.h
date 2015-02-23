@@ -348,6 +348,7 @@ private:
 			// in the future, these checks will be tested if the property is supposed be from a UClass
 			// need something for networking, since those are NOT live uobjects, just memory blocks
 			check(((UObject*)ContainerPtr)->IsValidLowLevel()); // Check its a valid UObject that was passed in
+			check(((UObject*)ContainerPtr)->GetClass() != NULL);
 			check(Cast<UClass>(GetOuter()) != nullptr); // Check that the outer of this property is a UClass (not another property)
 
 			// Check that the object we are accessing is of the class that contains this property

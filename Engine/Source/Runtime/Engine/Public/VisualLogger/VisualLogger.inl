@@ -67,13 +67,13 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 
 	bool InitializeNewEntry = false;
 
-	UWorld* World = GetWorld(Object);
+	TWeakObjectPtr<UWorld> World = GetWorld(Object);
 
 	if (CurrentEntryPerObject.Contains(LogOwner))
 	{
 		CurrentEntry = &CurrentEntryPerObject[LogOwner];
 		InitializeNewEntry = TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == ECreateIfNeeded::Create;
-		if (World)
+		if (World.IsValid())
 		{
 			World->GetTimerManager().ClearAllTimersForObject(this);
 			for (auto& CurrentPair : CurrentEntryPerObject)
@@ -138,15 +138,15 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 		}
 	}
 
-	if (World)
+	if (World.IsValid())
 	{
 		//set next tick timer to flush obsolete/old entries
 		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
-			[this](){
+			[this, World](){
 			for (auto& CurrentPair : CurrentEntryPerObject)
 			{
 				FVisualLogEntry* Entry = &CurrentPair.Value;
-				if (Entry->TimeStamp >= 0) // CurrentEntry->TimeStamp == -1 means it's not initialized entry information
+				if (Entry->TimeStamp >= 0 && (!World.IsValid() || Entry->TimeStamp < World->GetTimeSeconds())) // CurrentEntry->TimeStamp == -1 means it's not initialized entry information
 				{
 					for (auto* Device : OutputDevices)
 					{

@@ -105,7 +105,7 @@ public:
 private:
 
 	/** Utility function that processes Slate operations. */
-	void ProcessPlayerControllersSlateOperations() const;
+	void ProcessLocalPlayerSlateOperations() const;
 
 protected:
 

@@ -85,7 +85,10 @@ void FScopedSlowTask::MakeDialog(bool bShowCancelButton, bool bAllowInPIE)
 	if (!GIsSlowTask && bIsDialogAllowed)
 	{
 		Context.StartSlowTask(GetCurrentMessage(), bShowCancelButton);
-		bCreatedDialog = true;
+		if (GIsSlowTask)
+		{
+			bCreatedDialog = true;
+		}
 	}
 }
 

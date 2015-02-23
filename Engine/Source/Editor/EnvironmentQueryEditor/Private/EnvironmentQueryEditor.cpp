@@ -214,7 +214,8 @@ void FEnvironmentQueryEditor::OnSelectedNodesChanged(const TSet<class UObject*>&
 {
 	TArray<UObject*> Selection;
 
-	if(NewSelection.Num())
+	SelectedNodesCount = NewSelection.Num();
+	if (NewSelection.Num())
 	{
 		for(TSet<class UObject*>::TConstIterator SetIt(NewSelection);SetIt;++SetIt)
 		{

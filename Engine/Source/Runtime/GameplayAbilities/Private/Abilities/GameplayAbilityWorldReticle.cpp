@@ -38,7 +38,7 @@ void AGameplayAbilityWorldReticle::InitializeReticle(AGameplayAbilityTargetActor
 	OnParametersInitialized();
 }
 
-bool AGameplayAbilityWorldReticle::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
+bool AGameplayAbilityWorldReticle::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	//The player who created the ability doesn't need to be updated about it - there should be local prediction in place.
 	if (RealViewer == MasterPC)
@@ -46,7 +46,7 @@ bool AGameplayAbilityWorldReticle::IsNetRelevantFor(const APlayerController* Rea
 		return false;
 	}
 
-	return Super::IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
+	return Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
 }
 
 bool AGameplayAbilityWorldReticle::GetReplicates() const

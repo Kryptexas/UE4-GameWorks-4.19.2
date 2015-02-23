@@ -18,6 +18,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 #define LOCTEXT_NAMESPACE "HUD"
 
+bool AHUD::bShowDebugForReticleTarget = false;
+
 AHUD::AHUD(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -302,6 +304,11 @@ void AHUD::ShowDebugToggleSubCategory(FName Category)
 	}
 }
 
+void AHUD::ShowDebugForReticleTargetToggle(TSubclassOf<AActor> DesiredClass)
+{
+	bShowDebugForReticleTarget = !bShowDebugForReticleTarget;
+	ShowDebugTargetDesiredClass = DesiredClass;
+}
 
 bool AHUD::ShouldDisplayDebug(const FName& DebugType) const
 {
@@ -312,14 +319,36 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 {
 	if (DebugCanvas != nullptr )
 	{
-		if (!DebugDisplay.Contains(TEXT("Bones")))
-		{
-			FLinearColor BackgroundColor(0.f, 0.f, 0.f, 0.5f);
-			DebugCanvas->Canvas->DrawTile(0, 0, DebugCanvas->ClipX, DebugCanvas->ClipY, 0.f, 0.f, 0.f, 0.f, BackgroundColor);
-		}
+		FLinearColor BackgroundColor(0.f, 0.f, 0.f, 0.2f);
+		DebugCanvas->Canvas->DrawTile(0, 0, DebugCanvas->ClipX, DebugCanvas->ClipY, 0.f, 0.f, 0.f, 0.f, BackgroundColor);
 
 		FDebugDisplayInfo DisplayInfo(DebugDisplay, ToggledDebugCategories);
-		PlayerOwner->PlayerCameraManager->ViewTarget.Target->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+
+		if (bShowDebugForReticleTarget)
+		{
+			FRotator CamRot; FVector CamLoc; PlayerOwner->GetPlayerViewPoint(CamLoc, CamRot);
+
+			FCollisionQueryParams TraceParams(NAME_None, true, PlayerOwner->PlayerCameraManager->ViewTarget.Target);
+			FHitResult Hit;
+			bool bHit = GetWorld()->LineTraceSingle(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_WorldDynamic, TraceParams);
+			if (bHit)
+			{
+				AActor* HitActor = Hit.Actor.Get();
+				if (HitActor && (ShowDebugTargetDesiredClass == NULL || HitActor->IsA(ShowDebugTargetDesiredClass)))
+				{
+					ShowDebugTargetActor = HitActor;
+				}
+			}
+		}
+		else
+		{
+			ShowDebugTargetActor = PlayerOwner->PlayerCameraManager->ViewTarget.Target;
+		}
+
+		if (ShowDebugTargetActor && !ShowDebugTargetActor->IsPendingKill())
+		{
+			ShowDebugTargetActor->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+		}
 
 		if (ShouldDisplayDebug(NAME_Game))
 		{

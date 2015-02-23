@@ -21,6 +21,11 @@ IOnlineFriendsPtr FOnlineSubsystemNull::GetFriendsInterface() const
 	return NULL;
 }
 
+IOnlineGroupsPtr FOnlineSubsystemNull::GetGroupsInterface() const
+{
+	return nullptr;
+}
+
 IOnlineSharedCloudPtr FOnlineSubsystemNull::GetSharedCloudInterface() const
 {
 	return NULL;
@@ -115,6 +120,11 @@ IOnlineTurnBasedPtr FOnlineSubsystemNull::GetTurnBasedInterface() const
 
 bool FOnlineSubsystemNull::Tick(float DeltaTime)
 {
+	if (!FOnlineSubsystemImpl::Tick(DeltaTime))
+	{
+		return false;
+	}
+
 	if (OnlineAsyncTaskThreadRunnable)
 	{
 		OnlineAsyncTaskThreadRunnable->GameTick();

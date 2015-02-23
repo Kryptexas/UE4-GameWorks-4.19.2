@@ -16,35 +16,59 @@
 static bool		SavedbHidden;
 static AActor*	SavedOwner;
 
+#define DEPRECATED_NET_PRIORITY -17.0f // Pick an arbitrary invalid priority, check for that
+
 float AActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth)
 {
-	if ( bNetUseOwnerRelevancy && Owner)
+	return DEPRECATED_NET_PRIORITY;
+}
+
+float AActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
+{
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	// Call the deprecated version so subclasses will still work for a version
+	float DeprecatedValue = AActor::GetNetPriority(ViewPos, ViewDir, Viewer, InChannel, Time, bLowBandwidth);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	if (DeprecatedValue != DEPRECATED_NET_PRIORITY)
 	{
-		return Owner->GetNetPriority(ViewPos, ViewDir, Viewer, InChannel, Time, bLowBandwidth);
+		return DeprecatedValue;
 	}
 
-	if ( Instigator && (Instigator == Viewer->GetPawn()) )
+	if (bNetUseOwnerRelevancy && Owner)
 	{
-		Time *= 4.f; 
+		// If we should use our owner's priority, pass it through
+		return Owner->GetNetPriority(ViewPos, ViewDir, Viewer, ViewTarget, InChannel, Time, bLowBandwidth);
 	}
-	else if ( !bHidden )
+
+	if (ViewTarget && (this == ViewTarget || Instigator == ViewTarget))
+	{
+		// If we're the view target or owned by the view target, use a high priority
+		Time *= 4.f;
+	}
+	else if (!bHidden)
 	{
 		FVector Dir = GetActorLocation() - ViewPos;
 		float DistSq = Dir.SizeSquared();
-		
-		// adjust priority based on distance and whether actor is in front of viewer
-		if ( (ViewDir | Dir) < 0.f )
+
+		// Adjust priority based on distance and whether actor is in front of viewer
+		if ((ViewDir | Dir) < 0.f)
 		{
-			if ( DistSq > NEARSIGHTTHRESHOLDSQUARED )
+			if (DistSq > NEARSIGHTTHRESHOLDSQUARED)
 			{
 				Time *= 0.2f;
 			}
-			else if ( DistSq > CLOSEPROXIMITYSQUARED )
+			else if (DistSq > CLOSEPROXIMITYSQUARED)
 			{
 				Time *= 0.4f;
 			}
 		}
-		else if ( DistSq > MEDSIGHTTHRESHOLDSQUARED )
+		else if ((DistSq < FARSIGHTTHRESHOLDSQUARED) && (FMath::Square(ViewDir | Dir) > 0.5f * DistSq))
+		{
+			// Compute the amount of distance along the ViewDir vector. Dir is not normalized
+			// Increase priority if we're being looked directly at
+			Time *= 2.f;
+		}
+		else if (DistSq > MEDSIGHTTHRESHOLDSQUARED)
 		{
 			Time *= 0.4f;
 		}
@@ -53,12 +77,11 @@ float AActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APl
 	return NetPriority * Time;
 }
 
-bool AActor::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth)
+bool AActor::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
 {
 	// For now, per peer dormancy is not supported
 	return false;
 }
-
 
 void AActor::PreNetReceive()
 {
@@ -122,15 +145,15 @@ void AActor::PostNetReceivePhysicState()
 	}
 }
 
-bool AActor::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
+bool AActor::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
-	if( bAlwaysRelevant || IsOwnedBy(Viewer) || IsOwnedBy(RealViewer) || this==Viewer || Viewer==Instigator )
+	if (bAlwaysRelevant || IsOwnedBy(ViewTarget) || IsOwnedBy(RealViewer) || this == ViewTarget || ViewTarget == Instigator)
 	{
 		return true;
 	}
 	else if ( bNetUseOwnerRelevancy && Owner)
 	{
-		return Owner->IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
+		return Owner->IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
 	}
 	else if ( bOnlyRelevantToOwner )
 	{
@@ -138,7 +161,7 @@ bool AActor::IsNetRelevantFor(const APlayerController* RealViewer, const AActor*
 	}
 	else if ( RootComponent && RootComponent->AttachParent && RootComponent->AttachParent->GetOwner() && (Cast<USkeletalMeshComponent>(RootComponent->AttachParent) || (RootComponent->AttachParent->GetOwner() == Owner)) )
 	{
-		return RootComponent->AttachParent->GetOwner()->IsNetRelevantFor( RealViewer, Viewer, SrcLocation );
+		return RootComponent->AttachParent->GetOwner()->IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
 	}
 	else if( bHidden && (!RootComponent || !RootComponent->IsCollisionEnabled()) )
 	{

@@ -21,8 +21,7 @@ typedef TSharedPtr<class FOnlineAchievementsSteam, ESPMode::ThreadSafe> FOnlineA
  *	OnlineSubsystemSteam - Implementation of the online subsystem for STEAM services
  */
 class ONLINESUBSYSTEMSTEAM_API FOnlineSubsystemSteam : 
-	public FOnlineSubsystemImpl, 
-	public FTickerObjectBase
+	public FOnlineSubsystemImpl
 {
 protected:
 
@@ -207,6 +206,7 @@ public:
 
 	virtual IOnlineSessionPtr GetSessionInterface() const override;
 	virtual IOnlineFriendsPtr GetFriendsInterface() const override;
+	virtual IOnlineGroupsPtr GetGroupsInterface() const override;
 	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const override;
 	virtual IOnlineUserCloudPtr GetUserCloudInterface() const override;
 	virtual IOnlineLeaderboardsPtr GetLeaderboardsInterface() const override;

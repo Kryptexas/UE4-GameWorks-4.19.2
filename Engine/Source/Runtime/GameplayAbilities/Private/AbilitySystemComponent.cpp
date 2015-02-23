@@ -239,6 +239,8 @@ FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
 {
 	FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(UAbilitySystemGlobals::Get().AllocGameplayEffectContext());
 	// By default use the owner and avatar as the instigator and causer
+	check(AbilityActorInfo.IsValid());
+	
 	Context.AddInstigator(AbilityActorInfo->OwnerActor.Get(), AbilityActorInfo->AvatarActor.Get());
 	return Context;
 }
@@ -333,6 +335,11 @@ FOnActiveGameplayEffectRemoved* UAbilitySystemComponent::OnGameplayEffectRemoved
 	}
 
 	return nullptr;
+}
+
+FOnActiveGameplayEffectRemoved& UAbilitySystemComponent::OnAnyGameplayEffectRemovedDelegate()
+{
+	return ActiveGameplayEffects.OnActiveGameplayEffectRemovedDelegate;
 }
 
 int32 UAbilitySystemComponent::GetNumActiveGameplayEffects() const
@@ -468,7 +475,7 @@ void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Containe
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAbilitySystemComponent *Target, FPredictionKey PredictionKey)
 {
-	if (!UAbilitySystemGlobals::Get().PredictTargetGameplayEffects)
+	if (!UAbilitySystemGlobals::Get().ShouldPredictTargetGameplayEffects())
 	{
 		// If we don't want to predict target effects, clear prediction key
 		PredictionKey = FPredictionKey();
@@ -476,7 +483,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTa
 
 	FActiveGameplayEffectHandle ReturnHandle;
 
-	if (!UAbilitySystemGlobals::Get().PredictTargetGameplayEffects)
+	if (!UAbilitySystemGlobals::Get().ShouldPredictTargetGameplayEffects())
 	{
 		// If we don't want to predict target effects, clear prediction key
 		PredictionKey = FPredictionKey();
@@ -730,7 +737,7 @@ float UAbilitySystemComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectH
 	return ActiveGameplayEffects.GetGameplayEffectMagnitude(Handle, Attribute);
 }
 
-void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType)
+void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
 	if (!Spec.Def)
@@ -875,7 +882,7 @@ void UAbilitySystemComponent::RemoveAllGameplayCues()
 	}
 }
 
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey)
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpecForRPC Spec, FPredictionKey PredictionKey)
 {
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
 	{
@@ -944,7 +951,11 @@ TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FActiveGam
 
 void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagContainer Tags)
 {
-	RemoveActiveEffects(FActiveGameplayEffectQuery(&Tags));
+	AActor *OwningActor = GetOwner();
+	if (OwningActor && OwningActor->Role == ROLE_Authority)
+	{
+		RemoveActiveEffects(FActiveGameplayEffectQuery(&Tags));
+	}
 }
 
 void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
@@ -1350,7 +1361,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				StatusText = TEXT(" (TagBlocked)");
 				AbilityTextColor = FColor::Red;
 			}
-			else if (AbilitySpec.Ability->CanActivateAbility(AbilitySpec.Handle, AbilityActorInfo.Get()) == false)
+			else if (AbilitySpec.Ability->CanActivateAbility(AbilitySpec.Handle, AbilityActorInfo.Get(), FGameplayTagContainer(), FGameplayTagContainer()) == false)
 			{
 				StatusText = TEXT(" (CantActivate)");
 				AbilityTextColor = FColor::Red;

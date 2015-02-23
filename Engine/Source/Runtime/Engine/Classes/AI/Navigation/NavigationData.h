@@ -240,17 +240,17 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	}
 
 	/** checks if given path, starting from StartingIndex, intersects with given AABB box */
-	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const;
+	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL, FVector* AgentExtent = NULL) const;
 	/** checks if given path, starting from StartingIndex, intersects with given AABB box. This version uses AgentLocation as beginning of the path
 	 *	with segment between AgentLocation and path's StartingIndex-th node treated as first path segment to check */
-	virtual bool DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const;
+	virtual bool DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL, FVector* AgentExtent = NULL) const;
 	/** retrieves normalized direction vector to given path segment
 	 *	for '0'-th segment returns same as for 1st segment 
 	 */
 	virtual FVector GetSegmentDirection(uint32 SegmentEndIndex) const;
 
 private:
-	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const;
+	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const;
 
 public:
 
@@ -870,7 +870,7 @@ protected:
 
 FORCEINLINE bool FPathFindingResult::IsPartial() const
 {
-	return Result == ENavigationQueryResult::Fail && Path.IsValid() && Path->IsPartial();
+	return (Result != ENavigationQueryResult::Error) && Path.IsValid() && Path->IsPartial();
 }
 
 FORCEINLINE void FNavigationPath::SetNavigationDataUsed(const ANavigationData* const NewData)

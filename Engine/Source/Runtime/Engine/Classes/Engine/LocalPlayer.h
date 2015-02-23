@@ -5,6 +5,8 @@
 //=============================================================================
 
 #pragma once
+#include "SlateCore.h"
+#include "Reply.h"
 #include "Player.h"
 #include "LocalPlayer.generated.h"
 
@@ -233,7 +235,16 @@ protected:
 	 */
 	void HandleControllerConnectionChange(bool bConnected, int32 InUserId, int32 InControllerId);
 
+	/** FReply used to defer some slate operations. */
+	FReply SlateOperations;
+
 public:
+
+	/**
+	 *  Getter for slate operations.
+	 */
+	FReply& GetSlateOperations() { return SlateOperations; }
+	const FReply& GetSlateOperations() const { return SlateOperations; }
 
 	/**
 	 * Get the world the players actor belongs to

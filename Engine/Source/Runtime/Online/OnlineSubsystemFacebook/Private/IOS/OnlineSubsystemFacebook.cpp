@@ -38,6 +38,11 @@ IOnlineFriendsPtr FOnlineSubsystemFacebook::GetFriendsInterface() const
 	return FacebookFriends;
 }
 
+IOnlineGroupsPtr FOnlineSubsystemFacebook::GetGroupsInterface() const
+{
+	return nullptr;
+}
+
 IOnlineSharedCloudPtr FOnlineSubsystemFacebook::GetSharedCloudInterface() const
 {
 	return NULL;
@@ -155,6 +160,11 @@ bool FOnlineSubsystemFacebook::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDe
 
 bool FOnlineSubsystemFacebook::Tick(float DeltaTime)
 {
+	if (!FOnlineSubsystemImpl::Tick(DeltaTime))
+	{
+		return false;
+	}
+
 	return true;
 }
 

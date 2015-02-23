@@ -856,5 +856,6 @@ private:
 	FDelegateHandle OnPresenceReceivedCompleteDelegateHandle;
 	FDelegateHandle OnGameInviteReceivedDelegateHandle;
 	FDelegateHandle OnDestroySessionCompleteDelegateHandle;
+	FDelegateHandle OnQueryUserIdMappingCompleteDelegateHandle;
 	FDelegateHandle UpdateFriendsTickerDelegateHandle;
 };

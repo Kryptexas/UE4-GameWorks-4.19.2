@@ -196,12 +196,18 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	AActor* SelectedActor = DebugComponent->GetSelectedActor();
+	const bool bDrawFullData = GetDebuggingReplicator()->GetSelectedActorToDebug() == SelectedActor;
 	const FVector ScreenLoc = SelectedActor ? ProjectLocation(DefaultContext, SelectedActor->GetActorLocation() + FVector(0.f, 0.f, SelectedActor->GetSimpleCollisionHalfHeight())) : FVector::ZeroVector;
 
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
 
 	FGameplayDebuggerSettings DebuggerSettings = GameplayDebuggerSettings(GetDebuggingReplicator());
-	if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::OverHead) /*|| EngineShowFlags.DebugAI*/)
+	bool bForceOverhead = false;
+#if !WITH_EDITOR
+	bForceOverhead = bDrawFullData;
+#endif
+
+	if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::OverHead) || bForceOverhead)
 	{
 		DrawOverHeadInformation(MyPC, DebugComponent);
 	}
@@ -211,7 +217,6 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 		DrawNavMeshSnapshot(MyPC, DebugComponent);
 	}
 
-	const bool bDrawFullData = GetDebuggingReplicator()->GetSelectedActorToDebug() == SelectedActor;
 	if (DebugComponent->GetSelectedActor() && bDrawFullData)
 	{
 		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Basic) /*|| EngineShowFlags.DebugAI*/)
@@ -309,7 +314,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 		OverHeadContext.CursorY = OverHeadContext.DefaultY;
 	}
 
-	if (DebugComponent->DebugIcon.Len() > 0 )
+	if (DebugComponent->DebugIcon.Len() > 0)
 	{
 		UTexture2D* RegularIcon = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, *DebugComponent->DebugIcon, NULL, LOAD_NoWarn | LOAD_Quiet, NULL);
 		if (RegularIcon)
@@ -322,6 +327,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 			}
 		}
 	}
+
 	if (bDrawFullOverHead)
 	{
 		OverHeadContext.FontRenderInfo.bEnableShadow = bDrawFullOverHead;

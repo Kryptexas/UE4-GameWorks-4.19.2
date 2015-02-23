@@ -55,6 +55,15 @@ void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
 	}
 }
 
+void UTextBlock::SetJustification( ETextJustify::Type InJustification )
+{
+	Justification = InJustification;
+	if ( MyTextBlock.IsValid() )
+	{
+		MyTextBlock->SetJustification( Justification );
+	}
+}
+
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
 	MyTextBlock = SNew(STextBlock);

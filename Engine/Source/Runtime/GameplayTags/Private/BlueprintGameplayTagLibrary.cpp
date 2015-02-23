@@ -39,5 +39,26 @@ FGameplayTag UBlueprintGameplayTagLibrary::MakeLiteralGameplayTag(FGameplayTag V
 
 bool UBlueprintGameplayTagLibrary::HasAllMatchingGameplayTags(TScriptInterface<IGameplayTagAssetInterface> TagContainerInterface, const FGameplayTagContainer& OtherContainer, bool bCountEmptyAsMatch)
 {
+	if (TagContainerInterface.GetInterface() == NULL)
+	{
+		if (bCountEmptyAsMatch)
+		{
+			return (OtherContainer.Num() == 0);
+		}
+		return false;
+	}
+
 	return TagContainerInterface->HasAllMatchingGameplayTags(OtherContainer, bCountEmptyAsMatch);
+}
+
+bool UBlueprintGameplayTagLibrary::DoesTagAssetInterfaceHaveTag(TScriptInterface<IGameplayTagAssetInterface> TagContainerInterface, TEnumAsByte<EGameplayTagMatchType::Type> ContainerTagsMatchType, const FGameplayTag& Tag, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType)
+{
+	if (TagContainerInterface.GetInterface() == NULL)
+	{
+		return false;
+	}
+
+	FGameplayTagContainer OwnedTags;
+	TagContainerInterface->GetOwnedGameplayTags(OwnedTags);
+	return (OwnedTags.HasTag(Tag, ContainerTagsMatchType, TagMatchType));
 }

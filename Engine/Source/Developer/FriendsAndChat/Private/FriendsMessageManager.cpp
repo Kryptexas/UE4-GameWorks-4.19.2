@@ -311,7 +311,7 @@ private:
 		ChatItem->FromName = FText::FromString(*ChatMessage->GetNickname());
 		ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
 		ChatItem->MessageType = EChatMessageType::Global;
-		ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp(), EDateTimeStyle::Short);
+		ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow(), EDateTimeStyle::Short); // use local received time for consistency
 		ChatItem->ExpireTime = ChatMessage->GetTimestamp() + FTimespan::FromSeconds(GlobalMessageLifetime);
 		ChatItem->bIsFromSelf = ChatMessage->GetUserId() == *LoggedInUser;
 		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage->GetUserId());
@@ -336,7 +336,7 @@ private:
 			ChatItem->SenderId = FoundFriend->GetUniqueID();
 			ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
 			ChatItem->MessageType = EChatMessageType::Whisper;
-			ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp(), EDateTimeStyle::Short);
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow(), EDateTimeStyle::Short); // use local received time for consistency
 			ChatItem->ExpireTime = ChatMessage->GetTimestamp() + FTimespan::FromSeconds(WhisperMessageLifetime);
 			ChatItem->bIsFromSelf = false;
 			ChatItem->MessageRef = ChatMessage;

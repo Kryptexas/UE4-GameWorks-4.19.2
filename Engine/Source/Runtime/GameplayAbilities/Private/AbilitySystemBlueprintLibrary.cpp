@@ -23,23 +23,29 @@ UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemCompone
 
 void UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AActor* Actor, FGameplayTag EventTag, FGameplayEventData Payload)
 {
-	IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(Actor);
-	if (AbilitySystemInterface != NULL)
+	if (Actor && !Actor->IsPendingKill())
 	{
-		UAbilitySystemComponent* AbilitySystemComponent = AbilitySystemInterface->GetAbilitySystemComponent();
-		if (AbilitySystemComponent != NULL)
+		IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(Actor);
+		if (AbilitySystemInterface != NULL)
 		{
-			FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
-			AbilitySystemComponent->HandleGameplayEvent(EventTag, &Payload);
+			UAbilitySystemComponent* AbilitySystemComponent = AbilitySystemInterface->GetAbilitySystemComponent();
+			if (AbilitySystemComponent != NULL)
+			{
+				FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
+				AbilitySystemComponent->HandleGameplayEvent(EventTag, &Payload);
+			}
 		}
 	}
 }
 
-float UAbilitySystemBlueprintLibrary::GetFloatAttribute(const class AActor* Actor, FGameplayAttribute Attribute)
+float UAbilitySystemBlueprintLibrary::GetFloatAttribute(const class AActor* Actor, FGameplayAttribute Attribute, bool& bSuccessfullyFoundAttribute)
 {
+	bSuccessfullyFoundAttribute = true;
+
 	const UAbilitySystemComponent* const AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
-	if (!AbilitySystem)
+	if (!AbilitySystem || !AbilitySystem->HasAttributeSetForAttribute(Attribute))
 	{
+		bSuccessfullyFoundAttribute = false;
 		return 0.f;
 	}
 
@@ -183,6 +189,25 @@ TArray<AActor*> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGamepla
 		return ResolvedArray;
 	}
 	return TArray<AActor*>();
+}
+
+bool UAbilitySystemBlueprintLibrary::DoesTargetDataContainActor(FGameplayAbilityTargetDataHandle TargetData, int32 Index, AActor* Actor)
+{
+	if (TargetData.Data.IsValidIndex(Index))
+	{
+		FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
+		if (Data)
+		{
+			for (auto DataActorIter : Data->GetActors())
+			{
+				if (DataActorIter == Actor)
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 bool UAbilitySystemBlueprintLibrary::TargetDataHasActor(FGameplayAbilityTargetDataHandle TargetData, int32 Index)

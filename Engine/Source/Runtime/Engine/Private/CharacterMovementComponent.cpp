@@ -3755,38 +3755,6 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 		return;
 	}
 
-	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	if (NavSys == NULL)
-	{
-		// can't find navigation system, switch to regular walking
-		SetMovementMode(MOVE_Walking);
-		return;
-	}
-
-	const ANavigationData* NavData = NULL;
-	INavAgentInterface* MyNavAgent = Cast<INavAgentInterface>(CharacterOwner);
-	float SearchRadius = 0.0f;
-	float SearchHeight = 100.0f;
-	if (MyNavAgent)
-	{
-		const FNavAgentProperties& AgentProps = MyNavAgent->GetNavAgentPropertiesRef();
-		NavData = NavSys->GetNavDataForProps(AgentProps);
-		SearchRadius = AgentProps.AgentRadius * 2.0f;
-		SearchHeight = AgentProps.AgentHeight * 0.5f;
-	}
-	if (NavData == NULL)
-	{
-		NavData = NavSys->GetMainNavData();
-	}
-
-	const ARecastNavMesh* NavMeshData = Cast<const ARecastNavMesh>(NavData);
-	if (NavMeshData == NULL)
-	{
-		// can't find navigation data for owning character, switch to regular walking
-		SetMovementMode(MOVE_Walking);
-		return;
-	}
-
 	if ((!CharacterOwner || !CharacterOwner->Controller) && !bRunPhysicsWithNoController && !HasRootMotion())
 	{
 		Acceleration = FVector::ZeroVector;
@@ -3825,8 +3793,13 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 	}
 	else
 	{
-		// scope for projection perf test
-		NavData->ProjectPoint(AdjustedDest, DestNavLocation, FVector(SearchRadius, SearchRadius, SearchHeight));
+		const bool bHasNavigationData = FindNavFloor(AdjustedDest, DestNavLocation);
+		if (!bHasNavigationData)
+		{
+			SetMovementMode(MOVE_Walking);
+			return;
+		}
+
 		CachedNavLocation = DestNavLocation;
 	}
 
@@ -3854,6 +3827,40 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 	{
 		StartFalling(Iterations, deltaTime, deltaTime, DeltaMove, OldLocation);
 	}
+}
+
+bool UCharacterMovementComponent::FindNavFloor(const FVector& TestLocation, FNavLocation& NavFloorLocation) const
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys == nullptr)
+	{
+		return false;
+	}
+
+	const ANavigationData* NavData = nullptr;
+	INavAgentInterface* MyNavAgent = Cast<INavAgentInterface>(CharacterOwner);
+	float SearchRadius = 0.0f;
+	float SearchHeight = 100.0f;
+	if (MyNavAgent)
+	{
+		const FNavAgentProperties& AgentProps = MyNavAgent->GetNavAgentPropertiesRef();
+		NavData = NavSys->GetNavDataForProps(AgentProps);
+		SearchRadius = AgentProps.AgentRadius * 2.0f;
+		SearchHeight = AgentProps.AgentHeight * 0.5f;
+	}
+	if (NavData == nullptr)
+	{
+		NavData = NavSys->GetMainNavData();
+	}
+
+	const ARecastNavMesh* NavMeshData = Cast<const ARecastNavMesh>(NavData);
+	if (NavMeshData == nullptr)
+	{
+		return false;
+	}
+
+	NavData->ProjectPoint(TestLocation, NavFloorLocation, FVector(SearchRadius, SearchRadius, SearchHeight));
+	return true;
 }
 
 void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation)
@@ -3974,6 +3981,22 @@ void UCharacterMovementComponent::ProcessLanded(const FHitResult& Hit, float rem
 	}
 	if( IsFalling() )
 	{
+		if (GroundMovementMode == MOVE_NavWalking)
+		{
+			// verify navmesh projection and current floor
+			// otherwise movement will be stuck in infinite loop:
+			// navwalking -> (no navmesh) -> falling -> (standing on something) -> navwalking -> ....
+
+			const FVector TestLocation = GetActorFeetLocation();
+			FNavLocation NavLocation;
+
+			const bool bHasNavigationData = FindNavFloor(TestLocation, NavLocation);
+			if (!bHasNavigationData || NavLocation.NodeRef == INVALID_NAVNODEREF)
+			{
+				GroundMovementMode = MOVE_Walking;
+			}
+		}
+
 		SetPostLandedPhysics(Hit);
 	}
 	if (PathFollowingComp.IsValid())
@@ -4044,7 +4067,7 @@ bool UCharacterMovementComponent::TryToLeaveNavWalking()
 	if (CharacterOwner)
 	{
 		FVector CollisionFreeLocation = CharacterOwner->GetActorLocation();
-		const bool bCanTeleport = GetWorld()->FindTeleportSpot(CharacterOwner, CollisionFreeLocation, CharacterOwner->GetActorRotation());
+		bCanTeleport = GetWorld()->FindTeleportSpot(CharacterOwner, CollisionFreeLocation, CharacterOwner->GetActorRotation());
 		if (bCanTeleport)
 		{
 			CharacterOwner->SetActorLocation(CollisionFreeLocation);

@@ -18,6 +18,11 @@ IOnlineFriendsPtr FOnlineSubsystemFacebook::GetFriendsInterface() const
 	return FacebookFriends;
 }
 
+IOnlineGroupsPtr FOnlineSubsystemFacebook::GetGroupsInterface() const
+{
+	return nullptr;
+}
+
 
 IOnlineSharedCloudPtr FOnlineSubsystemFacebook::GetSharedCloudInterface() const
 {
@@ -121,6 +126,11 @@ IOnlineTurnBasedPtr FOnlineSubsystemFacebook::GetTurnBasedInterface() const
 
 bool FOnlineSubsystemFacebook::Tick(float DeltaTime)
 {
+	if (!FOnlineSubsystemImpl::Tick(DeltaTime))
+	{
+		return false;
+	}
+
 	if (FacebookIdentity.IsValid())
 	{		
 		FacebookIdentity->Tick(DeltaTime);

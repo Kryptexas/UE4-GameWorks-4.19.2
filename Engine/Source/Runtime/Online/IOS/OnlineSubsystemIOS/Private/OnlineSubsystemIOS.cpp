@@ -20,6 +20,10 @@ IOnlineFriendsPtr FOnlineSubsystemIOS::GetFriendsInterface() const
 	return FriendsInterface;
 }
 
+IOnlineGroupsPtr FOnlineSubsystemIOS::GetGroupsInterface() const
+{
+	return nullptr;
+}
 
 IOnlineSharedCloudPtr FOnlineSubsystemIOS::GetSharedCloudInterface() const
 {
@@ -158,6 +162,11 @@ bool FOnlineSubsystemIOS::Init()
 
 bool FOnlineSubsystemIOS::Tick(float DeltaTime)
 {
+	if (!FOnlineSubsystemImpl::Tick(DeltaTime))
+	{
+		return false;
+	}
+
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->Tick(DeltaTime);

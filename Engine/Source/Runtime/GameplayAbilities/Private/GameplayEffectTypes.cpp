@@ -99,13 +99,19 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 {
 	Ar << Instigator;
 	Ar << EffectCauser;
-	Ar << Actors;
 
-	bool HasHitResults = HitResult.IsValid();
-	Ar << HasHitResults;
+	uint8 HasActorByte = (Actors.Num() > 0);
+	Ar.SerializeBits(&HasActorByte, 1);
+	if (HasActorByte == 1)
+	{
+		Ar << Actors;
+	}
+
+	uint8 HasHitResultsByte = HitResult.IsValid();
+	Ar.SerializeBits(&HasHitResultsByte, 1);
 	if (Ar.IsLoading())
 	{
-		if (HasHitResults)
+		if (HasHitResultsByte)
 		{
 			if (!HitResult.IsValid())
 			{
@@ -115,14 +121,18 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		AddInstigator(Instigator.Get(), EffectCauser.Get()); // Just to initialize InstigatorAbilitySystemComponent
 	}
 
-	if (HasHitResults == 1)
+	if (HasHitResultsByte == 1)
 	{
 		HitResult->NetSerialize(Ar, Map, bOutSuccess);
 	}
-
-	Ar << bHasWorldOrigin;
-	Ar << WorldOrigin;
-
+	uint8 HasWorldOriginByte = bHasWorldOrigin;
+	Ar.SerializeBits(&HasWorldOriginByte, 1);
+	bHasWorldOrigin = HasWorldOriginByte & 1;
+	if (bHasWorldOrigin)
+	{
+		Ar << WorldOrigin;
+	}
+	
 	bOutSuccess = true;
 	return true;
 }
@@ -154,7 +164,7 @@ void FGameplayEffectContext::GetOwnedGameplayTags(OUT FGameplayTagContainer& Act
 	{
 		TagInterface->GetOwnedGameplayTags(ActorTagContainer);
 	}
-	else if (InstigatorAbilitySystemComponent)
+	else if (InstigatorAbilitySystemComponent.IsValid())
 	{
 		InstigatorAbilitySystemComponent->GetOwnedGameplayTags(ActorTagContainer);
 	}
@@ -163,7 +173,7 @@ void FGameplayEffectContext::GetOwnedGameplayTags(OUT FGameplayTagContainer& Act
 bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	bool ValidData = Data.IsValid();
-	Ar << ValidData;
+	Ar.SerializeBits(&ValidData,1);
 
 	if (ValidData)
 	{
@@ -285,7 +295,11 @@ void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 		// Block attempted reduction of non-explicit tags, as they were never truly added to the container directly
 		else
 		{
-			ABILITY_LOG(Warning, TEXT("Attempted to remove tag: %s from tag count container, but it is not explicitly in the container!"), *Tag.ToString());
+			// only warn about tags that are in the container but will not be removed because they aren't explicitly in the container
+			if (ExplicitTags.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+			{
+				ABILITY_LOG(Warning, TEXT("Attempted to remove tag: %s from tag count container, but it is not explicitly in the container!"), *Tag.ToString());
+			}
 			return;
 		}
 	}

@@ -357,7 +357,7 @@ void ANavigationTestingActor::SearchPathTo(ANavigationTestingActor* Goal)
 	const float Duration = (EndTime - StartTime);
 	PathfindingTime = Duration * 1000000.0f;			// in micro seconds [us]
 	bPathIsPartial = Result.IsPartial();
-	bPathExist = Result.IsSuccessful() || Result.IsPartial();
+	bPathExist = Result.IsSuccessful();
 	bPathSearchOutOfNodes = bPathExist ? Result.Path->DidSearchReachedLimit() : false;
 	LastPath = Result.Path;
 	PathCost = bPathExist ? Result.Path->GetCost() : 0.0f;

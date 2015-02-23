@@ -290,13 +290,13 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpec()
-	: Ability(nullptr), Level(1), InputID(INDEX_NONE), SourceObject(nullptr), InputPressed(false), ActiveCount(0)
+	: Ability(nullptr), Level(1), InputID(INDEX_NONE), SourceObject(nullptr), InputPressed(false), RemoveAfterActivation(false), ActiveCount(0)
 	{
 		
 	}
 
 	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE, UObject* InSourceObject=nullptr)
-		: Ability(InAbility), Level(InLevel), InputID(InInputID), SourceObject(InSourceObject), InputPressed(false), ActiveCount(0)
+		: Ability(InAbility), Level(InLevel), InputID(InInputID), SourceObject(InSourceObject), InputPressed(false), RemoveAfterActivation(false), ActiveCount(0)
 	{
 		Handle.GenerateNewHandle();
 	}
@@ -324,6 +324,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 	/** Is input currently pressed. Set to false when input is released */
 	UPROPERTY(NotReplicated)
 	bool	InputPressed;
+
+	/** If true, this ability should be removed as soon as it finishes executing */
+	UPROPERTY(NotReplicated)
+	bool	RemoveAfterActivation;
 
 	/** A count of the number of times this ability has been activated minus the number of times it has been ended. For instanced abilities this will be the number of currently active instances. Can't replicate until prediction accurately handles this.*/
 	UPROPERTY(NotReplicated)
@@ -515,9 +519,10 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayEventData()
-	: Instigator(NULL)
-	, Target(NULL)
-	, OptionalObject(NULL)
+	: Instigator(nullptr)
+	, Target(nullptr)
+	, OptionalObject(nullptr)
+	, OptionalObject2(nullptr)
 	, EventMagnitude(0.f)
 	{
 	}
@@ -538,6 +543,10 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	UObject* OptionalObject;
 
+	// A second optional ability-specific object to be passed though the event
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	UObject* OptionalObject2;
+
 	// Polymorphic context information
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	FGameplayEffectContextHandle ContextHandle;
@@ -553,14 +562,6 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	// The magnitude of the triggering event
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	float EventMagnitude;
-
-	// DEPRECATED
-	UPROPERTY()
-	float Var1_DEPRECATED;
-	UPROPERTY()
-	float Var2_DEPRECATED;
-	UPROPERTY()
-	float Var3_DEPRECATED;
 };
 
 /** 

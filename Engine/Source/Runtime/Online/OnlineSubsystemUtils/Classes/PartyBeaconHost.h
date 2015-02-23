@@ -1,9 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeaconHost.h"
-#include "Runtime/Online/OnlineSubsystemUtils/Classes/PartyBeaconState.h"
 #include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeaconHostObject.h"
+#include "PartyBeaconState.h"
 #include "PartyBeaconHost.generated.h"
 
 class FUniqueNetId;
@@ -58,8 +57,8 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 
 	// Begin AOnlineBeaconHostObject Interface 
 	virtual AOnlineBeaconClient* SpawnBeaconActor(UNetConnection* ClientConnection) override;
-	virtual void ClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection);
-	virtual void RemoveClientActor(AOnlineBeaconClient* ClientActor);
+	virtual void ClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection) override;
+	virtual void RemoveClientActor(AOnlineBeaconClient* ClientActor) override;
 	// End AOnlineBeaconHost Interface 
 
 	/**
@@ -205,6 +204,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	 * Handle a reservation request received from an incoming client
 	 *
 	 * @param Client client beacon making the request
+	 * @param SessionId id of the session that is being checked
 	 * @param ReservationRequest payload of request
 	 */
 	virtual void ProcessReservationRequest(APartyBeaconClient* Client, const FString& SessionId, const FPartyReservation& ReservationRequest);

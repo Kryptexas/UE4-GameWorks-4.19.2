@@ -7592,39 +7592,58 @@ UNetDriver* UEngine::FindNamedNetDriver(const UPendingNetGame* InPendingNetGame,
 	return FindNamedNetDriver_Local(GetWorldContextFromPendingNetGameChecked(InPendingNetGame).ActiveNetDrivers, NetDriverName);
 }
 
+UNetDriver* CreateNetDriver_Local(UEngine *Engine, FWorldContext &Context, FName NetDriverDefinition)
+{
+	UNetDriver* NetDriver = nullptr;
+	for (int32 Index = 0; Index < Engine->NetDriverDefinitions.Num(); Index++)
+	{
+		FNetDriverDefinition& NetDriverDef = Engine->NetDriverDefinitions[Index];
+		if (NetDriverDef.DefName == NetDriverDefinition)
+		{
+			// find the class to load
+			UClass* NetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), NULL, *NetDriverDef.DriverClassName.ToString(), NULL, LOAD_Quiet, NULL);
+
+			// if it fails, then fall back to standard fallback
+			if (NetDriverClass == nullptr || !NetDriverClass->GetDefaultObject<UNetDriver>()->IsAvailable())
+			{
+				NetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), NULL, *NetDriverDef.DriverClassNameFallback.ToString(), NULL, LOAD_None, NULL);
+			}
+
+			// Bail out if the net driver isn't available. The name may be incorrect or the class might not be built as part of the game configuration.
+			if (NetDriverClass == nullptr)
+			{
+				break;
+			}
+
+			// Try to create network driver.
+			NetDriver = ConstructObject<UNetDriver>(NetDriverClass);
+			check(NetDriver);
+			NetDriver->NetDriverName = NetDriver->GetFName();
+
+			new (Context.ActiveNetDrivers) FNamedNetDriver(NetDriver, &NetDriverDef);
+			return NetDriver;
+		}
+	}
+	
+	UE_LOG(LogNet, Log, TEXT("CreateNamedNetDriver failed to create driver from definition %s"), *NetDriverDefinition.ToString());
+	return nullptr;
+}
+
+UNetDriver* UEngine::CreateNetDriver(UWorld *InWorld, FName NetDriverDefinition)
+{
+	return CreateNetDriver_Local(this, GetWorldContextFromWorldChecked(InWorld), NetDriverDefinition);
+}
+
 bool CreateNamedNetDriver_Local(UEngine *Engine, FWorldContext &Context, FName NetDriverName, FName NetDriverDefinition)
 {
 	UNetDriver* NetDriver = FindNamedNetDriver_Local(Context.ActiveNetDrivers, NetDriverName);
-	if (NetDriver == NULL)
+	if (NetDriver == nullptr)
 	{
-		for (int32 Index = 0; Index < Engine->NetDriverDefinitions.Num(); Index++)
+		NetDriver = CreateNetDriver_Local(Engine, Context, NetDriverDefinition);
+		if (NetDriver)
 		{
-			FNetDriverDefinition& NetDriverDef = Engine->NetDriverDefinitions[Index];
-			if (NetDriverDef.DefName == NetDriverDefinition)
-			{
-				// find the class to load
-				UClass* NetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), NULL, *NetDriverDef.DriverClassName.ToString(), NULL, LOAD_Quiet, NULL);
-
-				// if it fails, then fall back to standard fallback
-				if (NetDriverClass == NULL || !NetDriverClass->GetDefaultObject<UNetDriver>()->IsAvailable())
-				{
-					NetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), NULL, *NetDriverDef.DriverClassNameFallback.ToString(), NULL, LOAD_None, NULL);
-				}
-
-				// Bail out if the net driver isn't available. The name may be incorrect or the class might not be built as part of the game configuration.
-				if(NetDriverClass == NULL)
-				{
-					break;
-				}
-
-				// Try to create network driver.
-				NetDriver = NewObject<UNetDriver>(GetTransientPackage(), NetDriverClass);
-				check(NetDriver);
-				NetDriver->NetDriverName = NetDriverName;
-				
-				new (Context.ActiveNetDrivers) FNamedNetDriver(NetDriver, &NetDriverDef);
-				return true;
-			}
+			NetDriver->NetDriverName = NetDriverName;
+			return true;
 		}
 	}
 

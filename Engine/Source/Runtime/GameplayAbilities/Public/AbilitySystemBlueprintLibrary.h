@@ -33,7 +33,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	// -------------------------------------------------------------------------------
 
 	UFUNCTION(BlueprintPure, Category = "Ability|Attribute")
-	static float GetFloatAttribute(const class AActor* Actor, FGameplayAttribute Attribute);
+	static float GetFloatAttribute(const class AActor* Actor, FGameplayAttribute Attribute, bool& bSuccessfullyFoundAttribute);
 
 	// -------------------------------------------------------------------------------
 	//		TargetData
@@ -71,6 +71,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static TArray<AActor*> GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+
+	/** Returns true if the given TargetData has the actor passed in targeted */
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static bool DoesTargetDataContainActor(FGameplayAbilityTargetDataHandle TargetData, int32 Index, AActor* Actor);
 
 	/** Returns true if the given TargetData has at least 1 actor targeted */
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")

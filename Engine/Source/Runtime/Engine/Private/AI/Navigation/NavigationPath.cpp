@@ -232,7 +232,7 @@ bool FNavigationPath::ContainsAnyCustomLink() const
 	return false;
 }
 
-FORCEINLINE bool FNavigationPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
+FORCEINLINE bool FNavigationPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
 {	
 	bool bIntersects = false;
 
@@ -244,7 +244,13 @@ FORCEINLINE bool FNavigationPath::DoesPathIntersectBoxImplementation(const FBox&
 		{
 			const FVector Direction = (End - Start);
 
-			if (FMath::LineBoxIntersection(Box, Start, End, Direction))
+			FVector HitLocation, HitNormal;
+			float HitTime;
+
+			// If we have a valid AgentExtent, then we use an extent box to represent the path
+			// Otherwise we use a line to represent the path
+			if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
+				(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
 			{
 				bIntersects = true;
 				if (IntersectingSegmentIndex != NULL)
@@ -261,7 +267,7 @@ FORCEINLINE bool FNavigationPath::DoesPathIntersectBoxImplementation(const FBox&
 	return bIntersects;
 }
 
-bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
+bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
 {
 	// iterate over all segments and check if any intersects with given box
 	bool bIntersects = false;
@@ -269,13 +275,13 @@ bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, in
 
 	if (PathPoints.Num() > 1 && PathPoints.IsValidIndex(int32(StartingIndex)))
 	{
-		bIntersects = DoesPathIntersectBoxImplementation(Box, PathPoints[StartingIndex].Location, StartingIndex + 1, IntersectingSegmentIndex);
+		bIntersects = DoesPathIntersectBoxImplementation(Box, PathPoints[StartingIndex].Location, StartingIndex + 1, IntersectingSegmentIndex, AgentExtent);
 	}
 
 	return bIntersects;
 }
 
-bool FNavigationPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
+bool FNavigationPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
 {
 	// iterate over all segments and check if any intersects with given box
 	bool bIntersects = false;
@@ -283,7 +289,7 @@ bool FNavigationPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLoca
 
 	if (PathPoints.Num() > 1 && PathPoints.IsValidIndex(int32(StartingIndex)))
 	{
-		bIntersects = DoesPathIntersectBoxImplementation(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex);
+		bIntersects = DoesPathIntersectBoxImplementation(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex, AgentExtent);
 	}
 
 	return bIntersects;
@@ -899,7 +905,7 @@ bool FNavMeshPath::ContainsWithSameEnd(const FNavMeshPath* Other) const
 	return bAreTheSame;
 }
 
-FORCEINLINE_DEBUGGABLE bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
+bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
 {
 	bool bIntersects = false;	
 	const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
@@ -908,14 +914,22 @@ FORCEINLINE_DEBUGGABLE bool FNavMeshPath::DoesPathIntersectBoxImplementation(con
 	if (CorridorEdges.IsValidIndex(StartingIndex))
 	{
 		FVector Start = StartLocation;
+
 		for (int32 PortalIndex = StartingIndex; PortalIndex < CorridorEdges.Num(); ++PortalIndex)
 		{
 			const FNavigationPortalEdge& Edge = CorridorEdges[PortalIndex];
-			const FVector End = Edge.Right + (Edge.Left - Edge.Right) / 2;
+			const FVector End = Edge.Right + (Edge.Left - Edge.Right) / 2 + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);
-				if (FMath::LineBoxIntersection(Box, Start, End, Direction))
+				
+				FVector HitLocation, HitNormal;
+				float HitTime;
+
+				// If we have a valid AgentExtent, then we use an extent box to represent the path
+				// Otherwise we use a line to represent the path
+				if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
+					(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
 				{
 					bIntersects = true;
 					if (IntersectingSegmentIndex != NULL)
@@ -933,11 +947,19 @@ FORCEINLINE_DEBUGGABLE bool FNavMeshPath::DoesPathIntersectBoxImplementation(con
 		if (bIntersects == false)
 		{
 			ensure(PathPoints.Num() == 2);
-			const FVector End = PathPoints.Last().Location;
+			const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
+			
 			if (FVector::DistSquared(StartLocation, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);
-				if (FMath::LineBoxIntersection(Box, Start, End, Direction))
+
+				FVector HitLocation, HitNormal;
+				float HitTime;
+
+				// If we have a valid AgentExtent, then we use an extent box to represent the path
+				// Otherwise we use a line to represent the path
+				if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
+					(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
 				{
 					bIntersects = true;
 					if (IntersectingSegmentIndex != NULL)
@@ -962,7 +984,7 @@ FORCEINLINE_DEBUGGABLE bool FNavMeshPath::DoesPathIntersectBoxImplementation(con
 	return bIntersects;
 }
 
-bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
+bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
 {
 	if (IsStringPulled())
 	{
@@ -984,10 +1006,10 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 	}
 	// else will be handled by DoesPathIntersectBoxImplementation
 
-	return bParametersValid && DoesPathIntersectBoxImplementation(Box, StartLocation, StartingIndex, IntersectingSegmentIndex);
+	return bParametersValid && DoesPathIntersectBoxImplementation(Box, StartLocation, StartingIndex, IntersectingSegmentIndex, AgentExtent);
 }
 
-bool FNavMeshPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
+bool FNavMeshPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
 {
 	// trivial scenario check:
 	if (Box.IsInside(AgentLocation))
@@ -997,10 +1019,10 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocatio
 
 	if (IsStringPulled())
 	{
-		return Super::DoesIntersectBox(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex);
+		return Super::DoesIntersectBox(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex, AgentExtent);
 	}
 
-	return DoesPathIntersectBoxImplementation(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex);
+	return DoesPathIntersectBoxImplementation(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex, AgentExtent);
 }
 
 FVector FNavMeshPath::GetSegmentDirection(uint32 SegmentEndIndex) const

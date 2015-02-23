@@ -407,10 +407,10 @@ public:
 							continue;
 						}
 
-						FMeshBatch& Mesh = Collector.AllocateMesh();
-						FMeshBatchElement& BatchElement = Mesh.Elements[0];
-						BatchElement = MeshBatchElements[Index];
-						BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(FMatrix::Identity, GetBounds(), GetLocalBounds(), false, UseEditorDepthTest());
+					FMeshBatch& Mesh = Collector.AllocateMesh();
+					FMeshBatchElement& BatchElement = Mesh.Elements[0];
+					BatchElement = MeshBatchElements[Index];
+					BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(FMatrix::Identity, GetBounds(), GetLocalBounds(), false, UseEditorDepthTest());
 
 						Mesh.bWireframe = false;
 						Mesh.VertexFactory = &VertexFactory;

@@ -41,6 +41,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetShadowOffset(FVector2D InShadowOffset);
 
+
+	/**
+	 *  Set the text justification for this text block
+	 *
+	 *  @param Justification new justification
+	 */
+	UFUNCTION( BlueprintCallable, Category = "Appearance" )
+	void SetJustification( ETextJustify::Type InJustification );
+
 public:
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;

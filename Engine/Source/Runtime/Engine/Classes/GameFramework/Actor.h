@@ -1474,17 +1474,22 @@ public:
 #endif		// WITH_EDITOR
 
 	/**
-	* @param ViewPos		Position of the viewer
-	* @param ViewDir		Vector direction of viewer
-	* @param Viewer			PlayerController owned by the client for whom net priority is being determined
-	* @param InChannel		Channel on which this actor is being replicated.
-	* @param Time			Time since actor was last replicated
-	* @param bLowBandwidth True if low bandwith of viewer
-	* @return				Priority of this actor for replication
+	 * @param ViewPos		Position of the viewer
+	 * @param ViewDir		Vector direction of viewer
+	 * @param Viewer		PlayerController owned by the client for whom net priority is being determined
+	 * @param ViewTarget	The actor that is currently being viewed/controlled by Viewer, usually a pawn
+	 * @param InChannel		Channel on which this actor is being replicated.
+	 * @param Time			Time since actor was last replicated
+	 * @param bLowBandwidth True if low bandwith of viewer
+	 * @return				Priority of this actor for replication
 	 */
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
+
+	DEPRECATED(4.8, "GetNetPriority now takes a ViewTarget, please override that version.")
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
-	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth);
+	/** Returns true if the actor should be dormant for a specific net connection. Only checked for DORM_DormantPartial */
+	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
 	/** 
 	 * Allows for a specific response from the actor when the actor channel is opened (client side)
@@ -1657,12 +1662,12 @@ public:
 
 	/** 
 	  * @param RealViewer - is the PlayerController associated with the client for which network relevancy is being checked
-	  * @param Viewer - is the Actor being used as the point of view for the PlayerController
+	  * @param VieweTarget - is the Actor being used as the point of view for the PlayerController
 	  * @param SrcLocation - is the viewing location
 	  *
 	  * @return bool - true if this actor is network relevant to the client associated with RealViewer 
 	  */
-	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const;
+	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
 
 	/**
 	 * Check if this actor is the owner when doing relevancy checks for actors marked bOnlyRelevantToOwner

@@ -361,3 +361,51 @@ FGameplayTag FGameplayTag::RequestDirectParent() const
 {
 	return IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagDirectParent(*this);
 }
+
+bool FGameplayTag::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+
+	uint8 bHasName = (TagName != NAME_None);
+	uint8 bHasNetIndex = 0;
+	FGameplayTagNetIndex NetIndex = INVALID_TAGNETINDEX;
+
+	if (Ar.IsSaving())
+	{
+		NetIndex = TagManager.GetNetIndexFromTag(*this);
+		if (NetIndex != INVALID_TAGNETINDEX)
+		{
+			// If we have a valid net index, serialize with that
+			bHasNetIndex = true;
+		}
+	}
+
+	// Serialize if we have a name at all or are empty
+	Ar.SerializeBits(&bHasName, 1);
+
+	if (bHasName)
+	{
+		Ar.SerializeBits(&bHasNetIndex, 1);
+		// If we have a net index serialize that, otherwise serialize as a name
+		if (bHasNetIndex)
+		{
+			Ar << NetIndex;
+		}
+		else
+		{
+			Ar << TagName;
+		}
+
+		if (Ar.IsLoading() && bHasNetIndex)
+		{
+			TagName = TagManager.GetTagNameFromNetIndex(NetIndex);
+		}
+	}
+	else
+	{
+		TagName = NAME_None;
+	}
+
+	bOutSuccess = true;
+	return true;
+}

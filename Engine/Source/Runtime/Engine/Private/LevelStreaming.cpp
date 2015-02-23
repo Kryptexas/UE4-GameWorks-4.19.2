@@ -593,11 +593,8 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 					}
 
 					// Make sure the redirector is not in the way of the new world.
-					if (WorldRedirector->GetFName() == DestinationWorld->GetFName())
-					{
-						// Pass NULL as the name to make a new unique name and GetTransientPackage() for the outer to remove it from the package.
-						WorldRedirector->Rename(NULL, GetTransientPackage(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
-					}
+					// Pass NULL as the name to make a new unique name and GetTransientPackage() for the outer to remove it from the package.
+					WorldRedirector->Rename(NULL, GetTransientPackage(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
 				}
 				else
 				{

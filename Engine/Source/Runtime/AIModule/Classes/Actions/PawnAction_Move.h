@@ -48,6 +48,10 @@ protected:
 	UPROPERTY()
 	uint32 bUsePathfinding : 1;
 
+	/** if set, use incomplete path when goal can't be reached */
+	UPROPERTY()
+	uint32 bAllowPartialPath : 1;
+
 	/** if set, GoalLocation will be projected on navigation before using  */
 	UPROPERTY()
 	uint32 bProjectGoalToNavigation : 1;
@@ -86,7 +90,6 @@ protected:
 	/** currently followed path */
 	FNavPathSharedPtr Path;
 
-	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
 	FDelegateHandle PathObserverDelegateHandle;
 	
 	/** Handle for efficient management of DeferredPerformMoveAction timer */

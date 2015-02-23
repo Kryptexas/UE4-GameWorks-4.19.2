@@ -1747,9 +1747,46 @@ FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) cons
 
 extern float DebugLineLifetime;
 
+float USkeletalMeshComponent::GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const
+{
+	ClosestPointOnCollision = Point;
+	float ClosestPointDistance = -1.f;
+	bool bHasResult = false;
+
+	for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
+	{
+		FBodyInstance* BodyInstance = Bodies[BodyIdx];
+		if (BodyInstance && BodyInstance->IsValidBodyInstance() && (BodyInstance->GetCollisionEnabled() != ECollisionEnabled::NoCollision))
+		{
+			FVector ClosestPoint;
+			const float Distance = Bodies[BodyIdx]->GetDistanceToBody(Point, ClosestPoint);
+
+			if (Distance < 0.f)
+			{
+				// Invalid result, impossible to be better than ClosestPointDistance
+				continue;
+			}
+
+			if (!bHasResult || (Distance < ClosestPointDistance))
+			{
+				bHasResult = true;
+				ClosestPointDistance = Distance;
+				ClosestPointOnCollision = ClosestPoint;
+
+				// If we're inside collision, we're not going to find anything better, so abort search we've got our best find.
+				if (Distance <= KINDA_SMALL_NUMBER)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	return ClosestPointDistance;
+}
+
 bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params)
 {
-	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 	UWorld* const World = GetWorld();
 	bool bHaveHit = false;
 

@@ -35,6 +35,9 @@
 #include "GameFramework/GameState.h"
 #include "GameFramework/GameMode.h"
 #include "Engine/ChildConnection.h"
+#include "Engine/GameEngine.h"
+#include "Engine/GameInstance.h"
+#include "VisualLogger/VisualLogger.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -47,7 +50,6 @@ const float RetryServerCheckSpectatorThrottleTime = 0.25f;
 
 APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, SlateOperations(new FReply( FReply::Unhandled() ))
 {
 	NetPriority = 3.0f;
 	CheatClass = UCheatManager::StaticClass();
@@ -80,7 +82,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	}
 }
 
-float APlayerController::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth)
+float APlayerController::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
 {
 	if ( Viewer == this )
 	{
@@ -1167,13 +1169,16 @@ void APlayerController::ClientSetHUD_Implementation(TSubclassOf<AHUD> NewHUDClas
 {
 	if ( MyHUD != NULL )
 	{
+
 		MyHUD->Destroy();
 		MyHUD = NULL;
 	}
+
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Owner = this;
 	SpawnInfo.Instigator = Instigator;
 	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save HUDs into a map
+
 	MyHUD = GetWorld()->SpawnActor<AHUD>(NewHUDClass, SpawnInfo );
 }
 
@@ -3615,8 +3620,10 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 	check(InPlayer!=NULL);
 
 	// Detach old player.
-	if( InPlayer->PlayerController )
+	if (InPlayer->PlayerController)
+	{
 		InPlayer->PlayerController->Player = NULL;
+	}
 
 	// Set the viewport.
 	Player = InPlayer;
@@ -3633,6 +3640,8 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 	ULocalPlayer *LP = Cast<ULocalPlayer>(InPlayer);
 	if (LP != NULL)
 	{
+		// Clients need this marked as local (server already knew at construction time)
+		SetAsLocalPlayerController();
 		LP->InitOnlineSession();
 		InitInputSystem();
 	}
@@ -3802,7 +3811,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-bool APlayerController::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
+bool APlayerController::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	return ( this==RealViewer );
 }
@@ -4367,9 +4376,10 @@ void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, class UGameView
 void APlayerController::SetInputMode(const FInputModeDataBase& InData)
 {
 	UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
-	if (GameViewportClient != nullptr)
+	ULocalPlayer* LocalPlayer = Cast< ULocalPlayer >( Player );
+	if ( GameViewportClient && LocalPlayer )
 	{
-		InData.ApplyInputMode(*SlateOperations, *GameViewportClient);
+		InData.ApplyInputMode( LocalPlayer->GetSlateOperations(), *GameViewportClient );
 	}
 }
 
@@ -4446,4 +4456,12 @@ void FDynamicForceFeedbackDetails::Update(FForceFeedbackValues& Values) const
 	{
 		Values.RightSmall = FMath::Clamp(Intensity, Values.RightSmall, 1.f);
 	}
+}
+
+void APlayerController::OnServerStartedVisualLogger_Implementation(bool bIsLogging)
+{
+#if ENABLE_VISUAL_LOG
+	FVisualLogger::Get().SetIsRecordingOnServer(bIsLogging);
+	ClientMessage(FString::Printf(TEXT("Visual Loggger is %s."), FVisualLogger::Get().IsRecordingOnServer() ? TEXT("now recording") : TEXT("disabled")));
+#endif
 }

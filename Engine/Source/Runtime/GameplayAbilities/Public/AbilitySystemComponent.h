@@ -38,8 +38,11 @@
  * 
  */
 
-
+/** Called when a targeting actor rejects target confirmation */
 DECLARE_MULTICAST_DELEGATE_OneParam(FTargetingRejectedConfirmation, int32);
+
+/** Called when ability fails to activate, passes along the failed ability and a tag explaining why */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAbilityFailedDelegate, const UGameplayAbility*, FGameplayTagContainer);
 
 /**
  *	The core ActorComponent for interfacing with the GameplayAbilities System
@@ -184,20 +187,26 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION()
 	void OnRep_PredictionKey();
 
+	// A pending activation that cannot be activated yet, will be rechecked at a later point
 	struct FPendingAbilityInfo
 	{
 		bool operator==(const FPendingAbilityInfo& Other) const
 		{
+			// Don't compare event data, not valid to have multiple activations in flight with same key and handle but different event data
 			return PredictionKey == Other.PredictionKey	&& Handle == Other.Handle;
 		}
 
 		FPredictionKey	PredictionKey;
 		FGameplayAbilitySpecHandle Handle;
+		FGameplayEventData TriggerEventData;
 	};
 
 	// This is a list of GameplayAbilities that are predicted by the client and were triggered by abilities that were also predicted by the client
 	// When the server version of the predicted ability executes it should trigger copies of these and the copies will be associated with the correct prediction keys
-	TArray<FPendingAbilityInfo> PendingClientAbilities;
+	TArray<FPendingAbilityInfo> PendingClientActivatedAbilities;
+
+	// This is a list of GameplayAbilities that were activated on the server and can't yet execute on the client. It will try to execute these at a later point
+	TArray<FPendingAbilityInfo> PendingServerActivatedAbilities;
 
 	enum class EAbilityExecutionState : uint8
 	{
@@ -370,6 +379,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// --------------------------------------------
 	
 	FOnActiveGameplayEffectRemoved* OnGameplayEffectRemovedDelegate(FActiveGameplayEffectHandle Handle);
+	FOnActiveGameplayEffectRemoved& OnAnyGameplayEffectRemovedDelegate();
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToTarget"))
 	FActiveGameplayEffectHandle BP_ApplyGameplayEffectToTarget(TSubclassOf<UGameplayEffect> GameplayEffectClass, UAbilitySystemComponent *Target, float Level, FGameplayEffectContextHandle Context);
@@ -428,7 +438,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// GameplayCues can come from GameplayEffectSpecs
 
 	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueExecuted_FromSpec(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey);
+	void NetMulticast_InvokeGameplayCueExecuted_FromSpec(const FGameplayEffectSpecForRPC Spec, FPredictionKey PredictionKey);
 
 	// GameplayCues can also come on their own. These take an optional effect context to pass through hit result, etc
 	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
@@ -455,7 +465,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueRemoved(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
-	void InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType);
+	void InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType);
 
 	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
 
@@ -471,7 +481,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/**
 	 *	GameplayAbilities
 	 *	
-	 *	The role of the AbilitySystemComponent wrt Abilities is to provide:
+	 *	The role of the AbilitySystemComponent with respect to Abilities is to provide:
 	 *		-Management of ability instances (whether per actor or per execution instance).
 	 *			-Someone *has* to keep track of these instances.
 	 *			-Non instanced abilities *could* be executed without any ability stuff in AbilitySystemComponent.
@@ -486,11 +496,26 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Grants Ability. Returns handle that can be used in TryActivateAbility, etc. */
 	FGameplayAbilitySpecHandle GiveAbility(FGameplayAbilitySpec AbilitySpec);
 
-	void GetActivateableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities) const;
+	/** Grants an ability and attempts to activate it exactly one time, which will cause it to be removed. Only valid on the server! */
+	FGameplayAbilitySpecHandle GiveAbilityAndActivateOnce(FGameplayAbilitySpec AbilitySpec);
 
-	/** Attempts to activate a gameplay ability that matches the given tag. Returns true if anything is activated */
+	// Gets all Activatable Gameplay Abilities that match all tags in GameplayTagContainer AND for which
+	// DoesAbilitySatisfyTagRequirements() is true.  The latter requirement allows this function to find the correct
+	// ability without requiring advanced knowledge.  For example, if there are two "Melee" abilities, one of which
+	// requires a weapon and one of which requires being unarmed, then those abilities can use Blocking and Required
+	// tags to determine when they can fire.  Using the Satisfying Tags requirements simplifies a lot of usage cases.
+	// For example, Behavior Trees can use various decorators to test an ability fetched using this mechanism as well
+	// as the Task to execute the ability without needing to know that there even is more than one such ability.
+	void GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer,
+											TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities) const;
+
+	/** Attempts to activate every gameplay ability that matches the given tag and DoesAbilitySatisfyTagRequirements().
+	  * Returns true if anything is activated.  Can activate more than one ability.*/
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	bool TryActivateAbilityByTag(const FGameplayTagContainer& GameplayTagContainer);
+
+	/** Checks if the ability system is currently blocking InputID. Returns true if InputID is blocked, false otherwise.  */
+	bool IsAbilityInputBlocked(int32 InputID) const;
 
 	/** Attempts to activate the given ability */
 	bool TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey = FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate = nullptr, const FGameplayEventData* TriggerEventData = nullptr);
@@ -588,7 +613,7 @@ protected:
 public:
 
 	/** Returns the list of all activatable abilities */
-	const TArray<FGameplayAbilitySpec>& GetActivatableAbilities();
+	const TArray<FGameplayAbilitySpec>& GetActivatableAbilities() const;
 
 	/** Returns an ability spec from a handle. If modifying call MarkAbilitySpecDirty */
 	FGameplayAbilitySpec* FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle);
@@ -615,7 +640,7 @@ public:
 	void	RemoteEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo);
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void	ServerEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo);
+	void	ServerEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey);
 
 	UFUNCTION(Client, reliable)
 	void	ClientEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo);
@@ -626,7 +651,10 @@ public:
 	void	OnClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey::KeyType PredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey, FGameplayEventData TriggerEventData);
+	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
+
+	UFUNCTION(Client, Reliable)
+	void	ClientActivateAbilitySucceedWithEventData(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey, FGameplayEventData TriggerEventData);
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -672,12 +700,14 @@ public:
 
 	/** A generic callback anytime an ability is commited (cost/cooldown applied) */
 	FGenericAbilityDelegate AbilityCommitedCallbacks;
+	FAbilityFailedDelegate AbilityFailedCallbacks;
 
 	/** Executes a gameplay event. Returns the number of successful ability activations triggered by the event */
 	int32 HandleGameplayEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
 
-	void NotifyAbilityCommit(UGameplayAbility* Ability);
-	void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
+	virtual void NotifyAbilityCommit(UGameplayAbility* Ability);
+	virtual void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
+	virtual void NotifyAbilityFailed(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, FGameplayTagContainer FailureReason);
 
 	UPROPERTY()
 	TArray<AGameplayAbilityTargetActor*>	SpawnedTargetActors;
@@ -925,6 +955,10 @@ public:
 
 	UFUNCTION()
 	void OnRep_SimulatedTasks();
+
+#if ENABLE_VISUAL_LOG
+	void ClearDebugInstantEffects();
+#endif // ENABLE_VISUAL_LOG
 
 protected:
 

@@ -51,6 +51,10 @@ IOnlineFriendsPtr FOnlineSubsystemGooglePlay::GetFriendsInterface() const
 	return nullptr;
 }
 
+IOnlineGroupsPtr FOnlineSubsystemGooglePlay::GetGroupsInterface() const
+{
+	return nullptr;
+}
 
 IOnlineSharedCloudPtr FOnlineSubsystemGooglePlay::GetSharedCloudInterface() const
 {
@@ -179,6 +183,11 @@ bool FOnlineSubsystemGooglePlay::Init()
 
 bool FOnlineSubsystemGooglePlay::Tick(float DeltaTime)
 {
+	if (!FOnlineSubsystemImpl::Tick(DeltaTime))
+	{
+		return false;
+	}
+
 	if (OnlineAsyncTaskThreadRunnable)
 	{
 		OnlineAsyncTaskThreadRunnable->GameTick();

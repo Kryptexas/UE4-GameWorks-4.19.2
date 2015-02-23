@@ -1451,9 +1451,9 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 				{
 					if ( CreateSubObjects[i].IsValid() )
 					{
-						Actor->OnSubobjectDestroyFromReplication( CreateSubObjects[i].Get() );
-
-						CreateSubObjects[i]->MarkPendingKill();
+						UObject *SubObject = CreateSubObjects[i].Get();
+						Actor->OnSubobjectDestroyFromReplication(SubObject);
+						SubObject->MarkPendingKill();
 					}
 				}
 

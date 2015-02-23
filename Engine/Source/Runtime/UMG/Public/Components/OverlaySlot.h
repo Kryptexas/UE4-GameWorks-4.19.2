@@ -4,6 +4,8 @@
 
 #include "SlateWrapperTypes.h"
 
+#include "Components/PanelSlot.h"
+
 #include "OverlaySlot.generated.h"
 
 /** Slot for the UOverlay panel.  Allows content to be hover above other content. */
@@ -46,11 +48,11 @@ public:
 	// End of UPanelSlot interface
 
 	/** Builds the underlying FSlot for the Slate layout panel. */
-	void BuildSlot(TSharedRef<SOverlay> InOverlay);
+	virtual void BuildSlot(TSharedRef<SOverlay> InOverlay);
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
-private:
+protected:
 	//TODO UMG Slots should hold weak or shared refs to slots.
 
 	/** A raw pointer to the slot to allow us to adjust the size, padding...etc at runtime. */

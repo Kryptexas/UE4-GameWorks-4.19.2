@@ -481,8 +481,8 @@ public:
 
 	FORCEINLINE bool SupportsNavigationGeneration() const { return bSupportRebuilding; }
 
-	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex = 0);
-	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0);
+	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex = 0, FVector* AgentExtent = NULL);
+	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0, FVector* AgentExtent = NULL);
 
 	//----------------------------------------------------------------------//
 	// Active tiles
@@ -552,6 +552,7 @@ public:
 
 	void AddDirtyArea(const FBox& NewArea, int32 Flags);
 	void AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags);
+	bool HasDirtyAreasQueued() const;
 
 	const FNavigationOctree* GetNavOctree() const { return NavOctree; }
 

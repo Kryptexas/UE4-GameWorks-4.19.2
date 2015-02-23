@@ -50,6 +50,8 @@ private:
 	/** Property View */
 	TSharedPtr<class IDetailsView> DetailsView;
 
+	uint32 SelectedNodesCount;
+
 	/**	Graph editor tab */
 	static const FName EQSUpdateGraphTabId;
 	static const FName EQSPropertiesTabId;

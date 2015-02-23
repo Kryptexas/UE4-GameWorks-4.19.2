@@ -41,7 +41,7 @@ public class UMG : ModuleRules
 
 		if (Target.Type != TargetRules.TargetType.Server)
 		{
-			PrivateDependencyModuleNames.AddRange(
+			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"SlateRHIRenderer",
 				}
@@ -50,6 +50,7 @@ public class UMG : ModuleRules
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
 				    "ImageWrapper",
+				    "SlateRHIRenderer",
 			    }
             );
 		};

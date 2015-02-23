@@ -31,8 +31,6 @@ DECLARE_CYCLE_STAT(TEXT("Step: movement"), STAT_AI_Crowd_StepMovementTime, STATG
 DECLARE_CYCLE_STAT(TEXT("Agent Update Time"), STAT_AI_Crowd_AgentUpdateTime, STATGROUP_AICrowd);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Agents"), STAT_AI_Crowd_NumAgents, STATGROUP_AICrowd);
 
-DEFINE_LOG_CATEGORY_STATIC(LogEngineCrowdFollowing, Warning, All)
-
 namespace CrowdDebugDrawing
 {
 	/** if set, debug information will be displayed for agent selected in editor */
@@ -1130,7 +1128,7 @@ void UCrowdManager::DebugTick() const
 					for (int32 Idx = 0; Idx < CrowdAgent->ncorners; Idx++)
 					{
 						FVector P1 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[Idx * 3]);
-						UE_VLOG_SEGMENT(LogOwner, LogEngineCrowdFollowing, Log, P0 + CrowdDebugDrawing::Offset, P1 + CrowdDebugDrawing::Offset, CrowdDebugDrawing::Corner, TEXT(""));
+						UE_VLOG_SEGMENT(LogOwner, LogCrowdFollowing, Log, P0 + CrowdDebugDrawing::Offset, P1 + CrowdDebugDrawing::Offset, CrowdDebugDrawing::Corner, TEXT(""));
 						P0 = P1;
 					}
 				}
@@ -1138,7 +1136,17 @@ void UCrowdManager::DebugTick() const
 				if (CrowdAgent->ncorners && (CrowdAgent->cornerFlags[CrowdAgent->ncorners - 1] & DT_STRAIGHTPATH_OFFMESH_CONNECTION))
 				{
 					FVector P0 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[(CrowdAgent->ncorners - 1) * 3]);
-					UE_VLOG_SEGMENT(LogOwner, LogEngineCrowdFollowing, Log, P0, P0 + CrowdDebugDrawing::Offset * 2.0f, CrowdDebugDrawing::CornerLink, TEXT(""));
+					UE_VLOG_SEGMENT(LogOwner, LogCrowdFollowing, Log, P0, P0 + CrowdDebugDrawing::Offset * 2.0f, CrowdDebugDrawing::CornerLink, TEXT(""));
+				}
+
+				for (int32 Idx = 0; Idx < CrowdAgent->boundary.getSegmentCount(); Idx++)
+				{
+					const float* s = CrowdAgent->boundary.getSegment(Idx);
+					FColor Color = (dtTriArea2D(CrowdAgent->npos, s, s + 3) < 0.0f) ? CrowdDebugDrawing::CollisionSeg1 : CrowdDebugDrawing::CollisionSeg0;
+					FVector Pt0 = Recast2UnrealPoint(s);
+					FVector Pt1 = Recast2UnrealPoint(s + 3);
+
+					UE_VLOG_SEGMENT(LogOwner, LogCrowdFollowing, Log, Pt0 + CrowdDebugDrawing::Offset, Pt1 + CrowdDebugDrawing::Offset, Color, TEXT(""));
 				}
 			}
 		}

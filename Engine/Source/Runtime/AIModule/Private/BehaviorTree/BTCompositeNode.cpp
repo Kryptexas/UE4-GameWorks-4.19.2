@@ -467,8 +467,8 @@ int32 UBTCompositeNode::GetMatchingChildIndex(int32 ActiveInstanceIdx, FBTNodeIn
 		// find child outside range
 		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ChildIndex++)
 		{
-			const UBTNode* ChildNode = GetChildNode(ChildIndex);
-			if (ChildNode != nullptr && ChildNode->GetExecutionIndex() > NodeIdx.ExecutionIndex)
+			const uint16 FirstIndexInBranch = GetChildExecutionIndex(ChildIndex, EBTChildIndex::FirstNode);
+			if (FirstIndexInBranch > NodeIdx.ExecutionIndex)
 			{
 				return ChildIndex ? (ChildIndex - 1) : 0;
 			}

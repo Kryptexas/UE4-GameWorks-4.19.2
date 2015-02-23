@@ -122,9 +122,9 @@ class UNetConnection : public UPlayer
 	UPROPERTY()
 	TArray<class AActor*> SentTemporaries;
 
-	/** @todo document */
+	/** The actor that is currently being viewed/controlled by the owning controller */
 	UPROPERTY()
-	class AActor* Viewer;
+	class AActor* ViewTarget;
 
 	/** Reference to controlling actor (usually PlayerController) */
 	UPROPERTY()

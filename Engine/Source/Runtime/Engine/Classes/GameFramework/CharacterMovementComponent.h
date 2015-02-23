@@ -589,7 +589,7 @@ public:
 	uint32 bNetworkMovementModeChanged:1;
 
 	/** if true, event NotifyJumpApex() to CharacterOwner's controller when at apex of jump.  Is cleared when event is triggered. */
-	UPROPERTY()
+	UPROPERTY(Category = "Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bNotifyApex:1;
 
 	/** Instantly stop when in flying mode and no acceleration is being applied. */
@@ -1519,6 +1519,13 @@ protected:
 	 * @param MoveOnBaseHit		Hit result for the object we hit when trying to move with the base.
 	 */
 	virtual void OnUnableToFollowBaseMove(const FVector& DeltaPosition, const FVector& OldLocation, const FHitResult& MoveOnBaseHit);
+
+	/** Project a location to navmesh to find adjusted height
+	 * @param TestLocation		Location to project
+	 * @param NavFloorLocation	Location on navmesh
+	 * @return True if projection was performed (successfully or not)
+	 */
+	bool FindNavFloor(const FVector& TestLocation, FNavLocation& NavFloorLocation) const;
 
 public:
 	// Movement functions broken out based on owner's network Role.

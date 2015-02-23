@@ -375,56 +375,57 @@ void UWidgetComponent::OnRegister()
 	Super::OnRegister();
 
 #if !UE_SERVER
-
-	if ( Space != EWidgetSpace::Screen )
+	if ( !IsRunningDedicatedServer() )
 	{
-		if ( GetWorld()->IsGameWorld() )
+		if ( Space != EWidgetSpace::Screen )
 		{
-			TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
-
-			if ( GameViewportWidget.IsValid() )
+			if ( GetWorld()->IsGameWorld() )
 			{
-				TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
-				if ( !CustomHitTestPath.IsValid() )
+				TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
+
+				if ( GameViewportWidget.IsValid() )
 				{
-					CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
-					GameViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
+					TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
+					if ( !CustomHitTestPath.IsValid() )
+					{
+						CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
+						GameViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
+					}
+
+					TSharedPtr<FWidget3DHitTester> WidgetHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+					if ( WidgetHitTester->GetWorld() == GetWorld() )
+					{
+						WidgetHitTester->RegisterWidgetComponent(this);
+					}
+				}
+			}
+
+			if ( !MaterialInstance )
+			{
+				UMaterialInterface* Parent = nullptr;
+				if ( bIsOpaque )
+				{
+					Parent = bIsTwoSided ? OpaqueMaterial : OpaqueMaterial_OneSided;
+				}
+				else
+				{
+					Parent = bIsTwoSided ? TranslucentMaterial : TranslucentMaterial_OneSided;
 				}
 
-				TSharedPtr<FWidget3DHitTester> WidgetHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
-				if ( WidgetHitTester->GetWorld() == GetWorld() )
-				{
-					WidgetHitTester->RegisterWidgetComponent(this);
-				}
+				MaterialInstance = UMaterialInstanceDynamic::Create(Parent, this);
 			}
 		}
 
-		if ( !MaterialInstance )
-		{
-			UMaterialInterface* Parent = nullptr;
-			if ( bIsOpaque )
-			{
-				Parent = bIsTwoSided ? OpaqueMaterial : OpaqueMaterial_OneSided;
-			}
-			else
-			{
-				Parent = bIsTwoSided ? TranslucentMaterial : TranslucentMaterial_OneSided;
-			}
+		InitWidget();
 
-			MaterialInstance = UMaterialInstanceDynamic::Create(Parent, this);
+		if ( Space != EWidgetSpace::Screen )
+		{
+			if ( !Renderer.IsValid() )
+			{
+				Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
+			}
 		}
 	}
-
-	InitWidget();
-
-	if ( Space != EWidgetSpace::Screen )
-	{
-		if ( !Renderer.IsValid() )
-		{
-			Renderer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
-		}
-	}
-
 #endif // !UE_SERVER
 }
 

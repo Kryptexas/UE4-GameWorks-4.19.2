@@ -1114,7 +1114,7 @@ public:
 	 * @return		Success if returns > 0.f, if returns 0.f, it is either not convex or inside of the point
 	 *				If returns < 0.f, this primitive does not have collsion
 	 */
-	float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
+	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
 
 	/**
 	 * Creates a proxy to represent the primitive to the scene manager in the rendering thread.

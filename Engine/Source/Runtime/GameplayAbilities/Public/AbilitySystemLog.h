@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "VisualLogger.h"
+
 // Intended categories:
 //	Log - This happened. What gameplay programmers may care about to debug
 //	Verbose - This is why this happened. What you may turn on to debug the skill system code.

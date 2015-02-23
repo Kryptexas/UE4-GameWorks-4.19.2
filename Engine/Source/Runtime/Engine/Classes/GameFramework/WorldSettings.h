@@ -164,22 +164,25 @@ struct ENGINE_API FNetViewer
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** The player controller corresponding to this view */
 	UPROPERTY()
 	class APlayerController* InViewer;
 
+	/** The actor that is being directly viewed, usually a pawn */
 	UPROPERTY()
-	class AActor* Viewer;
+	class AActor* ViewTarget;
 
+	/** Where the viewer is looking from */
 	UPROPERTY()
 	FVector ViewLocation;
 
+	/** Direction the viewer is looking */
 	UPROPERTY()
 	FVector ViewDir;
 
-
 	FNetViewer()
 		: InViewer(NULL)
-		, Viewer(NULL)
+		, ViewTarget(NULL)
 		, ViewLocation(ForceInit)
 		, ViewDir(ForceInit)
 	{

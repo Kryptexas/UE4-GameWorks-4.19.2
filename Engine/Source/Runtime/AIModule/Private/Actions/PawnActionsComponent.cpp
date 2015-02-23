@@ -191,8 +191,13 @@ void UPawnActionsComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			switch (Event.EventType)
 			{
 			case EPawnActionEventType::InstantAbort:
-				Event.Action->Abort(EAIForceParam::Force);
-				ActionStacks[Event.Priority].PopAction(*Event.Action);
+				// can result in adding new ActionEvents (from child actions) and reallocating data in ActionEvents array
+				// because of it, we need to operate on copy instead of reference to memory address
+				{
+					FPawnActionEvent EventCopy(Event);
+					EventCopy.Action->Abort(EAIForceParam::Force);
+					ActionStacks[EventCopy.Priority].PopAction(*EventCopy.Action);
+				}
 				break;
 			case EPawnActionEventType::FinishedAborting:
 			case EPawnActionEventType::FinishedExecution:

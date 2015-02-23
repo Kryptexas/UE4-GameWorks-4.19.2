@@ -258,19 +258,12 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectContext()
-		: Instigator(NULL)
-		, EffectCauser(NULL)
-		, SourceObject(NULL)
-		, InstigatorAbilitySystemComponent(NULL)
-		, bHasWorldOrigin(false)
+		: bHasWorldOrigin(false)
 	{
 	}
 
 	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
-		: Instigator(NULL)
-		, EffectCauser(NULL)
-		, SourceObject(NULL)
-		, InstigatorAbilitySystemComponent(NULL)
+		: bHasWorldOrigin(false)
 	{
 		AddInstigator(InInstigator, InEffectCauser);
 	}
@@ -294,7 +287,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Returns the ability system component of the instigator of this effect */
 	virtual UAbilitySystemComponent* GetInstigatorAbilitySystemComponent() const
 	{
-		return InstigatorAbilitySystemComponent;
+		return InstigatorAbilitySystemComponent.Get();
 	}
 
 	/** Returns the physical actor tied to the application of this effect */
@@ -312,7 +305,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Returns the ability system component of the instigator that started the whole chain */
 	virtual UAbilitySystemComponent* GetOriginalInstigatorAbilitySystemComponent() const
 	{
-		return InstigatorAbilitySystemComponent;
+		return InstigatorAbilitySystemComponent.Get();
 	}
 
 	/** Sets the object this effect was created from. */
@@ -324,7 +317,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Returns the object this effect was created from. */
 	virtual const UObject* GetSourceObject() const
 	{
-		return SourceObject;
+		return SourceObject.Get();
 	}
 
 	virtual void AddActors(TArray<TWeakObjectPtr<AActor>> InActor, bool bReset = false);
@@ -386,6 +379,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
 protected:
+	// The object pointers here have to be weak because contexts aren't necessarily tracked by GC in all cases
 
 	/** Instigator actor, the actor that owns the ability system component */
 	UPROPERTY()
@@ -397,11 +391,11 @@ protected:
 
 	/** Object this effect was created from, can be an actor or static object. Useful to bind an effect to a gameplay object */
 	UPROPERTY()
-	const UObject* SourceObject;
+	TWeakObjectPtr<const UObject> SourceObject;
 
 	/** The ability system component that's bound to instigator */
 	UPROPERTY(NotReplicated)
-	UAbilitySystemComponent* InstigatorAbilitySystemComponent;
+	TWeakObjectPtr<UAbilitySystemComponent> InstigatorAbilitySystemComponent;
 
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AActor>> Actors;

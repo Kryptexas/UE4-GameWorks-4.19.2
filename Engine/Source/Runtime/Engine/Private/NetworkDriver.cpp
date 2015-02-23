@@ -1747,12 +1747,12 @@ bool FPacketSimulationSettings::ParseSettings(const TCHAR* Cmd)
 
 FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 	InViewer(InConnection->PlayerController),
-	Viewer(InConnection->Viewer),
+	ViewTarget(InConnection->ViewTarget),
 	ViewLocation(ForceInit),
 	ViewDir(ForceInit)
 {
 	// Get viewer coordinates.
-	ViewLocation = Viewer->GetActorLocation();
+	ViewLocation = ViewTarget->GetActorLocation();
 	if (InViewer)
 	{
 		FRotator ViewRotation = InViewer->GetControlRotation();
@@ -1765,8 +1765,8 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 	if (InConnection->TickCount & 1)
 	{
 		float PredictSeconds = (InConnection->TickCount & 2) ? 0.4f : 0.9f;
-		Ahead = PredictSeconds * Viewer->GetVelocity();
-		APawn* ViewerPawn = Cast<APawn>(Viewer);
+		Ahead = PredictSeconds * ViewTarget->GetVelocity();
+		APawn* ViewerPawn = Cast<APawn>(ViewTarget);
 		if( ViewerPawn && ViewerPawn->GetMovementBase() && ViewerPawn->GetMovementBase()->GetOwner() )
 		{
 			Ahead += PredictSeconds * ViewerPawn->GetMovementBase()->GetOwner()->GetVelocity();
@@ -1787,7 +1787,7 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 				World = ViewerPawn->GetWorld();
 			}
 			check( World );
-			World->LineTraceSingle(Hit, ViewLocation, Hit.Location, FCollisionQueryParams(NAME_ServerForwardView, true, Viewer), FCollisionObjectQueryParams(ECC_WorldStatic));
+			World->LineTraceSingle(Hit, ViewLocation, Hit.Location, FCollisionQueryParams(NAME_ServerForwardView, true, ViewTarget), FCollisionObjectQueryParams(ECC_WorldStatic));
 			ViewLocation = Hit.Location;
 		}
 	}
@@ -1801,7 +1801,7 @@ FActorPriority::FActorPriority(UNetConnection* InConnection, UActorChannel* InCh
 	Priority = 0;
 	for (int32 i = 0; i < Viewers.Num(); i++)
 	{
-		Priority = FMath::Max<int32>(Priority, FMath::RoundToInt(65536.0f * Actor->GetNetPriority(Viewers[i].ViewLocation, Viewers[i].ViewDir, Viewers[i].InViewer, InChannel, Time, bLowBandwidth)));
+		Priority = FMath::Max<int32>(Priority, FMath::RoundToInt(65536.0f * Actor->GetNetPriority(Viewers[i].ViewLocation, Viewers[i].ViewDir, Viewers[i].InViewer, Viewers[i].ViewTarget, InChannel, Time, bLowBandwidth)));
 	}
 }
 
@@ -1909,7 +1909,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			}
 			bFoundReadyConnection = true;
 			
-			Connection->Viewer = Connection->PlayerController ? Connection->PlayerController->GetViewTarget() : OwningActor->GetOwner();
+			Connection->ViewTarget = Connection->PlayerController ? Connection->PlayerController->GetViewTarget() : OwningActor->GetOwner();
 			//@todo - eliminate this mallocs if the connection isn't going to actually be updated this frame (currently needed to verify owner relevancy below)
 			Connection->OwnedConsiderList.Empty(NetRelevantActorCount);
 
@@ -1919,21 +1919,21 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				APlayerController* ChildPlayerController = Child->PlayerController;
 				if (ChildPlayerController != NULL)
 				{
-					Child->Viewer = ChildPlayerController->GetViewTarget();
+					Child->ViewTarget = ChildPlayerController->GetViewTarget();
 					Child->OwnedConsiderList.Empty(NetRelevantActorCount);
 				}
 				else
 				{
-					Child->Viewer = NULL;
+					Child->ViewTarget = NULL;
 				}
 			}
 		}
 		else
 		{
-			Connection->Viewer = NULL;
+			Connection->ViewTarget = NULL;
 			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
 			{
-				Connection->Children[ChildIdx]->Viewer = NULL;
+				Connection->Children[ChildIdx]->ViewTarget = NULL;
 			}
 		}
 	}
@@ -2078,11 +2078,11 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 							bool bCloseChannel = true;
 							while (Connection != NULL)
 							{
-								if (Connection->Viewer != NULL)
+								if (Connection->ViewTarget != NULL)
 								{
 									if (ActorOwner == Connection->PlayerController || 
 										(Connection->PlayerController && ActorOwner == Connection->PlayerController->GetPawn()) ||
-										Connection->Viewer->IsRelevancyOwnerFor(Actor, ActorOwner, Connection->OwningActor))
+										Connection->ViewTarget->IsRelevancyOwnerFor(Actor, ActorOwner, Connection->OwningActor))
 									{
 										// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
 										ensure(Connection->OwnedConsiderList.Num() < Connection->OwnedConsiderList.Max());
@@ -2174,7 +2174,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				}
 			}
 		}
-		else if (Connection->Viewer)
+		else if (Connection->ViewTarget)
 		{
 			int32 j;
 			int32 ConsiderCount	= 0;
@@ -2225,7 +2225,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				new(ConnectionViewers) FNetViewer(Connection, DeltaSeconds);
 				for (j = 0; j < Connection->Children.Num(); j++)
 				{
-					if (Connection->Children[j]->Viewer != NULL)
+					if (Connection->Children[j]->ViewTarget != NULL)
 					{
 						new(ConnectionViewers) FNetViewer(Connection->Children[j], DeltaSeconds);
 					}
@@ -2240,7 +2240,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 
 				// determine whether we should priority sort the list of relevant actors based on the saturation/bandwidth of the current connection
 				//@note - if the server is currently CPU saturated then do not sort until framerate improves
-				check(World == Connection->Viewer->GetWorld());
+				check(World == Connection->ViewTarget->GetWorld());
 				AGameMode const* const GameMode = World->GetAuthGameMode();
 				bool bLowNetBandwidth = !bCPUSaturated && (Connection->CurrentNetSpeed / float(GameMode->NumPlayers + GameMode->NumBots) < 500.f );
 
@@ -2278,7 +2278,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 								float LastReplicationTime  = Channel ? (Connection->Driver->Time - Channel->LastUpdateTime) : Connection->Driver->SpawnPrioritySeconds;
 								for (int32 viewerIdx = 0; viewerIdx < ConnectionViewers.Num(); viewerIdx++)
 								{
-									if (!Actor->GetNetDormancy(ConnectionViewers[viewerIdx].ViewLocation, ConnectionViewers[viewerIdx].ViewDir, ConnectionViewers[viewerIdx].InViewer, Channel, LastReplicationTime, bLowNetBandwidth))
+									if (!Actor->GetNetDormancy(ConnectionViewers[viewerIdx].ViewLocation, ConnectionViewers[viewerIdx].ViewDir, ConnectionViewers[viewerIdx].InViewer, ConnectionViewers[viewerIdx].ViewTarget, Channel, Time, bLowNetBandwidth))
 									{
 										ShouldGoDormant = false;
 										break;
@@ -2309,7 +2309,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 						bool Relevant = false;
 						for (int32 viewerIdx = 0; viewerIdx < ConnectionViewers.Num(); viewerIdx++)
 						{
-							if(Actor->IsNetRelevantFor(ConnectionViewers[viewerIdx].InViewer, ConnectionViewers[viewerIdx].Viewer, ConnectionViewers[viewerIdx].ViewLocation))
+							if(Actor->IsNetRelevantFor(ConnectionViewers[viewerIdx].InViewer, ConnectionViewers[viewerIdx].ViewTarget, ConnectionViewers[viewerIdx].ViewLocation))
 							{
 								Relevant = true;
 								break;
@@ -2447,7 +2447,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 							{
 								for (int32 k = 0; k < ConnectionViewers.Num(); k++)
 								{
-									if (Actor->IsNetRelevantFor(ConnectionViewers[k].InViewer, ConnectionViewers[k].Viewer, ConnectionViewers[k].ViewLocation))
+									if (Actor->IsNetRelevantFor(ConnectionViewers[k].InViewer, ConnectionViewers[k].ViewTarget, ConnectionViewers[k].ViewLocation))
 									{
 										bIsRelevant = true;
 										break;
@@ -2582,7 +2582,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				{
 					for (int32 h = 0; h < ConnectionViewers.Num(); h++)
 					{
-						if (Actor->IsNetRelevantFor(ConnectionViewers[h].InViewer, ConnectionViewers[h].Viewer, ConnectionViewers[h].ViewLocation))
+						if (Actor->IsNetRelevantFor(ConnectionViewers[h].InViewer, ConnectionViewers[h].ViewTarget, ConnectionViewers[h].ViewLocation))
 						{
 							UE_LOG(LogNetTraffic, Log, TEXT(" Saturated. Mark %s NetUpdateTime to be checked for next tick"), *Actor->GetName());
 							Actor->bPendingNetUpdate = true;

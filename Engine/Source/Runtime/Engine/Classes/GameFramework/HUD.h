@@ -118,6 +118,23 @@ public:
 	UFUNCTION(exec)
 	void ShowDebugToggleSubCategory(FName Category);
 
+	/** Toggles 'ShowDebug' from showing debug info between reticle target actor (of subclass <DesiredClass>) and camera view target */
+	UFUNCTION(exec)
+	void ShowDebugForReticleTargetToggle(TSubclassOf<AActor> DesiredClass);
+
+private:
+	/** if true show debug info for 'ShowDebugTargetActor', otherwise for Camera Viewtarget */
+	static bool bShowDebugForReticleTarget;
+
+	/** Class filter for selecting 'ShowDebugTargetActor' when 'bShowDebugForReticleTarget' is true. */
+	UPROPERTY(Transient)
+	TSubclassOf<AActor> ShowDebugTargetDesiredClass;
+
+	/** Show Debug Actor used if 'bShowDebugForReticleTarget' is true, only updated if trace from reticle hit a new Actor of class 'ShowDebugTargetDesiredClass'*/
+	UPROPERTY(Transient)
+	AActor* ShowDebugTargetActor;
+
+public:
 	/**
 	 * Add debug text for a specific actor to be displayed via DrawDebugTextList().  If the debug text is invalid then it will
 	 * attempt to remove any previous entries via RemoveDebugText().

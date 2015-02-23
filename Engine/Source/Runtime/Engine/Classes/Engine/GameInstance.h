@@ -46,7 +46,6 @@ protected:
 	TArray<ULocalPlayer*> LocalPlayers;		// List of locally participating players in this game instance
 public:
 
-
 	FString PIEMapName;
 
 	// Begin FExec Interface

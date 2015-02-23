@@ -73,7 +73,7 @@ void AGameplayAbilityTargetActor::CancelTargeting()
 	Destroy();
 }
 
-bool AGameplayAbilityTargetActor::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
+bool AGameplayAbilityTargetActor::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	//The player who created the ability doesn't need to be updated about it - there should be local prediction in place.
 	if (RealViewer == MasterPC)
@@ -86,10 +86,10 @@ bool AGameplayAbilityTargetActor::IsNetRelevantFor(const APlayerController* Real
 
 	if (Avatar)
 	{
-		return Avatar->IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
+		return Avatar->IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
 	}
 
-	return Super::IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
+	return Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
 }
 
 bool AGameplayAbilityTargetActor::GetReplicates() const

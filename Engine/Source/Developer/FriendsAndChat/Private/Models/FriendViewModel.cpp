@@ -50,7 +50,7 @@ public:
 							Actions.Add(EFriendActionType::JoinGame);
 						}
 					}
-					if (FriendItem->IsOnline() && FriendItem->CanInvite() && !bIsFriendInSameSession && FFriendsAndChatManager::Get()->IsInJoinableGameSession())
+					if (FriendItem->IsOnline() && !bIsFriendInSameSession && FriendItem->CanInvite() && FFriendsAndChatManager::Get()->IsInJoinableGameSession())
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}

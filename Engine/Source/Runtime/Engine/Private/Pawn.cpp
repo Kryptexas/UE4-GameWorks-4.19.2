@@ -251,34 +251,6 @@ FVector APawn::GetGravityDirection()
 	return FVector(0.f,0.f,-1.f);
 }
 
-
-float APawn::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth)
-{
-	if ( !bHidden )
-	{
-		FVector Dir = GetActorLocation() - ViewPos;
-		float DistSq = Dir.SizeSquared();
-
-		// adjust priority based on distance and whether pawn is in front of viewer or is controlled
-		if ( (ViewDir | Dir) < 0.f )
-		{
-			if ( DistSq > NEARSIGHTTHRESHOLDSQUARED )
-				Time *= 0.3f;
-			else if ( DistSq > CLOSEPROXIMITYSQUARED )
-				Time *= 0.5f;
-		}
-		else if ( Controller && (DistSq < FARSIGHTTHRESHOLDSQUARED) && (FMath::Square(ViewDir | Dir) > 0.5f * DistSq) )
-		{
-			Time *= 2.f;
-		}
-		else if (DistSq > MEDSIGHTTHRESHOLDSQUARED)
-		{
-			Time *= 0.5f;
-		}
-	}
-	return NetPriority * Time;
-}
-
 bool APawn::ShouldTickIfViewportsOnly() const 
 { 
 	return IsLocallyControlled() && Cast<APlayerController>(GetController()); 
@@ -1045,10 +1017,10 @@ bool APawn::IsBasedOnActor(const AActor* Other) const
 }
 
 
-bool APawn::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
+bool APawn::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
-	if( bAlwaysRelevant || RealViewer == Controller || IsOwnedBy(Viewer) || IsOwnedBy(RealViewer) || this==Viewer || Viewer==Instigator
-		|| IsBasedOnActor(Viewer) || (Viewer && Viewer->IsBasedOnActor(this)))
+	if (bAlwaysRelevant || RealViewer == Controller || IsOwnedBy(ViewTarget) || IsOwnedBy(RealViewer) || this == ViewTarget || ViewTarget == Instigator
+		|| IsBasedOnActor(ViewTarget) || (ViewTarget && ViewTarget->IsBasedOnActor(this)))
 	{
 		return true;
 	}
@@ -1062,7 +1034,7 @@ bool APawn::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* 
 		AActor* BaseActor = MovementBase ? MovementBase->GetOwner() : NULL;
 		if ( MovementBase && BaseActor && GetMovementComponent() && ((Cast<const USkeletalMeshComponent>(MovementBase)) || (BaseActor == GetOwner())) )
 		{
-			return BaseActor->IsNetRelevantFor( RealViewer, Viewer, SrcLocation );
+			return BaseActor->IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
 		}
 	}
 

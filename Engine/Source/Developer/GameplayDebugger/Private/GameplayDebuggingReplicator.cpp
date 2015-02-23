@@ -29,7 +29,7 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const FObjectInitiali
 		ConstructorHelpers::FObjectFinderOptional<UTexture2D> RedIcon;
 		ConstructorHelpers::FObjectFinderOptional<UTexture2D> GreenIcon;
 
-		// both icons are needed to debug AI with Behavior Trees in Fortnite
+		// both icons are needed to debug AI
 		FConstructorStatics()
 			: RedIcon(TEXT("/Engine/EngineResources/AICON-Red.AICON-Red"))
 			, GreenIcon(TEXT("/Engine/EngineResources/AICON-Green.AICON-Green"))
@@ -37,6 +37,9 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const FObjectInitiali
 		}
 	};
 	static FConstructorStatics ConstructorStatics;
+
+	DefaultTexture_Red = ConstructorStatics.RedIcon.Get();
+	DefaultTexture_Green = ConstructorStatics.GreenIcon.Get();
 
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
@@ -98,7 +101,7 @@ void AGameplayDebuggingReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeP
 #endif
 }
 
-bool AGameplayDebuggingReplicator::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
+bool AGameplayDebuggingReplicator::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	return LocalPlayerOwner == RealViewer;
 }
@@ -257,6 +260,31 @@ void AGameplayDebuggingReplicator::BeginPlay()
 			}
 		}
 	}
+
+	if (bAutoActivate)
+	{
+		OnRep_AutoActivate();
+	}
+
+}
+
+void AGameplayDebuggingReplicator::PostNetInit()
+{
+	Super::PostNetInit();
+	if (bAutoActivate)
+	{
+		OnRep_AutoActivate();
+	}
+}
+
+void AGameplayDebuggingReplicator::ClientAutoActivate_Implementation()
+{
+	// we are already replicated so let's activate tool
+	if (GetWorld() && GetNetMode() == ENetMode::NM_Client && !IsToolCreated() && !IsGlobalInWorld())
+	{
+		CreateTool();
+		EnableTool();
+	}
 }
 
 void AGameplayDebuggingReplicator::OnRep_AutoActivate()
@@ -271,7 +299,7 @@ void AGameplayDebuggingReplicator::OnRep_AutoActivate()
 
 UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()
 {
-	if (!DebugComponent && DebugComponentClass.IsValid() && GetNetMode() < ENetMode::NM_Client)
+	if (IsPendingKill() == false && !DebugComponent && DebugComponentClass.IsValid() && GetNetMode() < ENetMode::NM_Client)
 	{
 		DebugComponent = NewObject<UGameplayDebuggingComponent>(this, DebugComponentClass.Get());
 		DebugComponent->SetIsReplicated(true);
@@ -284,7 +312,7 @@ UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()
 
 class UNetConnection* AGameplayDebuggingReplicator::GetNetConnection()
 {
-	if (LocalPlayerOwner)
+	if (LocalPlayerOwner && LocalPlayerOwner->IsPendingKill() == false && IsPendingKill() == false)
 	{
 		return LocalPlayerOwner->GetNetConnection();
 	}
@@ -488,18 +516,16 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 
 	EnableDraw(true);
 	UWorld* World = GetWorld();
-	if (World && GetDebugComponent() && GetDebugComponent()->GetOwnerRole() == ROLE_Authority)
+	UGameplayDebuggingComponent* DebugComponent = GetDebugComponent();
+	if (World && DebugComponent && DebugComponent->GetOwnerRole() == ROLE_Authority)
 	{
 		UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
 		TArray<int32> OryginalReplicateViewDataCounters;
 
-		if (UGameplayDebuggingComponent* DebugComponent = GetDebugComponent())
+		OryginalReplicateViewDataCounters = DebugComponent->ReplicateViewDataCounters;
+		for (uint32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
 		{
-			OryginalReplicateViewDataCounters = DebugComponent->ReplicateViewDataCounters;
-			for (uint32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-			{
-				DebugComponent->ReplicateViewDataCounters[Index] = GameplayDebuggerSettings(this).CheckFlag((EAIDebugDrawDataView::Type)Index) ? 1 : 0;
-			}
+			DebugComponent->ReplicateViewDataCounters[Index] = GameplayDebuggerSettings(this).CheckFlag((EAIDebugDrawDataView::Type)Index) ? 1 : 0;
 		}
 
 		// looks like Simulate in UE4 Editor - let's find selected Pawn to debug
@@ -515,8 +541,8 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 			}
 
 			//We needs to collect data manually in Simulate
-			GetDebugComponent()->SetActorToDebug(NewTarget);
-			GetDebugComponent()->CollectDataToReplicate(NewTarget->IsSelected());
+			DebugComponent->SetActorToDebug(NewTarget);
+			DebugComponent->CollectDataToReplicate(NewTarget->IsSelected());
 			DrawDebugData(Canvas, PC);
 		}
 
@@ -524,20 +550,17 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 		ServerSetActorToDebug(FullSelectedTarget);
 		if (FullSelectedTarget)
 		{
-			GetDebugComponent()->CollectDataToReplicate(true);
-			GetDebugComponent()->SetEQSIndex(ActiveEQSIndex);
+			DebugComponent->CollectDataToReplicate(true);
+			DebugComponent->SetEQSIndex(ActiveEQSIndex);
 			DrawDebugData(Canvas, PC);
 		}
 
 		if (GetSelectedActorToDebug() != OldActor)
 		{
-			GetDebugComponent()->MarkRenderStateDirty();
+			DebugComponent->MarkRenderStateDirty();
 		}
 
-		if (UGameplayDebuggingComponent* DebugComponent = GetDebugComponent())
-		{
-			DebugComponent->ReplicateViewDataCounters = OryginalReplicateViewDataCounters;
-		}
+		DebugComponent->ReplicateViewDataCounters = OryginalReplicateViewDataCounters;
 
 	}
 #endif

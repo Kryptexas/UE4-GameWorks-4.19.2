@@ -4147,7 +4147,6 @@ float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOn
 	int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
 
 	const PxVec3 PPoint = U2PVector(Point);
-	PxTransform PCompTM(U2PTransform(OwnerComponent->ComponentToWorld));
 	float MinDistanceSqr=BIG_NUMBER;
 	bool bFoundValidBody = false;
 
@@ -4157,7 +4156,7 @@ float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOn
 		PxShape* PShape = PShapes[ShapeIdx];
 		check(PShape);
 		PxGeometry& PGeom = PShape->getGeometry().any();
-		PxTransform PGlobalPose = PCompTM.transform(PShape->getLocalPose());
+		PxTransform PGlobalPose = PxShapeExt::getGlobalPose(*PShape, *RigidBody);
 		PxGeometryType::Enum GeomType = PShape->getGeometryType();
 		
 		if (GeomType == PxGeometryType::eTRIANGLEMESH)

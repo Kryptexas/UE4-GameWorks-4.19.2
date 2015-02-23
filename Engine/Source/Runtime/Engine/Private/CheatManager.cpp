@@ -36,14 +36,6 @@ UCheatManager::UCheatManager(const FObjectInitializer& ObjectInitializer)
 	bDebugCapsuleTraceComplex = false;
 }
 
-void UCheatManager::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-#if ENABLE_VISUAL_LOG
-	DOREPLIFETIME(UCheatManager, bVisualLoggerActiveOnServer);
-#endif
-}
-
 void UCheatManager::FreezeFrame(float delay)
 {
 	FCanUnpause DefaultCanUnpause;
@@ -625,7 +617,7 @@ void UCheatManager::BeginDestroy()
 		FVisualLogger::Get().SetIsRecording(false);
 		FVisualLogger::Get().SetIsRecordingToFile(false);
 		bToggleAILogging = false;
-		bVisualLoggerActiveOnServer = false;
+		FVisualLogger::Get().SetIsRecordingOnServer(false);
 	}
 #endif
 	Super::BeginDestroy();
@@ -639,7 +631,6 @@ bool UCheatManager::ServerToggleAILogging_Validate()
 void UCheatManager::ServerToggleAILogging_Implementation()
 {
 #if ENABLE_VISUAL_LOG
-	UWorld *World = GetWorld();
 	if (FVisualLogger::Get().IsRecordingToFile())
 	{
 		// stop recording and dump all remaining logs in a moment
@@ -653,8 +644,24 @@ void UCheatManager::ServerToggleAILogging_Implementation()
 		bToggleAILogging = true;
 	}
 
-	bVisualLoggerActiveOnServer = bToggleAILogging;
-	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLogger::Get().IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
+	FVisualLogger::Get().SetIsRecordingOnServer(bToggleAILogging);
+	UWorld *World = GetWorld();
+	if (World)
+	{
+		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			APlayerController* PC = *Iterator;
+			if (PC)
+			{
+				PC->OnServerStartedVisualLogger(bToggleAILogging);
+			}
+		}
+	}
+	else
+	{
+		GetOuterAPlayerController()->OnServerStartedVisualLogger(bToggleAILogging);
+		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("VisLog recording is now %s"), FVisualLogger::Get().IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
+	}
 #endif
 }
 
@@ -676,13 +683,6 @@ void UCheatManager::ToggleAILogging()
 	{
 		ServerToggleAILogging();
 	}
-#endif
-}
-
-void UCheatManager::OnRep_VisualLoggerActiveOnServer()
-{
-#if ENABLE_VISUAL_LOG
-	FVisualLogger::Get().SetIsRecordingOnServer(bVisualLoggerActiveOnServer);
 #endif
 }
 

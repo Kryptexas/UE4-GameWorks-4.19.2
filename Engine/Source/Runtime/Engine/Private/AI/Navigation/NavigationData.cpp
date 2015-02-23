@@ -174,7 +174,8 @@ void ANavigationData::PostLoad()
 {
 	Super::PostLoad();
 
-	if (GetLinkerUE4Version() < VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION)
+	if ((GetLinkerUE4Version() < VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION) &&
+		(RuntimeGeneration == ERuntimeGenerationType::LegacyGeneration))
 	{
 		RuntimeGeneration = bRebuildAtRuntime_DEPRECATED ? ERuntimeGenerationType::Dynamic : ERuntimeGenerationType::Static;
 	}
@@ -239,6 +240,7 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 	{
 		float TimeStamp = GetWorldTimeStamp();
 		TArray<FNavPathRecalculationRequest> PostponedRequests;
+		const UWorld* World = GetWorld();
 
 		// @todo batch-process it!
 		for (auto RecalcRequest : RepathRequests)

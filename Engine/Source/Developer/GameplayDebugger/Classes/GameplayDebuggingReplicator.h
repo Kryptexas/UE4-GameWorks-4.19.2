@@ -80,11 +80,20 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	UPROPERTY(Transient, EditAnywhere, Category = DataView)
 	bool GameView5;
 
+	UPROPERTY()
+	class UTexture2D* DefaultTexture_Red;
+
+	UPROPERTY()
+	class UTexture2D* DefaultTexture_Green;
+
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerReplicateMessage(class AActor* Actor, uint32 InMessage, uint32 DataView = 0);
 
 	UFUNCTION(reliable, client, WithValidation)
 	void ClientReplicateMessage(class AActor* Actor, uint32 InMessage, uint32 DataView = 0);
+
+	UFUNCTION(Reliable, Client)
+	void ClientAutoActivate();
 
 	UFUNCTION(Reliable, Client, WithValidation)
 	void ClientEnableTargetSelection(bool bEnable, APlayerController* Context);
@@ -98,8 +107,10 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	virtual class UNetConnection* GetNetConnection() override;
 
-	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const override;
+	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 
+	virtual void PostNetInit() override;
+	
 	virtual void PostInitializeComponents() override;
 
 	virtual void BeginPlay() override;

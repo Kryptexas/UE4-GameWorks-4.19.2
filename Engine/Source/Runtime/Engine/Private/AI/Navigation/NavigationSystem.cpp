@@ -2106,6 +2106,11 @@ void UNavigationSystem::AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags)
 	}
 }
 
+bool UNavigationSystem::HasDirtyAreasQueued() const
+{
+	return DirtyAreas.Num() > 0;
+}
+
 int32 GetDirtyFlagHelper(int32 UpdateFlags, int32 DefaultValue)
 {
 	return ((UpdateFlags & UNavigationSystem::OctreeUpdate_Geometry) != 0) ? ENavigationDirtyFlag::All :
@@ -3411,10 +3416,11 @@ ENavigationQueryResult::Type UNavigationSystem::GetPathLength(UObject* WorldCont
 
 bool UNavigationSystem::IsNavigationBeingBuilt(UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject); 
-	if (World != NULL && World->GetNavigationSystem() != NULL)
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+	if (NavSys)
 	{
-		return World->GetNavigationSystem()->IsNavigationBuildInProgress();
+		return NavSys->HasDirtyAreasQueued() || NavSys->IsNavigationBuildInProgress();
 	}
 
 	return false;
@@ -3540,14 +3546,14 @@ bool UNavigationSystem::CanRebuildDirtyNavigation() const
 	return true;
 }
 
-bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex)
+bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex, FVector* AgentExtent)
 {
-	return Path != NULL && Path->DoesIntersectBox(Box, StartingIndex);
+	return Path != NULL && Path->DoesIntersectBox(Box, StartingIndex, NULL, AgentExtent);
 }
 
-bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex)
+bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex, FVector* AgentExtent)
 {
-	return Path != NULL && Path->DoesIntersectBox(Box, AgentLocation, StartingIndex);
+	return Path != NULL && Path->DoesIntersectBox(Box, AgentLocation, StartingIndex, NULL, AgentExtent);
 }
 
 //----------------------------------------------------------------------//

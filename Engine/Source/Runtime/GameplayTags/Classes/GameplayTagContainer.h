@@ -21,6 +21,9 @@ enum class EGameplayContainerMatchType : uint8
 	All		//	Means the filter is only populated if all of the tags in this container match.
 };
 
+typedef uint16 FGameplayTagNetIndex;
+#define INVALID_TAGNETINDEX MAX_uint16
+
 USTRUCT(BlueprintType)
 struct GAMEPLAYTAGS_API FGameplayTag
 {
@@ -86,6 +89,9 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	/** Returns direct parent GameplayTag of this GameplayTag */
 	FGameplayTag RequestDirectParent() const;
 
+	/** Overridden for fast serialize */
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
 private:
 
 	/** Intentionally private so only the tag manager can use */
@@ -96,6 +102,15 @@ private:
 	FName TagName;
 
 	friend class UGameplayTagsManager;
+};
+
+template<>
+struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true,
+	};
 };
 
 /** Simple struct for a gameplay tag container */

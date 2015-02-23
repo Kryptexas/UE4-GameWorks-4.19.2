@@ -23,6 +23,11 @@ UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectIni
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
 #endif // #if WITH_EDITORONLY_DATA
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bIgnoreAbilitySystemCooldowns = false;
+	bIgnoreAbilitySystemCosts = false;
+#endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UAbilitySystemGlobals::InitGlobalData()
@@ -33,6 +38,7 @@ void UAbilitySystemGlobals::InitGlobalData()
 	InitAttributeDefaults();
 
 	GetGameplayCueManager();
+	InitGlobalTags();
 }
 
 UCurveTable * UAbilitySystemGlobals::GetGlobalCurveTable()
@@ -238,4 +244,36 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 void UAbilitySystemGlobals::GlobalPreGameplayEffectSpecApply(FGameplayEffectSpec& Spec, UAbilitySystemComponent* AbilitySystemComponent)
 {
 
+}
+
+void UAbilitySystemGlobals::ToggleIgnoreAbilitySystemCooldowns()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bIgnoreAbilitySystemCooldowns = !bIgnoreAbilitySystemCooldowns;
+#endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+void UAbilitySystemGlobals::ToggleIgnoreAbilitySystemCosts()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bIgnoreAbilitySystemCosts = !bIgnoreAbilitySystemCosts;
+#endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+bool UAbilitySystemGlobals::ShouldIgnoreCooldowns() const
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	return bIgnoreAbilitySystemCooldowns;
+#else
+	return false;
+#endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+bool UAbilitySystemGlobals::ShouldIgnoreCosts() const
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	return bIgnoreAbilitySystemCosts;
+#else
+	return false;
+#endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }

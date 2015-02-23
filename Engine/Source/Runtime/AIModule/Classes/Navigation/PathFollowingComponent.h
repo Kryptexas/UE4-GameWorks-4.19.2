@@ -275,6 +275,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 
 	void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
 
+	/** helper function for sending a path for visual log */
+	static void LogPathHelper(const AActor* LogOwner, FNavPathSharedPtr LogPath, const AActor* LogGoalActor);
+	static void LogPathHelper(const AActor* LogOwner, FNavigationPath* LogPath, const AActor* LogGoalActor);
 
 protected:
 

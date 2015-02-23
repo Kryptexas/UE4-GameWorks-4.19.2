@@ -11,6 +11,8 @@ class UPrimitiveComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, class ACharacter*, Character, EMovementMode, PrevMovementMode, uint8, PreviousCustomMode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterMovementUpdatedSignature, float, DeltaSeconds, FVector, OldLocation, FVector, OldVelocity);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCharacterReachedApexSignature);
+
 //
 // Forward declarations
 //
@@ -485,7 +487,11 @@ public:
 	virtual void Falling() {}
 
 	/** Called when character's jump reaches Apex. Needs CharacterMovement->bNotifyApex = true */
-	virtual void NotifyJumpApex() {}
+	virtual void NotifyJumpApex();
+
+	/** Broadcast when Character's jump reaches its apex. Needs CharacterMovement->bNotifyApex = true */
+	UPROPERTY(BlueprintAssignable)
+	FCharacterReachedApexSignature OnReachedJumpApex;
 
 	/**
 	 * Called upon landing when falling, to perform actions based on the Hit result. Triggers the OnLanded event.

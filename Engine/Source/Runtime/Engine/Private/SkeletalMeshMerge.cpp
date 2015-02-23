@@ -131,7 +131,15 @@ bool FSkeletalMeshMerge::FinalizeMesh()
 			{
 				FName SrcBoneName = SrcMesh->RefSkeleton.GetBoneName(i);
 				int32 DestBoneIndex = NewRefSkeleton.FindBoneIndex(SrcBoneName);
-				check(DestBoneIndex != INDEX_NONE); // All bones should be here now!
+
+				if (DestBoneIndex == INDEX_NONE)
+				{
+					// Missing bones shouldn't be possible, but can happen with invalid meshes;
+					// map any bone we are missing to the 'root'.
+
+					DestBoneIndex = 0;
+				}
+
 				MeshInfo.SrcToDestRefSkeletonMap[i] = DestBoneIndex;
 			}
 		}
@@ -250,10 +258,10 @@ void FSkeletalMeshMerge::GenerateNewSectionArray( TArray<FNewSectionInfo>& NewSe
 	{
 		// source mesh
 		USkeletalMesh* SrcMesh = SrcMeshList[MeshIdx];
-		FSkeletalMeshResource* SrcResource = SrcMesh->GetImportedResource();
 
 		if( SrcMesh )
 		{
+			FSkeletalMeshResource* SrcResource = SrcMesh->GetImportedResource();
 			int32 SourceLODIdx = FMath::Min(LODIdx, SrcResource->LODModels.Num()-1);
 			FStaticLODModel& SrcLODModel = SrcResource->LODModels[SourceLODIdx];
 			FSkeletalMeshLODInfo& SrcLODInfo = SrcMesh->LODInfo[SourceLODIdx];
@@ -466,8 +474,11 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 			{
 				FName SrcLODBoneName = MergeSectionInfo.SkelMesh->RefSkeleton.GetBoneName( SrcLODModel.RequiredBones[Idx] );
 				int32 MergeBoneIndex = NewRefSkeleton.FindBoneIndex(SrcLODBoneName);
-				check(MergeBoneIndex != INDEX_NONE);
-				MergeLODModel.RequiredBones.AddUnique(MergeBoneIndex);
+				
+				if (MergeBoneIndex != INDEX_NONE)
+				{
+					MergeLODModel.RequiredBones.AddUnique(MergeBoneIndex);
+				}
 			}
 
 			// keep track of the max number of influences used by the vertices of the chunk
@@ -731,16 +742,21 @@ void FSkeletalMeshMerge::OverrideReferenceSkeletonPose(const TArray<FRefPoseOver
 		const FRefPoseOverride& PoseOverride = PoseOverrides[i];
 		const FReferenceSkeleton& SourceSkeleton = PoseOverride.SkeletalMesh->RefSkeleton;
 
-		for (int32 j = 0, BoneMax = PoseOverride.BoneNames.Num(); j < BoneMax; ++j)
+		for (int32 j = 0, BoneMax = PoseOverride.Overrides.Num(); j < BoneMax; ++j)
 		{
-			const FName& BoneName = PoseOverride.BoneNames[j];
+			const FName& BoneName = PoseOverride.Overrides[j].BoneName;
 			int32 SourceBoneIndex = SourceSkeleton.FindBoneIndex(BoneName);
 
 			if (SourceBoneIndex != INDEX_NONE)
 			{
-				OverrideReferenceBonePose(SourceBoneIndex, SourceSkeleton, TargetSkeleton);
+				bool bOverrideBone = (PoseOverride.Overrides[j].OverrideMode == FRefPoseOverride::ChildrenOnly) ? false : true;
 
-				bool bOverrideChildren = PoseOverride.OverrideChildren[j];
+				if (bOverrideBone)
+				{
+					OverrideReferenceBonePose(SourceBoneIndex, SourceSkeleton, TargetSkeleton);
+				}
+
+				bool bOverrideChildren = (PoseOverride.Overrides[j].OverrideMode == FRefPoseOverride::BoneOnly) ? false : true;
 
 				if (bOverrideChildren)
 				{
@@ -885,17 +901,22 @@ void FSkeletalMeshMerge::OverrideMergedSockets(const TArray<FRefPoseOverride>& P
 		const TArray<USkeletalMeshSocket*>& SkeletonSocketList = PoseOverride.SkeletalMesh->Skeleton->Sockets;
 		const TArray<USkeletalMeshSocket*>& MeshSocketList = const_cast<USkeletalMesh*>(PoseOverride.SkeletalMesh)->GetMeshOnlySocketList();
 
-		for (int32 j = 0, BoneMax = PoseOverride.BoneNames.Num(); j < BoneMax; ++j)
+		for (int32 j = 0, BoneMax = PoseOverride.Overrides.Num(); j < BoneMax; ++j)
 		{
-			const FName& BoneName = PoseOverride.BoneNames[j];
+			const FName& BoneName = PoseOverride.Overrides[j].BoneName;
 			int32 SourceBoneIndex = SourceSkeleton.FindBoneIndex(BoneName);
 
 			if (SourceBoneIndex != INDEX_NONE)
 			{
-				OverrideBoneSockets(BoneName, SkeletonSocketList);
-				OverrideBoneSockets(BoneName, MeshSocketList);
+				bool bOverrideBone = (PoseOverride.Overrides[j].OverrideMode == FRefPoseOverride::ChildrenOnly) ? false : true;
 
-				bool bOverrideChildren = PoseOverride.OverrideChildren[j];
+				if (bOverrideBone)
+				{
+					OverrideBoneSockets(BoneName, SkeletonSocketList);
+					OverrideBoneSockets(BoneName, MeshSocketList);
+				}
+
+				bool bOverrideChildren = (PoseOverride.Overrides[j].OverrideMode == FRefPoseOverride::BoneOnly) ? false : true;
 
 				if (bOverrideChildren)
 				{

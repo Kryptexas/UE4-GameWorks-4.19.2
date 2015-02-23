@@ -207,6 +207,40 @@ public:
 	}
 
 	/**
+	 * Compare this map with another for equality. Does not make any assumptions about Key order.
+	 * NOTE: this might be a candidate for operator== but it was decided to make it an explicit function
+	 *  since it can potentially be quite slow.
+	 *
+	 * @param Other The other map to compare against
+	 * @returns True if both this and Other contain the same keys with values that compare ==
+	 */
+	bool OrderIndependentCompareEqual(const TMapBase& Other) const
+	{
+		// first check counts (they should be the same obviously)
+		if (Num() != Other.Num())
+		{
+			return false;
+		}
+
+		// since we know the counts are the same, we can just iterate one map and check for existence in the other
+		for (typename PairSetType::TConstIterator It(Pairs); It; ++It)
+		{
+			const ValueType* BVal = Other.Find(It->Key);
+			if (BVal == nullptr)
+			{
+				return false;
+			}
+			if (!(*BVal == It->Value))
+			{
+				return false;
+			}
+		}
+
+		// all fields in A match B and A and B's counts are the same (so there can be no fields in B not in A)
+		return true;
+	}
+
+	/**
 	 * Removes all elements from the map, potentially leaving space allocated for an expected number of elements about to be added.
 	 * @param ExpectedNumElements - The number of elements about to be added to the set.
 	 */

@@ -67,10 +67,6 @@ class ENGINE_API UCheatManager : public UObject
 	UPROPERTY()
 	TSubclassOf<class ADebugCameraController>  DebugCameraControllerClass;
 
-	/** Holds information about VisualLogger on server - came from replication */
-	UPROPERTY(ReplicatedUsing = OnRep_VisualLoggerActiveOnServer)
-	bool bVisualLoggerActiveOnServer;
-
 	// Trace/Sweep debug start
 	/** If we should should perform a debug capsule trace and draw results. Toggled with DebugCapsuleSweep() */
 	uint32 bDebugCapsuleSweep:1;
@@ -210,10 +206,6 @@ class ENGINE_API UCheatManager : public UObject
 
 	UFUNCTION(reliable, server, WithValidation)
 	virtual void ServerToggleAILogging();
-
-	/** after bVisualLoggerActiveOnServer replication callback */
-	UFUNCTION()
-	virtual void OnRep_VisualLoggerActiveOnServer();
 
 	/** Toggle capsule trace debugging. Will trace a capsule from current view point and show where it hits the world */
 	UFUNCTION(exec)

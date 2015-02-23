@@ -786,26 +786,26 @@ bool FFriendsAndChatManager::IsInJoinableGameSession() const
 	bool bIsJoinable = false;
 
 	if (OnlineSub != nullptr &&
-		OnlineSub->GetIdentityInterface().IsValid())
+		OnlineIdentity.IsValid())
 	{
 		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
 		if (SessionInt.IsValid())
-	{
+		{
 			FNamedOnlineSession* Session = SessionInt->GetNamedSession(GameSessionName);
 			if (Session)
-		{
+			{
 				bool bPublicJoinable = false;
 				bool bFriendJoinable = false;
 				bool bInviteOnly = false;
 				if (Session->GetJoinability(bPublicJoinable, bFriendJoinable, bInviteOnly))
-			{
+				{
 					// User's game is joinable in some way if any of this is true (context needs to be handled outside this function)
 					bIsJoinable = bPublicJoinable || bFriendJoinable || bInviteOnly;
 				}
 			}
 		}
 	}
-
+		
 	return bIsJoinable;
 }
 

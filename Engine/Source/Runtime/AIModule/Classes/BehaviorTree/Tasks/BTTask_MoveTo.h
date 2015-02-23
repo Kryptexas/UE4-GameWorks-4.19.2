@@ -32,6 +32,9 @@ class AIMODULE_API UBTTask_MoveTo : public UBTTask_BlackboardBase
 
 	UPROPERTY(Category=Node, EditAnywhere)
 	uint32 bAllowStrafe : 1;
+	/** if set, use incomplete path when goal can't be reached */
+	UPROPERTY(Category = Node, EditAnywhere, AdvancedDisplay)
+	uint32 bAllowPartialPath : 1;
 
 	/** if set to true agent's radius will be added to AcceptableRadius for purposes of checking 
 	 *	if path's end point has been reached. Will result in AI stopping on contact with destination location*/

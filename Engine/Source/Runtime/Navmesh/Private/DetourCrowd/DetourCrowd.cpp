@@ -1730,6 +1730,9 @@ void dtCrowd::updateStepOffMeshAnim(const float dt, dtCrowdAgentDebugInfo*)
 
 void dtCrowd::updateStepOffMeshVelocity(const float dt, dtCrowdAgentDebugInfo*)
 {
+	float DirLink[3];
+	float DirToEnd[3];
+
 	// UE4 version of offmesh anims, updates velocity and checks distance instead of fixed time
 	for (int i = 0; i < m_numActiveAgents; ++i)
 	{
@@ -1742,11 +1745,16 @@ void dtCrowd::updateStepOffMeshVelocity(const float dt, dtCrowdAgentDebugInfo*)
 
 		anim->t += dt;
 		
+		dtVsub(DirLink, anim->endPos, anim->startPos);
+		dtVsub(DirToEnd, anim->endPos, ag->npos);
+		const float dirDot = dtVdot2D(DirLink, DirToEnd);
 		const float dist = dtVdist2DSqr(ag->npos, anim->endPos);
 		const float distThres = dtSqr(5.0f);
 		const float heightDiff = dtAbs(ag->npos[1] - anim->endPos[1]);
 		const float heightThres = ag->params.height * 0.5f;
-		if (dist < distThres && heightDiff < heightThres)
+
+		// check height difference + distance or overshooting 
+		if ((dist < distThres || dirDot < 0.0f) && heightDiff < heightThres)
 		{
 			// Reset animation
 			anim->active = 0;

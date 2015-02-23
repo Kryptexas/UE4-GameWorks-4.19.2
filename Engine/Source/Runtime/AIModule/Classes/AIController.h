@@ -122,7 +122,7 @@ public:
 
 	AAIController(const FObjectInitializer& ObjectInitializer);
 
-	/** Event called when PossessedPawn is possesed by this controller. */
+	/** Event called when PossessedPawn is possessed by this controller. */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void OnPossess(APawn* PossessedPawn);
 
@@ -131,53 +131,53 @@ public:
 	 *  @param bStopOnOverlap - add pawn's radius to AcceptanceRadius
 	 *  @param bUsePathfinding - use navigation data to calculate path (otherwise it will go in straight line)
 	 *  @param bCanStrafe - set focus related flag: bAllowStrafe
+	 *  @param FilterClass - navigation filter for pathfinding adjustments
+	 *  @param bAllowPartialPath - use incomplete path when goal can't be reached
 	 *	@note AcceptanceRadius has default value or -1 due to Header Parser not being able to recognize UPathFollowingComponent::DefaultAcceptanceRadius
 	 */
-	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	EPathFollowingRequestResult::Type MoveToActor(AActor* Goal, float AcceptanceRadius = -1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
-	// @todo: above should be: 
-	// EPathFollowingRequestResult::Type MoveToActor(AActor* Goal, float AcceptanceRadius = /*UPathFollowingComponent::DefaultAcceptanceRadius==*/-1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true);
-	// but parser doesn't like this (it's a bug, when fixed this will be changed)
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", Meta = (AdvancedDisplay = "bStopOnOverlap,bCanStrafe,bAllowPartialPath"))
+	EPathFollowingRequestResult::Type MoveToActor(AActor* Goal, float AcceptanceRadius = -1, bool bStopOnOverlap = true,
+		bool bUsePathfinding = true, bool bCanStrafe = true,
+		TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, bool bAllowPartialPath = true);
 
 	/** Makes AI go toward specified Dest location
 	 *  @param AcceptanceRadius - finish move if pawn gets close enough
 	 *  @param bStopOnOverlap - add pawn's radius to AcceptanceRadius
 	 *  @param bUsePathfinding - use navigation data to calculate path (otherwise it will go in straight line)
+	 *  @param bProjectDestinationToNavigation - project location on navigation data before using it
 	 *  @param bCanStrafe - set focus related flag: bAllowStrafe
+	 *  @param FilterClass - navigation filter for pathfinding adjustments
+	 *  @param bAllowPartialPath - use incomplete path when goal can't be reached
 	 *	@note AcceptanceRadius has default value or -1 due to Header Parser not being able to recognize UPathFollowingComponent::DefaultAcceptanceRadius
 	 */
-	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	EPathFollowingRequestResult::Type MoveToLocation(const FVector& Dest, float AcceptanceRadius = -1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bProjectDestinationToNavigation = false, bool bCanStrafe = true, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
-	// @todo: above should be: 
-	// EPathFollowingRequestResult::Type MoveToLocation(const FVector& Dest, float AcceptanceRadius = /*UPathFollowingComponent::DefaultAcceptanceRadius==*/-1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true);
-	// but parser doesn't like this (it's a bug, when fixed this will be changed)
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", Meta = (AdvancedDisplay = "bStopOnOverlap,bCanStrafe,bAllowPartialPath"))
+	EPathFollowingRequestResult::Type MoveToLocation(const FVector& Dest, float AcceptanceRadius = -1, bool bStopOnOverlap = true,
+		bool bUsePathfinding = true, bool bProjectDestinationToNavigation = false, bool bCanStrafe = true,
+		TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, bool bAllowPartialPath = true);
 
-	/** Prepares a query for pathfinding
-	 *  @param Query - query struct to fill
-	 *  @param Dest - destination location
-	 *  @param Goal - goal actor (if applies)
-	 *  @param bUsePathfinding - calculate paths vs move in straight line
-	 *  @param QueryFilter - optional filter for path finding
-	 *  @return true if query was filled in successfully
-	 */
+	/** Makes AI go toward specified destination */
+	EPathFollowingRequestResult::Type MoveTo(const FAIMoveRequest& MoveRequest);
+
+	/** Fills pathfinding query for navigation system from given move request */
+	virtual bool PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query);
+	
+	DEPRECATED(4.8, "This function is deprecated, please use version with MoveRequest parameter instead.")
 	virtual bool PreparePathfinding(FPathFindingQuery& Query, const FVector& Dest, AActor* Goal, bool bUsePathfinding = true, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Executes pathfinding query and starts move request
-	 *  @param Query - query struct holding pathfinding data
-	 *  @param Goal - goal actor if following actor
-	 *  @param AcceptanceRadius - finish move if pawn gets close enough
-	 *  @param CustomData - game specific data, that will be passed to pawn's movement component
 	 *  @return RequestID, or 0 when failed
 	 */
+	virtual FAIRequestID RequestPathAndMove(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query);
+	
+	DEPRECATED(4.8, "This function is deprecated, please use version with MoveRequest parameter instead.")
 	virtual FAIRequestID RequestPathAndMove(FPathFindingQuery& Query, AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, FCustomMoveSharedPtr CustomData);
 
 	/** Handle move requests
-	 *  @param Path - path to follow (can use incomplete)
-	 *  @param Goal - goal actor if following actor
-	 *  @param AcceptanceRadius - finish move if pawn gets close enough
-	 *  @param CustomData - game specific data, that will be passed to pawn's movement component
 	 *  @return RequestID, or 0 when failed
 	 */
+	virtual FAIRequestID RequestMove(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr Path);
+
+	DEPRECATED(4.8, "This function is deprecated, please use version with MoveRequest parameter instead.")
 	virtual FAIRequestID RequestMove(FNavPathSharedPtr Path, AActor* Goal = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr CustomData = NULL);
 
 	/** if AI is currently moving due to request given by RequestToPause, then the move will be paused */
