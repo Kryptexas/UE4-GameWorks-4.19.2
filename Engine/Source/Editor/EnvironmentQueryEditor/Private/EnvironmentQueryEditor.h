@@ -23,6 +23,10 @@ public:
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	// End IToolkit interface
 
+	// Begin IEnvironmentQueryEditor interface
+	virtual uint32 GetSelectedNodesCount() const override { return SelectedNodesCount; }
+	// End IEnvironmentQueryEditor interface
+
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 
 protected:
