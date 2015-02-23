@@ -120,13 +120,13 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (BOOL)canBecomeMainWindow
 {
 	SCOPED_AUTORELEASE_POOL;
-	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask);
+	return bAcceptsInput && ![self ignoresMouseEvents];
 }
 
 - (BOOL)canBecomeKeyWindow
 {
 	SCOPED_AUTORELEASE_POOL;
-	return bAcceptsInput && ![self ignoresMouseEvents];
+	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask);
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem*)MenuItem
@@ -246,7 +246,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 }
 
-- (void)windowDidBecomeKey:(NSNotification*)Notification
+- (void)windowDidBecomeMain:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
 	if ([NSApp isHidden] == NO)
@@ -257,7 +257,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]);
 }
 
-- (void)windowDidResignKey:(NSNotification*)Notification
+- (void)windowDidResignMain:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
 	[self setMovable: YES];

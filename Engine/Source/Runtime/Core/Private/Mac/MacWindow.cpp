@@ -532,7 +532,7 @@ int32 FMacWindow::GetWindowBorderSize() const
 bool FMacWindow::IsForegroundWindow() const
 {
 	SCOPED_AUTORELEASE_POOL;
-	return [WindowHandle isMainWindow];
+	return [WindowHandle isKeyWindow];
 }
 
 void FMacWindow::SetText(const TCHAR* const Text)

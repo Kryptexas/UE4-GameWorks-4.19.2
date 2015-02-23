@@ -368,13 +368,13 @@ void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 			{
 				MacApplication->OnWindowDidResize(CocoaWindow);
 			}
-			else if (NotificationName == NSWindowDidBecomeKeyNotification)
+			else if (NotificationName == NSWindowDidBecomeMainNotification)
 			{
-				MacApplication->OnWindowDidBecomeKey(CocoaWindow);
+				MacApplication->OnWindowDidBecomeMain(CocoaWindow);
 			}
-			else if (NotificationName == NSWindowDidResignKeyNotification)
+			else if (NotificationName == NSWindowDidResignMainNotification)
 			{
-				MacApplication->OnWindowDidResignKey(CocoaWindow);
+				MacApplication->OnWindowDidResignMain(CocoaWindow);
 			}
 			else if (NotificationName == NSWindowWillMoveNotification)
 			{
@@ -1198,7 +1198,7 @@ void FMacApplication::OnDragDrop( FCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnWindowDidBecomeKey( FCocoaWindow* Window )
+void FMacApplication::OnWindowDidBecomeMain( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
 	if (EventWindow.IsValid())
@@ -1207,7 +1207,7 @@ void FMacApplication::OnWindowDidBecomeKey( FCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnWindowDidResignKey( FCocoaWindow* Window )
+void FMacApplication::OnWindowDidResignMain( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
 	if (EventWindow.IsValid())
