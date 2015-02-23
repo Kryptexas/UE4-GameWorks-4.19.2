@@ -188,14 +188,10 @@ class Localise : BuildCommand
         }
     }
 
-    static void UploadDirectoryToProject(OneSky.Project project, DirectoryInfo directory, string fileExtension)
+    static void UploadFilesToProjectForLocale(OneSky.Project project, string[] files, string localeName)
     {
-        foreach (var file in Directory.GetFiles(directory.FullName, fileExtension, SearchOption.AllDirectories))
+        foreach (var currentFile in files)
         {
-            DirectoryInfo parentDirectory = Directory.GetParent(file);
-            string localeName = parentDirectory.Name;
-            string currentFile = file;
-
             using (var fileStream = File.OpenRead(currentFile))
             {
                 // Read the BOM
@@ -210,16 +206,36 @@ class Localise : BuildCommand
 
                 Console.WriteLine("Uploading: " + currentFile + " Locale: " + localeName);
                 var uploadedFile = project.Upload(Path.GetFileName(currentFile), fileStream, localeName).Result;
-
+                
                 if (uploadedFile == null)
                 {
                     Console.WriteLine("[FAILED] Uploading: " + currentFile + " Locale: " + localeName);
                 }
                 else
                 {
-                    Console.WriteLine("[SUCCESS] Uploading: " + currentFile + " Locale: " + localeName);
+                    Console.WriteLine("[SUCCESS] Uploading: " + currentFile + " Locale: " + localeName);                    
                 }
             }
+        }
+    }
+
+    static void UploadDirectoryToProject(OneSky.Project project, DirectoryInfo directory, string fileExtension)
+    {
+        DirectoryInfo[] cultureDirectories = directory.GetDirectories("*", SearchOption.TopDirectoryOnly);
+
+        // Upload, synchronously, the base culture POs.
+        DirectoryInfo nativeCultureDirectory = Array.Find(cultureDirectories, d => { return string.Equals(d.Name, project.BaseCultureName, StringComparison.InvariantCultureIgnoreCase); });
+        if (nativeCultureDirectory != null)
+        {
+            string[] files = Directory.GetFiles(nativeCultureDirectory.FullName, fileExtension, SearchOption.AllDirectories);
+            UploadFilesToProjectForLocale(project, files, nativeCultureDirectory.Name);
+        }
+
+        // Upload all other POs asynchronously.
+        foreach (var foreignCultureDirectory in Array.FindAll(cultureDirectories, d => { return d != nativeCultureDirectory; }))
+        {
+            string[] files = Directory.GetFiles(foreignCultureDirectory.FullName, fileExtension, SearchOption.AllDirectories);
+            UploadFilesToProjectForLocale(project, files, foreignCultureDirectory.Name);
         }
     }
 }

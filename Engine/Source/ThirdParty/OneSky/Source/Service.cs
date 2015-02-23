@@ -152,6 +152,50 @@ namespace OneSky
             _projectType = type;
         }
 
+        private string _baseCultureName;
+        public string BaseCultureName
+        {
+            get
+            {
+                if (_baseCultureName == null)
+                {
+                    var response = ProjectApi.ListLanguages(Connection, Id);
+                    _cultures = response.Data.Select(c => c.Code);
+
+                    var baseLanguage = response.Data.FirstOrDefault(c => c.IsBaseLanguage);
+
+                    if (baseLanguage != null)
+                    {
+                        _baseCultureName = baseLanguage.Code;
+                    }
+                }
+
+                return _baseCultureName;
+            }
+        }
+
+        private IEnumerable<string> _cultures;
+        public IEnumerable<string> EnabledCultures
+        {
+            get
+            {
+                if (_cultures == null)
+                {
+                    var response = ProjectApi.ListLanguages(Connection, Id);
+                    _cultures = response.Data.Select(c => c.Code);
+
+                    var baseLanguage = response.Data.FirstOrDefault(c => c.IsBaseLanguage);
+
+                    if (baseLanguage != null)
+                    {
+                        _baseCultureName = baseLanguage.Code;
+                    }
+                }
+
+                return _cultures;
+            }
+        }
+
         public IEnumerable<UploadedFile> UploadedFiles
         {
             get
