@@ -62,6 +62,7 @@ void UInputSettings::PostInitProperties()
 			break;
 			
 		case LANG_JAPANESE:
+		case LANG_RUSSIAN:
 			DefaultConsoleKey = FInputKeyManager::Get().GetKeyFromCodes(VK_OEM_3, 0);
 			break;
 		}
