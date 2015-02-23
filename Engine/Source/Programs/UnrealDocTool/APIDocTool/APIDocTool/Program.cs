@@ -749,6 +749,7 @@ namespace APIDocTool
 				string CurrentLine;
 				char[] WhiteSpace = {' ', '\t'};		//Doubles as our token delimiter in one place - noted in comments.
 				bool IsSnippetBeingProcessed = false;
+				bool WasPreviousLineBlank = false;		//Two blank lines in a row will end a code block. Don't allow this to happen in a single snippet.
 
 				foreach (string FileName in Files)
 				{
@@ -777,7 +778,7 @@ namespace APIDocTool
 						}
 						while ((CurrentLine = file.ReadLine()) != null)
 						{
-							string TrimmedLine = CurrentLine.TrimStart(WhiteSpace);		//This is actually a C++ same-line whitespace check, not our token delimiters.
+							string TrimmedLine = CurrentLine.TrimStart(WhiteSpace);		//This is actually a C# same-line whitespace check, not our token delimiters.
 							if (TrimmedLine.StartsWith(OpeningTag))
 							{
 								//Snippets do not currently support overlapping. If they did, closing tags should be explicit about which entries are ending, and we'd need to skip lines with opening tags.
@@ -789,6 +790,22 @@ namespace APIDocTool
 								//We're done with this snippet now. Mark that we can end cleanly.
 								IsSnippetBeingProcessed = false;
 								break;
+							}
+							if (CurrentLine.Trim().Length < 1)
+							{
+								if (WasPreviousLineBlank)
+								{
+									//Two (or more) blank lines in a row! Not permitted.
+									continue;
+								}
+								else
+								{
+									WasPreviousLineBlank = true;
+								}
+							}
+							else
+							{
+								WasPreviousLineBlank = false;
 							}
 
 							//This line should be added to the snippet(s) named in the "CODE_SNIPPET_START" line. Capture it. We need to add our own newline.
