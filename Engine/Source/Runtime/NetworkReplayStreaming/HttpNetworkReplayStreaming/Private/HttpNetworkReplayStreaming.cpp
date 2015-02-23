@@ -717,7 +717,7 @@ void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr 
 			return;
 		}
 
-		const int NUM_TOKENS_PER_INFO = 4;
+		const int NUM_TOKENS_PER_INFO = 6;
 
 		if ( Tokens.Num() == 0 || ( Tokens.Num() % NUM_TOKENS_PER_INFO ) != 0 )
 		{
@@ -737,21 +737,31 @@ void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr 
 			NewStream.SizeInBytes	= 0;
 			NewStream.Timestamp		= 0;
 
-			if ( i + 1 < Tokens.Num() )
+			if ( Tokens.IsValidIndex( i + 1 ) )
 			{
 				// Server returns milliseconds from January 1, 1970, 00:00:00 GMT
 				// We need to compensate for the fact that FDateTime starts at January 1, 0001 A.D. and is in 100 nanosecond resolution
 				NewStream.Timestamp = FDateTime( FCString::Atoi64( *Tokens[ i + 1 ] ) * 1000 * 10 + FDateTime( 1970, 1, 1 ).GetTicks() );
 			}
 
-			if ( i + 2 < Tokens.Num() )
+			if ( Tokens.IsValidIndex( i + 2 ) )
 			{
 				NewStream.SizeInBytes = FCString::Atoi( *Tokens[ i + 2 ] );
 			}
 
-			if ( i + 3 < Tokens.Num() )
+			if ( Tokens.IsValidIndex( i + 3 ) )
 			{
-				NewStream.bIsLive = Tokens[ i + 3 ].Contains( TEXT( "true" ) );
+				NewStream.LengthInMS = FCString::Atoi( *Tokens[ i + 3 ] );
+			}
+
+			if ( Tokens.IsValidIndex( i + 4 ) )
+			{
+				NewStream.NumViewers = FCString::Atoi( *Tokens[ i + 4 ] );
+			}
+
+			if ( Tokens.IsValidIndex( i + 5 ) )
+			{
+				NewStream.bIsLive = Tokens[ i + 5 ].Contains( TEXT( "true" ) );
 			}
 
 			Streams.Add( NewStream );

@@ -9,6 +9,8 @@
 /** Struct to store information about a stream, returned from search results. */
 struct FNetworkReplayStreamInfo
 {
+	FNetworkReplayStreamInfo() : SizeInBytes( 0 ), LengthInMS( 0 ), NumViewers( 0 ), bIsLive( false ) {}
+
 	/** The name of the stream */
 	FString Name;
 
@@ -17,6 +19,12 @@ struct FNetworkReplayStreamInfo
 
 	/** The size of the stream */
 	int64 SizeInBytes;
+	
+	/** The duration of the stream in MS */
+	int32 LengthInMS;
+
+	/** Number of viewers viewing this stream */
+	int32 NumViewers;
 
 	/** True if the stream is live and the game hasn't completed yet */
 	bool bIsLive;
