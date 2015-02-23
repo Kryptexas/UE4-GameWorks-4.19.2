@@ -887,17 +887,17 @@ public:
 
 				FSamplerStateRHIParamRef Filters[] =
 				{
-					TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
-					TStaticSamplerState<SF_Point,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
-					TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
-					TStaticSamplerState<SF_Point,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
+					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+					TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+					TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 				};
 
 				PostprocessParameter.SetPS( ShaderRHI, Context, 0, false, Filters );
 			}
 			else
 			{
-				PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Border,AM_Border,AM_Clamp>::GetRHI());
+				PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 			}
 		}
 
