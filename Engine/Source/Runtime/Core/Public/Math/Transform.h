@@ -511,6 +511,7 @@ public:
 	FORCEINLINE FVector4	TransformFVector4(const FVector4& V) const;
 	FORCEINLINE FVector4	TransformFVector4NoScale(const FVector4& V) const;
 	FORCEINLINE FVector		TransformPosition(const FVector& V) const;
+	FORCEINLINE FVector		TransformPositionNoScale(const FVector& V) const;
 
 
 	/** Inverts the matrix and then transforms V - correctly handles scaling in this matrix. */
@@ -1172,6 +1173,11 @@ FORCEINLINE FVector4 FTransform::TransformFVector4(const FVector4& V) const
 FORCEINLINE FVector FTransform::TransformPosition(const FVector& V) const
 {
 	return TransformFVector4(FVector4(V.X,V.Y,V.Z,1.0f));
+}
+
+FORCEINLINE FVector FTransform::TransformPositionNoScale(const FVector& V) const
+{
+	return TransformFVector4NoScale(FVector4(V.X,V.Y,V.Z,1.0f));
 }
 
 FORCEINLINE FVector FTransform::TransformVector(const FVector& V) const
