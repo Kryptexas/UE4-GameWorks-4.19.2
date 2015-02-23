@@ -693,7 +693,7 @@ void UBlackboardComponent::ClearValue(FBlackboard::FKey KeyID)
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
 	{
-		const bool bHasData = EntryInfo->KeyType->WrappedIsEmpty(*this, RawData);
+		const bool bHasData = (EntryInfo->KeyType->WrappedIsEmpty(*this, RawData) == false);
 		if (bHasData)
 		{
 			EntryInfo->KeyType->WrappedClear(*this, RawData);
