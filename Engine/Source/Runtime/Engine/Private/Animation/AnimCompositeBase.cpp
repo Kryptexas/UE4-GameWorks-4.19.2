@@ -81,7 +81,7 @@ void FAnimSegment::GetAnimNotifiesFromTrackPositions(const float& PreviousTrackP
 			const float ValidPlayRate = GetValidPlayRate();
 			// Get starting position, closest overlap.
 			float AnimStartPosition = ConvertTrackPosToAnimPos( bPlayingBackwards ? FMath::Min(PreviousTrackPosition, SegmentEndPos) : FMath::Max(PreviousTrackPosition, SegmentStartPos) );
-			check( (AnimStartPosition >= AnimStartTime) && (AnimStartPosition <= AnimEndTime) );
+			FMath::Clamp(AnimStartPosition, AnimStartTime, AnimEndTime);
 			float TrackTimeToGo = CurrentTrackPosition - PreviousTrackPosition;
 
 			// Abstract out end point since animation can be playing forward or backward.
