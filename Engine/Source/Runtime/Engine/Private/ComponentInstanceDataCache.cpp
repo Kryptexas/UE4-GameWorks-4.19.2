@@ -96,11 +96,11 @@ void FActorComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 		class FComponentPropertyReader : public FObjectReader
 		{
 		public:
-			FComponentPropertyReader(UActorComponent* Component, TArray<uint8>& InBytes)
+			FComponentPropertyReader(UActorComponent* InComponent, TArray<uint8>& InBytes)
 				: FObjectReader(InBytes)
 			{
-				UClass* Class = Component->GetClass();
-				Class->SerializeTaggedProperties(*this, (uint8*)Component, Class, nullptr);
+				UClass* Class = InComponent->GetClass();
+				Class->SerializeTaggedProperties(*this, (uint8*)InComponent, Class, nullptr);
 			}
 		} ComponentPropertyReader(Component, SavedProperties);	
 	}

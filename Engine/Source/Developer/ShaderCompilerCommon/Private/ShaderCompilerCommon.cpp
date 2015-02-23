@@ -273,7 +273,7 @@ FString CreateCrossCompilerBatchFileContents(const FString& ShaderFile, const FS
 	}
 	else if (PLATFORM_WINDOWS)
 	{
-		FString BatchFile = TEXT("@echo off");
+		BatchFile = TEXT("@echo off");
 		BatchFile += TEXT("\nif defined ue.hlslcc GOTO DONE\nset ue.hlslcc=");
 		BatchFile += FPaths::RootDir() / TEXT("Engine\\Binaries\\Win64\\CrossCompilerTool.exe");
 		BatchFile += TEXT("\n\n:DONE\n%ue.hlslcc% ");

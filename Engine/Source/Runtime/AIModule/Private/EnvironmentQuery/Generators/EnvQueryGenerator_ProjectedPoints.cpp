@@ -31,10 +31,10 @@ void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FVecto
 		}
 		else
 		{
-			const FVector VerticalOffset = FVector(0, 0, (ProjectionData.ProjectUp - ProjectionData.ProjectDown) / 2);
+			const FVector ProjectionVerticalOffset = FVector(0, 0, (ProjectionData.ProjectUp - ProjectionData.ProjectDown) / 2);
 			for (const auto& Point : Points)
 			{
-				Workload.Add(FNavigationProjectionWork(Point + VerticalOffset));
+				Workload.Add(FNavigationProjectionWork(Point + ProjectionVerticalOffset));
 			}
 		}
 

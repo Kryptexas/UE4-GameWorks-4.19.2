@@ -264,9 +264,9 @@ UObject* UPackFactory::FactoryCreateBinary
 			ContentDestinationRoot /= PakFile.GetMountPoint().RightChop(ChopIndex + ContentFolder.Len());
 		}
 
-		TArray<uint8> Buffer;
+		TArray<uint8> CopyBuffer;
 		TArray<uint8> PersistentCompressionBuffer;
-		Buffer.AddUninitialized(8 * 1024 * 1024); // 8MB buffer for extracting
+		CopyBuffer.AddUninitialized(8 * 1024 * 1024); // 8MB buffer for extracting
 		int32 ErrorCount = 0;
 		int32 FileCount = 0;
 
@@ -290,7 +290,7 @@ UObject* UPackFactory::FactoryCreateBinary
 				if (EntryInfo == Entry)
 				{
 					FString ConfigString;
-					PackFactoryHelper::ExtractFileToString(Entry, PakReader, Buffer, PersistentCompressionBuffer, ConfigString);
+					PackFactoryHelper::ExtractFileToString(Entry, PakReader, CopyBuffer, PersistentCompressionBuffer, ConfigString);
 					PackFactoryHelper::ProcessPackConfig(ConfigString, ConfigParameters);
 				}
 				else
@@ -418,7 +418,7 @@ UObject* UPackFactory::FactoryCreateBinary
 					UE_LOG(LogPackFactory, Log, TEXT("%s (%ld) -> %s"), *It.Filename(), Entry.Size, *DestFilename);
 
 					FString SourceContents;
-					PackFactoryHelper::ExtractFileToString(Entry, PakReader, Buffer, PersistentCompressionBuffer, SourceContents);
+					PackFactoryHelper::ExtractFileToString(Entry, PakReader, CopyBuffer, PersistentCompressionBuffer, SourceContents);
 
 					FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 					FString StringToReplace = *ConfigParameters.Find("GameName");
@@ -458,7 +458,7 @@ UObject* UPackFactory::FactoryCreateBinary
 
 					if (FileHandle.IsValid())
 					{
-						PackFactoryHelper::ExtractFile(Entry, PakReader, Buffer, PersistentCompressionBuffer, *FileHandle);
+						PackFactoryHelper::ExtractFile(Entry, PakReader, CopyBuffer, PersistentCompressionBuffer, *FileHandle);
 						WrittenFiles.Add(*DestFilename);
 					}
 					else

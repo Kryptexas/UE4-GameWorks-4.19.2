@@ -622,13 +622,16 @@ static void walkContour(int x, int y, int i, int dir,
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
 
-	const int ax = x + getDirOffsetX(dir);
-	const int ay = y + getDirOffsetY(dir);
-	const int ai = ax+ay*w;
 	unsigned short curReg = 0;
-	if (ax >= 0 && ax < w && ay >= 0 && ay < h && isConnected(layer, i, dir))
+
 	{
-		curReg = srcReg[ai];
+		const int ax = x + getDirOffsetX(dir);
+		const int ay = y + getDirOffsetY(dir);
+		const int ai = ax+ay*w;
+		if (ax >= 0 && ax < w && ay >= 0 && ay < h && isConnected(layer, i, dir))
+		{
+			curReg = srcReg[ai];
+		}
 	}
 
 	cont.push(curReg);

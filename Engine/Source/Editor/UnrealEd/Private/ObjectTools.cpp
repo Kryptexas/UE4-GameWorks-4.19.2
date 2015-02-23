@@ -828,7 +828,6 @@ namespace ObjectTools
 					RedirectorToObjectNameMap.Add(Redirector, CurObjName);
 
 					// If consolidating blueprints, make sure redirectors are created for the consolidated blueprint class and CDO
-					UBlueprint* BlueprintToConsolidate = Cast<UBlueprint>(CurObjToConsolidate);
 					if ( BlueprintToConsolidateTo != NULL && BlueprintToConsolidate != NULL )
 					{
 						// One redirector for the class

@@ -75,8 +75,7 @@ void FVisualLogger::Cleanup(bool bReleaseMemory)
 		SetIsRecordingToFile(false);
 	}
 
-	auto& OutputDevices = FVisualLogger::Get().OutputDevices;
-	for (auto* Device : OutputDevices)
+	for (FVisualLogDevice* Device : FVisualLogger::Get().OutputDevices)
 	{
 		Device->Cleanup(bReleaseMemory);
 	}

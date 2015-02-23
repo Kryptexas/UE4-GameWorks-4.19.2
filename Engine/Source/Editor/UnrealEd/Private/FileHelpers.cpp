@@ -1606,7 +1606,7 @@ void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsCho
 {
 	struct FLocal
 	{
-		static void OnLevelsSelected(const TArray<FAssetData>& SelectedLevels, FOnLevelsChosen OnLevelsChosen)
+		static void OnLevelsSelected(const TArray<FAssetData>& SelectedLevels, FOnLevelsChosen OnLevelsChosenDelegate)
 		{
 			if ( SelectedLevels.Num() > 0 )
 			{
@@ -1625,13 +1625,13 @@ void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsCho
 
 				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FilesystemPath);
 
-				OnLevelsChosen.ExecuteIfBound(SelectedLevels);
+				OnLevelsChosenDelegate.ExecuteIfBound(SelectedLevels);
 			}
 		}
 
-		static void OnDialogCancelled(FOnLevelPickingCancelled OnLevelPickingCancelled)
+		static void OnDialogCancelled(FOnLevelPickingCancelled OnLevelPickingCancelledDelegate)
 		{
-			OnLevelPickingCancelled.ExecuteIfBound();
+			OnLevelPickingCancelledDelegate.ExecuteIfBound();
 		}
 	};
 
@@ -2326,16 +2326,16 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 				FString DefaultPackagePath;
 				FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation, DefaultPackagePath);
 
-				FString PackageName;
+				FString SaveAsPackageName;
 				bSaveFile = OpenLevelSaveAsDialog(
 					DefaultPackagePath,
 					FPaths::GetBaseFilename(FinalPackageFilename),
-					PackageName);
+					SaveAsPackageName);
 
 				if (bSaveFile)
 				{
 					// Leave out the extension. It will be added below.
-					FinalPackageFilename = FPackageName::LongPackageNameToFilename(PackageName);
+					FinalPackageFilename = FPackageName::LongPackageNameToFilename(SaveAsPackageName);
 				}
 			}
 			else

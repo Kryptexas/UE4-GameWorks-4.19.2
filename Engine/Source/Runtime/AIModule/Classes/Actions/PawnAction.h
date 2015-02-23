@@ -188,7 +188,7 @@ public:
 	// @note this function will change its signature once AI messaging is rewritten @todo
 	virtual void HandleAIMessage(UBrainComponent*, const FAIMessage&){};
 
-	void SetActionObserver(const FPawnActionEventDelegate& ActionObserver) { this->ActionObserver = ActionObserver; }
+	void SetActionObserver(const FPawnActionEventDelegate& InActionObserver) { ActionObserver = InActionObserver; }
 	bool HasActionObserver() const { return ActionObserver.IsBound(); }
 
 	//----------------------------------------------------------------------//

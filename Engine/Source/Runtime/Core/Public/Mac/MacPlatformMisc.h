@@ -196,7 +196,9 @@ private:
 	NSAutoreleasePool*	Pool;
 };
 
-#define SCOPED_AUTORELEASE_POOL const FScopeAutoreleasePool Pool##__LINE__;
+#define SCOPED_AUTORELEASE_POOL_TOKENPASTE_INNER(x,y) x##y
+#define SCOPED_AUTORELEASE_POOL_TOKENPASTE(x,y) SCOPED_AUTORELEASE_POOL_TOKENPASTE_INNER(x,y)
+#define SCOPED_AUTORELEASE_POOL const FScopeAutoreleasePool SCOPED_AUTORELEASE_POOL_TOKENPASTE(Pool,__LINE__);
 
 #endif // __OBJC__
 

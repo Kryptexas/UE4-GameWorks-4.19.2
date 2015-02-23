@@ -674,7 +674,7 @@ void ARecastNavMesh::RestrictBuildingToActiveTiles(bool InRestrictBuildingToActi
 	}
 }
 
-void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh, int32 NavMeshVersion)
+void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh, int32 InNavMeshVersion)
 {
 	if (!Ar.IsLoading()	&& NavMesh == NULL)
 	{
@@ -692,7 +692,7 @@ void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& 
 	
 	if (RecastNavMeshImpl)
 	{
-		RecastNavMeshImpl->Serialize(Ar, NavMeshVersion);
+		RecastNavMeshImpl->Serialize(Ar, InNavMeshVersion);
 	}	
 }
 

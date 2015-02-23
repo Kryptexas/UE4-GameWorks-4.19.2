@@ -105,7 +105,7 @@ int32 dtSharedBoundary::CacheData(float* Center, float Radius, dtPolyRef CenterP
 	return DataIdx;
 }
 
-void dtSharedBoundary::FindEdges(dtSharedBoundaryData& Data, dtPolyRef CenterPoly, dtNavMeshQuery* NavQuery, dtQueryFilter* NavFilter)
+void dtSharedBoundary::FindEdges(dtSharedBoundaryData& SharedData, dtPolyRef CenterPoly, dtNavMeshQuery* NavQuery, dtQueryFilter* NavFilter)
 {
 	const int32 MaxWalls = 64;
 	int32 NumWalls = 0;
@@ -116,7 +116,7 @@ void dtSharedBoundary::FindEdges(dtSharedBoundaryData& Data, dtPolyRef CenterPol
 	int32 NumNeis = 0;
 	dtPolyRef NeiPolys[MaxNeis] = { 0 };
 
-	NavQuery->findWallsInNeighbourhood(CenterPoly, Data.Center, Data.Radius, NavFilter,
+	NavQuery->findWallsInNeighbourhood(CenterPoly, SharedData.Center, SharedData.Radius, NavFilter,
 		NeiPolys, &NumNeis, MaxNeis, WallSegments, WallPolys, &NumWalls, MaxWalls);
 	
 	dtSharedBoundaryEdge NewEdge;
@@ -127,13 +127,13 @@ void dtSharedBoundary::FindEdges(dtSharedBoundaryData& Data, dtPolyRef CenterPol
 		NewEdge.p0 = WallPolys[Idx * 2];
 		NewEdge.p1 = WallPolys[Idx * 2 + 1];
 
-		Data.Edges.Add(NewEdge);
+		SharedData.Edges.Add(NewEdge);
 	}
 
-	Data.Polys.Reserve(NumNeis);
+	SharedData.Polys.Reserve(NumNeis);
 	for (int32 Idx = 0; Idx < NumNeis; Idx++)
 	{
-		Data.Polys.Add(NeiPolys[Idx]);
+		SharedData.Polys.Add(NeiPolys[Idx]);
 	}
 }
 

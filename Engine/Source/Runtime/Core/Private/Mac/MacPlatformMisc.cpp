@@ -656,7 +656,7 @@ EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, 
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	EAppReturnType::Type RetValue = MainThreadReturn(^{
+	EAppReturnType::Type ReturnValue = MainThreadReturn(^{
 		EAppReturnType::Type RetValue = EAppReturnType::Cancel;
 		NSInteger Result;
 
@@ -819,7 +819,7 @@ EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, 
 		return RetValue;
 	});
 
-	return RetValue;
+	return ReturnValue;
 }
 
 static bool HandleFirstInstall()
@@ -1801,7 +1801,6 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 			int VideoSrc = open(GMacAppInfo.CrashReportVideo, O_RDONLY);
 			int VideoDst = open(FilePath, O_CREAT|O_WRONLY, 0766);
 			
-			int Bytes = 0;
 			while((Bytes = read(VideoSrc, Data, PATH_MAX)) > 0)
 			{
 				write(VideoDst, Data, Bytes);

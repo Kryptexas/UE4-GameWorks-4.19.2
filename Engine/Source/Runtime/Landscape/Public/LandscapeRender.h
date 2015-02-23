@@ -373,9 +373,9 @@ protected:
 			, Guid(InGuid)
 		{}
 
-		friend inline uint32 GetTypeHash(const FLandscapeKey& LandscapeKey)
+		friend inline uint32 GetTypeHash(const FLandscapeKey& InLandscapeKey)
 		{
-			return HashCombine(GetTypeHash(LandscapeKey.World), GetTypeHash(LandscapeKey.Guid));
+			return HashCombine(GetTypeHash(InLandscapeKey.World), GetTypeHash(InLandscapeKey.Guid));
 		}
 
 		friend bool operator==(const FLandscapeKey& A, const FLandscapeKey& B)

@@ -531,55 +531,55 @@ bool FVariantData::FromJson(const TSharedRef<FJsonObject>& JsonObject)
 	{
 		if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Int32)))
 		{
-			int32 Value;
-			if (JsonObject->TryGetNumberField(ValueStr, Value))
+			int32 FieldValue;
+			if (JsonObject->TryGetNumberField(ValueStr, FieldValue))
 			{
-				SetValue(Value);
+				SetValue(FieldValue);
 				bResult = true;
 			}
 		}
 		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Float)))
 		{
-			double Value;
-			if (JsonObject->TryGetNumberField(ValueStr, Value))
+			double FieldValue;
+			if (JsonObject->TryGetNumberField(ValueStr, FieldValue))
 			{
-				SetValue((float)Value);
+				SetValue((float)FieldValue);
 				bResult = true;
 			}
 		}
 		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::String)))
 		{
-			FString Value;
-			if (JsonObject->TryGetStringField(ValueStr, Value))
+			FString FieldValue;
+			if (JsonObject->TryGetStringField(ValueStr, FieldValue))
 			{
-				SetValue(Value);
+				SetValue(FieldValue);
 				bResult = true;
 			}
 		}
 		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Bool)))
 		{
-			bool Value;
-			if (JsonObject->TryGetBoolField(ValueStr, Value))
+			bool FieldValue;
+			if (JsonObject->TryGetBoolField(ValueStr, FieldValue))
 			{
-				SetValue(Value);
+				SetValue(FieldValue);
 				bResult = true;
 			}
 		}
 		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Int64)))
 		{
-			FString Value;
-			if (JsonObject->TryGetStringField(ValueStr, Value))
+			FString FieldValue;
+			if (JsonObject->TryGetStringField(ValueStr, FieldValue))
 			{
 				Type = EOnlineKeyValuePairDataType::Int64;
-				bResult = FromString(Value);
+				bResult = FromString(FieldValue);
 			}
 		}
 		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Double)))
 		{
-			double Value;
-			if (JsonObject->TryGetNumberField(ValueStr, Value))
+			double FieldValue;
+			if (JsonObject->TryGetNumberField(ValueStr, FieldValue))
 			{
-				SetValue(Value);
+				SetValue(FieldValue);
 				bResult = true;
 			}
 		}
