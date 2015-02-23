@@ -14,7 +14,6 @@ class FFeedbackContextEditor : public FFeedbackContext
 {
 	/** Slate slow task widget */
 	TWeakPtr<class SWindow> SlowTaskWindow;
-	TSharedPtr<class SSlowTaskWidget> SlowTaskWidget;
 
 	/** Special Windows/Widget popup for building */
 	TWeakPtr<class SWindow> BuildProgressWindow;

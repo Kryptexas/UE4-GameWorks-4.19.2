@@ -381,10 +381,11 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 				.CreateTitleBar(true)
 				.ActivateWhenFirstShown(true);
 
-			SlowTaskWidget = SNew(SSlowTaskWidget)
+			SlowTaskWindowRef->SetContent(
+				SNew(SSlowTaskWidget)
 				.ScopeStack(&ScopeStack)
-				.OnCancelClickedDelegate( OnCancelClicked );
-			SlowTaskWindowRef->SetContent( SlowTaskWidget.ToSharedRef() );
+				.OnCancelClickedDelegate( OnCancelClicked )
+			);
 
 			SlowTaskWindow = SlowTaskWindowRef;
 
@@ -402,21 +403,12 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 
 void FFeedbackContextEditor::FinalizeSlowTask()
 {
-	TSharedPtr<SWindow> ParentWindow;
-	if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
+	auto Window = SlowTaskWindow.Pin();
+	if (Window.IsValid())
 	{
-		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
-		ParentWindow = MainFrame.GetParentWindow();
-	}
-
-	if( GIsEditor && ParentWindow.IsValid())
-	{
-		if( SlowTaskWindow.IsValid() )
-		{
-			SlowTaskWindow.Pin()->RequestDestroyWindow();
-			SlowTaskWindow.Reset();
-			SlowTaskWidget.Reset();
-		}
+		Window->SetContent(SNullWidget::NullWidget);
+		Window->RequestDestroyWindow();
+		SlowTaskWindow.Reset();
 	}
 
 	FFeedbackContext::FinalizeSlowTask( );
@@ -450,7 +442,7 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 			BuildProgressWidget->SetBuildProgressPercent(TotalProgressInterp * 100, 100);
 			TickSlate();
 		}
-		else if (SlowTaskWidget.IsValid())
+		else if (SlowTaskWindow.IsValid())
 		{
 			TickSlate();
 		}
