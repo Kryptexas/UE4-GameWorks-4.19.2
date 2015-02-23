@@ -81,7 +81,7 @@ class TOpenGLBuffer : public BaseType
 	{
 		GLenum Access = GL_STATIC_DRAW;
 
-		if (!OpenGLConsoleVariables::bUseStagingBuffer)
+		if (Type != GL_ARRAY_BUFFER || !OpenGLConsoleVariables::bUseStagingBuffer)
 		{
 			Access = bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 		}
