@@ -406,7 +406,7 @@ public:
 		// If the requested glyph doesn't exist, use the localization fallback font.
 		if ( FontFace == nullptr || (Char != 0 && GlyphIndex == 0) )
 		{
-			FontFace = GetFontFace( FLegacySlateFontInfoCache::Get().GetFallbackFont() );
+			FontFace = GetFontFace( FLegacySlateFontInfoCache::Get().GetFallbackFontData() );
 			if (FontFace != nullptr)
 			{					
 				GlyphIndex = FT_Get_Char_Index( FontFace, Char );
@@ -417,7 +417,7 @@ public:
 		// If the requested glyph doesn't exist, use the last resort fallback font.
 		if ( FontFace == nullptr || ( Char != 0 && GlyphIndex == 0 ) )
 		{
-			FontFace = GetFontFace( FLegacySlateFontInfoCache::Get().GetLastResortFont() );
+			FontFace = GetFontFace( FLegacySlateFontInfoCache::Get().GetLastResortFontData() );
 			check( FontFace );
 			GlyphIndex = FT_Get_Char_Index( FontFace, Char );
 			LocalGlyphFlags |= FT_LOAD_FORCE_AUTOHINT;

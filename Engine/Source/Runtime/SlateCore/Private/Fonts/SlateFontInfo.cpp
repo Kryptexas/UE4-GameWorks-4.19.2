@@ -120,7 +120,7 @@ const FCompositeFont* FSlateFontInfo::GetCompositeFont() const
 		return CompositeFont.Get();
 	}
 
-	return nullptr;
+	return FLegacySlateFontInfoCache::Get().GetFallbackFont().Get();
 }
 
 
