@@ -126,7 +126,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (BOOL)canBecomeKeyWindow
 {
 	SCOPED_AUTORELEASE_POOL;
-	return bAcceptsInput && ![self ignoresMouseEvents];
+	return bAcceptsInput && ![self ignoresMouseEvents] && ([self styleMask] != NSBorderlessWindowMask);
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem*)MenuItem
