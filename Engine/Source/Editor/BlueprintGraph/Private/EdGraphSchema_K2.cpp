@@ -2157,6 +2157,10 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 				TargetFunction = TEXT("GetObjectClass");
 			}
 		}
+		else if (InputPin->PinType.PinCategory == PC_String)
+		{
+			TargetFunction = TEXT("GetDisplayName");
+		}
 	}
 
 	return TargetFunction != NAME_None;
