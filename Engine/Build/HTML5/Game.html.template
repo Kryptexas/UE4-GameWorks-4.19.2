@@ -46,7 +46,6 @@ div#display_wrapper {
 canvas.main {
   border: none;
   background: #444;
-  display: block;
 }
 
 canvas.main:not([fullscreen]) {
