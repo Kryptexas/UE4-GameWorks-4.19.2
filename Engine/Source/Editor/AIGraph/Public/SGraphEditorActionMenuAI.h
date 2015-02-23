@@ -5,39 +5,41 @@
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-class SGraphEditorActionMenu_EnvironmentQuery : public SBorder
+class AIGRAPH_API SGraphEditorActionMenuAI : public SBorder
 {
 public:
-	SLATE_BEGIN_ARGS( SGraphEditorActionMenu_EnvironmentQuery )
+	SLATE_BEGIN_ARGS(SGraphEditorActionMenuAI)
 		: _GraphObj( static_cast<UEdGraph*>(NULL) )
 		,_GraphNode(NULL)
 		, _NewNodePosition( FVector2D::ZeroVector )
 		, _AutoExpandActionMenu( false )
+		, _SubNodeFlags(0)
 		{}
 
 		SLATE_ARGUMENT( UEdGraph*, GraphObj )
-		SLATE_ARGUMENT( UEnvironmentQueryGraphNode_Option*, GraphNode)
+		SLATE_ARGUMENT( UAIGraphNode*, GraphNode)
 		SLATE_ARGUMENT( FVector2D, NewNodePosition )
 		SLATE_ARGUMENT( TArray<UEdGraphPin*>, DraggedFromPins )
 		SLATE_ARGUMENT( SGraphEditor::FActionMenuClosed, OnClosedCallback )
 		SLATE_ARGUMENT( bool, AutoExpandActionMenu )
+		SLATE_ARGUMENT( int32, SubNodeFlags)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs );
 
-	~SGraphEditorActionMenu_EnvironmentQuery();
+	~SGraphEditorActionMenuAI();
 
 	TSharedRef<SEditableTextBox> GetFilterTextBox();
 
 protected:
 	UEdGraph* GraphObj;
-	UEnvironmentQueryGraphNode_Option* GraphNode;
+	UAIGraphNode* GraphNode;
 	TArray<UEdGraphPin*> DraggedFromPins;
 	FVector2D NewNodePosition;
 	bool AutoExpandActionMenu;
+	int32 SubNodeFlags;
 
 	SGraphEditor::FActionMenuClosed OnClosedCallback;
-
 	TSharedPtr<SGraphActionMenu> GraphActionMenu;
 
 	void OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction );

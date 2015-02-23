@@ -75,11 +75,6 @@ void UEnvQueryTest_GameplayTags::RunTest(FEnvQueryInstance& QueryInstance) const
 	}
 }
 
-FString UEnvQueryTest_GameplayTags::GetDescriptionTitle() const
-{
-	return Super::GetDescriptionTitle();
-}
-
 FText UEnvQueryTest_GameplayTags::GetDescriptionDetails() const
 {
 	return GameplayTags.ToMatchingText(TagsToMatch, !BoolValue.DefaultValue);

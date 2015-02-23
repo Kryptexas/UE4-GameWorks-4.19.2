@@ -8,17 +8,14 @@ class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
-	TArray<class UEnvironmentQueryGraphNode_Test*> Tests;
-
 	virtual void AllocateDefaultPins() override;
 	virtual void PostPlacedNewNode() override;
-	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
-	virtual void PrepareForCopying() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetDescription() const override;
 
-	void AddSubNode(class UEnvironmentQueryGraphNode_Test* NodeTemplate, class UEdGraph* ParentGraph);
+	virtual void PrepareForCopying() override;
+
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	void CreateAddTestSubMenu(class FMenuBuilder& MenuBuilder, UEdGraph* Graph) const;
 
 	void CalculateWeights();

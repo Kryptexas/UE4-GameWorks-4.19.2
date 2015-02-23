@@ -12,6 +12,8 @@
 #include "SGraphNode_EnvironmentQuery.h"
 #include "EdGraphUtilities.h"
 
+#include "EnvironmentQuery/Generators/EnvQueryGenerator_BlueprintBase.h"
+
 
 IMPLEMENT_MODULE( FEnvironmentQueryEditorModule, EnvironmentQueryEditor );
 DEFINE_LOG_CATEGORY(LogEnvironmentQueryEditor);
@@ -63,6 +65,7 @@ void FEnvironmentQueryEditorModule::ShutdownModule()
 		return;
 	}
 
+	ClassCache.Reset();
 	MenuExtensibilityManager.Reset();
 	ToolBarExtensibilityManager.Reset();
 
@@ -98,10 +101,16 @@ void FEnvironmentQueryEditorModule::ShutdownModule()
 }
 
 
-TSharedRef<IEnvironmentQueryEditor> FEnvironmentQueryEditorModule::CreateEnvironmentQueryEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UEnvQuery* Script )
+TSharedRef<IEnvironmentQueryEditor> FEnvironmentQueryEditorModule::CreateEnvironmentQueryEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UEnvQuery* Query)
 {
+	if (!ClassCache.IsValid())
+	{
+		ClassCache = MakeShareable(new FGraphNodeClassHelper(UEnvQueryNode::StaticClass()));
+		FGraphNodeClassHelper::AddObservedBlueprintClasses(UEnvQueryGenerator_BlueprintBase::StaticClass());
+		ClassCache->UpdateAvailableBlueprintClasses();
+	}
+
 	TSharedRef< FEnvironmentQueryEditor > NewEnvironmentQueryEditor( new FEnvironmentQueryEditor() );
-	NewEnvironmentQueryEditor->InitEnvironmentQueryEditor( Mode, InitToolkitHost, Script );
+	NewEnvironmentQueryEditor->InitEnvironmentQueryEditor(Mode, InitToolkitHost, Query);
 	return NewEnvironmentQueryEditor;
 }
-

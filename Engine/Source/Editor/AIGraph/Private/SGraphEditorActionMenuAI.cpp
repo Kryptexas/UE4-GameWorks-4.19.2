@@ -1,15 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "EnvironmentQueryEditorPrivatePCH.h"
-#include "SGraphEditorActionMenu_EnvironmentQuery.h"
+#include "AIGraphPrivatePCH.h"
+#include "SGraphEditorActionMenuAI.h"
 #include "K2ActionMenuBuilder.h" // for FBlueprintGraphActionListBuilder
+#include "AIGraphSchema.h"
 
-SGraphEditorActionMenu_EnvironmentQuery::~SGraphEditorActionMenu_EnvironmentQuery()
+SGraphEditorActionMenuAI::~SGraphEditorActionMenuAI()
 {
 	OnClosedCallback.ExecuteIfBound();
 }
 
-void SGraphEditorActionMenu_EnvironmentQuery::Construct( const FArguments& InArgs )
+void SGraphEditorActionMenuAI::Construct( const FArguments& InArgs )
 {
 	this->GraphObj = InArgs._GraphObj;
 	this->GraphNode = InArgs._GraphNode;
@@ -17,6 +18,7 @@ void SGraphEditorActionMenu_EnvironmentQuery::Construct( const FArguments& InArg
 	this->NewNodePosition = InArgs._NewNodePosition;
 	this->OnClosedCallback = InArgs._OnClosedCallback;
 	this->AutoExpandActionMenu = InArgs._AutoExpandActionMenu;
+	this->SubNodeFlags = InArgs._SubNodeFlags;
 
 	// Build the widget layout
 	SBorder::Construct( SBorder::FArguments()
@@ -28,15 +30,15 @@ void SGraphEditorActionMenu_EnvironmentQuery::Construct( const FArguments& InArg
 			.WidthOverride(400)
 			[
 				SAssignNew(GraphActionMenu, SGraphActionMenu)
-				.OnActionSelected(this, &SGraphEditorActionMenu_EnvironmentQuery::OnActionSelected)
-				.OnCollectAllActions(this, &SGraphEditorActionMenu_EnvironmentQuery::CollectAllActions)
+				.OnActionSelected(this, &SGraphEditorActionMenuAI::OnActionSelected)
+				.OnCollectAllActions(this, &SGraphEditorActionMenuAI::CollectAllActions)
 				.AutoExpandActionMenu(AutoExpandActionMenu)
 			]
 		]
 	);
 }
 
-void SGraphEditorActionMenu_EnvironmentQuery::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
+void SGraphEditorActionMenuAI::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 {
 	// Build up the context object
 	FBlueprintGraphActionListBuilder ContextMenuBuilder(GraphObj);
@@ -50,24 +52,27 @@ void SGraphEditorActionMenu_EnvironmentQuery::CollectAllActions(FGraphActionList
 	}
 
 	// Determine all possible actions
-	Cast<const UEdGraphSchema_EnvironmentQuery>(GraphObj->GetSchema())->GetGraphNodeContextActions(ContextMenuBuilder);
+	const UAIGraphSchema* MySchema = Cast<const UAIGraphSchema>(GraphObj->GetSchema());
+	if (MySchema)
+	{
+		MySchema->GetGraphNodeContextActions(ContextMenuBuilder, SubNodeFlags);
+	}
 
 	// Copy the added options back to the main list
 	//@TODO: Avoid this copy
 	OutAllActions.Append(ContextMenuBuilder);
 }
 
-TSharedRef<SEditableTextBox> SGraphEditorActionMenu_EnvironmentQuery::GetFilterTextBox()
+TSharedRef<SEditableTextBox> SGraphEditorActionMenuAI::GetFilterTextBox()
 {
 	return GraphActionMenu->GetFilterTextBox();
 }
 
-
-void SGraphEditorActionMenu_EnvironmentQuery::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction )
+void SGraphEditorActionMenuAI::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction )
 {
 	bool bDoDismissMenus = false;
 
-	if ( GraphObj != NULL )
+	if (GraphObj)
 	{
 		for ( int32 ActionIndex = 0; ActionIndex < SelectedAction.Num(); ActionIndex++ )
 		{
@@ -81,7 +86,7 @@ void SGraphEditorActionMenu_EnvironmentQuery::OnActionSelected( const TArray< TS
 		}
 	}
 
-	if ( bDoDismissMenus )
+	if (bDoDismissMenus)
 	{
 		FSlateApplication::Get().DismissAllMenus();
 	}

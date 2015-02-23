@@ -3,6 +3,7 @@
 #pragma once
 #include "DataProviders/AIDataProvider.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQueryNode.h"
 #include "EnvQueryTest.generated.h"
 
 class UEnvQueryItemType;
@@ -20,17 +21,13 @@ namespace EnvQueryTestVersion
 }
 
 UCLASS(Abstract)
-class AIMODULE_API UEnvQueryTest : public UObject
+class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Number of test as defined in data asset */
 	UPROPERTY()
 	int32 TestOrder;
-
-	/** Versioning for updating deprecated properties */
-	UPROPERTY()
-	int32 VerNum;
 
 	/** The purpose of this test.  Should it be used for filtering possible results, scoring them, or both? */
 	UPROPERTY(EditDefaultsOnly, Category=Test)
@@ -164,21 +161,13 @@ public:
 	FORCEINLINE bool IsScoring() const { return (TestPurpose != EEnvTestPurpose::Filter); } 
 	FORCEINLINE bool IsFiltering() const { return (TestPurpose != EEnvTestPurpose::Score); }
 
-	/** get description of test */
-	virtual FString GetDescriptionTitle() const;
-	virtual FText GetDescriptionDetails() const;
-
 	FText DescribeFloatTestParams() const;
 	FText DescribeBoolTestParams(const FString& ConditionDesc) const;
 
 	virtual void PostLoad() override;
 
 	/** update to latest version after spawning */
-	void UpdateTestVersion();
-
-#if WITH_EDITOR && USE_EQS_DEBUGGER
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif //WITH_EDITOR && USE_EQS_DEBUGGER
+	virtual void UpdateNodeVersion() override;
 };
 
 //////////////////////////////////////////////////////////////////////////

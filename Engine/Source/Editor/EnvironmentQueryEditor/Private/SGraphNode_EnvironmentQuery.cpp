@@ -16,83 +16,20 @@
 
 #define LOCTEXT_NAMESPACE "EnvironmentQueryEditor"
 
-TSharedRef<FDragNodeEQSTimed> FDragNodeEQSTimed::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphNode>& InDraggedNode)
-{
-	TSharedRef<FDragNodeEQSTimed> Operation = MakeShareable(new FDragNodeEQSTimed);
-	Operation->StartTime = FPlatformTime::Seconds();
-	Operation->GraphPanel = InGraphPanel;
-	Operation->DraggedNodes.Add(InDraggedNode);
-	// adjust the decorator away from the current mouse location a small amount based on cursor size
-	Operation->DecoratorAdjust = FSlateApplication::Get().GetCursorSize();
-	Operation->Construct();
-	return Operation;
-}
-
-TSharedRef<FDragNodeEQSTimed> FDragNodeEQSTimed::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphNode> >& InDraggedNodes)
-{
-	TSharedRef<FDragNodeEQSTimed> Operation = MakeShareable(new FDragNodeEQSTimed);
-	Operation->StartTime = FPlatformTime::Seconds();
-	Operation->GraphPanel = InGraphPanel;
-	Operation->DraggedNodes = InDraggedNodes;
-	Operation->DecoratorAdjust = FSlateApplication::Get().GetCursorSize();
-	Operation->Construct();
-	return Operation;
-}
-
-UEnvironmentQueryGraphNode_Test* FDragNodeEQSTimed::GetDropTargetNode() const
-{
-	return Cast<UEnvironmentQueryGraphNode_Test>(GetHoveredNode());
-}
-
-/////////////////////////////////////////////////////
-// SStateMachineOutputPin
-
-class SEnvironmentQueryPin : public SGraphPin
+class SEnvironmentQueryPin : public SGraphPinAI
 {
 public:
 	SLATE_BEGIN_ARGS(SEnvironmentQueryPin){}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
-protected:
-	// Begin SGraphPin interface
-	virtual FSlateColor GetPinColor() const override;
-	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
-	// End SGraphPin interface
 
-	const FSlateBrush* GetPinBorder() const;
+	virtual FSlateColor GetPinColor() const override;
 };
 
 void SEnvironmentQueryPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 {
-	this->SetCursor( EMouseCursor::Default );
-
-	bShowLabel = true;
-	IsEditable = true;
-
-	GraphPinObj = InPin;
-	check(GraphPinObj != NULL);
-
-	const UEdGraphSchema* Schema = GraphPinObj->GetSchema();
-	check(Schema);
-
-	SBorder::Construct( SBorder::FArguments()
-		.BorderImage( this, &SEnvironmentQueryPin::GetPinBorder )
-		.BorderBackgroundColor( this, &SEnvironmentQueryPin::GetPinColor )
-		.OnMouseButtonDown( this, &SEnvironmentQueryPin::OnPinMouseDown )
-		.Cursor( this, &SEnvironmentQueryPin::GetPinCursor )
-		.Padding(FMargin(5.0f))
-		);
-}
-
-TSharedRef<SWidget>	SEnvironmentQueryPin::GetDefaultValueWidget()
-{
-	return SNew(STextBlock);
-}
-
-const FSlateBrush* SEnvironmentQueryPin::GetPinBorder() const
-{
-	return FEditorStyle::GetBrush(TEXT("Graph.StateNode.Body"));
+	SGraphPinAI::Construct(SGraphPinAI::FArguments(), InPin);
 }
 
 FSlateColor SEnvironmentQueryPin::GetPinColor() const
@@ -106,22 +43,17 @@ FSlateColor SEnvironmentQueryPin::GetPinColor() const
 
 void SGraphNode_EnvironmentQuery::Construct(const FArguments& InArgs, UEnvironmentQueryGraphNode* InNode)
 {
-	this->GraphNode = InNode;
-
-	this->SetCursor(EMouseCursor::CardinalCross);
-
-	this->UpdateGraphNode();
-
-	bDragMarkerVisible = false;
+	SGraphNodeAI::Construct(SGraphNodeAI::FArguments(), InNode);
 }
 
-void SGraphNode_EnvironmentQuery::AddTest(TSharedPtr<SGraphNode> TestWidget)
+void SGraphNode_EnvironmentQuery::AddSubNode(TSharedPtr<SGraphNode> SubNodeWidget)
 {
+	SGraphNodeAI::AddSubNode(SubNodeWidget);
+
 	TestBox->AddSlot().AutoHeight()
 		[
-			TestWidget.ToSharedRef()
+			SubNodeWidget.ToSharedRef()
 		];
-	TestWidgets.Add(TestWidget);
 }
 
 FSlateColor SGraphNode_EnvironmentQuery::GetBorderBackgroundColor() const
@@ -172,7 +104,7 @@ void SGraphNode_EnvironmentQuery::UpdateGraphNode()
 	// Reset variables that are going to be exposed, in case we are refreshing an already setup node.
 	RightNodeBox.Reset();
 	LeftNodeBox.Reset();
-	TestWidgets.Reset();
+	SubNodes.Reset();
 
 	const float NodePadding = (Cast<UEnvironmentQueryGraphNode_Test>(GraphNode) != NULL) ? 2.0f : 10.0f;
 	float TestPadding = 0.0f;
@@ -180,22 +112,22 @@ void SGraphNode_EnvironmentQuery::UpdateGraphNode()
 	UEnvironmentQueryGraphNode_Option* OptionNode = Cast<UEnvironmentQueryGraphNode_Option>(GraphNode);
 	if (OptionNode)
 	{
-		for (int32 i = 0; i < OptionNode->Tests.Num(); i++)
+		for (int32 Idx = 0; Idx < OptionNode->SubNodes.Num(); Idx++)
 		{
-			if (OptionNode->Tests[i])
+			if (OptionNode->SubNodes[Idx])
 			{
-				TSharedPtr<SGraphNode> NewNode = FNodeFactory::CreateNodeWidget(OptionNode->Tests[i]);
+				TSharedPtr<SGraphNode> NewNode = FNodeFactory::CreateNodeWidget(OptionNode->SubNodes[Idx]);
 				if (OwnerGraphPanelPtr.IsValid())
 				{
 					NewNode->SetOwner(OwnerGraphPanelPtr.Pin().ToSharedRef());
 					OwnerGraphPanelPtr.Pin()->AttachGraphEvents(NewNode);
 				}
-				AddTest(NewNode);
+				AddSubNode(NewNode);
 				NewNode->UpdateGraphNode();
 			}
 		}
 
-		if (TestWidgets.Num() == 0)
+		if (SubNodes.Num() == 0)
 		{
 			TestBox->AddSlot().AutoHeight()
 				[
@@ -361,12 +293,6 @@ void SGraphNode_EnvironmentQuery::UpdateGraphNode()
 	CreatePinWidgets();
 }
 
-FText SGraphNode_EnvironmentQuery::GetDescription() const
-{
-	UEnvironmentQueryGraphNode* StateNode = CastChecked<UEnvironmentQueryGraphNode>(GraphNode);
-	return StateNode ? StateNode->GetDescription() : FText::GetEmpty();
-}
-
 void SGraphNode_EnvironmentQuery::CreatePinWidgets()
 {
 	UEnvironmentQueryGraphNode* StateNode = CastChecked<UEnvironmentQueryGraphNode>(GraphNode);
@@ -377,8 +303,7 @@ void SGraphNode_EnvironmentQuery::CreatePinWidgets()
 		TSharedPtr<SGraphPin> NewPin = SNew(SEnvironmentQueryPin, CurPin);
 
 		NewPin->SetIsEditable(IsEditable);
-
-		this->AddPin(NewPin.ToSharedRef());
+		AddPin(NewPin.ToSharedRef());
 	}
 
 	CurPin = StateNode->GetInputPin();
@@ -387,116 +312,8 @@ void SGraphNode_EnvironmentQuery::CreatePinWidgets()
 		TSharedPtr<SGraphPin> NewPin = SNew(SEnvironmentQueryPin, CurPin);
 
 		NewPin->SetIsEditable(IsEditable);
-
-		this->AddPin(NewPin.ToSharedRef());
+		AddPin(NewPin.ToSharedRef());
 	}
-}
-
-void SGraphNode_EnvironmentQuery::AddPin(const TSharedRef<SGraphPin>& PinToAdd)
-{
-	PinToAdd->SetOwner( SharedThis(this) );
-
-	const UEdGraphPin* PinObj = PinToAdd->GetPinObj();
-	const bool bAdvancedParameter = PinObj && PinObj->bAdvancedView;
-	if(bAdvancedParameter)
-	{
-		PinToAdd->SetVisibility( TAttribute<EVisibility>(PinToAdd, &SGraphPin::IsPinVisibleAsAdvanced) );
-	}
-
-	if (PinToAdd->GetDirection() == EEdGraphPinDirection::EGPD_Input)
-	{
-		LeftNodeBox->AddSlot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			.FillHeight(1.0f)
-			[
-				PinToAdd
-			];
-		InputPins.Add(PinToAdd);
-	}
-	else // Direction == EEdGraphPinDirection::EGPD_Output
-	{
-		RightNodeBox->AddSlot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			.FillHeight(1.0f)
-			[
-				PinToAdd
-			];
-		OutputPins.Add(PinToAdd);
-	}
-}
-
-FReply SGraphNode_EnvironmentQuery::OnMouseMove(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent)
-{
-	if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && !(GEditor->bIsSimulatingInEditor || GEditor->PlayWorld))
-	{
-		//if we are holding mouse over a subnode
-		UEnvironmentQueryGraphNode_Test* TestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
-		if (TestNode && TestNode->ParentNode)
-		{
-			const TSharedRef<SGraphPanel>& Panel = this->GetOwnerPanel().ToSharedRef();
-			const TSharedRef<SGraphNode>& Node = SharedThis(this);
-			return FReply::Handled().BeginDragDrop(FDragNodeEQSTimed::New(Panel, Node));
-		}
-	}
-
-	if (!MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && bDragMarkerVisible)
-	{
-		SetDragMarker(false);
-	}
-
-	return FReply::Unhandled();
-}
-
-FReply SGraphNode_EnvironmentQuery::OnMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent)
-{
-	UEnvironmentQueryGraphNode_Test* TestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
-	if (TestNode && TestNode->ParentNode)
-	{
-		GetOwnerPanel()->SelectionManager.ClickedOnNode(GraphNode,MouseEvent);
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
-}
-
-TSharedPtr<SGraphNode> SGraphNode_EnvironmentQuery::GetSubNodeUnderCursor(const FGeometry& WidgetGeometry, const FPointerEvent& MouseEvent)
-{
-	TSharedPtr<SGraphNode> ResultNode;
-
-	// We just need to find the one WidgetToFind among our descendants.
-	TSet< TSharedRef<SWidget> > SubWidgetsSet;
-	for (int32 i=0; i < TestWidgets.Num(); i++)
-	{
-		SubWidgetsSet.Add(TestWidgets[i].ToSharedRef());
-	}
-
-	TMap<TSharedRef<SWidget>, FArrangedWidget> Result;
-	FindChildGeometries(WidgetGeometry, SubWidgetsSet, Result);
-
-	if ( Result.Num() > 0 )
-	{
-		FArrangedChildren ArrangedChildren(EVisibility::Visible);
-		Result.GenerateValueArray( ArrangedChildren.GetInternalArray() );
-		int32 HoveredIndex = SWidget::FindChildUnderMouse( ArrangedChildren, MouseEvent );
-		if ( HoveredIndex != INDEX_NONE )
-		{
-			ResultNode = StaticCastSharedRef<SGraphNode>(ArrangedChildren[HoveredIndex].Widget);
-		}
-	}
-
-	return ResultNode;
-}
-
-void SGraphNode_EnvironmentQuery::SetDragMarker(bool bEnabled)
-{
-	bDragMarkerVisible = bEnabled;
-}
-
-EVisibility SGraphNode_EnvironmentQuery::GetDragOverMarkerVisibility() const
-{
-	return bDragMarkerVisible ? EVisibility::Visible : EVisibility::Collapsed; 
 }
 
 EVisibility SGraphNode_EnvironmentQuery::GetWeightMarkerVisibility() const
@@ -536,173 +353,16 @@ void SGraphNode_EnvironmentQuery::OnTestToggleChanged(ECheckBoxState NewState)
 	{
 		MyTestNode->bTestEnabled = (NewState == ECheckBoxState::Checked);
 		
-		if (MyTestNode->ParentNode)
+		UEnvironmentQueryGraphNode_Option* MyParentNode = Cast<UEnvironmentQueryGraphNode_Option>(MyTestNode->ParentNode);
+		if (MyParentNode)
 		{
-			MyTestNode->ParentNode->CalculateWeights();
+			MyParentNode->CalculateWeights();
 		}
 
 		UEnvironmentQueryGraph* MyGraph = Cast<UEnvironmentQueryGraph>(MyTestNode->GetGraph());
 		if (MyGraph)
 		{
 			MyGraph->UpdateAsset();
-		}
-	}
-}
-
-void SGraphNode_EnvironmentQuery::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
-{
-	// Is someone dragging a node?
-	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
-	if (DragConnectionOp.IsValid())
-	{
-		// Inform the Drag and Drop operation that we are hovering over this node.
-		TSharedPtr<SGraphNode> SubNode = GetSubNodeUnderCursor(MyGeometry, DragDropEvent);
-		DragConnectionOp->SetHoveredNode( SubNode.IsValid() ? SubNode : SharedThis(this) );
-
-		UEnvironmentQueryGraphNode_Test* TestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
-		if (DragConnectionOp->IsValidOperation() && TestNode && TestNode->ParentNode)
-		{
-			SetDragMarker(true);
-		}
-	}
-
-	SGraphNode::OnDragEnter(MyGeometry, DragDropEvent);
-}
-
-FReply SGraphNode_EnvironmentQuery::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
-{
-	// Is someone dragging a node?
-	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
-	if (DragConnectionOp.IsValid())
-	{
-		// Inform the Drag and Drop operation that we are hovering over this node.
-		TSharedPtr<SGraphNode> SubNode = GetSubNodeUnderCursor(MyGeometry, DragDropEvent);
-		DragConnectionOp->SetHoveredNode( SubNode.IsValid() ? SubNode : SharedThis(this) );
-	}
-	return SGraphNode::OnDragOver(MyGeometry, DragDropEvent);
-}
-
-void SGraphNode_EnvironmentQuery::OnDragLeave( const FDragDropEvent& DragDropEvent )
-{
-	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
-	if (DragConnectionOp.IsValid())
-	{
-		// Inform the Drag and Drop operation that we are not hovering any pins
-		DragConnectionOp->SetHoveredNode( TSharedPtr<SGraphNode>(NULL) );
-	}
-
-	SetDragMarker(false);
-	SGraphNode::OnDragLeave(DragDropEvent);
-}
-
-FReply SGraphNode_EnvironmentQuery::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
-{
-	SetDragMarker(false);
-
-	TSharedPtr<FDragNodeEQSTimed> DragNodeOp = DragDropEvent.GetOperationAs<FDragNodeEQSTimed>();
-	if (DragNodeOp.IsValid())
-	{
-		if (!DragNodeOp->IsValidOperation())
-		{
-			return FReply::Handled();
-		}
-
-		const float DragTime = float(FPlatformTime::Seconds() - DragNodeOp->StartTime);
-		if (DragTime < 0.5f)
-		{
-			return FReply::Handled();
-		}
-
-		UEnvironmentQueryGraphNode_Option* MyNode = Cast<UEnvironmentQueryGraphNode_Option>(GraphNode);
-		if (MyNode == NULL)
-		{
-			return FReply::Unhandled();
-		}
-
-		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_DragDropNode", "Drag&Drop Node") );
-		bool bReorderOperation = true;
-
-		const TArray< TSharedRef<SGraphNode> >& DraggedNodes = DragNodeOp->GetNodes();
-		for (int32 Idx = 0; Idx < DraggedNodes.Num(); Idx++)
-		{
-			UEnvironmentQueryGraphNode_Test* DraggedTestNode = Cast<UEnvironmentQueryGraphNode_Test>(DraggedNodes[Idx]->GetNodeObj());
-			if (DraggedTestNode && DraggedTestNode->ParentNode)
-			{
-				if (DraggedTestNode->ParentNode != GraphNode)
-				{
-					bReorderOperation = false;
-				}
-
-				DraggedTestNode->ParentNode->Modify();
-				TArray<UEnvironmentQueryGraphNode_Test*> & SubNodes = DraggedTestNode->ParentNode->Tests;
-				for (int32 SubIdx = 0; SubIdx < SubNodes.Num(); SubIdx++)
-				{
-					if (SubNodes[SubIdx] == DraggedTestNode)
-					{
-						SubNodes.RemoveAt(SubIdx);
-					}
-				}
-			}
-		}
-
-		UEnvironmentQueryGraphNode_Test* DropTargetNode = DragNodeOp->GetDropTargetNode();
-		const int32 InsertIndex = MyNode->Tests.IndexOfByKey(DropTargetNode);
-
-		for (int32 Idx = 0; Idx < DraggedNodes.Num(); Idx++)
-		{
-			UEnvironmentQueryGraphNode_Test* DraggedTestNode = Cast<UEnvironmentQueryGraphNode_Test>(DraggedNodes[Idx]->GetNodeObj());
-			DraggedTestNode->Modify();
-			DraggedTestNode->ParentNode = MyNode;
-			MyNode->Modify();
-
-			if (InsertIndex > -1)
-			{
-				MyNode->Tests.Insert(DraggedTestNode, InsertIndex);
-			}
-			else
-			{
-				MyNode->Tests.Add(DraggedTestNode);
-			}
-		}
-
-		if (bReorderOperation)
-		{
-			UpdateGraphNode();
-		}
-		else
-		{
-			MyNode->GetGraph()->NotifyGraphChanged();
-		}
-	}
-
-	return SGraphNode::OnDrop(MyGeometry, DragDropEvent);
-}
-
-TSharedPtr<SToolTip> SGraphNode_EnvironmentQuery::GetComplexTooltip()
-{
-	return NULL;
-}
-
-FText SGraphNode_EnvironmentQuery::GetPreviewCornerText() const
-{
-	UEnvironmentQueryGraphNode* StateNode = CastChecked<UEnvironmentQueryGraphNode>(GraphNode);
-	return FText::FromString(TEXT("Test CornerText"));
-}
-
-const FSlateBrush* SGraphNode_EnvironmentQuery::GetNameIcon() const
-{
-	return FEditorStyle::GetBrush( TEXT("Graph.StateNode.Icon") );
-}
-
-void SGraphNode_EnvironmentQuery::SetOwner(const TSharedRef<SGraphPanel>& OwnerPanel)
-{
-	SGraphNode::SetOwner(OwnerPanel);
-
-	for (auto& ChildWidget : TestWidgets)
-	{
-		if (ChildWidget.IsValid())
-		{
-			ChildWidget->SetOwner(OwnerPanel);
 		}
 	}
 }

@@ -88,7 +88,7 @@ void UEnvQueryTest_Trace::RunTest(FEnvQueryInstance& QueryInstance) const
 	}
 }
 
-FString UEnvQueryTest_Trace::GetDescriptionTitle() const
+FText UEnvQueryTest_Trace::GetDescriptionTitle() const
 {
 	UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETraceTypeQuery"), true);
 	FString ChannelDesc = ChannelEnum->GetEnumText(TraceData.TraceChannel).ToString();
@@ -97,8 +97,8 @@ FString UEnvQueryTest_Trace::GetDescriptionTitle() const
 		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *TraceFromContext.ToString()) :
 		FString::Printf(TEXT("%s %s"), TraceFromContext.DefaultValue ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
 
-	return FString::Printf(TEXT("%s: %s on %s"), 
-		*Super::GetDescriptionTitle(), *DirectionDesc, *ChannelDesc);
+	return FText::FromString(FString::Printf(TEXT("%s: %s on %s"), 
+		*Super::GetDescriptionTitle().ToString(), *DirectionDesc, *ChannelDesc));
 }
 
 FText UEnvQueryTest_Trace::GetDescriptionDetails() const

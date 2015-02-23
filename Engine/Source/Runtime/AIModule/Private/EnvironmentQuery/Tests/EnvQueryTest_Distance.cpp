@@ -88,7 +88,7 @@ void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 	}
 }
 
-FString UEnvQueryTest_Distance::GetDescriptionTitle() const
+FText UEnvQueryTest_Distance::GetDescriptionTitle() const
 {
 	FString ModeDesc;
 	switch (TestMode)
@@ -109,9 +109,9 @@ FString UEnvQueryTest_Distance::GetDescriptionTitle() const
 			break;
 	}
 
-	return FString::Printf(TEXT("%s%s: to %s"), 
-		*Super::GetDescriptionTitle(), *ModeDesc,
-		*UEnvQueryTypes::DescribeContext(DistanceTo).ToString());
+	return FText::FromString(FString::Printf(TEXT("%s%s: to %s"), 
+		*Super::GetDescriptionTitle().ToString(), *ModeDesc,
+		*UEnvQueryTypes::DescribeContext(DistanceTo).ToString()));
 }
 
 FText UEnvQueryTest_Distance::GetDescriptionDetails() const

@@ -26,7 +26,7 @@ public:
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() {return MenuExtensibilityManager;}
 	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() {return ToolBarExtensibilityManager;}
 
-	TSharedPtr<struct FClassBrowseHelper> GetClassCache() { return ClassCache; }
+	TSharedPtr<struct FGraphNodeClassHelper> GetClassCache() { return ClassCache; }
 
 	/** Behavior Tree app identifier string */
 	static const FName BehaviorTreeEditorAppIdentifier;
@@ -38,7 +38,7 @@ private:
 	/** Asset type actions */
 	TArray<TSharedPtr<class FAssetTypeActions_Base>> ItemDataAssetTypeActions;
 
-	TSharedPtr<struct FClassBrowseHelper> ClassCache;
+	TSharedPtr<struct FGraphNodeClassHelper> ClassCache;
 };
 
 

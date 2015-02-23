@@ -116,7 +116,7 @@ void UEnvQueryTest_Pathfinding::RunTest(FEnvQueryInstance& QueryInstance) const
 	}
 }
 
-FString UEnvQueryTest_Pathfinding::GetDescriptionTitle() const
+FText UEnvQueryTest_Pathfinding::GetDescriptionTitle() const
 {
 	FString ModeDesc[] = { TEXT("PathExist"), TEXT("PathCost"), TEXT("PathLength") };
 
@@ -124,7 +124,7 @@ FString UEnvQueryTest_Pathfinding::GetDescriptionTitle() const
 		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *PathFromContext.ToString()) :
 		FString::Printf(TEXT("%s %s"), PathFromContext.DefaultValue ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
 
-	return FString::Printf(TEXT("%s: %s"), *ModeDesc[TestMode], *DirectionDesc);
+	return FText::FromString(FString::Printf(TEXT("%s: %s"), *ModeDesc[TestMode], *DirectionDesc));
 }
 
 FText UEnvQueryTest_Pathfinding::GetDescriptionDetails() const

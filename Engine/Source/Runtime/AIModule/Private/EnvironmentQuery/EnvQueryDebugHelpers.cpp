@@ -88,7 +88,7 @@ void UEnvQueryDebugHelpers::QueryToDebugData(FEnvQueryInstance& Query, EQSDebug:
 		EQSDebug::FTestData TestInfo;
 
 		UEnvQueryTest* TestOb = Query.Options[Query.OptionIndex].Tests[TestIdx];
-		TestInfo.ShortName = TestOb->GetDescriptionTitle();
+		TestInfo.ShortName = TestOb->GetDescriptionTitle().ToString();
 		TestInfo.Detailed = TestOb->GetDescriptionDetails().ToString().Replace(TEXT("\n"), TEXT(", "));
 
 		EQSLocalData.Tests.Add(TestInfo);

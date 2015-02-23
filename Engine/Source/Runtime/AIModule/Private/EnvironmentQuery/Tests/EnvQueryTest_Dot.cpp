@@ -185,7 +185,7 @@ bool UEnvQueryTest_Dot::RequiresPerItemUpdates(TSubclassOf<UEnvQueryContext> Lin
 	return bRequirePerItemUpdate;
 }
 
-FString UEnvQueryTest_Dot::GetDescriptionTitle() const
+FText UEnvQueryTest_Dot::GetDescriptionTitle() const
 {
 	FString ModeDesc;
 	switch (TestMode)
@@ -202,8 +202,8 @@ FString UEnvQueryTest_Dot::GetDescriptionTitle() const
 			break;
 	}
 
-	return FString::Printf(TEXT("%s%s%s: %s and %s"), bAbsoluteValue ? TEXT("Absolute ") : TEXT(""),
-		*Super::GetDescriptionTitle(), *ModeDesc, *LineA.ToText().ToString(), *LineB.ToText().ToString());
+	return FText::FromString(FString::Printf(TEXT("%s%s%s: %s and %s"), bAbsoluteValue ? TEXT("Absolute ") : TEXT(""),
+		*Super::GetDescriptionTitle().ToString(), *ModeDesc, *LineA.ToText().ToString(), *LineB.ToText().ToString()));
 }
 
 FText UEnvQueryTest_Dot::GetDescriptionDetails() const

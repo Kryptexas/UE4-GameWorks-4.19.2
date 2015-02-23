@@ -45,7 +45,7 @@ class UEnvQueryTest_Trace : public UEnvQueryTest
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 	virtual void PostLoad() override;
 
-	virtual FString GetDescriptionTitle() const override;
+	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;
 
 protected:

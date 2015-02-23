@@ -2,11 +2,11 @@
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "ScopedTransaction.h"
-#include "SGraphEditorActionMenu_EnvironmentQuery.h"
+#include "SGraphEditorActionMenuAI.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvironmentQuery/EnvQueryOption.h"
 
-#define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
+#define LOCTEXT_NAMESPACE "EnvironmentQueryEditor"
 
 UEnvironmentQueryGraphNode_Option::UEnvironmentQueryGraphNode_Option(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -20,17 +20,23 @@ void UEnvironmentQueryGraphNode_Option::AllocateDefaultPins()
 
 void UEnvironmentQueryGraphNode_Option::PostPlacedNewNode()
 {
-	if (EnvQueryNodeClass != NULL)
+	UClass* NodeClass = ClassData.GetClass(true);
+	if (NodeClass)
 	{
-		UEnvQuery* Query = Cast<UEnvQuery>(GetEnvironmentQueryGraph()->GetOuter());
-		UEnvQueryOption* QueryOption = NewObject<UEnvQueryOption>(Query);
-		QueryOption->Generator = NewObject<UEnvQueryGenerator>(Query, EnvQueryNodeClass);
-		QueryOption->Generator->UpdateGeneratorVersion();
-		
-		QueryOption->SetFlags(RF_Transactional);
-		QueryOption->Generator->SetFlags(RF_Transactional);
+		UEdGraph* MyGraph = GetGraph();
+		UObject* GraphOwner = MyGraph ? MyGraph->GetOuter() : nullptr;
+		if (GraphOwner)
+		{
+			UEnvQueryOption* QueryOption = NewObject<UEnvQueryOption>(GraphOwner);
+			QueryOption->Generator = NewObject<UEnvQueryGenerator>(GraphOwner, NodeClass);
+			QueryOption->Generator->UpdateNodeVersion();
 
-		NodeInstance = QueryOption;
+			QueryOption->SetFlags(RF_Transactional);
+			QueryOption->Generator->SetFlags(RF_Transactional);
+
+			NodeInstance = QueryOption;
+			InitializeInstance();
+		}
 	}
 }
 
@@ -41,8 +47,8 @@ void UEnvironmentQueryGraphNode_Option::ResetNodeOwner()
 	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);
 	if (OptionInstance && OptionInstance->Generator)
 	{
-		UEnvQuery* Query = Cast<UEnvQuery>(GetEnvironmentQueryGraph()->GetOuter());
-		OptionInstance->Generator->Rename(NULL, Query, REN_DontCreateRedirectors | REN_DoNotDirty);
+		UObject* GraphOwner = GetGraph() ? GetGraph()->GetOuter() : nullptr;
+		OptionInstance->Generator->Rename(NULL, GraphOwner, REN_DontCreateRedirectors | REN_DoNotDirty);
 	}
 }
 
@@ -70,36 +76,6 @@ FText UEnvironmentQueryGraphNode_Option::GetDescription() const
 	return OptionInstance ? OptionInstance->GetDescriptionDetails() : FText::GetEmpty();
 }
 
-void UEnvironmentQueryGraphNode_Option::AddSubNode(UEnvironmentQueryGraphNode_Test* NodeTemplate, class UEdGraph* ParentGraph)
-{
-	const FScopedTransaction Transaction(LOCTEXT("AddNode", "Add Node"));
-	ParentGraph->Modify();
-	Modify();
-
-	NodeTemplate->SetFlags(RF_Transactional);
-
-	// set outer to be the graph so it doesn't go away
-	NodeTemplate->Rename(NULL, ParentGraph, REN_NonTransactional);
-	NodeTemplate->ParentNode = this;
-	Tests.Add(NodeTemplate);
-
-	NodeTemplate->CreateNewGuid();
-	NodeTemplate->PostPlacedNewNode();
-	NodeTemplate->AllocateDefaultPins();
-	NodeTemplate->AutowireNewNode(NULL);
-
-	NodeTemplate->NodePosX = 0;
-	NodeTemplate->NodePosY = 0;
-
-	ParentGraph->NotifyGraphChanged();
-
-	UEnvironmentQueryGraph* MyGraph = Cast<UEnvironmentQueryGraph>(ParentGraph);
-	if (MyGraph)
-	{
-		MyGraph->UpdateAsset();
-	}
-}
-
 void UEnvironmentQueryGraphNode_Option::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
 {
 	Context.MenuBuilder->AddSubMenu(
@@ -111,8 +87,8 @@ void UEnvironmentQueryGraphNode_Option::GetContextMenuActions(const FGraphNodeCo
 
 void UEnvironmentQueryGraphNode_Option::CreateAddTestSubMenu(class FMenuBuilder& MenuBuilder, UEdGraph* Graph) const
 {
-	TSharedRef<SGraphEditorActionMenu_EnvironmentQuery> Menu =	
-		SNew(SGraphEditorActionMenu_EnvironmentQuery)
+	TSharedRef<SGraphEditorActionMenuAI> Menu =	
+		SNew(SGraphEditorActionMenuAI)
 		.GraphObj( Graph )
 		.GraphNode((UEnvironmentQueryGraphNode_Option*)this)
 		.AutoExpandActionMenu(true);
@@ -123,14 +99,15 @@ void UEnvironmentQueryGraphNode_Option::CreateAddTestSubMenu(class FMenuBuilder&
 void UEnvironmentQueryGraphNode_Option::CalculateWeights()
 {
 	float MaxWeight = -1.0f;
-	for (int32 i = 0; i < Tests.Num(); i++)
+	for (int32 Idx = 0; Idx < SubNodes.Num(); Idx++)
 	{
-		if (Tests[i] == NULL || !Tests[i]->bTestEnabled)
+		UEnvironmentQueryGraphNode_Test* TestNode = Cast<UEnvironmentQueryGraphNode_Test>(SubNodes[Idx]);
+		if (TestNode == nullptr || !TestNode->bTestEnabled)
 		{
 			continue;
 		}
 
-		UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(Tests[i]->NodeInstance);
+		UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(TestNode->NodeInstance);
 		if (TestInstance && !TestInstance->Weight.IsNamedParam())
 		{
 			MaxWeight = FMath::Max(MaxWeight, FMath::Abs(TestInstance->Weight.Value));
@@ -142,20 +119,21 @@ void UEnvironmentQueryGraphNode_Option::CalculateWeights()
 		MaxWeight = 1.0f;
 	}
 
-	for (int32 i = 0; i < Tests.Num(); i++)
+	for (int32 Idx = 0; Idx < SubNodes.Num(); Idx++)
 	{
-		if (Tests[i] == NULL)
+		UEnvironmentQueryGraphNode_Test* TestNode = Cast<UEnvironmentQueryGraphNode_Test>(SubNodes[Idx]);
+		if (TestNode == NULL)
 		{
 			continue;
 		}
 		
-		UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(Tests[i]->NodeInstance);
-		const bool bHasNamed = TestInstance && Tests[i]->bTestEnabled && TestInstance->Weight.IsNamedParam();
-		const float NewWeight = (TestInstance && Tests[i]->bTestEnabled) ?
+		UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(TestNode->NodeInstance);
+		const bool bHasNamed = TestInstance && TestNode->bTestEnabled && TestInstance->Weight.IsNamedParam();
+		const float NewWeight = (TestInstance && TestNode->bTestEnabled) ?
 			(TestInstance->Weight.IsNamedParam() ? 1.0f : FMath::Clamp(FMath::Abs(TestInstance->Weight.Value) / MaxWeight, 0.0f, 1.0f)) : 
 			-1.0f;
 
-		Tests[i]->SetDisplayedWeight(NewWeight, bHasNamed);
+		TestNode->SetDisplayedWeight(NewWeight, bHasNamed);
 	}
 }
 

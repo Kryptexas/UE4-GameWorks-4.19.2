@@ -5,7 +5,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTreeGraphNode_CompositeDecorator.h"
 
-#define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
+#define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 
 UBehaviorTreeGraphNode_CompositeDecorator::UBehaviorTreeGraphNode_CompositeDecorator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -37,9 +37,9 @@ FText UBehaviorTreeGraphNode_CompositeDecorator::GetNodeTitle(ENodeTitleType::Ty
 	return FText::FromString(CompositeName.Len() ? CompositeName : GetNodeTypeDescription());
 }
 
-FString UBehaviorTreeGraphNode_CompositeDecorator::GetDescription() const
+FText UBehaviorTreeGraphNode_CompositeDecorator::GetDescription() const
 {
-	return CachedDescription;
+	return FText::FromString(CachedDescription);
 }
 
 void UBehaviorTreeGraphNode_CompositeDecorator::PostPlacedNewNode()

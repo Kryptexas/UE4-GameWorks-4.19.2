@@ -18,7 +18,7 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::AllocateDefaultPins()
 
 void UBehaviorTreeDecoratorGraphNode_Decorator::PostPlacedNewNode()
 {
-	UClass* NodeClass = ClassData.GetClass();
+	UClass* NodeClass = ClassData.GetClass(true);
 	if (NodeClass != NULL)
 	{
 		UBehaviorTreeGraphNode_CompositeDecorator* OwningNode = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GetDecoratorGraph()->GetOuter());
@@ -105,14 +105,14 @@ bool UBehaviorTreeDecoratorGraphNode_Decorator::RefreshNodeClass()
 	bool bUpdated = false;
 	if (NodeInstance == NULL)
 	{
-		if (FClassBrowseHelper::IsClassKnown(ClassData))
+		if (FGraphNodeClassHelper::IsClassKnown(ClassData))
 		{
 			PostPlacedNewNode();
 			bUpdated = (NodeInstance != NULL);
 		}
 		else
 		{
-			FClassBrowseHelper::AddUnknownClass(ClassData);
+			FGraphNodeClassHelper::AddUnknownClass(ClassData);
 		}
 	}
 

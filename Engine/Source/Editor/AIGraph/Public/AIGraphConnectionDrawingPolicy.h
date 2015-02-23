@@ -2,16 +2,17 @@
 
 #pragma once
 
-// This class draws the connections for an UEdGraph with a behavior tree schema
-class ENVIRONMENTQUERYEDITOR_API FEnvironmentQueryConnectionDrawingPolicy : public FConnectionDrawingPolicy
+#include "GraphEditorCommon.h"
+#include "ConnectionDrawingPolicy.h"
+
+class AIGRAPH_API FAIGraphConnectionDrawingPolicy : public FConnectionDrawingPolicy
 {
 protected:
 	UEdGraph* GraphObj;
-
 	TMap<UEdGraphNode*, int32> NodeWidgetMap;
+
 public:
-	//
-	FEnvironmentQueryConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj);
+	FAIGraphConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj);
 
 	// FConnectionDrawingPolicy interface 
 	virtual void DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params) override;

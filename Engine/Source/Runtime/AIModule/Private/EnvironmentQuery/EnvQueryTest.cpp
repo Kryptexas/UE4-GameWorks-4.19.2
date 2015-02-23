@@ -182,16 +182,6 @@ AActor* UEnvQueryTest::GetItemActor(FEnvQueryInstance& QueryInstance, int32 Item
 		NULL;
 }
 
-FString UEnvQueryTest::GetDescriptionTitle() const
-{
-	return UEnvQueryTypes::GetShortTypeName(this).ToString();
-}
-
-FText UEnvQueryTest::GetDescriptionDetails() const
-{
-	return FText::GetEmpty();
-}
-
 void UEnvQueryTest::PostLoad()
 {
 	Super::PostLoad();
@@ -206,23 +196,13 @@ void UEnvQueryTest::PostLoad()
 		Weight.Convert(this, ScoringFactor);
 	}
 
-	UpdateTestVersion();
+	UpdateNodeVersion();
 }
 
-void UEnvQueryTest::UpdateTestVersion()
+void UEnvQueryTest::UpdateNodeVersion()
 {
 	VerNum = EnvQueryTestVersion::Latest;
 }
-
-#if WITH_EDITOR && USE_EQS_DEBUGGER
-void UEnvQueryTest::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-#if USE_EQS_DEBUGGER
-	UEnvQueryManager::NotifyAssetUpdate(NULL);
-#endif
-}
-#endif //WITH_EDITOR && USE_EQS_DEBUGGER
 
 FText UEnvQueryTest::DescribeFloatTestParams() const
 {
