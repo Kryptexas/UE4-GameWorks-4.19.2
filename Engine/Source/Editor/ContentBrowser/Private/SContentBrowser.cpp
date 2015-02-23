@@ -129,7 +129,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 									SNew(STextBlock)
 									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.11"))
-									.Text(FString(TEXT("\xf15b")) /*fa-file*/)
+									.Text(FText::FromString(FString(TEXT("\xf15b"))) /*fa-file*/)
 								]
 
 								// New Text
@@ -152,7 +152,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 									SNew(STextBlock)
 									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-									.Text(FString(TEXT("\xf0d7")) /*fa-caret-down*/)
+									.Text(FText::FromString(FString(TEXT("\xf0d7"))) /*fa-caret-down*/)
 								]
 							]
 						]
@@ -182,7 +182,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 									SNew(STextBlock)
 									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.11"))
-									.Text(FString(TEXT("\xf019")) /*fa-download*/)
+									.Text(FText::FromString(FString(TEXT("\xf019"))) /*fa-download*/)
 								]
 
 								// Import Text
@@ -221,7 +221,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 									SNew(STextBlock)
 									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.11"))
-									.Text(FString(TEXT("\xf0c7")) /*fa-floppy-o*/)
+									.Text(FText::FromString(FString(TEXT("\xf0c7"))) /*fa-floppy-o*/)
 								]
 
 								// Save All Text
@@ -271,7 +271,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								SNew(STextBlock)
 								.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.11"))
-								.Text(FString(TEXT("\xf060")) /*fa-arrow-left*/)
+								.Text(FText::FromString(FString(TEXT("\xf060"))) /*fa-arrow-left*/)
 							]
 						]
 					]
@@ -298,7 +298,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								SNew(STextBlock)
 								.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.11"))
-								.Text(FString(TEXT("\xf061")) /*fa-arrow-right*/)
+								.Text(FText::FromString(FString(TEXT("\xf061"))) /*fa-arrow-right*/)
 							]
 						]
 					]
@@ -330,7 +330,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							SNew(STextBlock)
 							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.11"))
-							.Text(FString(TEXT("\xf07c")) /*fa-folder-open*/)
+							.Text(FText::FromString(FString(TEXT("\xf07c"))) /*fa-folder-open*/)
 						]
 					]
 
@@ -523,7 +523,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 									SNew(STextBlock)
 									.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
 									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
-									.Text(FString(TEXT("\xf0b0")) /*fa-filter*/)
+									.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
 								]
 
 								+ SHorizontalBox::Slot()

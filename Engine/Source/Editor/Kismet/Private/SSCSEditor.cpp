@@ -3182,7 +3182,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 							SNew(STextBlock)
 							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 							.Font( FEditorStyle::Get().GetFontStyle( "FontAwesome.10" ) )
-							.Text(FString(TEXT("\xf085")) /*fa-cogs*/)
+							.Text(FText::FromString(FString(TEXT("\xf085"))) /*fa-cogs*/)
 						]
 
 						+ SHorizontalBox::Slot()
@@ -3222,7 +3222,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 							SNew(STextBlock)
 							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-							.Text(FString(TEXT("\xf085")) /*fa-cogs*/)
+							.Text(FText::FromString(FString(TEXT("\xf085"))) /*fa-cogs*/)
 						]
 						
 						+ SHorizontalBox::Slot()

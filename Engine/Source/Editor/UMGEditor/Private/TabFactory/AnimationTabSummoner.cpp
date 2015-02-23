@@ -223,7 +223,7 @@ public:
 								SNew(STextBlock)
 								.TextStyle(FEditorStyle::Get(), "NormalText.Important")
 								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-								.Text(FString(TEXT("\xf067")) /*fa-plus*/)
+								.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
 							]
 
 							+ SHorizontalBox::Slot()

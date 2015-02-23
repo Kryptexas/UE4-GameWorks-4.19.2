@@ -31,7 +31,7 @@ FSubmitItem::FSubmitItem(const FSourceControlStateRef& InItem)
 	: Item(InItem)
 {
 	CheckBoxState = ECheckBoxState::Checked;
-	DisplayName = FPackageName::FilenameToLongPackageName(Item->GetFilename());
+	DisplayName = FText::FromString(FPackageName::FilenameToLongPackageName(Item->GetFilename()));
 }
 
 
@@ -404,12 +404,12 @@ void SSourceControlSubmitWidget::SortTree()
 		if (SortMode == EColumnSortMode::Ascending)
 		{
 			ListViewItems.Sort([](const TSharedPtr<FSubmitItem>& A, const TSharedPtr<FSubmitItem>& B) {
-				return A->GetDisplayName() < B->GetDisplayName(); });
+				return A->GetDisplayName().ToString() < B->GetDisplayName().ToString(); });
 		}
 		else if (SortMode == EColumnSortMode::Descending)
 		{
 			ListViewItems.Sort([](const TSharedPtr<FSubmitItem>& A, const TSharedPtr<FSubmitItem>& B) {
-				return A->GetDisplayName() >= B->GetDisplayName(); });
+				return A->GetDisplayName().ToString() >= B->GetDisplayName().ToString(); });
 		}
 	}
 	else if (SortByColumn == SSourceControlSubmitWidgetDefs::ColumnID_IconLabel)

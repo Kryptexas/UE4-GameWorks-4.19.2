@@ -36,7 +36,7 @@ public:
 	FString GetFilename() const { return Item->GetFilename(); }
 
 	/** Returns the name of the item as displayed in the widget */
-	FString GetDisplayName() const { return DisplayName; }
+	FText GetDisplayName() const { return DisplayName; }
 
 	/** Returns the name of the icon to be used in the list item widget */
 	FName GetIconName() const { return Item->GetSmallIconName(); }
@@ -67,7 +67,7 @@ private:
 	ECheckBoxState CheckBoxState;
 
 	/** Cached name to display in the listview */
-	FString DisplayName;
+	FText DisplayName;
 };
 
 class SSourceControlSubmitWidget : public SCompoundWidget

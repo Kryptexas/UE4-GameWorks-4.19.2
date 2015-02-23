@@ -55,7 +55,7 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 			SNew(STextBlock)
 			.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 			.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-			.Text(FString(TEXT("\xf067")) /*fa-plus*/)
+			.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
 		]
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
