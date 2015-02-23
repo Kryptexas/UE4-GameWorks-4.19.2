@@ -85,7 +85,7 @@ namespace CCT
 						UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *File);
 						continue;
 					}
-					UE_LOG(LogCrossCompilerTool, Log, TEXT("%d: %s!"), Count++, *File);
+					UE_LOG(LogCrossCompilerTool, Log, TEXT("%d: %s"), Count++, *File);
 
 					if (!CrossCompiler::Parser::Parse(HLSLShader, File, false))
 					{

@@ -377,6 +377,7 @@ namespace CrossCompiler
 				InsertToken(TEXT("out"), EHlslToken::Out);
 				InsertToken(TEXT("inout"), EHlslToken::InOut);
 				InsertToken(TEXT("static"), EHlslToken::Static);
+				InsertToken(TEXT("uniform"), EHlslToken::Uniform);
 
 				// Misc
 				InsertToken(TEXT("["), EHlslToken::LeftSquareBracket);

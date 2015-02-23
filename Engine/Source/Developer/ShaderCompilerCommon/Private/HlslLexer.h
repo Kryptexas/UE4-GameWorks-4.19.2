@@ -227,6 +227,7 @@ namespace CrossCompiler
 		Out,
 		InOut,
 		Static,
+		Uniform,
 
 		// Misc
 		LeftSquareBracket,

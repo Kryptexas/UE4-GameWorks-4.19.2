@@ -495,6 +495,7 @@ namespace CrossCompiler
 					uint32 bOut : 1;
 					uint32 bRowMajor : 1;
 					uint32 bShared : 1;
+					uint32 bUniform : 1;
 				};
 				uint32 Raw;
 			};
