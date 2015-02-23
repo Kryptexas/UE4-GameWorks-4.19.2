@@ -552,7 +552,7 @@ void AHUD::GetTextSize(const FString& Text, float& OutWidth, float& OutHeight, c
 {
 	if (IsCanvasValid_WarnIfNot())
 	{
-		Canvas->TextSize(Font, Text, OutWidth, OutHeight, Scale, Scale);
+		Canvas->TextSize(Font ? Font : GEngine->GetMediumFont(), Text, OutWidth, OutHeight, Scale, Scale);
 	}
 }
 
