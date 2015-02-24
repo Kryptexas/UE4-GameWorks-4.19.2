@@ -1363,6 +1363,7 @@ TSharedRef<SWidget> SGraphNode::AddPinButtonContent(FText PinText, FText PinTool
 	.ContentPadding(0.0f)
 	.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 	.OnClicked( this, &SGraphNode::OnAddPin )
+	.IsEnabled( this, &SGraphNode::IsNodeEditable )
 	.ToolTipText(PinTooltipText)
 	.ToolTip(Tooltip)
 	.Visibility(this, &SGraphNode::IsAddPinButtonVisible)
