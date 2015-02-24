@@ -1165,10 +1165,11 @@ bool USceneComponent::IsAttachedTo(class USceneComponent* TestComp) const
 FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* SourceComponent)
 	: FActorComponentInstanceData(SourceComponent)
 {
+	AActor* SourceOwner = SourceComponent->GetOwner();
 	for (int32 i = SourceComponent->AttachChildren.Num()-1; i >= 0; --i)
 	{
 		USceneComponent* SceneComponent = SourceComponent->AttachChildren[i];
-		if (SceneComponent && !SceneComponent->IsCreatedByConstructionScript())
+		if (SceneComponent && SceneComponent->GetOwner() == SourceOwner && !SceneComponent->IsCreatedByConstructionScript())
 		{
 			AttachedInstanceComponents.Add(SceneComponent);
 		}
