@@ -4295,26 +4295,28 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FixupExportMap()
 
 			// ActorComponents outered to a BlueprintGeneratedClass (or even older ones that are outered to Blueprint) need to be marked RF_Public, but older content was 
 			// not created as such.  This updates the ExportTable such that they are correctly flagged when created and when other packages validate their imports.
-			// TODO: Wrap this in a version check if possible. Mark up for future removal when minimum version is incremented
-			if ((Export.ObjectFlags & RF_Public) == 0)
+			if (UE4Ver() < VER_UE4_BLUEPRINT_GENERATED_CLASS_COMPONENT_TEMPLATES_PUBLIC)
 			{
-				static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
-				static const FName NAME_Blueprint("Blueprint");
-				const FName OuterClassName = GetExportClassName(Export.OuterIndex);
-				if (OuterClassName == NAME_BlueprintGeneratedClass || OuterClassName == NAME_Blueprint)
+				if ((Export.ObjectFlags & RF_Public) == 0)
 				{
-					static const UClass* ActorComponentClass = FindObjectChecked<UClass>(ANY_PACKAGE, TEXT("ActorComponent"), true);
-					static const FString BPGeneratedClassPostfix(TEXT("_C"));
-					const FString NameClassString = NameClass.ToString();
-					UClass* Class = FindObject<UClass>(ANY_PACKAGE, *NameClassString);
-
-					// It is (obviously) a component if the class is a child of actor component
-					// and (almost certainly) a component if the class cannot be loaded but it ends in _C meaning it was generated from a blueprint
-					// However, it (probably) isn't safe to load the blueprint class, so we just check the _C and it is (probably) good enough
-					if (    ((Class != nullptr) && Class->IsChildOf(ActorComponentClass))
-						 || ((Class == nullptr) && NameClassString.EndsWith(BPGeneratedClassPostfix)))
+					static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
+					static const FName NAME_Blueprint("Blueprint");
+					const FName OuterClassName = GetExportClassName(Export.OuterIndex);
+					if (OuterClassName == NAME_BlueprintGeneratedClass || OuterClassName == NAME_Blueprint)
 					{
-						Export.ObjectFlags |= RF_Public;
+						static const UClass* ActorComponentClass = FindObjectChecked<UClass>(ANY_PACKAGE, TEXT("ActorComponent"), true);
+						static const FString BPGeneratedClassPostfix(TEXT("_C"));
+						const FString NameClassString = NameClass.ToString();
+						UClass* Class = FindObject<UClass>(ANY_PACKAGE, *NameClassString);
+
+						// It is (obviously) a component if the class is a child of actor component
+						// and (almost certainly) a component if the class cannot be loaded but it ends in _C meaning it was generated from a blueprint
+						// However, it (probably) isn't safe to load the blueprint class, so we just check the _C and it is (probably) good enough
+						if (    ((Class != nullptr) && Class->IsChildOf(ActorComponentClass))
+							 || ((Class == nullptr) && NameClassString.EndsWith(BPGeneratedClassPostfix)))
+						{
+							Export.ObjectFlags |= RF_Public;
+						}
 					}
 				}
 			}

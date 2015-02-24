@@ -127,8 +127,7 @@ void UActorComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	// TODO: Wrap all this up with an engine version, for now just don't do it in cooked builds since we know they are good
-	if (!FPlatformProperties::RequiresCookedData())
+	if (GetLinkerUE4Version() < VER_UE4_ACTOR_COMPONENT_CREATION_METHOD)
 	{
 		if (bCreatedByConstructionScript_DEPRECATED)
 		{
@@ -141,7 +140,7 @@ void UActorComponent::PostLoad()
 
 		if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
 		{
-			UBlueprintGeneratedClass* Class = Cast/*Checked*/<UBlueprintGeneratedClass>(GetOuter()->GetClass());
+			UBlueprintGeneratedClass* Class = CastChecked<UBlueprintGeneratedClass>(GetOuter()->GetClass());
 			while (Class)
 			{
 				USimpleConstructionScript* SCS = Class->SimpleConstructionScript;
