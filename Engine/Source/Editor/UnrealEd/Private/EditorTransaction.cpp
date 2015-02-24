@@ -319,7 +319,7 @@ SIZE_T FTransaction::DataSize() const
  * Get all the objects that are part of this transaction.
  * @param	Objects		[out] Receives the object list.  Previous contents are cleared.
  */
-void FTransaction::GetTransactionObjects(TArray<UObject*>& Objects)
+void FTransaction::GetTransactionObjects(TArray<UObject*>& Objects) const
 {
 	Objects.Empty(); // Just in case.
 

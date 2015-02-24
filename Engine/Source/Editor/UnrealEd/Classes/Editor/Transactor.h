@@ -367,7 +367,7 @@ public:
 	 * Get all the objects that are part of this transaction.
 	 * @param	Objects		[out] Receives the object list.  Previous contents are cleared.
 	 */
-	void GetTransactionObjects(TArray<UObject*>& Objects);
+	void GetTransactionObjects(TArray<UObject*>& Objects) const;
 	void RemoveRecords( int32 Count = 1 );
 	int32 GetRecordCount() const;
 
