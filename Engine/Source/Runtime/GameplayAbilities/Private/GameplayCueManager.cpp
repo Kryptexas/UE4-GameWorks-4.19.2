@@ -162,11 +162,11 @@ void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPa
 {
 	if (!GameplayCueNotifyActorObjectLibrary)
 	{
-		GameplayCueNotifyActorObjectLibrary = UObjectLibrary::CreateLibrary(AGameplayCueNotify_Actor::StaticClass(), true, GIsEditor);
+		GameplayCueNotifyActorObjectLibrary = UObjectLibrary::CreateLibrary(AGameplayCueNotify_Actor::StaticClass(), true, GIsEditor && !IsRunningCommandlet());
 	}
 	if (!GameplayCueNotifyStaticObjectLibrary)
 	{
-		GameplayCueNotifyStaticObjectLibrary = UObjectLibrary::CreateLibrary(UGameplayCueNotify_Static::StaticClass(), true, GIsEditor);
+		GameplayCueNotifyStaticObjectLibrary = UObjectLibrary::CreateLibrary(UGameplayCueNotify_Static::StaticClass(), true, GIsEditor && !IsRunningCommandlet());
 	}
 
 	LoadedPaths = InPaths;
