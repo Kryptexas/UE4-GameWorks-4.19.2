@@ -45,8 +45,9 @@ float AActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APl
 		// If we're the view target or owned by the view target, use a high priority
 		Time *= 4.f;
 	}
-	else if (!bHidden)
+	else if (!bHidden && GetRootComponent() != NULL)
 	{
+		// If this actor has a location, adjust priority based on location
 		FVector Dir = GetActorLocation() - ViewPos;
 		float DistSq = Dir.SizeSquared();
 
