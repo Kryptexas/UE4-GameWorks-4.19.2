@@ -49,7 +49,7 @@ UTexture* UMaterialExpressionLandscapeVisibilityMask::GetReferencedTexture()
 	return GEngine->WeightMapPlaceholderTexture;
 }
 
-void UMaterialExpressionLandscapeVisibilityMask::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+void UMaterialExpressionLandscapeVisibilityMask::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
 	int32 CurrentSize = OutParameterNames.Num();
 	OutParameterNames.AddUnique(ParameterName);

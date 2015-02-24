@@ -1414,31 +1414,24 @@ void UMaterialInstance::CacheShadersForResources(EShaderPlatform ShaderPlatform,
 	}
 }
 
-bool UMaterialInstance::GetStaticSwitchParameterValue(FName ParameterName, bool &OutValue,FGuid &OutExpressionGuid)
+bool UMaterialInstance::GetStaticSwitchParameterValue(FName ParameterName, bool &OutValue,FGuid &OutExpressionGuid) const
 {
 	if(ReentrantFlag)
 	{
 		return false;
 	}
 
-	bool* Value = NULL;
-	FGuid* Guid = NULL;
 	for (int32 ValueIndex = 0;ValueIndex < StaticParameters.StaticSwitchParameters.Num();ValueIndex++)
 	{
 		if (StaticParameters.StaticSwitchParameters[ValueIndex].ParameterName == ParameterName)
 		{
-			Value = &StaticParameters.StaticSwitchParameters[ValueIndex].Value;
-			Guid = &StaticParameters.StaticSwitchParameters[ValueIndex].ExpressionGUID;
-			break;
+			OutValue = StaticParameters.StaticSwitchParameters[ValueIndex].Value;
+			OutExpressionGuid = StaticParameters.StaticSwitchParameters[ValueIndex].ExpressionGUID;
+			return true;
 		}
 	}
-	if(Value)
-	{
-		OutValue = *Value;
-		OutExpressionGuid = *Guid;
-		return true;
-	}
-	else if(Parent)
+
+	if(Parent)
 	{
 		FMICReentranceGuard	Guard(this);
 		return Parent->GetStaticSwitchParameterValue(ParameterName,OutValue,OutExpressionGuid);
@@ -1449,40 +1442,27 @@ bool UMaterialInstance::GetStaticSwitchParameterValue(FName ParameterName, bool 
 	}
 }
 
-bool UMaterialInstance::GetStaticComponentMaskParameterValue(FName ParameterName, bool &OutR, bool &OutG, bool &OutB, bool &OutA, FGuid &OutExpressionGuid)
+bool UMaterialInstance::GetStaticComponentMaskParameterValue(FName ParameterName, bool &OutR, bool &OutG, bool &OutB, bool &OutA, FGuid &OutExpressionGuid) const
 {
 	if(ReentrantFlag)
 	{
 		return false;
 	}
 
-	bool* R = NULL;
-	bool* G = NULL;
-	bool* B = NULL;
-	bool* A = NULL;
-	FGuid* ExpressionId = NULL;
 	for (int32 ValueIndex = 0;ValueIndex < StaticParameters.StaticComponentMaskParameters.Num();ValueIndex++)
 	{
 		if (StaticParameters.StaticComponentMaskParameters[ValueIndex].ParameterName == ParameterName)
 		{
-			R = &StaticParameters.StaticComponentMaskParameters[ValueIndex].R;
-			G = &StaticParameters.StaticComponentMaskParameters[ValueIndex].G;
-			B = &StaticParameters.StaticComponentMaskParameters[ValueIndex].B;
-			A = &StaticParameters.StaticComponentMaskParameters[ValueIndex].A;
-			ExpressionId = &StaticParameters.StaticComponentMaskParameters[ValueIndex].ExpressionGUID;
-			break;
+			OutR = StaticParameters.StaticComponentMaskParameters[ValueIndex].R;
+			OutG = StaticParameters.StaticComponentMaskParameters[ValueIndex].G;
+			OutB = StaticParameters.StaticComponentMaskParameters[ValueIndex].B;
+			OutA = StaticParameters.StaticComponentMaskParameters[ValueIndex].A;
+			OutExpressionGuid = StaticParameters.StaticComponentMaskParameters[ValueIndex].ExpressionGUID;
+			return true;
 		}
 	}
-	if(R && G && B && A)
-	{
-		OutR = *R;
-		OutG = *G;
-		OutB = *B;
-		OutA = *A;
-		OutExpressionGuid = *ExpressionId;
-		return true;
-	}
-	else if(Parent)
+
+	if(Parent)
 	{
 		FMICReentranceGuard	Guard(this);
 		return Parent->GetStaticComponentMaskParameterValue(ParameterName, OutR, OutG, OutB, OutA, OutExpressionGuid);
@@ -1493,32 +1473,24 @@ bool UMaterialInstance::GetStaticComponentMaskParameterValue(FName ParameterName
 	}
 }
 
-bool UMaterialInstance::GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid)
+bool UMaterialInstance::GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) const
 {
 	if(ReentrantFlag)
 	{
 		return false;
 	}
 
-	int32 WeightmapIndex = INDEX_NONE;
-
-	FGuid* ExpressionId = NULL;
 	for (int32 ValueIndex = 0;ValueIndex < StaticParameters.TerrainLayerWeightParameters.Num();ValueIndex++)
 	{
 		if (StaticParameters.TerrainLayerWeightParameters[ValueIndex].ParameterName == ParameterName)
 		{
-			WeightmapIndex = StaticParameters.TerrainLayerWeightParameters[ValueIndex].WeightmapIndex;
-			ExpressionId = &StaticParameters.TerrainLayerWeightParameters[ValueIndex].ExpressionGUID;
-			break;
+			OutWeightmapIndex = StaticParameters.TerrainLayerWeightParameters[ValueIndex].WeightmapIndex;
+			OutExpressionGuid = StaticParameters.TerrainLayerWeightParameters[ValueIndex].ExpressionGUID;
+			return true;
 		}
 	}
-	if (WeightmapIndex >= 0)
-	{
-		OutWeightmapIndex = WeightmapIndex;
-		OutExpressionGuid = *ExpressionId;
-		return true;
-	}
-	else if(Parent)
+
+	if(Parent)
 	{
 		FMICReentranceGuard	Guard(this);
 		return Parent->GetTerrainLayerWeightParameterValue(ParameterName, OutWeightmapIndex, OutExpressionGuid);

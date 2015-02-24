@@ -1058,40 +1058,40 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 	return true;
 }
 
-void UMaterial::GetAllVectorParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+void UMaterial::GetAllVectorParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
 	OutParameterNames.Empty();
 	OutParameterIds.Empty();
 	GetAllParameterNames<UMaterialExpressionVectorParameter>(OutParameterNames, OutParameterIds);
 }
-void UMaterial::GetAllScalarParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+void UMaterial::GetAllScalarParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
 	OutParameterNames.Empty();
 	OutParameterIds.Empty();
 	GetAllParameterNames<UMaterialExpressionScalarParameter>(OutParameterNames, OutParameterIds);
 }
-void UMaterial::GetAllTextureParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+void UMaterial::GetAllTextureParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
 	OutParameterNames.Empty();
 	OutParameterIds.Empty();
 	GetAllParameterNames<UMaterialExpressionTextureSampleParameter>(OutParameterNames, OutParameterIds);
 }
 
-void UMaterial::GetAllFontParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+void UMaterial::GetAllFontParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
 	OutParameterNames.Empty();
 	OutParameterIds.Empty();
 	GetAllParameterNames<UMaterialExpressionFontSampleParameter>(OutParameterNames, OutParameterIds);
 }
 
-void UMaterial::GetAllStaticSwitchParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+void UMaterial::GetAllStaticSwitchParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
 	OutParameterNames.Empty();
 	OutParameterIds.Empty();
 	GetAllParameterNames<UMaterialExpressionStaticBoolParameter>(OutParameterNames, OutParameterIds);
 }
 
-void UMaterial::GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+void UMaterial::GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
 	OutParameterNames.Empty();
 	OutParameterIds.Empty();
@@ -1246,122 +1246,146 @@ bool UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc) const
 
 bool UMaterial::GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const
 {
-	bool bSuccess = false;
-	for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+	for (const UMaterialExpression* Expression : Expressions)
 	{
-		UMaterialExpressionVectorParameter* VectorParameter =
-			Cast<UMaterialExpressionVectorParameter>(Expressions[ExpressionIndex]);
-
-		if(VectorParameter && VectorParameter->ParameterName == ParameterName)
+		if (const UMaterialExpressionVectorParameter* Parameter = Cast<const UMaterialExpressionVectorParameter>(Expression))
 		{
-			OutValue = VectorParameter->DefaultValue;
-			bSuccess = true;
-			break;
+			if (Parameter->IsNamedParameter(ParameterName, OutValue))
+			{
+				return true;
+			}
+		}
+		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
+		{
+			if (FunctionCall->MaterialFunction && FunctionCall->MaterialFunction->GetVectorParameterValue(ParameterName, OutValue))
+			{
+				return true;
+			}
 		}
 	}
-	return bSuccess;
+
+	return false;
 }
 
 bool UMaterial::GetScalarParameterValue(FName ParameterName, float& OutValue) const
 {
-	bool bSuccess = false;
-	for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+	for (const UMaterialExpression* Expression : Expressions)
 	{
-		UMaterialExpressionScalarParameter* ScalarParameter =
-			Cast<UMaterialExpressionScalarParameter>(Expressions[ExpressionIndex]);
-
-		if(ScalarParameter && ScalarParameter->ParameterName == ParameterName)
+		if (const UMaterialExpressionScalarParameter* Parameter = Cast<const UMaterialExpressionScalarParameter>(Expression))
 		{
-			OutValue = ScalarParameter->DefaultValue;
-			bSuccess = true;
-			break;
+			if (Parameter->IsNamedParameter(ParameterName, OutValue))
+			{
+				return true;
+			}
+		}
+		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
+		{
+			if (FunctionCall->MaterialFunction && FunctionCall->MaterialFunction->GetScalarParameterValue(ParameterName, OutValue))
+			{
+				return true;
+			}
 		}
 	}
-	return bSuccess;
+
+	return false;
 }
 
 bool UMaterial::GetTextureParameterValue(FName ParameterName, UTexture*& OutValue) const
 {
-	bool bSuccess = false;
-	for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+	for (const UMaterialExpression* Expression : Expressions)
 	{
-		UMaterialExpressionTextureSampleParameter* TextureSampleParameter =
-			Cast<UMaterialExpressionTextureSampleParameter>(Expressions[ExpressionIndex]);
-
-		if(TextureSampleParameter && TextureSampleParameter->ParameterName == ParameterName)
+		if (const UMaterialExpressionTextureSampleParameter* Parameter = Cast<const UMaterialExpressionTextureSampleParameter>(Expression))
 		{
-			OutValue = TextureSampleParameter->Texture;
-			bSuccess = true;
-			break;
+			if (Parameter->IsNamedParameter(ParameterName, OutValue))
+			{
+				return true;
+			}
+		}
+		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
+		{
+			if (FunctionCall->MaterialFunction && FunctionCall->MaterialFunction->GetTextureParameterValue(ParameterName, OutValue))
+			{
+				return true;
+			}
 		}
 	}
-	return bSuccess;
+
+	return false;
 }
 
-bool UMaterial::GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue,int32& OutFontPage) const
+bool UMaterial::GetFontParameterValue(FName ParameterName, UFont*& OutFontValue, int32& OutFontPage) const
 {
-	bool bSuccess = false;
-	for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+	for (const UMaterialExpression* Expression : Expressions)
 	{
-		UMaterialExpressionFontSampleParameter* FontSampleParameter =
-			Cast<UMaterialExpressionFontSampleParameter>(Expressions[ExpressionIndex]);
-
-		if(FontSampleParameter && FontSampleParameter->ParameterName == ParameterName)
+		if (const UMaterialExpressionFontSampleParameter* Parameter = Cast<const UMaterialExpressionFontSampleParameter>(Expression))
 		{
-			OutFontValue = FontSampleParameter->Font;
-			OutFontPage = FontSampleParameter->FontTexturePage;
-			bSuccess = true;
-			break;
+			if (Parameter->IsNamedParameter(ParameterName, OutFontValue, OutFontPage))
+			{
+				return true;
+			}
+		}
+		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
+		{
+			if (FunctionCall->MaterialFunction && FunctionCall->MaterialFunction->GetFontParameterValue(ParameterName, OutFontValue, OutFontPage))
+			{
+				return true;
+			}
 		}
 	}
-	return bSuccess;
+
+	return false;
 }
 
 
-bool UMaterial::GetStaticSwitchParameterValue(FName ParameterName,bool &OutValue,FGuid &OutExpressionGuid)
+bool UMaterial::GetStaticSwitchParameterValue(FName ParameterName, bool& OutValue, FGuid& OutExpressionGuid) const
 {
-	bool bSuccess = false;
-	for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+	for (const UMaterialExpression* Expression : Expressions)
 	{
-		UMaterialExpressionStaticBoolParameter* StaticSwitchParameter =
-			Cast<UMaterialExpressionStaticBoolParameter>(Expressions[ExpressionIndex]);
-
-		if(StaticSwitchParameter && StaticSwitchParameter->ParameterName == ParameterName)
+		if (const UMaterialExpressionStaticBoolParameter* Parameter = Cast<const UMaterialExpressionStaticBoolParameter>(Expression))
 		{
-			OutValue = StaticSwitchParameter->DefaultValue;
-			OutExpressionGuid = StaticSwitchParameter->ExpressionGUID;
-			bSuccess = true;
-			break;
+			if (Parameter->IsNamedParameter(ParameterName, OutValue, OutExpressionGuid))
+			{
+				return true;
+			}
+		}
+		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
+		{
+			if (FunctionCall->MaterialFunction && FunctionCall->MaterialFunction->GetStaticSwitchParameterValue(ParameterName, OutValue, OutExpressionGuid))
+			{
+				return true;
+			}
 		}
 	}
-	return bSuccess;
+
+	return false;
 }
 
 
-bool UMaterial::GetStaticComponentMaskParameterValue(FName ParameterName, bool &OutR, bool &OutG, bool &OutB, bool &OutA, FGuid &OutExpressionGuid)
+bool UMaterial::GetStaticComponentMaskParameterValue(FName ParameterName, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid& OutExpressionGuid) const
 {
-	bool bSuccess = false;
-	for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+	for (const UMaterialExpression* Expression : Expressions)
 	{
-		UMaterialExpressionStaticComponentMaskParameter* StaticComponentMaskParameter =
-			Cast<UMaterialExpressionStaticComponentMaskParameter>(Expressions[ExpressionIndex]);
-
-		if(StaticComponentMaskParameter && StaticComponentMaskParameter->ParameterName == ParameterName)
+		if (const UMaterialExpressionStaticComponentMaskParameter* Parameter = Cast<const UMaterialExpressionStaticComponentMaskParameter>(Expression))
 		{
-			OutR = StaticComponentMaskParameter->DefaultR;
-			OutG = StaticComponentMaskParameter->DefaultG;
-			OutB = StaticComponentMaskParameter->DefaultB;
-			OutA = StaticComponentMaskParameter->DefaultA;
-			OutExpressionGuid = StaticComponentMaskParameter->ExpressionGUID;
-			bSuccess = true;
-			break;
+			if (Parameter->IsNamedParameter(ParameterName, OutR, OutG, OutB, OutA, OutExpressionGuid))
+			{
+				return true;
+			}
+		}
+		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
+		{
+			if (FunctionCall->MaterialFunction && FunctionCall->MaterialFunction->GetStaticComponentMaskParameterValue(ParameterName, OutR, OutG, OutB, OutA, OutExpressionGuid))
+			{
+				return true;
+			}
 		}
 	}
-	return bSuccess;
+
+	return false;
 }
 
 
-bool UMaterial::GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid)
+bool UMaterial::GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) const
 {
 	bool bSuccess = false;
 	OutWeightmapIndex = INDEX_NONE;

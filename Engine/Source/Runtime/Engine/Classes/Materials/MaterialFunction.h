@@ -82,22 +82,22 @@ public:
 	ENGINE_API void AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const;
 
 	template<typename ExpressionType>
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 	{
 		for (int32 ExpressionIndex = 0; ExpressionIndex < FunctionExpressions.Num(); ExpressionIndex++)
 		{
-			UMaterialExpressionMaterialFunctionCall* FunctionExpression = Cast<UMaterialExpressionMaterialFunctionCall>(FunctionExpressions[ExpressionIndex]);
+			const UMaterialExpressionMaterialFunctionCall* FunctionExpression = Cast<const UMaterialExpressionMaterialFunctionCall>(FunctionExpressions[ExpressionIndex]);
 
 			if (FunctionExpression)
 			{
 				if (FunctionExpression->MaterialFunction)
 				{
-					FunctionExpression->MaterialFunction->GetAllParameterNames<ExpressionType>(OutParameterNames, OutParameterIds);
+					FunctionExpression->MaterialFunction->GetAllParameterNames<const ExpressionType>(OutParameterNames, OutParameterIds);
 				}
 			}
 			else
 			{
-				ExpressionType* ParameterExpression = Cast<ExpressionType>(FunctionExpressions[ExpressionIndex]);
+				const ExpressionType* ParameterExpression = Cast<const ExpressionType>(FunctionExpressions[ExpressionIndex]);
 
 				if (ParameterExpression)
 				{
@@ -108,6 +108,14 @@ public:
 
 		check(OutParameterNames.Num() == OutParameterIds.Num());
 	}
+
+	/** Searches the material function for a parameter of the given name and returns whether it was found and its value */
+	bool GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const;
+	bool GetScalarParameterValue(FName ParameterName, float& OutValue) const;
+	bool GetTextureParameterValue(FName ParameterName, UTexture*& OutValue) const;
+	bool GetFontParameterValue(FName ParameterName, class UFont*& OutFontValue, int32& OutFontPage) const;
+	bool GetStaticSwitchParameterValue(FName ParameterName, bool& OutValue, FGuid& OutExpressionGuid) const;
+	bool GetStaticComponentMaskParameterValue(FName ParameterName, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid& OutExpressionGuid) const;
 
 #if WITH_EDITOR
 	ENGINE_API UMaterial* GetPreviewMaterial();
