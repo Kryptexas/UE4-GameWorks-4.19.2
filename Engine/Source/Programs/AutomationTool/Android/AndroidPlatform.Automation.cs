@@ -15,6 +15,8 @@ public class AndroidPlatform : Platform
 {
 	private const int DeployMaxParallelCommands = 6;
 
+    private const string TargetAndroidLocation = "obb/";
+
 	public AndroidPlatform()
 		: base(UnrealTargetPlatform.Android)
 	{
@@ -75,7 +77,7 @@ public class AndroidPlatform : Platform
 		if (PackageVersion.Length > 0)
 		{
 			int IntVersion = int.Parse(PackageVersion);
-			PackageVersion = IntVersion.ToString("00000");
+			PackageVersion = IntVersion.ToString("0");
 		}
 
 		string ObbName = string.Format("main.{0}.{1}.obb", PackageVersion, PackageName);
@@ -90,7 +92,7 @@ public class AndroidPlatform : Platform
 	{
         string ObbName = GetFinalObbName(ApkName);
         string PackageName = GetPackageInfo(ApkName, false);
-		return "obb/" + PackageName + "/" + Path.GetFileName(ObbName);
+        return TargetAndroidLocation + PackageName + "/" + Path.GetFileName(ObbName);
 	}
 
     private static string GetStorageQueryCommand()
@@ -109,80 +111,6 @@ public class AndroidPlatform : Platform
 	{
 		return Path.Combine(Path.GetDirectoryName(ApkName), "Install_" + Params.ShortProjectName + "_" + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + (Utils.IsRunningOnMono ? ".command" : ".bat"));
 	}
-
-//     public static Dictionary<string, string> SetupEnv(string ProjectPath)
-//     {
-//         if(configCacheIni == null)
-//         {
-//             CommandUtils.LogWarning(Path.GetDirectoryName(ProjectPath));
-//             configCacheIni = new UnrealBuildTool.ConfigCacheIni("Engine", Path.GetDirectoryName(ProjectPath));
-// 
-//             string[] EnvVarNames = {"ANDROID_HOME", "NDKHOME", "ANT_HOME"};
-// 
-//             string path;
-//             if(configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", "SDKPath", out path))
-//             {
-//                 AndroidEnv.Add("ANDROID_HOME", path);
-//             }
-//             else // if we fail then try and get it from the real environment
-//             {
-//                 AndroidEnv.Add("ANDROID_HOME", Environment.GetEnvironmentVariable("ANDROID_HOME"));
-//             }
-// 
-//             if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", "NDKPath", out path))
-//             {
-//                 AndroidEnv.Add("NDKHOME", path);
-//             }
-//             else // if we fail then try and get it from the real environment
-//             {
-//                 AndroidEnv.Add("NDKHOME", Environment.GetEnvironmentVariable("NDKHOME"));
-//             }
-// 
-//             if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", "ANTPath", out path))
-//             {
-//                 AndroidEnv.Add("ANT_HOME", path);
-//             }
-//             else // if we fail then try and get it from the real environment
-//             {
-//                 AndroidEnv.Add("ANT_HOME", Environment.GetEnvironmentVariable("ANT_HOME"));
-//             }
-// 
-//             // If we are on Mono and we are still missing a key then go and find it from the .bash_profile
-//             if (Utils.IsRunningOnMono && EnvVarNames.All( s => AndroidEnv.ContainsKey(s)))
-//             {
-//                 string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
-//                 if (File.Exists(BashProfilePath))
-//                 {
-//                     string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
-//                     foreach (string Line in BashProfileContents)
-//                     {
-//                         foreach (var key in EnvVarNames)
-//                         {
-//                             if (AndroidEnv.ContainsKey(key))
-//                             {
-//                                 continue;
-//                             }
-//                             
-//                             if (Line.StartsWith("export " + key + "="))
-//                             {
-//                                 string PathVar = Line.Split('=')[1].Replace("\"", "");
-//                                 AndroidEnv.Add(key, PathVar);
-//                             }
-//                         }
-//                     }
-//                 }                    
-//             }
-// 
-//             // Set for the process
-//             foreach(var kvp in AndroidEnv)
-//             {
-//                 Environment.SetEnvironmentVariable(kvp.Key, kvp.Value);
-//             }
-// 
-//         }
-// 
-//         return AndroidEnv;
-//     }
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
@@ -288,9 +216,9 @@ public class AndroidPlatform : Platform
 						"if [ $? -eq 0 ]; then",
 						"\techo",
 						"\techo Removing old data. Failures here are usually fine - indicating the files were not on the device.",
-						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/" + Params.ShortProjectName + "'",
+                        "\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/" + Params.ShortProjectName + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
-						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/obb/" + PackageName + "'",
+						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/" + TargetAndroidLocation + PackageName + "'",
 						bPackageDataInsideApk ? "" : "\techo",
 						bPackageDataInsideApk ? "" : "\techo Installing new data. Failures here indicate storage problems \\(missing SD card or bad permissions\\) and are fatal.",
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
@@ -329,9 +257,9 @@ public class AndroidPlatform : Platform
 						"@echo Installing existing application. Failures here indicate a problem with the device (connection or storage permissions) and are fatal.",
 						"%ADB% %DEVICE% install " + Path.GetFileName(ApkName),
 						"@if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
-						"%ADB% %DEVICE% shell rm -r %STORAGE%/" + Params.ShortProjectName,
+                        "%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/" + Params.ShortProjectName,
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
-						"%ADB% %DEVICE% shell rm -r %STORAGE%/obb/" + PackageName,
+						"%ADB% %DEVICE% shell rm -r %STORAGE%/" + TargetAndroidLocation + PackageName,
 						bPackageDataInsideApk ? "" : "@echo.",
 						bPackageDataInsideApk ? "" : "@echo Installing new data. Failures here indicate storage problems (missing SD card or bad permissions) and are fatal.",
 						bPackageDataInsideApk ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(ObbName) + " %STORAGE%/" + DeviceObbName,
@@ -577,8 +505,8 @@ public class AndroidPlatform : Platform
 		{
 			// cache some strings
 			string BaseCommandline = "push";
-			string RemoteDir = StorageLocation + "/" /*+ Params.ProjectDirPrefix + "/"*/ + Params.ShortProjectName;
-            string UE4GameRemoteDir = StorageLocation + "/" /*+ Params.ProjectDirPrefix + "/"*/ + Params.ShortProjectName;
+			string RemoteDir = StorageLocation + "/UE4Game/" + Params.ShortProjectName;
+            string UE4GameRemoteDir = StorageLocation + "/UE4Game/" + Params.ShortProjectName;
 
 			// make sure device is at a clean state
 			RunAdbCommand(Params, "shell rm -r " + RemoteDir);
@@ -704,7 +632,7 @@ public class AndroidPlatform : Platform
 		{
 			// cache some strings
 			string BaseCommandline = "push";
-            string RemoteDir = StorageLocation + "/" /*+ Params.ProjectDirPrefix + "/"*/ + Params.ShortProjectName;
+            string RemoteDir = StorageLocation + "/UE4Game/" + Params.ShortProjectName;
 
 			string FinalRemoteDir = RemoteDir;
 			/*

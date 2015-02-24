@@ -62,6 +62,13 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetObbInfo(JNIEnv* jen
 	jenv->ReleaseStringUTFChars(PackageName, JavaChars);
 }
 
+// Constructs the base path for any files which are not in OBB/pak data
+const FString &GetFileBasePath()
+{
+	static FString BasePath = GFilePathBase + FString("/UE4Game/") + FApp::GetGameName() + FString("/");
+	return BasePath;
+}
+
 /**
 	Android file handle implementation for partial (i.e. parcels) files.
 	This can handle all the variations of accessing data for assets and files.
@@ -342,7 +349,7 @@ public:
 	void Read()
 	{
 		// Local filepaths are directly in the deployment directory.
-		static const FString BasePath = GFilePathBase + FString("/") + FApp::GetGameName() + FString("/");
+		static const FString &BasePath = GetFileBasePath();
 		const FString ManfiestPath = BasePath + ManifestFileName;
 
 		ManifestEntries.Empty();
@@ -419,7 +426,7 @@ public:
 	{
 		
 		// Local filepaths are directly in the deployment directory.
-		static const FString BasePath = GFilePathBase + FString("/") + FApp::GetGameName() + FString("/");
+		static const FString &BasePath = GetFileBasePath();
 		const FString ManfiestPath = BasePath + ManifestFileName;
 
 
@@ -845,8 +852,8 @@ public:
 			// See <http://developer.android.com/google/play/expansion-files.html>
 			FString OBBDir1 = GFilePathBase + FString(TEXT("/Android/obb/") + GPackageName);
 			FString OBBDir2 = GFilePathBase + FString(TEXT("/obb/") + GPackageName);
-			FString MainOBBName = FString::Printf(TEXT("main.%05d.%s.obb"), GPackageVersion, *GPackageName);
-			FString PatchOBBName = FString::Printf(TEXT("patch.%05d.%s.obb"), GPackageVersion, *GPackageName);
+			FString MainOBBName = FString::Printf(TEXT("main.%d.%s.obb"), GPackageVersion, *GPackageName);
+			FString PatchOBBName = FString::Printf(TEXT("patch.%d.%s.obb"), GPackageVersion, *GPackageName);
 			if (FileExists(*(OBBDir1 / MainOBBName), true))
 			{
 				MountOBB(*(OBBDir1 / MainOBBName));
@@ -888,7 +895,6 @@ public:
 			// For local files we need to check if it's a plain
 			// file, as opposed to directories.
 			result = S_ISREG(FileInfo.st_mode);
-			return result;
 		}
 		else
 		{
@@ -896,7 +902,7 @@ public:
 			result = IsResource(AssetPath) || IsAsset(AssetPath);
 		}
 #if LOG_ANDROID_FILE
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::FileExists('%s') => %s"), Filename, result ? TEXT("TRUE") : TEXT("FALSE"));
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::FileExists('%s') => %s\nResolved as %s"), Filename, result ? TEXT("TRUE") : TEXT("FALSE"), *LocalPath);
 #endif
 		return result;
 	}
@@ -1598,7 +1604,7 @@ private:
 				}
 
 				// Local filepaths are directly in the deployment directory.
-				static FString BasePath = GFilePathBase + FString("/") + FApp::GetGameName() + FString("/");
+				static FString BasePath = GetFileBasePath();
 				LocalPath = BasePath + AndroidPath;
 
 				// Asset paths are relative to the base directory.
