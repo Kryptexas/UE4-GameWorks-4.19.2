@@ -950,7 +950,7 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 
 	// If stereo rendering is enabled, update the size and offset appropriately for this pass
 	const bool bNeedStereo = (StereoPass != eSSP_FULL) && GEngine->IsStereoscopic3D();
-	if( bNeedStereo )
+	if (bNeedStereo)
 	{
 		GEngine->StereoRenderingDevice->AdjustViewRect(StereoPass, X, Y, SizeX, SizeY);
 	}
@@ -972,96 +972,10 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 		FPlane(0,	1,	0,	0),
 		FPlane(0,	0,	0,	1));
 
-	if( !bNeedStereo )
+	if (!bNeedStereo)
 	{
 		// Create the projection matrix (and possibly constrain the view rectangle)
-		if (ViewInfo.bConstrainAspectRatio)
-		{			
-			// Enforce a particular aspect ratio for the render of the scene. 
-			// Results in black bars at top/bottom etc.
-			ProjectionData.SetConstrainedViewRectangle(ViewportClient->Viewport->CalculateViewExtents(ViewInfo.AspectRatio, UnconstrainedRectangle));
-	
-			if (ViewInfo.ProjectionMode == ECameraProjectionMode::Orthographic)
-			{
-				const float YScale = 1.0f / ViewInfo.AspectRatio;
-	
-				const float OrthoWidth = ViewInfo.OrthoWidth / 2.0f;
-				const float OrthoHeight = ViewInfo.OrthoWidth / 2.0f * YScale;
-				const float NearPlane = -ProjectionData.ViewOrigin.X;
-				const float FarPlane = NearPlane - 2.0f*WORLD_MAX;
-				const float InverseRange = 1.0f / (FarPlane - NearPlane);
-				const float ZScale = -2.0f * InverseRange;
-				const float ZOffset = -(FarPlane + NearPlane) * InverseRange;
-
-				ProjectionData.ProjectionMatrix = FReversedZOrthoMatrix(
-					OrthoWidth,
-					OrthoHeight,
-					ZScale,
-					ZOffset
-					);
-			}
-			else
-			{
-				// Avoid divide by zero in the projection matrix calculation by clamping FOV
-				ProjectionData.ProjectionMatrix = FReversedZPerspectiveMatrix( 
-					FMath::Max(0.001f, ViewInfo.FOV) * (float)PI / 360.0f,
-					ViewInfo.AspectRatio,
-					1.0f,
-					GNearClippingPlane );
-			}
-		}
-		else 
-		{
-			// Avoid divide by zero in the projection matrix calculation by clamping FOV
-			float MatrixFOV = FMath::Max(0.001f, ViewInfo.FOV) * (float)PI / 360.0f;
-			float XAxisMultiplier;
-			float YAxisMultiplier;
-
-			// if x is bigger, and we're respecting x or major axis, AND mobile isn't forcing us to be Y axis aligned
-			if (((SizeX > SizeY) && (AspectRatioAxisConstraint == AspectRatio_MajorAxisFOV)) || (AspectRatioAxisConstraint == AspectRatio_MaintainXFOV) || (ViewInfo.ProjectionMode == ECameraProjectionMode::Orthographic))
-			{
-				//if the viewport is wider than it is tall
-				XAxisMultiplier = 1.0f;
-				YAxisMultiplier = SizeX / (float)SizeY;
-			}
-			else
-			{
-				//if the viewport is taller than it is wide
-				XAxisMultiplier = SizeY / (float)SizeX;
-				YAxisMultiplier = 1.0f;
-			}
-	
-			if (ViewInfo.ProjectionMode == ECameraProjectionMode::Orthographic)
-			{
-				const float NearPlane = -ProjectionData.ViewOrigin.X;
-				const float FarPlane = NearPlane - 2.0f*WORLD_MAX;
-	
-				const float OrthoWidth = ViewInfo.OrthoWidth / 2.0f * XAxisMultiplier;
-				const float OrthoHeight = (ViewInfo.OrthoWidth / 2.0f) / YAxisMultiplier;
-	
-				const float InverseRange = 1.0f / (FarPlane - NearPlane);
-				const float ZScale = -2.0f * InverseRange;
-				const float ZOffset = -(FarPlane + NearPlane) * InverseRange;
-
-				ProjectionData.ProjectionMatrix = FReversedZOrthoMatrix(
-					OrthoWidth, 
-					OrthoHeight,
-					ZScale,
-					ZOffset
-					);		
-			}
-			else
-			{
-				ProjectionData.ProjectionMatrix = FReversedZPerspectiveMatrix(
-					MatrixFOV,
-					MatrixFOV,
-					XAxisMultiplier,
-					YAxisMultiplier,
-					GNearClippingPlane,
-					GNearClippingPlane
-					);
-			}
-		}
+		FMinimalViewInfo::CalculateProjectionMatrixGivenView(ViewInfo, AspectRatioAxisConstraint, ViewportClient->Viewport, /*inout*/ ProjectionData);
 	}
 	else
 	{

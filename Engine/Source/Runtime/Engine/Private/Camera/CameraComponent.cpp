@@ -29,6 +29,8 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	FieldOfView = 90.0f;
 	AspectRatio = 1.777778f;
 	OrthoWidth = 512.0f;
+	OrthoNearClipPlane = 0.0f;
+	OrthoFarClipPlane = WORLD_MAX;
 	bConstrainAspectRatio = false;
 	PostProcessBlendWeight = 1.0f;
 	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnControlRotation replaced this var.
@@ -200,6 +202,8 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 	DesiredView.bConstrainAspectRatio = bConstrainAspectRatio;
 	DesiredView.ProjectionMode = ProjectionMode;
 	DesiredView.OrthoWidth = OrthoWidth;
+	DesiredView.OrthoNearClipPlane = OrthoNearClipPlane;
+	DesiredView.OrthoFarClipPlane = OrthoFarClipPlane;
 
 	// See if the CameraActor wants to override the PostProcess settings used.
 	DesiredView.PostProcessBlendWeight = PostProcessBlendWeight;

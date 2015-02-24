@@ -549,141 +549,133 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	TimeForForceRedraw = 0.0;
 
 	const bool bConstrainAspectRatio = bUseControllingActorViewInfo && ControllingActorViewInfo.bConstrainAspectRatio;
+	const EAspectRatioAxisConstraint AspectRatioAxisConstraint = GetDefault<ULevelEditorViewportSettings>()->AspectRatioAxisConstraint;
 
 	ViewInitOptions.ViewOrigin = ViewLocation;
-	if (EffectiveViewportType == LVT_Perspective)
+
+	if (bUseControllingActorViewInfo)
 	{
-		if (bUsingOrbitCamera)
-		{
-			ViewInitOptions.ViewRotationMatrix = ViewTransform.ComputeOrbitMatrix();
-			ViewInitOptions.ViewOrigin = FVector::ZeroVector;
-		}
-		else
-		{
-			ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation);
-		}
+		ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation) * FMatrix(
+			FPlane(0, 0, 1, 0),
+			FPlane(1, 0, 0, 0),
+			FPlane(0, 1, 0, 0),
+			FPlane(0, 0, 0, 1));
 
-		ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix * FMatrix(
-			FPlane(0,	0,	1,	0),
-			FPlane(1,	0,	0,	0),
-			FPlane(0,	1,	0,	0),
-			FPlane(0,	0,	0,	1));
-
-		float MinZ = GetNearClipPlane();
-		float MaxZ = MinZ;
-		// Avoid zero ViewFOV's which cause divide by zero's in projection matrix
-		float MatrixFOV = FMath::Max(0.001f, ViewFOV) * (float)PI / 360.0f;
-
-		if( bConstrainAspectRatio )
-		{
-			ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
-				MatrixFOV,
-				MatrixFOV,
-				1.0f,
-				AspectRatio,
-				MinZ,
-				MaxZ
-				);
-
-			ViewInitOptions.SetConstrainedViewRectangle(Viewport->CalculateViewExtents(AspectRatio, ViewRect));
-		}
-		else
-		{
-			float XAxisMultiplier;
-			float YAxisMultiplier;
-			const EAspectRatioAxisConstraint AspectRatioAxisConstraint = GetDefault<ULevelEditorViewportSettings>()->AspectRatioAxisConstraint;
-
-			if (((ViewportSizeXY.X > ViewportSizeXY.Y) && (AspectRatioAxisConstraint == AspectRatio_MajorAxisFOV)) || (AspectRatioAxisConstraint == AspectRatio_MaintainXFOV))
-			{
-				//if the viewport is wider than it is tall
-				XAxisMultiplier = 1.0f;
-				YAxisMultiplier = ViewportSizeXY.X / (float)ViewportSizeXY.Y;
-			}
-			else
-			{
-				//if the viewport is taller than it is wide
-				XAxisMultiplier = ViewportSizeXY.Y / (float)ViewportSizeXY.X;
-				YAxisMultiplier = 1.0f;
-			}
-
-			ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix (
-				MatrixFOV,
-				MatrixFOV,
-				XAxisMultiplier,
-				YAxisMultiplier,
-				MinZ,
-				MaxZ
-				);
-		}
+		FMinimalViewInfo::CalculateProjectionMatrixGivenView(ControllingActorViewInfo, AspectRatioAxisConstraint, Viewport, /*inout*/ ViewInitOptions);
 	}
 	else
 	{
-		float ZScale = 0.5f / HALF_WORLD_MAX;
-		float ZOffset = HALF_WORLD_MAX;
+		//
+		if (EffectiveViewportType == LVT_Perspective)
+		{
+			if (bUsingOrbitCamera)
+			{
+				ViewInitOptions.ViewRotationMatrix = ViewTransform.ComputeOrbitMatrix();
+				ViewInitOptions.ViewOrigin = FVector::ZeroVector;
+			}
+			else
+			{
+				ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation);
+			}
 
-		//The divisor for the matrix needs to match the translation code.
-		const float Zoom = GetOrthoUnitsPerPixel(Viewport);
-
-		float OrthoWidth = Zoom * ViewportSizeXY.X / 2.0f;
-		float OrthoHeight = Zoom * ViewportSizeXY.Y / 2.0f;
-
-		if (EffectiveViewportType == LVT_OrthoXY)
-		{
-			ViewInitOptions.ViewRotationMatrix = FMatrix(
-				FPlane(1,	0,	0,					0),
-				FPlane(0,	-1,	0,					0),
-				FPlane(0,	0,	-1,					0),
-				FPlane(0,	0,	-ViewLocation.Z,	1));
-		}
-		else if (EffectiveViewportType == LVT_OrthoXZ)
-		{
-			ViewInitOptions.ViewRotationMatrix = FMatrix(
-				FPlane(1,	0,	0,					0),
-				FPlane(0,	0,	-1,					0),
-				FPlane(0,	1,	0,					0),
-				FPlane(0,	0,	-ViewLocation.Y,	1));
-		}
-		else if (EffectiveViewportType == LVT_OrthoYZ)
-		{
-			ViewInitOptions.ViewRotationMatrix = FMatrix(
-				FPlane(0,	0,	1,					0),
-				FPlane(1,	0,	0,					0),
-				FPlane(0,	1,	0,					0),
-				FPlane(0,	0,	ViewLocation.X,		1));
-		}
-		else if (EffectiveViewportType == LVT_OrthoFreelook)
-		{
-			ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation);
 			ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix * FMatrix(
-				FPlane(0,	0,	 1,	0),
-				FPlane(1,	0,	 0,	0),
-				FPlane(0,	1,	 0,	0),
-				FPlane(0,	0,	 0,	1));
+				FPlane(0, 0, 1, 0),
+				FPlane(1, 0, 0, 0),
+				FPlane(0, 1, 0, 0),
+				FPlane(0, 0, 0, 1));
 
-			const float EffectiveAspectRatio = bConstrainAspectRatio ? AspectRatio : (ViewportSizeXY.X / (float)ViewportSizeXY.Y);
-			const float YScale = 1.0f / EffectiveAspectRatio;
-			OrthoWidth = ControllingActorViewInfo.OrthoWidth / 2.0f;
-			OrthoHeight = (ControllingActorViewInfo.OrthoWidth / 2.0f) * YScale;
+			float MinZ = GetNearClipPlane();
+			float MaxZ = MinZ;
+			// Avoid zero ViewFOV's which cause divide by zero's in projection matrix
+			float MatrixFOV = FMath::Max(0.001f, ViewFOV) * (float)PI / 360.0f;
 
-			const float NearViewPlane = -ViewInitOptions.ViewOrigin.X;
-			const float FarViewPlane = NearViewPlane - 2.0f*WORLD_MAX;
+			if (bConstrainAspectRatio)
+			{
+				ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
+					MatrixFOV,
+					MatrixFOV,
+					1.0f,
+					AspectRatio,
+					MinZ,
+					MaxZ
+					);
+			}
+			else
+			{
+				float XAxisMultiplier;
+				float YAxisMultiplier;
 
-			const float InverseRange = 1.0f / (FarViewPlane - NearViewPlane);
-			ZScale = -2.0f * InverseRange;
-			ZOffset = -(FarViewPlane + NearViewPlane) * InverseRange;
+				if (((ViewportSizeXY.X > ViewportSizeXY.Y) && (AspectRatioAxisConstraint == AspectRatio_MajorAxisFOV)) || (AspectRatioAxisConstraint == AspectRatio_MaintainXFOV))
+				{
+					//if the viewport is wider than it is tall
+					XAxisMultiplier = 1.0f;
+					YAxisMultiplier = ViewportSizeXY.X / (float)ViewportSizeXY.Y;
+				}
+				else
+				{
+					//if the viewport is taller than it is wide
+					XAxisMultiplier = ViewportSizeXY.Y / (float)ViewportSizeXY.X;
+					YAxisMultiplier = 1.0f;
+				}
+
+				ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
+					MatrixFOV,
+					MatrixFOV,
+					XAxisMultiplier,
+					YAxisMultiplier,
+					MinZ,
+					MaxZ
+					);
+			}
 		}
 		else
 		{
-			// Unknown viewport type
-			check(false);
-		}
+			float ZScale = 0.5f / HALF_WORLD_MAX;
+			float ZOffset = HALF_WORLD_MAX;
 
-		ViewInitOptions.ProjectionMatrix = FReversedZOrthoMatrix(
-			OrthoWidth,
-			OrthoHeight,
-			ZScale,
-			ZOffset
-			);
+			//The divisor for the matrix needs to match the translation code.
+			const float Zoom = GetOrthoUnitsPerPixel(Viewport);
+
+			float OrthoWidth = Zoom * ViewportSizeXY.X / 2.0f;
+			float OrthoHeight = Zoom * ViewportSizeXY.Y / 2.0f;
+
+			if (EffectiveViewportType == LVT_OrthoXY)
+			{
+				ViewInitOptions.ViewRotationMatrix = FMatrix(
+					FPlane(1, 0, 0, 0),
+					FPlane(0, -1, 0, 0),
+					FPlane(0, 0, -1, 0),
+					FPlane(0, 0, -ViewLocation.Z, 1));
+			}
+			else if (EffectiveViewportType == LVT_OrthoXZ)
+			{
+				ViewInitOptions.ViewRotationMatrix = FMatrix(
+					FPlane(1, 0, 0, 0),
+					FPlane(0, 0, -1, 0),
+					FPlane(0, 1, 0, 0),
+					FPlane(0, 0, -ViewLocation.Y, 1));
+			}
+			else if (EffectiveViewportType == LVT_OrthoYZ)
+			{
+				ViewInitOptions.ViewRotationMatrix = FMatrix(
+					FPlane(0, 0, 1, 0),
+					FPlane(1, 0, 0, 0),
+					FPlane(0, 1, 0, 0),
+					FPlane(0, 0, ViewLocation.X, 1));
+			}
+			else
+			{
+				// Unknown viewport type
+				check(false);
+			}
+
+			ViewInitOptions.ProjectionMatrix = FReversedZOrthoMatrix(
+				OrthoWidth,
+				OrthoHeight,
+				ZScale,
+				ZOffset
+				);
+		}
 
 		if (bConstrainAspectRatio)
 		{

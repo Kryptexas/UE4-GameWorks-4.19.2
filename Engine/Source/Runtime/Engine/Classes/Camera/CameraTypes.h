@@ -51,7 +51,15 @@ struct FMinimalViewInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	float OrthoWidth;
 
-	// Aspect Ratio (Width/Height); ignored unless bConstrianAspectRatio is true
+	/** The near plane distance of the orthographic view (in world units) */
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=Camera)
+	float OrthoNearClipPlane;
+
+	/** The far plane distance of the orthographic view (in world units) */
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=Camera)
+	float OrthoFarClipPlane;
+
+	// Aspect Ratio (Width/Height); ignored unless bConstrainAspectRatio is true
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	float AspectRatio;
 
@@ -76,6 +84,8 @@ struct FMinimalViewInfo
 		, Rotation(ForceInit)
 		, FOV(90.0f)
 		, OrthoWidth(512.0f)
+		, OrthoNearClipPlane(0.0f)
+		, OrthoFarClipPlane(WORLD_MAX)
 		, AspectRatio(1.33333333f)
 		, bConstrainAspectRatio(false)
 		, ProjectionMode(ECameraProjectionMode::Perspective)
@@ -95,4 +105,7 @@ struct FMinimalViewInfo
 
 	/** Combines this view with another one which will be weighted. Equals to this += OtherView * Weight. */
 	ENGINE_API void AddWeightedViewInfo(const FMinimalViewInfo& OtherView, const float& Weight);
+
+	/** Calculates the projection matrix (and potentially a constrained view rectangle) given a FMinimalViewInfo and partially configured projection data (must have the view rect already set) */
+	ENGINE_API static void CalculateProjectionMatrixGivenView(const FMinimalViewInfo& ViewInfo, TEnumAsByte<enum EAspectRatioAxisConstraint> AspectRatioAxisConstraint, class FViewport* Viewport, struct FSceneViewProjectionData& InOutProjectionData);
 };

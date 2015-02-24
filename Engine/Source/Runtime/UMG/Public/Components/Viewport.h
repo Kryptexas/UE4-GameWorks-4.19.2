@@ -93,41 +93,32 @@ public:
 	FUMGViewportClient(FPreviewScene* InPreviewScene = nullptr);
 	virtual ~FUMGViewportClient();
 
+	using FViewElementDrawer::Draw;
+
+	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector & Collector) override;
 
+	// FViewportClient interface
+	virtual UWorld* GetWorld() const override;
 	virtual void Draw(FViewport* InViewport, FCanvas* Canvas) override;
+
+	// FUMGViewportClient
 
 	virtual void Tick(float InDeltaTime);
 
-	using FViewElementDrawer::Draw;
-
-	virtual UWorld* GetWorld() const override;
-
-	/**
-	* @return The scene being rendered in this viewport
-	*/
-	virtual FSceneInterface* GetScene() const;
-
 	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily);
 
-	bool IsOrtho() const;
 
-	bool IsPerspective() const;
+	/**
+	 * @return The scene being rendered in this viewport
+	 */
+	virtual FSceneInterface* GetScene() const;
+
 
 	bool IsAspectRatioConstrained() const;
 
 	void SetBackgroundColor(FLinearColor InBackgroundColor);
 	FLinearColor GetBackgroundColor() const;
-
-	float GetNearClipPlane() const;
-
-	void OverrideNearClipPlane(float InNearPlane);
-
-	float GetFarClipPlaneOverride() const;
-
-	void OverrideFarClipPlane(const float InFarPlane);
-
-	ECameraProjectionMode::Type GetProjectionType() const;
 
 	/** Sets the location of the viewport's camera */
 	void SetViewLocation(const FVector& NewLocation)
@@ -215,24 +206,11 @@ protected:
 
 	FViewport* Viewport;
 
-	/** near plane adjustable for each editor view, if < 0 GNearClippingPlane should be used. */
-	float NearPlane;
-
-	/** If > 0, overrides the view's far clipping plane with a plane at the specified distance. */
-	float FarPlane;
-
-	/** Viewport's current horizontal field of view (can be modified by locked cameras etc.) */
-	float ViewFOV;
-	/** Viewport's stored horizontal field of view (saved in ini files). */
-	float FOVAngle;
-
-	float AspectRatio;
-
 	/** The viewport's scene view state. */
 	FSceneViewStateReference ViewState;
 
 	/** A set of flags that determines visibility for various scene elements. */
-	FEngineShowFlags		EngineShowFlags;
+	FEngineShowFlags EngineShowFlags;
 };
 
 /**
