@@ -63,14 +63,16 @@ void STextComboPopup::Construct( const FArguments& InArgs )
 
 TSharedRef<SWidget> STextComboPopup::MakeItemWidget( TSharedPtr<FString> StringItem ) 
 {
+	// todo: jdale - should this be using FText natively?
 	check( StringItem.IsValid() );
 	return	SNew(STextBlock)
-		.Text(*StringItem);
+		.Text(FText::FromString(*StringItem));
 }
 
-FString STextComboPopup::GetSelectedItem() const
+FText STextComboPopup::GetSelectedItem() const
 {
-	return *SelectedItem;
+	// todo: jdale - should this be using FText natively?
+	return FText::FromString(*SelectedItem);
 }
 
 void STextComboPopup::OnSelectionChanged (TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo)

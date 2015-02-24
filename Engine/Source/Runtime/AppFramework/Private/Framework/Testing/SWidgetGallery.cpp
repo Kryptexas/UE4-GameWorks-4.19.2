@@ -985,7 +985,7 @@ private:
 	TSharedRef<SWidget> HandleComboBoxGenerateWidget( TSharedPtr<FString> InItem )
 	{
 		return SNew(STextBlock)
-			.Text(*InItem);
+			.Text(FText::FromString(*InItem));
 	}
 
 	// Callback for getting the percent value in the SProgressBar example.
@@ -1029,9 +1029,9 @@ private:
 	}
 
 	// Callback for getting the text of the second combo box in the SComboBox example.
-	FString HandleSecondComboBoxText() const
+	FText HandleSecondComboBoxText() const
 	{
-		return ComboString.IsValid() ? *ComboString : FString();
+		return ComboString.IsValid() ? FText::FromString(*ComboString) : FText::GetEmpty();
 	}
 
 	// Callback for changing the selector combo box's selection in SComboBox example.
@@ -1050,9 +1050,9 @@ private:
 	}
 
 	// Callback for getting the text of the selector combo box in the SComboBox example.
-	FString HandleSelectorComboBoxText( ) const
+	FText HandleSelectorComboBoxText( ) const
 	{
-		return SelectorComboBoxSelectedItem.IsValid() ? *SelectorComboBoxSelectedItem : FString();
+		return SelectorComboBoxSelectedItem.IsValid() ? FText::FromString(*SelectorComboBoxSelectedItem) : FText::GetEmpty();
 	}
 
 	// Callback for changing the active tab.

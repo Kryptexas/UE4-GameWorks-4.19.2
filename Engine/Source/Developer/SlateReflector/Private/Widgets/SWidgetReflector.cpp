@@ -189,7 +189,7 @@ private:
 	}
 
 	/** Callback for getting the text of the pick button. */
-	FString HandlePickButtonText() const;
+	FText HandlePickButtonText() const;
 
 	/** Callback for generating a row in the reflector tree view. */
 	TSharedRef<ITableRow> HandleReflectorTreeGenerateRow( TSharedPtr<FReflectorNode> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
@@ -282,7 +282,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("AppScale", "Application Scale: ").ToString())
+									.Text(LOCTEXT("AppScale", "Application Scale: "))
 							]
 
 						+ SHorizontalBox::Slot()
@@ -339,7 +339,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
+									.Text(LOCTEXT("ShowFocus", "Show Focus"))
 							]
 					]
 
@@ -545,7 +545,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 								.Text( LOCTEXT("StatsSamplingIntervalTooltip", "the interval (in seconds) to integrate stats before updating the averages.") )
 							]
 						)
-						.Text(LOCTEXT("StatsSampleWindow", "Sampling Interval: ").ToString())
+						.Text(LOCTEXT("StatsSampleWindow", "Sampling Interval: "))
 					]
 					+ SHorizontalBox::Slot()
 					[
@@ -588,7 +588,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							SNew(SHeaderRow)
 
 							+ SHeaderRow::Column("WidgetName")
-							.DefaultLabel(LOCTEXT("WidgetName", "Widget Name").ToString())
+							.DefaultLabel(LOCTEXT("WidgetName", "Widget Name"))
 							.FillWidth(0.65f)
 
 							+ SHeaderRow::Column("ForegroundColor")
@@ -597,16 +597,16 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							.HeaderContent()
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("ForegroundColor", "FG").ToString())
-								.ToolTipText(LOCTEXT("ForegroundColorToolTip", "Foreground Color").ToString())
+								.Text(LOCTEXT("ForegroundColor", "FG"))
+								.ToolTipText(LOCTEXT("ForegroundColorToolTip", "Foreground Color"))
 							]
 
 							+ SHeaderRow::Column("Visibility")
-							.DefaultLabel(LOCTEXT("Visibility", "Visibility" ).ToString())
+							.DefaultLabel(LOCTEXT("Visibility", "Visibility" ))
 							.FixedWidth(125.0f)
 
 							+ SHeaderRow::Column("WidgetInfo")
-							.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ).ToString())
+							.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ))
 							.FillWidth(0.25f)
 
 							+ SHeaderRow::Column("Address")
@@ -902,10 +902,10 @@ FString SWidgetReflector::HandleFrameRateText() const
 }
 
 
-FString SWidgetReflector::HandlePickButtonText() const
+FText SWidgetReflector::HandlePickButtonText() const
 {
-	static const FString NotPicking = LOCTEXT("PickWidget", "Pick Widget").ToString();
-	static const FString Picking = LOCTEXT("PickingWidget", "Picking (Esc to Stop)").ToString();
+	static const FText NotPicking = LOCTEXT("PickWidget", "Pick Widget");
+	static const FText Picking = LOCTEXT("PickingWidget", "Picking (Esc to Stop)");
 
 	return bIsPicking ? Picking : NotPicking;
 }

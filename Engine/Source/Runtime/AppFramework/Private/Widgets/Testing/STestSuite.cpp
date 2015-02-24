@@ -3897,7 +3897,7 @@ protected:
 	void UpdateColor(FLinearColor NewColor)
 	{
 		Color.Set(NewColor);
-		OutputTextBlock->SetText( Color.Get().ToFColor(false).ToString() );
+		OutputTextBlock->SetText( FText::FromString(Color.Get().ToFColor(false).ToString()) );
 	}
 	
 	TAttribute<FLinearColor> Color;
@@ -4438,7 +4438,7 @@ TSharedRef<SWidget> SResponsiveGridPanelTestWidgetImpl::ConstructBox(const FStri
 			.Padding(10)
 			.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.Background"))
 			[
-				SNew(STextBlock).Text(Text)
+				SNew(STextBlock).Text(FText::FromString(Text))
 			]
 		];
 }

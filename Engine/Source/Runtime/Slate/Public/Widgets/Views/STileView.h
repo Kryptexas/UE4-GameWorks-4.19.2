@@ -112,7 +112,7 @@ public:
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(ErrorString)
+				.Text(FText::FromString(ErrorString))
 			];
 		}
 		else

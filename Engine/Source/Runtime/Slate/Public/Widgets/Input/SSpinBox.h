@@ -141,7 +141,7 @@ public:
 			[
 				SAssignNew(TextBlock, STextBlock)
 				.Font(InArgs._Font)
-				.Text( this, &SSpinBox<NumericType>::GetValueAsString )
+				.Text( this, &SSpinBox<NumericType>::GetValueAsText )
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
 			]
 

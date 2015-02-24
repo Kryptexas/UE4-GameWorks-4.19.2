@@ -459,7 +459,7 @@ public:
 	
 private:
 
-	FString GetThemeName() const;
+	FText GetThemeName() const;
 
 	/** Text Block which shows the Color Theme's name */
 	TSharedPtr<STextBlock> ThemeNameText;

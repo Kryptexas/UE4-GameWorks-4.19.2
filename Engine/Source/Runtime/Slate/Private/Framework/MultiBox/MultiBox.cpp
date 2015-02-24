@@ -491,7 +491,7 @@ void SMultiBoxWidget::AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHori
 					SNew(STextBlock)
 					.Visibility(bDisplayExtensionHooks ? EVisibility::Visible : EVisibility::Collapsed)
 					.ColorAndOpacity(StyleSet->GetColor("MultiboxHookColor"))
-					.Text(Block.GetExtensionHook().ToString())
+					.Text(FText::FromName(Block.GetExtensionHook()))
 				]
 				+SVerticalBox::Slot()
 				[
@@ -514,7 +514,7 @@ void SMultiBoxWidget::AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHori
 						SNew(STextBlock)
 						.Visibility(bDisplayExtensionHooks ? EVisibility::Visible : EVisibility::Collapsed)
 						.ColorAndOpacity(StyleSet->GetColor("MultiboxHookColor"))
-						.Text(Block.GetExtensionHook().ToString())
+						.Text(FText::FromName(Block.GetExtensionHook()))
 					]
 					+SVerticalBox::Slot()
 					[
@@ -542,7 +542,7 @@ void SMultiBoxWidget::AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHori
 					SNew(STextBlock)
 					.Visibility(bDisplayExtensionHooks ? EVisibility::Visible : EVisibility::Collapsed)
 					.ColorAndOpacity(StyleSet->GetColor("MultiboxHookColor"))
-					.Text(Block.GetExtensionHook().ToString())
+					.Text(FText::FromName(Block.GetExtensionHook()))
 				]
 				+SHorizontalBox::Slot()
 				[

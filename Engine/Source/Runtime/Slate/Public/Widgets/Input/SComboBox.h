@@ -167,7 +167,7 @@ public:
 		if (InArgs._Content.Widget == SNullWidget::NullWidget)
 		{
 			 SAssignNew(ButtonContent, STextBlock)
-			.Text(NSLOCTEXT("SComboBox", "ContentWarning", "No Content Provided").ToString())
+			.Text(NSLOCTEXT("SComboBox", "ContentWarning", "No Content Provided"))
 			.ColorAndOpacity( FLinearColor::Red);
 		}
 

@@ -52,7 +52,7 @@ private:
 	void OnSelectionChanged (TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo);
 
 	/** Returns the item to select in the combo popup */
-	FString GetSelectedItem () const;
+	FText GetSelectedItem () const;
 
 private:
 	/** The text item selected */

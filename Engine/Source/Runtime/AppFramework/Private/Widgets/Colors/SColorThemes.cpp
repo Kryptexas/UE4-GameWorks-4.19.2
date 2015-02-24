@@ -739,9 +739,9 @@ void SColorThemeBar::Construct(const FArguments& InArgs)
 	];
 }
 
-FString SColorThemeBar::GetThemeName() const
+FText SColorThemeBar::GetThemeName() const
 {
-	return ColorTheme.Pin()->Name;
+	return FText::FromString(ColorTheme.Pin()->Name);
 }
 
 FReply SColorThemeBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
