@@ -3275,7 +3275,9 @@ void UWorld::AddPhysicsVolume(APhysicsVolume* Volume)
 
 void UWorld::RemovePhysicsVolume(APhysicsVolume* Volume)
 {
-	NonDefaultPhysicsVolumeList.Remove(Volume);
+	NonDefaultPhysicsVolumeList.RemoveSwap(Volume);
+	// Also remove null entries that may accumulate as items become invalidated
+	NonDefaultPhysicsVolumeList.RemoveSwap(nullptr);
 }
 
 FConstPhysicsVolumeIterator UWorld::GetNonDefaultPhysicsVolumeIterator() const
