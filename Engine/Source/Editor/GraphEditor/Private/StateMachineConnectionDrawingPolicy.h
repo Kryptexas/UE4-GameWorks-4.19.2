@@ -22,8 +22,6 @@ public:
 	virtual void DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params) override;
 	virtual void Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries, FArrangedChildren& ArrangedNodes) override;
 	virtual void DetermineLinkGeometry(
-		TMap<TSharedRef<SWidget>,
-		FArrangedWidget>& PinGeometries,
 		FArrangedChildren& ArrangedNodes, 
 		TSharedRef<SWidget>& OutputPinWidget,
 		UEdGraphPin* OutputPin,

@@ -228,8 +228,8 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 	const FVector2D& P1 = End;
 
 	const FVector2D SplineTangent = ComputeSplineTangent(P0, P1);
-	const FVector2D P0Tangent = SplineTangent;
-	const FVector2D P1Tangent = SplineTangent;
+	const FVector2D P0Tangent = (Params.StartDirection == EGPD_Output) ? SplineTangent : -SplineTangent;
+	const FVector2D P1Tangent = (Params.EndDirection == EGPD_Input) ? SplineTangent : -SplineTangent;
 
 	// Draw the spline itself
 	FSlateDrawElement::MakeDrawSpaceSpline(
@@ -327,8 +327,6 @@ void FConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdG
 }
 
 void FConnectionDrawingPolicy::DetermineLinkGeometry(
-	TMap<TSharedRef<SWidget>,
-	FArrangedWidget>& PinGeometries,
 	FArrangedChildren& ArrangedNodes, 
 	TSharedRef<SWidget>& OutputPinWidget,
 	UEdGraphPin* OutputPin,
@@ -337,19 +335,21 @@ void FConnectionDrawingPolicy::DetermineLinkGeometry(
 	/*out*/ FArrangedWidget*& EndWidgetGeometry
 	)
 {
-	StartWidgetGeometry = PinGeometries.Find(OutputPinWidget);
+	StartWidgetGeometry = PinGeometries->Find(OutputPinWidget);
 	
 	if (TSharedRef<SGraphPin>* pTargetWidget = PinToPinWidgetMap.Find(InputPin))
 	{
 		TSharedRef<SGraphPin> InputWidget = *pTargetWidget;
-		EndWidgetGeometry = PinGeometries.Find(InputWidget);
+		EndWidgetGeometry = PinGeometries->Find(InputWidget);
 	}
 }
 
-void FConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries, FArrangedChildren& ArrangedNodes)
+void FConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& InPinGeometries, FArrangedChildren& ArrangedNodes)
 {
+	PinGeometries = &InPinGeometries;
+
 	PinToPinWidgetMap.Empty();
-	for (TMap<TSharedRef<SWidget>, FArrangedWidget>::TIterator ConnectorIt(PinGeometries); ConnectorIt; ++ConnectorIt)
+	for (TMap<TSharedRef<SWidget>, FArrangedWidget>::TIterator ConnectorIt(InPinGeometries); ConnectorIt; ++ConnectorIt)
 	{
 		TSharedRef<SWidget> SomePinWidget = ConnectorIt.Key();
 		SGraphPin& PinWidget = static_cast<SGraphPin&>(SomePinWidget.Get());
@@ -357,7 +357,7 @@ void FConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& 
 		PinToPinWidgetMap.Add(PinWidget.GetPinObj(), StaticCastSharedRef<SGraphPin>(SomePinWidget));
 	}
 
-	for (TMap<TSharedRef<SWidget>, FArrangedWidget>::TIterator ConnectorIt(PinGeometries); ConnectorIt; ++ConnectorIt)
+	for (TMap<TSharedRef<SWidget>, FArrangedWidget>::TIterator ConnectorIt(InPinGeometries); ConnectorIt; ++ConnectorIt)
 	{
 		TSharedRef<SWidget> SomePinWidget = ConnectorIt.Key();
 		SGraphPin& PinWidget = static_cast<SGraphPin&>(SomePinWidget.Get());
@@ -372,7 +372,7 @@ void FConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& 
 
 				UEdGraphPin* TargetPin = ThePin->LinkedTo[LinkIndex];
 
-				DetermineLinkGeometry(PinGeometries, ArrangedNodes, SomePinWidget, ThePin, TargetPin, /*out*/ LinkStartWidgetGeometry, /*out*/ LinkEndWidgetGeometry);
+				DetermineLinkGeometry(ArrangedNodes, SomePinWidget, ThePin, TargetPin, /*out*/ LinkStartWidgetGeometry, /*out*/ LinkEndWidgetGeometry);
 
 				if (( LinkEndWidgetGeometry && LinkStartWidgetGeometry ) && !IsConnectionCulled( *LinkStartWidgetGeometry, *LinkEndWidgetGeometry ))
 				{

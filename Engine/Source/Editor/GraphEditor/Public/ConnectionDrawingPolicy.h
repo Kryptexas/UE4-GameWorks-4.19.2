@@ -75,6 +75,7 @@ protected:
 	FSlateWindowElementList& DrawElementsList;
 	TMap< UEdGraphPin*, TSharedRef<SGraphPin> > PinToPinWidgetMap;
 	TSet< UEdGraphPin* > HoveredPins;
+	TMap<TSharedRef<SWidget>, FArrangedWidget>* PinGeometries;
 	double LastHoverTimeEvent;
 public:
 	virtual ~FConnectionDrawingPolicy() {}
@@ -100,11 +101,9 @@ public:
 	// Give specific editor modes a chance to highlight this connection or darken non-interesting connections
 	virtual void DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params);
 
-	virtual void Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries, FArrangedChildren& ArrangedNodes);
+	virtual void Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& InPinGeometries, FArrangedChildren& ArrangedNodes);
 
 	virtual void DetermineLinkGeometry(
-		TMap<TSharedRef<SWidget>,
-		FArrangedWidget>& PinGeometries,
 		FArrangedChildren& ArrangedNodes, 
 		TSharedRef<SWidget>& OutputPinWidget,
 		UEdGraphPin* OutputPin,

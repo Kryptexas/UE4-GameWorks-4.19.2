@@ -339,6 +339,86 @@ FKismetConnectionDrawingPolicy::FTimePair const* FKismetConnectionDrawingPolicy:
 	return FoundExecPath;
 }
 
+bool FKismetConnectionDrawingPolicy::FindPinCenter(UEdGraphPin* Pin, FVector2D& OutCenter) const
+{
+	if (const TSharedRef<SGraphPin>* pPinWidget = PinToPinWidgetMap.Find(Pin))
+	{
+		if (FArrangedWidget* pPinEntry = PinGeometries->Find(*pPinWidget))
+		{
+			OutCenter = FGeometryHelper::CenterOf(pPinEntry->Geometry);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FKismetConnectionDrawingPolicy::GetAverageConnectedPosition(class UK2Node_Knot* Knot, EEdGraphPinDirection Direction, FVector2D& OutPos) const
+{
+	FVector2D Result = FVector2D::ZeroVector;
+	int32 ResultCount = 0;
+
+	UEdGraphPin* Pin = (Direction == EGPD_Input) ? Knot->GetInputPin() : Knot->GetOutputPin();
+	for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
+	{
+		FVector2D CenterPoint;
+		if (FindPinCenter(LinkedPin, /*out*/ CenterPoint))
+		{
+			Result += CenterPoint;
+			ResultCount++;
+		}
+	}
+
+	if (ResultCount > 0)
+	{
+		OutPos = Result * (1.0f / ResultCount);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool FKismetConnectionDrawingPolicy::ShouldChangeTangentForKnot(UK2Node_Knot* Knot)
+{
+	if (bool* pResult = KnotToReversedDirectionMap.Find(Knot))
+	{
+		return *pResult;
+	}
+	else
+	{
+		bool bPinReversed = false;
+
+		FVector2D AverageLeftPin;
+		FVector2D AverageRightPin;
+		FVector2D CenterPin;
+		bool bCenterValid = FindPinCenter(Knot->GetOutputPin(), /*out*/ CenterPin);
+		bool bLeftValid = GetAverageConnectedPosition(Knot, EGPD_Input, /*out*/ AverageLeftPin);
+		bool bRightValid = GetAverageConnectedPosition(Knot, EGPD_Output, /*out*/ AverageRightPin);
+
+		if (bLeftValid && bRightValid)
+		{
+			bPinReversed = AverageRightPin.X < AverageLeftPin.X;
+		}
+		else if (bCenterValid)
+		{
+			if (bLeftValid)
+			{
+				bPinReversed = CenterPin.X < AverageLeftPin.X;
+			}
+			else if (bRightValid)
+			{
+				bPinReversed = AverageRightPin.X < CenterPin.X;
+			}
+		}
+
+		KnotToReversedDirectionMap.Add(Knot, bPinReversed);
+
+		return bPinReversed;
+	}
+}
+
 // Give specific editor modes a chance to highlight this connection or darken non-interesting connections
 void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
@@ -358,6 +438,25 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(Schema);
 	if (K2Schema != NULL)
 	{
+		// If the output or input connect to a knot that is going backwards, we will flip the direction on values going into them
+		{
+			if (UK2Node_Knot* OutputKnotNode = Cast<UK2Node_Knot>(OutputNode))
+			{
+				if (ShouldChangeTangentForKnot(OutputKnotNode))
+				{
+					Params.StartDirection = EGPD_Input;
+				}
+			}
+
+			if (UK2Node_Knot* InputKnotNode = Cast<UK2Node_Knot>(InputNode))
+			{
+				if (ShouldChangeTangentForKnot(InputKnotNode))
+				{
+					Params.EndDirection = EGPD_Output;
+				}
+			}
+		}
+
 		if (TreatWireAsExecutionPin(InputPin, OutputPin))
 		{
 			if (CanBuildRoadmap())

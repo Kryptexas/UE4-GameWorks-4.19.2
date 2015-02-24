@@ -37,7 +37,6 @@ void FStateMachineConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* Out
 }
 
 void FStateMachineConnectionDrawingPolicy::DetermineLinkGeometry(
-	TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries,
 	FArrangedChildren& ArrangedNodes, 
 	TSharedRef<SWidget>& OutputPinWidget,
 	UEdGraphPin* OutputPin,
@@ -48,9 +47,7 @@ void FStateMachineConnectionDrawingPolicy::DetermineLinkGeometry(
 {
 	if (UAnimStateEntryNode* EntryNode = Cast<UAnimStateEntryNode>(OutputPin->GetOwningNode()))
 	{
-		//FConnectionDrawingPolicy::DetermineLinkGeometry(PinGeometries, ArrangedNodes, OutputPinWidget, OutputPin, InputPin, StartWidgetGeometry, EndWidgetGeometry);
-
-		StartWidgetGeometry = PinGeometries.Find(OutputPinWidget);
+		StartWidgetGeometry = PinGeometries->Find(OutputPinWidget);
 
 		UAnimStateNodeBase* State = CastChecked<UAnimStateNodeBase>(InputPin->GetOwningNode());
 		int32 StateIndex = NodeWidgetMap.FindChecked(State);
@@ -73,12 +70,12 @@ void FStateMachineConnectionDrawingPolicy::DetermineLinkGeometry(
 	}
 	else
 	{
-		StartWidgetGeometry = PinGeometries.Find(OutputPinWidget);
+		StartWidgetGeometry = PinGeometries->Find(OutputPinWidget);
 
 		if (TSharedRef<SGraphPin>* pTargetWidget = PinToPinWidgetMap.Find(InputPin))
 		{
 			TSharedRef<SGraphPin> InputWidget = *pTargetWidget;
-			EndWidgetGeometry = PinGeometries.Find(InputWidget);
+			EndWidgetGeometry = PinGeometries->Find(InputWidget);
 		}
 	}
 }
