@@ -666,7 +666,8 @@ void UAbilitySystemComponent::ApplyAbilityBlockAndCancelTags(const FGameplayTagC
 
 bool UAbilitySystemComponent::AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const
 {
-	return BlockedAbilityTags.HasAnyMatchingGameplayTags(Tags, false);
+	// Expand the passed in tags to get parents, not the blocked tags
+	return Tags.MatchesAny(BlockedAbilityTags.GetExplicitGameplayTags(), false);
 }
 
 void UAbilitySystemComponent::BlockAbilitiesWithTags(const FGameplayTagContainer& Tags)
@@ -1832,18 +1833,18 @@ float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility,
 				InAnimatingAbility->SetCurrentMontage(NewAnimMontage);
 			}
 			
+			// Start at a given Section.
+			if (StartSectionName != NAME_None)
+			{
+				AnimInstance->Montage_JumpToSection(StartSectionName);
+			}
+
 			// Replicate to non owners
 			if (IsOwnerActorAuthoritative())
 			{
 				// Those are static parameters, they are only set when the montage is played. They are not changed after that.
 				RepAnimMontageInfo.AnimMontage = NewAnimMontage;
 				RepAnimMontageInfo.ForcePlayBit = !bool(RepAnimMontageInfo.ForcePlayBit);
-
-				// Start at a given Section.
-				if (StartSectionName != NAME_None)
-				{
-					AnimInstance->Montage_JumpToSection(StartSectionName);
-				}
 
 				// Update parameters that change during Montage life time.
 				AnimMontage_UpdateReplicatedData();
