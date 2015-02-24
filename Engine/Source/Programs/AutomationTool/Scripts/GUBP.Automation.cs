@@ -194,7 +194,8 @@ public class GUBP : BuildCommand
         public class BranchOptions
         {            
             public List<UnrealTargetPlatform> PlatformsToRemove = new List<UnrealTargetPlatform>();
-            public List<string> ExcludeNodes = new List<string>();
+			public List<string> ExcludeNodes = new List<string>();
+			public List<UnrealTargetPlatform> ExcludePlatformsForEditor = new List<UnrealTargetPlatform>();
 			public bool bNoAutomatedTesting = false;
 			public bool bNoDocumentation = false;
 			public int QuantumOverride = 0;
@@ -1504,7 +1505,10 @@ public class GUBP : BuildCommand
 			}
             if (InGameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
             {
-                AddPseudodependency(EditorGameNode.StaticGetFullName(InHostPlatform, GameProj));
+				if (!bp.BranchOptions.ExcludePlatformsForEditor.Contains(InHostPlatform))
+				{
+					AddPseudodependency(EditorGameNode.StaticGetFullName(InHostPlatform, GameProj));
+				}
                 if (bp.HasNode(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform)))
                 {
                     AddPseudodependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform));
@@ -5561,81 +5565,88 @@ public class GUBP : BuildCommand
 
         foreach (var HostPlatform in HostPlatforms)
         {
-            AddNode(new ToolsForCompileNode(HostPlatform));
-            AddNode(new RootEditorNode(HostPlatform));			
-            if (bBuildRocket)
-            {
-                AddNode(new RootEditorHeadersNode(HostPlatform));
-            }
-            AddNode(new ToolsNode(HostPlatform));            
-			AddNode(new InternalToolsNode(HostPlatform));
-			if (HostPlatform == UnrealTargetPlatform.Win64)
+			AddNode(new ToolsForCompileNode(HostPlatform));
+			
+			if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
 			{
-				AddNode(new ToolsCrossCompileNode(HostPlatform));
-			}
-            foreach (var ProgramTarget in Branch.BaseEngineProject.Properties.Programs)
-            {
-                bool bInternalOnly;
-                bool SeparateNode;
-				bool CrossCompile;
-
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
-                {
-                    if (bInternalOnly)
-                    {
-                        AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));						
-                    }
-                    else
-                    {
-                        AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
-                    }				
-                }
-				if (ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
+				AddNode(new RootEditorNode(HostPlatform));			
+				if (bBuildRocket)
 				{
-					AddNode(new NonUnityToolNode(HostPlatform, ProgramTarget));
+					AddNode(new RootEditorHeadersNode(HostPlatform));
 				}
-            }
-			foreach(var CodeProj in Branch.CodeProjects)
-			{
-				foreach(var ProgramTarget in CodeProj.Properties.Programs)
+				AddNode(new ToolsNode(HostPlatform));            
+				AddNode(new InternalToolsNode(HostPlatform));
+				if (HostPlatform == UnrealTargetPlatform.Win64)
 				{
-					bool bInternalNodeOnly;
+					if (!BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
+					{
+						AddNode(new ToolsCrossCompileNode(HostPlatform));
+					}
+				}
+				foreach (var ProgramTarget in Branch.BaseEngineProject.Properties.Programs)
+				{
+					bool bInternalOnly;
 					bool SeparateNode;
 					bool CrossCompile;
 
-					if(ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalNodeOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
+					if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
 					{
-						if(bInternalNodeOnly)
+						if (bInternalOnly)
 						{
-							AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));
+							AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));						
 						}
 						else
 						{
 							AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
-						}
+						}				
 					}
-					if(ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
+					if (ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
 					{
 						AddNode(new NonUnityToolNode(HostPlatform, ProgramTarget));
 					}
 				}
+				foreach(var CodeProj in Branch.CodeProjects)
+				{
+					foreach(var ProgramTarget in CodeProj.Properties.Programs)
+					{
+						bool bInternalNodeOnly;
+						bool SeparateNode;
+						bool CrossCompile;
+
+						if(ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, GUBP.bBuildRocket, out bInternalNodeOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
+						{
+							if(bInternalNodeOnly)
+							{
+								AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));
+							}
+							else
+							{
+								AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
+							}
+						}
+						if(ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
+						{
+							AddNode(new NonUnityToolNode(HostPlatform, ProgramTarget));
+						}
+					}
+				}
+
+				AddNode(new EditorAndToolsNode(this, HostPlatform));
+
+				if (bOrthogonalizeEditorPlatforms)
+				{
+					foreach (var Plat in ActivePlatforms)
+					{
+						if (Plat != HostPlatform && Plat != GetAltHostPlatform(HostPlatform))
+						{
+							if (Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
+							{
+								AddNode(new EditorPlatformNode(HostPlatform, Plat));
+							}
+						}
+					}
+				}
 			}
-
-            AddNode(new EditorAndToolsNode(this, HostPlatform));
-
-            if (bOrthogonalizeEditorPlatforms)
-            {
-                foreach (var Plat in ActivePlatforms)
-                {
-                    if (Plat != HostPlatform && Plat != GetAltHostPlatform(HostPlatform))
-                    {
-                        if (Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
-                        {
-                            AddNode(new EditorPlatformNode(HostPlatform, Plat));
-                        }
-                    }
-                }
-            }
 
             bool DoASharedPromotable = false;
 
@@ -6001,7 +6012,11 @@ public class GUBP : BuildCommand
                     AgentShareName = "Shared";
                 }
 
-                AddNode(new EditorGameNode(this, HostPlatform, CodeProj));
+				if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
+				{
+					AddNode(new EditorGameNode(this, HostPlatform, CodeProj));
+				}
+
 				if (!bNoAutomatedTesting && HostPlatform == UnrealTargetPlatform.Win64) //temp hack till automated testing works on other platforms than Win64
                 {
                     var EditorTests = CodeProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetEditorTests_EditorTypeOnly(HostPlatform);
@@ -6212,16 +6227,19 @@ public class GUBP : BuildCommand
 
                 foreach (var HostPlatform in HostPlatforms)
                 {
-                    var Options = CodeProj.Options(HostPlatform);
-                    AnySeparate = AnySeparate || Options.bSeparateGamePromotion;
-                    if (Options.bIsPromotable)
-                    {
-                        if (!Options.bSeparateGamePromotion)
-                        {
-                            NumSharedAllHosts++;
-                        }
-                        PromotedHosts.Add(HostPlatform);
-                    }
+					if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
+					{
+						var Options = CodeProj.Options(HostPlatform);
+						AnySeparate = AnySeparate || Options.bSeparateGamePromotion;
+						if (Options.bIsPromotable)
+						{
+							if (!Options.bSeparateGamePromotion)
+							{
+								NumSharedAllHosts++;
+							}
+							PromotedHosts.Add(HostPlatform);
+						}
+					}
                 }
                 if (PromotedHosts.Count > 0)
                 {
@@ -6260,7 +6278,10 @@ public class GUBP : BuildCommand
 				//AddNode(new IOSOnPCTestNode(this)); - Disable IOSOnPCTest until a1011 crash is fixed
 			}
 			AddNode(new VSExpressTestNode(this));
-			AddNode(new RootEditorCrossCompileLinuxNode(UnrealTargetPlatform.Win64));
+			if (!BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
+			{
+				AddNode(new RootEditorCrossCompileLinuxNode(UnrealTargetPlatform.Win64));
+			}
             if (!bPreflightBuild)
             {
                 AddNode(new CleanSharedTempStorageNode(this));
