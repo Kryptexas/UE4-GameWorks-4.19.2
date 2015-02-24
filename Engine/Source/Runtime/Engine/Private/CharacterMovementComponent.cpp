@@ -3901,7 +3901,15 @@ void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds,
 			CachedProjectedNavMeshHitResult.Reset();
 		}
 
-		NavMeshProjectionTimer = NavMeshProjectionInterval;
+		// Wrap around to maintain same relative offset to tick time changes.
+		// Prevents large framerate spikes from aligning multiple characters to the same frame (if they start staggered, they will now remain staggered).
+		float ModTime = 0.f;
+		if (NavMeshProjectionInterval > SMALL_NUMBER)
+		{
+			ModTime = FMath::Fmod(FMath::Abs(NavMeshProjectionTimer), NavMeshProjectionInterval);
+		}
+
+		NavMeshProjectionTimer = NavMeshProjectionInterval - ModTime;
 	}
 		
 	// project to last plane we found
@@ -4048,7 +4056,10 @@ void UCharacterMovementComponent::SetNavWalkingPhysics(bool bEnable)
 			UpdatedPrimitive->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
 			UpdatedPrimitive->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
 			CachedProjectedNavMeshHitResult.Reset();
-			NavMeshProjectionTimer = 0.0f;
+
+			// Stagger timed updates so many different characters spawned at the same time don't update on the same frame.
+			// Initially we want an immediate update though, so set time to a negative randomized range.
+			NavMeshProjectionTimer = (NavMeshProjectionInterval > 0.f) ? FMath::FRandRange(-NavMeshProjectionInterval, 0.f) : 0.f;
 		}
 		else
 		{
