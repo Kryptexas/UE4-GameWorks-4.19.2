@@ -365,7 +365,7 @@ void UCharacterMovementComponent::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComponent)
+void UCharacterMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	if (NewUpdatedComponent)
 	{
@@ -394,9 +394,10 @@ void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUp
 	bDeferUpdateMoveComponent = false;
 	DeferredUpdatedMoveComponent = NULL;
 
-	if (IsValid(UpdatedComponent) && UpdatedComponent->OnComponentBeginOverlap.IsBound())
+	UPrimitiveComponent* OldPrimitive = Cast<UPrimitiveComponent>(UpdatedComponent);
+	if (IsValid(OldPrimitive) && OldPrimitive->OnComponentBeginOverlap.IsBound())
 	{
-		UpdatedComponent->OnComponentBeginOverlap.RemoveDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
+		OldPrimitive->OnComponentBeginOverlap.RemoveDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
 	}
 	
 	Super::SetUpdatedComponent(NewUpdatedComponent);
@@ -407,9 +408,9 @@ void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUp
 		StopActiveMovement();
 	}
 
-	if (IsValid(UpdatedComponent) && bEnablePhysicsInteraction)
+	if (IsValid(UpdatedPrimitive) && bEnablePhysicsInteraction)
 	{
-		UpdatedComponent->OnComponentBeginOverlap.AddUniqueDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
+		UpdatedPrimitive->OnComponentBeginOverlap.AddUniqueDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
 	}
 
 	if (bUseRVOAvoidance)
@@ -3822,7 +3823,7 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 
 		if (!AdjustedDelta.IsNearlyZero())
 		{
-			const bool bSweep = UpdatedComponent ? UpdatedComponent->bGenerateOverlapEvents : false;
+			const bool bSweep = UpdatedPrimitive ? UpdatedPrimitive->bGenerateOverlapEvents : false;
 			FHitResult HitResult;
 			SafeMoveUpdatedComponent(AdjustedDelta, CharacterOwner->GetActorRotation(), bSweep, HitResult);
 		}
@@ -4040,12 +4041,12 @@ void UCharacterMovementComponent::SetPostLandedPhysics(const FHitResult& Hit)
 
 void UCharacterMovementComponent::SetNavWalkingPhysics(bool bEnable)
 {
-	if (UpdatedComponent)
+	if (UpdatedPrimitive)
 	{
 		if (bEnable)
 		{
-			UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
-			UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
+			UpdatedPrimitive->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
+			UpdatedPrimitive->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
 			CachedProjectedNavMeshHitResult.Reset();
 			NavMeshProjectionTimer = 0.0f;
 		}
@@ -4060,8 +4061,8 @@ void UCharacterMovementComponent::SetNavWalkingPhysics(bool bEnable)
 
 			if (DefaultCapsule)
 			{
-				UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldStatic, DefaultCapsule->GetCollisionResponseToChannel(ECC_WorldStatic));
-				UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, DefaultCapsule->GetCollisionResponseToChannel(ECC_WorldDynamic));
+				UpdatedPrimitive->SetCollisionResponseToChannel(ECC_WorldStatic, DefaultCapsule->GetCollisionResponseToChannel(ECC_WorldStatic));
+				UpdatedPrimitive->SetCollisionResponseToChannel(ECC_WorldDynamic, DefaultCapsule->GetCollisionResponseToChannel(ECC_WorldDynamic));
 			}
 			else
 			{
@@ -6594,20 +6595,20 @@ void UCharacterMovementComponent::SetAvoidanceEnabled(bool bEnable)
 
 void UCharacterMovementComponent::ApplyRepulsionForce(float DeltaSeconds)
 {
-	if (UpdatedComponent && RepulsionForce > 0.0f)
+	if (UpdatedPrimitive && RepulsionForce > 0.0f)
 	{
 		FCollisionQueryParams QueryParams;
 		QueryParams.bReturnFaceIndex = false;
 		QueryParams.bReturnPhysicalMaterial = false;
 
-		const FCollisionShape CollisionShape = UpdatedComponent->GetCollisionShape();
+		const FCollisionShape CollisionShape = UpdatedPrimitive->GetCollisionShape();
 		const float CapsuleRadius = CollisionShape.GetCapsuleRadius();
 		const float CapsuleHalfHeight = CollisionShape.GetCapsuleHalfHeight();
 		const float RepulsionForceRadius = CapsuleRadius * 1.2f;
 		const float StopBodyDistance = 2.5f;
 
-		const TArray<FOverlapInfo>& Overlaps = UpdatedComponent->GetOverlapInfos();
-		const FVector MyLocation = UpdatedComponent->GetComponentLocation();
+		const TArray<FOverlapInfo>& Overlaps = UpdatedPrimitive->GetOverlapInfos();
+		const FVector MyLocation = UpdatedPrimitive->GetComponentLocation();
 
 		for (int32 i=0; i < Overlaps.Num(); i++)
 		{
@@ -6648,7 +6649,7 @@ void UCharacterMovementComponent::ApplyRepulsionForce(float DeltaSeconds)
 
 			// Trace to get the hit location on the capsule
 			FHitResult Hit;
-			bool bHasHit = UpdatedComponent->LineTraceComponent(Hit, BodyLocation, 
+			bool bHasHit = UpdatedPrimitive->LineTraceComponent(Hit, BodyLocation,
 																FVector(MyLocation.X, MyLocation.Y, BodyLocation.Z),
 																QueryParams);
 
