@@ -2846,10 +2846,6 @@ public:
 				LODBuildSettings[LODIndex] = LODBuildSettings[LODIndex-1];
 				HasRawMesh[LODIndex] = false;
 			}
-			else
-			{
-				check(0);
-			}
 		}
 		check(LODMeshes.Num() == SourceModels.Num());
 		check(LODOverlappingCorners.Num() == SourceModels.Num());
