@@ -3090,6 +3090,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	OnItemDoubleClicked = InArgs._OnItemDoubleClicked;
 	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;
 	bUpdatingSelection = false;
+	bHasAddedSceneAndBehaviorComponentSeparator = false;
 
 	CommandList = MakeShareable( new FUICommandList );
 	CommandList->MapAction( FGenericCommands::Get().Cut,
@@ -4033,6 +4034,8 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		RootNodes.Empty();
 		RootComponentNodes.Empty();
 
+		bHasAddedSceneAndBehaviorComponentSeparator = false;
+
 		// Reset the scene root node
 		SceneRootNodePtr.Reset();
 
@@ -4085,15 +4088,14 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				}
 
 				// Add native ActorComponent nodes that aren't SceneComponents
-				bool bSeparatorAdded = false;
 				for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
 				{
 					UActorComponent* ActorComp = *CompIter;
 					if (!ActorComp->IsA<USceneComponent>())
 					{
-						if (!bSeparatorAdded)
+						if (!bHasAddedSceneAndBehaviorComponentSeparator)
 						{
-							bSeparatorAdded = true;
+							bHasAddedSceneAndBehaviorComponentSeparator = true;
 							RootNodes.Add(MakeShareable(new FSCSEditorTreeNodeSeparator()));
 						}
 						AddRootComponentTreeNode(ActorComp);
@@ -4160,15 +4162,14 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				}
 
 				// Add all non-scene component instances to the root set first
-				bool bSeparatorAdded = false;
 				for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
 				{
 					UActorComponent* ActorComp = *CompIter;
 					if (!ActorComp->IsA<USceneComponent>() && !ActorComp->IsEditorOnly())
 					{
-						if (!bSeparatorAdded)
+						if (!bHasAddedSceneAndBehaviorComponentSeparator)
 						{
-							bSeparatorAdded = true;
+							bHasAddedSceneAndBehaviorComponentSeparator = true;
 							RootNodes.Add(MakeShareable(new FSCSEditorTreeNode(FSCSEditorTreeNode::SeparatorNode)));
 						}
 						AddRootComponentTreeNode(ActorComp);
@@ -4557,6 +4558,13 @@ UActorComponent* SSCSEditor::AddNewNodeForInstancedComponent(UActorComponent* Ne
 	}
 	else
 	{
+		// Make sure we've added the separator between scene and behavior components
+		if (!bHasAddedSceneAndBehaviorComponentSeparator)
+		{
+			bHasAddedSceneAndBehaviorComponentSeparator = true;
+			RootNodes.Add(MakeShareable(new FSCSEditorTreeNode(FSCSEditorTreeNode::SeparatorNode)));
+		}
+
 		NewNodePtr = AddRootComponentTreeNode(NewInstanceComponent);
 	}
 
@@ -4568,7 +4576,6 @@ UActorComponent* SSCSEditor::AddNewNodeForInstancedComponent(UActorComponent* Ne
 	}
 
 	UpdateTree(false);
-
 
 	return NewInstanceComponent;
 }

@@ -1067,4 +1067,6 @@ private:
 	/** Gate to prevent changing the selection while selection change is being broadcast. */
 	bool bUpdatingSelection;
 
+	/** true if we've added the separator between the scene and behavior components to the root nodes */
+	bool bHasAddedSceneAndBehaviorComponentSeparator;
 };
