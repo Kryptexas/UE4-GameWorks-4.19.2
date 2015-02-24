@@ -7,11 +7,6 @@
 #ifndef __UOBJECTBASE_H__
 #define __UOBJECTBASE_H__
 
-/**
- * The UObject FNames can be stored outside of the UObject proper. @todo this needs to be evaluated later.
- */
-#define EXTERNAL_OBJECT_NAMES (0)   
-
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("STAT_UObjectsStatGroupTester"), STAT_UObjectsStatGroupTester, STATGROUP_UObjects, COREUOBJECT_API);
 
 class COREUOBJECT_API UObjectBase
@@ -211,10 +206,8 @@ private:
 	/** Class the object belongs to. */
 	UClass*							Class;
 
-#if !EXTERNAL_OBJECT_NAMES
 	/** Name of this object */
 	FName							Name;
-#endif
 
 	/** Object this object resides in. */
 	UObject*						Outer;
