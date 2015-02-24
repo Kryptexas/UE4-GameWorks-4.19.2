@@ -101,7 +101,7 @@ void VelocityFlattenMain(
 
 	GroupMemoryBarrierWithGroupSync();
 
-#if 1
+#if 0
 	if( GroupIndex < 512 )	Shared[ GroupIndex ] = MaxLength( Shared[ GroupIndex ], Shared[ GroupIndex + 512 ] );
 	GroupMemoryBarrierWithGroupSync();
 	if( GroupIndex < 256 )	Shared[ GroupIndex ] = MaxLength( Shared[ GroupIndex ], Shared[ GroupIndex + 256 ] );

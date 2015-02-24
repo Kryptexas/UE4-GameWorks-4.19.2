@@ -85,13 +85,34 @@ public:
 
 	// -------------------------------------------
 
-	static const uint32 TileSizeX = 64;
-	static const uint32 TileSizeY = 64;
+	static const uint32 TileSizeX = 16;
+	static const uint32 TileSizeY = 16;
 	
 	static const uint32 ThreadGroupSizeX = TileSizeX / 2;
 	static const uint32 ThreadGroupSizeY = TileSizeY / 2;
 
 	static FIntPoint ComputeThreadGroupCount(FIntPoint PixelExtent);
+};
+
+
+// derives from TRenderingCompositePassBase<InputCount, OutputCount>
+class FRCPassPostProcessVelocityScatter : public TRenderingCompositePassBase<1, 1>
+{
+public:
+	// interface FRenderingCompositePass ---------
+	virtual void Process(FRenderingCompositePassContext& Context);
+	virtual void Release() override { delete this; }
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+};
+
+// derives from TRenderingCompositePassBase<InputCount, OutputCount>
+class FRCPassPostProcessVelocityDilate : public TRenderingCompositePassBase<1, 1>
+{
+public:
+	// interface FRenderingCompositePass ---------
+	virtual void Process(FRenderingCompositePassContext& Context);
+	virtual void Release() override { delete this; }
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 };
 
 

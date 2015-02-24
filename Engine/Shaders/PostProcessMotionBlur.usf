@@ -18,7 +18,7 @@
 // but adapted for half resolution and not using randomization/noise
 
 // from the paper: We use SOFT Z EXTENT = 1mm to 10cm for our results
-#define SOFT_Z_EXTENT 0.1
+#define SOFT_Z_EXTENT 1
 
 // This,
 //  - Gets the MainPS pass to low cost under no motion.
@@ -622,6 +622,122 @@ void MainRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV
 
 	OutColor.rgb = FullResSceneColor * (1 - Mask) + MotionBlurOutput.rgb;
 	OutColor.a = 0;
+}
+
+
+
+
+uint2 TileCount;
+
+void VelocityScatterVS(
+	uint VId : SV_VertexID,
+	uint IId : SV_InstanceID,
+	out nointerpolation float2 OutColor : TEXCOORD0,
+	out float4 OutPosition : SV_POSITION
+	)
+{
+	OutPosition =  float4(0, 0, 0, 1);
+
+	// needs to be the same on C++ side (faster on NVIDIA and AMD)
+	uint QuadsPerInstance = 8;
+#if MAC
+	// remap the indices to get vertexid to VId and quadid into IId
+	IId = IId * QuadsPerInstance + (VId / 6);
+	VId = VId % 6;
+
+	// triangle A: 0:left top, 1:right top, 2: left bottom
+	// triangle B: 3:right bottom, 4:left bottom, 5: right top
+	float2 CornerOffset = float2(VId % 2, VId > 1 && VId < 5) * 2 - 1;
+#else
+	// remap the indices to get vertexid to VId and quadid into IId
+	IId = IId * QuadsPerInstance + (VId / 4);
+	VId = VId % 4;
+
+	// triangle A: 0:left top, 1:right top, 2: left bottom
+	// triangle B: 3:right bottom, 4:left bottom, 5: right top
+	float2 CornerOffset = float2(VId % 2, VId / 2) * 2 - 1;
+#endif
+
+	uint2 TilePos = uint2( IId % TileCount.x, IId / TileCount.x );
+
+	float2 ScreenPos = ( TilePos - ScreenPosToPixel.zw ) / ScreenPosToPixel.xy;
+
+	float2 Velocity = PostprocessInput0[ TilePos ].xy;
+	OutColor = Velocity.xyxy;
+	
+	BRANCH
+	if( length( Velocity * 0.5 * float2(1920,1080) ) <= 0.5 )
+	{
+		return;
+	}
+
+	float  VelocityLengthSqr = dot( Velocity, Velocity );
+	float  VelocityLengthInv = rsqrt( VelocityLengthSqr );
+	float  VelocityLength = VelocityLengthSqr * VelocityLengthInv;
+	float2 VelocityDir = Velocity * VelocityLengthInv;
+
+	// +1 pixel radius because shape is swept tile, approx as capsule
+	// +1 pixel radius for conservative rasterization
+	const float TwoPixelRadius = sqrt( 2.0 );
+	CornerOffset *= float2( VelocityLength, 0 ) + TwoPixelRadius.xx / ScreenPosToPixel.xy;
+
+	// Orient along velocity direction
+	float2 AxisX = VelocityDir;
+	float2 AxisY = float2( -VelocityDir.y, VelocityDir.x );
+	CornerOffset = AxisX * CornerOffset.x + AxisY * CornerOffset.y;
+		
+	OutPosition.xy = ScreenPos + CornerOffset;
+
+	// Depth ordered by velocity length
+	OutPosition.z = saturate( VelocityLength * 0.5 );
+}
+
+void VelocityScatterPS(
+	nointerpolation float4 InColor : TEXCOORD0,
+	out float4 OutColor : SV_Target0
+	)
+{
+	OutColor = InColor;
+}
+
+
+
+
+float2 MaxLength( float2 v0, float2 v1 )
+{
+	float LengthSqr0 = dot( v0, v0 );
+	float LengthSqr1 = dot( v1, v1 );
+	return LengthSqr0 > LengthSqr1 ? v0 : v1;
+}
+
+float2 MaxLength( float2 v0, float2 v1, float2 v2 )
+{
+	float LengthSqr0 = dot( v0, v0 );
+	float LengthSqr1 = dot( v1, v1 );
+	float LengthSqr2 = dot( v2, v2 );
+	return LengthSqr0 > LengthSqr1 ? ( LengthSqr0 > LengthSqr2 ? v0 : v2 ) : ( LengthSqr1 > LengthSqr2 ? v1 : v2 );
+}
+
+void VelocityDilatePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+
+	float2 Neighbor0 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, int2(-1, -1) ).xy;
+	float2 Neighbor1 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, int2( 0, -1) ).xy;
+	float2 Neighbor2 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, int2( 1, -1) ).xy;
+	float2 Neighbor3 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, int2(-1,  0) ).xy;
+	float2 Neighbor4 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0				).xy;
+	float2 Neighbor5 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, int2( 1,  0) ).xy;
+	float2 Neighbor6 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, int2(-1,  1) ).xy;
+	float2 Neighbor7 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, int2( 0,  1) ).xy;
+	float2 Neighbor8 = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, int2( 1,  1) ).xy;
+
+	float2 Max012 = MaxLength( Neighbor0, Neighbor1, Neighbor2 );
+	float2 Max345 = MaxLength( Neighbor3, Neighbor4, Neighbor5 );
+	float2 Max678 = MaxLength( Neighbor6, Neighbor7, Neighbor8 );
+
+	OutColor.xy = MaxLength( Max012, Max345, Max678 );
+	OutColor.zw = 0;
 }
 
 
