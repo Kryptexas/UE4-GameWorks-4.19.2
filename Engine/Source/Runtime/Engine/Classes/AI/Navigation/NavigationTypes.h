@@ -347,8 +347,12 @@ struct ENGINE_API FNavAgentProperties : public FMovementProperties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
 	float AgentStepHeight;
 
+	/** Scale factor to apply to height of bounds when searching for navmesh to project to when nav walking */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
+	float NavWalkingSearchHeightScale;
+
 	FNavAgentProperties(float Radius = -1.f, float Height = -1.f)
-		: AgentRadius(Radius), AgentHeight(Height), AgentStepHeight(-1)
+		: AgentRadius(Radius), AgentHeight(Height), AgentStepHeight(-1), NavWalkingSearchHeightScale(0.5f)
 	{
 	}
 

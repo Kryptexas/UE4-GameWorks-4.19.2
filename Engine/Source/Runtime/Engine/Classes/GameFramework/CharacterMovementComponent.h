@@ -1129,7 +1129,7 @@ protected:
 	 * navmesh can differ quite significantly from geometry).
 	 * Updates CachedProjectedNavMeshHitResult, access this for more info about hits.
 	 */
-	void ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation);
+	virtual void ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation);
 
 public:
 
