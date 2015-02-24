@@ -841,6 +841,14 @@ public:
 	void SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCntrlDown);
 
 	/**
+	 * Set the expansion state of a node
+	 *
+	 * @param InNodeToChange	The node to be expanded/collapsed
+	 * @param bIsExpanded		True to expand the node, false to collapse it
+	 */
+	void SetNodeExpansionState(FSCSEditorTreeNodePtrType InNodeToChange, const bool bIsExpanded);
+
+	/**
 	 * Highlight a tree node and, optionally, a property with in it
 	 *
 	 * @param TreeNodeName		Name of the treenode to be highlighted

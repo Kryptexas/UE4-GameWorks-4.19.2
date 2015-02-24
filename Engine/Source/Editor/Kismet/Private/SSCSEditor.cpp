@@ -2575,6 +2575,9 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 		if(OldSceneRootNodePtr.IsValid())
 		{
 			SceneRootNodePtr->AddChild(OldSceneRootNodePtr);
+
+			// Expand the new scene root as we've just added a child to it
+			SCSEditorPtr->SetNodeExpansionState(SceneRootNodePtr, true);
 		}
 	}
 	else    // EComponentEditorMode::ActorInstance
@@ -2596,6 +2599,9 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 		// Set old root as child of new root
 		check(OldSceneRootNodePtr.IsValid());
 		SceneRootNodePtr->AddChild(OldSceneRootNodePtr);
+
+		// Expand the new scene root as we've just added a child to it
+		SCSEditorPtr->SetNodeExpansionState(SceneRootNodePtr, true);
 	}
 
 	PostDragDropAction(true);
@@ -3947,6 +3953,14 @@ void SSCSEditor::SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCnt
 		{
 			SCSTreeWidget->SetItemSelection(InNodeToSelect, !SCSTreeWidget->IsItemSelected(InNodeToSelect));
 		}
+	}
+}
+
+void SSCSEditor::SetNodeExpansionState(FSCSEditorTreeNodePtrType InNodeToChange, const bool bIsExpanded)
+{
+	if(SCSTreeWidget.IsValid() && InNodeToChange.IsValid())
+	{
+		SCSTreeWidget->SetItemExpansion(InNodeToChange, bIsExpanded);
 	}
 }
 
